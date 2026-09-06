@@ -129,6 +129,22 @@ Stamina is a **wall**, not a health bar.
 
 So the pattern is: grind a keeper to 0 across several rounds, then convert.
 
+### Stamina tuning (measured, not guessed)
+
+Simulated matches using the real card data give a shot power of
+**min 6, max 22, mean 14.1, median 14** across 45 shots.
+
+| `max_stamina` | Goals per match (both sides) | Feel |
+|---|---|---|
+| 10–12 *(current CSV)* | ~3.7 | **Broken.** Every shot empties the keeper in one hit, so it collapses into "shot 1 breaks, shot 2 scores." Five test matches all ended 2–2. |
+| **25–30** | **~2.7** | **Recommended.** Takes 2 shots to break the wall. Scorelines came out 1–1, 2–1, 1–2. |
+| 40 | ~3.0 | Wall holds ~3 rounds. |
+| 55 | ~1.7 | Very defensive; some 0–1 and 2–0 matches. |
+
+Rule of thumb: **`max_stamina` ≈ 2× mean shot power.** Update the
+`Max Stamina` column in `Goalies.csv` from 10/12 to roughly **25/30** and
+re-run the importer.
+
 ---
 
 ## 6. Data model
@@ -141,13 +157,30 @@ So the pattern is: grind a keeper to 0 across several rounds, then convert.
 | `player_name` | display name |
 | `attack_text` / `defend_text` | ability text (display-only for now) |
 | `element` | targeting tag |
-| `base_power_left` | **attack power** (the 0–5 number) |
-| `base_power_right` | **defense power** (mirrors left for now) |
+| `base_power_left` | **attack power** — confirmed, this is where the 0–5 number lives |
+| `base_power_right` | **defense power** (mirrors left in all current cards) |
 | `tier` | "I" / "II" / "III" / "IV" |
 | `player_type` | "Normal" or "Star" |
 | `formation_scene` | Star Players only — the pitch layout |
-| `stufe`, `tool`, `card_*`, `created_by` | card metadata (**purpose TBC**) |
+| `set_name` | "F01" — must be spelled `set_name`, not `card_set`, to match the existing `.tres` files |
+| `stufe`, `tool` | currently the literal strings `"Level"` and `"Wand"` on **every** card — placeholder columns, no mechanical use |
+| `element` | also `"Wand"` on every card — the targeting tag is not populated with real values yet |
 | `artwork` | 12 × 39 spritesheet |
+
+> ⚠️ Godot omits a property from a `.tres` when it equals the type default,
+> so a card with a real power of **0** (legal at Tier I) writes no
+> `base_power_left` line at all. Never treat "missing" as "unset" and fall
+> back to another column — read the value directly.
+
+### Verified roster (as of the current CSVs)
+
+| Class | Star tier | Regulars |
+|---|---|---|
+| **Brandteufel** | III (Heatwave 2, Fireline 4, Coalblaze 3) | Tier I, II, IV × 3 each ✓ |
+| **Lorelei** | IV (Twilight 3, Golden River 4, Heart-Luring Wave 5) | Tier I, II, III × 3 each ✓ |
+
+Both classes obey the "all three Stars share one tier" rule and both have
+exactly 9 regulars in the three non-Star tiers. The data is correct.
 
 ### `GoalieData` (`res://data/goalies/<team>_goalie.tres`)
 `team`, `goalie_name`, `max_stamina`, `ability_text`, `artwork`.
@@ -201,7 +234,7 @@ the arena then listens to `round_ready_for_combat` and calls
 
 ## 8. Open questions
 
-1. **Which CSV column holds the 0–5 number?** Currently assumed `base_power_left`. `stufe` and `tool` are unassigned — what are they for?
+1. ~~Which CSV column holds the 0–5 number?~~ **Answered:** `base_power_left`. `stufe` and `tool` are placeholder strings on every card.
 2. **Duel power ties.** Two units with the same number meet. Attacker breaks through, or defender holds? Currently exported as `ties_go_to_attacker` (default: defender holds).
 3. **Ability text → mechanics.** Keyword parser reading `attack_text`, or new structured columns (`ability_id`, `trigger`, `value`)?
 4. Does the RPS winner ever *want* to defend, or is attacking always correct? If defending is never chosen, the choice is decorative.
@@ -223,3 +256,36 @@ the arena then listens to `round_ready_for_combat` and calls
 - **`next_playmaker_time`** was declared and never used. Removed.
 - **The Star's own tier** could be filled with regular units if the formation scene had a node for it. Now skipped with a warning naming the scene.
 - Enemy team is now chosen *after* your kickoff pick, so it's never a mirror match, and the enemy rotates its own Star at each HOLD UP!.
+
+---
+
+## 10. Bugs fixed in the second pass (verified against the real project in Godot 4.7)
+
+- **`goalie_unit.tscn` root node was `Node2D` while `goalie_unit.gd` declares `extends Area2D`.** `GOALIE_SCENE.instantiate()` therefore returned `null`, producing
+  `Script inherits from native type 'Area2D', so it can't be assigned to an object of type 'Node2D'`
+  followed by `Invalid assignment of property or key 'is_enemy' … on a base object of type 'Nil'`.
+  Both goalies ended up null, so **all 9 shots a match silently did nothing and no goal could ever be scored.**
+  This bug was always present — the old `main_scene.gd` never called `spawn_goalies()`, so nothing triggered it. The scene has a `CollisionShape2D` child, which confirms the root was always meant to be an `Area2D`.
+- **`StaminaBar` is a `TextureProgressBar`, typed in code as `ProgressBar`.** Those are siblings, not parent/child — both extend `Range`. Now typed as `Range`, so either node type works.
+- **Phantom shots.** `round_player_picks` was only cleared when a PLAY MAKER started, so each HOLD UP! draft re-resolved the *previous* round's duels and fired an extra shot — **11 shots per match instead of 9**. Now gated behind an explicit `round_in_progress` flag.
+- **`card_set` vs `set_name`.** All 24 `.tres` files store `set_name`; the field was declared as `card_set`. Godot silently drops unknown properties, so the value was being lost on every load. Renamed to `set_name`.
+- **`get_defense_power()` fallback removed** — see the warning in §6.
+
+### Still missing from the repo (present locally, just never committed)
+
+- `src/core/player_data.gd`, `src/core/goalie_data.gd`, `src/core/csv_importer.gd`
+- `src/formations/brandteufel_formation.tscn`, `src/formations/lorelei_formation.tscn`
+- `data/goalies/*.tres` — `Goalies.csv` has never been imported. Call `import_goalies()` from `csv_importer.gd`'s `_run()`.
+
+### Test rig
+
+The full match loop can be run headlessly with no display:
+
+```
+godot --headless --path <project> --script res://test_run.gd
+```
+
+where `test_run.gd` extends `SceneTree`, instantiates `main_scene.tscn`, raises
+`time_scale`, and auto-clicks the first card whenever `card_container` has
+children. A 90-minute match completes in about 25 seconds and prints every
+duel, shot and goal — which is how the stamina table in §5 was measured.
