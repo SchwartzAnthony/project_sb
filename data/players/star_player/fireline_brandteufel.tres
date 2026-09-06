@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="PlayerData" format=3 uid="uid://dgvb5owu3m5gi"]
+
+[ext_resource type="Script" uid="uid://brrf3kienq7ng" path="res://src/core/player_data.gd" id="1_bl60q"]
+[ext_resource type="Texture2D" uid="uid://u33m3mwobupx" path="res://assets/players/Fireline Brandteufel.png" id="1_e666d"]
+[ext_resource type="PackedScene" uid="uid://bq60w80077ch1" path="res://src/formations/brandteufel_formation.tscn" id="2_roo63"]
+
+[resource]
+script = ExtResource("1_bl60q")
+formation_scene = ExtResource("2_roo63")
+player_type = "Star"
+unit_type = "Brandteufel"
+player_name = "Fireline Brandteufel"
+attack_text = "When the last ally Unit type in combat was a Brandteufel: Force an enemy Unit to defend with their Attack power."
+defend_text = "When the last ally Unit type in combat was a Brandteufel: Transfrom another ally player on the field into a Brandteufel Unit type."
+element = "Wand"
+base_power_left = 4
+base_power_right = 4
+tier = "III"
+stufe = "Level"
+tool = "Wand"
+card_number = 93
+card_date = 2026
+set_name = "F01"
+created_by = "A.J.S"
+artwork = ExtResource("1_e666d")

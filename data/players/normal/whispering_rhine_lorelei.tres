@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="PlayerData" format=3 uid="uid://bl35y6f7jw01x"]
+
+[ext_resource type="Script" uid="uid://brrf3kienq7ng" path="res://src/core/player_data.gd" id="1_u0c2q"]
+[ext_resource type="Texture2D" uid="uid://d2nvo7ln8xfis" path="res://assets/players/Whispering Rhine Lorelei.png" id="1_vn3w7"]
+
+[resource]
+script = ExtResource("1_u0c2q")
+unit_type = "Lorelei"
+player_name = "Whispering Rhine Lorelei"
+attack_text = "If in Void or Exhaust Zone before Unit Combat: 
+Give a Cups Unit in the Combat Zone +1 Defensive Power"
+defend_text = "After combat send this unit to the Exhaust Zone instead of the Void."
+element = "Fire"
+base_power_left = 3
+base_power_right = 3
+tier = "III"
+stufe = "Level"
+tool = "Wand"
+card_number = 8
+card_date = 2026
+set_name = "F01"
+created_by = "A.J.S"
+artwork = ExtResource("1_vn3w7")

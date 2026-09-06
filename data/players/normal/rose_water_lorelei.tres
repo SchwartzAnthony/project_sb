@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="PlayerData" format=3 uid="uid://djaxeu7mk4igi"]
+
+[ext_resource type="Texture2D" uid="uid://boh3hem0haja3" path="res://assets/players/Rose Water Lorelei.png" id="1_7n7rc"]
+[ext_resource type="Script" uid="uid://brrf3kienq7ng" path="res://src/core/player_data.gd" id="1_my1ur"]
+
+[resource]
+script = ExtResource("1_my1ur")
+unit_type = "Lorelei"
+player_name = "Rose Water Lorelei"
+attack_text = "If in Void or Exhaust Zone after Preperation Phase: 
+Reveal an opponent Unit of Tier I that is in the Active Zone. (Once Per Round)."
+defend_text = "After combat send this unit to the Exhaust Zone instead of the Void."
+element = "Fire"
+base_power_left = 1
+base_power_right = 1
+tier = "II"
+stufe = "Level"
+tool = "Wand"
+card_number = 4
+card_date = 2026
+set_name = "F01"
+created_by = "A.J.S"
+artwork = ExtResource("1_7n7rc")

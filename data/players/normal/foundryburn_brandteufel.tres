@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="PlayerData" format=3 uid="uid://gqu3hjdpgq1"]
+
+[ext_resource type="Texture2D" uid="uid://bck66snvk7u8q" path="res://assets/players/Foundryburn Brandteufel.png" id="1_0bhqc"]
+[ext_resource type="Script" uid="uid://brrf3kienq7ng" path="res://src/core/player_data.gd" id="1_jmddu"]
+
+[resource]
+script = ExtResource("1_jmddu")
+unit_type = "Brandteufel"
+player_name = "Foundryburn Brandteufel"
+attack_text = "When the last ally Unit type in combat was a Brandteufel: Transfrom another ally player on the field into a Brandteufel Unit type."
+defend_text = "When the last ally Unit type in combat was a Brandteufel: Look at any one random Unit from one of your opponents Tier Stacks."
+element = "Wand"
+base_power_left = 3
+base_power_right = 3
+tier = "II"
+stufe = "Level"
+tool = "Wand"
+card_number = 90
+card_date = 2026
+set_name = "F01"
+created_by = "A.J.S"
+artwork = ExtResource("1_0bhqc")

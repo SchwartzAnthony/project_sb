@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="PlayerData" format=3 uid="uid://d14l247paieu7"]
+
+[ext_resource type="Texture2D" uid="uid://b8y8dancn2byj" path="res://assets/players/Mist-Born Lorelei.png" id="1_bsyk5"]
+[ext_resource type="Script" uid="uid://brrf3kienq7ng" path="res://src/core/player_data.gd" id="1_gxju5"]
+
+[resource]
+script = ExtResource("1_gxju5")
+unit_type = "Lorelei"
+player_name = "Mist-Born Lorelei"
+attack_text = "If in Void or Exhaust Zone after Preperation Phase: 
+Reveal an opponent Unit of Tier II that is in the Active Zone. (Once Per Round)."
+defend_text = "After combat send this unit to the Exhaust Zone instead of the Void."
+element = "Water"
+base_power_left = 2
+base_power_right = 2
+tier = "II"
+stufe = "Level"
+tool = "Cups"
+card_number = 5
+card_date = 2026
+set_name = "F01"
+created_by = "A.J.S"
+artwork = ExtResource("1_bsyk5")

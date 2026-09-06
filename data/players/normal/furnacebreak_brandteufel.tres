@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="PlayerData" format=3 uid="uid://bgcud3td5ft0"]
+
+[ext_resource type="Texture2D" uid="uid://drvrf3sj5qmsr" path="res://assets/players/Furnacebreak Brandteufel.png" id="1_6ymtw"]
+[ext_resource type="Script" uid="uid://brrf3kienq7ng" path="res://src/core/player_data.gd" id="1_mf8vm"]
+
+[resource]
+script = ExtResource("1_mf8vm")
+unit_type = "Brandteufel"
+player_name = "Furnacebreak Brandteufel"
+attack_text = "Gain 2 Teufel Mask counters. Transfrom another ally player on the field into a Brandteufel Unit type."
+defend_text = "Reveal a Wand Unit in an Active Zone. They get +1 Defense during combat."
+element = "Wand"
+base_power_left = 1
+base_power_right = 1
+tier = "I"
+stufe = "Level"
+tool = "Wand"
+card_number = 86
+card_date = 2026
+set_name = "F01"
+created_by = "A.J.S"
+artwork = ExtResource("1_6ymtw")

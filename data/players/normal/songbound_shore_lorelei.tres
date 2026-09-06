@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="PlayerData" format=3 uid="uid://ccpkefq3rgtqe"]
+
+[ext_resource type="Texture2D" uid="uid://d0obkqo4vkg5w" path="res://assets/players/Songbound Shore Lorelei.png" id="1_1c4ko"]
+[ext_resource type="Script" uid="uid://brrf3kienq7ng" path="res://src/core/player_data.gd" id="1_j0e0s"]
+
+[resource]
+script = ExtResource("1_j0e0s")
+unit_type = "Lorelei"
+player_name = "Songbound Shore Lorelei"
+attack_text = "If in Void or Exhaust Zone before Unit Combat: 
+Give a Wand Unit in the Combat Zone +2 Attack Power"
+defend_text = "After combat send this unit to the Exhaust Zone instead of the Void."
+element = "Water"
+base_power_left = 4
+base_power_right = 4
+tier = "III"
+stufe = "Level"
+tool = "Cups"
+card_number = 9
+card_date = 2026
+set_name = "F01"
+created_by = "A.J.S"
+artwork = ExtResource("1_1c4ko")

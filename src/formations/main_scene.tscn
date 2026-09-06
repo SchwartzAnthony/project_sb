@@ -1,0 +1,50 @@
+[gd_scene format=3 uid="uid://cwur6e3agofhh"]
+
+[ext_resource type="Texture2D" uid="uid://u0w0wlonihlp" path="res://assets/field/soccerfield.jpg" id="1_0f027"]
+[ext_resource type="Script" uid="uid://cpem4hsndlb7d" path="res://src/formations/main_scene.gd" id="1_2c62f"]
+
+[node name="MainScene" type="Node2D" unique_id=1880290340 node_paths=PackedStringArray("field_sprite")]
+script = ExtResource("1_2c62f")
+field_sprite = NodePath("Sprite2D")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=971090029]
+position = Vector2(980.5, 538.625)
+scale = Vector2(2.119, 1.6473013)
+texture = ExtResource("1_0f027")
+
+[node name="SelectionUI" type="CanvasLayer" parent="." unique_id=527606379]
+
+[node name="StartDraftButton" type="Button" parent="SelectionUI" unique_id=1343449896]
+offset_left = 672.0
+offset_top = 496.0
+offset_right = 1263.0
+offset_bottom = 602.0
+text = "Start Playmaker Selection"
+
+[node name="CardContainer" type="HBoxContainer" parent="SelectionUI" unique_id=162152888]
+offset_left = 833.0
+offset_top = 913.0
+offset_right = 1129.0
+offset_bottom = 953.0
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="TimerLabel" type="Label" parent="SelectionUI" unique_id=591183761]
+offset_left = 1643.0
+offset_top = 21.0
+offset_right = 1890.0
+offset_bottom = 112.0
+theme_override_font_sizes/font_size = 48
+text = "00:00
+"
+
+[node name="EventAnnouncement" type="Label" parent="SelectionUI" unique_id=1621438908]
+visible = false
+offset_left = 660.0
+offset_top = 380.0
+offset_right = 1276.0
+offset_bottom = 644.0
+theme_override_font_sizes/font_size = 72
+text = "PLAY MAKER! "
+horizontal_alignment = 1
+vertical_alignment = 1
