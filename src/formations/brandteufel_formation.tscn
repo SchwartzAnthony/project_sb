@@ -1,0 +1,62 @@
+[gd_scene format=3 uid="uid://bq60w80077ch1"]
+
+[ext_resource type="Texture2D" uid="uid://d1vc2jyfqpggq" path="res://assets/field/soccerlineup.jpg" id="1_vi032"]
+[ext_resource type="Texture2D" uid="uid://u0w0wlonihlp" path="res://assets/field/soccerfield.jpg" id="2_ulafn"]
+
+[node name="LoreleiFormation" type="Node2D" unique_id=465205338]
+
+[node name="StarSlot" type="Node2D" parent="." unique_id=1988540660]
+
+[node name="TierIII" type="Node2D" parent="StarSlot" unique_id=1428114724]
+
+[node name="Star_TierIII" type="Marker2D" parent="StarSlot/TierIII" unique_id=1111793465]
+position = Vector2(1208, 262)
+
+[node name="RegularSlots" type="Node2D" parent="." unique_id=1313880075]
+
+[node name="TierI" type="Node2D" parent="RegularSlots" unique_id=1059924646]
+
+[node name="TierI0" type="Marker2D" parent="RegularSlots/TierI" unique_id=565943354]
+position = Vector2(586, 843)
+
+[node name="TierI1" type="Marker2D" parent="RegularSlots/TierI" unique_id=1368177654]
+position = Vector2(612, 139)
+
+[node name="TierI2" type="Marker2D" parent="RegularSlots/TierI" unique_id=469771330]
+position = Vector2(456, 662)
+
+[node name="TierII" type="Node2D" parent="RegularSlots" unique_id=695372966]
+
+[node name="TierII1" type="Marker2D" parent="RegularSlots/TierII" unique_id=374293152]
+position = Vector2(465, 370)
+
+[node name="TierII2" type="Marker2D" parent="RegularSlots/TierII" unique_id=2003709449]
+position = Vector2(809, 514)
+
+[node name="TierII3" type="Marker2D" parent="RegularSlots/TierII" unique_id=1521144067]
+position = Vector2(971, 683)
+
+[node name="TierIV" type="Node2D" parent="RegularSlots" unique_id=890129507]
+
+[node name="TierIV3" type="Marker2D" parent="RegularSlots/TierIV" unique_id=133313695]
+position = Vector2(1334, 851)
+
+[node name="TierIV4" type="Marker2D" parent="RegularSlots/TierIV" unique_id=1474026121]
+position = Vector2(1324, 167)
+
+[node name="TierIV5" type="Marker2D" parent="RegularSlots/TierIV" unique_id=435660469]
+position = Vector2(1512, 526)
+
+[node name="Soccerlineup" type="Sprite2D" parent="." unique_id=1821463807]
+visible = false
+position = Vector2(945, -408)
+rotation = 1.5707964
+texture = ExtResource("1_vi032")
+metadata/_edit_lock_ = true
+
+[node name="Soccerfield" type="Sprite2D" parent="." unique_id=1980009744]
+visible = false
+position = Vector2(970.99994, 513)
+scale = Vector2(2.106, 1.6754123)
+texture = ExtResource("2_ulafn")
+metadata/_edit_lock_ = true

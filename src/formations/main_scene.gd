@@ -79,6 +79,10 @@ var draft_phases: Array[String] = []
 var current_phase_index: int = 0
 var round_player_picks: Array[PlayerData] = []
 var round_enemy_picks: Array[PlayerData] = []
+## True only between "PLAY MAKER!" and its combat. Kickoff and HOLD UP! drafts
+## must NOT resolve combat — without this they replay the previous round's
+## picks and fire a phantom shot (11 shots per match instead of 9).
+var round_in_progress: bool = false
 
 var player_score: int = 0
 var enemy_score: int = 0
@@ -494,6 +498,7 @@ func trigger_playmaker_event() -> void:
 	rounds_this_cycle += 1
 	round_player_picks.clear()
 	round_enemy_picks.clear()
+	round_in_progress = true
 
 	for unit in _all_units():
 		unit.clear_round_flags()
@@ -510,6 +515,9 @@ func trigger_hold_up_event() -> void:
 	current_state = MatchState.DRAFTING
 	current_cycle += 1
 	rounds_this_cycle = 0
+	round_in_progress = false
+	round_player_picks.clear()
+	round_enemy_picks.clear()
 
 	for unit in _all_units():
 		unit.reset_for_new_cycle()
@@ -689,11 +697,12 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 
 func _on_draft_complete() -> void:
 	# Kickoff / HOLD UP! drafts have no combat — just restart the clock.
-	if round_player_picks.is_empty() and round_enemy_picks.is_empty():
+	if not round_in_progress:
 		current_state = MatchState.PLAYING
 		print("Draft complete — clock running.")
 		return
 
+	round_in_progress = false
 	resolve_round()
 
 

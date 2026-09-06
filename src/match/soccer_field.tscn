@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://cnbi6ept2dk26"]
+
+[ext_resource type="Texture2D" uid="uid://u0w0wlonihlp" path="res://assets/field/soccerfield.jpg" id="1_0f027"]
+[ext_resource type="PackedScene" uid="uid://ds1dpnjd74kpx" path="res://src/formations/lorelei_formation.tscn" id="3_xur7f"]
+
+[node name="SoccerField" type="Node2D" unique_id=1880290340]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=971090029]
+position = Vector2(960, 540)
+scale = Vector2(1.2240001, 1.0209895)
+texture = ExtResource("1_0f027")
+metadata/_edit_lock_ = true
+
+[node name="SpawnPositions" parent="." unique_id=465205338 instance=ExtResource("3_xur7f")]
+
+[node name="HomeGoaliePos" type="Marker2D" parent="." unique_id=1759573142]
+position = Vector2(114, 315)
+
+[node name="AwayGoaliePos" type="Marker2D" parent="." unique_id=711646496]
+position = Vector2(1026, 315)
+
+[node name="UnitsContainer" type="Node2D" parent="." unique_id=289847497]

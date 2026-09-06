@@ -6,13 +6,17 @@ extends Area2D
 #  Stamina is a WALL. While stamina remains, shots almost never go in.
 #  Once stamina hits 0 the goal is open and the next shot almost always
 #  goes in. Conceding a goal fully restores THIS goalie's stamina only.
+#
+#  NOTE: goalie_unit.tscn's ROOT NODE must be an Area2D. If it is a
+#  Node2D, instantiate() silently returns null and no goals can ever be
+#  scored. Use the corrected goalie_unit.tscn shipped alongside this file.
 # =============================================================
 
 signal goal_conceded
 signal stamina_depleted
 signal shot_saved(remaining_stamina: int)
 
-@export var max_stamina: int = 10
+@export var max_stamina: int = 40
 
 ## Chance a shot sneaks past while the goalie still has stamina.
 @export_range(0.0, 1.0, 0.01) var break_through_chance: float = 0.05
@@ -23,8 +27,12 @@ var current_stamina: int
 var is_enemy: bool = false
 var data: GoalieData
 
-@onready var artwork: Sprite2D = $Artwork
-@onready var stamina_bar: ProgressBar = $StaminaBar
+# Typed as Range, not ProgressBar — TextureProgressBar and ProgressBar are
+# siblings, both extending Range. Typing this as ProgressBar breaks any
+# scene that uses a TextureProgressBar.
+@onready var artwork: Sprite2D = get_node_or_null("Artwork")
+@onready var stamina_bar: Range = get_node_or_null("StaminaBar")
+@onready var name_label: Label = get_node_or_null("NameLabel")
 
 
 func _ready() -> void:
@@ -36,24 +44,25 @@ func setup(goalie_data: GoalieData) -> void:
 	if data == null:
 		return
 	max_stamina = data.max_stamina
-	if data.artwork and artwork:
+	if data.artwork != null and artwork != null:
 		artwork.texture = data.artwork
+	if name_label != null:
+		name_label.text = data.goalie_name
 	if is_node_ready():
 		_refill()
 
 
 func _refill() -> void:
 	current_stamina = max_stamina
-	if stamina_bar:
+	if stamina_bar != null:
 		stamina_bar.max_value = max_stamina
 		stamina_bar.value = current_stamina
-	if artwork:
+	if artwork != null:
 		artwork.modulate = Color.WHITE
 
 
 # =============================================================
-#  SHOT RESOLUTION
-#  Returns true if the shot was a GOAL.
+#  SHOT RESOLUTION — returns true if the shot was a GOAL
 # =============================================================
 
 func take_shot(shot_power: int) -> bool:
@@ -67,7 +76,7 @@ func take_shot(shot_power: int) -> bool:
 
 	# --- Wall: chip away at the stamina first ---
 	current_stamina = maxi(0, current_stamina - shot_power)
-	if stamina_bar:
+	if stamina_bar != null:
 		stamina_bar.value = current_stamina
 
 	if current_stamina == 0:
@@ -95,7 +104,7 @@ func _concede() -> void:
 	play_concede_feedback()
 
 
-# --- Backwards-compatible alias for older call sites ---------
+## Backwards-compatible alias for older call sites.
 func absorb_shot(shot_power: int) -> void:
 	take_shot(shot_power)
 

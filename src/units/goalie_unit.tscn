@@ -1,21 +1,27 @@
-[gd_scene format=3 uid="uid://8ssw34pcbdce"]
+[gd_scene load_steps=3 format=3 uid="uid://8ssw34pcbdce"]
 
 [ext_resource type="Script" uid="uid://4ka2l1mxe66e" path="res://src/units/goalie_unit.gd" id="1_thca3"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_15q6v"]
 
-[node name="GoalyUnit" type="Node2D" unique_id=317358051]
+[node name="GoalieUnit" type="Area2D"]
 script = ExtResource("1_thca3")
 
-[node name="Artwork" type="Sprite2D" parent="." unique_id=981233269]
+[node name="Artwork" type="Sprite2D" parent="."]
+texture_filter = 1
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=943402477]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_15q6v")
 
-[node name="StaminaBar" type="TextureProgressBar" parent="." unique_id=1517189188]
-offset_right = 40.0
-offset_bottom = 40.0
+[node name="StaminaBar" type="TextureProgressBar" parent="."]
+offset_left = -20.0
+offset_top = 26.0
+offset_right = 20.0
+offset_bottom = 38.0
 
-[node name="NameLabel" type="Label" parent="." unique_id=1326240080]
+[node name="NameLabel" type="Label" parent="."]
+offset_left = -40.0
+offset_top = -44.0
 offset_right = 40.0
-offset_bottom = 23.0
+offset_bottom = -21.0
+horizontal_alignment = 1
