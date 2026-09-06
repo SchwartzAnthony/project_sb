@@ -20,10 +20,24 @@ extends Resource
 @export var tool: String
 @export var card_number: int
 @export var card_date: int
-@export var set_name: String   # matches the "Set Name" CSV column and your .tres files
+@export var card_set: String   # the "Set Name" CSV column, e.g. "F01"
 @export var created_by: String
 
 @export var artwork: Texture2D
+
+
+# --- Backwards compatibility --------------------------------
+# The 24 existing .tres files write `set_name = "F01"`. We CANNOT declare a
+# member called `set_name`, because Resource already has a set_name() method
+# (the setter for `resource_name`) and shadowing it breaks the engine's own
+# calls. So the field is `card_set`, and we intercept the old key on load.
+# Re-saving a card through the importer writes `card_set` and this goes quiet.
+
+func _set(property: StringName, value: Variant) -> bool:
+	if property == &"set_name":
+		card_set = str(value)
+		return true
+	return false
 
 
 # --- Power ---------------------------------------------------

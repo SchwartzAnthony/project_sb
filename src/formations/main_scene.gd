@@ -242,59 +242,122 @@ func spawn_team(star_player: PlayerData, is_enemy: bool) -> void:
 	if star_player == null:
 		push_error("spawn_team called with no Star Player.")
 		return
-	if star_player.formation_scene == null:
-		push_error("Star '%s' has no formation_scene assigned. Check csv_importer + res://src/formations/." % star_player.player_name)
-		return
-
-	var formation := star_player.formation_scene.instantiate()
-	add_child(formation)
-
 	var pitch_center_x := get_pitch_center_x()
 	var this_star_tier := star_player.get_tier_clean()
 
+	# A formation scene is now OPTIONAL. Whatever it does not supply is filled
+	# in from a generated layout, so a team always reaches the pitch.
+	var layout := build_layout(star_player, this_star_tier)
+
 	# --- 1. The Star ---
-	var star_slot := formation.get_node_or_null("StarSlot")
-	var star_marker: Marker2D = null
-	if star_slot != null and star_slot.get_child_count() > 0:
-		star_marker = star_slot.get_child(0) as Marker2D
-	if star_marker != null:
-		var star_pos := mirror_if_enemy(star_marker.global_position, pitch_center_x, is_enemy)
-		var star_unit := create_unit_instance(star_player, star_pos, is_enemy)
-		if star_unit:
-			star_unit.is_star_player = true
-	else:
-		push_error("Formation for '%s' is missing StarSlot with a Marker2D child." % star_player.player_name)
+	var star_pos: Vector2 = mirror_if_enemy(layout["star"], pitch_center_x, is_enemy)
+	var star_unit := create_unit_instance(star_player, star_pos, is_enemy)
+	if star_unit:
+		star_unit.is_star_player = true
 
 	# --- 2. The 9 regulars ---
 	var roster := load_roster_by_type(star_player.unit_type)
-	var regular_slots := formation.get_node_or_null("RegularSlots")
-	if regular_slots != null:
-		for tier_node in regular_slots.get_children():
-			var tier_key := String(tier_node.name).replace("Tier", "").strip_edges().to_upper()
+	var tiers: Dictionary = layout["tiers"]
 
-			if tier_key == this_star_tier:
-				push_warning("Formation '%s' has RegularSlots/Tier%s, but that is the Star's own tier. Skipping — remove that node from the formation scene."
-					% [star_player.player_name, tier_key])
-				continue
+	for tier_key in ALL_TIERS:
+		if tier_key == this_star_tier:
+			continue                      # the Star already fills this tier
+		if not tiers.has(tier_key):
+			continue
 
-			var markers := tier_node.get_children()
-			var pool := filter_units_by_tier(roster, tier_key)
-			pool.shuffle()
+		var positions: Array = tiers[tier_key]
+		var pool := filter_units_by_tier(roster, tier_key)
+		pool.shuffle()
 
-			if pool.size() < markers.size():
-				push_warning("Class '%s' only has %d Tier %s cards but the formation has %d slots."
-					% [star_player.unit_type, pool.size(), tier_key, markers.size()])
+		if pool.size() < positions.size():
+			push_warning("Class '%s' has only %d Tier %s cards for %d slots."
+				% [star_player.unit_type, pool.size(), tier_key, positions.size()])
 
-			for i in mini(markers.size(), pool.size()):
-				var marker := markers[i] as Marker2D
-				if marker == null:
-					continue
-				var pos := mirror_if_enemy(marker.global_position, pitch_center_x, is_enemy)
-				create_unit_instance(pool[i], pos, is_enemy)
-	else:
-		push_error("Formation for '%s' is missing a RegularSlots node." % star_player.player_name)
+		for i in mini(positions.size(), pool.size()):
+			var pos: Vector2 = mirror_if_enemy(positions[i], pitch_center_x, is_enemy)
+			create_unit_instance(pool[i], pos, is_enemy)
 
-	formation.queue_free()
+
+# Reads whatever the formation scene offers, then patches the gaps.
+func build_layout(star_player: PlayerData, star_tier: String) -> Dictionary:
+	var star_pos := Vector2.ZERO
+	var have_star := false
+	var tiers: Dictionary = {}
+
+	if star_player.formation_scene != null:
+		var formation := star_player.formation_scene.instantiate()
+		add_child(formation)
+
+		var star_slot := formation.get_node_or_null("StarSlot")
+		if star_slot != null and star_slot.get_child_count() > 0:
+			var m := star_slot.get_child(0) as Node2D
+			if m != null:
+				star_pos = m.global_position
+				have_star = true
+
+		var regular_slots := formation.get_node_or_null("RegularSlots")
+		if regular_slots != null:
+			for tier_node in regular_slots.get_children():
+				var key := String(tier_node.name).replace("Tier", "").strip_edges().to_upper()
+				var arr: Array[Vector2] = []
+				for child in tier_node.get_children():
+					var m2 := child as Node2D
+					if m2 != null:
+						arr.append(m2.global_position)
+				if not arr.is_empty():
+					tiers[key] = arr
+
+		formation.queue_free()
+
+	# --- Fill in anything the scene did not provide ---
+	var fallback := default_layout(star_tier)
+	var fallback_tiers: Dictionary = fallback["tiers"]
+
+	if not have_star:
+		star_pos = fallback["star"]
+		if star_player.formation_scene != null:
+			print("[formation] '%s' has no StarSlot/Marker2D — generated the Star position. Add StarSlot > Marker2D to place it by hand."
+				% star_player.player_name)
+
+	for key in fallback_tiers.keys():
+		if not tiers.has(key) or (tiers[key] as Array).size() < 3:
+			tiers[key] = fallback_tiers[key]
+
+	return {"star": star_pos, "tiers": tiers}
+
+
+# A 3-3-3 grid derived from the pitch, authored for the HOME (left) side.
+func default_layout(star_tier: String) -> Dictionary:
+	var rect := get_pitch_rect()
+
+	# Columns march from your own goal out toward the halfway line.
+	var col_x: Dictionary = {
+		"I":   rect.position.x + rect.size.x * 0.16,
+		"II":  rect.position.x + rect.size.x * 0.25,
+		"III": rect.position.x + rect.size.x * 0.34,
+		"IV":  rect.position.x + rect.size.x * 0.43,
+	}
+	var rows: Array[float] = [
+		rect.position.y + rect.size.y * 0.28,
+		rect.position.y + rect.size.y * 0.50,
+		rect.position.y + rect.size.y * 0.72,
+	]
+
+	var tiers: Dictionary = {}
+	for key in ALL_TIERS:
+		if key == star_tier:
+			continue
+		var x: float = col_x[key]
+		var arr: Array[Vector2] = []
+		for y in rows:
+			arr.append(Vector2(x, y))
+		tiers[key] = arr
+
+	var star_x: float = col_x.get(star_tier, rect.position.x + rect.size.x * 0.34)
+	return {
+		"star": Vector2(star_x, rect.position.y + rect.size.y * 0.50),
+		"tiers": tiers,
+	}
 
 
 func create_unit_instance(data: PlayerData, pos: Vector2, is_enemy: bool) -> PlayerUnit:
@@ -319,7 +382,9 @@ func spawn_goalies() -> void:
 		home_pos = home_marker.global_position
 		away_pos = away_marker.global_position
 	else:
-		push_warning("No HomeGoaliePos / AwayGoaliePos markers found — using pitch bounds instead.")
+		# Optional markers. Add Marker2Ds named HomeGoaliePos / AwayGoaliePos
+		# to main_scene.tscn to place the keepers by hand.
+		print("[goalies] No HomeGoaliePos / AwayGoaliePos markers — using pitch bounds.")
 		var rect := get_pitch_rect()
 		home_pos = Vector2(rect.position.x + 32.0, rect.get_center().y)
 		away_pos = Vector2(rect.end.x - 32.0, rect.get_center().y)
@@ -468,7 +533,8 @@ func get_star_player_choices() -> Array[PlayerData]:
 	if choices.is_empty():
 		push_error("No Star Player resources found in %s" % STAR_DIR)
 	elif choices.size() < 3:
-		push_warning("Only %d distinct classes have Star Players — kickoff will offer %d choices."
+		# Not a bug — you simply have fewer than 3 classes imported yet.
+		print("[kickoff] %d classes available, offering %d Star choices."
 			% [choices.size(), choices.size()])
 	return choices
 
