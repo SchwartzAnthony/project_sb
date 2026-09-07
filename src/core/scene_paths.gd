@@ -21,6 +21,7 @@ const MAIN_MENU := "res://src/ui/main_menu.tscn"
 const CLASS_SELECT := "res://src/ui/class_select.tscn"
 const TEAM_BUILDER := "res://src/ui/team_builder.tscn"
 const MATCH := "res://src/formations/main_scene.tscn"
+const STORY := "res://src/ui/dialogue_view.tscn"
 
 ## Folders never worth searching.
 const SKIP_DIRS: Array[String] = [".godot", ".git", "addons", "sheet_previews"]

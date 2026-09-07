@@ -40,7 +40,30 @@ func _ready() -> void:
 		_show_no_classes_message()
 		return
 
-	_select_class(_class_names[0])
+	_select_class(_opening_class())
+
+
+## Which class the screen opens on.
+##
+## THIS IS THE STORY HOOK. A dialogue choice carrying the effect
+##     set:next_class=Lorelei
+## lands you here already on the Lorelei, so a decision made in a
+## conversation is visibly the decision you play. Anything else you want a
+## choice to change is wired the same way: read GameState where the thing is
+## decided, and write it from a CSV Effects column.
+##
+## The name is consumed, not kept, so the next match starts free again.
+func _opening_class() -> String:
+	var state := GameState.fetch(get_tree())
+	var wanted := state.text("next_class")
+	if wanted != "":
+		state.set_text("next_class", "")
+		for known in _class_names:
+			if MenuSupport.normalise(known) == MenuSupport.normalise(wanted):
+				print("[Story] Opening on %s — chosen in dialogue." % known)
+				return known
+		print("[Story] Dialogue asked for class '%s', which no CSV defines." % wanted)
+	return _class_names[0]
 
 
 # -------------------------------------------------------------

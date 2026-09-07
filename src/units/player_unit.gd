@@ -28,6 +28,21 @@ var movement_frozen: bool = false     # HOLD UP! substitution pauses everyone
 @export var dribble_speed: float = 44.0     # px/s carrying it upfield
 @export var interest_radius: float = 190.0  # only react to a ball this close
 
+# --- Crowding ------------------------------------------------
+# Units used to walk straight through each other and settle into the same
+# few pixels. These three turn that into a shove: everybody keeps a little
+# room, EXCEPT near the ball, where fighting over it is the point.
+## How close another unit has to be before this one starts giving way.
+@export var separation_radius: float = 52.0
+## How hard the shove is, relative to the pull of wherever they are heading.
+@export var separation_strength: float = 0.9
+## Inside this distance of the ball the shove fades out, so a loose ball is
+## genuinely contested instead of politely orbited.
+@export var contest_radius: float = 70.0
+## A sideways bias on the run to the ball, its direction fixed per unit, so a
+## group converging on it takes curved routes instead of forming one queue.
+@export var swerve_strength: float = 0.35
+
 ## Assigned at spawn by main_scene.
 var ball: Ball = null
 var play_bounds: Rect2 = Rect2()
@@ -40,6 +55,8 @@ var steal_cooldown: float = 0.0
 
 var _roam_target: Vector2
 var _roam_wait: float = 0.0
+## +1 or -1, fixed for this unit's lifetime: which way it bends around traffic.
+var _swerve_sign: float = 1.0
 
 @export var data: PlayerData:
 	set(new_data):
@@ -65,6 +82,9 @@ var _star_badge: StarBadge = null
 
 
 func _ready() -> void:
+	# Fixed for life, so this unit always bends the same way round traffic
+	# rather than dithering left and right on the spot.
+	_swerve_sign = 1.0 if randf() < 0.5 else -1.0
 	update_display()
 	_refresh_star_badge()
 
@@ -215,6 +235,7 @@ func _physics_process(delta: float) -> void:
 
 	var target: Vector2
 	var speed: float
+	var chasing := false
 
 	if has_ball():
 		target = _dribble_target()
@@ -222,6 +243,7 @@ func _physics_process(delta: float) -> void:
 	elif _ball_is_in_range():
 		target = ball.global_position
 		speed = chase_speed
+		chasing = true
 	else:
 		_roam_wait -= delta
 		if _roam_wait <= 0.0 or global_position.distance_to(_roam_target) < 5.0:
@@ -229,8 +251,66 @@ func _physics_process(delta: float) -> void:
 		target = _roam_target
 		speed = walk_speed
 
-	global_position = global_position.move_toward(target, speed * delta)
+	# --- Steering ---
+	# The old code was a straight move_toward(), which is why units walked
+	# through each other and stacked up. Now the pull toward the target is one
+	# force among three, and the sum decides the heading.
+	var to_target := target - global_position
+	var distance := to_target.length()
+	if distance < 0.5:
+		return
+
+	var heading := to_target / distance
+
+	# Bend the run, hard when far out and straightening up as they arrive, so
+	# ten units converging on a loose ball take ten different lines.
+	if chasing and not is_zero_approx(swerve_strength):
+		var bend := clampf(distance / maxf(interest_radius, 1.0), 0.0, 1.0)
+		heading += heading.orthogonal() * _swerve_sign * swerve_strength * bend
+
+	heading += _separation() * separation_strength
+
+	if heading.length_squared() < 0.000001:
+		return
+
+	# minf() with the remaining distance keeps the old arrival behaviour: they
+	# stop on the target rather than jittering back and forth across it.
+	global_position += heading.normalized() * minf(speed * delta, distance)
 	_clamp_to_bounds()
+
+
+## A push away from every other unit standing too close, strongest when they
+## are almost touching and nothing at all at separation_radius.
+func _separation() -> Vector2:
+	var parent := get_parent()
+	if parent == null or separation_radius <= 0.0:
+		return Vector2.ZERO
+
+	# Crowding round the ball is wanted, so the push fades as they close on it.
+	# Without this the shove cancels the chase and nobody ever wins a tackle.
+	var ease_off := 1.0
+	if ball != null and is_instance_valid(ball) and contest_radius > 0.0:
+		ease_off = clampf(
+			global_position.distance_to(ball.global_position) / contest_radius, 0.2, 1.0)
+
+	var push := Vector2.ZERO
+	for sibling in parent.get_children():
+		# Goalies share this container but are GoalieUnits, so they cast to
+		# null here and stay out of the shoving.
+		var other := sibling as PlayerUnit
+		if other == null or other == self:
+			continue
+
+		var away := global_position - other.global_position
+		var gap := away.length()
+		if gap < 0.01:
+			# Exactly superimposed. Break the tie by instance id so the two of
+			# them always separate instead of pushing each other equally.
+			push += Vector2(0.0, 1.0 if get_instance_id() > other.get_instance_id() else -1.0)
+		elif gap < separation_radius:
+			push += (away / gap) * (1.0 - gap / separation_radius)
+
+	return push * ease_off
 
 
 func _ball_is_in_range() -> bool:

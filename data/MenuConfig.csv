@@ -1,4 +1,5 @@
 Button ID,Label,X,Y,Width,Height,Action,Art Path,Notes
-START_GAME,Start Game,640,400,260,68,start_game,res://assets/menu/button_start.png,Goes to the class select screen
-QUICK_MATCH,Quick Match,640,484,260,68,quick_match,res://assets/menu/button_quick.png,Skips team building - random class and roster
-QUIT,Quit,640,568,260,68,quit_game,res://assets/menu/button_quit.png,Closes the game
+START_GAME,Start Game,640,364,260,68,start_game,res://assets/menu/button_start.png,Goes to the class select screen
+STORY,Story,640,448,260,68,story:prologue,res://assets/menu/button_story.png,Plays the Scene named after the colon. story:chapter2 would play chapter2.
+QUICK_MATCH,Quick Match,640,532,260,68,quick_match,res://assets/menu/button_quick.png,Skips team building - random class and roster
+QUIT,Quit,640,616,260,68,quit_game,res://assets/menu/button_quit.png,Closes the game

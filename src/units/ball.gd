@@ -77,6 +77,9 @@ var _shooting: bool = false
 var _scripted: bool = false
 ## How long the current ball has been loose, for the timeout above.
 var _loose_age: float = 0.0
+## Set only for an interception: who steals the pass, and how far along it.
+var _thief: PlayerUnit = null
+var _steal_at: float = -1.0
 
 
 func _ready() -> void:
@@ -160,10 +163,40 @@ func deliver_to(unit: PlayerUnit) -> void:
 	_shooting = false
 	_scripted = true
 	_intended = unit
+	_thief = null
+	_steal_at = -1.0
 	_from = global_position
 	_to = unit.global_position
 	_distance = maxf(_from.distance_to(_to), 1.0)
 	_travelled = 0.0
+
+
+## A pass that gets picked off. The ball sets out for `intended` exactly as a
+## normal delivery would, and `thief` cuts across and takes it partway. Used
+## for a turnover, so possession changes hands by someone reading the pass
+## rather than by the ball simply appearing at the other team's feet.
+##
+## Still emits delivery_arrived when it settles, so callers await it the same
+## way as any other scripted pass.
+func intercept_pass(intended: PlayerUnit, thief: PlayerUnit, at: float = 0.55) -> void:
+	if not is_instance_valid(thief):
+		deliver_to(intended)
+		return
+	if not is_instance_valid(intended):
+		deliver_to(thief)
+		return
+
+	deliver_to(intended)
+	_thief = thief
+	_steal_at = clampf(at, 0.05, 0.95)
+
+
+## Where the ball will be when the thief cuts in. main_scene sends them there
+## so the leap and the ball arrive together.
+func steal_point() -> Vector2:
+	if _steal_at < 0.0:
+		return global_position
+	return _from.lerp(_to, _steal_at)
 
 
 func _advance_delivery(delta: float) -> void:
@@ -178,6 +211,20 @@ func _advance_delivery(delta: float) -> void:
 	_travelled += delivery_speed * delta
 	var t := clampf(_travelled / _distance, 0.0, 1.0)
 	global_position = _from.lerp(_to, t)
+
+	# --- The cut-in ---
+	# Partway to its intended man the ball changes owner. Re-aiming from HERE
+	# rather than from the original spot is what makes it look intercepted:
+	# the ball visibly turns out of its line toward the thief.
+	if _steal_at >= 0.0 and t >= _steal_at and is_instance_valid(_thief):
+		_intended = _thief
+		_thief = null
+		_steal_at = -1.0
+		_from = global_position
+		_to = _intended.global_position
+		_distance = maxf(_from.distance_to(_to), 1.0)
+		_travelled = 0.0
+		return
 
 	if t >= 1.0:
 		# _take() first, while _scripted is still true, so anything listening

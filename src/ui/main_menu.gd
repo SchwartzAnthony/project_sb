@@ -185,7 +185,17 @@ func _make_button(label: String, art_path: String, box: Vector2) -> Button:
 # -------------------------------------------------------------
 
 func _on_action(action: String) -> void:
-	match action.to_lower():
+	# An action may carry an argument after a colon, which is how one Action
+	# word serves any number of buttons: story:prologue, story:chapter2 and
+	# story:lorelei_intro are three buttons and no new code.
+	var verb := action
+	var argument := ""
+	var colon := action.find(":")
+	if colon > 0:
+		verb = action.substr(0, colon).strip_edges()
+		argument = action.substr(colon + 1).strip_edges()
+
+	match verb.to_lower():
 		"start_game":
 			TeamSelection.clear(get_tree())
 			ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT)
@@ -194,6 +204,9 @@ func _on_action(action: String) -> void:
 			# testing without walking the menus every time.
 			TeamSelection.clear(get_tree())
 			ScenePaths.go_to(get_tree(), ScenePaths.MATCH)
+		"story":
+			DialogueView.play(get_tree(),
+				argument if argument != "" else "main", ScenePaths.MAIN_MENU)
 		"open_settings":
 			_footer.text = "Settings are not built yet."
 		"quit_game":

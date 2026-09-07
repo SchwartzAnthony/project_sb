@@ -238,6 +238,11 @@ func _tune_unit(unit: PlayerUnit) -> void:
 	unit.dribble_speed = db.tune_float("unit_dribble_speed", unit.dribble_speed)
 	unit.interest_radius = db.tune_float("unit_interest_radius", unit.interest_radius)
 	unit.roam_radius = db.tune_float("unit_roam_radius", unit.roam_radius)
+	unit.separation_radius = db.tune_float("unit_separation_radius", unit.separation_radius)
+	unit.separation_strength = db.tune_float(
+		"unit_separation_strength", unit.separation_strength)
+	unit.contest_radius = db.tune_float("unit_contest_radius", unit.contest_radius)
+	unit.swerve_strength = db.tune_float("unit_swerve_strength", unit.swerve_strength)
 
 
 func _tune_goalie(keeper: GoalieUnit) -> void:
@@ -850,8 +855,12 @@ func unit_for_card(card: PlayerData, side_is_enemy: bool) -> PlayerUnit:
 	return null
 
 
-## One leg of the PLAY MAKER relay: play the ball up to whoever is holding it
+## One leg of the PLAY MAKER relay: work the ball up to whoever is holding it
 ## for this tier, then hold a beat so the viewer can see who has it.
+##
+## The ball is PASSED THROUGH the team-mates standing along the way rather than
+## struck the full length of the pitch in one go. The man for this tier is
+## still the end of the line — he just is not the only one who touches it.
 func deliver_ball_to_card(card: PlayerData, side_is_enemy: bool) -> void:
 	if ball == null:
 		return
@@ -859,11 +868,72 @@ func deliver_ball_to_card(card: PlayerData, side_is_enemy: bool) -> void:
 	if unit == null or ball.is_carried_by(unit):
 		return
 
-	ball.deliver_to(unit)
-	await ball.delivery_arrived
+	var hop_beat := db.tune_float("relay_hop_beat_seconds", 0.12)
+	for stop in _relay_chain(unit, side_is_enemy):
+		ball.deliver_to(stop)
+		await ball.delivery_arrived
+		if hop_beat > 0.0:
+			await get_tree().create_timer(hop_beat).timeout
+
+	# The chain never includes the destination, and an interception cannot
+	# happen on a scripted relay, so this always lands.
+	if not ball.is_carried_by(unit):
+		ball.deliver_to(unit)
+		await ball.delivery_arrived
+
 	var beat := db.tune_float("relay_beat_seconds", 0.25)
 	if beat > 0.0:
 		await get_tree().create_timer(beat).timeout
+
+
+## The team-mates the ball is played through on its way to `target`, in order.
+## Does NOT include `target` itself.
+##
+## Greedy and deliberately simple: from where the ball is now, take the NEAREST
+## team-mate that is meaningfully closer to the target than we already are, and
+## repeat from there. Picking the nearest rather than the furthest is what makes
+## it look like a passing move instead of a series of long balls.
+func _relay_chain(target: PlayerUnit, side_is_enemy: bool) -> Array[PlayerUnit]:
+	var chain: Array[PlayerUnit] = []
+	if ball == null or target == null:
+		return chain
+
+	var max_hops := db.tune_int("relay_max_hops", 3)
+	if max_hops <= 0:
+		return chain
+	var max_reach := db.tune_float("relay_hop_max_distance", 420.0)
+	var min_progress := db.tune_float("relay_min_progress", 60.0)
+
+	var here := ball.global_position
+	var goal := target.global_position
+
+	while chain.size() < max_hops:
+		var best: PlayerUnit = null
+		var best_hop := INF
+
+		for unit in _all_units():
+			if unit.is_enemy != side_is_enemy or unit == target or chain.has(unit):
+				continue
+			if ball.is_carried_by(unit):
+				continue
+
+			var hop := here.distance_to(unit.global_position)
+			if hop > max_reach or hop >= best_hop:
+				continue
+			# Every hop has to actually advance the move, or the ball ends up
+			# going sideways and backwards on its way up the pitch.
+			if here.distance_to(goal) - unit.global_position.distance_to(goal) < min_progress:
+				continue
+
+			best_hop = hop
+			best = unit
+
+		if best == null:
+			break
+		chain.append(best)
+		here = best.global_position
+
+	return chain
 
 
 ## Give the ball to one side's unit in a specific tier — used after the clash so
@@ -1464,6 +1534,11 @@ func resolve_round() -> void:
 			print(line)
 		abilities.log_lines.clear()
 
+		# A turnover is SHOWN, not just recorded: the beaten attacker tries to
+		# find a team-mate and the winner reads it and steps in.
+		if not attacker_wins:
+			await _play_interception(atk, attacker_is_enemy, def, not attacker_is_enemy)
+
 		# Whoever holds the ball after this tier is the current shooter.
 		round_shooter_card = mine if player_has_ball else theirs
 
@@ -1477,6 +1552,69 @@ func resolve_round() -> void:
 	bank += abilities.shot_bonus(not player_has_ball)
 
 	await finish_round(player_has_ball, bank)
+
+
+## A turnover, played as an interception instead of a hand-over.
+##
+## The beaten attacker does not pass to the man who just beat him — nobody
+## does that. He looks for his OWN team-mate closest to the danger, plays it
+## there, and the winner reads the pass and cuts in front of the receiver.
+## The ball ends up in the same hands either way; it just gets there for a
+## reason you can see.
+func _play_interception(loser_card: PlayerData, loser_is_enemy: bool,
+		winner_card: PlayerData, winner_is_enemy: bool) -> void:
+	if ball == null:
+		return
+
+	var winner := unit_for_card(winner_card, winner_is_enemy)
+	if winner == null:
+		return
+
+	var passer := unit_for_card(loser_card, loser_is_enemy)
+	var receiver := _team_mate_nearest_to(loser_is_enemy, winner, passer)
+
+	# Nobody to aim at (a one-man side, or the passer is off the pitch) — fall
+	# back to the plain hand-over rather than skipping the beat entirely.
+	if receiver == null:
+		ball.deliver_to(winner)
+		await ball.delivery_arrived
+		return
+
+	ball.intercept_pass(receiver, winner,
+		db.tune_float("intercept_at_fraction", 0.55))
+
+	# The leap is not awaited: the winner is travelling while the ball is, so
+	# the two of them meet. run_to() drops them out of normal steering for the
+	# duration and hands them back to it afterwards.
+	winner.run_to(ball.steal_point(), db.tune_float("intercept_leap_seconds", 0.45))
+
+	await ball.delivery_arrived
+	var aimed_at := receiver.data.player_name if receiver.data != null else "a team-mate"
+	print("  %s reads it and cuts out the pass to %s." % [winner_card.player_name, aimed_at])
+
+	var beat := db.tune_float("intercept_beat_seconds", 0.3)
+	if beat > 0.0:
+		await get_tree().create_timer(beat).timeout
+
+
+## The unit on `side_is_enemy` standing closest to `toward`, ignoring `exclude`.
+## Used to pick the man a beaten attacker aims at — the one under most
+## pressure, which is exactly why the pass gets read.
+func _team_mate_nearest_to(side_is_enemy: bool, toward: PlayerUnit,
+		exclude: PlayerUnit) -> PlayerUnit:
+	if toward == null:
+		return null
+
+	var best: PlayerUnit = null
+	var best_d := INF
+	for unit in _all_units():
+		if unit.is_enemy != side_is_enemy or unit == exclude:
+			continue
+		var d := unit.global_position.distance_to(toward.global_position)
+		if d < best_d:
+			best_d = d
+			best = unit
+	return best
 
 
 ## Called by combat_arena.tscn (or by the headless path above).
@@ -1498,11 +1636,20 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 
 	var shooter := _find_shooter(shooter_is_player)
 
-	# --- 1. The last winner takes possession and steps toward goal ---
+	# --- 1. The last winner takes possession and carries it into range ---
 	if shooter != null and ball != null:
 		await deliver_ball_to_card(shooter.data, shooter.is_enemy)
-		var toward_goal := shooter.global_position.lerp(keeper.global_position, 0.25)
-		await shooter.run_to(toward_goal, db.tune_float("shot_run_up_seconds", 0.45))
+
+		# They used to step a flat 25% of the way to the keeper, which from the
+		# far half still left them shooting from about the halfway line. Now
+		# they run to a fixed distance OFF THE GOAL LINE, so wherever the move
+		# started the shot is taken from somewhere believable.
+		var spot := _shooting_position(shooter, target_key)
+		var run := shooter.global_position.distance_to(spot) \
+			/ maxf(db.tune_float("shot_run_up_speed", 520.0), 1.0)
+		await shooter.run_to(spot, clampf(run,
+			db.tune_float("shot_run_up_min_seconds", 0.35),
+			db.tune_float("shot_run_up_max_seconds", 1.3)))
 
 	# --- 2. The shootout cut-away, showing the numbers BEFORE the shot ---
 	if shootout != null:
@@ -1630,6 +1777,46 @@ func _find_shooter(shooter_is_player: bool) -> PlayerUnit:
 			best_x = reach
 			best = unit
 	return best
+
+
+## Where the shooter stands to strike it: a set distance out from the goal
+## line, swung round toward the middle of the goal.
+##
+## The distance is a FRACTION of the pitch rather than a pixel count, so it
+## reads the same whether your field art is 1280 wide or 4000.
+func _shooting_position(shooter: PlayerUnit, keeper_is_enemy: bool) -> Vector2:
+	var rect := get_play_rect()
+	var mouth := _goal_mouth(keeper_is_enemy)
+
+	var out := maxf(
+		rect.size.x * db.tune_float("shot_distance_fraction", 0.20),
+		db.tune_float("shot_distance_min_pixels", 120.0))
+
+	# The enemy's goal is on the right, so their attacker stands to the LEFT
+	# of it; the home goal is on the left, so its attacker stands to the right.
+	var x: float = mouth.x - out if keeper_is_enemy else mouth.x + out
+
+	# Swing toward the middle of the goal without going all the way, so shots
+	# keep some of the angle the move arrived at.
+	var y := lerpf(shooter.global_position.y, mouth.y,
+		db.tune_float("shot_centring", 0.6))
+
+	# Never send them off the pitch, and never send them BACKWARDS past where
+	# they already are — a striker does not retreat to shoot.
+	var spot := Vector2(
+		clampf(x, rect.position.x, rect.end.x),
+		clampf(y, rect.position.y, rect.end.y))
+
+	var already_closer := false
+	if keeper_is_enemy:
+		already_closer = shooter.global_position.x > spot.x
+	else:
+		already_closer = shooter.global_position.x < spot.x
+
+	if already_closer:
+		spot.x = shooter.global_position.x
+
+	return spot
 
 
 ## A point just past the keeper, on the goal line.

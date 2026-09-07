@@ -62,3 +62,20 @@ ball_pickup_radius,26,How close a player must actually get to collect a loose ba
 ball_loose_settle_seconds,0.35,Beat after the whistle before a stopped ball can be picked up.
 ball_loose_timeout_seconds,6,If nobody reaches a loose ball in this long the nearest player collects it.
 enemy_avoids_offered_classes,true,Enemy will not use a class you were offered at kickoff and turned down.
+relay_max_hops,3,How many team-mates the ball is played through on its way to the next attacker. 0 = old direct pass.
+relay_hop_max_distance,420,Longest single pass in a relay. Shorter = more players touch it.
+relay_min_progress,60,A relay hop must get at least this much closer to the target or it is skipped.
+relay_hop_beat_seconds,0.12,Pause on each intermediate player in the relay.
+intercept_at_fraction,0.55,How far along the pass the interception happens. 0.5 = halfway.
+intercept_leap_seconds,0.45,How long the interceptor takes to leap into the ball's path.
+intercept_beat_seconds,0.3,Pause after an interception before play continues.
+shot_distance_fraction,0.20,How far out the shooter stands, as a fraction of pitch width. Lower = closer to goal.
+shot_distance_min_pixels,120,Never shoot from closer than this, whatever the pitch size.
+shot_centring,0.6,How far the shooter swings round in front of goal. 1 = dead centre, 0 = keeps their angle.
+shot_run_up_speed,520,Pixels per second the shooter carries the ball into range.
+shot_run_up_min_seconds,0.35,Shortest run-up before a shot.
+shot_run_up_max_seconds,1.3,Longest run-up before a shot.
+unit_separation_radius,52,How close units get before they give way to each other. 0 = they overlap freely.
+unit_separation_strength,0.9,How hard they push apart relative to where they are heading.
+unit_contest_radius,70,Inside this distance of the ball the pushing-apart fades so they fight for it.
+unit_swerve_strength,0.35,How much units curve their run to the ball. 0 = straight lines.
