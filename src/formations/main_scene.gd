@@ -25,6 +25,9 @@ signal match_ended(player_score: int, enemy_score: int)
 @onready var timer_label: Label = $SelectionUI/TimerLabel
 @onready var event_announcement: Label = $SelectionUI/EventAnnouncement
 
+## Built in code, so main_scene.tscn needs no editing.
+var score_label: Label
+
 @export var field_sprite: Sprite2D
 
 const PLAYER_CARD_SCENE: PackedScene = preload("res://src/ui/player_card_ui.tscn")
@@ -119,6 +122,7 @@ func _ready() -> void:
 	spawn_goalies()
 	spawn_ball()
 	spawn_rps()
+	spawn_scoreboard()
 	build_event_schedule()
 
 	event_announcement.hide()
@@ -171,6 +175,7 @@ func _tune_ball() -> void:
 		return
 	ball.pass_speed = db.tune_float("ball_pass_speed", ball.pass_speed)
 	ball.shot_speed = db.tune_float("ball_shot_speed", ball.shot_speed)
+	ball.delivery_speed = db.tune_float("ball_delivery_speed", ball.delivery_speed)
 	ball.carry_seconds = Vector2(
 		db.tune_float("ball_carry_min_seconds", ball.carry_seconds.x),
 		db.tune_float("ball_carry_max_seconds", ball.carry_seconds.y))
@@ -581,6 +586,7 @@ func _on_goal_conceded(conceded_by_enemy: bool) -> void:
 		player_score += 1
 	else:
 		enemy_score += 1
+	_update_score_label()
 
 
 # =============================================================
@@ -594,6 +600,39 @@ func spawn_ball() -> void:
 	units_container.add_child(ball)
 	ball.global_position = get_play_rect().get_center()
 	_tune_ball()
+
+
+## The scoreboard, centred at the top of the pitch. Created in code so you
+## never have to touch main_scene.tscn; size and margin come from Tuning.csv.
+func spawn_scoreboard() -> void:
+	score_label = Label.new()
+	score_label.name = "ScoreLabel"
+	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	score_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	score_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	score_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+
+	var width := db.tune_float("scoreboard_width", 340.0)
+	var height := db.tune_float("scoreboard_height", 96.0)
+	var margin := db.tune_float("scoreboard_top_margin", 18.0)
+	score_label.offset_left = -width / 2.0
+	score_label.offset_right = width / 2.0
+	score_label.offset_top = margin
+	score_label.offset_bottom = margin + height
+
+	score_label.add_theme_font_size_override("font_size",
+		db.tune_int("scoreboard_font_size", 60))
+	score_label.add_theme_color_override("font_color", Color(1, 1, 1))
+	score_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	score_label.add_theme_constant_override("outline_size", 8)
+
+	selection_ui.add_child(score_label)
+	_update_score_label()
+
+
+func _update_score_label() -> void:
+	if score_label != null:
+		score_label.text = "%d  –  %d" % [player_score, enemy_score]
 
 
 func spawn_rps() -> void:
@@ -645,6 +684,32 @@ func give_ball_to(side_is_enemy: bool) -> void:
 	if pool.is_empty():
 		return
 	ball.give_to(pool.pick_random())
+
+
+## Find the unit on the pitch that is showing a given card.
+func unit_for_card(card: PlayerData, side_is_enemy: bool) -> PlayerUnit:
+	if card == null:
+		return null
+	for unit in _all_units():
+		if unit.is_enemy == side_is_enemy and unit.data == card:
+			return unit
+	return null
+
+
+## One leg of the PLAY MAKER relay: play the ball up to whoever is holding it
+## for this tier, then hold a beat so the viewer can see who has it.
+func deliver_ball_to_card(card: PlayerData, side_is_enemy: bool) -> void:
+	if ball == null:
+		return
+	var unit := unit_for_card(card, side_is_enemy)
+	if unit == null or ball.is_carried_by(unit):
+		return
+
+	ball.deliver_to(unit)
+	await ball.delivery_arrived
+	var beat := db.tune_float("relay_beat_seconds", 0.25)
+	if beat > 0.0:
+		await get_tree().create_timer(beat).timeout
 
 
 ## Give the ball to one side's unit in a specific tier — used after the clash so
@@ -1077,10 +1142,9 @@ func build_lineup(picks: Array[PlayerData], star: PlayerData, star_tier: String)
 func resolve_round() -> void:
 	current_state = MatchState.AUTOBATTLE
 
-	# Picks are in — the attacker's Tier I card collects the ball and play resumes.
+	# The pitch STAYS frozen. From here to the goal kick the ball is moved by
+	# script alone, so the relay always shows the right man on the ball.
 	var player_has_ball := player_attacks_this_round
-	give_ball_to_tier(not player_has_ball, "I")
-	freeze_play(false)
 
 	var player_lineup := build_lineup(round_player_picks, active_player_star, player_star_tier)
 	var enemy_lineup := build_lineup(round_enemy_picks, active_enemy_star, enemy_star_tier)
@@ -1088,6 +1152,7 @@ func resolve_round() -> void:
 	round_ready_for_combat.emit(player_lineup, enemy_lineup)
 
 	if not headless_combat:
+		freeze_play(false)
 		return   # combat_arena.tscn takes over and calls finish_round() when done
 
 	print("  %s attacks first." % ("You" if player_has_ball else "Enemy"))
@@ -1110,6 +1175,9 @@ func resolve_round() -> void:
 		var attacker_is_enemy := not player_has_ball
 		var atk: PlayerData = mine if player_has_ball else theirs
 		var def: PlayerData = theirs if player_has_ball else mine
+
+		# --- The relay: the ball is played up to THIS tier's attacker ---
+		await deliver_ball_to_card(atk, attacker_is_enemy)
 
 		# Abilities go on the stack first: lowest priority resolves first,
 		# attacker breaks a tie. Only then are the numbers compared.
@@ -1176,19 +1244,20 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 
 	if keeper == null or shot_power <= 0:
 		print("  No shot taken this round.")
+		freeze_play(false)
 		round_resolved.emit(player_score, enemy_score)
 		current_state = MatchState.PLAYING
 		return
 
 	var shooter := _find_shooter(shooter_is_player)
 
-	# --- 1. The ball reaches the shooter ---
+	# --- 1. The last winner takes possession and steps toward goal ---
 	if shooter != null and ball != null:
-		ball.give_to(shooter)
+		await deliver_ball_to_card(shooter.data, shooter.is_enemy)
 		var toward_goal := shooter.global_position.lerp(keeper.global_position, 0.25)
 		await shooter.run_to(toward_goal, db.tune_float("shot_run_up_seconds", 0.45))
 
-	# --- 2. Decide the outcome, then show it ---
+	# --- 2. Decide the outcome, THEN show it ---
 	var scored := keeper.take_shot(shot_power)
 
 	print("  SHOT: %s (%s) fires %d power -> %s (keeper stamina now %d)" % [
@@ -1198,24 +1267,49 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 	if scored:
 		print("  GOAL!  %d - %d" % [player_score, enemy_score])
 
-	# --- 3. Strike it ---
+	# --- 3. Strike it, with the keeper diving for it either way ---
 	if ball != null:
 		var goal_line := _goal_mouth(target_key)
-		ball.shoot(keeper.global_position if not scored else goal_line)
+		var aim: Vector2 = goal_line if scored else keeper.global_position
+		ball.shoot(aim)
+		keeper.dive_at(ball.global_position)
 		await ball.shot_arrived
 
 		if scored:
 			# Restart from the centre. The side that CONCEDED kicks off, and
 			# target_key is exactly that side (it owns the beaten keeper).
-			await get_tree().create_timer(0.6).timeout
+			await get_tree().create_timer(db.tune_float("goal_pause_seconds", 0.7)).timeout
 			ball.global_position = get_play_rect().get_center()
 			give_ball_to(target_key)
 		else:
-			# The keeper gathers it and plays it out to their own side.
-			give_ball_to(target_key)
+			# --- 4. Saved: the keeper hoofs it upfield to their own side ---
+			await get_tree().create_timer(db.tune_float("save_pause_seconds", 0.4)).timeout
+			await _goal_kick(target_key)
 
+	# Normal roaming and passing resume here.
+	freeze_play(false)
 	round_resolved.emit(player_score, enemy_score)
 	current_state = MatchState.PLAYING
+
+
+## After a save: the keeper launches it to whichever team-mate is furthest
+## upfield, which puts the ball back in open play on the far side of the pitch.
+func _goal_kick(keeper_is_enemy: bool) -> void:
+	var best: PlayerUnit = null
+	var best_reach := -INF
+	for unit in _all_units():
+		if unit.is_enemy != keeper_is_enemy:
+			continue
+		var reach: float = unit.global_position.x * (-1.0 if keeper_is_enemy else 1.0)
+		if reach > best_reach:
+			best_reach = reach
+			best = unit
+
+	if best == null or ball == null:
+		return
+	print("  Goal kick to %s." % best.data.player_name)
+	ball.deliver_to(best)
+	await ball.delivery_arrived
 
 
 ## The on-pitch unit holding the ball at the end of the duel chain.

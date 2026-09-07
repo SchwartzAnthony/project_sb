@@ -26,3 +26,11 @@ unit_dribble_speed,44,Pixels per second when carrying the ball
 unit_interest_radius,190,How close the ball must be before a unit reacts
 unit_roam_radius,40,How far a unit wanders from its formation slot
 shot_run_up_seconds,0.45,How long the shooter steps toward goal before striking
+relay_beat_seconds,0.25,Pause after each PLAY MAKER relay pass so you can see who has it
+goal_pause_seconds,0.7,Pause after the ball crosses the line before the restart
+save_pause_seconds,0.4,Pause after a save before the goal kick
+ball_delivery_speed,520,Pixels per second for a scripted PLAY MAKER pass
+scoreboard_font_size,60,Score text size
+scoreboard_top_margin,18,Distance from the top of the screen
+scoreboard_width,340,Scoreboard box width
+scoreboard_height,96,Scoreboard box height

@@ -21,10 +21,13 @@ signal pass_intercepted(thief: PlayerUnit)
 signal tackled(thief: PlayerUnit, victim: PlayerUnit)
 ## A shot on goal has reached its target. main_scene awaits this.
 signal shot_arrived
+## A scripted PLAY MAKER pass has reached its man.
+signal delivery_arrived
 
 @export var radius: float = 6.0
 @export var pass_speed: float = 380.0                     # px / second
 @export var shot_speed: float = 760.0                     # a strike on goal
+@export var delivery_speed: float = 520.0                 # a scripted PLAY MAKER pass
 @export var carry_seconds: Vector2 = Vector2(1.6, 3.4)    # min, max
 @export var intercept_radius: float = 45.0
 ## Fraction of the pass that is safe. Without this the defender already
@@ -59,6 +62,7 @@ var _carry_left: float = 0.0
 var _loose_left: float = 0.0
 var _grace_left: float = 0.0
 var _shooting: bool = false
+var _scripted: bool = false
 
 
 func _ready() -> void:
@@ -72,12 +76,21 @@ func _draw() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if frozen:
-		return
-
-	# A shot on goal outranks everything: it cannot be tackled or intercepted.
+	# Scripted moves outrank `frozen`: during a PLAY MAKER the pitch is held
+	# still, but the choreographed relay and the shot still have to play out.
+	# Neither can be tackled or intercepted.
 	if _shooting:
 		_advance_shot(delta)
+		return
+	if _scripted:
+		_advance_delivery(delta)
+		return
+
+	if frozen:
+		# Stay at the carrier's feet even while frozen, so a unit moved by a
+		# tween (a substitution) does not leave the ball behind.
+		if is_instance_valid(carrier):
+			global_position = carrier.global_position + carry_offset
 		return
 
 	if _in_flight:
@@ -113,6 +126,47 @@ func give_to(unit: PlayerUnit) -> void:
 	_in_flight = false
 	_intended = null
 	_take(unit, false)
+
+
+## A scripted pass straight to one unit — the PLAY MAKER relay and the goal
+## kick. Cannot be intercepted or tackled; emits `delivery_arrived` on landing.
+func deliver_to(unit: PlayerUnit) -> void:
+	if not is_instance_valid(unit):
+		delivery_arrived.emit()
+		return
+	carrier = null
+	_in_flight = false
+	_shooting = false
+	_scripted = true
+	_intended = unit
+	_from = global_position
+	_to = unit.global_position
+	_distance = maxf(_from.distance_to(_to), 1.0)
+	_travelled = 0.0
+
+
+func _advance_delivery(delta: float) -> void:
+	if not is_instance_valid(_intended):
+		_scripted = false
+		_loose_left = 1.0
+		delivery_arrived.emit()
+		return
+
+	_to = _intended.global_position
+	_travelled += delivery_speed * delta
+	var t := clampf(_travelled / _distance, 0.0, 1.0)
+	global_position = _from.lerp(_to, t)
+
+	if t >= 1.0:
+		# _take() first, while _scripted is still true, so anything listening
+		# to possession_changed can tell a scripted pass from an open-play one.
+		_take(_intended, false)
+		_scripted = false
+		delivery_arrived.emit()
+
+
+func is_delivering() -> bool:
+	return _scripted
 
 
 ## Strike the ball at a point — the keeper, or the goal mouth behind them.

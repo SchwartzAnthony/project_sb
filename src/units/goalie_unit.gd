@@ -123,6 +123,22 @@ func absorb_shot(shot_power: int) -> void:
 #  FEEDBACK
 # =============================================================
 
+## Lunge toward the incoming ball and come back to the line. Called as the
+## shot is struck, so the keeper is visibly trying for it either way.
+func dive_at(target: Vector2, seconds: float = 0.42) -> void:
+	var line := global_position
+	var direction := (target - line)
+	if direction.length() < 1.0:
+		return
+	var lunge := line + direction.normalized() * 28.0
+
+	var tween := create_tween()
+	tween.tween_property(self, "global_position", lunge, seconds * 0.4) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "global_position", line, seconds * 0.6) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
 func play_save_feedback() -> void:
 	if artwork == null:
 		return
