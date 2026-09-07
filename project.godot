@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Sturmball"
-run/main_scene="uid://b1gctjx1hb3qp"
+run/main_scene="res://src/ui/main_menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 

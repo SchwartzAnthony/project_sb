@@ -1,211 +1,205 @@
-# =============================================================
-#  MAIN MENU — CSV-driven menu system
-#
-#  Loads menu button configuration from MenuConfig.csv, displays them,
-#  and routes actions (start game, settings, quit). Fully customizable
-#  via CSV and PNG art files — no code changes needed.
-#
-#  RUN THIS: godot --path . res://main_menu.tscn
-# =============================================================
+class_name MainMenu
+extends Control
 
-extends CanvasLayer
+# =============================================================
+#  MAIN MENU
+#
+#  Every button on this screen is a row in res://data/MenuConfig.csv.
+#  Add a row, get a button. Point its Art Path at a PNG and the button
+#  wears that art; leave it blank and you get a plain labelled button.
+#  Nothing here needs a scene file editing.
+#
+#  If MenuConfig.csv is missing or unreadable the menu falls back to a
+#  built-in Start / Quit pair, so the game always launches.
+# =============================================================
 
 const MENU_CONFIG_PATH := "res://data/MenuConfig.csv"
-const MENU_BUTTON_SCENE := preload("res://src/ui/menu_button.tscn")
-const MAIN_MATCH_SCENE := "res://src/formations/main_scene.tscn"
+const CLASS_SELECT_SCENE := "res://src/ui/class_select.tscn"
+const MATCH_SCENE := "res://src/formations/main_scene.tscn"
 
-@export var background_art_path: String = ""  # res://assets/menu/background.png
+## Optional full-screen art. Set it here, or add a Background Art row to
+## MenuConfig.csv with the path in the Art Path column.
+@export var background_art_path: String = "res://assets/menu/background.png"
 @export var title_text: String = "AUTOBATTLER"
-@export var title_font_size: int = 80
+@export var title_font_size: int = 72
 
-var db: CardDatabase = null
-var background_sprite: Sprite2D = null
-var title_label: Label = null
-var buttons_container: Control = null
+var db: CardDatabase
+var _buttons: Control
+var _footer: Label
 
 
 func _ready() -> void:
 	db = CardDatabase.get_db()
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
-	# Create background
-	if background_art_path != "":
-		_setup_background()
-	else:
-		_setup_default_background()
+	_build_background()
+	_build_title()
 
-	# Create title
-	_setup_title()
+	_buttons = Control.new()
+	_buttons.name = "Buttons"
+	_buttons.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_buttons.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_buttons)
 
-	# Create buttons container
-	buttons_container = Control.new()
-	buttons_container.name = "ButtonsContainer"
-	buttons_container.anchor_right = 1.0
-	buttons_container.anchor_bottom = 1.0
-	add_child(buttons_container)
-
-	# Load menu buttons from CSV
-	_load_menu_buttons()
+	_build_footer()
+	_build_buttons()
 
 
-func _setup_default_background() -> void:
-	# Simple gradient background
-	var bg = ColorRect.new()
-	bg.color = Color(0.1, 0.1, 0.15)
-	bg.anchor_right = 1.0
-	bg.anchor_bottom = 1.0
-	add_child(bg)
+# -------------------------------------------------------------
+#  BACKGROUND & CHROME
+# -------------------------------------------------------------
 
+func _build_background() -> void:
+	var fill := ColorRect.new()
+	fill.color = MenuSupport.COLOUR_BACKGROUND
+	fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(fill)
 
-func _setup_background() -> void:
-	var art = load(background_art_path)
-	if art is Texture2D:
-		background_sprite = Sprite2D.new()
-		background_sprite.texture = art
-		background_sprite.centered = true
-		background_sprite.global_position = get_viewport_rect().get_center()
-
-		# Scale to fit viewport
-		var vp_size = get_viewport_rect().size
-		var tex_size = art.get_size()
-		var scale_x = vp_size.x / tex_size.x
-		var scale_y = vp_size.y / tex_size.y
-		var scale_factor = maxf(scale_x, scale_y)
-		background_sprite.scale = Vector2(scale_factor, scale_factor)
-
-		add_child(background_sprite)
-		move_child(background_sprite, 0)
-
-
-func _setup_title() -> void:
-	title_label = Label.new()
-	title_label.name = "Title"
-	title_label.text = title_text
-	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_label.add_theme_font_size_override("font_size", title_font_size)
-	title_label.add_theme_color_override("font_color", Color.WHITE)
-	title_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	title_label.add_theme_constant_override("outline_size", 4)
-
-	# Position at top-center
-	title_label.anchor_left = 0.5
-	title_label.anchor_top = 0.0
-	title_label.offset_left = -200.0
-	title_label.offset_right = 200.0
-	title_label.offset_top = 40.0
-	title_label.offset_bottom = 120.0
-
-	add_child(title_label)
-
-
-func _load_menu_buttons() -> void:
-	# Try to load MenuConfig.csv. If it doesn't exist, create default buttons.
-	var config = _load_menu_config()
-	if config.is_empty():
-		_create_default_buttons()
+	if background_art_path == "" or not ResourceLoader.exists(background_art_path):
+		return
+	var texture := load(background_art_path)
+	if not (texture is Texture2D):
 		return
 
-	# Create a button for each row
-	for row in config:
-		var button = MENU_BUTTON_SCENE.instantiate()
-		if button == null:
-			push_error("menu_button.tscn did not instantiate.")
+	var art := TextureRect.new()
+	art.texture = texture
+	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(art)
+
+
+func _build_title() -> void:
+	var title := Label.new()
+	title.text = title_text
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", title_font_size)
+	title.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
+	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	title.add_theme_constant_override("outline_size", 8)
+	title.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	title.offset_top = 70.0
+	title.offset_bottom = 70.0 + float(title_font_size) + 20.0
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(title)
+
+
+## A quiet line at the bottom telling you what the CSVs actually loaded.
+## If a class is missing from the game, this is the first place to look.
+func _build_footer() -> void:
+	_footer = Label.new()
+	_footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_footer.add_theme_font_size_override("font_size", 13)
+	_footer.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+	_footer.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_footer.offset_top = -46.0
+	_footer.offset_bottom = -14.0
+	_footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_footer)
+
+	var classes := db.stars_by_class().size()
+	var text := "%d cards  ·  %d class%s  ·  %d abilities" % [
+		db.players.size(), classes, "" if classes == 1 else "es", db.abilities.size()]
+	if not db.problems.is_empty():
+		text += "   ⚠ %d CSV warning%s — see the Output panel" % [
+			db.problems.size(), "" if db.problems.size() == 1 else "s"]
+		_footer.add_theme_color_override("font_color", Color(1.0, 0.72, 0.4))
+	_footer.text = text
+
+
+# -------------------------------------------------------------
+#  BUTTONS FROM CSV
+# -------------------------------------------------------------
+
+func _build_buttons() -> void:
+	var rows := MenuSupport.read_csv(MENU_CONFIG_PATH)
+	if rows.is_empty():
+		print("[menu] No usable %s — using the built-in buttons." % MENU_CONFIG_PATH)
+		rows = _default_rows()
+
+	for row in rows:
+		var action := MenuSupport.field(row, "Action")
+		if action == "":
 			continue
 
-		button.button_id = row.get("Button ID", "")
-		button.label_text = row.get("Label", "Button")
-		button.action = row.get("Action", "")
-		button.art_path = row.get("Art Path", "")
+		var width := MenuSupport.field_float(row, "Width", 260.0)
+		var height := MenuSupport.field_float(row, "Height", 68.0)
+		var centre_x := MenuSupport.field_float(row, "X", 640.0)
+		var centre_y := MenuSupport.field_float(row, "Y", 420.0)
 
-		var x = float(row.get("X", 640))
-		var y = float(row.get("Y", 400))
-		var w = float(row.get("Width", 200))
-		var h = float(row.get("Height", 80))
-		button.set_size_and_pos(x - w/2, y - h/2, w, h)
-
-		button.pressed.connect(_on_button_pressed.bind(row.get("Action", "")))
-		buttons_container.add_child(button)
-
-
-func _create_default_buttons() -> void:
-	# Fallback buttons if MenuConfig.csv is missing
-	var start_btn = _create_simple_button("START_GAME", "Start Game", 640, 450, 200, 80, "start_game")
-	var settings_btn = _create_simple_button("SETTINGS", "Settings", 640, 570, 200, 80, "open_settings")
-	var quit_btn = _create_simple_button("QUIT", "Quit", 640, 690, 200, 80, "quit_game")
-
-	buttons_container.add_child(start_btn)
-	buttons_container.add_child(settings_btn)
-	buttons_container.add_child(quit_btn)
+		var button := _make_button(
+			MenuSupport.field(row, "Label", "Button"),
+			MenuSupport.field(row, "Art Path"),
+			Vector2(width, height))
+		button.position = Vector2(centre_x - width * 0.5, centre_y - height * 0.5)
+		button.pressed.connect(_on_action.bind(action))
+		_buttons.add_child(button)
 
 
-func _create_simple_button(id: String, label: String, x: float, y: float, w: float, h: float, action: String):
-	var scene = MENU_BUTTON_SCENE.instantiate()
-	scene.button_id = id
-	scene.label_text = label
-	scene.action = action
-	scene.set_size_and_pos(x - w/2, y - h/2, w, h)
-	scene.pressed.connect(_on_button_pressed.bind(action))
-	return scene
+func _default_rows() -> Array:
+	return [
+		{"label": "Start Game", "x": "640", "y": "400", "width": "260", "height": "68",
+			"action": "start_game", "artpath": ""},
+		{"label": "Quick Match", "x": "640", "y": "484", "width": "260", "height": "68",
+			"action": "quick_match", "artpath": ""},
+		{"label": "Quit", "x": "640", "y": "568", "width": "260", "height": "68",
+			"action": "quit_game", "artpath": ""},
+	]
 
 
-func _load_menu_config() -> Array:
-	# Parse MenuConfig.csv and return array of rows (dictionaries)
-	var file = FileAccess.open(MENU_CONFIG_PATH, FileAccess.READ)
-	if file == null:
-		print("[menu] MenuConfig.csv not found at %s — using default buttons." % MENU_CONFIG_PATH)
-		return []
+## A button that wears a PNG when one is given and falls back to a plain
+## labelled button when it is not — so the menu works before any art exists.
+func _make_button(label: String, art_path: String, box: Vector2) -> Button:
+	var button := Button.new()
+	button.size = box
+	button.custom_minimum_size = box
+	button.text = label
+	button.add_theme_font_size_override("font_size", 22)
 
-	var rows: Array = []
-	var headers: Array[String] = []
-	var line_num = 0
+	if art_path != "" and ResourceLoader.exists(art_path):
+		var texture := load(art_path)
+		if texture is Texture2D:
+			button.text = ""
+			button.icon = texture
+			button.expand_icon = true
+			button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+			button.add_theme_stylebox_override("hover", StyleBoxEmpty.new())
+			button.add_theme_stylebox_override("pressed", StyleBoxEmpty.new())
+			button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+			return button
+		push_warning("[menu] '%s' is not an image — showing a text button instead." % art_path)
+	elif art_path != "":
+		print("[menu] No file at '%s' — showing a text button instead." % art_path)
 
-	while not file.eof_reached():
-		var line = file.get_line().strip_edges()
-		line_num += 1
-
-		if line == "" or line.begins_with("#"):
-			continue
-
-		# Parse CSV (simple comma-split, no quote handling)
-		var parts = line.split(",")
-		for i in range(parts.size()):
-			parts[i] = String(parts[i]).strip_edges()
-
-		if headers.is_empty():
-			headers = parts
-			continue
-
-		# Convert row to dictionary
-		var row: Dictionary = {}
-		for i in range(mini(headers.size(), parts.size())):
-			row[headers[i]] = parts[i]
-		rows.append(row)
-
-	print("[menu] Loaded %d menu buttons from MenuConfig.csv." % rows.size())
-	return rows
+	button.add_theme_stylebox_override("normal",
+		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
+	button.add_theme_stylebox_override("hover",
+		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+	return button
 
 
-func _on_button_pressed(action: String) -> void:
-	match action:
+# -------------------------------------------------------------
+#  ACTIONS
+#  Add a case here to teach the menu a new Action word.
+# -------------------------------------------------------------
+
+func _on_action(action: String) -> void:
+	match action.to_lower():
 		"start_game":
-			_start_game()
+			TeamSelection.clear(get_tree())
+			get_tree().change_scene_to_file(CLASS_SELECT_SCENE)
+		"quick_match":
+			# Straight to a match with a random class and roster — handy for
+			# testing without walking the menus every time.
+			TeamSelection.clear(get_tree())
+			get_tree().change_scene_to_file(MATCH_SCENE)
 		"open_settings":
-			_open_settings()
+			_footer.text = "Settings are not built yet."
 		"quit_game":
-			_quit_game()
+			get_tree().quit()
 		_:
-			print("[menu] Unknown action: %s" % action)
-
-
-func _start_game() -> void:
-	print("[menu] Starting new match...")
-	get_tree().change_scene_to_file(MAIN_MATCH_SCENE)
-
-
-func _open_settings() -> void:
-	print("[menu] Settings not yet implemented.")
-	# TODO: Create a settings scene
-
-
-func _quit_game() -> void:
-	print("[menu] Quitting...")
-	get_tree().quit()
+			push_warning("[menu] MenuConfig.csv asks for unknown action '%s'." % action)
+			_footer.text = "Unknown action '%s' — check MenuConfig.csv." % action

@@ -1,4 +1,4 @@
 Button ID,Label,X,Y,Width,Height,Action,Art Path,Notes
-START_GAME,Start Game,640,450,200,80,start_game,res://assets/menu/button_start.png,Begin a new match
-SETTINGS,Settings,640,570,200,80,open_settings,res://assets/menu/button_settings.png,Game options (not yet implemented)
-QUIT,Quit,640,690,200,80,quit_game,res://assets/menu/button_quit.png,Exit the game
+START_GAME,Start Game,640,400,260,68,start_game,res://assets/menu/button_start.png,Goes to the class select screen
+QUICK_MATCH,Quick Match,640,484,260,68,quick_match,res://assets/menu/button_quick.png,Skips team building - random class and roster
+QUIT,Quit,640,568,260,68,quit_game,res://assets/menu/button_quit.png,Closes the game
