@@ -25,7 +25,11 @@ extends RefCounted
 ## ("Display Name", "display_name" and "DISPLAYNAME" all become "displayname").
 ## Use `field()` below to read a value so you never have to normalise by hand.
 ## Returns an empty array if the file is missing — callers fall back to defaults.
-static func read_csv(path: String) -> Array:
+##
+## The return type is spelled Array[Dictionary] rather than plain Array so that
+## every `for row in read_csv(...)` loop gets a properly typed row. Without it
+## each row is a Variant and Godot warns on every line that touches one.
+static func read_csv(path: String) -> Array[Dictionary]:
 	if not FileAccess.file_exists(path):
 		return []
 
@@ -47,7 +51,7 @@ static func read_csv(path: String) -> Array:
 	for h in header:
 		keys.append(normalise(String(h)))
 
-	var out: Array = []
+	var out: Array[Dictionary] = []
 	for i in range(1, rows.size()):
 		var row: PackedStringArray = rows[i]
 		if row.is_empty():

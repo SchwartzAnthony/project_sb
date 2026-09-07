@@ -14,8 +14,6 @@ extends Control
 # =============================================================
 
 const MENU_CONFIG_PATH := "res://data/MenuConfig.csv"
-const CLASS_SELECT_SCENE := "res://src/ui/class_select.tscn"
-const MATCH_SCENE := "res://src/formations/main_scene.tscn"
 
 ## Optional full-screen art. Set it here, or add a Background Art row to
 ## MenuConfig.csv with the path in the Art Path column.
@@ -139,7 +137,7 @@ func _build_buttons() -> void:
 		_buttons.add_child(button)
 
 
-func _default_rows() -> Array:
+func _default_rows() -> Array[Dictionary]:
 	return [
 		{"label": "Start Game", "x": "640", "y": "400", "width": "260", "height": "68",
 			"action": "start_game", "artpath": ""},
@@ -190,12 +188,12 @@ func _on_action(action: String) -> void:
 	match action.to_lower():
 		"start_game":
 			TeamSelection.clear(get_tree())
-			get_tree().change_scene_to_file(CLASS_SELECT_SCENE)
+			ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT)
 		"quick_match":
 			# Straight to a match with a random class and roster — handy for
 			# testing without walking the menus every time.
 			TeamSelection.clear(get_tree())
-			get_tree().change_scene_to_file(MATCH_SCENE)
+			ScenePaths.go_to(get_tree(), ScenePaths.MATCH)
 		"open_settings":
 			_footer.text = "Settings are not built yet."
 		"quit_game":

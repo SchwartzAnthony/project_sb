@@ -39,6 +39,34 @@ in code, so there is one less hand-written scene file that can go wrong.
 
 ---
 
+# "The variable type is being inferred from a Variant value"
+
+Also mine. Three lines in `card_popup.gd`, fixed in this delivery.
+
+**What the rule is.** In GDScript, `:=` means *"work out the type from the
+right-hand side."* But `Dictionary.get()` can hand back anything, so its type
+is `Variant` — "could be anything". Since Godot 4.2, inferring a type from a
+Variant is a **hard error**, not a warning, because it silently defeats the
+point of typing the variable.
+
+```gdscript
+var when_text := {"on_attack": "when attacking"}.get(trigger, trigger)   # ✗ error
+var when_text: String = TRIGGER_WORDS.get(trigger, trigger)              # ✓ fine
+```
+
+The fix is always the same: **stop using `:=` and name the type instead.**
+Writing `: String` promises Godot what will come back, and it checks that
+promise at runtime.
+
+You will meet this again if you edit GDScript, and the same fix works every
+time. It shows up wherever a value's type cannot be known in advance —
+`Dictionary.get()`, indexing an untyped array, `.pop_back()`.
+
+I have swept every script in this delivery for the pattern; there are none
+left.
+
+---
+
 # If something still closes instantly
 
 Work down this list. Each step is quick and rules out one cause.
@@ -91,7 +119,27 @@ Scroll to the **last 30 lines**. A parse error, a missing file or a failed
 scene load will be named there. Send me those lines and I can tell you exactly
 what it is.
 
-### 5. Confirm every script landed in the folder its neighbours expect
+### 5. A screen loads but a button does nothing
+
+The menu screens no longer hard-code where the other scenes live — they ask
+`src/core/scene_paths.gd`. If a path there is wrong, the game **searches
+res:// for a file of that name**, uses what it finds, and prints the real path:
+
+```
+[scenes] 'main_scene.tscn' is not at res://src/formations/main_scene.tscn
+         — found it at res://src/match/main_scene.tscn instead.
+         Open src/core/scene_paths.gd and put that path in, and this search
+         stops happening.
+```
+
+So a different folder layout costs you one printed note, not a dead button.
+Paste the path it found into the matching line at the top of `scene_paths.gd`
+and the message goes away.
+
+If instead you see `Could not find 'x.tscn' anywhere in res://`, that file
+genuinely is not in the project.
+
+### 6. Confirm every script landed in the folder its neighbours expect
 
 Scripts find each other by path. If one is in the wrong folder the scene that
 preloads it fails, and the failure cascades. Check these exact locations:
@@ -100,6 +148,7 @@ preloads it fails, and the failure cascades. Check these exact locations:
 res://src/core/     card_database.gd  player_data.gd  ability_data.gd
                     ability_engine.gd  anim_spec.gd  goalie_data.gd
                     field_bounds.gd  menu_support.gd  team_selection.gd
+                    scene_paths.gd
 res://src/ui/       main_menu.gd/.tscn  class_select.gd/.tscn
                     team_builder.gd/.tscn  card_popup.gd
                     rps_clash.gd/.tscn  duel_arena.gd/.tscn
@@ -107,6 +156,7 @@ res://src/ui/       main_menu.gd/.tscn  class_select.gd/.tscn
 res://src/units/    player_unit.gd/.tscn  goalie_unit.gd/.tscn
                     ball.gd  sprite_animator.gd
 res://src/formations/  main_scene.tscn  main_scene.gd
+                    (a different folder is fine — see step 5)
 res://data/         your unit CSVs, Goalies.csv, Abilities.csv,
                     Animations.csv, Tuning.csv, MenuConfig.csv,
                     ClassInfo.csv
@@ -116,7 +166,7 @@ The scripts with `class_name` at the top (CardDatabase, PlayerData,
 MenuSupport, TeamSelection, and so on) can technically live anywhere, but the
 `.tscn` files and the `preload(...)` lines use the paths above literally.
 
-### 6. Nuclear option: let Godot rebuild its cache
+### 7. Nuclear option: let Godot rebuild its cache
 
 Close Godot. Delete the `.godot` folder next to `project.godot` — it is a
 cache, not your work, and Godot rebuilds it on the next open. Reopen the

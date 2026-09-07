@@ -48,6 +48,7 @@ ones in this delivery **replace** them.
 | `field_bounds.gd` | — |
 | `menu_support.gd` | **new** — shared CSV reading, portraits and menu colours |
 | `team_selection.gd` | **new** — carries your chosen team into the match |
+| `scene_paths.gd` | **new** — the one place that knows where each screen lives |
 
 ---
 
@@ -73,10 +74,17 @@ ones in this delivery **replace** them.
 
 ---
 
-## `res://src/formations/`
+## Wherever `main_scene.tscn` already lives
 
-`main_scene.tscn` and `main_scene.gd` — **do not overwrite these.**
-`main_scene.gd` needs six small hand-edits instead: see **MAIN_SCENE_PATCH.md**.
+**Do not move it, and do not overwrite `main_scene.gd`.** It needs six small
+hand-edits instead: see **MAIN_SCENE_PATCH.md**.
+
+My scripts guess `res://src/formations/main_scene.tscn`. Your project has a
+`res://src/match/` folder, so that guess may be wrong — and it does not matter.
+The menus look the scene up through `scene_paths.gd`, which searches `res://`
+if its guess misses, uses what it finds, and prints the real path in the Output
+panel. Paste that path into the top of `scene_paths.gd` to skip the search
+next time.
 
 ---
 

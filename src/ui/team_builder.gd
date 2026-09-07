@@ -21,8 +21,6 @@ extends Control
 
 const ALL_TIERS: Array[String] = ["I", "II", "III", "IV"]
 const PER_TIER := 3
-const MATCH_SCENE := "res://src/formations/main_scene.tscn"
-const CLASS_SELECT_SCENE := "res://src/ui/class_select.tscn"
 const COLLECTION_PATH := "res://data/Collection.csv"
 
 var db: CardDatabase
@@ -109,8 +107,9 @@ func _auto_fill() -> void:
 	for tier in ALL_TIERS:
 		if tier == selection.star_tier:
 			continue
+		var existing: Array = _chosen.get(tier, [])
 		var picked: Array[PlayerData] = []
-		picked.assign(_chosen.get(tier, []))
+		picked.assign(existing)
 		var spare := _available_in_tier(tier)
 		spare.shuffle()
 		while picked.size() < PER_TIER and not spare.is_empty():
@@ -214,7 +213,7 @@ func _build_ui() -> void:
 	var back := Button.new()
 	back.text = "◀  CHANGE CLASS"
 	back.custom_minimum_size = Vector2(180, 52)
-	back.pressed.connect(func(): get_tree().change_scene_to_file(CLASS_SELECT_SCENE))
+	back.pressed.connect(_on_change_class)
 	footer.add_child(back)
 
 	var clear := Button.new()
@@ -288,7 +287,8 @@ func _rebuild_tiers() -> void:
 
 		for i in PER_TIER:
 			if i < picked.size():
-				slots.add_child(_make_slot_card(picked[i], is_star_tier, tier))
+				var card: PlayerData = picked[i]
+				slots.add_child(_make_slot_card(card, is_star_tier, tier))
 			else:
 				slots.add_child(_make_empty_slot(tier))
 
@@ -445,8 +445,9 @@ func _add_card(card: PlayerData) -> void:
 	var tier := card.get_tier_clean()
 	if tier == selection.star_tier:
 		return
+	var existing: Array = _chosen.get(tier, [])
 	var picked: Array[PlayerData] = []
-	picked.assign(_chosen.get(tier, []))
+	picked.assign(existing)
 	if picked.size() >= PER_TIER:
 		_status.text = "Tier %s is full — remove someone first." % tier
 		_status.add_theme_color_override("font_color", Color(1.0, 0.72, 0.4))
@@ -459,8 +460,9 @@ func _add_card(card: PlayerData) -> void:
 
 
 func _remove_card(card: PlayerData, tier: String) -> void:
+	var existing: Array = _chosen.get(tier, [])
 	var picked: Array[PlayerData] = []
-	picked.assign(_chosen.get(tier, []))
+	picked.assign(existing)
 	picked.erase(card)
 	_chosen[tier] = picked
 	_refresh()
@@ -470,6 +472,10 @@ func _remove_card(card: PlayerData, tier: String) -> void:
 #  KICK OFF
 # -------------------------------------------------------------
 
+func _on_change_class() -> void:
+	ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT)
+
+
 func _on_ready() -> void:
 	selection.regulars = _chosen.duplicate(true)
 	if not selection.is_complete(ALL_TIERS, PER_TIER):
@@ -478,4 +484,4 @@ func _on_ready() -> void:
 
 	TeamSelection.store(get_tree(), selection)
 	print("[team] Kicking off with:\n%s" % selection.describe())
-	get_tree().change_scene_to_file(MATCH_SCENE)
+	ScenePaths.go_to(get_tree(), ScenePaths.MATCH)

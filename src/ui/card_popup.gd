@@ -160,34 +160,47 @@ func _add_section(title: String, prose: String, ability_id: String) -> void:
 	_body.add_child(mechanics)
 
 
+# Plain-English wording for each CSV keyword. Kept as constants rather than
+# inline dictionaries because Dictionary.get() hands back a Variant, and
+# Godot 4.2+ refuses to infer a type from a Variant with `:=`. Every lookup
+# below therefore says `: String` out loud.
+#
+# Adding a new word to Abilities.csv? Add its phrasing here too and the popup
+# reads it back properly instead of printing the raw keyword.
+const TRIGGER_WORDS := {
+	"on_attack": "when attacking",
+	"on_defend": "when defending",
+	"on_duel_start": "as the duel begins",
+	"on_win_duel": "on winning the duel",
+	"on_lose_duel": "on losing the duel",
+	"passive": "always",
+}
+
+const EFFECT_WORDS := {
+	"add_attack": "attack",
+	"add_defense": "defense",
+	"add_power": "power",
+	"add_shot_power": "shot power",
+	"drain_stamina": "keeper stamina",
+	"restore_stamina": "keeper stamina",
+}
+
+const SCOPE_WORDS := {
+	"duel": "for this duel",
+	"round": "for the round",
+	"cycle": "until the next HOLD UP!",
+	"match": "for the rest of the match",
+}
+
+
 ## Turn an Abilities.csv row into a sentence, so the popup reads like a card
-## and not like a spreadsheet.
+## and not like a spreadsheet. An unrecognised keyword falls through as itself,
+## so a typo in the CSV shows up on the card instead of vanishing.
 func _plain_english(ability: AbilityData) -> String:
-	var when_text := {
-		"on_attack": "when attacking",
-		"on_defend": "when defending",
-		"on_duel_start": "as the duel begins",
-		"on_win_duel": "on winning the duel",
-		"on_lose_duel": "on losing the duel",
-		"passive": "always",
-	}.get(ability.trigger, ability.trigger)
-
-	var what_text := {
-		"add_attack": "attack",
-		"add_defense": "defense",
-		"add_power": "power",
-		"add_shot_power": "shot power",
-		"drain_stamina": "keeper stamina",
-		"restore_stamina": "keeper stamina",
-	}.get(ability.effect, ability.effect)
-
+	var when_text: String = TRIGGER_WORDS.get(ability.trigger, ability.trigger)
+	var what_text: String = EFFECT_WORDS.get(ability.effect, ability.effect)
+	var lasts: String = SCOPE_WORDS.get(ability.scope, ability.scope)
 	var sign_text := "+" if ability.value >= 0 else ""
-	var lasts := {
-		"duel": "for this duel",
-		"round": "for the round",
-		"cycle": "until the next HOLD UP!",
-		"match": "for the rest of the match",
-	}.get(ability.scope, ability.scope)
 
 	return "%s, give %s %s%d %s, %s." % [
 		when_text.capitalize(), ability.target, sign_text, ability.value, what_text, lasts]

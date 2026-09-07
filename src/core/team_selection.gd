@@ -82,7 +82,7 @@ func is_complete(all_tiers: Array[String], per_tier: int = 3) -> bool:
 func all_regulars() -> Array[PlayerData]:
 	var out: Array[PlayerData] = []
 	for tier in regulars.keys():
-		for card in (regulars[tier] as Array):
+		for card: PlayerData in (regulars[tier] as Array):
 			if card != null:
 				out.append(card)
 	return out
@@ -95,7 +95,7 @@ func describe() -> String:
 			parts.append("Tier %s: %s (Stars)" % [tier, unit_type])
 			continue
 		var names: Array[String] = []
-		for card in (regulars.get(tier, []) as Array):
+		for card: PlayerData in (regulars.get(tier, []) as Array):
 			if card != null:
 				names.append(card.player_name)
 		parts.append("Tier %s: %s" % [tier, ", ".join(names)])
