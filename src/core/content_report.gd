@@ -47,13 +47,15 @@ func _gather() -> void:
 	var stats := StatsRules.get_rules()
 	var steps := Progression.get_rules()
 	var base := BaseDB.get_db()
+	var talents := TalentDB.get_db()
 
 	lines.append("[content] %d cards, %d abilities, %d story lines across %d scene(s), %d stat rules, %d progression rows."
 		% [cards.players.size(), cards.abilities.size(),
 			story.line_count(), story.scenes.size(),
 			stats.rules.size(), steps.rules.size()])
-	lines.append("[content] %d building(s), %d visitor(s)."
-		% [base.buildings.size(), base.visitors.size()])
+	lines.append("[content] %d building(s), %d visitor(s), %d talent(s) in %d tree(s)."
+		% [base.buildings.size(), base.visitors.size(),
+			talents.talents.size(), talents.tree_names().size()])
 
 	for problem in cards.problems:
 		warnings.append("cards: " + problem)
@@ -65,10 +67,13 @@ func _gather() -> void:
 		warnings.append("progression: " + problem)
 	for problem in base.problems:
 		warnings.append("base: " + problem)
+	for problem in talents.problems:
+		warnings.append("talents: " + problem)
 
 	_check_story_targets(story, steps, base)
-	_check_counters(story, stats, steps, base)
-	_check_unlocks(story, steps, base)
+	_check_counters(story, stats, steps, base, talents)
+	_check_unlocks(story, steps, base, talents)
+	_check_tuning_bonuses(talents)
 
 
 ## A Progression row that says story:chapter9 when no CSV defines chapter9.
@@ -91,11 +96,11 @@ func _check_story_targets(story: DialogueDB, steps: Progression, base: BaseDB) -
 
 ## Counters that are READ by a condition but never WRITTEN by anything.
 func _check_counters(story: DialogueDB, stats: StatsRules, steps: Progression,
-		base: BaseDB) -> void:
+		base: BaseDB, talents: TalentDB) -> void:
 	var written: Array[String] = stats.counter_patterns.duplicate()
 
 	# Effects can also write counters directly — count:coins+10.
-	for expression in _all_effects(story, steps, base):
+	for expression in _all_effects(story, steps, base, talents):
 		for term in _terms(expression):
 			if term.to_lower().begins_with("count:"):
 				var body := term.substr(6).strip_edges()
@@ -109,7 +114,7 @@ func _check_counters(story: DialogueDB, stats: StatsRules, steps: Progression,
 					written.append(name_text)
 
 	var reported: Array[String] = []
-	for expression in _all_conditions(story, steps, base):
+	for expression in _all_conditions(story, steps, base, talents):
 		for term in _terms(expression):
 			var body := term
 			if body.begins_with("!"):
@@ -139,15 +144,16 @@ func _check_counters(story: DialogueDB, stats: StatsRules, steps: Progression,
 
 
 ## Unlocks that are TESTED but never GRANTED, so the content is unreachable.
-func _check_unlocks(story: DialogueDB, steps: Progression, base: BaseDB) -> void:
+func _check_unlocks(story: DialogueDB, steps: Progression, base: BaseDB,
+		talents: TalentDB) -> void:
 	var granted: Array[String] = []
-	for expression in _all_effects(story, steps, base):
+	for expression in _all_effects(story, steps, base, talents):
 		for term in _terms(expression):
 			if term.to_lower().begins_with("unlock:"):
 				granted.append(CardDatabase._normalise(term.substr(7)))
 
 	var reported: Array[String] = []
-	for expression in _all_conditions(story, steps, base):
+	for expression in _all_conditions(story, steps, base, talents):
 		for term in _terms(expression):
 			var body := term
 			if body.begins_with("!"):
@@ -164,13 +170,42 @@ func _check_unlocks(story: DialogueDB, steps: Progression, base: BaseDB) -> void
 				% thing)
 
 
+## A talent that raises a Tuning value only works if that value exists.
+## `count:tune_pres_speed+12` (one `s` missing) silently does nothing, so it
+## is checked here against the real Tuning.csv.
+func _check_tuning_bonuses(talents: TalentDB) -> void:
+	var db := CardDatabase.get_db()
+	var reported: Array[String] = []
+
+	for expression in talents.all_effects():
+		for term in _terms(expression):
+			if not term.to_lower().begins_with("count:tune"):
+				continue
+			var body := term.substr(6).strip_edges()
+			var cut := body.length()
+			for op in ["+", "-", "="]:
+				var at := body.find(op)
+				if at > 0:
+					cut = mini(cut, at)
+			var counter := body.substr(0, cut).strip_edges()
+			var target := CardDatabase._normalise(counter).substr(4)
+			if target == "" or reported.has(target):
+				continue
+			if not db.tuning.has(target):
+				reported.append(target)
+				warnings.append("a talent raises '%s', but Tuning.csv has no row of that name — the talent would do nothing"
+					% counter)
+
+
 # =============================================================
 #  HELPERS
 # =============================================================
 
-func _all_conditions(story: DialogueDB, steps: Progression, base: BaseDB) -> Array[String]:
+func _all_conditions(story: DialogueDB, steps: Progression, base: BaseDB,
+		talents: TalentDB) -> Array[String]:
 	var out: Array[String] = steps.all_conditions()
 	out.append_array(base.all_conditions())
+	out.append_array(talents.all_conditions())
 	for scene_key in story.scenes.keys():
 		for line: DialogueLine in (story.scenes[scene_key] as Array):
 			if line.requires.strip_edges() != "":
@@ -181,8 +216,10 @@ func _all_conditions(story: DialogueDB, steps: Progression, base: BaseDB) -> Arr
 	return out
 
 
-func _all_effects(story: DialogueDB, steps: Progression, base: BaseDB) -> Array[String]:
+func _all_effects(story: DialogueDB, steps: Progression, base: BaseDB,
+		talents: TalentDB) -> Array[String]:
 	var out: Array[String] = []
+	out.append_array(talents.all_effects())
 	for rule in steps.rules:
 		out.append(String(rule["do"]))
 	for entry in base.buildings:

@@ -187,6 +187,10 @@ func _ready() -> void:
 	state = GameState.fetch(get_tree())
 	stats = StatsRules.get_rules()
 	steps = Progression.get_rules()
+
+	# Talents raise Tuning.csv numbers. This has to happen BEFORE the tuning
+	# is read, or the match would use the un-boosted values.
+	db.apply_bonuses_from(state)
 	_apply_match_tuning()
 
 	# Added BEFORE units_container on purpose. Everything here sits at z_index

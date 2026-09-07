@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://67v0wm7ondpa"
+
+[deps]
+
+files=["res://data/Talents.Name.translation", "res://data/Talents.Tree.translation", "res://data/Talents.Tier.translation", "res://data/Talents.Parent.translation", "res://data/Talents.Requires.translation", "res://data/Talents.Cost.translation", "res://data/Talents.Effects.translation", "res://data/Talents.Description.translation", "res://data/Talents.Notes.translation"]
+
+source_file="res://data/Talents.csv"
+dest_files=["res://data/Talents.Name.translation", "res://data/Talents.Tree.translation", "res://data/Talents.Tier.translation", "res://data/Talents.Parent.translation", "res://data/Talents.Requires.translation", "res://data/Talents.Cost.translation", "res://data/Talents.Effects.translation", "res://data/Talents.Description.translation", "res://data/Talents.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

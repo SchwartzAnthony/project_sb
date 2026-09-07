@@ -1,0 +1,9 @@
+ID,Name,Tree,Tier,Parent,Requires,Cost,Effects,Description,Art,Notes
+high_press,High Press,Tactics,1,,,1,count:tune_press_speed+12,Your players charge the ball carrier faster.,,tune_press_speed adds 12 to the press_speed row of Tuning.csv. Any Tuning row works this way.
+swarm,Swarm,Tactics,2,high_press,,1,count:tune_press_helpers+1,One more player comes across from another quarter to help press.,,
+wide_play,Wide Play,Tactics,2,high_press,,1,count:tune_open_spread+40,Your players break further off their markers to show for a pass.,,
+relentless,Relentless,Tactics,3,swarm,count:matches_won>=3,2,count:tune_unit_chase_speed+10,Everyone runs at a loose ball harder.,,Needs a Parent AND three wins. Both must be true.
+brewing_basics,Brewing Basics,Brewing,1,,,1,unlock:Fire Brew,The Pub can pour a Fire Brew.,,Unlocks a brew by name. Brews.csv in step 4 will read this.
+water_craft,Water Craft,Brewing,2,brewing_basics,,1,unlock:Water Brew,The Pub can pour a Water Brew.,,
+steady_pour,Steady Pour,Brewing,2,brewing_basics,,1,count:tune_mark_distance+10,Your defenders stand off a little and read the play instead of diving in.,,
+master_brewer,Master Brewer,Brewing,3,water_craft,count:brews_drunk>=5,2,unlock:Permanent Brews,"A brew can be made permanent, and removed again later.",,Needs five brews drunk. brews_drunk is filled by Stats.csv already.

@@ -43,6 +43,16 @@ var anims: Dictionary = {}          # "name|unittype" (lower) -> AnimSpec
 var tuning: Dictionary = {}         # key (lower) -> String
 var problems: Array[String] = []    # everything that looked wrong, for one tidy report
 
+## Numbers ADDED on top of Tuning.csv, earned from talents and unlocks.
+##
+## Any counter in your save named  tune_<something>  lands here and is added
+## to the Tuning.csv row of that name. A talent whose Effects say
+##     count:tune_press_speed+12
+## makes press_speed 12 higher for that save, for good, with no code.
+##
+## Filled by apply_bonuses_from(). Empty until something calls it.
+var bonuses: Dictionary = {}
+
 
 # =============================================================
 #  SINGLETON  (a static var, so there is no autoload to register)
@@ -347,13 +357,40 @@ func goalie_for_team(team: String) -> GoalieData:
 # row in Tuning.csv degrades to the built-in default instead of crashing.
 
 func tune_float(key: String, fallback: float) -> float:
-	var raw := String(tuning.get(_normalise(key), ""))
-	return float(raw) if raw.is_valid_float() else fallback
+	var name_key := _normalise(key)
+	var raw := String(tuning.get(name_key, ""))
+	var value := float(raw) if raw.is_valid_float() else fallback
+	return value + float(bonuses.get(name_key, 0.0))
 
 
 func tune_int(key: String, fallback: int) -> int:
-	var raw := String(tuning.get(_normalise(key), ""))
-	return int(raw) if raw.is_valid_int() else fallback
+	var name_key := _normalise(key)
+	var raw := String(tuning.get(name_key, ""))
+	var value := int(raw) if raw.is_valid_int() else fallback
+	return value + int(bonuses.get(name_key, 0))
+
+
+## Read every  tune_<something>  counter out of the save and stack them on
+## top of Tuning.csv. Call this once before a match, after the save is loaded.
+##
+## Names line up because both sides are stripped down to letters and digits:
+## the counter `tune_press_speed` becomes `tunepressspeed`, drop the leading
+## `tune` and you have `pressspeed`, which is exactly what `press_speed`
+## normalises to.
+func apply_bonuses_from(state: GameState) -> void:
+	bonuses.clear()
+	if state == null:
+		return
+
+	for key in state.counters.keys():
+		var name_key := String(key)
+		if not name_key.begins_with("tune") or name_key.length() <= 4:
+			continue
+		var target := name_key.substr(4)
+		bonuses[target] = float(state.counters[key])
+
+	if not bonuses.is_empty():
+		print("[tuning] %d value(s) raised by talents: %s" % [bonuses.size(), bonuses])
 
 
 ## A text value, e.g. a path to a PNG. Blank rows fall back like the rest.

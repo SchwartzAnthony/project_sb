@@ -23,6 +23,7 @@ const TEAM_BUILDER := "res://src/ui/team_builder.tscn"
 const MATCH := "res://src/formations/main_scene.tscn"
 const STORY := "res://src/ui/dialogue_view.tscn"
 const BASE := "res://src/ui/base_screen.tscn"
+const TALENTS := "res://src/ui/talent_screen.tscn"
 
 
 ## Turn a short word from a CSV into a screen path, so Progression.csv can
@@ -42,6 +43,8 @@ static func for_name(screen: String) -> String:
 			return STORY
 		"base", "hub", "home":
 			return BASE
+		"talents", "talent", "tree":
+			return TALENTS
 		_:
 			push_warning("[scenes] Progression.csv asks to go to '%s', which is not a screen. Going to the main menu instead." % screen)
 			return MAIN_MENU

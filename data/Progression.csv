@@ -5,3 +5,4 @@ unlock_brewery,match_ended,count:goals_with_brew_fire>=3,unlock:Brewery;announce
 unlock_pub,match_ended,unlocked:Brewery and count:matches_played>=5,unlock:Pub;announce:The Pub is open,true,Needs the Brewery first AND five matches. Chains one unlock off another.
 unlock_talents,match_ended,count:matches_played>=5,unlock:Talent Tree;announce:Talents unlocked,true,"The talent tree is itself a building, unlocked later on"
 veteran_badge,match_ended,count:matches_played>=10,flag:veteran,true,An achievement is just a flag. Nothing else needed.
+talent_point,match_ended,unlocked:Talent Tree,count:talent_points+1,,One talent point after every match once the Training Ground is open. Delete this row and nothing earns points.
