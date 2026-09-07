@@ -8,8 +8,8 @@ script = ExtResource("1_2c62f")
 field_sprite = NodePath("Sprite2D")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=971090029]
-position = Vector2(980.5, 538.625)
-scale = Vector2(2.119, 1.6473013)
+position = Vector2(956, 534)
+scale = Vector2(2.2159998, 2.1139429)
 texture = ExtResource("1_0f027")
 
 [node name="SelectionUI" type="CanvasLayer" parent="." unique_id=527606379]

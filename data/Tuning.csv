@@ -34,3 +34,17 @@ scoreboard_font_size,60,Score text size
 scoreboard_top_margin,18,Distance from the top of the screen
 scoreboard_width,340,Scoreboard box width
 scoreboard_height,96,Scoreboard box height
+duel_arena_enabled,true,Show the zoomed-in duel cut-away (false = instant duels)
+shootout_enabled,true,Show the shootout cut-away before a shot
+arena_speed,1.0,Cut-away playback speed. 2 = twice as fast
+arena_skip_speed,6.0,Speed while holding SPACE or clicking to skip
+arena_run_in_seconds,0.9,Both units run at each other
+arena_reveal_seconds,0.5,Power numbers appear
+arena_ability_seconds,0.9,Each ability lights up and plays
+arena_compare_seconds,0.8,Final numbers settle before the verdict
+arena_result_seconds,1.0,WIN / LOSE stays on screen
+shootout_open_seconds,0.7,Shootout window opens
+shootout_read_seconds,0.9,Time to read shot power and keeper stamina
+shootout_windup_seconds,0.8,The striker's kick animation
+shootout_close_seconds,0.4,Window closes
+verdict_seconds,1.4,How long GOAL / MISS stays on screen

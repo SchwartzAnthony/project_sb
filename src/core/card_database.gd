@@ -39,6 +39,7 @@ static var _instance: CardDatabase
 var players: Array[PlayerData] = []
 var goalie_data: Array[GoalieData] = []
 var abilities: Dictionary = {}      # ability_id (lower) -> AbilityData
+var anims: Dictionary = {}          # "name|unittype" (lower) -> AnimSpec
 var tuning: Dictionary = {}         # key (lower) -> String
 var problems: Array[String] = []    # everything that looked wrong, for one tidy report
 
@@ -68,6 +69,7 @@ func load_all() -> void:
 	players.clear()
 	goalie_data.clear()
 	abilities.clear()
+	anims.clear()
 	tuning.clear()
 	problems.clear()
 
@@ -114,6 +116,8 @@ func _load_csv(path: String) -> void:
 		_read_goalies(rows, columns, short_name)
 	elif columns.has("abilityid"):
 		_read_abilities(rows, columns, short_name)
+	elif columns.has("animation") and columns.has("row"):
+		_read_anims(rows, columns, short_name)
 	elif columns.has("key") and columns.has("value"):
 		_read_tuning(rows, columns)
 	# Anything else is simply not ours — silently skipped.
@@ -198,6 +202,10 @@ func _read_goalies(rows: Array, columns: Dictionary, source: String) -> void:
 		if art_name != "":
 			keeper.artwork = _find_texture(art_name, GOALIE_ART_DIRS)
 
+		var front_name := _first_cell(row, columns, ["shootoutartwork", "frontartwork"])
+		if front_name != "":
+			keeper.shootout_artwork = _find_texture(front_name, GOALIE_ART_DIRS)
+
 		goalie_data.append(keeper)
 
 
@@ -226,6 +234,48 @@ func _read_abilities(rows: Array, columns: Dictionary, source: String) -> void:
 			continue
 
 		abilities[id_text.to_lower()] = ability
+
+
+# --- Animations ----------------------------------------------
+
+func _read_anims(rows: Array, columns: Dictionary, source: String) -> void:
+	for i in range(1, rows.size()):
+		var row: PackedStringArray = rows[i]
+		var anim_name := _cell(row, columns, "animation")
+		if anim_name == "":
+			continue
+
+		var spec := AnimSpec.new()
+		spec.name = anim_name.strip_edges().to_lower()
+		spec.unit_type = _cell(row, columns, "unittype")
+		spec.sheet_columns = _cell_int_or(row, columns, "sheetcolumns", AnimSpec.DEFAULT_COLUMNS)
+		spec.sheet_rows = _cell_int_or(row, columns, "sheetrows", AnimSpec.DEFAULT_ROWS)
+		spec.row = _cell_int(row, columns, "row")
+		spec.first_frame = _cell_int(row, columns, "firstframe")
+		spec.frames = _cell_int_or(row, columns, "frames", 1)
+		spec.fps = _cell_float_or(row, columns, "fps", 10.0)
+		spec.loop = _cell_bool(row, columns, "loop")
+		spec.notes = _cell(row, columns, "notes")
+
+		var complaint := spec.validate()
+		if complaint != "":
+			problems.append("%s: animation '%s' — %s" % [source, anim_name, complaint])
+			continue
+
+		anims[_anim_key(spec.name, spec.unit_type)] = spec
+
+
+static func _anim_key(anim_name: String, unit_type: String) -> String:
+	return "%s|%s" % [anim_name.strip_edges().to_lower(), _normalise(unit_type)]
+
+
+## Look up an animation: a class-specific row wins, otherwise the generic one.
+## Returns null if neither exists — callers fall back to a still frame.
+func get_anim(anim_name: String, unit_type: String = "") -> AnimSpec:
+	var specific: Variant = anims.get(_anim_key(anim_name, unit_type))
+	if specific != null:
+		return specific
+	return anims.get(_anim_key(anim_name, ""))
 
 
 # --- Tuning --------------------------------------------------
@@ -350,6 +400,20 @@ func _cell_int(row: PackedStringArray, columns: Dictionary, key: String) -> int:
 	return int(raw) if raw.is_valid_int() else 0
 
 
+func _cell_int_or(row: PackedStringArray, columns: Dictionary, key: String, fallback: int) -> int:
+	var raw := _cell(row, columns, key)
+	return int(raw) if raw.is_valid_int() else fallback
+
+
+func _cell_float_or(row: PackedStringArray, columns: Dictionary, key: String, fallback: float) -> float:
+	var raw := _cell(row, columns, key)
+	return float(raw) if raw.is_valid_float() else fallback
+
+
+func _cell_bool(row: PackedStringArray, columns: Dictionary, key: String) -> bool:
+	return _cell(row, columns, key).strip_edges().to_lower() in ["true", "yes", "1", "on", "loop"]
+
+
 func _find_texture(file_name: String, dirs: Array[String]) -> Texture2D:
 	for folder in dirs:
 		var path: String = folder + file_name
@@ -359,8 +423,8 @@ func _find_texture(file_name: String, dirs: Array[String]) -> Texture2D:
 
 
 func _report() -> void:
-	print("[CardDB] %d cards, %d goalies, %d abilities, %d tuning values."
-		% [players.size(), goalie_data.size(), abilities.size(), tuning.size()])
+	print("[CardDB] %d cards, %d goalies, %d abilities, %d animations, %d tuning values."
+		% [players.size(), goalie_data.size(), abilities.size(), anims.size(), tuning.size()])
 	if problems.is_empty():
 		return
 	print("[CardDB] %d thing(s) need attention in your CSVs:" % problems.size())

@@ -1,7 +1,7 @@
 # Godot Autobattler — Design Spec
 
 **Status:** living document. Re-upload this at the start of any new AI chat so nothing has to be re-explained.
-**Last updated:** 2026-09-07
+**Last updated:** 2026-09-07 (duel + shootout cut-aways)
 
 ---
 
@@ -214,7 +214,7 @@ Pitch also needs `HomeGoaliePos` and `AwayGoaliePos` Marker2D nodes.
 | `player_card_ui.gd` | Draft card — hover/select signals |
 | `main_scene.gd` | Match clock, event schedule, drafting, spawning, round resolution |
 | `csv_importer.gd` | `@tool` EditorScript — CSV → `.tres` |
-| `rps_clash.tscn` | **not built yet** — rock/paper/scissors screen |
+| `rps_clash.gd` / `.tscn` | Rock/paper/scissors clash — see §14 |
 | `combat_arena.tscn` | **not built yet** — Advance Wars duel + shot |
 
 ### Signals exposed by `main_scene.gd`
@@ -385,6 +385,294 @@ becomes one per class automatically.
   `Soccerlineup`). They are instantiated to read marker positions, so they are
   now hidden before being added and freed immediately rather than via
   `queue_free()`, which let them render for a frame.
+
+---
+
+## 14. The clash (`rps_clash.tscn` / `rps_clash.gd`)
+
+Fires at the start of every PLAY MAKER, **before** the tier draft.
+
+```
+"PLAY MAKER!"  ->  pitch freezes (nobody runs, nobody passes)
+     ↓
+clash overlay opens
+     you throw  ->  enemy throws  ->  reveal
+        tie      -> "throw again", same screen
+        you win  -> you choose ATTACK or DEFEND
+        enemy win-> enemy rolls 50/50 (`enemy_attack_chance`)
+     ↓
+emits clash_finished(player_attacks)
+     ↓
+tier draft: I -> II -> III -> IV   (pitch still frozen)
+     ↓
+last card locked in
+  -> the ATTACKER's Tier I unit collects the ball
+  -> pitch unfreezes
+  -> the four duels resolve
+```
+
+**DEFEND is a real choice, not decoration.** `ties_go_to_attacker` defaults to
+`false`, so the defender holds an exact power tie. Handing the opponent the
+Tier I attack is correct whenever you expect to match them on power.
+
+It is a **CanvasLayer overlay**, not an OS `Window`: it dims the pitch behind
+it, cannot be dragged off screen or lost behind the game on the Steam Deck,
+and still runs under `--headless` for the test rig. Panel measures 820 × 415,
+centred, verified to fit at 1920 × 1080.
+
+| Knob | Default | |
+|---|---|---|
+| `enemy_attack_chance` | 0.5 | enemy's odds of choosing ATTACK when it wins |
+| `reveal_seconds` | 0.9 | pause on the reveal |
+| `result_seconds` | 1.0 | pause on the decision |
+| `use_rps_minigame` *(main_scene)* | true | off = silent coin flip |
+
+`main_scene.run_rps_clash()` returns `player_attacks`, stored as
+`player_attacks_this_round` and consumed by `resolve_round()`.
+
+### Verified
+
+| Check | Result |
+|---|---|
+| Rules table, all 9 throw pairings | correct |
+| Ties re-throw instead of resolving | yes (1–4 re-throws per match observed) |
+| Both sides win clashes | 5 / 4 across 9 rounds |
+| Ball frozen for the whole draft | yes |
+| Ball unfrozen after the last pick | yes |
+| Attacker's **Tier I** unit gets the ball | 9 / 9 rounds |
+| Full match | 0 errors, 9 clashes, 9 PLAY MAKERs, 9 shots, 2 HOLD UPs |
+
+### One trap worth knowing
+
+`start()` originally used `@onready` refs and crashed if called before the
+node's `_ready()` had run — which happens whenever it is added to a tree that
+has not begun processing. Node lookup is now lazy (`_resolve_nodes()`), and
+`start()` falls back to a coin flip rather than stalling the match if the
+scene is malformed.
+
+---
+
+## 15. CSVs are now the game data
+
+**See `CSV_GUIDE.md` for the how-to.** Architecture summary:
+
+`CardDatabase` (`src/core/card_database.gd`) reads every `res://data/*.csv` at
+match start and builds `PlayerData` / `GoalieData` / `AbilityData` in memory.
+There is no import step and no `.tres` card files. `data/players/`,
+`data/goalies/` and `csv_importer.gd` are all obsolete and can be deleted.
+
+It is a **static singleton** (`CardDatabase.get_db()`), deliberately not an
+autoload, so `project.godot` needs no editing.
+
+- Files are classified by **header content**, not filename.
+- Columns are matched by **normalised name** (`_normalise()` strips case,
+  spaces and underscores), so order is free and unknown columns are ignored.
+- Every parse failure appends to `problems[]` and is printed as one report.
+  Nothing throws.
+
+### Tuning
+
+`Tuning.csv` → `db.tune_float/int/bool(key, fallback)`. Every call passes the
+existing in-code value as the fallback, so a missing or misspelled row silently
+keeps the default. Applied by `_apply_match_tuning()`, `_tune_ball()`,
+`_tune_rps()`, `_tune_unit()`, `_tune_goalie()`.
+
+Note `MATCH_LENGTH_MINUTES`, `ROUNDS_PER_CYCLE` etc. are now `var`, not
+`const`, because Tuning.csv overwrites them. The upper-case names were kept so
+no call sites changed.
+
+### Abilities
+
+`Abilities.csv` → `AbilityData` (trigger / target / effect / value / scope),
+validated on load with plain-English complaints. `AbilityEngine` holds scoped
+`Buff` objects rather than mutating `PlayerData`, so a card resource is never
+modified and DUEL / ROUND / CYCLE / MATCH expiry is clean.
+
+`_apply_one()` in `ability_engine.gd` is **the single place** that knows what an
+effect does — the one file to touch when adding a new effect verb.
+
+Duel resolution order is unchanged and now actually implemented: abilities go
+on the stack lowest-priority-first, attacker breaks the tie, *then* powers are
+compared.
+
+### Robustness (tested, not assumed)
+
+A deliberately mangled project — shuffled columns, an added junk column, four
+broken ability rows, a goalie stamina of `"lots"`, a tier of `"Tier Five"`, and
+`Tuning.csv` deleted outright — produced **6 named complaints, 0 hard errors,
+and a completed 2–1 match**.
+
+---
+
+## 16. The shot on goal
+
+`finish_round()` now plays the shot out on the pitch instead of resolving it
+silently:
+
+```
+duel chain ends
+   ↓
+the unit that won the last duel is given the ball
+   ↓
+it steps toward goal (shot_run_up_seconds)
+   ↓
+keeper's roll is made  <-- BEFORE the animation
+   ↓
+saved  -> ball flies to the keeper and stops; keeper plays it out
+scored -> ball flies PAST the keeper to the goal mouth; the conceding
+          side restarts from the centre circle
+```
+
+The roll happens first on purpose: the ball's path then always tells the truth
+about the result. A shot in flight cannot be tackled or intercepted
+(`Ball._shooting` outranks every other state).
+
+`round_shooter_card` tracks who holds the ball as the duel chain resolves, so
+the *right unit* strikes it — `_find_shooter()` matches that card to its
+on-pitch unit, falling back to whoever is furthest forward.
+
+Measured over one match: 9 shots, saves ended at the keeper's x (115 / 1805),
+goals ended 40 px past the goal line (x = 75). Goal announcement moved out of
+`_on_goal_conceded()` so the log reads shot-then-goal rather than the reverse.
+
+---
+
+## 17. The PLAY MAKER relay
+
+During a PLAY MAKER the pitch is held still and the ball is moved **by script
+only**, so the picture always shows the right man on the ball:
+
+```
+"PLAY MAKER!"  -> freeze_play(true)   (nobody runs, nobody passes)
+     clash  ->  tier draft
+     ↓
+for each tier I -> IV:
+     ball is played to THAT tier's attacker      <- one relay leg
+     abilities resolve, powers compare
+     a turnover flips possession, so the next leg
+     goes to the OTHER side's next tier
+     ↓
+the last winner receives the ball and steps toward goal
+     ↓
+keeper's roll  ->  keeper dives  ->  ball flies
+     saved  -> keeper hoofs it to their furthest-forward team-mate
+     scored -> ball crosses the line, conceding side restarts from the centre
+     ↓
+freeze_play(false)   -> open-play passing, tackling and chasing resume
+```
+
+Scripted moves deliberately **outrank `frozen`**: `Ball._physics_process()`
+checks `_shooting` and `_scripted` *before* the freeze check, so the relay and
+the shot still play out while everything else is held. Neither can be
+intercepted or tackled.
+
+`Ball.deliver_to(unit)` is the relay leg — a straight, uninterceptable pass
+that tracks its receiver and emits `delivery_arrived`.
+`main_scene.deliver_ball_to_card()` wraps it with a `relay_beat_seconds` pause
+so the viewer can register who has it.
+
+### Verified
+
+| Check | Result |
+|---|---|
+| Relay leg per tier, to the correct attacker | matched the duel log leg-for-leg |
+| Turnover redirects the next leg to the other side | yes |
+| Autonomous passing/tackling during a PLAY MAKER | **0** (the only non-scripted possession changes were the 2 centre-circle restarts after goals) |
+| Goal kick goes to the saving keeper's own side | yes, furthest-forward team-mate |
+| Full matches | 3 runs, 0 errors, 9 shots + 9 clashes each, 7–8 goal kicks |
+
+> Tuning note: the choreography adds roughly 5 s of real time per round, so
+> `test_run.gd`'s `REAL_TIME_LIMIT` went to 320 s. Every pause is a
+> `Tuning.csv` row (`relay_beat_seconds`, `goal_pause_seconds`,
+> `save_pause_seconds`, `shot_run_up_seconds`, `ball_delivery_speed`).
+
+## 18. Scoreboard
+
+Built in code by `spawn_scoreboard()` and added to the existing `SelectionUI`
+CanvasLayer, so `main_scene.tscn` needs no editing. Anchored centre-top
+(`PRESET_CENTER_TOP`, offsets ±170), white with an 8 px black outline so it
+reads over any pitch. Updated from `_on_goal_conceded()`.
+
+It clears the existing UI: `TimerLabel` sits at x 1643+, `EventAnnouncement`
+and `StartDraftButton` are centred vertically at y 380+ and y 496+. Size,
+font and margin are all `Tuning.csv` rows.
+
+---
+
+## 19. The cut-aways (Advance Wars view)
+
+**See `ARTIST_GUIDE.md` for the drawing side.** Architecture:
+
+### Animation data
+`Animations.csv` → `AnimSpec` (sheet grid, row, first frame, frame count, fps,
+loop), loaded by `CardDatabase`, looked up with `db.get_anim(name, unit_type)`
+— a class-specific row wins, otherwise the generic one, otherwise `null` and
+the caller falls back to `idle`, then to a still frame. Nothing is required;
+missing art never breaks a match.
+
+### `SpriteAnimator` (extends TextureRect)
+Two things make the zoom look right:
+
+1. **Shared crop box.** It scans the animation's frames with
+   `Image.get_region().get_used_rect()`, merges them, and crops every frame to
+   that one box. A *per-frame* box would make the figure jitter as its
+   silhouette changed. Measured on the real art: 25 × 47 and 43 × 38 rather
+   than the empty 128 × 64 cell.
+2. **Integer nearest-neighbour scaling** (`fit_into()`), so a 6× blow-up is six
+   hard pixels per source pixel.
+
+Crop boxes are cached per texture+animation in a `static var`, so the scan runs
+once. A compressed import (where `get_image()` cannot be read) falls back to
+the whole cell rather than failing.
+
+### `DuelArena`
+LEFT is **always** your side, RIGHT always the enemy, whichever attacks —
+`show_duel_arena()` sorts the attacker/defender pair back into screen sides.
+Sequence: run-in → both numbers → lower priority lights and fires its ability →
+then the other → final numbers → WIN/LOSE. Priority ties go to the attacker,
+matching `AbilityEngine`.
+
+The numbers are the real ones: `power_before` is sampled *after* `begin_duel()`
+but *before* `resolve_duel_abilities()`, so a buff landing is visible as the
+number changing.
+
+### `ShootoutView`
+Opens before the shot showing pre-shot stamina, so `take_shot()` is called
+*after* the window closes. Keeper front-on, striker from behind; both fall back
+to placeholder blocks when art is missing.
+
+### Ordering in `finish_round()`
+```
+relay -> shooter run-up -> SHOOTOUT WINDOW -> take_shot() -> ball flies
+      -> GOAL / MISS announced -> restart or goal kick
+```
+The keeper's roll still happens before the flight, so the ball's path cannot
+lie about the result.
+
+### Skip
+Holding SPACE or clicking sets `_skipping`, switching every `_beat()` from
+`arena_speed` to `arena_skip_speed`. Nothing is skipped silently — it runs
+fast. `test_run.gd` sets `ARENA_SPEED = 30.0` so the smoke test does not sit
+through 36 cut-aways.
+
+### `export_sheet_preview.gd`
+Artist tool. Writes one labelled contact sheet per card to
+`res://sheet_previews/` — row number in blue, drawn-frame count in amber —
+using a hand-rolled 3 × 5 bitmap font, because `Image` has no text drawing and
+this avoids shipping a font file.
+
+### Verified
+
+| Check | Result |
+|---|---|
+| Duel cut-aways per match | **36** (4 tiers × 9 rounds) |
+| Shootout cut-aways per match | **9** |
+| LEFT always player, RIGHT always enemy | 0 errors across 36 duels |
+| Priority order (lower first, attacker breaks tie) | 5/5 cases, both tie directions |
+| Crop finds the character | 25 × 47 and 43 × 38, not the 128 × 64 cell |
+| GOAL / MISS after the ball arrives | yes |
+| Cut-aways disabled via Tuning.csv | plays exactly as before, 0 errors |
+| Full matches | 3 runs, 0 errors, 9 shots each |
 
 ### Still missing from the repo (present locally, just never committed)
 

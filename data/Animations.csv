@@ -1,0 +1,10 @@
+Animation,Unit Type,Sheet Columns,Sheet Rows,Row,First Frame,Frames,FPS,Loop,Notes
+idle,,12,39,0,0,5,6,true,Standing with the ball. Used as the fallback for any missing animation.
+run,,12,39,8,0,12,14,true,Both units run at each other in the duel cut-away.
+ability,,12,39,3,0,6,12,false,Plays when this unit's ability lights up.
+win,,12,39,38,0,9,10,false,Shown on the winning panel.
+lose,,12,39,19,0,6,10,false,Shown on the losing panel.
+kick,,12,39,12,0,12,14,false,Striking the ball.
+kick_back,,12,39,12,0,12,14,false,Striker seen from behind in the shootout. Draw a new row and point this at it.
+keeper_ready,,4,4,0,0,4,8,true,First-person keeper waiting. Needs a Shootout Artwork sheet in Goalies.csv.
+keeper_dive,,4,4,1,0,4,12,false,First-person keeper diving.

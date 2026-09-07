@@ -11,3 +11,6 @@ extends Resource
 ## Optional — an "Ability ID" column pointing at a row in Abilities.csv.
 @export var ability_id: String = ""
 @export var artwork: Texture2D
+## Optional "Shootout Artwork" column — the first-person keeper sheet used by
+## the shootout cut-away. Without it the shootout draws a placeholder block.
+@export var shootout_artwork: Texture2D

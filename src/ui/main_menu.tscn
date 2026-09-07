@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://b1gctjx1hb3qp"]
+
+[ext_resource type="Script" path="res://src/ui/main_menu.gd"]
+
+[node name="MainMenu" type="CanvasLayer"]
+script = ExtResource("uid://b1gctjx1hb3qp")
+background_art_path = ""
+title_text = "AUTOBATTLER"
+title_font_size = 80

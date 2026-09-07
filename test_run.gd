@@ -17,7 +17,8 @@ extends SceneTree
 
 const MAIN_SCENE_PATH := "res://src/formations/main_scene.tscn"
 const SPEED := 45.0          # in-game minutes per real second
-const REAL_TIME_LIMIT := 100.0
+const REAL_TIME_LIMIT := 320.0   # the relay + shot choreography adds ~5 s per round
+const ARENA_SPEED := 30.0        # cut-away playback speed for the test rig
 
 var main: Node
 var started := false
@@ -28,6 +29,17 @@ func _initialize() -> void:
 	main = load(MAIN_SCENE_PATH).instantiate()
 	root.add_child(main)
 	main.time_scale = SPEED
+
+	# Run the cut-aways through every step, but fast — this is a smoke test,
+	# not a viewing. Set ARENA_SPEED to 1.0 to watch them at real pace.
+	await process_frame
+	if main.duel_arena != null:
+		main.duel_arena.speed = ARENA_SPEED
+	if main.shootout != null:
+		main.shootout.speed = ARENA_SPEED
+	if main.rps != null:
+		main.rps.reveal_seconds = 0.05
+		main.rps.result_seconds = 0.05
 
 
 func _process(delta: float) -> bool:
@@ -41,6 +53,15 @@ func _process(delta: float) -> bool:
 	if not started and main.start_draft_button.visible:
 		started = true
 		main.start_draft_button.pressed.emit()
+		return false
+
+	# Rock/paper/scissors: always throw ROCK, always choose ATTACK.
+	var clash = main.rps
+	if clash != null and clash.is_running():
+		if clash.awaiting_throw():
+			clash.throw_buttons.get_child(0).pressed.emit()
+		elif clash.awaiting_choice():
+			clash.choice_buttons.get_child(0).pressed.emit()
 		return false
 
 	# Whenever cards are on screen, take the first one.

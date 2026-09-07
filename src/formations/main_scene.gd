@@ -34,6 +34,8 @@ const PLAYER_CARD_SCENE: PackedScene = preload("res://src/ui/player_card_ui.tscn
 const PLAYER_UNIT_SCENE: PackedScene = preload("res://src/units/player_unit.tscn")
 const GOALIE_SCENE: PackedScene = preload("res://src/units/goalie_unit.tscn")
 const RPS_SCENE: PackedScene = preload("res://src/ui/rps_clash.tscn")
+const DUEL_ARENA_SCENE: PackedScene = preload("res://src/ui/duel_arena.tscn")
+const SHOOTOUT_SCENE: PackedScene = preload("res://src/ui/shootout_view.tscn")
 
 # --- Match settings -----------------------------------------
 # These are VARIABLES, not constants, because Tuning.csv overwrites them in
@@ -69,6 +71,8 @@ var units_container: Node2D
 var goalies: Dictionary = {}   # false -> player goalie, true -> enemy goalie
 var ball: Ball = null
 var rps: RpsClash = null
+var duel_arena: DuelArena = null
+var shootout: ShootoutView = null
 ## Everything the game knows, read from res://data/*.csv at startup.
 var db: CardDatabase
 var abilities: AbilityEngine
@@ -122,6 +126,7 @@ func _ready() -> void:
 	spawn_goalies()
 	spawn_ball()
 	spawn_rps()
+	spawn_cutaways()
 	spawn_scoreboard()
 	build_event_schedule()
 
@@ -600,6 +605,29 @@ func spawn_ball() -> void:
 	units_container.add_child(ball)
 	ball.global_position = get_play_rect().get_center()
 	_tune_ball()
+
+
+## The two close-up views. Both are optional at runtime: turn them off with
+## `duel_arena_enabled` / `shootout_enabled` in Tuning.csv and the match plays
+## exactly as it did before, just without the cut-aways.
+func spawn_cutaways() -> void:
+	if db.tune_bool("duel_arena_enabled", true):
+		duel_arena = DUEL_ARENA_SCENE.instantiate() as DuelArena
+		if duel_arena != null:
+			duel_arena.name = "DuelArena"
+			add_child(duel_arena)
+			duel_arena.apply_tuning(db)
+		else:
+			push_error("duel_arena.tscn did not instantiate as a DuelArena.")
+
+	if db.tune_bool("shootout_enabled", true):
+		shootout = SHOOTOUT_SCENE.instantiate() as ShootoutView
+		if shootout != null:
+			shootout.name = "ShootoutView"
+			add_child(shootout)
+			shootout.apply_tuning(db)
+		else:
+			push_error("shootout_view.tscn did not instantiate as a ShootoutView.")
 
 
 ## The scoreboard, centred at the top of the pitch. Created in code so you
@@ -1179,6 +1207,11 @@ func resolve_round() -> void:
 		# --- The relay: the ball is played up to THIS tier's attacker ---
 		await deliver_ball_to_card(atk, attacker_is_enemy)
 
+		# Numbers BEFORE this duel's abilities, so the cut-away can show them
+		# changing when a buff lands.
+		var atk_before := abilities.attack_power(atk, attacker_is_enemy)
+		var def_before := abilities.defense_power(def, not attacker_is_enemy)
+
 		# Abilities go on the stack first: lowest priority resolves first,
 		# attacker breaks a tie. Only then are the numbers compared.
 		abilities.resolve_duel_abilities(atk, attacker_is_enemy, def)
@@ -1189,6 +1222,10 @@ func resolve_round() -> void:
 		var attacker_wins := atk_power > def_power
 		if atk_power == def_power:
 			attacker_wins = ties_go_to_attacker
+
+		# --- The cut-away, before the outcome is applied ---
+		await show_duel_arena(ALL_TIERS[i], atk, def, attacker_is_enemy,
+			atk_before, atk_power, def_before, def_power, attacker_wins)
 
 		if attacker_wins:
 			abilities.resolve_duel_outcome(atk, attacker_is_enemy, def, not attacker_is_enemy)
@@ -1257,7 +1294,19 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 		var toward_goal := shooter.global_position.lerp(keeper.global_position, 0.25)
 		await shooter.run_to(toward_goal, db.tune_float("shot_run_up_seconds", 0.45))
 
-	# --- 2. Decide the outcome, THEN show it ---
+	# --- 2. The shootout cut-away, showing the numbers BEFORE the shot ---
+	if shootout != null:
+		shootout.play_shot({
+			"shooter_card": shooter.data if shooter != null else null,
+			"shooter_is_player": shooter_is_player,
+			"shot_power": shot_power,
+			"keeper_data": keeper.data,
+			"keeper_stamina": keeper.current_stamina,
+			"keeper_max": keeper.max_stamina,
+		})
+		await shootout.view_closed
+
+	# --- 3. Decide the outcome, THEN show it ---
 	var scored := keeper.take_shot(shot_power)
 
 	print("  SHOT: %s (%s) fires %d power -> %s (keeper stamina now %d)" % [
@@ -1267,13 +1316,17 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 	if scored:
 		print("  GOAL!  %d - %d" % [player_score, enemy_score])
 
-	# --- 3. Strike it, with the keeper diving for it either way ---
+	# --- 4. Strike it on the pitch, with the keeper diving for it either way ---
 	if ball != null:
 		var goal_line := _goal_mouth(target_key)
 		var aim: Vector2 = goal_line if scored else keeper.global_position
 		ball.shoot(aim)
 		keeper.dive_at(ball.global_position)
 		await ball.shot_arrived
+
+		# --- 5. The verdict, once the ball has actually got there ---
+		await announce("GOAL!" if scored else "MISS",
+			db.tune_float("verdict_seconds", 1.4))
 
 		if scored:
 			# Restart from the centre. The side that CONCEDED kicks off, and
@@ -1310,6 +1363,41 @@ func _goal_kick(keeper_is_enemy: bool) -> void:
 	print("  Goal kick to %s." % best.data.player_name)
 	ball.deliver_to(best)
 	await ball.delivery_arrived
+
+
+## Open the duel cut-away for one tier and wait for it to finish.
+## LEFT is always your side and RIGHT always the enemy, whichever attacks.
+func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
+		attacker_is_enemy: bool, atk_before: int, atk_after: int,
+		def_before: int, def_after: int, attacker_wins: bool) -> void:
+	if duel_arena == null:
+		return
+
+	var attacker_side := {
+		"card": atk,
+		"is_attacker": true,
+		"priority": atk.get_ability_priority(),
+		"power_before": atk_before,
+		"power_after": atk_after,
+		"ability": db.get_ability(atk.attack_ability_id),
+		"wins": attacker_wins,
+	}
+	var defender_side := {
+		"card": def,
+		"is_attacker": false,
+		"priority": def.get_ability_priority(),
+		"power_before": def_before,
+		"power_after": def_after,
+		"ability": db.get_ability(def.defend_ability_id),
+		"wins": not attacker_wins,
+	}
+
+	duel_arena.play_duel({
+		"tier": tier,
+		"left": defender_side if attacker_is_enemy else attacker_side,
+		"right": attacker_side if attacker_is_enemy else defender_side,
+	})
+	await duel_arena.duel_finished
 
 
 ## The on-pitch unit holding the ball at the end of the duel chain.
