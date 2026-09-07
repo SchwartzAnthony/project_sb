@@ -22,12 +22,23 @@ const MENU_CONFIG_PATH := "res://data/MenuConfig.csv"
 @export var title_font_size: int = 72
 
 var db: CardDatabase
+## Flags, counters and unlocks, shared with the match and the story screen.
+var state: GameState
+var steps: Progression
 var _buttons: Control
 var _footer: Label
 
 
 func _ready() -> void:
 	db = CardDatabase.get_db()
+
+	# One consolidated report of everything the CSVs got wrong, printed once.
+	# See content_report.gd — it also catches mistakes no single file can see,
+	# like a condition testing a counter nothing ever fills in.
+	ContentReport.print_report()
+
+	state = GameState.fetch(get_tree())
+	steps = Progression.get_rules()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	_build_background()
@@ -41,6 +52,32 @@ func _ready() -> void:
 
 	_build_footer()
 	_build_buttons()
+
+	# game_start fires once ever; menu_opened fires every time you land here.
+	_advance_progression("game_start")
+	_advance_progression("menu_opened")
+
+
+## Run the Progression rows for this moment. State changes happen here;
+## anything that needs a screen change is carried out below.
+func _advance_progression(trigger: String) -> void:
+	if steps == null or state == null:
+		return
+	for action in steps.fire(trigger, state):
+		var kind := String(action["kind"])
+		var value := String(action["value"])
+		match kind:
+			"announce":
+				_footer.text = value
+			"story":
+				state.save_to_disk()
+				DialogueView.play(get_tree(), value, ScenePaths.MAIN_MENU)
+				return
+			"goto":
+				state.save_to_disk()
+				ScenePaths.go_to(get_tree(), ScenePaths.for_name(value))
+				return
+	state.save_to_disk()
 
 
 # -------------------------------------------------------------

@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://qthwp16bjhrn"
+
+[deps]
+
+files=["res://data/Progression.When.translation", "res://data/Progression.Requires.translation", "res://data/Progression.Do.translation", "res://data/Progression.Once.translation", "res://data/Progression.Notes.translation"]
+
+source_file="res://data/Progression.csv"
+dest_files=["res://data/Progression.When.translation", "res://data/Progression.Requires.translation", "res://data/Progression.Do.translation", "res://data/Progression.Once.translation", "res://data/Progression.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

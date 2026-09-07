@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://ch2pdxnnxkcpb"
+
+[deps]
+
+files=["res://data/Stats.Event.translation", "res://data/Stats.When.translation", "res://data/Stats.Notes.translation"]
+
+source_file="res://data/Stats.csv"
+dest_files=["res://data/Stats.Event.translation", "res://data/Stats.When.translation", "res://data/Stats.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

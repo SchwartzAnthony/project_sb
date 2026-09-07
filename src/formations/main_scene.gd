@@ -78,6 +78,13 @@ var shootout: ShootoutView = null
 ## Everything the game knows, read from res://data/*.csv at startup.
 var db: CardDatabase
 var abilities: AbilityEngine
+## What the story remembers: flags, counters, unlocks. Shared with the
+## dialogue screen and the base, and saved between runs.
+var state: GameState
+## Stats.csv — turns match events into counters.
+var stats: StatsRules
+## Progression.csv — decides when things happen.
+var steps: Progression
 ## Who won the rock/paper/scissors clash and chose to attack this round.
 var player_attacks_this_round: bool = true
 ## The card holding the ball when the duel chain ended — it takes the shot.
@@ -177,6 +184,9 @@ func _ready() -> void:
 
 	db = CardDatabase.get_db()
 	abilities = AbilityEngine.new(db)
+	state = GameState.fetch(get_tree())
+	stats = StatsRules.get_rules()
+	steps = Progression.get_rules()
 	_apply_match_tuning()
 
 	# Added BEFORE units_container on purpose. Everything here sits at z_index
@@ -232,6 +242,62 @@ func _process(delta: float) -> void:
 			trigger_hold_up_event()
 		elif rounds_this_cycle < ROUNDS_PER_CYCLE:
 			trigger_playmaker_event()
+
+
+# =============================================================
+#  REPORTING WHAT HAPPENED
+#
+#  The match does not know or care what is being counted. It just says
+#  "a goal was scored, here are the facts about it" and Stats.csv decides
+#  which counters that feeds. Add a row there, get a new tracked stat —
+#  no change in here.
+# =============================================================
+
+## The facts that travel with a goal or a duel.
+func _facts_for(unit: PlayerUnit) -> Dictionary:
+	var facts: Dictionary = {}
+	if active_player_star != null:
+		facts["class"] = active_player_star.unit_type
+	if unit == null:
+		return facts
+
+	if unit.data != null:
+		facts["card"] = unit.data.player_name
+		facts["tier"] = unit.data.get_tier_clean()
+		if facts.get("class", "") == "":
+			facts["class"] = unit.data.unit_type
+	facts["star"] = "yes" if unit.is_star_player else "no"
+	if unit.active_brew.strip_edges() != "":
+		facts["brew"] = unit.active_brew
+	return facts
+
+
+func _report(event: String, facts: Dictionary) -> void:
+	if stats != null and state != null:
+		stats.record(event, facts, state)
+
+
+## Run the Progression rows listening for this moment, then carry out
+## anything they asked for that needs the scene tree.
+func _advance_progression(trigger: String) -> void:
+	if steps == null or state == null:
+		return
+	for action in steps.fire(trigger, state):
+		var kind := String(action["kind"])
+		var value := String(action["value"])
+		match kind:
+			"announce":
+				print("[progression] %s" % value)
+				await announce(value, db.tune_float("progression_announce_seconds", 1.6))
+			"story":
+				state.save_to_disk()
+				DialogueView.play(get_tree(), value, ScenePaths.MATCH)
+				return
+			"goto":
+				state.save_to_disk()
+				ScenePaths.go_to(get_tree(), ScenePaths.for_name(value))
+				return
+	state.save_to_disk()
 
 
 # =============================================================
@@ -614,6 +680,21 @@ func _full_time() -> void:
 	print("FULL TIME — %d : %d" % [player_score, enemy_score])
 	match_ended.emit(player_score, enemy_score)
 
+	var outcome := "draw"
+	if player_score > enemy_score:
+		outcome = "win"
+	elif player_score < enemy_score:
+		outcome = "loss"
+
+	var facts := _facts_for(null)
+	facts["result"] = outcome
+	facts["scored"] = str(player_score)
+	facts["conceded"] = str(enemy_score)
+	facts["margin"] = str(player_score - enemy_score)
+	_report("match_ended", facts)
+
+	_advance_progression("match_ended")
+
 
 # =============================================================
 #  EVENT SCHEDULE
@@ -679,6 +760,8 @@ func _resolve_kickoff_star(chosen: PlayerData) -> void:
 	print("Player class: %s  |  Star: %s (Tier %s)" % [
 		chosen.unit_type, chosen.player_name, player_star_tier])
 	_print_line_ups()
+	_report("match_started", _facts_for(null))
+	_advance_progression("match_started")
 
 
 ## Kick off with the exact team chosen in the team builder. This is the same
@@ -716,6 +799,8 @@ func _apply_team_selection(picked: TeamSelection) -> void:
 	print("Your team — %s | Star: %s (Tier %s)" % [
 		picked.unit_type, active_player_star.player_name, player_star_tier])
 	_print_line_ups()
+	_report("match_started", _facts_for(null))
+	_advance_progression("match_started")
 
 
 ## Prints exactly who is on the pitch for each side. If a name here is not one
@@ -1174,6 +1259,14 @@ func _on_goal_conceded(conceded_by_enemy: bool) -> void:
 	else:
 		enemy_score += 1
 	_update_score_label()
+
+	# The scorer is whoever took the shot this round. Facts about them travel
+	# with the event, and Stats.csv decides what that feeds.
+	var scorer := _find_shooter(conceded_by_enemy)
+	if conceded_by_enemy:
+		_report("goal_scored", _facts_for(scorer))
+	else:
+		_report("goal_conceded", _facts_for(null))
 
 
 # =============================================================
@@ -2009,6 +2102,14 @@ func resolve_round() -> void:
 		for line in abilities.log_lines:
 			print(line)
 		abilities.log_lines.clear()
+
+		# Report the duel before anything else reacts to it, so a counter is
+		# never one behind what is on screen.
+		var my_unit := unit_for_card(mine, false)
+		if attacker_wins == player_has_ball:
+			_report("duel_won", _facts_for(my_unit))
+		else:
+			_report("duel_lost", _facts_for(my_unit))
 
 		# A turnover is SHOWN, not just recorded: the beaten attacker tries to
 		# find a team-mate and the winner reads it and steps in.

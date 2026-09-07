@@ -1,0 +1,7 @@
+ID,When,Requires,Do,Once,Notes
+opening_story,game_start,,story:prologue,true,Play the prologue the first time the game is launched. Once=true so it never repeats.
+first_win,match_ended,count:matches_won>=1,flag:first_win;announce:First win!,true,Sets a flag other content can test with  flag:first_win
+unlock_brewery,match_ended,count:goals_with_brew_fire>=3,unlock:Brewery;announce:The Brewery is open,true,YOUR EXAMPLE: score three times with fire-brewed players and the Brewery unlocks.
+unlock_pub,match_ended,unlocked:Brewery and count:matches_played>=5,unlock:Pub;announce:The Pub is open,true,Needs the Brewery first AND five matches. Chains one unlock off another.
+unlock_talents,match_ended,count:matches_played>=5,unlock:Talent Tree;announce:Talents unlocked,true,"The talent tree is itself a building, unlocked later on"
+veteran_badge,match_ended,count:matches_played>=10,flag:veteran,true,An achievement is just a flag. Nothing else needed.

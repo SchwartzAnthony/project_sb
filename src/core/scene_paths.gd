@@ -23,6 +23,26 @@ const TEAM_BUILDER := "res://src/ui/team_builder.tscn"
 const MATCH := "res://src/formations/main_scene.tscn"
 const STORY := "res://src/ui/dialogue_view.tscn"
 
+
+## Turn a short word from a CSV into a screen path, so Progression.csv can
+## say  goto:base  instead of a res:// path a non-coder should never have to
+## type. An unknown word falls back to the main menu rather than nowhere.
+static func for_name(screen: String) -> String:
+	match screen.strip_edges().to_lower():
+		"menu", "main_menu", "mainmenu":
+			return MAIN_MENU
+		"classes", "class_select", "classselect":
+			return CLASS_SELECT
+		"builder", "team_builder", "teambuilder":
+			return TEAM_BUILDER
+		"match", "game", "pitch":
+			return MATCH
+		"story", "dialogue":
+			return STORY
+		_:
+			push_warning("[scenes] Progression.csv asks to go to '%s', which is not a screen. Going to the main menu instead." % screen)
+			return MAIN_MENU
+
 ## Folders never worth searching.
 const SKIP_DIRS: Array[String] = [".godot", ".git", "addons", "sheet_previews"]
 

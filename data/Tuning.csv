@@ -104,3 +104,4 @@ ball_corridor_return_speed,420,How fast a stray ball rolls back into the allowed
 surge_lead_seconds,0.7,How long the winning side runs at goal before the ball starts moving to the shooter
 surge_advance,0.45,"How much of the remaining distance to goal the break closes. 0 = nobody moves, 1 = everyone piles on the goal line"
 surge_centring,0.35,How much the break funnels toward the goal mouth. 0 = everyone keeps their lane
+progression_announce_seconds,1.6,How long a Progression announce: line stays on screen during a match

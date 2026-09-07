@@ -77,6 +77,11 @@ var is_star_player: bool = false:
 var is_playmaker: bool = false     # picked during the current round
 var is_exhausted: bool = false     # already used this cycle
 
+## Which brew this unit drank at the Pub before the match, or "" for none.
+## The Pub fills this in; the match reports it with every goal and duel, so
+## Stats.csv rows like `goals_with_brew_{brew}` work with no code changes.
+var active_brew: String = ""
+
 ## The little marker riding above a Star Player. Created on demand.
 var _star_badge: StarBadge = null
 
