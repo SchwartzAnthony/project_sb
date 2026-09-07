@@ -14,9 +14,9 @@ metadata/_edit_lock_ = true
 [node name="SpawnPositions" parent="." unique_id=465205338 instance=ExtResource("3_xur7f")]
 
 [node name="HomeGoaliePos" type="Marker2D" parent="." unique_id=1759573142]
-position = Vector2(114, 315)
+position = Vector2(508, 541)
 
 [node name="AwayGoaliePos" type="Marker2D" parent="." unique_id=711646496]
-position = Vector2(1026, 315)
+position = Vector2(1420, 546)
 
 [node name="UnitsContainer" type="Node2D" parent="." unique_id=289847497]

@@ -1,7 +1,7 @@
 # Godot Autobattler — Design Spec
 
 **Status:** living document. Re-upload this at the start of any new AI chat so nothing has to be re-explained.
-**Last updated:** 2026-09-06
+**Last updated:** 2026-09-07
 
 ---
 
@@ -162,7 +162,7 @@ re-run the importer.
 | `tier` | "I" / "II" / "III" / "IV" |
 | `player_type` | "Normal" or "Star" |
 | `formation_scene` | Star Players only — the pitch layout |
-| `set_name` | "F01" — must be spelled `set_name`, not `card_set`, to match the existing `.tres` files |
+| `card_set` | "F01". **Cannot** be called `set_name` — `Resource` already has a `set_name()` method (the setter for `resource_name`), and a member of that name shadows it. `PlayerData._set()` intercepts the old `set_name` key so the existing 24 `.tres` files still load. |
 | `stufe`, `tool` | currently the literal strings `"Level"` and `"Wand"` on **every** card — placeholder columns, no mechanical use |
 | `element` | also `"Wand"` on every card — the targeting tag is not populated with real values yet |
 | `artwork` | 12 × 39 spritesheet |
@@ -268,8 +268,123 @@ the arena then listens to `round_ready_for_combat` and calls
   This bug was always present — the old `main_scene.gd` never called `spawn_goalies()`, so nothing triggered it. The scene has a `CollisionShape2D` child, which confirms the root was always meant to be an `Area2D`.
 - **`StaminaBar` is a `TextureProgressBar`, typed in code as `ProgressBar`.** Those are siblings, not parent/child — both extend `Range`. Now typed as `Range`, so either node type works.
 - **Phantom shots.** `round_player_picks` was only cleared when a PLAY MAKER started, so each HOLD UP! draft re-resolved the *previous* round's duels and fired an extra shot — **11 shots per match instead of 9**. Now gated behind an explicit `round_in_progress` flag.
-- **`card_set` vs `set_name`.** All 24 `.tres` files store `set_name`; the field was declared as `card_set`. Godot silently drops unknown properties, so the value was being lost on every load. Renamed to `set_name`.
+- **`card_set` vs `set_name`.** All 24 `.tres` files store `set_name`; the field was declared as `card_set`. Godot silently drops unknown properties, so the value was being lost on every load.
 - **`get_defense_power()` fallback removed** — see the warning in §6.
+
+---
+
+## 11. Bugs fixed in the third pass (the 11 editor errors)
+
+| Error | Cause | Fix |
+|---|---|---|
+| `"set_name" is shadowing an already-declared method in the base class "Resource"` | `Resource::set_name()` is the setter for `resource_name`. A member of the same name shadows the engine's own method. | Field renamed to `card_set`; `PlayerData._set()` intercepts the legacy `set_name` key so old `.tres` files still load. |
+| `Formation for 'X' is missing StarSlot with a Marker2D child` (×2) | Both formation scenes have `RegularSlots` but no `StarSlot`. The Star was never spawned. | Formation scenes are now **optional**. `build_layout()` reads whatever the scene provides and `default_layout()` fills the gaps from the pitch rect. |
+| `Could not find a star unit on the pitch to swap` (×4) | Downstream of the above — HOLD UP! had no Star on the pitch to rotate. | Fixed by the Star now spawning. |
+| `No goalie resource at res://data/goalies/…` (×2) | `Goalies.csv` was never imported. | Ship `brandteufel_goalie.tres` / `lorelei_goalie.tres`, or wire `import_goalies()` into `csv_importer.gd::_run()`. |
+| `No HomeGoaliePos / AwayGoaliePos markers found` | Markers are genuinely optional; the pitch-bounds fallback is correct behaviour. | Demoted from `push_warning` to `print`. |
+| `Only 2 distinct classes have Star Players` | Only 2 classes are imported. Correct behaviour. | Demoted to `print`. |
+
+### Formation scenes are now optional
+
+`default_layout()` builds a 3-3-3 grid from `get_pitch_rect()`, with tier
+columns at 16% / 25% / 34% / 43% of pitch width and rows at 28% / 50% / 72%
+of height. The Star takes the centre row of its own tier's column. A
+formation scene now only needs to supply the parts you want to hand-place —
+anything absent (or a tier node with fewer than 3 markers) falls back to the
+grid.
+
+---
+
+## 12. The ball (`ball.gd`)
+
+Created in code by `main_scene.spawn_ball()` — there is no `ball.tscn`. It
+draws itself and is **not** a physics body: possession is decided by distance
+checks, which is cheap, deterministic and works under `--headless`.
+
+```
+carrier dribbles toward the opposing goal for 1.6–3.4 s
+   ↓
+passes to a team-mate — 75% of the time to one further upfield
+   ↓
+pass travels at 380 px/s
+   ├─ an opponent within 45 px of the ball in flight  -> INTERCEPTED
+   └─ otherwise the receiver collects it
+   ↓
+at any time, an opponent within 22 px of the CARRIER  -> TACKLED
+```
+
+| Knob | Default | What it does |
+|---|---|---|
+| `pass_speed` | 380 px/s | |
+| `carry_seconds` | 1.6 – 3.4 s | how long before a carrier passes |
+| `forward_pass_chance` | 0.75 | how often a pass looks upfield |
+| `intercept_radius` | 45 px | corridor around a pass in flight |
+| `intercept_grace` | 0.18 | fraction of the pass that cannot be picked off |
+| `tackle_radius` | 22 px | how close to the carrier to win the ball |
+| `possession_grace` | 0.7 s | new carrier is safe this long |
+| `tackle_recovery` | 2.5 s | a tackled unit stops chasing this long |
+
+`PlayerUnit` steering (per physics frame, priority order):
+
+1. **I have the ball** → dribble at `dribble_speed` (44) toward the enemy goal
+2. **Ball within `interest_radius`** (190 px) → run at it at `chase_speed` (66)
+3. **Otherwise** → amble at `walk_speed` (30) within `roam_radius` of my slot
+
+Everything is clamped to `get_play_rect()`, so nobody walks off screen.
+
+### Three tuning dead-ends worth not repeating
+
+Measured over 60-second samples with the match clock frozen:
+
+| Attempt | Result |
+|---|---|
+| Interception only (no tackling), 44 px corridor | 23 steals / 60 s — possession flipped every 2.3 s |
+| Interception only, 26–34 px corridor | **0** steals. The ball never left your own half, so no opponent ever came near it |
+| Tackling with no recovery timer | 81 flips / 60 s — two units stood on the same spot trading the ball every 0.7 s |
+| **Tackling + 2.5 s recovery + forward-biased passing** | **~19 flips / 60 s**, both sides get real possession |
+
+The second row is the instructive one: an opponent was measured standing
+**0 px from the ball** and could not take it, because interception only ever
+applied to passes in flight. Tackling the carrier was the missing mechanic.
+
+### Substitutions
+
+`_swap_star_on_pitch()` is now an animation. `freeze_play(true)` stops every
+unit and the ball (reference-counted, because both sides rotate their Star at
+the same HOLD UP!), the outgoing Star runs off the nearer touchline, the card
+is swapped while it is off screen, it runs back into the same slot, then
+`freeze_play(false)`. If the outgoing Star was on the ball it drops it, and the
+nearest unit collects it after 0.3 s.
+
+### Kickoff
+
+`get_star_player_choices()` now always returns **3** cards: one per class
+first, then topped up from the classes you do have. With only Brandteufel and
+Lorelei imported you get 3 cards across 2 classes; add a third class and it
+becomes one per class automatically.
+
+---
+
+## 13. Bugs fixed in the fourth pass
+
+- **`StarSlot` markers are grandchildren.** The real layout is
+  `StarSlot/TierIII/Star_TierIII`, but the code did `star_slot.get_child(0) as Marker2D`,
+  which returned the intermediate `TierIII` Node2D, cast to `null`. That — not a
+  missing node — is why both Stars failed to spawn and why every HOLD UP! then
+  reported "could not find a star unit to swap". Marker lookup is now recursive.
+- **Formations were authored across the whole pitch** (x 358 → 1479 on a 1920
+  wide screen), so once the enemy side was mirrored the two teams overlapped
+  around the halfway line and half the units sat off screen. `_fit_layout_to_home_half()`
+  keeps the shape you drew but remaps its bounding box into your own half of the
+  visible area. Measured after the fix: home x 115–892, away x 1028–1805, zero
+  units outside the play rect.
+- **Enemy mirroring used the field texture's centre** (x = 980.5) rather than the
+  centre of what is visible (x = 960), shifting the whole away team 20 px off.
+  `get_pitch_center_x()` now returns the play rect's centre.
+- **Formation scenes carry their own pitch sprites** (`Soccerfield`,
+  `Soccerlineup`). They are instantiated to read marker positions, so they are
+  now hidden before being added and freed immediately rather than via
+  `queue_free()`, which let them render for a frame.
 
 ### Still missing from the repo (present locally, just never committed)
 

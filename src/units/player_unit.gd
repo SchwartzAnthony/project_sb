@@ -16,9 +16,30 @@ const SHEET_VFRAMES := 39
 const IDLE_FRAME := 0
 
 # --- Movement ------------------------------------------------
+# Steering is per-frame in _physics_process, NOT tween-driven. Tweens and
+# ball-chasing fight over `position`; a single integrator does not.
 var home_position: Vector2
 var roam_radius: float = 40.0
 var is_roaming: bool = false
+var movement_frozen: bool = false     # HOLD UP! substitution pauses everyone
+
+@export var walk_speed: float = 30.0        # px/s ambling around home
+@export var chase_speed: float = 66.0       # px/s closing on the ball
+@export var dribble_speed: float = 44.0     # px/s carrying it upfield
+@export var interest_radius: float = 190.0  # only react to a ball this close
+
+## Assigned at spawn by main_scene.
+var ball: Ball = null
+var play_bounds: Rect2 = Rect2()
+var attack_dir: float = 1.0                 # +1 attacks right, -1 attacks left
+
+## Counts down after this unit is tackled. While it is above zero the unit
+## stops chasing the ball and cannot win it back, which is what stops two
+## opponents standing on the same spot trading possession forever.
+var steal_cooldown: float = 0.0
+
+var _roam_target: Vector2
+var _roam_wait: float = 0.0
 
 @export var data: PlayerData:
 	set(new_data):
@@ -101,12 +122,21 @@ func clear_round_flags() -> void:
 
 
 # =============================================================
-#  ROAMING
+#  MOVEMENT
+#
+#  Three modes, checked in priority order every physics frame:
+#    1. I have the ball        -> dribble toward the opposing goal
+#    2. The ball is near me    -> run at it (this is the "collision range"
+#                                 you asked for, done as a radius check —
+#                                 no Area2D overlap needed, and it works
+#                                 headless)
+#    3. Otherwise              -> amble around my formation slot
 # =============================================================
 
 func set_home(pos: Vector2) -> void:
 	position = pos
 	home_position = pos
+	_pick_roam_target()
 	start_roaming()
 
 
@@ -114,34 +144,84 @@ func start_roaming() -> void:
 	if Engine.is_editor_hint():
 		return
 	is_roaming = true
-	_roam_to_next_spot()
 
 
 func stop_roaming() -> void:
 	is_roaming = false
 
 
-func return_home(duration: float = 0.35) -> void:
-	# Used before a combat zoom-in so the camera frames a predictable spot.
-	stop_roaming()
-	var tween := create_tween()
-	tween.tween_property(self, "position", home_position, duration) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+func has_ball() -> bool:
+	return ball != null and is_instance_valid(ball) and ball.is_carried_by(self)
 
 
-func _roam_to_next_spot() -> void:
-	if not is_roaming or not is_inside_tree():
+func _physics_process(delta: float) -> void:
+	if Engine.is_editor_hint() or movement_frozen or not is_roaming:
 		return
 
-	var random_offset := Vector2(
+	steal_cooldown = maxf(0.0, steal_cooldown - delta)
+
+	var target: Vector2
+	var speed: float
+
+	if has_ball():
+		target = _dribble_target()
+		speed = dribble_speed
+	elif _ball_is_in_range():
+		target = ball.global_position
+		speed = chase_speed
+	else:
+		_roam_wait -= delta
+		if _roam_wait <= 0.0 or global_position.distance_to(_roam_target) < 5.0:
+			_pick_roam_target()
+		target = _roam_target
+		speed = walk_speed
+
+	global_position = global_position.move_toward(target, speed * delta)
+	_clamp_to_bounds()
+
+
+func _ball_is_in_range() -> bool:
+	if ball == null or not is_instance_valid(ball) or steal_cooldown > 0.0:
+		return false
+	return global_position.distance_to(ball.global_position) <= interest_radius
+
+
+func _dribble_target() -> Vector2:
+	if play_bounds.size.x <= 1.0:
+		return global_position + Vector2(attack_dir * 120.0, 0.0)
+	var goal_x: float = play_bounds.end.x if attack_dir > 0.0 else play_bounds.position.x
+	return Vector2(goal_x, global_position.y)
+
+
+func _pick_roam_target() -> void:
+	_roam_target = home_position + Vector2(
 		randf_range(-roam_radius, roam_radius),
 		randf_range(-roam_radius, roam_radius)
 	)
-	var target_pos := home_position + random_offset
+	_roam_wait = randf_range(1.5, 4.0)
 
+
+func _clamp_to_bounds() -> void:
+	if play_bounds.size.x <= 1.0 or play_bounds.size.y <= 1.0:
+		return
+	global_position.x = clampf(global_position.x, play_bounds.position.x, play_bounds.end.x)
+	global_position.y = clampf(global_position.y, play_bounds.position.y, play_bounds.end.y)
+
+
+# --- Scripted moves (substitutions, pre-combat framing) ------
+# These take over from the steering above by clearing is_roaming, so the
+# two never fight over `position`.
+
+func run_to(target: Vector2, duration: float = 0.6) -> void:
+	var was_roaming := is_roaming
+	is_roaming = false
 	var tween := create_tween()
-	var duration := randf_range(2.0, 4.0)
-	tween.tween_property(self, "position", target_pos, duration) \
+	tween.tween_property(self, "global_position", target, duration) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tween.tween_interval(randf_range(1.0, 3.0))
-	tween.tween_callback(_roam_to_next_spot)
+	await tween.finished
+	is_roaming = was_roaming
+
+
+func return_home(duration: float = 0.35) -> void:
+	# Used before a combat zoom-in so the camera frames a predictable spot.
+	await run_to(home_position, duration)

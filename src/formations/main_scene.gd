@@ -63,6 +63,10 @@ var next_event_index: int = 0
 
 var units_container: Node2D
 var goalies: Dictionary = {}   # false -> player goalie, true -> enemy goalie
+var ball: Ball = null
+## Substitutions can nest (enemy rotates its Star at the same moment you do),
+## so freezing is reference-counted rather than a plain bool.
+var _freeze_depth: int = 0
 
 # Team state
 var player_star_bundle: Array[PlayerData] = []
@@ -100,6 +104,7 @@ func _ready() -> void:
 	add_child(units_container)
 
 	spawn_goalies()
+	spawn_ball()
 	build_event_schedule()
 
 	event_announcement.hide()
@@ -195,6 +200,9 @@ func _resolve_kickoff_star(chosen: PlayerData) -> void:
 			unit.is_playmaker = true
 			unit.set_highlight(true)
 
+	# Kick-off: your Star starts on the ball.
+	give_ball_to(false)
+
 	print("Player class: %s  |  Star: %s (Tier %s)" % [
 		chosen.unit_type, chosen.player_name, player_star_tier])
 
@@ -278,7 +286,8 @@ func spawn_team(star_player: PlayerData, is_enemy: bool) -> void:
 			create_unit_instance(pool[i], pos, is_enemy)
 
 
-# Reads whatever the formation scene offers, then patches the gaps.
+# Reads whatever the formation scene offers, then patches the gaps and
+# normalises the result so it always lands inside your own half of the screen.
 func build_layout(star_player: PlayerData, star_tier: String) -> Dictionary:
 	var star_pos := Vector2.ZERO
 	var have_star := false
@@ -286,11 +295,14 @@ func build_layout(star_player: PlayerData, star_tier: String) -> Dictionary:
 
 	if star_player.formation_scene != null:
 		var formation := star_player.formation_scene.instantiate()
+		formation.visible = false      # it carries its own pitch sprites
 		add_child(formation)
 
+		# The markers are NOT direct children: the real layout is
+		# StarSlot/TierIII/Star_TierIII, so search the whole subtree.
 		var star_slot := formation.get_node_or_null("StarSlot")
-		if star_slot != null and star_slot.get_child_count() > 0:
-			var m := star_slot.get_child(0) as Node2D
+		if star_slot != null:
+			var m := _first_marker_in(star_slot)
 			if m != null:
 				star_pos = m.global_position
 				have_star = true
@@ -300,14 +312,13 @@ func build_layout(star_player: PlayerData, star_tier: String) -> Dictionary:
 			for tier_node in regular_slots.get_children():
 				var key := String(tier_node.name).replace("Tier", "").strip_edges().to_upper()
 				var arr: Array[Vector2] = []
-				for child in tier_node.get_children():
-					var m2 := child as Node2D
-					if m2 != null:
-						arr.append(m2.global_position)
+				for m2 in _all_markers_in(tier_node):
+					arr.append(m2.global_position)
 				if not arr.is_empty():
 					tiers[key] = arr
 
-		formation.queue_free()
+		remove_child(formation)
+		formation.free()
 
 	# --- Fill in anything the scene did not provide ---
 	var fallback := default_layout(star_tier)
@@ -316,31 +327,94 @@ func build_layout(star_player: PlayerData, star_tier: String) -> Dictionary:
 	if not have_star:
 		star_pos = fallback["star"]
 		if star_player.formation_scene != null:
-			print("[formation] '%s' has no StarSlot/Marker2D — generated the Star position. Add StarSlot > Marker2D to place it by hand."
+			print("[formation] '%s' has no Marker2D under StarSlot — generated the Star position."
 				% star_player.player_name)
 
 	for key in fallback_tiers.keys():
 		if not tiers.has(key) or (tiers[key] as Array).size() < 3:
 			tiers[key] = fallback_tiers[key]
 
+	if have_star:
+		star_pos = _fit_layout_to_home_half(star_pos, tiers)
+
 	return {"star": star_pos, "tiers": tiers}
+
+
+func _first_marker_in(node: Node) -> Marker2D:
+	for child in node.get_children():
+		var m := child as Marker2D
+		if m != null:
+			return m
+		var deeper := _first_marker_in(child)
+		if deeper != null:
+			return deeper
+	return null
+
+
+func _all_markers_in(node: Node) -> Array[Marker2D]:
+	var out: Array[Marker2D] = []
+	for child in node.get_children():
+		var m := child as Marker2D
+		if m != null:
+			out.append(m)
+		else:
+			out.append_array(_all_markers_in(child))
+	return out
+
+
+## The authored formations spread their markers across the WHOLE pitch, so once
+## the enemy side was mirrored the two teams overlapped and half the units sat
+## off screen. This keeps the shape you drew but squeezes it into your own half
+## of whatever is actually visible.
+func _fit_layout_to_home_half(star_pos: Vector2, tiers: Dictionary) -> Vector2:
+	var points: Array[Vector2] = [star_pos]
+	for key in tiers.keys():
+		for p in (tiers[key] as Array):
+			points.append(p)
+	if points.size() < 2:
+		return star_pos
+
+	var src := Rect2(points[0], Vector2.ZERO)
+	for p in points:
+		src = src.expand(p)
+	if src.size.x < 1.0 or src.size.y < 1.0:
+		return star_pos
+
+	var play := get_play_rect()
+	var dst := Rect2(play.position, Vector2(play.size.x * 0.46, play.size.y))
+
+	for key in tiers.keys():
+		var moved: Array[Vector2] = []
+		for p in (tiers[key] as Array):
+			moved.append(_remap_point(p, src, dst))
+		tiers[key] = moved
+
+	return _remap_point(star_pos, src, dst)
+
+
+func _remap_point(p: Vector2, src: Rect2, dst: Rect2) -> Vector2:
+	return Vector2(
+		dst.position.x + ((p.x - src.position.x) / src.size.x) * dst.size.x,
+		dst.position.y + ((p.y - src.position.y) / src.size.y) * dst.size.y)
 
 
 # A 3-3-3 grid derived from the pitch, authored for the HOME (left) side.
 func default_layout(star_tier: String) -> Dictionary:
-	var rect := get_pitch_rect()
+	var rect := get_play_rect()
 
 	# Columns march from your own goal out toward the halfway line.
+	# Fractions are of the VISIBLE play area, so the shape holds at any
+	# window size or camera zoom.
 	var col_x: Dictionary = {
-		"I":   rect.position.x + rect.size.x * 0.16,
-		"II":  rect.position.x + rect.size.x * 0.25,
-		"III": rect.position.x + rect.size.x * 0.34,
-		"IV":  rect.position.x + rect.size.x * 0.43,
+		"I":   rect.position.x + rect.size.x * 0.08,
+		"II":  rect.position.x + rect.size.x * 0.21,
+		"III": rect.position.x + rect.size.x * 0.33,
+		"IV":  rect.position.x + rect.size.x * 0.44,
 	}
 	var rows: Array[float] = [
-		rect.position.y + rect.size.y * 0.28,
+		rect.position.y + rect.size.y * 0.18,
 		rect.position.y + rect.size.y * 0.50,
-		rect.position.y + rect.size.y * 0.72,
+		rect.position.y + rect.size.y * 0.82,
 	]
 
 	var tiers: Dictionary = {}
@@ -353,7 +427,7 @@ func default_layout(star_tier: String) -> Dictionary:
 			arr.append(Vector2(x, y))
 		tiers[key] = arr
 
-	var star_x: float = col_x.get(star_tier, rect.position.x + rect.size.x * 0.34)
+	var star_x: float = col_x.get(star_tier, rect.position.x + rect.size.x * 0.33)
 	return {
 		"star": Vector2(star_x, rect.position.y + rect.size.y * 0.50),
 		"tiers": tiers,
@@ -367,6 +441,9 @@ func create_unit_instance(data: PlayerData, pos: Vector2, is_enemy: bool) -> Pla
 		return null
 	unit.is_enemy = is_enemy
 	unit.data = data
+	unit.ball = ball
+	unit.play_bounds = get_play_rect()
+	unit.attack_dir = -1.0 if is_enemy else 1.0   # home defends the left goal
 	units_container.add_child(unit)   # add first so @onready refs exist
 	unit.set_home(pos)                # then place and start roaming
 	return unit
@@ -385,9 +462,9 @@ func spawn_goalies() -> void:
 		# Optional markers. Add Marker2Ds named HomeGoaliePos / AwayGoaliePos
 		# to main_scene.tscn to place the keepers by hand.
 		print("[goalies] No HomeGoaliePos / AwayGoaliePos markers — using pitch bounds.")
-		var rect := get_pitch_rect()
-		home_pos = Vector2(rect.position.x + 32.0, rect.get_center().y)
-		away_pos = Vector2(rect.end.x - 32.0, rect.get_center().y)
+		var rect := get_play_rect()
+		home_pos = Vector2(rect.position.x, rect.get_center().y)
+		away_pos = Vector2(rect.end.x, rect.get_center().y)
 
 	var player_goalie := GOALIE_SCENE.instantiate() as GoalieUnit
 	player_goalie.is_enemy = false
@@ -438,10 +515,78 @@ func _on_goal_conceded(conceded_by_enemy: bool) -> void:
 #  PITCH GEOMETRY
 # =============================================================
 
+func spawn_ball() -> void:
+	ball = Ball.new()
+	ball.name = "Ball"
+	ball.units_provider = Callable(self, "_all_units")
+	units_container.add_child(ball)
+	ball.global_position = get_play_rect().get_center()
+
+
+## Everyone stops running and passing — used while a substitution plays out.
+func freeze_play(value: bool) -> void:
+	_freeze_depth = maxi(0, _freeze_depth + (1 if value else -1))
+	var frozen := _freeze_depth > 0
+	if ball != null:
+		ball.set_frozen(frozen)
+	for unit in _all_units():
+		unit.movement_frozen = frozen
+
+
+## Hand the ball to the side that won rock/paper/scissors.
+## rps_clash.tscn will call this; the headless path below calls it too.
+func give_ball_to(side_is_enemy: bool) -> void:
+	if ball == null:
+		return
+
+	var picked: Array[PlayerUnit] = []
+	var any: Array[PlayerUnit] = []
+	for unit in _all_units():
+		if unit.is_enemy != side_is_enemy:
+			continue
+		any.append(unit)
+		if unit.is_playmaker:
+			picked.append(unit)
+
+	var pool := picked if not picked.is_empty() else any
+	if pool.is_empty():
+		return
+	ball.give_to(pool.pick_random())
+
+
+## Mirror the enemy about the centre of the VISIBLE play area, not the centre of
+## the field texture — those differ whenever the sprite overhangs the window,
+## and the mismatch pushed the enemy team off-centre.
 func get_pitch_center_x() -> float:
-	if field_sprite != null:
-		return field_sprite.global_position.x
-	return get_viewport_rect().size.x / 2.0
+	return get_play_rect().get_center().x
+
+
+## What the camera can actually see, in world coordinates.
+func get_visible_world_rect() -> Rect2:
+	var vp := get_viewport()
+	if vp == null:
+		return get_viewport_rect()
+	var ct := vp.get_canvas_transform()
+	var zoom := ct.get_scale()
+	if is_zero_approx(zoom.x) or is_zero_approx(zoom.y):
+		return get_viewport_rect()
+	return Rect2(-ct.origin / zoom, vp.get_visible_rect().size / zoom)
+
+
+## Where units are allowed to be: the visible screen, clipped to the pitch when
+## the pitch is the smaller of the two, then inset so nobody hugs a touchline.
+## Formations were overflowing because they used the raw texture rect, which is
+## far larger than the window when the field sprite is not scaled to fit.
+func get_play_rect() -> Rect2:
+	var area := get_visible_world_rect()
+	var pitch := get_pitch_rect()
+	if pitch.size.x > 1.0 and pitch.size.y > 1.0:
+		var clipped := area.intersection(pitch)
+		if clipped.size.x > 1.0 and clipped.size.y > 1.0:
+			area = clipped
+	return area.grow_individual(
+		-area.size.x * 0.06, -area.size.y * 0.10,
+		-area.size.x * 0.06, -area.size.y * 0.10)
 
 
 func get_pitch_rect() -> Rect2:
@@ -520,22 +665,33 @@ func get_star_player_choices() -> Array[PlayerData]:
 	var class_names: Array = by_class.keys()
 	class_names.shuffle()
 
+	# One Star per class first, so once you have 3+ classes the kickoff offers
+	# three DIFFERENT classes. Everything else goes in the reserve pile.
 	var choices: Array[PlayerData] = []
+	var reserve: Array[PlayerData] = []
 	for key in class_names:
 		var bundle: Array[PlayerData] = by_class[key]
 		if bundle.is_empty():
 			continue
 		bundle.shuffle()
 		choices.append(bundle[0])
-		if choices.size() >= 3:
-			break
+		for i in range(1, bundle.size()):
+			reserve.append(bundle[i])
 
 	if choices.is_empty():
 		push_error("No Star Player resources found in %s" % STAR_DIR)
-	elif choices.size() < 3:
-		# Not a bug — you simply have fewer than 3 classes imported yet.
-		print("[kickoff] %d classes available, offering %d Star choices."
-			% [choices.size(), choices.size()])
+		return choices
+
+	# With fewer than 3 classes imported, top the kickoff up from the reserve
+	# so you always get three cards. Picking any of them still fixes your
+	# class, your Star's Tier and therefore your formation.
+	reserve.shuffle()
+	while choices.size() < 3 and not reserve.is_empty():
+		choices.append(reserve.pop_back())
+
+	choices.shuffle()
+	while choices.size() > 3:
+		choices.pop_back()
 	return choices
 
 
@@ -708,14 +864,46 @@ func _resolve_star_rotation(chosen: PlayerData) -> void:
 	print("New active Star: %s (Tier %s)" % [chosen.player_name, player_star_tier])
 
 
+## HOLD UP! substitution. Play stops, the outgoing Star jogs off the nearest
+## touchline, the incoming Star jogs on into the same slot, then play resumes.
 func _swap_star_on_pitch(new_star: PlayerData, is_enemy: bool) -> void:
+	var star_unit: PlayerUnit = null
 	for unit in _all_units():
 		if unit.is_enemy == is_enemy and unit.is_star_player:
-			unit.update_unit_data(new_star)
-			unit.is_playmaker = true
-			unit.set_highlight(true)
-			return
-	push_warning("Could not find a star unit on the pitch to swap (is_enemy=%s)." % is_enemy)
+			star_unit = unit
+			break
+
+	if star_unit == null:
+		push_warning("Could not find a star unit on the pitch to swap (is_enemy=%s)." % is_enemy)
+		return
+
+	var slot := star_unit.home_position
+	var rect := get_play_rect()
+
+	# Leave by whichever touchline is closer.
+	var exit_y: float = rect.position.y - 90.0
+	if star_unit.global_position.y > rect.get_center().y:
+		exit_y = rect.end.y + 90.0
+	var wing := Vector2(slot.x, exit_y)
+
+	freeze_play(true)
+
+	# If the outgoing Star was on the ball, drop it before they leave.
+	if ball != null and ball.is_carried_by(star_unit):
+		ball.carrier = null
+
+	await star_unit.run_to(wing, 0.65)
+
+	# Same pitch object, new card — swap it while it is off screen.
+	star_unit.update_unit_data(new_star)
+	star_unit.global_position = wing
+	star_unit.is_playmaker = true
+	star_unit.set_highlight(true)
+
+	await star_unit.run_to(slot, 0.65)
+	star_unit.set_home(slot)
+
+	freeze_play(false)
 
 
 func _resolve_tier_pick(tier_key: String, selected_data: PlayerData) -> void:
@@ -815,6 +1003,10 @@ func resolve_round() -> void:
 	# --- Rock / paper / scissors (placeholder: coin flip) ---
 	var player_has_ball := randi() % 2 == 0
 	print("  RPS: %s attacks first." % ("You" if player_has_ball else "Enemy"))
+
+	# The rock/paper/scissors winner is the attacker, so the ball goes to them
+	# on the pitch as well. rps_clash.tscn will call give_ball_to() itself.
+	give_ball_to(not player_has_ball)
 
 	var player_bank := 0
 	var enemy_bank := 0

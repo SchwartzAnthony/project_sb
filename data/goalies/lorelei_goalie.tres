@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_gdata")
 team = "Lorelei"
-goalie_name = "Lorelei Keeper"
+goalie_name = "Undine Aegis"
 max_stamina = 30
-ability_text = ""
+ability_text = "While above 6 Stamina: Defending units get +1 Power"

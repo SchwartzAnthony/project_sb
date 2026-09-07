@@ -28,7 +28,7 @@ position = Vector2(456, 662)
 [node name="TierII" type="Node2D" parent="RegularSlots" unique_id=695372966]
 
 [node name="TierII1" type="Marker2D" parent="RegularSlots/TierII" unique_id=374293152]
-position = Vector2(465, 370)
+position = Vector2(628, 349)
 
 [node name="TierII2" type="Marker2D" parent="RegularSlots/TierII" unique_id=2003709449]
 position = Vector2(809, 514)
