@@ -425,6 +425,17 @@ func _card_button(card: PlayerData, locked: bool) -> Button:
 	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(footer)
 
+	# Stars carry the pitch badge here too, so the locked Star tier reads as
+	# special rather than merely uneditable.
+	if card.is_star():
+		var badge := StarBadge.make_marker(false, 26.0)
+		button.add_child(badge)
+		badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		badge.offset_left = -30.0
+		badge.offset_top = 3.0
+		badge.offset_right = -4.0
+		badge.offset_bottom = 29.0
+
 	return button
 
 

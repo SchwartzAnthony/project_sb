@@ -231,8 +231,38 @@ func _dress(key: String, data: Dictionary) -> void:
 	if nodes["result"]:
 		(nodes["result"] as Label).text = ""
 
+	_mark_star(key, card)
+
 	# Both units run at each other; the attacker is the one carrying the ball.
 	_play_anim(key, card, "run")
+
+
+## A Star Player keeps its badge through the power check, so the moment that
+## decides the duel never leaves you guessing which of the two was the Star.
+## The marker is created once per side and then just shown or hidden.
+func _mark_star(key: String, card) -> void:
+	var stage: Control = _side[key]["stage"]
+	if stage == null:
+		return
+
+	var mark := stage.get_node_or_null("StarMark") as Control
+	var wants_mark: bool = card != null and card.is_star()
+
+	if not wants_mark:
+		if mark != null:
+			mark.visible = false
+		return
+
+	if mark == null:
+		mark = StarBadge.make_marker(false, 44.0)
+		mark.name = "StarMark"
+		stage.add_child(mark)
+		mark.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		mark.offset_left = -56.0
+		mark.offset_top = 6.0
+		mark.offset_right = -12.0
+		mark.offset_bottom = 50.0
+	mark.visible = true
 
 
 func _play_anim(key: String, card, anim_name: String) -> void:

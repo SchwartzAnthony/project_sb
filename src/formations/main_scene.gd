@@ -17,6 +17,8 @@ extends Node2D
 signal round_ready_for_combat(player_lineup: Array, enemy_lineup: Array)
 signal round_resolved(player_score: int, enemy_score: int)
 signal match_ended(player_score: int, enemy_score: int)
+## One HOLD UP! Star substitution has finished jogging on.
+signal substitution_finished
 
 # --- Scene wiring -------------------------------------------
 @onready var selection_ui: CanvasLayer = $SelectionUI
@@ -83,8 +85,26 @@ var round_shooter_card: PlayerData = null
 ## Substitutions can nest (enemy rotates its Star at the same moment you do),
 ## so freezing is reference-counted rather than a plain bool.
 var _freeze_depth: int = 0
+## True while a draft that stopped the pitch is still open, so the matching
+## thaw fires exactly once. Counting alone was not enough: the kickoff draft
+## never freezes, and an unmatched thaw there would leave the next HOLD UP!
+## one short.
+var _draft_froze_play: bool = false
+## Star substitutions currently jogging on or off, both sides counted.
+var _substitutions_running: int = 0
+## Set while a team is being spawned, so both sides are laid out against one
+## identical play area. See get_play_rect().
+var _geometry_locked: bool = false
+var _locked_play_rect: Rect2 = Rect2()
 
 # Team state
+## Tier -> the three regulars picked in the team builder. Empty means
+## "nobody chose", and spawn_team falls back to a random roster.
+var chosen_regulars: Dictionary = {}
+## The classes offered at kickoff. The enemy avoids these, so a Star you were
+## shown and turned down does not walk back on wearing the other shirt.
+var _offered_star_classes: Array[String] = []
+
 var player_star_bundle: Array[PlayerData] = []
 var enemy_star_bundle: Array[PlayerData] = []
 var available_player_stars: Array[PlayerData] = []
@@ -134,6 +154,14 @@ func _ready() -> void:
 	timer_label.text = "00:00"
 	start_draft_button.show()
 	start_draft_button.pressed.connect(_on_start_draft_pressed)
+
+	# Came from the team builder? Then the Star is already chosen — blow the
+	# whistle instead of asking again. One frame's wait lets the window finish
+	# sizing, so the formation lands inside the visible pitch.
+	if TeamSelection.fetch(get_tree()) != null:
+		start_draft_button.hide()
+		await get_tree().process_frame
+		_on_start_draft_pressed()
 
 
 func _process(delta: float) -> void:
@@ -189,6 +217,11 @@ func _tune_ball() -> void:
 	ball.tackle_radius = db.tune_float("ball_tackle_radius", ball.tackle_radius)
 	ball.possession_grace = db.tune_float("ball_possession_grace", ball.possession_grace)
 	ball.tackle_recovery = db.tune_float("ball_tackle_recovery", ball.tackle_recovery)
+	ball.pickup_radius = db.tune_float("ball_pickup_radius", ball.pickup_radius)
+	ball.loose_settle_seconds = db.tune_float(
+		"ball_loose_settle_seconds", ball.loose_settle_seconds)
+	ball.loose_timeout_seconds = db.tune_float(
+		"ball_loose_timeout_seconds", ball.loose_timeout_seconds)
 
 
 func _tune_rps() -> void:
@@ -248,6 +281,13 @@ func build_event_schedule() -> void:
 
 func _on_start_draft_pressed() -> void:
 	start_draft_button.hide()
+
+	# The team builder already settled the class, the Star and the 9 regulars.
+	var picked := TeamSelection.fetch(get_tree())
+	if picked != null and picked.active_star != null:
+		_apply_team_selection(picked)
+		return
+
 	current_state = MatchState.DRAFTING
 	draft_phases.assign(["Star"])
 	current_phase_index = 0
@@ -263,10 +303,12 @@ func _resolve_kickoff_star(chosen: PlayerData) -> void:
 	available_player_stars = player_star_bundle.duplicate()
 	available_player_stars.erase(chosen)
 
+	_lock_geometry()
 	spawn_team(chosen, false)
 
 	# Enemy picks a different class so you never mirror-match.
 	_choose_enemy_team(chosen.unit_type)
+	_unlock_geometry()
 
 	_assign_goalie_data()
 
@@ -281,15 +323,91 @@ func _resolve_kickoff_star(chosen: PlayerData) -> void:
 
 	print("Player class: %s  |  Star: %s (Tier %s)" % [
 		chosen.unit_type, chosen.player_name, player_star_tier])
+	_print_line_ups()
+
+
+## Kick off with the exact team chosen in the team builder. This is the same
+## work _resolve_kickoff_star() does, minus the drafting: the Star, the Star
+## bundle and the 9 regulars all arrive already decided.
+func _apply_team_selection(picked: TeamSelection) -> void:
+	chosen_regulars = picked.regulars
+	active_player_star = picked.active_star
+	player_star_tier = picked.star_tier
+	player_star_bundle = picked.star_bundle.duplicate()
+	available_player_stars = picked.star_bundle.duplicate()
+	available_player_stars.erase(picked.active_star)
+
+	# You never saw a kickoff card row, so nothing was "offered and refused" —
+	# the enemy may draw from any class but yours.
+	_offered_star_classes.clear()
+
+	_lock_geometry()
+	spawn_team(active_player_star, false)
+	_choose_enemy_team(active_player_star.unit_type)
+	_unlock_geometry()
+
+	_assign_goalie_data()
+
+	for unit in _all_units():
+		unit.clear_round_flags()
+		if unit.data == active_player_star and not unit.is_enemy:
+			unit.is_playmaker = true
+			unit.set_highlight(true)
+
+	give_ball_to(false)
+	current_state = MatchState.PLAYING
+
+	print("Your team — %s | Star: %s (Tier %s)" % [
+		picked.unit_type, active_player_star.player_name, player_star_tier])
+	_print_line_ups()
+
+
+## Prints exactly who is on the pitch for each side. If a name here is not one
+## you picked, that is a data problem worth reporting — and it also settles the
+## commonest confusion: every Star wearing another class's colours belongs to
+## the OPPOSITION, and now wears a badge on the pitch to prove it.
+func _print_line_ups() -> void:
+	for side: bool in [false, true]:
+		var label := "Enemy" if side else "Your team"
+		print("[team] %s:" % label)
+
+		for tier in ALL_TIERS:
+			var names := PackedStringArray()
+			for unit in _all_units():
+				if unit.is_enemy != side or unit.data == null:
+					continue
+				if unit.data.get_tier_clean() != tier:
+					continue
+				names.append(unit.data.player_name + (" ★" if unit.is_star_player else ""))
+			if names.is_empty():
+				continue
+			print("         Tier %s: %s" % [tier, ", ".join(names)])
 
 
 func _choose_enemy_team(player_type_to_avoid: String) -> void:
 	var by_class := _stars_grouped_by_class()
-	var candidates: Array[String] = []
-	for class_name_key in by_class.keys():
-		if String(class_name_key).to_lower() != player_type_to_avoid.to_lower():
-			candidates.append(String(class_name_key))
 
+	# `preferred` also skips the classes you were offered at kickoff and turned
+	# down. Without that the two Stars you just rejected could walk straight
+	# back on for the opposition, which reads as "why is that card still here?".
+	# `any_other` is the same list without that restriction, used when the
+	# project has too few classes to be picky.
+	var avoid_offered := db.tune_bool("enemy_avoids_offered_classes", true)
+	var preferred: Array[String] = []
+	var any_other: Array[String] = []
+
+	for class_name_key in by_class.keys():
+		var key := String(class_name_key)
+		if key.to_lower() == player_type_to_avoid.to_lower():
+			continue
+		any_other.append(key)
+		if avoid_offered and _offered_star_classes.has(key):
+			continue
+		preferred.append(key)
+
+	var candidates := preferred
+	if candidates.is_empty():
+		candidates = any_other
 	if candidates.is_empty():
 		push_warning("Only one class of Star Players found — enemy will mirror your class.")
 		candidates.append(player_type_to_avoid)
@@ -352,6 +470,14 @@ func spawn_team(star_player: PlayerData, is_enemy: bool) -> void:
 		var positions: Array = tiers[tier_key]
 		var pool := filter_units_by_tier(roster, tier_key)
 		pool.shuffle()
+
+		# Your side fields exactly the cards chosen in the team builder.
+		# The enemy keeps drawing at random, so it stays a fresh opponent.
+		if not is_enemy and chosen_regulars.has(tier_key):
+			var built: Array[PlayerData] = []
+			built.assign(chosen_regulars[tier_key])
+			if not built.is_empty():
+				pool = built
 
 		if pool.size() < positions.size():
 			# A data problem, not a code fault — CardDB has already named the
@@ -780,6 +906,14 @@ func get_visible_world_rect() -> Rect2:
 ## Formations were overflowing because they used the raw texture rect, which is
 ## far larger than the window when the field sprite is not scaled to fit.
 func get_play_rect() -> Rect2:
+	# Both teams must be laid out against the SAME rectangle. get_play_rect()
+	# reads the live camera, so if anything nudged the view between spawning
+	# your side and spawning theirs, the two halves were mirrored about
+	# different centre lines and the formations drifted into each other.
+	# _lock_geometry() pins one rect for the whole of a spawn.
+	if _geometry_locked:
+		return _locked_play_rect
+
 	var area := get_visible_world_rect()
 	var pitch := get_pitch_rect()
 	if pitch.size.x > 1.0 and pitch.size.y > 1.0:
@@ -799,6 +933,19 @@ func get_pitch_rect() -> Rect2:
 			origin -= size / 2.0
 		return Rect2(origin, size)
 	return get_viewport_rect()
+
+
+## Pin the play area for the duration of a spawn, so both teams are built
+## against identical geometry. Always paired with _unlock_geometry().
+func _lock_geometry() -> void:
+	if _geometry_locked:
+		return
+	_locked_play_rect = get_play_rect()
+	_geometry_locked = true
+
+
+func _unlock_geometry() -> void:
+	_geometry_locked = false
 
 
 func mirror_if_enemy(original_pos: Vector2, center_x: float, is_enemy: bool) -> Vector2:
@@ -862,6 +1009,15 @@ func get_star_player_choices() -> Array[PlayerData]:
 	choices.shuffle()
 	while choices.size() > 3:
 		choices.pop_back()
+
+	# Remember which classes were on the table, so _choose_enemy_team() can
+	# steer the opposition away from the ones you looked at and passed on.
+	_offered_star_classes.clear()
+	for card in choices:
+		var key := card.unit_type.strip_edges()
+		if key != "" and not _offered_star_classes.has(key):
+			_offered_star_classes.append(key)
+
 	return choices
 
 
@@ -917,6 +1073,17 @@ func trigger_hold_up_event() -> void:
 	round_in_progress = false
 	round_player_picks.clear()
 	round_enemy_picks.clear()
+
+	# THE WHISTLE. This has to be the very first thing that happens — before
+	# the enemy's substitution and before the "HOLD UP!" banner, both of which
+	# take seconds. Freezing later left the ball being passed around underneath
+	# the announcement while you were trying to choose.
+	#
+	# It is undone in _on_draft_complete(), and not one moment sooner: that
+	# waits for the incoming Star to finish jogging into their slot, so play
+	# only restarts once the new Star is actually standing on the pitch.
+	_draft_froze_play = true
+	freeze_play(true)
 
 	abilities.begin_cycle()
 	for unit in _all_units():
@@ -1005,6 +1172,28 @@ func create_card_for_unit(data: PlayerData) -> void:
 	card.card_unhovered.connect(_on_card_unhovered)
 	card.card_selected.connect(_on_card_selected)
 
+	if data != null and data.is_star():
+		_flag_card_as_star(card)
+
+
+## The same badge the unit wears on the pitch, in the corner of its selection
+## card — so "this one is a Star" reads identically in both places, and swapping
+## star_badge.png changes both at once.
+func _flag_card_as_star(card: Control) -> void:
+	var holder := Control.new()
+	holder.name = "StarFlag"
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	holder.offset_left = -40.0
+	holder.offset_top = 4.0
+	holder.offset_right = -4.0
+	holder.offset_bottom = 40.0
+	card.add_child(holder)
+
+	var mark := StarBadge.make_marker(false, 32.0)
+	mark.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	holder.add_child(mark)
+
 
 func _on_card_hovered(data: PlayerData) -> void:
 	for unit in _all_units():
@@ -1055,6 +1244,10 @@ func _swap_star_on_pitch(new_star: PlayerData, is_enemy: bool) -> void:
 		push_warning("Could not find a star unit on the pitch to swap (is_enemy=%s)." % is_enemy)
 		return
 
+	# Both swaps run side by side and neither is awaited by its caller, so the
+	# count is what _on_draft_complete() waits on before restarting the clock.
+	_substitutions_running += 1
+
 	var slot := star_unit.home_position
 	var rect := get_play_rect()
 
@@ -1068,7 +1261,7 @@ func _swap_star_on_pitch(new_star: PlayerData, is_enemy: bool) -> void:
 
 	# If the outgoing Star was on the ball, drop it before they leave.
 	if ball != null and ball.is_carried_by(star_unit):
-		ball.carrier = null
+		ball.drop()
 
 	await star_unit.run_to(wing, 0.65)
 
@@ -1082,6 +1275,9 @@ func _swap_star_on_pitch(new_star: PlayerData, is_enemy: bool) -> void:
 	star_unit.set_home(slot)
 
 	freeze_play(false)
+
+	_substitutions_running = maxi(0, _substitutions_running - 1)
+	substitution_finished.emit()
 
 
 func _resolve_tier_pick(tier_key: String, selected_data: PlayerData) -> void:
@@ -1130,6 +1326,20 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 func _on_draft_complete() -> void:
 	# Kickoff / HOLD UP! drafts have no combat — just restart the clock.
 	if not round_in_progress:
+		# Both Stars are still jogging on at this point. Wait for them, or the
+		# clock and the ball start again while the pitch is one player short.
+		# Polled rather than awaiting substitution_finished, so a substitution
+		# that somehow never reports back cannot wedge the match — after the
+		# guard time play restarts regardless.
+		var waited := 0.0
+		while _substitutions_running > 0 and waited < 6.0:
+			await get_tree().process_frame
+			waited += get_process_delta_time()
+
+		if _draft_froze_play:
+			_draft_froze_play = false
+			freeze_play(false)
+
 		current_state = MatchState.PLAYING
 		print("Draft complete — clock running.")
 		return

@@ -16,8 +16,6 @@ extends Control
 # =============================================================
 
 const ALL_TIERS: Array[String] = ["I", "II", "III", "IV"]
-const TEAM_BUILDER_SCENE := "res://src/ui/team_builder.tscn"
-const MAIN_MENU_SCENE := "res://src/ui/main_menu.tscn"
 const CLASS_INFO_PATH := "res://data/ClassInfo.csv"
 
 var db: CardDatabase
@@ -76,7 +74,8 @@ func _collect_classes() -> void:
 
 
 func _info_row(class_name_text: String) -> Dictionary:
-	return _class_info.get(MenuSupport.normalise(class_name_text), {})
+	var found: Dictionary = _class_info.get(MenuSupport.normalise(class_name_text), {})
+	return found
 
 
 func _display_name(class_name_text: String) -> String:
@@ -306,6 +305,17 @@ func _make_star_card(card: PlayerData) -> Control:
 	power.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(power)
 
+	# The same badge these three will wear on the pitch, so the marker you
+	# learn here is the marker you look for during the match. Swapping
+	# assets/ui/star_badge.png changes this corner too.
+	var badge := StarBadge.make_marker(false, 30.0)
+	button.add_child(badge)
+	badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	badge.offset_left = -36.0
+	badge.offset_top = 4.0
+	badge.offset_right = -6.0
+	badge.offset_bottom = 34.0
+
 	return button
 
 
@@ -361,7 +371,7 @@ func _make_formation_view(info: Dictionary, star_tier: String) -> Control:
 # -------------------------------------------------------------
 
 func _on_back() -> void:
-	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+	ScenePaths.go_to(get_tree(), ScenePaths.MAIN_MENU)
 
 
 func _on_lock_in() -> void:
@@ -376,7 +386,7 @@ func _on_lock_in() -> void:
 	selection.star_tier = stars[0].get_tier_clean()
 	TeamSelection.store(get_tree(), selection)
 
-	get_tree().change_scene_to_file(TEAM_BUILDER_SCENE)
+	ScenePaths.go_to(get_tree(), ScenePaths.TEAM_BUILDER)
 
 
 # =============================================================

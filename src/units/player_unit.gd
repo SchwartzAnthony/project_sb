@@ -49,13 +49,66 @@ var _roam_wait: float = 0.0
 
 # --- Match state ---------------------------------------------
 var is_enemy: bool = false
-var is_star_player: bool = false   # set explicitly at spawn; no more resource_path guessing
+
+## Set explicitly at spawn. Flipping it puts the Star badge up (or takes it
+## down), so nothing else has to remember to keep the marker in sync.
+var is_star_player: bool = false:
+	set(value):
+		is_star_player = value
+		_refresh_star_badge()
+
 var is_playmaker: bool = false     # picked during the current round
 var is_exhausted: bool = false     # already used this cycle
+
+## The little marker riding above a Star Player. Created on demand.
+var _star_badge: StarBadge = null
 
 
 func _ready() -> void:
 	update_display()
+	_refresh_star_badge()
+
+
+# =============================================================
+#  STAR BADGE
+#
+#  Purely cosmetic, and deliberately a SIBLING of Artwork rather than a
+#  child: set_highlight() dims Artwork.modulate down to 0.25 for a spent
+#  unit, and the badge must stay readable through that.
+#
+#  Size and height come from Tuning.csv (star_badge_radius,
+#  star_badge_offset_y); the art itself comes from a PNG — see star_badge.gd.
+# =============================================================
+
+func _refresh_star_badge() -> void:
+	if Engine.is_editor_hint() or not is_node_ready():
+		return
+
+	if not is_star_player:
+		if _star_badge != null:
+			_star_badge.visible = false
+		return
+
+	if _star_badge == null:
+		_star_badge = StarBadge.new()
+		_star_badge.name = "StarBadge"
+		add_child(_star_badge)
+
+	var radius := 9.0
+	var offset_y := -34.0
+	var pulse := 0.08
+	var db := CardDatabase.get_db()
+	if db != null:
+		radius = db.tune_float("star_badge_radius", radius)
+		offset_y = db.tune_float("star_badge_offset_y", offset_y)
+		pulse = db.tune_float("star_badge_pulse", pulse)
+
+	_star_badge.is_enemy = is_enemy
+	_star_badge.badge_radius = radius
+	_star_badge.pulse_amount = pulse
+	_star_badge.set_process(pulse > 0.0)
+	_star_badge.position = Vector2(0.0, offset_y)
+	_star_badge.visible = true
 
 
 # =============================================================

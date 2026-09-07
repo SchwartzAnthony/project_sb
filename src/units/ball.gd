@@ -45,6 +45,18 @@ signal delivery_arrived
 ## How often a pass looks for a team-mate further upfield rather than anyone.
 @export var forward_pass_chance: float = 0.75
 
+## A LOOSE ball is only collected by someone who actually reaches it. Without
+## this the nearest unit was handed possession from anywhere on the pitch,
+## which is what made the ball look like it teleported to the next player
+## after the whistle.
+@export var pickup_radius: float = 26.0
+## Beat before a ball that has just come loose can be picked up at all, so a
+## stopped pass is visibly loose rather than instantly re-collected.
+@export var loose_settle_seconds: float = 0.35
+## Safety valve: if a loose ball sits this long with nobody close enough to
+## claim it, the nearest unit collects it anyway and play carries on.
+@export var loose_timeout_seconds: float = 6.0
+
 ## Set by main_scene. Returns every PlayerUnit currently on the pitch.
 var units_provider: Callable = Callable()
 
@@ -63,6 +75,8 @@ var _loose_left: float = 0.0
 var _grace_left: float = 0.0
 var _shooting: bool = false
 var _scripted: bool = false
+## How long the current ball has been loose, for the timeout above.
+var _loose_age: float = 0.0
 
 
 func _ready() -> void:
@@ -104,13 +118,20 @@ func _physics_process(delta: float) -> void:
 		if _carry_left <= 0.0:
 			make_pass()
 	else:
-		# Loose — nobody carrying, nothing in flight. Happens at kickoff and
-		# when a carrier is substituted off. Nearest unit collects it.
+		# Loose — nobody carrying, nothing in flight. Happens at kickoff, when
+		# a carrier is substituted off, and whenever a pass is stopped by the
+		# whistle. It is claimed by whoever actually RUNS to it, not by
+		# whoever happens to be nearest, so possession never jumps across the
+		# pitch on its own.
 		_loose_left -= delta
+		_loose_age += delta
 		if _loose_left <= 0.0:
-			_loose_left = 0.3
+			_loose_left = 0.1
 			var nearest := _nearest_unit()
-			if nearest != null:
+			if nearest == null:
+				return
+			var reach := nearest.global_position.distance_to(global_position)
+			if reach <= pickup_radius or _loose_age >= loose_timeout_seconds:
 				_take(nearest, false)
 
 
@@ -149,6 +170,7 @@ func _advance_delivery(delta: float) -> void:
 	if not is_instance_valid(_intended):
 		_scripted = false
 		_loose_left = 1.0
+		_loose_age = 0.0
 		delivery_arrived.emit()
 		return
 
@@ -193,8 +215,9 @@ func _advance_shot(delta: float) -> void:
 	if t >= 1.0:
 		_shooting = false
 		# Give main_scene a moment to decide what happens next before the
-		# loose-ball rule hands it to whoever is standing nearest.
+		# loose-ball rule hands it to whoever runs onto it.
 		_loose_left = 1.0
+		_loose_age = 0.0
 		shot_arrived.emit()
 
 
@@ -206,9 +229,42 @@ func is_carried_by(unit: PlayerUnit) -> bool:
 	return is_instance_valid(carrier) and carrier == unit
 
 
-## Freeze everything mid-flight (used during the HOLD UP! substitution).
+## Freeze everything (the whistle: a PLAY MAKER, a HOLD UP!, a substitution).
+##
+## A pass caught in mid-air by the whistle is DROPPED where it is rather than
+## paused and resumed. Resuming it made the ball glide the rest of the way to
+## a player nobody had kicked it to any more, which read as the ball moving
+## on its own. Now the whistle leaves a loose ball, and whoever runs to it
+## when play restarts is the one who keeps it.
 func set_frozen(value: bool) -> void:
+	if value and not frozen:
+		settle_in_place()
 	frozen = value
+
+
+## The carrier is leaving the pitch (a HOLD UP! substitution). Put the ball
+## down where they were standing rather than letting it vanish with them.
+func drop() -> void:
+	carrier = null
+	_in_flight = false
+	_intended = null
+	_loose_left = loose_settle_seconds
+	_loose_age = 0.0
+
+
+## Kill any pass in flight and leave the ball lying where it currently is.
+## A shot or a scripted PLAY MAKER delivery is left alone: those are
+## choreographed and have to finish, or the sequence that is awaiting them
+## never returns.
+func settle_in_place() -> void:
+	if _shooting or _scripted:
+		return
+	if not _in_flight:
+		return
+	_in_flight = false
+	_intended = null
+	_loose_left = loose_settle_seconds
+	_loose_age = 0.0
 
 
 # =============================================================
@@ -240,6 +296,7 @@ func _try_tackle() -> bool:
 
 func _take(unit: PlayerUnit, intercepted: bool) -> void:
 	_in_flight = false
+	_loose_age = 0.0
 	carrier = unit
 	_carry_left = randf_range(carry_seconds.x, carry_seconds.y)
 	_grace_left = possession_grace
@@ -312,11 +369,12 @@ func _advance_pass(delta: float) -> void:
 		if is_instance_valid(_intended):
 			_take(_intended, false)
 		else:
-			# Receiver left the pitch mid-pass — nearest unit collects.
+			# Receiver left the pitch mid-pass. The ball arrives anyway and
+			# lies there until somebody runs onto it.
 			_in_flight = false
-			var best := _nearest_unit()
-			if best != null:
-				_take(best, false)
+			_intended = null
+			_loose_left = loose_settle_seconds
+			_loose_age = 0.0
 
 
 func _nearest_unit() -> PlayerUnit:

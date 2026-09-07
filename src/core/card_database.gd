@@ -356,6 +356,12 @@ func tune_int(key: String, fallback: int) -> int:
 	return int(raw) if raw.is_valid_int() else fallback
 
 
+## A text value, e.g. a path to a PNG. Blank rows fall back like the rest.
+func tune_text(key: String, fallback: String = "") -> String:
+	var raw := String(tuning.get(_normalise(key), "")).strip_edges()
+	return raw if raw != "" else fallback
+
+
 func tune_bool(key: String, fallback: bool) -> bool:
 	var raw := String(tuning.get(_normalise(key), "")).strip_edges().to_lower()
 	if raw in ["true", "yes", "1", "on"]:

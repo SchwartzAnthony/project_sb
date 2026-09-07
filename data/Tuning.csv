@@ -48,3 +48,17 @@ shootout_read_seconds,0.9,Time to read shot power and keeper stamina
 shootout_windup_seconds,0.8,The striker's kick animation
 shootout_close_seconds,0.4,Window closes
 verdict_seconds,1.4,How long GOAL / MISS stays on screen
+field_width,1280,Play area width in pixels. Art scales to fit this.
+field_height,720,Play area height in pixels. Art scales to fit this.
+field_position_x,0,Play area X position in world space
+field_position_y,0,Play area Y position in world space
+field_margin,16,Player edge margin. Prevents standing exactly on field border.
+star_badge_radius,9,Size of the Star badge on the pitch. Bigger number = bigger star.
+star_badge_offset_y,-34,How high above the unit the Star badge floats. More negative = higher.
+star_badge_pulse,0.08,Gentle breathing of the Star badge. 0 turns it off.
+star_badge_art,,Optional path to your own Star badge PNG. Blank = look in assets/ui/star_badge.png
+star_badge_enemy_art,,Optional separate PNG for enemy Stars. Blank = reuse the ally badge.
+ball_pickup_radius,26,How close a player must actually get to collect a loose ball.
+ball_loose_settle_seconds,0.35,Beat after the whistle before a stopped ball can be picked up.
+ball_loose_timeout_seconds,6,If nobody reaches a loose ball in this long the nearest player collects it.
+enemy_avoids_offered_classes,true,Enemy will not use a class you were offered at kickoff and turned down.
