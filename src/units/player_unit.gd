@@ -157,12 +157,12 @@ func update_display() -> void:
 
 
 func _apply_artwork() -> void:
-	if artwork == null or data == null or data.artwork == null:
+	if artwork == null or data == null or data.active_artwork() == null:
 		return
 	# Always drive the sheet the same way, everywhere. The old
 	# update_unit_data() built an AtlasTexture instead, which fought with
 	# these hframes/vframes and shredded the sprite after a HOLD UP! swap.
-	artwork.texture = data.artwork
+	artwork.texture = data.active_artwork()
 	artwork.hframes = SHEET_HFRAMES
 	artwork.vframes = SHEET_VFRAMES
 	artwork.frame = IDLE_FRAME

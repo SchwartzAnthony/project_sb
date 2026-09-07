@@ -191,6 +191,11 @@ func _ready() -> void:
 	# Talents raise Tuning.csv numbers. This has to happen BEFORE the tuning
 	# is read, or the match would use the un-boosted values.
 	db.apply_bonuses_from(state)
+
+	# Lay the brews on before anything reads a card. This clears the previous
+	# match's overlays first, so a one-match brew really does last one match.
+	BrewDB.get_db().apply_all(db, state)
+
 	_apply_match_tuning()
 
 	# Added BEFORE units_container on purpose. Everything here sits at z_index
@@ -697,6 +702,9 @@ func _full_time() -> void:
 	facts["margin"] = str(player_score - enemy_score)
 	_report("match_ended", facts)
 
+	# One-match brews wear off at the whistle. Permanent ones stay on.
+	BrewDB.clear_temporary(state)
+
 	_advance_progression("match_ended")
 
 
@@ -1190,6 +1198,9 @@ func create_unit_instance(data: PlayerData, pos: Vector2, is_enemy: bool) -> Pla
 		return null
 	unit.is_enemy = is_enemy
 	unit.data = data
+	# Your side only: the enemy never visits your Pub.
+	if not is_enemy:
+		unit.active_brew = BrewDB.brew_id_for(data, state)
 	unit.ball = ball
 	unit.play_bounds = get_play_rect()
 	unit.attack_dir = -1.0 if is_enemy else 1.0   # home defends the left goal
@@ -2335,7 +2346,7 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		"priority": atk.get_ability_priority(),
 		"power_before": atk_before,
 		"power_after": atk_after,
-		"ability": db.get_ability(atk.attack_ability_id),
+		"ability": db.get_ability(atk.active_attack_ability()),
 		"wins": attacker_wins,
 	}
 	var defender_side := {
@@ -2344,7 +2355,7 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		"priority": def.get_ability_priority(),
 		"power_before": def_before,
 		"power_after": def_after,
-		"ability": db.get_ability(def.defend_ability_id),
+		"ability": db.get_ability(def.active_defend_ability()),
 		"wins": not attacker_wins,
 	}
 

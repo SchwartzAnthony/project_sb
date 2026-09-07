@@ -32,6 +32,65 @@ extends Resource
 @export var artwork: Texture2D
 
 
+# =============================================================
+#  THE BREW OVERLAY
+#
+#  A brew from the Pub does NOT overwrite the card. It lays a thin overlay
+#  on top of it, and the accessors below prefer the overlay when it is set.
+#
+#  Why an overlay and not a copy: the rest of the game recognises a card by
+#  being the same object ("is this the unit holding the ball?"). Handing out
+#  duplicates would break every one of those checks. And why not overwrite
+#  unit_type directly: roster building asks "which cards are Lorelei?", and
+#  a Lorelei who drank a Fire Brew must still be picked for a Lorelei team.
+#
+#  So `unit_type` stays what the card IS, and `active_unit_type()` is what
+#  it currently COUNTS AS. Roster code uses the first; combat and targeting
+#  use the second.
+#
+#  All of it is cleared and re-applied at the start of every match, so a
+#  one-match brew genuinely lasts one match.
+# =============================================================
+
+## Which brew is on this card right now, or "" for none.
+@export var brew_id: String = ""
+@export var brew_unit_type: String = ""
+@export var brew_attack_ability: String = ""
+@export var brew_defend_ability: String = ""
+@export var brew_artwork: Texture2D
+
+
+func is_brewed() -> bool:
+	return brew_id.strip_edges() != ""
+
+
+## What this card counts as for combat and ability targeting.
+func active_unit_type() -> String:
+	return brew_unit_type if brew_unit_type.strip_edges() != "" else unit_type
+
+
+func active_attack_ability() -> String:
+	return brew_attack_ability if brew_attack_ability.strip_edges() != "" else attack_ability_id
+
+
+func active_defend_ability() -> String:
+	return brew_defend_ability if brew_defend_ability.strip_edges() != "" else defend_ability_id
+
+
+func active_artwork() -> Texture2D:
+	return brew_artwork if brew_artwork != null else artwork
+
+
+## Take the overlay off. Called before every match, then the current brews
+## are laid on again from the save.
+func clear_brew() -> void:
+	brew_id = ""
+	brew_unit_type = ""
+	brew_attack_ability = ""
+	brew_defend_ability = ""
+	brew_artwork = null
+
+
 # --- Backwards compatibility --------------------------------
 # The 24 existing .tres files write `set_name = "F01"`. We CANNOT declare a
 # member called `set_name`, because Resource already has a set_name() method
@@ -90,8 +149,11 @@ func get_tags() -> PackedStringArray:
 	var tags := PackedStringArray()
 	if element.strip_edges() != "":
 		tags.append(element.strip_edges().to_lower())
-	if unit_type.strip_edges() != "":
-		tags.append(unit_type.strip_edges().to_lower())
+	# The BREWED class, so "give all Brandteufel +1" reaches a Lorelei who
+	# drank a Fire Brew. That is the whole point of the brew.
+	var current := active_unit_type()
+	if current.strip_edges() != "":
+		tags.append(current.strip_edges().to_lower())
 	if get_tier_clean() != "":
 		tags.append("tier" + get_tier_clean().to_lower())
 	if is_star():

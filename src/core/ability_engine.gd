@@ -172,7 +172,7 @@ func _fire_for(card: PlayerData, is_enemy: bool, trigger: String,
 		opponent: PlayerData, opponent_is_enemy: bool) -> void:
 	if card == null:
 		return
-	for ability_id in [card.attack_ability_id, card.defend_ability_id]:
+	for ability_id in [card.active_attack_ability(), card.active_defend_ability()]:
 		var ability := db.get_ability(String(ability_id))
 		if ability == null or ability.trigger != trigger:
 			continue

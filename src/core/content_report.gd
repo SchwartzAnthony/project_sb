@@ -48,14 +48,15 @@ func _gather() -> void:
 	var steps := Progression.get_rules()
 	var base := BaseDB.get_db()
 	var talents := TalentDB.get_db()
+	var brews := BrewDB.get_db()
 
 	lines.append("[content] %d cards, %d abilities, %d story lines across %d scene(s), %d stat rules, %d progression rows."
 		% [cards.players.size(), cards.abilities.size(),
 			story.line_count(), story.scenes.size(),
 			stats.rules.size(), steps.rules.size()])
-	lines.append("[content] %d building(s), %d visitor(s), %d talent(s) in %d tree(s)."
+	lines.append("[content] %d building(s), %d visitor(s), %d talent(s) in %d tree(s), %d brew(s)."
 		% [base.buildings.size(), base.visitors.size(),
-			talents.talents.size(), talents.tree_names().size()])
+			talents.talents.size(), talents.tree_names().size(), brews.brews.size()])
 
 	for problem in cards.problems:
 		warnings.append("cards: " + problem)
@@ -69,6 +70,8 @@ func _gather() -> void:
 		warnings.append("base: " + problem)
 	for problem in talents.problems:
 		warnings.append("talents: " + problem)
+	for problem in brews.problems:
+		warnings.append("brews: " + problem)
 
 	_check_story_targets(story, steps, base)
 	_check_counters(story, stats, steps, base, talents)
@@ -206,6 +209,7 @@ func _all_conditions(story: DialogueDB, steps: Progression, base: BaseDB,
 	var out: Array[String] = steps.all_conditions()
 	out.append_array(base.all_conditions())
 	out.append_array(talents.all_conditions())
+	out.append_array(BrewDB.get_db().all_conditions())
 	for scene_key in story.scenes.keys():
 		for line: DialogueLine in (story.scenes[scene_key] as Array):
 			if line.requires.strip_edges() != "":
