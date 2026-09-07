@@ -1,0 +1,6 @@
+ID,Name,Description,Requires,Art,X,Y,Action,Notes
+clubhouse,Clubhouse,Where the team sleeps it off. The heart of the base.,,clubhouse,0.20,0.32,,"Always here. No Requires, no Action - clicking just shows the description."
+brewery,Brewery,Brews are made here. Ask about the fire mash.,unlocked:Brewery,brewery,0.50,0.28,announce:The mash is on. Come back when the Pub is open.,Unlocked by the unlock_brewery row in Progression.csv - score 3 fire-brewed goals.
+pub,Pub,Your players drink here before a match. It changes what they are.,unlocked:Pub,pub,0.78,0.32,announce:The Pub opens properly in the next step.,Step 4 will make this open the pub screen. Right now it just says hello.
+training_ground,Training Ground,Where the talent tree lives.,unlocked:Talent Tree,training,0.34,0.60,announce:Talents arrive in step 3.,Unlocked after 5 matches by unlock_talents.
+pitch_gate,The Gate,Out to the pitch. A match awaits.,,gate,0.66,0.62,goto:classes,Clicking this goes straight to class select - the same as the Play a match button.

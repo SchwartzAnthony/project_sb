@@ -108,6 +108,62 @@ static func complaints(expression: String, is_effect: bool) -> Array[String]:
 	return out
 
 
+## Turn a condition into a sentence a PLAYER can read, for a locked building
+## or a greyed-out option. "count:goals_with_brew_fire>=3" becomes
+## "Needs goals with brew fire: 3 or more."
+##
+## Deliberately literal: it reads your counter names back to you, so a name
+## like `goals_with_brew_fire` becomes readable on its own and a name like
+## `gwbf` does not. That is a nudge toward naming counters in full words.
+static func describe(condition: String) -> String:
+	if condition.strip_edges() == "":
+		return ""
+
+	var parts: Array[String] = []
+	for term in _split(condition):
+		var negate := term.begins_with("!")
+		var body := term.substr(1).strip_edges() if negate else term
+
+		var colon := body.find(":")
+		if colon <= 0:
+			continue
+		var kind := body.substr(0, colon).strip_edges().to_lower()
+		var rest := body.substr(colon + 1).strip_edges()
+
+		match kind:
+			"flag":
+				parts.append("%s%s" % ["not " if negate else "", _words(rest)])
+			"unlocked":
+				parts.append("%s%s" % ["without " if negate else "", _words(rest)])
+			"count":
+				var op := _comparison_in(rest)
+				if op == "":
+					parts.append("any %s" % _words(rest))
+				else:
+					var at := rest.find(op)
+					var counter := _words(rest.substr(0, at))
+					var wanted := rest.substr(at + op.length()).strip_edges()
+					var phrase := "at least"
+					match op:
+						"<=": phrase = "at most"
+						">": phrase = "more than"
+						"<": phrase = "fewer than"
+						"=": phrase = "exactly"
+						"!=": phrase = "any number but"
+					parts.append("%s: %s %s" % [counter, phrase, wanted])
+			"is":
+				parts.append(_words(rest.replace("=", " is ")))
+
+	if parts.is_empty():
+		return ""
+	return "Needs " + ", ".join(parts) + "."
+
+
+## `goals_with_brew_fire` -> `goals with brew fire`
+static func _words(text: String) -> String:
+	return text.strip_edges().replace("_", " ").replace(".", " ")
+
+
 # =============================================================
 #  INTERNALS
 # =============================================================

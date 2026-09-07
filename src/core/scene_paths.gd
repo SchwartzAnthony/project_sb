@@ -22,6 +22,7 @@ const CLASS_SELECT := "res://src/ui/class_select.tscn"
 const TEAM_BUILDER := "res://src/ui/team_builder.tscn"
 const MATCH := "res://src/formations/main_scene.tscn"
 const STORY := "res://src/ui/dialogue_view.tscn"
+const BASE := "res://src/ui/base_screen.tscn"
 
 
 ## Turn a short word from a CSV into a screen path, so Progression.csv can
@@ -39,6 +40,8 @@ static func for_name(screen: String) -> String:
 			return MATCH
 		"story", "dialogue":
 			return STORY
+		"base", "hub", "home":
+			return BASE
 		_:
 			push_warning("[scenes] Progression.csv asks to go to '%s', which is not a screen. Going to the main menu instead." % screen)
 			return MAIN_MENU
@@ -71,13 +74,25 @@ static func resolve(preferred: String) -> String:
 
 
 ## Change to a scene by one of the constants above, searching if need be.
+##
+## The change is DEFERRED — it happens at the end of the current frame rather
+## than this instant. That matters because a scene is very often changed from
+## inside _ready(), and Godot will not let a node be removed while the tree is
+## still busy adding it:
+##
+##   "Parent node is busy adding/removing children, remove_child() can't be
+##    called at this time."
+##
+## Deferring here fixes it for every caller at once, so no screen has to
+## remember to do it itself.
 static func go_to(tree: SceneTree, preferred: String) -> void:
 	if tree == null:
 		return
 	var path := resolve(preferred)
 	if not ResourceLoader.exists(path):
+		push_warning("[scenes] Nothing to load at '%s' — staying put." % path)
 		return
-	tree.change_scene_to_file(path)
+	tree.change_scene_to_file.call_deferred(path)
 
 
 ## Breadth-first walk of res:// looking for one file name.

@@ -46,11 +46,14 @@ func _gather() -> void:
 	var story := DialogueDB.get_db()
 	var stats := StatsRules.get_rules()
 	var steps := Progression.get_rules()
+	var base := BaseDB.get_db()
 
 	lines.append("[content] %d cards, %d abilities, %d story lines across %d scene(s), %d stat rules, %d progression rows."
 		% [cards.players.size(), cards.abilities.size(),
 			story.line_count(), story.scenes.size(),
 			stats.rules.size(), steps.rules.size()])
+	lines.append("[content] %d building(s), %d visitor(s)."
+		% [base.buildings.size(), base.visitors.size()])
 
 	for problem in cards.problems:
 		warnings.append("cards: " + problem)
@@ -60,31 +63,39 @@ func _gather() -> void:
 		warnings.append("stats: " + problem)
 	for problem in steps.problems:
 		warnings.append("progression: " + problem)
+	for problem in base.problems:
+		warnings.append("base: " + problem)
 
-	_check_story_targets(story, steps)
-	_check_counters(story, stats, steps)
-	_check_unlocks(story, steps)
+	_check_story_targets(story, steps, base)
+	_check_counters(story, stats, steps, base)
+	_check_unlocks(story, steps, base)
 
 
 ## A Progression row that says story:chapter9 when no CSV defines chapter9.
-func _check_story_targets(story: DialogueDB, steps: Progression) -> void:
+func _check_story_targets(story: DialogueDB, steps: Progression, base: BaseDB) -> void:
 	var known: Array[String] = story.scene_names()
 	var known_keys: Array[String] = []
 	for name_text in known:
 		known_keys.append(CardDatabase._normalise(name_text))
 
-	for wanted in steps.story_targets():
+	var wanted_scenes: Array[String] = steps.story_targets()
+	for extra in base.story_targets():
+		if not wanted_scenes.has(extra):
+			wanted_scenes.append(extra)
+
+	for wanted in wanted_scenes:
 		if not known_keys.has(CardDatabase._normalise(wanted)):
-			warnings.append("progression: plays story '%s', but no CSV defines a Scene by that name. Scenes found: %s"
+			warnings.append("plays story '%s', but no CSV defines a Scene by that name. Scenes found: %s"
 				% [wanted, ", ".join(known) if not known.is_empty() else "(none)"])
 
 
 ## Counters that are READ by a condition but never WRITTEN by anything.
-func _check_counters(story: DialogueDB, stats: StatsRules, steps: Progression) -> void:
+func _check_counters(story: DialogueDB, stats: StatsRules, steps: Progression,
+		base: BaseDB) -> void:
 	var written: Array[String] = stats.counter_patterns.duplicate()
 
 	# Effects can also write counters directly — count:coins+10.
-	for expression in _all_effects(story, steps):
+	for expression in _all_effects(story, steps, base):
 		for term in _terms(expression):
 			if term.to_lower().begins_with("count:"):
 				var body := term.substr(6).strip_edges()
@@ -98,7 +109,7 @@ func _check_counters(story: DialogueDB, stats: StatsRules, steps: Progression) -
 					written.append(name_text)
 
 	var reported: Array[String] = []
-	for expression in _all_conditions(story, steps):
+	for expression in _all_conditions(story, steps, base):
 		for term in _terms(expression):
 			var body := term
 			if body.begins_with("!"):
@@ -128,15 +139,15 @@ func _check_counters(story: DialogueDB, stats: StatsRules, steps: Progression) -
 
 
 ## Unlocks that are TESTED but never GRANTED, so the content is unreachable.
-func _check_unlocks(story: DialogueDB, steps: Progression) -> void:
+func _check_unlocks(story: DialogueDB, steps: Progression, base: BaseDB) -> void:
 	var granted: Array[String] = []
-	for expression in _all_effects(story, steps):
+	for expression in _all_effects(story, steps, base):
 		for term in _terms(expression):
 			if term.to_lower().begins_with("unlock:"):
 				granted.append(CardDatabase._normalise(term.substr(7)))
 
 	var reported: Array[String] = []
-	for expression in _all_conditions(story, steps):
+	for expression in _all_conditions(story, steps, base):
 		for term in _terms(expression):
 			var body := term
 			if body.begins_with("!"):
@@ -157,8 +168,9 @@ func _check_unlocks(story: DialogueDB, steps: Progression) -> void:
 #  HELPERS
 # =============================================================
 
-func _all_conditions(story: DialogueDB, steps: Progression) -> Array[String]:
+func _all_conditions(story: DialogueDB, steps: Progression, base: BaseDB) -> Array[String]:
 	var out: Array[String] = steps.all_conditions()
+	out.append_array(base.all_conditions())
 	for scene_key in story.scenes.keys():
 		for line: DialogueLine in (story.scenes[scene_key] as Array):
 			if line.requires.strip_edges() != "":
@@ -169,10 +181,14 @@ func _all_conditions(story: DialogueDB, steps: Progression) -> Array[String]:
 	return out
 
 
-func _all_effects(story: DialogueDB, steps: Progression) -> Array[String]:
+func _all_effects(story: DialogueDB, steps: Progression, base: BaseDB) -> Array[String]:
 	var out: Array[String] = []
 	for rule in steps.rules:
 		out.append(String(rule["do"]))
+	for entry in base.buildings:
+		var action := String(entry["action"])
+		if action.strip_edges() != "":
+			out.append(action)
 	for scene_key in story.scenes.keys():
 		for line: DialogueLine in (story.scenes[scene_key] as Array):
 			if line.effects.strip_edges() != "":

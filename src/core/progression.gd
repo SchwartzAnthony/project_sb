@@ -171,25 +171,42 @@ func fire(trigger: String, state: GameState) -> Array[Dictionary]:
 
 		print("[progression] '%s' fired (%s)." % [id_text, trigger])
 
-		for piece in String(rule["do"]).split(";"):
-			var term := String(piece).strip_edges()
-			if term == "":
-				continue
-
-			var kind := ""
-			var value := ""
-			var colon := term.find(":")
-			if colon > 0:
-				kind = term.substr(0, colon).strip_edges().to_lower()
-				value = term.substr(colon + 1).strip_edges()
-
-			if DEFERRED.has(kind):
-				deferred.append({"kind": kind, "value": value, "id": id_text})
-			else:
-				DialogueGrammar.apply(term, state)
+		for action in run_actions(String(rule["do"]), state):
+			action["id"] = id_text
+			deferred.append(action)
 
 		if bool(rule["once"]):
 			state.set_flag(DONE_PREFIX + id_text, true)
+
+	return deferred
+
+
+## Carry out a `Do` list. State changes (flags, counters, unlocks) happen
+## immediately; anything needing the scene tree comes back for the caller.
+##
+## Shared so that a building clicked on the base screen behaves exactly like a
+## Progression row firing — same words, same meaning, one implementation.
+static func run_actions(do_text: String, state: GameState) -> Array[Dictionary]:
+	var deferred: Array[Dictionary] = []
+	if state == null or do_text.strip_edges() == "":
+		return deferred
+
+	for piece in do_text.split(";"):
+		var term := String(piece).strip_edges()
+		if term == "":
+			continue
+
+		var kind := ""
+		var value := ""
+		var colon := term.find(":")
+		if colon > 0:
+			kind = term.substr(0, colon).strip_edges().to_lower()
+			value = term.substr(colon + 1).strip_edges()
+
+		if DEFERRED.has(kind):
+			deferred.append({"kind": kind, "value": value, "id": ""})
+		else:
+			DialogueGrammar.apply(term, state)
 
 	return deferred
 

@@ -244,6 +244,11 @@ func _on_action(action: String) -> void:
 		"story":
 			DialogueView.play(get_tree(),
 				argument if argument != "" else "main", ScenePaths.MAIN_MENU)
+		"goto":
+			# One action word for every screen. MenuConfig.csv can say
+			# goto:base, goto:builder, goto:match — no new code per button.
+			state.save_to_disk()
+			ScenePaths.go_to(get_tree(), ScenePaths.for_name(argument))
 		"open_settings":
 			_footer.text = "Settings are not built yet."
 		"quit_game":
