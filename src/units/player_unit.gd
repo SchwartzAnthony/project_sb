@@ -214,9 +214,13 @@ func clear_round_flags() -> void:
 #    MARK     they have it elsewhere — stay goal-side of my man
 #    OPEN     we have it — get off my marker and show for the pass
 #    HOLD     nothing doing — drift around my slot
+#    SURGE    the break after the last duel — abandon the quarter and run
+#             at their goal with everyone else
+#    RECOVER  the other side of a break — drop back with your man instead of
+#             standing on your post watching him run past you
 # =============================================================
 
-enum Role { HOLD, MARK, OPEN, PRESS, BALL, RECEIVE, DRIBBLE }
+enum Role { HOLD, MARK, OPEN, PRESS, BALL, RECEIVE, DRIBBLE, SURGE, RECOVER }
 
 ## Set every frame by main_scene. Left at HOLD when nothing is coordinating
 ## this unit, in which case it simply ambles around its slot as before.
@@ -308,7 +312,14 @@ func _physics_process(delta: float) -> void:
 		heading += heading.orthogonal() * _swerve_sign * swerve_strength * bend
 
 	heading += _separation() * separation_strength
-	heading += _zone_force() * zone_pull
+
+	# The break is the ONE time a unit is allowed to leave its quarter for
+	# good, so the zone spring is switched off for it. Everything else is
+	# pulled back toward its own patch.
+	# The break is the one time units are allowed to leave their quarter for
+	# good — the side breaking AND the side chasing them back.
+	if role != Role.SURGE and role != Role.RECOVER:
+		heading += _zone_force() * zone_pull
 
 	# Springing back to the slot is what keeps a formation a formation. Only
 	# the positional roles get it: a unit going for the ball is supposed to

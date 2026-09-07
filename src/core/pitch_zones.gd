@@ -4,18 +4,21 @@ extends RefCounted
 # =============================================================
 #  PITCH ZONES — the field cut into four quarters, one per Tier
 #
-#  Tier I owns the leftmost quarter, Tier IV the rightmost, and BOTH TEAMS
-#  share each quarter. That is the point: your Tier II and their Tier II are
-#  the two that will duel, so they stand in the same part of the pitch and
-#  mark each other all match. You can see who is going to fight whom.
+#  Each side's Tier I sits in its OWN defensive quarter and its Tier IV in
+#  the attacking one, so the two teams are MIRRORED — like a real formation,
+#  with defenders at the back and attackers up front.
 #
-#  Within a quarter, the home side stands nearer its own goal and the away
-#  side nearer theirs, which is what puts the marking pairs side by side.
+#      |  quarter 1 |  quarter 2 |  quarter 3 |  quarter 4 |
+#      |  H-I  A-IV |  H-II A-III|  H-III A-II|  H-IV  A-I |
+#      |____________|____________|____________|____________|
+#      ^ home goal                          away goal ^
 #
-#      |  Tier I   |  Tier II  | Tier III  |  Tier IV  |
-#      | H       A | H       A | H       A | H       A |
-#      |___________|___________|___________|___________|
-#      ^ home goal                        away goal ^
+#  So your Tier I defenders stand opposite their Tier IV attackers. Marking
+#  is therefore by QUARTER, not by Tier: whoever you share a patch of grass
+#  with is who you shadow.
+#
+#  Within a quarter the home side stands nearer its own goal (always the
+#  left) and the away side nearer theirs, which puts the pairs side by side.
 #
 #  A unit is pulled back toward its own quarter, but the SOFT zone is wider
 #  than the strict one (33% of the pitch against 25%), so chasing a ball just
@@ -46,10 +49,19 @@ static func tier_index(tier: String) -> int:
 	return TIERS.find(tier.strip_edges().to_upper())
 
 
+## Which quarter, left to right, this Tier occupies for this side. The away
+## side is mirrored, so their Tier I is at the far end from yours.
+func zone_index(tier: String, is_enemy: bool) -> int:
+	var index := tier_index(tier)
+	if index < 0:
+		return -1
+	return (TIERS.size() - 1 - index) if is_enemy else index
+
+
 ## The quarter a Tier owns. An unknown Tier gets the whole pitch rather than
 ## an empty rect, so a typo in a CSV cannot pin a unit to a single pixel.
-func zone_for(tier: String) -> Rect2:
-	var index := tier_index(tier)
+func zone_for(tier: String, is_enemy: bool = false) -> Rect2:
+	var index := zone_index(tier, is_enemy)
 	if index < 0:
 		return play
 	var width := play.size.x * share
@@ -58,9 +70,9 @@ func zone_for(tier: String) -> Rect2:
 
 
 ## The wider band a unit may chase into.
-func soft_zone_for(tier: String) -> Rect2:
-	var strict := zone_for(tier)
-	if tier_index(tier) < 0:
+func soft_zone_for(tier: String, is_enemy: bool = false) -> Rect2:
+	var strict := zone_for(tier, is_enemy)
+	if zone_index(tier, is_enemy) < 0:
 		return play
 	var extra := play.size.x * (stretch - share) * 0.5
 	var wide := Rect2(strict.position.x - extra, strict.position.y,
@@ -75,7 +87,7 @@ func soft_zone_for(tier: String) -> Rect2:
 ## `lane` is 0..count-1 top to bottom; a lone unit (a Star filling its tier by
 ## itself) stands in the middle.
 func slot_for(tier: String, is_enemy: bool, lane: int, count: int) -> Vector2:
-	var zone := zone_for(tier)
+	var zone := zone_for(tier, is_enemy)
 	var across := home_inset if not is_enemy else (1.0 - home_inset)
 
 	var down := 0.5
@@ -91,16 +103,16 @@ func slot_for(tier: String, is_enemy: bool, lane: int, count: int) -> Vector2:
 
 ## Is a point inside this Tier's soft band? Used for "the ball is in my
 ## territory, go and get it".
-func contains_x(tier: String, point: Vector2) -> bool:
-	var wide := soft_zone_for(tier)
+func contains_x(tier: String, is_enemy: bool, point: Vector2) -> bool:
+	var wide := soft_zone_for(tier, is_enemy)
 	return point.x >= wide.position.x and point.x <= wide.end.x
 
 
 ## A push back toward the strict quarter, zero while inside it and growing
 ## the further out a unit has drifted. Returned as a direction, not a force,
 ## so the caller decides how hard it bites.
-func recentre(tier: String, at: Vector2) -> Vector2:
-	var zone := zone_for(tier)
+func recentre(tier: String, is_enemy: bool, at: Vector2) -> Vector2:
+	var zone := zone_for(tier, is_enemy)
 	if at.x >= zone.position.x and at.x <= zone.end.x:
 		return Vector2.ZERO
 	var edge: float = zone.position.x if at.x < zone.position.x else zone.end.x
@@ -109,8 +121,8 @@ func recentre(tier: String, at: Vector2) -> Vector2:
 
 
 ## Clamp a point into a Tier's soft band and inside the pitch.
-func pin(tier: String, point: Vector2) -> Vector2:
-	var wide := soft_zone_for(tier)
+func pin(tier: String, is_enemy: bool, point: Vector2) -> Vector2:
+	var wide := soft_zone_for(tier, is_enemy)
 	return Vector2(
 		clampf(point.x, wide.position.x, wide.end.x),
 		clampf(point.y, play.position.y + 24.0, play.end.y - 24.0))

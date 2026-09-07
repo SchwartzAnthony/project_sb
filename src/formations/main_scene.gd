@@ -113,6 +113,26 @@ var press_speed: float = 92.0
 var mark_distance: float = 54.0
 ## How far an attacker breaks off its marker to show for the ball.
 var open_spread: float = 230.0
+## The faint Tier colouring painted on the grass.
+var zone_overlay: ZoneOverlay = null
+
+# --- The corridor ---
+## Which quarters the ball may roam during ordinary waiting play, counted 1-4
+## from your goal. The default 2..3 fences it out of both Tier IV territories.
+## Set to 1 and 4 to let it go anywhere, as it used to.
+var ball_roam_quarter_first: int = 2
+var ball_roam_quarter_last: int = 3
+
+# --- The break ---
+## Which side is currently surging at goal: -1 nobody, 0 you, 1 them. Set for
+## the few seconds between the last duel and the shot.
+var attack_surge_side: int = -1
+## How much of the remaining distance to goal a surging unit closes.
+## 0 = nobody moves, 1 = everyone piles onto the goal line.
+var surge_advance: float = 0.45
+## How much a surging unit converges on the goal mouth. 1 = everyone funnels
+## into the middle, 0 = they keep their lane and just run forward.
+var surge_centring: float = 0.35
 ## Free-running seconds, used only for idle drift. Unlike the match clock this
 ## keeps ticking while play is stopped.
 var _anim_clock: float = 0.0
@@ -158,6 +178,13 @@ func _ready() -> void:
 	db = CardDatabase.get_db()
 	abilities = AbilityEngine.new(db)
 	_apply_match_tuning()
+
+	# Added BEFORE units_container on purpose. Everything here sits at z_index
+	# 0, so it is tree order that puts the tint over the grass and under the
+	# players.
+	zone_overlay = ZoneOverlay.new()
+	zone_overlay.name = "ZoneOverlay"
+	add_child(zone_overlay)
 
 	units_container = Node2D.new()
 	units_container.name = "UnitsContainer"
@@ -226,6 +253,17 @@ func _physics_process(delta: float) -> void:
 	# MAKER and the idle drift would freeze with it, which is the exact thing
 	# we are trying to get rid of.
 	_anim_clock += delta
+
+	# The quarters brighten while you are choosing and fade back once play
+	# restarts — loud exactly when they are useful.
+	if zone_overlay != null:
+		zone_overlay.set_focused(current_state == MatchState.DRAFTING)
+
+	# The ball is fenced into midfield for all of the waiting play and freed
+	# the moment a PLAY MAKER starts resolving. See _ball_corridor().
+	if ball != null:
+		ball.set_corridor(_ball_corridor(), current_state == MatchState.PLAYING)
+
 	_assign_roles()
 
 
@@ -267,9 +305,23 @@ func _assign_roles() -> void:
 			unit.set_role(PlayerUnit.Role.RECEIVE, ball.global_position, unit.chase_speed)
 			continue
 
+		# THE BREAK. Everyone on the scoring side abandons their quarter and
+		# runs at the goal together, so the shot arrives at the end of a move
+		# rather than out of nowhere.
+		if attack_surge_side == unit_side:
+			unit.set_role(PlayerUnit.Role.SURGE, _surge_point(unit), press_speed)
+			continue
+
+		# The other half of the break. Without this the defenders stayed
+		# leashed to their posts and the attack simply ran straight through
+		# them, which looked like ghosts passing each other.
+		if attack_surge_side >= 0:
+			unit.set_role(PlayerUnit.Role.RECOVER, _recover_point(unit), press_speed)
+			continue
+
 		# The ball is in MY quarter and it is not my team's — go and win it.
 		var mine_to_win := side != unit_side and unit.steal_cooldown <= 0.0 \
-			and zones.contains_x(tier, ball.global_position) \
+			and zones.contains_x(tier, unit.is_enemy, ball.global_position) \
 			and unit.global_position.distance_to(focus) < reach
 		if mine_to_win:
 			unit.set_role(PlayerUnit.Role.BALL, ball.global_position, unit.chase_speed)
@@ -305,7 +357,7 @@ func _pick_pressers(units: Array[PlayerUnit], side: int, focus: Vector2,
 		var tier := "I"
 		if unit.data != null:
 			tier = unit.data.get_tier_clean()
-		if zones.contains_x(tier, focus):
+		if zones.contains_x(tier, unit.is_enemy, focus):
 			chosen.append(unit)
 		else:
 			helpers.append(unit)
@@ -332,7 +384,37 @@ func _pick_pressers(units: Array[PlayerUnit], side: int, focus: Vector2,
 func _dribble_point(unit: PlayerUnit) -> Vector2:
 	var rect := get_play_rect()
 	var goal_x: float = rect.end.x if not unit.is_enemy else rect.position.x
+
+	# In waiting play the ball may not enter the end quarters, so the carrier
+	# aims at the edge of the corridor rather than at the goal. Without this he
+	# would run into the fence and lean on it.
+	if ball != null and ball.corridor_active and ball.corridor.size.x > 1.0:
+		goal_x = clampf(goal_x, ball.corridor.position.x, ball.corridor.end.x)
+
 	return Vector2(goal_x, unit.global_position.y)
+
+
+## The strip of pitch the ball is allowed into during ordinary waiting play.
+##
+## By default quarters 2 and 3 — the middle half. Quarters 1 and 4 are the two
+## Tier IV territories (yours at one end, theirs at the other), and keeping the
+## ball out of them is what stops ambient passing ever threatening a goal. All
+## scoring then has to come out of a PLAY MAKER, which is the point of it.
+##
+## Set ball_roam_quarter_first to 1 and _last to 4 in Tuning.csv to switch the
+## whole rule off.
+func _ball_corridor() -> Rect2:
+	if zones == null or not zones_enabled:
+		return Rect2()
+
+	var first := clampi(ball_roam_quarter_first, 1, ALL_TIERS.size())
+	var last := clampi(ball_roam_quarter_last, first, ALL_TIERS.size())
+
+	var play := get_play_rect()
+	var width := play.size.x * zones.share
+	return Rect2(
+		play.position.x + float(first - 1) * width, play.position.y,
+		float(last - first + 1) * width, play.size.y)
 
 
 ## Stand between your man and the goal you are defending — but leashed, so
@@ -368,6 +450,64 @@ func _open_point(unit: PlayerUnit) -> Vector2:
 	return unit.leash_point(spot)
 
 
+## Where a surging unit runs to: its own slot, thrown forward toward the goal
+## it attacks and drawn a little toward the goal mouth. Deliberately NOT
+## leashed to its quarter — the break is the one moment a unit is meant to
+## leave its post for good.
+func _surge_point(unit: PlayerUnit) -> Vector2:
+	var rect := get_play_rect()
+	var mouth := _goal_mouth(not unit.is_enemy)
+
+	# Close a FRACTION OF THE REMAINING DISTANCE to goal rather than shifting
+	# everyone forward by the same number of pixels. A fixed shift squashed the
+	# back players into the touchline while the front ones ran out of pitch;
+	# this moves the whole shape up while keeping its order and its spacing.
+	var edge := rect.size.x * 0.10
+	var line_x := mouth.x - edge
+	if unit.is_enemy:
+		line_x = mouth.x + edge
+
+	var spot := Vector2(
+		lerpf(unit.home_position.x, line_x, surge_advance),
+		lerpf(unit.home_position.y, mouth.y, surge_centring))
+
+	return Vector2(
+		clampf(spot.x, rect.position.x + 20.0, rect.end.x - 20.0),
+		clampf(spot.y, rect.position.y + 24.0, rect.end.y - 24.0))
+
+
+## Where a defender drops back to while the other side breaks: goal-side of
+## his man, and deliberately NOT leashed to his quarter, so he can retreat the
+## length of the pitch with the attack instead of being pinned to his post.
+func _recover_point(unit: PlayerUnit) -> Vector2:
+	var rect := get_play_rect()
+	var own_goal_x: float = rect.position.x if not unit.is_enemy else rect.end.x
+
+	var man := unit.mark_target
+	if man == null or not is_instance_valid(man):
+		# Nobody to track — fall back toward your own goal and hold the line.
+		return Vector2(
+			lerpf(unit.home_position.x, own_goal_x, surge_advance * 0.6),
+			unit.home_position.y)
+
+	var toward_goal := (Vector2(own_goal_x, man.global_position.y) - man.global_position).normalized()
+	var spot := man.global_position + toward_goal * mark_distance
+	return Vector2(
+		clampf(spot.x, rect.position.x + 20.0, rect.end.x - 20.0),
+		clampf(spot.y, rect.position.y + 24.0, rect.end.y - 24.0))
+
+
+## Called when the last duel is settled. `side_is_enemy` is whoever won it and
+## is about to shoot.
+func _begin_surge(side_is_enemy: bool) -> void:
+	attack_surge_side = 1 if side_is_enemy else 0
+	print("  The break is on — %s push up." % ("they" if side_is_enemy else "you"))
+
+
+func _end_surge() -> void:
+	attack_surge_side = -1
+
+
 func _drift_point(unit: PlayerUnit) -> Vector2:
 	var phase := float(unit.get_instance_id() % 100) * 0.06
 	return unit.leash_point(unit.home_position + Vector2(
@@ -392,6 +532,10 @@ func _apply_match_tuning() -> void:
 
 	zones_enabled = db.tune_bool("zones_enabled", zones_enabled)
 	press_radius_fraction = db.tune_float("press_radius_fraction", press_radius_fraction)
+	ball_roam_quarter_first = db.tune_int("ball_roam_quarter_first", ball_roam_quarter_first)
+	ball_roam_quarter_last = db.tune_int("ball_roam_quarter_last", ball_roam_quarter_last)
+	surge_advance = db.tune_float("surge_advance", surge_advance)
+	surge_centring = db.tune_float("surge_centring", surge_centring)
 	press_helpers = db.tune_int("press_helpers", press_helpers)
 	press_speed = db.tune_float("press_speed", press_speed)
 	mark_distance = db.tune_float("mark_distance", mark_distance)
@@ -420,6 +564,10 @@ func _tune_ball() -> void:
 	ball.pressure_radius = db.tune_float("ball_pressure_radius", ball.pressure_radius)
 	ball.min_hold_seconds = db.tune_float("ball_min_hold_seconds", ball.min_hold_seconds)
 	ball.intercept_grace = db.tune_float("ball_intercept_grace", ball.intercept_grace)
+	ball.trail_seconds = db.tune_float("ball_trail_seconds", ball.trail_seconds)
+	ball.ring_radius = db.tune_float("ball_ring_radius", ball.ring_radius)
+	ball.corridor_return_speed = db.tune_float(
+		"ball_corridor_return_speed", ball.corridor_return_speed)
 
 
 func _tune_rps() -> void:
@@ -716,8 +864,8 @@ func spawn_team(star_player: PlayerData, is_enemy: bool) -> void:
 func _place_in_zone(unit: PlayerUnit, tier_key: String) -> void:
 	if not zones_enabled or zones == null:
 		return
-	unit.tier_zone = zones.zone_for(tier_key)
-	unit.tier_soft_zone = zones.soft_zone_for(tier_key)
+	unit.tier_zone = zones.zone_for(tier_key, unit.is_enemy)
+	unit.tier_soft_zone = zones.soft_zone_for(tier_key, unit.is_enemy)
 
 
 ## Top of the pitch first. A plain insertion sort — the lists are three long.
@@ -733,17 +881,23 @@ func _by_height(units: Array[PlayerUnit]) -> Array[PlayerUnit]:
 	return out
 
 
-## Pair every unit with an opponent in the SAME Tier, matched by how far down
-## the pitch they start. Those two will duel later, so having them shadow each
-## other all match means the fight you are about to watch is already visible.
+## Pair every unit with the opponent standing in the same QUARTER as it.
+##
+## The two sides are mirrored, so a quarter holds your Tier N and their Tier
+## (V - N): your defenders end up marking their attackers, which is the point
+## of mirroring them. Pairs are matched by how far down the pitch they start,
+## so the marking never crosses over itself.
 func _assign_marks() -> void:
-	if not zones_enabled:
+	if not zones_enabled or zones == null:
 		return
-	for tier_key in ALL_TIERS:
+
+	for quarter in ALL_TIERS.size():
 		var mine: Array[PlayerUnit] = []
 		var theirs: Array[PlayerUnit] = []
 		for unit in _all_units():
-			if unit.data == null or unit.data.get_tier_clean() != tier_key:
+			if unit.data == null:
+				continue
+			if zones.zone_index(unit.data.get_tier_clean(), unit.is_enemy) != quarter:
 				continue
 			if unit.is_enemy:
 				theirs.append(unit)
@@ -753,8 +907,8 @@ func _assign_marks() -> void:
 		mine = _by_height(mine)
 		theirs = _by_height(theirs)
 
-		# The Star fills its tier alone, so the three opposite it all mark the
-		# one man. That is correct: he is the dangerous one.
+		# A Star fills its quarter alone, so the three opposite all shadow the
+		# one man. That is correct — he is the dangerous one.
 		for i in mine.size():
 			mine[i].mark_target = theirs[i % theirs.size()] if not theirs.is_empty() else null
 		for i in theirs.size():
@@ -1314,6 +1468,12 @@ func _lock_geometry() -> void:
 		db.tune_float("zone_share", 0.25),
 		db.tune_float("zone_stretch", 0.33),
 		db.tune_float("zone_side_inset", 0.34))
+
+	if zone_overlay != null:
+		zone_overlay.visible = zones_enabled
+		zone_overlay.setup(zones,
+			db.tune_float("zone_tint_alpha", 0.07),
+			db.tune_float("zone_tint_alpha_draft", 0.20))
 
 
 func _unlock_geometry() -> void:
@@ -1945,6 +2105,7 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 
 	if keeper == null or shot_power <= 0:
 		print("  No shot taken this round.")
+		_end_surge()
 		if ball != null:
 			ball.scripted_possession = false
 		round_resolved.emit(player_score, enemy_score)
@@ -1953,8 +2114,21 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 
 	var shooter := _find_shooter(shooter_is_player)
 
-	# --- 1. The last winner takes possession and carries it into range ---
+	# --- 1. THE BREAK, then the last winner carries it into range ---
 	if shooter != null and ball != null:
+		# Whoever won the Tier IV duel is about to shoot. Before the ball moves
+		# at all, the whole of that side pushes up at the goal — so the relay
+		# happens through players who are RUNNING, and the shot is the end of a
+		# move you watched rather than something that teleports into place.
+		#
+		# This runs whichever way the last duel went. It was asked for on the
+		# turnover (attacker loses at Tier IV), but a shot with no build-up
+		# looks just as abrupt when the attacker holds, so both get it.
+		_begin_surge(shooter.is_enemy)
+		var lead := db.tune_float("surge_lead_seconds", 0.7)
+		if lead > 0.0:
+			await get_tree().create_timer(lead).timeout
+
 		await deliver_ball_to_card(shooter.data, shooter.is_enemy)
 
 		# They used to step a flat 25% of the way to the keeper, which from the
@@ -2013,8 +2187,9 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 			await get_tree().create_timer(db.tune_float("save_pause_seconds", 0.4)).timeout
 			await _goal_kick(target_key)
 
-	# The ball comes off its rails here and open play takes over again. The
-	# players never stopped.
+	# The break is over, the ball comes off its rails, and everyone drifts back
+	# to their own quarter under the usual zone pull. The players never stopped.
+	_end_surge()
 	if ball != null:
 		ball.scripted_possession = false
 	round_resolved.emit(player_score, enemy_score)

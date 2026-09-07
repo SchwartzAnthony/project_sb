@@ -57,6 +57,35 @@ signal delivery_arrived
 ## claim it, the nearest unit collects it anyway and play carries on.
 @export var loose_timeout_seconds: float = 6.0
 
+# --- Readability ---
+# The single hardest thing about watching this game is not losing the ball.
+# A short fading trail says where it has just been, and a ring under whoever
+# has it says who to look at. Both are drawn here, so there is nothing extra
+# to wire up and nothing to keep in sync.
+## Seconds of trail kept behind the ball. 0 turns it off.
+@export var trail_seconds: float = 0.55
+## How far apart trail dots are dropped, in pixels.
+@export var trail_spacing: float = 9.0
+@export var trail_colour: Color = Color(1.0, 0.95, 0.45, 0.55)
+## Ring drawn at the carrier's feet. 0 turns it off.
+@export var ring_radius: float = 17.0
+@export var ring_width: float = 2.5
+@export var ring_ally: Color = Color(0.55, 0.85, 1.0, 0.85)
+@export var ring_enemy: Color = Color(1.0, 0.55, 0.5, 0.85)
+
+# --- The corridor ---
+# During normal waiting play the ball is not allowed into the two END
+# quarters — the Tier IV territories. Goals are supposed to come out of a
+# PLAY MAKER, not out of ambient passing, so the ball is kept in midfield
+# until the whistle goes and the corridor is lifted.
+#
+# main_scene switches this on and off; it is on exactly while the match
+# clock is running.
+var corridor: Rect2 = Rect2()
+var corridor_active: bool = false
+## How fast a ball found outside the corridor rolls back into it.
+@export var corridor_return_speed: float = 420.0
+
 ## An opponent this close makes the carrier release the ball early.
 @export var pressure_radius: float = 82.0
 ## ...but never before holding it this long, or possession becomes a hot potato.
@@ -93,6 +122,8 @@ var _thief: PlayerUnit = null
 var _steal_at: float = -1.0
 ## How long the current carrier has had it, for the release-under-pressure rule.
 var _held: float = 0.0
+## Recent positions, newest last, for the trail.
+var _trail: Array[Vector2] = []
 
 
 func _ready() -> void:
@@ -100,15 +131,42 @@ func _ready() -> void:
 
 
 func _draw() -> void:
+	# Everything here is drawn in the BALL's local space, so each point has to
+	# come back out of world space first.
+	_draw_possession_ring()
+	_draw_trail()
+
 	draw_circle(Vector2.ZERO, radius + 1.5, Color(0.05, 0.05, 0.08, 0.85))
 	draw_circle(Vector2.ZERO, radius, Color(0.97, 0.97, 1.0))
 	draw_circle(Vector2(-radius * 0.28, -radius * 0.28), radius * 0.34, Color(0.16, 0.16, 0.22))
+
+
+func _draw_trail() -> void:
+	if _trail.size() < 2:
+		return
+	for i in _trail.size():
+		# Oldest dots are faintest and smallest, so the trail reads as a
+		# direction rather than a smear.
+		var age := float(i + 1) / float(_trail.size())
+		var tint := trail_colour
+		tint.a *= age * age
+		draw_circle(_trail[i] - global_position, radius * 0.34 * (0.4 + age * 0.6), tint)
+
+
+func _draw_possession_ring() -> void:
+	if ring_radius <= 0.0 or not is_instance_valid(carrier):
+		return
+	var colour := ring_enemy if carrier.is_enemy else ring_ally
+	draw_arc(carrier.global_position - global_position, ring_radius,
+		0.0, TAU, 28, colour, ring_width, true)
 
 
 func _physics_process(delta: float) -> void:
 	# Scripted moves outrank `frozen`: during a PLAY MAKER the pitch is held
 	# still, but the choreographed relay and the shot still have to play out.
 	# Neither can be tackled or intercepted.
+	_update_trail(delta)
+
 	if _shooting:
 		_advance_shot(delta)
 		return
@@ -125,8 +183,17 @@ func _physics_process(delta: float) -> void:
 
 	if _in_flight:
 		_advance_pass(delta)
+		_hold_inside_corridor(delta)
 	elif is_instance_valid(carrier):
 		global_position = carrier.global_position + carry_offset
+
+		# Carried out of the corridor — play it back inside rather than
+		# snapping the ball, which would look like a glitch. This is what
+		# tidies up after a goal kick that lands too far forward.
+		if _outside_corridor(global_position) and not scripted_possession:
+			if _held >= min_hold_seconds * 0.5:
+				make_pass(true)
+				return
 
 		# During a PLAY MAKER the ball belongs to the script, not to itself:
 		# it stays exactly where it was put until the next scripted pass. The
@@ -160,6 +227,7 @@ func _physics_process(delta: float) -> void:
 		_loose_age += delta
 		if _loose_left <= 0.0:
 			_loose_left = 0.1
+			_hold_inside_corridor(delta)
 			var nearest := _nearest_unit()
 			if nearest == null:
 				return
@@ -399,6 +467,60 @@ func settle_in_place() -> void:
 #  INTERNALS
 # =============================================================
 
+## Drop a dot every `trail_spacing` pixels and let the oldest fall off the
+## back. Length is in SECONDS, converted through the pass speed, so the trail
+## stays the same visual length whether the ball is rolling or flying.
+func _update_trail(_delta: float) -> void:
+	if trail_seconds <= 0.0:
+		if not _trail.is_empty():
+			_trail.clear()
+		queue_redraw()
+		return
+
+	if _trail.is_empty() or _trail[_trail.size() - 1].distance_to(global_position) >= trail_spacing:
+		_trail.append(global_position)
+
+	var keep := int(maxf(pass_speed, 1.0) * trail_seconds / maxf(trail_spacing, 1.0))
+	while _trail.size() > maxi(keep, 2):
+		_trail.remove_at(0)
+
+	# The ring follows a moving carrier, so this has to redraw every frame
+	# whether the ball itself moved or not.
+	queue_redraw()
+
+
+# =============================================================
+#  CORRIDOR
+# =============================================================
+
+func set_corridor(rect: Rect2, active: bool) -> void:
+	corridor = rect
+	corridor_active = active and rect.size.x > 1.0
+
+
+func _outside_corridor(point: Vector2) -> bool:
+	if not corridor_active:
+		return false
+	return point.x < corridor.position.x or point.x > corridor.end.x
+
+
+## Roll a stray ball back into the corridor instead of teleporting it.
+func _hold_inside_corridor(delta: float) -> void:
+	if not _outside_corridor(global_position):
+		return
+	var inside := Vector2(
+		clampf(global_position.x, corridor.position.x, corridor.end.x),
+		global_position.y)
+	global_position = global_position.move_toward(inside, corridor_return_speed * delta)
+
+
+func _inside_corridor(unit: PlayerUnit) -> bool:
+	if not corridor_active or unit == null:
+		return true
+	return unit.global_position.x >= corridor.position.x \
+		and unit.global_position.x <= corridor.end.x
+
+
 func _units() -> Array:
 	if units_provider.is_valid():
 		return units_provider.call()
@@ -449,6 +571,18 @@ func make_pass(hurried: bool = false) -> void:
 			continue
 		if unit.is_enemy == carrier.is_enemy:
 			mates.append(unit)
+
+	# Nobody in an end quarter may be passed to while the corridor is up, so
+	# Tier IV simply never sees the ball during waiting play. If that leaves
+	# no legal target at all, the restriction is dropped rather than the
+	# carrier standing there forever.
+	if corridor_active:
+		var reachable: Array[PlayerUnit] = []
+		for mate in mates:
+			if _inside_corridor(mate):
+				reachable.append(mate)
+		if not reachable.is_empty():
+			mates = reachable
 
 	if mates.is_empty():
 		_carry_left = randf_range(carry_seconds.x, carry_seconds.y)
