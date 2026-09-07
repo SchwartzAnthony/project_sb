@@ -32,17 +32,15 @@ const PLAYER_UNIT_SCENE: PackedScene = preload("res://src/units/player_unit.tscn
 const GOALIE_SCENE: PackedScene = preload("res://src/units/goalie_unit.tscn")
 const RPS_SCENE: PackedScene = preload("res://src/ui/rps_clash.tscn")
 
-const NORMAL_DIR := "res://data/players/normal/"
-const STAR_DIR := "res://data/players/star_player/"
-const GOALIE_DIR := "res://data/goalies/"
-
-# --- Match constants ----------------------------------------
+# --- Match settings -----------------------------------------
+# These are VARIABLES, not constants, because Tuning.csv overwrites them in
+# _ready(). The values here are only the fallback when a row is missing.
 const ALL_TIERS: Array[String] = ["I", "II", "III", "IV"]
-const ROUNDS_PER_CYCLE := 3
-const TOTAL_CYCLES := 3
-const MATCH_LENGTH_MINUTES := 90.0
-const FIRST_EVENT_MINUTE := 5.0
-const LAST_EVENT_MINUTE := 82.0
+var ROUNDS_PER_CYCLE := 3
+var TOTAL_CYCLES := 3
+var MATCH_LENGTH_MINUTES := 90.0
+var FIRST_EVENT_MINUTE := 5.0
+var LAST_EVENT_MINUTE := 82.0
 
 ## 90 in-game minutes elapse over (90 / time_scale) real seconds.
 @export var time_scale: float = 1.0
@@ -68,8 +66,13 @@ var units_container: Node2D
 var goalies: Dictionary = {}   # false -> player goalie, true -> enemy goalie
 var ball: Ball = null
 var rps: RpsClash = null
+## Everything the game knows, read from res://data/*.csv at startup.
+var db: CardDatabase
+var abilities: AbilityEngine
 ## Who won the rock/paper/scissors clash and chose to attack this round.
 var player_attacks_this_round: bool = true
+## The card holding the ball when the duel chain ended — it takes the shot.
+var round_shooter_card: PlayerData = null
 ## Substitutions can nest (enemy rotates its Star at the same moment you do),
 ## so freezing is reference-counted rather than a plain bool.
 var _freeze_depth: int = 0
@@ -104,6 +107,10 @@ var enemy_score: int = 0
 
 func _ready() -> void:
 	randomize()
+
+	db = CardDatabase.get_db()
+	abilities = AbilityEngine.new(db)
+	_apply_match_tuning()
 
 	units_container = Node2D.new()
 	units_container.name = "UnitsContainer"
@@ -141,6 +148,58 @@ func _process(delta: float) -> void:
 			trigger_hold_up_event()
 		elif rounds_this_cycle < ROUNDS_PER_CYCLE:
 			trigger_playmaker_event()
+
+
+# =============================================================
+#  TUNING — every number below comes from Tuning.csv when a row exists,
+#  otherwise the value already in code stands. Nothing here can crash on a
+#  missing or misspelled row.
+# =============================================================
+
+func _apply_match_tuning() -> void:
+	MATCH_LENGTH_MINUTES = db.tune_float("match_length_minutes", MATCH_LENGTH_MINUTES)
+	FIRST_EVENT_MINUTE = db.tune_float("first_event_minute", FIRST_EVENT_MINUTE)
+	LAST_EVENT_MINUTE = db.tune_float("last_event_minute", LAST_EVENT_MINUTE)
+	ROUNDS_PER_CYCLE = db.tune_int("rounds_per_cycle", ROUNDS_PER_CYCLE)
+	TOTAL_CYCLES = db.tune_int("total_cycles", TOTAL_CYCLES)
+	ties_go_to_attacker = db.tune_bool("ties_go_to_attacker", ties_go_to_attacker)
+	use_rps_minigame = db.tune_bool("use_rps_minigame", use_rps_minigame)
+
+
+func _tune_ball() -> void:
+	if ball == null:
+		return
+	ball.pass_speed = db.tune_float("ball_pass_speed", ball.pass_speed)
+	ball.shot_speed = db.tune_float("ball_shot_speed", ball.shot_speed)
+	ball.carry_seconds = Vector2(
+		db.tune_float("ball_carry_min_seconds", ball.carry_seconds.x),
+		db.tune_float("ball_carry_max_seconds", ball.carry_seconds.y))
+	ball.forward_pass_chance = db.tune_float("ball_forward_pass_chance", ball.forward_pass_chance)
+	ball.intercept_radius = db.tune_float("ball_intercept_radius", ball.intercept_radius)
+	ball.tackle_radius = db.tune_float("ball_tackle_radius", ball.tackle_radius)
+	ball.possession_grace = db.tune_float("ball_possession_grace", ball.possession_grace)
+	ball.tackle_recovery = db.tune_float("ball_tackle_recovery", ball.tackle_recovery)
+
+
+func _tune_rps() -> void:
+	if rps == null:
+		return
+	rps.enemy_attack_chance = db.tune_float("enemy_attack_chance", rps.enemy_attack_chance)
+	rps.reveal_seconds = db.tune_float("rps_reveal_seconds", rps.reveal_seconds)
+	rps.result_seconds = db.tune_float("rps_result_seconds", rps.result_seconds)
+
+
+func _tune_unit(unit: PlayerUnit) -> void:
+	unit.walk_speed = db.tune_float("unit_walk_speed", unit.walk_speed)
+	unit.chase_speed = db.tune_float("unit_chase_speed", unit.chase_speed)
+	unit.dribble_speed = db.tune_float("unit_dribble_speed", unit.dribble_speed)
+	unit.interest_radius = db.tune_float("unit_interest_radius", unit.interest_radius)
+	unit.roam_radius = db.tune_float("unit_roam_radius", unit.roam_radius)
+
+
+func _tune_goalie(keeper: GoalieUnit) -> void:
+	keeper.break_through_chance = db.tune_float("goalie_break_through_chance", keeper.break_through_chance)
+	keeper.open_goal_chance = db.tune_float("goalie_open_goal_chance", keeper.open_goal_chance)
 
 
 func _update_clock_label() -> void:
@@ -285,7 +344,9 @@ func spawn_team(star_player: PlayerData, is_enemy: bool) -> void:
 		pool.shuffle()
 
 		if pool.size() < positions.size():
-			push_warning("Class '%s' has only %d Tier %s cards for %d slots."
+			# A data problem, not a code fault — CardDB has already named the
+			# offending row, so print rather than push_warning (no backtrace).
+			print("[roster] '%s' has only %d Tier %s cards for %d slots."
 				% [star_player.unit_type, pool.size(), tier_key, positions.size()])
 
 		for i in mini(positions.size(), pool.size()):
@@ -451,6 +512,7 @@ func create_unit_instance(data: PlayerData, pos: Vector2, is_enemy: bool) -> Pla
 	unit.ball = ball
 	unit.play_bounds = get_play_rect()
 	unit.attack_dir = -1.0 if is_enemy else 1.0   # home defends the left goal
+	_tune_unit(unit)
 	units_container.add_child(unit)   # add first so @onready refs exist
 	unit.set_home(pos)                # then place and start roaming
 	return unit
@@ -490,6 +552,9 @@ func spawn_goalies() -> void:
 	enemy_goalie.goal_conceded.connect(_on_goal_conceded.bind(true))
 	goalies[true] = enemy_goalie
 
+	_tune_goalie(player_goalie)
+	_tune_goalie(enemy_goalie)
+
 
 func _assign_goalie_data() -> void:
 	if active_player_star:
@@ -503,19 +568,19 @@ func _assign_goalie_data() -> void:
 
 
 func _load_goalie_for_team(team: String) -> GoalieData:
-	var path := GOALIE_DIR + team.to_lower() + "_goalie.tres"
-	if ResourceLoader.exists(path):
-		return load(path) as GoalieData
-	push_warning("No goalie resource at %s — using default stamina." % path)
-	return null
+	var keeper := db.goalie_for_team(team)
+	if keeper == null:
+		print("[goalies] No row for '%s' in Goalies.csv — using default stamina." % team)
+	return keeper
 
 
 func _on_goal_conceded(conceded_by_enemy: bool) -> void:
+	# No print here — finish_round() announces the goal AFTER the shot line,
+	# otherwise the log reads "GOAL!" before the shot that caused it.
 	if conceded_by_enemy:
 		player_score += 1
 	else:
 		enemy_score += 1
-	print("GOAL!  %d - %d" % [player_score, enemy_score])
 
 
 # =============================================================
@@ -528,6 +593,7 @@ func spawn_ball() -> void:
 	ball.units_provider = Callable(self, "_all_units")
 	units_container.add_child(ball)
 	ball.global_position = get_play_rect().get_center()
+	_tune_ball()
 
 
 func spawn_rps() -> void:
@@ -537,6 +603,7 @@ func spawn_rps() -> void:
 		return
 	rps.name = "RpsClash"
 	add_child(rps)
+	_tune_rps()
 
 
 ## Run the clash and return true if YOUR side attacks in the Tier I duel.
@@ -651,52 +718,20 @@ func mirror_if_enemy(original_pos: Vector2, center_x: float, is_enemy: bool) -> 
 #  DATA LOADING
 # =============================================================
 
+# Everything comes from the CSVs via CardDatabase. There are no .tres card
+# files to keep in sync any more — data/players/ and data/goalies/ can be
+# deleted. Drop a CSV in res://data/ and it is in the next match.
+
 func load_roster_by_type(unit_type: String) -> Array[PlayerData]:
-	var roster: Array[PlayerData] = []
-	var dir := DirAccess.open(NORMAL_DIR)
-	if dir == null:
-		push_error("Could not open %s" % NORMAL_DIR)
-		return roster
-	for file in dir.get_files():
-		if not file.ends_with(".tres"):
-			continue
-		var res := load(NORMAL_DIR + file) as PlayerData
-		if res != null and res.unit_type.to_lower() == unit_type.to_lower():
-			roster.append(res)
-	return roster
-
-
-func _load_all_stars() -> Array[PlayerData]:
-	var stars: Array[PlayerData] = []
-	var dir := DirAccess.open(STAR_DIR)
-	if dir == null:
-		push_error("Could not open %s" % STAR_DIR)
-		return stars
-	for file in dir.get_files():
-		if file.ends_with(".tres"):
-			var res := load(STAR_DIR + file) as PlayerData
-			if res != null:
-				stars.append(res)
-	return stars
+	return db.roster_for_class(unit_type)
 
 
 func _stars_grouped_by_class() -> Dictionary:
-	var grouped := {}
-	for s in _load_all_stars():
-		var key := s.unit_type.strip_edges()
-		if not grouped.has(key):
-			var arr: Array[PlayerData] = []
-			grouped[key] = arr
-		grouped[key].append(s)
-	return grouped
+	return db.stars_by_class()
 
 
 func get_star_bundle_by_type(unit_type: String) -> Array[PlayerData]:
-	var bundle: Array[PlayerData] = []
-	for s in _load_all_stars():
-		if s.unit_type.to_lower() == unit_type.to_lower():
-			bundle.append(s)
-	return bundle
+	return db.stars_for_class(unit_type)
 
 
 ## Kickoff choices: one Star from each of three DIFFERENT classes, so the
@@ -721,7 +756,7 @@ func get_star_player_choices() -> Array[PlayerData]:
 			reserve.append(bundle[i])
 
 	if choices.is_empty():
-		push_error("No Star Player resources found in %s" % STAR_DIR)
+		push_error("No Star Players found. Check that a CSV in res://data/ has rows with Player Type = Star.")
 		return choices
 
 	# With fewer than 3 classes imported, top the kickoff up from the reserve
@@ -790,6 +825,7 @@ func trigger_hold_up_event() -> void:
 	round_player_picks.clear()
 	round_enemy_picks.clear()
 
+	abilities.begin_cycle()
 	for unit in _all_units():
 		unit.reset_for_new_cycle()
 
@@ -862,7 +898,7 @@ func start_next_draft_phase() -> void:
 			choices_found += 1
 
 	if choices_found == 0:
-		push_warning("No available Tier %s cards to draft — skipping this phase." % phase)
+		print("[draft] No available Tier %s cards — skipping this phase." % phase)
 		_enemy_pick_for_tier(phase)
 		current_phase_index += 1
 		start_next_draft_phase()
@@ -1056,6 +1092,9 @@ func resolve_round() -> void:
 
 	print("  %s attacks first." % ("You" if player_has_ball else "Enemy"))
 
+	abilities.begin_round()
+	abilities.apply_passives(player_lineup, enemy_lineup)
+
 	var player_bank := 0
 	var enemy_bank := 0
 
@@ -1066,14 +1105,27 @@ func resolve_round() -> void:
 			print("  Tier %s: no contest (missing card)." % ALL_TIERS[i])
 			continue
 
+		abilities.begin_duel()
+
+		var attacker_is_enemy := not player_has_ball
 		var atk: PlayerData = mine if player_has_ball else theirs
 		var def: PlayerData = theirs if player_has_ball else mine
-		var atk_power := atk.get_attack_power()
-		var def_power := def.get_defense_power()
+
+		# Abilities go on the stack first: lowest priority resolves first,
+		# attacker breaks a tie. Only then are the numbers compared.
+		abilities.resolve_duel_abilities(atk, attacker_is_enemy, def)
+
+		var atk_power := abilities.attack_power(atk, attacker_is_enemy)
+		var def_power := abilities.defense_power(def, not attacker_is_enemy)
 
 		var attacker_wins := atk_power > def_power
 		if atk_power == def_power:
 			attacker_wins = ties_go_to_attacker
+
+		if attacker_wins:
+			abilities.resolve_duel_outcome(atk, attacker_is_enemy, def, not attacker_is_enemy)
+		else:
+			abilities.resolve_duel_outcome(def, not attacker_is_enemy, atk, attacker_is_enemy)
 
 		var banked := atk_power + def_power
 		if attacker_wins:
@@ -1093,21 +1145,105 @@ func resolve_round() -> void:
 			def.player_name, def_power,
 			"attacker holds" if attacker_wins else "TURNOVER"])
 
-	finish_round(player_has_ball, player_bank if player_has_ball else enemy_bank)
+		for line in abilities.log_lines:
+			print(line)
+		abilities.log_lines.clear()
+
+		# Whoever holds the ball after this tier is the current shooter.
+		round_shooter_card = mine if player_has_ball else theirs
+
+	# Goalie stamina changes queued by abilities land before the shot.
+	for change in abilities.take_pending_stamina():
+		var keeper: GoalieUnit = goalies.get(bool(change["enemy_side"]))
+		if keeper != null:
+			keeper.adjust_stamina(int(change["delta"]))
+
+	var bank := player_bank if player_has_ball else enemy_bank
+	bank += abilities.shot_bonus(not player_has_ball)
+
+	await finish_round(player_has_ball, bank)
 
 
 ## Called by combat_arena.tscn (or by the headless path above).
+##
+## The shot is played out ON THE PITCH: the unit that won the last duel is
+## given the ball, steps toward goal, and strikes it. The keeper's roll is
+## made BEFORE the ball is animated, so the ball visibly stops at a save and
+## visibly crosses the line for a goal — the picture never lies about the result.
 func finish_round(shooter_is_player: bool, shot_power: int) -> void:
-	var target_key := true if shooter_is_player else false   # shoot at the OTHER goalie
+	var target_key := true if shooter_is_player else false   # the OTHER goalie
 	var keeper: GoalieUnit = goalies.get(target_key)
 
-	if keeper != null and shot_power > 0:
-		var scored := keeper.take_shot(shot_power)
-		print("  SHOT: %s fires %d power -> %s (keeper stamina now %d)" % [
-			"You" if shooter_is_player else "Enemy", shot_power,
-			"GOAL" if scored else "saved", keeper.current_stamina])
-	else:
+	if keeper == null or shot_power <= 0:
 		print("  No shot taken this round.")
+		round_resolved.emit(player_score, enemy_score)
+		current_state = MatchState.PLAYING
+		return
+
+	var shooter := _find_shooter(shooter_is_player)
+
+	# --- 1. The ball reaches the shooter ---
+	if shooter != null and ball != null:
+		ball.give_to(shooter)
+		var toward_goal := shooter.global_position.lerp(keeper.global_position, 0.25)
+		await shooter.run_to(toward_goal, db.tune_float("shot_run_up_seconds", 0.45))
+
+	# --- 2. Decide the outcome, then show it ---
+	var scored := keeper.take_shot(shot_power)
+
+	print("  SHOT: %s (%s) fires %d power -> %s (keeper stamina now %d)" % [
+		"You" if shooter_is_player else "Enemy",
+		shooter.data.player_name if shooter != null and shooter.data != null else "unknown",
+		shot_power, "GOAL" if scored else "saved", keeper.current_stamina])
+	if scored:
+		print("  GOAL!  %d - %d" % [player_score, enemy_score])
+
+	# --- 3. Strike it ---
+	if ball != null:
+		var goal_line := _goal_mouth(target_key)
+		ball.shoot(keeper.global_position if not scored else goal_line)
+		await ball.shot_arrived
+
+		if scored:
+			# Restart from the centre. The side that CONCEDED kicks off, and
+			# target_key is exactly that side (it owns the beaten keeper).
+			await get_tree().create_timer(0.6).timeout
+			ball.global_position = get_play_rect().get_center()
+			give_ball_to(target_key)
+		else:
+			# The keeper gathers it and plays it out to their own side.
+			give_ball_to(target_key)
 
 	round_resolved.emit(player_score, enemy_score)
 	current_state = MatchState.PLAYING
+
+
+## The on-pitch unit holding the ball at the end of the duel chain.
+func _find_shooter(shooter_is_player: bool) -> PlayerUnit:
+	var side_is_enemy := not shooter_is_player
+
+	if round_shooter_card != null:
+		for unit in _all_units():
+			if unit.is_enemy == side_is_enemy and unit.data == round_shooter_card:
+				return unit
+
+	# Fall back to whoever on that side is nearest the goal they attack.
+	var best: PlayerUnit = null
+	var best_x := -INF
+	for unit in _all_units():
+		if unit.is_enemy != side_is_enemy:
+			continue
+		var reach := unit.global_position.x * (-1.0 if side_is_enemy else 1.0)
+		if reach > best_x:
+			best_x = reach
+			best = unit
+	return best
+
+
+## A point just past the keeper, on the goal line.
+func _goal_mouth(keeper_is_enemy: bool) -> Vector2:
+	var rect := get_play_rect()
+	var keeper: GoalieUnit = goalies.get(keeper_is_enemy)
+	var y := keeper.global_position.y if keeper != null else rect.get_center().y
+	var x := rect.end.x + 40.0 if keeper_is_enemy else rect.position.x - 40.0
+	return Vector2(x, y)

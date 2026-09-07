@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bkjan6ukb2ui0"
+
+[deps]
+
+files=["res://data/Abilities.Name.translation", "res://data/Abilities.Trigger.translation", "res://data/Abilities.Target.translation", "res://data/Abilities.Effect.translation", "res://data/Abilities.Value.translation", "res://data/Abilities.Scope.translation", "res://data/Abilities.Notes.translation"]
+
+source_file="res://data/Abilities.csv"
+dest_files=["res://data/Abilities.Name.translation", "res://data/Abilities.Trigger.translation", "res://data/Abilities.Target.translation", "res://data/Abilities.Effect.translation", "res://data/Abilities.Value.translation", "res://data/Abilities.Scope.translation", "res://data/Abilities.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

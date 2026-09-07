@@ -19,9 +19,12 @@ extends Node2D
 signal possession_changed(new_carrier: PlayerUnit)
 signal pass_intercepted(thief: PlayerUnit)
 signal tackled(thief: PlayerUnit, victim: PlayerUnit)
+## A shot on goal has reached its target. main_scene awaits this.
+signal shot_arrived
 
 @export var radius: float = 6.0
 @export var pass_speed: float = 380.0                     # px / second
+@export var shot_speed: float = 760.0                     # a strike on goal
 @export var carry_seconds: Vector2 = Vector2(1.6, 3.4)    # min, max
 @export var intercept_radius: float = 45.0
 ## Fraction of the pass that is safe. Without this the defender already
@@ -55,6 +58,7 @@ var _pass_from_enemy: bool = false
 var _carry_left: float = 0.0
 var _loose_left: float = 0.0
 var _grace_left: float = 0.0
+var _shooting: bool = false
 
 
 func _ready() -> void:
@@ -69,6 +73,11 @@ func _draw() -> void:
 
 func _physics_process(delta: float) -> void:
 	if frozen:
+		return
+
+	# A shot on goal outranks everything: it cannot be tackled or intercepted.
+	if _shooting:
+		_advance_shot(delta)
 		return
 
 	if _in_flight:
@@ -104,6 +113,35 @@ func give_to(unit: PlayerUnit) -> void:
 	_in_flight = false
 	_intended = null
 	_take(unit, false)
+
+
+## Strike the ball at a point — the keeper, or the goal mouth behind them.
+## Nobody can intercept or tackle a shot; `shot_arrived` fires on impact.
+func shoot(target: Vector2) -> void:
+	carrier = null
+	_in_flight = false
+	_intended = null
+	_shooting = true
+	_from = global_position
+	_to = target
+	_distance = maxf(_from.distance_to(_to), 1.0)
+	_travelled = 0.0
+
+
+func is_shooting() -> bool:
+	return _shooting
+
+
+func _advance_shot(delta: float) -> void:
+	_travelled += shot_speed * delta
+	var t := clampf(_travelled / _distance, 0.0, 1.0)
+	global_position = _from.lerp(_to, t)
+	if t >= 1.0:
+		_shooting = false
+		# Give main_scene a moment to decide what happens next before the
+		# loose-ball rule hands it to whoever is standing nearest.
+		_loose_left = 1.0
+		shot_arrived.emit()
 
 
 func has_carrier() -> bool:

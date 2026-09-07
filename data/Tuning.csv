@@ -1,0 +1,28 @@
+Key,Value,What it does
+match_length_minutes,90,Length of a match in in-game minutes
+first_event_minute,5,Earliest minute a PLAY MAKER can fire
+last_event_minute,82,Latest minute an event can fire
+rounds_per_cycle,3,PLAY MAKERs before a HOLD UP!
+total_cycles,3,Cycles in a match
+ties_go_to_attacker,false,On an exact power tie: false = defender holds
+use_rps_minigame,true,false = silent coin flip instead of the clash screen
+enemy_attack_chance,0.5,Enemy odds of choosing ATTACK when it wins the clash
+rps_reveal_seconds,0.9,Pause on the clash reveal
+rps_result_seconds,1.0,Pause on the clash decision
+goalie_break_through_chance,0.05,Chance a shot scores while the keeper still has stamina
+goalie_open_goal_chance,0.9,Chance a shot scores once stamina is 0
+ball_pass_speed,380,Pixels per second for a pass
+ball_shot_speed,760,Pixels per second for a shot on goal
+ball_carry_min_seconds,1.6,Shortest time a unit holds the ball before passing
+ball_carry_max_seconds,3.4,Longest time a unit holds the ball before passing
+ball_forward_pass_chance,0.75,How often a pass looks for a team-mate upfield
+ball_intercept_radius,45,How close to a pass in flight to steal it
+ball_tackle_radius,22,How close to the carrier to tackle them
+ball_possession_grace,0.7,Seconds a new carrier cannot be tackled
+ball_tackle_recovery,2.5,Seconds a tackled unit stops chasing
+unit_walk_speed,30,Pixels per second when ambling around their slot
+unit_chase_speed,66,Pixels per second when running at the ball
+unit_dribble_speed,44,Pixels per second when carrying the ball
+unit_interest_radius,190,How close the ball must be before a unit reacts
+unit_roam_radius,40,How far a unit wanders from its formation slot
+shot_run_up_seconds,0.45,How long the shooter steps toward goal before striking

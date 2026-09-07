@@ -23,6 +23,12 @@ extends Resource
 @export var card_set: String   # the "Set Name" CSV column, e.g. "F01"
 @export var created_by: String
 
+## Optional. The "Attack Ability" / "Defend Ability" columns in your unit CSV,
+## each naming a row in Abilities.csv. Blank means the card has no mechanical
+## ability — attack_text / defend_text stay as the printed card text.
+@export var attack_ability_id: String
+@export var defend_ability_id: String
+
 @export var artwork: Texture2D
 
 

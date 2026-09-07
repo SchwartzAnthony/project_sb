@@ -104,6 +104,16 @@ func _concede() -> void:
 	play_concede_feedback()
 
 
+## Used by abilities (drain_stamina / restore_stamina from Abilities.csv).
+func adjust_stamina(delta: int) -> void:
+	current_stamina = clampi(current_stamina + delta, 0, max_stamina)
+	if stamina_bar != null:
+		stamina_bar.value = current_stamina
+	if current_stamina == 0:
+		stamina_depleted.emit()
+		play_exhausted_feedback()
+
+
 ## Backwards-compatible alias for older call sites.
 func absorb_shot(shot_power: int) -> void:
 	take_shot(shot_power)
