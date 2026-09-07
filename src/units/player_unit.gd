@@ -197,14 +197,46 @@ func clear_round_flags() -> void:
 # =============================================================
 #  MOVEMENT
 #
-#  Three modes, checked in priority order every physics frame:
-#    1. I have the ball        -> dribble toward the opposing goal
-#    2. The ball is near me    -> run at it (this is the "collision range"
-#                                 you asked for, done as a radius check —
-#                                 no Area2D overlap needed, and it works
-#                                 headless)
-#    3. Otherwise              -> amble around my formation slot
+#  WHO DECIDES WHAT: main_scene picks the ROLE for every unit once per
+#  physics frame (see _assign_roles there) and writes `role`, `role_target`
+#  and `role_speed` onto each one. This file only does the driving — steer
+#  toward that target, keep out of other people's space, stay in my quarter.
+#
+#  Deciding centrally is what makes "two of you press, the rest hold your
+#  man" possible at all: a unit cannot see how many team-mates have already
+#  gone to the ball, but the scene can.
+#
+#  ROLES
+#    DRIBBLE  I have it — run at their goal
+#    BALL     it is loose or in my quarter — go and win it
+#    RECEIVE  the pass is aimed at me — go and meet it
+#    PRESS    they have it and I am close enough — charge the carrier
+#    MARK     they have it elsewhere — stay goal-side of my man
+#    OPEN     we have it — get off my marker and show for the pass
+#    HOLD     nothing doing — drift around my slot
 # =============================================================
+
+enum Role { HOLD, MARK, OPEN, PRESS, BALL, RECEIVE, DRIBBLE }
+
+## Set every frame by main_scene. Left at HOLD when nothing is coordinating
+## this unit, in which case it simply ambles around its slot as before.
+var role: int = Role.HOLD
+var role_target: Vector2 = Vector2.ZERO
+var role_speed: float = 0.0
+var has_role_target: bool = false
+
+## The opponent this unit shadows. Assigned once, after both teams spawn.
+var mark_target: PlayerUnit = null
+
+## This unit's Tier quarter, and the wider band it may chase into.
+var tier_zone: Rect2 = Rect2()
+var tier_soft_zone: Rect2 = Rect2()
+## How hard it is pulled back to its quarter once outside it.
+@export var zone_pull: float = 1.15
+## How far from its slot a marking or showing unit may stray.
+@export var leash: float = 210.0
+## Spring back toward the slot when stretched past half the leash.
+@export var slot_pull: float = 0.55
 
 func set_home(pos: Vector2) -> void:
 	position = pos
@@ -235,26 +267,32 @@ func _physics_process(delta: float) -> void:
 
 	var target: Vector2
 	var speed: float
-	var chasing := false
 
-	if has_ball():
+	if has_role_target:
+		target = role_target
+		speed = role_speed
+	elif has_ball():
+		# Nothing is coordinating us (main_scene not running, or a unit tested
+		# on its own). Fall back to the old self-directed behaviour.
 		target = _dribble_target()
 		speed = dribble_speed
+		role = Role.DRIBBLE
 	elif _ball_is_in_range():
 		target = ball.global_position
 		speed = chase_speed
-		chasing = true
+		role = Role.BALL
 	else:
 		_roam_wait -= delta
 		if _roam_wait <= 0.0 or global_position.distance_to(_roam_target) < 5.0:
 			_pick_roam_target()
 		target = _roam_target
 		speed = walk_speed
+		role = Role.HOLD
 
 	# --- Steering ---
-	# The old code was a straight move_toward(), which is why units walked
-	# through each other and stacked up. Now the pull toward the target is one
-	# force among three, and the sum decides the heading.
+	# The pull toward the target is one force among four, and the sum decides
+	# the heading. A plain move_toward() is what used to walk units through
+	# each other and stack them on one spot.
 	var to_target := target - global_position
 	var distance := to_target.length()
 	if distance < 0.5:
@@ -262,21 +300,76 @@ func _physics_process(delta: float) -> void:
 
 	var heading := to_target / distance
 
-	# Bend the run, hard when far out and straightening up as they arrive, so
-	# ten units converging on a loose ball take ten different lines.
-	if chasing and not is_zero_approx(swerve_strength):
+	# Bend the run, hard when far out and straightening as they arrive, so a
+	# group converging on the ball takes a spread of curved lines rather than
+	# forming one queue.
+	if _is_chasing() and not is_zero_approx(swerve_strength):
 		var bend := clampf(distance / maxf(interest_radius, 1.0), 0.0, 1.0)
 		heading += heading.orthogonal() * _swerve_sign * swerve_strength * bend
 
 	heading += _separation() * separation_strength
+	heading += _zone_force() * zone_pull
+
+	# Springing back to the slot is what keeps a formation a formation. Only
+	# the positional roles get it: a unit going for the ball is supposed to
+	# leave its post.
+	if role == Role.HOLD or role == Role.MARK or role == Role.OPEN:
+		var back := home_position - global_position
+		var stretched := back.length()
+		if stretched > leash * 0.5:
+			heading += (back / stretched) * slot_pull * minf(stretched / maxf(leash, 1.0), 1.5)
 
 	if heading.length_squared() < 0.000001:
 		return
 
-	# minf() with the remaining distance keeps the old arrival behaviour: they
-	# stop on the target rather than jittering back and forth across it.
+	# minf() with the remaining distance keeps the arrival behaviour: they stop
+	# on the target rather than jittering back and forth across it.
 	global_position += heading.normalized() * minf(speed * delta, distance)
 	_clamp_to_bounds()
+
+
+## Pull a point back so it is never further than `leash` from this unit's slot,
+## and never outside its soft quarter. THIS is what keeps a formation a
+## formation: a role may drag a unit off its post, but only so far.
+func leash_point(point: Vector2) -> Vector2:
+	var out := point
+	var off := point - home_position
+	var stretched := off.length()
+	if stretched > leash and stretched > 0.001:
+		out = home_position + off / stretched * leash
+
+	if tier_soft_zone.size.x > 1.0:
+		out.x = clampf(out.x, tier_soft_zone.position.x, tier_soft_zone.end.x)
+	if play_bounds.size.y > 1.0:
+		out.y = clampf(out.y, play_bounds.position.y + 24.0, play_bounds.end.y - 24.0)
+	return out
+
+
+func set_role(new_role: int, target: Vector2, speed: float) -> void:
+	role = new_role
+	role_target = target
+	role_speed = speed
+	has_role_target = true
+
+
+func _is_chasing() -> bool:
+	return role == Role.BALL or role == Role.PRESS or role == Role.RECEIVE
+
+
+## A push back toward this unit's own quarter. Zero while inside it, growing
+## the further out it has drifted — so chasing a ball just over the line is
+## fine and drifting two zones away is not.
+func _zone_force() -> Vector2:
+	if tier_zone.size.x <= 1.0:
+		return Vector2.ZERO
+	if global_position.x >= tier_zone.position.x and global_position.x <= tier_zone.end.x:
+		return Vector2.ZERO
+
+	var edge: float = tier_zone.position.x
+	if global_position.x > tier_zone.end.x:
+		edge = tier_zone.end.x
+	var over := absf(global_position.x - edge) / maxf(tier_zone.size.x, 1.0)
+	return Vector2(signf(edge - global_position.x) * minf(over * 2.0, 1.0), 0.0)
 
 
 ## A push away from every other unit standing too close, strongest when they

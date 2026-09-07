@@ -13,16 +13,16 @@ goalie_break_through_chance,0.05,Chance a shot scores while the keeper still has
 goalie_open_goal_chance,0.9,Chance a shot scores once stamina is 0
 ball_pass_speed,380,Pixels per second for a pass
 ball_shot_speed,760,Pixels per second for a shot on goal
-ball_carry_min_seconds,1.6,Shortest time a unit holds the ball before passing
-ball_carry_max_seconds,3.4,Longest time a unit holds the ball before passing
+ball_carry_min_seconds,1.4,Shortest time a unit holds the ball before passing
+ball_carry_max_seconds,2.8,Longest time a unit holds the ball before passing
 ball_forward_pass_chance,0.75,How often a pass looks for a team-mate upfield
-ball_intercept_radius,45,How close to a pass in flight to steal it
+ball_intercept_radius,38,How close to a pass in flight to steal it
 ball_tackle_radius,22,How close to the carrier to tackle them
-ball_possession_grace,0.7,Seconds a new carrier cannot be tackled
-ball_tackle_recovery,2.5,Seconds a tackled unit stops chasing
-unit_walk_speed,30,Pixels per second when ambling around their slot
-unit_chase_speed,66,Pixels per second when running at the ball
-unit_dribble_speed,44,Pixels per second when carrying the ball
+ball_possession_grace,1.25,Seconds a new carrier cannot be tackled
+ball_tackle_recovery,3.2,Seconds a tackled unit stops chasing
+unit_walk_speed,52,Pixels per second when holding position or drifting
+unit_chase_speed,104,Pixels per second when running at the ball
+unit_dribble_speed,68,Pixels per second when carrying the ball
 unit_interest_radius,190,How close the ball must be before a unit reacts
 unit_roam_radius,40,How far a unit wanders from its formation slot
 shot_run_up_seconds,0.45,How long the shooter steps toward goal before striking
@@ -79,3 +79,18 @@ unit_separation_radius,52,How close units get before they give way to each other
 unit_separation_strength,0.9,How hard they push apart relative to where they are heading.
 unit_contest_radius,70,Inside this distance of the ball the pushing-apart fades so they fight for it.
 unit_swerve_strength,0.35,How much units curve their run to the ball. 0 = straight lines.
+zones_enabled,true,"false returns to the old layout - both squads in their own half, no quarters, no marking"
+zone_share,0.25,Fraction of the pitch each Tier owns outright
+zone_stretch,0.33,Fraction it may chase into before being pulled back
+zone_side_inset,0.34,How far across its own quarter each side stands. 0.5 = both on the line
+press_radius_fraction,0.55,Charge range as a fraction of pitch HEIGHT. Bigger = more players swarm the ball
+press_helpers,2,Extra defenders from OTHER quarters allowed to join the press
+press_speed,92,Pixels per second when charging the ball carrier
+mark_distance,54,How far goal-side of his man a marker stands
+open_spread,230,How far an attacker breaks off its marker to show for a pass
+unit_zone_pull,1.15,How hard a unit is pulled back to its own quarter
+unit_leash,210,How far from its slot a marking or showing unit may stray
+unit_slot_pull,0.55,Spring back toward the slot once stretched
+ball_intercept_grace,0.30,Fraction of a pass that cannot be intercepted. Higher = passes complete more
+ball_pressure_radius,82,An opponent this close makes the carrier release the ball early
+ball_min_hold_seconds,0.9,"But never before holding it this long, or possession becomes a hot potato"

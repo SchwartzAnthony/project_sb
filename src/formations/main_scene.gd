@@ -97,6 +97,26 @@ var _substitutions_running: int = 0
 var _geometry_locked: bool = false
 var _locked_play_rect: Rect2 = Rect2()
 
+# --- Zones and off-ball movement (all overridable from Tuning.csv) ---
+## The pitch cut into four quarters, one per Tier. Built when the teams spawn.
+var zones: PitchZones = null
+## false lays the teams out the old way — both squads inside their own half,
+## no quarters, no marking. Handy for comparing the two.
+var zones_enabled: bool = true
+## Press radius as a fraction of pitch HEIGHT. A defender inside this of where
+## the ball is going will charge it.
+var press_radius_fraction: float = 0.55
+## Extra defenders from OTHER quarters allowed to join the press.
+var press_helpers: int = 2
+var press_speed: float = 92.0
+## How far goal-side of his man a marker stands.
+var mark_distance: float = 54.0
+## How far an attacker breaks off its marker to show for the ball.
+var open_spread: float = 230.0
+## Free-running seconds, used only for idle drift. Unlike the match clock this
+## keeps ticking while play is stopped.
+var _anim_clock: float = 0.0
+
 # Team state
 ## Tier -> the three regulars picked in the team builder. Empty means
 ## "nobody chose", and spawn_team falls back to a random roster.
@@ -188,6 +208,174 @@ func _process(delta: float) -> void:
 
 
 # =============================================================
+#  OFF-BALL MOVEMENT
+#
+#  Every unit's ROLE is decided here, once per physics frame, and written
+#  onto the unit. player_unit.gd then does nothing but drive toward it.
+#
+#  It has to be central. A single unit cannot see how many of its team-mates
+#  have already broken toward the ball, so left to themselves either all ten
+#  charge or none do. From up here "the three in that quarter press, two more
+#  come across, everyone else stays with their man" is four lines of code.
+# =============================================================
+
+func _physics_process(delta: float) -> void:
+	if current_state == MatchState.PRE_MATCH or current_state == MatchState.FULL_TIME:
+		return
+	# Its own clock, not the match clock: the match clock stops during a PLAY
+	# MAKER and the idle drift would freeze with it, which is the exact thing
+	# we are trying to get rid of.
+	_anim_clock += delta
+	_assign_roles()
+
+
+func _assign_roles() -> void:
+	if ball == null or zones == null:
+		return
+	var units := _all_units()
+	if units.is_empty():
+		return
+
+	# -1 loose, 0 you, 1 them. Answered even mid-pass, so nobody stands about
+	# doing nothing for the whole of every ball in the air.
+	var side := ball.side_on_ball()
+	var receiver := ball.intended_receiver()
+	# Defenders converge on where the ball is GOING, not where it is, so they
+	# arrive with it rather than trailing it.
+	var focus := ball.arrival_point()
+	var reach := zones.play.size.y * press_radius_fraction
+
+	var pressing := _pick_pressers(units, side, focus, reach)
+
+	for unit in units:
+		var tier := "I"
+		if unit.data != null:
+			tier = unit.data.get_tier_clean()
+		var unit_side := 1 if unit.is_enemy else 0
+
+		if ball.is_carried_by(unit):
+			# During a scripted relay the man on the ball is waiting to duel,
+			# not attacking — if he set off for goal he would drag the whole
+			# shape across the pitch between tiers.
+			if ball.scripted_possession:
+				unit.set_role(PlayerUnit.Role.HOLD, _drift_point(unit), unit.walk_speed)
+			else:
+				unit.set_role(PlayerUnit.Role.DRIBBLE, _dribble_point(unit), unit.dribble_speed)
+			continue
+
+		if receiver == unit:
+			unit.set_role(PlayerUnit.Role.RECEIVE, ball.global_position, unit.chase_speed)
+			continue
+
+		# The ball is in MY quarter and it is not my team's — go and win it.
+		var mine_to_win := side != unit_side and unit.steal_cooldown <= 0.0 \
+			and zones.contains_x(tier, ball.global_position) \
+			and unit.global_position.distance_to(focus) < reach
+		if mine_to_win:
+			unit.set_role(PlayerUnit.Role.BALL, ball.global_position, unit.chase_speed)
+			continue
+
+		if side < 0:
+			unit.set_role(PlayerUnit.Role.HOLD, _drift_point(unit), unit.walk_speed)
+		elif side != unit_side:
+			if pressing.has(unit):
+				unit.set_role(PlayerUnit.Role.PRESS, focus, press_speed)
+			else:
+				unit.set_role(PlayerUnit.Role.MARK, _mark_point(unit), unit.walk_speed * 1.5)
+		else:
+			unit.set_role(PlayerUnit.Role.OPEN, _open_point(unit), unit.walk_speed * 1.6)
+
+
+## Who charges the ball. Everyone defending whose own quarter the ball is in,
+## plus the nearest `press_helpers` from neighbouring quarters. Everyone else
+## stays with their man — which is what stops all ten chasing at once.
+func _pick_pressers(units: Array[PlayerUnit], side: int, focus: Vector2,
+		reach: float) -> Array[PlayerUnit]:
+	var chosen: Array[PlayerUnit] = []
+	if side < 0:
+		return chosen
+
+	var helpers: Array[PlayerUnit] = []
+	for unit in units:
+		var unit_side := 1 if unit.is_enemy else 0
+		if unit_side == side or unit.steal_cooldown > 0.0:
+			continue
+		if unit.global_position.distance_to(focus) > reach:
+			continue
+		var tier := "I"
+		if unit.data != null:
+			tier = unit.data.get_tier_clean()
+		if zones.contains_x(tier, focus):
+			chosen.append(unit)
+		else:
+			helpers.append(unit)
+
+	# Take the N nearest without sorting. This runs every physics frame, and a
+	# repeated scan of a handful of units beats allocating a sort each time.
+	for _i in mini(press_helpers, helpers.size()):
+		var best: PlayerUnit = null
+		var best_d := INF
+		for helper in helpers:
+			if chosen.has(helper):
+				continue
+			var d := helper.global_position.distance_to(focus)
+			if d < best_d:
+				best_d = d
+				best = helper
+		if best == null:
+			break
+		chosen.append(best)
+
+	return chosen
+
+
+func _dribble_point(unit: PlayerUnit) -> Vector2:
+	var rect := get_play_rect()
+	var goal_x: float = rect.end.x if not unit.is_enemy else rect.position.x
+	return Vector2(goal_x, unit.global_position.y)
+
+
+## Stand between your man and the goal you are defending — but leashed, so
+## marking cannot drag a whole tier out of position across the pitch.
+func _mark_point(unit: PlayerUnit) -> Vector2:
+	var man := unit.mark_target
+	if man == null or not is_instance_valid(man):
+		return _drift_point(unit)
+
+	var rect := get_play_rect()
+	var own_goal_x: float = rect.position.x if not unit.is_enemy else rect.end.x
+	var toward_goal := (Vector2(own_goal_x, man.global_position.y) - man.global_position).normalized()
+	return unit.leash_point(man.global_position + toward_goal * mark_distance)
+
+
+## Show for the pass: get off whoever is nearest and drift a little the way
+## your team is attacking, without abandoning your lane.
+func _open_point(unit: PlayerUnit) -> Vector2:
+	var nearest_foe: PlayerUnit = null
+	var best := INF
+	for other in _all_units():
+		if other.is_enemy == unit.is_enemy:
+			continue
+		var d := other.global_position.distance_to(unit.global_position)
+		if d < best:
+			best = d
+			nearest_foe = other
+
+	var spot := unit.home_position
+	if nearest_foe != null and best < open_spread * 1.6:
+		spot += (unit.global_position - nearest_foe.global_position).normalized() * open_spread
+	spot.x += (1.0 if not unit.is_enemy else -1.0) * 45.0
+	return unit.leash_point(spot)
+
+
+func _drift_point(unit: PlayerUnit) -> Vector2:
+	var phase := float(unit.get_instance_id() % 100) * 0.06
+	return unit.leash_point(unit.home_position + Vector2(
+		sin(_anim_clock * 0.5 + phase) * 34.0,
+		cos(_anim_clock * 0.37 + phase) * 46.0))
+
+
+# =============================================================
 #  TUNING — every number below comes from Tuning.csv when a row exists,
 #  otherwise the value already in code stands. Nothing here can crash on a
 #  missing or misspelled row.
@@ -201,6 +389,13 @@ func _apply_match_tuning() -> void:
 	TOTAL_CYCLES = db.tune_int("total_cycles", TOTAL_CYCLES)
 	ties_go_to_attacker = db.tune_bool("ties_go_to_attacker", ties_go_to_attacker)
 	use_rps_minigame = db.tune_bool("use_rps_minigame", use_rps_minigame)
+
+	zones_enabled = db.tune_bool("zones_enabled", zones_enabled)
+	press_radius_fraction = db.tune_float("press_radius_fraction", press_radius_fraction)
+	press_helpers = db.tune_int("press_helpers", press_helpers)
+	press_speed = db.tune_float("press_speed", press_speed)
+	mark_distance = db.tune_float("mark_distance", mark_distance)
+	open_spread = db.tune_float("open_spread", open_spread)
 
 
 func _tune_ball() -> void:
@@ -222,6 +417,9 @@ func _tune_ball() -> void:
 		"ball_loose_settle_seconds", ball.loose_settle_seconds)
 	ball.loose_timeout_seconds = db.tune_float(
 		"ball_loose_timeout_seconds", ball.loose_timeout_seconds)
+	ball.pressure_radius = db.tune_float("ball_pressure_radius", ball.pressure_radius)
+	ball.min_hold_seconds = db.tune_float("ball_min_hold_seconds", ball.min_hold_seconds)
+	ball.intercept_grace = db.tune_float("ball_intercept_grace", ball.intercept_grace)
 
 
 func _tune_rps() -> void:
@@ -238,6 +436,9 @@ func _tune_unit(unit: PlayerUnit) -> void:
 	unit.dribble_speed = db.tune_float("unit_dribble_speed", unit.dribble_speed)
 	unit.interest_radius = db.tune_float("unit_interest_radius", unit.interest_radius)
 	unit.roam_radius = db.tune_float("unit_roam_radius", unit.roam_radius)
+	unit.zone_pull = db.tune_float("unit_zone_pull", unit.zone_pull)
+	unit.leash = db.tune_float("unit_leash", unit.leash)
+	unit.slot_pull = db.tune_float("unit_slot_pull", unit.slot_pull)
 	unit.separation_radius = db.tune_float("unit_separation_radius", unit.separation_radius)
 	unit.separation_strength = db.tune_float(
 		"unit_separation_strength", unit.separation_strength)
@@ -315,6 +516,7 @@ func _resolve_kickoff_star(chosen: PlayerData) -> void:
 	_choose_enemy_team(chosen.unit_type)
 	_unlock_geometry()
 
+	_assign_marks()
 	_assign_goalie_data()
 
 	for unit in _all_units():
@@ -351,6 +553,7 @@ func _apply_team_selection(picked: TeamSelection) -> void:
 	_choose_enemy_team(active_player_star.unit_type)
 	_unlock_geometry()
 
+	_assign_marks()
 	_assign_goalie_data()
 
 	for unit in _all_units():
@@ -457,10 +660,17 @@ func spawn_team(star_player: PlayerData, is_enemy: bool) -> void:
 	var layout := build_layout(star_player, this_star_tier)
 
 	# --- 1. The Star ---
+	# With zones on, a Tier's QUARTER decides x and the formation scene decides
+	# y, so your authored shape still shows through in the dimension it still
+	# has freedom in. With zones off this is the old mirrored layout exactly.
 	var star_pos: Vector2 = mirror_if_enemy(layout["star"], pitch_center_x, is_enemy)
+	if zones_enabled and zones != null:
+		star_pos = Vector2(zones.slot_for(this_star_tier, is_enemy, 0, 1).x,
+			layout["star"].y)
 	var star_unit := create_unit_instance(star_player, star_pos, is_enemy)
 	if star_unit:
 		star_unit.is_star_player = true
+		_place_in_zone(star_unit, this_star_tier)
 
 	# --- 2. The 9 regulars ---
 	var roster := load_roster_by_type(star_player.unit_type)
@@ -490,9 +700,65 @@ func spawn_team(star_player: PlayerData, is_enemy: bool) -> void:
 			print("[roster] '%s' has only %d Tier %s cards for %d slots."
 				% [star_player.unit_type, pool.size(), tier_key, positions.size()])
 
-		for i in mini(positions.size(), pool.size()):
+		var fielded := mini(positions.size(), pool.size())
+		for i in fielded:
 			var pos: Vector2 = mirror_if_enemy(positions[i], pitch_center_x, is_enemy)
-			create_unit_instance(pool[i], pos, is_enemy)
+			if zones_enabled and zones != null:
+				pos = Vector2(zones.slot_for(tier_key, is_enemy, i, fielded).x,
+					(positions[i] as Vector2).y)
+			var made := create_unit_instance(pool[i], pos, is_enemy)
+			if made != null:
+				_place_in_zone(made, tier_key)
+
+
+## Tell a unit which quarter it belongs to. Everything else about zoning —
+## the pull back, the leash, the "ball is in my territory" test — reads these.
+func _place_in_zone(unit: PlayerUnit, tier_key: String) -> void:
+	if not zones_enabled or zones == null:
+		return
+	unit.tier_zone = zones.zone_for(tier_key)
+	unit.tier_soft_zone = zones.soft_zone_for(tier_key)
+
+
+## Top of the pitch first. A plain insertion sort — the lists are three long.
+func _by_height(units: Array[PlayerUnit]) -> Array[PlayerUnit]:
+	var out: Array[PlayerUnit] = []
+	for unit in units:
+		var at := out.size()
+		for i in out.size():
+			if unit.global_position.y < out[i].global_position.y:
+				at = i
+				break
+		out.insert(at, unit)
+	return out
+
+
+## Pair every unit with an opponent in the SAME Tier, matched by how far down
+## the pitch they start. Those two will duel later, so having them shadow each
+## other all match means the fight you are about to watch is already visible.
+func _assign_marks() -> void:
+	if not zones_enabled:
+		return
+	for tier_key in ALL_TIERS:
+		var mine: Array[PlayerUnit] = []
+		var theirs: Array[PlayerUnit] = []
+		for unit in _all_units():
+			if unit.data == null or unit.data.get_tier_clean() != tier_key:
+				continue
+			if unit.is_enemy:
+				theirs.append(unit)
+			else:
+				mine.append(unit)
+
+		mine = _by_height(mine)
+		theirs = _by_height(theirs)
+
+		# The Star fills its tier alone, so the three opposite it all mark the
+		# one man. That is correct: he is the dangerous one.
+		for i in mine.size():
+			mine[i].mark_target = theirs[i % theirs.size()] if not theirs.is_empty() else null
+		for i in theirs.size():
+			theirs[i].mark_target = mine[i % mine.size()] if not mine.is_empty() else null
 
 
 # Reads whatever the formation scene offers, then patches the gaps and
@@ -544,9 +810,40 @@ func build_layout(star_player: PlayerData, star_tier: String) -> Dictionary:
 			tiers[key] = fallback_tiers[key]
 
 	if have_star:
-		star_pos = _fit_layout_to_home_half(star_pos, tiers)
+		if zones_enabled:
+			star_pos = _fit_layout_to_pitch_height(star_pos, tiers)
+		else:
+			star_pos = _fit_layout_to_home_half(star_pos, tiers)
 
 	return {"star": star_pos, "tiers": tiers}
+
+
+## With quarters switched on, x comes from the Tier's zone, so all a formation
+## scene still decides is the vertical shape. This stretches that shape over
+## the full height of the pitch and leaves x alone for spawn_team to replace.
+func _fit_layout_to_pitch_height(star_pos: Vector2, tiers: Dictionary) -> Vector2:
+	var lowest := star_pos.y
+	var highest := star_pos.y
+	for key in tiers.keys():
+		for p in (tiers[key] as Array):
+			lowest = minf(lowest, (p as Vector2).y)
+			highest = maxf(highest, (p as Vector2).y)
+	var span := highest - lowest
+	if span < 1.0:
+		return star_pos
+
+	var play := get_play_rect()
+	var top := play.position.y + play.size.y * 0.14
+	var height := play.size.y * 0.72
+
+	for key in tiers.keys():
+		var moved: Array[Vector2] = []
+		for p in (tiers[key] as Array):
+			var q := p as Vector2
+			moved.append(Vector2(q.x, top + ((q.y - lowest) / span) * height))
+		tiers[key] = moved
+
+	return Vector2(star_pos.x, top + ((star_pos.y - lowest) / span) * height)
 
 
 func _first_marker_in(node: Node) -> Marker2D:
@@ -1013,6 +1310,11 @@ func _lock_geometry() -> void:
 	_locked_play_rect = get_play_rect()
 	_geometry_locked = true
 
+	zones = PitchZones.new(_locked_play_rect,
+		db.tune_float("zone_share", 0.25),
+		db.tune_float("zone_stretch", 0.33),
+		db.tune_float("zone_side_inset", 0.34))
+
 
 func _unlock_geometry() -> void:
 	_geometry_locked = false
@@ -1450,8 +1752,21 @@ func build_lineup(picks: Array[PlayerData], star: PlayerData, star_tier: String)
 func resolve_round() -> void:
 	current_state = MatchState.AUTOBATTLE
 
-	# The pitch STAYS frozen. From here to the goal kick the ball is moved by
-	# script alone, so the relay always shows the right man on the ball.
+	# THE PITCH COMES BACK TO LIFE HERE.
+	#
+	# The whistle stopped everyone for the "PLAY MAKER!" call and for the
+	# picking, which is right — you cannot read a row of cards while the game
+	# runs underneath it. But it used to stay stopped through the whole relay
+	# as well, so the ball was passed around a field of statues.
+	#
+	# Now the players move for all of that. Only the BALL stays on rails:
+	# scripted_possession means it holds whoever the script gave it to and can
+	# be neither tackled nor intercepted, so the relay still shows exactly the
+	# man who is about to duel — while everyone else runs, marks and shows.
+	freeze_play(false)
+	if ball != null:
+		ball.scripted_possession = true
+
 	var player_has_ball := player_attacks_this_round
 
 	var player_lineup := build_lineup(round_player_picks, active_player_star, player_star_tier)
@@ -1460,7 +1775,8 @@ func resolve_round() -> void:
 	round_ready_for_combat.emit(player_lineup, enemy_lineup)
 
 	if not headless_combat:
-		freeze_play(false)
+		if ball != null:
+			ball.scripted_possession = false
 		return   # combat_arena.tscn takes over and calls finish_round() when done
 
 	print("  %s attacks first." % ("You" if player_has_ball else "Enemy"))
@@ -1629,7 +1945,8 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 
 	if keeper == null or shot_power <= 0:
 		print("  No shot taken this round.")
-		freeze_play(false)
+		if ball != null:
+			ball.scripted_possession = false
 		round_resolved.emit(player_score, enemy_score)
 		current_state = MatchState.PLAYING
 		return
@@ -1696,8 +2013,10 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 			await get_tree().create_timer(db.tune_float("save_pause_seconds", 0.4)).timeout
 			await _goal_kick(target_key)
 
-	# Normal roaming and passing resume here.
-	freeze_play(false)
+	# The ball comes off its rails here and open play takes over again. The
+	# players never stopped.
+	if ball != null:
+		ball.scripted_possession = false
 	round_resolved.emit(player_score, enemy_score)
 	current_state = MatchState.PLAYING
 

@@ -57,6 +57,17 @@ signal delivery_arrived
 ## claim it, the nearest unit collects it anyway and play carries on.
 @export var loose_timeout_seconds: float = 6.0
 
+## An opponent this close makes the carrier release the ball early.
+@export var pressure_radius: float = 82.0
+## ...but never before holding it this long, or possession becomes a hot potato.
+@export var min_hold_seconds: float = 0.9
+
+## While true the ball keeps whoever it was given to and does nothing on its
+## own — no dribble timer, no tackles, no interceptions. Set during a PLAY
+## MAKER so the scripted relay is not hijacked by open play, WITHOUT having to
+## freeze the players as well.
+var scripted_possession: bool = false
+
 ## Set by main_scene. Returns every PlayerUnit currently on the pitch.
 var units_provider: Callable = Callable()
 
@@ -80,6 +91,8 @@ var _loose_age: float = 0.0
 ## Set only for an interception: who steals the pass, and how far along it.
 var _thief: PlayerUnit = null
 var _steal_at: float = -1.0
+## How long the current carrier has had it, for the release-under-pressure rule.
+var _held: float = 0.0
 
 
 func _ready() -> void:
@@ -114,13 +127,30 @@ func _physics_process(delta: float) -> void:
 		_advance_pass(delta)
 	elif is_instance_valid(carrier):
 		global_position = carrier.global_position + carry_offset
+
+		# During a PLAY MAKER the ball belongs to the script, not to itself:
+		# it stays exactly where it was put until the next scripted pass. The
+		# UNITS still move freely — that separation is the whole point, and it
+		# is why the pitch no longer turns into a waxwork during a relay.
+		if scripted_possession:
+			return
+
 		_grace_left -= delta
 		if _grace_left <= 0.0 and _try_tackle():
 			return
+
+		_held += delta
 		_carry_left -= delta
-		if _carry_left <= 0.0:
-			make_pass()
+
+		# Move it on before the press arrives. Without this the carrier waits
+		# out its dribble timer, gets swarmed, and the ball dies in a scrum
+		# instead of travelling — which is the thing you actually watch.
+		var pressed := _held >= min_hold_seconds and is_under_pressure(pressure_radius)
+		if _carry_left <= 0.0 or pressed:
+			make_pass(pressed)
 	else:
+		if scripted_possession:
+			return
 		# Loose — nobody carrying, nothing in flight. Happens at kickoff, when
 		# a carrier is substituted off, and whenever a pass is stopped by the
 		# whistle. It is claimed by whoever actually RUNS to it, not by
@@ -272,6 +302,57 @@ func has_carrier() -> bool:
 	return is_instance_valid(carrier)
 
 
+## Which side is on the ball: 0 = home, 1 = away, -1 = nobody (loose).
+##
+## Crucially this stays answered WHILE A PASS IS IN THE AIR. Without that,
+## every unit lost its job for the whole of every pass — which is most of the
+## match — and the two teams reverted to aimless milling about between touches.
+func side_on_ball() -> int:
+	if is_instance_valid(carrier):
+		return 1 if carrier.is_enemy else 0
+	if _in_flight or _scripted:
+		if is_instance_valid(_intended):
+			return 1 if _intended.is_enemy else 0
+		return 1 if _pass_from_enemy else 0
+	return -1
+
+
+## The unit a pass is currently aimed at, or null. They go to meet it.
+func intended_receiver() -> PlayerUnit:
+	if (_in_flight or _scripted) and is_instance_valid(_intended):
+		return _intended
+	return null
+
+
+func is_in_flight() -> bool:
+	return _in_flight or _scripted or _shooting
+
+
+## Where the ball is going to end up — the receiver for a pass, the carrier's
+## feet otherwise. Defenders press THIS rather than the ball's current spot,
+## so they arrive with it instead of trailing behind it.
+func arrival_point() -> Vector2:
+	var receiver := intended_receiver()
+	if receiver != null:
+		return receiver.global_position
+	if is_instance_valid(carrier):
+		return carrier.global_position
+	return global_position
+
+
+## True while an opponent is close enough that the carrier should move it on.
+func is_under_pressure(radius: float) -> bool:
+	if not is_instance_valid(carrier):
+		return false
+	for u in _units():
+		var unit := u as PlayerUnit
+		if unit == null or unit.is_enemy == carrier.is_enemy:
+			continue
+		if unit.global_position.distance_to(carrier.global_position) <= radius:
+			return true
+	return false
+
+
 func is_carried_by(unit: PlayerUnit) -> bool:
 	return is_instance_valid(carrier) and carrier == unit
 
@@ -344,6 +425,7 @@ func _try_tackle() -> bool:
 func _take(unit: PlayerUnit, intercepted: bool) -> void:
 	_in_flight = false
 	_loose_age = 0.0
+	_held = 0.0
 	carrier = unit
 	_carry_left = randf_range(carry_seconds.x, carry_seconds.y)
 	_grace_left = possession_grace
@@ -354,7 +436,9 @@ func _take(unit: PlayerUnit, intercepted: bool) -> void:
 		pass_intercepted.emit(unit)
 
 
-func make_pass() -> void:
+## `hurried` is set when the carrier is releasing under pressure rather than
+## because the dribble timer ran out.
+func make_pass(hurried: bool = false) -> void:
 	if not is_instance_valid(carrier):
 		return
 
@@ -383,6 +467,25 @@ func make_pass() -> void:
 		pool = forward
 
 	var target: PlayerUnit = pool.pick_random()
+	if hurried:
+		# A hurried ball hoofed into a crowd is just a turnover. Pick the
+		# man with the most room instead of any man at all.
+		var best_room := -INF
+		for mate in pool:
+			var nearest_foe := INF
+			for u in _units():
+				var foe := u as PlayerUnit
+				if foe == null or foe.is_enemy == mate.is_enemy:
+					continue
+				nearest_foe = minf(nearest_foe, foe.global_position.distance_to(mate.global_position))
+			if is_inf(nearest_foe):
+				nearest_foe = 999.0
+			# Slightly prefer a nearer team-mate: a 40-yard ball to a free man
+			# is still a worse idea than a short one to a fairly free man.
+			var room := nearest_foe - carrier.global_position.distance_to(mate.global_position) * 0.15
+			if room > best_room:
+				best_room = room
+				target = mate
 	_pass_from_enemy = carrier.is_enemy
 	_from = global_position
 	_to = target.global_position
