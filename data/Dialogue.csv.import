@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bgvk0rkq2g1gh"
+
+[deps]
+
+files=["res://data/Dialogue.Node ID.translation", "res://data/Dialogue.Speaker.translation", "res://data/Dialogue.Portrait.translation", "res://data/Dialogue.Side.translation", "res://data/Dialogue.Animation.translation", "res://data/Dialogue.Background.translation", "res://data/Dialogue.Text.translation", "res://data/Dialogue.Next.translation", "res://data/Dialogue.Requires.translation", "res://data/Dialogue.Effects.translation", "res://data/Dialogue.Choice 1 Text.translation", "res://data/Dialogue.Choice 1 Next.translation", "res://data/Dialogue.Choice 1 Effects.translation", "res://data/Dialogue.Choice 2 Text.translation", "res://data/Dialogue.Choice 2 Next.translation", "res://data/Dialogue.Choice 2 Requires.translation", "res://data/Dialogue.Choice 2 Effects.translation", "res://data/Dialogue.Choice 3 Text.translation", "res://data/Dialogue.Choice 3 Next.translation", "res://data/Dialogue.Choice 3 Requires.translation", "res://data/Dialogue.Choice 3 Effects.translation"]
+
+source_file="res://data/Dialogue.csv"
+dest_files=["res://data/Dialogue.Node ID.translation", "res://data/Dialogue.Speaker.translation", "res://data/Dialogue.Portrait.translation", "res://data/Dialogue.Side.translation", "res://data/Dialogue.Animation.translation", "res://data/Dialogue.Background.translation", "res://data/Dialogue.Text.translation", "res://data/Dialogue.Next.translation", "res://data/Dialogue.Requires.translation", "res://data/Dialogue.Effects.translation", "res://data/Dialogue.Choice 1 Text.translation", "res://data/Dialogue.Choice 1 Next.translation", "res://data/Dialogue.Choice 1 Effects.translation", "res://data/Dialogue.Choice 2 Text.translation", "res://data/Dialogue.Choice 2 Next.translation", "res://data/Dialogue.Choice 2 Requires.translation", "res://data/Dialogue.Choice 2 Effects.translation", "res://data/Dialogue.Choice 3 Text.translation", "res://data/Dialogue.Choice 3 Next.translation", "res://data/Dialogue.Choice 3 Requires.translation", "res://data/Dialogue.Choice 3 Effects.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
