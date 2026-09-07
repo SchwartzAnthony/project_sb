@@ -30,6 +30,7 @@ signal match_ended(player_score: int, enemy_score: int)
 const PLAYER_CARD_SCENE: PackedScene = preload("res://src/ui/player_card_ui.tscn")
 const PLAYER_UNIT_SCENE: PackedScene = preload("res://src/units/player_unit.tscn")
 const GOALIE_SCENE: PackedScene = preload("res://src/units/goalie_unit.tscn")
+const RPS_SCENE: PackedScene = preload("res://src/ui/rps_clash.tscn")
 
 const NORMAL_DIR := "res://data/players/normal/"
 const STAR_DIR := "res://data/players/star_player/"
@@ -49,6 +50,8 @@ const LAST_EVENT_MINUTE := 82.0
 @export var ties_go_to_attacker: bool = false
 ## Resolve rounds instantly in code. Turn OFF once combat_arena.tscn exists.
 @export var headless_combat: bool = true
+## Show the rock/paper/scissors screen. Off = silent coin flip.
+@export var use_rps_minigame: bool = true
 
 enum MatchState { PRE_MATCH, PLAYING, DRAFTING, AUTOBATTLE, FULL_TIME }
 
@@ -64,6 +67,9 @@ var next_event_index: int = 0
 var units_container: Node2D
 var goalies: Dictionary = {}   # false -> player goalie, true -> enemy goalie
 var ball: Ball = null
+var rps: RpsClash = null
+## Who won the rock/paper/scissors clash and chose to attack this round.
+var player_attacks_this_round: bool = true
 ## Substitutions can nest (enemy rotates its Star at the same moment you do),
 ## so freezing is reference-counted rather than a plain bool.
 var _freeze_depth: int = 0
@@ -105,6 +111,7 @@ func _ready() -> void:
 
 	spawn_goalies()
 	spawn_ball()
+	spawn_rps()
 	build_event_schedule()
 
 	event_announcement.hide()
@@ -523,7 +530,26 @@ func spawn_ball() -> void:
 	ball.global_position = get_play_rect().get_center()
 
 
-## Everyone stops running and passing — used while a substitution plays out.
+func spawn_rps() -> void:
+	rps = RPS_SCENE.instantiate() as RpsClash
+	if rps == null:
+		push_error("rps_clash.tscn did not instantiate as an RpsClash — check the scene's root node type.")
+		return
+	rps.name = "RpsClash"
+	add_child(rps)
+
+
+## Run the clash and return true if YOUR side attacks in the Tier I duel.
+func run_rps_clash() -> bool:
+	if rps == null or not use_rps_minigame:
+		return randi() % 2 == 0
+	rps.start()
+	var result: Variant = await rps.clash_finished
+	return bool(result)
+
+
+## Everyone stops running and passing — used while a substitution plays out,
+## and for the whole of a PLAY MAKER so the pitch holds still during picks.
 func freeze_play(value: bool) -> void:
 	_freeze_depth = maxi(0, _freeze_depth + (1 if value else -1))
 	var frozen := _freeze_depth > 0
@@ -552,6 +578,22 @@ func give_ball_to(side_is_enemy: bool) -> void:
 	if pool.is_empty():
 		return
 	ball.give_to(pool.pick_random())
+
+
+## Give the ball to one side's unit in a specific tier — used after the clash so
+## the ATTACKER's Tier I pick (the first card locked in) starts on the ball.
+func give_ball_to_tier(side_is_enemy: bool, tier_key: String) -> void:
+	if ball == null:
+		return
+	for unit in _all_units():
+		if unit.is_enemy != side_is_enemy or unit.data == null:
+			continue
+		if unit.data.get_tier_clean() != tier_key:
+			continue
+		if unit.is_playmaker or unit.is_star_player:
+			ball.give_to(unit)
+			return
+	give_ball_to(side_is_enemy)   # fall back to anyone on that side
 
 
 ## Mirror the enemy about the centre of the VISIBLE play area, not the centre of
@@ -725,8 +767,15 @@ func trigger_playmaker_event() -> void:
 	for unit in _all_units():
 		unit.clear_round_flags()
 
+	# The pitch holds still from the whistle until the last card is locked in.
+	freeze_play(true)
+
 	print("PLAY MAKER!  Cycle %d, Round %d" % [current_cycle, rounds_this_cycle])
 	await announce("PLAY MAKER!")
+
+	# Rock/paper/scissors decides who attacks in Tier I, BEFORE the draft.
+	player_attacks_this_round = await run_rps_clash()
+	print("  Clash: %s attacks." % ("You" if player_attacks_this_round else "Enemy"))
 
 	draft_phases.assign(ALL_TIERS)
 	current_phase_index = 0
@@ -992,6 +1041,11 @@ func build_lineup(picks: Array[PlayerData], star: PlayerData, star_tier: String)
 func resolve_round() -> void:
 	current_state = MatchState.AUTOBATTLE
 
+	# Picks are in — the attacker's Tier I card collects the ball and play resumes.
+	var player_has_ball := player_attacks_this_round
+	give_ball_to_tier(not player_has_ball, "I")
+	freeze_play(false)
+
 	var player_lineup := build_lineup(round_player_picks, active_player_star, player_star_tier)
 	var enemy_lineup := build_lineup(round_enemy_picks, active_enemy_star, enemy_star_tier)
 
@@ -1000,13 +1054,7 @@ func resolve_round() -> void:
 	if not headless_combat:
 		return   # combat_arena.tscn takes over and calls finish_round() when done
 
-	# --- Rock / paper / scissors (placeholder: coin flip) ---
-	var player_has_ball := randi() % 2 == 0
-	print("  RPS: %s attacks first." % ("You" if player_has_ball else "Enemy"))
-
-	# The rock/paper/scissors winner is the attacker, so the ball goes to them
-	# on the pitch as well. rps_clash.tscn will call give_ball_to() itself.
-	give_ball_to(not player_has_ball)
+	print("  %s attacks first." % ("You" if player_has_ball else "Enemy"))
 
 	var player_bank := 0
 	var enemy_bank := 0
