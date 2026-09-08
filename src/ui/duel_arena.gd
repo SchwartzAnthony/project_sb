@@ -71,6 +71,12 @@ func _wire() -> void:
 	if _dim == null:
 		push_error("duel_arena.tscn is missing its Dim node.")
 		return
+
+	# THIS IS WHY CLICKING DID NOTHING. Dim is a ColorRect covering the whole
+	# screen, and a Control swallows the mouse by default — so the click never
+	# reached _input() below, and only the keyboard worked. Telling it to
+	# ignore the mouse lets clicks through to us.
+	_dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_tier_label = get_node_or_null("Dim/TierLabel") as Label
 	_hint = get_node_or_null("Dim/Hint") as Label
 
@@ -300,22 +306,57 @@ func _stamp(key: String, won: bool) -> void:
 #  PACING
 # =============================================================
 
+## Is the player leaning on the button RIGHT NOW? Held, not pressed — so the
+## duel runs fast for exactly as long as you hold it and drops back the moment
+## you let go.
+func hurrying() -> bool:
+	return Input.is_key_pressed(KEY_SPACE) \
+		or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+
+
 func _rate() -> float:
-	return maxf(0.05, skip_speed if _skipping else speed)
+	var rate := speed
+	if _skipping or hurrying():
+		rate = skip_speed
+	# Engine.time_scale already speeds up the timers underneath, but the
+	# sprite animations are driven from _rate() directly, so they are told
+	# about it here too and the two stay in step.
+	return maxf(0.05, rate)
 
 
+## Wait out one step of the duel.
+##
+## It counts DOWN a budget one frame at a time instead of setting a single
+## timer, and it re-reads _rate() every frame. That is the whole fix for
+## "the skip only works if I press it at the right moment": pressing halfway
+## through a step now shortens the rest of that step immediately, rather than
+## waiting for the next one to begin.
 func _beat(seconds: float) -> void:
-	var wait := seconds / _rate()
-	if wait <= 0.001:
+	var left := seconds
+	while left > 0.0:
 		await get_tree().process_frame
-		return
-	await get_tree().create_timer(wait).timeout
+		if not _running:
+			return
+		left -= get_process_delta_time() * _rate()
+		var live := _rate()
+		for key in _anim.keys():
+			var animator: SpriteAnimator = _anim[key]
+			if animator != null:
+				animator.speed_scale = live
 
 
-func _unhandled_input(event: InputEvent) -> void:
+## _input, not _unhandled_input: the buttons and panels on this cut-away are
+## Controls, and a Control that has the mouse over it consumes the event
+## before "unhandled" is ever reached.
+func _input(event: InputEvent) -> void:
 	if not _running:
 		return
-	if event is InputEventMouseButton and event.pressed:
+
+	var click := event as InputEventMouseButton
+	if click != null and click.pressed:
 		skip()
-	elif event is InputEventKey and event.pressed and event.keycode == KEY_SPACE:
+		return
+
+	var key := event as InputEventKey
+	if key != null and key.pressed and not key.echo and key.keycode == KEY_SPACE:
 		skip()

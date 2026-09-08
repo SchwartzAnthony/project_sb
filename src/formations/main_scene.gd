@@ -103,6 +103,13 @@ var gains: MatchReport = null
 ## The view that follows the ball. Null when camera_enabled is false in
 ## Tuning.csv, and everything below copes with that.
 var camera: MatchCamera = null
+
+## The little strip of speed buttons and the AUTO toggle, top-left.
+var hud: MatchHUD = null
+
+## Every card currently on offer in the draft. Kept so that AUTO can pick one
+## without having to reach inside the card widgets.
+var offered_cards: Array[PlayerData] = []
 ## Who won the rock/paper/scissors clash and chose to attack this round.
 var player_attacks_this_round: bool = true
 ## The card holding the ball when the duel chain ended — it takes the shot.
@@ -240,6 +247,8 @@ func _ready() -> void:
 	spawn_cutaways()
 	spawn_scoreboard()
 	build_event_schedule()
+
+	spawn_hud()
 
 	event_announcement.hide()
 	timer_label.text = "00:00"
@@ -857,8 +866,18 @@ func _full_time() -> void:
 	if took_over:
 		return
 
+	# Time may be running at 8x; the full-time card should still be readable,
+	# so it is timed in real seconds rather than game seconds.
+	GameSpeed.reset()
 	await get_tree().create_timer(db.tune_float("full_time_seconds", 2.6)).timeout
-	ScenePaths.go_to(get_tree(), ScenePaths.SEASON)
+
+	# Never strand the player on the pitch with nothing to press. If the
+	# season screen is missing for any reason, go to the base instead.
+	var after := ScenePaths.SEASON
+	if not ResourceLoader.exists(ScenePaths.resolve(after)):
+		push_warning("[match] season_screen.tscn was not found, so full time goes to the base instead.")
+		after = ScenePaths.BASE
+	ScenePaths.go_to(get_tree(), after)
 
 
 # =============================================================
@@ -1525,6 +1544,25 @@ func _update_score_label() -> void:
 		score_label.text = "%d  –  %d" % [player_score, enemy_score]
 
 
+## The speed buttons and the AUTO toggle. It lives on the SelectionUI layer,
+## so the camera never moves it.
+func spawn_hud() -> void:
+	hud = MatchHUD.new()
+	hud.name = "MatchHUD"
+	hud.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	hud.offset_left = db.tune_float("hud_left_margin", 16.0)
+	hud.offset_top = db.tune_float("hud_top_margin", 14.0)
+	selection_ui.add_child(hud)
+	hud.setup(db, state)
+	# Turning AUTO on mid-draft should pick straight away, not next round.
+	hud.auto_pick_changed.connect(_on_auto_pick_changed)
+
+
+func _on_auto_pick_changed(is_on: bool) -> void:
+	if is_on and current_state == MatchState.DRAFTING:
+		_offer_auto_pick()
+
+
 func spawn_rps() -> void:
 	rps = RPS_SCENE.instantiate() as RpsClash
 	if rps == null:
@@ -1945,6 +1983,7 @@ func announce(text: String, seconds: float = 2.0) -> void:
 func start_next_draft_phase() -> void:
 	for child in card_container.get_children():
 		child.queue_free()
+	offered_cards.clear()
 
 	if current_phase_index >= draft_phases.size():
 		_on_draft_complete()
@@ -1955,6 +1994,7 @@ func start_next_draft_phase() -> void:
 	if phase == "Star":
 		for star_data in get_star_player_choices():
 			create_card_for_unit(star_data)
+		_offer_auto_pick()
 		return
 
 	if phase == "StarChoice":
@@ -1965,6 +2005,7 @@ func start_next_draft_phase() -> void:
 			return
 		for star_data in available_player_stars:
 			create_card_for_unit(star_data)
+		_offer_auto_pick()
 		return
 
 	# --- Regular tier phase ---
@@ -1988,6 +2029,9 @@ func start_next_draft_phase() -> void:
 		_enemy_pick_for_tier(phase)
 		current_phase_index += 1
 		start_next_draft_phase()
+		return
+
+	_offer_auto_pick()
 
 
 func create_card_for_unit(data: PlayerData) -> void:
@@ -1997,6 +2041,8 @@ func create_card_for_unit(data: PlayerData) -> void:
 	card.card_hovered.connect(_on_card_hovered)
 	card.card_unhovered.connect(_on_card_unhovered)
 	card.card_selected.connect(_on_card_selected)
+	if data != null:
+		offered_cards.append(data)
 
 	if data != null and data.is_star():
 		_flag_card_as_star(card)
@@ -2031,6 +2077,68 @@ func _on_card_unhovered(data: PlayerData) -> void:
 	for unit in _all_units():
 		if not unit.is_enemy and unit.data == data:
 			unit.set_highlight(false)   # stays bright if is_playmaker
+
+
+# =============================================================
+#  AUTO-PICK — sit back and watch
+#
+#  When AUTO is on (the toggle in the top-left, or the A key, or
+#  `auto_pick` in Tuning.csv), the game chooses your card at every PLAY
+#  MAKER and every Star swap. It waits `auto_pick_seconds` first so you can
+#  still see who was on offer, and so it does not feel like the screen
+#  flickered.
+#
+#  It picks the strongest card for the job: attack power when your side is
+#  attacking this round, defence power when you are defending. That is a
+#  deliberately simple rule — it is meant to be a watchable demo, not a
+#  clever opponent.
+# =============================================================
+
+func _offer_auto_pick() -> void:
+	if state == null or not MatchHUD.auto_pick_on(state):
+		return
+	_auto_pick_soon()
+
+
+func _auto_pick_soon() -> void:
+	var wait := db.tune_float("auto_pick_seconds", 0.9)
+	if wait > 0.0:
+		await get_tree().create_timer(wait).timeout
+
+	# Things move on while we wait — you may have picked yourself, or turned
+	# AUTO back off, or the whistle may have gone.
+	if current_state != MatchState.DRAFTING:
+		return
+	if not MatchHUD.auto_pick_on(state):
+		return
+	if offered_cards.is_empty():
+		return
+
+	var choice := _best_offered_card()
+	if choice == null:
+		return
+	print("[auto] Picked %s for you." % choice.player_name)
+	_on_card_selected(choice)
+
+
+## The strongest card on offer. Attack power while you are attacking, defence
+## power while you are defending; a Star breaks a tie.
+func _best_offered_card() -> PlayerData:
+	var best: PlayerData = null
+	var best_score := -INF
+
+	for card in offered_cards:
+		if card == null:
+			continue
+		var score := float(card.get_attack_power() if player_attacks_this_round
+			else card.get_defense_power())
+		if card.is_star():
+			score += 0.5
+		if score > best_score:
+			best_score = score
+			best = card
+
+	return best
 
 
 func _on_card_selected(selected_data: PlayerData) -> void:
@@ -2500,20 +2608,50 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 
 ## After a save: the keeper launches it to whichever team-mate is furthest
 ## upfield, which puts the ball back in open play on the far side of the pitch.
+## THE GOAL KICK.
+##
+## It used to find whoever was furthest up the pitch, which is nearly always a
+## Tier IV — the far end of the field. The ball flew the whole length and the
+## restart felt like a punt into nothing.
+##
+## Now it aims at a chosen tier, `goal_kick_tier` in Tuning.csv (III by
+## default), and only falls back to "whoever is furthest forward" if nobody of
+## that tier is on the pitch. Set it to "II" for a shorter kick or "IV" to get
+## the old behaviour back — no code.
 func _goal_kick(keeper_is_enemy: bool) -> void:
+	var wanted := db.tune_text("goal_kick_tier", "III").strip_edges()
+
 	var best: PlayerUnit = null
 	var best_reach := -INF
+	var in_tier: Array[PlayerUnit] = []
+
 	for unit in _all_units():
-		if unit.is_enemy != keeper_is_enemy:
+		if unit.is_enemy != keeper_is_enemy or unit.data == null:
 			continue
+		if wanted != "" and unit.data.get_tier_clean() == wanted:
+			in_tier.append(unit)
 		var reach: float = unit.global_position.x * (-1.0 if keeper_is_enemy else 1.0)
 		if reach > best_reach:
 			best_reach = reach
 			best = unit
 
+	# Of the right tier, take the one furthest forward — the natural outlet.
+	if not in_tier.is_empty():
+		var pick: PlayerUnit = in_tier[0]
+		var pick_reach := -INF
+		for unit in in_tier:
+			var reach2: float = unit.global_position.x * (-1.0 if keeper_is_enemy else 1.0)
+			if reach2 > pick_reach:
+				pick_reach = reach2
+				pick = unit
+		best = pick
+	elif wanted != "":
+		print("  No Tier %s on the pitch — kicking to whoever is furthest forward." % wanted)
+
 	if best == null or ball == null:
 		return
-	print("  Goal kick to %s." % best.data.player_name)
+	print("  Goal kick to %s (Tier %s)." % [
+		best.data.player_name, best.data.get_tier_clean()])
 	ball.deliver_to(best)
 	await ball.delivery_arrived
 

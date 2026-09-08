@@ -1,6 +1,30 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
-[ext_resource type="Script" path="res://src/ui/season_screen.gd" id="1_seasonscreen"]
+[ext_resource type="Script" path="res://src/ui/season_screen.gd" id="1_season"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.14, 0.15, 0.19, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.18, 0.19, 0.24, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
+bg_color = Color(0.14, 0.15, 0.19, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.98, 0.76, 0.33, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [node name="SeasonScreen" type="Control"]
 layout_mode = 3
@@ -9,4 +33,166 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_seasonscreen")
+script = ExtResource("1_season")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.09, 0.1, 0.13, 1)
+
+[node name="Page" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_top = 26
+theme_override_constants/margin_right = 48
+theme_override_constants/margin_bottom = 22
+
+[node name="Column" type="VBoxContainer" parent="Page"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Page/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.76, 0.33, 1)
+theme_override_font_sizes/font_size = 42
+text = "FULL TIME"
+horizontal_alignment = 1
+
+[node name="Score" type="Label" parent="Page/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.93, 0.96, 1)
+theme_override_font_sizes/font_size = 22
+text = "Your side  0  -  0  Opponent"
+horizontal_alignment = 1
+
+[node name="Subheading" type="Label" parent="Page/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.63, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "Matchday 1 of 11"
+horizontal_alignment = 1
+
+[node name="Middle" type="HBoxContainer" parent="Page/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 22
+
+[node name="GainsPanel" type="PanelContainer" parent="Page/Column/Middle"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Pad" type="MarginContainer" parent="Page/Column/Middle/GainsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="Box" type="VBoxContainer" parent="Page/Column/Middle/GainsPanel/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="GainsHeading" type="Label" parent="Page/Column/Middle/GainsPanel/Pad/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.63, 0.7, 1)
+theme_override_font_sizes/font_size = 15
+text = "WHAT YOU GAINED"
+
+[node name="GainsScroll" type="ScrollContainer" parent="Page/Column/Middle/GainsPanel/Pad/Box"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="GainsList" type="VBoxContainer" parent="Page/Column/Middle/GainsPanel/Pad/Box/GainsScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="TablePanel" type="PanelContainer" parent="Page/Column/Middle"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Pad" type="MarginContainer" parent="Page/Column/Middle/TablePanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="Box" type="VBoxContainer" parent="Page/Column/Middle/TablePanel/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TableHeading" type="Label" parent="Page/Column/Middle/TablePanel/Pad/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.63, 0.7, 1)
+theme_override_font_sizes/font_size = 15
+text = "SEASON 1"
+
+[node name="Record" type="Label" parent="Page/Column/Middle/TablePanel/Pad/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.76, 0.33, 1)
+theme_override_font_sizes/font_size = 17
+text = "P 0    W 0  D 0  L 0    0-0    0 pts"
+
+[node name="FixtureScroll" type="ScrollContainer" parent="Page/Column/Middle/TablePanel/Pad/Box"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="FixtureList" type="VBoxContainer" parent="Page/Column/Middle/TablePanel/Pad/Box/FixtureScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="Buttons" type="HBoxContainer" parent="Page/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="PrimaryButton" type="Button" parent="Page/Column/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(280, 50)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0.92, 0.93, 0.96, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
+text = "Play the next match"
+
+[node name="HomeButton" type="Button" parent="Page/Column/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0.92, 0.93, 0.96, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
+text = "Back to the base"

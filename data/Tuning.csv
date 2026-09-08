@@ -115,3 +115,11 @@ camera_deadzone,36,How far the ball may drift from the middle before the camera 
 full_time_seconds,2.6,How long FULL TIME stays on screen before the season screen opens
 gains_max_rows,8,How many lines the "what you gained" panel shows before it says "and N more"
 season_difficulty_scale,1.0,"Multiplies the Difficulty column of Season.csv. 0 makes every fixture a fair fight, 2 doubles the handicap"
+game_speed_steps,"1,2,4,8","The speed buttons in a match, comma separated. Number keys 1-4 do the same"
+game_speed_turbo,20,How fast time runs while you HOLD F. Let go and it drops back to the button you chose
+game_speed_start,1,Which speed a match begins at
+auto_pick,false,"Starting value of the AUTO toggle. Once you press AUTO in a match, your save remembers it instead"
+auto_pick_seconds,0.9,How long AUTO waits before choosing so you can still see who was on offer
+hud_left_margin,16,Where the speed buttons sit from the left edge
+hud_top_margin,14,Where the speed buttons sit from the top edge
+goal_kick_tier,III,"Which tier the keeper aims a goal kick at. IV was the far end of the pitch and felt like a punt. Blank = whoever is furthest forward"

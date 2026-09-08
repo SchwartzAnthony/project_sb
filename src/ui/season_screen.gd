@@ -4,21 +4,43 @@ extends Control
 # =============================================================
 #  THE SEASON SCREEN — full time, and the table
 #
-#  It does two jobs and works out for itself which one it is doing:
+#  ============ THIS FILE IS THE TEMPLATE ============
 #
-#    STRAIGHT AFTER A MATCH   the score, everything you gained, and the
-#                             season record. The match scene leaves a
-#                             MatchReport behind and this picks it up.
+#  Every other screen in the project builds its layout in CODE. This one
+#  does not, and it is the pattern to copy for anything you want to design
+#  yourself. The rule is:
 #
-#    OPENED FROM THE BASE     no MatchReport waiting, so it is just the
-#                             table and the next fixture.
+#      THE .TSCN DECIDES WHAT IT LOOKS LIKE.
+#      THIS FILE ONLY PUTS WORDS INTO IT.
 #
-#  Everything on it comes from Season.csv and from GameState. There is no
-#  content in this file — no team names, no fixture list, nothing you would
-#  have to come in here and edit.
+#  So you can open season_screen.tscn in Godot, drag the panels around,
+#  change every font and colour, drop in a background image, and this file
+#  keeps working — because it never says where anything is. It only ever
+#  says "put this text in the node called Title".
+#
+#  THE NODES IT FILLS  (all marked with the % icon in the scene tree)
+#    %Title          the big word: FULL TIME / CHAMPIONS / THE SEASON
+#    %Score          the scoreline, or what is next
+#    %Subheading     the quiet line under it
+#    %GainsHeading   the little "WHAT YOU GAINED" label
+#    %GainsList      one row per thing you gained  <- rows are ADDED here
+#    %TableHeading   "SEASON 1"
+#    %Record         P W D L, goals, points
+#    %FixtureList    one row per fixture           <- rows are ADDED here
+#    %PrimaryButton  play the next match / start a new season
+#    %HomeButton     back to the base
+#
+#  HOW TO REDESIGN IT  (no code)
+#    1. Open src/ui/season_screen.tscn
+#    2. Move, restyle, re-parent anything you like
+#    3. DO NOT rename the nodes above, and leave their "Access as Unique
+#       Name" (the % icon, right-click a node) switched ON
+#    4. Press F5
+#
+#  If you delete one of them by accident nothing crashes: the Output panel
+#  says exactly which node is missing and the rest of the screen still
+#  works. That is what _grab() below is for.
 # =============================================================
-
-const PANEL_MIN := Vector2(360, 300)
 
 var db: CardDatabase
 var season: SeasonDB
@@ -27,9 +49,23 @@ var state: GameState
 var _report: MatchReport = null
 var _summary: Dictionary = {}
 
+# The nodes from the scene. Any of them may be null if you deleted it.
+var _title: Label
+var _score: Label
+var _subheading: Label
+var _gains_heading: Label
+var _gains_list: VBoxContainer
+var _table_heading: Label
+var _record: Label
+var _fixture_list: VBoxContainer
+var _primary: Button
+var _home: Button
+
 
 func _ready() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Time runs at whatever speed you left it. On a menu that is silly, and
+	# it makes the buttons feel broken, so it goes back to normal here.
+	GameSpeed.reset()
 
 	db = CardDatabase.get_db()
 	season = SeasonDB.get_db()
@@ -41,83 +77,79 @@ func _ready() -> void:
 	if _report != null:
 		_summary = _report.summary
 
-	_build()
+	_find_nodes()
+	_fill_header()
+	_fill_gains()
+	_fill_table()
+	_fill_buttons()
 
 
 # =============================================================
-#  LAYOUT
+#  FINDING THE SCENE'S NODES
+#
+#  find_child() searches the WHOLE scene, not just the direct children, so
+#  it keeps working after you re-parent something in the editor. That is
+#  the whole point — and it is the bug that crashed the first version of
+#  this screen, which used get_node("Body") and only ever looked one level
+#  down.
 # =============================================================
 
-func _build() -> void:
-	var fill := ColorRect.new()
-	fill.color = MenuSupport.COLOUR_BACKGROUND
-	fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(fill)
-
-	var page := MarginContainer.new()
-	page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for side in ["margin_left", "margin_right"]:
-		page.add_theme_constant_override(side, 48)
-	page.add_theme_constant_override("margin_top", 26)
-	page.add_theme_constant_override("margin_bottom", 22)
-	add_child(page)
-
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 14)
-	page.add_child(column)
-
-	_build_header(column)
-
-	var middle := HBoxContainer.new()
-	middle.add_theme_constant_override("separation", 22)
-	middle.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(middle)
-
-	middle.add_child(_build_gains_panel())
-	middle.add_child(_build_table_panel())
-
-	column.add_child(_build_buttons())
+func _find_nodes() -> void:
+	_title = _grab("Title") as Label
+	_score = _grab("Score") as Label
+	_subheading = _grab("Subheading") as Label
+	_gains_heading = _grab("GainsHeading") as Label
+	_gains_list = _grab("GainsList") as VBoxContainer
+	_table_heading = _grab("TableHeading") as Label
+	_record = _grab("Record") as Label
+	_fixture_list = _grab("FixtureList") as VBoxContainer
+	_primary = _grab("PrimaryButton") as Button
+	_home = _grab("HomeButton") as Button
 
 
-func _build_header(column: VBoxContainer) -> void:
+## Find a node by name anywhere in this scene, and say so plainly if it is
+## gone rather than bringing the game down.
+func _grab(node_name: String) -> Node:
+	var found := find_child(node_name, true, false)
+	if found == null:
+		push_warning("[season screen] season_screen.tscn has no node called '%s'. That part of the screen will be blank — add a node of that name back, or ignore this if you meant to remove it."
+			% node_name)
+	return found
+
+
+func _set(label: Label, text: String) -> void:
+	if label != null:
+		label.text = text
+
+
+# =============================================================
+#  THE HEADER
+# =============================================================
+
+func _fill_header() -> void:
 	var over := SeasonDB.is_over(state)
-	var title_text := "THE SEASON"
-	var colour := MenuSupport.COLOUR_ACCENT
 
+	var title_text := "THE SEASON"
 	if over:
 		title_text = SeasonDB.verdict(state)
-		colour = MenuSupport.COLOUR_ACCENT if state.has_flag(SeasonDB.CHAMPION_FLAG) \
-			else MenuSupport.COLOUR_TEXT
 	elif not _summary.is_empty():
 		title_text = "FULL TIME"
+	_set(_title, title_text)
 
-	var title := MenuSupport.heading(title_text, 42, colour)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(title)
+	if _title != null and over and not state.has_flag(SeasonDB.CHAMPION_FLAG):
+		_title.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
 
-	var line := Label.new()
-	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	line.add_theme_font_size_override("font_size", 22)
-	line.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
-	line.text = _headline()
-	column.add_child(line)
-
-	var under := Label.new()
-	under.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	under.add_theme_font_size_override("font_size", 14)
-	under.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	under.text = _subheading()
-	column.add_child(under)
+	_set(_score, _scoreline())
+	_set(_subheading, _under())
 
 
-## The big line: the score if a match just ended, otherwise what is next.
-func _headline() -> String:
+func _scoreline() -> String:
 	if not _summary.is_empty():
 		var fixture: Dictionary = _summary.get("fixture", {})
-		var opponent := String(fixture.get("opponent", "a friendly")) if not fixture.is_empty() \
-			else "a friendly"
-		return "Your side  %d  –  %d  %s" % [
+		var opponent := "a friendly"
+		if not fixture.is_empty():
+			opponent = String(fixture.get("opponent", "a friendly"))
+		return "Your side  %d  -  %d  %s" % [
 			int(_summary.get("scored", 0)), int(_summary.get("conceded", 0)), opponent]
 
 	if SeasonDB.is_over(state):
@@ -129,11 +161,11 @@ func _headline() -> String:
 	return "Next up: %s" % next["opponent"]
 
 
-func _subheading() -> String:
+func _under() -> String:
 	if SeasonDB.is_over(state):
-		return "%d played  ·  %d point%s  ·  press below to go round again" % [
-			SeasonDB.played(state), state.count(SeasonDB.POINTS),
-			"" if state.count(SeasonDB.POINTS) == 1 else "s"]
+		var points := state.count(SeasonDB.POINTS)
+		return "%d played  -  %d point%s  -  press below to go round again" % [
+			SeasonDB.played(state), points, "" if points == 1 else "s"]
 
 	var next := season.current(state)
 	if next.is_empty():
@@ -148,29 +180,31 @@ func _subheading() -> String:
 	var blurb := String(next["description"])
 	if blurb != "":
 		bits.append(blurb)
-	return "  ·  ".join(bits)
+	return "   -   ".join(bits)
 
 
 # =============================================================
 #  WHAT YOU GAINED
 # =============================================================
 
-func _build_gains_panel() -> Control:
-	var panel := _panel("WHAT YOU GAINED")
-	var body := panel.get_node("Body") as VBoxContainer
+func _fill_gains() -> void:
+	if _gains_list == null:
+		return
+	for child in _gains_list.get_children():
+		child.queue_free()
 
 	if _report == null:
-		body.add_child(_quiet("Nothing yet — this is the table between matches."))
-		return panel
+		_gains_list.add_child(_quiet("Nothing yet - this is the table between matches."))
+		return
 
 	var rows := _report.top(db.tune_int("gains_max_rows", 8))
 	if rows.is_empty():
-		body.add_child(_quiet("Nothing new this match. Talents and unlocks will show up here."))
-		return panel
+		_gains_list.add_child(_quiet("Nothing new this match. Talents and unlocks will show up here."))
+		return
 
+	_set(_gains_heading, "WHAT YOU GAINED  (%d)" % _report.gains.size())
 	for entry in rows:
-		body.add_child(_gain_row(entry))
-	return panel
+		_gains_list.add_child(_gain_row(entry))
 
 
 func _gain_row(entry: Dictionary) -> Control:
@@ -184,16 +218,16 @@ func _gain_row(entry: Dictionary) -> Control:
 	pip.add_theme_font_size_override("font_size", 18)
 	match kind:
 		"unlock":
-			pip.text = "★"
+			pip.text = "*"
 			pip.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
 		"flag":
-			pip.text = "✓"
+			pip.text = "+"
 			pip.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
 		"counter":
 			pip.text = "+"
 			pip.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
 		_:
-			pip.text = "·"
+			pip.text = "-"
 			pip.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	row.add_child(pip)
 
@@ -222,39 +256,27 @@ func _gain_row(entry: Dictionary) -> Control:
 #  THE TABLE
 # =============================================================
 
-func _build_table_panel() -> Control:
-	var panel := _panel("SEASON %d" % maxi(1, state.count(SeasonDB.NUMBER)))
-	var body := panel.get_node("Body") as VBoxContainer
-
-	var record := Label.new()
-	record.add_theme_font_size_override("font_size", 17)
-	record.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
-	record.text = "P %d    W %d  D %d  L %d    %d-%d    %d pts" % [
+func _fill_table() -> void:
+	_set(_table_heading, "SEASON %d" % maxi(1, state.count(SeasonDB.NUMBER)))
+	_set(_record, "P %d    W %d  D %d  L %d    %d-%d    %d pts" % [
 		SeasonDB.played(state),
 		state.count(SeasonDB.WINS), state.count(SeasonDB.DRAWS),
 		state.count(SeasonDB.LOSSES),
 		state.count(SeasonDB.GOALS_FOR), state.count(SeasonDB.GOALS_AGAINST),
-		state.count(SeasonDB.POINTS)]
-	body.add_child(record)
+		state.count(SeasonDB.POINTS)])
+
+	if _fixture_list == null:
+		return
+	for child in _fixture_list.get_children():
+		child.queue_free()
 
 	if season.fixtures.is_empty():
-		body.add_child(_quiet("No fixtures. Put rows in data/Season.csv."))
-		return panel
-
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	body.add_child(scroll)
-
-	var list := VBoxContainer.new()
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	list.add_theme_constant_override("separation", 3)
-	scroll.add_child(list)
+		_fixture_list.add_child(_quiet("No fixtures. Put rows in data/Season.csv."))
+		return
 
 	var next_number := SeasonDB.current_number(state)
 	for entry in season.fixtures:
-		list.add_child(_fixture_row(entry, next_number))
-	return panel
+		_fixture_list.add_child(_fixture_row(entry, next_number))
 
 
 func _fixture_row(entry: Dictionary, next_number: int) -> Control:
@@ -294,7 +316,7 @@ func _fixture_row(entry: Dictionary, next_number: int) -> Control:
 		score.text = "next"
 		score.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
 	else:
-		score.text = "—"
+		score.text = "-"
 		score.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	row.add_child(score)
 
@@ -317,77 +339,32 @@ static func _letter(result: String) -> String:
 
 
 # =============================================================
-#  BUTTONS
+#  THE BUTTONS
 # =============================================================
 
-func _build_buttons() -> Control:
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 14)
+func _fill_buttons() -> void:
+	if _primary != null:
+		if SeasonDB.is_over(state):
+			_primary.text = "Start season %d" % (maxi(1, state.count(SeasonDB.NUMBER)) + 1)
+			_primary.pressed.connect(func() -> void:
+				SeasonDB.new_season(state)
+				state.save_to_disk()
+				ScenePaths.go_to(get_tree(), ScenePaths.SEASON))
+		else:
+			var next := season.current(state)
+			if next.is_empty():
+				_primary.text = "Play the next match"
+			else:
+				_primary.text = "Play: %s" % next["opponent"]
+			_primary.pressed.connect(func() -> void:
+				state.save_to_disk()
+				ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT))
 
-	if SeasonDB.is_over(state):
-		var again := _button("Start season %d" % (maxi(1, state.count(SeasonDB.NUMBER)) + 1),
-			Vector2(230, 50))
-		again.pressed.connect(func() -> void:
-			SeasonDB.new_season(state)
+	if _home != null:
+		_home.text = "Back to the base"
+		_home.pressed.connect(func() -> void:
 			state.save_to_disk()
-			ScenePaths.go_to(get_tree(), ScenePaths.SEASON))
-		row.add_child(again)
-	else:
-		var next := season.current(state)
-		var label := "Play the next match"
-		if not next.is_empty():
-			label = "Play: %s" % next["opponent"]
-		var play := _button(label, Vector2(280, 50))
-		play.pressed.connect(func() -> void:
-			state.save_to_disk()
-			ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT))
-		row.add_child(play)
-
-	var home := _button("Back to the base", Vector2(200, 50))
-	home.pressed.connect(func() -> void:
-		state.save_to_disk()
-		ScenePaths.go_to(get_tree(), ScenePaths.BASE))
-	row.add_child(home)
-
-	return row
-
-
-# =============================================================
-#  SMALL PIECES
-# =============================================================
-
-## A titled box with a "Body" VBox inside for the caller to fill.
-func _panel(title_text: String) -> Control:
-	var frame := PanelContainer.new()
-	frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	frame.custom_minimum_size = PANEL_MIN
-	frame.add_theme_stylebox_override("panel",
-		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_SLOT_EMPTY))
-
-	var pad := MarginContainer.new()
-	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
-		pad.add_theme_constant_override(side, 16)
-	frame.add_child(pad)
-
-	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
-	pad.add_child(box)
-
-	var heading := Label.new()
-	heading.text = title_text
-	heading.add_theme_font_size_override("font_size", 15)
-	heading.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	box.add_child(heading)
-
-	var body := VBoxContainer.new()
-	body.name = "Body"
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 6)
-	box.add_child(body)
-
-	return frame
+			ScenePaths.go_to(get_tree(), ScenePaths.BASE))
 
 
 func _quiet(text: String) -> Label:
@@ -397,17 +374,3 @@ func _quiet(text: String) -> Label:
 	label.add_theme_font_size_override("font_size", 15)
 	label.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	return label
-
-
-func _button(label: String, box: Vector2) -> Button:
-	var button := Button.new()
-	button.text = label
-	button.custom_minimum_size = box
-	button.add_theme_font_size_override("font_size", 17)
-	button.add_theme_stylebox_override("normal",
-		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
-	button.add_theme_stylebox_override("hover",
-		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
-	button.add_theme_stylebox_override("pressed",
-		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_TEXT))
-	return button
