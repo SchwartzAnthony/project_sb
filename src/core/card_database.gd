@@ -77,29 +77,37 @@ static func reload() -> void:
 
 func load_all() -> void:
 	players.clear()
-	goalie_data.clear()
+	goalies.clear()
 	abilities.clear()
 	anims.clear()
 	tuning.clear()
+	tier_bands.clear()
 	problems.clear()
 
 	var dir := DirAccess.open(DATA_DIR)
 	if dir == null:
 		problems.append("Could not open %s" % DATA_DIR)
-		_report()
 		return
 
 	var names := dir.get_files()
 	names.sort()
+
+	# PASS ONE: the tier bands, and nothing else. Files are read
+	# alphabetically, so TierPowers.csv would otherwise arrive long after the
+	# unit CSVs — and a band that is not loaded yet cannot check anything.
 	for file_name in names:
-		if not file_name.to_lower().ends_with(".csv"):
-			continue
-		_load_csv(DATA_DIR + file_name)
+		if file_name.to_lower().ends_with(".csv"):
+			_load_csv(DATA_DIR + file_name, true)
+
+	# PASS TWO: everything else, now that a card can be checked as it is read.
+	for file_name in names:
+		if file_name.to_lower().ends_with(".csv"):
+			_load_csv(DATA_DIR + file_name, false)
 
 	_report()
 
 
-func _load_csv(path: String) -> void:
+func _load_csv(path: String, bands_only: bool = false) -> void:
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		problems.append("Could not read %s" % path)
@@ -120,6 +128,13 @@ func _load_csv(path: String) -> void:
 
 	var short_name := path.get_file()
 
+	if columns.has("tier") and columns.has("minattack"):
+		if bands_only:
+			_read_tier_bands(rows, columns, short_name)
+		return
+	if bands_only:
+		return
+
 	if columns.has("unittype") and columns.has("basepowerleft"):
 		_read_units(rows, columns, short_name)
 	elif columns.has("maxstamina"):
@@ -134,6 +149,93 @@ func _load_csv(path: String) -> void:
 
 
 # --- Units ---------------------------------------------------
+
+# =============================================================
+#  TIER POWER BANDS  —  data/TierPowers.csv
+#
+#  A card's Tier says where it stands on the pitch; its power says how good
+#  it is. Those two are supposed to agree:
+#
+#      Tier I    0, 1 or 2
+#      Tier II   1, 2 or 3
+#      Tier III  2, 3 or 4
+#      Tier IV   3, 4 or 5
+#
+#  Nothing enforced that, so one mistyped number in a unit CSV put a
+#  5-power card in Tier I and the whole match read as broken without any
+#  error appearing anywhere.
+#
+#  Now every card is checked at load. Anything outside its band is named in
+#  the startup report AND pulled back into range, so a typo costs you a line
+#  in the Output panel rather than an evening.
+#
+#  THE BANDS ARE A SPREADSHEET. Change them in data/TierPowers.csv and the
+#  game agrees with you next time you press F5. Delete the file and no
+#  checking happens at all.
+# =============================================================
+
+## tier key -> {"minatk", "maxatk", "mindef", "maxdef"}
+var tier_bands: Dictionary = {}
+
+
+func _read_tier_bands(rows: Array, columns: Dictionary, source: String) -> void:
+	for i in range(1, rows.size()):
+		var row: PackedStringArray = rows[i]
+		var tier_text := _cell(row, columns, "tier")
+		if tier_text == "":
+			continue
+		tier_bands[_normalise(tier_text)] = {
+			"tier": tier_text,
+			"minatk": _cell_int(row, columns, "minattack"),
+			"maxatk": _cell_int(row, columns, "maxattack"),
+			"mindef": _cell_int(row, columns, "mindefense"),
+			"maxdef": _cell_int(row, columns, "maxdefense"),
+			"where": "%s row %d" % [source, i + 1],
+		}
+
+
+## Pull one card into its tier's band, and say so if it had to.
+## Returns true if the card was changed.
+func _apply_tier_band(card: PlayerData, source: String) -> bool:
+	var key := _normalise(card.get_tier_clean())
+	if not tier_bands.has(key):
+		return false
+
+	var band: Dictionary = tier_bands[key]
+	var low_atk := int(band["minatk"])
+	var high_atk := int(band["maxatk"])
+	var low_def := int(band["mindef"])
+	var high_def := int(band["maxdef"])
+
+	var was_atk := card.base_power_left
+	var was_def := card.base_power_right
+	var fixed := false
+
+	if was_atk < low_atk or was_atk > high_atk:
+		card.base_power_left = clampi(was_atk, low_atk, high_atk)
+		problems.append("%s: '%s' is Tier %s with %d attack, but Tier %s is %d to %d. Using %d — fix the Base Power Left column."
+			% [source, card.player_name, card.get_tier_clean(), was_atk,
+				band["tier"], low_atk, high_atk, card.base_power_left])
+		fixed = true
+
+	if was_def < low_def or was_def > high_def:
+		card.base_power_right = clampi(was_def, low_def, high_def)
+		problems.append("%s: '%s' is Tier %s with %d defence, but Tier %s is %d to %d. Using %d — fix the Base Power Right column."
+			% [source, card.player_name, card.get_tier_clean(), was_def,
+				band["tier"], low_def, high_def, card.base_power_right])
+		fixed = true
+
+	return fixed
+
+
+## What a tier is allowed to be, as words. Used by the hover panel.
+func tier_band_text(tier_key: String) -> String:
+	var key := _normalise(tier_key)
+	if not tier_bands.has(key):
+		return ""
+	var band: Dictionary = tier_bands[key]
+	return "Tier %s is %d to %d" % [band["tier"], int(band["minatk"]), int(band["maxatk"])]
+
 
 func _read_units(rows: Array, columns: Dictionary, source: String) -> void:
 	for i in range(1, rows.size()):
@@ -183,6 +285,7 @@ func _read_units(rows: Array, columns: Dictionary, source: String) -> void:
 			problems.append("%s: '%s' has tier '%s' — expected I, II, III or IV"
 				% [source, name_text, card.tier])
 
+		_apply_tier_band(card, source)
 		players.append(card)
 
 

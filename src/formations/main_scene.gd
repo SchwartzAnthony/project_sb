@@ -111,6 +111,9 @@ var camera: MatchCamera = null
 ## The little strip of speed buttons and the AUTO toggle, top-left.
 var hud: MatchHUD = null
 
+## The stats window that appears while the mouse is over a card.
+var card_stats: CardStatsPanel = null
+
 ## Every card currently on offer in the draft. Kept so that AUTO can pick one
 ## without having to reach inside the card widgets.
 var offered_cards: Array[PlayerData] = []
@@ -253,6 +256,7 @@ func _ready() -> void:
 	build_event_schedule()
 
 	spawn_hud()
+	spawn_card_stats()
 
 	event_announcement.hide()
 	timer_label.text = "00:00"
@@ -1590,6 +1594,15 @@ func spawn_hud() -> void:
 	hud.auto_pick_changed.connect(_on_auto_pick_changed)
 
 
+## The hover window. It lives on the SelectionUI layer with the cards, so it
+## sits over them and the camera never moves it.
+func spawn_card_stats() -> void:
+	if not db.tune_bool("card_hover_stats", true):
+		return
+	card_stats = CardStatsPanel.make(db)
+	selection_ui.add_child(card_stats)
+
+
 func _on_auto_pick_changed(is_on: bool) -> void:
 	if is_on and current_state == MatchState.DRAFTING:
 		_offer_auto_pick()
@@ -2041,8 +2054,21 @@ func start_next_draft_phase() -> void:
 		return
 
 	# --- Regular tier phase ---
-	# Your Star already fills its own tier, so there is nothing to pick there.
-	if phase == player_star_tier:
+	#
+	# THE STAR IS A CARD LIKE ANY OTHER NOW.
+	#
+	# It used to fill its own tier automatically, every round, for the whole
+	# cycle. Three rounds per cycle meant the same Star played three times in
+	# a row, and because the Lorelei Star is Tier IV with 5 power, the enemy
+	# fielded a 5-power Tier IV three rounds running while your Tier IV
+	# rotated through ordinary cards. That is the bug you saw, and it was
+	# never a fair fight.
+	#
+	# Now the Star is simply OFFERED in its tier, alongside the regulars, and
+	# is exhausted when used exactly like they are. Set `star_holds_its_tier`
+	# to true in Tuning.csv to put the old behaviour back.
+	var star_holds := db.tune_bool("star_holds_its_tier", false)
+	if star_holds and phase == player_star_tier:
 		_enemy_pick_for_tier(phase)
 		current_phase_index += 1
 		start_next_draft_phase()
@@ -2050,7 +2076,9 @@ func start_next_draft_phase() -> void:
 
 	var choices_found := 0
 	for unit in _all_units():
-		if unit.is_enemy or unit.is_star_player or unit.is_exhausted:
+		if unit.is_enemy or unit.is_exhausted:
+			continue
+		if star_holds and unit.is_star_player:
 			continue
 		if unit.data != null and unit.data.get_tier_clean() == phase:
 			create_card_for_unit(unit.data)
@@ -2104,11 +2132,36 @@ func _on_card_hovered(data: PlayerData) -> void:
 		if not unit.is_enemy and unit.data == data:
 			unit.set_highlight(true)
 
+	# The stats window, above the card row, so you can see what you are
+	# choosing between before you commit to one.
+	if card_stats != null:
+		card_stats.show_card(data, _card_top_centre(data))
+
 
 func _on_card_unhovered(data: PlayerData) -> void:
 	for unit in _all_units():
 		if not unit.is_enemy and unit.data == data:
 			unit.set_highlight(false)   # stays bright if is_playmaker
+
+	if card_stats != null:
+		card_stats.hide()
+
+
+## The middle of the top edge of the card showing this card, in screen
+## coordinates, so the window can sit directly above the one you are pointing
+## at. Falls back to the middle of the card row if the card cannot be found.
+func _card_top_centre(data: PlayerData) -> Vector2:
+	for child in card_container.get_children():
+		var card := child as Control
+		if card == null:
+			continue
+		var shown = card.get("data")
+		if shown == data:
+			return Vector2(card.global_position.x + card.size.x * 0.5,
+				card.global_position.y)
+
+	return Vector2(card_container.global_position.x + card_container.size.x * 0.5,
+		card_container.global_position.y)
 
 
 # =============================================================
@@ -2174,6 +2227,8 @@ func _best_offered_card() -> PlayerData:
 
 
 func _on_card_selected(selected_data: PlayerData) -> void:
+	if card_stats != null:
+		card_stats.hide()
 	var phase := draft_phases[current_phase_index]
 	print("Locked in: %s (%s)" % [selected_data.player_name, phase])
 
@@ -2264,13 +2319,17 @@ func _resolve_tier_pick(tier_key: String, selected_data: PlayerData) -> void:
 
 
 func _enemy_pick_for_tier(tier_key: String) -> void:
-	# The enemy's Star fills its own tier, so no draft there.
-	if tier_key == enemy_star_tier:
+	# The same rule as your side: the Star is one of the choices, not a
+	# permanent fixture. See the long note in start_next_draft_phase().
+	var star_holds := db.tune_bool("star_holds_its_tier", false)
+	if star_holds and tier_key == enemy_star_tier:
 		return
 
 	var choices: Array[PlayerUnit] = []
 	for unit in _all_units():
-		if not unit.is_enemy or unit.is_star_player or unit.is_exhausted:
+		if not unit.is_enemy or unit.is_exhausted:
+			continue
+		if star_holds and unit.is_star_player:
 			continue
 		if unit.data != null and unit.data.get_tier_clean() == tier_key:
 			choices.append(unit)
@@ -2328,17 +2387,27 @@ func _on_draft_complete() -> void:
 #  Once combat_arena.tscn exists, flip it off and drive it from the signal.
 # =============================================================
 
+## The four cards that will fight this round, one per tier.
+##
+## THE PICK ALWAYS WINS. This used to check the Star's tier FIRST and drop in
+## the Star, throwing away the card you had just chosen for that tier — which
+## is exactly "the cards I pick are not the stats used in combat". The Star is
+## now only a fallback, for when nothing was picked for a tier at all.
 func build_lineup(picks: Array[PlayerData], star: PlayerData, star_tier: String) -> Array[PlayerData]:
 	var lineup: Array[PlayerData] = []
 	for t in ALL_TIERS:
-		if t == star_tier and star != null:
-			lineup.append(star)
-			continue
 		var found: PlayerData = null
 		for p in picks:
-			if p.get_tier_clean() == t:
+			if p != null and p.get_tier_clean() == t:
 				found = p
 				break
+
+		# Nothing chosen for this tier. That happens when `star_holds_its_tier`
+		# is on and the tier belongs to the Star, or when a tier had no
+		# available cards left to offer.
+		if found == null and t == star_tier and star != null:
+			found = star
+
 		lineup.append(found)
 	return lineup
 
@@ -2365,6 +2434,21 @@ func resolve_round() -> void:
 
 	var player_lineup := build_lineup(round_player_picks, active_player_star, player_star_tier)
 	var enemy_lineup := build_lineup(round_enemy_picks, active_enemy_star, enemy_star_tier)
+
+	# Printed every round, on purpose. When a number on screen looks wrong,
+	# this line in the Output panel is the shortest way to see whether the
+	# card that fought is the card you chose.
+	for i in ALL_TIERS.size():
+		var mine_card: PlayerData = player_lineup[i]
+		var their_card: PlayerData = enemy_lineup[i]
+		print("  Tier %-3s  YOU %-26s atk %d / def %d   THEM %-26s atk %d / def %d" % [
+			ALL_TIERS[i],
+			mine_card.player_name if mine_card != null else "(nobody)",
+			mine_card.get_attack_power() if mine_card != null else 0,
+			mine_card.get_defense_power() if mine_card != null else 0,
+			their_card.player_name if their_card != null else "(nobody)",
+			their_card.get_attack_power() if their_card != null else 0,
+			their_card.get_defense_power() if their_card != null else 0])
 
 	round_ready_for_combat.emit(player_lineup, enemy_lineup)
 

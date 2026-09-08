@@ -126,3 +126,5 @@ goal_kick_tier,III,"Which tier the keeper aims a goal kick at. IV was the far en
 progress_bars_max,6,How many progress bars the post-match screen shows before it stops
 show_dev_tools,true,"Shows the Dev button at the base, which opens the save inspector. Set to false before showing the game to anyone"
 inspector_jump_buttons,14,How many "jump straight to" buttons the save inspector offers
+star_holds_its_tier,false,"false = a Star is offered in its tier like any other card and is used up when picked. true = the old behaviour, where the Star fills its tier every round of the cycle"
+card_hover_stats,true,Show the stats window when the mouse is over a card during a PLAY MAKER
