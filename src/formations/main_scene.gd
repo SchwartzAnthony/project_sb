@@ -694,29 +694,32 @@ func _apply_fixture() -> void:
 		state.set_flag(MatchStatsScreen.REPLAY_FLAG, false)
 		replaying = true
 		current_fixture = season.previous(state)
+		
 		if not current_fixture.is_empty():
 			# THE TEAM COLUMN WINS. A fixture that names a team gets that team's
-	# class and that team's cards; one that does not falls back to Class,
-	# which is what every fixture did before Teams.csv existed.
-	enemy_team = {}
-	var team_id := String(current_fixture.get("team", "")).strip_edges()
-	if team_id != "":
-		enemy_team = TeamDB.get_db().find(team_id)
-		if enemy_team.is_empty():
-			push_warning("[teams] Season.csv fixture '%s' names team '%s', which is not in Teams.csv. Falling back to the Class column."
-				% [current_fixture["id"], team_id])
-
-	forced_enemy_class = String(current_fixture["class"]).strip_edges()
-	if not enemy_team.is_empty():
-		var team_class := String(enemy_team["class"]).strip_edges()
-		if team_class != "":
-			forced_enemy_class = team_class
-		print("[teams] Facing %s — power %d, %d named card(s)." % [
-			enemy_team["name"], TeamDB.get_db().rated_power(enemy_team),
-			(enemy_team["cards"] as Array).size()])
+			# class and that team's cards; one that does not falls back to Class,
+			# which is what every fixture did before Teams.csv existed.
+			enemy_team = {}
+			var team_id := String(current_fixture.get("team", "")).strip_edges()
+			if team_id != "":
+				enemy_team = TeamDB.get_db().find(team_id)
+				if enemy_team.is_empty():
+					push_warning("[teams] Season.csv fixture '%s' names team '%s', which is not in Teams.csv. Falling back to the Class column."
+						% [current_fixture["id"], team_id])
+	
+			forced_enemy_class = String(current_fixture["class"]).strip_edges()
+			if not enemy_team.is_empty():
+				var team_class := String(enemy_team["class"]).strip_edges()
+				if team_class != "":
+					forced_enemy_class = team_class
+				print("[teams] Facing %s — power %d, %d named card(s)." % [
+					enemy_team["name"], TeamDB.get_db().rated_power(enemy_team),
+					(enemy_team["cards"] as Array).size()])
+			
 			print("[season] Rerunning %s as a friendly. Nothing will be recorded."
 				% current_fixture["opponent"])
 			return
+			
 		print("[season] Nothing to rerun — playing the next fixture instead.")
 
 	current_fixture = season.current(state)
