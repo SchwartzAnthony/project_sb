@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bkad2h683gw60"
+
+[deps]
+
+files=["res://data/BasicTeam.Name.translation", "res://data/BasicTeam.Attack.translation", "res://data/BasicTeam.Defend.translation", "res://data/BasicTeam.Element.translation", "res://data/BasicTeam.Base Power Left.translation", "res://data/BasicTeam.Base Power Right.translation", "res://data/BasicTeam.Tier.translation", "res://data/BasicTeam.Stufe.translation", "res://data/BasicTeam.Card Number.translation", "res://data/BasicTeam.Card Date.translation", "res://data/BasicTeam.Set Name.translation", "res://data/BasicTeam.Created by.translation", "res://data/BasicTeam.Artwork.translation", "res://data/BasicTeam.Player Type.translation"]
+
+source_file="res://data/BasicTeam.csv"
+dest_files=["res://data/BasicTeam.Name.translation", "res://data/BasicTeam.Attack.translation", "res://data/BasicTeam.Defend.translation", "res://data/BasicTeam.Element.translation", "res://data/BasicTeam.Base Power Left.translation", "res://data/BasicTeam.Base Power Right.translation", "res://data/BasicTeam.Tier.translation", "res://data/BasicTeam.Stufe.translation", "res://data/BasicTeam.Card Number.translation", "res://data/BasicTeam.Card Date.translation", "res://data/BasicTeam.Set Name.translation", "res://data/BasicTeam.Created by.translation", "res://data/BasicTeam.Artwork.translation", "res://data/BasicTeam.Player Type.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

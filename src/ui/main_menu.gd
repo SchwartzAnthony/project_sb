@@ -18,7 +18,7 @@ const MENU_CONFIG_PATH := "res://data/MenuConfig.csv"
 ## Optional full-screen art. Set it here, or add a Background Art row to
 ## MenuConfig.csv with the path in the Art Path column.
 @export var background_art_path: String = "res://assets/menu/background.png"
-@export var title_text: String = "AUTOBATTLER"
+@export var title_text: String = "Bockball"
 @export var title_font_size: int = 72
 
 var db: CardDatabase

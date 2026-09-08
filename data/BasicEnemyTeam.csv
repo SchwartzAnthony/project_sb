@@ -1,0 +1,13 @@
+Unit Type,Name,Attack,Defend,Element,Base Power Left,Base Power Right,Tier,Stufe,Tool,Card Number,Card Date,Set Name,Created by,Artwork,Player Type
+Normal,Bauer,None,None,None,0,0,I,Level,,13,,,,Silver-Rhine Lorelei.png,Star
+Normal,Richter,None,None,None,1,1,I,Level,,14,,,,Silver-Rhine Lorelei.png,Star
+Normal,Klein,None,None,None,2,2,I,Level,,15,,,,Silver-Rhine Lorelei.png,Star
+Normal,Wolf,None,None,None,1,1,II,Level,,16,,,,Silver-Rhine Lorelei.png,Normal
+Normal,Schröder,None,None,None,2,2,II,Level,,17,,,,Silver-Rhine Lorelei.png,Normal
+Normal,Neumann,None,None,None,3,3,II,Level,,18,,,,Silver-Rhine Lorelei.png,Normal
+Normal,Schwarz,None,None,None,2,2,III,Level,,19,,,,Silver-Rhine Lorelei.png,Normal
+Normal,Fuchs,None,None,None,3,3,III,Level,,20,,,,Silver-Rhine Lorelei.png,Normal
+Normal,Baumgartner,None,None,None,4,4,III,Level,,21,,,,Silver-Rhine Lorelei.png,Normal
+Normal,Bayer,None,None,None,3,3,IV,Level,,22,,,,Silver-Rhine Lorelei.png,Normal
+Normal,Bischoff,None,None,None,4,4,IV,Level,,23,,,,Silver-Rhine Lorelei.png,Normal
+Normal,Brandt,None,None,None,5,5,IV,Level,,24,,,,Silver-Rhine Lorelei.png,Normal
