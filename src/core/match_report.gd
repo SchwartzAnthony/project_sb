@@ -84,6 +84,26 @@ func counter_gains() -> Array[Dictionary]:
 	return out
 
 
+## PUT THE SAVE BACK the way it was at kick-off.
+##
+## This is what "quit and lose your progress" actually means. Everything the
+## match gave you — goals counted, unlocks earned, achievements ticked — is
+## undone, because the first photograph is still here and is simply pasted
+## back over the top.
+##
+## The one thing deliberately NOT restored is the name book: keeping the
+## spelling of a counter you briefly had costs nothing and means a later
+## screen can still print it properly.
+func restore(state: GameState) -> void:
+	if state == null:
+		return
+	state.flags = _before_flags.duplicate(true)
+	state.counters = _before_counters.duplicate(true)
+	state.unlocks = _before_unlocks.duplicate(true)
+	state.save_to_disk()
+	print("[match] Quit — the save is back as it was at kick-off.")
+
+
 ## Compare, and turn the difference into English. Call once, after
 ## everything that could change the state has run.
 func finish(state: GameState) -> void:

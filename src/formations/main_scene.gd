@@ -95,6 +95,10 @@ var current_fixture: Dictionary = {}
 ## exactly as the game did before there was a season.
 var forced_enemy_class: String = ""
 
+## The Teams.csv row the opposition is fielding, or {} for "any cards of the
+## class". This is what makes a fixture a fixture rather than a lucky dip.
+var enemy_team: Dictionary = {}
+
 ## True when this is a rerun from the stats screen: same opposition, but the
 ## result is not written into the season table.
 var replaying: bool = false
@@ -113,6 +117,9 @@ var hud: MatchHUD = null
 
 ## The stats window that appears while the mouse is over a card.
 var card_stats: CardStatsPanel = null
+
+## Escape. Speed, AUTO, and a way out that costs you the match.
+var pause_menu: PauseMenu = null
 
 ## Every card currently on offer in the draft. Kept so that AUTO can pick one
 ## without having to reach inside the card widgets.
@@ -257,6 +264,12 @@ func _ready() -> void:
 
 	spawn_hud()
 	spawn_card_stats()
+	spawn_pause_menu()
+
+	# A match is not somewhere Back should ever return you to, so the trail
+	# of screens is wiped at kick-off. Without this, Back on the season table
+	# would walk you into the game you have just finished.
+	ScenePaths.clear_trail(get_tree())
 
 	event_announcement.hide()
 	timer_label.text = "00:00"
@@ -331,6 +344,12 @@ func _facts_for(unit: PlayerUnit) -> Dictionary:
 func _report(event: String, facts: Dictionary) -> void:
 	if stats != null and state != null:
 		stats.record(event, facts, state)
+
+	# THE SAME EVENT FEEDS THE SOUND. Everything the match reports — a goal,
+	# a save, a duel, a brew — already comes through here with its facts, so
+	# one line gives Audio.csv every match moment at once, including any you
+	# add later.
+	AudioDirector.fire(get_tree(), event, facts, state)
 
 
 ## Run the Progression rows listening for this moment, then carry out
@@ -659,6 +678,13 @@ func _drift_point(unit: PlayerUnit) -> Vector2:
 func _apply_fixture() -> void:
 	current_fixture = {}
 	forced_enemy_class = ""
+	enemy_team = {}
+
+	# The ceiling applies to every match, friendly or not, so it is set
+	# before any early return below.
+	if abilities != null:
+		abilities.max_power = db.tune_int("max_card_power", 5)
+
 	if season == null or state == null:
 		return
 
@@ -669,7 +695,25 @@ func _apply_fixture() -> void:
 		replaying = true
 		current_fixture = season.previous(state)
 		if not current_fixture.is_empty():
-			forced_enemy_class = String(current_fixture["class"]).strip_edges()
+			# THE TEAM COLUMN WINS. A fixture that names a team gets that team's
+	# class and that team's cards; one that does not falls back to Class,
+	# which is what every fixture did before Teams.csv existed.
+	enemy_team = {}
+	var team_id := String(current_fixture.get("team", "")).strip_edges()
+	if team_id != "":
+		enemy_team = TeamDB.get_db().find(team_id)
+		if enemy_team.is_empty():
+			push_warning("[teams] Season.csv fixture '%s' names team '%s', which is not in Teams.csv. Falling back to the Class column."
+				% [current_fixture["id"], team_id])
+
+	forced_enemy_class = String(current_fixture["class"]).strip_edges()
+	if not enemy_team.is_empty():
+		var team_class := String(enemy_team["class"]).strip_edges()
+		if team_class != "":
+			forced_enemy_class = team_class
+		print("[teams] Facing %s — power %d, %d named card(s)." % [
+			enemy_team["name"], TeamDB.get_db().rated_power(enemy_team),
+			(enemy_team["cards"] as Array).size()])
 			print("[season] Rerunning %s as a friendly. Nothing will be recorded."
 				% current_fixture["opponent"])
 			return
@@ -685,6 +729,11 @@ func _apply_fixture() -> void:
 	# Difficulty is a flat power bonus to every enemy card, for this fixture
 	# only. It is deliberately blunt: one number in a spreadsheet, and you can
 	# see straight away what a 2 does compared with a 0.
+	# The ceiling, before anything is added on. This is what stops a
+	# Difficulty bonus turning a 5-power Tier IV into a 6.
+	if abilities != null:
+		abilities.max_power = db.tune_int("max_card_power", 5)
+
 	var scale := db.tune_float("season_difficulty_scale", 1.0)
 	var bonus := int(round(float(int(current_fixture["difficulty"])) * scale))
 	if abilities != null and bonus != 0:
@@ -1145,7 +1194,7 @@ func spawn_team(star_player: PlayerData, is_enemy: bool) -> void:
 		_place_in_zone(star_unit, this_star_tier)
 
 	# --- 2. The 9 regulars ---
-	var roster := load_roster_by_type(star_player.unit_type)
+	var roster := load_roster_by_type(star_player.unit_type, is_enemy)
 	var tiers: Dictionary = layout["tiers"]
 
 	for tier_key in ALL_TIERS:
@@ -1603,6 +1652,28 @@ func spawn_card_stats() -> void:
 	selection_ui.add_child(card_stats)
 
 
+## The pause overlay. It is added last so it sits above the HUD, and it
+## keeps running while everything else is stopped.
+func spawn_pause_menu() -> void:
+	pause_menu = PauseMenu.make(db, state)
+	add_child(pause_menu)
+	pause_menu.quit_requested.connect(_on_quit_match)
+
+
+## They pressed quit, twice, having been told what it costs.
+func _on_quit_match() -> void:
+	GameSpeed.reset()
+
+	# Put the save back to the kick-off photograph. Nothing this match gave
+	# them survives — which is exactly what the warning said would happen.
+	if gains != null:
+		gains.restore(state)
+
+	# And no post-match screens: there is no result to show.
+	MatchReport.take(get_tree())
+	ScenePaths.go_to(get_tree(), ScenePaths.BASE, false)
+
+
 func _on_auto_pick_changed(is_on: bool) -> void:
 	if is_on and current_state == MatchState.DRAFTING:
 		_offer_auto_pick()
@@ -1623,6 +1694,14 @@ func run_rps_clash() -> bool:
 	if rps == null or not use_rps_minigame:
 		return randi() % 2 == 0
 	rps.start()
+
+	# AUTO plays the clash too — the throw AND the attack/defend choice — so
+	# "sit back and watch" really means the whole match, not "the whole match
+	# except the two buttons in the middle of it".
+	if MatchHUD.auto_pick_on(state):
+		rps.auto_play(db.tune_float("auto_pick_seconds", 0.9),
+			db.tune_float("auto_attack_chance", 0.5))
+
 	var result: Variant = await rps.clash_finished
 	return bool(result)
 
@@ -1871,8 +1950,37 @@ func mirror_if_enemy(original_pos: Vector2, center_x: float, is_enemy: bool) -> 
 # files to keep in sync any more — data/players/ and data/goalies/ can be
 # deleted. Drop a CSV in res://data/ and it is in the next match.
 
-func load_roster_by_type(unit_type: String) -> Array[PlayerData]:
-	return db.roster_for_class(unit_type)
+## The cards a side may field.
+##
+## For YOUR side this is simply everyone of your class. For the opposition it
+## is narrowed to the cards named in their Teams.csv row, which is how
+## "Reedbank Wanderers field these four" is expressed without any code
+## knowing who Reedbank are.
+##
+## A team that names no cards, or whose named cards have all been used, falls
+## back to the whole class — so a half-filled row still gives you a match.
+func load_roster_by_type(unit_type: String, for_enemy: bool = false) -> Array[PlayerData]:
+	var whole_class := db.roster_for_class(unit_type)
+	if not for_enemy or enemy_team.is_empty():
+		return whole_class
+
+	var wanted := TeamDB.get_db().resolve_cards(enemy_team)
+	if wanted.is_empty():
+		return whole_class
+
+	# Only the named cards, and only ones of the class actually on the pitch.
+	var out: Array[PlayerData] = []
+	for card in whole_class:
+		for named in wanted:
+			if named == card:
+				out.append(card)
+				break
+
+	if out.is_empty():
+		print("[teams] '%s' names no cards of class %s — using the whole class."
+			% [enemy_team.get("name", "?"), unit_type])
+		return whole_class
+	return out
 
 
 func _stars_grouped_by_class() -> Dictionary:
@@ -1964,6 +2072,8 @@ func trigger_playmaker_event() -> void:
 	freeze_play(true)
 
 	print("PLAY MAKER!  Cycle %d, Round %d" % [current_cycle, rounds_this_cycle])
+	AudioDirector.fire(get_tree(), "play_maker",
+		{"cycle": str(current_cycle), "round": str(rounds_this_cycle)}, state)
 	await announce("PLAY MAKER!")
 
 	# Rock/paper/scissors decides who attacks in Tier I, BEFORE the draft.
@@ -2007,6 +2117,7 @@ func trigger_hold_up_event() -> void:
 		enemy_star_tier = new_enemy_star.get_tier_clean()
 
 	print("HOLD UP!  Starting cycle %d" % current_cycle)
+	AudioDirector.fire(get_tree(), "hold_up", {"cycle": str(current_cycle)}, state)
 	await announce("HOLD UP!")
 
 	draft_phases.assign(["StarChoice"])
@@ -2037,7 +2148,7 @@ func start_next_draft_phase() -> void:
 	var phase := draft_phases[current_phase_index]
 
 	if phase == "Star":
-		for star_data in get_star_player_choices():
+		for star_data in _weakest_first(get_star_player_choices()):
 			create_card_for_unit(star_data)
 		_offer_auto_pick()
 		return
@@ -2048,7 +2159,7 @@ func start_next_draft_phase() -> void:
 			current_phase_index += 1
 			start_next_draft_phase()
 			return
-		for star_data in available_player_stars:
+		for star_data in _weakest_first(available_player_stars):
 			create_card_for_unit(star_data)
 		_offer_auto_pick()
 		return
@@ -2074,15 +2185,19 @@ func start_next_draft_phase() -> void:
 		start_next_draft_phase()
 		return
 
-	var choices_found := 0
+	var tier_choices: Array[PlayerData] = []
 	for unit in _all_units():
 		if unit.is_enemy or unit.is_exhausted:
 			continue
 		if star_holds and unit.is_star_player:
 			continue
 		if unit.data != null and unit.data.get_tier_clean() == phase:
-			create_card_for_unit(unit.data)
-			choices_found += 1
+			tier_choices.append(unit.data)
+
+	var choices_found := 0
+	for card in _weakest_first(tier_choices):
+		create_card_for_unit(card)
+		choices_found += 1
 
 	if choices_found == 0:
 		print("[draft] No available Tier %s cards — skipping this phase." % phase)
@@ -2092,6 +2207,41 @@ func start_next_draft_phase() -> void:
 		return
 
 	_offer_auto_pick()
+
+
+## WEAKEST ON THE LEFT, STRONGEST ON THE RIGHT — always.
+##
+## The cards used to appear in whatever order the units happened to sit in
+## the scene, which changed from round to round. Now the row always reads the
+## same way, so after two matches you stop reading the numbers at all and
+## just know that the card on the right is the strong one.
+##
+## An explicit insertion sort: the list is four or five cards long, and this
+## keeps two cards of equal power in the order they were found rather than
+## shuffling them about between rounds.
+func _weakest_first(cards: Array) -> Array[PlayerData]:
+	var sorted: Array[PlayerData] = []
+	for entry in cards:
+		var card := entry as PlayerData
+		if card == null:
+			continue
+		var at := sorted.size()
+		for i in sorted.size():
+			if _card_order(sorted[i]) > _card_order(card):
+				at = i
+				break
+		sorted.insert(at, card)
+	return sorted
+
+
+## What "stronger" means for the purpose of laying the row out. Attack while
+## you are attacking this round, defence while you are defending — so the
+## right-hand card is always the best one FOR THIS ROUND, not in the abstract.
+func _card_order(card: PlayerData) -> int:
+	if card == null:
+		return -1
+	return card.get_attack_power() if player_attacks_this_round \
+		else card.get_defense_power()
 
 
 func create_card_for_unit(data: PlayerData) -> void:
@@ -2136,6 +2286,8 @@ func _on_card_hovered(data: PlayerData) -> void:
 	# choosing between before you commit to one.
 	if card_stats != null:
 		card_stats.show_card(data, _card_top_centre(data))
+
+	AudioDirector.fire(get_tree(), "card_hovered", _facts_for_card(data), state)
 
 
 func _on_card_unhovered(data: PlayerData) -> void:
@@ -2226,7 +2378,22 @@ func _best_offered_card() -> PlayerData:
 	return best
 
 
+## The facts a card carries, for Audio.csv and anything else that wants to
+## tell one card apart from another.
+func _facts_for_card(card: PlayerData) -> Dictionary:
+	if card == null:
+		return {}
+	return {
+		"card": card.player_name,
+		"class": card.active_unit_type(),
+		"tier": card.get_tier_clean(),
+		"star": "yes" if card.is_star() else "no",
+		"brew": card.brew_id,
+	}
+
+
 func _on_card_selected(selected_data: PlayerData) -> void:
+	AudioDirector.fire(get_tree(), "card_picked", _facts_for_card(selected_data), state)
 	if card_stats != null:
 		card_stats.hide()
 	var phase := draft_phases[current_phase_index]
@@ -2825,12 +2992,21 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		"wins": not attacker_wins,
 	}
 
+	# EVERYTHING ON THE PITCH STOPS while the cut-away is up.
+	#
+	# It did not before, so behind the duel window the other eighteen players
+	# carried on running and the ball carried on being kicked about. You were
+	# watching two cards fight over a game that had moved on without them.
+	freeze_play(true)
+
 	duel_arena.play_duel({
 		"tier": tier,
 		"left": defender_side if attacker_is_enemy else attacker_side,
 		"right": attacker_side if attacker_is_enemy else defender_side,
 	})
 	await duel_arena.duel_finished
+
+	freeze_play(false)
 
 
 ## The on-pitch unit holding the ball at the end of the duel chain.

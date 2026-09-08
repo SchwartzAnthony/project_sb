@@ -128,3 +128,5 @@ show_dev_tools,true,"Shows the Dev button at the base, which opens the save insp
 inspector_jump_buttons,14,How many "jump straight to" buttons the save inspector offers
 star_holds_its_tier,false,"false = a Star is offered in its tier like any other card and is used up when picked. true = the old behaviour, where the Star fills its tier every round of the cycle"
 card_hover_stats,true,Show the stats window when the mouse is over a card during a PLAY MAKER
+max_card_power,5,"THE CEILING. No card's power may ever exceed this, whatever a fixture's Difficulty or an ability adds. 5 because your tiers top out at 3-5"
+auto_attack_chance,0.5,"When AUTO wins the rock-paper-scissors, the odds it chooses ATTACK. 1 always attacks, 0 always defends"

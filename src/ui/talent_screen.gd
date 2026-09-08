@@ -112,7 +112,7 @@ func _build_chrome() -> void:
 	back.offset_bottom = 72.0
 	back.pressed.connect(func() -> void:
 		state.save_to_disk()
-		ScenePaths.go_to(get_tree(), ScenePaths.BASE))
+		ScenePaths.go_back(get_tree(), ScenePaths.BASE))
 	add_child(back)
 
 

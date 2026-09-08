@@ -35,6 +35,50 @@ var data: GoalieData
 @onready var name_label: Label = get_node_or_null("NameLabel")
 
 
+# =============================================================
+#  SEEING THE KEEPER
+#
+#  The Artwork sprite has no texture until Goalies.csv gives it one. With a
+#  blank Artwork column, or a PNG that is not there, the keeper was drawn as
+#  nothing at all — which is why you could not see a goalkeeper for a whole
+#  match.
+#
+#  So when there is no texture, one is drawn here instead: a coloured post
+#  with a G on it. The same "playable before you have art" rule the base
+#  screen uses for buildings and visitors.
+#
+#  Draw the art and this disappears on its own. Nothing to switch off.
+# =============================================================
+
+const FALLBACK_SIZE := Vector2(30.0, 54.0)
+const FALLBACK_HOME := Color(0.36, 0.72, 0.95)
+const FALLBACK_AWAY := Color(0.95, 0.45, 0.42)
+
+
+func _draw() -> void:
+	if artwork != null and artwork.texture != null:
+		return   # you have drawn one; nothing to stand in for
+
+	var box := Rect2(-FALLBACK_SIZE * 0.5, FALLBACK_SIZE)
+	var body := FALLBACK_AWAY if is_enemy else FALLBACK_HOME
+
+	draw_rect(box.grow(2.0), Color(0, 0, 0, 0.55), true)
+	draw_rect(box, body, true)
+	draw_rect(box, body.lightened(0.35), false, 2.0)
+
+	# Gloves, so it reads as a keeper rather than an outfield player.
+	var glove := Vector2(7.0, 7.0)
+	draw_rect(Rect2(box.position - Vector2(glove.x, -6.0), glove),
+		Color(0.98, 0.86, 0.4), true)
+	draw_rect(Rect2(Vector2(box.end.x, box.position.y + 6.0), glove),
+		Color(0.98, 0.86, 0.4), true)
+
+	var font := ThemeDB.fallback_font
+	if font != null:
+		draw_string(font, Vector2(-5.0, 6.0), "G",
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.08, 0.09, 0.12))
+
+
 func _ready() -> void:
 	_refill()
 

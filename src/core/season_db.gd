@@ -15,9 +15,12 @@ extends RefCounted
 #    Match        the fixture number: 1, 2, 3... They are played in this
 #                 order regardless of what order the rows sit in.
 #    Opponent     who you are playing. Shown on the season screen.
+#    Team         a row of Teams.csv — the exact side you face, with the
+#                 exact cards it fields. BLANK = fall back to Class.
 #    Class        which class the opposition fields — "Lorelei",
-#                 "Brandteufel". BLANK = pick one at random, which is what
-#                 the game did before this file existed.
+#                 "Brandteufel". Ignored when Team names a team. BLANK and no
+#                 Team = pick one at random, which is what the game did
+#                 before either file existed.
 #    Difficulty   a flat power bonus to every enemy card, for this fixture
 #                 only. 0 = a fair fight. Keep it in the 0-3 range: cards are
 #                 0-5 power, so 4 would be close to unbeatable.
@@ -152,6 +155,7 @@ func _load_csv(path: String) -> void:
 			"id": id_text,
 			"number": _cell_int(row, columns, "match", 0),
 			"opponent": opponent,
+			"team": _cell(row, columns, "team"),
 			"class": _cell(row, columns, "class"),
 			"difficulty": _cell_int(row, columns, "difficulty", 0),
 			"final": _cell(row, columns, "final").to_lower() in ["true", "yes", "1", "on"],

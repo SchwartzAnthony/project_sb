@@ -50,6 +50,8 @@ func _gather() -> void:
 	var talents := TalentDB.get_db()
 	var brews := BrewDB.get_db()
 	var season := SeasonDB.get_db()
+	var audio := AudioDB.get_db()
+	var squads := TeamDB.get_db()
 
 	lines.append("[content] %d cards, %d abilities, %d story lines across %d scene(s), %d stat rules, %d progression rows."
 		% [cards.players.size(), cards.abilities.size(),
@@ -60,6 +62,8 @@ func _gather() -> void:
 			talents.talents.size(), talents.tree_names().size(), brews.brews.size()])
 	lines.append("[content] %d fixture(s) in the season, the last being Match %d."
 		% [season.fixtures.size(), season.last_number()])
+	lines.append("[content] %d opposing team(s), %d sound cue(s)."
+		% [squads.teams.size(), audio.cues.size()])
 
 	for problem in cards.problems:
 		warnings.append("cards: " + problem)
@@ -77,6 +81,10 @@ func _gather() -> void:
 		warnings.append("brews: " + problem)
 	for problem in season.problems:
 		warnings.append("season: " + problem)
+	for problem in squads.problems:
+		warnings.append("teams: " + problem)
+	for problem in audio.problems:
+		warnings.append("audio: " + problem)
 
 	_check_story_targets(story, steps, base)
 	_check_counters(story, stats, steps, base, talents)
@@ -226,6 +234,11 @@ func _all_conditions(story: DialogueDB, steps: Progression, base: BaseDB,
 	out.append_array(talents.all_conditions())
 	out.append_array(BrewDB.get_db().all_conditions())
 	out.append_array(SeasonDB.get_db().all_conditions())
+	out.append_array(TeamDB.get_db().all_conditions())
+	for cue in AudioDB.get_db().cues:
+		var cue_condition := String(cue["requires"])
+		if cue_condition.strip_edges() != "":
+			out.append(cue_condition)
 	for scene_key in story.scenes.keys():
 		for line: DialogueLine in (story.scenes[scene_key] as Array):
 			if line.requires.strip_edges() != "":

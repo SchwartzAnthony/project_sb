@@ -1,12 +1,12 @@
-ID,Match,Opponent,Class,Difficulty,Final,Requires,On Win,On Loss,Description,Notes
-md01,1,Reedbank Wanderers,Lorelei,0,,,,,A gentle opening. Nobody expects much of you yet.,"Difficulty 0 is a fair fight. Class picks who you face - leave it BLANK for a random opponent."
-md02,2,Cinderworks Colts,Brandteufel,0,,,,,The furnace apprentices. All pace and no patience.,
-md03,3,Mistmarsh Athletic,Lorelei,1,,,,,"They sing you to sleep, then score.",Difficulty 1 gives every one of their cards +1 attack and +1 defence.
-md04,4,Emberfall United,Brandteufel,1,,,count:coins+25,,Fourth of eleven. The table starts to matter.,"On Win runs the same words as Progression.csv - unlock:x, count:x+n, flag:x, announce:Text"
-md05,5,Silverbeck Rovers,Lorelei,1,,,,,Halfway. They have not lost at home in two years.,
-md06,6,Ashford Ironworks,Brandteufel,2,,,,,"Big, slow, and very hard to move.",
-md07,7,Nixenhafen Harbour,Lorelei,2,,,,,The harbour side. They play the whole match in your half.,
-md08,8,Glutstadt Rangers,Brandteufel,2,,,,,Four straight wins behind them.,
-md09,9,Wellenberg Academy,Lorelei,2,,,,,Young and quick and completely fearless.,
-md10,10,Hollowforge City,Brandteufel,3,,,announce:Into the final.,,The last league game. Win it and you go in confident.,Difficulty 3 is as high as you should go - cards are 0-5 power.
-final,11,The Kesselgrund Cup Final,,3,true,,unlock:The Cup;announce:The cup is yours.,announce:So close. There is always next season.,"One match. Everything on it.","Final=true ends the season. Class is BLANK here, so the opponent is a surprise."
+ID,Match,Opponent,Team,Class,Difficulty,Final,Requires,On Win,On Loss,Description,Notes
+md01,1,Reedbank Wanderers,reedbank,Lorelei,0,,,,,A gentle opening. Nobody expects much of you yet.,Difficulty 0 is a fair fight. Class picks who you face - leave it BLANK for a random opponent.
+md02,2,Cinderworks Colts,cinderworks,Brandteufel,0,,,,,The furnace apprentices. All pace and no patience.,
+md03,3,Mistmarsh Athletic,mistmarsh,Lorelei,1,,,,,"They sing you to sleep, then score.",Difficulty 1 gives every one of their cards +1 attack and +1 defence.
+md04,4,Emberfall United,emberfall,Brandteufel,1,,,count:coins+25,,Fourth of eleven. The table starts to matter.,"On Win runs the same words as Progression.csv - unlock:x, count:x+n, flag:x, announce:Text"
+md05,5,Silverbeck Rovers,silverbeck,Lorelei,1,,,,,Halfway. They have not lost at home in two years.,
+md06,6,Ashford Ironworks,ashford,Brandteufel,2,,,,,"Big, slow, and very hard to move.",
+md07,7,Nixenhafen Harbour,nixenhafen,Lorelei,2,,,,,The harbour side. They play the whole match in your half.,
+md08,8,Glutstadt Rangers,glutstadt,Brandteufel,2,,,,,Four straight wins behind them.,
+md09,9,Wellenberg Academy,wellenberg,Lorelei,2,,,,,Young and quick and completely fearless.,
+md10,10,Hollowforge City,hollowforge,Brandteufel,3,,,announce:Into the final.,,The last league game. Win it and you go in confident.,Difficulty 3 is as high as you should go - cards are 0-5 power.
+final,11,The Kesselgrund Cup Final,kesselgrund,,3,true,,unlock:The Cup;announce:The cup is yours.,announce:So close. There is always next season.,One match. Everything on it.,"Final=true ends the season. Class is BLANK here, so the opponent is a surprise."

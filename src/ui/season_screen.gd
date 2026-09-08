@@ -373,10 +373,10 @@ func _fill_buttons() -> void:
 				ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT))
 
 	if _home != null:
-		_home.text = "Back to the base"
+		_home.text = "Back"
 		_home.pressed.connect(func() -> void:
 			state.save_to_disk()
-			ScenePaths.go_to(get_tree(), ScenePaths.BASE))
+			ScenePaths.go_back(get_tree(), ScenePaths.BASE))
 
 
 func _quiet(text: String) -> Label:

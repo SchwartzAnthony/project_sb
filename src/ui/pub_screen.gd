@@ -86,7 +86,7 @@ func _build_ui() -> void:
 		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
 	back.pressed.connect(func() -> void:
 		state.save_to_disk()
-		ScenePaths.go_to(get_tree(), ScenePaths.BASE))
+		ScenePaths.go_back(get_tree(), ScenePaths.BASE))
 	header.add_child(back)
 
 	_detail = Label.new()

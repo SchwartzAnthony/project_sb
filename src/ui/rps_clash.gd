@@ -121,6 +121,36 @@ func is_running() -> bool:
 
 
 ## True while the player still has to throw (used by the headless test rig).
+## AUTO plays this whole thing for you.
+##
+## It waits `pause` before each press so you can still see what happened —
+## without that the clash flickers past and the match looks like it skipped a
+## step. It re-checks after the wait, because you may have pressed a button
+## yourself while it was waiting, or turned AUTO back off.
+##
+## `attack_chance` is the odds of choosing ATTACK when you win the throw.
+## 0.5 is a coin. 1.0 always attacks; 0.0 always defends.
+func auto_play(pause: float, attack_chance: float) -> void:
+	while _running:
+		await get_tree().process_frame
+		if not _running:
+			return
+
+		if awaiting_throw():
+			await get_tree().create_timer(pause).timeout
+			if awaiting_throw():
+				var throw_index := randi() % 3
+				print("[auto] Threw %s for you." % ["rock", "paper", "scissors"][throw_index])
+				_on_throw_pressed(throw_index)
+
+		elif awaiting_choice():
+			await get_tree().create_timer(pause).timeout
+			if awaiting_choice():
+				var attack := randf() < attack_chance
+				print("[auto] Chose %s for you." % ("ATTACK" if attack else "DEFEND"))
+				_on_choice_pressed(attack)
+
+
 func awaiting_throw() -> bool:
 	return _running and not _busy and throw_buttons.visible
 

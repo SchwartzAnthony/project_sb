@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dg3pnjg3m16x2"
+
+[deps]
+
+files=["res://data/Teams.Name.translation", "res://data/Teams.Class.translation", "res://data/Teams.Cards.translation", "res://data/Teams.Power.translation", "res://data/Teams.Requires.translation", "res://data/Teams.Description.translation", "res://data/Teams.Notes.translation"]
+
+source_file="res://data/Teams.csv"
+dest_files=["res://data/Teams.Name.translation", "res://data/Teams.Class.translation", "res://data/Teams.Cards.translation", "res://data/Teams.Power.translation", "res://data/Teams.Requires.translation", "res://data/Teams.Description.translation", "res://data/Teams.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

@@ -29,6 +29,7 @@ const SEASON := "res://src/ui/season_screen.tscn"
 const STATS := "res://src/ui/match_stats_screen.tscn"
 const UNLOCKS := "res://src/ui/unlock_board.tscn"
 const INSPECTOR := "res://src/ui/save_inspector.tscn"
+const PAUSE := "res://src/ui/pause_menu.tscn"
 
 
 ## Turn a short word from a CSV into a screen path, so Progression.csv can
@@ -103,14 +104,107 @@ static func resolve(preferred: String) -> String:
 ##
 ## Deferring here fixes it for every caller at once, so no screen has to
 ## remember to do it itself.
-static func go_to(tree: SceneTree, preferred: String) -> void:
+# =============================================================
+#  WHERE YOU CAME FROM  —  the Back button
+#
+#  Every screen used to hard-code where its Back button went, so leaving the
+#  season screen always landed you at the base even if you had arrived from
+#  the main menu. That is the bug.
+#
+#  go_to() now remembers the screen you were on, and go_back() returns to it.
+#  The trail lives on the SceneTree, the same place GameState and
+#  TeamSelection ride, so it survives changing scene.
+#
+#  It is capped at TRAIL_MAX so that wandering around the base for an hour
+#  does not build a list you then have to press Back fifty times to escape.
+# =============================================================
+
+const TRAIL_KEY := "cw_screen_trail"
+const TRAIL_MAX := 12
+
+
+static func _trail(tree: SceneTree) -> Array:
+	if tree == null:
+		return []
+	if not tree.has_meta(TRAIL_KEY):
+		tree.set_meta(TRAIL_KEY, [] as Array)
+	return tree.get_meta(TRAIL_KEY) as Array
+
+
+## Where you are standing right now, or "" if that cannot be told.
+static func here(tree: SceneTree) -> String:
+	if tree == null or tree.current_scene == null:
+		return ""
+	return tree.current_scene.scene_file_path
+
+
+## Change to a screen, remembering the one you are leaving.
+##
+## `remember` is false for a screen you should never come BACK to — a match,
+## for instance. Pressing Back on the season table should not restart the
+## game you just played.
+static func go_to(tree: SceneTree, preferred: String, remember: bool = true) -> void:
 	if tree == null:
 		return
 	var path := resolve(preferred)
 	if not ResourceLoader.exists(path):
 		push_warning("[scenes] Nothing to load at '%s' — staying put." % path)
 		return
+
+	if remember:
+		var from := here(tree)
+		# Not the screen you are already on: pressing a button that reloads
+		# the same page should not fill the trail with copies of it.
+		if from != "" and from != path:
+			var trail := _trail(tree)
+			trail.append(from)
+			while trail.size() > TRAIL_MAX:
+				trail.remove_at(0)
+
+	# The music for the screen you are about to see. One hook here covers
+	# every screen there is and every screen you ever add, which is why no
+	# individual screen has a line of audio code in it.
+	AudioDirector.fire(tree, "screen_opened",
+		{"screen": screen_word(path)}, GameState.fetch(tree))
+
 	tree.change_scene_to_file.call_deferred(path)
+
+
+## `res://src/ui/season_screen.tscn` -> `season`. This is the word you put in
+## Audio.csv's Match column, and the same word `goto:` already understands.
+static func screen_word(path: String) -> String:
+	var word := path.get_file().get_basename().to_lower()
+	for tail in ["_screen", "_menu", "_view", "_board", "_inspector"]:
+		if word.ends_with(tail):
+			word = word.substr(0, word.length() - tail.length())
+	return word
+
+
+## Go back to wherever you came from. `fallback` is used when there is
+## nowhere to go back to — the first screen of a session, usually.
+static func go_back(tree: SceneTree, fallback: String = MAIN_MENU) -> void:
+	if tree == null:
+		return
+	var trail := _trail(tree)
+	while not trail.is_empty():
+		var last := String(trail.pop_back())
+		if last != "" and last != here(tree) and ResourceLoader.exists(last):
+			tree.change_scene_to_file.call_deferred(last)
+			return
+	go_to(tree, fallback, false)
+
+
+## Is there anywhere to go back to? Screens use this to decide whether their
+## button should say "Back" or name the fallback outright.
+static func can_go_back(tree: SceneTree) -> bool:
+	return not _trail(tree).is_empty()
+
+
+## Forget the trail. Called when a match starts, so that Back from the
+## post-match screens never walks you into the match you just finished.
+static func clear_trail(tree: SceneTree) -> void:
+	if tree != null:
+		tree.set_meta(TRAIL_KEY, [] as Array)
 
 
 ## Breadth-first walk of res:// looking for one file name.

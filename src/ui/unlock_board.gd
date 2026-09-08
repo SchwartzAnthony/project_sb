@@ -58,7 +58,7 @@ func _ready() -> void:
 
 	if _home != null:
 		_home.pressed.connect(func() -> void:
-			ScenePaths.go_to(get_tree(), ScenePaths.BASE))
+			ScenePaths.go_back(get_tree(), ScenePaths.BASE))
 
 	_rebuild()
 

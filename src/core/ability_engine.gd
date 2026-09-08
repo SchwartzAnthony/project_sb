@@ -50,6 +50,17 @@ var _shot_bonus := {false: 0, true: 0}   # side_is_enemy -> extra shot power
 ##   side_bonus[true]  = every enemy card is this much stronger
 ##   side_bonus[false] = every one of yours is
 var side_bonus := {false: 0, true: 0}
+
+## THE CEILING. No card's power may ever go past this, whatever is added to
+## it. Read from `max_card_power` in Tuning.csv; 5 by default, because your
+## tiers are 0-2, 1-3, 2-4 and 3-5.
+##
+## This is the fix for "the enemy had a 6-power unit". A fixture's Difficulty
+## column adds a flat bonus to every enemy card, and a Difficulty of 1 on a
+## 5-power Tier IV Star produced a 6. Difficulty is still useful — it lifts
+## the weak cards in a squad — but it can no longer break the top of the
+## scale, so a card you see is always a number you recognise.
+var max_power: int = 5
 var _stamina_pending: Array = []         # [{"enemy_side": bool, "delta": int}]
 
 
@@ -100,7 +111,7 @@ func attack_power(card: PlayerData, is_enemy: bool) -> int:
 	for b in _buffs:
 		if b.matches(card, is_enemy):
 			total += b.attack
-	return maxi(0, total)
+	return clampi(total, 0, max_power)
 
 
 func defense_power(card: PlayerData, is_enemy: bool) -> int:
@@ -110,7 +121,7 @@ func defense_power(card: PlayerData, is_enemy: bool) -> int:
 	for b in _buffs:
 		if b.matches(card, is_enemy):
 			total += b.defense
-	return maxi(0, total)
+	return clampi(total, 0, max_power)
 
 
 func shot_bonus(side_is_enemy: bool) -> int:
