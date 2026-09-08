@@ -77,7 +77,7 @@ static func reload() -> void:
 
 func load_all() -> void:
 	players.clear()
-	goalies.clear()
+	goalie_data.clear()
 	abilities.clear()
 	anims.clear()
 	tuning.clear()

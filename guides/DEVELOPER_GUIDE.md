@@ -89,22 +89,27 @@ Your current cards already all sit inside their bands.
 
 ## "There are no abilities active?"
 
-**There are — on four cards.** In
-`example_unit_csv_with_ability_columns.csv`:
+**You are right — there are none, and I was wrong to suggest otherwise.**
 
-| Card | Attack ability | Defend ability |
-|---|---|---|
-| Coalblaze Brandteufel | `BRAND_RALLY` | — |
-| Fireline Brandteufel | `BRAND_MASK_ATK` | `LORE_VEIL` |
-| Hexflame Brandteufel | `BRAND_SCORCH` | — |
-| Sigilburn Brandteufel | `LORE_SURGE` | — |
+I checked the repo. Both unit files, `Units Set FO1 - Brandteufel.csv` and
+`Units Set FO1 - Lorelei.csv`, have **every** Attack Ability and Defend
+Ability column blank. All 24 cards. So every duel is decided on raw power
+alone, and the cut-away correctly says **"no ability"** on both sides.
 
-**That file is an example I shipped.** If it is sitting in `res://data/`,
-those twelve Brandteufel cards are in your game and four of them have
-abilities. If you did not intend that, move it out of `data/`.
+That is the design working, not a fault. Abilities are meant to come from
+brews. (An earlier note of mine named four cards carrying abilities — those
+are in `example_unit_csv_with_ability_columns.csv`, which is **not** in your
+`data/` folder. Ignore that note.)
 
-The duel cut-away already shows an ability when there is one and says
-**"no ability"** when there is not — so what you saw was correct.
+**Also from the repo: all 24 of your cards already sit exactly inside their
+tier bands** — 0/1/2, 1/2/3, 2/3/4, 3/4/5, in both classes. So the new
+clamping will not change a single number. It is purely a safety net for the
+next card you add.
+
+And this confirms the Star bug precisely: your Lorelei Stars are all Tier IV
+(3, 4 and 5 power) while your Brandteufel Stars are Tier III. A Lorelei
+opponent therefore fielded a 5-power Tier IV Star three rounds running while
+your Tier IV rotated through 3, 4 and 5. Exactly what you saw.
 
 ## "The cards don't show attack power or abilities"
 
@@ -114,10 +119,25 @@ plain English, and what the tier's band is. Move away and it goes.
 
 Switch: `card_hover_stats` in `Tuning.csv`.
 
+## The parse error: "Identifier goalies not declared"
+
+My fault, in the same delivery. Rewriting `load_all()` to read the tier bands
+first, I wrote `goalies.clear()` — but the variable in that class is called
+`goalie_data`. One wrong word, and the whole script fails to parse.
+
+Fixed. And the checking script now catches it: any plain name used as
+`something.method()` that is not declared anywhere in the file is reported
+before you ever press F5. Proven by putting the bug back and watching it get
+named.
+
 **Files in this delivery:** `card_database.gd`, `main_scene.gd`,
 `card_stats_panel.gd` (new), `TierPowers.csv` (new), `Tuning.csv`.
 
-**`TierPowers.csv` is a new CSV — do the import step in `SEARCH-TROUBLE`.**
+**`TierPowers.csv` in your repo is still imported as a translation** — I can
+see the five `TierPowers.*.translation` files sitting next to it. Until you
+do the import step in `SEARCH-TROUBLE`, the bands never load and no checking
+happens. Every other CSV in your `data/` folder is already set to
+`Keep File (No Import)` correctly.
 
 ---
 
