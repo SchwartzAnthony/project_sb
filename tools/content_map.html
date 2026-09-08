@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Content Map</title>
+<style>
+  :root{
+    --bg:#16181d; --panel:#1e2129; --edge:#2c303a; --edge2:#3b4150;
+    --text:#e6e8ee; --dim:#8d94a4; --accent:#fac254;
+    --unlock:#fac254; --building:#63c98a; --talent:#7ab6f0;
+    --brew:#e07ad0; --fixture:#e8905c; --counter:#8d94a4; --flag:#c3a0f0;
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  header{padding:13px 20px;border-bottom:1px solid var(--edge);
+         display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  h1{font-size:17px;margin:0;font-weight:600}
+  h1 span{color:var(--accent)}
+  .grow{flex:1}
+  button{font:inherit;padding:7px 13px;border-radius:7px;cursor:pointer;
+         background:var(--panel);color:var(--text);border:1px solid var(--edge2)}
+  button:hover{background:var(--edge)}
+  button.primary{background:var(--accent);color:#20232b;border-color:var(--accent);font-weight:600}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  main{padding:16px 20px 60px}
+  .drop{border:2px dashed var(--edge2);border-radius:12px;padding:48px 20px;
+        text-align:center;color:var(--dim);margin:36px auto;max-width:760px}
+  .drop.over{border-color:var(--accent);color:var(--accent);background:#1c1f27}
+  .drop b{color:var(--text);display:block;font-size:17px;margin-bottom:8px}
+  .drop code{background:#2a2f3b;padding:1px 6px;border-radius:4px;color:var(--accent)}
+  .note{background:var(--panel);border:1px solid var(--edge);border-left:3px solid var(--accent);
+        border-radius:8px;padding:11px 15px;margin-bottom:14px;color:var(--dim);font-size:13px}
+  .note b{color:var(--text)}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--dim)}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;
+            vertical-align:-1px}
+  .wrap{border:1px solid var(--edge);border-radius:10px;background:var(--panel);overflow:auto}
+  svg{display:block}
+  .msgs{margin-top:14px}
+  .msg{padding:8px 12px;border-radius:7px;margin-bottom:6px;font-size:13px;
+       background:var(--panel);border:1px solid var(--edge);border-left:3px solid #f0776b}
+  .msg.good{border-left-color:#63c98a;color:#63c98a}
+  .files{color:var(--dim);font-size:12px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Content <span>Map</span></h1>
+  <span class="files" id="loaded"></span>
+  <div class="grow"></div>
+  <button id="loneBtn" disabled>Show unused counters</button>
+  <button id="svgBtn" disabled>Save SVG</button>
+  <button class="primary" id="pngBtn" disabled>Save PNG</button>
+  <button id="openBtn">Open…</button>
+  <input type="file" id="file" accept=".csv" multiple hidden>
+</header>
+
+<main>
+  <div class="drop" id="drop">
+    <b>Drop your CSV files here</b>
+    Select everything in <code>res://data/</code> at once and drag it in.<br>
+    It reads <code>Progression.csv</code>, <code>Buildings.csv</code>,
+    <code>Talents.csv</code>, <code>Brews.csv</code>, <code>Season.csv</code>,
+    <code>Dialogue.csv</code> and <code>Stats.csv</code>.<br><br>
+    Nothing leaves this page. There is no server; it is one file on your computer.
+  </div>
+
+  <div id="work" hidden>
+    <div class="note" id="note"></div>
+    <div class="legend" id="legend"></div>
+    <div class="wrap"><svg id="map"></svg></div>
+    <div class="msgs" id="msgs"></div>
+  </div>
+</main>
+
+<script>
+// =====================================================================
+//  CONTENT MAP
+//
+//  One picture of what unlocks what. It reads the same CSVs the game does,
+//  works out which requirement feeds which reward, and lays the whole web
+//  out left to right: things you can do at the start on the left, things
+//  that depend on them further right.
+//
+//  It also marks anything UNREACHABLE — a requirement nothing in the game
+//  ever satisfies. That is the failure the startup report warns about, and
+//  this is where you can see it in context.
+// =====================================================================
+
+const norm = s => String(s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const $ = id => document.getElementById(id);
+
+// ---------------------------------------------------------------- parsing
+function parseCSV(text){
+  text = text.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
+  const rows = []; let row = [], cell = "", quoted = false;
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (quoted){
+      if (c === '"'){ if (text[i+1] === '"'){ cell += '"'; i++; } else quoted = false; }
+      else cell += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ","){ row.push(cell); cell = ""; }
+    else if (c === "\n"){ row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += c;
+  }
+  if (cell !== "" || row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(v => String(v).trim() !== ""));
+}
+
+function asObjects(text){
+  const raw = parseCSV(text);
+  if (raw.length < 2) return [];
+  const head = raw[0].map(norm);
+  return raw.slice(1).map(r => {
+    const o = {};
+    head.forEach((h, i) => { if (h) o[h] = (r[i] ?? "").trim(); });
+    return o;
+  });
+}
+
+// Files are identified by their COLUMNS, exactly as the game does it, so a
+// renamed file still works.
+function kindOf(cols){
+  const has = (...names) => names.every(n => cols.includes(n));
+  if (has("when", "do"))         return "progression";
+  if (has("match", "opponent"))  return "season";
+  if (has("tree", "effects"))    return "talents";
+  if (has("id", "becomes"))      return "brews";
+  if (has("action", "name"))     return "buildings";
+  if (has("story", "name"))      return "visitors";
+  if (has("scene", "text"))      return "dialogue";
+  if (has("counter", "event"))   return "stats";
+  return null;
+}
+
+// ------------------------------------------------------------- the grammar
+const terms = s => String(s || "").replace(/ and /g, ";").split(";")
+                     .map(t => t.trim()).filter(Boolean);
+
+function parseTerm(t){
+  let negate = false;
+  if (t.startsWith("!")){ negate = true; t = t.slice(1).trim(); }
+  const at = t.indexOf(":");
+  if (at <= 0) return null;
+  return { kind: t.slice(0, at).trim().toLowerCase(),
+           rest: t.slice(at + 1).trim(), negate };
+}
+
+/** The node id a condition term points at, or null if it is not a link. */
+function needId(term){
+  const p = parseTerm(term);
+  if (!p || p.negate) return null;
+  if (p.kind === "unlocked") return "unlock:" + norm(p.rest);
+  if (p.kind === "flag") return "flag:" + norm(p.rest);
+  if (p.kind === "count"){
+    const m = p.rest.match(/^([^<>=!]+)/);
+    return m ? "counter:" + norm(m[1]) : null;
+  }
+  return null;
+}
+
+/** The node ids an effect term produces. */
+function givesIds(term){
+  const p = parseTerm(term);
+  if (!p) return [];
+  if (p.kind === "unlock") return ["unlock:" + norm(p.rest)];
+  if (p.kind === "flag") return ["flag:" + norm(p.rest)];
+  if (p.kind === "count"){
+    const m = p.rest.match(/^([^+\-=]+)/);
+    return m ? ["counter:" + norm(m[1])] : [];
+  }
+  return [];
+}
+
+/**
+ * Does a concrete counter name match a Stats.csv pattern containing {facts}?
+ * `goals_with_brew_fire` matches `goals_with_brew_{brew}`.
+ *
+ * The pattern is split on the braces BEFORE anything is squashed — squash it
+ * first and the braces vanish, fusing the token into the text either side of
+ * it so it matches nothing ever again. (Same rule, same reason, as
+ * stats_rules.gd in the game.)
+ */
+function matchesPattern(nameKey, pattern){
+  const literals = [];
+  let rest = pattern;
+  while (true){
+    const open = rest.indexOf("{");
+    if (open < 0){ literals.push(rest); break; }
+    const close = rest.indexOf("}", open);
+    if (close < 0){ literals.push(rest); break; }
+    literals.push(rest.slice(0, open));
+    rest = rest.slice(close + 1);
+  }
+  if (literals.length === 1) return nameKey === norm(literals[0]);
+
+  let at = 0;
+  for (let i = 0; i < literals.length; i++){
+    const piece = norm(literals[i]);
+    if (!piece) continue;
+    if (i === 0){
+      if (!nameKey.startsWith(piece)) return false;
+      at = piece.length;
+      continue;
+    }
+    const found = nameKey.indexOf(piece, at);
+    if (found < 0) return false;
+    at = found + piece.length;
+  }
+  if (pattern.endsWith("}")) return nameKey.length > at;
+  return true;
+}
+
+// ------------------------------------------------------------------ state
+let showLonely = false;   // include counters that gate nothing?
+const files = {};      // kind -> rows, merged from every file of that kind
+const bySource = {};   // "kind|filename" -> the rows that file contributed
+let nodes = new Map(); // id -> node
+let links = [];        // {from, to}
+
+function addNode(id, label, type, where){
+  if (!nodes.has(id))
+    nodes.set(id, { id, label, type, where, filled: false, needed: false });
+  const n = nodes.get(id);
+  if (label && (!n.label || n.label.length < label.length)) n.label = label;
+  if (where && !n.where) n.where = where;
+  return n;
+}
+
+function link(from, to){
+  if (from && to && from !== to) links.push({ from, to });
+}
+
+// ------------------------------------------------------------------ build
+function build(){
+  nodes = new Map(); links = [];
+
+  const P = files.progression || [];
+  const B = files.buildings || [];
+  const T = files.talents || [];
+  const W = files.brews || [];
+  const S = files.season || [];
+  const D = files.dialogue || [];
+  const ST = files.stats || [];
+
+  // Counters that Stats.csv fills in are where every chain begins.
+  for (const r of ST){
+    const id = "counter:" + norm(r.counter);
+    const n = addNode(id, r.counter, "counter", "Stats.csv");
+    n.filled = true;
+    n.event = r.event;
+  }
+
+  // A few things the GAME fills in code rather than through a CSV. Without
+  // this the map would call them unreachable, which would be a lie and would
+  // hide the real problems among false ones.
+  for (const [name, kind] of [
+        ["season_match", "counter"], ["season_wins", "counter"],
+        ["season_draws", "counter"], ["season_losses", "counter"],
+        ["season_points", "counter"], ["season_goals_for", "counter"],
+        ["season_goals_against", "counter"], ["season_number", "counter"],
+        ["season_over", "flag"], ["season_champion", "flag"],
+        ["auto_pick", "flag"]]){
+    const n = addNode(kind + ":" + norm(name), name, kind, "kept by the game");
+    n.filled = true;
+    n.engine = true;
+  }
+
+  // A source is anything with a condition and an effect.
+  const sources = [];
+  for (const r of P)
+    sources.push({ label: r.id, type: "rule", where: "Progression.csv",
+                   req: r.requires, eff: r.do });
+  for (const r of T)
+    sources.push({ label: r.name || r.id, type: "talent", where: "Talents.csv",
+                   req: [r.requires, r.parent ? "unlocked:" + r.parent : "",
+                         Number(r.cost) > 0 ? "count:talent_points>=" + r.cost : ""]
+                        .filter(Boolean).join(";"),
+                   eff: [r.effects, "unlock:" + r.id].filter(Boolean).join(";") });
+  for (const r of B)
+    sources.push({ label: r.name || r.id, type: "building", where: "Buildings.csv",
+                   req: r.requires, eff: r.action });
+  for (const r of W)
+    sources.push({ label: r.name || r.id, type: "brew", where: "Brews.csv",
+                   req: r.requires, eff: "" });
+  for (const r of S)
+    sources.push({ label: "Match " + r.match + " " + (r.opponent || ""),
+                   type: "fixture", where: "Season.csv",
+                   req: "count:season_match>=" + (r.match || 1),
+                   eff: [r.onwin, r.onloss].filter(Boolean).join(";") });
+  for (const r of D)
+    sources.push({ label: (r.scene || "story") + " / " + (r.id || ""),
+                   type: "rule", where: "Dialogue.csv",
+                   req: r.requires, eff: r.effects });
+
+  for (const s of sources){
+    // Buildings, talents, brews and fixtures are things in their own right,
+    // so they get a node. A bare rule is only a piece of wiring, so it does
+    // not — its requirement is linked straight to what it grants, which is
+    // what makes the picture readable.
+    let hub = null;
+    if (s.type !== "rule"){
+      hub = "thing:" + s.type + ":" + norm(s.label);
+      addNode(hub, s.label, s.type, s.where);
+    }
+
+    const needs = terms(s.req).map(needId).filter(Boolean);
+    const gives = terms(s.eff).flatMap(givesIds);
+
+    for (const nid of needs){
+      addNode(nid, nid.split(":")[1], nid.split(":")[0], "");
+      nodes.get(nid).needed = true;
+    }
+    for (const gid of gives){
+      addNode(gid, gid.split(":")[1], gid.split(":")[0], s.where);
+      nodes.get(gid).filled = true;
+    }
+
+    if (hub){
+      for (const nid of needs) link(nid, hub);
+      for (const gid of gives) link(hub, gid);
+    } else {
+      for (const nid of needs) for (const gid of gives) link(nid, gid);
+      // A rule with a requirement and nothing to grant is still worth seeing.
+      if (!gives.length && needs.length && s.label){
+        const only = "thing:rule:" + norm(s.label);
+        addNode(only, s.label, "rule", s.where);
+        for (const nid of needs) link(nid, only);
+      }
+    }
+  }
+
+  // Tidy the labels the ids were built from.
+  for (const n of nodes.values()){
+    if (n.type === "unlock" || n.type === "flag" || n.type === "counter"){
+      const pretty = prettyName(n.id);
+      if (pretty) n.label = pretty;
+    }
+  }
+
+  // A counter written as a pattern — goals_with_brew_{brew} — fills every
+  // concrete counter that matches it. Without this, `goals_with_brew_fire`
+  // looks like a counter nothing ever writes to, which is exactly the false
+  // alarm that makes a checking tool worth ignoring.
+  const patterns = (ST || []).map(r => r.counter).filter(c => c && c.includes("{"));
+  for (const n of nodes.values()){
+    if (n.type !== "counter" || n.filled) continue;
+    const bare = n.id.slice("counter:".length);
+    if (patterns.some(p => matchesPattern(bare, p))) n.filled = true;
+  }
+
+  // Drop links to nodes that never made it in.
+  links = links.filter(l => nodes.has(l.from) && nodes.has(l.to));
+  // ...and de-duplicate.
+  const seen = new Set();
+  links = links.filter(l => {
+    const k = l.from + ">" + l.to;
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  });
+
+  // LEAVE OUT ANYTHING THAT CONNECTS TO NOTHING.
+  //
+  // Most counters in Stats.csv are there to be READ on the post-match screen,
+  // not to gate anything: goals_by_{card}, saves_by_{card}, duels_lost. On a
+  // map of what-unlocks-what they are sixty boxes in a column with no arrows,
+  // and they push the actual web off the side of the picture.
+  //
+  // The button in the header puts them back when you want the full inventory.
+  if (!showLonely){
+    const connected = new Set();
+    for (const l of links){ connected.add(l.from); connected.add(l.to); }
+    for (const id of [...nodes.keys()])
+      if (!connected.has(id)) nodes.delete(id);
+  }
+}
+
+/** Recover a readable name for a squashed id by looking through the CSVs. */
+const spellings = new Map();
+function rememberSpelling(text){
+  const k = norm(text);
+  if (k && !spellings.has(k)) spellings.set(k, String(text).trim());
+}
+function prettyName(id){
+  return spellings.get(id.split(":").slice(1).join(":")) || null;
+}
+
+function collectSpellings(){
+  const scan = (rows, cols) => {
+    for (const r of rows || []) for (const c of cols){
+      for (const t of terms(r[c] || "")){
+        const p = parseTerm(t);
+        if (!p) continue;
+        if (["unlock", "unlocked", "flag"].includes(p.kind)) rememberSpelling(p.rest);
+        if (p.kind === "count"){
+          const m = p.rest.match(/^([^<>=!+\-]+)/);
+          if (m) rememberSpelling(m[1]);
+        }
+      }
+    }
+  };
+  scan(files.progression, ["requires", "do"]);
+  scan(files.buildings, ["requires", "action"]);
+  scan(files.talents, ["requires", "effects"]);
+  scan(files.brews, ["requires"]);
+  scan(files.season, ["requires", "onwin", "onloss"]);
+  scan(files.dialogue, ["requires", "effects"]);
+  for (const r of files.stats || []) rememberSpelling(r.counter);
+  for (const r of files.talents || []) rememberSpelling(r.id);
+}
+
+// ------------------------------------------------------------- layout
+/** Longest path from a root: how far right a node sits. */
+function layer(){
+  const out = new Map();     // id -> [ids it points at]
+  const inCount = new Map();
+  for (const id of nodes.keys()){ out.set(id, []); inCount.set(id, 0); }
+  for (const l of links){ out.get(l.from).push(l.to); inCount.set(l.to, inCount.get(l.to) + 1); }
+
+  const depth = new Map();
+  for (const id of nodes.keys()) depth.set(id, 0);
+
+  // Kahn's algorithm. Anything still with incoming links at the end is in a
+  // cycle — two rows requiring each other — and is parked one past the rest
+  // rather than looping forever.
+  const queue = [...nodes.keys()].filter(id => inCount.get(id) === 0);
+  const settled = new Set();
+  while (queue.length){
+    const id = queue.shift();
+    settled.add(id);
+    for (const next of out.get(id)){
+      depth.set(next, Math.max(depth.get(next), depth.get(id) + 1));
+      inCount.set(next, inCount.get(next) - 1);
+      if (inCount.get(next) === 0) queue.push(next);
+    }
+  }
+  const cyclic = [...nodes.keys()].filter(id => !settled.has(id));
+  const deepest = Math.max(0, ...[...depth.values()]);
+  for (const id of cyclic) depth.set(id, deepest + 1);
+  return { depth, cyclic };
+}
+
+const COLOURS = {
+  unlock: "#fac254", building: "#63c98a", talent: "#7ab6f0",
+  brew: "#e07ad0", fixture: "#e8905c", counter: "#8d94a4",
+  flag: "#c3a0f0", rule: "#5a6273",
+};
+const NODE_W = 190, NODE_H = 34, GAP_X = 96, GAP_Y = 14, PAD = 30;
+
+function draw(){
+  const { depth, cyclic } = layer();
+
+  const columns = new Map();
+  for (const [id, d] of depth){
+    if (!columns.has(d)) columns.set(d, []);
+    columns.get(d).push(id);
+  }
+  const order = [...columns.keys()].sort((a, b) => a - b);
+
+  // Start from a steady alphabetical order so the picture is the same every
+  // time you open it, then untangle it below.
+  for (const d of order)
+    columns.get(d).sort((a, b) => (nodes.get(a).type + nodes.get(a).label)
+                       .localeCompare(nodes.get(b).type + nodes.get(b).label));
+
+  // UNTANGLING: put each box next to the average height of the boxes it is
+  // joined to, a few times, alternating left-to-right and back. It is the
+  // standard trick for layered graphs and it turns a cat's cradle into
+  // something you can follow with your eye. It is not perfect and does not
+  // need to be — it only has to be readable.
+  const rowOf = new Map();
+  const reindex = () => {
+    for (const d of order) columns.get(d).forEach((id, i) => rowOf.set(id, i));
+  };
+  reindex();
+
+  const inTo = new Map(), outOf = new Map();
+  for (const id of nodes.keys()){ inTo.set(id, []); outOf.set(id, []); }
+  for (const l of links){ outOf.get(l.from).push(l.to); inTo.get(l.to).push(l.from); }
+
+  const median = list => {
+    if (!list.length) return null;
+    const rows = list.map(i => rowOf.get(i)).filter(v => v !== undefined).sort((a, b) => a - b);
+    if (!rows.length) return null;
+    return rows[(rows.length - 1) >> 1];
+  };
+
+  for (let pass = 0; pass < 6; pass++){
+    const sweep = pass % 2 ? [...order].reverse() : order;
+    for (const d of sweep){
+      const col = columns.get(d);
+      const weights = new Map();
+      for (const id of col){
+        const from = median(pass % 2 ? outOf.get(id) : inTo.get(id));
+        weights.set(id, from === null ? rowOf.get(id) : from);
+      }
+      col.sort((a, b) => weights.get(a) - weights.get(b) || rowOf.get(a) - rowOf.get(b));
+      reindex();
+    }
+  }
+
+  const place = new Map();
+  let widest = 0;
+  for (const d of order) widest = Math.max(widest, columns.get(d).length);
+
+  // Each column is centred rather than stacked from the top, so a short
+  // column sits opposite the middle of a long one and the arrows stay short.
+  const fullHeight = widest * (NODE_H + GAP_Y) - GAP_Y;
+  for (const d of order){
+    const col = columns.get(d);
+    const colHeight = col.length * (NODE_H + GAP_Y) - GAP_Y;
+    const top = PAD + (fullHeight - colHeight) / 2;
+    col.forEach((id, i) => place.set(id, {
+      x: PAD + d * (NODE_W + GAP_X),
+      y: top + i * (NODE_H + GAP_Y),
+    }));
+  }
+
+  const w = PAD * 2 + order.length * (NODE_W + GAP_X) - GAP_X;
+  const h = PAD * 2 + fullHeight;
+
+  const svg = $("map");
+  svg.setAttribute("width", w);
+  svg.setAttribute("height", Math.max(h, 240));
+  svg.setAttribute("viewBox", `0 0 ${w} ${Math.max(h, 240)}`);
+  svg.innerHTML = "";
+
+  const ns = "http://www.w3.org/2000/svg";
+  const el = (t, attrs) => {
+    const n = document.createElementNS(ns, t);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    return n;
+  };
+
+  const defs = el("defs", {});
+  const marker = el("marker", { id: "arrow", viewBox: "0 0 10 10", refX: "9",
+    refY: "5", markerWidth: "6", markerHeight: "6", orient: "auto-start-reverse" });
+  marker.appendChild(el("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: "#4c5361" }));
+  defs.appendChild(marker);
+  svg.appendChild(defs);
+
+  svg.appendChild(el("rect", { x: 0, y: 0, width: w, height: Math.max(h, 240),
+    fill: "#1e2129" }));
+
+  for (const l of links){
+    const a = place.get(l.from), b = place.get(l.to);
+    if (!a || !b) continue;
+    const x1 = a.x + NODE_W, y1 = a.y + NODE_H / 2;
+    const x2 = b.x, y2 = b.y + NODE_H / 2;
+    const mid = (x1 + x2) / 2;
+    svg.appendChild(el("path", {
+      d: `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`,
+      fill: "none", stroke: "#4c5361", "stroke-width": 1.6,
+      "marker-end": "url(#arrow)",
+    }));
+  }
+
+  for (const [id, p] of place){
+    const n = nodes.get(id);
+    const colour = COLOURS[n.type] || "#5a6273";
+    const unreachable = n.needed && !n.filled;
+
+    const g = el("g", {});
+    g.appendChild(el("rect", {
+      x: p.x, y: p.y, width: NODE_W, height: NODE_H, rx: 7,
+      fill: unreachable ? "#3a2220" : "#252932",
+      stroke: unreachable ? "#f0776b" : colour,
+      "stroke-width": unreachable ? 2 : 1.5,
+      "stroke-dasharray": cyclic.includes(id) ? "5 3" : "",
+    }));
+    g.appendChild(el("rect", {
+      x: p.x, y: p.y, width: 5, height: NODE_H, rx: 2, fill: colour }));
+
+    const label = el("text", {
+      x: p.x + 13, y: p.y + 15, fill: "#e6e8ee",
+      "font-size": 12, "font-family": "system-ui, sans-serif" });
+    label.textContent = trim(n.label, 24);
+    g.appendChild(label);
+
+    const sub = el("text", {
+      x: p.x + 13, y: p.y + 27, fill: unreachable ? "#f0776b" : "#8d94a4",
+      "font-size": 10, "font-family": "system-ui, sans-serif" });
+    sub.textContent = unreachable
+      ? "NOTHING EVER FILLS THIS"
+      : (n.type + (n.where ? "  ·  " + n.where : ""));
+    g.appendChild(sub);
+
+    const title = el("title", {});
+    title.textContent = `${n.label}\n${n.type}${n.where ? "  (" + n.where + ")" : ""}`;
+    g.appendChild(title);
+    svg.appendChild(g);
+  }
+
+  report(cyclic, order.length);
+}
+
+const trim = (s, n) => (s = String(s || ""), s.length > n ? s.slice(0, n - 1) + "…" : s);
+
+function report(cyclic, columnCount){
+  const box = $("msgs"); box.innerHTML = "";
+  const bad = [...nodes.values()].filter(n => n.needed && !n.filled);
+
+  const add = (text, good) => {
+    const d = document.createElement("div");
+    d.className = "msg" + (good ? " good" : "");
+    d.textContent = text;
+    box.appendChild(d);
+  };
+
+  for (const n of bad)
+    add(`"${n.label}" is required somewhere but NOTHING in your CSVs ever grants or fills it — everything to the right of it can never be reached.`);
+  for (const id of cyclic)
+    add(`"${nodes.get(id).label}" is part of a loop: two rows require each other, so neither can ever happen.`);
+  if (!bad.length && !cyclic.length)
+    add("Every requirement in the game is filled by something. Nothing is stranded.", true);
+
+  $("note").innerHTML = `<b>${nodes.size} things, ${links.length} links, `
+    + `${columnCount} steps deep.</b> Arrows run left to right: the thing on the `
+    + `left is what the thing on the right is waiting for. Red means nothing in `
+    + `your CSVs ever provides it. Hover a box for its file.`
+    + (showLonely ? " Counters that gate nothing are included."
+                  : " Counters that gate nothing are left out - the button in the"
+                    + " corner puts them back.");
+
+  $("legend").innerHTML = Object.entries(COLOURS)
+    .filter(([k]) => [...nodes.values()].some(n => n.type === k))
+    .map(([k, c]) => `<span><i style="background:${c}"></i>${k}</span>`).join("");
+}
+
+// ------------------------------------------------------------------ files
+function load(name, text){
+  const raw = parseCSV(text);
+  if (raw.length < 2) return;
+  const kind = kindOf(raw[0].map(norm));
+  if (!kind) return;
+
+  // MERGED, not replaced. The game reads every CSV in res://data/, so two
+  // files with the same columns both count — splitting your progression rows
+  // across Progression.csv and Chapter2.csv is a perfectly good way to work,
+  // and the map has to see both. Re-dropping the same file replaces only the
+  // rows that file contributed.
+  bySource[kind + "|" + name] = asObjects(text);
+  files[kind] = [];
+  for (const key of Object.keys(bySource))
+    if (key.startsWith(kind + "|")) files[kind].push(...bySource[key]);
+
+  $("loaded").textContent = Object.keys(files).sort().join(" · ");
+  refresh();
+}
+
+function refresh(){
+  if (!Object.keys(files).length) return;
+  $("drop").hidden = true;
+  $("work").hidden = false;
+  $("svgBtn").disabled = false;
+  $("pngBtn").disabled = false;
+  $("loneBtn").disabled = false;
+  collectSpellings();
+  build();
+  draw();
+}
+
+$("loneBtn").onclick = () => {
+  showLonely = !showLonely;
+  $("loneBtn").textContent = showLonely
+    ? "Hide unused counters" : "Show unused counters";
+  refresh();
+};
+
+$("openBtn").onclick = () => $("file").click();
+$("file").onchange = e => {
+  for (const f of e.target.files) f.text().then(t => load(f.name, t));
+  e.target.value = "";
+};
+
+const drop = $("drop");
+["dragenter","dragover"].forEach(k => document.addEventListener(k, e => {
+  e.preventDefault(); drop.classList.add("over");
+}));
+["dragleave","drop"].forEach(k => document.addEventListener(k, e => {
+  e.preventDefault(); if (k === "dragleave" && e.relatedTarget) return;
+  drop.classList.remove("over");
+}));
+document.addEventListener("drop", e => {
+  for (const f of e.dataTransfer.files)
+    if (f.name.toLowerCase().endsWith(".csv")) f.text().then(t => load(f.name, t));
+});
+
+// ------------------------------------------------------------------ saving
+function svgText(){
+  const svg = $("map").cloneNode(true);
+  svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + svg.outerHTML;
+}
+
+function save(blob, name){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+$("svgBtn").onclick = () =>
+  save(new Blob([svgText()], { type: "image/svg+xml" }), "content_map.svg");
+
+$("pngBtn").onclick = () => {
+  const svg = $("map");
+  const scale = 2;                    // readable when printed or pasted
+  const w = Number(svg.getAttribute("width"));
+  const h = Number(svg.getAttribute("height"));
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = w * scale; canvas.height = h * scale;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#1e2129";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(b => save(b, "content_map.png"));
+  };
+  img.src = "data:image/svg+xml;base64," +
+    btoa(unescape(encodeURIComponent(svgText())));
+};
+</script>
+</body>
+</html>

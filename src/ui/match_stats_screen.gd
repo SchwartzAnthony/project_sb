@@ -93,7 +93,19 @@ func _grab(node_name: String) -> Node:
 	return found
 
 
-func _set(label: Label, text: String) -> void:
+## Put text into one of the scene's labels, if that label still exists.
+##
+## It is called _put and NOT _set. `_set` is one of Godot's own built-in
+## methods — every Object has `_set(StringName, Variant) -> bool` — so a
+## function of that name with different arguments does not override it, it
+## COLLIDES with it, and the whole script refuses to compile:
+##
+##   "The function signature doesn't match the parent."
+##
+## The same trap is waiting on _get, _draw, _init, _notification and
+## _to_string. If you add a helper of your own, do not start its name with an
+## underscore followed by a common word.
+func _put(label: Label, text: String) -> void:
 	if label != null:
 		label.text = text
 
@@ -114,20 +126,20 @@ func _fill_header() -> void:
 			word = "LOST"
 		else:
 			word = "DRAWN"
-	_set(_title, word)
+	_put(_title, word)
 
 	if _title != null and scored < conceded:
 		_title.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
 
 	if _summary.is_empty():
-		_set(_score, "A friendly. Nothing was recorded.")
+		_put(_score, "A friendly. Nothing was recorded.")
 		return
 
 	var fixture: Dictionary = _summary.get("fixture", {})
 	var opponent := "a friendly"
 	if not fixture.is_empty():
 		opponent = String(fixture.get("opponent", "a friendly"))
-	_set(_score, "Your side  %d  -  %d  %s" % [scored, conceded, opponent])
+	_put(_score, "Your side  %d  -  %d  %s" % [scored, conceded, opponent])
 
 
 # =============================================================
@@ -171,7 +183,7 @@ func _fill_stats() -> void:
 	for group in order:
 		_stats_list.add_child(_group_panel(group, by_group[group]))
 
-	_set(_stats_heading, "THIS MATCH  (%d number%s moved)" % [
+	_put(_stats_heading, "THIS MATCH  (%d number%s moved)" % [
 		_report.counter_gains().size(),
 		"" if _report.counter_gains().size() == 1 else "s"])
 
@@ -277,7 +289,7 @@ func _fill_progress() -> void:
 	if shown == 0:
 		_progress_list.add_child(_quiet("Nothing on the way yet. Requirements you have started will show up here."))
 
-	_set(_progress_heading, "WHAT YOU ARE CLOSE TO  (%d of %d earned)" % [
+	_put(_progress_heading, "WHAT YOU ARE CLOSE TO  (%d of %d earned)" % [
 		progress.done_count(), progress.entries.size()])
 
 

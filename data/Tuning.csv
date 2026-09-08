@@ -124,3 +124,5 @@ hud_left_margin,16,Where the speed buttons sit from the left edge
 hud_top_margin,14,Where the speed buttons sit from the top edge
 goal_kick_tier,III,"Which tier the keeper aims a goal kick at. IV was the far end of the pitch and felt like a punt. Blank = whoever is furthest forward"
 progress_bars_max,6,How many progress bars the post-match screen shows before it stops
+show_dev_tools,true,"Shows the Dev button at the base, which opens the save inspector. Set to false before showing the game to anyone"
+inspector_jump_buttons,14,How many "jump straight to" buttons the save inspector offers

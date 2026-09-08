@@ -498,7 +498,7 @@ static func _part(term_text: String, state: GameState) -> Dictionary:
 
 	var colon := body.find(":")
 	if colon <= 0:
-		return {"text": body, "fraction": 1.0, "done": true, "headline": "", "needs": ""}
+		return {"text": body, "fraction": 1.0, "done": true, "headline": "", "needs": "", "term": term_text}
 
 	var kind := body.substr(0, colon).strip_edges().to_lower()
 	var rest := body.substr(colon + 1).strip_edges()
@@ -515,7 +515,7 @@ static func _part(term_text: String, state: GameState) -> Dictionary:
 				var any := state.count(rest)
 				return {"text": "%s: any" % state.pretty(rest),
 					"fraction": 1.0 if any > 0 else 0.0, "done": truth,
-					"headline": "%d" % any, "needs": ""}
+					"headline": "%d" % any, "needs": "", "term": term_text}
 
 			var at := rest.find(op)
 			var counter := rest.substr(0, at).strip_edges()
@@ -534,10 +534,11 @@ static func _part(term_text: String, state: GameState) -> Dictionary:
 					"done": truth,
 					"headline": "%d of %d" % [mini(have, need), need],
 					"needs": "",
+					"term": term_text,
 				}
 
 			return {"text": DialogueGrammar.describe(term_text).trim_prefix("Needs ").trim_suffix("."),
-				"fraction": 1.0 if truth else 0.0, "done": truth, "headline": "", "needs": ""}
+				"fraction": 1.0 if truth else 0.0, "done": truth, "headline": "", "needs": "", "term": term_text}
 
 		"unlocked":
 			# `needs` is the hook the chain-follower below uses. Without it,
@@ -545,15 +546,95 @@ static func _part(term_text: String, state: GameState) -> Dictionary:
 			# an answer to "why is the Pub locked".
 			return {"text": ("without %s" % rest) if negate else ("needs %s" % rest),
 				"fraction": 1.0 if truth else 0.0, "done": truth, "headline": "",
-				"needs": "" if negate else rest}
+				"needs": "" if negate else rest, "term": term_text}
 
 		"flag":
 			return {"text": ("not %s" % state.pretty(rest)) if negate else state.pretty(rest),
-				"fraction": 1.0 if truth else 0.0, "done": truth, "headline": "", "needs": ""}
+				"fraction": 1.0 if truth else 0.0, "done": truth, "headline": "", "needs": "", "term": term_text}
 
 		_:
 			return {"text": body, "fraction": 1.0 if truth else 0.0,
-				"done": truth, "headline": "", "needs": ""}
+				"done": truth, "headline": "", "needs": "", "term": term_text}
+
+
+# =============================================================
+#  "JUST GIVE ME IT" — used by the save inspector
+#
+#  Grant, by hand, everything one entry is still waiting for. A `count:x>=5`
+#  is set to exactly 5, a flag is switched on, an unlock is granted.
+#
+#  It satisfies each requirement DIRECTLY rather than following the chain: if
+#  something wants `unlocked:Pub`, you get the Pub, and you do not have to
+#  play the five matches that would normally have earned it. That is the whole
+#  point of a test tool.
+#
+#  Returns what it did, one line per change, for the screen to show.
+static func satisfy(entry: Dictionary, state: GameState) -> Array[String]:
+	var done_lines: Array[String] = []
+	if state == null or entry.is_empty():
+		return done_lines
+
+	var parts: Array[Dictionary] = entry["parts"]
+	for part in parts:
+		if bool(part["done"]):
+			continue
+		var term := String(part.get("term", "")).strip_edges()
+		if term == "":
+			continue
+
+		var negate := term.begins_with("!")
+		var body := term.substr(1).strip_edges() if negate else term
+		var colon := body.find(":")
+		if colon <= 0:
+			continue
+		var kind := body.substr(0, colon).strip_edges().to_lower()
+		var rest := body.substr(colon + 1).strip_edges()
+
+		match kind:
+			"count":
+				var op := ""
+				for candidate in [">=", "<=", "!=", ">", "<", "="]:
+					if rest.find(candidate) > 0:
+						op = candidate
+						break
+				if op == "":
+					state.add_count(rest, 1)
+					done_lines.append("%s +1" % rest)
+					continue
+				var at := rest.find(op)
+				var counter := rest.substr(0, at).strip_edges()
+				var wanted_text := rest.substr(at + op.length()).strip_edges()
+				var wanted := int(wanted_text) if wanted_text.is_valid_int() else 0
+				if op == ">":
+					wanted += 1
+				state.set_count(counter, wanted)
+				done_lines.append("%s = %d" % [counter, wanted])
+			"flag":
+				state.set_flag(rest, not negate)
+				done_lines.append("%s%s" % ["cleared " if negate else "", rest])
+			"unlocked":
+				if not negate:
+					state.unlock(rest)
+					done_lines.append("unlocked %s" % rest)
+			"is":
+				var equals := rest.find("=")
+				if equals > 0:
+					state.set_text(rest.substr(0, equals).strip_edges(),
+						rest.substr(equals + 1).strip_edges())
+					done_lines.append(rest)
+
+	# Some things are not a condition at all — a talent is "taken", an unlock
+	# is "held". Grant that directly too, or the entry would still show locked
+	# with nothing left to satisfy.
+	var kind_text := String(entry["kind"])
+	if kind_text == "Unlock":
+		state.unlock(String(entry["name"]))
+		done_lines.append("unlocked %s" % entry["name"])
+	elif kind_text == "Talent":
+		state.unlock(String(entry["key"]))
+		done_lines.append("took %s" % entry["name"])
+
+	return done_lines
 
 
 static func _terms(expression: String) -> Array[String]:

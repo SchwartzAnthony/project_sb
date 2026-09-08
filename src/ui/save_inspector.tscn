@@ -1,0 +1,221 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/ui/save_inspector.gd" id="1_inspector"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.14, 0.15, 0.19, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.18, 0.19, 0.24, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
+bg_color = Color(0.14, 0.15, 0.19, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.98, 0.76, 0.33, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="SaveInspector" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_inspector")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.09, 0.1, 0.13, 1)
+
+[node name="Page" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 36
+theme_override_constants/margin_bottom = 18
+
+[node name="Column" type="VBoxContainer" parent="Page"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Page/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.76, 0.33, 1)
+theme_override_font_sizes/font_size = 32
+text = "SAVE INSPECTOR"
+horizontal_alignment = 1
+
+[node name="Summary" type="Label" parent="Page/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.63, 0.7, 1)
+theme_override_font_sizes/font_size = 13
+text = "A developer tool. Everything you change here is written straight into your save."
+horizontal_alignment = 1
+
+[node name="JumpPanel" type="PanelContainer" parent="Page/Column"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Pad" type="MarginContainer" parent="Page/Column/JumpPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="Box" type="VBoxContainer" parent="Page/Column/JumpPanel/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="JumpHeading" type="Label" parent="Page/Column/JumpPanel/Pad/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.76, 0.33, 1)
+theme_override_font_sizes/font_size = 13
+text = "JUMP STRAIGHT TO"
+
+[node name="JumpList" type="HFlowContainer" parent="Page/Column/JumpPanel/Pad/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+
+[node name="Middle" type="HBoxContainer" parent="Page/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
+
+[node name="LeftPanel" type="PanelContainer" parent="Page/Column/Middle"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Pad" type="MarginContainer" parent="Page/Column/Middle/LeftPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="Box" type="VBoxContainer" parent="Page/Column/Middle/LeftPanel/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="CountersHeading" type="Label" parent="Page/Column/Middle/LeftPanel/Pad/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.63, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "COUNTERS"
+
+[node name="CountersScroll" type="ScrollContainer" parent="Page/Column/Middle/LeftPanel/Pad/Box"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="CountersList" type="VBoxContainer" parent="Page/Column/Middle/LeftPanel/Pad/Box/CountersScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="RightPanel" type="PanelContainer" parent="Page/Column/Middle"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Pad" type="MarginContainer" parent="Page/Column/Middle/RightPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="Box" type="VBoxContainer" parent="Page/Column/Middle/RightPanel/Pad"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="SwitchesHeading" type="Label" parent="Page/Column/Middle/RightPanel/Pad/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.63, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+text = "UNLOCKS AND FLAGS"
+
+[node name="SwitchesScroll" type="ScrollContainer" parent="Page/Column/Middle/RightPanel/Pad/Box"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="SwitchesList" type="VBoxContainer" parent="Page/Column/Middle/RightPanel/Pad/Box/SwitchesScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="AddRow" type="HBoxContainer" parent="Page/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NameBox" type="LineEdit" parent="Page/Column/AddRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 36)
+layout_mode = 2
+placeholder_text = "a name, e.g.  matches_won  or  Brewery"
+
+[node name="Buttons" type="HBoxContainer" parent="Page/Column"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="HomeButton" type="Button" parent="Page/Column/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(200, 44)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0.92, 0.93, 0.96, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
+text = "Back to the base"
+
+[node name="WipeButton" type="Button" parent="Page/Column/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 44)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0.92, 0.93, 0.96, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button")
+text = "Wipe the save"

@@ -135,12 +135,22 @@ func _build_exits() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	row.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	row.offset_left = -740.0
+	row.offset_left = -840.0
 	row.offset_top = 26.0
 	row.offset_right = -30.0
 	row.offset_bottom = 74.0
 	row.alignment = BoxContainer.ALIGNMENT_END
 	add_child(row)
+
+	# The developer tools. `show_dev_tools` in Tuning.csv hides this button
+	# before you show the game to anyone; the screen itself stays put.
+	if db.tune_bool("show_dev_tools", true):
+		var to_dev := _make_button("Dev", Vector2(80, 46))
+		to_dev.tooltip_text = "The save inspector. Jump straight to any unlock."
+		to_dev.pressed.connect(func() -> void:
+			state.save_to_disk()
+			ScenePaths.go_to(get_tree(), ScenePaths.INSPECTOR))
+		row.add_child(to_dev)
 
 	var to_board := _make_button("Unlocks", Vector2(120, 46))
 	to_board.tooltip_text = "Everything you can earn, and exactly what is missing."

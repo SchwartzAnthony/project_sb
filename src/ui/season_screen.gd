@@ -117,7 +117,19 @@ func _grab(node_name: String) -> Node:
 	return found
 
 
-func _set(label: Label, text: String) -> void:
+## Put text into one of the scene's labels, if that label still exists.
+##
+## It is called _put and NOT _set. `_set` is one of Godot's own built-in
+## methods — every Object has `_set(StringName, Variant) -> bool` — so a
+## function of that name with different arguments does not override it, it
+## COLLIDES with it, and the whole script refuses to compile:
+##
+##   "The function signature doesn't match the parent."
+##
+## The same trap is waiting on _get, _draw, _init, _notification and
+## _to_string. If you add a helper of your own, do not start its name with an
+## underscore followed by a common word.
+func _put(label: Label, text: String) -> void:
 	if label != null:
 		label.text = text
 
@@ -134,13 +146,13 @@ func _fill_header() -> void:
 		title_text = SeasonDB.verdict(state)
 	elif not _summary.is_empty():
 		title_text = "FULL TIME"
-	_set(_title, title_text)
+	_put(_title, title_text)
 
 	if _title != null and over and not state.has_flag(SeasonDB.CHAMPION_FLAG):
 		_title.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
 
-	_set(_score, _scoreline())
-	_set(_subheading, _under())
+	_put(_score, _scoreline())
+	_put(_subheading, _under())
 
 
 func _scoreline() -> String:
@@ -202,7 +214,7 @@ func _fill_gains() -> void:
 		_gains_list.add_child(_quiet("Nothing new this match. Talents and unlocks will show up here."))
 		return
 
-	_set(_gains_heading, "WHAT YOU GAINED  (%d)" % _report.gains.size())
+	_put(_gains_heading, "WHAT YOU GAINED  (%d)" % _report.gains.size())
 	for entry in rows:
 		_gains_list.add_child(_gain_row(entry))
 
@@ -257,8 +269,8 @@ func _gain_row(entry: Dictionary) -> Control:
 # =============================================================
 
 func _fill_table() -> void:
-	_set(_table_heading, "SEASON %d" % maxi(1, state.count(SeasonDB.NUMBER)))
-	_set(_record, "P %d    W %d  D %d  L %d    %d-%d    %d pts" % [
+	_put(_table_heading, "SEASON %d" % maxi(1, state.count(SeasonDB.NUMBER)))
+	_put(_record, "P %d    W %d  D %d  L %d    %d-%d    %d pts" % [
 		SeasonDB.played(state),
 		state.count(SeasonDB.WINS), state.count(SeasonDB.DRAWS),
 		state.count(SeasonDB.LOSSES),
