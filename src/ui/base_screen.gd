@@ -53,6 +53,12 @@ func _ready() -> void:
 	# is where the prologue now lives, rather than firing at launch.
 	_advance_progression("base_opened")
 
+	# Anything you unlocked since you were last here flashes up on top, with a
+	# Continue button, and is then marked as seen. One frame's wait lets the
+	# base finish drawing so the panel lands over a finished screen.
+	await get_tree().process_frame
+	_flash_new_unlocks()
+
 
 # =============================================================
 #  LAYOUT
@@ -129,12 +135,19 @@ func _build_exits() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	row.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	row.offset_left = -600.0
+	row.offset_left = -740.0
 	row.offset_top = 26.0
 	row.offset_right = -30.0
 	row.offset_bottom = 74.0
 	row.alignment = BoxContainer.ALIGNMENT_END
 	add_child(row)
+
+	var to_board := _make_button("Unlocks", Vector2(120, 46))
+	to_board.tooltip_text = "Everything you can earn, and exactly what is missing."
+	to_board.pressed.connect(func() -> void:
+		state.save_to_disk()
+		ScenePaths.go_to(get_tree(), ScenePaths.UNLOCKS))
+	row.add_child(to_board)
 
 	var to_season := _make_button("The season", Vector2(150, 46))
 	to_season.pressed.connect(func() -> void:
@@ -321,6 +334,14 @@ func _on_visitor(entry: Dictionary) -> void:
 
 	state.save_to_disk()
 	DialogueView.play(get_tree(), scene, ScenePaths.BASE)
+
+
+## Show what is new, if anything is. Rebuilding afterwards means a building
+## you just unlocked is drawn unlocked the moment you press Continue.
+func _flash_new_unlocks() -> void:
+	var panel := NewUnlocksPanel.show_over(self, state)
+	if panel != null:
+		panel.dismissed.connect(_rebuild)
 
 
 func _advance_progression(trigger: String) -> void:

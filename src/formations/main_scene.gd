@@ -95,6 +95,10 @@ var current_fixture: Dictionary = {}
 ## exactly as the game did before there was a season.
 var forced_enemy_class: String = ""
 
+## True when this is a rerun from the stats screen: same opposition, but the
+## result is not written into the season table.
+var replaying: bool = false
+
 ## The photograph of your progress taken at kick-off. Compared against the
 ## state at full time to work out what you gained, with no help from anything
 ## else. See match_report.gd.
@@ -654,6 +658,19 @@ func _apply_fixture() -> void:
 	if season == null or state == null:
 		return
 
+	# "Play it again" from the stats screen. The fixture is already recorded,
+	# so this run is a friendly: same opposition, nothing written down.
+	if state.has_flag(MatchStatsScreen.REPLAY_FLAG):
+		state.set_flag(MatchStatsScreen.REPLAY_FLAG, false)
+		replaying = true
+		current_fixture = season.previous(state)
+		if not current_fixture.is_empty():
+			forced_enemy_class = String(current_fixture["class"]).strip_edges()
+			print("[season] Rerunning %s as a friendly. Nothing will be recorded."
+				% current_fixture["opponent"])
+			return
+		print("[season] Nothing to rerun — playing the next fixture instead.")
+
 	current_fixture = season.current(state)
 	if current_fixture.is_empty():
 		print("[season] No fixture on — this is a friendly. The result will not be recorded.")
@@ -836,8 +853,18 @@ func _full_time() -> void:
 	# saying  Requires: flag:season_over  or  count:season_wins>=3  is testing
 	# today's result rather than yesterday's.
 	var summary: Dictionary = {}
-	if season != null:
+	if season != null and not replaying:
 		summary = season.record(player_score, enemy_score, state)
+	elif replaying:
+		# A rerun still shows you a scoreline, it just does not go in the table.
+		summary = {
+			"fixture": current_fixture,
+			"scored": player_score,
+			"conceded": enemy_score,
+			"actions": [] as Array[Dictionary],
+		}
+		print("[season] Rerun finished %d-%d. The table is untouched."
+			% [player_score, enemy_score])
 
 	var reward_actions: Array = summary.get("actions", [])
 	for action in reward_actions:
@@ -873,9 +900,14 @@ func _full_time() -> void:
 
 	# Never strand the player on the pitch with nothing to press. If the
 	# season screen is missing for any reason, go to the base instead.
-	var after := ScenePaths.SEASON
+	# Full time goes to the stats screen, which then offers Continue through
+	# to the season table. Each falls back to the next if a scene is missing,
+	# so you can never be stranded on the pitch with nothing to press.
+	var after := ScenePaths.STATS
 	if not ResourceLoader.exists(ScenePaths.resolve(after)):
-		push_warning("[match] season_screen.tscn was not found, so full time goes to the base instead.")
+		after = ScenePaths.SEASON
+	if not ResourceLoader.exists(ScenePaths.resolve(after)):
+		push_warning("[match] Neither the stats screen nor the season screen was found, so full time goes to the base.")
 		after = ScenePaths.BASE
 	ScenePaths.go_to(get_tree(), after)
 
@@ -2565,7 +2597,33 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 		await shootout.view_closed
 
 	# --- 3. Decide the outcome, THEN show it ---
+	var stamina_before := keeper.current_stamina
 	var scored := keeper.take_shot(shot_power)
+	var stamina_spent := maxi(0, stamina_before - keeper.current_stamina)
+
+	# Report the shot and, if your keeper stopped it, the save. Both carry
+	# their numbers, so Stats.csv can count saves, or stamina, or saves by
+	# class, without a line of code in here changing.
+	#
+	# ONLY YOUR SIDE IS COUNTED. Everything the game unlocks is about what
+	# YOU did, so an enemy shot must not land in `shots` and their keeper's
+	# save must not land in `saves`.
+	if shooter_is_player:
+		var shot_facts := _facts_for(shooter)
+		shot_facts["power"] = str(shot_power)
+		shot_facts["stamina"] = str(stamina_spent)
+		shot_facts["result"] = "goal" if scored else "saved"
+		_report("shot_taken", shot_facts)
+	elif not scored:
+		# They shot, your keeper kept it out.
+		var save_facts: Dictionary = {}
+		if active_player_star != null:
+			save_facts["class"] = active_player_star.unit_type
+		if keeper.data != null:
+			save_facts["card"] = keeper.data.goalie_name
+		save_facts["power"] = str(shot_power)
+		save_facts["stamina"] = str(stamina_spent)
+		_report("save_made", save_facts)
 
 	print("  SHOT: %s (%s) fires %d power -> %s (keeper stamina now %d)" % [
 		"You" if shooter_is_player else "Enemy",

@@ -123,3 +123,4 @@ auto_pick_seconds,0.9,How long AUTO waits before choosing so you can still see w
 hud_left_margin,16,Where the speed buttons sit from the left edge
 hud_top_margin,14,Where the speed buttons sit from the top edge
 goal_kick_tier,III,"Which tier the keeper aims a goal kick at. IV was the far end of the pitch and felt like a punt. Blank = whoever is furthest forward"
+progress_bars_max,6,How many progress bars the post-match screen shows before it stops

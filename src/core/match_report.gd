@@ -68,7 +68,20 @@ static func snapshot(state: GameState) -> MatchReport:
 func note(text: String, detail: String = "") -> void:
 	if text.strip_edges() == "":
 		return
-	gains.append({"kind": "note", "text": text, "detail": detail, "weight": 5})
+	gains.append({"kind": "note", "key": "", "delta": 0, "now": 0,
+		"text": text, "detail": detail, "weight": 5})
+
+
+## Just the counters that moved, for the post-match stats screen. These ARE
+## this match's numbers: the difference between the two photographs is, by
+## definition, what happened during the match. Nothing extra had to be
+## recorded to get them.
+func counter_gains() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for entry in gains:
+		if String(entry["kind"]) == "counter":
+			out.append(entry)
+	return out
 
 
 ## Compare, and turn the difference into English. Call once, after
@@ -98,6 +111,9 @@ func top(limit: int) -> Array[Dictionary]:
 	var left := gains.size() - limit
 	out.append({
 		"kind": "note",
+		"key": "",
+		"delta": 0,
+		"now": 0,
 		"text": "...and %d more" % left,
 		"detail": "Raise gains_max_rows in Tuning.csv to see them all.",
 		"weight": -1,
@@ -115,6 +131,9 @@ func _collect_unlocks(state: GameState) -> void:
 			continue
 		gains.append({
 			"kind": "unlock",
+			"key": String(key),
+			"delta": 1,
+			"now": 1,
 			"text": "Unlocked  %s" % state.unlocks[key],
 			"detail": "Look for it at the base.",
 			"weight": 100,
@@ -133,6 +152,9 @@ func _collect_flags(state: GameState) -> void:
 			continue
 		gains.append({
 			"kind": "flag",
+			"key": name_key,
+			"delta": 1,
+			"now": 1,
 			"text": state.pretty(name_key),
 			"detail": "",
 			"weight": 60,
@@ -153,6 +175,9 @@ func _collect_counters(state: GameState) -> void:
 
 		gains.append({
 			"kind": "counter",
+			"key": name_key,
+			"delta": delta,
+			"now": now,
 			"text": "%s  +%d" % [state.pretty(name_key), delta],
 			"detail": "now %d" % now,
 			# Bigger jumps read as more interesting, and a brand-new counter

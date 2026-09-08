@@ -268,47 +268,13 @@ static func _terms(expression: String) -> Array[String]:
 
 ## Does a concrete counter name match a Stats.csv pattern that may contain
 ## {facts}? `goals_with_brew_fire` matches `goals_with_brew_{brew}`.
+##
+## There is ONE implementation of this, in stats_rules.gd, and both this
+## report and the post-match screen call it. It used to be written out twice,
+## which is exactly how two files quietly start disagreeing about whether a
+## counter exists.
 static func _matches(name_text: String, pattern: String) -> bool:
-	var name_key := CardDatabase._normalise(name_text)
-
-	# Split the pattern on {...} FIRST, before normalising, or the braces
-	# would be stripped and the token would fuse into the literal text.
-	var literals: Array[String] = []
-	var rest := pattern
-	while true:
-		var open_at := rest.find("{")
-		if open_at < 0:
-			literals.append(rest)
-			break
-		var close_at := rest.find("}", open_at)
-		if close_at < 0:
-			literals.append(rest)
-			break
-		literals.append(rest.substr(0, open_at))
-		rest = rest.substr(close_at + 1)
-
-	if literals.size() == 1:
-		return name_key == CardDatabase._normalise(literals[0])
-
-	var at := 0
-	for i in literals.size():
-		var piece := CardDatabase._normalise(literals[i])
-		if piece == "":
-			continue
-		if i == 0:
-			if not name_key.begins_with(piece):
-				return false
-			at = piece.length()
-			continue
-		var found := name_key.find(piece, at)
-		if found < 0:
-			return false
-		at = found + piece.length()
-
-	# A pattern ending in a token needs something to have filled it.
-	if pattern.ends_with("}"):
-		return name_key.length() > at
-	return true
+	return StatsRules.matches_pattern(name_text, pattern)
 
 
 # =============================================================

@@ -1,19 +1,29 @@
-Counter,Event,When,Amount,Notes
-goals,goal_scored,,,Every goal you score
-goals_as_{class},goal_scored,,,"Split by which class you were playing. One row, a counter per class."
-goals_by_tier_{tier},goal_scored,,,Split by the Tier of whoever scored
-goals_with_brew_{brew},goal_scored,,,Goals by a player who had drunk a brew. THIS is what the Brewery requirement tests.
-goals_by_star,goal_scored,star=yes,,Goals scored by a Star Player
-goals_conceded,goal_conceded,,,
-matches_played,match_ended,,,
-matches_won,match_ended,result=win,,
-matches_lost,match_ended,result=loss,,
-matches_drawn,match_ended,result=draw,,
-matches_won_as_{class},match_ended,result=win,,Wins split by class
-big_wins,match_ended,margin>=3,,Won by three goals or more
-duels_won,duel_won,,,
-duels_lost,duel_lost,,,
-duels_won_tier_{tier},duel_won,,,Which tiers you actually win
-duels_won_with_brew_{brew},duel_won,,,
-brews_drunk,brew_drunk,,,
-brews_drunk_{brew},brew_drunk,,,
+Counter,Event,When,Amount,Group,Label,Notes
+goals,goal_scored,,,Goals,Goals scored,Every goal you score
+goals_by_{card},goal_scored,,,Goals,,"WHO SCORED. One row, one counter per card name, so the post-match screen can list your scorers."
+goals_as_{class},goal_scored,,,Goals,,"Split by which class you were playing. One row, a counter per class."
+goals_by_tier_{tier},goal_scored,,,Goals,,Split by the Tier of whoever scored
+goals_with_brew_{brew},goal_scored,,,Goals,,Goals by a player who had drunk a brew. THIS is what the Brewery requirement tests.
+goals_by_star,goal_scored,star=yes,,Goals,Goals by a Star,Goals scored by a Star Player
+shots,shot_taken,,,Goals,Shots taken,Every shot you had at their goal
+shots_by_tier_{tier},shot_taken,,,Goals,,Which tiers actually get a shot away
+duels_won,duel_won,,,Duels,Duels won,
+duels_lost,duel_lost,,,Duels,Duels lost,
+duels_won_by_{card},duel_won,,,Duels,,WHO WINS THEIR FIGHTS. One counter per card name.
+duels_won_tier_{tier},duel_won,,,Duels,,Which tiers you actually win
+duels_won_with_brew_{brew},duel_won,,,Duels,,
+goals_conceded,goal_conceded,,,Keeper,Goals conceded,
+saves,save_made,,,Keeper,Saves,Your keeper stopped a shot. Only YOUR keeper is ever counted.
+saves_by_{card},save_made,,,Keeper,,"One counter per keeper. ""The fire keeper has blocked 40 times"" is this row."
+saves_as_{class},save_made,,,Keeper,,Saves split by the class you were playing
+keeper_stamina_spent,save_made,,{stamina},Keeper,Keeper stamina spent,"AMOUNT IS A {fact}: it adds however much stamina that save actually cost, not 1."
+big_saves,save_made,power>=4,,Keeper,Big saves,A save against a shot of 4 power or more
+matches_played,match_ended,,,Match,Matches played,
+matches_won,match_ended,result=win,,Match,Wins,
+matches_lost,match_ended,result=loss,,Match,Losses,
+matches_drawn,match_ended,result=draw,,Match,Draws,
+matches_won_as_{class},match_ended,result=win,,Match,,Wins split by class
+big_wins,match_ended,margin>=3,,Match,Wins by three or more,Won by three goals or more
+clean_sheets,match_ended,conceded=0,,Match,Clean sheets,Finished a match without conceding
+brews_drunk,brew_drunk,,,Brews,Brews drunk,
+brews_drunk_{brew},brew_drunk,,,Brews,,

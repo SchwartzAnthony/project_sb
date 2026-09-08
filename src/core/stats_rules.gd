@@ -15,9 +15,15 @@ extends RefCounted
 #  THE COLUMNS
 #    Counter   the counter to add to. May contain {facts} — see below.
 #    Event     which event feeds it: goal_scored, goal_conceded, duel_won,
-#              duel_lost, brew_drunk, match_ended, match_started
+#              duel_lost, brew_drunk, match_ended, match_started,
+#              save_made, shot_taken, stamina_spent
 #    When      optional filter. Blank means "every time".
-#    Amount    how much to add. Blank means 1.
+#    Amount    how much to add. Blank means 1. May also be a {fact}, so
+#              `{stamina}` adds however much stamina that shot actually cost.
+#    Group     which panel of the post-match screen it appears in — "Goals",
+#              "Duels", "Keeper", anything you like. Blank = "Match".
+#    Label     what the post-match screen calls it. Blank = the counter name
+#              tidied up.
 #    Notes     for you; ignored by the game.
 #
 #  {FACTS} IN A COUNTER NAME is the whole trick. Write
@@ -37,6 +43,9 @@ extends RefCounted
 #    match_ended                   class, result (win/loss/draw), scored,
 #                                  conceded, margin
 #    match_started                 class
+#    shot_taken                    class, tier, card, brew, star, power
+#    save_made                     class (the KEEPER's side), power, stamina
+#    stamina_spent                 class, stamina
 #
 #  THE `When` FILTER, semicolons between terms, all must pass:
 #    result=win        the fact equals this
@@ -129,19 +138,29 @@ func _load_csv(path: String) -> void:
 			problems.append("%s: counter '%s' has no Event to listen for" % [where, counter])
 			continue
 
+		# Amount is normally a plain number. It may instead be a {fact}, which
+		# is how "add however much stamina that save cost" is written without
+		# a line of code.
 		var amount_text := _cell(row, columns, "amount")
 		var amount := 1
+		var amount_fact := ""
 		if amount_text != "":
-			if amount_text.is_valid_int():
+			if amount_text.begins_with("{") and amount_text.ends_with("}"):
+				amount_fact = amount_text.substr(1, amount_text.length() - 2).strip_edges()
+			elif amount_text.is_valid_int():
 				amount = int(amount_text)
 			else:
-				problems.append("%s: Amount '%s' is not a whole number" % [where, amount_text])
+				problems.append("%s: Amount '%s' is not a whole number, and not a {fact} either"
+					% [where, amount_text])
 
 		rules.append({
 			"counter": counter,
 			"event": CardDatabase._normalise(event),
 			"when": _cell(row, columns, "when"),
 			"amount": amount,
+			"amount_fact": amount_fact,
+			"group": _cell(row, columns, "group"),
+			"label": _cell(row, columns, "label"),
 			"where": where,
 		})
 		if not counter_patterns.has(counter):
@@ -168,7 +187,98 @@ func record(event: String, facts: Dictionary, state: GameState) -> void:
 		var counter := _fill(String(rule["counter"]), facts)
 		if counter == "":
 			continue        # a {fact} was missing — this row is not for us
-		state.add_count(counter, int(rule["amount"]))
+
+		var amount := int(rule["amount"])
+		var fact_name := String(rule["amount_fact"])
+		if fact_name != "":
+			var raw := String(facts.get(fact_name, "")).strip_edges()
+			if not raw.is_valid_float():
+				continue     # no such fact on this event — skip, do not add 0
+			amount = int(round(float(raw)))
+		if amount == 0:
+			continue
+		state.add_count(counter, amount)
+
+
+# =============================================================
+#  LOOKING A COUNTER BACK UP
+#
+#  The post-match screen has a concrete counter — `goals_by_tier_IV` — and
+#  wants to know which panel it belongs in and what to call it. That means
+#  matching it back against the PATTERN it came from, braces and all.
+# =============================================================
+
+## The Stats.csv row that could have produced this counter, or {} if none.
+func row_for(counter_name: String) -> Dictionary:
+	for rule in rules:
+		if matches_pattern(counter_name, String(rule["counter"])):
+			return rule
+	return {}
+
+
+## Which panel of the post-match screen a counter belongs in.
+func group_for(counter_name: String) -> String:
+	var rule := row_for(counter_name)
+	if rule.is_empty():
+		return ""
+	return String(rule["group"]).strip_edges()
+
+
+## Does a concrete counter name match a pattern that may contain {facts}?
+## `goals_with_brew_fire` matches `goals_with_brew_{brew}`.
+##
+## The pattern is split on the braces BEFORE anything is normalised — squash
+## it first and the braces vanish, fusing the token into the literal text
+## either side of it and matching nothing ever again.
+static func matches_pattern(counter_name: String, pattern: String) -> bool:
+	var name_key := CardDatabase._normalise(counter_name)
+
+	var literals: Array[String] = []
+	var rest := pattern
+	while true:
+		var open_at := rest.find("{")
+		if open_at < 0:
+			literals.append(rest)
+			break
+		var close_at := rest.find("}", open_at)
+		if close_at < 0:
+			literals.append(rest)
+			break
+		literals.append(rest.substr(0, open_at))
+		rest = rest.substr(close_at + 1)
+
+	if literals.size() == 1:
+		return name_key == CardDatabase._normalise(literals[0])
+
+	var at := 0
+	for i in literals.size():
+		var piece := CardDatabase._normalise(literals[i])
+		if piece == "":
+			continue
+		if i == 0:
+			if not name_key.begins_with(piece):
+				return false
+			at = piece.length()
+			continue
+		var found := name_key.find(piece, at)
+		if found < 0:
+			return false
+		at = found + piece.length()
+
+	# A pattern ending in a token needs something to have filled it.
+	if pattern.ends_with("}"):
+		return name_key.length() > at
+	return true
+
+
+## Every Group named in Stats.csv, in the order the file lists them.
+func group_names() -> Array[String]:
+	var out: Array[String] = []
+	for rule in rules:
+		var group := String(rule["group"]).strip_edges()
+		if group != "" and not out.has(group):
+			out.append(group)
+	return out
 
 
 ## Replace {fact} with its value. Returns "" if any {fact} is missing or

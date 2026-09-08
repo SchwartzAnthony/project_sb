@@ -198,6 +198,17 @@ func current(state: GameState) -> Dictionary:
 	return {}
 
 
+## The fixture most recently played — what "play it again" reruns.
+func previous(state: GameState) -> Dictionary:
+	var wanted := current_number(state) - 1
+	if SeasonDB.is_over(state):
+		wanted = last_number()
+	for entry in fixtures:
+		if int(entry["number"]) == wanted:
+			return entry
+	return {}
+
+
 func last_number() -> int:
 	var highest := 0
 	for entry in fixtures:
