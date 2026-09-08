@@ -28,6 +28,10 @@ extends CanvasLayer
 signal resumed
 signal quit_requested
 
+## AUTO was toggled from here rather than from the HUD. The match listens so
+## it can lock or unlock your cards, and so the HUD's button matches.
+signal auto_pick_changed(is_on: bool)
+
 const NODE_NAME := "PauseMenu"
 
 var db: CardDatabase
@@ -155,11 +159,16 @@ func _build() -> void:
 	# --- auto ---
 	_panel.add_child(_section("WATCHING"))
 	_auto_button = _make_button("AUTO", Vector2(0, 40))
-	_auto_button.tooltip_text = "The game picks your cards, your throw and attack-or-defend."
+	_auto_button.tooltip_text = "The game picks your cards, your throw and attack-or-defend.\nYour clicks lock while it is on."
 	_auto_button.pressed.connect(func() -> void:
-		MatchHUD.set_auto_pick(state, not MatchHUD.auto_pick_on(state))
+		var now := not MatchHUD.auto_pick_on(state)
+		MatchHUD.set_auto_pick(state, now)
 		state.save_to_disk()
-		_refresh())
+		_refresh()
+		# Tell the match, so the cards and clash buttons lock or unlock and
+		# the HUD's own AUTO button agrees with this one. Without this, AUTO
+		# switched on from the pause menu left everything still clickable.
+		auto_pick_changed.emit(now))
 	_panel.add_child(_auto_button)
 
 	# --- out ---

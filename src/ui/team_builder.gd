@@ -9,10 +9,27 @@ extends Control
 #         always hold it, and the match rotates through them at HOLD UP!.
 #  RIGHT  your collection: every card of this class you can field.
 #
-#  Click a collection card    -> it drops into the first free slot of its tier
+#  Click a collection card    -> it takes its own POWER SLOT in its tier
 #  Click a card in a slot     -> it goes back to the collection
 #  Right-click either         -> read the full card
 #  READY                      -> kick off with exactly this team
+#
+#  ============ THE SLOTS ARE THE LADDER ============
+#
+#  A tier does not have "three free spaces". It has one slot per power:
+#
+#      Tier I     [ 0 ] [ 1 ] [ 2 ]
+#      Tier II    [ 1 ] [ 2 ] [ 3 ]
+#      Tier III   [ 2 ] [ 3 ] [ 4 ]
+#      Tier IV    [ 3 ] [ 4 ] [ 5 ]
+#
+#  A 2-power card can only ever go in the 2 slot. Click one while another
+#  2 is already standing there and they swap — the old one goes back to
+#  the collection. That is the whole rule, and it means you can never
+#  build a team of three 5s, and neither can the opposition.
+#
+#  The numbers come from data/TierPowers.csv. This screen does not know
+#  them; it asks TierLadder, which reads that file. See tier_ladder.gd.
 #
 #  LIMITING THE COLLECTION: by default you can field every card of your class.
 #  Add res://data/Collection.csv with "Card Name,Owned" rows to hide the ones
@@ -20,14 +37,21 @@ extends Control
 # =============================================================
 
 const ALL_TIERS: Array[String] = ["I", "II", "III", "IV"]
-const PER_TIER := 3
 const COLLECTION_PATH := "res://data/Collection.csv"
+
+## How many cards a tier holds when TierPowers.csv cannot be read. The real
+## number is always TierLadder.slot_count(tier) — this is only the value
+## handed to TeamSelection.is_complete(), which predates the ladder.
+const PER_TIER := 3
 
 var db: CardDatabase
 var selection: TeamSelection
 var popup: CardPopup
 
-## Tier key -> Array[PlayerData], at most PER_TIER long.
+## Tier key -> { power: PlayerData }.
+##
+## Keyed BY POWER, not by position, because that is the rule: a card lives
+## on the rung its power names. An absent key is an empty slot.
 var _chosen: Dictionary = {}
 ## Every card of this class you are allowed to field, Stars excluded.
 var _library: Array[PlayerData] = []
@@ -54,10 +78,21 @@ func _ready() -> void:
 	_load_library()
 	for tier in ALL_TIERS:
 		if tier != selection.star_tier:
-			_chosen[tier] = [] as Array[PlayerData]
+			_chosen[tier] = {}
 
 	_auto_fill()      # start from a legal team; swap from there
 	_refresh()
+
+
+## The cards standing in a tier, weakest rung first. Gaps are simply absent,
+## so this is never null-padded and callers can iterate it safely.
+func _slotted(tier: String) -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	var by_power: Dictionary = _chosen.get(tier, {})
+	for power in TierLadder.rungs(tier, db):
+		if by_power.has(power):
+			out.append(by_power[power])
+	return out
 
 
 # -------------------------------------------------------------
@@ -92,7 +127,7 @@ func _load_library() -> void:
 
 ## Cards of `tier` that are not already slotted.
 func _available_in_tier(tier: String) -> Array[PlayerData]:
-	var picked: Array = _chosen.get(tier, [])
+	var picked := _slotted(tier)
 	var out: Array[PlayerData] = []
 	for card in _library:
 		if card.get_tier_clean() != tier:
@@ -103,18 +138,20 @@ func _available_in_tier(tier: String) -> Array[PlayerData]:
 	return out
 
 
+## Fill every empty rung, leaving whatever you already chose where it stands.
+##
+## TierLadder does the choosing, so AUTO-FILL can never produce a team the
+## rule would reject — and a tier with no card of some power comes back with
+## that rung still empty rather than with a wrong card wedged into it.
 func _auto_fill() -> void:
 	for tier in ALL_TIERS:
 		if tier == selection.star_tier:
 			continue
-		var existing: Array = _chosen.get(tier, [])
-		var picked: Array[PlayerData] = []
-		picked.assign(existing)
-		var spare := _available_in_tier(tier)
-		spare.shuffle()
-		while picked.size() < PER_TIER and not spare.is_empty():
-			picked.append(spare.pop_back())
-		_chosen[tier] = picked
+		var result := TierLadder.repair(_slotted(tier), _available_in_tier(tier), tier, db)
+		var by_power: Dictionary = {}
+		for card: PlayerData in (result["cards"] as Array):
+			by_power[TierLadder.rung_of(card)] = card
+		_chosen[tier] = by_power
 
 
 func _on_auto_fill() -> void:
@@ -125,7 +162,7 @@ func _on_auto_fill() -> void:
 func _clear_team() -> void:
 	for tier in ALL_TIERS:
 		if tier != selection.star_tier:
-			_chosen[tier] = [] as Array[PlayerData]
+			_chosen[tier] = {}
 	_refresh()
 
 
@@ -157,7 +194,7 @@ func _build_ui() -> void:
 	page.add_child(_title)
 
 	var hint := MenuSupport.heading(
-		"Click a card on the right to add it  ·  click one on the left to remove it  ·  right-click any card to read it",
+		"Every tier holds one card of each power  ·  click a card on the right and it takes its own slot  ·  right-click any card to read it",
 		13, MenuSupport.COLOUR_TEXT_DIM)
 	page.add_child(hint)
 
@@ -262,7 +299,17 @@ func _rebuild_tiers() -> void:
 
 	for tier in ALL_TIERS:
 		var is_star_tier := tier == selection.star_tier
-		var picked: Array = selection.star_bundle if is_star_tier else _chosen.get(tier, [])
+		var ladder := TierLadder.rungs(tier, db)
+
+		# The Star tier is held by the three Stars, so it is shown from the
+		# bundle and cannot be edited. Every other tier is shown rung by rung.
+		var by_power: Dictionary = {}
+		if is_star_tier:
+			for card: PlayerData in selection.star_bundle:
+				if card != null:
+					by_power[TierLadder.rung_of(card)] = card
+		else:
+			by_power = _chosen.get(tier, {})
 
 		var block := PanelContainer.new()
 		block.add_theme_stylebox_override("panel", MenuSupport.panel_style(
@@ -277,33 +324,44 @@ func _rebuild_tiers() -> void:
 		if is_star_tier:
 			header_text += "   🔒  your Star Players — always these three"
 		else:
-			header_text += "   %d / %d" % [picked.size(), PER_TIER]
-		rows.add_child(MenuSupport.heading(header_text, 17,
-			MenuSupport.COLOUR_ACCENT if is_star_tier else MenuSupport.COLOUR_TEXT))
+			header_text += "   %d / %d" % [by_power.size(), ladder.size()]
+		var header := MenuSupport.heading(header_text, 17,
+			MenuSupport.COLOUR_ACCENT if is_star_tier else MenuSupport.COLOUR_TEXT)
+		header.tooltip_text = TierLadder.describe(tier, db)
+		# A Label ignores the mouse by default, so its tooltip never appears.
+		header.mouse_filter = Control.MOUSE_FILTER_STOP
+		rows.add_child(header)
 
 		var slots := HBoxContainer.new()
 		slots.add_theme_constant_override("separation", 8)
 		rows.add_child(slots)
 
-		for i in PER_TIER:
-			if i < picked.size():
-				var card: PlayerData = picked[i]
-				slots.add_child(_make_slot_card(card, is_star_tier, tier))
+		# ONE SLOT PER POWER, weakest on the left — the same order the cards
+		# are offered in during a match, so the two screens read alike.
+		for power in ladder:
+			if by_power.has(power):
+				slots.add_child(_make_slot_card(by_power[power], is_star_tier, tier, power))
 			else:
-				slots.add_child(_make_empty_slot(tier))
+				slots.add_child(_make_empty_slot(tier, power))
 
 
 func _rebuild_collection() -> void:
 	for child in _collection_grid.get_children():
 		child.queue_free()
 
+	# Grouped by tier, then weakest rung first — so the collection reads in
+	# the same order as the slots it is going to fill.
 	var any := false
 	for tier in ALL_TIERS:
 		if tier == selection.star_tier:
 			continue
-		for card in _available_in_tier(tier):
-			_collection_grid.add_child(_make_collection_card(card))
-			any = true
+		var spare := _available_in_tier(tier)
+		for power in TierLadder.rungs(tier, db):
+			for card in spare:
+				if TierLadder.rung_of(card) != power:
+					continue
+				_collection_grid.add_child(_make_collection_card(card))
+				any = true
 
 	if not any:
 		var note := MenuSupport.heading(
@@ -316,16 +374,18 @@ func _rebuild_collection() -> void:
 func _update_status() -> void:
 	if selection == null:
 		return
+	# Named gaps, not counts. "Tier II still needs a 3" tells you which card
+	# to look for; "Tier II needs 1 more" does not.
 	var missing: Array[String] = []
 	for tier in ALL_TIERS:
 		if tier == selection.star_tier:
 			continue
-		var count: int = (_chosen.get(tier, []) as Array).size()
-		if count < PER_TIER:
-			missing.append("Tier %s needs %d more" % [tier, PER_TIER - count])
+		var gap := TierLadder.needs_text(_slotted(tier), tier, db)
+		if gap != "":
+			missing.append(gap)
 
 	if missing.is_empty():
-		_status.text = "Team is ready — 1 Star + 9 regulars."
+		_status.text = "Team is ready — 1 Star + 9 regulars, one of every power."
 		_status.add_theme_color_override("font_color", Color(0.55, 0.85, 0.6))
 		_ready_button.disabled = false
 	else:
@@ -341,14 +401,18 @@ func _update_status() -> void:
 const SLOT_SIZE := Vector2(128, 168)
 
 
-func _make_empty_slot(tier: String) -> Control:
+## An empty rung. It says which power it is waiting for, because "empty"
+## on its own does not tell you which card in the collection would fill it.
+func _make_empty_slot(tier: String, power: int) -> Control:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = SLOT_SIZE
 	panel.add_theme_stylebox_override("panel",
 		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY))
+	panel.tooltip_text = "Only a %d-power Tier %s card fits here. %s" % [
+		power, tier, TierLadder.describe(tier, db)]
 
 	var label := Label.new()
-	label.text = "empty\nTier %s" % tier
+	label.text = "%d\npower\n\nTier %s" % [power, tier]
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
@@ -359,23 +423,32 @@ func _make_empty_slot(tier: String) -> Control:
 
 ## A card sitting in your team. Clicking it sends it back to the collection,
 ## unless it is a Star — those are fixed.
-func _make_slot_card(card: PlayerData, locked: bool, tier: String) -> Control:
+func _make_slot_card(card: PlayerData, locked: bool, tier: String, power: int) -> Control:
 	var button := _card_button(card, locked)
 	if locked:
-		button.tooltip_text = "%s is a Star Player and always holds Tier %s.\nRight-click to read the card." \
-			% [card.player_name, tier]
+		button.tooltip_text = "%s is a Star Player and always holds the %d slot of Tier %s.\nRight-click to read the card." \
+			% [card.player_name, power, tier]
 	else:
-		button.tooltip_text = "Click to send %s back to the collection.\nRight-click to read the card." \
-			% card.player_name
+		button.tooltip_text = "%s holds the %d slot of Tier %s.\nClick to send it back to the collection.\nRight-click to read the card." \
+			% [card.player_name, power, tier]
 		button.pressed.connect(_remove_card.bind(card, tier))
 	return button
 
 
-## A card in the collection. Clicking it slots it into its tier.
+## A card in the collection. Clicking it takes its own rung, swapping out
+## whoever is standing there — so the tooltip says which of the two it is.
 func _make_collection_card(card: PlayerData) -> Control:
 	var button := _card_button(card, false)
-	button.tooltip_text = "Click to put %s into Tier %s.\nRight-click to read the card." \
-		% [card.player_name, card.get_tier_clean()]
+	var tier := card.get_tier_clean()
+	var power := TierLadder.rung_of(card)
+	var standing := (_chosen.get(tier, {}) as Dictionary).get(power, null) as PlayerData
+
+	if standing == null:
+		button.tooltip_text = "Click to put %s in the %d slot of Tier %s.\nRight-click to read the card." \
+			% [card.player_name, power, tier]
+	else:
+		button.tooltip_text = "Click to swap %s in for %s — both are %d power, and Tier %s holds one of each.\nRight-click to read the card." \
+			% [card.player_name, standing.player_name, power, tier]
 	button.pressed.connect(_add_card.bind(card))
 	return button
 
@@ -452,30 +525,40 @@ func _on_card_input(event: InputEvent, card: PlayerData) -> void:
 #  ADD / REMOVE
 # -------------------------------------------------------------
 
+## Put a card on its own rung. Whoever was standing there goes back to the
+## collection — a straight swap, never a rejection, because there is exactly
+## one slot this card could ever want and you have just asked for it.
 func _add_card(card: PlayerData) -> void:
 	var tier := card.get_tier_clean()
 	if tier == selection.star_tier:
 		return
-	var existing: Array = _chosen.get(tier, [])
-	var picked: Array[PlayerData] = []
-	picked.assign(existing)
-	if picked.size() >= PER_TIER:
-		_status.text = "Tier %s is full — remove someone first." % tier
+
+	var power := TierLadder.rung_of(card)
+	if not TierLadder.rungs(tier, db).has(power):
+		# Only reachable if a CSV was edited while the screen was open.
+		_status.text = "%s is %d power, and %s" % [
+			card.player_name, power, TierLadder.describe(tier, db).to_lower()]
 		_status.add_theme_color_override("font_color", Color(1.0, 0.72, 0.4))
 		return
-	if picked.has(card):
-		return
-	picked.append(card)
-	_chosen[tier] = picked
+
+	var by_power: Dictionary = _chosen.get(tier, {})
+	var replaced := by_power.get(power, null) as PlayerData
+	by_power[power] = card
+	_chosen[tier] = by_power
+
+	if replaced != null and replaced != card:
+		_status.text = "%s takes the %d slot — %s goes back to the collection." % [
+			card.player_name, power, replaced.player_name]
+		_status.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	_refresh()
 
 
 func _remove_card(card: PlayerData, tier: String) -> void:
-	var existing: Array = _chosen.get(tier, [])
-	var picked: Array[PlayerData] = []
-	picked.assign(existing)
-	picked.erase(card)
-	_chosen[tier] = picked
+	var by_power: Dictionary = _chosen.get(tier, {})
+	var power := TierLadder.rung_of(card)
+	if by_power.get(power, null) == card:
+		by_power.erase(power)
+	_chosen[tier] = by_power
 	_refresh()
 
 
@@ -488,7 +571,18 @@ func _on_change_class() -> void:
 
 
 func _on_ready() -> void:
-	selection.regulars = _chosen.duplicate(true)
+	# TeamSelection wants a plain array per tier. Flatten in rung order, so
+	# what the match receives is already weakest-first and already legal.
+	var flat: Dictionary = {}
+	for tier in ALL_TIERS:
+		if tier == selection.star_tier:
+			continue
+		if not TierLadder.legal(_slotted(tier), tier, db):
+			_update_status()
+			return
+		flat[tier] = _slotted(tier)
+
+	selection.regulars = flat
 	if not selection.is_complete(ALL_TIERS, PER_TIER):
 		_update_status()
 		return

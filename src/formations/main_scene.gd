@@ -694,7 +694,6 @@ func _apply_fixture() -> void:
 		state.set_flag(MatchStatsScreen.REPLAY_FLAG, false)
 		replaying = true
 		current_fixture = season.previous(state)
-		
 		if not current_fixture.is_empty():
 			# THE TEAM COLUMN WINS. A fixture that names a team gets that team's
 			# class and that team's cards; one that does not falls back to Class,
@@ -706,7 +705,7 @@ func _apply_fixture() -> void:
 				if enemy_team.is_empty():
 					push_warning("[teams] Season.csv fixture '%s' names team '%s', which is not in Teams.csv. Falling back to the Class column."
 						% [current_fixture["id"], team_id])
-	
+
 			forced_enemy_class = String(current_fixture["class"]).strip_edges()
 			if not enemy_team.is_empty():
 				var team_class := String(enemy_team["class"]).strip_edges()
@@ -715,11 +714,10 @@ func _apply_fixture() -> void:
 				print("[teams] Facing %s — power %d, %d named card(s)." % [
 					enemy_team["name"], TeamDB.get_db().rated_power(enemy_team),
 					(enemy_team["cards"] as Array).size()])
-			
+
 			print("[season] Rerunning %s as a friendly. Nothing will be recorded."
 				% current_fixture["opponent"])
 			return
-			
 		print("[season] Nothing to rerun — playing the next fixture instead.")
 
 	current_fixture = season.current(state)
@@ -729,24 +727,29 @@ func _apply_fixture() -> void:
 
 	forced_enemy_class = String(current_fixture["class"]).strip_edges()
 
-	# Difficulty is a flat power bonus to every enemy card, for this fixture
-	# only. It is deliberately blunt: one number in a spreadsheet, and you can
-	# see straight away what a 2 does compared with a 0.
-	# The ceiling, before anything is added on. This is what stops a
-	# Difficulty bonus turning a 5-power Tier IV into a 6.
+	# The ceiling, before anything is added on. This is what stops an ability
+	# turning a 5-power Tier IV into a 6.
 	if abilities != null:
 		abilities.max_power = db.tune_int("max_card_power", 5)
 
+	# DIFFICULTY MAKES THEM FINISH BETTER — it does not make their cards
+	# bigger. A harder fixture adds to the opposition's SHOT, so their Tier I
+	# is still a 0, a 1 and a 2 exactly like yours. See the long note in
+	# ability_engine.gd, and TIER_LADDER_AND_AUTO.md.
 	var scale := db.tune_float("season_difficulty_scale", 1.0)
 	var bonus := int(round(float(int(current_fixture["difficulty"])) * scale))
 	if abilities != null and bonus != 0:
-		abilities.side_bonus[true] = bonus
+		if db.tune_bool("difficulty_as_power", false):
+			abilities.side_bonus[true] = bonus
+			print("[season] difficulty_as_power is ON — the enemy's cards are +%d, which breaks the tier ladder. Turn it off in Tuning.csv." % bonus)
+		else:
+			abilities.side_shot_bonus[true] = bonus
 
 	print("[season] Matchday %d of %d — %s%s%s" % [
 		int(current_fixture["number"]), season.last_number(),
 		current_fixture["opponent"],
 		"  (THE FINAL)" if bool(current_fixture["final"]) else "",
-		"  difficulty +%d" % bonus if bonus != 0 else ""])
+		"  difficulty +%d to their shot" % bonus if bonus != 0 else ""])
 
 
 func _apply_match_tuning() -> void:
@@ -1207,22 +1210,45 @@ func spawn_team(star_player: PlayerData, is_enemy: bool) -> void:
 			continue
 
 		var positions: Array = tiers[tier_key]
-		var pool := filter_units_by_tier(roster, tier_key)
-		pool.shuffle()
+		var available := filter_units_by_tier(roster, tier_key)
 
-		# Your side fields exactly the cards chosen in the team builder.
-		# The enemy keeps drawing at random, so it stays a fresh opponent.
+		# ============ THE LADDER, FOR BOTH SIDES ============
+		#
+		# A tier is one card of each power — Tier I is a 0, a 1 and a 2 — so
+		# the line-up is BUILT rung by rung rather than shuffled and sliced.
+		# The old code took three cards at random, which is how the enemy
+		# ended up fielding three 2s while you fielded a 0, a 1 and a 2.
+		#
+		# Your side starts from what you chose in the team builder and only
+		# has gaps filled; the enemy is drawn fresh each match, so it is a
+		# different legal three every time. See tier_ladder.gd.
+		var pool: Array[PlayerData] = []
+		var short_of: Array[int] = []
+
 		if not is_enemy and chosen_regulars.has(tier_key):
 			var built: Array[PlayerData] = []
 			built.assign(chosen_regulars[tier_key])
-			if not built.is_empty():
-				pool = built
+			var mended := TierLadder.repair(built, available, tier_key, db)
+			pool.assign(mended["cards"])
+			short_of.assign(mended["missing"])
+			for dropped: PlayerData in (mended["dropped"] as Array):
+				print("[ladder] %s cannot stand in Tier %s — %s. Left out."
+					% [dropped.player_name, tier_key, TierLadder.describe(tier_key, db)])
+		else:
+			# The opposition prefers the cards its Teams.csv row names, and
+			# falls back to the rest of its class for any rung the row left
+			# empty — so a row naming two cards still fields a legal three.
+			var made := TierLadder.build(available, tier_key, db, true,
+				filter_units_by_tier(db.roster_for_class(star_player.unit_type), tier_key))
+			pool.assign(made["cards"])
+			short_of.assign(made["missing"])
 
-		if pool.size() < positions.size():
-			# A data problem, not a code fault — CardDB has already named the
-			# offending row, so print rather than push_warning (no backtrace).
-			print("[roster] '%s' has only %d Tier %s cards for %d slots."
-				% [star_player.unit_type, pool.size(), tier_key, positions.size()])
+		for power in short_of:
+			# A data problem, not a code fault — say which card is missing so
+			# it can be added to a CSV, rather than just "not enough cards".
+			print("[ladder] '%s' has no %d-power Tier %s card to field%s."
+				% [star_player.unit_type, power, tier_key,
+					" for the opposition" if is_enemy else ""])
 
 		var fielded := mini(positions.size(), pool.size())
 		for i in fielded:
@@ -1661,6 +1687,7 @@ func spawn_pause_menu() -> void:
 	pause_menu = PauseMenu.make(db, state)
 	add_child(pause_menu)
 	pause_menu.quit_requested.connect(_on_quit_match)
+	pause_menu.auto_pick_changed.connect(_on_pause_menu_auto_changed)
 
 
 ## They pressed quit, twice, having been told what it costs.
@@ -1677,9 +1704,44 @@ func _on_quit_match() -> void:
 	ScenePaths.go_to(get_tree(), ScenePaths.BASE, false)
 
 
+## AUTO was switched on or off mid-match. Two things follow from that, and
+## both have to happen the instant the button is pressed rather than at the
+## next event: the game takes over (or hands back), and your clicks lock
+## (or unlock). Doing only the first is what let you and the computer both
+## choose in the same round.
 func _on_auto_pick_changed(is_on: bool) -> void:
+	_apply_auto_lock(is_on)
 	if is_on and current_state == MatchState.DRAFTING:
 		_offer_auto_pick()
+
+
+## The same thing, toggled from the pause menu instead of the HUD. The HUD's
+## button is repainted so the two never disagree.
+func _on_pause_menu_auto_changed(is_on: bool) -> void:
+	if hud != null:
+		hud.refresh_auto_button()
+	_on_auto_pick_changed(is_on)
+
+
+## Dim and disable everything the player would otherwise click while AUTO
+## is playing: the offered cards, and the clash buttons.
+func _apply_auto_lock(is_on: bool) -> void:
+	if card_container != null:
+		for child in card_container.get_children():
+			var card := child as PlayerCardUI
+			if card != null:
+				card.set_locked(is_on)
+	if rps != null:
+		rps.set_locked(is_on)
+	# A locked card cannot be hovered, so a stats panel left open by the card
+	# under the cursor would sit there for the rest of the match.
+	if is_on and card_stats != null:
+		card_stats.hide()
+
+
+## Is AUTO playing for us right now? One question, asked in several places.
+func _auto_is_on() -> bool:
+	return state != null and MatchHUD.auto_pick_on(state)
 
 
 func spawn_rps() -> void:
@@ -1697,11 +1759,12 @@ func run_rps_clash() -> bool:
 	if rps == null or not use_rps_minigame:
 		return randi() % 2 == 0
 	rps.start()
+	rps.set_locked(_auto_is_on())
 
 	# AUTO plays the clash too — the throw AND the attack/defend choice — so
 	# "sit back and watch" really means the whole match, not "the whole match
 	# except the two buttons in the middle of it".
-	if MatchHUD.auto_pick_on(state):
+	if _auto_is_on():
 		rps.auto_play(db.tune_float("auto_pick_seconds", 0.9),
 			db.tune_float("auto_attack_chance", 0.5))
 
@@ -2254,6 +2317,9 @@ func create_card_for_unit(data: PlayerData) -> void:
 	card.card_hovered.connect(_on_card_hovered)
 	card.card_unhovered.connect(_on_card_unhovered)
 	card.card_selected.connect(_on_card_selected)
+	# Born locked if AUTO is already running, so there is never a frame in
+	# which a fresh card is clickable during an automatic pick.
+	card.set_locked(_auto_is_on())
 	if data != null:
 		offered_cards.append(data)
 

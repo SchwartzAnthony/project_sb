@@ -9,12 +9,26 @@ extends HBoxContainer
 #    1x 2x 4x 8x   how fast time runs. Number keys 1-4 do the same.
 #                  Hold F for a blast of 20x, let go to drop back.
 #
-#    AUTO          the game picks your cards for you at every PLAY MAKER
-#                  and every Star swap, so you can sit and watch a whole
-#                  match without touching anything.
+#    AUTO          the game plays for you — it picks your cards at every
+#                  PLAY MAKER and every Star swap, throws the clash and
+#                  chooses attack or defend, so you can sit and watch a
+#                  whole match without touching anything.
 #
-#  AUTO is remembered in your save (as the flag `auto_pick`), so it is still
-#  on next match and any CSV can test it with  flag:auto_pick .
+#  ============ AUTO STARTS OFF, EVERY MATCH ============
+#
+#  It used to be remembered in your save, so turning it on once meant every
+#  later match played itself until you noticed and turned it back off. Now
+#  every match begins with you in charge, and AUTO is something you switch
+#  on deliberately for the match you are in.
+#
+#  Set `auto_pick,true` in Tuning.csv if you genuinely want it on by default
+#  — for a demo, say, or a stream. The flag `auto_pick` still exists during
+#  the match, so any CSV can test it with  flag:auto_pick .
+#
+#  WHILE IT IS ON, YOUR CLICKS ARE LOCKED. The cards and the clash buttons
+#  go dim and stop responding, because a half-second race between you and
+#  the computer over the same card is how a round gets picked twice. Press
+#  AUTO (or A) to take back over, and everything lights up again.
 #
 #  There is no art here on purpose — it is meant to be replaced. Everything
 #  it does is two lines of public API that any screen you design later can
@@ -65,10 +79,10 @@ func setup(database: CardDatabase, save: GameState) -> void:
 	_chosen = clampf(db.tune_float("game_speed_start", 1.0),
 		GameSpeed.MIN_SPEED, GameSpeed.MAX_SPEED)
 
-	# Tuning.csv sets the STARTING value of AUTO; after that the save wins,
-	# so turning it on during a match keeps it on next time.
-	if state != null and not state.has_flag(AUTO_FLAG) and db.tune_bool("auto_pick", false):
-		state.set_flag(AUTO_FLAG, true)
+	# EVERY MATCH STARTS WITH YOU IN CHARGE. Whatever the last match left the
+	# flag at is thrown away here; only Tuning.csv can start a match on AUTO,
+	# and it is off unless you say otherwise.
+	set_auto_pick(state, db.tune_bool("auto_pick", false))
 
 	add_theme_constant_override("separation", 5)
 	_build()
@@ -91,7 +105,7 @@ func _build() -> void:
 	add_child(spacer)
 
 	_auto_button = _make_button("AUTO", 66.0)
-	_auto_button.tooltip_text = "Let the game pick your cards. Sit back and watch."
+	_auto_button.tooltip_text = "Let the game play for you. Your cards and the clash buttons lock while it is on.\nPress AUTO or A to take back over."
 	_auto_button.pressed.connect(_toggle_auto)
 	add_child(_auto_button)
 
@@ -163,6 +177,12 @@ func _notification(what: int) -> void:
 # =============================================================
 #  SHOWING WHAT IS ON
 # =============================================================
+
+## Repaint the AUTO button after something else changed the flag — the pause
+## menu, or a CSV effect. The two AUTO buttons must never disagree.
+func refresh_auto_button() -> void:
+	_refresh()
+
 
 func _refresh() -> void:
 	for i in _speed_buttons.size():

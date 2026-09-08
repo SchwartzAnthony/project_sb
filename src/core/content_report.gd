@@ -90,6 +90,50 @@ func _gather() -> void:
 	_check_counters(story, stats, steps, base, talents)
 	_check_unlocks(story, steps, base, talents)
 	_check_tuning_bonuses(talents)
+	_check_tier_ladders(cards)
+
+
+## ============ CAN EVERY CLASS FIELD A LEGAL TEAM? ============
+##
+## The rule is that a tier holds one card of each power — Tier I is a 0, a 1
+## and a 2. A class with no 1-power Tier II card therefore cannot fill Tier
+## II, and the match will field two cards there instead of three.
+##
+## That is invisible until you are watching a match and counting heads, so
+## it is checked here and named: which class, which tier, which power.
+func _check_tier_ladders(cards: CardDatabase) -> void:
+	var ladder_lines: Array[String] = []
+	for tier in TierLadder.TIERS:
+		ladder_lines.append("Tier %s = %s" % [tier,
+			", ".join(_powers_as_words(TierLadder.rungs(tier, cards)))])
+	lines.append("[content] The ladder: %s." % "  ·  ".join(ladder_lines))
+
+	# One pass per class, so a fault is reported against the class that owns it.
+	var classes: Array[String] = []
+	for card in cards.players:
+		var key := card.unit_type.strip_edges()
+		if key != "" and not classes.has(key):
+			classes.append(key)
+	classes.sort()
+
+	# Duplicates first: a doubled file is the cause of most of the per-class
+	# complaints below, so naming it first saves reading the rest.
+	for problem in TierLadder.check_duplicate_names(cards):
+		warnings.append("ladder: " + problem)
+
+	for unit_type in classes:
+		for problem in TierLadder.check_class(unit_type, cards):
+			warnings.append("ladder: " + problem)
+
+	for problem in TierLadder.check_mirrored_powers(cards):
+		warnings.append("ladder: " + problem)
+
+
+static func _powers_as_words(powers: Array[int]) -> Array[String]:
+	var out: Array[String] = []
+	for power in powers:
+		out.append(str(power))
+	return out
 
 
 ## A Progression row that says story:chapter9 when no CSV defines chapter9.

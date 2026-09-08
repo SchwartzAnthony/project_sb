@@ -114,11 +114,11 @@ camera_lead,0.30,"How far ahead of the ball it looks during a pass. 0 = stare at
 camera_deadzone,36,How far the ball may drift from the middle before the camera bothers to move. Stops a permanent jitter
 full_time_seconds,2.6,How long FULL TIME stays on screen before the season screen opens
 gains_max_rows,8,How many lines the "what you gained" panel shows before it says "and N more"
-season_difficulty_scale,1.0,"Multiplies the Difficulty column of Season.csv. 0 makes every fixture a fair fight, 2 doubles the handicap"
+season_difficulty_scale,1.0,"Multiplies the Difficulty column of Season.csv. 0 makes every fixture a fair fight, 2 doubles the handicap. Difficulty is added to the OPPOSITION SHOT, never to their cards"
 game_speed_steps,"1,2,4,8","The speed buttons in a match, comma separated. Number keys 1-4 do the same"
 game_speed_turbo,20,How fast time runs while you HOLD F. Let go and it drops back to the button you chose
 game_speed_start,1,Which speed a match begins at
-auto_pick,false,"Starting value of the AUTO toggle. Once you press AUTO in a match, your save remembers it instead"
+auto_pick,false,"Is AUTO already on when a match kicks off? Every match starts from THIS value, not from what you left the last one at. While AUTO is on your cards and the clash buttons are locked"
 auto_pick_seconds,0.9,How long AUTO waits before choosing so you can still see who was on offer
 hud_left_margin,16,Where the speed buttons sit from the left edge
 hud_top_margin,14,Where the speed buttons sit from the top edge
@@ -128,5 +128,6 @@ show_dev_tools,true,"Shows the Dev button at the base, which opens the save insp
 inspector_jump_buttons,14,How many "jump straight to" buttons the save inspector offers
 star_holds_its_tier,false,"false = a Star is offered in its tier like any other card and is used up when picked. true = the old behaviour, where the Star fills its tier every round of the cycle"
 card_hover_stats,true,Show the stats window when the mouse is over a card during a PLAY MAKER
-max_card_power,5,"THE CEILING. No card's power may ever exceed this, whatever a fixture's Difficulty or an ability adds. 5 because your tiers top out at 3-5"
+max_card_power,5,"THE CEILING. No card's power may ever exceed this, whatever an ability adds. 5 because Tier IV tops out at 3-4-5"
 auto_attack_chance,0.5,"When AUTO wins the rock-paper-scissors, the odds it chooses ATTACK. 1 always attacks, 0 always defends"
+difficulty_as_power,false,"LEAVE THIS OFF. On, a fixture's Difficulty is added to every enemy CARD instead of to their shot, which breaks the tier ladder — their Tier I stops being a 0, a 1 and a 2. Only here so the old behaviour can be seen"

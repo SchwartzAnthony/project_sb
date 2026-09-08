@@ -43,12 +43,30 @@ var log_lines: Array[String] = []
 var _buffs: Array[Buff] = []
 var _shot_bonus := {false: 0, true: 0}   # side_is_enemy -> extra shot power
 
-## A flat power bonus for one whole side, set by the season's Difficulty
-## column and by nothing else. It sits here rather than on the cards because
-## the cards are shared: writing it onto PlayerData would follow those cards
-## into your own team next match.
-##   side_bonus[true]  = every enemy card is this much stronger
-##   side_bonus[false] = every one of yours is
+## A flat SHOT bonus for one whole side, set by the season's Difficulty
+## column and by nothing else. Unlike _shot_bonus above it is NOT cleared at
+## the start of a round: a fixture's difficulty lasts the whole match.
+##
+## ============ WHY THIS IS NOT A POWER BONUS ANY MORE ============
+##
+## It used to add to every card's attack and defence. That quietly broke the
+## rule the whole game rests on — Tier I holds a 0, a 1 and a 2 — because a
+## Difficulty of 2 turned the enemy's Tier I into a 2, a 3 and a 4. You could
+## see it on the pitch: cards whose numbers did not match their tier.
+##
+## The card is now never touched. Difficulty instead makes the opposition
+## FINISH better: it is added to their shot when they get one, which is the
+## same "this team is harder" without a single card leaving its rung.
+##
+##   side_shot_bonus[true]  = the enemy's shots are this much stronger
+##   side_shot_bonus[false] = yours are
+##
+## `difficulty_as_power` in Tuning.csv puts the old behaviour back if you
+## ever want it. Leave it at false — the ladder depends on it.
+var side_shot_bonus := {false: 0, true: 0}
+
+## The old flat power bonus. Left at 0 unless `difficulty_as_power` is on.
+## See side_shot_bonus above for why.
 var side_bonus := {false: 0, true: 0}
 
 ## THE CEILING. No card's power may ever go past this, whatever is added to
@@ -90,6 +108,10 @@ func begin_duel() -> void:
 
 func end_match() -> void:
 	_buffs.clear()
+	# The next fixture sets its own difficulty; a stale one would follow the
+	# player into a friendly.
+	side_shot_bonus = {false: 0, true: 0}
+	side_bonus = {false: 0, true: 0}
 
 
 func _expire(scope: String) -> void:
@@ -124,8 +146,11 @@ func defense_power(card: PlayerData, is_enemy: bool) -> int:
 	return clampi(total, 0, max_power)
 
 
+## What to add to a shot: what abilities granted this round, plus the
+## season's difficulty for the whole match.
 func shot_bonus(side_is_enemy: bool) -> int:
-	return int(_shot_bonus.get(side_is_enemy, 0))
+	return int(_shot_bonus.get(side_is_enemy, 0)) \
+		+ int(side_shot_bonus.get(side_is_enemy, 0))
 
 
 ## Goalie stamina changes queued this round: [{enemy_side, delta}, ...]

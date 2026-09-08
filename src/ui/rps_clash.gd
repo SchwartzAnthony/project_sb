@@ -50,6 +50,11 @@ var _busy: bool = false
 var _running: bool = false
 var _wired: bool = false
 
+## True while AUTO is playing for you. The buttons go dim and stop
+## responding; auto_play() below is unaffected, because it calls the
+## handlers directly rather than pressing the buttons.
+var _locked: bool = false
+
 const VBOX := "Dim/Center/Panel/Margin/VBox"
 
 
@@ -114,10 +119,30 @@ func start() -> void:
 	choice_buttons.visible = false
 	throw_buttons.visible = true
 	_set_throws_enabled(true)
+	if _locked:
+		status_label.text = "AUTO is playing this for you."
 
 
 func is_running() -> bool:
 	return _running
+
+
+## Lock or unlock the player's buttons. Called by main_scene when AUTO is
+## toggled, and once when the clash opens.
+##
+## Note that this does NOT touch `_busy` or `_running`, so awaiting_throw()
+## and awaiting_choice() still report the truth and auto_play() keeps going.
+## Locking is only about what your mouse may do.
+func set_locked(is_locked: bool) -> void:
+	_locked = is_locked
+	if not _resolve_nodes():
+		return
+	if throw_buttons != null and throw_buttons.visible:
+		_set_throws_enabled(not _busy)
+	if choice_buttons != null:
+		_set_choices_enabled(choice_buttons.visible and not _busy)
+	if status_label != null and _running and is_locked:
+		status_label.text = "AUTO is playing this for you."
 
 
 ## True while the player still has to throw (used by the headless test rig).
@@ -194,6 +219,7 @@ func _on_throw_pressed(throw_index: int) -> void:
 		throw_buttons.visible = false
 		choice_buttons.visible = true
 		_busy = false
+		_set_choices_enabled(true)
 		return
 
 	# --- Enemy won the throw: it decides for itself ---
@@ -237,11 +263,29 @@ func _compare(a: int, b: int) -> int:
 	return 1 if (a - b + 3) % 3 == 1 else -1
 
 
+## `enabled` is what the FLOW wants; the lock overrides it. Everything that
+## enables a button goes through here, so there is one place AUTO has to win
+## and no path that can quietly leave a button live.
 func _set_throws_enabled(enabled: bool) -> void:
+	if not _resolve_nodes() or throw_buttons == null:
+		return
+	var live := enabled and not _locked
 	for child in throw_buttons.get_children():
 		var button := child as Button
 		if button != null:
-			button.disabled = not enabled
+			button.disabled = not live
+	throw_buttons.modulate = Color(1, 1, 1, 0.45) if _locked else Color(1, 1, 1, 1)
+
+
+func _set_choices_enabled(enabled: bool) -> void:
+	if not _resolve_nodes() or choice_buttons == null:
+		return
+	var live := enabled and not _locked
+	for child in choice_buttons.get_children():
+		var button := child as Button
+		if button != null:
+			button.disabled = not live
+	choice_buttons.modulate = Color(1, 1, 1, 0.45) if _locked else Color(1, 1, 1, 1)
 
 
 func _wait(seconds: float) -> void:
