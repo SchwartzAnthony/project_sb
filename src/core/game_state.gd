@@ -28,6 +28,15 @@ var counters: Dictionary = {}    # name (lower) -> int
 var texts: Dictionary = {}       # name (lower) -> String
 var unlocks: Dictionary = {}     # name (lower) -> the original spelling
 
+## THE NAME BOOK: key -> the spelling it was first written with.
+##
+## Names are squashed down to letters and digits so that "First Win" and
+## "first_win" are the same flag. That is what you want for matching, and
+## exactly what you do NOT want when something has to be shown to a player:
+## "firstwin" on screen looks like a bug. So the first time a name is used,
+## the spelling is kept here, and pretty() reads it back out.
+var names: Dictionary = {}
+
 ## Everything that has been applied this session, newest last. Printed by the
 ## dialogue screen so you can see what your choices actually did.
 var history: Array[String] = []
@@ -93,8 +102,19 @@ func unlocked_names() -> Array[String]:
 #  WRITING
 # =============================================================
 
+## A readable version of a stored name, for anything a player will see.
+## Falls back to the squashed key when the spelling was never recorded — an
+## old save, for instance — so it can never come back blank.
+func pretty(key_or_name: String) -> String:
+	var key := _key(key_or_name)
+	var spelling := String(names.get(key, ""))
+	if spelling == "":
+		return key_or_name.strip_edges().capitalize()
+	return spelling.replace("_", " ").strip_edges().capitalize()
+
+
 func set_flag(flag_name: String, value: bool = true) -> void:
-	var key := _key(flag_name)
+	var key := _remember(flag_name)
 	if key == "":
 		return
 	if value:
@@ -106,7 +126,7 @@ func set_flag(flag_name: String, value: bool = true) -> void:
 
 ## `delta` adds to what is there. Use set_count() to overwrite instead.
 func add_count(counter_name: String, delta: int) -> void:
-	var key := _key(counter_name)
+	var key := _remember(counter_name)
 	if key == "":
 		return
 	counters[key] = count(key) + delta
@@ -114,7 +134,7 @@ func add_count(counter_name: String, delta: int) -> void:
 
 
 func set_count(counter_name: String, value: int) -> void:
-	var key := _key(counter_name)
+	var key := _remember(counter_name)
 	if key == "":
 		return
 	counters[key] = value
@@ -122,7 +142,7 @@ func set_count(counter_name: String, value: int) -> void:
 
 
 func set_text(text_name: String, value: String) -> void:
-	var key := _key(text_name)
+	var key := _remember(text_name)
 	if key == "":
 		return
 	var clean := value.strip_edges()
@@ -137,7 +157,7 @@ func unlock(thing: String) -> void:
 	var clean := thing.strip_edges()
 	if clean == "":
 		return
-	unlocks[_key(clean)] = clean
+	unlocks[_remember(clean)] = clean
 	history.append("unlocked %s" % clean)
 
 
@@ -146,6 +166,7 @@ func reset() -> void:
 	counters.clear()
 	texts.clear()
 	unlocks.clear()
+	names.clear()
 	history.clear()
 
 
@@ -159,6 +180,7 @@ func save_to_disk() -> void:
 		"counters": counters,
 		"texts": texts,
 		"unlocks": unlocks.values(),
+		"names": names,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file == null:
@@ -198,6 +220,13 @@ func load_from_disk() -> void:
 		for key in (saved_texts as Dictionary).keys():
 			texts[_key(String(key))] = String((saved_texts as Dictionary)[key])
 
+	# The name book is read BEFORE anything else touches it, so that unlock()
+	# below does not overwrite a good spelling with the same one.
+	var saved_names: Variant = data.get("names", {})
+	if saved_names is Dictionary:
+		for key in (saved_names as Dictionary).keys():
+			names[_key(String(key))] = String((saved_names as Dictionary)[key])
+
 	for entry in _as_array(data.get("unlocks", [])):
 		unlock(String(entry))
 
@@ -216,6 +245,14 @@ static func save_location() -> String:
 ## Names are matched case- and space-insensitively, so "Spared The Keeper",
 ## "spared_the_keeper" and "sparedthekeeper" are the same flag. That stops a
 ## typo in a spreadsheet silently creating a second, never-read flag.
+## Squash a name to its key AND keep the spelling, so it can be shown later.
+func _remember(display: String) -> String:
+	var key := _key(display)
+	if key != "" and not names.has(key):
+		names[key] = display.strip_edges()
+	return key
+
+
 static func _key(name_text: String) -> String:
 	var out := ""
 	for c in name_text.strip_edges().to_lower():

@@ -85,6 +85,24 @@ var state: GameState
 var stats: StatsRules
 ## Progression.csv — decides when things happen.
 var steps: Progression
+
+## The fixture list. Which team you are playing, and how hard they are.
+var season: SeasonDB
+## The row of Season.csv being played right now. Empty = a friendly, which is
+## what you get once the season is over or if Season.csv is missing.
+var current_fixture: Dictionary = {}
+## Set from the fixture's Class column. Blank = pick an opponent at random,
+## exactly as the game did before there was a season.
+var forced_enemy_class: String = ""
+
+## The photograph of your progress taken at kick-off. Compared against the
+## state at full time to work out what you gained, with no help from anything
+## else. See match_report.gd.
+var gains: MatchReport = null
+
+## The view that follows the ball. Null when camera_enabled is false in
+## Tuning.csv, and everything below copes with that.
+var camera: MatchCamera = null
 ## Who won the rock/paper/scissors clash and chose to attack this round.
 var player_attacks_this_round: bool = true
 ## The card holding the ball when the duel chain ended — it takes the shot.
@@ -187,6 +205,12 @@ func _ready() -> void:
 	state = GameState.fetch(get_tree())
 	stats = StatsRules.get_rules()
 	steps = Progression.get_rules()
+	season = SeasonDB.get_db()
+
+	# Taken FIRST, before a single thing has changed, so that everything the
+	# match gives you — including anything a Progression row does at kick-off —
+	# turns up on the "what you gained" panel afterwards.
+	gains = MatchReport.snapshot(state)
 
 	# Talents raise Tuning.csv numbers. This has to happen BEFORE the tuning
 	# is read, or the match would use the un-boosted values.
@@ -197,6 +221,7 @@ func _ready() -> void:
 	BrewDB.get_db().apply_all(db, state)
 
 	_apply_match_tuning()
+	_apply_fixture()
 
 	# Added BEFORE units_container on purpose. Everything here sits at z_index
 	# 0, so it is tree order that puts the tint over the grass and under the
@@ -231,6 +256,11 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	# Before the early return: the camera has to keep easing back out to the
+	# wide view during the draft and at full time, which are exactly the
+	# moments this function used to stop doing anything.
+	_drive_camera()
+
 	if current_state != MatchState.PLAYING:
 		return
 
@@ -288,9 +318,13 @@ func _report(event: String, facts: Dictionary) -> void:
 
 ## Run the Progression rows listening for this moment, then carry out
 ## anything they asked for that needs the scene tree.
-func _advance_progression(trigger: String) -> void:
+## Returns true if a row took the screen over — played a story scene or sent
+## you somewhere else — so the caller knows not to change scene as well.
+## `return_to` is where a story scene comes back to when it finishes.
+func _advance_progression(trigger: String, return_to: String = "") -> bool:
 	if steps == null or state == null:
-		return
+		return false
+	var comes_back := return_to if return_to != "" else ScenePaths.MATCH
 	for action in steps.fire(trigger, state):
 		var kind := String(action["kind"])
 		var value := String(action["value"])
@@ -300,13 +334,14 @@ func _advance_progression(trigger: String) -> void:
 				await announce(value, db.tune_float("progression_announce_seconds", 1.6))
 			"story":
 				state.save_to_disk()
-				DialogueView.play(get_tree(), value, ScenePaths.MATCH)
-				return
+				DialogueView.play(get_tree(), value, comes_back)
+				return true
 			"goto":
 				state.save_to_disk()
 				ScenePaths.go_to(get_tree(), ScenePaths.for_name(value))
-				return
+				return true
 	state.save_to_disk()
+	return false
 
 
 # =============================================================
@@ -596,6 +631,42 @@ func _drift_point(unit: PlayerUnit) -> Vector2:
 #  missing or misspelled row.
 # =============================================================
 
+# =============================================================
+#  THE SEASON
+#
+#  Season.csv says who you are playing and how hard they are. Everything
+#  here degrades quietly: no Season.csv, or a season already finished, and
+#  the match is a friendly that plays exactly as it always did.
+# =============================================================
+
+func _apply_fixture() -> void:
+	current_fixture = {}
+	forced_enemy_class = ""
+	if season == null or state == null:
+		return
+
+	current_fixture = season.current(state)
+	if current_fixture.is_empty():
+		print("[season] No fixture on — this is a friendly. The result will not be recorded.")
+		return
+
+	forced_enemy_class = String(current_fixture["class"]).strip_edges()
+
+	# Difficulty is a flat power bonus to every enemy card, for this fixture
+	# only. It is deliberately blunt: one number in a spreadsheet, and you can
+	# see straight away what a 2 does compared with a 0.
+	var scale := db.tune_float("season_difficulty_scale", 1.0)
+	var bonus := int(round(float(int(current_fixture["difficulty"])) * scale))
+	if abilities != null and bonus != 0:
+		abilities.side_bonus[true] = bonus
+
+	print("[season] Matchday %d of %d — %s%s%s" % [
+		int(current_fixture["number"]), season.last_number(),
+		current_fixture["opponent"],
+		"  (THE FINAL)" if bool(current_fixture["final"]) else "",
+		"  difficulty +%d" % bonus if bonus != 0 else ""])
+
+
 func _apply_match_tuning() -> void:
 	MATCH_LENGTH_MINUTES = db.tune_float("match_length_minutes", MATCH_LENGTH_MINUTES)
 	FIRST_EVENT_MINUTE = db.tune_float("first_event_minute", FIRST_EVENT_MINUTE)
@@ -674,6 +745,50 @@ func _tune_goalie(keeper: GoalieUnit) -> void:
 	keeper.open_goal_chance = db.tune_float("goalie_open_goal_chance", keeper.open_goal_chance)
 
 
+# =============================================================
+#  THE CAMERA
+#
+#  main_scene decides WHAT to look at; match_camera.gd decides how smoothly
+#  to get there. Keeping those apart means the rule below is four lines you
+#  can read, rather than easing sums mixed in with match logic.
+# =============================================================
+
+## Built the first time the pitch geometry is pinned, and given the pitch
+## rectangle as it looked with NO camera in the scene. That framing is then
+## what the whole match uses forever — see get_visible_world_rect().
+func _spawn_camera(pitch: Rect2) -> void:
+	if camera != null or not db.tune_bool("camera_enabled", true):
+		return
+	camera = MatchCamera.new()
+	camera.name = "MatchCamera"
+	add_child(camera)
+	camera.setup(pitch, db)
+	camera.make_current()
+	print("[camera] Following the ball. Set camera_enabled to false in Tuning.csv to switch it off.")
+
+
+func _drive_camera() -> void:
+	if camera == null:
+		return
+
+	# Anything that is not live play gets the whole pitch: the draft, the
+	# whistle, full time. You need to see both teams to choose a card.
+	if current_state != MatchState.PLAYING or _freeze_depth > 0 or ball == null:
+		camera.look_wide()
+		return
+
+	if ball.is_shooting():
+		camera.look_close(ball.global_position)
+		return
+
+	# Mid-pass, look at where the ball is GOING. Following where it is drags
+	# the view along behind every pass and the play always feels off-centre.
+	var toward := ball.global_position
+	if ball.is_in_flight():
+		toward = ball.arrival_point()
+	camera.look_at_play(ball.global_position, toward)
+
+
 func _update_clock_label() -> void:
 	var mins := int(match_time_minutes)
 	var secs := int((match_time_minutes - mins) * 60.0)
@@ -703,9 +818,47 @@ func _full_time() -> void:
 	_report("match_ended", facts)
 
 	# One-match brews wear off at the whistle. Permanent ones stay on.
-	BrewDB.clear_temporary(state)
+	var brews_off := BrewDB.clear_temporary(state)
+	if brews_off > 0 and gains != null:
+		gains.note("%d one-match brew%s wore off" % [
+			brews_off, "" if brews_off == 1 else "s"], "pour another at the Pub")
 
-	_advance_progression("match_ended")
+	# The fixture is recorded BEFORE the Progression rows run, so that a row
+	# saying  Requires: flag:season_over  or  count:season_wins>=3  is testing
+	# today's result rather than yesterday's.
+	var summary: Dictionary = {}
+	if season != null:
+		summary = season.record(player_score, enemy_score, state)
+
+	var reward_actions: Array = summary.get("actions", [])
+	for action in reward_actions:
+		var reward_kind := String((action as Dictionary)["kind"])
+		var reward_value := String((action as Dictionary)["value"])
+		if reward_kind == "announce":
+			print("[season] %s" % reward_value)
+			await announce(reward_value, db.tune_float("progression_announce_seconds", 1.6))
+		else:
+			push_warning("[season] '%s:' does not work in a fixture's On Win / On Loss column. Put it in a Progression.csv row instead."
+				% reward_kind)
+
+	# A story or a goto in a Progression row takes the screen over. When it is
+	# a story, it now comes back to the season screen rather than restarting
+	# the match.
+	var took_over := await _advance_progression("match_ended", ScenePaths.SEASON)
+
+	# The second photograph, taken last, so unlocks handed out by the fixture
+	# AND by the Progression rows both land on the panel.
+	if gains != null:
+		gains.summary = summary
+		gains.finish(state)
+		MatchReport.stash(get_tree(), gains)
+	state.save_to_disk()
+
+	if took_over:
+		return
+
+	await get_tree().create_timer(db.tune_float("full_time_seconds", 2.6)).timeout
+	ScenePaths.go_to(get_tree(), ScenePaths.SEASON)
 
 
 # =============================================================
@@ -840,6 +993,22 @@ func _print_line_ups() -> void:
 func _choose_enemy_team(player_type_to_avoid: String) -> void:
 	var by_class := _stars_grouped_by_class()
 
+	# THE SEASON GETS FIRST SAY. If today's fixture names a class, that is who
+	# you play — the whole point of a fixture list is that you know who is
+	# coming. A name that matches no card falls through to the old random
+	# pick, with a line in the Output panel saying so.
+	if forced_enemy_class != "":
+		var named := ""
+		for class_key in by_class.keys():
+			if String(class_key).to_lower() == forced_enemy_class.to_lower():
+				named = String(class_key)
+				break
+		if named != "":
+			_field_enemy_class(named)
+			return
+		push_warning("[season] Season.csv asks for '%s', but no Star Player belongs to that class. Picking an opponent at random instead."
+			% forced_enemy_class)
+
 	# `preferred` also skips the classes you were offered at kickoff and turned
 	# down. Without that the two Stars you just rejected could walk straight
 	# back on for the opposition, which reads as "why is that card still here?".
@@ -866,8 +1035,11 @@ func _choose_enemy_team(player_type_to_avoid: String) -> void:
 		candidates.append(player_type_to_avoid)
 
 	candidates.shuffle()
-	var enemy_class: String = candidates[0]
+	_field_enemy_class(candidates[0])
 
+
+## Put an opposition of this exact class on the pitch.
+func _field_enemy_class(enemy_class: String) -> void:
 	enemy_star_bundle = get_star_bundle_by_type(enemy_class)
 	enemy_star_bundle.shuffle()
 	if enemy_star_bundle.is_empty():
@@ -1520,6 +1692,14 @@ func get_pitch_center_x() -> float:
 
 ## What the camera can actually see, in world coordinates.
 func get_visible_world_rect() -> Rect2:
+	# ONCE THE CAMERA EXISTS, IGNORE IT. This function is asked "how big is
+	# the pitch" by the formations, the quarters and the ball corridor, and
+	# the honest answer is "the same as it was at kick-off". Reading the live
+	# canvas transform instead would shrink the pitch every time the camera
+	# zoomed in, squashing both formations in toward the ball.
+	if camera != null and camera.home_rect.size.x > 1.0:
+		return camera.home_rect
+
 	var vp := get_viewport()
 	if vp == null:
 		return get_viewport_rect()
@@ -1569,6 +1749,12 @@ func get_pitch_rect() -> Rect2:
 func _lock_geometry() -> void:
 	if _geometry_locked:
 		return
+	# The camera is built here, before the play rect is pinned, so that the
+	# rectangle it is handed is the un-zoomed one. After this the two agree
+	# forever, because get_visible_world_rect() hands back the camera's own
+	# framing.
+	_spawn_camera(get_visible_world_rect())
+
 	_locked_play_rect = get_play_rect()
 	_geometry_locked = true
 

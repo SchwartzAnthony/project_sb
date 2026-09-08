@@ -129,12 +129,18 @@ func _build_exits() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	row.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	row.offset_left = -430.0
+	row.offset_left = -600.0
 	row.offset_top = 26.0
 	row.offset_right = -30.0
 	row.offset_bottom = 74.0
 	row.alignment = BoxContainer.ALIGNMENT_END
 	add_child(row)
+
+	var to_season := _make_button("The season", Vector2(150, 46))
+	to_season.pressed.connect(func() -> void:
+		state.save_to_disk()
+		ScenePaths.go_to(get_tree(), ScenePaths.SEASON))
+	row.add_child(to_season)
 
 	var to_match := _make_button("Play a match", Vector2(190, 46))
 	to_match.pressed.connect(func() -> void:

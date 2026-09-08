@@ -227,9 +227,10 @@ static func clear_for(card: PlayerData, state: GameState) -> void:
 
 
 ## Called at the final whistle. One-match brews wear off; permanent ones stay.
-static func clear_temporary(state: GameState) -> void:
+## Returns how many wore off, so the "what you gained" panel can say so.
+static func clear_temporary(state: GameState) -> int:
 	if state == null:
-		return
+		return 0
 	var doomed: Array[String] = []
 	for key in state.texts.keys():
 		var name_key := String(key)
@@ -241,6 +242,7 @@ static func clear_temporary(state: GameState) -> void:
 		state.texts.erase(key)
 	if not doomed.is_empty():
 		print("[brews] %d one-match brew(s) wore off." % doomed.size())
+	return doomed.size()
 
 
 # =============================================================

@@ -49,6 +49,7 @@ func _gather() -> void:
 	var base := BaseDB.get_db()
 	var talents := TalentDB.get_db()
 	var brews := BrewDB.get_db()
+	var season := SeasonDB.get_db()
 
 	lines.append("[content] %d cards, %d abilities, %d story lines across %d scene(s), %d stat rules, %d progression rows."
 		% [cards.players.size(), cards.abilities.size(),
@@ -57,6 +58,8 @@ func _gather() -> void:
 	lines.append("[content] %d building(s), %d visitor(s), %d talent(s) in %d tree(s), %d brew(s)."
 		% [base.buildings.size(), base.visitors.size(),
 			talents.talents.size(), talents.tree_names().size(), brews.brews.size()])
+	lines.append("[content] %d fixture(s) in the season, the last being Match %d."
+		% [season.fixtures.size(), season.last_number()])
 
 	for problem in cards.problems:
 		warnings.append("cards: " + problem)
@@ -72,6 +75,8 @@ func _gather() -> void:
 		warnings.append("talents: " + problem)
 	for problem in brews.problems:
 		warnings.append("brews: " + problem)
+	for problem in season.problems:
+		warnings.append("season: " + problem)
 
 	_check_story_targets(story, steps, base)
 	_check_counters(story, stats, steps, base, talents)
@@ -90,6 +95,9 @@ func _check_story_targets(story: DialogueDB, steps: Progression, base: BaseDB) -
 	for extra in base.story_targets():
 		if not wanted_scenes.has(extra):
 			wanted_scenes.append(extra)
+	for extra2 in SeasonDB.get_db().story_targets():
+		if not wanted_scenes.has(extra2):
+			wanted_scenes.append(extra2)
 
 	for wanted in wanted_scenes:
 		if not known_keys.has(CardDatabase._normalise(wanted)):
@@ -101,6 +109,13 @@ func _check_story_targets(story: DialogueDB, steps: Progression, base: BaseDB) -
 func _check_counters(story: DialogueDB, stats: StatsRules, steps: Progression,
 		base: BaseDB, talents: TalentDB) -> void:
 	var written: Array[String] = stats.counter_patterns.duplicate()
+
+	# The season keeps its own counters in code rather than through Stats.csv,
+	# so they are added by hand here. Without this, a perfectly good
+	# `count:season_wins>=3` in one of your CSVs would be reported as a typo.
+	for season_counter in SeasonDB.COUNTERS:
+		if not written.has(season_counter):
+			written.append(season_counter)
 
 	# Effects can also write counters directly — count:coins+10.
 	for expression in _all_effects(story, steps, base, talents):
@@ -210,6 +225,7 @@ func _all_conditions(story: DialogueDB, steps: Progression, base: BaseDB,
 	out.append_array(base.all_conditions())
 	out.append_array(talents.all_conditions())
 	out.append_array(BrewDB.get_db().all_conditions())
+	out.append_array(SeasonDB.get_db().all_conditions())
 	for scene_key in story.scenes.keys():
 		for line: DialogueLine in (story.scenes[scene_key] as Array):
 			if line.requires.strip_edges() != "":
@@ -224,6 +240,7 @@ func _all_effects(story: DialogueDB, steps: Progression, base: BaseDB,
 		talents: TalentDB) -> Array[String]:
 	var out: Array[String] = []
 	out.append_array(talents.all_effects())
+	out.append_array(SeasonDB.get_db().all_effects())
 	for rule in steps.rules:
 		out.append(String(rule["do"]))
 	for entry in base.buildings:

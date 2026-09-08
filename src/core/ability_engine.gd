@@ -42,6 +42,14 @@ var log_lines: Array[String] = []
 
 var _buffs: Array[Buff] = []
 var _shot_bonus := {false: 0, true: 0}   # side_is_enemy -> extra shot power
+
+## A flat power bonus for one whole side, set by the season's Difficulty
+## column and by nothing else. It sits here rather than on the cards because
+## the cards are shared: writing it onto PlayerData would follow those cards
+## into your own team next match.
+##   side_bonus[true]  = every enemy card is this much stronger
+##   side_bonus[false] = every one of yours is
+var side_bonus := {false: 0, true: 0}
 var _stamina_pending: Array = []         # [{"enemy_side": bool, "delta": int}]
 
 
@@ -88,7 +96,7 @@ func _expire(scope: String) -> void:
 func attack_power(card: PlayerData, is_enemy: bool) -> int:
 	if card == null:
 		return 0
-	var total := card.get_attack_power()
+	var total := card.get_attack_power() + int(side_bonus.get(is_enemy, 0))
 	for b in _buffs:
 		if b.matches(card, is_enemy):
 			total += b.attack
@@ -98,7 +106,7 @@ func attack_power(card: PlayerData, is_enemy: bool) -> int:
 func defense_power(card: PlayerData, is_enemy: bool) -> int:
 	if card == null:
 		return 0
-	var total := card.get_defense_power()
+	var total := card.get_defense_power() + int(side_bonus.get(is_enemy, 0))
 	for b in _buffs:
 		if b.matches(card, is_enemy):
 			total += b.defense

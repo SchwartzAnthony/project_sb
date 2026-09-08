@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CSV Workbench</title>
+<style>
+  :root{
+    --bg:#16181d; --panel:#1e2129; --edge:#2c303a; --edge2:#3b4150;
+    --text:#e6e8ee; --dim:#8d94a4; --accent:#fac254; --good:#63c98a;
+    --bad:#f0776b; --warn:#e8b45c;
+    color-scheme: dark;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:14px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  header{padding:14px 20px;border-bottom:1px solid var(--edge);
+         display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+         position:sticky;top:0;background:var(--bg);z-index:20}
+  h1{font-size:17px;margin:0;font-weight:600;letter-spacing:.3px}
+  h1 span{color:var(--accent)}
+  .grow{flex:1}
+  button{font:inherit;padding:7px 13px;border-radius:7px;cursor:pointer;
+         background:var(--panel);color:var(--text);border:1px solid var(--edge2)}
+  button:hover{background:var(--edge)}
+  button.primary{background:var(--accent);color:#20232b;border-color:var(--accent);font-weight:600}
+  button.primary:hover{filter:brightness(1.08)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  main{padding:18px 20px 80px}
+  .drop{border:2px dashed var(--edge2);border-radius:12px;padding:52px 20px;
+        text-align:center;color:var(--dim);margin:40px auto;max-width:720px}
+  .drop.over{border-color:var(--accent);color:var(--accent);background:#1c1f27}
+  .drop b{color:var(--text);display:block;font-size:17px;margin-bottom:8px}
+  .kind{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;
+        background:#2a2f3b;color:var(--accent);border:1px solid var(--edge2)}
+  .files{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .tab{padding:6px 12px;border-radius:7px;border:1px solid var(--edge2);
+       background:var(--panel);cursor:pointer;font-size:13px}
+  .tab.on{border-color:var(--accent);color:var(--accent)}
+  .tab .x{color:var(--dim);margin-left:7px}
+  .tab .x:hover{color:var(--bad)}
+  .note{background:var(--panel);border:1px solid var(--edge);border-left:3px solid var(--accent);
+        border-radius:8px;padding:12px 15px;margin-bottom:16px;color:var(--dim);font-size:13px}
+  .note b{color:var(--text)}
+  .wrap{overflow-x:auto;border:1px solid var(--edge);border-radius:10px;background:var(--panel)}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{border-bottom:1px solid var(--edge);padding:0;text-align:left;vertical-align:top}
+  th{background:#232733;padding:9px 11px;font-weight:600;white-space:nowrap;
+     position:sticky;top:57px;z-index:5;border-bottom:1px solid var(--edge2)}
+  th small{display:block;font-weight:400;color:var(--dim);font-size:11px;
+           max-width:230px;white-space:normal;line-height:1.35;margin-top:3px}
+  td textarea{width:100%;min-width:120px;background:transparent;border:0;color:var(--text);
+        font:inherit;padding:8px 11px;resize:vertical;min-height:36px;display:block}
+  td textarea:focus{outline:2px solid var(--accent);outline-offset:-2px;background:#1a1d24}
+  td.bad textarea{background:#2e1e1e}
+  td.warnc textarea{background:#2c2718}
+  tr:hover td{background:#22262f}
+  td.rownum{color:var(--dim);padding:9px 8px;text-align:right;white-space:nowrap;font-size:12px}
+  td.rowact{white-space:nowrap;padding:6px}
+  td.rowact button{padding:3px 8px;font-size:12px;margin-right:3px}
+  .msgs{margin-top:16px}
+  .msg{padding:8px 12px;border-radius:7px;margin-bottom:6px;font-size:13px;
+       background:var(--panel);border:1px solid var(--edge)}
+  .msg.bad{border-left:3px solid var(--bad)}
+  .msg.warn{border-left:3px solid var(--warn)}
+  .msg.good{border-left:3px solid var(--good);color:var(--good)}
+  .msg code{background:#2a2f3b;padding:1px 5px;border-radius:4px;color:var(--accent)}
+  .bar{display:flex;gap:9px;align-items:center;margin:14px 0;flex-wrap:wrap}
+  .count{color:var(--dim);font-size:13px}
+  dialog{background:var(--panel);color:var(--text);border:1px solid var(--edge2);
+         border-radius:12px;padding:0;max-width:760px;width:92vw}
+  dialog::backdrop{background:#000a}
+  .dh{padding:14px 18px;border-bottom:1px solid var(--edge);font-weight:600}
+  .db{padding:16px 18px;max-height:62vh;overflow:auto}
+  .df{padding:12px 18px;border-top:1px solid var(--edge);display:flex;gap:8px;justify-content:flex-end}
+  textarea.out{width:100%;height:44vh;background:#15171c;color:var(--text);border:1px solid var(--edge);
+        border-radius:8px;padding:11px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace}
+  kbd{background:#2a2f3b;border:1px solid var(--edge2);border-radius:4px;padding:1px 5px;font-size:11px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CSV <span>Workbench</span></h1>
+  <span class="count" id="kindTag"></span>
+  <div class="grow"></div>
+  <button id="addBtn">+ Row</button>
+  <button id="checkBtn">Check</button>
+  <button id="copyBtn">Copy</button>
+  <button class="primary" id="saveBtn">Save CSV</button>
+  <button id="openBtn">Open…</button>
+  <input type="file" id="file" accept=".csv" multiple hidden>
+</header>
+
+<main>
+  <div class="drop" id="drop">
+    <b>Drop your CSV files here</b>
+    Or press <em>Open…</em>. Several at once is fine — they become tabs.<br>
+    Nothing leaves this page. There is no server; it is one file on your computer.
+  </div>
+  <div id="work" hidden>
+    <div class="files" id="tabs"></div>
+    <div class="note" id="note"></div>
+    <div class="bar">
+      <span class="count" id="count"></span>
+      <div class="grow"></div>
+      <button id="addCol">+ Column</button>
+    </div>
+    <div class="wrap"><table id="grid"></table></div>
+    <div class="msgs" id="msgs"></div>
+  </div>
+</main>
+
+<dialog id="outDlg">
+  <div class="dh">The file, ready to paste</div>
+  <div class="db">
+    <p style="margin-top:0;color:var(--dim)">Select all (<kbd>Ctrl</kbd>+<kbd>A</kbd>) and copy,
+       then paste over the file in <code>res://data/</code>.</p>
+    <textarea class="out" id="outText" spellcheck="false"></textarea>
+  </div>
+  <div class="df"><button onclick="outDlg.close()">Close</button></div>
+</dialog>
+
+<script>
+// =====================================================================
+//  CSV WORKBENCH
+//
+//  A spreadsheet that knows what your game's spreadsheets mean. It works
+//  out which CSV you opened from its HEADER COLUMNS -- exactly the way the
+//  game does -- then shows the help for every column and checks the rows
+//  against the same rules the game checks them against at startup.
+//
+//  One file. No install, no server, no internet. Open it in a browser.
+// =====================================================================
+
+const norm = s => String(s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+// ---------------------------------------------------------------- parsing
+function parseCSV(text){
+  text = text.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
+  const rows = []; let row = [], cell = "", quoted = false;
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (quoted){
+      if (c === '"'){ if (text[i+1] === '"'){ cell += '"'; i++; } else quoted = false; }
+      else cell += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ","){ row.push(cell); cell = ""; }
+    else if (c === "\n"){ row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += c;
+  }
+  if (cell !== "" || row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(v => String(v).trim() !== ""));
+}
+
+function writeCSV(header, rows){
+  const q = v => {
+    v = String(v ?? "");
+    return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  };
+  return [header, ...rows].map(r => r.map(q).join(",")).join("\n") + "\n";
+}
+
+// ------------------------------------------------- what kind of file is this
+// The rule is the same one the loaders in src/core use: a file is identified
+// by the columns it has, never by its filename. Rename Talents.csv to
+// MyTalents.csv and both the game and this page still know what it is.
+const KINDS = [
+  { id:"season", name:"Season — the fixture list", needs:["match","opponent"],
+    file:"season_db.gd", key:"id",
+    help:{
+      id:"Short, unique. Also how this fixture's result is remembered — do not rename after shipping.",
+      match:"The fixture number: 1, 2, 3… Played in this order however the rows are sorted.",
+      opponent:"Who you play. Shown on the season screen.",
+      class:"Which class they field. BLANK = a random opponent.",
+      difficulty:"A flat power bonus to every enemy card, this fixture only. 0-3. Cards are 0-5 power.",
+      final:"true on the LAST fixture. Winning it makes you champions.",
+      requires:"Optional condition. A fixture whose condition fails is skipped.",
+      onwin:"What happens when you win. Same words as Progression's Do column.",
+      onloss:"The same, for a defeat. A draw gets neither.",
+      description:"One line, shown under the fixture.",
+      notes:"Yours. The game ignores it."
+    }},
+  { id:"progression", name:"Progression — when things happen", needs:["when","do"],
+    file:"progression.gd", key:"id",
+    enums:{ when:["game_start","menu_opened","match_started","match_ended","base_opened","story_ended"] },
+    help:{
+      id:"Unique. Also how 'Once' is remembered — do not rename after shipping.",
+      when:"game_start · menu_opened · match_started · match_ended · base_opened · story_ended",
+      requires:"The condition. Blank means always.",
+      do:"flag:x · count:x+n · unlock:x · set:x=y · clear:x · story:scene · goto:screen · announce:Text",
+      once:"true = fire once ever. Blank = every time the condition passes.",
+      notes:"Yours."
+    }},
+  { id:"stats", name:"Stats — what gets counted", needs:["counter","event"],
+    file:"stats_rules.gd", key:"counter",
+    help:{
+      counter:"The counter's name. {class} {tier} {brew} {card} {star} expand into one counter each.",
+      event:"goal_scored · goal_conceded · match_ended · duel_won · duel_lost · brew_drunk",
+      when:"An optional filter on the facts: result=win, margin>=3, star=yes. Blank = always.",
+      amount:"How much to add. Blank = 1.",
+      notes:"Yours."
+    }},
+  { id:"talents", name:"Talents — the tree", needs:["tree","effects"],
+    file:"talent_db.gd", key:"id",
+    help:{
+      id:"Unique. Taking a talent also unlocks this ID, so buildings can test unlocked:<this id>.",
+      name:"What the player sees.",
+      tree:"Which column of the tree. A new word here makes a new column.",
+      tier:"The row within the tree. 1 at the top.",
+      parent:"The talent ID that must be taken first. Blank = no parent.",
+      requires:"An extra condition on top of the parent. Both must be true.",
+      cost:"Talent points.",
+      effects:"count:tune_<a Tuning.csv key>+n raises that tuning row. unlock:x grants something.",
+      description:"Shown on the node.", art:"Optional PNG name.", notes:"Yours."
+    }},
+  { id:"brews", name:"Brews — what the Pub pours", needs:["id","becomes"],
+    file:"brew_db.gd", key:"id",
+    help:{
+      id:"Short and lower-case. This word lands in goals_with_brew_<id>, so keep it tidy.",
+      name:"What the player sees.", description:"One line.",
+      requires:"When the Pub can pour it. Usually unlocked:Fire Brew, which a talent grants.",
+      forclass:"Only this class may drink it. Blank = anyone.",
+      becomes:"The class it counts as afterwards. Blank = abilities only.",
+      artwork:"Spritesheet PNG in assets/players/. Blank = keeps its own art.",
+      attackability:"An Ability ID from Abilities.csv.",
+      defendability:"An Ability ID from Abilities.csv.",
+      permanent:"true = may be made permanent. Blank = one match only.",
+      notes:"Yours."
+    }},
+  { id:"buildings", name:"Buildings — the base", needs:["action","name"],
+    file:"base_db.gd", key:"id",
+    help:{
+      id:"Unique.", name:"What the plaque says.", description:"Shown when clicked.",
+      requires:"When it appears. unlocked:Brewery, count:matches_played>=5, or a TALENT ID.",
+      art:"PNG name in assets/base/. Blank = a labelled plaque.",
+      x:"0 to 1 across the screen.", y:"0 to 1 down the screen.",
+      action:"What clicking does. goto:pub · announce:Text · unlock:x · blank = just show the description.",
+      notes:"Yours."
+    }},
+  { id:"visitors", name:"Visitors — who is at the base", needs:["story","name"],
+    file:"base_db.gd", key:"id",
+    help:{
+      id:"Unique.", name:"Their name.", portrait:"PNG in assets/portraits/. Blank = a big initial.",
+      requires:"When they are here.", story:"The dialogue Scene to play when talked to.",
+      once:"true = they leave after one conversation.",
+      x:"0 to 1 across.", y:"0 to 1 down.", notes:"Yours."
+    }},
+  { id:"dialogue", name:"Dialogue — the story", needs:["scene","text"],
+    file:"dialogue_db.gd", key:"id",
+    help:{
+      scene:"Which conversation this line belongs to. story:<scene> plays it.",
+      id:"Unique within the scene. goto: jumps to it.",
+      speaker:"Who is talking.", text:"What they say.",
+      requires:"Show this line only if…", effects:"What saying it does.",
+      notes:"Yours."
+    }},
+  { id:"tuning", name:"Tuning — every number in the game", needs:["key","value"],
+    file:"card_database.gd", key:"key",
+    help:{ key:"The name the code asks for. Do not rename one unless you change the code too.",
+           value:"A number, or true/false.", whatitdoes:"Yours — write what it does." }},
+  { id:"abilities", name:"Abilities", needs:["id","trigger"], file:"ability_data.gd", key:"id",
+    help:{ id:"Unique. Cards and brews name this.", trigger:"When it fires." }},
+];
+
+function identify(header){
+  const keys = header.map(norm);
+  for (const k of KINDS) if (k.needs.every(n => keys.includes(n))) return k;
+  return null;
+}
+
+// ------------------------------------------------------------ the grammar
+// The same language the game reads: conditions in Requires, effects in Do /
+// Effects / Action / On Win / On Loss.
+const CONDITIONS = ["flag","unlocked","count","is"];
+const EFFECTS = ["flag","count","unlock","set","clear","story","goto","announce"];
+const SCREENS = ["menu","main_menu","classes","class_select","builder","team_builder",
+                 "match","game","pitch","story","dialogue","base","hub","home",
+                 "talents","talent","tree","pub","tavern","brews","season","table",
+                 "results","fixtures"];
+const COND_COLS = ["requires"];
+const EFFECT_COLS = ["do","effects","action","onwin","onloss"];
+
+function terms(s){ return String(s||"").replace(/ and /g, ";").split(";")
+                     .map(t => t.trim()).filter(Boolean); }
+
+function checkExpression(text, isEffect){
+  const out = [];
+  for (let t of terms(text)){
+    if (t.startsWith("!")){
+      if (isEffect){ out.push(`"${t}" — ! means "not", which only makes sense in a condition`); continue; }
+      t = t.slice(1).trim();
+    }
+    const at = t.indexOf(":");
+    if (at <= 0){ out.push(`"${t}" — expected something like ${isEffect?"unlock:Brewery":"flag:met_lorelei"}`); continue; }
+    const kind = t.slice(0, at).trim().toLowerCase();
+    const rest = t.slice(at + 1).trim();
+    const list = isEffect ? EFFECTS : CONDITIONS;
+    if (!list.includes(kind)){
+      out.push(`"${kind}:" is not a word here. Try: ${list.join(", ")}`); continue;
+    }
+    if (!rest){ out.push(`"${t}" has nothing after the colon`); continue; }
+    if (kind === "count"){
+      const ops = isEffect ? ["+","-","="] : [">=","<=","!=",">","<","="];
+      if (!ops.some(o => rest.includes(o)))
+        out.push(`"${t}" — a count needs ${isEffect?"+5 or -1 or =3":"a comparison like >=3"}`);
+    }
+    if (kind === "set" && !rest.includes("=")) out.push(`"${t}" — set needs a name=value`);
+    if (kind === "goto" && !SCREENS.includes(norm(rest).replace(/_/g,"")) &&
+        !SCREENS.includes(rest.toLowerCase()))
+      out.push(`goto:${rest} — that is not a screen. Try: base, pub, talents, season, match, menu`);
+  }
+  return out;
+}
+
+// ------------------------------------------------------------------- state
+const docs = [];      // {name, kind, header, rows}
+let active = -1;
+
+const $ = id => document.getElementById(id);
+const el = (t, p = {}) => Object.assign(document.createElement(t), p);
+
+function addDoc(name, text){
+  const raw = parseCSV(text);
+  if (!raw.length) return;
+  const header = raw[0].map(h => String(h).trim());
+  docs.push({ name, header, rows: raw.slice(1), kind: identify(header) });
+  active = docs.length - 1;
+  render();
+}
+
+// -------------------------------------------------------------- rendering
+function render(){
+  $("drop").hidden = docs.length > 0;
+  $("work").hidden = docs.length === 0;
+  for (const b of ["addBtn","checkBtn","copyBtn","saveBtn","addCol"]) $(b).disabled = active < 0;
+  if (active < 0) { $("kindTag").textContent = ""; return; }
+
+  const d = docs[active];
+  $("kindTag").innerHTML = d.kind
+    ? `<span class="kind">${d.kind.name}</span>`
+    : `<span class="kind" style="color:var(--warn)">unrecognised — no column help</span>`;
+
+  // tabs
+  const tabs = $("tabs"); tabs.innerHTML = "";
+  docs.forEach((doc, i) => {
+    const t = el("span", { className: "tab" + (i === active ? " on" : "") });
+    t.append(doc.name);
+    const x = el("span", { className: "x", textContent: "✕", title: "Close" });
+    x.onclick = e => { e.stopPropagation(); docs.splice(i,1);
+                       active = Math.min(active, docs.length-1); render(); };
+    t.append(x);
+    t.onclick = () => { active = i; render(); };
+    tabs.append(t);
+  });
+
+  $("note").innerHTML = d.kind
+    ? `<b>${d.kind.name}.</b> The game recognises this file by its columns
+       (<code>${d.kind.needs.join("</code> + <code>")}</code>), not by its name —
+       so it is read by <code>${d.kind.file}</code> whatever you call it.
+       Hover a column heading for what it does.`
+    : `<b>No column help for this one.</b> It does not match any file the game reads.
+       You can still edit and save it — the grid and the CSV quoting work the same.`;
+
+  $("count").textContent = `${d.rows.length} row${d.rows.length===1?"":"s"} · ${d.header.length} columns`;
+
+  // grid
+  const grid = $("grid"); grid.innerHTML = "";
+  const head = el("tr");
+  head.append(el("th", { textContent: "#" }));
+  d.header.forEach((h, c) => {
+    const th = el("th");
+    th.append(el("span", { textContent: h }));
+    const tip = d.kind?.help?.[norm(h)];
+    if (tip) th.append(el("small", { textContent: tip }));
+    th.ondblclick = () => {
+      const v = prompt("Rename this column", h);
+      if (v !== null && v.trim()){ d.header[c] = v.trim(); d.kind = identify(d.header); render(); }
+    };
+    th.title = "Double-click to rename";
+    head.append(th);
+  });
+  head.append(el("th", { textContent: "" }));
+  grid.append(head);
+
+  const problems = validate(d);
+
+  d.rows.forEach((row, r) => {
+    const tr = el("tr");
+    tr.append(el("td", { className: "rownum", textContent: String(r + 2) }));
+    d.header.forEach((h, c) => {
+      const td = el("td");
+      const bad = problems.cells[`${r},${c}`];
+      if (bad) td.className = bad.level === "bad" ? "bad" : "warnc";
+      const ta = el("textarea", { value: row[c] ?? "", rows: 1, spellcheck: false });
+      if (bad) ta.title = bad.text;
+      ta.oninput = () => {
+        while (d.rows[r].length < d.header.length) d.rows[r].push("");
+        d.rows[r][c] = ta.value;
+        ta.style.height = "auto"; ta.style.height = ta.scrollHeight + "px";
+      };
+      ta.onblur = () => showMessages(validate(d));
+      td.append(ta);
+      tr.append(td);
+    });
+    const act = el("td", { className: "rowact" });
+    const dup = el("button", { textContent: "copy", title: "Duplicate this row" });
+    dup.onclick = () => { d.rows.splice(r + 1, 0, [...d.rows[r]]); render(); };
+    const up = el("button", { textContent: "↑" });
+    up.onclick = () => { if (r > 0){ [d.rows[r-1], d.rows[r]] = [d.rows[r], d.rows[r-1]]; render(); } };
+    const dn = el("button", { textContent: "↓" });
+    dn.onclick = () => { if (r < d.rows.length-1){ [d.rows[r+1], d.rows[r]] = [d.rows[r], d.rows[r+1]]; render(); } };
+    const del = el("button", { textContent: "✕", title: "Delete this row" });
+    del.onclick = () => { if (confirm("Delete row " + (r+2) + "?")){ d.rows.splice(r,1); render(); } };
+    act.append(dup, up, dn, del);
+    tr.append(act);
+    grid.append(tr);
+  });
+
+  showMessages(problems);
+}
+
+// ------------------------------------------------------------ the checks
+function validate(d){
+  const cells = {}, msgs = [];
+  const H = d.header.map(norm);
+  const mark = (r, c, level, text) => {
+    cells[`${r},${c}`] = { level, text };
+    msgs.push({ level, text: `Row ${r + 2}, ${d.header[c]}: ${text}` });
+  };
+
+  // duplicate keys
+  if (d.kind?.key){
+    const c = H.indexOf(d.kind.key);
+    if (c >= 0){
+      const seen = new Map();
+      d.rows.forEach((row, r) => {
+        const v = norm(row[c]);
+        if (!v) return;
+        if (seen.has(v)) mark(r, c, "bad", `"${row[c]}" is already used on row ${seen.get(v) + 2}`);
+        else seen.set(v, r);
+      });
+    }
+  }
+
+  // the grammar columns
+  d.header.forEach((h, c) => {
+    const k = norm(h);
+    const isCond = COND_COLS.includes(k);
+    const isEff = EFFECT_COLS.includes(k);
+    if (!isCond && !isEff) return;
+    d.rows.forEach((row, r) => {
+      for (const complaint of checkExpression(row[c], isEff)) mark(r, c, "bad", complaint);
+    });
+  });
+
+  // enumerated columns (Progression's When)
+  if (d.kind?.enums) for (const [col, allowed] of Object.entries(d.kind.enums)){
+    const c = H.indexOf(col);
+    if (c < 0) continue;
+    d.rows.forEach((row, r) => {
+      const v = norm(row[c]);
+      if (v && !allowed.map(norm).includes(v))
+        mark(r, c, "bad", `"${row[c]}" is not a moment. One of: ${allowed.join(", ")}`);
+    });
+  }
+
+  // numbers that must be numbers, 0-1 fractions, true/false columns
+  const NUMERIC = ["match","difficulty","tier","cost","amount","value","cardnumber"];
+  const FRACTION = ["x","y"];
+  const BOOLEAN = ["final","once","permanent"];
+  d.header.forEach((h, c) => {
+    const k = norm(h);
+    d.rows.forEach((row, r) => {
+      const v = String(row[c] ?? "").trim();
+      if (!v) return;
+      if (NUMERIC.includes(k) && isNaN(Number(v)) && k !== "tier")
+        mark(r, c, "warn", `"${v}" is not a number`);
+      if (FRACTION.includes(k) && (isNaN(Number(v)) || Number(v) < 0 || Number(v) > 1))
+        mark(r, c, "warn", `"${v}" should be between 0 and 1 (a fraction of the screen)`);
+      if (BOOLEAN.includes(k) && !["true","false","yes","no","1","0","on","off"].includes(v.toLowerCase()))
+        mark(r, c, "warn", `"${v}" should be true or false (or left blank)`);
+    });
+  });
+
+  // Season.csv specifics — the ones that strand content
+  if (d.kind?.id === "season"){
+    const cM = H.indexOf("match"), cF = H.indexOf("final"), cD = H.indexOf("difficulty");
+    const numbers = d.rows.map(r => Number(r[cM])).filter(n => n > 0);
+    const highest = Math.max(0, ...numbers);
+    for (let want = 1; want <= highest; want++)
+      if (!numbers.includes(want)){
+        msgs.push({ level:"bad", text:`There is no Match ${want}, so the season stops there. Renumber the fixtures 1 to ${highest}.` });
+        break;
+      }
+    const finals = cF < 0 ? 0 : d.rows.filter(r => ["true","yes","1","on"].includes(String(r[cF]).toLowerCase())).length;
+    if (d.rows.length && finals === 0)
+      msgs.push({ level:"warn", text:`No fixture has Final set to true. Match ${highest} will be treated as the final.` });
+    if (finals > 1)
+      msgs.push({ level:"warn", text:`${finals} fixtures are marked Final. The season ends at the first one reached.` });
+    if (cD >= 0) d.rows.forEach((row, r) => {
+      if (Number(row[cD]) > 3) mark(r, cD, "warn",
+        `Difficulty ${row[cD]} is very high — cards are 0-5 power, so they would be close to unbeatable.`);
+    });
+  }
+
+  // ragged rows
+  d.rows.forEach((row, r) => {
+    if (row.length > d.header.length)
+      msgs.push({ level:"warn", text:`Row ${r+2} has ${row.length} values but there are only ${d.header.length} columns. The extras are dropped when you save.` });
+  });
+
+  return { cells, msgs };
+}
+
+function showMessages(problems){
+  const box = $("msgs"); box.innerHTML = "";
+  const bad = problems.msgs.filter(m => m.level === "bad");
+  const warn = problems.msgs.filter(m => m.level === "warn");
+  if (!bad.length && !warn.length){
+    box.append(el("div", { className:"msg good",
+      textContent:"Nothing looks wrong. The game's own startup report will confirm it once you press F5." }));
+    return;
+  }
+  for (const m of [...bad, ...warn].slice(0, 60)){
+    const d = el("div", { className: "msg " + m.level });
+    d.textContent = m.text;
+    box.append(d);
+  }
+  if (bad.length + warn.length > 60)
+    box.append(el("div", { className:"msg", textContent:`…and ${bad.length + warn.length - 60} more.` }));
+}
+
+// ------------------------------------------------------------------ actions
+$("openBtn").onclick = () => $("file").click();
+$("file").onchange = e => {
+  for (const f of e.target.files) f.text().then(t => addDoc(f.name, t));
+  e.target.value = "";
+};
+
+const drop = $("drop");
+["dragenter","dragover"].forEach(k => document.addEventListener(k, e => {
+  e.preventDefault(); drop.classList.add("over");
+}));
+["dragleave","drop"].forEach(k => document.addEventListener(k, e => {
+  e.preventDefault(); if (k === "dragleave" && e.relatedTarget) return;
+  drop.classList.remove("over");
+}));
+document.addEventListener("drop", e => {
+  for (const f of e.dataTransfer.files)
+    if (f.name.toLowerCase().endsWith(".csv")) f.text().then(t => addDoc(f.name, t));
+});
+
+$("addBtn").onclick = () => {
+  const d = docs[active];
+  d.rows.push(new Array(d.header.length).fill(""));
+  render();
+  const boxes = document.querySelectorAll("#grid tr:last-child textarea");
+  if (boxes.length) boxes[0].focus();
+};
+
+$("addCol").onclick = () => {
+  const d = docs[active];
+  const name = prompt("New column name (the game reads Notes but ignores it)", "Notes");
+  if (!name) return;
+  d.header.push(name.trim());
+  d.rows.forEach(r => r.push(""));
+  d.kind = identify(d.header);
+  render();
+};
+
+$("checkBtn").onclick = () => { render(); window.scrollTo(0, document.body.scrollHeight); };
+
+function currentText(){
+  const d = docs[active];
+  const rows = d.rows.map(r => {
+    const out = r.slice(0, d.header.length);
+    while (out.length < d.header.length) out.push("");
+    return out;
+  });
+  return writeCSV(d.header, rows);
+}
+
+$("saveBtn").onclick = () => {
+  const d = docs[active];
+  const blob = new Blob([currentText()], { type: "text/csv" });
+  const a = el("a", { href: URL.createObjectURL(blob), download: d.name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+
+$("copyBtn").onclick = async () => {
+  const text = currentText();
+  try {
+    await navigator.clipboard.writeText(text);
+    $("copyBtn").textContent = "Copied";
+    setTimeout(() => $("copyBtn").textContent = "Copy", 1400);
+  } catch {
+    // Clipboard blocked (some browsers, some sandboxes). Show it instead.
+    $("outText").value = text;
+    $("outDlg").showModal();
+    $("outText").select();
+  }
+};
+
+document.addEventListener("keydown", e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "s"){ e.preventDefault(); $("saveBtn").click(); }
+});
+
+window.addEventListener("beforeunload", e => {
+  if (docs.length){ e.preventDefault(); e.returnValue = ""; }
+});
+
+render();
+</script>
+</body>
+</html>

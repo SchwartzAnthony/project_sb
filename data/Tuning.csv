@@ -105,3 +105,13 @@ surge_lead_seconds,0.7,How long the winning side runs at goal before the ball st
 surge_advance,0.45,"How much of the remaining distance to goal the break closes. 0 = nobody moves, 1 = everyone piles on the goal line"
 surge_centring,0.35,How much the break funnels toward the goal mouth. 0 = everyone keeps their lane
 progression_announce_seconds,1.6,How long a Progression announce: line stays on screen during a match
+camera_enabled,true,"Does the view follow the ball? false = the old fixed view of the whole pitch, and nothing else changes"
+camera_zoom,1.55,How far in the camera pushes during live play. 1 = the whole pitch. Try 1.8 for a much tighter game
+camera_zoom_close,2.10,How far in it pushes for a shot on goal
+camera_follow_speed,3.2,"How quickly the view catches up with the ball. Higher = snappier, lower = lazier"
+camera_zoom_speed,2.2,How quickly it changes zoom between live play and the whistle
+camera_lead,0.30,"How far ahead of the ball it looks during a pass. 0 = stare at the ball, 1 = stare at where it will land"
+camera_deadzone,36,How far the ball may drift from the middle before the camera bothers to move. Stops a permanent jitter
+full_time_seconds,2.6,How long FULL TIME stays on screen before the season screen opens
+gains_max_rows,8,How many lines the "what you gained" panel shows before it says "and N more"
+season_difficulty_scale,1.0,"Multiplies the Difficulty column of Season.csv. 0 makes every fixture a fair fight, 2 doubles the handicap"
