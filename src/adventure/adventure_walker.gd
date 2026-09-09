@@ -9,9 +9,21 @@ extends Node2D
 #  none of which mean anything here — the party runs right, peels off for a
 #  pickup, and forms up when something blocks the way.
 #
-#  So this is its own small node. What it shares with the pitch is the LOOK:
-#  the same artwork, and a drawn placeholder when there is none, so the two
-#  halves of the game do not look like different projects.
+#  ============ HOW IT MOVES, AND WHY ============
+#
+#  The first version put everyone on a fixed grid and they ran as a block of
+#  rows, which read as a queue rather than a team. Three things changed:
+#
+#    1. EVERY PLAYER HAS ITS OWN SPEED. A little faster or slower than the
+#       party's, so they slide past each other constantly.
+#    2. EVERY PLAYER DRIFTS. A slow sine wander around its slot, at its own
+#       rate, so nobody sits exactly where the formation says.
+#    3. NOBODY LEAVES THE LANE. Whatever the drift or the errand, the final
+#       position is clamped into the grass band. That is the fix for the
+#       party standing on the black above the pitch.
+#
+#  The result is a loose group crossing over each other as they run, which is
+#  what a team jogging up a pitch actually looks like.
 #
 #  ============ IT DRAWS ITSELF UNTIL YOU GIVE IT ART ============
 #
@@ -28,8 +40,13 @@ const BAR_HEIGHT := 5.0
 ## Who this is. Never written to — see adventure_run.gd for why.
 var card: PlayerData = null
 
-## Where it is trying to stand. It eases towards this every frame.
+## Where it is trying to stand, before its own drift is added.
 var target: Vector2 = Vector2.ZERO
+
+## The band it must stay inside, in world coordinates. Set by the scene from
+## the biome's lane. Nothing may put a player outside this.
+var lane_top: float = 0.0
+var lane_bottom: float = 1000.0
 
 ## 0 to 1. Only for drawing; the real number lives on the run.
 var stamina_fraction: float = 1.0
@@ -38,15 +55,28 @@ var knocked_out: bool = false
 ## True while it has broken formation to fetch something off the ground.
 var fetching: bool = false
 
+## Multiplies the party's speed for this one player, so the group spreads.
+var pace: float = 1.0
+
 var _speed: float = 260.0
 var _bob: float = 0.0
+var _drift_clock: float = 0.0
+var _drift_rate: float = 1.0
+var _drift_reach: float = 18.0
 var _art: TextureRect = null
 
 
 func setup(player: PlayerData, walk_speed: float = 260.0) -> void:
 	card = player
 	_speed = maxf(20.0, walk_speed)
-	_bob = randf() * TAU        # so they do not all bounce in step
+
+	# Everything below is per-player randomness. It is what stops ten units
+	# moving as one rectangle.
+	_bob = randf() * TAU
+	_drift_clock = randf() * TAU
+	_drift_rate = randf_range(0.5, 1.15)
+	_drift_reach = randf_range(10.0, 28.0)
+	pace = randf_range(0.82, 1.22)
 
 	if card != null and card.artwork != null:
 		_art = TextureRect.new()
@@ -62,14 +92,26 @@ func setup(player: PlayerData, walk_speed: float = 260.0) -> void:
 
 
 func _process(delta: float) -> void:
-	# Ease towards the target rather than snapping, so peeling off for a
-	# pickup and falling back into line both read as running.
-	var to_target := target - position
-	var step := _speed * delta
+	_drift_clock += delta * _drift_rate
+
+	# THE DRIFT. A slow figure-of-eight around the slot: different rates on
+	# x and y so the path is a lazy loop rather than a straight wobble.
+	var wander := Vector2(
+		sin(_drift_clock * 1.3) * _drift_reach,
+		cos(_drift_clock) * _drift_reach * 1.4)
+	var wanted := target + (Vector2.ZERO if fetching else wander)
+
+	# THE LANE IS ABSOLUTE. Whatever the drift wanted, the player stays on
+	# the grass — this is the clamp that keeps them off the black.
+	wanted.y = clampf(wanted.y, lane_top + RADIUS, lane_bottom - RADIUS)
+
+	var to_target := wanted - position
+	var step := _speed * pace * delta
 	if to_target.length() <= step:
-		position = target
+		position = wanted
 	else:
 		position += to_target.normalized() * step
+	position.y = clampf(position.y, lane_top + RADIUS, lane_bottom - RADIUS)
 
 	# A gentle bob while moving. Standing still, it settles.
 	_bob += delta * (9.0 if to_target.length() > 2.0 else 2.0)
@@ -79,9 +121,10 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
-## Has it arrived where it was sent?
+## Has it arrived where it was sent? Generous, because the drift means a
+## walker is never exactly on its slot.
 func is_settled() -> bool:
-	return position.distance_to(target) < 3.0
+	return position.distance_to(target) < _drift_reach + 8.0
 
 
 func _draw() -> void:
@@ -96,6 +139,9 @@ func _draw() -> void:
 	if _art == null:
 		var lift := sin(_bob) * 2.0
 		var middle := Vector2(0.0, lift)
+		# A soft shadow on the grass, so a player reads as standing ON the
+		# pitch rather than floating over it.
+		draw_circle(Vector2(0.0, RADIUS * 0.85), RADIUS * 0.8, Color(0, 0, 0, 0.22))
 		draw_circle(middle, RADIUS, tint.darkened(0.25))
 		draw_arc(middle, RADIUS, 0.0, TAU, 24,
 			MenuSupport.COLOUR_ACCENT if not knocked_out else MenuSupport.COLOUR_TEXT_DIM,

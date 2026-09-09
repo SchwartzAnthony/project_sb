@@ -33,10 +33,18 @@ extends Node2D
 
 enum RunState { RUNNING, MEETING, ENCOUNTER, LOOT, FINISHED }
 
-const GROUND_Y := 420.0
-const PARTY_X := 260.0          # where the party runs, in screen space
+## ============ THE LANE ============
+##
+## The grass band, and the only place a player may stand. Everything that
+## moves a walker ends by clamping into it — see adventure_walker.gd — which
+## is the fix for the party running along the black above the pitch.
+const LANE_TOP := 300.0
+const LANE_HEIGHT := 380.0
+const LANE_BOTTOM := LANE_TOP + LANE_HEIGHT
+
+const PARTY_X := 300.0          # where the party runs, in screen space
 const SPAWN_X := 1500.0         # off the right edge, where things come from
-const FORM_X := 200.0           # where the party forms up to fight
+const FORM_X := 220.0           # where the party forms up to fight
 
 var db: CardDatabase
 var adventure: AdventureDB
@@ -46,6 +54,9 @@ var run: AdventureRun
 var current_state: RunState = RunState.RUNNING
 
 var _scroll_speed := 120.0
+## The speed the run settles at. _scroll_speed eases towards a multiple of
+## this: a little faster while fetching, slower on the approach to a fight.
+var _base_scroll_speed := 120.0
 var _travelled := 0.0
 var _next_pickup_at := 0.0
 var _next_wave_at := 0.0
@@ -83,7 +94,9 @@ func _ready() -> void:
 		run = _stand_in_run()
 
 	_scroll_speed = db.tune_float("adventure_scroll_speed", 120.0)
+	_base_scroll_speed = _scroll_speed
 
+	_read_biome_look()
 	_build_world()
 	_build_hud()
 	_spawn_party()
@@ -115,23 +128,91 @@ func _stand_in_run() -> AdventureRun:
 #  THE WORLD
 # =============================================================
 
+## ============ THE LOOK OF A BIOME IS FOUR COLOURS AND A PICTURE ============
+##
+## Biomes.csv now carries them, so an ice biome is blues and a desert is
+## yellows without a line of code:
+##
+##     Background   an image file name. Tiles and scrolls behind everything
+##     Parallax     how fast it slides, 0 = still, 1 = same speed as the run
+##     Sky          the colour behind it, and what shows if there is no image
+##     Grass        the lane
+##     Grass Stripe the mown stripes on it
+##     Edge         the line along the top and bottom of the lane
+##
+## Colours are written the way a designer writes them — `#213a26`. Leave a
+## column blank and it falls back to the marsh green, so a half-filled row
+## still draws.
+var _sky_colour := Color(0.09, 0.10, 0.13)
+var _grass_colour := Color(0.13, 0.22, 0.15)
+var _stripe_colour := Color(0.11, 0.18, 0.12)
+var _edge_colour := Color(0.23, 0.36, 0.25)
+var _parallax := 0.3
+var _backdrop: TextureRect = null
+
+
+func _read_biome_look() -> void:
+	_sky_colour = _colour(String(run.biome.get("sky", "")), _sky_colour)
+	_grass_colour = _colour(String(run.biome.get("grass", "")), _grass_colour)
+	_stripe_colour = _colour(String(run.biome.get("stripe", "")), _stripe_colour)
+	_edge_colour = _colour(String(run.biome.get("edge", "")), _edge_colour)
+	_parallax = clampf(float(run.biome.get("parallax", 0.3)), 0.0, 1.0)
+
+
+## "#213a26" -> a Color. Anything unreadable keeps the fallback rather than
+## turning the screen black, and says so once in the Output panel.
+static func _colour(text: String, fallback: Color) -> Color:
+	var clean := text.strip_edges()
+	if clean == "":
+		return fallback
+	if not clean.begins_with("#"):
+		clean = "#" + clean
+	if not Color.html_is_valid(clean.substr(1)):
+		push_warning("[adventure] '%s' is not a colour. Write it like #213a26 in Biomes.csv." % text)
+		return fallback
+	return Color.html(clean.substr(1))
+
+
 func _build_world() -> void:
+	var layer := CanvasLayer.new()
+	layer.name = "Backdrop"
+	layer.layer = -10
+	add_child(layer)
+
+	# THE SKY. Always painted, so there is never a black gap — and it is what
+	# you see when a biome has no background image yet.
 	var sky := ColorRect.new()
-	sky.color = MenuSupport.COLOUR_BACKGROUND
+	sky.name = "Sky"
+	sky.color = _sky_colour
 	sky.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	sky.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var layer := CanvasLayer.new()
-	layer.layer = -10
 	layer.add_child(sky)
-	add_child(layer)
+
+	# THE BACKGROUND IMAGE, if the biome names one and the file exists. It is
+	# tiled and slid left at the Parallax rate, so it moves slower than the
+	# ground and the run reads as having depth.
+	var art := MenuSupport.icon_texture(String(run.biome.get("art", "")))
+	if art != null:
+		_backdrop = TextureRect.new()
+		_backdrop.name = "Background"
+		_backdrop.texture = art
+		_backdrop.stretch_mode = TextureRect.STRETCH_TILE
+		_backdrop.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+		_backdrop.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		# Wider than the window, so sliding it never shows an edge.
+		_backdrop.offset_left = -art.get_width()
+		_backdrop.offset_right = art.get_width()
+		layer.add_child(_backdrop)
+	elif String(run.biome.get("art", "")).strip_edges() != "":
+		print("[adventure] Biomes.csv wants background '%s' — put that image in assets/backgrounds/ and it appears. Using the Sky colour until then."
+			% run.biome.get("art", ""))
 
 	_world = Node2D.new()
 	_world.name = "World"
 	add_child(_world)
 
-	# The ground is drawn rather than a texture, so the scene works before
-	# any biome art exists. Drop a Scroll Art / Ground image into your assets
-	# and this is where it would be swapped in.
 	var ground := Node2D.new()
 	ground.name = "Ground"
 	ground.draw.connect(_draw_ground.bind(ground))
@@ -144,21 +225,24 @@ func _build_world() -> void:
 
 
 func _draw_ground(on: Node2D) -> void:
-	# A band of grass, and stripes that slide with the run so the motion is
-	# readable even with no artwork at all.
-	on.draw_rect(Rect2(Vector2(-200.0, GROUND_Y), Vector2(2400.0, 400.0)),
-		Color(0.13, 0.20, 0.15), true)
-	on.draw_line(Vector2(-200.0, GROUND_Y), Vector2(2200.0, GROUND_Y),
-		Color(0.22, 0.34, 0.24), 3.0)
+	# THE LANE. Everything the party does happens between these two lines,
+	# and the stripes slide with the run so the motion reads even with no art.
+	var lane := Rect2(Vector2(-400.0, LANE_TOP), Vector2(2800.0, LANE_HEIGHT))
+	on.draw_rect(lane, _grass_colour, true)
 
-	var stripe := Color(0.16, 0.24, 0.18)
 	var gap := 120.0
 	var offset := fposmod(-_travelled, gap)
-	var x := -200.0 + offset
-	while x < 2200.0:
-		on.draw_rect(Rect2(Vector2(x, GROUND_Y + 8.0), Vector2(gap * 0.5, 380.0)),
-			stripe, true)
+	var x := -400.0 + offset
+	while x < 2400.0:
+		on.draw_rect(Rect2(Vector2(x, LANE_TOP), Vector2(gap * 0.5, LANE_HEIGHT)),
+			_stripe_colour, true)
 		x += gap
+
+	# The two edges, drawn last so the stripes cannot cover them.
+	on.draw_line(Vector2(-400.0, LANE_TOP), Vector2(2400.0, LANE_TOP),
+		_edge_colour, 3.0)
+	on.draw_line(Vector2(-400.0, LANE_BOTTOM), Vector2(2400.0, LANE_BOTTOM),
+		_edge_colour, 3.0)
 
 
 func _draw_ball(on: Node2D) -> void:
@@ -201,6 +285,10 @@ func _spawn_party() -> void:
 			var walker := AdventureWalker.new()
 			_world.add_child(walker)
 			walker.setup(card, _scroll_speed * 2.2)
+			# THE LANE IS HANDED TO THE WALKER, not assumed by it. Change
+			# LANE_TOP / LANE_HEIGHT and every player obeys the new band.
+			walker.lane_top = LANE_TOP
+			walker.lane_bottom = LANE_BOTTOM
 			walker.position = _slot_for(index)
 			walker.target = walker.position
 			walker.stamina_fraction = 1.0
@@ -213,12 +301,17 @@ func _spawn_party() -> void:
 		_ball.position = _walkers[0].position + Vector2(0.0, -6.0)
 
 
-## A rough running formation: a couple of rows behind the leader.
+## A loose running shape rather than a grid. Slots are staggered on x as
+## well as y, and each player drifts around its own slot (see the walker),
+## so the party crosses over itself as it runs instead of marching in rows.
 func _slot_for(index: int) -> Vector2:
-	var column := index / 3
-	var seat := index % 3
-	return Vector2(PARTY_X - column * 78.0,
-		GROUND_Y - 40.0 + (seat - 1) * 62.0)
+	var lanes := 4
+	var seat := index % lanes
+	var column := index / lanes
+	# Odd columns sit half a lane lower, which breaks up the rows.
+	var stagger := 0.5 if column % 2 == 1 else 0.0
+	var y := LANE_TOP + 52.0 + (float(seat) + stagger) * (LANE_HEIGHT - 104.0) / float(lanes)
+	return Vector2(PARTY_X - column * 92.0 - (seat % 2) * 26.0, y)
 
 
 ## Only for running this scene on its own — the first legal squad it can build.
@@ -279,9 +372,45 @@ func _process(delta: float) -> void:
 			ground.queue_redraw()
 
 
+## HOW FAST THE RUN IS GOING RIGHT NOW.
+##
+## Not a constant: the party puts on a yard when somebody is chasing a
+## pickup, and eases off on the approach to a fight so the confrontation
+## has a beat of anticipation before it. Both are Tuning.csv rows.
+func _wanted_speed() -> float:
+	var chasing := false
+	for pickup in _pickups:
+		if is_instance_valid(pickup) and not (pickup.get_meta("carriers", []) as Array).is_empty():
+			chasing = true
+			break
+
+	# The last stretch before a wave — slow to a walk.
+	var to_wave := _next_wave_at - _travelled
+	var slow_from := db.tune_float("adventure_slow_distance", 260.0)
+	if to_wave <= slow_from:
+		var how_far := clampf(to_wave / maxf(1.0, slow_from), 0.0, 1.0)
+		return _base_scroll_speed * lerpf(
+			db.tune_float("adventure_approach_pace", 0.55), 1.0, how_far)
+
+	if chasing:
+		return _base_scroll_speed * db.tune_float("adventure_fetch_pace", 1.18)
+	return _base_scroll_speed
+
+
 func _scroll(delta: float) -> void:
+	# Ease rather than snap, so a change of pace is felt instead of noticed.
+	_scroll_speed = move_toward(_scroll_speed, _wanted_speed(),
+		_base_scroll_speed * 1.4 * delta)
+
 	var step := _scroll_speed * delta
 	_travelled += step
+
+	# The background slides slower than the ground, which is what makes the
+	# lane read as near and the picture behind it as far away.
+	if _backdrop != null and _backdrop.texture != null:
+		var span := float(_backdrop.texture.get_width())
+		if span > 1.0:
+			_backdrop.position.x = -fposmod(_travelled * _parallax, span)
 
 	# EVERYTHING SLIDES LEFT. The party is what the camera is on, so it
 	# stays put on screen and the world moves past it — which is why this is
@@ -335,8 +464,12 @@ func _drop_a_pickup() -> void:
 	var amount := int(rolled[item_id])
 	var known := adventure.item(item_id)
 
+	# HIGH OR LOW IN THE LANE, never always in front. That is what stops the
+	# same two players collecting everything: an item near the top edge is
+	# reached by whoever happens to be drifting up there.
 	var pickup := Node2D.new()
-	pickup.position = Vector2(SPAWN_X, GROUND_Y + randf_range(10.0, 90.0))
+	pickup.position = Vector2(SPAWN_X,
+		randf_range(LANE_TOP + 34.0, LANE_BOTTOM - 34.0))
 	pickup.set_meta("item", item_id)
 	pickup.set_meta("amount", amount)
 	pickup.set_meta("name", String(known["name"]) if not known.is_empty() else item_id)
@@ -442,7 +575,8 @@ func _settle_walkers() -> void:
 func _formation_slot(index: int) -> Vector2:
 	var column := index / 4
 	var seat := index % 4
-	return Vector2(FORM_X - column * 66.0, GROUND_Y - 80.0 + seat * 56.0)
+	return Vector2(FORM_X - column * 72.0,
+		LANE_TOP + 56.0 + float(seat) * (LANE_HEIGHT - 112.0) / 3.0)
 
 
 # =============================================================
@@ -466,26 +600,23 @@ func _spawn_wave() -> void:
 		if not boss.is_empty():
 			line_up.append(boss)
 
-	# One ordinary enemy per tier, so every tier of the draft has somebody
-	# to face. A tier with nobody is a walkover, which is a rule rather than
-	# an accident — see PHASE1_BOUNTY_BOARD.md.
+	# ENEMIES HAVE NO TIERS ANY MORE, so a wave is simply a number of them
+	# drawn from the biome's pool by Weight. Change how many in Tuning.csv;
+	# change which, and how often, in AdventureEnemies.csv.
 	if not boss_wave:
-		var wanted := db.tune_int("adventure_enemies_per_wave", 3)
-		for tier in TierLadder.TIERS:
-			if line_up.size() >= wanted:
-				break
-			var choices := adventure.pool_enemies(pool, tier)
-			if choices.is_empty():
-				continue
-			line_up.append(choices[randi() % choices.size()])
+		var wanted := maxi(1, db.tune_int("adventure_enemies_per_wave", 3))
+		for i in wanted:
+			var drawn := adventure.draw_from_pool(pool)
+			if not drawn.is_empty():
+				line_up.append(drawn)
 
 	for i in line_up.size():
 		var foe := Node2D.new()
 		foe.position = Vector2(SPAWN_X + i * 90.0,
-			GROUND_Y - 60.0 + (i % 3) * 62.0)
+			LANE_TOP + 80.0 + (i % 3) * 100.0)
 		foe.set_meta("enemy", line_up[i])
 		foe.set_meta("home", Vector2(920.0 + (i / 3) * 96.0,
-			GROUND_Y - 60.0 + (i % 3) * 62.0))
+			LANE_TOP + 80.0 + (i % 3) * 100.0))
 		foe.draw.connect(_draw_foe.bind(foe))
 		_world.add_child(foe)
 		_foes.append(foe)
@@ -508,7 +639,7 @@ func _draw_foe(on: Node2D) -> void:
 	on.draw_arc(Vector2.ZERO, size, 0.0, TAU, 24, tint.lightened(0.35), 2.0, true)
 
 	var font := ThemeDB.fallback_font
-	var label := str(int(entry.get("power", 0)))
+	var label := str(int(entry.get("attack", 1)))
 	var width := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16).x
 	on.draw_string(font, Vector2(-width * 0.5, 6.0), label,
 		HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16, MenuSupport.COLOUR_TEXT)
@@ -563,11 +694,78 @@ func _run_encounter() -> void:
 	if current_state == RunState.ENCOUNTER:
 		return
 	current_state = RunState.ENCOUNTER
-	_say("The way is blocked — %d in the way" % _foes.size())
-	await get_tree().create_timer(1.1).timeout
-	if current_state != RunState.ENCOUNTER:
-		return
-	_win_encounter()
+	_say("COMBAT")
+
+	# Everything about the fight lives in adventure_encounter.gd. This scene
+	# only hands it the wave and waits to hear how it went.
+	var wave: Array[Dictionary] = []
+	for foe in _foes:
+		if is_instance_valid(foe):
+			wave.append(foe.get_meta("enemy", {}) as Dictionary)
+
+	var fight := AdventureEncounter.open(self, db, state, run, wave)
+	var result: Array = await fight.finished
+	fight.queue_free()
+
+	var cleared := bool(result[0])
+	var fled := bool(result[1])
+
+	_refresh_walkers()
+
+	if fled:
+		_flee_home()
+	elif cleared:
+		_win_encounter()
+	else:
+		_party_fell()
+
+
+## KNOCKED OUT PLAYERS SHOW IT ON THE PITCH. The run holds the stamina; the
+## walkers only draw it, so this is the one place the two are put in step.
+func _refresh_walkers() -> void:
+	for walker in _walkers:
+		if walker == null or not is_instance_valid(walker) or walker.card == null:
+			continue
+		var full := AdventureRun.stamina_for(walker.card, db)
+		walker.stamina_fraction = float(run.stamina_of(walker.card, db)) / maxf(1.0, float(full))
+		walker.knocked_out = run.is_out(walker.card)
+
+
+## FLED. You keep the share Tuning.csv says and walk out with it.
+func _flee_home() -> void:
+	current_state = RunState.FINISHED
+	var keep := db.tune_float("adventure_flee_keep", 0.8)
+	var taken := run.bank(state, keep)
+	state.save_to_disk()
+	AdventureRun.clear(get_tree())
+	print("[adventure] Fled with %d%% of the haul: %s" % [int(keep * 100.0), taken])
+	ScenePaths.go_to(get_tree(), ScenePaths.BASE, false)
+
+
+## EVERYBODY DOWN. The haul is gone — that is what makes Return to Base a
+## real decision rather than an obvious one.
+func _party_fell() -> void:
+	current_state = RunState.LOOT
+	_popup = _make_popup()
+	var box := _popup.get_node("Holder/Panel/Margin/Column") as VBoxContainer
+	box.add_child(MenuSupport.heading("EVERYBODY IS DOWN", 28,
+		Color(0.90, 0.42, 0.38)))
+	box.add_child(_quiet(
+		"You were carrying %d thing%s and none of it comes home. The party picks itself up outside the biome."
+		% [run.haul_size(), "" if run.haul_size() == 1 else "s"]))
+
+	var buttons := HBoxContainer.new()
+	buttons.add_theme_constant_override("separation", 12)
+	box.add_child(buttons)
+
+	var home := _make_button("Back to the base", Vector2(240, 52))
+	home.pressed.connect(func() -> void:
+		current_state = RunState.FINISHED
+		run.haul.clear()
+		state.save_to_disk()
+		AdventureRun.clear(get_tree())
+		ScenePaths.go_to(get_tree(), ScenePaths.BASE, false))
+	buttons.add_child(home)
 
 
 func _win_encounter() -> void:

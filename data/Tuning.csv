@@ -142,3 +142,6 @@ adventure_pickup_carriers,3,"How many players at most peel off to collect one it
 adventure_wave_gap,12,"Seconds of running between waves in Adventure. Larger means longer stretches of picking things up"
 adventure_pass_seconds,1.4,"How often the party knocks the ball to somebody else while running"
 adventure_enemies_per_wave,3,"How many enemies an ordinary wave puts in your way. A boss wave is always just the boss"
+adventure_fetch_pace,1.18,"How much faster the party runs while somebody is chasing a pickup. 1.0 = no change"
+adventure_approach_pace,0.55,"How much they slow to on the last stretch before a fight. 1.0 = no slowing"
+adventure_slow_distance,260,"How far before a wave the party starts easing off, in pixels of run"

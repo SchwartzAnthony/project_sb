@@ -6,10 +6,10 @@ uid="uid://mqibwumu7uid"
 
 [deps]
 
-files=["res://data/Items.Name.translation", "res://data/Items.Kind.translation", "res://data/Items.Stack.translation", "res://data/Items.Art.translation", "res://data/Items.Description.translation"]
+files=["res://data/Items.Name.translation", "res://data/Items.Kind.translation", "res://data/Items.Stack.translation", "res://data/Items.Art.translation", "res://data/Items.Use.translation", "res://data/Items.Target.translation", "res://data/Items.Description.translation"]
 
 source_file="res://data/Items.csv"
-dest_files=["res://data/Items.Name.translation", "res://data/Items.Kind.translation", "res://data/Items.Stack.translation", "res://data/Items.Art.translation", "res://data/Items.Description.translation"]
+dest_files=["res://data/Items.Name.translation", "res://data/Items.Kind.translation", "res://data/Items.Stack.translation", "res://data/Items.Art.translation", "res://data/Items.Use.translation", "res://data/Items.Target.translation", "res://data/Items.Description.translation"]
 
 [params]
 
