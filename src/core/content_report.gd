@@ -70,6 +70,13 @@ func _gather() -> void:
 	for problem in modes.problems:
 		warnings.append("modes: " + problem)
 
+	var quest := AdventureDB.get_db()
+	lines.append("[content] Adventure: %d biome(s), %d bounty(s), %d enemy(s), %d item(s), %d drop table(s)."
+		% [quest.biomes.size(), quest.bounties.size(), quest.enemies.size(),
+			quest.items.size(), quest.drops.size()])
+	for problem in quest.problems:
+		warnings.append("adventure: " + problem)
+
 	for problem in cards.problems:
 		warnings.append("cards: " + problem)
 	for problem in story.problems:

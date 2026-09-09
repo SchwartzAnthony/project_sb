@@ -29,6 +29,16 @@ extends Resource
 @export var attack_ability_id: String
 @export var defend_ability_id: String
 
+## Optional "Stamina" column in your unit CSV. ADVENTURE MODE ONLY — it has
+## no effect in a league match, where the only thing with stamina is the
+## keeper.
+##
+## Leave it blank (0) and the card's stamina is worked out from its power:
+##   adventure_stamina_base + power * adventure_stamina_per_power
+## both from Tuning.csv. Fill it in only to make one particular card tougher
+## or more fragile than its power would suggest.
+@export var adventure_stamina: int = 0
+
 @export var artwork: Texture2D
 
 

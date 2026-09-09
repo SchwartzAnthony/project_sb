@@ -1,0 +1,4 @@
+ID,Name,Order,Requires,Waves,Enemy Pool,Scroll Art,Ground,Music,Drops,Difficulty,Description
+marshlands,The Marshlands,1,,4,marsh,bg_marsh,ground_marsh,marsh_theme,marsh_ground,1,"Wet and green. Reed grows thick here and something is always moving in it."
+cinderwastes,The Cinder Wastes,2,unlocked:Marsh King,5,cinder,bg_cinder,ground_cinder,cinder_theme,cinder_ground,2,"Ash underfoot and heat in the air. Nothing grows but the fires do."
+hollowdeep,The Hollowdeep,3,unlocked:Ash Tyrant,6,hollow,bg_hollow,ground_hollow,hollow_theme,hollow_ground,3,"Below the old works. The dark down here has weight to it."

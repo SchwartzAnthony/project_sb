@@ -267,6 +267,11 @@ func _read_units(rows: Array, columns: Dictionary, source: String) -> void:
 		card.attack_ability_id = _cell(row, columns, "attackability")
 		card.defend_ability_id = _cell(row, columns, "defendability")
 
+		# Optional "Stamina" column, used ONLY in Adventure mode. Blank means
+		# "work it out from my power", which is what you want for almost every
+		# card — see AdventureRun.stamina_for().
+		card.adventure_stamina = _cell_int(row, columns, "stamina")
+
 		var art_name := _cell(row, columns, "artwork")
 		if art_name != "":
 			card.artwork = _find_texture(art_name, PLAYER_ART_DIRS)

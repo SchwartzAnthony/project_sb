@@ -1,0 +1,9 @@
+ID,Name,Kind,Stack,Art,Requires,Description
+reed,Reed,material,99,reed,,"Cut from the marsh. The Brewery takes it by the armful."
+bog_iron,Bog Iron,material,99,bog_iron,,"Heavy, rusted, and worth melting down."
+ash_glass,Ash Glass,material,99,ash_glass,,"Fused in the burn. Sharp and light."
+deep_salt,Deep Salt,material,99,deep_salt,,"Scraped off the walls of the Hollowdeep."
+coins,Coins,currency,999,coins,,"What everyone takes."
+recipe_marsh_ale,Marsh Ale Recipe,recipe,1,scroll,,"Teaches the Brewery to pour Marsh Ale."
+recipe_cinder_stout,Cinder Stout Recipe,recipe,1,scroll,,"Teaches the Brewery to pour Cinder Stout."
+recipe_hollow_porter,Hollow Porter Recipe,recipe,1,scroll,,"Teaches the Brewery to pour Hollow Porter."

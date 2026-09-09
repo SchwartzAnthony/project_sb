@@ -1,0 +1,6 @@
+ID,Name,Biome,Boss,Reward,Requires,Repeatable,Recommended Power,Art,Description
+marsh_king,The Marsh King,marshlands,marsh_king,unlock:Marsh King;count:coins+120,,no,2,bounty_king,"Something is holding the reed beds. Go and take them back."
+reed_clearing,Clear the Reeds,marshlands,reed_warden,count:coins+40;count:reed+20,,yes,1,bounty_reed,"A short run. Good for a first haul and a full basket of reed."
+ash_tyrant,The Ash Tyrant,cinderwastes,ash_tyrant,unlock:Ash Tyrant;count:coins+220,unlocked:Marsh King,no,4,bounty_tyrant,"It sits at the centre of the burn and it has been there a long time."
+slag_run,The Slag Run,cinderwastes,slag_walker,count:coins+90;count:bog_iron+15,unlocked:Marsh King,yes,3,bounty_slag,"Iron for the taking, if you can get past what is guarding it."
+the_hollow_mother,The Hollow Mother,hollowdeep,hollow_mother,unlock:Hollow Mother;count:coins+400,unlocked:Ash Tyrant,no,5,bounty_mother,"Nobody who has gone this deep has come back with a straight story."

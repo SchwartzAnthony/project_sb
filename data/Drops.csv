@@ -1,0 +1,29 @@
+Table,Item,Amount,Chance,Requires,Notes
+marsh_ground,reed,1,1.0,,Picked up off the ground while the party runs.
+marsh_ground,coins,2,0.5,,
+cinder_ground,ash_glass,1,1.0,,
+cinder_ground,coins,4,0.5,,
+hollow_ground,deep_salt,1,1.0,,
+hollow_ground,coins,6,0.5,,
+grub_drops,reed,2,1.0,,Always two reed.
+grub_drops,bog_iron,1,0.2,,One in five.
+biter_drops,reed,3,1.0,,
+lurker_drops,bog_iron,2,0.6,,
+warden_drops,reed,10,1.0,,
+warden_drops,coins,25,1.0,,
+king_drops,recipe_marsh_ale,1,1.0,unlocked:Brewery,Only drops once you can actually brew.
+king_drops,bog_iron,12,1.0,,
+king_drops,coins,80,1.0,,
+pup_drops,ash_glass,1,1.0,,
+hound_drops,ash_glass,2,0.7,,
+husk_drops,bog_iron,3,0.5,,
+walker_drops,bog_iron,10,1.0,,
+walker_drops,coins,40,1.0,,
+tyrant_drops,recipe_cinder_stout,1,1.0,unlocked:Brewery,
+tyrant_drops,ash_glass,15,1.0,,
+tyrant_drops,coins,150,1.0,,
+crawler_drops,deep_salt,1,1.0,,
+dwarden_drops,deep_salt,3,0.6,,
+mother_drops,recipe_hollow_porter,1,1.0,unlocked:Brewery,
+mother_drops,deep_salt,20,1.0,,
+mother_drops,coins,300,1.0,,

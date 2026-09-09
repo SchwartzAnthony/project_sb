@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bl0kl8pqhyo6o"
+
+[deps]
+
+files=["res://data/Biomes.Name.translation", "res://data/Biomes.Order.translation", "res://data/Biomes.Requires.translation", "res://data/Biomes.Waves.translation", "res://data/Biomes.Enemy Pool.translation", "res://data/Biomes.Scroll Art.translation", "res://data/Biomes.Ground.translation", "res://data/Biomes.Music.translation", "res://data/Biomes.Drops.translation", "res://data/Biomes.Difficulty.translation", "res://data/Biomes.Description.translation"]
+
+source_file="res://data/Biomes.csv"
+dest_files=["res://data/Biomes.Name.translation", "res://data/Biomes.Order.translation", "res://data/Biomes.Requires.translation", "res://data/Biomes.Waves.translation", "res://data/Biomes.Enemy Pool.translation", "res://data/Biomes.Scroll Art.translation", "res://data/Biomes.Ground.translation", "res://data/Biomes.Music.translation", "res://data/Biomes.Drops.translation", "res://data/Biomes.Difficulty.translation", "res://data/Biomes.Description.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

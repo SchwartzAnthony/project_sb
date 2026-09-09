@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://chvqp2gauja2t"
+
+[deps]
+
+files=["res://data/Bounties.Name.translation", "res://data/Bounties.Biome.translation", "res://data/Bounties.Boss.translation", "res://data/Bounties.Reward.translation", "res://data/Bounties.Requires.translation", "res://data/Bounties.Repeatable.translation", "res://data/Bounties.Recommended Power.translation", "res://data/Bounties.Art.translation", "res://data/Bounties.Description.translation"]
+
+source_file="res://data/Bounties.csv"
+dest_files=["res://data/Bounties.Name.translation", "res://data/Bounties.Biome.translation", "res://data/Bounties.Boss.translation", "res://data/Bounties.Reward.translation", "res://data/Bounties.Requires.translation", "res://data/Bounties.Repeatable.translation", "res://data/Bounties.Recommended Power.translation", "res://data/Bounties.Art.translation", "res://data/Bounties.Description.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
