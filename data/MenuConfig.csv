@@ -1,5 +1,5 @@
-Button ID,Label,X,Y,Width,Height,Action,Art Path,Notes
-START_GAME,Start Game,950,364,260,68,start_game,res://assets/menu/button_start.png,Starts the season row of MatchModes.csv - the next fixture, and it goes in the table
-TUTORIAL_GAME,Tutorial,950,616,260,68,tutorial_game,res://assets/menu/button_tutorial.png,Starts tutorial on match systems 
+Button ID,Label,X,Y,Width,Height,Action,Art Path,Notes,,
+START_GAME,Start Game,950,364,260,68,goto:base,res://assets/menu/button_start.png,Starts the season row of MatchModes.csv - the next fixture, and it goes in the table,
+TUTORIAL_GAME,Tutorial,950,616,260,68,tutorial_game,res://assets/menu/button_tutorial.png,Starts tutorial on match systems ,,
 QUICK_MATCH,Quick Match,950,450,260,68,quick_match,res://assets/menu/button_quick.png,Starts the quick row of MatchModes.csv - no clock, one Star, nothing written to the season table
-QUIT,Quit,950,700,260,68,quit_game,res://assets/menu/button_quit.png,Closes the game
+QUIT,Quit,950,700,260,68,quit_game,res://assets/menu/button_quit.png,Closes the game,,
