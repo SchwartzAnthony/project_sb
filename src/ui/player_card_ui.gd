@@ -49,13 +49,16 @@ func setup_card(data: PlayerData) -> void:
 	name_label.text = data.player_name
 	stats_label.text = "T: %s | P: %d" % [data.tier, data.base_power_left]
 	
-	if data.artwork:
-		# Automatically slice the 12x39 spritesheet to show only the first frame
-		var atlas = AtlasTexture.new()
-		atlas.atlas = data.artwork
-		# Frame size is 128x64 based on your 1536x2496 sheet
-		atlas.region = Rect2(0, 0, 128, 64) 
-		artwork.texture = atlas
+	# THE SAME SLICE THE OTHER SCREENS USE.
+	#
+	# This used to cut a hard-coded Rect2(0, 0, 128, 64) out of the sheet,
+	# which is right only for one sheet size — so the same player looked
+	# different here than in the team builder. MenuSupport.portrait_for()
+	# works the grid out from Animations.csv, so all three screens now show
+	# the identical frame of the identical player.
+	var face := MenuSupport.portrait_for(data, CardDatabase.get_db())
+	if face != null:
+		artwork.texture = face
 
 
 func _on_mouse_entered() -> void:

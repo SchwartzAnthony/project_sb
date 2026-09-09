@@ -38,15 +38,33 @@ const BALL_RADIUS := 8.0
 ## `arc_height` is how far it rises on the way — a flat pass for a short
 ## distance, a lofted shot for a long one, worked out from the gap so it
 ## always looks like a kick rather than a slide.
+## ============ IT KICKS THE BALL THEY ARE ALREADY CARRYING ============
+##
+## Pass the run's own ball node as `use_ball` and THAT is what flies. The
+## first version made a new ball for every kick, so the one on the grass sat
+## still while phantom balls came out of nowhere. Now the real ball leaves
+## their feet, arcs at the enemy, and is put back where it started — so the
+## party still has it for the next round.
+##
+## With no ball passed in it makes a temporary one, which is what the
+## headless test rig and any future caller without a ball will get.
 static func kick(parent: Node2D, from: Vector2, to: Vector2,
-		seconds: float = 0.42) -> void:
+		seconds: float = 0.42, use_ball: Node2D = null) -> void:
 	if parent == null or not is_instance_valid(parent):
 		return
 
-	var ball := AdventureStrike.new()
+	var borrowed := use_ball != null and is_instance_valid(use_ball)
+	var ball: Node2D
+	var came_from := Vector2.ZERO
+
+	if borrowed:
+		ball = use_ball
+		came_from = ball.position       # put it back here afterwards
+	else:
+		ball = AdventureStrike.new()
+		parent.add_child(ball)
 	ball.z_index = 40
 	ball.position = from
-	parent.add_child(ball)
 
 	var gap := from.distance_to(to)
 	var arc_height := clampf(gap * 0.28, 24.0, 150.0)
@@ -65,10 +83,16 @@ static func kick(parent: Node2D, from: Vector2, to: Vector2,
 		ball.rotation += parent.get_process_delta_time() * 14.0
 		ball.queue_redraw()
 		await parent.get_tree().process_frame
-		if not is_instance_valid(parent):
+		if not is_instance_valid(parent) or not is_instance_valid(ball):
 			return
 
-	ball.queue_free()
+	if borrowed:
+		# Hand it back. The run's ball belongs to the party, not to us.
+		ball.position = came_from
+		ball.rotation = 0.0
+		ball.queue_redraw()
+	else:
+		ball.queue_free()
 
 
 ## A short shove away from whoever hit it, then back. Reads as "that

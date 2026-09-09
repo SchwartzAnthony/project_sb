@@ -149,3 +149,5 @@ adventure_kick_seconds,0.42,"How long the ball takes to reach what it was kicked
 adventure_stepup_seconds,0.26,"How long the player takes to step out of the line before kicking"
 adventure_flinch_seconds,0.22,"The shove backwards when something is hit"
 adventure_float_seconds,0.9,"How long a damage number hangs in the air before fading"
+adventure_repeat_step,0.35,"How much harder a biome gets each time you clear its boss. 0.35 = +35 percent of the base per clear. 0 turns repeat scaling off"
+adventure_meet_seconds,1.6,"How long the two sides get to walk into place before the fight opens regardless"

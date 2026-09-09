@@ -66,7 +66,8 @@ var _drift_reach: float = 18.0
 var _art: TextureRect = null
 
 
-func setup(player: PlayerData, walk_speed: float = 260.0) -> void:
+func setup(player: PlayerData, walk_speed: float = 260.0,
+		db: CardDatabase = null) -> void:
 	card = player
 	_speed = maxf(20.0, walk_speed)
 
@@ -78,9 +79,19 @@ func setup(player: PlayerData, walk_speed: float = 260.0) -> void:
 	_drift_reach = randf_range(10.0, 28.0)
 	pace = randf_range(0.82, 1.22)
 
-	if card != null and card.artwork != null:
+	# ONE FRAME, NOT THE WHOLE SHEET.
+	#
+	# This used to hand `card.artwork` straight to a TextureRect. That is the
+	# entire spritesheet — 1536x2496 of it — squashed into a 40 pixel box,
+	# which is why the players were slivers and dashes rather than people.
+	#
+	# MenuSupport.portrait_for() slices the first frame out using
+	# Animations.csv, exactly the way the team builder and the card popup do.
+	# So all three screens now show the same picture of the same player.
+	var face := MenuSupport.portrait_for(card, db if db != null else CardDatabase.get_db())
+	if face != null:
 		_art = TextureRect.new()
-		_art.texture = card.artwork
+		_art.texture = face
 		_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		_art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST

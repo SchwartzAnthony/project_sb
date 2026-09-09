@@ -60,6 +60,8 @@ var _base_scroll_speed := 120.0
 var _travelled := 0.0
 var _next_pickup_at := 0.0
 var _next_wave_at := 0.0
+## How long the two sides have been walking towards each other.
+var _meeting_clock := 0.0
 
 var _walkers: Array[AdventureWalker] = []
 var _pickups: Array[Node2D] = []
@@ -284,7 +286,7 @@ func _spawn_party() -> void:
 				continue
 			var walker := AdventureWalker.new()
 			_world.add_child(walker)
-			walker.setup(card, _scroll_speed * 2.2)
+			walker.setup(card, _scroll_speed * 2.2, db)
 			# THE LANE IS HANDED TO THE WALKER, not assumed by it. Change
 			# LANE_TOP / LANE_HEIGHT and every player obeys the new band.
 			walker.lane_top = LANE_TOP
@@ -585,6 +587,20 @@ func _formation_slot(index: int) -> Vector2:
 
 func _begin_meeting() -> void:
 	current_state = RunState.MEETING
+	_meeting_clock = 0.0
+
+	# DROP WHATEVER YOU WERE CHASING. A player half way to a pickup when a
+	# wave arrived used to keep walking towards it forever — the pickup was
+	# no longer being scrolled, so it never arrived and neither did they.
+	# That is the two players stuck out in the middle of your screenshot.
+	for walker in _walkers:
+		if walker != null and is_instance_valid(walker):
+			walker.fetching = false
+	for pickup in _pickups:
+		if is_instance_valid(pickup):
+			pickup.queue_free()
+	_pickups.clear()
+
 	_spawn_wave()
 	_say("COMBAT")
 	AudioDirector.fire(get_tree(), "hold_up", {"biome": run.biome_name()}, state)
@@ -638,6 +654,16 @@ func _draw_foe(on: Node2D) -> void:
 	on.draw_circle(Vector2.ZERO, size, tint)
 	on.draw_arc(Vector2.ZERO, size, 0.0, TAU, 24, tint.lightened(0.35), 2.0, true)
 
+	# YOU PICK BY CLICKING THE THING ITSELF, so it has to show that it can be
+	# clicked and which one is chosen. A pale ring under the pointer, a solid
+	# accent ring on the one you are going after.
+	if bool(on.get_meta("focused", false)):
+		on.draw_arc(Vector2.ZERO, size + 7.0, 0.0, TAU, 32,
+			MenuSupport.COLOUR_ACCENT, 3.0, true)
+	elif bool(on.get_meta("hovered", false)):
+		on.draw_arc(Vector2.ZERO, size + 5.0, 0.0, TAU, 32,
+			MenuSupport.COLOUR_TEXT, 2.0, true)
+
 	var font := ThemeDB.fallback_font
 	var label := str(int(entry.get("attack", 1)))
 	var width := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16).x
@@ -646,37 +672,57 @@ func _draw_foe(on: Node2D) -> void:
 
 	# ONE BAR PER LAYER, outermost on top. This is the shape of the fight in
 	# Phase 3 and 4: chew through the top bar before the next one is exposed.
+	# ONE BAR PER LAYER, AND THEY EMPTY AS YOU HIT IT.
+	#
+	# These used to be drawn from the CSV row, which never changes — so the
+	# bars sat full for the whole fight however hard you hit. The encounter
+	# now writes what is LEFT onto this node after every hit (see
+	# `set_meta("left", ...)`), and the filled part is drawn from that.
 	var layers: Array = entry.get("layers", [])
+	var left: Array = on.get_meta("left", [])
 	var y := size + 6.0
-	for layer in layers:
-		var amount := int((layer as Dictionary)["amount"])
-		var soak := int((layer as Dictionary)["soak"])
+	for i in layers.size():
+		var layer: Dictionary = layers[i]
+		var amount := maxi(1, int(layer["amount"]))
+		var soak := int(layer["soak"])
+		var still := amount if i >= left.size() else clampi(int(left[i]), 0, amount)
+
 		var width_px := clampf(float(amount) * 2.4, 16.0, 74.0)
-		var bar := Rect2(Vector2(-width_px * 0.5, y), Vector2(width_px, 5.0))
-		on.draw_rect(bar, Color(0.10, 0.11, 0.14), true)
-		# Darker means it soaks more — a wall you have to grind rather than
-		# a bar you sweep through.
-		on.draw_rect(bar, Color(0.72, 0.42, 0.38).darkened(float(soak) * 0.14), true)
+		var track := Rect2(Vector2(-width_px * 0.5, y), Vector2(width_px, 5.0))
+		on.draw_rect(track, Color(0.10, 0.11, 0.14), true)
+
+		if still > 0:
+			var filled := track
+			filled.size.x = width_px * (float(still) / float(amount))
+			# Darker means it soaks more — a wall to grind rather than sweep.
+			on.draw_rect(filled,
+				Color(0.78, 0.44, 0.40).darkened(float(soak) * 0.14), true)
 		y += 7.0
 
 
 ## The two sides walk towards each other, then the encounter starts.
+## The two sides close, and then the fight opens.
+##
+## IT USED TO WAIT FOR THE PLAYERS TOO, and the players drift on purpose —
+## so "everybody has settled" could be true late or never, and the combat
+## panel took an age to appear. Only the ENEMIES walking into place is
+## waited on now, and even that has a ceiling: after
+## `adventure_meet_seconds` the fight starts regardless.
 func _close_in() -> void:
-	var ready_to_go := true
+	_meeting_clock += get_process_delta_time()
+
+	var arrived := true
 	for foe in _foes:
 		if not is_instance_valid(foe):
 			continue
 		var home: Vector2 = foe.get_meta("home")
-		foe.position = foe.position.move_toward(home, _scroll_speed * 2.4 * get_process_delta_time())
-		if foe.position.distance_to(home) > 4.0:
-			ready_to_go = false
+		foe.position = foe.position.move_toward(home,
+			_scroll_speed * 3.2 * get_process_delta_time())
+		if foe.position.distance_to(home) > 6.0:
+			arrived = false
 		foe.queue_redraw()
 
-	for walker in _walkers:
-		if walker != null and is_instance_valid(walker) and not walker.is_settled():
-			ready_to_go = false
-
-	if ready_to_go:
+	if arrived or _meeting_clock > db.tune_float("adventure_meet_seconds", 1.6):
 		_run_encounter()
 
 
@@ -710,7 +756,7 @@ func _run_encounter() -> void:
 			nodes.append(foe)
 
 	var fight := AdventureEncounter.open(self, db, state, run, wave,
-		_world, nodes, Callable(self, "walker_for"))
+		_world, nodes, Callable(self, "walker_for"), _ball)
 	var result: Array = await fight.finished
 	fight.queue_free()
 
@@ -832,6 +878,39 @@ func _show_loot(loot: Dictionary, was_boss: bool) -> void:
 		"Carrying %d thing%s. None of it is yours until you get home."
 		% [run.haul_size(), "" if run.haul_size() == 1 else "s"]))
 
+	# ============ WHAT SHAPE THE PARTY IS IN ============
+	#
+	# Continue Forward should be an informed choice, and it was not: the
+	# popup said what you had picked up but nothing about what it had cost
+	# you. Stamina does NOT come back between waves, so this is the number
+	# that decides whether to push on or walk home.
+	box.add_child(MenuSupport.heading("THE PARTY", 15, MenuSupport.COLOUR_TEXT_DIM))
+	for tier in TierLadder.TIERS:
+		var standing := run.standing_in(tier, db)
+		var full := 0
+		var left := 0
+		for entry in (run.squad.get(tier, []) as Array):
+			var card := entry as PlayerData
+			if card == null:
+				continue
+			full += AdventureRun.stamina_for(card, db)
+			if not run.is_out(card):
+				left += run.stamina_of(card, db)
+
+		var row := Label.new()
+		var share := 0 if full <= 0 else int(round(100.0 * float(left) / float(full)))
+		row.text = "Tier %-4s %d of %d standing   ·   %d%% stamina" % [
+			tier, standing.size(), (run.squad.get(tier, []) as Array).size(), share]
+		row.add_theme_font_size_override("font_size", 14)
+		row.add_theme_color_override("font_color",
+			MenuSupport.COLOUR_TEXT if share > 34 else Color(0.90, 0.52, 0.45))
+		box.add_child(row)
+
+	if not run.knocked_out.is_empty():
+		box.add_child(_quiet(
+			"%d down. Smelling Salts bring one back — use them from ITEMS in the next fight."
+			% run.knocked_out.size()))
+
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 12)
 	box.add_child(buttons)
@@ -882,6 +961,9 @@ func _go_home(claimed_bounty: bool) -> void:
 			String(known["name"]) if not known.is_empty() else String(key)])
 
 	if claimed_bounty:
+		# THE BIOME IS MARKED AS CLEARED. Next time in, its enemies are
+		# scaled up — see AdventureRun.difficulty().
+		run.record_clear(state)
 		var reward := String(run.bounty.get("reward", ""))
 		if reward.strip_edges() != "":
 			DialogueGrammar.apply(reward, state)

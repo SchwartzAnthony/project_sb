@@ -155,6 +155,14 @@ func _build_ui() -> void:
 	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	footer.add_child(_detail)
 
+	# WHAT YOU ARE TAKING WITH YOU. The kit is spent in a fight, but this is
+	# where you see what you have before you set off — and it is the honest
+	# place to notice you have no Smelling Salts left.
+	var kit := _make_button("KIT", Vector2(120, 52))
+	kit.tooltip_text = "What you are carrying that can be used in a fight."
+	kit.pressed.connect(_show_kit)
+	footer.add_child(kit)
+
 	_start = _make_button("START EXPLORING  ▶", Vector2(260, 52))
 	_start.disabled = true
 	_start.pressed.connect(_on_start)
@@ -431,6 +439,58 @@ func _refresh_footer() -> void:
 # -------------------------------------------------------------
 #  SETTING OFF
 # -------------------------------------------------------------
+
+## THE KIT, BEFORE YOU GO. Every item with a Use column, and how many you
+## have. Nothing is spent here — it is a reckoning, not a shop.
+func _show_kit() -> void:
+	var carried := adventure.usable_items(state)
+
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, 0.7)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(dim)
+
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.offset_left = -290.0
+	panel.offset_right = 290.0
+	panel.offset_top = -200.0
+	panel.offset_bottom = 200.0
+	panel.add_theme_stylebox_override("panel", MenuSupport.panel_style(
+		MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
+	dim.add_child(panel)
+
+	var pad := MarginContainer.new()
+	pad.add_theme_constant_override("margin_left", 22)
+	pad.add_theme_constant_override("margin_right", 22)
+	pad.add_theme_constant_override("margin_top", 18)
+	pad.add_theme_constant_override("margin_bottom", 18)
+	panel.add_child(pad)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 8)
+	pad.add_child(column)
+
+	column.add_child(MenuSupport.heading("YOUR KIT", 26, MenuSupport.COLOUR_ACCENT))
+	if carried.is_empty():
+		column.add_child(_quiet(
+			"Nothing usable. Smelling Salts bring a knocked-out player back on and drop from bosses — the Reed Warden always leaves one."))
+	else:
+		for entry in carried:
+			var line := Label.new()
+			line.text = "%s   x%d\n%s" % [entry.get("name", "?"),
+				int(entry.get("held", 0)), entry.get("description", "")]
+			line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			line.add_theme_font_size_override("font_size", 14)
+			column.add_child(line)
+
+	column.add_child(_quiet(
+		"Kit is used from the ITEMS button during a fight. It is carried with you and does not need packing."))
+
+	var close := _make_button("Close", Vector2(180, 44))
+	close.pressed.connect(func() -> void: dim.queue_free())
+	column.add_child(close)
+
 
 func _on_start() -> void:
 	if _chosen_bounty.is_empty() or _chosen_biome.is_empty():

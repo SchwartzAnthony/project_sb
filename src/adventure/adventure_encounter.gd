@@ -63,6 +63,8 @@ var step: Step = Step.FOCUS
 ##   {"row": the CSV row, "left": Array[int] of layer amounts remaining}
 var foes: Array[Dictionary] = []
 var _focus: int = -1
+## Which enemy the pointer is over on the pitch, or -1.
+var _hovered: int = -1
 
 ## The card chosen for each tier this round, tier key -> PlayerData.
 var _picked: Dictionary = {}
@@ -78,6 +80,8 @@ var _tier_index: int = 0
 var stage: Node2D = null
 var foe_nodes: Array[Node2D] = []
 var walker_for: Callable = Callable()
+## The run's own ball, so a kick sends THAT rather than conjuring a new one.
+var ball: Node2D = null
 
 var _title: Label
 var _prompt: Label
@@ -87,6 +91,8 @@ var _choice_row: HBoxContainer
 var _log: VBoxContainer
 var _item_button: Button
 var _flee_button: Button
+var _log_button: Button
+var _log_panel: PanelContainer
 
 
 # =============================================================
@@ -96,7 +102,8 @@ var _flee_button: Button
 static func open(parent: Node, database: CardDatabase, save: GameState,
 		the_run: AdventureRun, wave: Array[Dictionary],
 		pitch: Node2D = null, nodes: Array[Node2D] = [],
-		find_walker: Callable = Callable()) -> AdventureEncounter:
+		find_walker: Callable = Callable(),
+		the_ball: Node2D = null) -> AdventureEncounter:
 	var fight := AdventureEncounter.new()
 	fight.db = database
 	fight.state = save
@@ -106,8 +113,16 @@ static func open(parent: Node, database: CardDatabase, save: GameState,
 	fight.stage = pitch
 	fight.foe_nodes = nodes
 	fight.walker_for = find_walker
+	fight.ball = the_ball
+
+	# HARDER EVERY TIME YOU COME BACK. The biome's own Difficulty, times how
+	# often you have cleared it. Layers and Attack both scale, so a repeat
+	# run is genuinely tougher rather than just longer.
+	var hard := the_run.difficulty(save, database)
 	for entry in wave:
-		fight.foes.append(_fresh_foe(entry))
+		fight.foes.append(_fresh_foe(entry, hard))
+	if hard > 1.01:
+		print("[fight] Difficulty x%.2f — enemies are scaled up." % hard)
 	parent.add_child(fight)
 	return fight
 
@@ -146,17 +161,100 @@ func _can_show() -> bool:
 	return stage != null and is_instance_valid(stage)
 
 
+# =============================================================
+#  PICKING AN ENEMY ON THE PITCH
+#
+#  You choose by clicking the thing itself, not a button in a list, and
+#  hovering one reads it out. The buttons in the panel still work — they
+#  are the same choice by another route, and they are what a keyboard or a
+#  controller will use later.
+#
+#  There is no camera on the run, so a world position IS a screen position.
+#  That is why this can hit-test with a plain distance check instead of
+#  needing an Area2D and a collision shape on every enemy.
+# =============================================================
+
+## How near the pointer has to be, in pixels. Generous on purpose — the
+## enemies are small and this should never feel fiddly.
+const PICK_RADIUS := 46.0
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not _can_show():
+		return
+
+	var motion := event as InputEventMouseMotion
+	if motion != null:
+		var over := _foe_under(motion.position)
+		if over != _hovered:
+			_hovered = over
+			if over >= 0:
+				_describe_foe(over)
+			else:
+				_detail.text = ""
+			_refresh_foes()
+		return
+
+	var click := event as InputEventMouseButton
+	if click != null and click.pressed and click.button_index == MOUSE_BUTTON_LEFT:
+		if step != Step.FOCUS:
+			return
+		var picked := _foe_under(click.position)
+		if picked >= 0 and _is_alive(picked):
+			_choose_focus(picked)
+			get_viewport().set_input_as_handled()
+
+
+## Which enemy the pointer is over, or -1. The nearest one wins when two
+## overlap, so a crowded line is still pickable.
+func _foe_under(where: Vector2) -> int:
+	var best := -1
+	var best_gap := PICK_RADIUS
+	for i in foe_nodes.size():
+		if not _is_alive(i):
+			continue
+		var node := _foe_node(i)
+		if node == null:
+			continue
+		var gap := node.position.distance_to(where)
+		if gap < best_gap:
+			best_gap = gap
+			best = i
+	return best
+
+
 ## A wave's enemy, with full layers. The CSV row is never written to — the
 ## damage lives in `left`, exactly the way stamina lives on the run.
-static func _fresh_foe(row: Dictionary) -> Dictionary:
+## A wave's enemy, with full layers, scaled by how hard the run is.
+##
+## The CSV row is never written to — the scaled numbers go into a COPY, the
+## same way stamina lives on the run rather than on a card. So a Mire Grub
+## is still a Mire Grub in the spreadsheet however often you clear the marsh.
+static func _fresh_foe(row: Dictionary, hard: float = 1.0) -> Dictionary:
+	var source: Array = row.get("layers", [])
 	var left: Array[int] = []
-	for layer in (row.get("layers", []) as Array):
-		left.append(int((layer as Dictionary)["amount"]))
-	return {"row": row, "left": left}
+	var layers: Array[Dictionary] = []
+
+	for entry in source:
+		var layer: Dictionary = entry
+		var amount := maxi(1, int(round(float(layer["amount"]) * hard)))
+		left.append(amount)
+		# The bar draws against the layer's amount, so the scaled amount has
+		# to go in the copy too — otherwise a hard enemy would open on a bar
+		# that is already half empty.
+		var copy := layer.duplicate()
+		copy["amount"] = amount
+		layers.append(copy)
+
+	var scaled := row.duplicate()
+	scaled["attack"] = maxi(1, int(round(float(row.get("attack", 1)) * hard)))
+	scaled["layers"] = layers
+	return {"row": scaled, "left": left}
 
 
 func _ready() -> void:
 	_build_ui()
+	_push_bars()
 	_begin_round()
 
 
@@ -278,6 +376,7 @@ func _resolve() -> void:
 		# off it. The rules happen either way; this is only the showing.
 		await _show_the_kick(dealt)
 		var report := _hurt_foe(_focus, dealt)
+		_push_bars()
 		_note("Your line-up totals %d — %s" % [total, report])
 	await _beat(0.35)
 
@@ -338,7 +437,7 @@ func _show_the_kick(dealt: int) -> void:
 			db.tune_float("adventure_stepup_seconds", 0.26))
 
 	await AdventureStrike.kick(stage, from, target,
-		db.tune_float("adventure_kick_seconds", 0.42))
+		db.tune_float("adventure_kick_seconds", 0.42), ball)
 
 	var hit_node := _foe_node(_focus)
 	if hit_node != null:
@@ -346,6 +445,18 @@ func _show_the_kick(dealt: int) -> void:
 			db.tune_float("adventure_flinch_seconds", 0.22))
 	AdventureStrike.number(stage, target, str(dealt), true,
 		db.tune_float("adventure_float_seconds", 0.9))
+
+
+## Copy what is LEFT of every enemy onto its node, so the bars on the pitch
+## empty as you hit them. The node draws from this; nothing else reads it.
+func _push_bars() -> void:
+	for i in foes.size():
+		var node := _foe_node(i)
+		if node != null:
+			node.set_meta("left", (foes[i]["left"] as Array).duplicate())
+			node.set_meta("focused", i == _focus and _is_alive(i))
+			node.set_meta("hovered", i == _hovered and _is_alive(i))
+			node.queue_redraw()
 
 
 ## Damage into the outermost layer that is still there, minus its soak.
@@ -419,7 +530,7 @@ func _enemy_strikes(index: int, multiplier: int) -> void:
 			var here := _foe_at(index)
 			if mark != null:
 				await AdventureStrike.kick(stage, here, mark.position,
-					db.tune_float("adventure_kick_seconds", 0.42) * 0.8)
+					db.tune_float("adventure_kick_seconds", 0.42) * 0.8, ball)
 				AdventureStrike.flinch(mark, here,
 					db.tune_float("adventure_flinch_seconds", 0.22))
 				AdventureStrike.number(stage, mark.position, str(hit), false,
@@ -484,17 +595,15 @@ func _open_items() -> void:
 	if step != Step.FOCUS and step != Step.DRAFT:
 		return
 	var carried := adventure.usable_items(state)
-	_choice_row.visible = false
 
-	for child in _log.get_children():
-		if child.name == "ItemMenu":
-			child.queue_free()
+	for child in _choice_row.get_children():
+		child.queue_free()
 
 	var menu := VBoxContainer.new()
 	menu.name = "ItemMenu"
+	menu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	menu.add_theme_constant_override("separation", 4)
-	_log.add_child(menu)
-	_log.move_child(menu, 0)
+	_choice_row.add_child(menu)
 
 	menu.add_child(MenuSupport.heading("YOUR KIT", 14, MenuSupport.COLOUR_TEXT_DIM))
 	if carried.is_empty():
@@ -512,9 +621,7 @@ func _open_items() -> void:
 	close.text = "Close the kit"
 	close.custom_minimum_size = Vector2(0, 32)
 	close.focus_mode = Control.FOCUS_NONE
-	close.pressed.connect(func() -> void:
-		menu.queue_free()
-		_refresh())
+	close.pressed.connect(_refresh)
 	menu.add_child(close)
 
 
@@ -554,6 +661,7 @@ func _use_item(entry: Dictionary) -> void:
 			_note("Pick something to throw it at first.")
 			return
 		did = _hurt_foe(_focus, _number_in(use, 3))
+		_push_bars()
 
 	else:
 		_note("'%s' is not a Use this game knows. Try revive, heal:6 or hit:4." % use)
@@ -562,9 +670,6 @@ func _use_item(entry: Dictionary) -> void:
 	state.add_count(String(entry.get("id", "")), -1)
 	state.save_to_disk()
 	_note("%s — %s" % [entry.get("name", "It"), did])
-	for child in _log.get_children():
-		if child.name == "ItemMenu":
-			child.queue_free()
 	_refresh()
 
 
@@ -666,15 +771,27 @@ func _build_ui() -> void:
 	_choice_row.add_theme_constant_override("separation", 10)
 	column.add_child(_choice_row)
 
-	# --- the running log, and the two always-there buttons ---
+	# --- the buttons ---
+	#
+	# THE LOG IS NOT DOWN HERE ANY MORE. Text under the buttons was cramped
+	# and pushed everything about, so it has its own little window off to the
+	# side that you can shut. See _build_log_window().
 	var bottom := HBoxContainer.new()
 	bottom.add_theme_constant_override("separation", 12)
 	column.add_child(bottom)
 
-	_log = VBoxContainer.new()
-	_log.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_log.add_theme_constant_override("separation", 2)
-	bottom.add_child(_log)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bottom.add_child(spacer)
+
+	_log_button = Button.new()
+	_log_button.text = "HIDE LOG"
+	_log_button.custom_minimum_size = Vector2(120, 42)
+	_log_button.focus_mode = Control.FOCUS_NONE
+	_log_button.tooltip_text = "Show or hide the blow-by-blow. It opens on its own; close it if you would rather just watch."
+	_log_button.pressed.connect(_toggle_log)
+	bottom.add_child(_log_button)
 
 	_item_button = Button.new()
 	_item_button.text = "ITEMS"
@@ -690,6 +807,55 @@ func _build_ui() -> void:
 	_flee_button.focus_mode = Control.FOCUS_NONE
 	_flee_button.pressed.connect(_flee)
 	bottom.add_child(_flee_button)
+
+	_build_log_window(holder)
+
+
+# =============================================================
+#  THE COMBAT LOG WINDOW
+#
+#  Its own panel, up the right-hand side, out of the way of the pitch and
+#  the buttons. It OPENS BY ITSELF because on a first run you want to see
+#  what the numbers are doing; one press shuts it and it stays shut for the
+#  rest of the fight.
+# =============================================================
+
+func _build_log_window(holder: Control) -> void:
+	_log_panel = PanelContainer.new()
+	_log_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	_log_panel.offset_left = -330.0
+	_log_panel.offset_right = -18.0
+	_log_panel.offset_top = 74.0
+	_log_panel.offset_bottom = 300.0
+	_log_panel.add_theme_stylebox_override("panel", MenuSupport.panel_style(
+		Color(0.09, 0.10, 0.13, 0.92), MenuSupport.COLOUR_TEXT_DIM))
+	holder.add_child(_log_panel)
+
+	var pad := MarginContainer.new()
+	pad.add_theme_constant_override("margin_left", 12)
+	pad.add_theme_constant_override("margin_right", 12)
+	pad.add_theme_constant_override("margin_top", 10)
+	pad.add_theme_constant_override("margin_bottom", 10)
+	_log_panel.add_child(pad)
+
+	var inside := VBoxContainer.new()
+	inside.add_theme_constant_override("separation", 4)
+	pad.add_child(inside)
+
+	inside.add_child(MenuSupport.heading("WHAT HAPPENED", 13,
+		MenuSupport.COLOUR_TEXT_DIM))
+
+	_log = VBoxContainer.new()
+	_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_log.add_theme_constant_override("separation", 3)
+	inside.add_child(_log)
+
+
+func _toggle_log() -> void:
+	if _log_panel == null:
+		return
+	_log_panel.visible = not _log_panel.visible
+	_log_button.text = "HIDE LOG" if _log_panel.visible else "SHOW LOG"
 
 
 func _refresh() -> void:
@@ -730,6 +896,7 @@ func _refresh() -> void:
 
 
 func _refresh_foes() -> void:
+	_push_bars()
 	for child in _foe_row.get_children():
 		child.queue_free()
 
@@ -804,18 +971,12 @@ func _refresh_choices() -> void:
 	var standing := run.standing_in(tier, db)
 	_choice_row.visible = true
 
+	# THE SAME CARD FACE AS THE TEAM BUILDER AND THE MATCH DRAFT. One
+	# helper draws all three, so a player looks the same wherever you meet
+	# them — see MenuSupport.card_face().
 	for card in standing:
-		var button := Button.new()
-		button.custom_minimum_size = Vector2(140, 74)
-		button.focus_mode = Control.FOCUS_NONE
-		button.add_theme_font_size_override("font_size", 13)
-		button.text = "%s\npower %d  ·  %d hp" % [card.player_name,
-			card.get_attack_power(), run.stamina_of(card, db)]
-		var tint := MenuSupport.colour_for_tier(tier)
-		button.add_theme_stylebox_override("normal",
-			MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, tint))
-		button.add_theme_stylebox_override("hover",
-			MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+		var button := MenuSupport.card_face(card, db, Vector2(128, 168),
+			"%d hp" % run.stamina_of(card, db))
 		button.pressed.connect(_pick_card.bind(card))
 		_choice_row.add_child(button)
 
@@ -840,10 +1001,9 @@ func _note(text: String) -> void:
 	_log.add_child(label)
 	print("[fight] %s" % text)
 
-	while _log.get_child_count() > 5:
+	# The window holds a dozen lines; older ones drop off the top.
+	while _log.get_child_count() > 12:
 		var oldest := _log.get_child(0)
-		if oldest.name == "ItemMenu":
-			break
 		_log.remove_child(oldest)
 		oldest.queue_free()
 

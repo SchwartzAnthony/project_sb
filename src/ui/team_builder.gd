@@ -454,61 +454,14 @@ func _make_collection_card(card: PlayerData) -> Control:
 
 
 ## The shared card face: portrait, name, tier badge, power.
+## The shared card face, so the builder, the match draft and the Adventure
+## fight all draw a player the same way. `locked` marks a Star's own tier.
 func _card_button(card: PlayerData, locked: bool) -> Button:
-	var button := Button.new()
-	button.custom_minimum_size = SLOT_SIZE
-	button.gui_input.connect(_on_card_input.bind(card))
-
-	var tint := MenuSupport.colour_for_tier(card.get_tier_clean())
+	var button := MenuSupport.card_face(card, db, SLOT_SIZE)
 	if locked:
-		tint = MenuSupport.COLOUR_ACCENT
-	button.add_theme_stylebox_override("normal",
-		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, tint))
-	button.add_theme_stylebox_override("hover",
-		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, tint))
-	button.add_theme_stylebox_override("pressed",
-		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
-
-	var box := VBoxContainer.new()
-	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_theme_constant_override("separation", 2)
-	button.add_child(box)
-
-	var portrait := MenuSupport.portrait_rect(card, db, Vector2(112, 96))
-	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(portrait)
-
-	var name_label := Label.new()
-	name_label.text = card.player_name
-	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 11)
-	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	name_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_child(name_label)
-
-	var footer := Label.new()
-	var star_mark := "★ " if card.is_star() else ""
-	footer.text = "%sT%s   %d/%d" % [star_mark, card.get_tier_clean(),
-		card.get_attack_power(), card.get_defense_power()]
-	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	footer.add_theme_font_size_override("font_size", 12)
-	footer.add_theme_color_override("font_color", tint.lightened(0.35))
-	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(footer)
-
-	# Stars carry the pitch badge here too, so the locked Star tier reads as
-	# special rather than merely uneditable.
-	if card.is_star():
-		var badge := StarBadge.make_marker(false, 26.0)
-		button.add_child(badge)
-		badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		badge.offset_left = -30.0
-		badge.offset_top = 3.0
-		badge.offset_right = -4.0
-		badge.offset_bottom = 29.0
-
+		button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
+			MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
+	button.gui_input.connect(_on_card_input.bind(card))
 	return button
 
 
