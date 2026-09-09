@@ -45,6 +45,26 @@ var _muted: bool = false
 #  GETTING HOLD OF IT
 # =============================================================
 
+## The director between being made and actually joining the tree. See below.
+static var _pending: AudioDirector = null
+
+
+## ============ WHY THIS IS MORE CAREFUL THAN IT LOOKS ============
+##
+## The very first sound of the session is fired from a screen's _ready(),
+## which happens while Godot is still adding that screen's children. The
+## tree is LOCKED at that moment, and a plain add_child() on the root fails:
+##
+##     Parent node is busy setting up children, `add_child()` failed.
+##
+## So the director is added with call_deferred(), which means "as soon as
+## the tree is free again" — a frame or so later. That leaves a gap where
+## the director exists but is not in the tree yet, and two things follow:
+##
+##   1. `_pending` holds it, so a second fetch() in that same gap gets the
+##      SAME director instead of making a second one.
+##   2. Anything played during the gap is queued on it and flushed by
+##      _ready(). Nothing is dropped and nothing is played twice.
 static func fetch(tree: SceneTree) -> AudioDirector:
 	if tree == null or tree.root == null:
 		return null
@@ -53,12 +73,17 @@ static func fetch(tree: SceneTree) -> AudioDirector:
 	if existing != null:
 		return existing
 
+	# Already made this frame and still waiting to be added.
+	if _pending != null and is_instance_valid(_pending):
+		return _pending
+
 	var made := AudioDirector.new()
 	made.name = NODE_NAME
 	# Sound must keep running while the game is paused — the pause menu has
 	# its own music, and a paused game with dead audio feels broken.
 	made.process_mode = Node.PROCESS_MODE_ALWAYS
-	tree.root.add_child(made)
+	_pending = made
+	tree.root.add_child.call_deferred(made)
 	return made
 
 
@@ -73,6 +98,10 @@ static func fire(tree: SceneTree, event: String, facts: Dictionary = {},
 		director.play_event(event, facts, state)
 
 
+## Cues fired before this node reached the tree, oldest first.
+var _queued: Array[Dictionary] = []
+
+
 func _ready() -> void:
 	db = AudioDB.get_db()
 	for i in VOICES:
@@ -81,12 +110,29 @@ func _ready() -> void:
 		add_child(voice)
 		_voices.append(voice)
 
+	# We are in the tree now, so nothing else needs to hold us.
+	if _pending == self:
+		_pending = null
+
+	# Play whatever was fired while we were still on our way in — the screen
+	# music of the very first screen, usually.
+	var backlog := _queued.duplicate()
+	_queued.clear()
+	for entry in backlog:
+		play_event(String(entry["event"]), entry["facts"] as Dictionary,
+			entry["state"] as GameState)
+
 
 # =============================================================
 #  PLAYING
 # =============================================================
 
 func play_event(event: String, facts: Dictionary, state: GameState) -> void:
+	# Fired before we joined the tree. Keep it; _ready() will play it.
+	# Without this, the first screen of the session opens in silence.
+	if not is_inside_tree():
+		_queued.append({"event": event, "facts": facts, "state": state})
+		return
 	if db == null or _muted:
 		return
 	for cue in db.cues_for(event, facts, state):

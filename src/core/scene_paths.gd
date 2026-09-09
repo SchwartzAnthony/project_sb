@@ -31,6 +31,7 @@ const UNLOCKS := "res://src/ui/unlock_board.tscn"
 const INSPECTOR := "res://src/ui/save_inspector.tscn"
 const PAUSE := "res://src/ui/pause_menu.tscn"
 const BOUNTY_BOARD := "res://src/ui/bounty_board.tscn"
+const ADVENTURE := "res://src/adventure/adventure_scene.tscn"
 
 
 ## Turn a short word from a CSV into a screen path, so Progression.csv can
@@ -63,8 +64,10 @@ static func for_name(screen: String) -> String:
 		"inspector", "save", "dev", "debug":
 			return INSPECTOR
 		# "board" on its own already means the unlock board, above.
-		"adventure", "bounty", "bounties", "bounty_board", "explore":
+		"bounty", "bounties", "bounty_board", "explore":
 			return BOUNTY_BOARD
+		"adventure", "run", "scroll", "biome":
+			return ADVENTURE
 		_:
 			push_warning("[scenes] Progression.csv asks to go to '%s', which is not a screen. Going to the main menu instead." % screen)
 			return MAIN_MENU

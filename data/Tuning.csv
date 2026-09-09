@@ -139,3 +139,6 @@ adventure_walkover_multiplier,2,"Damage is multiplied by this when a tier is won
 adventure_flee_keep,0.8,"What you carry home if you flee mid-run. 0.8 keeps 80 percent and loses 20"
 adventure_scroll_speed,120,"Pixels per second the field slides left while the party runs right"
 adventure_pickup_carriers,3,"How many players at most peel off to collect one item on the ground"
+adventure_wave_gap,12,"Seconds of running between waves in Adventure. Larger means longer stretches of picking things up"
+adventure_pass_seconds,1.4,"How often the party knocks the ball to somebody else while running"
+adventure_enemies_per_wave,3,"How many enemies an ordinary wave puts in your way. A boss wave is always just the boss"

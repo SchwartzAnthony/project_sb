@@ -162,6 +162,10 @@ func _read_bounties(rows: Array, columns: Dictionary, where: String) -> void:
 			"reward": _cell(row, columns, "reward"),
 			"requires": _cell(row, columns, "requires"),
 			"repeatable": _yes(_cell(row, columns, "repeatable"), false),
+			# HOW LONG THIS JOB IS. Blank means "however long the biome is",
+			# which is the normal case; a number makes one bounty a shorter
+			# or longer run through the same place.
+			"waves": _int(_cell(row, columns, "waves"), 0),
 			"power": _int(_cell(row, columns, "recommendedpower"), 0),
 			"art": _cell(row, columns, "art"),
 			"description": _cell(row, columns, "description"),

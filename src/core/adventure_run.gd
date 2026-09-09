@@ -78,8 +78,18 @@ static func clear(tree: SceneTree) -> void:
 		tree.remove_meta(META_KEY)
 
 
+## HOW LONG THIS RUN IS. The bounty may set its own Waves; blank falls back
+## to the biome's. One place answers it so the HUD, the wave counter and the
+## boss check can never disagree.
+func waves() -> int:
+	var own := int(bounty.get("waves", 0))
+	if own > 0:
+		return own
+	return maxi(1, int(biome.get("waves", 1)))
+
+
 func is_boss_wave() -> bool:
-	return wave >= int(biome.get("waves", 1))
+	return wave >= waves()
 
 
 func biome_name() -> String:

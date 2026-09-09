@@ -589,4 +589,9 @@ func _on_ready() -> void:
 
 	TeamSelection.store(get_tree(), selection)
 	print("[team] Kicking off with:\n%s" % selection.describe())
-	ScenePaths.go_to(get_tree(), ScenePaths.MATCH)
+
+	# WHERE THIS TEAM IS GOING is decided by the mode's Scene column, not by
+	# this screen. A league match goes to the pitch; an Adventure run goes to
+	# the scroll. Point a new mode at a new screen and this needs no edit.
+	var scene := String(MatchMode.current(get_tree()).get("scene", "match"))
+	ScenePaths.go_to(get_tree(), ScenePaths.for_name(scene))

@@ -134,6 +134,10 @@ func _load_csv(path: String) -> void:
 			"rounds": _whole(_cell(row, columns, "rounds"), 3),
 			"rotation": _yes(_cell(row, columns, "starrotation"), true),
 			"opponent": _first(_cell(row, columns, "opponent"), "team"),
+			# WHICH SCREEN THE MODE PLAYS IN. `match` is the pitch; `adventure`
+			# is the run. A word ScenePaths.for_name() understands, so a new
+			# mode can point at a new screen without touching any code.
+			"scene": _first(_cell(row, columns, "scene"), "match"),
 			"requires": _cell(row, columns, "requires"),
 			"description": _cell(row, columns, "description"),
 			"where": "%s row %d" % [short_name, i + 1],
@@ -144,7 +148,7 @@ static func _fallback_season_row() -> Dictionary:
 	return {
 		"id": DEFAULT_ID, "name": "Season Match", "records": true,
 		"timer": 90.0, "cycles": 3, "rounds": 3, "rotation": true,
-		"opponent": "team", "requires": "", "description": "",
+		"opponent": "team", "scene": "match", "requires": "", "description": "",
 		"where": "(built in)",
 	}
 
