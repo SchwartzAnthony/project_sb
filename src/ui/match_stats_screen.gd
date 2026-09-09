@@ -280,9 +280,13 @@ func _fill_progress() -> void:
 
 	for entry in progress.nearest(limit - shown):
 		var row2 := ProgressRow.new()
+		# Same icon as the unlock board, from the same Art column, so a thing
+		# looks the same wherever you meet it.
 		row2.setup("%s  (%s)" % [entry["name"], String(entry["kind"]).to_lower()],
 			float(entry["fraction"]), String(entry["progress_text"]),
-			String(entry["missing"]), false)
+			String(entry["missing"]), false,
+			MenuSupport.icon_texture(String(entry.get("art", ""))),
+			String(entry["kind"]))
 		_progress_list.add_child(row2)
 		shown += 1
 

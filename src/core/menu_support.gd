@@ -162,6 +162,48 @@ static func portrait_rect(card: PlayerData, db: CardDatabase, box: Vector2) -> C
 
 
 # -------------------------------------------------------------
+#  FINDING AN ICON BY NAME
+#
+#  The Art / Artwork column of Buildings.csv, Talents.csv and Brews.csv
+#  holds a FILE NAME, not a path — `mill`, or `mill.png`. This looks for
+#  that file in the usual asset folders and returns null when it is not
+#  there yet, which is NOT an error: whatever asked for it draws a
+#  placeholder instead, the same way the keeper does.
+#
+#  Add a folder to ICON_DIRS and every screen finds art there. Extensions
+#  are tried in order, so a column reading `mill` finds `mill.png`.
+# -------------------------------------------------------------
+
+const ICON_DIRS: Array[String] = [
+	"res://assets/icons/", "res://assets/base/", "res://assets/buildings/",
+	"res://assets/talents/", "res://assets/brews/", "res://assets/",
+]
+const ICON_EXTENSIONS: Array[String] = [".png", ".webp", ".jpg", ".svg"]
+
+
+static func icon_texture(file_name: String) -> Texture2D:
+	var clean := file_name.strip_edges()
+	if clean == "":
+		return null
+
+	# A full path in the column is used exactly as written.
+	if clean.begins_with("res://"):
+		return load(clean) as Texture2D if ResourceLoader.exists(clean) else null
+
+	var names: Array[String] = [clean]
+	if not clean.contains("."):
+		for extension in ICON_EXTENSIONS:
+			names.append(clean + extension)
+
+	for folder in ICON_DIRS:
+		for candidate in names:
+			var path: String = folder + candidate
+			if ResourceLoader.exists(path):
+				return load(path) as Texture2D
+	return null
+
+
+# -------------------------------------------------------------
 #  SHARED LOOK
 #  One place to change the menu palette. Every screen reads from here.
 # -------------------------------------------------------------

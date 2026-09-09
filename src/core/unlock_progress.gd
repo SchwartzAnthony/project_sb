@@ -139,9 +139,13 @@ func _gather(state: GameState) -> void:
 	var story := DialogueDB.get_db()
 
 	# --- Buildings ---
+	# The last argument is the ART, straight from the CSV's own Art column.
+	# The unlock board draws it as the row's icon; a blank one gets a
+	# labelled placeholder. No new spreadsheet was needed to give rows icons.
 	for entry in base.buildings:
 		_add(state, "Building", String(entry["name"]), String(entry["requires"]),
-			String(entry["description"]), "Buildings.csv")
+			String(entry["description"]), "Buildings.csv", "", "",
+			String(entry.get("art", "")))
 
 	# --- Talents. A talent also needs its parent taken and points in hand,
 	#     neither of which lives in its Requires column, so they are spelled
@@ -156,12 +160,16 @@ func _gather(state: GameState) -> void:
 			condition = _join(condition, "count:%s>=%d" % [TalentDB.POINTS, cost])
 		_add(state, "Talent", String(entry["name"]), condition,
 			String(entry["description"]), "Talents.csv",
-			"unlocked:%s" % String(entry["id"]), String(entry["id"]))
+			"unlocked:%s" % String(entry["id"]), String(entry["id"]),
+			String(entry.get("art", "")))
 
 	# --- Brews ---
+	# Brews.csv calls its column Artwork rather than Art. That is the only
+	# difference, and it is handled here rather than by renaming your column.
 	for entry in brews.brews:
 		_add(state, "Brew", String(entry["name"]), String(entry["requires"]),
-			String(entry["description"]), "Brews.csv")
+			String(entry["description"]), "Brews.csv", "", "",
+			String(entry.get("artwork", "")))
 
 	# --- Fixtures. "Done" is not a condition — it is whether it was played. ---
 	for entry in season.fixtures:
@@ -171,6 +179,9 @@ func _gather(state: GameState) -> void:
 		entries.append({
 			"kind": "Fixture",
 			"name": "Match %d - %s" % [int(entry["number"]), entry["opponent"]],
+			# Season.csv has no Art column, so a fixture always draws the
+			# placeholder. Add one there and pass it here if you want icons.
+			"art": "",
 			"detail": String(entry["description"]),
 			"requires": "",
 			"done": played,
@@ -404,7 +415,7 @@ func _granters(steps: Progression, talents: TalentDB, base: BaseDB,
 ## same as being able to afford it.
 func _add(state: GameState, kind: String, name_text: String, condition: String,
 		detail: String, where: String, done_test: String = "",
-		lookup_key: String = "") -> void:
+		lookup_key: String = "", art: String = "") -> void:
 	if name_text.strip_edges() == "":
 		return
 
@@ -436,6 +447,9 @@ func _add(state: GameState, kind: String, name_text: String, condition: String,
 	entries.append({
 		"kind": kind,
 		"name": name_text,
+		# The file name from the source CSV's Art column, for the row's icon.
+		# Blank is normal and means "draw the placeholder".
+		"art": art,
 		# How other rows refer to this thing. A talent is required by its ID
 		# (`unlocked:swarm`) but shown by its name (Swarm), and the chain
 		# follower needs both to turn one into the other.

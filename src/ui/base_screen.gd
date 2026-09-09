@@ -28,6 +28,10 @@ const PORTRAIT_DIRS: Array[String] = ["res://assets/portraits/", "res://assets/p
 const BUILDING_SIZE := Vector2(190.0, 132.0)
 const VISITOR_SIZE := Vector2(120.0, 150.0)
 
+## How far from the left edge the exit buttons may start. It keeps them off
+## the "THE BASE" title; below this the row simply wraps onto a second line.
+const EXITS_LEFT_MARGIN := 300.0
+
 var db: CardDatabase
 var base: BaseDB
 var state: GameState
@@ -131,15 +135,39 @@ func _build_chrome() -> void:
 	_build_exits()
 
 
+## THE EXIT BUTTONS, TOP RIGHT.
+##
+## This used to be an HBoxContainer pinned to the top-right corner inside a
+## box 810 pixels wide (offset_left -840 to offset_right -30). The buttons
+## in it are fixed widths and now add up to about 940 with their gaps, so
+## the left-most ones were pushed out of the box and cut off — and it got
+## worse every time a button was added.
+##
+## It is an HFlowContainer now, which WRAPS onto a second line instead of
+## overflowing. Three things follow from that:
+##   * nothing is ever cut off, at any window size
+##   * on a narrow screen (the Steam Deck is 1280 wide) the row simply
+##     becomes two shorter rows
+##   * you can add a seventh and eighth button without touching this code
+##
+## It is anchored TOP_WIDE rather than TOP_RIGHT so it knows the real width
+## of the window; ALIGNMENT_END keeps everything against the right edge.
 func _build_exits() -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	row.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	row.offset_left = -840.0
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", 12)
+	row.add_theme_constant_override("v_separation", 8)
+	row.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	# Starts clear of the title on the left, ends a margin in from the right.
+	row.offset_left = EXITS_LEFT_MARGIN
 	row.offset_top = 26.0
 	row.offset_right = -30.0
-	row.offset_bottom = 74.0
-	row.alignment = BoxContainer.ALIGNMENT_END
+	# Tall enough for two wrapped lines. It is only a ceiling — one line of
+	# buttons still draws as one line.
+	row.offset_bottom = 26.0 + 46.0 * 2.0 + 8.0
+	row.alignment = FlowContainer.ALIGNMENT_END
+	# The buttons are the only thing here that should catch a click; the gaps
+	# between them belong to the base underneath.
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(row)
 
 	# The developer tools. `show_dev_tools` in Tuning.csv hides this button

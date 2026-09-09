@@ -177,7 +177,14 @@ func _entry_row(entry: Dictionary) -> Control:
 	# that tells you which spreadsheet to open.
 	note = "%s      [%s]" % [note, entry["where"]]
 
-	row.setup(String(entry["name"]), float(entry["fraction"]), right, note, done)
+	# The icon comes from the Art column of whichever CSV this row came from.
+	# MenuSupport.icon_texture() returns null when that file does not exist
+	# yet, and ProgressRow then draws a labelled placeholder — so the board
+	# looks finished before any icons are drawn, and each one you add simply
+	# replaces a square.
+	var icon := MenuSupport.icon_texture(String(entry.get("art", "")))
+	row.setup(String(entry["name"]), float(entry["fraction"]), right, note,
+		done, icon, String(entry["kind"]))
 	return row
 
 
