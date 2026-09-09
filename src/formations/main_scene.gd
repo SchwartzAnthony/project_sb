@@ -746,7 +746,7 @@ func _apply_fixture() -> void:
 			abilities.side_shot_bonus[true] = bonus
 
 	print("[season] Matchday %d of %d — %s%s%s" % [
-		int(current_fixture["number"]), season.last_number(),
+		int(current_fixture["number"]), season.last_numbers(),
 		current_fixture["opponent"],
 		"  (THE FINAL)" if bool(current_fixture["final"]) else "",
 		"  difficulty +%d to their shot" % bonus if bonus != 0 else ""])
