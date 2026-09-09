@@ -49,6 +49,14 @@ var MATCH_LENGTH_MINUTES := 90.0
 var FIRST_EVENT_MINUTE := 5.0
 var LAST_EVENT_MINUTE := 82.0
 
+## The row from MatchModes.csv this match is running as. Never empty —
+## MatchMode.current() falls back to the season match.
+var match_mode: Dictionary = {}
+
+## True in a mode whose Timer is 0. There is no final whistle on the clock;
+## the match ends when the last round has been played.
+var no_clock: bool = false
+
 ## 90 in-game minutes elapse over (90 / time_scale) real seconds.
 @export var time_scale: float = 1.0
 ## On an exact power tie in a duel: false = defender holds, true = attacker breaks through.
@@ -242,6 +250,10 @@ func _ready() -> void:
 	BrewDB.get_db().apply_all(db, state)
 
 	_apply_match_tuning()
+	# The mode comes AFTER tuning, so a Quick Match overrides the defaults
+	# rather than being overwritten by them, and BEFORE the fixture, so a
+	# mode that does not record the season never looks one up.
+	_apply_match_mode()
 	_apply_fixture()
 
 	# Added BEFORE units_container on purpose. Everything here sits at z_index
@@ -307,10 +319,23 @@ func _process(delta: float) -> void:
 	if next_event_index < event_schedule.size() \
 			and match_time_minutes >= event_schedule[next_event_index]:
 		next_event_index += 1
-		if rounds_this_cycle >= ROUNDS_PER_CYCLE and current_cycle < TOTAL_CYCLES:
+		# HOLD UP only in a mode that rotates your Stars. A Quick Match gives
+		# you one Star for the whole run, so there is nobody to bring on.
+		var rotates := bool(match_mode.get("rotation", true))
+		if rotates and rounds_this_cycle >= ROUNDS_PER_CYCLE and current_cycle < TOTAL_CYCLES:
 			trigger_hold_up_event()
 		elif rounds_this_cycle < ROUNDS_PER_CYCLE:
 			trigger_playmaker_event()
+		return
+
+	# --- The final whistle in a no-clock mode ---
+	#
+	# There is no 90th minute to reach, so the match ends when the last round
+	# has been played and the pitch has gone quiet again. Checked here rather
+	# than in _on_draft_complete() so the ball still has its moment: the round
+	# plays out, and full time comes at the next idle frame.
+	if no_clock and next_event_index >= event_schedule.size():
+		_full_time()
 
 
 # =============================================================
@@ -688,6 +713,15 @@ func _apply_fixture() -> void:
 	if season == null or state == null:
 		return
 
+	# A mode that does not record the season has no fixture at all. It is a
+	# friendly by definition, so there is nothing to look up, no Difficulty
+	# to apply, and no opponent named by the table.
+	if not bool(match_mode.get("records", true)):
+		current_fixture = {}
+		print("[mode] %s — no fixture. Nothing here is written to the season table."
+			% match_mode.get("name", "Quick Match"))
+		return
+
 	# "Play it again" from the stats screen. The fixture is already recorded,
 	# so this run is a friendly: same opposition, nothing written down.
 	if state.has_flag(MatchStatsScreen.REPLAY_FLAG):
@@ -746,10 +780,37 @@ func _apply_fixture() -> void:
 			abilities.side_shot_bonus[true] = bonus
 
 	print("[season] Matchday %d of %d — %s%s%s" % [
-		int(current_fixture["number"]), season.last_numbers(),
+		int(current_fixture["number"]), season.last_number(),
 		current_fixture["opponent"],
 		"  (THE FINAL)" if bool(current_fixture["final"]) else "",
 		"  difficulty +%d to their shot" % bonus if bonus != 0 else ""])
+
+
+## THE MODE SHAPES THE MATCH. Tuning.csv sets the defaults; the chosen mode
+## from MatchModes.csv overrides them for this match only. See match_mode.gd.
+func _apply_match_mode() -> void:
+	match_mode = MatchMode.current(get_tree())
+
+	TOTAL_CYCLES = maxi(1, int(match_mode["cycles"]))
+	ROUNDS_PER_CYCLE = maxi(1, int(match_mode["rounds"]))
+
+	var minutes := float(match_mode["timer"])
+	no_clock = minutes <= 0.0
+	if no_clock:
+		# A no-clock match still needs the minute hand to drive the event
+		# schedule, so it is given far more time than it can use and ends
+		# when the rounds run out instead. See _process().
+		MATCH_LENGTH_MINUTES = 10000.0
+		LAST_EVENT_MINUTE = FIRST_EVENT_MINUTE \
+			+ db.tune_float("no_clock_event_spacing", 6.0) \
+			* float(TOTAL_CYCLES * ROUNDS_PER_CYCLE)
+	else:
+		MATCH_LENGTH_MINUTES = minutes
+
+	print("[mode] %s — %d cycle(s) of %d, %s, %s." % [
+		match_mode["name"], TOTAL_CYCLES, ROUNDS_PER_CYCLE,
+		"no clock" if no_clock else "%d minutes" % int(minutes),
+		"goes in the table" if bool(match_mode["records"]) else "not recorded"])
 
 
 func _apply_match_tuning() -> void:
@@ -875,6 +936,14 @@ func _drive_camera() -> void:
 
 
 func _update_clock_label() -> void:
+	# NO CLOCK, NO CLOCK FACE. A Quick Match counts rounds instead of minutes,
+	# because a running "0412:37" would be nonsense and a blank corner would
+	# look broken.
+	if no_clock:
+		timer_label.text = "ROUND %d / %d" % [
+			mini(next_event_index + 1, TOTAL_CYCLES * ROUNDS_PER_CYCLE),
+			TOTAL_CYCLES * ROUNDS_PER_CYCLE]
+		return
 	var mins := int(match_time_minutes)
 	var secs := int((match_time_minutes - mins) * 60.0)
 	timer_label.text = "%02d:%02d" % [mins, secs]
@@ -883,7 +952,8 @@ func _update_clock_label() -> void:
 func _full_time() -> void:
 	match_time_minutes = MATCH_LENGTH_MINUTES
 	current_state = MatchState.FULL_TIME
-	timer_label.text = "90:00"
+	timer_label.text = "FULL TIME" if no_clock \
+		else "%02d:00" % int(MATCH_LENGTH_MINUTES)
 	event_announcement.text = "FULL TIME  %d - %d" % [player_score, enemy_score]
 	event_announcement.show()
 	print("FULL TIME — %d : %d" % [player_score, enemy_score])
@@ -912,7 +982,17 @@ func _full_time() -> void:
 	# saying  Requires: flag:season_over  or  count:season_wins>=3  is testing
 	# today's result rather than yesterday's.
 	var summary: Dictionary = {}
-	if season != null and not replaying:
+	if not bool(match_mode.get("records", true)):
+		# A Quick Match. The table is not touched, but every Stats.csv counter
+		# still ran, so the resources, unlocks and achievement progress you
+		# earned are all there — that is the whole point of playing one.
+		summary = {
+			"fixture": {}, "scored": player_score, "conceded": enemy_score,
+			"actions": [] as Array[Dictionary],
+		}
+		print("[mode] %s finished %d-%d. Nothing written to the table; what you collected is yours."
+			% [match_mode.get("name", "Quick Match"), player_score, enemy_score])
+	elif season != null and not replaying:
 		summary = season.record(player_score, enemy_score, state)
 	elif replaying:
 		# A rerun still shows you a scoreline, it just does not go in the table.
@@ -1007,7 +1087,13 @@ func _on_start_draft_pressed() -> void:
 
 func _resolve_kickoff_star(chosen: PlayerData) -> void:
 	active_player_star = chosen
-	player_star_tier = chosen.get_tier_clean()
+
+	# The tier comes from the CLASS, not from the card you happened to click.
+	# Those are the same thing on good data; on a class whose Stars straddle
+	# two tiers they are not, and the class's own answer is the right one.
+	player_star_tier = db.star_tier_for_class(chosen.unit_type)
+	if player_star_tier == "":
+		player_star_tier = chosen.get_tier_clean()
 
 	player_star_bundle = get_star_bundle_by_type(chosen.unit_type)
 	available_player_stars = player_star_bundle.duplicate()
@@ -2053,8 +2139,11 @@ func _stars_grouped_by_class() -> Dictionary:
 	return db.stars_by_class()
 
 
+## The three Stars this class fields — one on each rung of its star tier,
+## weakest first. Not simply "every Star row of this class", which is how a
+## class with Stars in two tiers used to hand out an illegal bundle.
 func get_star_bundle_by_type(unit_type: String) -> Array[PlayerData]:
-	return db.stars_for_class(unit_type)
+	return db.star_ladder_for_class(unit_type)
 
 
 ## Kickoff choices: one Star from each of three DIFFERENT classes, so the
@@ -2220,12 +2309,20 @@ func start_next_draft_phase() -> void:
 		return
 
 	if phase == "StarChoice":
-		if available_player_stars.is_empty():
+		# ONLY STARS OF YOUR STAR TIER. The incoming Star takes the outgoing
+		# one's place on the pitch, so offering a Star from another tier is
+		# offering a swap that cannot legally happen.
+		var swappable: Array[PlayerData] = []
+		for star_data in available_player_stars:
+			if player_star_tier == "" or star_data.get_tier_clean() == player_star_tier:
+				swappable.append(star_data)
+
+		if swappable.is_empty():
 			# No stars left (this shouldn't fire — cycle 3 has no HOLD UP).
 			current_phase_index += 1
 			start_next_draft_phase()
 			return
-		for star_data in _weakest_first(available_player_stars):
+		for star_data in _weakest_first(swappable):
 			create_card_for_unit(star_data)
 		_offer_auto_pick()
 		return
@@ -2480,10 +2577,25 @@ func _on_card_selected(selected_data: PlayerData) -> void:
 	start_next_draft_phase()
 
 
+## HOLD UP: one of your other Stars comes on for the one that is playing.
+##
+## THE STAR TIER DOES NOT MOVE. The incoming Star steps into the outgoing
+## Star's slot on the pitch, so it must belong to the same tier — otherwise
+## a Tier IV Star ends up standing in the Tier I position, and the tier
+## bookkeeping used to follow it there rather than stopping it.
+##
+## Your own Stars are a ladder in one tier (see star_ladder_for_class), so
+## this can only fire on a hand-edited CSV. It refuses rather than fields it.
 func _resolve_star_rotation(chosen: PlayerData) -> void:
+	var chosen_tier := chosen.get_tier_clean()
+	if player_star_tier != "" and chosen_tier != player_star_tier:
+		print("[stars] %s is Tier %s and your Star slot is Tier %s — not swapping. Give the class's Stars one tier between them in the unit CSV."
+			% [chosen.player_name, chosen_tier, player_star_tier])
+		available_player_stars.erase(chosen)
+		return
+
 	_swap_star_on_pitch(chosen, false)
 	active_player_star = chosen
-	player_star_tier = chosen.get_tier_clean()
 	available_player_stars.erase(chosen)
 	print("New active Star: %s (Tier %s)" % [chosen.player_name, player_star_tier])
 

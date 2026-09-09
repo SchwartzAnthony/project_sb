@@ -307,6 +307,18 @@ static func check_class(unit_type: String, db: CardDatabase = null) -> Array[Str
 	var roster := database.roster_for_class(unit_type)
 	var lines: Array[String] = []
 
+	# THE STARS MUST SHARE ONE TIER. They hold that tier between them and
+	# rotate through it at HOLD UP, stepping into each other's slot on the
+	# pitch — so a Star from another tier has nowhere legal to stand, and
+	# is left out of the bundle rather than fielded in the wrong place.
+	var star_tier := database.star_tier_for_class(unit_type)
+	if star_tier != "":
+		for card in roster:
+			if card.is_star() and card.get_tier_clean() != star_tier:
+				lines.append("%s's Star Players hold Tier %s, but '%s' is a Star in Tier %s. It will not be fielded — move it to Tier %s, or make it a Normal card."
+					% [unit_type, star_tier, card.player_name,
+						card.get_tier_clean(), star_tier])
+
 	for tier in TIERS:
 		var ladder := rungs(tier, database)
 		if ladder.size() != 3:

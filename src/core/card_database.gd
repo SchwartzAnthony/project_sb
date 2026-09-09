@@ -432,6 +432,56 @@ func stars_for_class(unit_type: String) -> Array[PlayerData]:
 	return out
 
 
+## ============ WHICH TIER DOES THIS CLASS'S STARS HOLD? ============
+##
+## A class's Star Players hold ONE tier between them — Lorelei's three are
+## Tier IV, Brandteufel's are Tier III. That tier is locked in the team
+## builder and the Stars rotate through it at HOLD UP.
+##
+## It used to be read as "whatever tier the FIRST Star row happens to be",
+## which is fine until a class has Stars in two tiers. Then the star tier
+## was decided by row order, HOLD UP offered every Star regardless of tier,
+## and picking one dropped it into the slot the old Star was standing in —
+## a Tier IV Star in the Tier I position, with the bookkeeping quietly
+## following along.
+##
+## Now it is the tier that holds the MOST of the class's Stars, and any
+## Star outside it is named in the startup report instead of being fielded.
+func star_tier_for_class(unit_type: String) -> String:
+	var counts: Dictionary = {}
+	for card in stars_for_class(unit_type):
+		var tier := card.get_tier_clean()
+		if tier != "":
+			counts[tier] = int(counts.get(tier, 0)) + 1
+
+	var best := ""
+	var best_count := 0
+	# PlayerData.TIER_ORDER, so a tie is broken by the lower tier every time
+	# rather than by whichever key the dictionary hands back first.
+	for tier in PlayerData.TIER_ORDER:
+		var n := int(counts.get(tier, 0))
+		if n > best_count:
+			best_count = n
+			best = tier
+	return best
+
+
+## The class's Stars as a LADDER: one on each rung of their tier, weakest
+## first. Any Star in the wrong tier, or sharing a rung with another Star,
+## is left out — content_report names it so you can fix the CSV.
+func star_ladder_for_class(unit_type: String) -> Array[PlayerData]:
+	var tier := star_tier_for_class(unit_type)
+	if tier == "":
+		return [] as Array[PlayerData]
+
+	# vary = false: your Stars must be the same three every time you pick
+	# this class, unlike an enemy squad which is drawn fresh each match.
+	var made := TierLadder.build(stars_for_class(unit_type), tier, self, false)
+	var out: Array[PlayerData] = []
+	out.assign(made["cards"])
+	return out
+
+
 ## class name -> Array[PlayerData] of that class's Star Players.
 func stars_by_class() -> Dictionary:
 	var grouped: Dictionary = {}

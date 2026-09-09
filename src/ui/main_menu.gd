@@ -18,7 +18,7 @@ const MENU_CONFIG_PATH := "res://data/MenuConfig.csv"
 ## Optional full-screen art. Set it here, or add a Background Art row to
 ## MenuConfig.csv with the path in the Art Path column.
 @export var background_art_path: String = "res://assets/menu/background.png"
-@export var title_text: String = "Sturmball"
+@export var title_text: String = "Bockball"
 @export var title_font_size: int = 72
 
 var db: CardDatabase
@@ -235,12 +235,22 @@ func _on_action(action: String) -> void:
 	match verb.to_lower():
 		"start_game":
 			TeamSelection.clear(get_tree())
+			MatchMode.choose(get_tree(), "season")
 			ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT)
 		"quick_match":
-			# Straight to a match with a random class and roster — handy for
-			# testing without walking the menus every time.
+			# A QUICK MATCH IS ITS OWN KIND OF MATCH, not a shortcut to the
+			# usual one: no clock, one Star, and nothing written to the season
+			# table. What it is exactly comes from MatchModes.csv, so its shape
+			# can change without touching this file.
 			TeamSelection.clear(get_tree())
-			ScenePaths.go_to(get_tree(), ScenePaths.MATCH)
+			MatchMode.choose(get_tree(), "quick")
+			ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT)
+		"match":
+			# ONE ACTION FOR EVERY MODE YOU EVER ADD. A button whose Action is
+			# match:cup starts the `cup` row of MatchModes.csv. No new code.
+			TeamSelection.clear(get_tree())
+			MatchMode.choose(get_tree(), argument if argument != "" else "season")
+			ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT)
 		"story":
 			DialogueView.play(get_tree(),
 				argument if argument != "" else "main", ScenePaths.MAIN_MENU)

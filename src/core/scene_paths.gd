@@ -189,9 +189,27 @@ static func go_back(tree: SceneTree, fallback: String = MAIN_MENU) -> void:
 	while not trail.is_empty():
 		var last := String(trail.pop_back())
 		if last != "" and last != here(tree) and ResourceLoader.exists(last):
+			print("[nav] Back: %s -> %s%s" % [screen_word(here(tree)),
+				screen_word(last), _trail_text(trail)])
 			tree.change_scene_to_file.call_deferred(last)
 			return
+
+	# NOTHING TO GO BACK TO. If you are seeing this when you expected Back to
+	# work, the screen you came FROM was opened with go_to(..., false) or by
+	# change_scene_to_file() directly — neither of which leaves a trail.
+	print("[nav] Back from %s: nothing remembered, falling back to %s."
+		% [screen_word(here(tree)), screen_word(resolve(fallback))])
 	go_to(tree, fallback, false)
+
+
+## The trail as words, for the [nav] lines. Newest last.
+static func _trail_text(trail: Array) -> String:
+	if trail.is_empty():
+		return "   (nothing left behind it)"
+	var words: Array[String] = []
+	for path in trail:
+		words.append(screen_word(String(path)))
+	return "   (behind it: %s)" % " > ".join(words)
 
 
 ## Is there anywhere to go back to? Screens use this to decide whether their

@@ -62,8 +62,13 @@ func _gather() -> void:
 			talents.talents.size(), talents.tree_names().size(), brews.brews.size()])
 	lines.append("[content] %d fixture(s) in the season, the last being Match %d."
 		% [season.fixtures.size(), season.last_number()])
-	lines.append("[content] %d opposing team(s), %d sound cue(s)."
-		% [squads.teams.size(), audio.cues.size()])
+	var modes := MatchMode.get_db()
+	lines.append("[content] %d opposing team(s), %d sound cue(s), %d match mode(s): %s."
+		% [squads.teams.size(), audio.cues.size(), modes.modes.size(),
+			", ".join(_mode_words(modes))])
+
+	for problem in modes.problems:
+		warnings.append("modes: " + problem)
 
 	for problem in cards.problems:
 		warnings.append("cards: " + problem)
@@ -127,6 +132,18 @@ func _check_tier_ladders(cards: CardDatabase) -> void:
 
 	for problem in TierLadder.check_mirrored_powers(cards):
 		warnings.append("ladder: " + problem)
+
+
+## "Season Match (90m, in the table)", "Quick Match (no clock, not recorded)"
+static func _mode_words(modes: MatchMode) -> Array[String]:
+	var out: Array[String] = []
+	for key in modes.modes.keys():
+		var entry: Dictionary = modes.modes[key]
+		var clock := "no clock" if float(entry["timer"]) <= 0.0 \
+			else "%dm" % int(float(entry["timer"]))
+		out.append("%s (%s, %s)" % [entry["name"], clock,
+			"in the table" if bool(entry["records"]) else "not recorded"])
+	return out
 
 
 static func _powers_as_words(powers: Array[int]) -> Array[String]:

@@ -1,13 +1,13 @@
 Unit Type,Name,Attack,Defend,Element,Base Power Left,Base Power Right,Tier,Stufe,Tool,Card Number,Card Date,Set Name,Created by,Artwork,Player Type
-Normal Enemy,Bauer,None,None,None,0,0,I,Level,,13,,,,Silver-Rhine Lorelei.png,Star
-Normal Enemy,Richter,None,None,None,1,1,I,Level,,14,,,,Silver-Rhine Lorelei.png,Star
-Normal Enemy,Klein,None,None,None,2,2,I,Level,,15,,,,Silver-Rhine Lorelei.png,Star
-Normal Enemy,Wolf,None,None,None,1,1,II,Level,,16,,,,Silver-Rhine Lorelei.png,Normal
-Normal Enemy,Schröder,None,None,None,2,2,II,Level,,17,,,,Silver-Rhine Lorelei.png,Normal
-Normal Enemy,Neumann,None,None,None,3,3,II,Level,,18,,,,Silver-Rhine Lorelei.png,Normal
-Normal Enemy,Schwarz,None,None,None,2,2,III,Level,,19,,,,Silver-Rhine Lorelei.png,Normal
-Normal Enemy,Fuchs,None,None,None,3,3,III,Level,,20,,,,Silver-Rhine Lorelei.png,Normal
-Normal Enemy,Baumgartner,None,None,None,4,4,III,Level,,21,,,,Silver-Rhine Lorelei.png,Normal
-Normal Enemy,Bayer,None,None,None,3,3,IV,Level,,22,,,,Silver-Rhine Lorelei.png,Normal
-Normal Enemy,Bischoff,None,None,None,4,4,IV,Level,,23,,,,Silver-Rhine Lorelei.png,Normal
-Normal Enemy,Brandt,None,None,None,5,5,IV,Level,,24,,,,Silver-Rhine Lorelei.png,Normal
+Rivals,Bauer,None,None,None,0,0,I,Level,,13,,,,Silver-Rhine Lorelei.png,Star
+Rivals,Richter,None,None,None,1,1,I,Level,,14,,,,Silver-Rhine Lorelei.png,Star
+Rivals,Klein,None,None,None,2,2,I,Level,,15,,,,Silver-Rhine Lorelei.png,Star
+Rivals,Wolf,None,None,None,1,1,II,Level,,16,,,,Silver-Rhine Lorelei.png,Normal
+Rivals,Schröder,None,None,None,2,2,II,Level,,17,,,,Silver-Rhine Lorelei.png,Normal
+Rivals,Neumann,None,None,None,3,3,II,Level,,18,,,,Silver-Rhine Lorelei.png,Normal
+Rivals,Schwarz,None,None,None,2,2,III,Level,,19,,,,Silver-Rhine Lorelei.png,Normal
+Rivals,Fuchs,None,None,None,3,3,III,Level,,20,,,,Silver-Rhine Lorelei.png,Normal
+Rivals,Baumgartner,None,None,None,4,4,III,Level,,21,,,,Silver-Rhine Lorelei.png,Normal
+Rivals,Bayer,None,None,None,3,3,IV,Level,,22,,,,Silver-Rhine Lorelei.png,Normal
+Rivals,Bischoff,None,None,None,4,4,IV,Level,,23,,,,Silver-Rhine Lorelei.png,Normal
+Rivals,Brandt,None,None,None,5,5,IV,Level,,24,,,,Silver-Rhine Lorelei.png,Normal

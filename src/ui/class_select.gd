@@ -393,12 +393,20 @@ func _make_formation_view(info: Dictionary, star_tier: String) -> Control:
 #  NAVIGATION
 # -------------------------------------------------------------
 
+## BACK GOES BACK. This screen is reached from the main menu AND from the
+## base's "Play a match" button, so it cannot know where you came from —
+## which is exactly what the trail in ScenePaths is for. It used to send
+## everyone to the main menu, which is the bug where leaving the base to
+## look at the classes and changing your mind dumped you out of the base.
 func _on_back() -> void:
-	ScenePaths.go_to(get_tree(), ScenePaths.MAIN_MENU)
+	ScenePaths.go_back(get_tree(), ScenePaths.MAIN_MENU)
 
 
 func _on_lock_in() -> void:
-	var stars := db.stars_for_class(_selected_class)
+	# THE STAR LADDER, not "every Star in the file". A class's three Stars
+	# hold ONE tier — one on each rung of it — and this is what stops a
+	# Tier IV Star ending up in a Tier I slot at HOLD UP. See tier_ladder.gd.
+	var stars := db.star_ladder_for_class(_selected_class)
 	if stars.is_empty():
 		return
 
@@ -406,7 +414,7 @@ func _on_lock_in() -> void:
 	selection.unit_type = _selected_class
 	selection.star_bundle = stars
 	selection.active_star = stars[0]
-	selection.star_tier = stars[0].get_tier_clean()
+	selection.star_tier = db.star_tier_for_class(_selected_class)
 	TeamSelection.store(get_tree(), selection)
 
 	ScenePaths.go_to(get_tree(), ScenePaths.TEAM_BUILDER)

@@ -166,10 +166,26 @@ func _build_exits() -> void:
 	row.add_child(to_season)
 
 	var to_match := _make_button("Play a match", Vector2(190, 46))
+	to_match.tooltip_text = "The next fixture in the season. The result goes in the table."
 	to_match.pressed.connect(func() -> void:
 		state.save_to_disk()
+		MatchMode.choose(get_tree(), "season")
 		ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT))
 	row.add_child(to_match)
+
+	# QUICK MATCH FROM THE BASE. This is where you come when you need
+	# materials and the buildings that would make them are not built yet, so
+	# the button belongs beside the buildings rather than only on the title
+	# screen. Same mode as the main menu's — one row in MatchModes.csv.
+	var quick := MatchMode.get_db().find("quick")
+	if not quick.is_empty():
+		var to_quick := _make_button(String(quick["name"]), Vector2(190, 46))
+		to_quick.tooltip_text = String(quick["description"])
+		to_quick.pressed.connect(func() -> void:
+			state.save_to_disk()
+			MatchMode.choose(get_tree(), "quick")
+			ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT))
+		row.add_child(to_quick)
 
 	var to_menu := _make_button("Main menu", Vector2(150, 46))
 	to_menu.pressed.connect(func() -> void:

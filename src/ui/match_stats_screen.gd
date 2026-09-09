@@ -299,9 +299,16 @@ func _fill_progress() -> void:
 
 func _fill_buttons() -> void:
 	if _continue != null:
+		# A match that does not go in the table has nothing to show you on the
+		# season screen, so Continue takes you back to the base with what you
+		# collected rather than to a table that did not change.
+		var records := bool(MatchMode.current(get_tree()).get("records", true))
+		if not records:
+			_continue.text = "Back to the base"
 		_continue.pressed.connect(func() -> void:
 			state.save_to_disk()
-			ScenePaths.go_to(get_tree(), ScenePaths.SEASON))
+			ScenePaths.go_to(get_tree(),
+				ScenePaths.SEASON if records else ScenePaths.BASE))
 
 	if _again != null:
 		# HONESTY: this is not a replay of what you just watched. There is no

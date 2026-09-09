@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://coeq14jcvqlm3"
+
+[deps]
+
+files=["res://data/MatchModes.Name.translation", "res://data/MatchModes.Records Season.translation", "res://data/MatchModes.Timer.translation", "res://data/MatchModes.Cycles.translation", "res://data/MatchModes.Rounds.translation", "res://data/MatchModes.Star Rotation.translation", "res://data/MatchModes.Opponent.translation", "res://data/MatchModes.Requires.translation", "res://data/MatchModes.Description.translation"]
+
+source_file="res://data/MatchModes.csv"
+dest_files=["res://data/MatchModes.Name.translation", "res://data/MatchModes.Records Season.translation", "res://data/MatchModes.Timer.translation", "res://data/MatchModes.Cycles.translation", "res://data/MatchModes.Rounds.translation", "res://data/MatchModes.Star Rotation.translation", "res://data/MatchModes.Opponent.translation", "res://data/MatchModes.Requires.translation", "res://data/MatchModes.Description.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true
