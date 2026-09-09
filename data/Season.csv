@@ -10,3 +10,4 @@ md08,8,Glutstadt Rangers,glutstadt,Brandteufel,2,,,,,Four straight wins behind t
 md09,9,Wellenberg Academy,wellenberg,Lorelei,2,,,,,Young and quick and completely fearless.,
 md10,10,Hollowforge City,hollowforge,Brandteufel,3,,,announce:Into the final.,,The last league game. Win it and you go in confident.,Difficulty 3 is as high as you should go - cards are 0-5 power.
 final,11,The Kesselgrund Cup Final,kesselgrund,,3,true,,unlock:The Cup;announce:The cup is yours.,announce:So close. There is always next season.,One match. Everything on it.,"Final=true ends the season. Class is BLANK here, so the opponent is a surprise."
+md12,12,Tap Room XI,tap_room_xi,Lorelei,3,true,unlocked:Marsh King,unlock:The Cup;count:coins+250,,"The season decider. Only reachable once you have beaten the Marsh King in Adventure.","WORKED EXAMPLE - THE SEASON READS ADVENTURE. Requires gates a fixture the same way it gates anything else."

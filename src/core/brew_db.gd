@@ -131,6 +131,18 @@ func _load_csv(path: String) -> void:
 			"attack": _cell(row, columns, "attackability"),
 			"defend": _cell(row, columns, "defendability"),
 			"permanent": _cell(row, columns, "permanent").to_lower() in ["true", "yes", "1", "on"],
+			# ============ WHAT IT COSTS TO POUR ============
+			#
+			# `reed:5|water:3` — the same name:amount shape Teams.csv uses for
+			# its Cards column, separated by a pipe.
+			#
+			# THIS IS THE MISSING HALF OF THE ECONOMY. Brews could be gated
+			# behind having materials, but pouring one never SPENT anything,
+			# so a single Adventure run bought infinite brews forever. Now the
+			# Pub takes the materials out of your counters when it pours.
+			#
+			# Blank costs nothing, which is what every brew did before.
+			"cost": parse_cost(_cell(row, columns, "cost")),
 			"where": "%s row %d" % [short_name, i + 1],
 		})
 
@@ -193,10 +205,64 @@ static func is_permanent(card: PlayerData, state: GameState) -> bool:
 
 ## Give a card a brew. `permanent` is ignored unless the brew allows it and
 ## the player has unlocked Permanent Brews.
+## "reed:5|water:3" -> {"reed": 5, "water": 3}. A piece with no number
+## costs one, so `reed` on its own is `reed:1`.
+static func parse_cost(text: String) -> Dictionary:
+	var out: Dictionary = {}
+	for piece in text.split("|"):
+		var part := String(piece).strip_edges()
+		if part == "":
+			continue
+		var bits := part.split(":")
+		var item := String(bits[0]).strip_edges()
+		if item == "":
+			continue
+		var amount := 1
+		if bits.size() > 1 and String(bits[1]).strip_edges().is_valid_int():
+			amount = maxi(1, int(String(bits[1]).strip_edges()))
+		out[item] = int(out.get(item, 0)) + amount
+	return out
+
+
+## Can this be paid for right now?
+static func can_afford(entry: Dictionary, state: GameState) -> bool:
+	if state == null:
+		return false
+	for item in (entry.get("cost", {}) as Dictionary).keys():
+		if state.count(String(item)) < int((entry["cost"] as Dictionary)[item]):
+			return false
+	return true
+
+
+## "5 Reed, 3 Water" — for the Pub to show, and for the refusal message.
+static func cost_text(entry: Dictionary, state: GameState = null) -> String:
+	var cost: Dictionary = entry.get("cost", {})
+	if cost.is_empty():
+		return ""
+	var words: Array[String] = []
+	for item in cost.keys():
+		var need := int(cost[item])
+		var readable := String(item).replace("_", " ").capitalize()
+		if state != null and state.count(String(item)) < need:
+			words.append("%d %s (you have %d)" % [need, readable, state.count(String(item))])
+		else:
+			words.append("%d %s" % [need, readable])
+	return ", ".join(words)
+
+
 static func pour(card: PlayerData, entry: Dictionary, permanent: bool,
 		state: GameState) -> void:
 	if card == null or state == null or entry.is_empty():
 		return
+
+	# PAY FOR IT. Refuses rather than pouring on credit — the Pub screen
+	# greys the brew out first, so this is the second line of defence.
+	if not can_afford(entry, state):
+		print("[pub] Cannot pour %s — it costs %s."
+			% [entry.get("name", entry["id"]), cost_text(entry, state)])
+		return
+	for item in (entry.get("cost", {}) as Dictionary).keys():
+		state.add_count(String(item), -int((entry["cost"] as Dictionary)[item]))
 
 	var key := card_key(card)
 	var brew_id := String(entry["id"])

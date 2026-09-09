@@ -27,3 +27,5 @@ big_wins,match_ended,margin>=3,,Match,Wins by three or more,Won by three goals o
 clean_sheets,match_ended,conceded=0,,Match,Clean sheets,Finished a match without conceding
 brews_drunk,brew_drunk,,,Brews,Brews drunk,
 brews_drunk_{brew},brew_drunk,,,Brews,,
+goals_with_brew_fire,goal_scored,brew=fire,1,Brews,Goals with a Fire Brew,"Feeds the Brewery unlock in Progression.csv. The match reports `brew` on every goal, so this needs no code."
+matches_played,match_ended,,1,Match,Matches played,"Feeds the Pub unlock. Every match, league or otherwise."

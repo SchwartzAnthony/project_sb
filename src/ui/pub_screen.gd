@@ -246,7 +246,10 @@ func _rebuild_cards() -> void:
 func _make_card(card: PlayerData) -> Control:
 	var on_it := BrewDB.brew_id_for(card, state)
 	var permanent := BrewDB.is_permanent(card, state)
-	var pourable := not _selected.is_empty() and BrewDB.suits(_selected, card)
+	# AFFORDABLE AS WELL AS SUITABLE. A brew you cannot pay for is shown but
+	# cannot be poured, and the detail line says what it would cost.
+	var pourable := not _selected.is_empty() and BrewDB.suits(_selected, card) \
+		and BrewDB.can_afford(_selected, state)
 
 	var button := Button.new()
 	button.custom_minimum_size = CARD_SIZE

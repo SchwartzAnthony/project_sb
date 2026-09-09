@@ -69,9 +69,9 @@ relay_hop_beat_seconds,0.12,Pause on each intermediate player in the relay.
 intercept_at_fraction,0.55,How far along the pass the interception happens. 0.5 = halfway.
 intercept_leap_seconds,0.45,How long the interceptor takes to leap into the ball's path.
 intercept_beat_seconds,0.3,Pause after an interception before play continues.
-shot_distance_fraction,0.20,How far out the shooter stands, as a fraction of pitch width. Lower = closer to goal.
-shot_distance_min_pixels,120,Never shoot from closer than this, whatever the pitch size.
-shot_centring,0.6,How far the shooter swings round in front of goal. 1 = dead centre, 0 = keeps their angle.
+shot_distance_fraction,0.20,"How far out the shooter stands, as a fraction of pitch width. Lower = closer to goal."
+shot_distance_min_pixels,120,"Never shoot from closer than this, whatever the pitch size."
+shot_centring,0.6,"How far the shooter swings round in front of goal. 1 = dead centre, 0 = keeps their angle."
 shot_run_up_speed,520,Pixels per second the shooter carries the ball into range.
 shot_run_up_min_seconds,0.35,Shortest run-up before a shot.
 shot_run_up_max_seconds,1.3,Longest run-up before a shot.
@@ -113,7 +113,7 @@ camera_zoom_speed,2.2,How quickly it changes zoom between live play and the whis
 camera_lead,0.30,"How far ahead of the ball it looks during a pass. 0 = stare at the ball, 1 = stare at where it will land"
 camera_deadzone,36,How far the ball may drift from the middle before the camera bothers to move. Stops a permanent jitter
 full_time_seconds,2.6,How long FULL TIME stays on screen before the season screen opens
-gains_max_rows,8,How many lines the "what you gained" panel shows before it says "and N more"
+gains_max_rows,8,"How many lines the ""what you gained"" panel shows before it says ""and N more"""
 season_difficulty_scale,1.0,"Multiplies the Difficulty column of Season.csv. 0 makes every fixture a fair fight, 2 doubles the handicap. Difficulty is added to the OPPOSITION SHOT, never to their cards"
 game_speed_steps,"1,2,4,8","The speed buttons in a match, comma separated. Number keys 1-4 do the same"
 game_speed_turbo,20,How fast time runs while you HOLD F. Let go and it drops back to the button you chose
@@ -122,32 +122,32 @@ auto_pick,false,"Is AUTO already on when a match kicks off? Every match starts f
 auto_pick_seconds,0.9,How long AUTO waits before choosing so you can still see who was on offer
 hud_left_margin,16,Where the speed buttons sit from the left edge
 hud_top_margin,14,Where the speed buttons sit from the top edge
-goal_kick_tier,III,"Which tier the keeper aims a goal kick at. IV was the far end of the pitch and felt like a punt. Blank = whoever is furthest forward"
+goal_kick_tier,III,Which tier the keeper aims a goal kick at. IV was the far end of the pitch and felt like a punt. Blank = whoever is furthest forward
 progress_bars_max,6,How many progress bars the post-match screen shows before it stops
 show_dev_tools,true,"Shows the Dev button at the base, which opens the save inspector. Set to false before showing the game to anyone"
-inspector_jump_buttons,14,How many "jump straight to" buttons the save inspector offers
+inspector_jump_buttons,14,"How many ""jump straight to"" buttons the save inspector offers"
 star_holds_its_tier,false,"false = a Star is offered in its tier like any other card and is used up when picked. true = the old behaviour, where the Star fills its tier every round of the cycle"
 card_hover_stats,true,Show the stats window when the mouse is over a card during a PLAY MAKER
 max_card_power,5,"THE CEILING. No card's power may ever exceed this, whatever an ability adds. 5 because Tier IV tops out at 3-4-5"
 auto_attack_chance,0.5,"When AUTO wins the rock-paper-scissors, the odds it chooses ATTACK. 1 always attacks, 0 always defends"
 difficulty_as_power,false,"LEAVE THIS OFF. On, a fixture's Difficulty is added to every enemy CARD instead of to their shot, which breaks the tier ladder — their Tier I stops being a 0, a 1 and a 2. Only here so the old behaviour can be seen"
-adventure_stamina_base,6,"ADVENTURE ONLY. Stamina a 0-power player starts a run with. League matches are unaffected - only keepers have stamina there"
+adventure_stamina_base,6,ADVENTURE ONLY. Stamina a 0-power player starts a run with. League matches are unaffected - only keepers have stamina there
 adventure_stamina_per_power,3,"ADVENTURE ONLY. Extra stamina per point of power, so a 5-power card gets base + 15 and a Tier I 0-power is fragile"
-adventure_damage_scale,1.0,"Multiplies the power difference to get damage dealt in an encounter"
+adventure_damage_scale,1.0,Multiplies the power difference to get damage dealt in an encounter
 adventure_damage_minimum,1,"A won tier always takes at least this much off, even a 1-power win"
-adventure_walkover_multiplier,2,"Damage is multiplied by this when a tier is won by walkover - the other side had nobody left to field"
-adventure_flee_keep,0.8,"What you carry home if you flee mid-run. 0.8 keeps 80 percent and loses 20"
-adventure_scroll_speed,120,"Pixels per second the field slides left while the party runs right"
-adventure_pickup_carriers,3,"How many players at most peel off to collect one item on the ground"
-adventure_wave_gap,12,"Seconds of running between waves in Adventure. Larger means longer stretches of picking things up"
-adventure_pass_seconds,1.4,"How often the party knocks the ball to somebody else while running"
-adventure_enemies_per_wave,3,"How many enemies an ordinary wave puts in your way. A boss wave is always just the boss"
-adventure_fetch_pace,1.18,"How much faster the party runs while somebody is chasing a pickup. 1.0 = no change"
-adventure_approach_pace,0.55,"How much they slow to on the last stretch before a fight. 1.0 = no slowing"
+adventure_walkover_multiplier,2,Damage is multiplied by this when a tier is won by walkover - the other side had nobody left to field
+adventure_flee_keep,0.8,What you carry home if you flee mid-run. 0.8 keeps 80 percent and loses 20
+adventure_scroll_speed,120,Pixels per second the field slides left while the party runs right
+adventure_pickup_carriers,3,How many players at most peel off to collect one item on the ground
+adventure_wave_gap,12,Seconds of running between waves in Adventure. Larger means longer stretches of picking things up
+adventure_pass_seconds,1.4,How often the party knocks the ball to somebody else while running
+adventure_enemies_per_wave,3,How many enemies an ordinary wave puts in your way. A boss wave is always just the boss
+adventure_fetch_pace,1.18,How much faster the party runs while somebody is chasing a pickup. 1.0 = no change
+adventure_approach_pace,0.55,How much they slow to on the last stretch before a fight. 1.0 = no slowing
 adventure_slow_distance,260,"How far before a wave the party starts easing off, in pixels of run"
-adventure_kick_seconds,0.42,"How long the ball takes to reach what it was kicked at. Lower is snappier"
-adventure_stepup_seconds,0.26,"How long the player takes to step out of the line before kicking"
-adventure_flinch_seconds,0.22,"The shove backwards when something is hit"
-adventure_float_seconds,0.9,"How long a damage number hangs in the air before fading"
-adventure_repeat_step,0.35,"How much harder a biome gets each time you clear its boss. 0.35 = +35 percent of the base per clear. 0 turns repeat scaling off"
-adventure_meet_seconds,1.6,"How long the two sides get to walk into place before the fight opens regardless"
+adventure_kick_seconds,0.42,How long the ball takes to reach what it was kicked at. Lower is snappier
+adventure_stepup_seconds,0.26,How long the player takes to step out of the line before kicking
+adventure_flinch_seconds,0.22,The shove backwards when something is hit
+adventure_float_seconds,0.9,How long a damage number hangs in the air before fading
+adventure_repeat_step,0.35,How much harder a biome gets each time you clear its boss. 0.35 = +35 percent of the base per clear. 0 turns repeat scaling off
+adventure_meet_seconds,1.6,How long the two sides get to walk into place before the fight opens regardless
