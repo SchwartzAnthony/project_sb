@@ -180,7 +180,7 @@ func _fill_biomes() -> void:
 
 
 func _biome_card(entry: Dictionary) -> Control:
-	var open := DialogueGrammar.test(String(entry["requires"]), state)
+	var open := DialogueGrammar.test(String(entry.get("requires", "")), state)
 
 	var button := Button.new()
 	button.custom_minimum_size = CARD_SIZE
@@ -203,7 +203,7 @@ func _biome_card(entry: Dictionary) -> Control:
 	button.add_child(box)
 
 	var title := Label.new()
-	title.text = String(entry["name"])
+	title.text = String(entry.get("name", "?"))
 	title.add_theme_font_size_override("font_size", 18)
 	title.add_theme_color_override("font_color",
 		MenuSupport.COLOUR_TEXT if open else MenuSupport.COLOUR_TEXT_DIM)
@@ -212,13 +212,13 @@ func _biome_card(entry: Dictionary) -> Control:
 
 	var line := Label.new()
 	if open:
-		line.text = "%d wave%s   ·   %s" % [int(entry["waves"]),
-			"" if int(entry["waves"]) == 1 else "s",
-			String(entry["description"])]
+		line.text = "%d wave%s   ·   %s" % [int(entry.get("waves", 1)),
+			"" if int(entry.get("waves", 1)) == 1 else "s",
+			String(entry.get("description", ""))]
 	else:
 		# THE SAME SENTENCE THE UNLOCK BOARD WOULD GIVE YOU. A locked place
 		# always says what would open it, never just "locked".
-		line.text = "🔒  %s" % DialogueGrammar.describe(String(entry["requires"]))
+		line.text = "🔒  %s" % DialogueGrammar.describe(String(entry.get("requires", "")))
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	line.add_theme_font_size_override("font_size", 12)
 	line.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
@@ -251,13 +251,13 @@ func _refresh_bounties() -> void:
 			"Pick a biome on the left and its bounties are pinned up here."))
 		return
 
-	_bounty_heading.text = "WHAT  ·  %s" % String(_chosen_biome["name"])
+	_bounty_heading.text = "WHAT  ·  %s" % String(_chosen_biome.get("name", "?"))
 
-	var jobs := adventure.bounties_in(String(_chosen_biome["id"]), state)
+	var jobs := adventure.bounties_in(String(_chosen_biome.get("id", "")), state)
 	if jobs.is_empty():
 		_bounty_list.add_child(_quiet(
 			"Nothing pinned up for %s. Add rows to data/Bounties.csv with Biome = %s."
-			% [_chosen_biome["name"], _chosen_biome["id"]]))
+			% [_chosen_biome.get("name", "?"), _chosen_biome.get("id", "")]))
 		return
 
 	for job in jobs:
@@ -265,9 +265,9 @@ func _refresh_bounties() -> void:
 
 
 func _bounty_card(job: Dictionary) -> Control:
-	var open := bool(job["open"])
-	var done := bool(job["done"])
-	var boss := adventure.enemy(String(job["boss"]))
+	var open := bool(job.get("open", true))
+	var done := bool(job.get("done", false))
+	var boss := adventure.enemy(String(job.get("boss", "")))
 
 	var button := Button.new()
 	button.custom_minimum_size = Vector2(0, 104)
@@ -297,9 +297,9 @@ func _bounty_card(job: Dictionary) -> Control:
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	portrait.add_theme_stylebox_override("panel",
 		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, tint))
-	var art := MenuSupport.icon_texture(String(job["art"]))
+	var art := MenuSupport.icon_texture(String(job.get("art", "")))
 	if art == null and not boss.is_empty():
-		art = MenuSupport.icon_texture(String(boss["art"]))
+		art = MenuSupport.icon_texture(String(boss.get("art", "")))
 	if art != null:
 		var rect := TextureRect.new()
 		rect.texture = art
@@ -318,7 +318,7 @@ func _bounty_card(job: Dictionary) -> Control:
 	row.add_child(column)
 
 	var title := Label.new()
-	title.text = String(job["name"])
+	title.text = String(job.get("name", "?"))
 	if done:
 		title.text += "   ✓ claimed"
 	title.add_theme_font_size_override("font_size", 18)
@@ -331,7 +331,7 @@ func _bounty_card(job: Dictionary) -> Control:
 	if open:
 		line.text = _boss_line(boss, job)
 	else:
-		line.text = "🔒  %s" % DialogueGrammar.describe(String(job["requires"]))
+		line.text = "🔒  %s" % DialogueGrammar.describe(String(job.get("requires", "")))
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	line.add_theme_font_size_override("font_size", 12)
 	line.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
@@ -339,7 +339,7 @@ func _bounty_card(job: Dictionary) -> Control:
 	column.add_child(line)
 
 	var pays := Label.new()
-	pays.text = "Pays:  %s" % _reward_words(String(job["reward"]))
+	pays.text = "Pays:  %s" % _reward_words(String(job.get("reward", "")))
 	pays.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	pays.add_theme_font_size_override("font_size", 12)
 	pays.add_theme_color_override("font_color",
@@ -358,16 +358,26 @@ func _bounty_card(job: Dictionary) -> Control:
 ## said out loud rather than left for you to work out from the CSV.
 func _boss_line(boss: Dictionary, job: Dictionary) -> String:
 	if boss.is_empty():
-		return String(job["description"])
+		return String(job.get("description", ""))
 
+	# EVERY LOOKUP HERE USES .get() WITH A DEFAULT, on purpose.
+	#
+	# This line crashed the game once: the enemy's `damage` key was renamed to
+	# `attack` when enemies lost their tiers, and this screen was still asking
+	# for the old name. A missing key on a Dictionary is a hard error in
+	# GDScript — it takes the whole game down rather than printing a warning.
+	#
+	# So a screen never demands a key. It asks for one with a sensible
+	# fallback, and the worst a renamed or half-filled column can now do is
+	# show a 0 where a number should be.
 	var layers: Array = boss.get("layers", [])
 	var bits: Array[String] = []
 	bits.append("%s — %d layer%s, %d deep, hits for %d" % [
-		boss["name"], layers.size(), "" if layers.size() == 1 else "s",
-		AdventureDB.total_layers(boss), int(boss["damage"])])
-	if int(job["power"]) > 0:
-		bits.append("suggested power %d" % int(job["power"]))
-	var blurb := String(job["description"])
+		boss.get("name", "it"), layers.size(), "" if layers.size() == 1 else "s",
+		AdventureDB.total_layers(boss), int(boss.get("attack", 0))])
+	if int(job.get("power", 0)) > 0:
+		bits.append("suggested power %d" % int(job.get("power", 0)))
+	var blurb := String(job.get("description", ""))
 	if blurb != "":
 		bits.append(blurb)
 	return "   ·   ".join(bits)
@@ -413,9 +423,9 @@ func _refresh_footer() -> void:
 
 	_start.disabled = false
 	_detail.text = "%s  ·  %s  ·  %d wave%s before the boss." % [
-		_chosen_bounty["name"], _chosen_biome["name"],
-		maxi(0, int(_chosen_biome["waves"]) - 1),
-		"" if int(_chosen_biome["waves"]) - 1 == 1 else "s"]
+		_chosen_bounty.get("name", "?"), _chosen_biome.get("name", "?"),
+		maxi(0, int(_chosen_biome.get("waves", 1)) - 1),
+		"" if int(_chosen_biome.get("waves", 1)) - 1 == 1 else "s"]
 
 
 # -------------------------------------------------------------
@@ -436,8 +446,8 @@ func _on_start() -> void:
 	state.save_to_disk()
 
 	print("[adventure] Setting off: %s in %s (%d waves, boss %s)." % [
-		_chosen_bounty["name"], _chosen_biome["name"],
-		int(_chosen_biome["waves"]), _chosen_bounty["boss"]])
+		_chosen_bounty.get("name", "?"), _chosen_biome.get("name", "?"),
+		int(_chosen_biome.get("waves", 1)), _chosen_bounty.get("boss", "")])
 
 	# Class select, then the team builder, so you choose the squad you set
 	# off with exactly the way you pick a league side.

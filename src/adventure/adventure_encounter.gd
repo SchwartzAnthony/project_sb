@@ -68,6 +68,17 @@ var _focus: int = -1
 var _picked: Dictionary = {}
 var _tier_index: int = 0
 
+## ============ THE PITCH, FOR THE ANIMATION ============
+##
+## The fight decides what happens; adventure_strike.gd decides what it looks
+## like. To show it, this needs three things from the scene: the node the
+## ball can be added to, the enemies' nodes, and a way to find the walker
+## for a given card. All three are optional — with none of them the fight
+## still resolves exactly the same, just without anything to watch.
+var stage: Node2D = null
+var foe_nodes: Array[Node2D] = []
+var walker_for: Callable = Callable()
+
 var _title: Label
 var _prompt: Label
 var _foe_row: HBoxContainer
@@ -83,17 +94,56 @@ var _flee_button: Button
 # =============================================================
 
 static func open(parent: Node, database: CardDatabase, save: GameState,
-		the_run: AdventureRun, wave: Array[Dictionary]) -> AdventureEncounter:
+		the_run: AdventureRun, wave: Array[Dictionary],
+		pitch: Node2D = null, nodes: Array[Node2D] = [],
+		find_walker: Callable = Callable()) -> AdventureEncounter:
 	var fight := AdventureEncounter.new()
 	fight.db = database
 	fight.state = save
 	fight.run = the_run
 	fight.adventure = AdventureDB.get_db()
 	fight.layer = 15
+	fight.stage = pitch
+	fight.foe_nodes = nodes
+	fight.walker_for = find_walker
 	for entry in wave:
 		fight.foes.append(_fresh_foe(entry))
 	parent.add_child(fight)
 	return fight
+
+
+# =============================================================
+#  SHOWING IT
+# =============================================================
+
+## Where an enemy is standing, or nowhere if the scene did not give us nodes.
+func _foe_at(index: int) -> Vector2:
+	if index < 0 or index >= foe_nodes.size():
+		return Vector2.ZERO
+	var node := foe_nodes[index]
+	return node.position if node != null and is_instance_valid(node) else Vector2.ZERO
+
+
+func _foe_node(index: int) -> Node2D:
+	if index < 0 or index >= foe_nodes.size():
+		return null
+	var node := foe_nodes[index]
+	return node if node != null and is_instance_valid(node) else null
+
+
+## The walker standing in for a card, if the scene handed us a way to look
+## one up.
+func _walker(card: PlayerData) -> Node2D:
+	if card == null or not walker_for.is_valid():
+		return null
+	var found: Variant = walker_for.call(card)
+	return found as Node2D if found != null else null
+
+
+## Can we actually draw any of this? False in a headless test, or if the
+## scene did not pass its nodes in.
+func _can_show() -> bool:
+	return stage != null and is_instance_valid(stage)
 
 
 ## A wave's enemy, with full layers. The CSV row is never written to — the
@@ -223,9 +273,13 @@ func _resolve() -> void:
 	var dealt := maxi(least, int(round(float(total) * scale)))
 
 	if _focus >= 0 and _is_alive(_focus):
+		# THE LAST PLAYER YOU DRAFTED TAKES THE SHOT. They step out of the
+		# line, put the ball into the enemy you focused, and the number comes
+		# off it. The rules happen either way; this is only the showing.
+		await _show_the_kick(dealt)
 		var report := _hurt_foe(_focus, dealt)
 		_note("Your line-up totals %d — %s" % [total, report])
-	await _beat()
+	await _beat(0.35)
 
 	# --- THEIR HIT: after yours, every one of them ---
 	if _living_count() == 0:
@@ -259,6 +313,39 @@ func _resolve() -> void:
 		return
 
 	_begin_round()
+
+
+## The shot. Whoever was drafted LAST — the highest tier that had somebody —
+## runs up and kicks at the focused enemy.
+func _show_the_kick(dealt: int) -> void:
+	if not _can_show():
+		return
+
+	# The last tier that actually fielded anybody. Tier IV normally; a lower
+	# one if your top tiers have been knocked out.
+	var striker: PlayerData = null
+	for tier in TierLadder.TIERS:
+		var card := _picked.get(tier, null) as PlayerData
+		if card != null:
+			striker = card
+
+	var target := _foe_at(_focus)
+	var from := target - Vector2(360.0, 0.0)
+	var kicker := _walker(striker)
+	if kicker != null:
+		from = kicker.position
+		await AdventureStrike.step_up(kicker, target,
+			db.tune_float("adventure_stepup_seconds", 0.26))
+
+	await AdventureStrike.kick(stage, from, target,
+		db.tune_float("adventure_kick_seconds", 0.42))
+
+	var hit_node := _foe_node(_focus)
+	if hit_node != null:
+		AdventureStrike.flinch(hit_node, from,
+			db.tune_float("adventure_flinch_seconds", 0.22))
+	AdventureStrike.number(stage, target, str(dealt), true,
+		db.tune_float("adventure_float_seconds", 0.9))
 
 
 ## Damage into the outermost layer that is still there, minus its soak.
@@ -296,9 +383,12 @@ func _hurt_foe(index: int, amount: int) -> String:
 ## Attack, doubled when a tier of yours stood empty.
 func _enemy_strikes(index: int, multiplier: int) -> void:
 	var row: Dictionary = foes[index]["row"]
-	var hit := maxi(1, int(row["attack"]) * multiplier)
-	var how := String(row["targeting"])
+	var hit := maxi(1, int(row.get("attack", 1)) * multiplier)
+	var how := String(row.get("targeting", "weakest"))
 
+	# THEM COMING AT YOU. A lunge from the enemy towards whoever it picked,
+	# then the red number off the player. The single-target case animates the
+	# victim; a sweep just shakes the enemy and lets the numbers tell it.
 	if how == "aoe":
 		# ONE PER TIER, not everybody on the pitch. Hitting all twelve made an
 		# aoe enemy three times stronger than any other and it decided fights
@@ -312,12 +402,29 @@ func _enemy_strikes(index: int, multiplier: int) -> void:
 			if run.hurt(standing[0], hit, db):
 				_note("%s is knocked out." % standing[0].player_name)
 			caught += 1
+		if _can_show():
+			var shaker := _foe_node(index)
+			if shaker != null:
+				AdventureStrike.flinch(shaker, shaker.position + Vector2(60.0, 0.0),
+					db.tune_float("adventure_flinch_seconds", 0.22))
 		_note("%s sweeps every tier for %d — %d caught." % [
 			_foe_name(index), hit, caught])
 	else:
 		var victim := _target_for(how)
 		if victim == null:
 			return
+
+		if _can_show():
+			var mark := _walker(victim)
+			var here := _foe_at(index)
+			if mark != null:
+				await AdventureStrike.kick(stage, here, mark.position,
+					db.tune_float("adventure_kick_seconds", 0.42) * 0.8)
+				AdventureStrike.flinch(mark, here,
+					db.tune_float("adventure_flinch_seconds", 0.22))
+				AdventureStrike.number(stage, mark.position, str(hit), false,
+					db.tune_float("adventure_float_seconds", 0.9))
+
 		var went_down := run.hurt(victim, hit, db)
 		_note("%s hits %s for %d.%s" % [_foe_name(index), victim.player_name, hit,
 			"  KNOCKED OUT." if went_down else ""])
@@ -394,8 +501,8 @@ func _open_items() -> void:
 		menu.add_child(_quiet("Nothing you can use. Items with a Use column in Items.csv show up here."))
 	for entry in carried:
 		var button := Button.new()
-		button.text = "%s  x%d   —   %s" % [entry["name"], int(entry["held"]),
-			entry["description"]]
+		button.text = "%s  x%d   —   %s" % [entry.get("name", "?"), int(entry.get("held", 1)),
+			entry.get("description", "")]
 		button.custom_minimum_size = Vector2(0, 34)
 		button.focus_mode = Control.FOCUS_NONE
 		button.pressed.connect(_use_item.bind(entry))
@@ -414,7 +521,7 @@ func _open_items() -> void:
 ## Items are counters, so "using one" is spending a counter and applying the
 ## Use column. Everything here works on any item you add tomorrow.
 func _use_item(entry: Dictionary) -> void:
-	var use := String(entry["use"])
+	var use := String(entry.get("use", ""))
 	var did := ""
 
 	if use.begins_with("revive"):
@@ -452,9 +559,9 @@ func _use_item(entry: Dictionary) -> void:
 		_note("'%s' is not a Use this game knows. Try revive, heal:6 or hit:4." % use)
 		return
 
-	state.add_count(String(entry["id"]), -1)
+	state.add_count(String(entry.get("id", "")), -1)
 	state.save_to_disk()
-	_note("%s — %s" % [entry["name"], did])
+	_note("%s — %s" % [entry.get("name", "It"), did])
 	for child in _log.get_children():
 		if child.name == "ItemMenu":
 			child.queue_free()
@@ -634,7 +741,7 @@ func _refresh_foes() -> void:
 		button.custom_minimum_size = Vector2(180, 78)
 		button.focus_mode = Control.FOCUS_NONE
 		button.disabled = not alive or step != Step.FOCUS
-		button.text = "%s\n%s" % [row["name"], _layer_text(i)]
+		button.text = "%s\n%s" % [row.get("name", "?"), _layer_text(i)]
 		button.add_theme_font_size_override("font_size", 13)
 
 		var lit := (i == _focus and alive)
@@ -669,8 +776,8 @@ func _describe_foe(index: int) -> void:
 			"  (soaks %d)" % soak if soak > 0 else ""])
 
 	_detail.text = "%s — hits for %d, goes for the %s.   %s   %s" % [
-		row["name"], int(row["attack"]), row["targeting"],
-		"  |  ".join(parts), row["description"]]
+		row.get("name", "?"), int(row.get("attack", 0)), row.get("targeting", "weakest"),
+		"  |  ".join(parts), row.get("description", "")]
 
 
 func _layer_text(index: int) -> String:
@@ -680,7 +787,7 @@ func _layer_text(index: int) -> String:
 		total += int(amount)
 	if total <= 0:
 		return "down"
-	return "%d left  ·  hits %d" % [total, int(foes[index]["row"]["attack"])]
+	return "%d left  ·  hits %d" % [total, int((foes[index]["row"] as Dictionary).get("attack", 0))]
 
 
 func _refresh_choices() -> void:
@@ -720,7 +827,7 @@ func _refresh_choices() -> void:
 func _foe_name(index: int) -> String:
 	if index < 0 or index >= foes.size():
 		return "it"
-	return String((foes[index]["row"] as Dictionary)["name"])
+	return String((foes[index]["row"] as Dictionary).get("name", "it"))
 
 
 ## One line in the running log. The oldest are dropped so the panel never

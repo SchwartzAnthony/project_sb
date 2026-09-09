@@ -698,12 +698,19 @@ func _run_encounter() -> void:
 
 	# Everything about the fight lives in adventure_encounter.gd. This scene
 	# only hands it the wave and waits to hear how it went.
+	# The fight is handed the enemies' rows AND their nodes, plus a way to
+	# find the walker for a card. That is what lets it show the kick and the
+	# hits rather than only writing them down. Nothing breaks if a node has
+	# gone — adventure_strike.gd checks everything it is given.
 	var wave: Array[Dictionary] = []
+	var nodes: Array[Node2D] = []
 	for foe in _foes:
 		if is_instance_valid(foe):
 			wave.append(foe.get_meta("enemy", {}) as Dictionary)
+			nodes.append(foe)
 
-	var fight := AdventureEncounter.open(self, db, state, run, wave)
+	var fight := AdventureEncounter.open(self, db, state, run, wave,
+		_world, nodes, Callable(self, "walker_for"))
 	var result: Array = await fight.finished
 	fight.queue_free()
 
@@ -718,6 +725,15 @@ func _run_encounter() -> void:
 		_win_encounter()
 	else:
 		_party_fell()
+
+
+## The walker standing in for a card, so the fight can kick a ball at the
+## right player. Null when that card is not on the pitch.
+func walker_for(card: PlayerData) -> Node2D:
+	for walker in _walkers:
+		if walker != null and is_instance_valid(walker) and walker.card == card:
+			return walker
+	return null
 
 
 ## KNOCKED OUT PLAYERS SHOW IT ON THE PITCH. The run holds the stamina; the
