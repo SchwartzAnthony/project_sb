@@ -302,12 +302,19 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not (event is InputEventKey) or not event.pressed or event.echo:
+	# `pause` gets you out of a conversation, `confirm` moves it along. Both
+	# are rows in Keys.csv, so both are rebindable and both answer to a
+	# controller — see game_keys.gd. Enter still works as well, because
+	# pressing Enter to advance text is a reflex worth honouring.
+	if GameKeys.pressed(event, "pause"):
+		_finish()
+		return
+	if GameKeys.pressed(event, "confirm"):
+		_advance()
 		return
 	var key := event as InputEventKey
-	if key.keycode == KEY_ESCAPE:
-		_finish()
-	elif key.keycode in [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER]:
+	if key != null and key.pressed and not key.echo \
+			and key.keycode in [KEY_ENTER, KEY_KP_ENTER]:
 		_advance()
 
 

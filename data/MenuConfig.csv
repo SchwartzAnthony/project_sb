@@ -1,5 +1,5 @@
 Button ID,Label,X,Y,Width,Height,Action,Art Path,Notes
-START_GAME,Start,950,364,260,68,goto:base,res://assets/menu/button_start.png,"Opens the base. Everything else is started from there - the season, a match, the talent tree"
-TUTORIAL_GAME,Tutorial,950,616,260,68,tutorial_game,res://assets/menu/button_tutorial.png,Starts tutorial on match systems 
-ADVENTURE,Adventure,950,450,260,68,goto:bounty,res://assets/menu/button_adventure.png,"Opens the Bounty Board - pick a biome and a boss, then set off"
-QUIT,Quit,950,700,260,68,quit_game,res://assets/menu/button_quit.png,Closes the game
+START_GAME,Start,950,380,260,68,goto:base,res://assets/menu/button_start.png,"Opens the base. Everything else is started from there - the season, a match, your teams, the talent tree, an Adventure"
+SETTINGS,Settings,950,464,260,68,open_settings,res://assets/menu/button_settings.png,"Keys, screen, sound, colour and controller"
+TUTORIAL_GAME,Tutorial,950,548,260,68,tutorial_game,res://assets/menu/button_tutorial.png,"The tutorial base - an enclosed practice game with its own save. Nothing in there touches your real one"
+QUIT,Quit,950,632,260,68,quit_game,res://assets/menu/button_quit.png,Closes the game

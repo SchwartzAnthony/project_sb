@@ -20,7 +20,12 @@ extends RefCounted
 #  save data, NOT in your project folder. Nothing here ever writes to res://.
 # =============================================================
 
-const SAVE_PATH := "user://story_state.json"
+## WHERE PROGRESS IS KEPT.
+##
+## A `static var` rather than a `const` for one reason: the TUTORIAL BASE
+## points it at a save of its own so that nothing you do in there can touch
+## your real game. See tutorial_base.gd.
+static var SAVE_PATH := "user://story_state.json"
 const META_KEY := "cw_game_state"
 
 var flags: Dictionary = {}       # name (lower) -> true

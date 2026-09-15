@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="GoalieData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/goalie_data.gd" id="1_gdata"]
+
+[resource]
+script = ExtResource("1_gdata")
+team = "Brandteufel"
+goalie_name = "Pyre Bastion"
+max_stamina = 25
+ability_text = "When Stamina reaches 0: Deal 2 damage to the shooter"

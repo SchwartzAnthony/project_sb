@@ -33,9 +33,23 @@ extends Node2D
 #  Nothing else changes. Same rule as the keeper on the pitch.
 # =============================================================
 
-const RADIUS := 17.0
-const BAR_WIDTH := 38.0
-const BAR_HEIGHT := 5.0
+## HOW BIG A PLAYER IS ON THE SCROLL.
+##
+## It is a `static var` rather than a `const` because the number really lives
+## in Tuning.csv under `adventure_player_size`, and adventure_scene.gd writes
+## it here as a run opens. Change the spreadsheet, not this line.
+##
+## The stamina bar under a player grows with it, so a bigger player does not
+## end up with a thread of a bar beneath it.
+static var RADIUS := 26.0
+
+
+static func bar_width() -> float:
+	return RADIUS * 2.2
+
+
+static func bar_height() -> float:
+	return maxf(4.0, RADIUS * 0.22)
 
 ## Who this is. Never written to — see adventure_run.gd for why.
 var card: PlayerData = null
@@ -160,17 +174,21 @@ func _draw() -> void:
 
 		var font := ThemeDB.fallback_font
 		var label := str(card.get_attack_power())
-		var width := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16).x
-		draw_string(font, middle + Vector2(-width * 0.5, 6.0), label,
-			HORIZONTAL_ALIGNMENT_LEFT, -1.0, 16, MenuSupport.COLOUR_TEXT)
+		# The number grows with the disc, so raising adventure_player_size
+		# does not leave tiny writing in the middle of a big circle.
+		var text_size := int(clampf(RADIUS * 0.95, 12.0, 34.0))
+		var width := font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, text_size).x
+		draw_string(font, middle + Vector2(-width * 0.5, text_size * 0.36), label,
+			HORIZONTAL_ALIGNMENT_LEFT, -1.0, text_size, MenuSupport.COLOUR_TEXT)
 
 	# --- The stamina bar, always ---
-	var bar := Rect2(Vector2(-BAR_WIDTH * 0.5, RADIUS + 6.0),
-		Vector2(BAR_WIDTH, BAR_HEIGHT))
+	var bar_w := bar_width()
+	var bar := Rect2(Vector2(-bar_w * 0.5, RADIUS + 6.0),
+		Vector2(bar_w, bar_height()))
 	draw_rect(bar, Color(0.10, 0.11, 0.14), true)
 	if not knocked_out and stamina_fraction > 0.0:
 		var filled := bar
-		filled.size.x = BAR_WIDTH * clampf(stamina_fraction, 0.0, 1.0)
+		filled.size.x = bar_w * clampf(stamina_fraction, 0.0, 1.0)
 		# Green when healthy, amber, then red. Read at a glance, no numbers.
 		var colour := Color(0.45, 0.78, 0.45)
 		if stamina_fraction < 0.34:

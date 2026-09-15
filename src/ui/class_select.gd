@@ -2,12 +2,16 @@ class_name ClassSelect
 extends Control
 
 # =============================================================
-#  CLASS / RACE SELECT — the first half of team building
+#  CLASS / RACE SELECT — the first step of MAKING A NEW TEAM
+#
+#  You do not come here to play any more. You come here once, when you press
+#  CREATE TEAM on the shelf, to say what a new side is made of. After that
+#  the team is a thing you own and you pick it off CHOOSE YOUR TEAM.
 #
 #  LEFT   every class found in your unit CSVs, one button each
 #  RIGHT  that class's three Star Players (click one to read its card),
 #         plus the formation its Star tier implies
-#  BOTTOM  LOCK IN -> the team builder
+#  BOTTOM  USE THIS CLASS -> the team builder, on a brand new team
 #
 #  ADDING A CLASS: none of this is hard-coded. Drop a unit CSV in
 #  res://data/ with rows whose Player Type is "Star" and the class appears
@@ -32,6 +36,7 @@ var _lock_button: Button
 
 func _ready() -> void:
 	db = CardDatabase.get_db()
+	MenuEscape.install(self)
 	_load_class_info()
 	_build_ui()
 	_collect_classes()
@@ -129,7 +134,11 @@ func _build_ui() -> void:
 	page.add_theme_constant_override("separation", 16)
 	margin.add_child(page)
 
-	page.add_child(MenuSupport.heading("CHOOSE YOUR CLASS", 34, MenuSupport.COLOUR_ACCENT))
+	page.add_child(MenuSupport.heading("NEW TEAM  ·  CHOOSE ITS CLASS", 34,
+		MenuSupport.COLOUR_ACCENT))
+	page.add_child(MenuSupport.heading(
+		"A class decides which cards a team may ever field, and which tier its three Stars hold. You pick it once, here; everything after this is the builder.",
+		14, MenuSupport.COLOUR_TEXT_DIM))
 
 	# --- The two columns ---
 	var columns := HBoxContainer.new()
@@ -176,9 +185,7 @@ func _build_ui() -> void:
 	footer.add_theme_constant_override("separation", 12)
 	page.add_child(footer)
 
-	var back := Button.new()
-	back.text = "◀  BACK"
-	back.custom_minimum_size = Vector2(140, 52)
+	var back := MenuSupport.icon_button("←", "Back", Vector2(150, 54))
 	back.pressed.connect(_on_back)
 	footer.add_child(back)
 
@@ -186,9 +193,11 @@ func _build_ui() -> void:
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_child(spacer)
 
-	_lock_button = Button.new()
-	_lock_button.text = "LOCK IN  ▶"
-	_lock_button.custom_minimum_size = Vector2(220, 52)
+	# NOT "LOCK IN". Locking in means taking the pitch, and that word now
+	# belongs to the two screens that actually start a match — the team shelf
+	# and the builder. This button only opens the builder.
+	_lock_button = MenuSupport.icon_button("▶", "USE THIS CLASS", Vector2(260, 54))
+	_lock_button.tooltip_text = "Start building a new team from this class."
 	_lock_button.disabled = true
 	_lock_button.pressed.connect(_on_lock_in)
 	footer.add_child(_lock_button)
@@ -399,7 +408,7 @@ func _make_formation_view(info: Dictionary, star_tier: String) -> Control:
 ## everyone to the main menu, which is the bug where leaving the base to
 ## look at the classes and changing your mind dumped you out of the base.
 func _on_back() -> void:
-	ScenePaths.go_back(get_tree(), ScenePaths.MAIN_MENU)
+	ScenePaths.go_back(get_tree(), ScenePaths.TEAM_SELECT)
 
 
 func _on_lock_in() -> void:
@@ -417,6 +426,11 @@ func _on_lock_in() -> void:
 	selection.star_tier = db.star_tier_for_class(_selected_class)
 	TeamSelection.store(get_tree(), selection)
 
+	# A BRAND NEW TEAM. Clearing the handoff is what tells the builder it is
+	# creating rather than editing — see team_builder_handoff.gd. Without this
+	# line, opening EDIT TEAM and then coming back here would have the builder
+	# quietly write your new side over the old one.
+	TeamBuilderHandoff.clear(get_tree())
 	ScenePaths.go_to(get_tree(), ScenePaths.TEAM_BUILDER)
 
 

@@ -1,0 +1,3 @@
+ID,Name,Portrait,Requires,Story,X,Y,Once,Notes
+tut_coach,The Coach,coach,,tutorial_welcome,0.13,0.80,false,"Once is false so you can ask again. The Story column names a Scene in Dialogue.csv - write the lesson there, not here"
+tut_keeper,The Keeper,keeper,,tutorial_ladder,0.86,0.80,false,"Explains the tier ladder. Same rule - the words live in Dialogue.csv under Scene = tutorial_ladder"

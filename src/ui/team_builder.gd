@@ -2,8 +2,11 @@ class_name TeamBuilder
 extends Control
 
 # =============================================================
-#  TEAM BUILDER — pick the 9 regulars who take the pitch
+#  BUILD YOUR TEAM — name it, badge it, pick the 9 regulars
 #
+#  TOP    the team's NAME and its BADGE. Both are what you will see on the
+#         CHOOSE YOUR TEAM shelf, so this is where a side becomes a thing
+#         you own rather than a line-up you rebuild every time.
 #  LEFT   Tier I at the top down to Tier IV, three slots each.
 #         The tier your Star Players live in is LOCKED — those three Stars
 #         always hold it, and the match rotates through them at HOLD UP!.
@@ -12,7 +15,8 @@ extends Control
 #  Click a collection card    -> it takes its own POWER SLOT in its tier
 #  Click a card in a slot     -> it goes back to the collection
 #  Right-click either         -> read the full card
-#  READY                      -> kick off with exactly this team
+#  SAVE                       -> keep it and go back to the shelf
+#  LOCK IN                    -> keep it AND walk straight out onto the pitch
 #
 #  ============ THE SLOTS ARE THE LADDER ============
 #
@@ -31,6 +35,12 @@ extends Control
 #  The numbers come from data/TierPowers.csv. This screen does not know
 #  them; it asks TierLadder, which reads that file. See tier_ladder.gd.
 #
+#  ============ WHERE THE TEAM GOES ============
+#
+#  Into user://teams.json, through team_roster.gd. It is stored by card NAME,
+#  so editing a card's power in your CSV updates every saved team that fields
+#  it instead of leaving a stale copy behind.
+#
 #  LIMITING THE COLLECTION: by default you can field every card of your class.
 #  Add res://data/Collection.csv with "Card Name,Owned" rows to hide the ones
 #  you have not unlocked. No file = everything is available.
@@ -44,9 +54,20 @@ const COLLECTION_PATH := "res://data/Collection.csv"
 ## handed to TeamSelection.is_complete(), which predates the ladder.
 const PER_TIER := 3
 
+## THE CARD FACE, AND IT IS BIGGER NOW. One number, and every card on this
+## screen grows with it. The match pitch and the Adventure fight read their
+## own size from Tuning.csv (`card_width` / `card_height`) so all three can be
+## tuned without opening a script — see player_card_ui.gd.
+const SLOT_SIZE := Vector2(168.0, 222.0)
+
 var db: CardDatabase
 var selection: TeamSelection
+var state: GameState
 var popup: CardPopup
+
+## The saved team this screen is writing to, and the book it lives in.
+var book: TeamRoster
+var entry: Dictionary = {}
 
 ## Tier key -> { power: PlayerData }.
 ##
@@ -59,14 +80,20 @@ var _library: Array[PlayerData] = []
 var _tier_column: VBoxContainer
 var _collection_grid: GridContainer
 var _status: Label
-var _ready_button: Button
+var _lock_button: Button
+var _save_button: Button
 var _title: Label
+var _name_field: LineEdit
+var _badge_slot: PanelContainer
+var _badge_picker: Control
 
 
 func _ready() -> void:
 	db = CardDatabase.get_db()
-	selection = TeamSelection.fetch(get_tree())
+	state = GameState.fetch(get_tree())
+	MenuEscape.install(self)
 
+	_load_team()
 	_build_ui()
 
 	if selection == null or selection.unit_type == "":
@@ -76,12 +103,63 @@ func _ready() -> void:
 
 	_title.text = "BUILD YOUR TEAM  ·  %s" % selection.unit_type
 	_load_library()
+
+	# A team being EDITED arrives with cards already in it; a new one starts
+	# empty and is auto-filled below into a legal line-up you then change.
+	_read_saved_cards()
+	_auto_fill()
+	_refresh()
+
+
+# -------------------------------------------------------------
+#  WHICH TEAM AM I EDITING?
+# -------------------------------------------------------------
+
+## Two ways in, and this is the only place that has to tell them apart:
+##
+##   EDIT TEAM     the shelf stashed a team id, so we load that team and its
+##                 class, and SAVE writes back over it.
+##   CREATE TEAM   no id, so the class picker has just put a fresh
+##                 TeamSelection on the tree and we start a brand new team
+##                 from it.
+func _load_team() -> void:
+	book = TeamRoster.load_all()
+	var wanted := TeamBuilderHandoff.current(get_tree())
+
+	if wanted != "":
+		entry = book.find(wanted)
+		if not entry.is_empty():
+			selection = book.to_selection(entry, db)
+			print("[teams] Editing '%s'." % entry["name"])
+			return
+		print("[teams] The team being edited is gone from the save — starting a new one.")
+
+	selection = TeamSelection.fetch(get_tree())
+	if selection == null or selection.unit_type == "":
+		entry = {}
+		return
+	entry = TeamRoster.blank(selection.unit_type, selection.star_tier)
+
+
+## Put the saved line-up back in the slots. Any card the CSVs no longer have
+## is simply missing, and AUTO-FILL below quietly replaces it — which is why
+## deleting a card from a spreadsheet never breaks a saved team.
+func _read_saved_cards() -> void:
 	for tier in ALL_TIERS:
 		if tier != selection.star_tier:
 			_chosen[tier] = {}
 
-	_auto_fill()      # start from a legal team; swap from there
-	_refresh()
+	if entry.is_empty():
+		return
+	var saved := book.cards_for(entry, db)
+	for tier in ALL_TIERS:
+		if tier == selection.star_tier:
+			continue
+		var by_power: Dictionary = {}
+		for card: PlayerData in (saved.get(tier, []) as Array):
+			if card != null:
+				by_power[TierLadder.rung_of(card)] = card
+		_chosen[tier] = by_power
 
 
 ## The cards standing in a tier, weakest rung first. Gaps are simply absent,
@@ -193,6 +271,8 @@ func _build_ui() -> void:
 	_title = MenuSupport.heading("BUILD YOUR TEAM", 32, MenuSupport.COLOUR_ACCENT)
 	page.add_child(_title)
 
+	page.add_child(_build_identity_row())
+
 	var hint := MenuSupport.heading(
 		"Every tier holds one card of each power  ·  click a card on the right and it takes its own slot  ·  right-click any card to read it",
 		13, MenuSupport.COLOUR_TEXT_DIM)
@@ -247,21 +327,16 @@ func _build_ui() -> void:
 	footer.add_theme_constant_override("separation", 12)
 	page.add_child(footer)
 
-	var back := Button.new()
-	back.text = "◀  CHANGE CLASS"
-	back.custom_minimum_size = Vector2(180, 52)
-	back.pressed.connect(_on_change_class)
+	var back := MenuSupport.icon_button("←", "Back", Vector2(150, 54))
+	back.pressed.connect(_on_back)
 	footer.add_child(back)
 
-	var clear := Button.new()
-	clear.text = "CLEAR"
-	clear.custom_minimum_size = Vector2(110, 52)
+	var clear := MenuSupport.icon_button("✕", "Clear", Vector2(140, 54))
 	clear.pressed.connect(_clear_team)
 	footer.add_child(clear)
 
-	var fill := Button.new()
-	fill.text = "AUTO-FILL"
-	fill.custom_minimum_size = Vector2(140, 52)
+	var fill := MenuSupport.icon_button("⚄", "Auto-fill", Vector2(180, 54))
+	fill.tooltip_text = "Fill every empty slot with a legal card."
 	fill.pressed.connect(_on_auto_fill)
 	footer.add_child(fill)
 
@@ -269,18 +344,216 @@ func _build_ui() -> void:
 	_status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_status.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_status.add_theme_font_size_override("font_size", 14)
 	_status.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	footer.add_child(_status)
 
-	_ready_button = Button.new()
-	_ready_button.text = "READY  ▶"
-	_ready_button.custom_minimum_size = Vector2(200, 52)
-	_ready_button.pressed.connect(_on_ready)
-	footer.add_child(_ready_button)
+	_save_button = MenuSupport.icon_button("💾", "Save", Vector2(170, 54))
+	_save_button.tooltip_text = "Keep this team and go back to the shelf."
+	_save_button.pressed.connect(_on_save_only)
+	footer.add_child(_save_button)
+
+	_lock_button = MenuSupport.icon_button("▶", "LOCK IN", Vector2(210, 54))
+	_lock_button.tooltip_text = "Keep this team and take the pitch with it now."
+	_lock_button.pressed.connect(_on_lock_in)
+	footer.add_child(_lock_button)
 
 	popup = CardPopup.new()
 	popup.db = db
 	add_child(popup)
+
+	_build_badge_picker()
+
+
+# -------------------------------------------------------------
+#  THE NAME AND THE BADGE
+# -------------------------------------------------------------
+
+## The row that makes a line-up into a TEAM: what it is called and what mark
+## it wears. Both are shown on the CHOOSE YOUR TEAM shelf, so this row is the
+## only place either of them is set.
+func _build_identity_row() -> Control:
+	var frame := PanelContainer.new()
+	frame.add_theme_stylebox_override("panel",
+		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_TEXT_DIM))
+
+	var pad := MarginContainer.new()
+	pad.add_theme_constant_override("margin_left", 14)
+	pad.add_theme_constant_override("margin_right", 14)
+	pad.add_theme_constant_override("margin_top", 10)
+	pad.add_theme_constant_override("margin_bottom", 10)
+	frame.add_child(pad)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 14)
+	pad.add_child(row)
+
+	# The badge, as it will look on the shelf.
+	_badge_slot = PanelContainer.new()
+	_badge_slot.custom_minimum_size = Vector2(72, 72)
+	_badge_slot.add_theme_stylebox_override("panel",
+		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY))
+	row.add_child(_badge_slot)
+
+	var words := VBoxContainer.new()
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	words.add_theme_constant_override("separation", 3)
+	row.add_child(words)
+
+	words.add_child(MenuSupport.heading("TEAM NAME", 12, MenuSupport.COLOUR_TEXT_DIM))
+
+	_name_field = LineEdit.new()
+	_name_field.placeholder_text = "Name this team"
+	_name_field.max_length = 28
+	_name_field.text = String(entry.get("name", ""))
+	_name_field.add_theme_font_size_override("font_size", 22)
+	_name_field.custom_minimum_size = Vector2(0, 40)
+	_name_field.text_changed.connect(_on_name_typed)
+	words.add_child(_name_field)
+
+	var pick := MenuSupport.icon_button("◈", "Choose badge", Vector2(210, 54))
+	pick.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pick.tooltip_text = "Pick the shape and colour this team wears on the shelf.\nDrop a PNG in assets/team_icons/ and it is offered here too."
+	pick.pressed.connect(func() -> void: _badge_picker.show())
+	row.add_child(pick)
+
+	_refresh_badge()
+	return frame
+
+
+func _on_name_typed(new_text: String) -> void:
+	if not entry.is_empty():
+		entry["name"] = new_text
+
+
+## The name a blank field falls back to, so a team is never called "".
+func _final_name() -> String:
+	var typed := String(entry.get("name", "")).strip_edges()
+	if typed != "":
+		return typed
+	return "%s XI" % selection.unit_type
+
+
+func _refresh_badge() -> void:
+	if _badge_slot == null:
+		return
+	for child in _badge_slot.get_children():
+		child.queue_free()
+	if entry.is_empty():
+		return
+	var badge := TeamRoster.badge(entry, 60.0)
+	badge.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_badge_slot.add_child(badge)
+
+
+## The badge chooser: twelve shapes across the top, six colours under them.
+## Every one of them is drawn in code, so a team has a badge on day one and
+## you can replace any of them later by dropping a PNG into
+## assets/team_icons/ named after the shape.
+func _build_badge_picker() -> void:
+	_badge_picker = Control.new()
+	_badge_picker.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_badge_picker.hide()
+	add_child(_badge_picker)
+
+	var shade := ColorRect.new()
+	shade.color = Color(0.0, 0.0, 0.0, 0.66)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	_badge_picker.add_child(shade)
+
+	var centre := CenterContainer.new()
+	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_badge_picker.add_child(centre)
+
+	var frame := PanelContainer.new()
+	frame.add_theme_stylebox_override("panel",
+		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
+	centre.add_child(frame)
+
+	var pad := MarginContainer.new()
+	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(side, 22)
+	frame.add_child(pad)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 12)
+	pad.add_child(column)
+
+	column.add_child(MenuSupport.heading("CHOOSE A BADGE", 26, MenuSupport.COLOUR_ACCENT))
+
+	var shapes := GridContainer.new()
+	shapes.columns = 6
+	shapes.add_theme_constant_override("h_separation", 8)
+	shapes.add_theme_constant_override("v_separation", 8)
+	column.add_child(shapes)
+
+	for shape in TeamRoster.EMBLEMS:
+		shapes.add_child(_badge_option(shape))
+
+	column.add_child(MenuSupport.heading("COLOUR", 12, MenuSupport.COLOUR_TEXT_DIM))
+
+	var colours := HBoxContainer.new()
+	colours.add_theme_constant_override("separation", 8)
+	column.add_child(colours)
+
+	for i in TeamRoster.EMBLEM_COLOURS.size():
+		colours.add_child(_colour_option(i))
+
+	var done := MenuSupport.icon_button("✓", "Done", Vector2(200, 50))
+	done.pressed.connect(func() -> void: _badge_picker.hide())
+	column.add_child(done)
+
+
+func _badge_option(shape: String) -> Control:
+	var button := Button.new()
+	button.custom_minimum_size = Vector2(76, 76)
+	button.focus_mode = Control.FOCUS_NONE
+	button.tooltip_text = shape.capitalize()
+	button.add_theme_stylebox_override("normal",
+		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_TEXT_DIM))
+	button.add_theme_stylebox_override("hover",
+		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+	button.pressed.connect(func() -> void:
+		if not entry.is_empty():
+			entry["icon"] = shape
+			_refresh_badge())
+
+	var face := Control.new()
+	face.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(face)
+	# Drawn live, so changing the colour repaints every shape in the grid.
+	face.draw.connect(func() -> void:
+		var tint := TeamRoster.colour_of(entry) if not entry.is_empty() \
+			else MenuSupport.COLOUR_ACCENT
+		TeamRoster.draw_emblem(face, shape, tint, Rect2(Vector2.ZERO, face.size)))
+	return button
+
+
+func _colour_option(index: int) -> Control:
+	var button := Button.new()
+	button.custom_minimum_size = Vector2(60, 40)
+	button.focus_mode = Control.FOCUS_NONE
+	var tint := TeamRoster.EMBLEM_COLOURS[index]
+	button.add_theme_stylebox_override("normal",
+		MenuSupport.panel_style(tint, MenuSupport.COLOUR_TEXT_DIM))
+	button.add_theme_stylebox_override("hover",
+		MenuSupport.panel_style(tint.lightened(0.2), MenuSupport.COLOUR_ACCENT))
+	button.pressed.connect(func() -> void:
+		if entry.is_empty():
+			return
+		entry["colour"] = index
+		_refresh_badge()
+		# Repaint the shape grid so it shows the new colour straight away.
+		_badge_picker.queue_redraw()
+		for node in _badge_picker.find_children("", "Control", true, false):
+			node.queue_redraw())
+	return button
 
 
 # -------------------------------------------------------------
@@ -385,21 +658,23 @@ func _update_status() -> void:
 			missing.append(gap)
 
 	if missing.is_empty():
-		_status.text = "Team is ready — 1 Star + 9 regulars, one of every power."
+		_status.text = "%s is ready — 1 Star + 9 regulars, one of every power." % _final_name()
 		_status.add_theme_color_override("font_color", Color(0.55, 0.85, 0.6))
-		_ready_button.disabled = false
+		_lock_button.disabled = false
+		_save_button.disabled = false
 	else:
 		_status.text = "  ·  ".join(missing)
 		_status.add_theme_color_override("font_color", Color(1.0, 0.72, 0.4))
-		_ready_button.disabled = true
+		_lock_button.disabled = true
+		# SAVING AN UNFINISHED TEAM IS ALLOWED. You can put a side half
+		# together, go and look at something, and come back to it — the shelf
+		# marks it as not ready to play rather than losing your work.
+		_save_button.disabled = false
 
 
 # -------------------------------------------------------------
 #  CARD WIDGETS
 # -------------------------------------------------------------
-
-const SLOT_SIZE := Vector2(128, 168)
-
 
 ## An empty rung. It says which power it is waiting for, because "empty"
 ## on its own does not tell you which card in the collection would fill it.
@@ -416,7 +691,7 @@ func _make_empty_slot(tier: String, power: int) -> Control:
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	label.add_theme_font_size_override("font_size", 13)
+	label.add_theme_font_size_override("font_size", 14)
 	panel.add_child(label)
 	return panel
 
@@ -453,7 +728,6 @@ func _make_collection_card(card: PlayerData) -> Control:
 	return button
 
 
-## The shared card face: portrait, name, tier badge, power.
 ## The shared card face, so the builder, the match draft and the Adventure
 ## fight all draw a player the same way. `locked` marks a Star's own tier.
 func _card_button(card: PlayerData, locked: bool) -> Button:
@@ -499,11 +773,11 @@ func _add_card(card: PlayerData) -> void:
 	by_power[power] = card
 	_chosen[tier] = by_power
 
+	_refresh()
 	if replaced != null and replaced != card:
 		_status.text = "%s takes the %d slot — %s goes back to the collection." % [
 			card.player_name, power, replaced.player_name]
 		_status.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	_refresh()
 
 
 func _remove_card(card: PlayerData, tier: String) -> void:
@@ -516,32 +790,70 @@ func _remove_card(card: PlayerData, tier: String) -> void:
 
 
 # -------------------------------------------------------------
-#  KICK OFF
+#  KEEPING IT
 # -------------------------------------------------------------
 
-func _on_change_class() -> void:
-	ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT)
-
-
-func _on_ready() -> void:
-	# TeamSelection wants a plain array per tier. Flatten in rung order, so
-	# what the match receives is already weakest-first and already legal.
+## Write the team to user://teams.json. Returns the line-up tier by tier so
+## LOCK IN can hand the same thing straight to the match.
+func _save_team() -> Dictionary:
 	var flat: Dictionary = {}
+	# Reached with no class chosen only if this screen was opened directly
+	# from the editor. Better to do nothing than to crash on it.
+	if selection == null or selection.unit_type == "":
+		return flat
+	for tier in ALL_TIERS:
+		if tier == selection.star_tier:
+			continue
+		flat[tier] = _slotted(tier)
+
+	if entry.is_empty():
+		return flat
+
+	entry["name"] = _final_name()
+	entry["class"] = selection.unit_type
+	entry["star_tier"] = selection.star_tier
+	TeamRoster.set_cards(entry, flat)
+	book.put(entry)
+	book.save()
+	return flat
+
+
+func _on_back() -> void:
+	# LEAVING WITHOUT SAVING IS NOT A TRAP. Half-built teams are kept, so
+	# Back is never the button that loses twenty minutes of work.
+	_save_team()
+	ScenePaths.go_back(get_tree(), TeamBuilderHandoff.back_to(get_tree()))
+
+
+func _on_save_only() -> void:
+	_save_team()
+	state.set_text("last_team", String(entry.get("id", "")))
+	state.save_to_disk()
+	ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT)
+
+
+## LOCK IN — keep the team AND play with it right now. This is the button
+## the shelf's own LOCK IN skips the builder for; here it does both.
+func _on_lock_in() -> void:
+	if selection == null or selection.unit_type == "":
+		return
 	for tier in ALL_TIERS:
 		if tier == selection.star_tier:
 			continue
 		if not TierLadder.legal(_slotted(tier), tier, db):
 			_update_status()
 			return
-		flat[tier] = _slotted(tier)
 
+	var flat := _save_team()
 	selection.regulars = flat
 	if not selection.is_complete(ALL_TIERS, PER_TIER):
 		_update_status()
 		return
 
 	TeamSelection.store(get_tree(), selection)
-	print("[team] Kicking off with:\n%s" % selection.describe())
+	state.set_text("last_team", String(entry.get("id", "")))
+	state.save_to_disk()
+	print("[team] Kicking off as %s:\n%s" % [_final_name(), selection.describe()])
 
 	# WHERE THIS TEAM IS GOING is decided by the mode's Scene column, not by
 	# this screen. A league match goes to the pitch; an Adventure run goes to

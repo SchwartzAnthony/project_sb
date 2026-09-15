@@ -150,7 +150,7 @@ res://src/core/     card_database.gd  player_data.gd  ability_data.gd
                     field_bounds.gd  menu_support.gd  team_selection.gd
                     scene_paths.gd
 res://src/ui/       main_menu.gd/.tscn  class_select.gd/.tscn
-                    team_builder.gd/.tscn  card_popup.gd
+                    team_builder.gd/.tscn  card_popup.gd  star_badge.gd
                     rps_clash.gd/.tscn  duel_arena.gd/.tscn
                     shootout_view.gd/.tscn  player_card_ui.tscn
 res://src/units/    player_unit.gd/.tscn  goalie_unit.gd/.tscn
@@ -163,8 +163,22 @@ res://data/         your unit CSVs, Goalies.csv, Abilities.csv,
 ```
 
 The scripts with `class_name` at the top (CardDatabase, PlayerData,
-MenuSupport, TeamSelection, and so on) can technically live anywhere, but the
-`.tscn` files and the `preload(...)` lines use the paths above literally.
+MenuSupport, TeamSelection, StarBadge, and so on) can technically live
+anywhere, but the `.tscn` files and the `preload(...)` lines use the paths
+above literally.
+
+### 8. No star badges on the Star Players
+
+They are drawn in code, so they appear with or without art. If you see nothing
+at all above your Stars:
+
+- Check `star_badge.gd` is in `res://src/ui/` — `main_scene.gd`,
+  `player_unit.gd`, `duel_arena.gd`, `class_select.gd` and `team_builder.gd`
+  all reference the `StarBadge` class, and a missing file breaks all five.
+- Check `star_badge_radius` in `Tuning.csv` is not 0.
+- If you added your own `star_badge.png` and now see nothing, the file is
+  probably not a texture Godot could import — delete it and the built-in star
+  comes back.
 
 ### 7. Nuclear option: let Godot rebuild its cache
 

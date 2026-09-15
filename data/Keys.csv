@@ -1,0 +1,12 @@
+Action,Label,Group,Default Key,Default Button,Notes
+pause,Pause / sub menu,General,Escape,Start,"In a match this opens the sub menu. Anywhere else it asks whether to quit the game"
+confirm,Confirm / advance,General,Space,A,"Advances a line of dialogue, takes the shot, presses the highlighted button"
+cancel,Back,General,Backspace,B,Goes back one screen
+auto,Toggle AUTO,Match,A,Y,The game picks your cards and your throw. Your clicks lock while it is on
+formation,Show formation,Match,F,X,Holds the formation overlay up while it is held down
+speed_up,Faster,Match,E,Right Shoulder,Steps the match speed up one notch
+speed_down,Slower,Match,Q,Left Shoulder,Steps the match speed down one notch
+log,Show the combat log,Adventure,L,Back,Opens and closes the rolling text window in an Adventure fight
+item,Use an item,Adventure,I,Left Trigger,Opens the item pouch in an Adventure fight
+flee,Flee the run,Adventure,H,,Leaves an Adventure run early. You keep part of the haul - see adventure_flee_keep in Tuning.csv
+screenshot,Screenshot,General,F12,,Writes a PNG beside your save. Handy for a presentation

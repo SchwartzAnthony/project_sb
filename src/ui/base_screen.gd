@@ -30,7 +30,12 @@ const VISITOR_SIZE := Vector2(120.0, 150.0)
 
 ## How far from the left edge the exit buttons may start. It keeps them off
 ## the "THE BASE" title; below this the row simply wraps onto a second line.
-const EXITS_LEFT_MARGIN := 300.0
+const EXITS_LEFT_MARGIN := 270.0
+
+## The size of one exit button. They are icon-and-text buttons now — a small
+## picture on the left, the words on the right, one button — so they want a
+## little more room than a plain label did.
+const EXIT_SIZE := Vector2(196.0, 52.0)
 
 var db: CardDatabase
 var base: BaseDB
@@ -49,6 +54,10 @@ func _ready() -> void:
 	base = BaseDB.get_db()
 	state = GameState.fetch(get_tree())
 	steps = Progression.get_rules()
+
+	# Escape ends the game from here, as it does from every screen that is
+	# not a live match. See menu_escape.gd.
+	MenuEscape.install(self)
 
 	_build_chrome()
 	_rebuild()
@@ -100,7 +109,10 @@ func _build_chrome() -> void:
 	add_child(_world)
 	_world.resized.connect(_rebuild)
 
-	var title := MenuSupport.heading("THE BASE", 34, MenuSupport.COLOUR_ACCENT)
+	var in_tutorial := TutorialBase.active(get_tree())
+	var title := MenuSupport.heading(
+		"TUTORIAL BASE" if in_tutorial else "THE BASE",
+		34, MenuSupport.COLOUR_ACCENT)
 	title.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	title.offset_left = 40.0
 	title.offset_top = 26.0
@@ -135,36 +147,41 @@ func _build_chrome() -> void:
 	_build_exits()
 
 
-## THE EXIT BUTTONS, TOP RIGHT.
+## THE EXIT BUTTONS, ACROSS THE MIDDLE OF THE TOP.
 ##
-## This used to be an HBoxContainer pinned to the top-right corner inside a
-## box 810 pixels wide (offset_left -840 to offset_right -30). The buttons
-## in it are fixed widths and now add up to about 940 with their gaps, so
-## the left-most ones were pushed out of the box and cut off — and it got
-## worse every time a button was added.
+## Two things changed here and both are worth knowing about.
 ##
-## It is an HFlowContainer now, which WRAPS onto a second line instead of
-## overflowing. Three things follow from that:
+## FIRST, WHERE THEY SIT. They used to be crushed into the top-right corner
+## inside a fixed 810-pixel box, which cut the left-most ones off as soon as
+## a sixth button existed. They are centred across the top now, in an
+## HFlowContainer — a row that WRAPS onto a second line instead of
+## overflowing. So:
 ##   * nothing is ever cut off, at any window size
-##   * on a narrow screen (the Steam Deck is 1280 wide) the row simply
-##     becomes two shorter rows
+##   * on a narrow screen (the Steam Deck is 1280 wide) the row becomes two
 ##   * you can add a seventh and eighth button without touching this code
 ##
-## It is anchored TOP_WIDE rather than TOP_RIGHT so it knows the real width
-## of the window; ALIGNMENT_END keeps everything against the right edge.
+## SECOND, WHAT THEY LOOK LIKE. Each one is a single button in two parts: a
+## picture on the left, the words on the right. The picture is real art the
+## moment you drop a PNG into res://assets/icons/ named after the word before
+## the `|` — icons/season.png, icons/play.png, icons/adventure.png — and a
+## drawn symbol until then. You never have to come back to this file for it.
+##
+## THERE IS NO "MAIN MENU" BUTTON. Escape leaves the game from anywhere, so
+## the base does not need a door back to the title screen.
 func _build_exits() -> void:
 	var row := HFlowContainer.new()
 	row.add_theme_constant_override("h_separation", 12)
 	row.add_theme_constant_override("v_separation", 8)
 	row.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	# Starts clear of the title on the left, ends a margin in from the right.
+	# Clear of the title on the left, a margin in from the right, and centred
+	# in what is left — which on any ordinary window is the middle of the top.
 	row.offset_left = EXITS_LEFT_MARGIN
-	row.offset_top = 26.0
+	row.offset_top = 22.0
 	row.offset_right = -30.0
 	# Tall enough for two wrapped lines. It is only a ceiling — one line of
 	# buttons still draws as one line.
-	row.offset_bottom = 26.0 + 46.0 * 2.0 + 8.0
-	row.alignment = FlowContainer.ALIGNMENT_END
+	row.offset_bottom = 22.0 + EXIT_SIZE.y * 2.0 + 8.0
+	row.alignment = FlowContainer.ALIGNMENT_CENTER
 	# The buttons are the only thing here that should catch a click; the gaps
 	# between them belong to the base underneath.
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -173,50 +190,63 @@ func _build_exits() -> void:
 	# The developer tools. `show_dev_tools` in Tuning.csv hides this button
 	# before you show the game to anyone; the screen itself stays put.
 	if db.tune_bool("show_dev_tools", true):
-		var to_dev := _make_button("Dev", Vector2(80, 46))
+		var to_dev := MenuSupport.icon_button("dev|⚙", "Dev", Vector2(130, EXIT_SIZE.y))
 		to_dev.tooltip_text = "The save inspector. Jump straight to any unlock."
 		to_dev.pressed.connect(func() -> void:
 			state.save_to_disk()
 			ScenePaths.go_to(get_tree(), ScenePaths.INSPECTOR))
 		row.add_child(to_dev)
 
-	var to_board := _make_button("Unlocks", Vector2(120, 46))
+	var to_board := MenuSupport.icon_button("unlocks|◇", "Unlocks", EXIT_SIZE)
 	to_board.tooltip_text = "Everything you can earn, and exactly what is missing."
 	to_board.pressed.connect(func() -> void:
 		state.save_to_disk()
 		ScenePaths.go_to(get_tree(), ScenePaths.UNLOCKS))
 	row.add_child(to_board)
 
-	var to_season := _make_button("The season", Vector2(150, 46))
+	var to_season := MenuSupport.icon_button("season|▦", "The season", EXIT_SIZE)
+	to_season.tooltip_text = "The table, the fixtures and what is left to play."
 	to_season.pressed.connect(func() -> void:
 		state.save_to_disk()
 		ScenePaths.go_to(get_tree(), ScenePaths.SEASON))
 	row.add_child(to_season)
 
-	var to_match := _make_button("Play a match", Vector2(190, 46))
+	var to_match := MenuSupport.icon_button("play|▶", "Play a match", EXIT_SIZE)
 	to_match.tooltip_text = "The next fixture in the season. The result goes in the table."
 	to_match.pressed.connect(func() -> void:
 		state.save_to_disk()
 		MatchMode.choose(get_tree(), "season")
-		ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT))
+		# THE TEAM SHELF, not the class picker. You pick a side you already
+		# own; making a new one is a button on that screen.
+		ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT))
 	row.add_child(to_match)
 
 	# ADVENTURE FROM THE BASE. This is where you are standing when you realise
 	# you need materials and the buildings that would make them are not built
 	# yet, so the button belongs beside the buildings rather than only on the
 	# title screen. It opens the Bounty Board, not a match.
-	var to_adventure := _make_button("Adventure", Vector2(170, 46))
+	var to_adventure := MenuSupport.icon_button("adventure|⛰", "Adventure", EXIT_SIZE)
 	to_adventure.tooltip_text = "The Bounty Board. Pick a biome and a boss, then set off for materials and recipes."
 	to_adventure.pressed.connect(func() -> void:
 		state.save_to_disk()
 		ScenePaths.go_to(get_tree(), ScenePaths.BOUNTY_BOARD))
 	row.add_child(to_adventure)
 
-	var to_menu := _make_button("Main menu", Vector2(150, 46))
-	to_menu.pressed.connect(func() -> void:
+	var to_teams := MenuSupport.icon_button("teams|⚑", "Your teams", EXIT_SIZE)
+	to_teams.tooltip_text = "Build a new side, or change one you have."
+	to_teams.pressed.connect(func() -> void:
 		state.save_to_disk()
-		ScenePaths.go_to(get_tree(), ScenePaths.MAIN_MENU))
-	row.add_child(to_menu)
+		ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT))
+	row.add_child(to_teams)
+
+	# THE WAY OUT OF THE TUTORIAL, and only there. In the real base there is
+	# nothing to leave — Escape ends the game.
+	if TutorialBase.active(get_tree()):
+		var leave := MenuSupport.icon_button("exit|⏏", "Leave tutorial", EXIT_SIZE)
+		leave.tooltip_text = "Back to the title screen. Your real save is untouched by anything in here."
+		leave.pressed.connect(func() -> void:
+			TutorialBase.leave(get_tree()))
+		row.add_child(leave)
 
 
 # =============================================================
@@ -444,6 +474,9 @@ func _refresh_footer() -> void:
 	_footer.text = text
 
 
+## A plain labelled button. The exits across the top use
+## MenuSupport.icon_button() instead; this is kept for anything you add here
+## that wants words and no picture.
 func _make_button(label: String, box: Vector2) -> Button:
 	var button := Button.new()
 	button.text = label

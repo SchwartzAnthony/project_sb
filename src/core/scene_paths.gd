@@ -32,6 +32,8 @@ const INSPECTOR := "res://src/ui/save_inspector.tscn"
 const PAUSE := "res://src/ui/pause_menu.tscn"
 const BOUNTY_BOARD := "res://src/ui/bounty_board.tscn"
 const ADVENTURE := "res://src/adventure/adventure_scene.tscn"
+const TEAM_SELECT := "res://src/ui/team_select.tscn"
+const SETTINGS := "res://src/ui/settings_screen.tscn"
 
 
 ## Turn a short word from a CSV into a screen path, so Progression.csv can
@@ -45,6 +47,10 @@ static func for_name(screen: String) -> String:
 			return CLASS_SELECT
 		"builder", "team_builder", "teambuilder":
 			return TEAM_BUILDER
+		"teams", "team", "team_select", "squads":
+			return TEAM_SELECT
+		"settings", "options", "config":
+			return SETTINGS
 		"match", "game", "pitch":
 			return MATCH
 		"story", "dialogue":

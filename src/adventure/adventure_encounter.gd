@@ -974,8 +974,14 @@ func _refresh_choices() -> void:
 	# THE SAME CARD FACE AS THE TEAM BUILDER AND THE MATCH DRAFT. One
 	# helper draws all three, so a player looks the same wherever you meet
 	# them — see MenuSupport.card_face().
+	# The size is Tuning.csv, not a number typed here, so the cards in a fight
+	# and the cards on the pitch can be kept the same size without opening a
+	# script: adventure_card_width / adventure_card_height.
+	var face_size := Vector2(
+		db.tune_float("adventure_card_width", 200.0),
+		db.tune_float("adventure_card_height", 264.0))
 	for card in standing:
-		var button := MenuSupport.card_face(card, db, Vector2(128, 168),
+		var button := MenuSupport.card_face(card, db, face_size,
 			"%d hp" % run.stamina_of(card, db))
 		button.pressed.connect(_pick_card.bind(card))
 		_choice_row.add_child(button)

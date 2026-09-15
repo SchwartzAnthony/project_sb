@@ -40,6 +40,7 @@ func _ready() -> void:
 	state = GameState.fetch(get_tree())
 	steps = Progression.get_rules()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	MenuEscape.install(self)
 
 	_build_background()
 	_build_title()
@@ -174,13 +175,18 @@ func _build_buttons() -> void:
 		_buttons.add_child(button)
 
 
+## The four buttons the title screen falls back to when MenuConfig.csv cannot
+## be read. They are the same four the CSV ships with, so a missing file
+## changes how the buttons LOOK and not what the game can do.
 func _default_rows() -> Array[Dictionary]:
 	return [
-		{"label": "Start Game", "x": "640", "y": "400", "width": "260", "height": "68",
-			"action": "start_game", "artpath": ""},
-		{"label": "Quick Match", "x": "640", "y": "484", "width": "260", "height": "68",
-			"action": "quick_match", "artpath": ""},
-		{"label": "Quit", "x": "640", "y": "568", "width": "260", "height": "68",
+		{"label": "Start", "x": "640", "y": "380", "width": "260", "height": "68",
+			"action": "goto:base", "artpath": ""},
+		{"label": "Settings", "x": "640", "y": "464", "width": "260", "height": "68",
+			"action": "open_settings", "artpath": ""},
+		{"label": "Tutorial", "x": "640", "y": "548", "width": "260", "height": "68",
+			"action": "tutorial_game", "artpath": ""},
+		{"label": "Quit", "x": "640", "y": "632", "width": "260", "height": "68",
 			"action": "quit_game", "artpath": ""},
 	]
 
@@ -234,23 +240,28 @@ func _on_action(action: String) -> void:
 
 	match verb.to_lower():
 		"start_game":
-			TeamSelection.clear(get_tree())
-			MatchMode.choose(get_tree(), "season")
-			ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT)
+			# START opens the base. Everything else — the season, a match, the
+			# talent tree, an Adventure — is started from in there.
+			state.save_to_disk()
+			ScenePaths.go_to(get_tree(), ScenePaths.BASE)
 		"quick_match":
 			# A QUICK MATCH IS ITS OWN KIND OF MATCH, not a shortcut to the
 			# usual one: no clock, one Star, and nothing written to the season
 			# table. What it is exactly comes from MatchModes.csv, so its shape
 			# can change without touching this file.
-			TeamSelection.clear(get_tree())
 			MatchMode.choose(get_tree(), "quick")
-			ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT)
+			ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT)
 		"match":
 			# ONE ACTION FOR EVERY MODE YOU EVER ADD. A button whose Action is
 			# match:cup starts the `cup` row of MatchModes.csv. No new code.
-			TeamSelection.clear(get_tree())
 			MatchMode.choose(get_tree(), argument if argument != "" else "season")
-			ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT)
+			ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT)
+		"tutorial_game", "tutorial":
+			# THE TUTORIAL BASE. A small enclosed base of its own, with its own
+			# buildings, its own visitors and its own save — nothing you do in
+			# there touches the real game. See tutorial_base.gd.
+			state.save_to_disk()
+			TutorialBase.enter(get_tree(), argument)
 		"story":
 			DialogueView.play(get_tree(),
 				argument if argument != "" else "main", ScenePaths.MAIN_MENU)
@@ -259,8 +270,9 @@ func _on_action(action: String) -> void:
 			# goto:base, goto:builder, goto:match — no new code per button.
 			state.save_to_disk()
 			ScenePaths.go_to(get_tree(), ScenePaths.for_name(argument))
-		"open_settings":
-			_footer.text = "Settings are not built yet."
+		"open_settings", "settings":
+			state.save_to_disk()
+			ScenePaths.go_to(get_tree(), ScenePaths.SETTINGS)
 		"quit_game":
 			get_tree().quit()
 		_:

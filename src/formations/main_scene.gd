@@ -2420,8 +2420,10 @@ func create_card_for_unit(data: PlayerData) -> void:
 	if data != null:
 		offered_cards.append(data)
 
-	if data != null and data.is_star():
-		_flag_card_as_star(card)
+	# NO SECOND STAR BADGE. The shared card face draws the Star marker
+	# itself now (see MenuSupport.card_face), so flagging it here as well
+	# put two badges in the same corner. _flag_card_as_star() below is kept
+	# in case you want a bigger marker on the pitch than on the shelf.
 
 
 ## The same badge the unit wears on the pitch, in the corner of its selection

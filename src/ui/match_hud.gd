@@ -153,14 +153,17 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 
-	if key.keycode == KEY_F:
+	# THE ACTIONS, NOT THE LETTERS. `formation` and `auto` are rows in
+	# Keys.csv; a player who rebinds them in Settings > Keys moves these,
+	# and a controller's X and Y buttons do the same jobs.
+	if InputMap.has_action("formation") and key.is_action("formation"):
 		_turbo_held = key.pressed
 		GameSpeed.set_speed(_turbo if _turbo_held else _chosen)
 		_refresh()
 		get_viewport().set_input_as_handled()
 		return
 
-	if key.pressed and key.keycode == KEY_A:
+	if GameKeys.pressed(key, "auto"):
 		_toggle_auto()
 		get_viewport().set_input_as_handled()
 

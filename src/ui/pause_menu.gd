@@ -90,13 +90,15 @@ func is_open() -> bool:
 	return visible
 
 
-## Escape opens and closes it. `_input` rather than `_unhandled_input`
-## because a Button under the mouse would otherwise swallow the key.
+## The pause key opens and closes it. `_input` rather than
+## `_unhandled_input` because a Button under the mouse would otherwise
+## swallow it.
+##
+## It asks GameKeys about the ACTION rather than about Escape, so rebinding
+## pause in Settings > Keys moves this too — and so does plugging in a
+## controller, where Start does the same job.
 func _input(event: InputEvent) -> void:
-	var key := event as InputEventKey
-	if key == null or not key.pressed or key.echo:
-		return
-	if key.keycode == KEY_ESCAPE:
+	if GameKeys.pressed(event, "pause"):
 		toggle()
 		get_viewport().set_input_as_handled()
 

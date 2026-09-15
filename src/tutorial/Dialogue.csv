@@ -1,0 +1,10 @@
+Scene,Node ID,Speaker,Portrait,Side,Animation,Background,Music,Text,Next,Requires,Effects,Choice 1 Text,Choice 1 Next,Choice 1 Requires,Choice 1 Effects,Choice 2 Text,Choice 2 Next,Choice 2 Requires,Choice 2 Effects,Choice 3 Text,Choice 3 Next,Choice 3 Requires,Choice 3 Effects
+tutorial_welcome,open,The Coach,coach,left,,,,"Tutorial base. Same buildings, same matches, its own save - so break whatever you like in here.",what,,,,,,,,,,,,,,
+tutorial_welcome,what,The Coach,coach,left,,,,"Three things and you know the game. A team is nine regulars and three Stars. A match is a run of little duels. An Adventure is a run out for materials.",pick,,,,,,,,,,,,,,
+tutorial_welcome,pick,The Coach,coach,left,,,,"Which one do you want first?",,,,"The team","tutorial_ladder",,,"A match","tutorial_match",,,"Nothing, I will poke about","tutorial_done",,
+tutorial_ladder,open,The Keeper,keeper,right,,,,"Every tier holds one card of each power. Tier I has a 0, a 1 and a 2. Tier II has a 1, a 2 and a 3. And so on up.",why,,,,,,,,,,,,,,
+tutorial_ladder,why,The Keeper,keeper,right,,,,"Which means nobody fields three fives. Not you, not them. It is the one rule the whole game leans on.",where,,,,,,,,,,,,,,
+tutorial_ladder,where,The Keeper,keeper,right,,,,"The numbers live in TierPowers.csv. Change them there and every screen in the game changes with them - the builder, the pitch, the enemy side.",,,,,,,,,,,,,,,
+tutorial_match,open,The Coach,coach,left,,,,"A match is rounds. Each round you are offered cards from one tier, you pick one, they pick one, and the better number that round takes it.",auto,,,,,,,,,,,,,,
+tutorial_match,auto,The Coach,coach,left,,,,"Press Escape in a match for the sub menu - speed, AUTO, and the way out. AUTO plays it for you, which is how you watch a balance change rather than click through one.",,,,,,,,,,,,,,,
+tutorial_done,open,The Coach,coach,left,,,,"Go on then. The Training Pitch is the middle building.",,,,,,,,,,,,,,,

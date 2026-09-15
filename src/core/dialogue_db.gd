@@ -40,7 +40,13 @@ extends RefCounted
 #  to fix.
 # =============================================================
 
-const DATA_DIR := "res://data/"
+## WHICH FOLDER THE CONVERSATIONS COME FROM.
+##
+## `res://data/` normally. The TUTORIAL BASE points it at
+## `res://data/tutorial/` so the tutorial's conversations live beside its own
+## buildings and never turn up in the real game. Same arrangement as
+## BaseDB.DATA_DIR — see tutorial_base.gd.
+static var DATA_DIR := "res://data/"
 const MAX_CHOICES := 4
 const DEFAULT_SCENE := "main"
 

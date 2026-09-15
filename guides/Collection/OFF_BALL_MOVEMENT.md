@@ -1,6 +1,6 @@
 # Zones, pressing, and a pitch that never stops
 
-Four changes. All of it is `Tuning.csv` rows — nothing here needs a script
+Six changes. All of it is `Tuning.csv` rows — nothing here needs a script
 opened. `zones_enabled,false` puts the whole thing back the way it was, which
 is the fastest way to compare.
 
@@ -24,42 +24,50 @@ of what it caught:
   most of the match, both teams spent most of their time milling about. Now a
   side "has" the ball while it is still flying.
 - Two-thirds of all passes were being intercepted, so the ball never left the
-  middle third. Tuned down to about one in three, and the ball now uses **82%
-  of the pitch width** instead of 58%.
+  middle third. Tuned down to about one in three, and the ball now uses **around
+  three-quarters of the pitch width** instead of 58%.
 
 Final measurements, averaged over five runs of a simulated minute:
 
 | | |
 |---|---|
-| Time spent getting open / marking / chasing / pressing | 45% / 27% / 15% / 7% |
+| Time spent getting open / marking / chasing / pressing | 45% / 25% / 17% / 7% |
 | Time spent doing nothing in particular | **0%** |
-| Units outside their own quarter | 5% (all inside the 33% band) |
-| Ball's range across the pitch | 79–88% of full width |
+| Units outside their own quarter | 10–14% (all inside the 33% band) |
+| Ball's range across the pitch | 70–79% of full width |
 | Passes intercepted | ~31% |
 | Average pass | ~315px, about a fifth of the pitch |
 
 ---
 
-## 1. Four quarters, one per Tier
+## 1. Four quarters, mirrored
 
-Tier I owns the leftmost quarter, Tier IV the rightmost — and **both teams
-share each quarter**. That is deliberate: your Tier II and their Tier II are
-the two that will duel, so they stand in the same part of the pitch and shadow
-each other all match. When the PLAY MAKER comes, the fight you are about to
-watch has been visible for a minute already.
+Each side's Tier I sits in its **own defensive quarter** and its Tier IV in
+the attacking one, so the two teams are mirrored — defenders at the back,
+attackers up front, like a real formation.
 
 ```
-    |  Tier I   |  Tier II  | Tier III  |  Tier IV  |
-    | H       A | H       A | H       A | H       A |
-    |___________|___________|___________|___________|
-    ^ your goal                       their goal ^
+    | quarter 1  | quarter 2  | quarter 3  | quarter 4  |
+    | you I      | you II     | you III    | you IV     |
+    |     them IV|     them III|    them II |     them I |
+    |____________|____________|____________|____________|
+    ^ your goal                          their goal ^
 ```
 
-Within a quarter your side stands nearer your own goal and theirs nearer
-theirs, which is what puts the marking pairs side by side.
+**So marking is by quarter, not by Tier.** Your Tier I defenders shadow their
+Tier IV attackers, because those are the two standing on the same grass. Pairs
+are matched by how far down the pitch they start, so the marking never crosses
+over itself. Within a quarter your side stands nearer your own goal and theirs
+nearer theirs, which puts each pair side by side.
+
+Worth knowing: this means the units who eventually **duel** each other (Tier I
+against Tier I) are at opposite ends of the pitch during open play. That is the
+trade for a formation that looks like football. `zones_enabled,false` returns
+to the old layout if you want to compare.
 
 A unit owns 25% but may chase into 33%, then gets pulled back. Measured, they
-are outside their strict quarter about 5% of the time.
+are outside their strict quarter 10–14% of the time — always inside the 33%
+band, never wandering.
 
 | Key | Default | |
 |---|---|---|
@@ -134,8 +142,8 @@ patch of grass.
 
 Now, once he has held it a moment, an opponent getting close makes him move it
 on — and a hurried pass picks the team-mate with the **most room**, not a
-random one. That single change is most of the jump from 58% to 82% of the pitch
-being used.
+random one. That single change is most of the jump from 58% to ~75% of the
+pitch being used.
 
 | Key | Default | |
 |---|---|---|
@@ -156,3 +164,49 @@ was wading. They are now 52 / 104 / 68, with pressing at 92.
 `unit_chase_speed` and `press_speed` together and leave `unit_walk_speed`
 alone — that keeps the contrast between drifting and committing to a run,
 which is most of what makes it readable.
+
+
+---
+
+## 5. Following the ball
+
+Two things you picked, both cheap and both aimed squarely at "I can see what is
+happening".
+
+**A trail and a ring.** The ball leaves a short fading trail, and whoever is
+carrying it gets a ring at their feet — blue for you, red for them. I had to
+add exactly this to my own simulation before I could follow the play in it at
+all, which is fairly strong evidence it was the missing piece.
+
+| Key | Default | |
+|---|---|---|
+| `ball_trail_seconds` | 0.55 | length of the trail. 0 = off |
+| `ball_ring_radius` | 17 | ring at the carrier's feet. 0 = off |
+
+**The quarters are painted on.** Each Tier zone gets a faint wash of its own
+colour with a line down the boundary, so the four-quarter system is learnable
+by looking. It sits at 7% opacity during play and **brightens to 20% while you
+are choosing cards**, then fades back — loud exactly when it is useful.
+
+| Key | Default | |
+|---|---|---|
+| `zone_tint_alpha` | 0.07 | resting strength. 0 = off |
+| `zone_tint_alpha_draft` | 0.20 | strength while a draft is open |
+
+`zone_overlay.gd` draws it. It must sit in the tree **after** your field sprite
+and **before** the units — `main_scene.gd` already adds it in the right place,
+so there is nothing to do unless you rearrange `_ready()`.
+
+---
+
+## Still on the table
+
+Two things from my list you did not pick, both still worth doing later:
+
+- **A camera that follows play.** Right now the whole pitch is always on screen
+  at one size, which is most of why everything reads small. Slow drift toward
+  the ball with a pull-back for the PLAY MAKER call would do more for the feel
+  than anything else remaining.
+- **Facing and run animations.** Units currently slide without turning. Flipping
+  the sprite toward movement and playing a run cycle while chasing is cheap and
+  is most of what separates "pieces moving" from "players running".

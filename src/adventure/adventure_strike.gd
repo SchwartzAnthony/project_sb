@@ -30,7 +30,11 @@ extends Node2D
 #  gets better the moment you draw something.
 # =============================================================
 
-const BALL_RADIUS := 8.0
+## HOW BIG THE BALL IS. In Tuning.csv under `adventure_ball_size`, written
+## here by adventure_scene.gd as a run opens — same arrangement as the player
+## radius next door. It is smaller than it was: the old ball was nearly half
+## a player across, which is why it read as a melon.
+static var BALL_RADIUS := 7.0
 
 
 ## Kick the ball from one point to another and return when it lands.

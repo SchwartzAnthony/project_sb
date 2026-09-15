@@ -33,14 +33,28 @@ extends Node2D
 
 enum RunState { RUNNING, MEETING, ENCOUNTER, LOOT, FINISHED }
 
-## ============ THE LANE ============
+## ============ THE LANE, AND HOW BIG EVERYTHING IS ============
 ##
 ## The grass band, and the only place a player may stand. Everything that
 ## moves a walker ends by clamping into it — see adventure_walker.gd — which
 ## is the fix for the party running along the black above the pitch.
-const LANE_TOP := 300.0
-const LANE_HEIGHT := 380.0
-const LANE_BOTTOM := LANE_TOP + LANE_HEIGHT
+##
+## FOUR ROWS OF TUNING.CSV DECIDE THE SCALE, and the numbers below are only
+## what is used when those rows are missing:
+##
+##     adventure_lane_top        where the grass starts down the screen
+##     adventure_lane_height     how deep the grass band is
+##     adventure_player_size     how big a player is drawn, as a radius
+##     adventure_ball_size       how big the ball is drawn, as a radius
+##
+## The defaults were chosen to MATCH THE ORDINARY PITCH: a deeper lane, a
+## player who reads the same size in both places, and a ball small enough to
+## be a ball rather than a melon. Lane and player belong together — make the
+## band deeper and make the players bigger with it.
+static var LANE_TOP := 250.0
+static var LANE_HEIGHT := 540.0
+static var LANE_BOTTOM := 790.0
+
 
 const PARTY_X := 300.0          # where the party runs, in screen space
 const SPAWN_X := 1500.0         # off the right edge, where things come from
@@ -98,6 +112,7 @@ func _ready() -> void:
 	_scroll_speed = db.tune_float("adventure_scroll_speed", 120.0)
 	_base_scroll_speed = _scroll_speed
 
+	_read_scale()
 	_read_biome_look()
 	_build_world()
 	_build_hud()
@@ -109,6 +124,19 @@ func _ready() -> void:
 	_say("%s — %s" % [run.biome_name(), run.bounty_name()])
 	print("[adventure] Setting off into %s. %d wave(s) to the boss."
 		% [run.biome_name(), run.waves()])
+
+
+## Read the four scale rows and hand two of them to the walker and the ball,
+## which draw themselves. Called before anything is built, so the very first
+## frame is already the right size.
+func _read_scale() -> void:
+	LANE_TOP = db.tune_float("adventure_lane_top", 250.0)
+	LANE_HEIGHT = db.tune_float("adventure_lane_height", 540.0)
+	LANE_BOTTOM = LANE_TOP + LANE_HEIGHT
+	AdventureWalker.RADIUS = db.tune_float("adventure_player_size", 26.0)
+	AdventureStrike.BALL_RADIUS = db.tune_float("adventure_ball_size", 7.0)
+	print("[adventure] Lane %.0f to %.0f, player radius %.0f, ball radius %.0f."
+		% [LANE_TOP, LANE_BOTTOM, AdventureWalker.RADIUS, AdventureStrike.BALL_RADIUS])
 
 
 ## Only used when the scene is run on its own from the editor.
@@ -629,10 +657,10 @@ func _spawn_wave() -> void:
 	for i in line_up.size():
 		var foe := Node2D.new()
 		foe.position = Vector2(SPAWN_X + i * 90.0,
-			LANE_TOP + 80.0 + (i % 3) * 100.0)
+			LANE_TOP + LANE_HEIGHT * (0.16 + float(i % 3) * 0.30))
 		foe.set_meta("enemy", line_up[i])
 		foe.set_meta("home", Vector2(920.0 + (i / 3) * 96.0,
-			LANE_TOP + 80.0 + (i % 3) * 100.0))
+			LANE_TOP + LANE_HEIGHT * (0.16 + float(i % 3) * 0.30)))
 		foe.draw.connect(_draw_foe.bind(foe))
 		_world.add_child(foe)
 		_foes.append(foe)
