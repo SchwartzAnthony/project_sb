@@ -1,0 +1,693 @@
+<title>Sturmball Workbench</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#f4f1e8; --card:#fffdf7; --raise:#faf7ee;
+  --ink:#1b2027; --dim:#6d7684; --faint:#9aa2ae;
+  --line:#ddd5c4; --hair:#e8e2d5;
+  --accent:#a95c14; --accent-soft:#f0e2cf;
+  --pitch:#3d6a45; --pitch-soft:#e0eade; --warn:#a33a23; --warn-soft:#f4ddd6;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+  --disp:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#12151a; --card:#191d24; --raise:#1f242d;
+  --ink:#e4e8ef; --dim:#8a93a2; --faint:#646d7b;
+  --line:#2b323d; --hair:#232932;
+  --accent:#e0a04a; --accent-soft:#3a2d18;
+  --pitch:#6aa374; --pitch-soft:#1d2c21; --warn:#e0765c; --warn-soft:#331d17;
+}}
+:root[data-theme="dark"]{
+  --paper:#12151a; --card:#191d24; --raise:#1f242d;
+  --ink:#e4e8ef; --dim:#8a93a2; --faint:#646d7b;
+  --line:#2b323d; --hair:#232932;
+  --accent:#e0a04a; --accent-soft:#3a2d18;
+  --pitch:#6aa374; --pitch-soft:#1d2c21; --warn:#e0765c; --warn-soft:#331d17;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+.lbl{font-family:var(--disp);text-transform:uppercase;letter-spacing:.09em;font-weight:600}
+
+/* ---- shell ---- */
+#shell{display:flex;flex-direction:column;height:100%}
+#bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;display:flex;align-items:center;gap:10px;
+  flex-wrap:wrap;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line)}
+#bar h1{font-family:var(--disp);font-size:24px;font-weight:700;letter-spacing:.03em;margin:0;text-transform:uppercase}
+#bar h1 span{color:var(--accent)}
+.grow{flex:1 1 auto;min-width:8px}
+.btn{font-family:var(--disp);text-transform:uppercase;letter-spacing:.07em;font-weight:600;font-size:13px;
+  background:var(--raise);border:1px solid var(--line);color:var(--ink);border-radius:3px;padding:7px 13px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.key{background:var(--accent);border-color:var(--accent);color:var(--card)}
+.btn.key:hover{filter:brightness(1.1);color:var(--card)}
+.btn.sm{padding:4px 9px;font-size:12px}
+.btn[disabled]{opacity:.4;cursor:default}
+
+#body{flex:1 1 auto;display:flex;min-height:0}
+
+/* ---- file rail ---- */
+#rail{width:236px;flex:0 0 236px;background:var(--card);border-right:1px solid var(--line);overflow:auto;padding:12px 0 24px}
+.railhead{font-size:11px;color:var(--faint);padding:6px 16px 8px}
+.fitem{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;background:none;border:0;
+  border-left:3px solid transparent;padding:7px 14px 7px 13px;cursor:pointer}
+.fitem:hover{background:var(--raise)}
+.fitem.on{background:var(--raise);border-left-color:var(--accent)}
+.fitem .fn{flex:1 1 auto;font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fitem.on .fn{color:var(--accent)}
+.fitem .fc{font-family:var(--mono);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--warn);flex:0 0 auto}
+
+/* ---- main ---- */
+#main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+#head{padding:14px 18px 10px;border-bottom:1px solid var(--hair);background:var(--paper)}
+#head h2{font-family:var(--disp);font-size:26px;margin:0;text-transform:uppercase;letter-spacing:.03em}
+#what{color:var(--dim);font-size:13px;margin-top:2px;max-width:70ch}
+#tools{display:flex;gap:7px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--hair)}
+#wrap{flex:1 1 auto;overflow:auto;padding:0 0 30px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:2px solid var(--line);
+  font-family:var(--disp);text-transform:uppercase;letter-spacing:.07em;font-size:12px;font-weight:600;
+  text-align:left;padding:8px 9px;white-space:nowrap;color:var(--dim)}
+th.req{color:var(--accent)}
+td{border-bottom:1px solid var(--hair);padding:0;vertical-align:top}
+tr:hover td{background:var(--raise)}
+td.rn{font-family:var(--mono);font-size:11px;color:var(--faint);padding:7px 8px;text-align:right;
+  background:var(--card);border-right:1px solid var(--hair);font-variant-numeric:tabular-nums;white-space:nowrap}
+td input,td select,td textarea{width:100%;min-width:90px;background:transparent;border:0;padding:7px 9px;
+  font-family:var(--mono);font-size:12.5px;border-radius:0}
+td textarea{resize:vertical;min-height:32px;height:32px;line-height:1.4;overflow:auto}
+td input:focus,td select:focus,td textarea:focus{outline:2px solid var(--accent);outline-offset:-2px;background:var(--card)}
+td.bad input,td.bad select{background:var(--warn-soft);box-shadow:inset 3px 0 0 var(--warn)}
+td select{cursor:pointer;-webkit-appearance:none;appearance:none}
+.rowtools{display:flex;gap:3px;padding:5px 7px;background:var(--card);border-right:1px solid var(--hair)}
+.ico{background:none;border:1px solid transparent;color:var(--faint);cursor:pointer;border-radius:3px;
+  width:22px;height:22px;line-height:1;font-size:13px;padding:0}
+.ico:hover{border-color:var(--line);color:var(--accent)}
+.ico.del:hover{color:var(--warn)}
+
+/* ---- problems drawer ---- */
+#probs{border-top:2px solid var(--line);background:var(--card);max-height:30vh;display:flex;flex-direction:column}
+#probhead{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;border:0;background:none;width:100%;text-align:left}
+#probhead .lbl{font-size:14px}
+#problist{overflow:auto;padding:0 18px 14px}
+.prob{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--hair);font-size:13px;align-items:flex-start}
+.prob b{font-family:var(--mono);font-size:11px;color:var(--faint);flex:0 0 auto;padding-top:2px}
+.prob .fix{color:var(--dim);display:block;margin-top:2px;font-size:12.5px}
+.tag{font-family:var(--disp);text-transform:uppercase;letter-spacing:.06em;font-size:11px;font-weight:600;
+  padding:1px 7px;border-radius:2px;flex:0 0 auto}
+.tag.err{background:var(--warn-soft);color:var(--warn)}
+.tag.ok{background:var(--pitch-soft);color:var(--pitch)}
+.jump{background:none;border:0;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline;font-size:12.5px}
+
+/* ---- panels ---- */
+#veil{position:fixed;inset:0;background:rgba(10,12,16,.62);z-index:60;display:flex;align-items:center;justify-content:center;padding:18px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:5px;max-width:720px;width:100%;
+  max-height:88vh;display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(0,0,0,.3)}
+.panel header{padding:16px 20px 10px;border-bottom:1px solid var(--hair)}
+.panel header h3{font-family:var(--disp);font-size:24px;margin:0;text-transform:uppercase;letter-spacing:.03em}
+.panel .in{padding:16px 20px;overflow:auto}
+.panel footer{padding:12px 20px;border-top:1px solid var(--hair);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+textarea.csv{width:100%;height:270px;font-family:var(--mono);font-size:12px;background:var(--paper);
+  border:1px solid var(--line);border-radius:3px;padding:10px;line-height:1.5}
+.drop{border:2px dashed var(--line);border-radius:5px;padding:26px;text-align:center;color:var(--dim);margin-bottom:14px}
+.drop.hot{border-color:var(--accent);background:var(--accent-soft)}
+.note{font-size:12.5px;color:var(--dim);margin:10px 0 0}
+.kbd{font-family:var(--mono);font-size:11.5px;background:var(--raise);border:1px solid var(--line);
+  border-radius:3px;padding:1px 5px}
+.empty{padding:50px 24px;text-align:center;color:var(--dim);max-width:60ch;margin:0 auto}
+.empty h3{font-family:var(--disp);font-size:28px;text-transform:uppercase;margin:0 0 8px;color:var(--ink)}
+.help{font-size:12.5px;color:var(--dim);padding:8px 18px;background:var(--raise);border-bottom:1px solid var(--hair)}
+.help code{font-family:var(--mono);font-size:11.5px;color:var(--accent)}
+
+@media (max-width:760px){
+  #body{flex-direction:column}
+  #rail{width:auto;flex:0 0 auto;display:flex;gap:6px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:8px 12px}
+  .railhead{display:none}
+  .fitem{width:auto;flex:0 0 auto;border-left:0;border-bottom:3px solid transparent;border-radius:3px;padding:6px 10px}
+  .fitem.on{border-left:0;border-bottom-color:var(--accent)}
+  #bar h1{font-size:19px}
+}
+</style>
+
+<div id="shell">
+  <header id="bar">
+    <h1>Sturmball <span>Workbench</span></h1>
+    <div class="grow"></div>
+    <button class="btn" id="bLoad">Load CSVs</button>
+    <button class="btn" id="bCheck">Check</button>
+    <button class="btn key" id="bExport">Export</button>
+    <button class="btn sm" id="bTheme" title="Light / dark">◐</button>
+  </header>
+
+  <div id="body">
+    <nav id="rail"><div class="railhead lbl">Files</div><div id="files"></div></nav>
+    <main id="main">
+      <div id="head"><h2 id="title">—</h2><div id="what"></div></div>
+      <div class="help" id="help" hidden></div>
+      <div id="tools"></div>
+      <div id="wrap"><div class="empty" id="blank"></div></div>
+    </main>
+  </div>
+
+  <section id="probs">
+    <button id="probhead">
+      <span class="lbl">Problems</span>
+      <span id="probtag" class="tag ok">checking…</span>
+      <span class="grow"></span>
+      <span id="probchev" style="color:var(--faint)">▾</span>
+    </button>
+    <div id="problist"></div>
+  </section>
+</div>
+
+<input type="file" id="pick" multiple accept=".csv" hidden>
+
+<script>
+const SEED = {"Items.csv":{"h":["ID","Name","Kind","Stack","Art","Use","Target","Requires","Description"],"r":[["reed","Reed","material","99","reed","","","","Cut from the marsh. The Brewery takes it by the armful."],["bog_iron","Bog Iron","material","99","bog_iron","","","","Heavy, rusted, and worth melting down."],["ash_glass","Ash Glass","material","99","ash_glass","","","","Fused in the burn. Sharp and light."],["deep_salt","Deep Salt","material","99","deep_salt","","","","Scraped off the walls of the Hollowdeep."],["coins","Coins","currency","999","coins","","","","What everyone takes."],["smelling_salts","Smelling Salts","kit","5","salts","revive","downed","","Brings one knocked-out player back on, at half stamina."]]},"AdventureEnemies.csv":{"h":["ID","Name","Pool","Attack","Layers","Targeting","Element","Ability","Art","Drops","Weight","Boss","Description"],"r":[["mire_grub","Mire Grub","marsh","1","Body:4","weakest","Water","","grub","grub_drops","10","no","Soft and slow. There are always more of them."],["reed_biter","Reed Biter","marsh","1","Body:6","weakest","Water","","biter","biter_drops","8","no","Fast in the shallows."],["bog_lurker","Bog Lurker","marsh","2","Hide:3:1|Body:6","weakest","Water","","lurker","lurker_drops","6","no","Its hide turns the first couple of hits."],["fen_stalker","Fen Stalker","marsh","2","Body:8","weakest","Water","","stalker","lurker_drops","4","no","Waits at the back and picks its moment."],["reed_warden","The Reed Warden","marsh","2","Bark:4:1|Body:8","weakest","Water","","warden","warden_drops","0","yes","A small bounty and a good first kill. Two layers, and the bark only tu"],["marsh_king","The Marsh King","marsh","3","Crown:6:2|Weed:8:1|Body:12","weakest","Water","","king","king_drops","0","yes","Three layers of him, and each one is harder than the last."]]},"Biomes.csv":{"h":["ID","Name","Order","Requires","Waves","Enemy Pool","Background","Parallax","Sky","Grass","Grass Stripe","Edge","Music","Drops","Difficulty","Description"],"r":[["marshlands","The Marshlands","1","","4","marsh","bg_marsh","0.3","#12181c","#213a26","#1b2f1f","#3a5c3f","marsh_theme","marsh_ground","1","Wet and green. Reed grows thick here and something is always moving in"],["cinderwastes","The Cinder Wastes","2","unlocked:Marsh King","5","cinder","bg_cinder","0.3","#1c1310","#4a3320","#3d2a1a","#7a5530","cinder_theme","cinder_ground","2","Ash underfoot and heat in the air. Nothing grows but the fires do."],["hollowdeep","The Hollowdeep","3","unlocked:Ash Tyrant","6","hollow","bg_hollow","0.2","#0d0c14","#2a2438","#221d2e","#463c5c","hollow_theme","hollow_ground","3","Below the old works. The dark down here has weight to it."],["frostreach","The Frostreach","4","unlocked:Hollow Mother","6","frost","bg_frost","0.35","#101822","#28455e","#20384d","#4d7a9e","frost_theme","frost_ground","4","White over blue, and the wind never stops. An example of how a biome c"]]},"Bounties.csv":{"h":["ID","Name","Biome","Boss","Reward","Requires","Repeatable","Waves","Recommended Power","Art","Description"],"r":[["marsh_king","The Marsh King","marshlands","marsh_king","unlock:Marsh King;count:coins+120","","no","","2","bounty_king","Something is holding the reed beds. Go and take them back."],["reed_clearing","Clear the Reeds","marshlands","reed_warden","count:coins+40;count:reed+20","","yes","2","1","bounty_reed","A short run. Good for a first haul and a full basket of reed."],["ash_tyrant","The Ash Tyrant","cinderwastes","ash_tyrant","unlock:Ash Tyrant;count:coins+220","unlocked:Marsh King","no","","4","bounty_tyrant","It sits at the centre of the burn and it has been there a long time."],["slag_run","The Slag Run","cinderwastes","slag_walker","count:coins+90;count:bog_iron+15","unlocked:Marsh King","yes","3","3","bounty_slag","Iron for the taking, if you can get past what is guarding it."],["the_hollow_mother","The Hollow Mother","hollowdeep","hollow_mother","unlock:Hollow Mother;count:coins+400","unlocked:Ash Tyrant","no","","5","bounty_mother","Nobody who has gone this deep has come back with a straight story."]]},"Drops.csv":{"h":["Table","Item","Amount","Chance","Requires","Notes"],"r":[["marsh_ground","reed","1","1.0","","Picked up off the ground while the party runs."],["marsh_ground","coins","2","0.5","",""],["cinder_ground","ash_glass","1","1.0","",""],["cinder_ground","coins","4","0.5","",""],["hollow_ground","deep_salt","1","1.0","",""],["hollow_ground","coins","6","0.5","",""]]},"Brews.csv":{"h":["ID","Name","Description","Requires","For Class","Becomes","Artwork","Attack Ability","Defend Ability","Cost","Permanent","Notes"],"r":[["fire","Fire Brew","Ash on the tongue. A river-singer learns to burn.","unlocked:Fire Brew","Lorelei","Brandteufel","","BRAND_SCORCH","BRAND_MASK_ATK","reed:6","true","YOUR EXAMPLE. A Lorelei counts as a Brandteufel for the match and gain"],["water","Water Brew","Cold and deep. The fire goes quiet and learns to listen.","unlocked:Water Brew","Brandteufel","Lorelei","","LORE_SURGE","LORE_VEIL","reed:4|bog_iron:2","true","The mirror of the Fire Brew. Needs the Water Craft talent."],["keeper","Keeper's Tonic","Thick, bitter, and it makes you very hard to move.","","","","","","KEEP_BULWARK","ash_glass:5|reed:3","","No Becomes and no For Class - anyone may drink it, nobody changes clas"]]},"Talents.csv":{"h":["ID","Name","Tree","Tier","Parent","Requires","Cost","Effects","Description","Art","Notes"],"r":[["high_press","High Press","Tactics","1","","","1","count:tune_press_speed+12","Your players charge the ball carrier faster.","","tune_press_speed adds 12 to the press_speed row of Tuning.csv. Any Tun"],["swarm","Swarm","Tactics","2","high_press","","1","count:tune_press_helpers+1","One more player comes across from another quarter to help press.","",""],["wide_play","Wide Play","Tactics","2","high_press","","1","count:tune_open_spread+40","Your players break further off their markers to show for a pass.","",""],["relentless","Relentless","Tactics","3","swarm","count:matches_won>=3","2","count:tune_unit_chase_speed+10","Everyone runs at a loose ball harder.","","Needs a Parent AND three wins. Both must be true."],["brewing_basics","Brewing Basics","Brewing","1","","","1","unlock:Fire Brew","The Pub can pour a Fire Brew.","","Unlocks a brew by name. Brews.csv in step 4 will read this."],["water_craft","Water Craft","Brewing","2","brewing_basics","","1","unlock:Water Brew","The Pub can pour a Water Brew.","",""]]},"Buildings.csv":{"h":["ID","Name","Description","Requires","Art","X","Y","Action","Notes"],"r":[["clubhouse","Clubhouse","Where the team sleeps it off. The heart of the base.","","clubhouse","0.20","0.32","","Always here. No Requires, no Action - clicking just shows the descript"],["brewery","Brewery","Brews are made here. Ask about the fire mash.","unlocked:Brewery","brewery","0.50","0.28","announce:The mash is on. Come back when the Pub is open.","Unlocked by the unlock_brewery row in Progression.csv - score 3 fire-b"],["pub","Pub","Your players drink here before a match. It changes what they are.","unlocked:Pub","pub","0.78","0.32","goto:pub","Step 4 will make this open the pub screen. Right now it just says hell"],["training_ground","Training Ground","Where the talent tree lives. Spend your points here.","unlocked:Talent Tree","training","0.34","0.60","goto:talents","Unlocked after 5 matches by unlock_talents."],["pitch_gate","The Gate","Out to the pitch. A match awaits.","","gate","0.66","0.62","goto:classes","Clicking this goes straight to class select - the same as the Play a m"],["tap_room","Tap Room","A quiet room behind the Pub. Only a Master Brewer gets a key.","unlocked:master_brewer","taproom","0.50","0.60","announce:Nothing in here yet - but you unlocked it with a talent.","PROOF: this building's Requires names a TALENT ID. Take Master Brewer "]]},"TierPowers.csv":{"h":["Tier","Min Attack","Max Attack","Min Defense","Max Defense","Notes"],"r":[["I","0","2","0","2","THE LADDER. Tier I holds ONE 0, ONE 1 and ONE 2 - three cards, three d"],["II","1","3","1","3","Tier II holds one 1, one 2 and one 3."],["III","2","4","2","4","Tier III holds one 2, one 3 and one 4."],["IV","3","5","3","5","Tier IV holds one 3, one 4 and one 5. The front line, and where the th"]]},"Teams.csv":{"h":["ID","Name","Class","Cards","Power","Requires","Keeper","Description","Notes"],"r":[["reedbank","Reedbank Wanderers","Lorelei","Silver-Rhine Lorelei|Rose Water Lorelei|Lorelei of the Deep River|Twil","1","","","A gentle opening. Nobody expects much of you yet.","The four cards it fields, one per tier, separated by a pipe. Power is "],["cinderworks","Cinderworks Colts","Brandteufel","Smokestorm Brandteufel|Cinderworks Brandteufel|Heatwave Brandteufel|Bl","1","","","The furnace apprentices. All pace and no patience.",""],["mistmarsh","Mistmarsh Athletic","Lorelei","Moonlit River Lorelei|Mist-Born Lorelei|Whispering Rhine Lorelei|Golde","2","","","They sing you to sleep, then score.","The middle card of each tier - a genuinely even fight."],["emberfall","Emberfall United","Brandteufel","Furnacebreak Brandteufel|Ironflare Brandteufel|Coalblaze Brandteufel|H","2","","","Fourth of eleven. The table starts to matter.",""],["silverbeck","Silverbeck Rovers","Lorelei","Echo of the Cliff Lorelei|Sapphire Current Lorelei|Songbound Shore Lor","3","","","They have not lost at home in two years.","The strongest of each tier."],["ashford","Ashford Ironworks","Brandteufel","Boilerblast Brandteufel|Foundryburn Brandteufel|Fireline Brandteufel|S","3","","","Big, slow, and very hard to move.",""]]},"Season.csv":{"h":["ID","Match","Opponent","Team","Class","Difficulty","Final","Requires","On Win","On Loss","Description","Notes"],"r":[["md01","1","Reedbank Wanderers","reedbank","Lorelei","0","","","","","A gentle opening. Nobody expects much of you yet.","Difficulty 0 is a fair fight. Class picks who you face - leave it BLAN"],["md02","2","Cinderworks Colts","cinderworks","Brandteufel","0","","","","","The furnace apprentices. All pace and no patience.",""],["md03","3","Mistmarsh Athletic","mistmarsh","Lorelei","1","","","","","They sing you to sleep, then score.","Difficulty 1 gives every one of their cards +1 attack and +1 defence."],["md04","4","Emberfall United","emberfall","Brandteufel","1","","","count:coins+25","","Fourth of eleven. The table starts to matter.","On Win runs the same words as Progression.csv - unlock:x, count:x+n, f"],["md05","5","Silverbeck Rovers","silverbeck","Lorelei","1","","","","","Halfway. They have not lost at home in two years.",""],["md06","6","Ashford Ironworks","ashford","Brandteufel","2","","","","","Big, slow, and very hard to move.",""]]},"Stats.csv":{"h":["Counter","Event","When","Amount","Group","Label","Notes"],"r":[["goals","goal_scored","","","Goals","Goals scored","Every goal you score"],["goals_by_{card}","goal_scored","","","Goals","","WHO SCORED. One row, one counter per card name, so the post-match scre"],["goals_as_{class}","goal_scored","","","Goals","","Split by which class you were playing. One row, a counter per class."],["goals_by_tier_{tier}","goal_scored","","","Goals","","Split by the Tier of whoever scored"],["goals_with_brew_{brew}","goal_scored","","","Goals","","Goals by a player who had drunk a brew. THIS is what the Brewery requi"],["goals_by_star","goal_scored","star=yes","","Goals","Goals by a Star","Goals scored by a Star Player"]]},"Abilities.csv":{"h":["Ability ID","Name","Trigger","Target","Effect","Value","Scope","Notes"],"r":[["BRAND_MASK_ATK","Teufel Mask","on_attack","self","add_attack","1","duel","Example. Attacker hits one harder in its own duel."],["BRAND_RALLY","Furnace Rally","on_win_duel","tag:brandteufel","add_power","1","round","Example. Winning fires up every Brandteufel for the rest of the round."],["BRAND_SCORCH","Scorching Strike","on_win_duel","enemy_goalie","drain_stamina","3","duel","Example. Chip the keeper even when the round ends in a turnover."],["LORE_VEIL","Rhine Veil","on_defend","self","add_defense","1","duel","Example. Defender holds one harder."],["LORE_TIDE","Rising Tide","passive","tier:I","add_power","1","round","Example. Every friendly Tier I unit is stronger all round."],["LORE_UNDERTOW","Undertow","on_lose_duel","opponent","add_defense","-1","round","Example. Negative values are legal — this is a debuff."]]},"Progression.csv":{"h":["ID","When","Requires","Do","Once","Notes"],"r":[["welcome_at_base","base_opened","","story:prologue","true","Plays the prologue the FIRST time you open the base, not when the game"],["first_win","match_ended","count:matches_won>=1","flag:first_win;announce:First win!","true","Sets a flag other content can test with  flag:first_win"],["unlock_brewery","match_ended","count:goals_with_brew_fire>=3","unlock:Brewery;announce:The Brewery is open","true","YOUR EXAMPLE: score three times with fire-brewed players and the Brewe"],["unlock_pub","match_ended","unlocked:Brewery;count:matches_played>=5","unlock:Pub;announce:The Pub is open","true","Needs the Brewery first AND five matches. Chains one unlock off anothe"],["unlock_talents","match_ended","count:matches_played>=5","unlock:Talent Tree;announce:Talents unlocked","true","The talent tree is itself a building, unlocked later on"],["veteran_badge","match_ended","count:matches_played>=10","flag:veteran","true","An achievement is just a flag. Nothing else needed."]]},"Visitors.csv":{"h":["ID","Name","Portrait","Requires","Story","X","Y","Once","Notes"],"r":[["heatwave_visit","Heatwave","heatwave","","prologue","0.13","0.78","true","Here from the start. Talks once, then leaves for good because Once is "],["brewer","The Brewer","brewer","unlocked:Brewery","prologue","0.50","0.78","","Only turns up once the Brewery is unlocked. Once is blank so you can t"],["scout","A Scout","scout","count:matches_won>=2","prologue","0.86","0.78","true","Turns up after two wins. Swap Story for your own scene when you write "],["brewer_visit","The Brewer","brewer","unlocked:Brewery","brewery_open","0.40","0.70","true","WORKED EXAMPLE - A VISITOR GATED ON A BUILDING. Appears at the base th"]]},"MatchModes.csv":{"h":["ID","Name","Records Season","Timer","Cycles","Rounds","Star Rotation","Opponent","Scene","Requires","Description"],"r":[["season","Season Match","yes","90","3","3","yes","team","match","","The league. Ninety minutes against another side, three Stars rotating "],["quick","Quick Match","no","0","1","3","no","team","match","","A single run for resources. No clock, one Star, and nothing written to"],["cup","Cup Tie","no","90","3","3","yes","team","match","unlocked:The Cup","A full match that does not count towards the league. Unlocked with The"],["adventure","Adventure","no","0","1","4","no","biome","adventure","","A run into a biome. No clock, one Star, four tiers per encounter, and "]]},"Goalies.csv":{"h":["Team","Name","Max Stamina","Passive / Ability","Artwork"],"r":[["Lorelei","Undine Aegis","25","While above 6 Stamina: Defending units get +1 Power","lorelei_goalie.png"],["Brandteufel","Pyre Bastion","30","When Stamina reaches 0: Deal 2 damage to the shooter","brandteufel_goalie.png"]]},"ClassInfo.csv":{"h":["Class","Display Name","Description","Banner Art","Formation Art","Notes"],"r":[["Brandteufel","Brandteufel","Fire-born forwards who trade defence for raw pressure. Their Stars hol","res://assets/menu/banner_brandteufel.png","","Class must match the Unit Type column in your unit CSV"],["Lorelei","Lorelei","Patient river-singers who win the late tiers. Their Stars hold Tier IV","res://assets/menu/banner_lorelei.png","","Leave Formation Art blank to use the drawn diagram"]]},"Units Set FO1 - Lorelei.csv":{"h":["Unit Type","Name","Attack","Defend","Element","Base Power Left","Base Power Right","Tier","Stufe","Tool","Card Number","Card Date","Set Name","Created by","Artwork","Player Type"],"r":[["Lorelei","Silver-Rhine Lorelei","Send this unit to the Exhaust Zone instead of the Void. \nWhile in the ","After combat send this unit to the Exhaust Zone instead of the Void.","Water","0","0","I","Level","Cups","0001","2026","F01","A.J.S ","Silver-Rhine Lorelei.png","Normal"],["Lorelei","Moonlit River Lorelei","Send this unit to the Exhaust Zone instead of the Void. \nWhile in the ","After combat send this unit to the Exhaust Zone instead of the Void.","Fire","1","1","I","Level","Wand","0002","2026","F01","A.J.S ","Moonlit River Lorelei.png","Normal"],["Lorelei","Echo of the Cliff Lorelei","Send this unit to the Exhaust Zone instead of the Void. \nWhile in the ","After combat send this unit to the Exhaust Zone instead of the Void.","Water","2","2","I","Level","Cups","0003","2026","F01","A.J.S ","Echo of the Cliff Lorelei.png","Normal"],["Lorelei","Rose Water Lorelei","If in Void or Exhaust Zone after Preperation Phase: \nReveal an opponen","After combat send this unit to the Exhaust Zone instead of the Void.","Fire","1","1","II","Level","Wand","0004","2026","F01","A.J.S ","Rose Water Lorelei.png","Normal"],["Lorelei","Mist-Born Lorelei","If in Void or Exhaust Zone after Preperation Phase: \nReveal an opponen","After combat send this unit to the Exhaust Zone instead of the Void.","Water","2","2","II","Level","Cups","0005","2026","F01","A.J.S ","Mist-Born Lorelei.png","Normal"],["Lorelei","Sapphire Current Lorelei","If in Void or Exhaust Zone after Preperation Phase: \nReveal an opponen","After combat send this unit to the Exhaust Zone instead of the Void.","Fire","3","3","II","Level","Wand","0006","2026","F01","A.J.S ","Sapphire Current Lorelei.png","Normal"]]}};
+
+/* ============================================================
+   THE SCHEMA — what every file is, and what its columns mean.
+   Adding a file here teaches the workbench about it; the editor
+   itself never names a column.
+   ============================================================ */
+const YN = ["", "yes", "no"];
+const S = {
+"Items.csv":{what:"Everything you can pick up, spend or use. Every item is a counter in the save, so anything that tests a counter works on it.",
+  key:"ID", enums:{Kind:["material","currency","recipe","kit"],Target:["","ally","enemy","downed"]},
+  help:"<b>Use</b> makes an item usable in a fight: <code>revive</code>, <code>heal:6</code>, <code>heal:3;all</code>, <code>hit:4</code>. Blank means it is just material."},
+"AdventureEnemies.csv":{what:"Who you meet in a biome. An enemy is two numbers: what it hits for, and what it is made of.",
+  key:"ID", enums:{Targeting:["weakest","strongest","lowest_stamina","aoe"],Boss:YN},
+  help:"<b>Layers</b> is <code>Name:Amount:Soak</code> separated by <code>|</code> — damage eats the outermost layer first. <b>Weight</b> 0 means it never turns up randomly (that is what a boss is)."},
+"Biomes.csv":{what:"The areas you explore, and how each one looks.",
+  key:"ID", colour:["Sky","Grass","Grass Stripe","Edge"],
+  help:"Colours are written <code>#213a26</code>. <b>Parallax</b> 0 is a still background, 1 moves with the ground."},
+"Bounties.csv":{what:"The jobs on the board. A bounty is a boss — go into that biome and kill the thing named on the paper.",
+  key:"ID", enums:{Repeatable:YN},
+  help:"<b>Waves</b> blank means \"as long as the biome is\". A number makes this one job shorter or longer through the same place."},
+"Drops.csv":{what:"What things leave behind. A drop table is every row sharing a Table name.",
+  key:null, help:"<b>Chance</b> is 0 to 1. <b>Requires</b> gates a drop — a recipe only falls once you can brew."},
+"Brews.csv":{what:"What the Pub pours. A brew can change what class a card counts as for a match.",
+  key:"ID", enums:{Permanent:["true","false"]},
+  help:"<b>Cost</b> is <code>reed:6|bog_iron:2</code> — the Pub takes those out of your counters when it pours. <b>Becomes</b> is the class the card fights as."},
+"Talents.csv":{what:"The talent tree. A talent can edit any Tuning number permanently.",
+  key:"ID", help:"<b>Effects</b> with <code>count:tune_</code> in front of a Tuning key changes that number: <code>count:tune_press_speed+12</code>."},
+"Buildings.csv":{what:"The base. A building's Action is a recipe: Requires is the price, Action is the trade.",
+  key:"ID", help:"<code>Requires: count:reed&gt;=20</code> and <code>Action: count:reed-20;count:coins+60</code> is a working recipe with no code anywhere."},
+"TierPowers.csv":{what:"THE LADDER. Every tier holds one card of each power, and every screen in the game obeys this file.",
+  key:"Tier", help:"Min to Max is read as the list of slots. Tier I is 0 to 2, so it holds one 0, one 1 and one 2. Keep each span three wide."},
+"Teams.csv":{what:"The sides you play in the league.", key:"ID",
+  help:"<b>Cards</b> names the exact cards it fields, separated by <code>|</code>. Blank means any cards of its class."},
+"Season.csv":{what:"The fixture list, and the end of a season.", key:"ID", enums:{Final:YN},
+  help:"<b>Difficulty</b> is added to the opposition's SHOT, never to their cards — so the tier ladder holds."},
+"Stats.csv":{what:"What the game counts. A new counter is a new row and nothing else.",
+  key:null, enums:{Event:["goal_scored","goal_conceded","shot_taken","save_made","duel_won","duel_lost","brew_drunk","match_ended"]},
+  help:"<b>When</b> filters the event: <code>tier=I</code>, <code>star=yes</code>, <code>result=win</code>, <code>brew=fire</code>. Blank is always."},
+"Abilities.csv":{what:"What a card does. These are the effect words the engine knows.",
+  key:"Ability ID", enums:{Scope:["duel","round","cycle","match"]},
+  help:"THE ONE PLACE THE SPREADSHEET RUNS OUT. New <b>Effect</b> words need code — ask for a batch of them."},
+"Progression.csv":{what:"When things happen. Unlocks, story scenes and announcements, fired off any match event.",
+  key:"ID", enums:{Once:["true","false"]},
+  help:"Terms in Requires are joined with a semicolon. <code>and</code> is NOT a word this understands."},
+"Visitors.csv":{what:"People who turn up at the base.", key:"ID", enums:{Once:["true","false"]}},
+"MatchModes.csv":{what:"The kinds of match. Timer 0 means no clock — it ends when the rounds do.",
+  key:"ID", enums:{"Records Season":YN,"Star Rotation":YN,Scene:["match","adventure"],Opponent:["team","biome"]}},
+"Goalies.csv":{what:"Keepers. The only thing with stamina in a league match.", key:"Name"},
+"ClassInfo.csv":{what:"The blurb and banner for each class on the class-select screen.", key:"Class"},
+"MenuConfig.csv":{what:"The main menu. Buttons, where they sit, and what they do.", key:"Button ID"},
+"Audio.csv":{what:"Every sound, per moment, per condition.", key:"ID", enums:{Bus:["Music","Effects","UI"],Loop:["true","false"]}},
+"Dialogue.csv":{what:"The story. Scenes, lines, and choices that carry effects.", key:null},
+"Animations.csv":{what:"How a spritesheet is sliced.", key:"Animation"},
+"Tuning.csv":{what:"Every number in the game, in one place.", key:"Key"},
+};
+/* Which column points at which file's ids. */
+const REFS = {
+ "Bounties.csv":{Biome:["Biomes.csv","ID"], Boss:["AdventureEnemies.csv","ID"]},
+ "Biomes.csv":{Drops:["Drops.csv","Table"]},
+ "AdventureEnemies.csv":{Drops:["Drops.csv","Table"]},
+ "Drops.csv":{Item:["Items.csv","ID"]},
+ "Season.csv":{Team:["Teams.csv","ID"]},
+ "Talents.csv":{Parent:["Talents.csv","ID"]},
+ "Visitors.csv":{Story:["Dialogue.csv","Scene"]},
+};
+/* Sensible defaults when you press New row. */
+const NEW = {
+ "Items.csv":{Kind:"material",Stack:"99"},
+ "AdventureEnemies.csv":{Attack:"2",Layers:"Body:6",Targeting:"weakest",Weight:"8",Boss:"no"},
+ "Biomes.csv":{Waves:"4",Parallax:"0.3",Sky:"#12181c",Grass:"#213a26","Grass Stripe":"#1b2f1f",Edge:"#3a5c3f",Difficulty:"1",Order:"9"},
+ "Bounties.csv":{Repeatable:"no","Recommended Power":"1"},
+ "Drops.csv":{Amount:"1",Chance:"1.0"},
+ "Brews.csv":{Permanent:"false"},
+ "Talents.csv":{Tree:"Tactics",Tier:"1",Cost:"1"},
+ "Stats.csv":{Amount:"1",Event:"goal_scored"},
+ "Season.csv":{Difficulty:"0"},
+ "MatchModes.csv":{"Records Season":"no",Timer:"0",Cycles:"1",Rounds:"4","Star Rotation":"no",Opponent:"team",Scene:"match"},
+};
+const LONG = ["Description","Notes","Text","What it does","Attack","Defend","Effects","Requires","Action","Do","Reward","On Win","On Loss"];
+
+/* ============================================================ */
+let DATA = {}, CUR = null, PROBS = [], OPEN = true, SAMPLE = false;
+const $ = s => document.querySelector(s);
+const norm = s => String(s||"").trim().toLowerCase().replace(/[^a-z0-9]/g,"");
+
+function boot(){
+  let saved = null;
+  try{ saved = JSON.parse(localStorage.getItem("sturmball.v1")||"null"); }catch(e){}
+  SAMPLE = !(saved && Object.keys(saved).length);
+  DATA = SAMPLE ? JSON.parse(JSON.stringify(unseed())) : saved;
+  CUR = Object.keys(DATA)[0] || null;
+  paintRail(); paintTable(); check();
+}
+function unseed(){
+  const out = {};
+  for(const [f,v] of Object.entries(SEED)) out[f] = {headers:v.h.slice(), rows:v.r.map(r=>r.slice())};
+  return out;
+}
+function save(){
+  try{ localStorage.setItem("sturmball.v1", JSON.stringify(DATA)); }catch(e){}
+}
+
+/* ---------- CSV ---------- */
+function parseCSV(text){
+  const rows=[]; let row=[], cell="", q=false;
+  text = text.replace(/\r\n?/g,"\n");
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){cell+='"';i++;} else q=false; }
+      else cell+=c;
+    } else if(c==='"') q=true;
+    else if(c===","){ row.push(cell); cell=""; }
+    else if(c==="\n"){ row.push(cell); rows.push(row); row=[]; cell=""; }
+    else cell+=c;
+  }
+  if(cell!==""||row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(r=>r.length && r.some(c=>c.trim()!==""));
+}
+function toCSV(f){
+  const d=DATA[f]; const esc=v=>{v=String(v??"");return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  return [d.headers.map(esc).join(",")].concat(d.rows.map(r=>{
+    const out=[]; for(let i=0;i<d.headers.length;i++) out.push(esc(r[i]??""));
+    return out.join(",");
+  })).join("\n")+"\n";
+}
+
+/* ---------- rail ---------- */
+function paintRail(){
+  const host=$("#files"); host.innerHTML="";
+  const names=Object.keys(DATA).sort();
+  for(const f of names){
+    const b=document.createElement("button");
+    b.className="fitem"+(f===CUR?" on":"");
+    const bad=PROBS.some(p=>p.file===f);
+    b.innerHTML=`<span class="fn"></span><span class="fc">${DATA[f].rows.length}</span>`+(bad?'<span class="dot"></span>':'');
+    b.querySelector(".fn").textContent=f.replace(/\.csv$/i,"");
+    b.onclick=()=>{CUR=f;paintRail();paintTable();};
+    host.appendChild(b);
+  }
+}
+
+/* ---------- table ---------- */
+function paintTable(){
+  const wrap=$("#wrap");
+  if(!CUR||!DATA[CUR]){
+    $("#title").textContent="Nothing loaded";
+    $("#what").textContent="";
+    $("#help").hidden=true; $("#tools").innerHTML="";
+    wrap.innerHTML=`<div class="empty"><h3>Load your data folder</h3>
+      <p>Drop your <span class="kbd">.csv</span> files in, or press <b>Load CSVs</b> and pick everything in your project's <span class="kbd">data</span> folder at once.</p></div>`;
+    return;
+  }
+  const d=DATA[CUR], sch=S[CUR]||{};
+  $("#title").textContent=CUR.replace(/\.csv$/i,"");
+  $("#what").textContent=sch.what||"A file the workbench does not have notes for. It still edits fine.";
+  $("#help").hidden=!sch.help; if(sch.help) $("#help").innerHTML=sch.help;
+
+  $("#tools").innerHTML="";
+  const mk=(t,fn,cls)=>{const b=document.createElement("button");b.className="btn sm "+(cls||"");b.textContent=t;b.onclick=fn;$("#tools").appendChild(b);return b;};
+  mk("+ New row",()=>{
+    const r=d.headers.map(h=>(NEW[CUR]||{})[h]||"");
+    d.rows.push(r); save(); paintTable(); check(); paintRail();
+    const inputs=wrap.querySelectorAll("tbody tr:last-child input,tbody tr:last-child select");
+    if(inputs[0]) inputs[0].focus();
+  },"key");
+  mk("+ Column",()=>{
+    const n=prompt("New column name (write it the way a person would — \"Max Stamina\"):");
+    if(!n) return; d.headers.push(n); d.rows.forEach(r=>r.push("")); save(); paintTable();
+  });
+  mk("Copy this file",()=>showExport(CUR));
+  mk("Sort by first column",()=>{d.rows.sort((a,b)=>String(a[0]).localeCompare(String(b[0])));save();paintTable();});
+
+  const tbl=document.createElement("table");
+  const thead=document.createElement("thead"), hr=document.createElement("tr");
+  hr.innerHTML='<th style="width:1px"></th><th style="width:1px">#</th>';
+  d.headers.forEach(h=>{
+    const th=document.createElement("th");
+    th.textContent=h;
+    if(/^(requires|effects|action|do|reward)$/i.test(h)) th.className="req";
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr); tbl.appendChild(thead);
+
+  const tb=document.createElement("tbody");
+  d.rows.forEach((row,ri)=>{
+    const tr=document.createElement("tr");
+    const tools=document.createElement("td"); tools.className="rowtools";
+    tools.innerHTML='<button class="ico" title="Duplicate">⧉</button><button class="ico del" title="Delete">✕</button>';
+    tools.children[0].onclick=()=>{d.rows.splice(ri+1,0,row.slice());save();paintTable();check();paintRail();};
+    tools.children[1].onclick=()=>{if(confirm("Delete this row?")){d.rows.splice(ri,1);save();paintTable();check();paintRail();}};
+    tr.appendChild(tools);
+    const n=document.createElement("td"); n.className="rn"; n.textContent=ri+2; tr.appendChild(n);
+
+    d.headers.forEach((h,ci)=>{
+      const td=document.createElement("td");
+      td.appendChild(cell(CUR,h,row,ci,ri));
+      if(PROBS.some(p=>p.file===CUR&&p.row===ri&&p.col===h)) td.className="bad";
+      tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  });
+  tbl.appendChild(tb);
+  wrap.innerHTML=""; wrap.appendChild(tbl);
+}
+
+function cell(file,head,row,ci,ri){
+  const sch=S[file]||{}, val=row[ci]??"";
+  const set=v=>{row[ci]=v;save();};
+  const opts=(sch.enums||{})[head];
+  const ref=(REFS[file]||{})[head];
+
+  if(opts||ref){
+    const sel=document.createElement("select");
+    let list=opts?opts.slice():[""];
+    if(ref){
+      const [rf,rc]=ref, src=DATA[rf];
+      if(src){
+        const at=src.headers.indexOf(rc);
+        if(at>=0){ const seen=new Set();
+          src.rows.forEach(r=>{const v=(r[at]||"").trim(); if(v&&!seen.has(v)){seen.add(v);list.push(v);} }); }
+      }
+      if(val&&!list.includes(val)) list.push(val);
+    }
+    list.forEach(o=>{const e=document.createElement("option");e.value=o;e.textContent=o===""?"—":o;sel.appendChild(e);});
+    sel.value=val; sel.onchange=()=>{set(sel.value);check();paintRail();};
+    sel.id=`c_${norm(file)}_${ri}_${ci}`;
+    return sel;
+  }
+  if((sch.colour||[]).includes(head)){
+    const box=document.createElement("div"); box.style.display="flex"; box.style.alignItems="center";
+    const sw=document.createElement("input"); sw.type="color"; sw.value=/^#[0-9a-f]{6}$/i.test(val)?val:"#213a26";
+    sw.style.cssText="width:26px;min-width:26px;height:24px;border:1px solid var(--line);padding:0;margin:5px 0 5px 7px;cursor:pointer;background:none";
+    const tx=document.createElement("input"); tx.value=val;
+    sw.oninput=()=>{tx.value=sw.value;set(sw.value);};
+    tx.oninput=()=>{set(tx.value); if(/^#[0-9a-f]{6}$/i.test(tx.value)) sw.value=tx.value;};
+    tx.id=`c_${norm(file)}_${ri}_${ci}`;
+    box.appendChild(sw); box.appendChild(tx); return box;
+  }
+  if(LONG.includes(head)&&String(val).length>34){
+    const ta=document.createElement("textarea"); ta.value=val; ta.rows=1;
+    ta.oninput=()=>{set(ta.value);}; ta.onblur=()=>{check();paintRail();};
+    ta.id=`c_${norm(file)}_${ri}_${ci}`; return ta;
+  }
+  const inp=document.createElement("input"); inp.value=val;
+  inp.oninput=()=>set(inp.value);
+  inp.onblur=()=>{check();paintRail();};
+  inp.id=`c_${norm(file)}_${ri}_${ci}`;
+  return inp;
+}
+
+/* ============================================================
+   THE CHECKER — the same questions the game asks at startup.
+   ============================================================ */
+function check(){
+  PROBS=[];
+  const add=(file,row,col,msg,fix)=>PROBS.push({file,row,col,msg,fix});
+  const at=(f,c)=>DATA[f]?DATA[f].headers.indexOf(c):-1;
+  const col=(f,c)=>{const i=at(f,c);return i<0?[]:DATA[f].rows.map(r=>(r[i]||"").trim());};
+  const ids=(f,c)=>new Set(col(f,c).filter(Boolean).map(norm));
+
+  /* 1. duplicate keys */
+  for(const f of Object.keys(DATA)){
+    const k=(S[f]||{}).key; if(!k) continue;
+    const i=at(f,k); if(i<0) continue;
+    const seen={};
+    DATA[f].rows.forEach((r,ri)=>{
+      const v=norm(r[i]); if(!v) return;
+      if(seen[v]!==undefined) add(f,ri,k,`Two rows share the id "${(r[i]||'').trim()}".`,`Row ${seen[v]+2} has it too. Ids must be unique inside a file.`);
+      else seen[v]=ri;
+    });
+  }
+  /* 2. references */
+  for(const [f,map] of Object.entries(REFS)){
+    if(!DATA[f]) continue;
+    for(const [c,[rf,rc]] of Object.entries(map)){
+      const i=at(f,c); if(i<0||!DATA[rf]) continue;
+      const pool=ids(rf,rc);
+      DATA[f].rows.forEach((r,ri)=>{
+        const v=(r[i]||"").trim(); if(!v) return;
+        if(!pool.has(norm(v))) add(f,ri,c,`"${v}" is not in ${rf}.`,`Add a row there with that id, or pick one from the list.`);
+      });
+    }
+  }
+  /* 3. `and` where a semicolon belongs */
+  const CONDS=["Requires","Effects","Action","Do","Reward","On Win","On Loss","Use"];
+  for(const f of Object.keys(DATA)) for(const c of CONDS){
+    const i=at(f,c); if(i<0) continue;
+    DATA[f].rows.forEach((r,ri)=>{
+      const v=r[i]||"";
+      if(/\s+and\s+/i.test(v)) add(f,ri,c,`"and" is not a word this understands.`,`Terms are joined with a semicolon: <code>unlocked:Brewery;count:coins>=50</code>`);
+    });
+  }
+  /* 4. counters read but never written */
+  const written=new Set(), read=new Map();
+  col("Stats.csv","Counter").forEach(v=>v&&written.add(norm(v)));
+  col("Items.csv","ID").forEach(v=>v&&written.add(norm(v)));
+  const SEASON=["seasonwins","seasondraws","seasonlosses","seasongoalsfor","seasongoalsagainst","seasonpoints","seasonmatch","seasonnumber","talentpoints"];
+  SEASON.forEach(v=>written.add(v));
+  for(const f of Object.keys(DATA)) for(const c of CONDS){
+    const i=at(f,c); if(i<0) continue;
+    DATA[f].rows.forEach((r,ri)=>{
+      const v=r[i]||"";
+      for(const m of v.matchAll(/count:\s*([A-Za-z0-9_ ]+?)\s*[+\-=]/g)) written.add(norm(m[1]));
+      if(/^requires$/i.test(c)) for(const m of v.matchAll(/count:\s*([A-Za-z0-9_ ]+?)\s*[><=!]/g))
+        if(!read.has(norm(m[1]))) read.set(norm(m[1]),{f,ri,c,raw:m[1].trim()});
+    });
+  }
+  for(const [k,w] of read) if(!written.has(k)&&!k.startsWith("cleared"))
+    add(w.f,w.ri,w.c,`Nothing ever adds to "${w.raw}".`,`This condition can never be true. Add a Stats.csv row that counts it, or an Action/Effects that gives it.`);
+  /* 5. unlocks required but never granted */
+  const grant=new Set(), want=new Map();
+  col("Talents.csv","ID").forEach(v=>v&&grant.add(norm(v)));
+  for(const f of Object.keys(DATA)) for(const c of CONDS){
+    const i=at(f,c); if(i<0) continue;
+    DATA[f].rows.forEach((r,ri)=>{
+      for(const m of (r[i]||"").matchAll(/unlock:\s*([^;]+)/g)) grant.add(norm(m[1]));
+    });
+  }
+  for(const f of Object.keys(DATA)){
+    const i=at(f,"Requires"); if(i<0) continue;
+    DATA[f].rows.forEach((r,ri)=>{
+      for(const m of (r[i]||"").matchAll(/unlocked:\s*([^;]+)/g))
+        if(!want.has(norm(m[1]))) want.set(norm(m[1]),{f,ri,raw:m[1].trim()});
+    });
+  }
+  for(const [k,w] of want) if(!grant.has(k))
+    add(w.f,w.ri,"Requires",`Nothing ever unlocks "${w.raw}".`,`Give it to somebody: <code>unlock:${w.raw}</code> in a Season reward, a Bounty reward, a Building action or a Progression row.`);
+  /* 6. the tier ladder */
+  const rungs={};
+  if(DATA["TierPowers.csv"]){
+    const t=at("TierPowers.csv","Tier"), lo=at("TierPowers.csv","Min Attack"), hi=at("TierPowers.csv","Max Attack");
+    if(t>=0&&lo>=0&&hi>=0) DATA["TierPowers.csv"].rows.forEach((r,ri)=>{
+      const a=parseInt(r[lo]),b=parseInt(r[hi]);
+      if(isNaN(a)||isNaN(b))return;
+      const list=[]; for(let p=a;p<=b;p++) list.push(p);
+      rungs[norm(r[t])]=list;
+      if(list.length!==3) add("TierPowers.csv",ri,"Max Attack",`Tier ${r[t]} holds ${list.length} cards, not three.`,`The pitch has three slots per tier. Keep Min to Max three wide.`);
+    });
+  }
+  for(const f of Object.keys(DATA)){
+    const u=at(f,"Unit Type"), p=at(f,"Base Power Left"), t=at(f,"Tier"), n=at(f,"Name");
+    if(u<0||p<0||t<0) continue;
+    DATA[f].rows.forEach((r,ri)=>{
+      const tier=norm(r[t]), pw=parseInt(r[p]);
+      if(!rungs[tier]||isNaN(pw)) return;
+      if(!rungs[tier].includes(pw))
+        add(f,ri,"Base Power Left",`${r[n]||"This card"} is Tier ${r[t]} with ${pw} power.`,`Tier ${r[t]} holds ${rungs[tier].join(", ")}. Change the power or the tier.`);
+    });
+  }
+  /* 7. enemy layers */
+  if(DATA["AdventureEnemies.csv"]){
+    const L=at("AdventureEnemies.csv","Layers"), A=at("AdventureEnemies.csv","Attack"), N=at("AdventureEnemies.csv","Name");
+    DATA["AdventureEnemies.csv"].rows.forEach((r,ri)=>{
+      if(A>=0&&!(parseInt(r[A])>0)) add("AdventureEnemies.csv",ri,"Attack",`${r[N]||"This enemy"} has no Attack.`,`It could never hurt anybody. Give it at least 1.`);
+      if(L<0) return;
+      (r[L]||"").split("|").forEach(pc=>{
+        const b=pc.trim().split(":"); if(b.length<3) return;
+        const soak=parseInt(b[2]);
+        if(soak>=5) add("AdventureEnemies.csv",ri,"Layers",`The "${b[0]}" layer soaks ${soak}.`,`The biggest power gap possible is 5, so almost nothing would get through. 0 to 3 is the useful range.`);
+      });
+    });
+  }
+  /* 8. brew costs name real items */
+  if(DATA["Brews.csv"]&&DATA["Items.csv"]){
+    const C=at("Brews.csv","Cost"), pool=ids("Items.csv","ID");
+    if(C>=0) DATA["Brews.csv"].rows.forEach((r,ri)=>{
+      (r[C]||"").split("|").forEach(pc=>{
+        const nm=pc.split(":")[0].trim(); if(!nm) return;
+        if(!pool.has(norm(nm))) add("Brews.csv",ri,"Cost",`"${nm}" is not in Items.csv.`,`A cost has to name a real item.`);
+      });
+    });
+  }
+  paintProbs();
+}
+
+function paintProbs(){
+  const tag=$("#probtag"), list=$("#problist");
+  if(!PROBS.length){ tag.className="tag ok"; tag.textContent="all clear"; }
+  else { tag.className="tag err"; tag.textContent=PROBS.length+(PROBS.length===1?" problem":" problems"); }
+  list.innerHTML="";
+  list.hidden=!OPEN; $("#probchev").textContent=OPEN?"▾":"▸";
+  if(!OPEN) return;
+  if(SAMPLE && PROBS.length){
+    const s=document.createElement("div"); s.className="prob";
+    s.innerHTML='<span class="tag ok">sample</span><div><span>Most of these are the example set\'s own fault.</span>'+
+      '<span class="fix">It is only the first six rows of each of your real files, so plenty of ids point at rows that were trimmed off. '+
+      'Press <b>Load CSVs</b> and choose everything in your <b>data</b> folder — then this list is about your game.</span></div>';
+    list.appendChild(s);
+  }
+  if(!PROBS.length){
+    const d=document.createElement("div"); d.className="prob";
+    d.innerHTML='<span style="color:var(--dim)">Every id is unique, every reference resolves, every counter that is read is written somewhere, and every card sits on its proper rung.</span>';
+    list.appendChild(d); return;
+  }
+  PROBS.slice(0,120).forEach(p=>{
+    const d=document.createElement("div"); d.className="prob";
+    const b=document.createElement("b"); b.textContent=`${p.file.replace(/\.csv$/,"")} ${p.row+2}`;
+    const body=document.createElement("div");
+    body.innerHTML=`<span>${p.msg}</span><span class="fix">${p.fix||""}</span>`;
+    const j=document.createElement("button"); j.className="jump"; j.textContent="show";
+    j.onclick=()=>{
+      CUR=p.file; paintRail(); paintTable();
+      const el=document.getElementById(`c_${norm(p.file)}_${p.row}_${DATA[p.file].headers.indexOf(p.col)}`);
+      if(el){ el.scrollIntoView({block:"center",behavior:"smooth"}); el.focus(); }
+    };
+    d.appendChild(b); d.appendChild(body); d.appendChild(j);
+    list.appendChild(d);
+  });
+}
+
+/* ---------- loading ---------- */
+function ingest(name, text){
+  const rows=parseCSV(text);
+  if(rows.length<2) return false;
+  const headers=rows[0].map(h=>h.trim());
+  const body=rows.slice(1).map(r=>{const o=[];for(let i=0;i<headers.length;i++)o.push(r[i]??"");return o;});
+  DATA[name]={headers,rows:body};
+  return true;
+}
+function loadFiles(list){
+  let n=0, left=list.length;
+  if(!left) return;
+  [...list].forEach(f=>{
+    if(!/\.csv$/i.test(f.name)){ if(--left===0) done(); return; }
+    const rd=new FileReader();
+    rd.onload=()=>{ if(ingest(f.name, rd.result)) n++; if(--left===0) done(); };
+    rd.onerror=()=>{ if(--left===0) done(); };
+    rd.readAsText(f);
+  });
+  function done(){
+    if(n){ SAMPLE=false; CUR=CUR&&DATA[CUR]?CUR:Object.keys(DATA)[0]; save(); paintRail(); paintTable(); check(); }
+    closeVeil();
+    if(!n) alert("Nothing loaded — pick .csv files.");
+  }
+}
+
+/* ---------- panels ---------- */
+function veil(inner){
+  const v=document.createElement("div"); v.id="veil";
+  v.innerHTML=`<div class="panel">${inner}</div>`;
+  v.onclick=e=>{ if(e.target===v) closeVeil(); };
+  document.body.appendChild(v);
+  return v;
+}
+function closeVeil(){ const v=$("#veil"); if(v) v.remove(); }
+
+function showLoad(){
+  const v=veil(`<header><h3>Load your CSVs</h3></header>
+    <div class="in">
+      <div class="drop" id="drop"><b>Drop .csv files here</b><br>or use the button below. Pick them all at once — the workbench needs to see them together to check that they line up.</div>
+      <p class="note">Your project's files live in <span class="kbd">project_sb/data/</span>. Nothing is uploaded anywhere; this all happens in your browser, and your work is kept between visits.</p>
+    </div>
+    <footer><button class="btn key" id="bPickGo">Choose files</button>
+      <button class="btn" id="bSeed">Start from the example set</button>
+      <div class="grow"></div><button class="btn" id="bClose">Close</button></footer>`);
+  v.querySelector("#bPickGo").onclick=()=>$("#pick").click();
+  v.querySelector("#bClose").onclick=closeVeil;
+  v.querySelector("#bSeed").onclick=()=>{
+    if(!confirm("Replace everything currently loaded with the example set?")) return;
+    DATA=JSON.parse(JSON.stringify(unseed())); CUR=Object.keys(DATA)[0]; SAMPLE=true;
+    save(); paintRail(); paintTable(); check(); closeVeil();
+  };
+  const d=v.querySelector("#drop");
+  ["dragenter","dragover"].forEach(e=>d.addEventListener(e,ev=>{ev.preventDefault();d.classList.add("hot");}));
+  ["dragleave","drop"].forEach(e=>d.addEventListener(e,ev=>{ev.preventDefault();d.classList.remove("hot");}));
+  d.addEventListener("drop",ev=>loadFiles(ev.dataTransfer.files));
+}
+
+function showExport(only){
+  const names = only?[only]:Object.keys(DATA).sort();
+  const v=veil(`<header><h3>${only?only:"Export everything"}</h3></header>
+    <div class="in">
+      <select id="which" style="width:100%;padding:8px;background:var(--paper);border:1px solid var(--line);border-radius:3px;margin-bottom:10px"></select>
+      <textarea class="csv" id="out" spellcheck="false"></textarea>
+      <p class="note"><b>Copy</b> puts the file on your clipboard — paste it into the real <span class="kbd">.csv</span> and save. <b>Download</b> writes the file directly, and works when you have opened this workbench from your own computer.</p>
+    </div>
+    <footer><button class="btn key" id="bCopy">Copy</button>
+      <button class="btn" id="bDown">Download</button>
+      <span id="said" style="color:var(--pitch);font-size:13px"></span>
+      <div class="grow"></div><button class="btn" id="bClose2">Close</button></footer>`);
+  const sel=v.querySelector("#which"), out=v.querySelector("#out");
+  (only?names:Object.keys(DATA).sort()).forEach(n=>{
+    const o=document.createElement("option"); o.value=n; o.textContent=n; sel.appendChild(o);
+  });
+  const show=()=>{ out.value=toCSV(sel.value); };
+  sel.onchange=show; show();
+  v.querySelector("#bClose2").onclick=closeVeil;
+  v.querySelector("#bCopy").onclick=async()=>{
+    try{ await navigator.clipboard.writeText(out.value); }
+    catch(e){ out.select(); document.execCommand("copy"); }
+    v.querySelector("#said").textContent=`${sel.value} copied.`;
+    setTimeout(()=>{const s=v.querySelector("#said"); if(s) s.textContent="";},2600);
+  };
+  v.querySelector("#bDown").onclick=()=>{
+    const blob=new Blob([out.value],{type:"text/csv"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob); a.download=sel.value;
+    document.body.appendChild(a); a.click(); a.remove();
+    v.querySelector("#said").textContent="If nothing happened, use Copy instead.";
+  };
+}
+
+/* ---------- wiring ---------- */
+$("#bLoad").onclick=showLoad;
+$("#bExport").onclick=()=>showExport(null);
+$("#bCheck").onclick=()=>{ OPEN=true; check(); $("#problist").scrollIntoView({behavior:"smooth"}); };
+$("#probhead").onclick=()=>{ OPEN=!OPEN; paintProbs(); };
+$("#pick").onchange=e=>loadFiles(e.target.files);
+$("#bTheme").onclick=()=>{
+  const now=document.documentElement.getAttribute("data-theme");
+  const next = now==="dark" ? "light" : now==="light" ? "dark"
+    : (matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
+  document.documentElement.setAttribute("data-theme",next);
+  try{ localStorage.setItem("sturmball.theme",next); }catch(e){}
+};
+try{ const t=localStorage.getItem("sturmball.theme"); if(t) document.documentElement.setAttribute("data-theme",t); }catch(e){}
+["dragenter","dragover","drop"].forEach(e=>document.addEventListener(e,ev=>ev.preventDefault()));
+document.addEventListener("drop",ev=>{ if(ev.dataTransfer&&ev.dataTransfer.files.length) loadFiles(ev.dataTransfer.files); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeVeil(); });
+
+boot();
+</script>
