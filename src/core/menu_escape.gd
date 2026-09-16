@@ -69,6 +69,15 @@ static func install(on: Node) -> MenuEscape:
 	var tree := on.get_tree()
 	GameKeys.install(tree)
 	GameSettings.apply(tree)
+
+	# CONTROLLER AND ARROW-KEY NAVIGATION, on every screen, from this one
+	# line. A screen written next year gets it without knowing it exists.
+	# See controller_focus.gd.
+	ControllerFocus.install(on)
+
+	# THE LANGUAGE. Loaded once per run from Language.csv; every screen then
+	# reads its words through Loc.text(). See localisation.gd.
+	Loc.install()
 	return made
 
 

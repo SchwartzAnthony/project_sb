@@ -45,6 +45,10 @@ var _home: Button
 
 
 func _ready() -> void:
+	# Escape, controller navigation, the key bindings, the player's
+	# settings and the language — all five from this one line. See
+	# menu_escape.gd.
+	MenuEscape.install(self)
 	GameSpeed.reset()
 
 	db = CardDatabase.get_db()
@@ -56,7 +60,19 @@ func _ready() -> void:
 	_list = _grab("BoardList") as VBoxContainer
 	_home = _grab("HomeButton") as Button
 
+	# THE TITLE IS "ACHIEVEMENTS". The scene file calls it something else —
+	# it grew out of a "why is this locked?" page — and the word is set here
+	# rather than in the editor so that the language file can change it.
+	if _title != null:
+		_title.text = Loc.text("achievements", "ACHIEVEMENTS")
+
+	# BACK, BOTTOM-LEFT, THE SAME BUTTON AS EVERY OTHER SCREEN. It used to
+	# say "Back to the base" in the middle, which was the only screen that
+	# did that.
 	if _home != null:
+		MenuSupport.restyle(_home, "back|←", Loc.text("back", "Back"))
+		MenuSupport.pin_bottom_left(_home)
+		_home.name = "BackButton"
 		_home.pressed.connect(func() -> void:
 			ScenePaths.go_back(get_tree(), ScenePaths.BASE))
 
@@ -98,7 +114,8 @@ func _build_filters() -> void:
 			continue
 		_filters.add_child(_filter_button("%ss" % kind, kind))
 
-	var toggle := _make_button("Hide what I have" if _show_done else "Show everything", 190.0)
+	var toggle := MenuSupport.icon_button("◑",
+		"Hide what I have" if _show_done else "Show everything", Vector2(220, 46))
 	toggle.pressed.connect(func() -> void:
 		_show_done = not _show_done
 		_rebuild())
@@ -106,10 +123,8 @@ func _build_filters() -> void:
 
 
 func _filter_button(label: String, kind: String) -> Button:
-	var button := _make_button(label, 108.0)
 	var lit := _filter == kind
-	button.add_theme_color_override("font_color",
-		MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT)
+	var button := MenuSupport.icon_button("●" if lit else "○", label, Vector2(150, 46))
 	button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
 		MenuSupport.COLOUR_SLOT_EMPTY if lit else MenuSupport.COLOUR_PANEL,
 		MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT_DIM))
@@ -188,16 +203,11 @@ func _entry_row(entry: Dictionary) -> Control:
 	return row
 
 
+## THIS SCREEN'S BUTTONS ARE THE SHARED ONES NOW.
+##
+## It used to build a plain Button here, which is why Back looked different
+## depending on which screen you were standing on. It hands the job to
+## MenuSupport.icon_button() instead, so every call site in this file gets
+## the standard icon-and-label face without one of them being edited.
 func _make_button(label: String, width: float) -> Button:
-	var button := Button.new()
-	button.text = label
-	button.custom_minimum_size = Vector2(width, 32)
-	button.focus_mode = Control.FOCUS_NONE
-	button.add_theme_font_size_override("font_size", 13)
-	button.add_theme_stylebox_override("normal",
-		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_TEXT_DIM))
-	button.add_theme_stylebox_override("hover",
-		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
-	button.add_theme_stylebox_override("pressed",
-		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
-	return button
+	return MenuSupport.icon_button("◇", label, Vector2(width, 46.0))

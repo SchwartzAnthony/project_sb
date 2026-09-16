@@ -63,6 +63,10 @@ var _home: Button
 
 
 func _ready() -> void:
+	# Escape, controller navigation, the key bindings, the player's
+	# settings and the language — all five from this one line. See
+	# menu_escape.gd.
+	MenuEscape.install(self)
 	# Time runs at whatever speed you left it. On a menu that is silly, and
 	# it makes the buttons feel broken, so it goes back to normal here.
 	GameSpeed.reset()
@@ -141,11 +145,16 @@ func _put(label: Label, text: String) -> void:
 func _fill_header() -> void:
 	var over := SeasonDB.is_over(state)
 
-	var title_text := "THE SEASON"
+	# THE TITLE IS THE SEASON'S NAME. It used to say FULL TIME whenever there
+	# was a match summary to show — which was left over from the last game
+	# you played and read as a bug, because you had not just finished one.
+	# The scoreline under it already says what the last result was; the title
+	# says where you are.
+	var book := SeasonBook.get_db()
+	var here := book.find(SeasonBook.chosen_id())
+	var title_text := String(here.get("name", "THE SEASON")).to_upper()
 	if over:
 		title_text = SeasonDB.verdict(state)
-	elif not _summary.is_empty():
-		title_text = "FULL TIME"
 	_put(_title, title_text)
 
 	if _title != null and over and not state.has_flag(SeasonDB.CHAMPION_FLAG):
@@ -356,18 +365,22 @@ static func _letter(result: String) -> String:
 
 func _fill_buttons() -> void:
 	if _primary != null:
+		MenuSupport.pin_bottom_centre(_primary)
 		if SeasonDB.is_over(state):
-			_primary.text = "Start season %d" % (maxi(1, state.count(SeasonDB.NUMBER)) + 1)
+			MenuSupport.restyle(_primary, "season|▦",
+				"Start season %d" % (maxi(1, state.count(SeasonDB.NUMBER)) + 1), true)
 			_primary.pressed.connect(func() -> void:
 				SeasonDB.new_season(state)
 				state.save_to_disk()
 				ScenePaths.go_to(get_tree(), ScenePaths.SEASON))
 		else:
 			var next := season.current(state)
+			var word := Loc.text("play_season", "Play")
 			if next.is_empty():
-				_primary.text = "Play the next match"
+				MenuSupport.restyle(_primary, "play|▶", "%s the next match" % word, true)
 			else:
-				_primary.text = "Play: %s" % next["opponent"]
+				MenuSupport.restyle(_primary, "play|▶",
+					"%s: %s" % [word, next["opponent"]], true)
 			_primary.pressed.connect(func() -> void:
 				state.save_to_disk()
 				# THE LEAGUE IS PLAYED FROM HERE. The base's "Play a match"
@@ -376,11 +389,18 @@ func _fill_buttons() -> void:
 				MatchMode.choose(get_tree(), "season")
 				ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT))
 
+	# BACK GOES BOTTOM-LEFT, like every other screen, and PLAY is the only
+	# thing on the bottom middle. Both buttons come from the scene file, so
+	# they are restyled and repositioned here rather than in the editor —
+	# which means you never have to open season_screen.tscn to keep them in
+	# step with the rest of the game.
 	if _home != null:
-		_home.text = "Back"
+		MenuSupport.restyle(_home, "back|←", Loc.text("back", "Back"))
+		MenuSupport.pin_bottom_left(_home)
+		_home.name = "BackButton"        # so B on a controller finds it
 		_home.pressed.connect(func() -> void:
 			state.save_to_disk()
-			ScenePaths.go_back(get_tree(), ScenePaths.BASE))
+			ScenePaths.go_back(get_tree(), ScenePaths.SEASON_PICKER))
 
 
 func _quiet(text: String) -> Label:

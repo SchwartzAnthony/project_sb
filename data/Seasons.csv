@@ -1,0 +1,6 @@
+ID,Name,Art,Colour,Requires,Row,Column,After,Matches,Description,Notes
+county_league,The County League,season_county,#5aa0c8,,0,1,,,"Eleven fixtures and a final. Where everybody starts.","ROW and COLUMN are where the tile sits on the shelf - this is the talent-tree part. Leave Requires blank and it is always open"
+winter_cup,The Winter Cup,season_winter,#8fb8d8,unlocked:The Cup,1,0,county_league,6,"Short, cold and knockout. Lose once and it is over.","AFTER draws the joining line back to the county league. REQUIRES is what actually locks it"
+coast_division,The Coast Division,season_coast,#5ec48f,count:season_wins>=6,1,2,county_league,11,"Up the coast, where the pitches are hard and the crowds are worse.",
+inland_shield,The Inland Shield,season_inland,#c8a24a,count:season_wins>=12,2,1,coast_division,11,"The middle of the country. Older clubs, longer memories.",
+the_crown,The Crown,season_crown,#c86a8a,unlocked:The Crown,3,1,inland_shield,14,"What all of it was for.","The last tile. Add as many rows as you like below this one - the shelf grows to fit"

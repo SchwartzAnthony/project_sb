@@ -62,7 +62,18 @@ static func get_db() -> AdventureDB:
 	return _instance
 
 
-static func reload() -> void:
+## RE-READ THE SPREADSHEETS FROM DISK.
+##
+## NOT CALLED `reload()`. Every class_name in Godot is also a Script object,
+## and Script already has a built-in reload() — so `BaseDB.reload()` resolved
+## to THAT and printed
+##
+##     Cannot reload script while instances exist.
+##
+## while quietly never calling this at all. Naming it reload_files() is the
+## whole fix. If you add a loader of your own, avoid reload(), free(),
+## duplicate() and get_name() for the same reason.
+static func reload_files() -> void:
 	_instance = null
 	get_db()
 
@@ -203,6 +214,18 @@ func _read_enemies(rows: Array, columns: Dictionary, where: String) -> void:
 			"targeting": _or(_cell(row, columns, "targeting").to_lower(), "weakest"),
 			"element": _cell(row, columns, "element"),
 			"ability": _cell(row, columns, "ability"),
+			# WHAT IT GAINS WHILE YOU BUILD YOUR MOVE.
+			#
+			# Your four tiers pass the ball before they shoot, and the
+			# enemies are not standing still while that happens: each pass
+			# lets every enemy that has a Buff get that much angrier. It is
+			# shown live in the right-hand window of the build-up and it is
+			# added to what they hit you for THIS ROUND only.
+			#
+			# Blank or 0 = this enemy does not build up, which is what most
+			# of them should be. Give it to the ones that should feel like a
+			# clock ticking.
+			"buff": _int(_cell(row, columns, "buff"), 0),
 			"art": _cell(row, columns, "art"),
 			"drops": _cell(row, columns, "drops"),
 			"weight": _int(_cell(row, columns, "weight"), 1),

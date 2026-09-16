@@ -28,6 +28,10 @@ var _selected: Dictionary = {}
 
 
 func _ready() -> void:
+	# Escape, controller navigation, the key bindings, the player's
+	# settings and the language — all five from this one line. See
+	# menu_escape.gd.
+	MenuEscape.install(self)
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	cards = CardDatabase.get_db()
@@ -76,9 +80,7 @@ func _build_ui() -> void:
 	_permanent.disabled = not state.is_unlocked(BrewDB.PERMANENT_UNLOCK)
 	header.add_child(_permanent)
 
-	var back := Button.new()
-	back.text = "Back to the base"
-	back.custom_minimum_size = Vector2(190, 44)
+	var back := MenuSupport.icon_button("◇", "Back to the base", Vector2(190, 44))
 	back.add_theme_font_size_override("font_size", 16)
 	back.add_theme_stylebox_override("normal",
 		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))

@@ -1,0 +1,25 @@
+File,Folder,Bus,When it plays,What it should sound like,Notes
+menu_theme.wav,assets/audio/,Music,screen_opened  screen=main,The main menu. Keeps playing until another looping row claims the Music bus.,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+base_calm.wav,assets/audio/,Music,screen_opened  screen=base,The base. Walking to the Pub and back does NOT restart it - the same track on the same bus is left alone.,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+base_warm.wav,assets/audio/,Music,screen_opened  screen=base,"THE WHOLE IDEA IN ONE ROW: same moment, same bus, but only once the Brewery is open. The LAST matching row win",Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+pub_room.wav,assets/audio/,Music,screen_opened  screen=pub,,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+season_table.wav,assets/audio/,Music,screen_opened  screen=season,,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+crowd_loop.wav,assets/audio/,Music,match_started,The crowd. A loop under the whole match.,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+whistle_long.wav,assets/audio/,Effects,match_started,,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+whistle_short.wav,assets/audio/,Effects,play_maker,Every PLAY MAKER.,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+whistle_double.wav,assets/audio/,Effects,hold_up,Every HOLD UP.,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+goal_horn.wav,assets/audio/,Effects,goal_scored,Any goal you score.,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+goal_horn_big.wav,assets/audio/,Effects,goal_scored  star=yes,"A Star scored. Below the general row, so this one wins.",Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+crowd_groan.wav,assets/audio/,Effects,goal_conceded,,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+ball_kick.wav,assets/audio/,Effects,shot_taken,,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+glove_catch.wav,assets/audio/,Effects,save_made,,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+glove_catch_big.wav,assets/audio/,Effects,save_made  power>=4,A save against a shot of 4 power or more.,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+duel_win.wav,assets/audio/,Effects,duel_won,,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+duel_win_heavy.wav,assets/audio/,Effects,duel_won  tier=IV,,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+duel_lose.wav,assets/audio/,Effects,duel_lost,,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+pour.wav,assets/audio/,Effects,brew_drunk,,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+ui_tick.wav,assets/audio/,UI,card_hovered,Quiet on purpose - it fires every time the mouse crosses a card.,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+ui_confirm.wav,assets/audio/,UI,card_picked,,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+fanfare_win.wav,assets/audio/,Music,match_ended  result=win,Not looping: it plays once over whatever the Music bus was doing.,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+fanfare_loss.wav,assets/audio/,Music,match_ended  result=loss,,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
+fanfare_draw.wav,assets/audio/,Music,match_ended  result=draw,,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there

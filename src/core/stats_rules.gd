@@ -75,7 +75,18 @@ static func get_rules() -> StatsRules:
 	return _instance
 
 
-static func reload() -> void:
+## RE-READ THE SPREADSHEETS FROM DISK.
+##
+## NOT CALLED `reload()`. Every class_name in Godot is also a Script object,
+## and Script already has a built-in reload() — so `BaseDB.reload()` resolved
+## to THAT and printed
+##
+##     Cannot reload script while instances exist.
+##
+## while quietly never calling this at all. Naming it reload_files() is the
+## whole fix. If you add a loader of your own, avoid reload(), free(),
+## duplicate() and get_name() for the same reason.
+static func reload_files() -> void:
 	_instance = null
 	get_rules()
 

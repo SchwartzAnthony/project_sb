@@ -28,7 +28,10 @@ extends RefCounted
 #  Same rule as the keeper and the unlock board.
 # =============================================================
 
-const SAVE_PATH := "user://teams.json"
+## WHERE YOUR TEAMS LIVE. A `static var` rather than a `const` because the
+## save-slot screen points it at a different slot's file — see save_slots.gd,
+## and the same arrangement GameState.SAVE_PATH uses.
+static var SAVE_PATH := "user://teams.json"
 
 ## The drawn emblems, for a team with no artwork yet. A designer picking
 ## from this list is picking a SHAPE and a COLOUR, and both are visible on

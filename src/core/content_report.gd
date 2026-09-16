@@ -52,6 +52,15 @@ func _gather() -> void:
 	var season := SeasonDB.get_db()
 	var audio := AudioDB.get_db()
 	var squads := TeamDB.get_db()
+	var combos := ComboDB.get_db()
+	var book := SeasonBook.get_db()
+
+	lines.append("[content] %d competition(s) in Seasons.csv, %d combo(s) in Combos.csv, %d language(s) in Language.csv."
+		% [book.seasons.size(), combos.rules.size(), Loc.languages().size()])
+	for note in book.problems:
+		lines.append("  ! " + note)
+	for note in combos.problems:
+		lines.append("  ! " + note)
 
 	lines.append("[content] %d cards, %d abilities, %d story lines across %d scene(s), %d stat rules, %d progression rows."
 		% [cards.players.size(), cards.abilities.size(),

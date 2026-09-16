@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bhhf0y0qb8lym"
+
+[deps]
+
+files=["res://data/SOUNDS_WANTED.Folder.translation", "res://data/SOUNDS_WANTED.Bus.translation", "res://data/SOUNDS_WANTED.When it plays.translation", "res://data/SOUNDS_WANTED.What it should sound like.translation", "res://data/SOUNDS_WANTED.Notes.translation"]
+
+source_file="res://data/SOUNDS_WANTED.csv"
+dest_files=["res://data/SOUNDS_WANTED.Folder.translation", "res://data/SOUNDS_WANTED.Bus.translation", "res://data/SOUNDS_WANTED.When it plays.translation", "res://data/SOUNDS_WANTED.What it should sound like.translation", "res://data/SOUNDS_WANTED.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

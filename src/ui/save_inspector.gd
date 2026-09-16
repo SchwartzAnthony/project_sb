@@ -58,6 +58,10 @@ var _wipe_armed: bool = false
 
 
 func _ready() -> void:
+	# Escape, controller navigation, the key bindings, the player's
+	# settings and the language — all five from this one line. See
+	# menu_escape.gd.
+	MenuEscape.install(self)
 	GameSpeed.reset()
 	db = CardDatabase.get_db()
 	state = GameState.fetch(get_tree())

@@ -87,7 +87,18 @@ static func get_db() -> SeasonDB:
 	return _instance
 
 
-static func reload() -> void:
+## RE-READ THE SPREADSHEETS FROM DISK.
+##
+## NOT CALLED `reload()`. Every class_name in Godot is also a Script object,
+## and Script already has a built-in reload() — so `BaseDB.reload()` resolved
+## to THAT and printed
+##
+##     Cannot reload script while instances exist.
+##
+## while quietly never calling this at all. Naming it reload_files() is the
+## whole fix. If you add a loader of your own, avoid reload(), free(),
+## duplicate() and get_name() for the same reason.
+static func reload_files() -> void:
 	_instance = null
 	get_db()
 
@@ -153,6 +164,10 @@ func _load_csv(path: String) -> void:
 
 		fixtures.append({
 			"id": id_text,
+			# WHICH COMPETITION THIS FIXTURE BELONGS TO. Blank means "the
+			# first one", so a fixture list written before Seasons.csv
+			# existed still works exactly as it did. See season_book.gd.
+			"season": _cell(row, columns, "season"),
 			"number": _cell_int(row, columns, "match", 0),
 			"opponent": opponent,
 			"team": _cell(row, columns, "team"),
@@ -180,6 +195,7 @@ func _sort_by_number() -> void:
 				break
 		sorted.insert(at, entry)
 	fixtures = sorted
+	_keep_only_the_chosen_season()
 
 
 # =============================================================
@@ -222,6 +238,36 @@ func last_number() -> int:
 
 static func is_over(state: GameState) -> bool:
 	return state != null and state.has_flag(OVER_FLAG)
+
+
+## ============ ONE COMPETITION AT A TIME ============
+##
+## Season.csv can hold the fixtures of every competition you ever write. The
+## Season column says which is which, and only the chosen one is loaded — so
+## everything downstream (the table, "next up", the final) sees one season
+## and needed no changes at all.
+##
+## A fixture with a blank Season column belongs to whichever competition is
+## first in Seasons.csv, which is why an older fixture list still works.
+func _keep_only_the_chosen_season() -> void:
+	var chosen := SeasonBook.chosen_id()
+	if chosen == "":
+		return
+
+	var first := SeasonBook.first_id()
+	var kept: Array[Dictionary] = []
+	for entry in fixtures:
+		var belongs := String(entry.get("season", "")).strip_edges()
+		if belongs == "":
+			belongs = first
+		if CardDatabase._normalise(belongs) == CardDatabase._normalise(chosen):
+			kept.append(entry)
+
+	if kept.is_empty():
+		problems.append("Season: no fixture in Season.csv has Season = '%s'. Showing every fixture instead."
+			% chosen)
+		return
+	fixtures = kept
 
 
 ## How many fixtures have actually been played.

@@ -34,6 +34,8 @@ const BOUNTY_BOARD := "res://src/ui/bounty_board.tscn"
 const ADVENTURE := "res://src/adventure/adventure_scene.tscn"
 const TEAM_SELECT := "res://src/ui/team_select.tscn"
 const SETTINGS := "res://src/ui/settings_screen.tscn"
+const SEASON_PICKER := "res://src/ui/season_picker.tscn"
+const SLOTS := "res://src/ui/slot_screen.tscn"
 
 
 ## Turn a short word from a CSV into a screen path, so Progression.csv can
@@ -63,6 +65,10 @@ static func for_name(screen: String) -> String:
 			return PUB
 		"season", "table", "results", "fixtures":
 			return SEASON
+		"seasons", "competitions", "leagues", "season_picker":
+			return SEASON_PICKER
+		"slots", "saves", "slot", "load":
+			return SLOTS
 		"stats", "report", "fulltime", "full_time":
 			return STATS
 		"unlocks", "board", "locked", "progress":

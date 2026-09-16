@@ -59,6 +59,12 @@ var _cards := {}         # "left"/"right" -> PlayerData currently on show
 
 
 func _ready() -> void:
+	# NOT MenuEscape here. This screen has its own use for the pause key
+	# — it closes the conversation / the cut-away — and MenuEscape would
+	# take that key away and offer to quit the game instead. So it takes
+	# only the two pieces it does want.
+	ControllerFocus.install(self)
+	Loc.install()
 	_wire()
 	if _dim:
 		_dim.visible = false

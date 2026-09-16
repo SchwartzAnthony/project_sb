@@ -90,8 +90,8 @@ static func enter(tree: SceneTree, which: String = "") -> void:
 	DialogueDB.DATA_DIR = folder
 	GameState.SAVE_PATH = save
 
-	BaseDB.reload()
-	DialogueDB.reload()
+	BaseDB.reload_files()
+	DialogueDB.reload_files()
 	GameState.forget(tree)          # so the tutorial save is read, not yours
 	ScenePaths.clear_trail(tree)
 
@@ -122,8 +122,8 @@ static func leave(tree: SceneTree) -> void:
 	DialogueDB.DATA_DIR = REAL_FOLDER
 	GameState.SAVE_PATH = REAL_SAVE
 
-	BaseDB.reload()
-	DialogueDB.reload()
+	BaseDB.reload_files()
+	DialogueDB.reload_files()
 	GameState.forget(tree)          # your real save is read back in
 	TeamSelection.clear(tree)
 	ScenePaths.clear_trail(tree)

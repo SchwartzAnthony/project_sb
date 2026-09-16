@@ -240,10 +240,12 @@ func _on_action(action: String) -> void:
 
 	match verb.to_lower():
 		"start_game":
-			# START opens the base. Everything else — the season, a match, the
-			# talent tree, an Adventure — is started from in there.
+			# START ASKS WHICH SAVE FIRST, then opens the base. With
+			# slot_count set to 1 in Tuning.csv the slot screen still works
+			# and simply has one tile on it, so a single-save game is a
+			# spreadsheet setting rather than a different code path.
 			state.save_to_disk()
-			ScenePaths.go_to(get_tree(), ScenePaths.BASE)
+			ScenePaths.go_to(get_tree(), ScenePaths.SLOTS)
 		"quick_match":
 			# A QUICK MATCH IS ITS OWN KIND OF MATCH, not a shortcut to the
 			# usual one: no clock, one Star, and nothing written to the season

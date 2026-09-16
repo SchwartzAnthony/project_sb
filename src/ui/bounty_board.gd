@@ -47,6 +47,10 @@ var _start: Button
 
 
 func _ready() -> void:
+	# Escape, controller navigation, the key bindings, the player's
+	# settings and the language — all five from this one line. See
+	# menu_escape.gd.
+	MenuEscape.install(self)
 	GameSpeed.reset()
 	db = CardDatabase.get_db()
 	adventure = AdventureDB.get_db()
@@ -136,34 +140,28 @@ func _build_ui() -> void:
 	_bounty_list.add_theme_constant_override("separation", 8)
 	right_scroll.add_child(_bounty_list)
 
-	# --- Footer ---
-	var footer := HBoxContainer.new()
-	footer.add_theme_constant_override("separation", 12)
-	page.add_child(footer)
-
-	var back := _make_button("Back", Vector2(140, 52))
-	back.pressed.connect(func() -> void:
+	# --- Footer: the standard one, Back on the left like every screen ---
+	_detail = Label.new()
+	var footer := MenuSupport.footer_bar(self, func() -> void:
 		state.save_to_disk()
 		ScenePaths.go_back(get_tree(), ScenePaths.BASE))
-	footer.add_child(back)
+	footer.add_child(MenuSupport.footer_gap(_detail))
+	page.add_child(footer)
 
-	_detail = Label.new()
-	_detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_detail.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_detail.add_theme_font_size_override("font_size", 14)
-	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	footer.add_child(_detail)
+	# ITEMS, IN THE MIDDLE OF THE BOTTOM, and called ITEMS rather than KIT —
+	# because the button that opens the same list during a fight is called
+	# ITEMS, and two names for one thing is one name too many.
+	#
+	# It is pinned to the screen rather than put in the footer row, so it sits
+	# in the centre regardless of how wide the Back button and the message
+	# beside it happen to be.
+	var items := MenuSupport.footer_button("items|✚", Loc.text("items", "Items"))
+	items.tooltip_text = "What you are carrying that can be used in a fight."
+	items.pressed.connect(_show_kit)
+	add_child(items)
+	MenuSupport.pin_bottom_centre(items)
 
-	# WHAT YOU ARE TAKING WITH YOU. The kit is spent in a fight, but this is
-	# where you see what you have before you set off — and it is the honest
-	# place to notice you have no Smelling Salts left.
-	var kit := _make_button("KIT", Vector2(120, 52))
-	kit.tooltip_text = "What you are carrying that can be used in a fight."
-	kit.pressed.connect(_show_kit)
-	footer.add_child(kit)
-
-	_start = _make_button("START EXPLORING  ▶", Vector2(260, 52))
+	_start = MenuSupport.footer_primary("play|▶", "START EXPLORING")
 	_start.disabled = true
 	_start.pressed.connect(_on_start)
 	footer.add_child(_start)
@@ -487,7 +485,7 @@ func _show_kit() -> void:
 	column.add_child(_quiet(
 		"Kit is used from the ITEMS button during a fight. It is carried with you and does not need packing."))
 
-	var close := _make_button("Close", Vector2(180, 44))
+	var close := MenuSupport.icon_button("✕", Loc.text("close", "Close"), Vector2(180, 46))
 	close.pressed.connect(func() -> void: dim.queue_free())
 	column.add_child(close)
 
@@ -523,15 +521,23 @@ func _on_start() -> void:
 #  SMALL THINGS
 # -------------------------------------------------------------
 
+## THIS SCREEN'S BUTTONS ARE THE SHARED ONES NOW.
+##
+## It used to build its own plain Button here, which is why Back looked
+## different depending on which screen you were standing on. It hands the job
+## to MenuSupport.icon_button() instead, so every call site in this file gets
+## the standard icon-and-label face without one of them being edited.
+##
+## `label` may carry its icon in front of it — "back|←  Back" — and otherwise
+## a generic mark is used.
 func _make_button(label: String, size: Vector2) -> Button:
-	var button := Button.new()
-	button.text = label
-	button.custom_minimum_size = size
-	button.focus_mode = Control.FOCUS_NONE
-	button.add_theme_font_size_override("font_size", 15)
-	return button
-
-
+	var icon := "◇"
+	var words := label
+	var bar := label.find("|")
+	if bar >= 0:
+		icon = label.substr(0, bar)
+		words = label.substr(bar + 1)
+	return MenuSupport.icon_button("%s|%s" % [icon, icon], words, size)
 func _quiet(text: String) -> Label:
 	var label := Label.new()
 	label.text = text

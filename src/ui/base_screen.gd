@@ -204,11 +204,14 @@ func _build_exits() -> void:
 		ScenePaths.go_to(get_tree(), ScenePaths.UNLOCKS))
 	row.add_child(to_board)
 
-	var to_season := MenuSupport.icon_button("season|▦", "The season", EXIT_SIZE)
-	to_season.tooltip_text = "The table, the fixtures and what is left to play."
+	# THE SEASONS SHELF, not the table. There is more than one competition
+	# now — Seasons.csv — and the table is what opens when you pick one.
+	var to_season := MenuSupport.icon_button("season|▦",
+		Loc.text("the_season", "The season"), EXIT_SIZE)
+	to_season.tooltip_text = "Every competition you can enter. Pick one and its table opens."
 	to_season.pressed.connect(func() -> void:
 		state.save_to_disk()
-		ScenePaths.go_to(get_tree(), ScenePaths.SEASON))
+		ScenePaths.go_to(get_tree(), ScenePaths.SEASON_PICKER))
 	row.add_child(to_season)
 
 	# PLAY A MATCH IS NOT THE SEASON. It is a friendly against a side put
@@ -482,16 +485,14 @@ func _refresh_footer() -> void:
 ## A plain labelled button. The exits across the top use
 ## MenuSupport.icon_button() instead; this is kept for anything you add here
 ## that wants words and no picture.
+## THIS SCREEN'S BUTTONS ARE THE SHARED ONES NOW.
+##
+## It used to build a plain Button here, which is why Back looked different
+## depending on which screen you were standing on. It hands the job to
+## MenuSupport.icon_button() instead, so every call site in this file gets
+## the standard icon-and-label face without one of them being edited.
 func _make_button(label: String, box: Vector2) -> Button:
-	var button := Button.new()
-	button.text = label
-	button.custom_minimum_size = box
-	button.add_theme_font_size_override("font_size", 17)
-	button.add_theme_stylebox_override("normal",
-		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
-	button.add_theme_stylebox_override("hover",
-		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
-	return button
+	return MenuSupport.icon_button("◇", label, box)
 
 
 func _find_texture(file_name: String, dirs: Array[String]) -> Texture2D:

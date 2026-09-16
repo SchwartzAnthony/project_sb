@@ -50,6 +50,19 @@ extends CanvasLayer
 
 signal finished(cleared: bool, fled: bool)
 
+## ============ SOMEBODY'S STAMINA CHANGED ============
+##
+## THE BUG THIS FIXES: the run holds the stamina, and the walkers on the
+## pitch only DRAW it. Nothing put the two in step until the whole fight was
+## over, so you watched a player get hit and the bar under them did not
+## move — no feedback at all that damage had been done.
+##
+## The fight emits this the instant anything changes a player: taking a hit,
+## being knocked out, being revived, drinking something. The scene hears it
+## and repaints every bar. One signal covers all of those and every one you
+## add later.
+signal party_changed
+
 enum Step { FOCUS, DRAFT, RESOLVING, DONE }
 
 var db: CardDatabase
@@ -589,6 +602,25 @@ func _hurt_foe(index: int, amount: int) -> String:
 
 ## One enemy's turn. Who it hits is its Targeting column; how hard is its
 ## Attack, doubled when a tier of yours stood empty.
+## Tell the scene to repaint the bars, and put a red number over the player
+## who just took it so the damage is visible ON THE PITCH and not only in the
+## log. Called from every place a player is hurt or healed.
+func _party_changed(card: PlayerData = null, amount: int = 0) -> void:
+	party_changed.emit()
+	if card == null or amount == 0 or not _can_show():
+		return
+	var mark := _walker(card)
+	if mark == null:
+		return
+	# A red number rising off the player, and a shove backwards, so a hit is
+	# something you SEE rather than something you read about afterwards.
+	AdventureStrike.number(stage, mark.position + Vector2(0.0, -30.0),
+		str(absi(amount)), amount < 0,
+		db.tune_float("adventure_float_seconds", 0.9))
+	AdventureStrike.flinch(mark, mark.position + Vector2(-40.0, 0.0),
+		db.tune_float("adventure_flinch_seconds", 0.22))
+
+
 func _enemy_strikes(index: int, multiplier: int) -> void:
 	var row: Dictionary = foes[index]["row"]
 	# WHAT IT GAINED WATCHING YOU BUILD THE MOVE, added here and nowhere
@@ -615,6 +647,8 @@ func _enemy_strikes(index: int, multiplier: int) -> void:
 				continue
 			if run.hurt(standing[0], hit, db):
 				_note("%s is knocked out." % standing[0].player_name)
+			# The bar under that player empties NOW, not when the fight ends.
+			_party_changed(standing[0], hit)
 			caught += 1
 		if _can_show():
 			var shaker := _foe_node(index)
@@ -640,6 +674,9 @@ func _enemy_strikes(index: int, multiplier: int) -> void:
 					db.tune_float("adventure_float_seconds", 0.9))
 
 		var went_down := run.hurt(victim, hit, db)
+		# The number and the shove were already shown above as part of the
+		# kick, so this only repaints the bars.
+		_party_changed()
 		_note("%s hits %s for %d.%s" % [_foe_name(index), victim.player_name, hit,
 			"  KNOCKED OUT." if went_down else ""])
 
@@ -742,6 +779,8 @@ func _use_item(entry: Dictionary) -> void:
 		run.knocked_out.erase(back)
 		var half := maxi(1, int(AdventureRun.stamina_for(back, db) / 2))
 		run.stamina[back] = half
+		# A GREEN number, because negative means healing to _party_changed().
+		_party_changed(back, -half)
 		did = "%s is back on, at %d stamina." % [back.player_name, half]
 
 	elif use.begins_with("heal"):
@@ -752,6 +791,7 @@ func _use_item(entry: Dictionary) -> void:
 			for card in run.standing_in(tier, db):
 				var cap := AdventureRun.stamina_for(card, db)
 				run.stamina[card] = mini(cap, run.stamina_of(card, db) + amount)
+				_party_changed(card, -amount)
 				mended += 1
 				if not everyone:
 					break

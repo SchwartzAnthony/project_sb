@@ -388,9 +388,26 @@ func _wave_gap() -> float:
 func _process(delta: float) -> void:
 	if current_state == RunState.RUNNING:
 		_scroll(delta)
-		_pass_the_ball(delta)
 	elif current_state == RunState.MEETING:
 		_close_in()
+
+	# ============ THE BALL NEVER STOPS ============
+	#
+	# It used to be knocked about only while the party was RUNNING, so the
+	# moment a fight began everybody froze holding it and the pitch went
+	# dead while you decided who to go after. A team waiting for a throw-in
+	# does not stand still with the ball under one boot.
+	#
+	# So it is passed in every state except the two where it is BUSY: the
+	# encounter takes the ball over to kick it at an enemy, and a finished
+	# run has nobody left to pass to.
+	if current_state != RunState.ENCOUNTER and current_state != RunState.FINISHED:
+		_pass_the_ball(delta)
+	elif not _ball_is_busy():
+		# In an encounter the ball is passed about too, but only in the gaps
+		# — while you are choosing a target or drafting a tier, never while
+		# a shot is in the air. _ball_is_busy() is what tells the difference.
+		_pass_the_ball(delta)
 
 	if current_state == RunState.RUNNING:
 		_carry_pickups(delta)
@@ -785,6 +802,12 @@ func _run_encounter() -> void:
 
 	var fight := AdventureEncounter.open(self, db, state, run, wave,
 		_world, nodes, Callable(self, "walker_for"), _ball)
+
+	# THE BARS FOLLOW THE FIGHT. Without this the stamina under a player only
+	# caught up when the whole encounter was over, so being hit showed you
+	# nothing. The fight says "somebody changed" and this repaints them.
+	fight.party_changed.connect(_refresh_walkers)
+
 	var result: Array = await fight.finished
 	fight.queue_free()
 
@@ -799,6 +822,18 @@ func _run_encounter() -> void:
 		_win_encounter()
 	else:
 		_party_fell()
+
+
+## IS THE BALL IN THE MIDDLE OF SOMETHING?
+##
+## adventure_strike.gd claims the ball while a kick is in the air by putting
+## a `busy` mark on it, and drops the mark when the ball lands. Anything that
+## would move the ball asks here first, so a pass can never yank a shot out
+## of mid-flight.
+func _ball_is_busy() -> bool:
+	if _ball == null or not is_instance_valid(_ball):
+		return true
+	return bool(_ball.get_meta("busy", false))
 
 
 ## The walker standing in for a card, so the fight can kick a ball at the

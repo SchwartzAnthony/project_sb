@@ -25,7 +25,7 @@ extends Control
 #  wrong, change it back and it changes back.
 # =============================================================
 
-const TABS: Array[String] = ["Keys", "Screen", "Sound", "Colour", "Controller"]
+const TABS: Array[String] = ["Keys", "Screen", "Sound", "Colour", "Controller", "Language"]
 
 var settings: Dictionary = {}
 
@@ -137,6 +137,7 @@ func _tab_icon(name_text: String) -> String:
 		"Sound":       return "sound|♪"
 		"Colour":      return "colour|◐"
 		"Controller":  return "controller|✛"
+		"Language":    return "language|文"
 	return "◇"
 
 
@@ -191,6 +192,7 @@ func _rebuild() -> void:
 		"Sound":       _build_sound()
 		"Colour":      _build_colour()
 		"Controller":  _build_controller()
+		"Language":    _build_language()
 
 
 # =============================================================
@@ -389,6 +391,58 @@ func _build_controller() -> void:
 		does.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 		row.add_child(does)
 		_body.add_child(row)
+
+
+# =============================================================
+#  LANGUAGE
+#
+#  Every column of res://data/Language.csv that is not Key or Notes is a
+#  language, so this list is that file's columns and nothing else. Add a
+#  column headed Français, fill it in, and French is on this screen.
+# =============================================================
+
+func _build_language() -> void:
+	_body.add_child(_hint(
+		"One column per language in res://data/Language.csv. Add a column, fill it in, and it appears here — there is no list of languages anywhere in the code."))
+
+	var row := _row()
+	var label := Label.new()
+	label.text = "Show the game in"
+	label.custom_minimum_size = Vector2(220, 0)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 16)
+	row.add_child(label)
+
+	for language in Loc.languages():
+		var lit := language == Loc.current()
+		var button := MenuSupport.icon_button("●" if lit else "○", language,
+			Vector2(0, 46))
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
+			MenuSupport.COLOUR_SLOT_EMPTY if lit else MenuSupport.COLOUR_PANEL,
+			MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT_DIM))
+		button.pressed.connect(func() -> void:
+			Loc.choose(language)
+			_say("%s. Screens are written in the new language as you open them." % language)
+			# THE WORDS ARE READ WHEN A SCREEN IS BUILT, so this screen is
+			# rebuilt to show the change and the others pick it up when you
+			# next open them. Nothing is cached anywhere else.
+			_repaint())
+		row.add_child(button)
+
+	_body.add_child(row)
+
+	_body.add_child(MenuSupport.heading("WHAT IS STILL TO TRANSLATE", 16,
+		MenuSupport.COLOUR_ACCENT))
+	_body.add_child(_hint(
+		"Play through a screen, then press the button below. Every word the game asked for that has no row yet is printed to the Output panel, already formatted to paste into the spreadsheet."))
+
+	var listing := MenuSupport.icon_button("≡", "List the missing words",
+		Vector2(300, 48))
+	listing.pressed.connect(func() -> void:
+		Loc.report()
+		_say("Printed to the Output panel."))
+	_body.add_child(listing)
 
 
 # =============================================================

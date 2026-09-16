@@ -70,6 +70,13 @@ static func kick(parent: Node2D, from: Vector2, to: Vector2,
 	ball.z_index = 40
 	ball.position = from
 
+	# CLAIM THE BALL. The party passes it about constantly now, including
+	# while you are choosing a target — so anything that moves it has to know
+	# when a shot is already in the air. This mark is what says so; the scene
+	# checks it in _ball_is_busy() before passing.
+	if borrowed:
+		ball.set_meta("busy", true)
+
 	var gap := from.distance_to(to)
 	var arc_height := clampf(gap * 0.28, 24.0, 150.0)
 	var clock := 0.0
@@ -88,12 +95,17 @@ static func kick(parent: Node2D, from: Vector2, to: Vector2,
 		ball.queue_redraw()
 		await parent.get_tree().process_frame
 		if not is_instance_valid(parent) or not is_instance_valid(ball):
+			# LET GO ON THE WAY OUT. A scene change mid-kick would otherwise
+			# leave the claim set and the ball would never be passed again.
+			if borrowed and is_instance_valid(ball):
+				ball.set_meta("busy", false)
 			return
 
 	if borrowed:
 		# Hand it back. The run's ball belongs to the party, not to us.
 		ball.position = came_from
 		ball.rotation = 0.0
+		ball.set_meta("busy", false)
 		ball.queue_redraw()
 	else:
 		ball.queue_free()

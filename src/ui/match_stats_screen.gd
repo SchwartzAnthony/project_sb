@@ -53,6 +53,10 @@ var _home: Button
 
 
 func _ready() -> void:
+	# Escape, controller navigation, the key bindings, the player's
+	# settings and the language — all five from this one line. See
+	# menu_escape.gd.
+	MenuEscape.install(self)
 	GameSpeed.reset()
 
 	db = CardDatabase.get_db()
@@ -302,13 +306,18 @@ func _fill_progress() -> void:
 # =============================================================
 
 func _fill_buttons() -> void:
+	# A match that does not go in the table has nothing to show you on the
+	# season screen, so Continue takes you back to the base with what you
+	# collected rather than to a table that did not change.
+	var records := bool(MatchMode.current(get_tree()).get("records", true))
+
 	if _continue != null:
-		# A match that does not go in the table has nothing to show you on the
-		# season screen, so Continue takes you back to the base with what you
-		# collected rather than to a table that did not change.
-		var records := bool(MatchMode.current(get_tree()).get("records", true))
-		if not records:
-			_continue.text = "Back to the base"
+		if records:
+			MenuSupport.restyle(_continue, "season|▦",
+				Loc.text("continue", "Continue"), true)
+		else:
+			MenuSupport.restyle(_continue, "base|⌂", "Back to the base", true)
+		MenuSupport.pin_bottom_centre(_continue)
 		_continue.pressed.connect(func() -> void:
 			state.save_to_disk()
 			ScenePaths.go_to(get_tree(),
@@ -319,17 +328,33 @@ func _fill_buttons() -> void:
 		# recording — the match was not saved anywhere — so this plays the same
 		# opposition again from scratch. The result does NOT go into the season
 		# table, because that fixture is already recorded.
-		_again.text = "Play it again (does not count)"
+		MenuSupport.restyle(_again, "play|▶", "Play it again")
+		MenuSupport.pin_bottom_right(_again)
 		_again.tooltip_text = "Plays the same opposition again as a friendly. The season table is not touched."
 		_again.pressed.connect(func() -> void:
 			state.set_flag(REPLAY_FLAG, true)
 			state.save_to_disk()
 			ScenePaths.go_to(get_tree(), ScenePaths.MATCH))
 
+	# ============ ONLY ONE WAY HOME ============
+	#
+	# THE BUG: when a match did not go in the table, Continue ALSO said
+	# "Back to the base" — so the screen had two identical buttons doing the
+	# identical thing, side by side.
+	#
+	# Continue is the one that stays, because it is the one the eye lands on.
+	# The separate Home button is only shown when Continue is going somewhere
+	# else, which is after a league fixture.
 	if _home != null:
-		_home.pressed.connect(func() -> void:
-			state.save_to_disk()
-			ScenePaths.go_to(get_tree(), ScenePaths.BASE))
+		if not records:
+			_home.hide()
+		else:
+			MenuSupport.restyle(_home, "base|⌂", "Base")
+			MenuSupport.pin_bottom_left(_home)
+			_home.name = "BackButton"
+			_home.pressed.connect(func() -> void:
+				state.save_to_disk()
+				ScenePaths.go_to(get_tree(), ScenePaths.BASE))
 
 
 func _quiet(text: String) -> Label:
