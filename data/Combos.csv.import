@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://pxthwpltxfkj"
+
+[deps]
+
+files=["res://data/Combos.Name.translation", "res://data/Combos.When.translation", "res://data/Combos.Needs.translation", "res://data/Combos.Bonus.translation", "res://data/Combos.Description.translation", "res://data/Combos.Notes.translation"]
+
+source_file="res://data/Combos.csv"
+dest_files=["res://data/Combos.Name.translation", "res://data/Combos.When.translation", "res://data/Combos.Needs.translation", "res://data/Combos.Bonus.translation", "res://data/Combos.Description.translation", "res://data/Combos.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

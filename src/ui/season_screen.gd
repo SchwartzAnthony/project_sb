@@ -370,7 +370,11 @@ func _fill_buttons() -> void:
 				_primary.text = "Play: %s" % next["opponent"]
 			_primary.pressed.connect(func() -> void:
 				state.save_to_disk()
-				ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT))
+				# THE LEAGUE IS PLAYED FROM HERE. The base's "Play a match"
+				# is a friendly against a scratch side; this is the fixture,
+				# and it is the only button that sets the `season` mode.
+				MatchMode.choose(get_tree(), "season")
+				ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT))
 
 	if _home != null:
 		_home.text = "Back"

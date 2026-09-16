@@ -211,11 +211,16 @@ func _build_exits() -> void:
 		ScenePaths.go_to(get_tree(), ScenePaths.SEASON))
 	row.add_child(to_season)
 
+	# PLAY A MATCH IS NOT THE SEASON. It is a friendly against a side put
+	# together on the spot at roughly your own level, and you still collect
+	# for playing it — the `friendly` row of MatchModes.csv says both, through
+	# its Opponent column and its two Rewards columns. The league is behind
+	# "The season" next door.
 	var to_match := MenuSupport.icon_button("play|▶", "Play a match", EXIT_SIZE)
-	to_match.tooltip_text = "The next fixture in the season. The result goes in the table."
+	to_match.tooltip_text = "A friendly against a side at your own level. Nothing goes in the table, but you still come away with something."
 	to_match.pressed.connect(func() -> void:
 		state.save_to_disk()
-		MatchMode.choose(get_tree(), "season")
+		MatchMode.choose(get_tree(), "friendly")
 		# THE TEAM SHELF, not the class picker. You pick a side you already
 		# own; making a new one is a button on that screen.
 		ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT))

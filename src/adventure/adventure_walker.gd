@@ -102,18 +102,50 @@ func setup(player: PlayerData, walk_speed: float = 260.0,
 	# MenuSupport.portrait_for() slices the first frame out using
 	# Animations.csv, exactly the way the team builder and the card popup do.
 	# So all three screens now show the same picture of the same player.
-	var face := MenuSupport.portrait_for(card, db if db != null else CardDatabase.get_db())
+	var working_db := db if db != null else CardDatabase.get_db()
+	var face := MenuSupport.portrait_for(card, working_db)
 	if face != null:
 		_art = TextureRect.new()
 		_art.texture = face
 		_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		_art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		_art.custom_minimum_size = Vector2(RADIUS * 2.4, RADIUS * 2.4)
+
+		# ============ WHY THE PLAYERS WERE TINY ============
+		#
+		# This used to put the art in a SQUARE box of RADIUS * 2.4 and let
+		# KEEP_ASPECT_CENTERED fit it in. A player frame is tall and narrow —
+		# roughly 128 wide by 208 high — so fitting it into a square meant
+		# the HEIGHT filled the box and the width shrank to about 60% of it.
+		# Raising adventure_player_size made the square bigger, and the art
+		# still came out a sliver, which is why the CSV looked like it was
+		# being ignored. It was not: the square was.
+		#
+		# The box is worked out from the frame's own shape now. You say how
+		# TALL a player should be and the width follows from the artwork, so
+		# the number in the spreadsheet is the number you see.
+		var tall := RADIUS * working_db.tune_float("adventure_player_art_scale", 3.4)
+		var frame := face.get_size()
+		var ratio := 0.62
+		if frame.y > 1.0:
+			ratio = clampf(frame.x / frame.y, 0.25, 4.0)
+		_art.custom_minimum_size = Vector2(tall * ratio, tall)
 		_art.size = _art.custom_minimum_size
-		_art.position = -_art.size * 0.5
+		# Standing ON the spot rather than centred over it: the feet sit at
+		# the player's position, which is what makes a crowd read as a crowd
+		# rather than as floating heads.
+		_art.position = Vector2(-_art.size.x * 0.5, _feet_y())
 		_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(_art)
+
+
+## Where the top of the sprite goes so that its FEET land on the player's
+## own position. One place, used by setup() and by the bob, so the two can
+## never disagree.
+func _feet_y() -> float:
+	if _art == null:
+		return 0.0
+	return -_art.size.y + RADIUS * 0.5
 
 
 func _process(delta: float) -> void:
@@ -139,9 +171,13 @@ func _process(delta: float) -> void:
 	position.y = clampf(position.y, lane_top + RADIUS, lane_bottom - RADIUS)
 
 	# A gentle bob while moving. Standing still, it settles.
+	#
+	# It bobs around the FEET LINE set in setup(), not around the middle of
+	# the sprite — otherwise every frame would undo the standing-on-the-spot
+	# placement and the players would float again.
 	_bob += delta * (9.0 if to_target.length() > 2.0 else 2.0)
 	if _art != null:
-		_art.position.y = -_art.size.y * 0.5 + sin(_bob) * 2.0
+		_art.position.y = _feet_y() + sin(_bob) * (RADIUS * 0.09)
 
 	queue_redraw()
 

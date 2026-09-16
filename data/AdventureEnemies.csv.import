@@ -6,10 +6,10 @@ uid="uid://yh66jj8psgoy"
 
 [deps]
 
-files=["res://data/AdventureEnemies.Name.translation", "res://data/AdventureEnemies.Pool.translation", "res://data/AdventureEnemies.Attack.translation", "res://data/AdventureEnemies.Layers.translation", "res://data/AdventureEnemies.Targeting.translation", "res://data/AdventureEnemies.Element.translation", "res://data/AdventureEnemies.Art.translation", "res://data/AdventureEnemies.Drops.translation", "res://data/AdventureEnemies.Weight.translation", "res://data/AdventureEnemies.Boss.translation", "res://data/AdventureEnemies.Description.translation"]
+files=["res://data/AdventureEnemies.Name.translation", "res://data/AdventureEnemies.Pool.translation", "res://data/AdventureEnemies.Attack.translation", "res://data/AdventureEnemies.Layers.translation", "res://data/AdventureEnemies.Targeting.translation", "res://data/AdventureEnemies.Element.translation", "res://data/AdventureEnemies.Buff.translation", "res://data/AdventureEnemies.Art.translation", "res://data/AdventureEnemies.Drops.translation", "res://data/AdventureEnemies.Weight.translation", "res://data/AdventureEnemies.Boss.translation", "res://data/AdventureEnemies.Description.translation"]
 
 source_file="res://data/AdventureEnemies.csv"
-dest_files=["res://data/AdventureEnemies.Name.translation", "res://data/AdventureEnemies.Pool.translation", "res://data/AdventureEnemies.Attack.translation", "res://data/AdventureEnemies.Layers.translation", "res://data/AdventureEnemies.Targeting.translation", "res://data/AdventureEnemies.Element.translation", "res://data/AdventureEnemies.Art.translation", "res://data/AdventureEnemies.Drops.translation", "res://data/AdventureEnemies.Weight.translation", "res://data/AdventureEnemies.Boss.translation", "res://data/AdventureEnemies.Description.translation"]
+dest_files=["res://data/AdventureEnemies.Name.translation", "res://data/AdventureEnemies.Pool.translation", "res://data/AdventureEnemies.Attack.translation", "res://data/AdventureEnemies.Layers.translation", "res://data/AdventureEnemies.Targeting.translation", "res://data/AdventureEnemies.Element.translation", "res://data/AdventureEnemies.Buff.translation", "res://data/AdventureEnemies.Art.translation", "res://data/AdventureEnemies.Drops.translation", "res://data/AdventureEnemies.Weight.translation", "res://data/AdventureEnemies.Boss.translation", "res://data/AdventureEnemies.Description.translation"]
 
 [params]
 

@@ -1,3 +1,4 @@
-Class,Display Name,Description,Banner Art,Formation Art,Notes
-Brandteufel,Brandteufel,Fire-born forwards who trade defence for raw pressure. Their Stars hold Tier III.,res://assets/menu/banner_brandteufel.png,,Class must match the Unit Type column in your unit CSV
-Lorelei,Lorelei,Patient river-singers who win the late tiers. Their Stars hold Tier IV.,res://assets/menu/banner_lorelei.png,,Leave Formation Art blank to use the drawn diagram
+Class,Display Name,Description,Banner Art,Formation Art,Requires,Hidden,Notes
+Brandteufel,Brandteufel,Fire-born forwards who trade defence for raw pressure. Their Stars hold Tier III.,res://assets/menu/banner_brandteufel.png,,,,Class must match the Unit Type column in your unit CSV
+Lorelei,Lorelei,Patient river-singers who win the late tiers. Their Stars hold Tier IV.,res://assets/menu/banner_lorelei.png,,,,Leave Formation Art blank to use the drawn diagram
+Rivals,The Rivals,A scratch side of journeymen. Everybody has played against them at some point.,,,unlocked:Rival Scouting,,"A LOCKED CLASS. Requires uses the same words as everywhere else in the game - unlocked:X, flag:y, count:z>=3, joined with a semicolon. Until that unlock is earned the class is not on the screen at all. Put Hidden = yes in the column beside it to remove a class outright without deleting its cards"

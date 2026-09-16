@@ -1,5 +1,6 @@
-ID,Name,Records Season,Timer,Cycles,Rounds,Star Rotation,Opponent,Scene,Requires,Description
-season,Season Match,yes,90,3,3,yes,team,match,,"The league. Ninety minutes against another side, three Stars rotating at HOLD UP, and the result goes in the table."
-quick,Quick Match,no,0,1,3,no,team,match,,"A single run for resources. No clock, one Star, and nothing written to the season table. Play it to come away with materials."
-cup,Cup Tie,no,90,3,3,yes,team,match,unlocked:The Cup,A full match that does not count towards the league. Unlocked with The Cup.
-adventure,Adventure,no,0,1,4,no,biome,adventure,,"A run into a biome. No clock, one Star, four tiers per encounter, and nothing is banked until you carry it home."
+ID,Name,Records Season,Timer,Cycles,Rounds,Star Rotation,Opponent,Scene,Requires,Rewards,Rewards On Win,Description
+season,Season Match,yes,90,3,3,yes,team,match,,,,"The league. Ninety minutes against another side, three Stars rotating at HOLD UP, and the result goes in the table."
+friendly,Friendly,no,90,3,3,yes,scratch,match,,count:scrap+2,count:scrap+3;count:friendly_wins+1,"PLAY A MATCH from the base. Not a fixture - a side put together on the spot at roughly your own level. Opponent = scratch is what does that; see scratch_team.gd and team_level.gd. You still collect, from the two Rewards columns."
+quick,Quick Match,no,0,1,3,no,scratch,match,,count:scrap+1,count:scrap+2,"A short one. No clock, one Star, a scratch opponent, nothing written to the season table."
+cup,Cup Tie,no,90,3,3,yes,team,match,unlocked:The Cup,,count:cup_wins+1,A full match that does not count towards the league. Unlocked with The Cup.
+adventure,Adventure,no,0,1,4,no,biome,adventure,,,,"A run into a biome. No clock, one Star, four tiers per encounter, and nothing is banked until you carry it home."

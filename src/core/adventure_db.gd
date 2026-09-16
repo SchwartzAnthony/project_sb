@@ -138,7 +138,15 @@ func _read_biomes(rows: Array, columns: Dictionary, where: String) -> void:
 			"requires": _cell(row, columns, "requires"),
 			"waves": maxi(1, _int(_cell(row, columns, "waves"), 4)),
 			"pool": _cell(row, columns, "enemypool"),
-			"art": _cell(row, columns, "scrollart"),
+			# THE LOOK OF THE BIOME. An image name and four colours, so an
+			# ice biome is blues and a desert is yellows with no code.
+			# Blank is fine everywhere — the scene falls back to marsh green.
+			"art": _first_of(row, columns, ["background", "scrollart"]),
+			"parallax": _float(_cell(row, columns, "parallax"), 0.3),
+			"sky": _cell(row, columns, "sky"),
+			"grass": _cell(row, columns, "grass"),
+			"stripe": _first_of(row, columns, ["grassstripe", "stripe"]),
+			"edge": _cell(row, columns, "edge"),
 			"ground": _cell(row, columns, "ground"),
 			"music": _cell(row, columns, "music"),
 			"drops": _cell(row, columns, "drops"),
@@ -184,14 +192,29 @@ func _read_enemies(rows: Array, columns: Dictionary, where: String) -> void:
 			"id": id_text,
 			"name": _or(_cell(row, columns, "name"), id_text),
 			"pool": _cell(row, columns, "pool"),
-			"tier": _cell(row, columns, "tier").to_upper(),
-			"power": _int(_cell(row, columns, "power"), 1),
+			# AN ENEMY HAS NO TIER. It used to, and it was wrong: your four
+			# tiers all strike the ONE enemy you are focusing, and every enemy
+			# strikes back afterwards. So an enemy is only two numbers — what
+			# it hits for, and what it is made of.
+			# `Damage` is still read, so an older spreadsheet keeps working.
+			"attack": _int(_first_of(row, columns, ["attack", "damage"]), 1),
 			"layers": parse_layers(layer_text),
 			"layer_text": layer_text,
-			"damage": _int(_cell(row, columns, "damage"), 1),
 			"targeting": _or(_cell(row, columns, "targeting").to_lower(), "weakest"),
 			"element": _cell(row, columns, "element"),
 			"ability": _cell(row, columns, "ability"),
+			# WHAT IT GAINS WHILE YOU BUILD YOUR MOVE.
+			#
+			# Your four tiers pass the ball before they shoot, and the
+			# enemies are not standing still while that happens: each pass
+			# lets every enemy that has a Buff get that much angrier. It is
+			# shown live in the right-hand window of the build-up and it is
+			# added to what they hit you for THIS ROUND only.
+			#
+			# Blank or 0 = this enemy does not build up, which is what most
+			# of them should be. Give it to the ones that should feel like a
+			# clock ticking.
+			"buff": _int(_cell(row, columns, "buff"), 0),
 			"art": _cell(row, columns, "art"),
 			"drops": _cell(row, columns, "drops"),
 			"weight": _int(_cell(row, columns, "weight"), 1),
@@ -213,6 +236,14 @@ func _read_items(rows: Array, columns: Dictionary, where: String) -> void:
 			"kind": _or(_cell(row, columns, "kind").to_lower(), "material"),
 			"stack": maxi(1, _int(_cell(row, columns, "stack"), 99)),
 			"art": _cell(row, columns, "art"),
+			# WHAT IT DOES WHEN YOU USE IT in a fight. Blank means it is just
+			# material and never appears in the item menu.
+			#   revive       one knocked-out player comes back
+			#   heal:6       six stamina to one player still standing
+			#   heal:3;all   three to everyone still standing
+			#   hit:4        four damage into the enemy you are focusing
+			"use": _cell(row, columns, "use").to_lower(),
+			"target": _cell(row, columns, "target").to_lower(),
 			"requires": _cell(row, columns, "requires"),
 			"description": _cell(row, columns, "description"),
 			"where": "%s row %d" % [where, i + 1],
@@ -357,9 +388,8 @@ static func _reward_name(entry: Dictionary) -> String:
 
 ## The ordinary enemies of a pool, weighted. Bosses (Weight 0) never appear
 ## here — they are placed by the bounty.
-func pool_enemies(pool: String, tier: String = "") -> Array[Dictionary]:
+func pool_enemies(pool: String) -> Array[Dictionary]:
 	var wanted := CardDatabase._normalise(pool)
-	var wanted_tier := tier.strip_edges().to_upper()
 	var out: Array[Dictionary] = []
 	for key in enemies.keys():
 		var entry: Dictionary = enemies[key]
@@ -367,9 +397,45 @@ func pool_enemies(pool: String, tier: String = "") -> Array[Dictionary]:
 			continue
 		if int(entry["weight"]) <= 0:
 			continue
-		if wanted_tier != "" and String(entry["tier"]) != wanted_tier:
-			continue
 		out.append(entry)
+	return out
+
+
+## Pick one ordinary enemy from a pool, respecting Weight — a Weight of 10
+## turns up five times as often as a Weight of 2.
+func draw_from_pool(pool: String) -> Dictionary:
+	var choices := pool_enemies(pool)
+	if choices.is_empty():
+		return {}
+	var total := 0
+	for entry in choices:
+		total += maxi(1, int(entry["weight"]))
+	var roll := randi() % total
+	for entry in choices:
+		roll -= maxi(1, int(entry["weight"]))
+		if roll < 0:
+			return entry
+	return choices[0]
+
+
+## Everything you are carrying that can be used in a fight, in Items.csv
+## order. Each row gains a "held" key: how many you have.
+func usable_items(state: GameState) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if state == null:
+		return out
+	for key in items.keys():
+		var entry: Dictionary = items[key]
+		if String(entry["use"]).strip_edges() == "":
+			continue
+		var held := state.count(String(entry["id"]))
+		if held <= 0:
+			continue
+		if not DialogueGrammar.test(String(entry["requires"]), state):
+			continue
+		var copy := entry.duplicate()
+		copy["held"] = held
+		out.append(copy)
 	return out
 
 
@@ -413,10 +479,10 @@ func _validate() -> void:
 		# encounter in that biome hands the player a free Tier II win — the
 		# walkover rule cuts both ways, and this is the half that is a
 		# mistake rather than a reward.
-		for tier in TierLadder.TIERS:
-			if pool_enemies(String(entry["pool"]), tier).is_empty():
-				problems.append("%s: biome '%s' has no Tier %s enemy in pool '%s'. Every encounter there would be a free Tier %s win for the player — add a row to AdventureEnemies.csv."
-					% [entry["where"], entry["name"], tier, entry["pool"], tier])
+		var ordinary := pool_enemies(String(entry["pool"]))
+		if ordinary.size() == 1:
+			problems.append("%s: biome '%s' has only one kind of ordinary enemy in pool '%s'. Every wave would be the same creature repeated — add another row to AdventureEnemies.csv."
+				% [entry["where"], entry["name"], entry["pool"]])
 
 	for key in bounties.keys():
 		var entry: Dictionary = bounties[key]
@@ -436,15 +502,9 @@ func _validate() -> void:
 
 	for key in enemies.keys():
 		var entry: Dictionary = enemies[key]
-		if not TierLadder.TIERS.has(String(entry["tier"])):
-			problems.append("%s: enemy '%s' has tier '%s' — expected I, II, III or IV."
-				% [entry["where"], entry["name"], entry["tier"]])
-		# The ladder governs enemies too: a Tier I enemy with 5 power would
-		# face your Tier I, whose best card is a 2.
-		elif not TierLadder.rungs(String(entry["tier"])).has(int(entry["power"])):
-			problems.append("%s: enemy '%s' is Tier %s with %d power. %s"
-				% [entry["where"], entry["name"], entry["tier"], entry["power"],
-					TierLadder.describe(String(entry["tier"]))])
+		if int(entry["attack"]) <= 0:
+			problems.append("%s: enemy '%s' has an Attack of %d, so it can never hurt anybody. Give it at least 1."
+				% [entry["where"], entry["name"], entry["attack"]])
 		if String(entry["drops"]).strip_edges() != "" \
 				and not drops.has(CardDatabase._normalise(String(entry["drops"]))):
 			problems.append("%s: enemy '%s' drops table '%s', which is not a Table in Drops.csv."
@@ -473,6 +533,17 @@ func _validate() -> void:
 # =============================================================
 #  HELPERS
 # =============================================================
+
+## The first of several column names that this file actually has. Lets a
+## column be renamed without breaking older spreadsheets.
+func _first_of(row: PackedStringArray, columns: Dictionary,
+		keys: Array[String]) -> String:
+	for key in keys:
+		var value := _cell(row, columns, key)
+		if value != "":
+			return value
+	return ""
+
 
 func _cell(row: PackedStringArray, columns: Dictionary, key: String) -> String:
 	if not columns.has(key):

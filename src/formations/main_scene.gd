@@ -107,6 +107,15 @@ var forced_enemy_class: String = ""
 ## class". This is what makes a fixture a fixture rather than a lucky dip.
 var enemy_team: Dictionary = {}
 
+## A SIDE MADE UP ON THE SPOT, for a friendly. Null for a season fixture.
+##
+## "Play a match" from the base is not a league game: it is a match against a
+## team assembled out of the whole collection at roughly YOUR level. The
+## level is worked out by team_level.gd and the side is built by
+## scratch_team.gd; this is where the result is parked so that
+## _choose_enemy_team() and load_roster_by_type() can both see it.
+var scratch_opponent: ScratchTeam = null
+
 ## True when this is a rerun from the stats screen: same opposition, but the
 ## result is not written into the season table.
 var replaying: bool = false
@@ -277,6 +286,7 @@ func _ready() -> void:
 	spawn_hud()
 	spawn_card_stats()
 	spawn_pause_menu()
+	_place_card_row()
 
 	# A match is not somewhere Back should ever return you to, so the trail
 	# of screens is wiped at kick-off. Without this, Back on the season table
@@ -295,6 +305,59 @@ func _ready() -> void:
 		start_draft_button.hide()
 		await get_tree().process_frame
 		_on_start_draft_pressed()
+
+
+## ============ WHERE THE CARDS SIT ============
+##
+## The row of cards you choose from used to be wherever the CardContainer
+## node happened to be anchored in main_scene.tscn, which was along the
+## bottom edge — so on a tall window the cards were half off the screen and
+## nowhere near the thing they were about.
+##
+## It is placed from here now, from two rows of Tuning.csv:
+##
+##     card_row_x   0 = hard left, 0.5 = middle, 1 = hard right
+##     card_row_y   0 = the top,   0.5 = middle, 1 = the bottom
+##
+## Both are fractions of the window, so it lands in the same place whatever
+## the resolution, and the row is CENTRED on that point rather than starting
+## at it. There is nothing to drag in the editor any more — change the
+## numbers, press F5.
+func _place_card_row() -> void:
+	if card_container == null:
+		return
+
+	var where := Vector2(
+		db.tune_float("card_row_x", 0.5),
+		db.tune_float("card_row_y", 0.5))
+
+	card_container.add_theme_constant_override("separation",
+		db.tune_int("card_row_gap", 18))
+	card_container.alignment = BoxContainer.ALIGNMENT_CENTER
+
+	# ANCHORED, NOT POSITIONED. A fixed position would be wrong the moment
+	# the window is resized; anchors move with it. The box is given the full
+	# width so the row can centre itself inside it.
+	card_container.set_anchors_preset(Control.PRESET_TOP_WIDE, true)
+	card_container.anchor_top = where.y
+	card_container.anchor_bottom = where.y
+	card_container.anchor_left = 0.0
+	card_container.anchor_right = 1.0
+
+	var card_box := PlayerCardUI.card_size()
+	card_container.offset_left = 0.0
+	card_container.offset_right = 0.0
+	# Centred ON the line rather than hanging off it.
+	card_container.offset_top = -card_box.y * 0.5
+	card_container.offset_bottom = card_box.y * 0.5
+
+	# card_row_x nudges the whole row sideways from the middle.
+	var slide := (where.x - 0.5) * 2.0
+	card_container.offset_left += slide * 200.0
+	card_container.offset_right += slide * 200.0
+
+	print("[cards] Card row centred at %.2f, %.2f of the window (card_row_x / card_row_y in Tuning.csv)."
+		% [where.x, where.y])
 
 
 func _process(delta: float) -> void:
@@ -713,6 +776,15 @@ func _apply_fixture() -> void:
 	if season == null or state == null:
 		return
 
+	# AN OPPONENT MADE UP ON THE SPOT. The mode's Opponent column decides:
+	#   team      a club, from the season table or Teams.csv  (the old way)
+	#   scratch   a side assembled at your level               (a friendly)
+	# See scratch_team.gd. This happens before the fixture lookup because a
+	# scratch side replaces the fixture rather than filling one in.
+	if String(match_mode.get("opponent", "team")).to_lower() == "scratch":
+		_build_scratch_opponent()
+		return
+
 	# A mode that does not record the season has no fixture at all. It is a
 	# friendly by definition, so there is nothing to look up, no Difficulty
 	# to apply, and no opponent named by the table.
@@ -949,6 +1021,43 @@ func _update_clock_label() -> void:
 	timer_label.text = "%02d:%02d" % [mins, secs]
 
 
+## ============ WHAT A FRIENDLY PAYS ============
+##
+## The Rewards and Rewards On Win columns of MatchModes.csv, written in the
+## same language as a dialogue Effects column:
+##
+##     count:scrap+3          three scrap, win or lose
+##     count:friendly_wins+1  only in the On Win column
+##     unlock:The Cup         hand out an unlock
+##
+## So "what a friendly is worth" is a spreadsheet edit and nothing here
+## needs to know what scrap is. An unlock earned this way lands on the same
+## "what you gained" panel as any other, because the panel works by
+## comparing two photographs of your save — see match_report.gd.
+func _pay_out_the_mode(outcome: String) -> void:
+	if state == null:
+		return
+
+	var paid: Array[String] = []
+	var always := String(match_mode.get("rewards", "")).strip_edges()
+	if always != "":
+		DialogueGrammar.apply(always, state)
+		paid.append(always)
+
+	if outcome == "win":
+		var on_win := String(match_mode.get("rewards_win", "")).strip_edges()
+		if on_win != "":
+			DialogueGrammar.apply(on_win, state)
+			paid.append(on_win)
+
+	if paid.is_empty():
+		print("[mode] %s pays nothing — fill in its Rewards column in MatchModes.csv."
+			% match_mode.get("name", "this mode"))
+		return
+	print("[mode] %s paid out: %s" % [match_mode.get("name", "this mode"),
+		"  ·  ".join(paid)])
+
+
 func _full_time() -> void:
 	match_time_minutes = MATCH_LENGTH_MINUTES
 	current_state = MatchState.FULL_TIME
@@ -992,6 +1101,7 @@ func _full_time() -> void:
 		}
 		print("[mode] %s finished %d-%d. Nothing written to the table; what you collected is yours."
 			% [match_mode.get("name", "Quick Match"), player_score, enemy_score])
+		_pay_out_the_mode(outcome)
 	elif season != null and not replaying:
 		summary = season.record(player_score, enemy_score, state)
 	elif replaying:
@@ -1184,6 +1294,44 @@ func _print_line_ups() -> void:
 			if names.is_empty():
 				continue
 			print("         Tier %s: %s" % [tier, ", ".join(names)])
+
+
+## ============ THE FRIENDLY OPPONENT ============
+##
+## Work out what YOUR side is worth, then have scratch_team.gd assemble one
+## about that good out of every card in the game. The whole calculation is
+## Tuning.csv rows and the Level column of your unit CSVs — see
+## team_level.gd — so what counts as "about that good" is yours to set.
+func _build_scratch_opponent() -> void:
+	current_fixture = {}
+	enemy_team = {}
+	forced_enemy_class = ""
+
+	var selection := TeamSelection.fetch(get_tree())
+
+	# TWO DIFFERENT NUMBERS, and they are not interchangeable — see the note
+	# in team_level.gd. The headline is what your side is WORTH; the card
+	# level is what it goes SHOPPING with.
+	var your_level := TeamLevel.of_selection(selection, db)
+	var shopping_at := TeamLevel.card_level_of_selection(selection)
+	if shopping_at <= 0.0:
+		shopping_at = db.tune_float("friendly_default_level", 6.0)
+
+	scratch_opponent = ScratchTeam.build(shopping_at, db, state,
+		selection.unit_type if selection != null else "")
+	forced_enemy_class = scratch_opponent.star_class
+
+	print("[friendly] Your side is level %d (cards average %.1f)."
+		% [your_level, shopping_at])
+	print("[friendly] Facing %s" % scratch_opponent.describe())
+
+	# A ONE-TIME NUDGE, not a warning. With the Level column blank every legal
+	# team guesses out at the same level, because the tier ladder guarantees
+	# the same powers — so every friendly is the same difficulty until you
+	# fill it in. Worth saying once rather than leaving you to wonder.
+	if TeamLevel.levels_are_unset(db):
+		print("[friendly] No card anywhere has a Level yet, so every side matches every other.")
+		print("           Fill the Level column in your unit CSVs and friendlies start scaling.")
 
 
 func _choose_enemy_team(player_type_to_avoid: String) -> void:
@@ -2113,6 +2261,18 @@ func mirror_if_enemy(original_pos: Vector2, center_x: float, is_enemy: bool) -> 
 ## back to the whole class — so a half-filled row still gives you a match.
 func load_roster_by_type(unit_type: String, for_enemy: bool = false) -> Array[PlayerData]:
 	var whole_class := db.roster_for_class(unit_type)
+
+	# A SCRATCH SIDE IS NOT A CLASS. It is a pick-up team drawn from the
+	# whole collection, so its regulars are handed over as they are rather
+	# than filtered down to one class. They are already ladder-legal — see
+	# scratch_team.gd — and spawn_team() only ever asks "who is Tier II",
+	# which is why a mixed side drops straight in here.
+	if for_enemy and scratch_opponent != null:
+		if not scratch_opponent.cards.is_empty():
+			return scratch_opponent.cards
+		print("[friendly] The scratch side came out empty — fielding the whole class instead.")
+		return whole_class
+
 	if not for_enemy or enemy_team.is_empty():
 		return whole_class
 

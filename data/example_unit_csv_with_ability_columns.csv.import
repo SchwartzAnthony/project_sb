@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://drg7w1266nomy"
+
+[deps]
+
+files=["res://data/example_unit_csv_with_ability_columns.Name.translation", "res://data/example_unit_csv_with_ability_columns.Attack.translation", "res://data/example_unit_csv_with_ability_columns.Defend.translation", "res://data/example_unit_csv_with_ability_columns.Element.translation", "res://data/example_unit_csv_with_ability_columns.Base Power Left.translation", "res://data/example_unit_csv_with_ability_columns.Base Power Right.translation", "res://data/example_unit_csv_with_ability_columns.Tier.translation", "res://data/example_unit_csv_with_ability_columns.Stufe.translation", "res://data/example_unit_csv_with_ability_columns.Tool.translation", "res://data/example_unit_csv_with_ability_columns.Card Number.translation", "res://data/example_unit_csv_with_ability_columns.Card Date.translation", "res://data/example_unit_csv_with_ability_columns.Set Name.translation", "res://data/example_unit_csv_with_ability_columns.Created by.translation", "res://data/example_unit_csv_with_ability_columns.Artwork.translation", "res://data/example_unit_csv_with_ability_columns.Player Type.translation", "res://data/example_unit_csv_with_ability_columns.Attack Ability.translation", "res://data/example_unit_csv_with_ability_columns.Defend Ability.translation"]
+
+source_file="res://data/example_unit_csv_with_ability_columns.csv"
+dest_files=["res://data/example_unit_csv_with_ability_columns.Name.translation", "res://data/example_unit_csv_with_ability_columns.Attack.translation", "res://data/example_unit_csv_with_ability_columns.Defend.translation", "res://data/example_unit_csv_with_ability_columns.Element.translation", "res://data/example_unit_csv_with_ability_columns.Base Power Left.translation", "res://data/example_unit_csv_with_ability_columns.Base Power Right.translation", "res://data/example_unit_csv_with_ability_columns.Tier.translation", "res://data/example_unit_csv_with_ability_columns.Stufe.translation", "res://data/example_unit_csv_with_ability_columns.Tool.translation", "res://data/example_unit_csv_with_ability_columns.Card Number.translation", "res://data/example_unit_csv_with_ability_columns.Card Date.translation", "res://data/example_unit_csv_with_ability_columns.Set Name.translation", "res://data/example_unit_csv_with_ability_columns.Created by.translation", "res://data/example_unit_csv_with_ability_columns.Artwork.translation", "res://data/example_unit_csv_with_ability_columns.Player Type.translation", "res://data/example_unit_csv_with_ability_columns.Attack Ability.translation", "res://data/example_unit_csv_with_ability_columns.Defend Ability.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

@@ -502,16 +502,21 @@ func _on_start() -> void:
 	AdventureRun.begin(get_tree(), _chosen_bounty, _chosen_biome)
 
 	MatchMode.choose(get_tree(), "adventure")
-	TeamSelection.clear(get_tree())
 	state.save_to_disk()
 
 	print("[adventure] Setting off: %s in %s (%d waves, boss %s)." % [
 		_chosen_bounty.get("name", "?"), _chosen_biome.get("name", "?"),
 		int(_chosen_biome.get("waves", 1)), _chosen_bounty.get("boss", "")])
 
-	# Class select, then the team builder, so you choose the squad you set
-	# off with exactly the way you pick a league side.
-	ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT)
+	# THE TEAM SHELF, exactly the same one a league match uses. You pick a
+	# side you already own, edit it, or build a new one — an Adventure squad
+	# is not a different kind of thing from a league side, so it should not
+	# be chosen a different way.
+	#
+	# The mode chosen just above is what sends LOCK IN to the scroll instead
+	# of the pitch: MatchModes.csv gives `adventure` a Scene of `adventure`,
+	# and team_select.gd reads that column. Nothing here names a screen.
+	ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT)
 
 
 # -------------------------------------------------------------

@@ -139,6 +139,16 @@ func _load_csv(path: String) -> void:
 			# mode can point at a new screen without touching any code.
 			"scene": _first(_cell(row, columns, "scene"), "match"),
 			"requires": _cell(row, columns, "requires"),
+			# WHAT PLAYING IT IS WORTH. Written in the same language as a
+			# dialogue Effects column, so everything that works there works
+			# here:  count:scrap+3 ; unlock:The Cup ; set:last_friendly=won
+			#
+			#   Rewards         applied whatever the score
+			#   Rewards On Win  applied as well, only if you won
+			#
+			# This is how a friendly pays. See _full_time() in main_scene.gd.
+			"rewards": _cell(row, columns, "rewards"),
+			"rewards_win": _cell(row, columns, "rewardsonwin"),
 			"description": _cell(row, columns, "description"),
 			"where": "%s row %d" % [short_name, i + 1],
 		}
@@ -148,7 +158,8 @@ static func _fallback_season_row() -> Dictionary:
 	return {
 		"id": DEFAULT_ID, "name": "Season Match", "records": true,
 		"timer": 90.0, "cycles": 3, "rounds": 3, "rotation": true,
-		"opponent": "team", "scene": "match", "requires": "", "description": "",
+		"opponent": "team", "scene": "match", "requires": "",
+		"rewards": "", "rewards_win": "", "description": "",
 		"where": "(built in)",
 	}
 

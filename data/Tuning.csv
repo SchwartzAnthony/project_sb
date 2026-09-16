@@ -160,3 +160,22 @@ adventure_lane_height,540,"How deep the Adventure grass band is, in pixels. Deep
 adventure_player_size,26,"How big an Adventure player is drawn, as a radius in pixels. Raise it with adventure_lane_height so the two stay in proportion"
 adventure_ball_size,7,"How big the Adventure ball is drawn, as a radius in pixels. The pitch ball is 6, so 7 keeps the two looking alike"
 escape_quits_instantly,false,"FALSE = Escape outside a match asks 'quit the game?' first. TRUE = it closes the game on the first press with no warning"
+card_row_x,0.5,"Where the row of player cards sits across the screen during a match. 0 = hard left, 0.5 = the middle, 1 = hard right"
+card_row_y,0.5,"Where the row of player cards sits down the screen during a match. 0 = the top, 0.5 = the middle, 1 = the bottom. It used to be pinned to the bottom edge of the window"
+card_row_gap,18,Pixels between the player cards during a match
+adventure_player_art_scale,3.4,"How TALL an Adventure player is drawn, as a multiple of adventure_player_size. The width follows from the artwork's own shape - this is the row that actually makes them bigger"
+adventure_choice_y,0.5,"Where the card-choice window sits down the screen in an Adventure fight. 0.5 is the middle"
+adventure_enemy_reach_scale,1.0,How big the invisible click area over each enemy is. Raise it if picking an enemy ever feels fiddly
+adventure_buildup,true,"FALSE skips the two build-up windows and goes straight to the kick. The result is identical either way - it is only what you watch"
+adventure_buildup_step,0.55,Seconds each player takes to come on in the build-up window. Lower is snappier
+adventure_buildup_hold,0.9,Seconds the finished move is held on screen before the windows close
+adventure_death_seconds,0.55,How long an enemy takes to go down when it is killed
+adventure_death_animation,lose,"Which row of Animations.csv an enemy plays when it dies. `lose` already exists in your sheet; add a `death` row and put that word here instead"
+level_per_unique,1.0,"TEAM LEVEL. What each DIFFERENT card on a side is worth. This is the 'how many unique players' part - a side of nine different cards outranks one that fields the same three over and over"
+level_per_card_level,1.0,TEAM LEVEL. The share of the average card's Level column. Fill the Level column in your unit CSVs to use this
+level_per_power,1.5,TEAM LEVEL. The share of the average card's power. This is the 'how strong the players are' part
+level_star_bonus,2.0,TEAM LEVEL. What each Star Player on the side adds
+friendly_level_spread,4,"How far either way a friendly looks for opponents. 4 means a level 20 side meets sides between 16 and 24"
+friendly_default_level,6,The level a friendly assumes when it cannot work yours out - usually only when the scene is run on its own from the editor
+friendly_single_class,false,"FALSE = a friendly opponent is a pick-up side drawn from every class. TRUE = it is a proper club of one class"
+show_friendly_level,true,Prints the opponent's level after its name so you can see at a glance whether the matching is working. Turn it off before a presentation

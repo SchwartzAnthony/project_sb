@@ -85,9 +85,25 @@ var ball: Node2D = null
 
 var _title: Label
 var _prompt: Label
-var _foe_row: HBoxContainer
 var _detail: Label
+
+## THE ENEMIES ARE THE BUTTONS. There is no list of them in a panel any
+## more — you point at the thing on the pitch. See enemy_pick_layer.gd.
+var _picker: EnemyPickLayer
+
+## THE CARDS HAVE THEIR OWN WINDOW, in the middle of the screen where you
+## are looking, rather than being squeezed into the bottom of the command
+## bar. It is only up while a tier is being drafted.
+var _choice_window: PanelContainer
 var _choice_row: HBoxContainer
+var _choice_title: Label
+
+## The two side panels that show the move going in. See adventure_buildup.gd.
+var _buildup: AdventureBuildup
+
+## What the enemies gained by watching you build the move, index -> amount.
+## Cleared at the start of every round.
+var _their_gain: Dictionary = {}
 var _log: VBoxContainer
 var _item_button: Button
 var _flee_button: Button
@@ -162,65 +178,22 @@ func _can_show() -> bool:
 
 
 # =============================================================
-#  PICKING AN ENEMY ON THE PITCH
+#  PICKING AN ENEMY
 #
-#  You choose by clicking the thing itself, not a button in a list, and
-#  hovering one reads it out. The buttons in the panel still work — they
-#  are the same choice by another route, and they are what a keyboard or a
-#  controller will use later.
+#  THE ENEMY IS THE BUTTON. There is no list of enemies in a panel any more:
+#  you point at the thing standing on the pitch, it lights up, a window
+#  beside it tells you everything about it, and you click it.
 #
-#  There is no camera on the run, so a world position IS a screen position.
-#  That is why this can hit-test with a plain distance check instead of
-#  needing an Area2D and a collision shape on every enemy.
+#  None of that is done here. enemy_pick_layer.gd puts a real, invisible
+#  Button on top of each enemy and follows it about, so the hovering, the
+#  clicking and the keyboard focus are Godot's job rather than this file
+#  guessing from mouse distances. It calls back into _choose_focus() and
+#  _foe_facts() above, and that is the whole of the connection between them.
+#
+#  What is left here is only when picking is LIVE, which is while the fight
+#  is waiting for a target and at no other moment — so a stray click during
+#  the build-up cannot re-aim a shot that is already on its way.
 # =============================================================
-
-## How near the pointer has to be, in pixels. Generous on purpose — the
-## enemies are small and this should never feel fiddly.
-const PICK_RADIUS := 46.0
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if not _can_show():
-		return
-
-	var motion := event as InputEventMouseMotion
-	if motion != null:
-		var over := _foe_under(motion.position)
-		if over != _hovered:
-			_hovered = over
-			if over >= 0:
-				_describe_foe(over)
-			else:
-				_detail.text = ""
-			_refresh_foes()
-		return
-
-	var click := event as InputEventMouseButton
-	if click != null and click.pressed and click.button_index == MOUSE_BUTTON_LEFT:
-		if step != Step.FOCUS:
-			return
-		var picked := _foe_under(click.position)
-		if picked >= 0 and _is_alive(picked):
-			_choose_focus(picked)
-			get_viewport().set_input_as_handled()
-
-
-## Which enemy the pointer is over, or -1. The nearest one wins when two
-## overlap, so a crowded line is still pickable.
-func _foe_under(where: Vector2) -> int:
-	var best := -1
-	var best_gap := PICK_RADIUS
-	for i in foe_nodes.size():
-		if not _is_alive(i):
-			continue
-		var node := _foe_node(i)
-		if node == null:
-			continue
-		var gap := node.position.distance_to(where)
-		if gap < best_gap:
-			best_gap = gap
-			best = i
-	return best
 
 
 ## A wave's enemy, with full layers. The CSV row is never written to — the
@@ -254,8 +227,48 @@ static func _fresh_foe(row: Dictionary, hard: float = 1.0) -> Dictionary:
 
 func _ready() -> void:
 	_build_ui()
+
+	# THE ENEMIES BECOME THE BUTTONS. A real Button rides on top of each one,
+	# so Godot does the hovering and the clicking rather than this file
+	# guessing from mouse distance. See enemy_pick_layer.gd.
+	_picker = EnemyPickLayer.make(db)
+	_picker.foe_nodes = foe_nodes
+	_picker.alive_check = Callable(self, "_is_alive")
+	_picker.describe_source = Callable(self, "_foe_facts")
+	_picker.hovered.connect(_on_foe_hovered)
+	_picker.chosen.connect(_choose_focus)
+	add_child(_picker)
+
+	# The two side windows that show the move being built.
+	_buildup = AdventureBuildup.make(db)
+	add_child(_buildup)
+
 	_push_bars()
 	_begin_round()
+
+
+## Everything the hover window needs about one enemy, handed over as data so
+## that the picker never reaches into this file's variables.
+func _foe_facts(index: int) -> Dictionary:
+	if index < 0 or index >= foes.size():
+		return {}
+	return {
+		"row": foes[index]["row"],
+		"left": foes[index]["left"],
+		"alive": _is_alive(index),
+	}
+
+
+## The picker says what the mouse is over; this puts the one-line version in
+## the command bar and lights the ring on the pitch. The full card is drawn
+## by the picker itself, beside the enemy.
+func _on_foe_hovered(index: int) -> void:
+	_hovered = index
+	if index >= 0 and index < foes.size():
+		_describe_foe(index)
+	else:
+		_detail.text = ""
+	_push_bars()
 
 
 # =============================================================
@@ -265,6 +278,7 @@ func _ready() -> void:
 func _begin_round() -> void:
 	step = Step.FOCUS
 	_picked.clear()
+	_their_gain.clear()
 	_tier_index = 0
 	if _focus < 0 or not _is_alive(_focus):
 		_focus = _first_living()
@@ -356,28 +370,74 @@ func _resolve() -> void:
 	step = Step.RESOLVING
 	_refresh()
 
-	# --- YOUR HIT: the four tiers added up ---
+	# --- YOUR HIT: the four tiers, plus whatever the move was worth ---
+	#
+	# THE CHAIN, weakest tier first, with a null where a tier had nobody. It
+	# is passed about as one list because that is what it is: the order the
+	# ball went in.
+	var chain: Array = []
 	var total := 0
 	var empty_tiers := 0
 	for tier in TierLadder.TIERS:
 		var card := _picked.get(tier, null) as PlayerData
+		chain.append(card)
 		if card == null:
 			empty_tiers += 1
 		else:
 			total += card.get_attack_power()
 
+	# WHAT THE MOVE ITSELF WAS WORTH, from Combos.csv. It is added to the
+	# SHOT and never to a card, so the tier ladder is untouched by it — the
+	# same rule the season's Difficulty obeys. See combo_db.gd.
+	var combo := AdventureBuildup.combo_bonus(chain)
+	if combo > 0:
+		var named: Array[String] = []
+		for rule in ComboDB.fired(chain):
+			named.append(ComboDB.describe(rule))
+		_note("The move comes off — %s" % "   ".join(named))
+
+	# WHAT THEY GAINED WHILE YOU BUILT IT. Every pass gives an enemy with a
+	# Buff column that much more to hit you with, this round only.
+	_their_gain.clear()
+	for i in foes.size():
+		if not _is_alive(i):
+			continue
+		var gained := AdventureBuildup.buff_gained(foes[i]["row"], chain)
+		if gained > 0:
+			_their_gain[i] = gained
+
+	# --- WATCH IT GO IN ---
+	#
+	# Two windows: your players arriving one at a time on the left, theirs
+	# getting angrier on the right. Both close before the shot, leaving the
+	# pitch clear for the kick. It decides nothing — everything above is
+	# already worked out — so turning it off in Tuning.csv changes only what
+	# you see. See adventure_buildup.gd.
+	var alive_now: Array = []
+	for i in foes.size():
+		alive_now.append(_is_alive(i))
+	if _buildup != null:
+		await _buildup.play(chain, foes, alive_now)
+
 	var scale := db.tune_float("adventure_damage_scale", 1.0)
 	var least := db.tune_int("adventure_damage_minimum", 1)
-	var dealt := maxi(least, int(round(float(total) * scale)))
+	var dealt := maxi(least, int(round(float(total + combo) * scale)))
 
 	if _focus >= 0 and _is_alive(_focus):
 		# THE LAST PLAYER YOU DRAFTED TAKES THE SHOT. They step out of the
 		# line, put the ball into the enemy you focused, and the number comes
 		# off it. The rules happen either way; this is only the showing.
 		await _show_the_kick(dealt)
+		var was_alive := _is_alive(_focus)
 		var report := _hurt_foe(_focus, dealt)
 		_push_bars()
-		_note("Your line-up totals %d — %s" % [total, report])
+		# IF THAT KILLED IT, IT GOES DOWN ON SCREEN. The Animations.csv row
+		# named by adventure_death_animation, or a fade and a slump if you
+		# have not drawn one yet.
+		if was_alive and not _is_alive(_focus):
+			await _show_the_death(_focus)
+		_note("Your line-up totals %d%s — %s" % [
+			total, "  (+%d from the move)" % combo if combo > 0 else "", report])
 	await _beat(0.35)
 
 	# --- THEIR HIT: after yours, every one of them ---
@@ -447,6 +507,43 @@ func _show_the_kick(dealt: int) -> void:
 		db.tune_float("adventure_float_seconds", 0.9))
 
 
+## ============ AN ENEMY GOING DOWN ============
+##
+## It is knocked backwards, spins a little, fades and is gone. That is a
+## placeholder in the same spirit as everything else here: it reads properly
+## today and it is replaced the moment you draw something.
+##
+## TO GIVE IT A REAL DEATH: add a row to Animations.csv whose Animation
+## column is the word in `adventure_death_animation` (Tuning.csv, `lose` out
+## of the box, because that animation already exists in your sheet). An
+## enemy with an Art column pointing at a sheet will play it.
+func _show_the_death(index: int) -> void:
+	if not _can_show():
+		return
+	var node := _foe_node(index)
+	if node == null or not is_instance_valid(node):
+		return
+
+	_note("%s goes down." % _foe_name(index))
+
+	var seconds := db.tune_float("adventure_death_seconds", 0.55)
+	var away := node.position + Vector2(64.0, -18.0)
+
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(node, "position", away, seconds) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(node, "rotation", 1.1, seconds)
+	tween.tween_property(node, "modulate:a", 0.0, seconds)
+	await tween.finished
+
+	# It stays in the list — the fight counts the dead — but it is no longer
+	# on the pitch and no longer has a button on it.
+	node.visible = false
+	if _picker != null:
+		_picker.refresh()
+
+
 ## Copy what is LEFT of every enemy onto its node, so the bars on the pitch
 ## empty as you hit them. The node draws from this; nothing else reads it.
 func _push_bars() -> void:
@@ -494,7 +591,13 @@ func _hurt_foe(index: int, amount: int) -> String:
 ## Attack, doubled when a tier of yours stood empty.
 func _enemy_strikes(index: int, multiplier: int) -> void:
 	var row: Dictionary = foes[index]["row"]
-	var hit := maxi(1, int(row.get("attack", 1)) * multiplier)
+	# WHAT IT GAINED WATCHING YOU BUILD THE MOVE, added here and nowhere
+	# else, so it lasts exactly one round — see the Buff column of
+	# AdventureEnemies.csv and the right-hand build-up window.
+	var gained := int(_their_gain.get(index, 0))
+	var hit := maxi(1, (int(row.get("attack", 1)) + gained) * multiplier)
+	if gained > 0:
+		_note("%s had time to wind up: +%d." % [_foe_name(index), gained])
 	var how := String(row.get("targeting", "weakest"))
 
 	# THEM COMING AT YOU. A lunge from the enemy towards whoever it picked,
@@ -722,14 +825,29 @@ func _build_ui() -> void:
 	var holder := Control.new()
 	holder.name = "Holder"
 	holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	holder.mouse_filter = Control.MOUSE_FILTER_PASS
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(holder)
 
+	_build_command_bar(holder)
+	_build_choice_window(holder)
+
+
+# -------------------------------------------------------------
+#  THE COMMAND BAR
+#
+#  What used to be a 300-pixel panel across the bottom holding the enemies,
+#  the cards and the buttons all at once. It is a slim strip now, because
+#  the enemies moved onto the pitch and the cards moved into the middle of
+#  the screen. All that is left in it is what the fight is asking you for
+#  and the three things you can always do.
+# -------------------------------------------------------------
+
+func _build_command_bar(holder: Control) -> void:
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	panel.offset_left = 20.0
 	panel.offset_right = -20.0
-	panel.offset_top = -300.0
+	panel.offset_top = -104.0
 	panel.offset_bottom = -16.0
 	panel.add_theme_stylebox_override("panel", MenuSupport.panel_style(
 		Color(0.09, 0.10, 0.13, 0.94), MenuSupport.COLOUR_ACCENT))
@@ -738,77 +856,123 @@ func _build_ui() -> void:
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 18)
 	margin.add_theme_constant_override("margin_right", 18)
-	margin.add_theme_constant_override("margin_top", 12)
-	margin.add_theme_constant_override("margin_bottom", 12)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_bottom", 10)
 	panel.add_child(margin)
 
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 8)
-	margin.add_child(column)
+	var bar := HBoxContainer.new()
+	bar.add_theme_constant_override("separation", 18)
+	margin.add_child(bar)
 
-	_title = MenuSupport.heading("COMBAT", 24, MenuSupport.COLOUR_ACCENT)
-	column.add_child(_title)
+	var words := VBoxContainer.new()
+	words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	words.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	words.add_theme_constant_override("separation", 2)
+	bar.add_child(words)
+
+	_title = MenuSupport.heading("COMBAT", 22, MenuSupport.COLOUR_ACCENT)
+	words.add_child(_title)
 
 	_prompt = Label.new()
 	_prompt.add_theme_font_size_override("font_size", 15)
 	_prompt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	column.add_child(_prompt)
+	words.add_child(_prompt)
 
-	# --- the enemies ---
-	_foe_row = HBoxContainer.new()
-	_foe_row.add_theme_constant_override("separation", 10)
-	column.add_child(_foe_row)
-
+	# The line that reads out whatever you are pointing at. The full card is
+	# in the hover window beside the enemy; this is the one-line version, so
+	# there is something to read even with the mouse still.
 	_detail = Label.new()
+	_detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_detail.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_detail.add_theme_font_size_override("font_size", 13)
 	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_detail.custom_minimum_size = Vector2(0, 34)
-	column.add_child(_detail)
-
-	# --- the cards on offer ---
-	_choice_row = HBoxContainer.new()
-	_choice_row.add_theme_constant_override("separation", 10)
-	column.add_child(_choice_row)
-
-	# --- the buttons ---
-	#
-	# THE LOG IS NOT DOWN HERE ANY MORE. Text under the buttons was cramped
-	# and pushed everything about, so it has its own little window off to the
-	# side that you can shut. See _build_log_window().
-	var bottom := HBoxContainer.new()
-	bottom.add_theme_constant_override("separation", 12)
-	column.add_child(bottom)
-
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	bottom.add_child(spacer)
+	_detail.custom_minimum_size = Vector2(380, 0)
+	bar.add_child(_detail)
 
 	_log_button = Button.new()
 	_log_button.text = "HIDE LOG"
-	_log_button.custom_minimum_size = Vector2(120, 42)
+	_log_button.custom_minimum_size = Vector2(120, 46)
 	_log_button.focus_mode = Control.FOCUS_NONE
 	_log_button.tooltip_text = "Show or hide the blow-by-blow. It opens on its own; close it if you would rather just watch."
 	_log_button.pressed.connect(_toggle_log)
-	bottom.add_child(_log_button)
+	bar.add_child(_log_button)
 
 	_item_button = Button.new()
 	_item_button.text = "ITEMS"
-	_item_button.custom_minimum_size = Vector2(120, 42)
+	_item_button.custom_minimum_size = Vector2(120, 46)
 	_item_button.focus_mode = Control.FOCUS_NONE
 	_item_button.tooltip_text = "Revive somebody, patch somebody up, or throw something. Before the drafting only."
 	_item_button.pressed.connect(_open_items)
-	bottom.add_child(_item_button)
+	bar.add_child(_item_button)
 
 	_flee_button = Button.new()
 	_flee_button.text = "FLEE"
-	_flee_button.custom_minimum_size = Vector2(120, 42)
+	_flee_button.custom_minimum_size = Vector2(120, 46)
 	_flee_button.focus_mode = Control.FOCUS_NONE
 	_flee_button.pressed.connect(_flee)
-	bottom.add_child(_flee_button)
+	bar.add_child(_flee_button)
+
+
+# -------------------------------------------------------------
+#  THE CARD WINDOW
+#
+#  Its own panel, in the middle of the screen, and up ONLY while a tier is
+#  being drafted. The cards used to live along the bottom of the big combat
+#  panel, which put the thing you were choosing as far as possible from the
+#  thing you were choosing it for.
+#
+#  Where it sits is Tuning.csv:
+#      adventure_choice_y   0 = the top, 0.5 = the middle, 1 = the bottom
+# -------------------------------------------------------------
+
+func _build_choice_window(holder: Control) -> void:
+	_choice_window = PanelContainer.new()
+	_choice_window.add_theme_stylebox_override("panel", MenuSupport.panel_style(
+		Color(0.07, 0.08, 0.11, 0.96), MenuSupport.COLOUR_ACCENT))
+
+	var where := db.tune_float("adventure_choice_y", 0.5)
+	var box := Vector2(
+		db.tune_float("adventure_card_width", 200.0),
+		db.tune_float("adventure_card_height", 264.0))
+
+	_choice_window.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	_choice_window.anchor_top = where
+	_choice_window.anchor_bottom = where
+	_choice_window.anchor_left = 0.5
+	_choice_window.anchor_right = 0.5
+	var half_wide := box.x * 1.7 + 60.0
+	var half_tall := box.y * 0.5 + 54.0
+	_choice_window.offset_left = -half_wide
+	_choice_window.offset_right = half_wide
+	_choice_window.offset_top = -half_tall
+	_choice_window.offset_bottom = half_tall
+	_choice_window.hide()
+	holder.add_child(_choice_window)
+
+	var pad := MarginContainer.new()
+	for side in ["margin_left", "margin_right"]:
+		pad.add_theme_constant_override(side, 20)
+	pad.add_theme_constant_override("margin_top", 12)
+	pad.add_theme_constant_override("margin_bottom", 14)
+	_choice_window.add_child(pad)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 10)
+	pad.add_child(column)
+
+	_choice_title = MenuSupport.heading("TIER I", 20, MenuSupport.COLOUR_ACCENT)
+	_choice_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(_choice_title)
+
+	_choice_row = HBoxContainer.new()
+	_choice_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_choice_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_choice_row.add_theme_constant_override("separation", 14)
+	column.add_child(_choice_row)
 
 	_build_log_window(holder)
+
 
 
 # =============================================================
@@ -867,15 +1031,21 @@ func _refresh() -> void:
 			_resolve.call_deferred()
 			return
 
-	_refresh_foes()
+	_push_bars()
 	_refresh_choices()
+
+	# PICKING IS LIVE ONLY WHILE A TARGET IS WANTED. At any other moment the
+	# buttons on the enemies are taken away, so a click during the build-up
+	# cannot re-aim a shot that is already going in.
+	if _picker != null:
+		_picker.set_live(step == Step.FOCUS)
 
 	var alive := _living_count()
 	_title.text = "COMBAT   ·   %d left" % alive
 
 	match step:
 		Step.FOCUS:
-			_prompt.text = "Pick who to go after. Everything your four tiers do this round lands on them."
+			_prompt.text = "Point at an enemy to read it, click it to go after it. Everything your four tiers do this round lands on them."
 		Step.DRAFT:
 			var tier := _current_tier()
 			var standing := run.standing_in(tier, db)
@@ -885,7 +1055,7 @@ func _refresh() -> void:
 				_prompt.text = "Tier %s — choose who takes it. (%d of 4)" % [
 					tier, _tier_index + 1]
 		Step.RESOLVING:
-			_prompt.text = "..."
+			_prompt.text = "The move is going in..."
 		Step.DONE:
 			_prompt.text = ""
 
@@ -895,38 +1065,10 @@ func _refresh() -> void:
 	_item_button.disabled = step == Step.RESOLVING or step == Step.DONE
 
 
-func _refresh_foes() -> void:
-	_push_bars()
-	for child in _foe_row.get_children():
-		child.queue_free()
-
-	for i in foes.size():
-		var row: Dictionary = foes[i]["row"]
-		var alive := _is_alive(i)
-
-		var button := Button.new()
-		button.custom_minimum_size = Vector2(180, 78)
-		button.focus_mode = Control.FOCUS_NONE
-		button.disabled = not alive or step != Step.FOCUS
-		button.text = "%s\n%s" % [row.get("name", "?"), _layer_text(i)]
-		button.add_theme_font_size_override("font_size", 13)
-
-		var lit := (i == _focus and alive)
-		var tint := MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT_DIM
-		button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
-			MenuSupport.COLOUR_PANEL if alive else MenuSupport.COLOUR_LOCKED, tint))
-		button.add_theme_stylebox_override("disabled", MenuSupport.panel_style(
-			MenuSupport.COLOUR_PANEL if alive else MenuSupport.COLOUR_LOCKED, tint))
-		button.add_theme_stylebox_override("hover", MenuSupport.panel_style(
-			MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
-
-		# HOVER TO READ IT. This is the JRPG bit: everything about an enemy
-		# is one mouse-over away, before you commit anything.
-		button.mouse_entered.connect(_describe_foe.bind(i))
-		button.mouse_exited.connect(func() -> void: _detail.text = "")
-		if alive and step == Step.FOCUS:
-			button.pressed.connect(_choose_focus.bind(i))
-		_foe_row.add_child(button)
+## THE OLD LIST OF ENEMY BUTTONS IS GONE. The enemies on the pitch are the
+## buttons now — enemy_pick_layer.gd — so all that is left of this is
+## keeping the rings and the health bars under them up to date, which is
+## _push_bars(). Anything that used to call _refresh_foes() calls that.
 
 
 func _describe_foe(index: int) -> void:
@@ -942,9 +1084,12 @@ func _describe_foe(index: int) -> void:
 			int(layer["amount"]),
 			"  (soaks %d)" % soak if soak > 0 else ""])
 
-	_detail.text = "%s — hits for %d, goes for the %s.   %s   %s" % [
-		row.get("name", "?"), int(row.get("attack", 0)), row.get("targeting", "weakest"),
-		"  |  ".join(parts), row.get("description", "")]
+	var gained := int(_their_gain.get(index, 0))
+	var hits := int(row.get("attack", 0)) + gained
+	_detail.text = "%s — hits for %d%s, goes for the %s.   %s" % [
+		row.get("name", "?"), hits,
+		"  (+%d from your passes)" % gained if gained > 0 else "",
+		row.get("targeting", "weakest"), "  |  ".join(parts)]
 
 
 func _layer_text(index: int) -> String:
@@ -957,19 +1102,27 @@ func _layer_text(index: int) -> String:
 	return "%d left  ·  hits %d" % [total, int((foes[index]["row"] as Dictionary).get("attack", 0))]
 
 
+## The card window. Up only while a tier is being drafted, and gone the
+## moment the fourth card is in — which is what leaves the middle of the
+## screen clear for the move to be played out on.
 func _refresh_choices() -> void:
 	for child in _choice_row.get_children():
 		child.queue_free()
+
 	if step != Step.DRAFT:
+		_choice_window.hide()
 		return
 
 	var tier := _current_tier()
 	if tier == "":
+		_choice_window.hide()
 		return
 
 	# _advance_past_empty_tiers() ran first, so there is always somebody here.
 	var standing := run.standing_in(tier, db)
-	_choice_row.visible = true
+	_choice_window.show()
+	_choice_title.text = "TIER %s   ·   who takes it?   (%d of %d)" % [
+		tier, _tier_index + 1, TierLadder.TIERS.size()]
 
 	# THE SAME CARD FACE AS THE TEAM BUILDER AND THE MATCH DRAFT. One
 	# helper draws all three, so a player looks the same wherever you meet

@@ -82,15 +82,42 @@ func _load_class_info() -> void:
 			_class_info[MenuSupport.normalise(key)] = row
 
 
+## ============ WHICH CLASSES ARE ON THE SCREEN ============
+##
+## Two optional columns of ClassInfo.csv decide, and a class with neither is
+## simply always available — which is why you can ignore both until you want
+## them:
+##
+##     Requires   the usual condition language. `unlocked:Rival Scouting`,
+##                `flag:met_the_singers`, `count:season_wins>=3`, joined
+##                with a semicolon. Not met = the class is not offered.
+##     Hidden     yes = never offered, whatever else the row says. This is
+##                how you take a class out of the game WITHOUT deleting its
+##                cards, so its rows stay in your CSVs for later.
+##
+## A class that is hidden or locked is still perfectly real everywhere else:
+## its cards still load, the opposition can still field it, and a saved team
+## of that class still plays. This screen is about what you may START a new
+## team from, and nothing more.
 func _collect_classes() -> void:
 	var by_class := db.stars_by_class()
 	var names: Array = by_class.keys()
 	names.sort()
+	var held_back: Array[String] = []
+
 	for key in names:
 		var bundle: Array = by_class[key]
 		if bundle.is_empty():
 			continue
-		_class_names.append(String(key))
+		var text := String(key)
+		var why := _locked_reason(text)
+		if why != "":
+			held_back.append("%s (%s)" % [text, why])
+			continue
+		_class_names.append(text)
+
+	if not held_back.is_empty():
+		print("[classes] Not offered yet: %s" % ",  ".join(held_back))
 
 	for class_name_text in _class_names:
 		var button := Button.new()
@@ -108,6 +135,24 @@ func _info_row(class_name_text: String) -> Dictionary:
 
 func _display_name(class_name_text: String) -> String:
 	return MenuSupport.field(_info_row(class_name_text), "Display Name", class_name_text)
+
+
+## "" when the class may be picked, or a short reason when it may not.
+func _locked_reason(class_name_text: String) -> String:
+	var info := _info_row(class_name_text)
+	if info.is_empty():
+		return ""            # no row at all means no restrictions
+
+	if MenuSupport.field(info, "Hidden").to_lower() in ["yes", "true", "1"]:
+		return "Hidden in ClassInfo.csv"
+
+	var needs := MenuSupport.field(info, "Requires").strip_edges()
+	if needs == "":
+		return ""
+	var state := GameState.fetch(get_tree())
+	if DialogueGrammar.test(needs, state):
+		return ""
+	return DialogueGrammar.describe(needs)
 
 
 # -------------------------------------------------------------

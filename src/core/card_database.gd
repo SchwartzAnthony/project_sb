@@ -272,6 +272,12 @@ func _read_units(rows: Array, columns: Dictionary, source: String) -> void:
 		# card — see AdventureRun.stamina_for().
 		card.adventure_stamina = _cell_int(row, columns, "stamina")
 
+		# Optional "Level" column. It decides who a FRIENDLY puts you up
+		# against and nothing else — see team_level.gd. Blank (0) means
+		# "work it out from my tier and power", so the column is entirely
+		# optional. Note this is NOT the "Stufe" column, which is card text.
+		card.level = _cell_int(row, columns, "level")
+
 		var art_name := _cell(row, columns, "artwork")
 		if art_name != "":
 			card.artwork = _find_texture(art_name, PLAYER_ART_DIRS)

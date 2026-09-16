@@ -1,13 +1,13 @@
-Unit Type,Name,Attack,Defend,Element,Base Power Left,Base Power Right,Tier,Stufe,Tool,Card Number,Card Date,Set Name,Created by,Artwork,Player Type
-Normal,Müller,None,None,None,0,0,I,Level,,1,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
-Normal,Schmidt,None,None,None,1,1,I,Level,,2,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
-Normal,Schneider,None,None,None,2,2,I,Level,,3,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
-Normal,Fischer,None,None,None,1,1,II,Level,,4,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
-Normal,Weber,None,None,None,2,2,II,Level,,5,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
-Normal,Meyer,None,None,None,3,3,II,Level,,6,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
-Normal,Wagner,None,None,None,2,2,III,Level,,7,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
-Normal,Becker,None,None,None,3,3,III,Level,,8,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
-Normal,Schulz,None,None,None,4,4,III,Level,,9,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
-Normal,Hoffmann,None,None,None,3,3,IV,Level,,10,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Star
-Normal,Schäfer,None,None,None,4,4,IV,Level,,11,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Star
-Normal,Koch,None,None,None,5,5,IV,Level,,12,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Star
+Unit Type,Name,Attack,Defend,Element,Base Power Left,Base Power Right,Tier,Level,Stufe,Tool,Card Number,Card Date,Set Name,Created by,Artwork,Player Type
+Normal,Müller,None,None,None,0,0,I,1,Level,,1,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
+Normal,Schmidt,None,None,None,1,1,I,2,Level,,2,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
+Normal,Schneider,None,None,None,2,2,I,3,Level,,3,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
+Normal,Fischer,None,None,None,1,1,II,5,Level,,4,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
+Normal,Weber,None,None,None,2,2,II,6,Level,,5,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
+Normal,Meyer,None,None,None,3,3,II,6,Level,,6,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
+Normal,Wagner,None,None,None,2,2,III,9,Level,,7,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
+Normal,Becker,None,None,None,3,3,III,9,Level,,8,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
+Normal,Schulz,None,None,None,4,4,III,9,Level,,9,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Normal
+Normal,Hoffmann,None,None,None,3,3,IV,13,Level,,10,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Star
+Normal,Schäfer,None,None,None,4,4,IV,13,Level,,11,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Star
+Normal,Koch,None,None,None,5,5,IV,13,Level,,12,2026,F01,A.J.S,Silver-Rhine Lorelei.png,Star

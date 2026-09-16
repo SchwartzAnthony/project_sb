@@ -92,6 +92,51 @@ func is_boss_wave() -> bool:
 	return wave >= waves()
 
 
+## ============ HOW HARD THIS RUN IS ============
+##
+## Two things multiply together:
+##
+##   the biome's own Difficulty column   (1 in the marsh, 4 in the Frostreach)
+##   how many times you have CLEARED it  (its boss, at least once)
+##
+## So a biome you have beaten is worth going back into: the enemies come
+## back stronger and their drops are worth the same, which is the endless
+## half of "endless". The step per clear is `adventure_repeat_step` in
+## Tuning.csv — 0.35 means +35% of the base each time round.
+##
+## The count is a plain counter in your save, so a talent or a building can
+## test it: `count:cleared_marshlands>=3`.
+func clears_counter() -> String:
+	return "cleared_" + CardDatabase._normalise(String(biome.get("id", "biome")))
+
+
+func difficulty(state: GameState, db: CardDatabase) -> float:
+	# A FIRST VISIT IS ALWAYS x1.
+	#
+	# The biome's Difficulty column does NOT multiply the first run — that
+	# would count it twice, because the Hollowdeep's enemies are already
+	# written tougher than the marsh's in AdventureEnemies.csv. Multiplying
+	# those by 3 as well made the later biomes unplayable rather than hard.
+	#
+	# Difficulty instead decides HOW FAST a biome ramps when you go back:
+	# the marsh (1) climbs gently, the Frostreach (4) climbs steeply.
+	var clears := 0
+	if state != null:
+		clears = maxi(0, state.count(clears_counter()))
+	if clears <= 0:
+		return 1.0
+
+	var pace := maxf(1.0, float(biome.get("difficulty", 1)))
+	var step := db.tune_float("adventure_repeat_step", 0.35) if db != null else 0.35
+	return 1.0 + float(clears) * step * pace
+
+
+## Say this biome has been beaten. Called when a boss goes down.
+func record_clear(state: GameState) -> void:
+	if state != null:
+		state.add_count(clears_counter(), 1)
+
+
 func biome_name() -> String:
 	return String(biome.get("name", "Somewhere"))
 

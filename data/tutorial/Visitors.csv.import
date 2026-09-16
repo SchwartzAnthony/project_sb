@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://d07x51p7jbm1a"
+
+[deps]
+
+files=["res://data/tutorial/Visitors.Name.translation", "res://data/tutorial/Visitors.Portrait.translation", "res://data/tutorial/Visitors.Story.translation", "res://data/tutorial/Visitors.X.translation", "res://data/tutorial/Visitors.Y.translation", "res://data/tutorial/Visitors.Once.translation", "res://data/tutorial/Visitors.Notes.translation"]
+
+source_file="res://data/tutorial/Visitors.csv"
+dest_files=["res://data/tutorial/Visitors.Name.translation", "res://data/tutorial/Visitors.Portrait.translation", "res://data/tutorial/Visitors.Story.translation", "res://data/tutorial/Visitors.X.translation", "res://data/tutorial/Visitors.Y.translation", "res://data/tutorial/Visitors.Once.translation", "res://data/tutorial/Visitors.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

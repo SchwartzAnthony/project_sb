@@ -103,12 +103,36 @@ static func save_all(settings: Dictionary) -> void:
 	file.close()
 
 
+## Which settings need the WINDOW touched when they change. Everything else
+## is applied without going near the window, which matters: re-applying the
+## screen settings resizes and repositions the window, so changing a colour
+## used to make the whole window jump. Now it does not.
+const SCREEN_KEYS: Array[String] = [
+	"screen_mode", "resolution", "vsync", "max_fps",
+]
+
+
 ## Change one value and put it into effect straight away.
+##
+## ONLY THE PART THAT CHANGED IS RE-APPLIED. Changing a volume touches the
+## audio buses and nothing else; changing a palette repaints and nothing
+## else. That is the fix for the window resizing itself when you picked a
+## colour.
 static func put(tree: SceneTree, key: String, value: Variant) -> Dictionary:
 	var settings := load_all()
 	settings[key] = value
 	save_all(settings)
-	apply(tree, true)
+
+	if SCREEN_KEYS.has(key):
+		_apply_screen(settings)
+	elif key.begins_with("volume_"):
+		_apply_sound(settings)
+	elif key == "palette":
+		_apply_palette(String(value))
+	elif key.begins_with("pad_"):
+		_apply_pad(settings)
+	# Anything else is read where it is used and needs nothing doing here.
+
 	return settings
 
 

@@ -39,6 +39,19 @@ extends Resource
 ## or more fragile than its power would suggest.
 @export var adventure_stamina: int = 0
 
+## Optional "Level" column in your unit CSV. THIS IS WHAT DECIDES WHO YOU
+## PLAY AGAINST in a friendly — see team_level.gd.
+##
+## Think of it as "how far into the game is this card". A starter is a 1, a
+## card you earn late is a 12. It is NOT the same thing as power: a Tier I
+## 2-power card can be a level 10 card if it is rare and does something
+## clever, and the tier ladder means its power is still a 2.
+##
+## Leave it blank (0) and the card's level is worked out from its tier and
+## its power instead, which is a sensible guess and means you can ignore the
+## column entirely until you want to use it. See PlayerData.get_level().
+@export var level: int = 0
+
 @export var artwork: Texture2D
 
 
@@ -151,6 +164,31 @@ func get_tier_index() -> int:
 
 func is_star() -> bool:
 	return player_type.to_lower().contains("star")
+
+
+## HOW FAR INTO THE GAME THIS CARD IS. Used to decide who a friendly puts
+## you against, and nothing else — it never touches a card's power, so the
+## tier ladder is untouched by it.
+##
+## The Level column of your unit CSV if it has one. If it does not, a guess
+## from the tier and the power:
+##
+##     Tier I   -> 1..3      Tier III -> 7..9
+##     Tier II  -> 4..6      Tier IV  -> 10..12
+##
+## which is deliberately the ordinary shape of a roster, so a project that
+## never fills the column still sorts into believable opponents. A Star is
+## worth a little more than a regular of the same tier, because it is.
+func get_level() -> int:
+	if level > 0:
+		return level
+	var tier_index := get_tier_index()
+	if tier_index < 0:
+		tier_index = 0
+	var guess := tier_index * 3 + 1 + mini(get_attack_power(), 2)
+	if is_star():
+		guess += 1
+	return guess
 
 
 # --- Ability targeting tags ---------------------------------

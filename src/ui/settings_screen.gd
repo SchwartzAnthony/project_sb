@@ -38,12 +38,25 @@ var _note: Label
 var _listening: String = ""
 
 
+## WHICH TAB TO OPEN ON. It rides on the SceneTree rather than living in
+## this script, so that rebuilding the screen — which a palette change does,
+## because every colour on it has to be redrawn — comes back to the tab you
+## were on instead of dumping you back on Keys.
+const TAB_KEY := "cw_settings_tab"
+
+
 func _ready() -> void:
 	MenuEscape.install(self)
 	GameKeys.install(get_tree())
 	settings = GameSettings.load_all()
 	_build()
-	_show_tab("Keys")
+
+	var opening := "Keys"
+	if get_tree().has_meta(TAB_KEY):
+		var remembered := String(get_tree().get_meta(TAB_KEY))
+		if TABS.has(remembered):
+			opening = remembered
+	_show_tab(opening)
 
 
 # =============================================================
@@ -130,6 +143,8 @@ func _tab_icon(name_text: String) -> String:
 func _show_tab(name_text: String) -> void:
 	_tab = name_text
 	_listening = ""
+	if get_tree() != null:
+		get_tree().set_meta(TAB_KEY, name_text)
 	for key in _tab_buttons.keys():
 		var button := _tab_buttons[key] as Button
 		var lit := String(key) == name_text
@@ -137,6 +152,33 @@ func _show_tab(name_text: String) -> void:
 			MenuSupport.COLOUR_SLOT_EMPTY if lit else MenuSupport.COLOUR_PANEL,
 			MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT_DIM))
 	_rebuild()
+
+
+## Redraw the WHOLE screen — background, tabs, footer and body — keeping the
+## tab you are on. Only the palette needs this; everything else changes one
+## row and calls _rebuild().
+##
+## The children are cleared and _build() runs again, which is cheap and, more
+## importantly, does not go anywhere near the window.
+func _repaint() -> void:
+	var was_on := _tab
+	for child in get_children():
+		# MenuEscape is a CanvasLayer that belongs to the screen rather than
+		# to its look, and rebuilding it would install a second one.
+		if child is MenuEscape:
+			continue
+		child.queue_free()
+	_tab_buttons.clear()
+	_body = null
+	_note = null
+
+	# The freed nodes are gone at the end of the frame, so the new ones are
+	# built after that — otherwise the old chrome is still on screen
+	# underneath the new chrome for one frame.
+	await get_tree().process_frame
+	_build()
+	_show_tab(was_on)
+	_say("Palette changed. Every screen in the game uses these colours.")
 
 
 func _rebuild() -> void:
@@ -404,11 +446,15 @@ func _choice_row(label_text: String, key: String, choices: Array,
 		button.pressed.connect(func() -> void:
 			settings = GameSettings.put(get_tree(), key, choice)
 			_say("%s: %s" % [label_text, shown])
-			# A NEW PALETTE REPAINTS EVERYTHING, including the bits of this
-			# screen that were drawn before you changed it — so the screen is
-			# rebuilt from scratch rather than half-repainted.
+			# A NEW PALETTE REPAINTS THIS SCREEN IN PLACE.
+			#
+			# It used to reload the whole scene, which had two faults you
+			# spotted: the window resized (because reloading re-applied the
+			# screen settings) and you were dropped back on the first tab.
+			# Rebuilding the screen's own chrome does the same job without
+			# touching the window and without losing your place.
 			if key == "palette":
-				ScenePaths.go_to(get_tree(), ScenePaths.SETTINGS, false)
+				_repaint()
 				return
 			_rebuild())
 		row.add_child(button)
