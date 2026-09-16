@@ -32,9 +32,14 @@ var _footer: Label
 func _ready() -> void:
 	db = CardDatabase.get_db()
 
-	# One consolidated report of everything the CSVs got wrong, printed once.
-	# See content_report.gd — it also catches mistakes no single file can see,
-	# like a condition testing a counter nothing ever fills in.
+	# FIRST: is every file where it should be? A script in the wrong folder
+	# shows up as a dozen "not declared in the current scope" errors that
+	# never name the file, so this names it. See install_check.gd.
+	InstallCheck.run(get_tree())
+
+	# Then one consolidated report of everything the CSVs got wrong, printed
+	# once. See content_report.gd — it also catches mistakes no single file
+	# can see, like a condition testing a counter nothing ever fills in.
 	ContentReport.print_report()
 
 	state = GameState.fetch(get_tree())

@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dyuyra6mg5hp2"
+
+[deps]
+
+files=["res://data/FileManifest.Folder.translation", "res://data/FileManifest.What it is.translation", "res://data/FileManifest.Notes.translation"]
+
+source_file="res://data/FileManifest.csv"
+dest_files=["res://data/FileManifest.Folder.translation", "res://data/FileManifest.What it is.translation", "res://data/FileManifest.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

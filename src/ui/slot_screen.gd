@@ -111,14 +111,16 @@ func _tile(about: Dictionary) -> Control:
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(line)
 
-	if String(about["when"]) != "":
-		var when := Label.new()
-		when.text = "last played  " + String(about["when"])
-		when.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		when.add_theme_font_size_override("font_size", 11)
-		when.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-		when.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		column.add_child(when)
+	# `played_at`, not `when` — see the note in save_slots.gd. `when` is a
+	# Godot keyword and naming a variable that is a parse error.
+	if String(about["played_at"]) != "":
+		var stamp := Label.new()
+		stamp.text = "last played  " + String(about["played_at"])
+		stamp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		stamp.add_theme_font_size_override("font_size", 11)
+		stamp.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+		stamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		column.add_child(stamp)
 
 	button.pressed.connect(_play.bind(slot))
 	frame.add_child(button)

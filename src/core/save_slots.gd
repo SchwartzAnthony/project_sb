@@ -103,17 +103,17 @@ static func choose(tree: SceneTree, slot: int) -> void:
 static func describe(slot: int) -> Dictionary:
 	var path := state_path(slot)
 	if not FileAccess.file_exists(path):
-		return {"slot": slot, "used": false, "line": "Empty", "when": ""}
+		return {"slot": slot, "used": false, "line": "Empty", "played_at": ""}
 
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
-		return {"slot": slot, "used": false, "line": "Empty", "when": ""}
+		return {"slot": slot, "used": false, "line": "Empty", "played_at": ""}
 	var raw := file.get_as_text()
 	file.close()
 
 	var parsed: Variant = JSON.parse_string(raw)
 	if not (parsed is Dictionary):
-		return {"slot": slot, "used": true, "line": "Unreadable", "when": ""}
+		return {"slot": slot, "used": true, "line": "Unreadable", "played_at": ""}
 
 	var data: Dictionary = parsed
 	var counters: Dictionary = data.get("counters", {})
@@ -123,11 +123,16 @@ static func describe(slot: int) -> Dictionary:
 
 	# WHEN IT WAS LAST TOUCHED, from the file itself rather than from
 	# anything we have to remember to write.
-	var when := ""
+	#
+	# NOT CALLED `when`. Godot 4.2 made `when` a keyword (it is the guard in
+	# a match arm: `match x: 1 when ready:`), so a variable of that name is a
+	# parse error and takes this whole file down with it — and every file
+	# that mentions SaveSlots with it. Same trap as `reload()` last round.
+	var played_at := ""
 	var stamp := FileAccess.get_modified_time(path)
 	if stamp > 0:
 		var at := Time.get_datetime_dict_from_unix_time(stamp)
-		when = "%04d-%02d-%02d  %02d:%02d" % [
+		played_at = "%04d-%02d-%02d  %02d:%02d" % [
 			at["year"], at["month"], at["day"], at["hour"], at["minute"]]
 
 	return {
@@ -136,7 +141,7 @@ static func describe(slot: int) -> Dictionary:
 		"line": "%d match%s   ·   %d unlock%s" % [
 			played, "" if played == 1 else "es",
 			unlocks.size(), "" if unlocks.size() == 1 else "s"],
-		"when": when,
+		"played_at": played_at,
 	}
 
 
