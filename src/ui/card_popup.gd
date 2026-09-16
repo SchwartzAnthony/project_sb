@@ -188,7 +188,7 @@ const EFFECT_WORDS := {
 const SCOPE_WORDS := {
 	"duel": "for this duel",
 	"round": "for the round",
-	"cycle": "until the next HOLD UP!",
+	"cycle": "until the next STAR PLAYER SWITCH",
 	"match": "for the rest of the match",
 }
 

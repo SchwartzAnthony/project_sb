@@ -33,6 +33,20 @@ var book: SeasonBook
 var _canvas: Control
 var _detail: Label
 
+## ============ WHERE EVERY TILE ACTUALLY SITS ============
+##
+## Worked out in _place_tiles() and read by everything else, including the
+## joining lines. It is a dictionary rather than a sum done twice because the
+## lines MUST agree with the tiles — when they were both working it out
+## separately, one of them was always wrong after a resize.
+##
+## Season id -> the top-left corner of its tile.
+var _places: Dictionary = {}
+
+## Season id -> its Button, so a resize can move them without rebuilding.
+var _tiles: Dictionary = {}
+var _placing := false
+
 
 func _ready() -> void:
 	db = CardDatabase.get_db()
@@ -84,6 +98,11 @@ func _build() -> void:
 	_canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_canvas)
 	_canvas.draw.connect(_draw_links)
+	# CENTRING DEPENDS ON HOW WIDE THE SHELF IS, and nothing knows that until
+	# Godot has laid the screen out — which is after this function has
+	# finished. So the tiles are re-placed every time the canvas changes size:
+	# once on the first frame, and again whenever the window is resized.
+	_canvas.resized.connect(_place_tiles)
 
 	_fill()
 
@@ -100,28 +119,112 @@ func _fill() -> void:
 	for child in _canvas.get_children():
 		child.queue_free()
 
-	var widest := 0
+	# The canvas is sized from the furthest tile in _place_tiles(), so the
+	# shelf grows as you add rows and the scroll bar appears on its own.
+	_tiles.clear()
+	for entry in book.seasons:
+		var button := _tile(entry)
+		_tiles[String(entry["id"])] = button
+		_canvas.add_child(button)
+	_place_tiles()
+
+
+# =============================================================
+#  CENTRING THE SHELF
+#
+#  ============ WHAT WAS WRONG ============
+#
+#  Tiles were placed straight from their Column: column 0 hard against the
+#  left edge, column 1 beside it, and so on. With two seasons the shelf sat
+#  in the left-hand third of the screen with a field of empty space beside
+#  it, and it read as a mistake rather than as a layout.
+#
+#  ============ WHAT HAPPENS NOW ============
+#
+#  EVERY ROW IS CENTRED ON THE SCREEN, and the Column column decides the
+#  ORDER and the SPACING within that row rather than the absolute position.
+#  So three seasons side by side sit evenly across the middle; four do the
+#  same and simply take more of the width; one sits in the centre on its own.
+#
+#  GAPS IN YOUR COLUMN NUMBERS STILL MEAN SOMETHING. A row using columns 0
+#  and 2 keeps the hole in the middle, because the spacing is measured from
+#  the row's own leftmost tile. That is what lets a branch fork and rejoin
+#  and still look like a chart.
+#
+#  You do not have to renumber anything to get this. Rows 1, 2 and 3 of
+#  Seasons.csv laid out as you already have them will simply be centred.
+# =============================================================
+
+## Put every tile where it belongs, and remember where that was.
+##
+## Called on the first layout and on every resize. It never creates or
+## destroys anything, so it is cheap enough to run as often as it likes.
+func _place_tiles() -> void:
+	# A GUARD, because this function sets the canvas's minimum size and the
+	# canvas is what calls it. Godot lays out on the next frame rather than
+	# inside the assignment, so this should never actually trigger — it is
+	# here so that a future change to either side cannot lock the game up.
+	if _placing:
+		return
+	_placing = true
+	_places.clear()
+	if book == null:
+		_placing = false
+		return
+
+	# --- how wide is each row, and where does it start? ---
+	var lowest_column: Dictionary = {}   # row -> its leftmost Column
+	var highest_column: Dictionary = {}  # row -> its rightmost Column
 	var tallest := 0
 	for entry in book.seasons:
-		widest = maxi(widest, int(entry["column"]))
-		tallest = maxi(tallest, int(entry["row"]))
+		var row := int(entry["row"])
+		var column := int(entry["column"])
+		tallest = maxi(tallest, row)
+		if not lowest_column.has(row):
+			lowest_column[row] = column
+			highest_column[row] = column
+		lowest_column[row] = mini(int(lowest_column[row]), column)
+		highest_column[row] = maxi(int(highest_column[row]), column)
 
-	# The canvas is sized from the furthest tile, so the shelf grows as you
-	# add rows and the scroll bar appears on its own.
+	# THE WIDTH TO CENTRE IN is whatever the canvas actually has, and never
+	# less than the widest row — otherwise a shelf too wide for the window
+	# would be pushed off the left edge instead of scrolling.
+	var widest_row := 0.0
+	for row in lowest_column.keys():
+		widest_row = maxf(widest_row, _row_span(
+			int(lowest_column[row]), int(highest_column[row])))
+	var width := maxf(_canvas.size.x, widest_row + GAP.x * 2.0)
+
 	_canvas.custom_minimum_size = Vector2(
-		float(widest + 1) * (TILE.x + GAP.x) + GAP.x,
+		widest_row + GAP.x * 2.0,
 		float(tallest + 1) * (TILE.y + GAP.y) + GAP.y)
 
 	for entry in book.seasons:
-		_canvas.add_child(_tile(entry))
+		var row := int(entry["row"])
+		var span := _row_span(int(lowest_column[row]), int(highest_column[row]))
+		var left := (width - span) * 0.5
+		var step := float(int(entry["column"]) - int(lowest_column[row]))
+		var at := Vector2(
+			left + step * (TILE.x + GAP.x),
+			GAP.y + float(row) * (TILE.y + GAP.y))
+		_places[String(entry["id"])] = at
+		var button := _tiles.get(String(entry["id"]), null) as Button
+		if button != null and is_instance_valid(button):
+			button.position = at
+
 	_canvas.queue_redraw()
+	_placing = false
 
 
-## Where a tile's top-left corner goes, from its Row and Column.
+## How wide a row is, from its leftmost Column to its rightmost.
+func _row_span(first: int, last: int) -> float:
+	return float(last - first) * (TILE.x + GAP.x) + TILE.x
+
+
+## Where a tile's top-left corner ended up. Worked out once in
+## _place_tiles(), so the tiles and the joining lines can never disagree.
 func _spot(entry: Dictionary) -> Vector2:
-	return Vector2(
-		GAP.x + float(int(entry["column"])) * (TILE.x + GAP.x),
-		GAP.y + float(int(entry["row"])) * (TILE.y + GAP.y))
+	return _places.get(String(entry.get("id", "")), Vector2.ZERO)
 
 
 # =============================================================

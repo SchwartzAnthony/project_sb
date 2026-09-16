@@ -9,15 +9,15 @@ extends Node2D
 #                     The tier your active Star sits in is skipped (the
 #                     Star already occupies that slot), so it is 3 picks.
 #    Cycle          : 3 rounds — 3-of-3, then 2-of-2, then 1-of-1.
-#    "HOLD UP!"     : end of cycle. Active Star goes inactive, you pick
+#    "STAR PLAYER SWITCH"     : end of cycle. Active Star goes inactive, you pick
 #                     from the remaining Stars, all 9 regulars reset.
-#    Total          : 3 cycles = 9 PLAY MAKERs + 2 HOLD UPs = 11 pauses.
+#    Total          : 3 cycles = 9 PLAY MAKERs + 2 STAR PLAYER SWITCHes = 11 pauses.
 # =============================================================
 
 signal round_ready_for_combat(player_lineup: Array, enemy_lineup: Array)
 signal round_resolved(player_score: int, enemy_score: int)
 signal match_ended(player_score: int, enemy_score: int)
-## One HOLD UP! Star substitution has finished jogging on.
+## One STAR PLAYER SWITCH Star substitution has finished jogging on.
 signal substitution_finished
 
 # --- Scene wiring -------------------------------------------
@@ -150,7 +150,7 @@ var round_shooter_card: PlayerData = null
 var _freeze_depth: int = 0
 ## True while a draft that stopped the pitch is still open, so the matching
 ## thaw fires exactly once. Counting alone was not enough: the kickoff draft
-## never freezes, and an unmatched thaw there would leave the next HOLD UP!
+## never freezes, and an unmatched thaw there would leave the next STAR PLAYER SWITCH
 ## one short.
 var _draft_froze_play: bool = false
 ## Star substitutions currently jogging on or off, both sides counted.
@@ -222,7 +222,7 @@ var draft_phases: Array[String] = []
 var current_phase_index: int = 0
 var round_player_picks: Array[PlayerData] = []
 var round_enemy_picks: Array[PlayerData] = []
-## True only between "PLAY MAKER!" and its combat. Kickoff and HOLD UP! drafts
+## True only between "PLAY MAKER!" and its combat. Kickoff and STAR PLAYER SWITCH drafts
 ## must NOT resolve combat — without this they replay the previous round's
 ## picks and fire a phantom shot (11 shots per match instead of 9).
 var round_in_progress: bool = false
@@ -382,7 +382,7 @@ func _process(delta: float) -> void:
 	if next_event_index < event_schedule.size() \
 			and match_time_minutes >= event_schedule[next_event_index]:
 		next_event_index += 1
-		# HOLD UP only in a mode that rotates your Stars. A Quick Match gives
+		# STAR PLAYER SWITCH only in a mode that rotates your Stars. A Quick Match gives
 		# you one Star for the whole run, so there is nobody to bring on.
 		var rotates := bool(match_mode.get("rotation", true))
 		if rotates and rounds_this_cycle >= ROUNDS_PER_CYCLE and current_cycle < TOTAL_CYCLES:
@@ -2389,6 +2389,7 @@ func trigger_playmaker_event() -> void:
 	print("PLAY MAKER!  Cycle %d, Round %d" % [current_cycle, rounds_this_cycle])
 	AudioDirector.fire(get_tree(), "play_maker",
 		{"cycle": str(current_cycle), "round": str(rounds_this_cycle)}, state)
+	Juice.fire(self, "play_maker", {})
 	await announce("PLAY MAKER!")
 
 	# Rock/paper/scissors decides who attacks in Tier I, BEFORE the draft.
@@ -2409,7 +2410,7 @@ func trigger_hold_up_event() -> void:
 	round_enemy_picks.clear()
 
 	# THE WHISTLE. This has to be the very first thing that happens — before
-	# the enemy's substitution and before the "HOLD UP!" banner, both of which
+	# the enemy's substitution and before the "STAR PLAYER SWITCH" banner, both of which
 	# take seconds. Freezing later left the ball being passed around underneath
 	# the announcement while you were trying to choose.
 	#
@@ -2431,9 +2432,19 @@ func trigger_hold_up_event() -> void:
 		active_enemy_star = new_enemy_star
 		enemy_star_tier = new_enemy_star.get_tier_clean()
 
-	print("HOLD UP!  Starting cycle %d" % current_cycle)
+	# ============ IT IS CALLED A STAR PLAYER SWITCH ============
+	#
+	# The words on screen were "STAR PLAYER SWITCH", which said what the game was doing
+	# to the clock rather than what was happening to your team. It is the same
+	# event; only the writing changed.
+	#
+	# THE AUDIO EVENT IS STILL `hold_up`, deliberately: that is the key your
+	# Audio.csv row is written against, and renaming it would silence your
+	# whistle. The name in a spreadsheet is a label, not a sentence.
+	print("STAR PLAYER SWITCH.  Starting cycle %d" % current_cycle)
 	AudioDirector.fire(get_tree(), "hold_up", {"cycle": str(current_cycle)}, state)
-	await announce("HOLD UP!")
+	Juice.fire(self, "star_switch", {})
+	await announce("STAR PLAYER SWITCH")
 
 	draft_phases.assign(["StarChoice"])
 	current_phase_index = 0
@@ -2478,7 +2489,7 @@ func start_next_draft_phase() -> void:
 				swappable.append(star_data)
 
 		if swappable.is_empty():
-			# No stars left (this shouldn't fire — cycle 3 has no HOLD UP).
+			# No stars left (this shouldn't fire — cycle 3 has no STAR PLAYER SWITCH).
 			current_phase_index += 1
 			start_next_draft_phase()
 			return
@@ -2739,7 +2750,7 @@ func _on_card_selected(selected_data: PlayerData) -> void:
 	start_next_draft_phase()
 
 
-## HOLD UP: one of your other Stars comes on for the one that is playing.
+## STAR PLAYER SWITCH: one of your other Stars comes on for the one that is playing.
 ##
 ## THE STAR TIER DOES NOT MOVE. The incoming Star steps into the outgoing
 ## Star's slot on the pitch, so it must belong to the same tier — otherwise
@@ -2762,7 +2773,7 @@ func _resolve_star_rotation(chosen: PlayerData) -> void:
 	print("New active Star: %s (Tier %s)" % [chosen.player_name, player_star_tier])
 
 
-## HOLD UP! substitution. Play stops, the outgoing Star jogs off the nearest
+## STAR PLAYER SWITCH substitution. Play stops, the outgoing Star jogs off the nearest
 ## touchline, the incoming Star jogs on into the same slot, then play resumes.
 func _swap_star_on_pitch(new_star: PlayerData, is_enemy: bool) -> void:
 	var star_unit: PlayerUnit = null
@@ -2859,7 +2870,7 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 
 
 func _on_draft_complete() -> void:
-	# Kickoff / HOLD UP! drafts have no combat — just restart the clock.
+	# Kickoff / STAR PLAYER SWITCH drafts have no combat — just restart the clock.
 	if not round_in_progress:
 		# Both Stars are still jogging on at this point. Wait for them, or the
 		# clock and the ball start again while the pitch is one player short.
@@ -3235,6 +3246,8 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 		await ball.shot_arrived
 
 		# --- 5. The verdict, once the ball has actually got there ---
+		if scored:
+			Juice.fire(self, "goal_scored", {})
 		await announce("GOAL!" if scored else "MISS",
 			db.tune_float("verdict_seconds", 1.4))
 

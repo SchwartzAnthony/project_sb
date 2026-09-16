@@ -116,22 +116,12 @@ func load_all() -> void:
 ##
 ## Returns the rows that fired, best first, so a window can list them.
 static func fired(chain: Array) -> Array[Dictionary]:
-	var players: Array[PlayerData] = []
+	var facts: Array[Dictionary] = []
 	for item in chain:
 		var card := item as PlayerData
 		if card != null:
-			players.append(card)
-	if players.is_empty():
-		return []
-
-	var out: Array[Dictionary] = []
-	for rule in get_db().rules:
-		if _matches(rule, players, chain.size()):
-			out.append(rule)
-
-	out.sort_custom(func(a, b) -> bool:
-		return int(a["bonus"]) > int(b["bonus"]))
-	return out
+			facts.append(facts_of(card))
+	return fired_from(facts, chain.size())
 
 
 ## What the combos add up to.
@@ -142,14 +132,84 @@ static func bonus_for(chain: Array) -> int:
 	return total
 
 
-static func _matches(rule: Dictionary, players: Array, tiers: int) -> bool:
+# =============================================================
+#  THE SAME QUESTION, ASKED ABOUT ANYTHING
+#
+#  ============ WHY THERE ARE TWO WAYS IN ============
+#
+#  The enemies get a build-up window of their own now, and it shows THEIR
+#  combos — three Water enemies in a wave is the same idea as three Water
+#  players in your move, and the same row of Combos.csv ought to notice it.
+#
+#  An enemy is not a PlayerData, though. It is a row of AdventureEnemies.csv.
+#  So the rules were moved off PlayerData and onto a FACT: the four things a
+#  combo actually needs to know about one participant, and nothing else.
+#
+#      element   its element, or "" for none at all
+#      class     its class or club. An enemy's Pool stands in for this
+#      power     what it brings to the total
+#      star      true only for a Star Player
+#
+#  Your cards become facts in fired(). The enemies become facts in
+#  adventure_buildup.gd. ONE COMBOS.CSV THEN DECIDES BOTH SIDES, which is the
+#  point of doing it this way — the enemy build-up is not a second system
+#  with second rules, and a combo you write applies to whoever satisfies it.
+# =============================================================
+
+## One of your cards, as a fact.
+static func facts_of(card: PlayerData) -> Dictionary:
+	if card == null:
+		return {"element": "", "class": "", "power": 0, "star": false}
+	return {
+		"element": card.element,
+		# The BREWED class, so a Lorelei who drank a Fire Brew combos with the
+		# Brandteufel she is standing next to. Same rule the rest of the
+		# game's targeting uses.
+		"class": card.active_unit_type(),
+		"power": card.get_attack_power(),
+		"star": card.is_star(),
+	}
+
+
+## Which combos a list of facts sets off, best first.
+##
+## `slots` is how many places there were to fill — four tiers on your side,
+## however many enemies are in the wave on theirs. It is what `all_four`
+## measures itself against.
+static func fired_from(facts: Array, slots: int) -> Array[Dictionary]:
+	var clean: Array[Dictionary] = []
+	for item in facts:
+		if item is Dictionary:
+			clean.append(item)
+	if clean.is_empty():
+		return []
+
+	var out: Array[Dictionary] = []
+	for rule in get_db().rules:
+		if _matches(rule, clean, slots):
+			out.append(rule)
+
+	out.sort_custom(func(a, b) -> bool:
+		return int(a["bonus"]) > int(b["bonus"]))
+	return out
+
+
+## What those combos add up to.
+static func bonus_from(facts: Array, slots: int) -> int:
+	var total := 0
+	for rule in fired_from(facts, slots):
+		total += int(rule["bonus"])
+	return total
+
+
+static func _matches(rule: Dictionary, facts: Array, tiers: int) -> bool:
 	var needs := maxi(1, int(rule["needs"]))
 
 	match String(rule["when"]):
 		"same_element":
-			return _most_shared(players, "element") >= needs
+			return _most_shared(facts, "element") >= needs
 		"same_class":
-			return _most_shared(players, "class") >= needs
+			return _most_shared(facts, "class") >= needs
 		"all_different_class":
 			# NOBODY SHARES A CLUB. Written as its own shape rather than as
 			# `same_class` with a small number, because "at least one" is
@@ -157,45 +217,38 @@ static func _matches(rule: Dictionary, players: Array, tiers: int) -> bool:
 			# Your own side is one class, so this is the opposition's combo:
 			# a scratch side is drawn from everywhere, and this is what it
 			# gets for it.
-			return players.size() >= 2 and _most_shared(players, "class") == 1
+			return facts.size() >= 2 and _most_shared(facts, "class") == 1
 		"rising_power":
-			if players.size() < 2:
+			if facts.size() < 2:
 				return false
-			for i in range(1, players.size()):
-				var before := (players[i - 1] as PlayerData).get_attack_power()
-				var now := (players[i] as PlayerData).get_attack_power()
+			for i in range(1, facts.size()):
+				var before := int((facts[i - 1] as Dictionary).get("power", 0))
+				var now := int((facts[i] as Dictionary).get("power", 0))
 				if now <= before:
 					return false
 			return true
 		"all_four":
-			return players.size() >= tiers and tiers > 0
+			return facts.size() >= tiers and tiers > 0
 		"star_last":
-			var last := players[players.size() - 1] as PlayerData
-			return last != null and last.is_star()
+			var last: Dictionary = facts[facts.size() - 1]
+			return bool(last.get("star", false))
 	return false
 
 
-## The biggest number of players sharing one element (or one class).
-static func _most_shared(players: Array, what: String) -> int:
+## The biggest number of them sharing one element (or one class).
+static func _most_shared(facts: Array, what: String) -> int:
 	var counts: Dictionary = {}
-	for item in players:
-		var card := item as PlayerData
-		if card == null:
+	for item in facts:
+		var fact := item as Dictionary
+		if fact == null:
 			continue
-		var key := ""
-		if what == "element":
-			key = card.element.strip_edges().to_lower()
-			# "None" IS NOT AN ELEMENT. A class that leaves the column blank,
-			# or writes None in it, has no element — and without this line
-			# every one of its players "shares" it and the element combos
-			# fire on every move that class ever makes.
-			if NOT_AN_ELEMENT.has(key):
-				key = ""
-		else:
-			# The BREWED class, so a Lorelei who drank a Fire Brew combos
-			# with the Brandteufel she is standing next to. Same rule the
-			# rest of the game's targeting uses.
-			key = card.active_unit_type().strip_edges().to_lower()
+		var key := String(fact.get(what, "")).strip_edges().to_lower()
+		# "None" IS NOT AN ELEMENT. A class that leaves the column blank, or
+		# writes None in it, has no element — and without this line every one
+		# of its players "shares" it and the element combos fire on every
+		# move that class ever makes.
+		if what == "element" and NOT_AN_ELEMENT.has(key):
+			key = ""
 		if key == "":
 			continue
 		counts[key] = int(counts.get(key, 0)) + 1

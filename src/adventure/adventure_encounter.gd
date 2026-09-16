@@ -108,7 +108,7 @@ var _picker: EnemyPickLayer
 ## are looking, rather than being squeezed into the bottom of the command
 ## bar. It is only up while a tier is being drafted.
 var _choice_window: PanelContainer
-var _choice_row: HBoxContainer
+var _choice_row: HFlowContainer
 var _choice_title: Label
 
 ## The two side panels that show the move going in. See adventure_buildup.gd.
@@ -117,6 +117,24 @@ var _buildup: AdventureBuildup
 ## What the enemies gained by watching you build the move, index -> amount.
 ## Cleared at the start of every round.
 var _their_gain: Dictionary = {}
+
+## ============ WHAT AN ORDINARY HIT LOOKS LIKE ============
+##
+## The screen shake grows with the size of a hit — which only means something
+## if the game knows what an ORDINARY hit is. Rather than making you guess a
+## number in Tuning.csv, it keeps a running average of everything landed so
+## far in this fight, one average per kind of hit.
+##
+## So the FIRST hit of a fight is average by definition and shakes exactly
+## what the Shake column of Juice.csv says. After that, a hit twice the size
+## of what you have been doing shakes harder — and that stays true whether
+## your side hits for 4 or for 40, which is why there is no number to keep
+## re-tuning as the game grows.
+##
+## If you would rather pin it: `juice_average_hit` in Tuning.csv. Anything
+## above 0 is used instead of the running average.
+var _averages: Dictionary = {}
+
 var _log: VBoxContainer
 var _item_button: Button
 var _flee_button: Button
@@ -351,7 +369,13 @@ func _pick_card(card: PlayerData) -> void:
 		return
 	_picked[tier] = card
 	_tier_index += 1
-	_note("Tier %s: %s (%d)" % [tier, card.player_name, card.get_attack_power()])
+
+	# THEY ARE SPENT NOW, exactly as in a league match: this player sits out
+	# until everyone else in their tier has had a turn too. See the note on
+	# `spent` in adventure_run.gd.
+	var came_round := run.use_up(card, db)
+	_note("Tier %s: %s (%d)%s" % [tier, card.player_name, card.get_attack_power(),
+		"   — Tier %s comes back round." % tier if came_round else ""])
 
 	_refresh()
 
@@ -366,12 +390,19 @@ func _advance_past_empty_tiers() -> bool:
 	var skipped := false
 	while step == Step.DRAFT and _current_tier() != "":
 		var tier := _current_tier()
-		if not run.standing_in(tier, db).is_empty():
+		# AVAILABLE, not merely standing. A tier whose players are all spent
+		# this cycle has nobody to offer even though they are on their feet,
+		# and it is skipped the same way an empty one is.
+		if not run.available_in(tier, db).is_empty():
 			break
 		_picked[tier] = null
 		_tier_index += 1
 		skipped = true
-		_note("Tier %s has nobody left — they come straight through it." % tier)
+		if run.standing_in(tier, db).is_empty():
+			_note("Tier %s has nobody left — they come straight through it." % tier)
+		else:
+			_note("Tier %s has all had their turn — nobody to send. They come through it."
+				% tier)
 	return skipped
 
 
@@ -408,6 +439,7 @@ func _resolve() -> void:
 		for rule in ComboDB.fired(chain):
 			named.append(ComboDB.describe(rule))
 		_note("The move comes off — %s" % "   ".join(named))
+		Juice.fire(self, "combo_fired", {})
 
 	# WHAT THEY GAINED WHILE YOU BUILT IT. Every pass gives an enemy with a
 	# Buff column that much more to hit you with, this round only.
@@ -468,12 +500,55 @@ func _resolve() -> void:
 		multiplier = db.tune_int("adventure_walkover_multiplier", 2)
 		_note("%d tier(s) empty — everything they do lands twice." % empty_tiers)
 
+	# --- WATCH THEIRS GO IN TOO ---
+	#
+	# The mirror of the window above. The enemies still standing come on one
+	# at a time, their abilities are named out of Abilities.csv, and their
+	# combos fire out of the same Combos.csv yours do. It decides nothing that
+	# is not already decided here — see adventure_buildup.gd.
+	var striking: Array[int] = []
+	var still_up: Array = []
 	for i in foes.size():
+		still_up.append(_is_alive(i))
+		if _is_alive(i):
+			striking.append(i)
+
+	var their_bonus := 0
+	if db.tune_bool("adventure_enemy_combos", true):
+		their_bonus = AdventureBuildup.their_combo_bonus(foes, still_up)
+		if their_bonus > 0:
+			var theirs: Array[String] = []
+			var facts: Array[Dictionary] = []
+			for i in striking:
+				facts.append(AdventureBuildup.enemy_facts(foes[i]["row"]))
+			for rule in ComboDB.fired_from(facts, facts.size()):
+				theirs.append(ComboDB.describe(rule))
+			_note("They have a move of their own — %s" % "   ".join(theirs))
+
+	if _buildup != null:
+		await _buildup.play_their_turn(foes, still_up, _their_gain, _bracing_lines())
+
+	# THEIR BONUS GOES TO ONE HIT — the last of them to strike — for the same
+	# reason yours goes to the shot and never to a card. Six enemies each
+	# carrying it would be six times what your side gets for the same combo.
+	for slot in striking.size():
+		var i := striking[slot]
 		if not _is_alive(i):
 			continue
-		await _enemy_strikes(i, multiplier)
+		var extra := their_bonus if slot == striking.size() - 1 else 0
+		await _enemy_strikes(i, multiplier, extra)
 		if run.party_is_down():
 			break
+
+	# ============ AND AN END TO IT ============
+	#
+	# The enemy phase used to stop without saying so: the last red number
+	# floated up and then nothing happened until you noticed your cards were
+	# live again. Now it is bracketed, so there is never a moment where you
+	# are waiting on the game and the game is waiting on you.
+	if _buildup != null and not run.party_is_down():
+		await _buildup.announce("THEIR TURN IS OVER", MenuSupport.COLOUR_ACCENT,
+			db.tune_float("adventure_turn_over_seconds", 0.7))
 
 	_refresh()
 	await _beat()
@@ -485,6 +560,59 @@ func _resolve() -> void:
 		return
 
 	_begin_round()
+
+
+# =============================================================
+#  JUICE
+#
+#  Nothing in this file decides what a hit LOOKS like. It only says what
+#  happened — "enemy_hit", "enemy_died" — and res://data/Juice.csv decides
+#  the shake, the flash, the pop, the slow-motion and the sound.
+#
+#  So if a hit does not feel right, the file to open is the spreadsheet, not
+#  this one. See juice_db.gd for the columns.
+# =============================================================
+
+## One of yours has run out of stamina.
+##
+## The rules part already happened — run.hurt() took the stamina and
+## run.retire() took their place in the rotation. This is the SHOWING of it:
+## the player drops where they stood (adventure_scene.gd puts every walker in
+## step with the run, so all this has to do is ask) and Juice.csv decides what
+## that looks and sounds like.
+##
+## They stay on the ground for the rest of the fight. Two players who are not
+## on your team come and carry them off once the last enemy is down — see
+## _carry_off_the_fallen() in adventure_scene.gd.
+func _went_down(card: PlayerData) -> void:
+	party_changed.emit()
+	if not _can_show():
+		return
+	var mark := _walker(card)
+	if mark == null:
+		return
+	if mark.has_method("lie_down"):
+		mark.call("lie_down")
+	Juice.fire(self, "player_exhausted", {"node": mark})
+
+
+## Record this hit and hand back what an ordinary one has been up to now.
+##
+## Called once per hit, and it does BOTH jobs on purpose — there is then no
+## way to record a hit and forget to, or to compare against an average that
+## has drifted. The first hit of a kind returns 0, which Juice reads as
+## "no scaling", so it shakes exactly the Shake column.
+func _average_so_far(key: String, amount: int) -> float:
+	var pinned := db.tune_float("juice_average_hit", 0.0)
+	if pinned > 0.0:
+		return pinned
+	var seen: Array = _averages.get(key, [0, 0])
+	var count := int(seen[0])
+	var total := int(seen[1])
+	_averages[key] = [count + 1, total + absi(amount)]
+	if count <= 0:
+		return 0.0
+	return float(total) / float(count)
 
 
 ## The shot. Whoever was drafted LAST — the highest tier that had somebody —
@@ -519,6 +647,16 @@ func _show_the_kick(dealt: int) -> void:
 	AdventureStrike.number(stage, target, str(dealt), true,
 		db.tune_float("adventure_float_seconds", 0.9))
 
+	# THE ONE YOU ASKED FOR: the harder the hit, the harder the screen shakes.
+	# `amount` is this hit, `average` is what your hits have been worth so far
+	# this fight, and Juice.csv's `Shake Scale` column decides how much that
+	# difference is allowed to matter. Two rows answer to `enemy_hit` — one
+	# shakes the ENEMY, one shakes the SCREEN — and both fire from this line.
+	var usual := _average_so_far("shot", dealt)
+	Juice.fire(self, "shot_struck", {"amount": dealt, "average": usual})
+	Juice.fire(self, "enemy_hit",
+		{"node": hit_node, "amount": dealt, "average": usual})
+
 
 ## ============ AN ENEMY GOING DOWN ============
 ##
@@ -538,6 +676,7 @@ func _show_the_death(index: int) -> void:
 		return
 
 	_note("%s goes down." % _foe_name(index))
+	Juice.fire(self, "enemy_died", {"node": node})
 
 	var seconds := db.tune_float("adventure_death_seconds", 0.55)
 	var away := node.position + Vector2(64.0, -18.0)
@@ -620,16 +759,40 @@ func _party_changed(card: PlayerData = null, amount: int = 0) -> void:
 	AdventureStrike.flinch(mark, mark.position + Vector2(-40.0, 0.0),
 		db.tune_float("adventure_flinch_seconds", 0.22))
 
+	# A NEGATIVE AMOUNT IS A HEAL — that is the same rule the floating number
+	# above uses to decide whether to come up green or red.
+	if amount < 0:
+		Juice.fire(self, "player_healed", {"node": mark})
+	else:
+		Juice.fire(self, "player_hurt", {"node": mark, "amount": amount,
+			"average": _average_so_far("taken", amount)})
 
-func _enemy_strikes(index: int, multiplier: int) -> void:
+
+## One tier of yours per line, for the right-hand side of THEIR window. What
+## matters while they are picking a target is how many of you are on your
+## feet, because an empty tier is what doubles everything they do.
+func _bracing_lines() -> Array:
+	var out: Array = []
+	for tier in TierLadder.TIERS:
+		out.append({"tier": tier, "standing": run.standing_in(tier, db).size()})
+	return out
+
+
+## `extra` is their combo bonus, and it is handed to ONE of them — see the
+## note where it is worked out.
+func _enemy_strikes(index: int, multiplier: int, extra: int = 0) -> void:
 	var row: Dictionary = foes[index]["row"]
 	# WHAT IT GAINED WATCHING YOU BUILD THE MOVE, added here and nowhere
 	# else, so it lasts exactly one round — see the Buff column of
 	# AdventureEnemies.csv and the right-hand build-up window.
 	var gained := int(_their_gain.get(index, 0))
-	var hit := maxi(1, (int(row.get("attack", 1)) + gained) * multiplier)
+	var hit := maxi(1, (int(row.get("attack", 1)) + gained) * multiplier + extra)
 	if gained > 0:
 		_note("%s had time to wind up: +%d." % [_foe_name(index), gained])
+		Juice.fire(self, "enemy_windup", {"node": _foe_node(index)})
+	if extra > 0:
+		_note("%s finishes their move: +%d." % [_foe_name(index), extra])
+		Juice.fire(self, "combo_fired", {})
 	var how := String(row.get("targeting", "weakest"))
 
 	# THEM COMING AT YOU. A lunge from the enemy towards whoever it picked,
@@ -647,6 +810,7 @@ func _enemy_strikes(index: int, multiplier: int) -> void:
 				continue
 			if run.hurt(standing[0], hit, db):
 				_note("%s is knocked out." % standing[0].player_name)
+				_went_down(standing[0])
 			# The bar under that player empties NOW, not when the fight ends.
 			_party_changed(standing[0], hit)
 			caught += 1
@@ -679,6 +843,8 @@ func _enemy_strikes(index: int, multiplier: int) -> void:
 		_party_changed()
 		_note("%s hits %s for %d.%s" % [_foe_name(index), victim.player_name, hit,
 			"  KNOCKED OUT." if went_down else ""])
+		if went_down:
+			_went_down(victim)
 
 	_refresh()
 	await _beat(0.45)
@@ -971,22 +1137,33 @@ func _build_choice_window(holder: Control) -> void:
 	_choice_window.add_theme_stylebox_override("panel", MenuSupport.panel_style(
 		Color(0.07, 0.08, 0.11, 0.96), MenuSupport.COLOUR_ACCENT))
 
-	var where := db.tune_float("adventure_choice_y", 0.5)
-	var box := Vector2(
-		db.tune_float("adventure_card_width", 200.0),
-		db.tune_float("adventure_card_height", 264.0))
+	# ============ IT CANNOT RUN OFF THE SCREEN ANY MORE ============
+	#
+	# The old version worked out its own height from the card size and pinned
+	# it there. That was fine for three cards and wrong for six — the row now
+	# holds the players who are READY plus the ones who are RESTING — and the
+	# bottom of it went off the bottom of the window.
+	#
+	# It is anchored to the whole screen with a margin instead, so it is
+	# never taller than what you can see, and the cards inside WRAP and
+	# SCROLL rather than overflowing. adventure_choice_y still nudges it up
+	# and down within that.
+	var where := clampf(db.tune_float("adventure_choice_y", 0.5), 0.05, 0.95)
+	var top_gap := db.tune_float("adventure_choice_top", 90.0)
+	var bottom_gap := db.tune_float("adventure_choice_bottom", 130.0)
 
-	_choice_window.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_choice_window.anchor_top = where
-	_choice_window.anchor_bottom = where
+	_choice_window.set_anchors_preset(Control.PRESET_FULL_RECT, true)
 	_choice_window.anchor_left = 0.5
 	_choice_window.anchor_right = 0.5
-	var half_wide := box.x * 1.7 + 60.0
-	var half_tall := box.y * 0.5 + 54.0
-	_choice_window.offset_left = -half_wide
-	_choice_window.offset_right = half_wide
-	_choice_window.offset_top = -half_tall
-	_choice_window.offset_bottom = half_tall
+	_choice_window.anchor_top = 0.0
+	_choice_window.anchor_bottom = 1.0
+	_choice_window.offset_left = -560.0
+	_choice_window.offset_right = 560.0
+	# Clear of the wave banner at the top and the command bar at the bottom,
+	# then leaned towards `where` within what is left.
+	_choice_window.offset_top = top_gap + (where - 0.5) * 80.0
+	_choice_window.offset_bottom = -bottom_gap + (where - 0.5) * 80.0
+	_choice_window.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_choice_window.hide()
 	holder.add_child(_choice_window)
 
@@ -1005,24 +1182,30 @@ func _build_choice_window(holder: Control) -> void:
 	_choice_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_choice_title)
 
-	_choice_row = HBoxContainer.new()
-	_choice_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_choice_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_choice_row.add_theme_constant_override("separation", 14)
-	column.add_child(_choice_row)
+	# A scroller around the cards. With three it never scrolls and you would
+	# not know it was there; with eight it does, and nothing is lost.
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	column.add_child(scroll)
 
-	_build_log_window(holder)
+	# HFlowContainer, not HBoxContainer: a seventh card wraps onto a second
+	# line instead of squeezing the other six.
+	_choice_row = HFlowContainer.new()
+	_choice_row.alignment = FlowContainer.ALIGNMENT_CENTER
+	_choice_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_choice_row.add_theme_constant_override("h_separation", 14)
+	_choice_row.add_theme_constant_override("v_separation", 12)
+	scroll.add_child(_choice_row)
 
+	var hint := Label.new()
+	hint.text = "Point at a player to read what they do. A greyed card has already had a turn this cycle."
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.add_theme_font_size_override("font_size", 12)
+	hint.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+	column.add_child(hint)
 
-
-# =============================================================
-#  THE COMBAT LOG WINDOW
-#
-#  Its own panel, up the right-hand side, out of the way of the pitch and
-#  the buttons. It OPENS BY ITSELF because on a first run you want to see
-#  what the numbers are doing; one press shuts it and it stays shut for the
-#  rest of the fight.
-# =============================================================
 
 func _build_log_window(holder: Control) -> void:
 	_log_panel = PanelContainer.new()
@@ -1159,7 +1342,8 @@ func _refresh_choices() -> void:
 		return
 
 	# _advance_past_empty_tiers() ran first, so there is always somebody here.
-	var standing := run.standing_in(tier, db)
+	var ready_now := run.available_in(tier, db)
+	var resting := run.resting_in(tier, db)
 	_choice_window.show()
 	_choice_title.text = "TIER %s   ·   who takes it?   (%d of %d)" % [
 		tier, _tier_index + 1, TierLadder.TIERS.size()]
@@ -1173,11 +1357,77 @@ func _refresh_choices() -> void:
 	var face_size := Vector2(
 		db.tune_float("adventure_card_width", 200.0),
 		db.tune_float("adventure_card_height", 264.0))
-	for card in standing:
+
+	for card in ready_now:
 		var button := MenuSupport.card_face(card, db, face_size,
 			"%d hp" % run.stamina_of(card, db))
+		_explain_card(button, card, "")
 		button.pressed.connect(_pick_card.bind(card))
 		_choice_row.add_child(button)
+
+	# WHO IS RESTING, shown greyed rather than hidden. Seeing that your best
+	# Tier III is sitting this cycle out is half of knowing what you have —
+	# hiding them just makes the row look short for no stated reason.
+	for card in resting:
+		var button := MenuSupport.card_face(card, db, face_size, "resting")
+		button.disabled = true
+		button.modulate = Color(1, 1, 1, 0.42)
+		_explain_card(button, card, "Already had a turn. Back when the rest of Tier %s have had theirs." % tier)
+		_choice_row.add_child(button)
+
+
+## ============ WHAT THIS PLAYER DOES ============
+##
+## Hovering a card reads its abilities out, exactly as it does in a league
+## match — the same Abilities.csv rows, in the same words. That is the whole
+## point: a card does not behave differently in Adventure, so it should not
+## be described differently either.
+##
+## It goes in the tooltip AND in the command bar's detail line, so it is
+## there whether you are pointing at the card or have just stopped moving.
+func _explain_card(button: Button, card: PlayerData, extra: String) -> void:
+	var lines: Array[String] = []
+	if extra != "":
+		lines.append(extra)
+
+	lines.append("%s   ·   Tier %s   ·   %d power   ·   %d / %d stamina" % [
+		card.player_name, card.get_tier_clean(), card.get_attack_power(),
+		run.stamina_of(card, db), AdventureRun.stamina_for(card, db)])
+
+	var element := card.element.strip_edges()
+	if element != "" and not ComboDB.NOT_AN_ELEMENT.has(element.to_lower()):
+		lines.append("Element: %s   — counts towards the element combos." % element)
+
+	# THE ABILITIES, from the same place the league match reads them.
+	for pair in [[card.attack_ability_id, "Attacking"],
+			[card.defend_ability_id, "Defending"]]:
+		var id_text := String(pair[0]).strip_edges()
+		if id_text == "":
+			continue
+		var ability := db.abilities.get(id_text.to_lower(), null) as AbilityData
+		if ability == null:
+			lines.append("%s: '%s' is not in Abilities.csv" % [pair[1], id_text])
+			continue
+		var words := ability.notes
+		if words.strip_edges() == "":
+			words = "%s %s %+d (%s)" % [ability.trigger, ability.effect,
+				ability.value, ability.target]
+		var shown := ability.display_name
+		if shown.strip_edges() == "":
+			shown = id_text
+		lines.append("%s — %s: %s" % [pair[1], shown, words])
+
+	# The printed card text, which is what a designer actually wrote.
+	for text in [card.attack_text, card.defend_text]:
+		var clean := String(text).strip_edges()
+		if clean != "":
+			lines.append(clean)
+
+	button.tooltip_text = "\n".join(lines)
+	var one_line := "   ·   ".join(lines)
+	button.mouse_entered.connect(func() -> void: _detail.text = one_line)
+	button.focus_entered.connect(func() -> void: _detail.text = one_line)
+	button.mouse_exited.connect(func() -> void: _detail.text = "")
 
 
 # =============================================================

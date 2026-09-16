@@ -48,6 +48,23 @@ var stamina: Dictionary = {}
 ## Cards that have reached 0 and are out for the rest of the run.
 var knocked_out: Array[PlayerData] = []
 
+## ============ WHO HAS ALREADY HAD A GO ============
+##
+## THE SAME RULE AS A LEAGUE MATCH. A player who takes a turn is spent, and
+## stays spent until everyone else in their tier has taken one too — then the
+## whole tier comes back and the cycle starts again. It is the substitution
+## rhythm of the real sport, and it is what stops one 5-power card carrying
+## every round of an Adventure.
+##
+## Kept per tier, cleared per tier, so Tier I refreshing has nothing to do
+## with Tier IV.
+##
+## A KNOCKED-OUT PLAYER COUNTS AS SPENT. They never come back this run, so
+## the tier they were in is permanently one short — which is exactly the
+## "you start the next fight a tier down" cost you asked for, and it falls
+## out of this rule rather than needing one of its own.
+var spent: Dictionary = {}
+
 ## The squad you set off with, tier key -> Array[PlayerData].
 var squad: Dictionary = {}
 
@@ -248,8 +265,78 @@ func hurt(card: PlayerData, amount: int, db: CardDatabase) -> bool:
 	stamina[card] = maxi(0, left)
 	if left <= 0 and not knocked_out.has(card):
 		knocked_out.append(card)
+		# OUT OF THE ROTATION TOO, permanently. See `spent` at the top: this
+		# is what makes losing somebody cost you a tier slot next fight
+		# rather than only costing you this round.
+		retire(card)
 		return true
 	return false
+
+
+# =============================================================
+#  THE ROTATION
+# =============================================================
+
+## Has this player already had their turn this cycle?
+func is_spent(card: PlayerData) -> bool:
+	if card == null:
+		return false
+	var tier := card.get_tier_clean()
+	return (spent.get(tier, []) as Array).has(card)
+
+
+## Mark a player as having taken their turn, and refresh the tier if that was
+## the last of them.
+##
+## Returns true when the tier came back round, so the fight can say so.
+func use_up(card: PlayerData, db: CardDatabase) -> bool:
+	if card == null:
+		return false
+	var tier := card.get_tier_clean()
+	var used: Array = spent.get(tier, [])
+	if not used.has(card):
+		used.append(card)
+	spent[tier] = used
+
+	# EVERYONE WHO COULD GO HAS GONE. Wipe the tier and they are all
+	# available again — which is the cycle closing.
+	if available_in(tier, db).is_empty():
+		spent[tier] = [] as Array
+		return true
+	return false
+
+
+## A knocked-out player is spent for good. Called the moment they go down so
+## the rotation never waits for somebody who is not getting up.
+func retire(card: PlayerData) -> void:
+	if card == null:
+		return
+	var tier := card.get_tier_clean()
+	var used: Array = spent.get(tier, [])
+	if not used.has(card):
+		used.append(card)
+	spent[tier] = used
+
+
+## Who a tier can actually field RIGHT NOW: standing, and not yet used this
+## cycle. This is what the draft offers you.
+func available_in(tier: String, db: CardDatabase) -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	for card in standing_in(tier, db):
+		if not is_spent(card):
+			out.append(card)
+	return out
+
+
+## Everyone in a tier who is spent but still on their feet — for the card
+## window, which shows them greyed out with "next cycle" on them rather than
+## hiding them. Seeing who is resting is half of knowing what you have.
+func resting_in(tier: String, db: CardDatabase) -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	for card in standing_in(tier, db):
+		if is_spent(card):
+			out.append(card)
+	return out
 
 
 ## Who is still standing in a tier, weakest first — the order enemies pick

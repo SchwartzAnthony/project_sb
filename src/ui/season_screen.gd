@@ -365,7 +365,11 @@ static func _letter(result: String) -> String:
 
 func _fill_buttons() -> void:
 	if _primary != null:
-		MenuSupport.pin_bottom_centre(_primary)
+		# BOTTOM RIGHT, not bottom centre. The table is the thing on this page
+		# and it wants the middle of the screen; the action that takes you off
+		# the page belongs in the corner opposite Back, where the eye finishes
+		# rather than where it is reading.
+		MenuSupport.pin_bottom_right(_primary)
 		if SeasonDB.is_over(state):
 			MenuSupport.restyle(_primary, "season|▦",
 				"Start season %d" % (maxi(1, state.count(SeasonDB.NUMBER)) + 1), true)
@@ -389,11 +393,11 @@ func _fill_buttons() -> void:
 				MatchMode.choose(get_tree(), "season")
 				ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT))
 
-	# BACK GOES BOTTOM-LEFT, like every other screen, and PLAY is the only
-	# thing on the bottom middle. Both buttons come from the scene file, so
-	# they are restyled and repositioned here rather than in the editor —
-	# which means you never have to open season_screen.tscn to keep them in
-	# step with the rest of the game.
+	# BACK GOES BOTTOM-LEFT, like every other screen, and PLAY sits in the
+	# opposite corner. Both buttons come from the scene file, so they are
+	# restyled and repositioned here rather than in the editor — which means
+	# you never have to open season_screen.tscn to keep them in step with the
+	# rest of the game.
 	if _home != null:
 		MenuSupport.restyle(_home, "back|←", Loc.text("back", "Back"))
 		MenuSupport.pin_bottom_left(_home)

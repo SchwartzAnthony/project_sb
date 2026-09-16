@@ -142,6 +142,35 @@ func play_event(event: String, facts: Dictionary, state: GameState) -> void:
 			_play_once(cue)
 
 
+## ============ PLAY ONE SOUND BY NAME ============
+##
+## What the Juice spreadsheet uses. `sound` is an Audio.csv row ID, or the
+## name of a file in assets/audio/ — see AudioDB.cue_by_name().
+##
+## A name that matches neither is NOT an error: the game is silent until the
+## files exist, which is the whole arrangement. It says so once, quietly, so
+## a typo is findable without filling the Output panel.
+static func play_cue(tree: SceneTree, sound: String,
+		_facts: Dictionary = {}) -> void:
+	if tree == null or sound.strip_edges() == "":
+		return
+	var director := fetch(tree)
+	if director == null:
+		return
+	var cue := AudioDB.get_db().cue_by_name(sound)
+	if cue.is_empty():
+		if not _moaned.has(sound):
+			_moaned[sound] = true
+			print("[audio] '%s' is named in a spreadsheet but there is no Audio.csv row and no file in assets/audio/. Silent for now." % sound)
+		return
+	director._play_once(cue)
+
+
+## Names we have already complained about, so one missing sound does not
+## print on every single hit.
+static var _moaned: Dictionary = {}
+
+
 func _play_once(cue: Dictionary) -> void:
 	var voice := _voices[_next_voice]
 	_next_voice = (_next_voice + 1) % _voices.size()

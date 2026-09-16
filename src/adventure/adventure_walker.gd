@@ -66,6 +66,21 @@ var lane_bottom: float = 1000.0
 var stamina_fraction: float = 1.0
 var knocked_out: bool = false
 
+## ============ OUT OF STAMINA MEANS ON THE GROUND ============
+##
+## A player with nothing left used to go grey and carry on jogging along with
+## everybody else, which read as a bug rather than as a state. Now they drop
+## where they stood: the sprite turns on its side, the drift stops, and they
+## stay there until the fight is over and the stretcher comes for them.
+##
+## `lying` is the flag. Nothing moves a lying player except carried_to(),
+## which is what the two bearers use to take them off the pitch.
+var lying: bool = false
+
+## Set while somebody else is moving them. It turns off this walker's own
+## steering so the two things never fight over the same position.
+var being_carried: bool = false
+
 ## True while it has broken formation to fetch something off the ground.
 var fetching: bool = false
 
@@ -148,7 +163,78 @@ func _feet_y() -> float:
 	return -_art.size.y + RADIUS * 0.5
 
 
+# =============================================================
+#  GOING DOWN, AND BEING PICKED UP
+# =============================================================
+
+## Drop where you stand. Called the moment the run says this player is out.
+##
+## The sprite turns a quarter-turn about its own middle and settles onto the
+## grass. It is one tween, so calling this twice on the same player is
+## harmless — the second call sees `lying` and leaves.
+func lie_down() -> void:
+	if lying:
+		return
+	lying = true
+	knocked_out = true
+	fetching = false
+	target = position
+
+	if _art != null:
+		# PIVOT IN THE MIDDLE. A Control turns about its top-left corner out of
+		# the box, which would swing the player off sideways instead of laying
+		# them down.
+		_art.pivot_offset = _art.size * 0.5
+		var drop := create_tween()
+		drop.set_parallel(true)
+		drop.tween_property(_art, "rotation", -PI * 0.5, 0.42) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		drop.tween_property(_art, "position", _lying_art_position(), 0.42) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	queue_redraw()
+
+
+## Back on your feet. Used when a run ends and everybody is patched up.
+func get_up() -> void:
+	if not lying:
+		return
+	lying = false
+	being_carried = false
+	if _art != null:
+		_art.rotation = 0.0
+		_art.position = Vector2(-_art.size.x * 0.5, _feet_y())
+	queue_redraw()
+
+
+## Where the sprite's top-left corner goes so that a player lying on their
+## side rests ON the grass rather than hovering over it.
+##
+## Turned a quarter-turn, the sprite's height on screen is its WIDTH — so the
+## middle of it wants to sit half a width above the feet line.
+func _lying_art_position() -> Vector2:
+	if _art == null:
+		return Vector2.ZERO
+	var middle_y := -_art.size.x * 0.5 + RADIUS * 0.25
+	return Vector2(-_art.size.x * 0.5, middle_y - _art.size.y * 0.5)
+
+
+## Move a downed player, because somebody is carrying them. The scene drives
+## this every frame while the stretcher is walking; the walker itself does
+## nothing, which is what `being_carried` is for.
+func carried_to(where: Vector2) -> void:
+	being_carried = true
+	position = where
+	target = where
+
+
 func _process(delta: float) -> void:
+	# ON THE GROUND, NOTHING MOVES. No drift, no bob, no walking to a slot.
+	# Being carried is the same as far as this walker is concerned — the two
+	# bearers are the ones doing the moving.
+	if lying or being_carried:
+		queue_redraw()
+		return
+
 	_drift_clock += delta * _drift_rate
 
 	# THE DRIFT. A slow figure-of-eight around the slot: different rates on
@@ -197,7 +283,17 @@ func _draw() -> void:
 		tint = tint.darkened(0.6)
 
 	# --- The body, only when there is no artwork ---
-	if _art == null:
+	if _art == null and lying:
+		# ON THE GROUND WITH NO ARTWORK: a body lying on its side, drawn wide
+		# and low so it reads as "down" at a glance rather than as a smaller
+		# disc. The artwork case is handled by the quarter-turn in lie_down().
+		draw_rect(Rect2(Vector2(-RADIUS * 1.35, -RADIUS * 0.55),
+			Vector2(RADIUS * 2.2, RADIUS * 0.9)), tint.darkened(0.35), true)
+		draw_circle(Vector2(RADIUS * 1.0, -RADIUS * 0.1), RADIUS * 0.46,
+			tint.darkened(0.2))
+		draw_line(Vector2(-RADIUS * 1.4, RADIUS * 0.4),
+			Vector2(RADIUS * 1.4, RADIUS * 0.4), Color(0, 0, 0, 0.25), 3.0)
+	elif _art == null:
 		var lift := sin(_bob) * 2.0
 		var middle := Vector2(0.0, lift)
 		# A soft shadow on the grass, so a player reads as standing ON the
@@ -235,7 +331,9 @@ func _draw() -> void:
 
 	if knocked_out:
 		# A plain cross, so a downed player is obvious without reading a bar.
+		# Lying down it floats ABOVE them, because the body is in the way.
 		var span := RADIUS * 0.6
 		var dead := MenuSupport.COLOUR_TEXT_DIM
-		draw_line(Vector2(-span, -span), Vector2(span, span), dead, 2.0)
-		draw_line(Vector2(-span, span), Vector2(span, -span), dead, 2.0)
+		var at := Vector2(0.0, -RADIUS * 1.6) if lying else Vector2.ZERO
+		draw_line(at + Vector2(-span, -span), at + Vector2(span, span), dead, 2.0)
+		draw_line(at + Vector2(-span, span), at + Vector2(span, -span), dead, 2.0)

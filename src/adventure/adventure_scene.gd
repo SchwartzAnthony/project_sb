@@ -483,7 +483,20 @@ func _pass_the_ball(delta: float) -> void:
 	_pass_clock -= delta
 	if _pass_clock <= 0.0:
 		_pass_clock = db.tune_float("adventure_pass_seconds", 1.4) * randf_range(0.7, 1.3)
+		var was := _ball_holder
 		_ball_holder = randi() % _walkers.size()
+
+		# THE LITTLE KNOCK YOU ASKED FOR. The player letting go of the ball and
+		# the player taking it both get whatever Juice.csv says — and it is
+		# `ball_kicked` and `ball_received` there, so you can give the two of
+		# them different weight without touching a line of this file.
+		if was != _ball_holder:
+			var leaving := _walkers[was] if was < _walkers.size() else null
+			if leaving != null and is_instance_valid(leaving) and not leaving.lying:
+				Juice.fire(self, "ball_kicked", {"node": leaving})
+			var taking := _walkers[_ball_holder]
+			if taking != null and is_instance_valid(taking) and not taking.lying:
+				Juice.fire(self, "ball_received", {"node": taking})
 
 	var holder := _walkers[_ball_holder]
 	if holder != null and is_instance_valid(holder):
@@ -819,7 +832,7 @@ func _run_encounter() -> void:
 	if fled:
 		_flee_home()
 	elif cleared:
-		_win_encounter()
+		await _win_encounter()
 	else:
 		_party_fell()
 
@@ -854,6 +867,14 @@ func _refresh_walkers() -> void:
 		var full := AdventureRun.stamina_for(walker.card, db)
 		walker.stamina_fraction = float(run.stamina_of(walker.card, db)) / maxf(1.0, float(full))
 		walker.knocked_out = run.is_out(walker.card)
+		# OUT OF STAMINA MEANS ON THE GROUND, not standing around greyed out.
+		# The run holds the truth and the walker only shows it, so this is the
+		# single place in the game where a player drops or gets back up. Both
+		# calls do nothing if the player is already in that state.
+		if walker.knocked_out:
+			walker.lie_down()
+		else:
+			walker.get_up()
 
 
 ## FLED. You keep the share Tuning.csv says and walk out with it.
@@ -893,7 +914,178 @@ func _party_fell() -> void:
 	buttons.add_child(home)
 
 
+# =============================================================
+#  THE STRETCHER
+#
+#  ============ WHAT THIS IS ============
+#
+#  A player who runs out of stamina lies where they fell (see lie_down() in
+#  adventure_walker.gd). When the last enemy is down, TWO PLAYERS WHO ARE NOT
+#  ON YOUR TEAM jog in from behind the party, pick up everybody on the ground,
+#  and carry them back off the way they came. Then the party moves on.
+#
+#  ============ WHO THE TWO ARE ============
+#
+#  Anybody in your unit CSV who is not in the party. They are ordinary cards,
+#  drawn as ordinary walkers, so they get whatever artwork that card has and
+#  they will change as you add units. They are never the same players as the
+#  ones you are running with, which is the point — help arrives from outside.
+#
+#  If your CSV is so small that there is nobody spare, the stretcher is
+#  skipped and the fallen simply stay down. Nothing breaks.
+#
+#  ============ TURNING IT OFF ============
+#
+#      adventure_stretcher        false and nobody is carried off
+#      adventure_stretcher_seconds  how long the whole thing takes
+# =============================================================
+
+## Everybody on the ground is taken off before the party runs on.
+##
+## Awaited, so the loot popup does not land on top of it.
+func _carry_off_the_fallen() -> void:
+	if not db.tune_bool("adventure_stretcher", true):
+		return
+
+	var fallen: Array[AdventureWalker] = []
+	for walker in _walkers:
+		if walker == null or not is_instance_valid(walker) or walker.card == null:
+			continue
+		if run.is_out(walker.card):
+			walker.lie_down()
+			fallen.append(walker)
+	if fallen.is_empty():
+		return
+
+	# TWO BEARERS PER FALLEN PLAYER, all going at once. One pair at a time
+	# looked like a queue at a bus stop when three players were down.
+	var spare := _players_not_on_the_team(fallen.size() * 2)
+	if spare.is_empty():
+		return
+
+	_say("STRETCHER")
+	var seconds := db.tune_float("adventure_stretcher_seconds", 2.4)
+	var crews: Array = []
+	for i in fallen.size():
+		var left_card: PlayerData = spare[(i * 2) % spare.size()]
+		var right_card: PlayerData = spare[(i * 2 + 1) % spare.size()]
+		crews.append({
+			"down": fallen[i],
+			"crew": [_make_bearer(left_card, fallen[i], -1),
+				_make_bearer(right_card, fallen[i], 1)],
+		})
+
+	await _walk_the_stretchers(crews, seconds)
+
+	# The bearers are done with; the fallen player goes with them, so the
+	# walker is freed too and its card simply is not on the pitch any more.
+	for entry in crews:
+		for bearer in (entry["crew"] as Array):
+			if is_instance_valid(bearer):
+				bearer.queue_free()
+		var down: AdventureWalker = entry["down"]
+		if is_instance_valid(down):
+			_walkers.erase(down)
+			down.queue_free()
+
+	_settle_walkers()
+
+
+## Cards that exist in your CSV but are not in the party. Shuffled, so the
+## same two people are not on stretcher duty all game.
+func _players_not_on_the_team(how_many: int) -> Array[PlayerData]:
+	var on_the_team: Dictionary = {}
+	for walker in _walkers:
+		if walker != null and is_instance_valid(walker) and walker.card != null:
+			on_the_team[walker.card.player_name] = true
+
+	var pool: Array[PlayerData] = []
+	for card in db.players:
+		if card == null or on_the_team.has(card.player_name):
+			continue
+		pool.append(card)
+	if pool.is_empty():
+		return pool
+
+	pool.shuffle()
+	return pool.slice(0, mini(how_many, pool.size()))
+
+
+## One bearer, stood off the left edge ready to come in. `side` is -1 for the
+## one at the head and 1 for the one at the feet.
+func _make_bearer(card: PlayerData, down: AdventureWalker, side: int) -> AdventureWalker:
+	var bearer := AdventureWalker.new()
+	_world.add_child(bearer)
+	bearer.setup(card, _scroll_speed * 2.6, db)
+	bearer.lane_top = LANE_TOP
+	bearer.lane_bottom = LANE_BOTTOM
+	# THEY COME FROM BEHIND. The party is running right, so help arrives from
+	# the left — the way everybody came in.
+	bearer.position = Vector2(-220.0 - randf() * 140.0,
+		clampf(down.position.y + float(side) * 30.0,
+			LANE_TOP + AdventureWalker.RADIUS, LANE_BOTTOM - AdventureWalker.RADIUS))
+	bearer.target = bearer.position
+	bearer.stamina_fraction = 1.0
+	# THE TWEEN OWNS THEM. A bearer is walked by the three tweens below, so its
+	# own steering and drift are switched off — otherwise the two would pull
+	# the same walker in slightly different directions and it would judder.
+	bearer.being_carried = true
+	return bearer
+
+
+## Run in, lift, carry out. Three plain tweens rather than any clever state,
+## because it happens once and then everybody involved is freed.
+func _walk_the_stretchers(crews: Array, seconds: float) -> void:
+	var in_time := seconds * 0.4
+	var lift_time := seconds * 0.15
+	var out_time := seconds * 0.45
+
+	# --- 1. IN. Each pair jogs to either side of its player. ---
+	var arrive := create_tween()
+	arrive.set_parallel(true)
+	for entry in crews:
+		var down: AdventureWalker = entry["down"]
+		var side := -1
+		for bearer in (entry["crew"] as Array):
+			var beside := down.position + Vector2(float(side) * 46.0, float(side) * 8.0)
+			arrive.tween_property(bearer, "position", beside, in_time) \
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+			side = 1
+	await arrive.finished
+
+	# --- 2. LIFT. The player comes up off the grass a little. ---
+	var lift := create_tween()
+	lift.set_parallel(true)
+	for entry in crews:
+		var down: AdventureWalker = entry["down"]
+		down.being_carried = true
+		lift.tween_property(down, "position:y", down.position.y - 26.0, lift_time) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	await lift.finished
+
+	# --- 3. OUT. Everybody walks off the left edge together. ---
+	var leave := create_tween()
+	leave.set_parallel(true)
+	for entry in crews:
+		var down: AdventureWalker = entry["down"]
+		var away := Vector2(-420.0, down.position.y)
+		leave.tween_property(down, "position", away, out_time) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		var side := -1
+		for bearer in (entry["crew"] as Array):
+			var bearer_away := away + Vector2(float(side) * 46.0, float(side) * 8.0)
+			leave.tween_property(bearer, "position", bearer_away, out_time) \
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+			side = 1
+	await leave.finished
+
+
 func _win_encounter() -> void:
+	# THE FALLEN GO FIRST. The enemies are down, so before anything is counted
+	# or claimed, anybody lying on the grass is carried off. Awaited, so the
+	# loot popup never lands on top of the stretcher.
+	await _carry_off_the_fallen()
+
 	var loot: Dictionary = {}
 	for foe in _foes:
 		if not is_instance_valid(foe):

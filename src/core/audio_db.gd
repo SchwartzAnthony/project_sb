@@ -161,12 +161,18 @@ func _load_csv(path: String) -> void:
 			continue
 
 		var where := "%s row %d" % [short_name, i + 1]
-		if when_text == "":
-			problems.append("%s: a Sound with no When, so nothing would ever play it" % where)
-			continue
 		if sound == "":
 			problems.append("%s: '%s' has no Sound file" % [where, when_text])
 			continue
+		# ============ A BLANK `When` IS FINE, AND MEANS SOMETHING ============
+		#
+		# It used to be an error: "a Sound with no When, so nothing would ever
+		# play it". That stopped being true the moment Juice.csv arrived.
+		#
+		# A juice row names a sound by the ID of a row in THIS file — see
+		# cue_by_name() below — so the row is played on purpose, by name, and
+		# has no event of its own. Blank When now reads as "nothing fires this
+		# by itself; something asks for it", which is exactly what it is.
 
 		var stream := _find_sound(sound)
 		if stream == null:
@@ -225,6 +231,35 @@ func _find_sound(file_name: String) -> AudioStream:
 				if res is AudioStream:
 					return res as AudioStream
 	return null
+
+
+## ============ ONE SOUND, BY NAME ============
+##
+## The Juice spreadsheet names a sound and wants it played, with none of the
+## "when" matching the rest of this file does. It looks in two places:
+##
+##   1. a row of Audio.csv with that ID — so the volume, bus and fade you
+##      already set there are honoured
+##   2. failing that, a FILE of that name in assets/audio/
+##
+## The second is the useful one while you are working: drop a WAV in, put its
+## name in Juice.csv, hear it. Write the Audio.csv row later when you want to
+## set its volume.
+func cue_by_name(name_text: String) -> Dictionary:
+	var wanted := CardDatabase._normalise(name_text)
+	for cue in cues:
+		if CardDatabase._normalise(String(cue["id"])) == wanted:
+			return cue
+
+	var stream := _find_sound(name_text)
+	if stream == null:
+		return {}
+	return {
+		"id": name_text, "when": "", "match": "", "sound": name_text,
+		"stream": stream, "bus": "Effects", "loop": false,
+		"volume": 0.0, "fade": 0.0, "requires": "",
+		"where": "assets/audio/%s (no Audio.csv row yet)" % name_text,
+	}
 
 
 # =============================================================
