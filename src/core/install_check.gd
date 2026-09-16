@@ -74,8 +74,20 @@ static func run(tree: SceneTree, force: bool = false) -> void:
 			misplaced.append("%s\n        is in    %s\n        move to  %s"
 				% [file_name, found.get_base_dir() + "/", folder])
 
-	if missing.is_empty() and misplaced.is_empty():
-		print("[install] All %d files are where they should be." % checked)
+	# ============ AND THE ONE THAT BITES HARDEST ============
+	#
+	# TWO COPIES of the same script. Godot registers a class_name once, so a
+	# second copy anywhere in the project gives you
+	#
+	#     Class "GoalieUnit" hides a global script class
+	#
+	# and then loads whichever it feels like — which may be the older one.
+	# This is what happens when a file is copied into a folder it was not
+	# already in, and it is invisible until you go looking.
+	var doubled := _doubles(rows)
+
+	if missing.is_empty() and misplaced.is_empty() and doubled.is_empty():
+		print("[install] All %d files are where they should be, one copy each." % checked)
 		return
 
 	print("")
@@ -94,6 +106,13 @@ static func run(tree: SceneTree, force: bool = false) -> void:
 		for note in misplaced:
 			print("   " + note)
 
+	if not doubled.is_empty():
+		print("")
+		print(" THERE ARE TWO COPIES  (%d)" % doubled.size())
+		print("   Delete the second path on each line. Godot only wants one.")
+		for note in doubled:
+			print("   " + note)
+
 	if not missing.is_empty():
 		print("")
 		print(" NOT IN THE PROJECT AT ALL  (%d)" % missing.size())
@@ -107,6 +126,70 @@ static func run(tree: SceneTree, force: bool = false) -> void:
 	print(" Fix those and the errors above this go away together.")
 	print("=============================================================")
 	print("")
+
+
+## Every file that exists in TWO places. The first path is the one the
+## manifest wants; the second is the copy to delete.
+static func _doubles(rows: Array[Dictionary]) -> Array[String]:
+	# Where every file of a name we care about actually is.
+	var wanted: Dictionary = {}
+	for row in rows:
+		var file_name := MenuSupport.field(row, "File")
+		var folder := MenuSupport.field(row, "Folder")
+		# SCRIPTS AND SCENES ONLY. Two spreadsheets of the same name in two
+		# folders is normal and deliberate — data/Dialogue.csv and
+		# data/tutorial/Dialogue.csv are different documents. Two SCRIPTS of
+		# the same name is always wrong, because a class_name can only be
+		# registered once.
+		if file_name == "" or folder == "":
+			continue
+		if not (file_name.ends_with(".gd") or file_name.ends_with(".tscn")):
+			continue
+		wanted[file_name] = "res://" + folder.strip_edges().trim_suffix("/") + "/"
+
+	var everywhere: Dictionary = {}
+	_sweep("res://", wanted, everywhere)
+
+	var out: Array[String] = []
+	for file_name in everywhere.keys():
+		var places: Array = everywhere[file_name]
+		if places.size() < 2:
+			continue
+		var keep := String(wanted.get(file_name, ""))
+		var extras: Array[String] = []
+		for place in places:
+			if String(place) != keep:
+				extras.append(String(place) + file_name)
+		if extras.is_empty():
+			continue
+		out.append("%s\n        keep    %s%s\n        DELETE  %s"
+			% [file_name, keep, file_name, "\n        DELETE  ".join(extras)])
+	return out
+
+
+## Walk res:// once, noting every folder each wanted file turns up in.
+static func _sweep(start: String, wanted: Dictionary, into: Dictionary) -> void:
+	var queue: Array[String] = [start]
+	while not queue.is_empty():
+		var here: String = queue.pop_front()
+		var dir := DirAccess.open(here)
+		if dir == null:
+			continue
+		dir.list_dir_begin()
+		var entry := dir.get_next()
+		while entry != "":
+			if entry.begins_with("."):
+				entry = dir.get_next()
+				continue
+			if dir.current_is_dir():
+				if not ScenePaths.SKIP_DIRS.has(entry):
+					queue.append(here.path_join(entry))
+			elif wanted.has(entry):
+				if not into.has(entry):
+					into[entry] = [] as Array
+				(into[entry] as Array).append(here if here.ends_with("/") else here + "/")
+			entry = dir.get_next()
+		dir.list_dir_end()
 
 
 ## Look for a file anywhere under res://, so a misplaced one can be named.

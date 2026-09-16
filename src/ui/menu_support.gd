@@ -682,4 +682,7 @@ static func pin_bottom_right(node: Control, inset: Vector2 = Vector2(32, 22)) ->
 	node.offset_left = -(inset.x + box.x)
 	node.offset_right = -inset.x
 	node.offset_top = -(inset.y + box.y)
-	node.offset_bottom = -inset
+	# `.y`, NOT `-inset`. `inset` is a Vector2 here and offset_bottom is a
+	# float, so the missing .y was a parse error that took this whole file
+	# down — and with it every screen that calls anything in it.
+	node.offset_bottom = -inset.y
