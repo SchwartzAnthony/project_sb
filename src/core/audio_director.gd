@@ -161,7 +161,11 @@ static func play_cue(tree: SceneTree, sound: String,
 	if cue.is_empty():
 		if not _moaned.has(sound):
 			_moaned[sound] = true
-			print("[audio] '%s' is named in a spreadsheet but there is no Audio.csv row and no file in assets/audio/. Silent for now." % sound)
+			var waiting := AudioDB.get_db().waiting_for(sound)
+			if waiting != "":
+				print("[audio] '%s' has a row in Audio.csv, but its sound file '%s' is not in assets/audio/ yet. Silent for now." % [sound, waiting])
+			else:
+				print("[audio] '%s' is named in a spreadsheet but there is no Audio.csv row and no file in assets/audio/. Silent for now." % sound)
 		return
 	director._play_once(cue)
 

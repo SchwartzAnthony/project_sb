@@ -38,6 +38,10 @@ signal finished
 
 var db: CardDatabase
 
+## The pile. Handed over by adventure_encounter.gd so the window can show
+## what it is carrying. Read only — nothing here ever changes it.
+var stack: TraitStack
+
 var _left_box: VBoxContainer
 var _right_box: VBoxContainer
 var _left_panel: PanelContainer
@@ -123,7 +127,6 @@ func play(chain: Array, foes: Array, alive: Array) -> void:
 		foe_gain.append(0)
 
 	# --- the chain, one player at a time ---
-	var so_far: Array[PlayerData] = []
 	for i in chain.size():
 		var card := chain[i] as PlayerData
 		var tier := TierLadder.TIERS[i] if i < TierLadder.TIERS.size() else "?"
@@ -133,23 +136,23 @@ func play(chain: Array, foes: Array, alive: Array) -> void:
 			await _wait(step * 0.6)
 			continue
 
-		so_far.append(card)
 		_running += card.get_attack_power()
 
 		_left_box.add_child(_player_line(card, tier))
 		_total_label.text = str(_running)
 		_bump(_total_label)
 
-		# A COMBO IS ANNOUNCED THE MOMENT IT COMPLETES, which is the whole
-		# pleasure of it — you see the third Water player arrive and the
-		# window says so before the shot goes in.
-		var combos := ComboDB.fired(so_far)
-		if not combos.is_empty():
+		# WHAT THE PILE IS CARRYING. By the time this window opens all four
+		# have already gone onto the stack — the picking happened before the
+		# watching — so this is the pile's real, final state rather than a
+		# guess at it. See trait_stack.gd.
+		if stack != null:
 			var words: Array[String] = []
-			for rule in combos:
-				words.append(ComboDB.describe(rule))
-			_combo_label.text = "   ·   ".join(words)
-			_bump(_combo_label)
+			for held in stack.active():
+				words.append("%s +%d" % [held["name"], int(held["value"])])
+			if not words.is_empty():
+				_combo_label.text = "   ·   ".join(words)
+				_bump(_combo_label)
 
 		# --- every pass makes them angrier ---
 		for f in foes.size():
@@ -166,7 +169,7 @@ func play(chain: Array, foes: Array, alive: Array) -> void:
 		await _wait(step)
 
 	# --- what the move was worth in the end ---
-	var bonus := ComboDB.bonus_for(so_far)
+	var bonus := stack.attack_bonus() if stack != null else 0
 	if bonus > 0:
 		_running += bonus
 		_total_label.text = "%d" % _running
@@ -249,7 +252,7 @@ func play_their_turn(foes: Array, alive: Array, gains: Dictionary,
 			int(line.get("standing", 0))))
 
 	# --- LEFT: them, one at a time ---
-	var facts: Array[Dictionary] = []
+	var their_pile := TraitStack.new()
 	var slots := 0
 	for i in foes.size():
 		if i >= alive.size() or not bool(alive[i]):
@@ -257,26 +260,27 @@ func play_their_turn(foes: Array, alive: Array, gains: Dictionary,
 		slots += 1
 		var row: Dictionary = (foes[i] as Dictionary).get("row", {})
 		var gained := int(gains.get(i, 0))
-		facts.append(enemy_facts(row))
+		their_pile.add_icons(TraitDB.icons_of_enemy(row))
 		_running += int(row.get("attack", 0)) + gained
 
 		_left_box.add_child(_enemy_line(row, gained))
 		_total_label.text = str(_running)
 		_bump(_total_label)
 
-		# THEIR COMBO IS ANNOUNCED THE MOMENT IT COMPLETES, the same as yours.
+		# THEIR ICONS COUNT AS THEY ARRIVE, the same as yours — out of the
+		# same AdventureCombos.csv. Only `attack` applies to them.
 		if db.tune_bool("adventure_enemy_combos", true):
-			var combos := ComboDB.fired_from(facts, slots)
-			if not combos.is_empty():
-				var words: Array[String] = []
-				for rule in combos:
-					words.append(ComboDB.describe(rule))
+			var words: Array[String] = []
+			for held in their_pile.active():
+				if String((held as Dictionary)["effect"]) == "attack":
+					words.append("%s +%d" % [held["name"], int(held["value"])])
+			if not words.is_empty():
 				_combo_label.text = "   ·   ".join(words)
 				_bump(_combo_label)
 
 		await _wait(step)
 
-	var bonus := their_combo_bonus(foes, alive)
+	var bonus := their_stack_bonus(foes, alive, [])
 	if bonus > 0:
 		_running += bonus
 		_total_label.text = "%d" % _running
@@ -290,33 +294,36 @@ func play_their_turn(foes: Array, alive: Array, gains: Dictionary,
 	finished.emit()
 
 
-## What THEIR combos are worth. Asked for separately because the fight needs
-## the number whether or not their window was watched — exactly the same
-## arrangement as combo_bonus() below.
-static func their_combo_bonus(foes: Array, alive: Array) -> int:
-	var facts: Array[Dictionary] = []
+## What THEIR icons are worth, out of the same AdventureCombos.csv your side
+## uses. Asked for separately because the fight needs the number whether or
+## not their window was watched.
+##
+## ONLY `attack` APPLIES TO THEM. They do not revive, spawn or heal — those
+## belong to you, and handing them to the opposition would make a wave
+## unkillable rather than dangerous.
+##
+## `into` is filled with the names that fired, so the log can print them
+## without working the whole thing out a second time. Pass [] if you do not
+## want them.
+static func their_stack_bonus(foes: Array, alive: Array, into: Array) -> int:
+	var pile := TraitStack.new()
+	var counted := 0
 	for i in foes.size():
 		if i >= alive.size() or not bool(alive[i]):
 			continue
-		facts.append(enemy_facts((foes[i] as Dictionary).get("row", {})))
-	if facts.size() < 2:
+		pile.add_icons(TraitDB.icons_of_enemy((foes[i] as Dictionary).get("row", {})))
+		counted += 1
+	if counted < 2:
 		return 0
-	return ComboDB.bonus_from(facts, facts.size())
 
-
-## One enemy, reduced to the four things a combo rule asks about. See the
-## header of combo_db.gd for why it is a plain dictionary and not a card.
-static func enemy_facts(row: Dictionary) -> Dictionary:
-	return {
-		"element": String(row.get("element", "")),
-		# ITS POOL STANDS IN FOR A CLASS. A pool is the group an enemy belongs
-		# to, which is the nearest thing an enemy has to a club.
-		"class": String(row.get("pool", "")),
-		"power": int(row.get("attack", 0)),
-		# A BOSS COUNTS AS THE STAR, so `star_last` fires when the boss strikes
-		# last. That is the enemy version of your Star taking the shot.
-		"star": bool(row.get("boss", false)),
-	}
+	var total := 0
+	for held in pile.active():
+		var row: Dictionary = held
+		if String(row["effect"]) != "attack":
+			continue
+		total += int(row["value"])
+		into.append("%s +%d" % [row["name"], int(row["value"])])
+	return total
 
 
 # =============================================================
@@ -389,19 +396,7 @@ func _trim(panel: PanelContainer, edge: Color) -> void:
 	if panel == null:
 		return
 	panel.add_theme_stylebox_override("panel", MenuSupport.panel_style(
-		Color(0.07, 0.08, 0.11, 0.93), edge))
-
-
-## What the combos added, so the fight can use the same number the window
-## just showed. Asked for separately because the fight needs it whether or
-## not the build-up was watched.
-static func combo_bonus(chain: Array) -> int:
-	var so_far: Array[PlayerData] = []
-	for item in chain:
-		var card := item as PlayerData
-		if card != null:
-			so_far.append(card)
-	return ComboDB.bonus_for(so_far)
+		Color(0.07, 0.08, 0.11, 1.0), edge))
 
 
 ## What the enemies gained from watching you build it. One pass per player
@@ -513,7 +508,7 @@ func _window(holder: Control, on_the_left: bool) -> PanelContainer:
 	panel.custom_minimum_size = Vector2(380, 0)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_theme_stylebox_override("panel", MenuSupport.panel_style(
-		Color(0.07, 0.08, 0.11, 0.93),
+		Color(0.07, 0.08, 0.11, 1.0),
 		MenuSupport.COLOUR_ACCENT if on_the_left else Color(0.62, 0.30, 0.30)))
 
 	if on_the_left:
@@ -571,8 +566,18 @@ func _player_line(card: PlayerData, tier: String) -> Control:
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	words.add_child(name_label)
 
+	# WHAT THEY PUT ON THE PILE. In a league match this line would name their
+	# abilities; in Adventure it names their icons, because that is what they
+	# actually contribute here.
+	var carried: Array[String] = []
+	for icon in TraitDB.icons_of(card):
+		var entry := TraitDB.trait_of(icon)
+		if not entry.is_empty():
+			carried.append(String(entry["name"]))
+
 	var under := Label.new()
-	under.text = "Tier %s%s" % [tier, "   ★" if card.is_star() else ""]
+	under.text = "Tier %s%s%s" % [tier, "   ★" if card.is_star() else "",
+		"   ·   " + "  ".join(carried) if not carried.is_empty() else ""]
 	under.add_theme_font_size_override("font_size", 12)
 	under.add_theme_color_override("font_color",
 		MenuSupport.colour_for_tier(tier).lightened(0.3))

@@ -306,6 +306,100 @@ func use_up(card: PlayerData, db: CardDatabase) -> bool:
 	return false
 
 
+# =============================================================
+#  THE CYCLE
+#
+#  A TIER comes back round on its own, the moment everybody in it has had a
+#  turn. THE CYCLE comes round when every tier has done that — and the cycle
+#  is what the Adventure trait stack answers to, so this is the clock the
+#  whole of Adventure combat is built on.
+#
+#  A tier with nobody left in it counts as already round. Otherwise losing a
+#  whole tier would mean the cycle could never close and the stack could
+#  never reset, which is the opposite of what losing people should do.
+# =============================================================
+
+## Which tiers have come back round since the cycle last closed.
+var wrapped: Dictionary = {}
+
+
+## Tell the run a tier came back round. Returns TRUE when that was the last
+## one owing — the whole cycle has closed, and the caller empties the stack.
+func note_wrap(tier: String, db: CardDatabase) -> bool:
+	wrapped[tier] = true
+	for key in TierLadder.TIERS:
+		if bool(wrapped.get(key, false)):
+			continue
+		if standing_in(key, db).is_empty():
+			continue        # nobody to wait for
+		return false
+	wrapped.clear()
+	return true
+
+
+## How far round the cycle is, for the log and the bar: "3 of 4 tiers".
+func tiers_round(db: CardDatabase) -> Array[int]:
+	var done := 0
+	var owed := 0
+	for key in TierLadder.TIERS:
+		if standing_in(key, db).is_empty():
+			continue
+		owed += 1
+		if bool(wrapped.get(key, false)):
+			done += 1
+	return [done, owed]
+
+
+# =============================================================
+#  COMING BACK, AND COMING ON
+# =============================================================
+
+## Everybody who is down, so a revive has something to choose from. Weakest
+## power first, which is the order a revive takes them in — the cheapest
+## body back on the pitch first.
+func the_fallen() -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	for card in knocked_out:
+		if card != null:
+			out.append(card)
+	out.sort_custom(func(a: PlayerData, b: PlayerData) -> bool:
+		return a.get_attack_power() < b.get_attack_power())
+	return out
+
+
+## Get somebody up off the floor with `back` stamina. Returns false if they
+## were not down in the first place.
+##
+## They come back UNSPENT, so a revive is a body AND a turn. That is what
+## makes the Water ladder worth building rather than a consolation prize.
+func revive(card: PlayerData, back: int) -> bool:
+	if card == null or not knocked_out.has(card):
+		return false
+	knocked_out.erase(card)
+	stamina[card] = maxi(1, back)
+	var tier := card.get_tier_clean()
+	var used: Array = spent.get(tier, [])
+	used.erase(card)
+	spent[tier] = used
+	return true
+
+
+## Put a brand new body into the squad — a Treant, a Wisp, whatever
+## AdventureSpawns.csv describes. It joins the tier given and is available
+## straight away.
+##
+## IT IS A REAL MEMBER OF THE PARTY for the rest of the run: it can be
+## drafted, it can be hit, it can be knocked out, and it puts its own icons
+## on the stack. It is not a temporary effect.
+func bring_on(card: PlayerData, tier: String) -> void:
+	if card == null or tier == "":
+		return
+	var line: Array = squad.get(tier, [])
+	line.append(card)
+	squad[tier] = line
+	stamina[card] = AdventureRun.stamina_for(card, CardDatabase.get_db())
+
+
 ## A knocked-out player is spent for good. Called the moment they go down so
 ## the rotation never waits for somebody who is not getting up.
 func retire(card: PlayerData) -> void:

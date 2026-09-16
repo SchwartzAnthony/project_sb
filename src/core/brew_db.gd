@@ -138,6 +138,9 @@ func _load_csv(path: String) -> void:
 			"requires": _cell(row, columns, "requires"),
 			"for_class": _cell(row, columns, "forclass"),
 			"becomes": _cell(row, columns, "becomes"),
+			# WHAT THEY COUNT AS IN THE ADVENTURE STACK once they have drunk
+			# it. Blank = their element is unchanged. See trait_db.gd.
+			"element": _cell(row, columns, "element"),
 			"artwork": _cell(row, columns, "artwork"),
 			"attack": _cell(row, columns, "attackability"),
 			"defend": _cell(row, columns, "defendability"),
@@ -347,6 +350,7 @@ func apply_all(cards: CardDatabase, state: GameState) -> int:
 
 		card.brew_id = brew_id
 		card.brew_unit_type = String(entry["becomes"])
+		card.brew_element = String(entry.get("element", ""))
 		card.brew_attack_ability = String(entry["attack"])
 		card.brew_defend_ability = String(entry["defend"])
 		card.brew_artwork = _artwork_for(card, entry)

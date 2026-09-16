@@ -114,6 +114,32 @@ var _choice_title: Label
 ## The two side panels that show the move going in. See adventure_buildup.gd.
 var _buildup: AdventureBuildup
 
+## The scroller inside the card window, and the tallest that window may ever
+## be. Kept so _refresh_choices() can cap it once it knows how many cards
+## there actually are — see the note where it is built.
+var _choice_scroll: ScrollContainer
+var _choice_head_room := 700.0
+
+## ============ THE STACK, WHICH IS WHAT ADVENTURE COMBAT IS ============
+##
+## Every player you send into the move drops their ICONS onto this pile —
+## Fire, Water, Brandteufel, Star — and AdventureCombos.csv decides what
+## holding three of one is worth. Abilities are not read in Adventure at all;
+## the icons are the whole game here.
+##
+## IT DOES NOT EMPTY EACH ROUND. It empties at the end of the round in which
+## the CYCLE came round — when every tier has fielded everybody it has. See
+## trait_stack.gd, and note_wrap() in adventure_run.gd for the clock.
+var stack: TraitStack = TraitStack.new()
+
+## The bar across the top that draws the pile. Purely a display.
+var _trait_bar: TraitBar
+
+## Set when the cycle closes mid-round. The pile is not emptied until the
+## round finishes, so the move you were half way through building still gets
+## everything you had built for it.
+var _cycle_closing := false
+
 ## What the enemies gained by watching you build the move, index -> amount.
 ## Cleared at the start of every round.
 var _their_gain: Dictionary = {}
@@ -272,6 +298,7 @@ func _ready() -> void:
 
 	# The two side windows that show the move being built.
 	_buildup = AdventureBuildup.make(db)
+	_buildup.stack = stack
 	add_child(_buildup)
 
 	_push_bars()
@@ -377,6 +404,26 @@ func _pick_card(card: PlayerData) -> void:
 	_note("Tier %s: %s (%d)%s" % [tier, card.player_name, card.get_attack_power(),
 		"   — Tier %s comes back round." % tier if came_round else ""])
 
+	# ============ THEIR ICONS GO ON THE PILE ============
+	#
+	# This is the whole of Adventure combat. add() puts every icon this
+	# player carries onto the stack and hands back any `once` breakpoint that
+	# crossed — a revive, a Treant, a free hit — which is applied below.
+	# `held` breakpoints need no applying: they are simply true while the
+	# count stays up, and are read off the stack when the shot is worked out.
+	for crossed in stack.add(card):
+		await _breakpoint(crossed)
+	if _trait_bar != null:
+		_trait_bar.refresh()
+
+	# THE CYCLE. A tier comes back round on its own; the CYCLE comes round
+	# when the last tier still owing a turn does. That is when the pile
+	# empties — but not until this round has finished, so a move you are half
+	# way through building still gets everything you built it with.
+	if came_round and run.note_wrap(tier, db):
+		_cycle_closing = true
+		_note("The cycle has come round. The pile empties when this move is done.")
+
 	_refresh()
 
 
@@ -430,15 +477,17 @@ func _resolve() -> void:
 		else:
 			total += card.get_attack_power()
 
-	# WHAT THE MOVE ITSELF WAS WORTH, from Combos.csv. It is added to the
-	# SHOT and never to a card, so the tier ladder is untouched by it — the
-	# same rule the season's Difficulty obeys. See combo_db.gd.
-	var combo := AdventureBuildup.combo_bonus(chain)
+	# WHAT THE PILE IS WORTH. Every `held` breakpoint you are currently
+	# holding, added to the SHOT and never to a card — the tier ladder is the
+	# one rule nothing may move, and a combo is not an exception. See
+	# trait_stack.gd.
+	var combo := stack.attack_bonus()
 	if combo > 0:
 		var named: Array[String] = []
-		for rule in ComboDB.fired(chain):
-			named.append(ComboDB.describe(rule))
-		_note("The move comes off — %s" % "   ".join(named))
+		for held in stack.active():
+			if String((held as Dictionary)["effect"]) == "attack":
+				named.append("%s +%d" % [held["name"], int(held["value"])])
+		_note("The pile is carrying — %s" % "   ".join(named))
 		Juice.fire(self, "combo_fired", {})
 
 	# WHAT THEY GAINED WHILE YOU BUILT IT. Every pass gives an enemy with a
@@ -482,7 +531,7 @@ func _resolve() -> void:
 		if was_alive and not _is_alive(_focus):
 			await _show_the_death(_focus)
 		_note("Your line-up totals %d%s — %s" % [
-			total, "  (+%d from the move)" % combo if combo > 0 else "", report])
+			total, "  (+%d from the pile)" % combo if combo > 0 else "", report])
 	await _beat(0.35)
 
 	# --- THEIR HIT: after yours, every one of them ---
@@ -513,16 +562,21 @@ func _resolve() -> void:
 		if _is_alive(i):
 			striking.append(i)
 
+	# ============ THEY HAVE ICONS TOO ============
+	#
+	# Out of the SAME AdventureTraits.csv and AdventureCombos.csv your side
+	# uses — an enemy's Element and its Pool are what it carries. One table
+	# governs the whole of Adventure, because a combo is a rule about icons
+	# and not a rule about whose side somebody is on.
+	#
+	# Only `attack` breakpoints apply to them. They do not revive, spawn or
+	# heal: those belong to you, and giving them to the opposition would make
+	# a wave unkillable rather than dangerous.
 	var their_bonus := 0
 	if db.tune_bool("adventure_enemy_combos", true):
-		their_bonus = AdventureBuildup.their_combo_bonus(foes, still_up)
+		var theirs: Array[String] = []
+		their_bonus = AdventureBuildup.their_stack_bonus(foes, still_up, theirs)
 		if their_bonus > 0:
-			var theirs: Array[String] = []
-			var facts: Array[Dictionary] = []
-			for i in striking:
-				facts.append(AdventureBuildup.enemy_facts(foes[i]["row"]))
-			for rule in ComboDB.fired_from(facts, facts.size()):
-				theirs.append(ComboDB.describe(rule))
 			_note("They have a move of their own — %s" % "   ".join(theirs))
 
 	if _buildup != null:
@@ -559,7 +613,193 @@ func _resolve() -> void:
 		finished.emit(false, false)
 		return
 
+	# THE PILE EMPTIES HERE, and only here. The cycle closed some time during
+	# the round; the move you were building kept everything it had, took its
+	# shot, and now you start again from nothing.
+	if _cycle_closing:
+		_cycle_closing = false
+		_note("The pile is empty. Everyone has had a turn — start it again.")
+		stack.clear()
+		if _trait_bar != null:
+			_trait_bar.refresh()
+
 	_begin_round()
+
+
+# =============================================================
+#  WHAT A BREAKPOINT DOES
+#
+#  ============ NOTHING HERE DECIDES ANYTHING ============
+#
+#  AdventureCombos.csv decides. This is the seven things it can ask for,
+#  written out once each. A row with an Effect this file has not been taught
+#  never reaches here — trait_db.gd refuses it on load and says so by name —
+#  so the last branch is only a safety net.
+#
+#  TO ADD AN EFFECT: put its name in EFFECTS at the top of trait_db.gd, then
+#  add a branch below. Those are the only two places, on purpose.
+# =============================================================
+
+## One `once` breakpoint going off. Awaited so an effect can take a moment on
+## screen without the next one landing on top of it.
+func _breakpoint(step_row: Dictionary) -> void:
+	var effect := String(step_row["effect"])
+	var value := int(step_row["value"])
+	var target := String(step_row["target"]).strip_edges().to_lower()
+
+	_note("%s!  %s" % [step_row["name"], step_row["description"]])
+	Juice.fire(self, "combo_fired", {})
+
+	match effect:
+		"strike":
+			await _stack_strike(value, target)
+		"heal", "stamina":
+			_stack_heal(value, target)
+		"revive":
+			_stack_revive(value, step_row["target"])
+		"spawn":
+			_stack_spawn(value, target)
+		_:
+			# `attack` and `shield` are HELD, not once — they are read off the
+			# pile when the shot and the incoming hits are worked out, and
+			# there is nothing to do at the moment they are reached.
+			pass
+
+	await _beat(0.3)
+
+
+## `strike` — damage straight into enemies, outside the shot.
+func _stack_strike(amount: int, target: String) -> void:
+	if amount <= 0:
+		return
+	var hit_list: Array[int] = []
+	if target == "focus" and _focus >= 0 and _is_alive(_focus):
+		hit_list.append(_focus)
+	else:
+		for i in foes.size():
+			if _is_alive(i):
+				hit_list.append(i)
+
+	for i in hit_list:
+		var was_alive := _is_alive(i)
+		_note(_hurt_foe(i, amount))
+		var node := _foe_node(i)
+		if node != null:
+			Juice.fire(self, "enemy_hit", {"node": node, "amount": amount,
+				"average": _average_so_far("shot", amount)})
+		if was_alive and not _is_alive(i):
+			await _show_the_death(i)
+	_push_bars()
+
+
+## `heal` / `stamina` — stamina back to somebody standing.
+func _stack_heal(amount: int, target: String) -> void:
+	if amount <= 0:
+		return
+	var mended: Array[PlayerData] = []
+	match target:
+		"all":
+			for tier in TierLadder.TIERS:
+				mended.append_array(run.standing_in(tier, db))
+		"last":
+			var last: PlayerData = null
+			for tier in TierLadder.TIERS:
+				var card := _picked.get(tier, null) as PlayerData
+				if card != null and not run.is_out(card):
+					last = card
+			if last != null:
+				mended.append(last)
+		_:
+			# `lowest`, and anything unrecognised: whoever is worst off.
+			var worst: PlayerData = null
+			for tier in TierLadder.TIERS:
+				for card in run.standing_in(tier, db):
+					if worst == null or run.stamina_of(card, db) < run.stamina_of(worst, db):
+						worst = card
+			if worst != null:
+				mended.append(worst)
+
+	for card in mended:
+		var full := AdventureRun.stamina_for(card, db)
+		var was := run.stamina_of(card, db)
+		run.stamina[card] = mini(full, was + amount)
+		if int(run.stamina[card]) > was:
+			_party_changed(card, -(int(run.stamina[card]) - was))
+	if not mended.is_empty():
+		_note("%d put back on %s." % [amount,
+			mended[0].player_name if mended.size() == 1 else "%d of yours" % mended.size()])
+
+
+## `revive` — get people up off the floor. Value is HOW MANY; Target is how
+## much stamina each, or blank for the Tuning default.
+func _stack_revive(how_many: int, target_text: String) -> void:
+	if how_many <= 0:
+		return
+	# The Target column is how much stamina they get up with. Blank, or
+	# something that is not a number, falls back to Tuning.csv rather than
+	# reviving somebody on nothing.
+	var back := db.tune_int("adventure_revive_stamina", 3)
+	var written := target_text.strip_edges()
+	if written.is_valid_int():
+		back = maxi(1, written.to_int())
+
+	var got_up := 0
+	for card in run.the_fallen():
+		if got_up >= how_many:
+			break
+		if run.revive(card, back):
+			got_up += 1
+			_note("%s is back up with %d." % [card.player_name, back])
+			var mark := _walker(card)
+			if mark != null:
+				if mark.has_method("get_up"):
+					mark.call("get_up")
+				Juice.fire(self, "player_healed", {"node": mark})
+	if got_up == 0:
+		_note("Nobody is down, so there is nobody to bring back.")
+	_party_changed()
+
+
+## `spawn` — stand-ins walk on. They replace somebody who is out, taking
+## that player's tier, and they are real party members from then on.
+func _stack_spawn(how_many: int, spawn_id: String) -> void:
+	if how_many <= 0 or spawn_id == "":
+		return
+	var gaps := run.the_fallen()
+	var made := 0
+	for i in how_many:
+		# WHOSE PLACE IT TAKES decides which tier it lands in. With nobody
+		# down there is no gap to fill, so it joins the thinnest tier
+		# instead — a spawn is never simply lost.
+		var tier := ""
+		if i < gaps.size():
+			tier = gaps[i].get_tier_clean()
+		else:
+			tier = _thinnest_tier()
+		var body := TraitDB.make_spawn(spawn_id, tier, db)
+		if body == null:
+			return
+		run.bring_on(body, tier)
+		made += 1
+		var wanted := int(body.get_meta("spawn_power_wanted", body.get_attack_power()))
+		_note("%s walks on into Tier %s at %d power.%s" % [
+			body.player_name, tier, body.get_attack_power(),
+			"  (its %d was outside the tier's rungs)" % wanted \
+				if wanted != body.get_attack_power() else ""])
+	if made > 0:
+		party_changed.emit()
+
+
+## The tier with the fewest still standing, for a spawn with no gap to fill.
+func _thinnest_tier() -> String:
+	var best := TierLadder.TIERS[0]
+	var fewest := 999
+	for tier in TierLadder.TIERS:
+		var here := run.standing_in(tier, db).size()
+		if here < fewest:
+			fewest = here
+			best = tier
+	return best
 
 
 # =============================================================
@@ -787,6 +1027,16 @@ func _enemy_strikes(index: int, multiplier: int, extra: int = 0) -> void:
 	# AdventureEnemies.csv and the right-hand build-up window.
 	var gained := int(_their_gain.get(index, 0))
 	var hit := maxi(1, (int(row.get("attack", 1)) + gained) * multiplier + extra)
+
+	# WHAT THE PILE IS SOAKING. A `shield` breakpoint comes off every hit
+	# against you while you hold it — but never below the damage minimum, so
+	# a shield slows them down and can never stop them altogether.
+	var soak := stack.shield()
+	if soak > 0:
+		var before := hit
+		hit = maxi(db.tune_int("adventure_damage_minimum", 1), hit - soak)
+		if hit < before:
+			_note("The pile soaks %d of it." % (before - hit))
 	if gained > 0:
 		_note("%s had time to wind up: +%d." % [_foe_name(index), gained])
 		Juice.fire(self, "enemy_windup", {"node": _foe_node(index)})
@@ -1036,6 +1286,18 @@ func _build_ui() -> void:
 
 	_build_command_bar(holder)
 	_build_choice_window(holder)
+	# THE LINE THAT WAS MISSING, and the crash it caused: without it `_log`
+	# stayed null and the very first _note() — "Focusing the Mire Grub" —
+	# died on add_child(). Everything else in the fight worked; the first
+	# thing it tried to SAY killed it.
+	_build_log_window(holder)
+
+	# The icons across the top. It is the last thing built so it draws over
+	# the rest, and it is optional: no bar, no trait system on screen, and
+	# the stack still works underneath.
+	if db.tune_bool("adventure_trait_bar", true):
+		_trait_bar = TraitBar.make(db, stack)
+		_trait_bar.place_in(holder)
 
 
 # -------------------------------------------------------------
@@ -1053,8 +1315,20 @@ func _build_command_bar(holder: Control) -> void:
 	panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	panel.offset_left = 20.0
 	panel.offset_right = -20.0
-	panel.offset_top = -104.0
-	panel.offset_bottom = -16.0
+	panel.offset_top = -db.tune_float("adventure_bar_height", 104.0)
+	panel.offset_bottom = -db.tune_float("adventure_bar_inset", 16.0)
+	# ============ WHY THE BAR WAS CUT OFF AT THE BOTTOM ============
+	#
+	# The offsets above give it a box 104 pixels tall. When the prompt wraps
+	# onto a second or third line, the panel's contents need more than that —
+	# and a Control grows out of its box in whichever direction `grow` says.
+	# The default is BOTH, so half the extra height went DOWNWARDS, off the
+	# bottom of the screen, taking the buttons with it.
+	#
+	# BEGIN means it only ever grows UPWARDS. The bottom edge is nailed to
+	# offset_bottom and cannot move, so however long the writing gets, the
+	# bar stays on the screen. This is the fix.
+	panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	panel.add_theme_stylebox_override("panel", MenuSupport.panel_style(
 		Color(0.09, 0.10, 0.13, 0.94), MenuSupport.COLOUR_ACCENT))
 	holder.add_child(panel)
@@ -1137,33 +1411,38 @@ func _build_choice_window(holder: Control) -> void:
 	_choice_window.add_theme_stylebox_override("panel", MenuSupport.panel_style(
 		Color(0.07, 0.08, 0.11, 0.96), MenuSupport.COLOUR_ACCENT))
 
-	# ============ IT CANNOT RUN OFF THE SCREEN ANY MORE ============
+	# ============ IT SITS ON THE COMMAND BAR AND GROWS UPWARDS ============
 	#
-	# The old version worked out its own height from the card size and pinned
-	# it there. That was fine for three cards and wrong for six — the row now
-	# holds the players who are READY plus the ones who are RESTING — and the
-	# bottom of it went off the bottom of the window.
+	# Two wrong versions before this one, and the reason both were wrong is
+	# the same: a window whose height is fixed by its offsets either cuts its
+	# contents off or fills the whole screen.
 	#
-	# It is anchored to the whole screen with a margin instead, so it is
-	# never taller than what you can see, and the cards inside WRAP and
-	# SCROLL rather than overflowing. adventure_choice_y still nudges it up
-	# and down within that.
-	var where := clampf(db.tune_float("adventure_choice_y", 0.5), 0.05, 0.95)
-	var top_gap := db.tune_float("adventure_choice_top", 90.0)
-	var bottom_gap := db.tune_float("adventure_choice_bottom", 130.0)
+	# What it does now:
+	#   * its BOTTOM edge is pinned just above the COMBAT bar and never moves
+	#   * it grows UPWARDS, as tall as the cards actually need
+	#   * it can never grow past adventure_choice_top, because the cards
+	#     inside scroll once they run out of room
+	#
+	# So three cards make a short window low on the screen, eight cards make
+	# a tall one, and neither can reach the icons across the top or fall off
+	# the bottom. adventure_choice_y is gone: there is nothing left to nudge.
+	var top_gap := db.tune_float("adventure_choice_top", 130.0)
+	var bottom_gap := db.tune_float("adventure_choice_bottom", 140.0)
+	var card_high := db.tune_float("adventure_card_height", 264.0)
+	# The tallest it may ever be: whatever is left between the icons at the
+	# top and the bar at the bottom.
+	var head_room := maxf(240.0, 1080.0 - top_gap - bottom_gap)
 
-	_choice_window.set_anchors_preset(Control.PRESET_FULL_RECT, true)
+	_choice_window.set_anchors_preset(Control.PRESET_BOTTOM_WIDE, true)
 	_choice_window.anchor_left = 0.5
 	_choice_window.anchor_right = 0.5
-	_choice_window.anchor_top = 0.0
-	_choice_window.anchor_bottom = 1.0
-	_choice_window.offset_left = -560.0
-	_choice_window.offset_right = 560.0
-	# Clear of the wave banner at the top and the command bar at the bottom,
-	# then leaned towards `where` within what is left.
-	_choice_window.offset_top = top_gap + (where - 0.5) * 80.0
-	_choice_window.offset_bottom = -bottom_gap + (where - 0.5) * 80.0
-	_choice_window.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_choice_window.offset_left = -580.0
+	_choice_window.offset_right = 580.0
+	_choice_window.offset_bottom = -bottom_gap
+	_choice_window.offset_top = -bottom_gap - (card_high + 92.0)
+	# THE LINE THAT KEEPS IT ON THE SCREEN. Extra height goes on at the TOP,
+	# so the bottom edge stays exactly where it was put.
+	_choice_window.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_choice_window.hide()
 	holder.add_child(_choice_window)
 
@@ -1184,10 +1463,22 @@ func _build_choice_window(holder: Control) -> void:
 
 	# A scroller around the cards. With three it never scrolls and you would
 	# not know it was there; with eight it does, and nothing is lost.
+	#
+	# ITS MAXIMUM HEIGHT IS WHAT STOPS THE WINDOW CLIMBING. The window grows
+	# to fit its contents, so without a ceiling here a dozen cards would push
+	# it up over the icons at the top of the screen.
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size = Vector2(0, card_high + 8.0)
+	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
+	scroll.clip_contents = true
 	column.add_child(scroll)
+	# A hard ceiling, in pixels, on the whole scroller.
+	scroll.size_flags_stretch_ratio = 1.0
+	_choice_window.custom_minimum_size = Vector2(0, 0)
+	_choice_scroll = scroll
+	_choice_head_room = head_room
 
 	# HFlowContainer, not HBoxContainer: a seventh card wraps onto a second
 	# line instead of squeezing the other six.
@@ -1210,10 +1501,22 @@ func _build_choice_window(holder: Control) -> void:
 func _build_log_window(holder: Control) -> void:
 	_log_panel = PanelContainer.new()
 	_log_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_log_panel.offset_left = -330.0
+	_log_panel.offset_left = -340.0
 	_log_panel.offset_right = -18.0
-	_log_panel.offset_top = 74.0
-	_log_panel.offset_bottom = 300.0
+	# BELOW THE ICONS, not behind them.
+	_log_panel.offset_top = db.tune_float("adventure_log_top", 150.0)
+	_log_panel.offset_bottom = _log_panel.offset_top + 240.0
+	# ============ IT USED TO RUN OFF THE RIGHT EDGE ============
+	#
+	# A long line of the log made the panel wider than its offsets, and the
+	# extra width went outwards in both directions — which off the right-hand
+	# anchor means off the screen. BEGIN puts all the extra on the LEFT, so
+	# the right edge stays nailed 18 pixels in from the side.
+	#
+	# The labels wrap as well, which is the other half of the fix: a long
+	# line now becomes two short ones instead of one very wide one.
+	_log_panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	_log_panel.grow_vertical = Control.GROW_DIRECTION_END
 	_log_panel.add_theme_stylebox_override("panel", MenuSupport.panel_style(
 		Color(0.09, 0.10, 0.13, 0.92), MenuSupport.COLOUR_TEXT_DIM))
 	holder.add_child(_log_panel)
@@ -1375,13 +1678,31 @@ func _refresh_choices() -> void:
 		_explain_card(button, card, "Already had a turn. Back when the rest of Tier %s have had theirs." % tier)
 		_choice_row.add_child(button)
 
+	# ============ HOW TALL THE WINDOW IS ALLOWED TO BE ============
+	#
+	# The window grows upwards to fit its cards. Left alone, twelve cards
+	# would push it up over the icons at the top of the screen — so the
+	# scroller is given exactly the height its rows need, capped at whatever
+	# room there is between the icons and the COMBAT bar. Past that cap it
+	# scrolls, which is the whole reason there is a scroller.
+	if _choice_scroll != null:
+		var across := maxi(1, int((1120.0) / (face_size.x + 14.0)))
+		var rows := ceili(float(_choice_row.get_child_count()) / float(across))
+		var wanted := float(maxi(1, rows)) * (face_size.y + 12.0)
+		_choice_scroll.custom_minimum_size = Vector2(0, minf(wanted, _choice_head_room))
 
-## ============ WHAT THIS PLAYER DOES ============
+
+## ============ WHAT THIS PLAYER BRINGS ============
 ##
-## Hovering a card reads its abilities out, exactly as it does in a league
-## match — the same Abilities.csv rows, in the same words. That is the whole
-## point: a card does not behave differently in Adventure, so it should not
-## be described differently either.
+## NOT THEIR ABILITIES. Abilities are a league match; Adventure does not read
+## them at all, which is what stops the two modes feeling like the same game
+## with a different backdrop.
+##
+## What a card is worth here is the ICONS it puts on the pile, and what those
+## icons would take the pile TO — so this reads out, for each icon, where the
+## count is now, where it would be with this player added, and whether that
+## crosses a breakpoint. That is the actual decision in front of you, so it
+## is the thing the card says.
 ##
 ## It goes in the tooltip AND in the command bar's detail line, so it is
 ## there whether you are pointing at the card or have just stopped moving.
@@ -1394,30 +1715,30 @@ func _explain_card(button: Button, card: PlayerData, extra: String) -> void:
 		card.player_name, card.get_tier_clean(), card.get_attack_power(),
 		run.stamina_of(card, db), AdventureRun.stamina_for(card, db)])
 
-	var element := card.element.strip_edges()
-	if element != "" and not ComboDB.NOT_AN_ELEMENT.has(element.to_lower()):
-		lines.append("Element: %s   — counts towards the element combos." % element)
-
-	# THE ABILITIES, from the same place the league match reads them.
-	for pair in [[card.attack_ability_id, "Attacking"],
-			[card.defend_ability_id, "Defending"]]:
-		var id_text := String(pair[0]).strip_edges()
-		if id_text == "":
+	var icons := TraitDB.icons_of(card)
+	if icons.is_empty():
+		lines.append("Brings no icons to the pile — nothing in AdventureTraits.csv matches this player's element or class.")
+	for icon in icons:
+		var entry := TraitDB.trait_of(icon)
+		if entry.is_empty():
 			continue
-		var ability := db.abilities.get(id_text.to_lower(), null) as AbilityData
-		if ability == null:
-			lines.append("%s: '%s' is not in Abilities.csv" % [pair[1], id_text])
-			continue
-		var words := ability.notes
-		if words.strip_edges() == "":
-			words = "%s %s %+d (%s)" % [ability.trigger, ability.effect,
-				ability.value, ability.target]
-		var shown := ability.display_name
-		if shown.strip_edges() == "":
-			shown = id_text
-		lines.append("%s — %s: %s" % [pair[1], shown, words])
+		var have := stack.count_of(icon)
+		var after := have + 1
+		var line := "%s  %d → %d" % [entry["name"], have, after]
 
-	# The printed card text, which is what a designer actually wrote.
+		# WOULD IT CROSS ANYTHING? The whole point of the card.
+		var now := TraitDB.best(icon, have)
+		var then := TraitDB.best(icon, after)
+		if not then.is_empty() and (now.is_empty() or String(now["id"]) != String(then["id"])):
+			line += "   ⟶  %s: %s" % [then["name"], then["description"]]
+		else:
+			var need := TraitDB.next_at(icon, after)
+			if need > after:
+				line += "   (%d more for the next one)" % (need - after)
+		lines.append(line)
+
+	# The printed card text, which is what a designer actually wrote. Kept
+	# because it is flavour, not rules — it says nothing about abilities.
 	for text in [card.attack_text, card.defend_text]:
 		var clean := String(text).strip_edges()
 		if clean != "":
@@ -1443,9 +1764,19 @@ func _foe_name(index: int) -> String:
 ## One line in the running log. The oldest are dropped so the panel never
 ## grows past its box.
 func _note(text: String) -> void:
+	# _log is built by _build_log_window(). If that is ever not called again,
+	# this says so instead of dying on a null — which is exactly the crash
+	# this line is here to make impossible a second time.
+	if _log == null or not is_instance_valid(_log):
+		print("[fight] %s" % text)
+		return
+
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", 13)
+	# IT WRAPS. A long line used to make the whole log panel wider than the
+	# screen; now it makes it taller instead.
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
 	_log.add_child(label)
 	print("[fight] %s" % text)

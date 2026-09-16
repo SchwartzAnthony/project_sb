@@ -82,6 +82,14 @@ extends Resource
 @export var brew_defend_ability: String = ""
 @export var brew_artwork: Texture2D
 
+## WHAT THEY COUNT AS AFTER DRINKING IT, out of the Element column of
+## Brews.csv. Blank means the brew does not change their element.
+##
+## This is what makes Adventure's stack answer to the pub: a Lorelei who
+## drinks a Fire Brew genuinely brings a Fire icon to the move, rather than
+## only changing colour. See trait_db.gd.
+@export var brew_element: String = ""
+
 
 func is_brewed() -> bool:
 	return brew_id.strip_edges() != ""
@@ -90,6 +98,12 @@ func is_brewed() -> bool:
 ## What this card counts as for combat and ability targeting.
 func active_unit_type() -> String:
 	return brew_unit_type if brew_unit_type.strip_edges() != "" else unit_type
+
+
+## What element this card counts as right now. Their own, unless they drank
+## something with an Element column — the same shape as active_unit_type().
+func active_element() -> String:
+	return brew_element if brew_element.strip_edges() != "" else element
 
 
 func active_attack_ability() -> String:
@@ -111,6 +125,7 @@ func clear_brew() -> void:
 	brew_unit_type = ""
 	brew_attack_ability = ""
 	brew_defend_ability = ""
+	brew_element = ""
 	brew_artwork = null
 
 

@@ -71,6 +71,11 @@ static var _instance: AudioDB
 var cues: Array[Dictionary] = []
 var problems: Array[String] = []
 
+## Rows that are perfectly good but whose sound file is not in the project
+## yet: normalised ID -> the file name it is waiting for. Used only to give
+## an accurate message when something asks for a cue by name.
+var named_but_silent: Dictionary = {}
+
 ## Rows whose sound file is not there YET, counted rather than listed.
 var _waiting: int = 0
 
@@ -176,6 +181,12 @@ func _load_csv(path: String) -> void:
 
 		var stream := _find_sound(sound)
 		if stream == null:
+			# THE ROW IS FINE; THE FILE IS NOT THERE YET. Remembered by ID so
+			# that anything asking for this cue by name can say which of the
+			# two is missing, instead of "there is no row" when there is one.
+			var wanted_id := _cell(row, columns, "id")
+			if wanted_id != "":
+				named_but_silent[CardDatabase._normalise(wanted_id)] = sound
 			# BEFORE YOU HAVE ANY AUDIO AT ALL, this would be one complaint per
 			# row and would bury the rest of the report. So a missing file is
 			# only named individually once the audio folder exists; until then
@@ -245,6 +256,11 @@ func _find_sound(file_name: String) -> AudioStream:
 ## The second is the useful one while you are working: drop a WAV in, put its
 ## name in Juice.csv, hear it. Write the Audio.csv row later when you want to
 ## set its volume.
+## Is this a real row that is only silent because the file is missing?
+func waiting_for(name_text: String) -> String:
+	return String(named_but_silent.get(CardDatabase._normalise(name_text), ""))
+
+
 func cue_by_name(name_text: String) -> Dictionary:
 	var wanted := CardDatabase._normalise(name_text)
 	for cue in cues:

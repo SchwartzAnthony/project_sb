@@ -164,13 +164,31 @@ card_row_x,0.5,"Where the row of player cards sits across the screen during a ma
 card_row_y,0.5,"Where the row of player cards sits down the screen during a match. 0 = the top, 0.5 = the middle, 1 = the bottom. It used to be pinned to the bottom edge of the window"
 card_row_gap,18,Pixels between the player cards during a match
 adventure_player_art_scale,3.4,"How TALL an Adventure player is drawn, as a multiple of adventure_player_size. The width follows from the artwork's own shape - this is the row that actually makes them bigger"
-adventure_choice_y,0.5,"Where the card-choice window sits down the screen in an Adventure fight. 0.5 is the middle"
+adventure_log_top,150,"How far down the screen the WHAT HAPPENED log sits. It hangs from the right-hand edge and grows LEFT and DOWN, so it can never run off the side"
 adventure_enemy_reach_scale,1.0,How big the invisible click area over each enemy is. Raise it if picking an enemy ever feels fiddly
 adventure_buildup,true,"FALSE skips the two build-up windows and goes straight to the kick. The result is identical either way - it is only what you watch"
 adventure_buildup_step,0.55,Seconds each player takes to come on in the build-up window. Lower is snappier
 adventure_buildup_hold,0.9,Seconds the finished move is held on screen before the windows close
 adventure_death_seconds,0.55,How long an enemy takes to go down when it is killed
 adventure_death_animation,lose,"Which row of Animations.csv an enemy plays when it dies. `lose` already exists in your sheet; add a `death` row and put that word here instead"
+adventure_choice_top,130,"THE CEILING on the card-choice window, in pixels from the top of the screen. The window grows upwards to fit its cards and stops here, scrolling past that - so this is really `do not cover the row of icons`"
+adventure_choice_bottom,140,"Where the BOTTOM edge of the card-choice window sits, in pixels up from the bottom of the screen. It never moves, which is what stops the window being cut off. It has to clear the COMBAT bar, so keep it above adventure_bar_height + adventure_bar_inset"
+adventure_enemy_buildup,true,"FALSE and the enemies never get a build-up window of their own - you still get yours. Their combos still fire; this only hides the watching of it"
+adventure_enemy_combos,true,"FALSE and the enemies do not get combos at all. They read the same AdventureTraits.csv and AdventureCombos.csv you do - their Element and their Pool are the icons they carry - and only the attack ones apply to them"
+adventure_turn_over_seconds,0.7,How long THEIR TURN IS OVER stays on screen after the enemies have finished hitting you
+adventure_stretcher,true,"TRUE and anybody lying on the ground is carried off by two players who are not on your team once the last enemy is down. FALSE and they simply stay where they fell"
+adventure_stretcher_seconds,2.4,"How long the whole stretcher takes - in, lift, and out. It runs before the loot popup, so make it short if you find yourself waiting"
+adventure_bar_height,104,"How tall the COMBAT bar along the bottom starts out, in pixels. IT GROWS UPWARDS when the writing needs more room, so it can never be pushed off the bottom of the screen again - raise this only if you want it taller to begin with"
+adventure_bar_inset,16,How far the COMBAT bar sits above the very bottom of the screen
+adventure_trait_bar,true,"FALSE and the row of icons across the top is not drawn. The pile still works underneath and the combos still fire - you just cannot see them"
+adventure_trait_bar_top,22,How far down the screen the row of icons starts
+adventure_trait_bar_left,260,"How far in from the LEFT the row of icons starts. It has to clear the biome name in the corner"
+adventure_trait_bar_right,240,"How far in from the RIGHT it stops. It has to clear the `carrying` line in the corner"
+adventure_trait_tile_width,158,"How wide one icon tile is. They wrap onto a second line on their own, so adding a seventh trait does not need this changed"
+adventure_revive_stamina,3,"How much stamina somebody gets up with when a combo revives them and that combo Target column is blank. Put a number in the Target column of the row to override it for that one combo"
+juice_scale,1.0,"HOW MUCH SHAKE, FLASH AND POP THE WHOLE GAME GETS. 0 kills every effect stone dead, 0.5 halves them, 2 doubles them. This is the row to expose in Settings for people who dislike screen shake, and the row to set to 0 while you are debugging"
+juice_slowmo,true,"FALSE stops the slow-motion dips only, and leaves every shake and flash alone"
+juice_average_hit,0,"WHAT AN ORDINARY HIT IS WORTH, for the shake that grows with damage. Leave it at 0 and the game works it out from the hits you actually land"
 level_per_unique,1.0,"TEAM LEVEL. What each DIFFERENT card on a side is worth. This is the 'how many unique players' part - a side of nine different cards outranks one that fields the same three over and over"
 level_per_card_level,1.0,TEAM LEVEL. The share of the average card's Level column. Fill the Level column in your unit CSVs to use this
 level_per_power,1.5,TEAM LEVEL. The share of the average card's power. This is the 'how strong the players are' part

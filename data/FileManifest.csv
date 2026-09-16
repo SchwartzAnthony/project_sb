@@ -154,3 +154,12 @@ example_unit_csv_with_ability_columns.csv,data/,A spreadsheet you edit,
 Buildings.csv,data/tutorial/,The tutorial's own spreadsheet,"A file of this name is in data/ too - that is DELIBERATE, they are different spreadsheets"
 Dialogue.csv,data/tutorial/,The tutorial's own spreadsheet,"A file of this name is in data/ too - that is DELIBERATE, they are different spreadsheets"
 Visitors.csv,data/tutorial/,The tutorial's own spreadsheet,"A file of this name is in data/ too - that is DELIBERATE, they are different spreadsheets"
+juice.gd,src/core/,Engine. Plays whatever Juice.csv says a moment looks like,"One line at the moment something happens and every row of Juice.csv for that moment goes off"
+juice_db.gd,src/core/,Engine. Loads Juice.csv,"The list of moments, and the maths behind a shake that grows with the size of a hit"
+Juice.csv,data/,"Data. The shakes, flashes, pops and sounds","THE FILE TO OPEN WHEN A HIT DOES NOT FEEL RIGHT. No feel is typed into a script any more"
+AdventureTraits.csv,data/,Data. The Adventure icon stacks,"WHAT AN ICON IS. Every player drops these onto the pile when you send them in"
+AdventureCombos.csv,data/,Data. What reaching a stack does,"THE HEART OF ADVENTURE COMBAT. Three Fire on the pile and every shot is worth four more - this is the file that says so"
+AdventureSpawns.csv,data/,Data. Stand-ins a combo can bring on,The Treant that walks on to replace somebody you lost
+trait_db.gd,src/adventure/,Adventure mode,Loads the three Adventure spreadsheets and answers which icons a player carries
+trait_stack.gd,src/adventure/,Adventure mode,The running pile - what is on it and what that is worth right now
+trait_bar.gd,src/adventure/,Adventure mode,The row of icons across the top of an Adventure fight
