@@ -17,7 +17,7 @@ extends SceneTree
 #  It is a tool, not part of the game. Nothing loads it.
 # =============================================================
 
-const FIGHTS := 100
+const FIGHTS := 60
 
 var db: CardDatabase
 var adventure: AdventureDB

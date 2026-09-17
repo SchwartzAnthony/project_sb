@@ -36,12 +36,23 @@ static func current() -> float:
 
 
 static func set_speed(value: float) -> void:
-	Engine.time_scale = clampf(value, MIN_SPEED, MAX_SPEED)
+	var wanted := clampf(value, MIN_SPEED, MAX_SPEED)
+	Engine.time_scale = wanted
+	# TELL THE JUICE WHAT NORMAL IS NOW. A slow-motion dip that is running
+	# when you change the speed would otherwise put the OLD speed back when
+	# it finishes, and you would be left on a speed you did not choose.
+	Juice.speed_changed(wanted)
 
 
 ## Back to normal. Worth calling before a screen where fast time is silly.
+##
+## This also cancels any slow-motion dip outright, which is what makes it
+## safe to call when leaving a fight: the clock is straight afterwards, no
+## matter what was half way through happening.
 static func reset() -> void:
 	Engine.time_scale = 1.0
+	Juice.speed_changed(1.0)
+	Juice.release()
 
 
 ## The buttons, read out of Tuning.csv. A bad row falls back to 1,2,4,8

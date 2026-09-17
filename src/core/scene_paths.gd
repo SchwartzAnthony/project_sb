@@ -170,6 +170,11 @@ static func go_to(tree: SceneTree, preferred: String, remember: bool = true) -> 
 		push_warning("[scenes] Nothing to load at '%s' — staying put." % path)
 		return
 
+	# THE CLOCK GOES STRAIGHT ON EVERY SCREEN CHANGE. A slow-motion dip that
+	# was running when you left a fight would otherwise carry its slowed
+	# clock into the next screen and never end. See juice.gd.
+	Juice.release()
+
 	if remember:
 		var from := here(tree)
 		# Not the screen you are already on: pressing a button that reloads

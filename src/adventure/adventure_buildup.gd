@@ -242,8 +242,27 @@ func play_their_turn(foes: Array, alive: Array, gains: Dictionary,
 	_windows_up = true
 	show()
 
-	var step := db.tune_float("adventure_buildup_step", 0.55)
-	var hold := db.tune_float("adventure_buildup_hold", 0.9)
+	# ============ THEIR WINDOW TAKES A FIXED AMOUNT OF TIME ============
+	#
+	# Yours has four lines in it, always — one per tier. Theirs has one line
+	# per living enemy, which is two on a small wave and twelve on a big one.
+	# Giving each of their lines the same 0.55 seconds yours gets meant a big
+	# wave sat there for seven seconds counting up, every single round.
+	#
+	# So their window gets a BUDGET rather than a per-line time, and the
+	# lines share it. Two enemies still get a beat each; twelve go past
+	# quickly, which is right — a crowd should feel like a crowd.
+	#
+	#     adventure_enemy_buildup_seconds   the whole budget
+	var living := 0
+	for i in foes.size():
+		if i < alive.size() and bool(alive[i]):
+			living += 1
+	var budget := db.tune_float("adventure_enemy_buildup_seconds", 1.8)
+	var step := minf(db.tune_float("adventure_buildup_step", 0.55),
+		budget / float(maxi(1, living)))
+	var hold := db.tune_float("adventure_enemy_buildup_hold",
+		db.tune_float("adventure_buildup_hold", 0.9) * 0.5)
 
 	# --- RIGHT: your side, bracing. One line per tier. ---
 	for entry in bracing:

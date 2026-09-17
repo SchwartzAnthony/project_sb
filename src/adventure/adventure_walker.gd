@@ -163,6 +163,40 @@ func _feet_y() -> float:
 	return -_art.size.y + RADIUS * 0.5
 
 
+## ============ WHERE THE BAR AND THE CROSS GO ============
+##
+## Both used to be worked out from RADIUS alone, which is the size of the
+## DISC a player is drawn as when it has no artwork. A player WITH artwork is
+## three and a half times that tall, so the stamina bar ended up floating a
+## long way under their feet and the cross sat somewhere around their knees.
+## Neither read as belonging to the player.
+##
+## They are worked out from the ARTWORK now, when there is any:
+##
+##     the bar    a few pixels under the feet, where a health bar belongs
+##     the cross  over the head, where you can see it
+##
+## adventure_bar_gap in Tuning.csv is the gap under the feet, in pixels.
+
+## The top of the player on screen, for the cross. Taken from _feet_y()
+## rather than from the sprite's live position so that it does not bob.
+func _head_y() -> float:
+	if _art == null:
+		return -RADIUS * 1.5
+	return _feet_y() - RADIUS * 0.25
+
+
+## The top of the stamina bar: just under the feet.
+func _bar_y() -> float:
+	var gap := 4.0
+	var db := CardDatabase.get_db()
+	if db != null:
+		gap = db.tune_float("adventure_bar_gap", 4.0)
+	# WITH NO ARTWORK the feet are the bottom of the disc, not the middle, so
+	# the disc's radius still has to be cleared.
+	return (0.0 if _art != null else RADIUS) + gap
+
+
 # =============================================================
 #  GOING DOWN, AND BEING PICKED UP
 # =============================================================
@@ -315,7 +349,7 @@ func _draw() -> void:
 
 	# --- The stamina bar, always ---
 	var bar_w := bar_width()
-	var bar := Rect2(Vector2(-bar_w * 0.5, RADIUS + 6.0),
+	var bar := Rect2(Vector2(-bar_w * 0.5, _bar_y()),
 		Vector2(bar_w, bar_height()))
 	draw_rect(bar, Color(0.10, 0.11, 0.14), true)
 	if not knocked_out and stamina_fraction > 0.0:
@@ -330,10 +364,10 @@ func _draw() -> void:
 		draw_rect(filled, colour, true)
 
 	if knocked_out:
-		# A plain cross, so a downed player is obvious without reading a bar.
-		# Lying down it floats ABOVE them, because the body is in the way.
-		var span := RADIUS * 0.6
-		var dead := MenuSupport.COLOUR_TEXT_DIM
-		var at := Vector2(0.0, -RADIUS * 1.6) if lying else Vector2.ZERO
-		draw_line(at + Vector2(-span, -span), at + Vector2(span, span), dead, 2.0)
-		draw_line(at + Vector2(-span, span), at + Vector2(span, -span), dead, 2.0)
+		# A plain cross OVER THE HEAD, so a downed player is obvious without
+		# reading a bar and without the cross being drawn through them.
+		var span := RADIUS * 0.45
+		var dead := Color(0.88, 0.40, 0.38)
+		var at := Vector2(0.0, _head_y() - span)
+		draw_line(at + Vector2(-span, -span), at + Vector2(span, span), dead, 3.0)
+		draw_line(at + Vector2(-span, span), at + Vector2(span, -span), dead, 3.0)

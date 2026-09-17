@@ -57,6 +57,14 @@ func _initialize() -> void:
 	await _wait(0.8)
 	_snap("combat-draft-tier-1")   # the card window and the bar together
 
+	# --- 4b. point at a card, so the icons it would move blink ---
+	_hover(fight, 0)
+	await _wait(0.5)
+	_snap("hover-first-card")
+	_hover(fight, 1)
+	await _wait(0.5)
+	_snap("hover-second-card")
+
 	# --- 5. draft through the tiers, shooting each ---
 	for i in 4:
 		if fight.step != AdventureEncounter.Step.DRAFT:
@@ -76,8 +84,56 @@ func _initialize() -> void:
 		await _wait(1.0)
 		_snap("resolving-%d" % i)
 
+	# --- 7. a second and third round, so the RESTING cards and the cycle
+	#        coming round both get shot, and so the clock can be watched ---
+	for round_number in range(2, 5):
+		var ok := await _play_a_round(fight, round_number)
+		if not ok:
+			break
+
 	print("[shot] done")
 	quit(0)
+
+
+## THE CLOCK IS THE THING TO WATCH. Two overlapping slow-motion dips used to
+## leave Engine.time_scale permanently low, and it compounded every hit until
+## the game was a slideshow. If this number ever drifts down and stays down,
+## that bug is back.
+func _play_a_round(fight: AdventureEncounter, number: int) -> bool:
+	for i in 80:
+		await _wait(0.25)
+		if not is_instance_valid(fight) or fight.step == AdventureEncounter.Step.DONE:
+			return false
+		if fight.step == AdventureEncounter.Step.FOCUS:
+			var target := -1
+			for f in fight.foes.size():
+				if fight._is_alive(f):
+					target = f
+					break
+			if target < 0:
+				return false
+			fight._choose_focus(target)
+		elif fight.step == AdventureEncounter.Step.DRAFT:
+			var tier: String = fight._current_tier()
+			if tier == "":
+				continue
+			var ready_now := fight.run.available_in(tier, fight.db)
+			if ready_now.is_empty():
+				continue
+			if i == 0 or fight._choice_row.get_child_count() > 3:
+				_snap("round-%d-tier-%s" % [number, tier])
+			fight._pick_card(ready_now[0])
+	return true
+
+
+## Pretend the mouse went over one of the cards.
+func _hover(fight: AdventureEncounter, which: int) -> void:
+	var row := fight._choice_row
+	if row == null or which >= row.get_child_count():
+		return
+	var card := row.get_child(which) as Button
+	if card != null:
+		card.mouse_entered.emit()
 
 
 ## A REAL TEAM, the way the team builder would hand one over — so the shots
@@ -141,4 +197,4 @@ func _snap(label: String) -> void:
 	var path := "user://shot_%02d_%s.png" % [_shot, label]
 	_shot += 1
 	picture.save_png(path)
-	print("[shot] %s" % ProjectSettings.globalize_path(path))
+	print("[shot] %-34s  clock %.3f" % [path.get_file(), Engine.time_scale])

@@ -484,7 +484,21 @@ func _pass_the_ball(delta: float) -> void:
 	if _pass_clock <= 0.0:
 		_pass_clock = db.tune_float("adventure_pass_seconds", 1.4) * randf_range(0.7, 1.3)
 		var was := _ball_holder
-		_ball_holder = randi() % _walkers.size()
+		# ============ NOBODY ON THE GROUND GETS THE BALL ============
+		#
+		# It used to pick any walker at all, so an exhausted player lying on
+		# the grass would be passed to and the ball would hover over a body.
+		# The pass only ever goes to somebody on their feet now; with nobody
+		# on their feet at all it stays where it is.
+		var can_take: Array[int] = []
+		for i in _walkers.size():
+			var who := _walkers[i]
+			if who != null and is_instance_valid(who) and not who.lying \
+					and not who.knocked_out:
+				can_take.append(i)
+		if can_take.is_empty():
+			return
+		_ball_holder = can_take[randi() % can_take.size()]
 
 		# THE LITTLE KNOCK YOU ASKED FOR. The player letting go of the ball and
 		# the player taking it both get whatever Juice.csv says — and it is
@@ -498,8 +512,10 @@ func _pass_the_ball(delta: float) -> void:
 			if taking != null and is_instance_valid(taking) and not taking.lying:
 				Juice.fire(self, "ball_received", {"node": taking})
 
+	if _ball_holder >= _walkers.size():
+		return
 	var holder := _walkers[_ball_holder]
-	if holder != null and is_instance_valid(holder):
+	if holder != null and is_instance_valid(holder) and not holder.lying:
 		_ball.position = _ball.position.lerp(
 			holder.position + Vector2(16.0, -4.0), delta * 6.0)
 		_ball.queue_redraw()
@@ -823,6 +839,11 @@ func _run_encounter() -> void:
 
 	var result: Array = await fight.finished
 	fight.queue_free()
+
+	# THE CLOCK GOES STRAIGHT WHEN THE FIGHT ENDS. A slow-motion dip that was
+	# still running when the last enemy went down would otherwise keep the
+	# whole scroll running slow. See juice.gd.
+	Juice.release()
 
 	var cleared := bool(result[0])
 	var fled := bool(result[1])

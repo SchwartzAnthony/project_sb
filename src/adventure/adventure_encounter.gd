@@ -411,6 +411,12 @@ func _pick_card(card: PlayerData) -> void:
 	# crossed — a revive, a Treant, a free hit — which is applied below.
 	# `held` breakpoints need no applying: they are simply true while the
 	# count stays up, and are read off the stack when the shot is worked out.
+	# THE PREVIEW ENDS THE MOMENT YOU COMMIT. The card is about to be freed
+	# and its mouse_exited will never arrive, so without this the tiles it was
+	# blinking would go on blinking for the rest of the fight.
+	if _trait_bar != null:
+		_trait_bar.clear_preview()
+
 	for crossed in stack.add(card):
 		await _breakpoint(crossed)
 	if _trait_bar != null:
@@ -585,12 +591,28 @@ func _resolve() -> void:
 	# THEIR BONUS GOES TO ONE HIT — the last of them to strike — for the same
 	# reason yours goes to the shot and never to a card. Six enemies each
 	# carrying it would be six times what your side gets for the same combo.
+	# ============ THEIR HALF GETS A BUDGET TOO ============
+	#
+	# Your half is four tiers whatever happens. Theirs is however many are
+	# still standing, so at twelve enemies a fixed pause between each one made
+	# their turn twice the length of yours — and being hit twelve times slowly
+	# is not more dramatic than being hit twelve times, it is just longer.
+	#
+	# Two things cap it. The pause between strikes is shared out of one
+	# budget, and only the first few get the full animated kick: after that
+	# they hit and the number comes up, which reads as a crowd swarming.
+	var beat := clampf(
+		db.tune_float("adventure_enemy_strike_seconds", 1.6)
+			/ float(maxi(1, striking.size())),
+		0.05, db.tune_float("adventure_enemy_beat", 0.18))
+	var show_kicks := db.tune_int("adventure_enemy_show_max", 4)
+
 	for slot in striking.size():
 		var i := striking[slot]
 		if not _is_alive(i):
 			continue
 		var extra := their_bonus if slot == striking.size() - 1 else 0
-		await _enemy_strikes(i, multiplier, extra)
+		await _enemy_strikes(i, multiplier, extra, slot < show_kicks, beat)
 		if run.party_is_down():
 			break
 
@@ -602,10 +624,13 @@ func _resolve() -> void:
 	# are waiting on the game and the game is waiting on you.
 	if _buildup != null and not run.party_is_down():
 		await _buildup.announce("THEIR TURN IS OVER", MenuSupport.COLOUR_ACCENT,
-			db.tune_float("adventure_turn_over_seconds", 0.7))
+			db.tune_float("adventure_turn_over_seconds", 0.5))
 
 	_refresh()
-	await _beat()
+	# THE BREATH AT THE END OF A ROUND, before the cards come back. It was
+	# the default 0.7, which on top of everything else in their half made
+	# their turn read as the slow one. adventure_round_end_beat.
+	await _beat(db.tune_float("adventure_round_end_beat", 0.35))
 
 	if run.party_is_down():
 		_note("Everybody is down.")
@@ -1020,7 +1045,11 @@ func _bracing_lines() -> Array:
 
 ## `extra` is their combo bonus, and it is handed to ONE of them — see the
 ## note where it is worked out.
-func _enemy_strikes(index: int, multiplier: int, extra: int = 0) -> void:
+## `animate` is false for the enemies past adventure_enemy_show_max: they
+## still hit exactly as hard, they just do not each get their own ball in the
+## air. `beat` is their share of the strike budget.
+func _enemy_strikes(index: int, multiplier: int, extra: int = 0,
+		animate: bool = true, beat: float = 0.18) -> void:
 	var row: Dictionary = foes[index]["row"]
 	# WHAT IT GAINED WATCHING YOU BUILD THE MOVE, added here and nowhere
 	# else, so it lasts exactly one round — see the Buff column of
@@ -1080,8 +1109,13 @@ func _enemy_strikes(index: int, multiplier: int, extra: int = 0) -> void:
 			var mark := _walker(victim)
 			var here := _foe_at(index)
 			if mark != null:
-				await AdventureStrike.kick(stage, here, mark.position,
-					db.tune_float("adventure_kick_seconds", 0.42) * 0.8, ball)
+				# THEIR KICK IS QUICKER THAN YOURS on purpose: yours is the
+				# move you built and theirs is the reply. Same animation,
+				# less time. adventure_enemy_kick_scale in Tuning.csv.
+				if animate:
+					await AdventureStrike.kick(stage, here, mark.position,
+						db.tune_float("adventure_kick_seconds", 0.42)
+							* db.tune_float("adventure_enemy_kick_scale", 0.45), ball)
 				AdventureStrike.flinch(mark, here,
 					db.tune_float("adventure_flinch_seconds", 0.22))
 				AdventureStrike.number(stage, mark.position, str(hit), false,
@@ -1097,7 +1131,7 @@ func _enemy_strikes(index: int, multiplier: int, extra: int = 0) -> void:
 			_went_down(victim)
 
 	_refresh()
-	await _beat(0.45)
+	await _beat(beat)
 
 
 ## ============ WHO AN ENEMY GOES FOR ============
@@ -1632,6 +1666,10 @@ func _layer_text(index: int) -> String:
 ## moment the fourth card is in — which is what leaves the middle of the
 ## screen clear for the move to be played out on.
 func _refresh_choices() -> void:
+	# Every card in here is about to be freed, so anything they were
+	# previewing has to stop first. See _settle_card().
+	if _trait_bar != null:
+		_trait_bar.clear_preview()
 	for child in _choice_row.get_children():
 		child.queue_free()
 
@@ -1664,6 +1702,7 @@ func _refresh_choices() -> void:
 	for card in ready_now:
 		var button := MenuSupport.card_face(card, db, face_size,
 			"%d hp" % run.stamina_of(card, db))
+		_settle_card(button, face_size)
 		_explain_card(button, card, "")
 		button.pressed.connect(_pick_card.bind(card))
 		_choice_row.add_child(button)
@@ -1673,6 +1712,7 @@ func _refresh_choices() -> void:
 	# hiding them just makes the row look short for no stated reason.
 	for card in resting:
 		var button := MenuSupport.card_face(card, db, face_size, "resting")
+		_settle_card(button, face_size)
 		button.disabled = true
 		button.modulate = Color(1, 1, 1, 0.42)
 		_explain_card(button, card, "Already had a turn. Back when the rest of Tier %s have had theirs." % tier)
@@ -1690,6 +1730,38 @@ func _refresh_choices() -> void:
 		var rows := ceili(float(_choice_row.get_child_count()) / float(across))
 		var wanted := float(maxi(1, rows)) * (face_size.y + 12.0)
 		_choice_scroll.custom_minimum_size = Vector2(0, minf(wanted, _choice_head_room))
+
+
+## ============ WHY THE CARDS SAT AT DIFFERENT HEIGHTS ============
+##
+## The cards live in an HFlowContainer. A flow container gives every child on
+## a line the height of the TALLEST one, and then places each child inside
+## that line according to its own vertical size flag — and the default is
+## "fill", which stretches a card to the line height. A card whose name wraps
+## onto two lines is a few pixels taller than one whose name does not, so one
+## card set the line height and the rest were stretched to match it. On screen
+## that reads as cards sitting at different heights, because their contents no
+## longer line up even though their boxes do.
+##
+## SHRINK_BEGIN says "do not stretch me, put me at the top of the line". With
+## every card the same size and every card at the top, they line up.
+##
+## THE GREY HOVER BOX IS ALSO GONE. The card no longer changes at all when
+## you point at it; what changes is the row of icons across the top, which is
+## where the answer belongs. See preview() in trait_bar.gd.
+func _settle_card(button: Button, face_size: Vector2) -> void:
+	button.custom_minimum_size = face_size
+	button.size = face_size
+	button.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+
+	# The same face whether the mouse is on it or not. `normal` is copied
+	# onto `hover` and `focus` rather than a new style being invented, so a
+	# change to the card's look in menu_support.gd still reaches all three.
+	var normal := button.get_theme_stylebox("normal")
+	if normal != null:
+		button.add_theme_stylebox_override("hover", normal)
+		button.add_theme_stylebox_override("focus", normal)
 
 
 ## ============ WHAT THIS PLAYER BRINGS ============
@@ -1745,10 +1817,22 @@ func _explain_card(button: Button, card: PlayerData, extra: String) -> void:
 			lines.append(clean)
 
 	button.tooltip_text = "\n".join(lines)
-	var one_line := "   ·   ".join(lines)
-	button.mouse_entered.connect(func() -> void: _detail.text = one_line)
-	button.focus_entered.connect(func() -> void: _detail.text = one_line)
-	button.mouse_exited.connect(func() -> void: _detail.text = "")
+
+	# POINTING AT A CARD BLINKS THE ICONS IT WOULD MOVE, up at the top of the
+	# screen where you are already looking. Nothing is written along the
+	# bottom any more — a sentence down there was as far from the card as it
+	# is possible to get on a 1920-wide screen, and you had to read it.
+	var mine := icons.duplicate()
+	var show_it := func() -> void:
+		if _trait_bar != null and is_instance_valid(_trait_bar):
+			_trait_bar.preview(mine)
+	var hide_it := func() -> void:
+		if _trait_bar != null and is_instance_valid(_trait_bar):
+			_trait_bar.clear_preview()
+	button.mouse_entered.connect(show_it)
+	button.focus_entered.connect(show_it)
+	button.mouse_exited.connect(hide_it)
+	button.focus_exited.connect(hide_it)
 
 
 # =============================================================

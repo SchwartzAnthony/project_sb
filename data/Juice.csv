@@ -3,15 +3,15 @@ ball_received,ball_received,player,2,0,0.12,#ffffff,1.06,0,ball_tap,0,"A little 
 ball_kicked,ball_kicked,player,3,0,0,,1.12,0.14,ball_kick,0,Winding up and striking. Squash stretches them along the kick
 enemy_hit,enemy_hit,enemy,6,0.9,0.16,#ffd0d0,1.10,0,hit_soft,0,SHAKE SCALE is the important column - see the notes at the bottom. 0.9 means a big hit shakes nearly twice as hard as a small one
 enemy_hit_big,enemy_hit,screen,4,1.4,0,,0,0,hit_heavy,0.10,A SECOND row for the same moment. Both fire. This one shakes the SCREEN and dips time for a tenth of a second
-enemy_died,enemy_died,enemy,10,0.4,0.30,#ffffff,1.20,0,enemy_down,0.16,Going down
-enemy_died_screen,enemy_died,screen,7,0.5,0,,0,0,,0.16,
+enemy_died,enemy_died,enemy,10,0.4,0.18,#ffffff,1.20,0,enemy_down,0.16,Going down
+enemy_died_screen,enemy_died,screen,7,0.5,0,,0,0,,0,"NO SLOWMO HERE: enemy_died already asks for one and both rows answer to the same moment. Several rows of one moment now make ONE dip, the longest asked for, so this column being 0 changes nothing except making that obvious"
 player_hurt,player_hurt,player,7,0.8,0.20,#ff8080,0,0.10,player_hurt,0,When one of yours takes a hit
 player_hurt_screen,player_hurt,screen,3,0.7,0,,0,0,,0,
-player_exhausted,player_exhausted,player,0,0,0.35,#6070a0,0,0.40,player_drop,0.12,Running out of stamina and going down
+player_exhausted,player_exhausted,player,0,0,0.20,#6070a0,0,0.40,player_drop,0.12,Running out of stamina and going down
 player_healed,player_healed,player,0,0,0.25,#90ffa0,1.14,0,item_use,0,
 combo_fired,combo_fired,screen,3,0,0.10,#ffe090,0,0,combo_ping,0,A combo completing in the build-up window
 shot_struck,shot_struck,screen,5,1.0,0,,0,0,shot_heavy,0.08,The final shot of an Adventure move
 enemy_windup,enemy_windup,enemy,2,0,0.14,#ffb060,1.05,0,enemy_windup,0,An enemy gaining its buff while you build your move
-goal_scored,goal_scored,screen,9,0,0.22,#ffffff,0,0,crowd_goal,0.20,A goal in a league match
+goal_scored,goal_scored,screen,9,0,0.16,#ffffff,0,0,crowd_goal,0.20,A goal in a league match
 play_maker,play_maker,screen,4,0,0.18,#ffe090,0,0,,0,PLAY MAKER firing. NO SOUND HERE ON PURPOSE - the match already plays its whistle through Audio.csv (play_maker_whistle and hold_up_whistle). Putting one here too would blow it twice
 star_switch,star_switch,screen,3,0,0.16,#ffe090,0,0,,0,STAR PLAYER SWITCH. NO SOUND HERE ON PURPOSE - the match already plays its whistle through Audio.csv (play_maker_whistle and hold_up_whistle). Putting one here too would blow it twice
