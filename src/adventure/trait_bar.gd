@@ -122,7 +122,7 @@ func _build() -> void:
 	_tiles.clear()
 
 	var width := db.tune_float("adventure_trait_tile_width", FALLBACK_WIDTH)
-	for entry in TraitDB.get_db().traits:
+	for entry in TraitDB.live():
 		_row.add_child(_tile(entry, width))
 
 

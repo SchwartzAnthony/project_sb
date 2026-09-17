@@ -5,7 +5,13 @@ last_event_minute,82,Latest minute an event can fire
 rounds_per_cycle,3,PLAY MAKERs before a HOLD UP!
 total_cycles,3,Cycles in a match
 ties_go_to_attacker,false,On an exact power tie: false = defender holds
-use_rps_minigame,true,false = silent coin flip instead of the clash screen
+use_rps_minigame,true,"false = a silent coin flip and no clash screen at all. The Tier I attacker is decided behind the scenes"
+kickoff_countdown,true,"TRUE = a match opens with the camera in on two players over the ball in the centre circle, a 3 - 2 - 1 - START, and both sides running at a LOOSE ball. FALSE = your Star simply starts holding it, which is how it used to be"
+kickoff_count_seconds,0.7,How long each of 3 - 2 - 1 is held
+kickoff_go_seconds,0.55,How long START is held before they are let go
+use_coin_clash,true,"TRUE = the NUMBER GUESS: both sides call one to ten, a coin lands on one, and whoever called closer chooses attack or defend. FALSE = the old rock-paper-scissors screen, which is still in the project and still works"
+coin_faces,10,"How many numbers are on the coin. Ten out of the box. Their call is always drawn from the ones you did NOT pick, so the two can never be the same number and there is no draw to explain"
+coin_spin_seconds,1.4,"How long the coin turns before it lands. It slows as it goes, so this is the whole spin rather than a per-step time"
 enemy_attack_chance,0.5,Enemy odds of choosing ATTACK when it wins the clash
 rps_reveal_seconds,0.9,Pause on the clash reveal
 rps_result_seconds,1.0,Pause on the clash decision
@@ -117,6 +123,8 @@ gains_max_rows,8,"How many lines the ""what you gained"" panel shows before it s
 season_difficulty_scale,1.0,"Multiplies the Difficulty column of Season.csv. 0 makes every fixture a fair fight, 2 doubles the handicap. Difficulty is added to the OPPOSITION SHOT, never to their cards"
 game_speed_steps,"1,2,4,8","The speed buttons in a match, comma separated. Number keys 1-4 do the same"
 game_speed_turbo,20,How fast time runs while you HOLD F. Let go and it drops back to the button you chose
+game_speed_buttons,false,"ARE THE 1x / 2x / 4x / 8x BUTTONS ON THE MATCH HUD AT ALL? Off out of the box. Speed buttons from the first match are a strong hint that a match is something to get through rather than something to watch - turn them on when you have decided otherwise. HOLDING THE MOUSE OR SPACEBAR through a duel still hurries it along either way; that is a different thing and it is always on"
+game_speed_buttons_needs,,"A Requires condition that must pass before the speed buttons appear, in the usual words. Put unlocked:Fast Forward here and hand that unlock out with a talent or a season reward, and the speed control becomes something the player earns rather than something they are handed"
 game_speed_start,1,Which speed a match begins at
 auto_pick,false,"Is AUTO already on when a match kicks off? Every match starts from THIS value, not from what you left the last one at. While AUTO is on your cards and the clash buttons are locked"
 auto_pick_seconds,0.9,How long AUTO waits before choosing so you can still see who was on offer
@@ -173,6 +181,13 @@ adventure_death_seconds,0.55,How long an enemy takes to go down when it is kille
 adventure_death_animation,lose,"Which row of Animations.csv an enemy plays when it dies. `lose` already exists in your sheet; add a `death` row and put that word here instead"
 adventure_choice_top,130,"THE CEILING on the card-choice window, in pixels from the top of the screen. The window grows upwards to fit its cards and stops here, scrolling past that - so this is really `do not cover the row of icons`"
 adventure_choice_bottom,140,"Where the BOTTOM edge of the card-choice window sits, in pixels up from the bottom of the screen. It never moves, which is what stops the window being cut off. It has to clear the COMBAT bar, so keep it above adventure_bar_height + adventure_bar_inset"
+adventure_choice_rows,1,"HOW MANY ROWS OF CARDS the choice window shows before it scrolls. 1 means the window is EXACTLY THE SAME HEIGHT for every tier - Tier II offering six cards (three ready, three resting) no longer grows the window up over the screen the way it did. Raise it to 2 if you would rather see more at once and can spare the room"
+plate_names,true,"FALSE hides every player name in both modes. The Tier and Power at the feet stay"
+plate_name_size,13,"How big a player name is, over their head. It is drawn with a dark edge so it reads over grass and over a white shirt"
+plate_stat_size,11,The size of the Tier and Power written at a player feet
+plate_width_max,150,"The widest a nameplate may get, in pixels. The plate is as wide as its contents need and never wider - so eleven players in a crowd all carry the same small label instead of eleven labels of eleven different widths"
+plate_gap,5,"Pixels between the drawn body and the first label. The labels are placed from the rectangle the ARTWORK actually fills, not from the frame it sits in - so this stays right whatever padding a spritesheet has"
+plate_name_width,1.0,"HOW WIDE A NAME MAY BE, as a multiple of the Tier/Power window under it. 1.0 means a name is never wider than its own window, which is what keeps eleven labels in a crowd from writing across each other. Raise it to 1.4 if you would rather see more of a long name and can live with the overlap. Anything longer is cut with a ..."
 adventure_enemy_buildup,true,"FALSE and the enemies never get a build-up window of their own - you still get yours. Their combos still fire; this only hides the watching of it"
 adventure_enemy_combos,true,"FALSE and the enemies do not get combos at all. They read the same AdventureTraits.csv and AdventureCombos.csv you do - their Element and their Pool are the icons they carry - and only the attack ones apply to them"
 adventure_turn_over_seconds,0.5,How long THEIR TURN IS OVER stays on screen after the enemies have finished hitting you
@@ -180,6 +195,7 @@ adventure_stretcher,true,"TRUE and anybody lying on the ground is carried off by
 adventure_stretcher_seconds,2.4,"How long the whole stretcher takes - in, lift, and out. It runs before the loot popup, so make it short if you find yourself waiting"
 adventure_bar_height,104,"How tall the COMBAT bar along the bottom starts out, in pixels. IT GROWS UPWARDS when the writing needs more room, so it can never be pushed off the bottom of the screen again - raise this only if you want it taller to begin with"
 adventure_bar_inset,16,How far the COMBAT bar sits above the very bottom of the screen
+adventure_trait_slots,8,"HOW MANY ICONS GO INTO A RUN. You may write forty and unlock every one of them; only this many are carried. Reading eight bars across the top every round is already near the limit of what anybody takes in at a glance. An icon that is not in the eight does nothing at all - no bar, no icons on the pile, no breakpoints"
 adventure_trait_bar,true,"FALSE and the row of icons across the top is not drawn. The pile still works underneath and the combos still fire - you just cannot see them"
 adventure_trait_bar_top,22,How far down the screen the row of icons starts
 adventure_trait_bar_left,260,"How far in from the LEFT the row of icons starts. It has to clear the biome name in the corner"

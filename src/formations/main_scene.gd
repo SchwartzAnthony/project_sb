@@ -35,6 +35,15 @@ var score_label: Label
 const PLAYER_CARD_SCENE: PackedScene = preload("res://src/ui/player_card_ui.tscn")
 const PLAYER_UNIT_SCENE: PackedScene = preload("res://src/units/player_unit.tscn")
 const GOALIE_SCENE: PackedScene = preload("res://src/units/goalie_unit.tscn")
+## ============ ROCK, PAPER, SCISSORS IS GONE ============
+##
+## It is a number guess now — both sides call one to ten, a coin lands on
+## one, and whoever called closer chooses attack or defend. See
+## coin_clash.gd, which answers to exactly the same five things the old
+## screen did, so nothing else in this file had to change.
+##
+## The old rps_clash.gd and rps_clash.tscn are still in the project and still
+## work. Put `use_coin_clash` to false in Tuning.csv to go back to them.
 const RPS_SCENE: PackedScene = preload("res://src/ui/rps_clash.tscn")
 const DUEL_ARENA_SCENE: PackedScene = preload("res://src/ui/duel_arena.tscn")
 const SHOOTOUT_SCENE: PackedScene = preload("res://src/ui/shootout_view.tscn")
@@ -80,7 +89,7 @@ var next_event_index: int = 0
 var units_container: Node2D
 var goalies: Dictionary = {}   # false -> player goalie, true -> enemy goalie
 var ball: Ball = null
-var rps: RpsClash = null
+var rps: Node = null
 var duel_arena: DuelArena = null
 var shootout: ShootoutView = null
 ## Everything the game knows, read from res://data/*.csv at startup.
@@ -937,9 +946,15 @@ func _tune_ball() -> void:
 func _tune_rps() -> void:
 	if rps == null:
 		return
-	rps.enemy_attack_chance = db.tune_float("enemy_attack_chance", rps.enemy_attack_chance)
-	rps.reveal_seconds = db.tune_float("rps_reveal_seconds", rps.reveal_seconds)
-	rps.result_seconds = db.tune_float("rps_result_seconds", rps.result_seconds)
+	# Both clash screens take the same three numbers, so this works for
+	# either of them. set() rather than a dotted name because `rps` is
+	# whichever of the two was built — see spawn_rps().
+	rps.set("enemy_attack_chance",
+		db.tune_float("enemy_attack_chance", rps.get("enemy_attack_chance")))
+	rps.set("reveal_seconds",
+		db.tune_float("rps_reveal_seconds", rps.get("reveal_seconds")))
+	rps.set("result_seconds",
+		db.tune_float("rps_result_seconds", rps.get("result_seconds")))
 
 
 func _tune_unit(unit: PlayerUnit) -> void:
@@ -1225,8 +1240,10 @@ func _resolve_kickoff_star(chosen: PlayerData) -> void:
 			unit.is_playmaker = true
 			unit.set_highlight(true)
 
-	# Kick-off: your Star starts on the ball.
-	give_ball_to(false)
+	# Kick-off: the countdown, then both sides go for a loose ball. See
+	# _kickoff_sequence(). With kickoff_countdown off it is the old behaviour
+	# — your Star simply starts with it.
+	_kickoff_sequence()
 
 	print("Player class: %s  |  Star: %s (Tier %s)" % [
 		chosen.unit_type, chosen.player_name, player_star_tier])
@@ -1264,8 +1281,11 @@ func _apply_team_selection(picked: TeamSelection) -> void:
 			unit.is_playmaker = true
 			unit.set_highlight(true)
 
-	give_ball_to(false)
-	current_state = MatchState.PLAYING
+	# THE MATCH IS NOT LIVE YET. _kickoff_sequence() marks it playing when the
+	# countdown reaches START. Marking it here as well started the clock the
+	# instant the teams were on the grass, so "3 - 2 - 1" played out over a
+	# clock that already read a minute and a half.
+	_kickoff_sequence()
 
 	print("Your team — %s | Star: %s (Tier %s)" % [
 		picked.unit_type, active_player_star.player_name, player_star_tier])
@@ -1979,6 +1999,12 @@ func _auto_is_on() -> bool:
 
 
 func spawn_rps() -> void:
+	if db != null and db.tune_bool("use_coin_clash", true):
+		rps = CoinClash.make(db)
+		add_child(rps)
+		_tune_rps()
+		return
+
 	rps = RPS_SCENE.instantiate() as RpsClash
 	if rps == null:
 		push_error("rps_clash.tscn did not instantiate as an RpsClash — check the scene's root node type.")
@@ -2449,6 +2475,105 @@ func trigger_hold_up_event() -> void:
 	draft_phases.assign(["StarChoice"])
 	current_phase_index = 0
 	start_next_draft_phase()
+
+
+# =============================================================
+#  THE KICK-OFF
+#
+#  ============ WHAT IT LOOKS LIKE ============
+#
+#  The camera comes in on two players facing each other over the ball in the
+#  centre circle. THREE. TWO. ONE. START — and both of them go for it. Whoever
+#  gets there first has it, passes it, and the ball is live exactly as it was
+#  before: knocked about between players until the first PLAY MAKER.
+#
+#  ============ WHY IT IS A LOOSE BALL ============
+#
+#  A match used to open with your Star simply holding the ball, which is a
+#  strange thing for a football match to do and told you nothing. Putting the
+#  ball down in the middle and letting both sides run at it uses the chase
+#  behaviour that is already there, so the first thing you see is the game
+#  playing itself — and it is genuinely uncertain who comes away with it.
+#
+#      kickoff_countdown         false and your Star starts on the ball, as before
+#      kickoff_count_seconds     how long each of 3, 2, 1 is held
+#      kickoff_go_seconds        how long START is held
+# =============================================================
+
+func _kickoff_sequence() -> void:
+	if db == null or not db.tune_bool("kickoff_countdown", true):
+		give_ball_to(false)
+		current_state = MatchState.PLAYING
+		return
+
+	freeze_play(true)
+	var spot := get_play_rect().get_center()
+	if ball != null:
+		ball.global_position = spot
+		if ball.has_method("drop_loose"):
+			ball.call("drop_loose")
+
+	# TWO PLAYERS OVER THE BALL, one from each side — whoever was nearest the
+	# middle already, so nobody teleports across the pitch to get there.
+	var facing: Array[PlayerUnit] = []
+	for side: bool in [false, true]:
+		var nearest: PlayerUnit = null
+		for unit in _all_units():
+			if unit.is_enemy != side:
+				continue
+			if nearest == null or unit.global_position.distance_to(spot) \
+					< nearest.global_position.distance_to(spot):
+				nearest = unit
+		if nearest != null:
+			facing.append(nearest)
+			var step := Vector2(-46.0 if not side else 46.0, 0.0)
+			var walk := nearest.create_tween()
+			walk.tween_property(nearest, "global_position", spot + step, 0.45) \
+				.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+	if camera != null and camera.has_method("look_close"):
+		camera.call("look_close", spot)
+		# AND HOLD IT. The match asks the camera to follow the play every
+		# frame; for these few seconds it is told not to listen.
+		if camera.has_method("lock_view"):
+			camera.call("lock_view", true)
+	await get_tree().create_timer(0.5).timeout
+
+	# ITS OWN TIMERS, not announce()'s. announce() waits on an ordinary tree
+	# timer, and the pitch is frozen while this runs — a countdown that takes
+	# its cue from anything the freeze touches drifts, and a "3 - 2 - 1" that
+	# drifts is worse than no countdown at all. `true` for process_always
+	# means these tick regardless.
+	var beat := db.tune_float("kickoff_count_seconds", 0.7)
+	for word in ["3", "2", "1"]:
+		_say_now(word)
+		await get_tree().create_timer(beat, true, false, true).timeout
+	_say_now("START")
+	await get_tree().create_timer(
+		db.tune_float("kickoff_go_seconds", 0.55), true, false, true).timeout
+	_say_now("")
+
+	if camera != null:
+		if camera.has_method("lock_view"):
+			camera.call("lock_view", false)
+		if camera.has_method("look_wide"):
+			camera.call("look_wide")
+	# AND THEY GO. The ball is loose in the middle and the chase behaviour
+	# that runs for the rest of the match takes it from here.
+	freeze_play(false)
+	# THE MATCH IS LIVE ONLY NOW. It used to be marked playing the instant
+	# the teams were on the pitch, which meant the clock ran through the
+	# countdown — two minutes gone before anybody had touched the ball.
+	current_state = MatchState.PLAYING
+
+
+## Put a word on the screen right now and leave it there. The caller decides
+## how long for — see the kick-off, which is doing its own timing.
+func _say_now(text: String) -> void:
+	if event_announcement == null:
+		return
+	event_announcement.text = text
+	event_announcement.visible = text != ""
 
 
 func announce(text: String, seconds: float = 2.0) -> void:

@@ -1725,10 +1725,23 @@ func _refresh_choices() -> void:
 	# scroller is given exactly the height its rows need, capped at whatever
 	# room there is between the icons and the COMBAT bar. Past that cap it
 	# scrolls, which is the whole reason there is a scroller.
+	# ============ THE WINDOW IS THE SAME HEIGHT FOR EVERY TIER ============
+	#
+	# It used to grow to fit however many cards a tier had. Tier I offers
+	# three and sat low on the screen; Tier II offers three READY plus the
+	# ones RESTING, so the window grew upwards and ended up covering
+	# everything. Two tiers of the same fight looked like two different
+	# screens.
+	#
+	# The scroller is now a fixed number of card rows tall — one, out of the
+	# box — so the window is exactly as tall for Tier IV as it was for
+	# Tier I. A tier with more cards than fit SCROLLS, which is what the
+	# scroller has always been there for.
+	#
+	#     adventure_choice_rows   how many rows before it scrolls
 	if _choice_scroll != null:
-		var across := maxi(1, int((1120.0) / (face_size.x + 14.0)))
-		var rows := ceili(float(_choice_row.get_child_count()) / float(across))
-		var wanted := float(maxi(1, rows)) * (face_size.y + 12.0)
+		var rows := maxf(1.0, db.tune_float("adventure_choice_rows", 1.0))
+		var wanted := rows * (face_size.y + 12.0)
 		_choice_scroll.custom_minimum_size = Vector2(0, minf(wanted, _choice_head_room))
 
 
@@ -1809,14 +1822,20 @@ func _explain_card(button: Button, card: PlayerData, extra: String) -> void:
 				line += "   (%d more for the next one)" % (need - after)
 		lines.append(line)
 
-	# The printed card text, which is what a designer actually wrote. Kept
-	# because it is flavour, not rules — it says nothing about abilities.
-	for text in [card.attack_text, card.defend_text]:
-		var clean := String(text).strip_edges()
-		if clean != "":
-			lines.append(clean)
-
-	button.tooltip_text = "\n".join(lines)
+	# ============ NO GREY BOX ============
+	#
+	# This used to set button.tooltip_text, which is Godot's own tooltip: a
+	# grey panel that appears over the card after a second. Worse, it ended
+	# with the card's printed Attack and Defend text — which in your unit
+	# CSVs is the full league ability wording — so pointing at a card in
+	# Adventure produced a grey box explaining abilities that Adventure does
+	# not read at all.
+	#
+	# Nothing is drawn over the card now. What a card is worth is shown by
+	# the ICONS BLINKING at the top of the screen, which is where you are
+	# already looking and which needs no reading. `lines` is still built
+	# above because the log and the command bar use the same words.
+	button.tooltip_text = ""
 
 	# POINTING AT A CARD BLINKS THE ICONS IT WOULD MOVE, up at the top of the
 	# screen where you are already looking. Nothing is written along the

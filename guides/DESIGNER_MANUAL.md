@@ -84,9 +84,9 @@ res://
                   the tutorial only. Same columns, different content
   assets/         art, audio, icons
   src/core/       loaders, rules and shared helpers (51 scripts)
-  src/ui/         screens (28)
+  src/ui/         screens (29)
   src/adventure/  Adventure mode (11)
-  src/units/      things that stand on the pitch (3)
+  src/units/      things that stand on the pitch (4)
   src/formations/ the league match itself (1, and it is a big one)
   tools/          test and inspection tools. Nothing in the game loads these
   guides/         this document and the older round notes
@@ -283,6 +283,94 @@ MatchModes.csv change that.
 > key your Audio.csv row is written against. The words on screen changed; the
 > spreadsheet key deliberately did not.
 
+### The kick-off
+
+A match opens with the camera in on two players standing over the ball in the
+centre circle, a **3 · 2 · 1 · START**, and then the ball is genuinely loose —
+both sides run at it and whoever arrives first comes away with it. It is a real
+loose ball, not a scripted one: it can be reached, taken and tackled exactly
+like a ball dropped in open play, which is why it is uncertain who gets it.
+
+| Tuning row | |
+|---|---|
+| `kickoff_countdown` | `false` puts it back the old way — your Star simply starts holding the ball |
+| `kickoff_count_seconds` | how long each of 3, 2, 1 is held. `0.7` |
+| `kickoff_go_seconds` | how long START is held before they are let go. `0.55` |
+
+**The clock does not run during the countdown.** The match is not marked live
+until START, so the first whistle is at 00:00 and not at 00:52.
+
+### The PLAY MAKER clash — calling a number
+
+The clash used to be rock-paper-scissors. It is now a **number from one to
+ten**: two rows of buttons with a coin between them, you call one, the coin
+spins and lands on a number, and **whoever called closer chooses** — attack or
+defend. There is a *random* button if you would rather not think about it.
+
+Their call is always drawn from the numbers you did **not** pick, so the two can
+never be the same and there is no draw to explain. If the two calls are the same
+distance from the coin, it goes to **you**.
+
+| Tuning row | |
+|---|---|
+| `use_coin_clash` | `false` brings back the rock-paper-scissors screen, which is still in the project and still works |
+| `coin_faces` | how many numbers are on the coin. `10` |
+| `coin_spin_seconds` | the whole spin, which slows as it goes. `1.4` |
+| `enemy_attack_chance` | how often they choose to attack when they win the call. `0.5`. Shared with the old screen |
+| `rps_reveal_seconds` / `rps_result_seconds` | the two pauses, also shared |
+| `use_rps_minigame` | `false` skips the clash screen entirely and decides it behind the scenes. Outranks both of the above |
+
+### The speed buttons
+
+The 1x / 2x / 4x / 8x strip on the match HUD is **off out of the box**. Speed
+buttons in the first match are a strong hint that a match is something to get
+through rather than something to watch; turn them on once you have decided
+otherwise.
+
+| Tuning row | |
+|---|---|
+| `game_speed_buttons` | `true` and the strip is there |
+| `game_speed_buttons_needs` | a `Requires` condition that must pass first — e.g. `unlocked:Fast Forward`, handed out by a talent or a season reward. Then the speed control is something the player earns |
+
+**Holding the mouse button or the spacebar through a duel still hurries it
+along whatever these say.** That is a different thing and it is always on.
+
+### How a player is labelled — the nameplate
+
+A player reads the same in a league match and in Adventure:
+
+```
+        Silver-Rhine          <- the name, over the head, centred
+            ,---.
+           ( o o )            <- the artwork
+            `-^-'
+      Tier I        P: 2      <- at the feet. Tier left, Power right
+      [==========    ]        <- Adventure only: the stamina bar
+```
+
+A league player has no stamina — only the keeper does — so there is nothing to
+draw a bar from and twenty-two of them would say the same thing anyway.
+
+The name has the class taken off the end of it: *Songbound Shore Lorelei*
+becomes *Songbound Shore*, because the class is on the end of every card in a
+set and is already obvious from who is standing there. The full name is still on
+the card, in the log and in the team builder.
+
+| Tuning row | |
+|---|---|
+| `plate_names` | `false` hides every name in both modes. Tier and Power stay |
+| `plate_name_size` | the name over the head. `13` |
+| `plate_stat_size` | the Tier and Power at the feet. `11` |
+| `plate_width_max` | the widest a plate may get, in pixels. `150` |
+| `plate_name_width` | how wide a name may be, **as a multiple of the window under it**. `1.0` = never wider, which is what stops eleven names in a crowd writing across each other. Anything longer is cut with a … |
+| `plate_gap` | pixels between the body and the first label. `5` |
+
+> **The labels are placed from the drawn character, not from the frame.** A
+> spritesheet frame is mostly transparent padding and every sheet has a
+> different amount, so anything measured from the frame floats. Each texture is
+> measured once, so a label hugs the body whatever the padding is — and it keeps
+> working when you replace the art.
+
 ### `data/MatchModes.csv` — the kinds of match
 
 | Column | |
@@ -385,6 +473,18 @@ Base a real decision.
 5  THEIR HIT every living enemy strikes back
 ```
 
+**The choice window is the same height for every tier.** It shows
+`adventure_choice_rows` rows of cards — one out of the box — and scrolls past
+that. Tier II offering six cards (three ready, three resting) no longer grows
+the window up over the top of the screen the way it did. Raise it to `2` if you
+would rather see more at once and can spare the room.
+
+**Hovering a card does not open a grey box any more.** The card's league
+ability wording belongs to a league duel; it is not read in an Adventure fight
+and putting it under the mouse was telling the player something untrue. The
+icons the card would put on the pile are what matters here, and those are shown
+along the top.
+
 Two rules keep it fair:
 
 * **A tier with nobody left is a walkover.** Not a thin tier — a completely
@@ -417,6 +517,23 @@ last Fire now or hold the tier open" is the decision you are actually making.
 | `Colour` | `#rrggbb` |
 | `Order` | left to right along the top of the screen |
 | `Max` | how far the bar counts |
+| `Requires` | **whether this icon is on the shelf at all**, in the condition language. Blank = from the first run. `unlocked:Frost Study` = once something hands that out |
+
+**A RUN CARRIES EIGHT ICONS.** `adventure_trait_slots` in Tuning.csv says how
+many; this file is the shelf they are chosen from. Write forty if you like — an
+icon outside the eight does nothing at all: no bar along the top, nothing on the
+pile, no breakpoints. Reading eight bars every round is already near the limit
+of what anybody takes in at a glance, which is why there is a cap at all.
+
+`Requires` is how you write more than eight honestly: leave your starting set
+blank, put an `unlocked:` on the rest, and hand those unlocks out with talents
+and season rewards. The workbench warns you if more icons are free from the
+first run than there are slots to carry them, because the ones that do not fit
+are chosen by load order, which is to say by accident.
+
+> The screen for **swapping which eight you carry** is not built yet — the data
+> and the rules underneath it are, and they are what this section describes. For
+> now the first eight available icons are the eight that go in.
 
 **A player carries several icons.** A Lorelei whose Element is Water stacks
 *Water* and *Lorelei*, from two different rows, and both bars move. That is
@@ -471,6 +588,13 @@ broken even by a spawn, and the log says so if a number had to move. It is
 then a real member of the party: draftable, hittable, and it puts its own
 icons on the pile.
 
+**A stand-in is on loan, not a signing.** It walks on beside the party, kicks
+and receives the ball like everybody else for as long as the fight lasts, and
+**leaves when the fight ends** — it is taken off the squad, off the stamina
+list and off the screen, and the party that walks on to the next encounter is
+the party you started the run with. That is what keeps `spawn` a rescue rather
+than a way to quietly grow a squad of fourteen over an afternoon.
+
 #### The enemies use the same table
 
 An enemy's `Element` and its `Pool` are the icons it carries, out of the same
@@ -518,7 +642,7 @@ several rows sharing a `Table` name.
 
 ---
 
-## 9. `data/Tuning.csv` — 206 numbers
+## 9. `data/Tuning.csv` — 224 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -580,6 +704,12 @@ enemy_windup   goal_scored   play_maker    star_switch
 
 **Two rows may share a `When` and both fire.** That is how `enemy_hit` shakes
 the enemy *and* the screen from one event, with different settings for each.
+
+> **`Flash` is currently 0 on every Adventure moment.** The full-screen wash
+> was too bright over the scrolling pitch and it arrived at exactly the moment
+> you were reading a number, so it was turned off there rather than dimmed.
+> The number each row used to carry is written in its `Notes` cell, so putting
+> it back is a copy and paste. The league rows are untouched.
 Several rows of one moment asking for slow-motion make **one** dip, the
 longest asked for — they cannot stack.
 
@@ -706,6 +836,26 @@ checked — a window cut off at the bottom is not something a parse check can
 ever see.
 
 ```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/match_shot.gd
+```
+The same idea for a **league match**: it opens the real match scene with a
+real team, watches the kick-off and the first clash, and saves the screen at
+each step. Each line it prints says the camera's zoom, who is carrying the
+ball and whether the match is marked live — which between them are the whole
+kick-off test. A countdown that never appears, a camera that never pushes in
+and a ball nobody ever picks up all look identical in a still picture.
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/coin_shot.gd
+```
+Opens the **clash screen on its own**, calls a number, lets the coin land and
+screenshots each step. The clash only turns up several minutes into a real
+match, after a draft and a relay, which is a long way to walk to find out that
+a button is off the bottom of the screen.
+
+```
 godot --headless --script res://tools/clock_check.gd
 ```
 Fires every slow-motion moment in overlapping bursts and checks
@@ -772,6 +922,10 @@ that is almost always why.
 | change what a passing move is worth (league) | `Combos.csv` |
 | **change what a passing move is worth (Adventure)** | `AdventureCombos.csv` |
 | add a new Adventure icon | `AdventureTraits.csv`, then breakpoints in `AdventureCombos.csv` |
+| **make an icon something the player earns** | put `unlocked:Whatever` in the `Requires` column of `AdventureTraits.csv`, and hand that unlock out with a talent or a season reward |
+| **write a player who damages an enemy the moment you pick them** | a breakpoint in `AdventureCombos.csv` with `Effect = strike`, `Target = focus` and `Lasts = once`. The `star_2` row has the whole note written on it |
+| change the kick-off, the clash or the speed buttons | the `kickoff_`, `coin_` and `game_speed_` rows of `Tuning.csv` — section 7 |
+| change what is written over a player's head | the `plate_` rows of `Tuning.csv` — section 7 |
 | make a brew change what somebody counts as | the `Becomes` and `Element` columns of `Brews.csv` |
 | add a new enemy | `AdventureEnemies.csv`, and put its `Pool` on a biome |
 | add a new biome | `Biomes.csv` + a pool of enemies + a drops table |

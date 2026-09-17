@@ -87,7 +87,7 @@ func add_icons(icons: Array[String]) -> Array[Dictionary]:
 ## and what the bar across the top shows as lit.
 func active() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
-	for entry in TraitDB.get_db().traits:
+	for entry in TraitDB.live():
 		var key := String(entry["id"]).to_lower()
 		var have := int(counts.get(key, 0))
 		if have <= 0:
@@ -121,7 +121,7 @@ func shield() -> int:
 ## One line for the log: "Fire 3/4 — Blaze +4   ·   Lorelei 2/4 — Same Song".
 func describe() -> String:
 	var bits: Array[String] = []
-	for entry in TraitDB.get_db().traits:
+	for entry in TraitDB.live():
 		var key := String(entry["id"]).to_lower()
 		var have := int(counts.get(key, 0))
 		if have <= 0:

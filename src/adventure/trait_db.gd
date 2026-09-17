@@ -118,6 +118,103 @@ var spawns: Dictionary = {}
 var problems: Array[String] = []
 
 
+# =============================================================
+#  EIGHT SLOTS
+#
+#  ============ WHY THERE IS A LIMIT ============
+#
+#  You can write forty icons and unlock every one of them. Only EIGHT go
+#  into a run. Reading eight bars across the top of the screen every round is
+#  already near the limit of what anybody can take in at a glance; forty
+#  would be a spreadsheet, and the decision of WHICH eight is a better one
+#  than the decision of which forty.
+#
+#  adventure_trait_slots in Tuning.csv is the number. Raise it if you decide
+#  otherwise — nothing else has to change.
+#
+#  ============ HOW THE EIGHT ARE CHOSEN ============
+#
+#  The player picks them, and the choice is saved. Until they have picked,
+#  the first eight unlocked ones in Order order are taken, so a new save
+#  always has a full bar without anybody having to visit a screen.
+#
+#  A trait that is NOT in the eight does nothing at all: no bar, no icons on
+#  the pile, no breakpoints. It is not a smaller bonus — it is not there.
+# =============================================================
+
+## The chosen ids, in order. Empty means "nobody has chosen yet".
+static var _loadout: Array[String] = []
+## What live() worked out last time, so the bar and the pile agree.
+static var _live: Array[Dictionary] = []
+
+
+## How many icons may be carried at once.
+static func slots(db: CardDatabase = null) -> int:
+	var database := db if db != null else CardDatabase.get_db()
+	if database == null:
+		return 8
+	return maxi(1, database.tune_int("adventure_trait_slots", 8))
+
+
+## Every icon the save has actually unlocked, in Order order. This is what
+## the Edit Element Bonus screen offers.
+static func unlocked(state: GameState) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for entry in get_db().traits:
+		var need := String(entry["requires"]).strip_edges()
+		if need != "" and state != null and not DialogueGrammar.test(need, state):
+			continue
+		out.append(entry)
+	return out
+
+
+## Set the eight. Anything not in the list is simply not in the run.
+static func choose(ids: Array[String]) -> void:
+	_loadout = ids.duplicate()
+	_live = []
+
+
+## Work out the live eight and remember them. Called once as a run opens.
+static func refresh_loadout(state: GameState, db: CardDatabase = null) -> Array[Dictionary]:
+	var have := unlocked(state)
+	var room := slots(db)
+	var out: Array[Dictionary] = []
+
+	# The player's own choice first, in the order they put them in.
+	for wanted in _loadout:
+		for entry in have:
+			if String(entry["id"]).to_lower() == wanted.to_lower():
+				if not out.has(entry):
+					out.append(entry)
+				break
+		if out.size() >= room:
+			break
+	# Then fill any spare slots from the top, so a new save is never empty.
+	for entry in have:
+		if out.size() >= room:
+			break
+		if not out.has(entry):
+			out.append(entry)
+
+	_live = out
+	return _live
+
+
+## The icons that are actually in play. Everything — the bar, the pile, what
+## a card carries — reads this rather than `traits`.
+static func live() -> Array[Dictionary]:
+	if _live.is_empty():
+		# Nobody has opened a run yet. Fall back to the first `slots` of
+		# them, so a scene opened straight from the editor still works.
+		var out: Array[Dictionary] = []
+		for entry in get_db().traits:
+			if out.size() >= slots():
+				break
+			out.append(entry)
+		return out
+	return _live
+
+
 static func get_db() -> TraitDB:
 	if _instance == null:
 		_instance = TraitDB.new()
@@ -176,6 +273,10 @@ func _read_traits() -> void:
 			"colour": _colour(MenuSupport.field(row, "Colour"), Color(0.6, 0.65, 0.7)),
 			"order": int(MenuSupport.field_float(row, "Order", 100.0)),
 			"max": maxi(1, int(MenuSupport.field_float(row, "Max", 4.0))),
+			# LOCKED UNTIL EARNED. The same words every other Requires column
+			# in the game speaks — unlocked:x, flag:y, count:z>=3, joined with
+			# a semicolon. Blank means it is yours from the start.
+			"requires": MenuSupport.field(row, "Requires"),
 			"notes": MenuSupport.field(row, "Notes"),
 		})
 
@@ -266,7 +367,7 @@ static func icons_of(card: PlayerData) -> Array[String]:
 	if card == null:
 		return out
 
-	for entry in get_db().traits:
+	for entry in live():
 		var from := String(entry["from"])
 		var wanted := String(entry["value"]).strip_edges().to_lower()
 		var mine := ""
@@ -305,7 +406,7 @@ static func icons_of_enemy(row: Dictionary) -> Array[String]:
 	var pool := String(row.get("pool", "")).strip_edges().to_lower()
 	var boss := bool(row.get("boss", false))
 
-	for entry in get_db().traits:
+	for entry in live():
 		var from := String(entry["from"])
 		var wanted := String(entry["value"]).strip_edges().to_lower()
 		if from == "star":

@@ -153,6 +153,11 @@ func setup(player: PlayerData, walk_speed: float = 260.0,
 		_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(_art)
 
+		# MEASURE THE FRAME ONCE. Everything this player is labelled with is
+		# placed from the rectangle the drawing actually fills, so a label
+		# hugs the body whatever padding the sheet has. See name_plate.gd.
+		_box = NamePlate.box_of(face)
+
 
 ## Where the top of the sprite goes so that its FEET land on the player's
 ## own position. One place, used by setup() and by the bob, so the two can
@@ -163,38 +168,66 @@ func _feet_y() -> float:
 	return -_art.size.y + RADIUS * 0.5
 
 
-## ============ WHERE THE BAR AND THE CROSS GO ============
+## ============ WHERE THE LABELS GO ============
 ##
-## Both used to be worked out from RADIUS alone, which is the size of the
-## DISC a player is drawn as when it has no artwork. A player WITH artwork is
-## three and a half times that tall, so the stamina bar ended up floating a
-## long way under their feet and the cross sat somewhere around their knees.
-## Neither read as belonging to the player.
+## Everything a player is labelled with — their name, their tier, their power
+## and their stamina bar — is placed from the RECTANGLE THE ARTWORK ACTUALLY
+## FILLS, not from the frame it sits in.
 ##
-## They are worked out from the ARTWORK now, when there is any:
+## A spritesheet frame is mostly empty. The character is somewhere in the
+## middle of it with a lot of transparent padding, and how much differs from
+## sheet to sheet. Measuring the frame meant measuring the padding, which is
+## why the stamina bar floated a long way beneath a player and the cross over
+## a fallen one sat well above their head.
 ##
-##     the bar    a few pixels under the feet, where a health bar belongs
-##     the cross  over the head, where you can see it
-##
-## adventure_bar_gap in Tuning.csv is the gap under the feet, in pixels.
+## name_plate.gd reads the frame once and remembers the answer. See the
+## header there; this file only has to say WHERE the artwork is and HOW BIG,
+## and the plate does the rest.
 
-## The top of the player on screen, for the cross. Taken from _feet_y()
-## rather than from the sprite's live position so that it does not bob.
-func _head_y() -> float:
+## The opaque rectangle inside the frame, as a fraction of it. Worked out in
+## setup() and never again.
+var _box := Rect2(0, 0, 1, 1)
+
+
+## The four edges of the drawn character, in this walker's own coordinates.
+##
+## LYING DOWN IS A DIFFERENT SHAPE. The sprite is turned a quarter-turn, so
+## what was its height is now its width — and the plate has to follow it
+## round or the name ends up over empty grass.
+func _edges() -> Dictionary:
 	if _art == null:
-		return -RADIUS * 1.5
-	return _feet_y() - RADIUS * 0.25
+		# No artwork: the player is the drawn disc, and the disc is the body.
+		return {
+			"top": -RADIUS, "bottom": RADIUS,
+			"left": -RADIUS, "right": RADIUS, "middle": 0.0,
+		}
+
+	var size := _art.size
+	var at := Vector2(-size.x * 0.5, _feet_y())
+	if not lying:
+		return NamePlate.edges(_box, at, size)
+
+	# TURNED ON ITS SIDE. The opaque box turns with it: what was the box's
+	# vertical extent is now horizontal, and the other way round. The sprite
+	# rotates about its own middle, so that is what everything is measured
+	# from.
+	var centre := Vector2(0.0, _lying_middle_y())
+	var half_high := _box.size.x * size.x * 0.5
+	var half_wide := _box.size.y * size.y * 0.5
+	return {
+		"top": centre.y - half_high, "bottom": centre.y + half_high,
+		"left": centre.x - half_wide, "right": centre.x + half_wide,
+		"middle": centre.x,
+	}
 
 
-## The top of the stamina bar: just under the feet.
-func _bar_y() -> float:
-	var gap := 4.0
-	var db := CardDatabase.get_db()
-	if db != null:
-		gap = db.tune_float("adventure_bar_gap", 4.0)
-	# WITH NO ARTWORK the feet are the bottom of the disc, not the middle, so
-	# the disc's radius still has to be cleared.
-	return (0.0 if _art != null else RADIUS) + gap
+## The middle of a lying player, which is what lie_down() tweened the sprite
+## to. One function, used by the tween and by the labels, so the two can
+## never disagree about where the body is.
+func _lying_middle_y() -> float:
+	if _art == null:
+		return 0.0
+	return -_art.size.x * 0.5 + RADIUS * 0.25
 
 
 # =============================================================
@@ -248,8 +281,7 @@ func get_up() -> void:
 func _lying_art_position() -> Vector2:
 	if _art == null:
 		return Vector2.ZERO
-	var middle_y := -_art.size.x * 0.5 + RADIUS * 0.25
-	return Vector2(-_art.size.x * 0.5, middle_y - _art.size.y * 0.5)
+	return Vector2(-_art.size.x * 0.5, _lying_middle_y() - _art.size.y * 0.5)
 
 
 ## Move a downed player, because somebody is carrying them. The scene drives
@@ -347,27 +379,21 @@ func _draw() -> void:
 		draw_string(font, middle + Vector2(-width * 0.5, text_size * 0.36), label,
 			HORIZONTAL_ALIGNMENT_LEFT, -1.0, text_size, MenuSupport.COLOUR_TEXT)
 
-	# --- The stamina bar, always ---
-	var bar_w := bar_width()
-	var bar := Rect2(Vector2(-bar_w * 0.5, _bar_y()),
-		Vector2(bar_w, bar_height()))
-	draw_rect(bar, Color(0.10, 0.11, 0.14), true)
-	if not knocked_out and stamina_fraction > 0.0:
-		var filled := bar
-		filled.size.x = bar_w * clampf(stamina_fraction, 0.0, 1.0)
-		# Green when healthy, amber, then red. Read at a glance, no numbers.
-		var colour := Color(0.45, 0.78, 0.45)
-		if stamina_fraction < 0.34:
-			colour = Color(0.85, 0.35, 0.32)
-		elif stamina_fraction < 0.67:
-			colour = Color(0.88, 0.68, 0.32)
-		draw_rect(filled, colour, true)
+	# --- The nameplate: name over the head, Tier and Power at the feet,
+	#     and the stamina bar hugging them underneath.
+	#
+	# THE SAME PLATE THE LEAGUE PITCH DRAWS, out of name_plate.gd, so the
+	# same card reads the same way in both modes. The only difference is the
+	# bar: a league player has no stamina, so there it is left off.
+	var edge := _edges()
+	NamePlate.draw_plate(self, edge, card,
+		clampf(stamina_fraction, 0.0, 1.0), knocked_out)
 
 	if knocked_out:
-		# A plain cross OVER THE HEAD, so a downed player is obvious without
-		# reading a bar and without the cross being drawn through them.
-		var span := RADIUS * 0.45
-		var dead := Color(0.88, 0.40, 0.38)
-		var at := Vector2(0.0, _head_y() - span)
-		draw_line(at + Vector2(-span, -span), at + Vector2(span, span), dead, 3.0)
-		draw_line(at + Vector2(-span, span), at + Vector2(span, -span), dead, 3.0)
+		# THE CROSS GOES OVER THE MIDDLE OF THEM, wherever the middle is.
+		# Standing that is chest height; lying down it is the middle of the
+		# body on the grass. _edges() already worked out which.
+		var middle := Vector2(float(edge["middle"]),
+			(float(edge["top"]) + float(edge["bottom"])) * 0.5)
+		NamePlate.draw_down_mark(self, middle,
+			maxf(8.0, (float(edge["bottom"]) - float(edge["top"])) * 0.16))

@@ -92,12 +92,27 @@ func setup(database: CardDatabase, save: GameState) -> void:
 
 
 func _build() -> void:
-	for value in _steps:
-		var button := _make_button(GameSpeed.label_for(value), 46.0)
-		button.tooltip_text = "Run the game at %s" % GameSpeed.label_for(value)
-		button.pressed.connect(_choose.bind(value))
-		add_child(button)
-		_speed_buttons.append(button)
+	# ============ THE SPEED BUTTONS ARE A SETTING NOW ============
+	#
+	# 1x / 2x / 4x / 8x sitting on the HUD from the first match is a strong
+	# hint that the match is something to get through rather than something
+	# to watch — so whether they are there at all is a row of Tuning.csv, and
+	# out of the box they are NOT.
+	#
+	#     game_speed_buttons        false hides them entirely
+	#     game_speed_buttons_needs  a Requires condition, so they can be
+	#                               UNLOCKED later instead of hidden for ever
+	#
+	# THE HOLD-TO-HURRY IS UNTOUCHED. Holding the mouse or the spacebar
+	# through a duel still runs it fast; that is a different thing and it is
+	# always on. Only these buttons answer to this switch.
+	if _speed_buttons_allowed():
+		for value in _steps:
+			var button := _make_button(GameSpeed.label_for(value), 46.0)
+			button.tooltip_text = "Run the game at %s" % GameSpeed.label_for(value)
+			button.pressed.connect(_choose.bind(value))
+			add_child(button)
+			_speed_buttons.append(button)
 
 	var spacer := Control.new()
 	spacer.custom_minimum_size = Vector2(10, 0)
@@ -108,6 +123,23 @@ func _build() -> void:
 	_auto_button.tooltip_text = "Let the game play for you. Your cards and the clash buttons lock while it is on.\nPress AUTO or A to take back over."
 	_auto_button.pressed.connect(_toggle_auto)
 	add_child(_auto_button)
+
+
+## Are the speed buttons on the HUD at all?
+##
+## `game_speed_buttons` is the plain on/off. `game_speed_buttons_needs` is a
+## Requires condition in the usual words, so you can hand them over later:
+## put <code>unlocked:Fast Forward</code> in it and give that unlock to a
+## talent, a season reward or a Progression row.
+func _speed_buttons_allowed() -> bool:
+	if db == null:
+		return false
+	if not db.tune_bool("game_speed_buttons", false):
+		return false
+	var need := db.tune_text("game_speed_buttons_needs", "").strip_edges()
+	if need == "" or state == null:
+		return true
+	return DialogueGrammar.test(need, state)
 
 
 func _make_button(text: String, width: float) -> Button:

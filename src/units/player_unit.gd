@@ -144,16 +144,66 @@ func update_display() -> void:
 	if data == null:
 		return
 
+	# ============ THE LABELS ARE DRAWN, NOT PLACED ============
+	#
+	# NameLabel and StatsLabel are two Label nodes sitting at fixed offsets
+	# in player_unit.tscn — which put the name ACROSS THE PLAYER'S FACE and
+	# the stats wherever the scene file happened to say. Adventure labelled
+	# the same card completely differently, so one card read as two things
+	# depending on which mode you were in.
+	#
+	# Both modes now draw the same plate out of name_plate.gd: the name over
+	# the head, Tier at the feet on the left, Power at the feet on the right.
+	# The two Label nodes are kept and kept up to date — anything else that
+	# reads them still works — but they are hidden, because the plate is
+	# drawn in _draw() instead. See name_plate.gd.
 	if name_label:
 		name_label.text = data.player_name
+		name_label.visible = false
 	if stats_label:
 		stats_label.text = "T%s  %d/%d" % [
 			data.get_tier_clean(),
 			data.get_attack_power(),
 			data.get_defense_power(),
 		]
+		stats_label.visible = false
 
 	_apply_artwork()
+	_measure()
+	queue_redraw()
+
+
+## ============ WHERE THE ARTWORK ACTUALLY IS ============
+##
+## The opaque rectangle inside one frame of the spritesheet, as a fraction of
+## it. A frame is mostly transparent padding, and placing a label from the
+## frame means placing it from the padding. Measured once per card.
+var _box := Rect2(0, 0, 1, 1)
+
+
+func _measure() -> void:
+	if data == null:
+		return
+	# The SAME frame the Adventure walker and the card faces use, so all
+	# three measure the same picture and agree about where the body is.
+	var face := MenuSupport.portrait_for(data, CardDatabase.get_db())
+	if face != null:
+		_box = NamePlate.box_of(face)
+
+
+func _draw() -> void:
+	if data == null or artwork == null or artwork.texture == null:
+		return
+	var frame := artwork.texture.get_size() / Vector2(
+		maxf(1.0, float(SHEET_HFRAMES)), maxf(1.0, float(SHEET_VFRAMES)))
+	frame *= artwork.scale
+	# A Sprite2D is drawn centred on its own position.
+	var at := artwork.position - frame * 0.5
+	# NO STAMINA BAR IN A LEAGUE MATCH. Only the keeper has stamina here, so
+	# there is nothing to draw one from — and twenty-two bars all reading
+	# full would say nothing at all. -1 means "this mode has no bar".
+	NamePlate.draw_plate(self, NamePlate.edges(_box, at, frame), data,
+		-1.0, is_exhausted)
 
 
 func _apply_artwork() -> void:

@@ -112,6 +112,11 @@ func _ready() -> void:
 	_scroll_speed = db.tune_float("adventure_scroll_speed", 120.0)
 	_base_scroll_speed = _scroll_speed
 
+	# WHICH EIGHT ICONS ARE IN PLAY. Worked out once, here, as the run opens
+	# — so the bar, the pile and every card agree about what counts. See the
+	# EIGHT SLOTS note at the top of trait_db.gd.
+	TraitDB.refresh_loadout(state, db)
+
 	_read_scale()
 	_read_biome_look()
 	_build_world()
@@ -844,6 +849,8 @@ func _run_encounter() -> void:
 	# still running when the last enemy went down would otherwise keep the
 	# whole scroll running slow. See juice.gd.
 	Juice.release()
+	# And the stand-ins go home. See _send_off_stand_ins().
+	_send_off_stand_ins()
 
 	var cleared := bool(result[0])
 	var fled := bool(result[1])
@@ -881,7 +888,59 @@ func walker_for(card: PlayerData) -> Node2D:
 
 ## KNOCKED OUT PLAYERS SHOW IT ON THE PITCH. The run holds the stamina; the
 ## walkers only draw it, so this is the one place the two are put in step.
+## ============ SOMEBODY WHO WAS NOT THERE A MOMENT AGO ============
+##
+## A combo can bring a stand-in on mid-fight — a Treant walking out of the
+## reeds to replace somebody who went down. It joins the squad in the run,
+## and this is what gives it a body on the pitch: a walker like any other,
+## so it takes the ball, gets passed to, takes hits and can be drafted.
+##
+## It comes on BESIDE the party rather than off the edge, because it did not
+## travel here — it simply arrived.
+func _walkers_for_new_arrivals() -> void:
+	for tier in TierLadder.TIERS:
+		for entry in (run.squad.get(tier, []) as Array):
+			var card := entry as PlayerData
+			if card == null or walker_for(card) != null:
+				continue
+			var walker := AdventureWalker.new()
+			_world.add_child(walker)
+			walker.setup(card, _scroll_speed * 2.2, db)
+			walker.lane_top = LANE_TOP
+			walker.lane_bottom = LANE_BOTTOM
+			# Beside whoever is already standing, not on top of them.
+			var beside := _formation_slot(_walkers.size())
+			if not _walkers.is_empty():
+				var first := _walkers[0]
+				if is_instance_valid(first):
+					beside = first.position + Vector2(randf_range(-70.0, 40.0),
+						randf_range(-90.0, 90.0))
+			walker.position = beside
+			walker.target = beside
+			walker.stamina_fraction = 1.0
+			_walkers.append(walker)
+			_say("%s joins you" % card.player_name)
+
+
+## The stand-ins go home when the fight does. Their walkers are freed and
+## the run forgets them, so the next wave is your team again.
+func _send_off_stand_ins() -> void:
+	for card in run.send_off_stand_ins():
+		var walker := walker_for(card)
+		if walker != null and is_instance_valid(walker):
+			var fade := walker.create_tween()
+			fade.tween_property(walker, "modulate:a", 0.0, 0.35)
+			fade.finished.connect(func() -> void:
+				if is_instance_valid(walker):
+					walker.queue_free())
+			_walkers.erase(walker)
+	_settle_walkers()
+
+
 func _refresh_walkers() -> void:
+	# A stand-in brought on by a combo has no body yet. Give it one before
+	# anything tries to draw it.
+	_walkers_for_new_arrivals()
 	for walker in _walkers:
 		if walker == null or not is_instance_valid(walker) or walker.card == null:
 			continue

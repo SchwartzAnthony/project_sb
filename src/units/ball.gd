@@ -673,3 +673,22 @@ func _nearest_unit() -> PlayerUnit:
 			best_d = d
 			best = unit
 	return best
+
+
+## ============ PUT IT DOWN AND WALK AWAY ============
+##
+## Nobody has it, nothing is in flight, and the next player to reach it takes
+## it. Used by the kick-off, where the ball sits in the centre circle and both
+## sides run at it.
+##
+## It is a proper loose ball, not a scripted one — it can be reached, taken
+## and tackled exactly as a ball dropped in open play can, because that is
+## what it is.
+func drop_loose() -> void:
+	carrier = null
+	_in_flight = false
+	_shooting = false
+	_scripted = false
+	_intended = null
+	_thief = null
+	possession_changed.emit(null)

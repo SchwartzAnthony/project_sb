@@ -67,10 +67,24 @@ func setup(pitch: Rect2, db: CardDatabase) -> void:
 		lead = clampf(db.tune_float("camera_lead", 0.30), 0.0, 1.0)
 		deadzone = maxf(0.0, db.tune_float("camera_deadzone", 36.0))
 
+	# ============ THE ZOOM NUMBERS ARE MULTIPLES OF THE WIDE SHOT ============
+	#
+	# Tuning.csv says "1 = the whole pitch", and that is the only meaning that
+	# survives a change of window size. They used to be handed to the camera as
+	# raw zoom, which happens to be the same thing at today's window — the
+	# pitch is exactly 1920x1080, so the wide shot is exactly 1 — and stops
+	# being the same thing the moment either number changes.
+	#
+	# On a window where the wide shot works out at, say, 1.4, a raw
+	# camera_zoom of 1.55 would be a push of four per cent instead of the
+	# fifty-five per cent the sheet promises, and a raw 1.2 would be a zoom
+	# OUT, which is refused and so does nothing at all.
+	#
+	# As multiples they mean what the sheet says at every window size, and
+	# anything below 1 is still refused, so you can never see past the grass.
 	wide_zoom = _zoom_that_shows_all()
-	# A "zoom in" that is really a zoom out would let you see past the grass.
-	play_zoom = maxf(play_zoom, wide_zoom)
-	close_zoom = maxf(close_zoom, play_zoom)
+	play_zoom = wide_zoom * maxf(1.0, play_zoom)
+	close_zoom = maxf(wide_zoom * maxf(1.0, close_zoom), play_zoom)
 
 	_want_zoom = wide_zoom
 	_want_point = home_rect.get_center()
@@ -84,7 +98,22 @@ func setup(pitch: Rect2, db: CardDatabase) -> void:
 # =============================================================
 
 ## The whole pitch. Used for the whistle, the draft and full time.
+## ============ HOLDING A SHOT ============
+##
+## The match asks the camera to follow the play every frame, which is right
+## for ninety minutes and wrong for the eight seconds of a kick-off. While
+## the view is locked, look_wide() and look_at_play() are ignored — only
+## lock_view(false) gives the camera back.
+var _locked := false
+
+
+func lock_view(on: bool) -> void:
+	_locked = on
+
+
 func look_wide() -> void:
+	if _locked:
+		return
 	_mode = Mode.WIDE
 	_want_point = home_rect.get_center()
 	_want_zoom = wide_zoom
@@ -93,6 +122,8 @@ func look_wide() -> void:
 ## Live play. `point` is the ball; `toward` is where it is heading, which is
 ## the ball's landing spot mid-pass and the ball itself otherwise.
 func look_at_play(point: Vector2, toward: Vector2) -> void:
+	if _locked:
+		return
 	_mode = Mode.PLAY
 	var aim := point.lerp(toward, lead)
 	# Only re-aim once the ball has actually gone somewhere. Without this the

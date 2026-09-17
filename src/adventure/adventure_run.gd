@@ -391,6 +391,30 @@ func revive(card: PlayerData, back: int) -> bool:
 ## IT IS A REAL MEMBER OF THE PARTY for the rest of the run: it can be
 ## drafted, it can be hit, it can be knocked out, and it puts its own icons
 ## on the stack. It is not a temporary effect.
+## Stand-ins currently on the pitch, so they can be taken off again when the
+## fight ends. A spawn is a body for THIS FIGHT, not a permanent signing.
+var stand_ins: Array[PlayerData] = []
+
+
+## Take every stand-in back off. Called when an encounter ends, win or lose.
+##
+## Returns the ones that left, so the scene can remove their walkers.
+func send_off_stand_ins() -> Array[PlayerData]:
+	var gone: Array[PlayerData] = []
+	for card in stand_ins:
+		if card == null:
+			continue
+		gone.append(card)
+		for tier in squad.keys():
+			(squad[tier] as Array).erase(card)
+		stamina.erase(card)
+		knocked_out.erase(card)
+		for key in spent.keys():
+			(spent[key] as Array).erase(card)
+	stand_ins.clear()
+	return gone
+
+
 func bring_on(card: PlayerData, tier: String) -> void:
 	if card == null or tier == "":
 		return
@@ -398,6 +422,10 @@ func bring_on(card: PlayerData, tier: String) -> void:
 	line.append(card)
 	squad[tier] = line
 	stamina[card] = AdventureRun.stamina_for(card, CardDatabase.get_db())
+	# IT IS HERE FOR THIS FIGHT ONLY. send_off_stand_ins() takes it away
+	# again when the encounter ends — a Treant is a body, not a signing.
+	if not stand_ins.has(card):
+		stand_ins.append(card)
 
 
 ## A knocked-out player is spent for good. Called the moment they go down so
