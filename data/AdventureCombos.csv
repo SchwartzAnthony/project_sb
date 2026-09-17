@@ -16,3 +16,5 @@ star_1,star,1,Star Turn,attack,3,,held,trait_star_1,+3 on every shot,A single St
 star_2,star,2,Both Stars,strike,5,focus,once,trait_star_2,5 damage straight into the enemy you are focusing,"Two Stars in one cycle means the cycle came round, which is why this is the biggest single hit in the table"
 normal_2,normal,2,Honest Graft,attack,2,,held,trait_normal_1,+2 on every shot,"The starter team gets the plain version of everybody else's perk. It is meant to be the boring one"
 normal_4,normal,4,Full Eleven,stamina,2,all,once,trait_normal_2,2 stamina back to everybody standing,
+rivals_2,rivals,2,Journeymen,attack,2,,held,trait_rivals_1,+2 on every shot,"The Rivals had an icon and nothing that fired it - the bar filled up and it never did anything. The workbench found that; this is the fix"
+rivals_4,rivals,4,Old Pros,shield,1,,held,trait_rivals_2,Every hit against you is 1 softer,

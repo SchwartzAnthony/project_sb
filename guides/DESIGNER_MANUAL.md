@@ -97,6 +97,38 @@ The title screen checks it on startup and prints, in words, anything that is
 missing, in the wrong folder, **or duplicated**. Add a file to the project,
 add a row, and the check guards it too.
 
+### Where art and audio go
+
+**The rule for all of them:** a column holds the file **name**, without the
+folder and usually without the extension — a column reading `mill` finds
+`assets/icons/mill.png`. A column starting `res://` is used exactly as
+written. **Nothing breaks while a file is missing**: an icon draws as a
+coloured pip, a sound is silent, a card falls back to a plain disc. Each list
+is tried in order, so the first folder is the tidy home and the rest are
+fallbacks.
+
+| Folder | What goes in it | Format | Fed by |
+|---|---|---|---|
+| `assets/audio/` | every sound and every piece of music | `.ogg` for music (it loops properly and is a tenth of the size), `.wav` for short effects | Audio.csv `Sound`, Juice.csv `Sound`, Biomes.csv `Music`, Dialogue.csv `Music` |
+| `assets/icons/` | small square pictures — trait icons, item icons, menu glyphs | `.png` with transparency, 64×64 or 128×128, the same size across a set | AdventureTraits `Icon`, AdventureCombos `Icon`, Items `Art`, MenuConfig `Art Path`, AdventureSpawns `Art` |
+| `assets/players/` | card spritesheets, one per card | `.png`. Default grid is **12 × 39** — write an Animations.csv row for anything else or the card shows as a sliver | any unit CSV's `Artwork`, Brews `Artwork` |
+| `assets/goalies/` | keeper art | `.png` | Goalies `Artwork` |
+| `assets/base/` | the base and its buildings. A file called `background` here is the backdrop | `.png` / `.jpg`. Buildings are placed by X and Y (0–1 across the screen), so draw them to stand alone | Buildings `Art` |
+| `assets/portraits/` | faces for dialogue and base visitors | `.png` with transparency | Visitors `Portrait`, Dialogue `Portrait` |
+| `assets/backgrounds/` | full-screen scenery | `.jpg` / `.png` at 1920×1080. A biome background **tiles and scrolls**, so match its left and right edges | Biomes `Background`, Dialogue `Background` |
+| `assets/menu/` | menu and class banners | `.png` / `.jpg`. A class banner is roughly 3:1 | ClassInfo `Banner Art`, Seasons `Art`, Bounties `Art` |
+| `assets/talents/` | talent tree icons | `.png`, square, 64×64 | Talents `Art` |
+
+Fallback folders, tried after the ones above: `assets/sound/`,
+`assets/music/`, `assets/buildings/`, `assets/brews/`, `assets/scenes/`,
+`assets/` itself. A file dropped straight into `assets/` is always found — it
+is just harder to live with once there are two hundred of them.
+
+**The workbench turns this into a live shopping list.** Open
+`sturmball_workbench.html`, load your `data` folder, and the *Where things
+go* tab lists every file your spreadsheets are currently asking for, grouped
+by folder, with a tick box each.
+
 ---
 
 ## 4. The condition language
@@ -679,6 +711,17 @@ godot --headless --script res://tools/clock_check.gd
 Fires every slow-motion moment in overlapping bursts and checks
 `Engine.time_scale` always comes back to 1.0. If it ever prints STUCK, the
 compounding-slowdown bug is back.
+
+```
+godot --headless --script res://tools/phase_timing.gd
+```
+Times both halves of one real Adventure round — yours and theirs — at two,
+four, eight and twelve enemies. "Their turn feels slow" becomes a number.
+
+**`sturmball_workbench.html`** is the spreadsheet editor: drop your `data`
+folder into it and it edits every CSV with the right dropdowns, checks every
+id and reference, shows the asset shopping list, and exports back out. It
+runs in a browser and uploads nothing.
 
 There are two more in the game itself: **`content_report.gd`** prints a
 readable audit of every spreadsheet, and **`install_check.gd`** runs on the

@@ -131,6 +131,38 @@ textarea.csv{width:100%;height:270px;font-family:var(--mono);font-size:12px;back
   .fitem.on{border-left:0;border-bottom-color:var(--accent)}
   #bar h1{font-size:19px}
 }
+
+/* ---- v2: the asset board and the reference sheet ---- */
+#wrap .board{padding:6px 2px 30px}
+.folder{background:var(--card);border:1px solid var(--line);border-radius:4px;margin:0 0 12px}
+.folder > h4{margin:0;padding:11px 14px;border-bottom:1px solid var(--hair);display:flex;
+  align-items:center;gap:10px;font-family:var(--mono);font-size:13.5px;font-weight:500;color:var(--accent)}
+.folder > h4 .cnt{margin-left:auto;font-family:var(--sans);font-size:12px;color:var(--faint)}
+.folder .blurb{padding:9px 14px;color:var(--dim);font-size:13px;border-bottom:1px solid var(--hair)}
+.folder .blurb b{color:var(--ink)}
+.want{display:flex;gap:10px;align-items:flex-start;padding:7px 14px;border-bottom:1px solid var(--hair);font-size:13px}
+.want:last-child{border-bottom:0}
+.want input[type=checkbox]{margin:3px 0 0;width:15px;height:15px;accent-color:var(--pitch);flex:0 0 auto}
+.want .nm{font-family:var(--mono);font-size:13px;word-break:break-all}
+.want.done .nm{text-decoration:line-through;color:var(--faint)}
+.want .src{color:var(--faint);font-size:12px;margin-left:auto;text-align:right;flex:0 0 auto;padding-left:10px}
+.want .why{color:var(--dim);font-size:12.5px;display:block}
+.hint{background:var(--accent-soft);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:3px;padding:10px 14px;margin:0 0 14px;font-size:13px;color:var(--ink)}
+.hint b{color:var(--accent)}
+.cheat{background:var(--card);border:1px solid var(--line);border-radius:4px;margin:0 0 12px;overflow:hidden}
+.cheat h4{margin:0;padding:11px 14px;border-bottom:1px solid var(--hair);font-family:var(--disp);
+  text-transform:uppercase;letter-spacing:.08em;font-size:14px;color:var(--accent)}
+.cheat .in{padding:12px 14px;font-size:13.3px}
+.cheat table{width:100%;border-collapse:collapse}
+.cheat td{padding:5px 8px 5px 0;vertical-align:top;border-bottom:1px solid var(--hair)}
+.cheat td:first-child{font-family:var(--mono);font-size:12.5px;color:var(--accent);white-space:nowrap;width:1%}
+.cheat tr:last-child td{border-bottom:0}
+.cheat code{font-family:var(--mono);font-size:12.5px;background:var(--raise);padding:1px 5px;border-radius:3px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px;align-items:start}
+.fitem.special{color:var(--pitch)}
+.fitem.special .fc{background:var(--pitch-soft);color:var(--pitch)}
+@media (max-width:860px){ .want .src{display:none} }
 </style>
 
 <div id="shell">
@@ -144,7 +176,12 @@ textarea.csv{width:100%;height:270px;font-family:var(--mono);font-size:12px;back
   </header>
 
   <div id="body">
-    <nav id="rail"><div class="railhead lbl">Files</div><div id="files"></div></nav>
+    <nav id="rail">
+      <div class="railhead lbl">Where things go</div>
+      <div id="special"></div>
+      <div class="railhead lbl">Files</div>
+      <div id="files"></div>
+    </nav>
     <main id="main">
       <div id="head"><h2 id="title">—</h2><div id="what"></div></div>
       <div class="help" id="help" hidden></div>
@@ -167,7 +204,8 @@ textarea.csv{width:100%;height:270px;font-family:var(--mono);font-size:12px;back
 <input type="file" id="pick" multiple accept=".csv" hidden>
 
 <script>
-const SEED = {"Items.csv":{"h":["ID","Name","Kind","Stack","Art","Use","Target","Requires","Description"],"r":[["reed","Reed","material","99","reed","","","","Cut from the marsh. The Brewery takes it by the armful."],["bog_iron","Bog Iron","material","99","bog_iron","","","","Heavy, rusted, and worth melting down."],["ash_glass","Ash Glass","material","99","ash_glass","","","","Fused in the burn. Sharp and light."],["deep_salt","Deep Salt","material","99","deep_salt","","","","Scraped off the walls of the Hollowdeep."],["coins","Coins","currency","999","coins","","","","What everyone takes."],["smelling_salts","Smelling Salts","kit","5","salts","revive","downed","","Brings one knocked-out player back on, at half stamina."]]},"AdventureEnemies.csv":{"h":["ID","Name","Pool","Attack","Layers","Targeting","Element","Ability","Art","Drops","Weight","Boss","Description"],"r":[["mire_grub","Mire Grub","marsh","1","Body:4","weakest","Water","","grub","grub_drops","10","no","Soft and slow. There are always more of them."],["reed_biter","Reed Biter","marsh","1","Body:6","weakest","Water","","biter","biter_drops","8","no","Fast in the shallows."],["bog_lurker","Bog Lurker","marsh","2","Hide:3:1|Body:6","weakest","Water","","lurker","lurker_drops","6","no","Its hide turns the first couple of hits."],["fen_stalker","Fen Stalker","marsh","2","Body:8","weakest","Water","","stalker","lurker_drops","4","no","Waits at the back and picks its moment."],["reed_warden","The Reed Warden","marsh","2","Bark:4:1|Body:8","weakest","Water","","warden","warden_drops","0","yes","A small bounty and a good first kill. Two layers, and the bark only tu"],["marsh_king","The Marsh King","marsh","3","Crown:6:2|Weed:8:1|Body:12","weakest","Water","","king","king_drops","0","yes","Three layers of him, and each one is harder than the last."]]},"Biomes.csv":{"h":["ID","Name","Order","Requires","Waves","Enemy Pool","Background","Parallax","Sky","Grass","Grass Stripe","Edge","Music","Drops","Difficulty","Description"],"r":[["marshlands","The Marshlands","1","","4","marsh","bg_marsh","0.3","#12181c","#213a26","#1b2f1f","#3a5c3f","marsh_theme","marsh_ground","1","Wet and green. Reed grows thick here and something is always moving in"],["cinderwastes","The Cinder Wastes","2","unlocked:Marsh King","5","cinder","bg_cinder","0.3","#1c1310","#4a3320","#3d2a1a","#7a5530","cinder_theme","cinder_ground","2","Ash underfoot and heat in the air. Nothing grows but the fires do."],["hollowdeep","The Hollowdeep","3","unlocked:Ash Tyrant","6","hollow","bg_hollow","0.2","#0d0c14","#2a2438","#221d2e","#463c5c","hollow_theme","hollow_ground","3","Below the old works. The dark down here has weight to it."],["frostreach","The Frostreach","4","unlocked:Hollow Mother","6","frost","bg_frost","0.35","#101822","#28455e","#20384d","#4d7a9e","frost_theme","frost_ground","4","White over blue, and the wind never stops. An example of how a biome c"]]},"Bounties.csv":{"h":["ID","Name","Biome","Boss","Reward","Requires","Repeatable","Waves","Recommended Power","Art","Description"],"r":[["marsh_king","The Marsh King","marshlands","marsh_king","unlock:Marsh King;count:coins+120","","no","","2","bounty_king","Something is holding the reed beds. Go and take them back."],["reed_clearing","Clear the Reeds","marshlands","reed_warden","count:coins+40;count:reed+20","","yes","2","1","bounty_reed","A short run. Good for a first haul and a full basket of reed."],["ash_tyrant","The Ash Tyrant","cinderwastes","ash_tyrant","unlock:Ash Tyrant;count:coins+220","unlocked:Marsh King","no","","4","bounty_tyrant","It sits at the centre of the burn and it has been there a long time."],["slag_run","The Slag Run","cinderwastes","slag_walker","count:coins+90;count:bog_iron+15","unlocked:Marsh King","yes","3","3","bounty_slag","Iron for the taking, if you can get past what is guarding it."],["the_hollow_mother","The Hollow Mother","hollowdeep","hollow_mother","unlock:Hollow Mother;count:coins+400","unlocked:Ash Tyrant","no","","5","bounty_mother","Nobody who has gone this deep has come back with a straight story."]]},"Drops.csv":{"h":["Table","Item","Amount","Chance","Requires","Notes"],"r":[["marsh_ground","reed","1","1.0","","Picked up off the ground while the party runs."],["marsh_ground","coins","2","0.5","",""],["cinder_ground","ash_glass","1","1.0","",""],["cinder_ground","coins","4","0.5","",""],["hollow_ground","deep_salt","1","1.0","",""],["hollow_ground","coins","6","0.5","",""]]},"Brews.csv":{"h":["ID","Name","Description","Requires","For Class","Becomes","Artwork","Attack Ability","Defend Ability","Cost","Permanent","Notes"],"r":[["fire","Fire Brew","Ash on the tongue. A river-singer learns to burn.","unlocked:Fire Brew","Lorelei","Brandteufel","","BRAND_SCORCH","BRAND_MASK_ATK","reed:6","true","YOUR EXAMPLE. A Lorelei counts as a Brandteufel for the match and gain"],["water","Water Brew","Cold and deep. The fire goes quiet and learns to listen.","unlocked:Water Brew","Brandteufel","Lorelei","","LORE_SURGE","LORE_VEIL","reed:4|bog_iron:2","true","The mirror of the Fire Brew. Needs the Water Craft talent."],["keeper","Keeper's Tonic","Thick, bitter, and it makes you very hard to move.","","","","","","KEEP_BULWARK","ash_glass:5|reed:3","","No Becomes and no For Class - anyone may drink it, nobody changes clas"]]},"Talents.csv":{"h":["ID","Name","Tree","Tier","Parent","Requires","Cost","Effects","Description","Art","Notes"],"r":[["high_press","High Press","Tactics","1","","","1","count:tune_press_speed+12","Your players charge the ball carrier faster.","","tune_press_speed adds 12 to the press_speed row of Tuning.csv. Any Tun"],["swarm","Swarm","Tactics","2","high_press","","1","count:tune_press_helpers+1","One more player comes across from another quarter to help press.","",""],["wide_play","Wide Play","Tactics","2","high_press","","1","count:tune_open_spread+40","Your players break further off their markers to show for a pass.","",""],["relentless","Relentless","Tactics","3","swarm","count:matches_won>=3","2","count:tune_unit_chase_speed+10","Everyone runs at a loose ball harder.","","Needs a Parent AND three wins. Both must be true."],["brewing_basics","Brewing Basics","Brewing","1","","","1","unlock:Fire Brew","The Pub can pour a Fire Brew.","","Unlocks a brew by name. Brews.csv in step 4 will read this."],["water_craft","Water Craft","Brewing","2","brewing_basics","","1","unlock:Water Brew","The Pub can pour a Water Brew.","",""]]},"Buildings.csv":{"h":["ID","Name","Description","Requires","Art","X","Y","Action","Notes"],"r":[["clubhouse","Clubhouse","Where the team sleeps it off. The heart of the base.","","clubhouse","0.20","0.32","","Always here. No Requires, no Action - clicking just shows the descript"],["brewery","Brewery","Brews are made here. Ask about the fire mash.","unlocked:Brewery","brewery","0.50","0.28","announce:The mash is on. Come back when the Pub is open.","Unlocked by the unlock_brewery row in Progression.csv - score 3 fire-b"],["pub","Pub","Your players drink here before a match. It changes what they are.","unlocked:Pub","pub","0.78","0.32","goto:pub","Step 4 will make this open the pub screen. Right now it just says hell"],["training_ground","Training Ground","Where the talent tree lives. Spend your points here.","unlocked:Talent Tree","training","0.34","0.60","goto:talents","Unlocked after 5 matches by unlock_talents."],["pitch_gate","The Gate","Out to the pitch. A match awaits.","","gate","0.66","0.62","goto:classes","Clicking this goes straight to class select - the same as the Play a m"],["tap_room","Tap Room","A quiet room behind the Pub. Only a Master Brewer gets a key.","unlocked:master_brewer","taproom","0.50","0.60","announce:Nothing in here yet - but you unlocked it with a talent.","PROOF: this building's Requires names a TALENT ID. Take Master Brewer "]]},"TierPowers.csv":{"h":["Tier","Min Attack","Max Attack","Min Defense","Max Defense","Notes"],"r":[["I","0","2","0","2","THE LADDER. Tier I holds ONE 0, ONE 1 and ONE 2 - three cards, three d"],["II","1","3","1","3","Tier II holds one 1, one 2 and one 3."],["III","2","4","2","4","Tier III holds one 2, one 3 and one 4."],["IV","3","5","3","5","Tier IV holds one 3, one 4 and one 5. The front line, and where the th"]]},"Teams.csv":{"h":["ID","Name","Class","Cards","Power","Requires","Keeper","Description","Notes"],"r":[["reedbank","Reedbank Wanderers","Lorelei","Silver-Rhine Lorelei|Rose Water Lorelei|Lorelei of the Deep River|Twil","1","","","A gentle opening. Nobody expects much of you yet.","The four cards it fields, one per tier, separated by a pipe. Power is "],["cinderworks","Cinderworks Colts","Brandteufel","Smokestorm Brandteufel|Cinderworks Brandteufel|Heatwave Brandteufel|Bl","1","","","The furnace apprentices. All pace and no patience.",""],["mistmarsh","Mistmarsh Athletic","Lorelei","Moonlit River Lorelei|Mist-Born Lorelei|Whispering Rhine Lorelei|Golde","2","","","They sing you to sleep, then score.","The middle card of each tier - a genuinely even fight."],["emberfall","Emberfall United","Brandteufel","Furnacebreak Brandteufel|Ironflare Brandteufel|Coalblaze Brandteufel|H","2","","","Fourth of eleven. The table starts to matter.",""],["silverbeck","Silverbeck Rovers","Lorelei","Echo of the Cliff Lorelei|Sapphire Current Lorelei|Songbound Shore Lor","3","","","They have not lost at home in two years.","The strongest of each tier."],["ashford","Ashford Ironworks","Brandteufel","Boilerblast Brandteufel|Foundryburn Brandteufel|Fireline Brandteufel|S","3","","","Big, slow, and very hard to move.",""]]},"Season.csv":{"h":["ID","Match","Opponent","Team","Class","Difficulty","Final","Requires","On Win","On Loss","Description","Notes"],"r":[["md01","1","Reedbank Wanderers","reedbank","Lorelei","0","","","","","A gentle opening. Nobody expects much of you yet.","Difficulty 0 is a fair fight. Class picks who you face - leave it BLAN"],["md02","2","Cinderworks Colts","cinderworks","Brandteufel","0","","","","","The furnace apprentices. All pace and no patience.",""],["md03","3","Mistmarsh Athletic","mistmarsh","Lorelei","1","","","","","They sing you to sleep, then score.","Difficulty 1 gives every one of their cards +1 attack and +1 defence."],["md04","4","Emberfall United","emberfall","Brandteufel","1","","","count:coins+25","","Fourth of eleven. The table starts to matter.","On Win runs the same words as Progression.csv - unlock:x, count:x+n, f"],["md05","5","Silverbeck Rovers","silverbeck","Lorelei","1","","","","","Halfway. They have not lost at home in two years.",""],["md06","6","Ashford Ironworks","ashford","Brandteufel","2","","","","","Big, slow, and very hard to move.",""]]},"Stats.csv":{"h":["Counter","Event","When","Amount","Group","Label","Notes"],"r":[["goals","goal_scored","","","Goals","Goals scored","Every goal you score"],["goals_by_{card}","goal_scored","","","Goals","","WHO SCORED. One row, one counter per card name, so the post-match scre"],["goals_as_{class}","goal_scored","","","Goals","","Split by which class you were playing. One row, a counter per class."],["goals_by_tier_{tier}","goal_scored","","","Goals","","Split by the Tier of whoever scored"],["goals_with_brew_{brew}","goal_scored","","","Goals","","Goals by a player who had drunk a brew. THIS is what the Brewery requi"],["goals_by_star","goal_scored","star=yes","","Goals","Goals by a Star","Goals scored by a Star Player"]]},"Abilities.csv":{"h":["Ability ID","Name","Trigger","Target","Effect","Value","Scope","Notes"],"r":[["BRAND_MASK_ATK","Teufel Mask","on_attack","self","add_attack","1","duel","Example. Attacker hits one harder in its own duel."],["BRAND_RALLY","Furnace Rally","on_win_duel","tag:brandteufel","add_power","1","round","Example. Winning fires up every Brandteufel for the rest of the round."],["BRAND_SCORCH","Scorching Strike","on_win_duel","enemy_goalie","drain_stamina","3","duel","Example. Chip the keeper even when the round ends in a turnover."],["LORE_VEIL","Rhine Veil","on_defend","self","add_defense","1","duel","Example. Defender holds one harder."],["LORE_TIDE","Rising Tide","passive","tier:I","add_power","1","round","Example. Every friendly Tier I unit is stronger all round."],["LORE_UNDERTOW","Undertow","on_lose_duel","opponent","add_defense","-1","round","Example. Negative values are legal — this is a debuff."]]},"Progression.csv":{"h":["ID","When","Requires","Do","Once","Notes"],"r":[["welcome_at_base","base_opened","","story:prologue","true","Plays the prologue the FIRST time you open the base, not when the game"],["first_win","match_ended","count:matches_won>=1","flag:first_win;announce:First win!","true","Sets a flag other content can test with  flag:first_win"],["unlock_brewery","match_ended","count:goals_with_brew_fire>=3","unlock:Brewery;announce:The Brewery is open","true","YOUR EXAMPLE: score three times with fire-brewed players and the Brewe"],["unlock_pub","match_ended","unlocked:Brewery;count:matches_played>=5","unlock:Pub;announce:The Pub is open","true","Needs the Brewery first AND five matches. Chains one unlock off anothe"],["unlock_talents","match_ended","count:matches_played>=5","unlock:Talent Tree;announce:Talents unlocked","true","The talent tree is itself a building, unlocked later on"],["veteran_badge","match_ended","count:matches_played>=10","flag:veteran","true","An achievement is just a flag. Nothing else needed."]]},"Visitors.csv":{"h":["ID","Name","Portrait","Requires","Story","X","Y","Once","Notes"],"r":[["heatwave_visit","Heatwave","heatwave","","prologue","0.13","0.78","true","Here from the start. Talks once, then leaves for good because Once is "],["brewer","The Brewer","brewer","unlocked:Brewery","prologue","0.50","0.78","","Only turns up once the Brewery is unlocked. Once is blank so you can t"],["scout","A Scout","scout","count:matches_won>=2","prologue","0.86","0.78","true","Turns up after two wins. Swap Story for your own scene when you write "],["brewer_visit","The Brewer","brewer","unlocked:Brewery","brewery_open","0.40","0.70","true","WORKED EXAMPLE - A VISITOR GATED ON A BUILDING. Appears at the base th"]]},"MatchModes.csv":{"h":["ID","Name","Records Season","Timer","Cycles","Rounds","Star Rotation","Opponent","Scene","Requires","Description"],"r":[["season","Season Match","yes","90","3","3","yes","team","match","","The league. Ninety minutes against another side, three Stars rotating "],["quick","Quick Match","no","0","1","3","no","team","match","","A single run for resources. No clock, one Star, and nothing written to"],["cup","Cup Tie","no","90","3","3","yes","team","match","unlocked:The Cup","A full match that does not count towards the league. Unlocked with The"],["adventure","Adventure","no","0","1","4","no","biome","adventure","","A run into a biome. No clock, one Star, four tiers per encounter, and "]]},"Goalies.csv":{"h":["Team","Name","Max Stamina","Passive / Ability","Artwork"],"r":[["Lorelei","Undine Aegis","25","While above 6 Stamina: Defending units get +1 Power","lorelei_goalie.png"],["Brandteufel","Pyre Bastion","30","When Stamina reaches 0: Deal 2 damage to the shooter","brandteufel_goalie.png"]]},"ClassInfo.csv":{"h":["Class","Display Name","Description","Banner Art","Formation Art","Notes"],"r":[["Brandteufel","Brandteufel","Fire-born forwards who trade defence for raw pressure. Their Stars hol","res://assets/menu/banner_brandteufel.png","","Class must match the Unit Type column in your unit CSV"],["Lorelei","Lorelei","Patient river-singers who win the late tiers. Their Stars hold Tier IV","res://assets/menu/banner_lorelei.png","","Leave Formation Art blank to use the drawn diagram"]]},"Units Set FO1 - Lorelei.csv":{"h":["Unit Type","Name","Attack","Defend","Element","Base Power Left","Base Power Right","Tier","Stufe","Tool","Card Number","Card Date","Set Name","Created by","Artwork","Player Type"],"r":[["Lorelei","Silver-Rhine Lorelei","Send this unit to the Exhaust Zone instead of the Void. \nWhile in the ","After combat send this unit to the Exhaust Zone instead of the Void.","Water","0","0","I","Level","Cups","0001","2026","F01","A.J.S ","Silver-Rhine Lorelei.png","Normal"],["Lorelei","Moonlit River Lorelei","Send this unit to the Exhaust Zone instead of the Void. \nWhile in the ","After combat send this unit to the Exhaust Zone instead of the Void.","Fire","1","1","I","Level","Wand","0002","2026","F01","A.J.S ","Moonlit River Lorelei.png","Normal"],["Lorelei","Echo of the Cliff Lorelei","Send this unit to the Exhaust Zone instead of the Void. \nWhile in the ","After combat send this unit to the Exhaust Zone instead of the Void.","Water","2","2","I","Level","Cups","0003","2026","F01","A.J.S ","Echo of the Cliff Lorelei.png","Normal"],["Lorelei","Rose Water Lorelei","If in Void or Exhaust Zone after Preperation Phase: \nReveal an opponen","After combat send this unit to the Exhaust Zone instead of the Void.","Fire","1","1","II","Level","Wand","0004","2026","F01","A.J.S ","Rose Water Lorelei.png","Normal"],["Lorelei","Mist-Born Lorelei","If in Void or Exhaust Zone after Preperation Phase: \nReveal an opponen","After combat send this unit to the Exhaust Zone instead of the Void.","Water","2","2","II","Level","Cups","0005","2026","F01","A.J.S ","Mist-Born Lorelei.png","Normal"],["Lorelei","Sapphire Current Lorelei","If in Void or Exhaust Zone after Preperation Phase: \nReveal an opponen","After combat send this unit to the Exhaust Zone instead of the Void.","Fire","3","3","II","Level","Wand","0006","2026","F01","A.J.S ","Sapphire Current Lorelei.png","Normal"]]}};
+
+const SEED = {"TierPowers.csv":{"h":["Tier","Min Attack","Max Attack","Min Defense","Max Defense","Notes"],"r":[["I","0","2","0","2","THE LADDER. Tier I holds ONE 0, ONE 1 and ONE 2 - three cards, three different powers,"],["II","1","3","1","3","Tier II holds one 1, one 2 and one 3."],["III","2","4","2","4","Tier III holds one 2, one 3 and one 4."],["IV","3","5","3","5","Tier IV holds one 3, one 4 and one 5. The front line, and where the three Star Players"]]},"AdventureTraits.csv":{"h":["ID","Name","From","Value","Icon","Colour","Order","Max","Notes"],"r":[["fire","Fire","element","Fire","trait_fire","#e07a3c","10","4","A player counts as Fire if their Element column says Fire - OR if they drank something"],["water","Water","element","Water","trait_water","#4a9ad6","20","4","Cold and patient. The healing and reviving side of the table"],["wand","Wand","element","Wand","trait_wand","#a46fd0","30","4","The Brandteufel set is all Wand out of the box - so a pure Brandteufel side fills this"],["brandteufel","Brandteufel","class","Brandteufel","trait_brandteufel","#d0502f","40","4","From = class, so it follows the BREWED class. A Lorelei who drank a Fire Brew counts a"]]},"AdventureCombos.csv":{"h":["ID","Trait","At","Name","Effect","Value","Target","Lasts","Icon","Description","Notes"],"r":[["fire_2","fire","2","Kindling","attack","2","","held","trait_fire_1","+2 on every shot","THE SIMPLEST ROW IN THE FILE, and the one to copy first. Two Fire players in the stack"],["fire_3","fire","3","Blaze","attack","4","","held","trait_fire_2","+4 on every shot","Replaces Kindling rather than adding to it - only the HIGHEST breakpoint you have reac"],["fire_4","fire","4","Firestorm","strike","3","all","once","trait_fire_3","3 damage to every enemy on the pitch","Lasts = once, so it happens the moment you reach it and does not happen again until th"],["water_2","water","2","Undertow","stamina","1","all","once","trait_water_1","1 stamina back to everybody standing","A small patch-up the moment the second Water player passes"]]},"AdventureSpawns.csv":{"h":["ID","Name","Power","Tier","Element","Class","Stamina","Art","Notes"],"r":[["treant","Treant","2","","Wand","Treant","4","","WHAT A SPAWN IS: a stand-in that walks on to take the place of somebody who is out. Le"],["reed_wisp","Reed Wisp","1","I","Water","Wisp","3","","Tier is filled in, so this one always arrives in Tier I whoever it replaces. Use that "],["ember","Ember","3","","Fire","Ember","2","","Hits harder than a Treant and falls over faster. Nothing in the code knows that - it i"]]},"AdventureEnemies.csv":{"h":["ID","Name","Pool","Attack","Layers","Targeting","Element","Ability","Buff","Art","Drops","Weight","Boss","Description"],"r":[["mire_grub","Mire Grub","marsh","1","Body:4","weakest","Water","","","grub","grub_drops","10","no","Soft and slow. There are always more of them."],["reed_biter","Reed Biter","marsh","1","Body:6","weakest","Water","","","biter","biter_drops","8","no","Fast in the shallows."],["bog_lurker","Bog Lurker","marsh","2","Hide:3:1|Body:6","weakest","Water","","","lurker","lurker_drops","6","no","Its hide turns the first couple of hits."],["fen_stalker","Fen Stalker","marsh","2","Body:8","weakest","Water","","","stalker","lurker_drops","4","no","Waits at the back and picks its moment."]]},"Biomes.csv":{"h":["ID","Name","Order","Requires","Waves","Enemy Pool","Background","Parallax","Sky","Grass","Grass Stripe","Edge","Music","Drops","Difficulty","Description"],"r":[["marshlands","The Marshlands","1","","4","marsh","bg_marsh","0.3","#12181c","#213a26","#1b2f1f","#3a5c3f","marsh_theme","marsh_ground","1","Wet and green. Reed grows thick here and something is always moving in it."],["cinderwastes","The Cinder Wastes","2","unlocked:Marsh King","5","cinder","bg_cinder","0.3","#1c1310","#4a3320","#3d2a1a","#7a5530","cinder_theme","cinder_ground","2","Ash underfoot and heat in the air. Nothing grows but the fires do."],["hollowdeep","The Hollowdeep","3","unlocked:Ash Tyrant","6","hollow","bg_hollow","0.2","#0d0c14","#2a2438","#221d2e","#463c5c","hollow_theme","hollow_ground","3","Below the old works. The dark down here has weight to it."],["frostreach","The Frostreach","4","unlocked:Hollow Mother","6","frost","bg_frost","0.35","#101822","#28455e","#20384d","#4d7a9e","frost_theme","frost_ground","4","White over blue, and the wind never stops. An example of how a biome changes with four"]]},"Bounties.csv":{"h":["ID","Name","Biome","Boss","Reward","Requires","Repeatable","Waves","Recommended Power","Art","Description"],"r":[["marsh_king","The Marsh King","marshlands","marsh_king","unlock:Marsh King;count:coins+120","","no","","2","bounty_king","Something is holding the reed beds. Go and take them back."],["reed_clearing","Clear the Reeds","marshlands","reed_warden","count:coins+40;count:reed+20","","yes","2","1","bounty_reed","A short run. Good for a first haul and a full basket of reed."],["ash_tyrant","The Ash Tyrant","cinderwastes","ash_tyrant","unlock:Ash Tyrant;count:coins+220","unlocked:Marsh King","no","","4","bounty_tyrant","It sits at the centre of the burn and it has been there a long time."],["slag_run","The Slag Run","cinderwastes","slag_walker","count:coins+90;count:bog_iron+15","unlocked:Marsh King","yes","3","3","bounty_slag","Iron for the taking, if you can get past what is guarding it."]]},"Drops.csv":{"h":["Table","Item","Amount","Chance","Requires","Notes"],"r":[["marsh_ground","reed","1","1.0","","Picked up off the ground while the party runs."],["marsh_ground","coins","2","0.5","",""],["cinder_ground","ash_glass","1","1.0","",""],["cinder_ground","coins","4","0.5","",""]]},"Items.csv":{"h":["ID","Name","Kind","Stack","Art","Use","Target","Requires","Description"],"r":[["reed","Reed","material","99","reed","","","","Cut from the marsh. The Brewery takes it by the armful."],["bog_iron","Bog Iron","material","99","bog_iron","","","","Heavy, rusted, and worth melting down."],["ash_glass","Ash Glass","material","99","ash_glass","","","","Fused in the burn. Sharp and light."],["deep_salt","Deep Salt","material","99","deep_salt","","","","Scraped off the walls of the Hollowdeep."]]},"Juice.csv":{"h":["ID","When","Who","Shake","Shake Scale","Flash","Flash Colour","Pop","Squash","Sound","Slowmo","Notes"],"r":[["ball_received","ball_received","player","2","0","0.12","#ffffff","1.06","0","ball_tap","0","A little knock when a player takes the ball. THIS IS THE ONE YOU ASKED FOR - Shake is "],["ball_kicked","ball_kicked","player","3","0","0","","1.12","0.14","ball_kick","0","Winding up and striking. Squash stretches them along the kick"],["enemy_hit","enemy_hit","enemy","6","0.9","0.16","#ffd0d0","1.10","0","hit_soft","0","SHAKE SCALE is the important column - see the notes at the bottom. 0.9 means a big hit"],["enemy_hit_big","enemy_hit","screen","4","1.4","0","","0","0","hit_heavy","0.10","A SECOND row for the same moment. Both fire. This one shakes the SCREEN and dips time "]]},"Audio.csv":{"h":["ID","When","Match","Sound","Bus","Loop","Volume","Fade","Requires","Notes"],"r":[["menu_theme","screen_opened","screen=main","menu_theme","Music","true","-9","1.5","","The main menu. Keeps playing until another looping row claims the Music bus."],["base_theme","screen_opened","screen=base","base_calm","Music","true","-10","2","","The base. Walking to the Pub and back does NOT restart it - the same track on the same"],["base_theme_brewing","screen_opened","screen=base","base_warm","Music","true","-10","2","unlocked:Brewery","THE WHOLE IDEA IN ONE ROW: same moment, same bus, but only once the Brewery is open. T"],["pub_theme","screen_opened","screen=pub","pub_room","Music","true","-11","1.5","",""]]},"Abilities.csv":{"h":["Ability ID","Name","Trigger","Target","Effect","Value","Scope","Notes"],"r":[["BRAND_MASK_ATK","Teufel Mask","on_attack","self","add_attack","1","duel","Example. Attacker hits one harder in its own duel."],["BRAND_RALLY","Furnace Rally","on_win_duel","tag:brandteufel","add_power","1","round","Example. Winning fires up every Brandteufel for the rest of the round."],["BRAND_SCORCH","Scorching Strike","on_win_duel","enemy_goalie","drain_stamina","3","duel","Example. Chip the keeper even when the round ends in a turnover."],["LORE_VEIL","Rhine Veil","on_defend","self","add_defense","1","duel","Example. Defender holds one harder."]]},"Combos.csv":{"h":["ID","Name","When","Needs","Bonus","Description","Notes"],"r":[["same_element_trio","Chained","same_element","3","1","Three of one element in the move. It runs on one idea.","When = same_element. Needs = how many of one element it takes. A class that is all one"],["same_element_four","All Of A Kind","same_element","4","1","All four of one element. Nothing in the move is a compromise.","Stacks with Chained, so an all-one-element move is worth 2 in total"],["star_finish","Star Finish","star_last","0","1","A Star Player takes the shot.","When = star_last. About half of all moves, because a Star holds one whole tier"],["rising","Rising","rising_power","0","3","Every player in the move is stronger than the one before. It builds all the way.","When = rising_power. Fires about one move in five and cannot easily be arranged - the "]]},"Brews.csv":{"h":["ID","Name","Description","Requires","For Class","Becomes","Element","Artwork","Attack Ability","Defend Ability","Cost","Permanent","Notes"],"r":[["fire","Fire Brew","Ash on the tongue. A river-singer learns to burn.","unlocked:Fire Brew","Lorelei","Brandteufel","Fire","","BRAND_SCORCH","BRAND_MASK_ATK","reed:6","true","YOUR EXAMPLE. A Lorelei counts as a Brandteufel for the match and gains two abilities."],["water","Water Brew","Cold and deep. The fire goes quiet and learns to listen.","unlocked:Water Brew","Brandteufel","Lorelei","Water","","LORE_SURGE","LORE_VEIL","reed:4|bog_iron:2","true","The mirror of the Fire Brew. Needs the Water Craft talent."],["keeper","Keeper's Tonic","Thick, bitter, and it makes you very hard to move.","","","","","","","KEEP_BULWARK","ash_glass:5|reed:3","","No Becomes and no For Class - anyone may drink it, nobody changes class, they just gai"]]},"Talents.csv":{"h":["ID","Name","Tree","Tier","Parent","Requires","Cost","Effects","Description","Art","Notes"],"r":[["high_press","High Press","Tactics","1","","","1","count:tune_press_speed+12","Your players charge the ball carrier faster.","","tune_press_speed adds 12 to the press_speed row of Tuning.csv. Any Tuning row works th"],["swarm","Swarm","Tactics","2","high_press","","1","count:tune_press_helpers+1","One more player comes across from another quarter to help press.","",""],["wide_play","Wide Play","Tactics","2","high_press","","1","count:tune_open_spread+40","Your players break further off their markers to show for a pass.","",""],["relentless","Relentless","Tactics","3","swarm","count:matches_won>=3","2","count:tune_unit_chase_speed+10","Everyone runs at a loose ball harder.","","Needs a Parent AND three wins. Both must be true."]]},"Buildings.csv":{"h":["ID","Name","Description","Requires","Art","X","Y","Action","Notes"],"r":[["clubhouse","Clubhouse","Where the team sleeps it off. The heart of the base.","","clubhouse","0.20","0.32","","Always here. No Requires, no Action - clicking just shows the description."],["brewery","Brewery","Brews are made here. Ask about the fire mash.","unlocked:Brewery","brewery","0.50","0.28","announce:The mash is on. Come back when the Pub is open.","Unlocked by the unlock_brewery row in Progression.csv - score 3 fire-brewed goals."],["pub","Pub","Your players drink here before a match. It changes what they are.","unlocked:Pub","pub","0.78","0.32","goto:pub","Step 4 will make this open the pub screen. Right now it just says hello."],["training_ground","Training Ground","Where the talent tree lives. Spend your points here.","unlocked:Talent Tree","training","0.34","0.60","goto:talents","Unlocked after 5 matches by unlock_talents."]]},"Visitors.csv":{"h":["ID","Name","Portrait","Requires","Story","X","Y","Once","Notes"],"r":[["heatwave_visit","Heatwave","heatwave","","prologue","0.13","0.78","true","Here from the start. Talks once, then leaves for good because Once is true."],["brewer","The Brewer","brewer","unlocked:Brewery","prologue","0.50","0.78","","Only turns up once the Brewery is unlocked. Once is blank so you can talk again and ag"],["scout","A Scout","scout","count:matches_won>=2","prologue","0.86","0.78","true","Turns up after two wins. Swap Story for your own scene when you write one."],["brewer_visit","The Brewer","brewer","unlocked:Brewery","brewery_open","0.40","0.70","true","WORKED EXAMPLE - A VISITOR GATED ON A BUILDING. Appears at the base the moment the Bre"]]},"Progression.csv":{"h":["ID","When","Requires","Do","Once","Notes"],"r":[["welcome_at_base","base_opened","","story:prologue","true","Plays the prologue the FIRST time you open the base, not when the game launches. Delet"],["first_win","match_ended","count:matches_won>=1","flag:first_win;announce:First win!","true","Sets a flag other content can test with  flag:first_win"],["unlock_brewery","match_ended","count:goals_with_brew_fire>=3","unlock:Brewery;announce:The Brewery is open","true","YOUR EXAMPLE: score three times with fire-brewed players and the Brewery unlocks."],["unlock_pub","match_ended","unlocked:Brewery;count:matches_played>=5","unlock:Pub;announce:The Pub is open","true","Needs the Brewery first AND five matches. Chains one unlock off another."]]},"Stats.csv":{"h":["Counter","Event","When","Amount","Group","Label","Notes"],"r":[["goals","goal_scored","","","Goals","Goals scored","Every goal you score"],["goals_by_{card}","goal_scored","","","Goals","","WHO SCORED. One row, one counter per card name, so the post-match screen can list your"],["goals_as_{class}","goal_scored","","","Goals","","Split by which class you were playing. One row, a counter per class."],["goals_by_tier_{tier}","goal_scored","","","Goals","","Split by the Tier of whoever scored"]]},"Teams.csv":{"h":["ID","Name","Class","Cards","Power","Requires","Keeper","Description","Notes"],"r":[["reedbank","Reedbank Wanderers","Lorelei","Silver-Rhine Lorelei|Rose Water Lorelei|Lorelei of the Deep River|Twilight Lorelei of ","1","","","A gentle opening. Nobody expects much of you yet.","The four cards it fields, one per tier, separated by a pipe. Power is what you INTEND "],["cinderworks","Cinderworks Colts","Brandteufel","Smokestorm Brandteufel|Cinderworks Brandteufel|Heatwave Brandteufel|Blacksmoke Brandte","1","","","The furnace apprentices. All pace and no patience.",""],["mistmarsh","Mistmarsh Athletic","Lorelei","Moonlit River Lorelei|Mist-Born Lorelei|Whispering Rhine Lorelei|Golden River Lorelei","2","","","They sing you to sleep, then score.","The middle card of each tier - a genuinely even fight."],["emberfall","Emberfall United","Brandteufel","Furnacebreak Brandteufel|Ironflare Brandteufel|Coalblaze Brandteufel|Hexflame Brandteu","2","","","Fourth of eleven. The table starts to matter.",""]]},"Season.csv":{"h":["ID","Season","Match","Opponent","Team","Class","Difficulty","Final","Requires","On Win","On Loss","Description","Notes"],"r":[["md01","county_league","1","Reedbank Wanderers","reedbank","Lorelei","0","","","","","A gentle opening. Nobody expects much of you yet.","Difficulty 0 is a fair fight. Class picks who you face - leave it BLANK for a random o"],["md02","county_league","2","Cinderworks Colts","cinderworks","Brandteufel","0","","","","","The furnace apprentices. All pace and no patience.",""],["md03","county_league","3","Mistmarsh Athletic","mistmarsh","Lorelei","1","","","","","They sing you to sleep, then score.","Difficulty 1 gives every one of their cards +1 attack and +1 defence."],["md04","county_league","4","Emberfall United","emberfall","Brandteufel","1","","","count:coins+25","","Fourth of eleven. The table starts to matter.","On Win runs the same words as Progression.csv - unlock:x, count:x+n, flag:x, announce:"]]},"Seasons.csv":{"h":["ID","Name","Art","Colour","Requires","Row","Column","After","Matches","Description","Notes"],"r":[["county_league","The County League","season_county","#5aa0c8","","0","1","","","Eleven fixtures and a final. Where everybody starts.","ROW and COLUMN are where the tile sits on the shelf - this is the talent-tree part. Le"],["winter_cup","The Winter Cup","season_winter","#8fb8d8","unlocked:The Cup","1","0","county_league","6","Short, cold and knockout. Lose once and it is over.","AFTER draws the joining line back to the county league. REQUIRES is what actually lock"],["coast_division","The Coast Division","season_coast","#5ec48f","count:season_wins>=6","1","2","county_league","11","Up the coast, where the pitches are hard and the crowds are worse.",""],["inland_shield","The Inland Shield","season_inland","#c8a24a","count:season_wins>=12","2","1","coast_division","11","The middle of the country. Older clubs, longer memories.",""]]},"MatchModes.csv":{"h":["ID","Name","Records Season","Timer","Cycles","Rounds","Star Rotation","Opponent","Scene","Requires","Rewards","Rewards On Win","Description"],"r":[["season","Season Match","yes","90","3","3","yes","team","match","","","","The league. Ninety minutes against another side, three Stars rotating at STAR PLAYER S"],["friendly","Friendly","no","90","3","3","yes","scratch","match","","count:scrap+2","count:scrap+3;count:friendly_wins+1","PLAY A MATCH from the base. Not a fixture - a side put together on the spot at roughly"],["quick","Quick Match","no","0","1","3","no","scratch","match","","count:scrap+1","count:scrap+2","A short one. No clock, one Star, a scratch opponent, nothing written to the season tab"],["cup","Cup Tie","no","90","3","3","yes","team","match","unlocked:The Cup","","count:cup_wins+1","A full match that does not count towards the league. Unlocked with The Cup."]]},"ClassInfo.csv":{"h":["Class","Display Name","Description","Banner Art","Formation Art","Requires","Hidden","Notes"],"r":[["Normal","The Club","Your own side before anyone specialised. No element, no tricks — eleven people who tur","","","","","ADDED BECAUSE BasicTeam.csv HAS STARS. A class with Star players is offered on the cla"],["Brandteufel","Brandteufel","Fire-born forwards who trade defence for raw pressure. Their Stars hold Tier III.","res://assets/menu/banner_brandteufel.png","","","","Class must match the Unit Type column in your unit CSV"],["Lorelei","Lorelei","Patient river-singers who win the late tiers. Their Stars hold Tier IV.","res://assets/menu/banner_lorelei.png","","","","Leave Formation Art blank to use the drawn diagram"],["Rivals","The Rivals","A scratch side of journeymen. Everybody has played against them at some point.","","","unlocked:Rival Scouting","","A LOCKED CLASS. Requires uses the same words as everywhere else in the game - unlocked"]]},"Goalies.csv":{"h":["Team","Name","Max Stamina","Passive / Ability","Artwork"],"r":[["Lorelei","Undine Aegis","25","While above 6 Stamina: Defending units get +1 Power","lorelei_goalie.png"],["Brandteufel","Pyre Bastion","30","When Stamina reaches 0: Deal 2 damage to the shooter","brandteufel_goalie.png"]]},"Animations.csv":{"h":["Animation","Unit Type","Sheet Columns","Sheet Rows","Row","First Frame","Frames","FPS","Loop","Notes"],"r":[["idle","","12","39","0","0","5","6","true","Standing with the ball. Used as the fallback for any missing animation."],["run","","12","39","8","0","12","14","true","Both units run at each other in the duel cut-away."],["ability","","12","39","3","0","6","12","false","Plays when this unit's ability lights up."],["win","","12","39","38","0","9","10","false","Shown on the winning panel."]]},"ScratchNames.csv":{"h":["First","Second","Notes"],"r":[["Reedbank","Wanderers","One word is taken from each column at random. 20 rows here gives you 400 club names"],["Hollow","Rovers",""],["Ashford","Athletic",""],["Millgate","Town",""]]},"MenuConfig.csv":{"h":["Button ID","Label","X","Y","Width","Height","Action","Art Path","Notes"],"r":[["START_GAME","Start","950","380","260","68","start_game","res://assets/menu/button_start.png","Asks which save slot, then opens the base. Everything else is started from in there"],["SETTINGS","Settings","950","464","260","68","open_settings","res://assets/menu/button_settings.png","Keys, screen, sound, colour and controller"],["TUTORIAL_GAME","Tutorial","950","548","260","68","tutorial_game","res://assets/menu/button_tutorial.png","The tutorial base - an enclosed practice game with its own save. Nothing in there touc"],["QUIT","Quit","950","632","260","68","quit_game","res://assets/menu/button_quit.png","Closes the game"]]},"Keys.csv":{"h":["Action","Label","Group","Default Key","Default Button","Notes"],"r":[["pause","Pause / sub menu","General","Escape","Start","In a match this opens the sub menu. Anywhere else it asks whether to quit the game"],["confirm","Confirm / advance","General","Space","A","Advances a line of dialogue, takes the shot, presses the highlighted button"],["cancel","Back","General","Backspace","B","Goes back one screen"],["auto","Toggle AUTO","Match","A","Y","The game picks your cards and your throw. Your clicks lock while it is on"]]},"Language.csv":{"h":["Key","English","Deutsch","Notes"],"r":[["back","Back","Zurück","The Back button on every screen"],["continue","Continue","Weiter",""],["cancel","Cancel","Abbrechen",""],["close","Close","Schließen",""]]},"Dialogue.csv":{"h":["Scene","Node ID","Speaker","Portrait","Side","Animation","Background","Music","Text","Next","Requires","Effects","Choice 1 Text","Choice 1 Next","Choice 1 Requires","Choice 1 Effects","Choice 2 Text","Choice 2 Next","Choice 2 Requires","Choice 2 Effects","Choice 3 Text","Choice 3 Next","Choice 3 Requires","Choice 3 Effects"],"r":[["prologue","open","","","","","stadium_night","","Floodlights. Ninety thousand voices, and not one of them saying your name yet.","gates","","","","","","","","","","","","","",""],["prologue","gates","","","","","stadium_night","","Someone is already waiting by the tunnel. Smoke curls off his shoulders where the rain","","","","","","","","","","","","","","",""],["prologue","meet","Heatwave Brandteufel","heatwave","left","idle","","","So you're the new one. They told me you'd be taller.","","","","Offer your hand","friendly","","flag:polite","Say nothing","cold","","","Ask who the Lorelei are","about_lorelei","!flag:knows_lorelei","flag:knows_lorelei"],["prologue","friendly","Heatwave Brandteufel","heatwave","left","","","","He looks at your hand a moment too long, then takes it. His grip is warm enough to sti","pick_side","","count:respect+2","","","","","","","","","","","",""]]},"Tuning.csv":{"h":["Key","Value","What it does"],"r":[["match_length_minutes","90","Length of a match in in-game minutes"],["first_event_minute","5","Earliest minute a PLAY MAKER can fire"],["last_event_minute","82","Latest minute an event can fire"],["rounds_per_cycle","3","PLAY MAKERs before a HOLD UP!"]]},"Units Set FO1 - Lorelei.csv":{"h":["Unit Type","Name","Attack","Defend","Element","Base Power Left","Base Power Right","Tier","Level","Stufe","Tool","Card Number","Card Date","Set Name","Created by","Artwork","Player Type"],"r":[["Lorelei","Silver-Rhine Lorelei","Send this unit to the Exhaust Zone instead of the Void.  While in the Exhaust Zone:  D","After combat send this unit to the Exhaust Zone instead of the Void.","Water","0","0","I","5","Level","Cups","0001","2026","F01","A.J.S ","Silver-Rhine Lorelei.png","Normal"],["Lorelei","Moonlit River Lorelei","Send this unit to the Exhaust Zone instead of the Void.  While in the Exhaust Zone:  D","After combat send this unit to the Exhaust Zone instead of the Void.","Fire","1","1","I","6","Level","Wand","0002","2026","F01","A.J.S ","Moonlit River Lorelei.png","Normal"],["Lorelei","Echo of the Cliff Lorelei","Send this unit to the Exhaust Zone instead of the Void.  While in the Exhaust Zone:  N","After combat send this unit to the Exhaust Zone instead of the Void.","Water","2","2","I","7","Level","Cups","0003","2026","F01","A.J.S ","Echo of the Cliff Lorelei.png","Normal"],["Lorelei","Rose Water Lorelei","If in Void or Exhaust Zone after Preperation Phase:  Reveal an opponent Unit of Tier I","After combat send this unit to the Exhaust Zone instead of the Void.","Fire","1","1","II","9","Level","Wand","0004","2026","F01","A.J.S ","Rose Water Lorelei.png","Normal"]]},"BasicTeam.csv":{"h":["Unit Type","Name","Attack","Defend","Element","Base Power Left","Base Power Right","Tier","Level","Stufe","Tool","Card Number","Card Date","Set Name","Created by","Artwork","Player Type"],"r":[["Normal","Müller","None","None","None","0","0","I","1","Level","","1","2026","F01","A.J.S","Silver-Rhine Lorelei.png","Normal"],["Normal","Schmidt","None","None","None","1","1","I","2","Level","","2","2026","F01","A.J.S","Silver-Rhine Lorelei.png","Normal"],["Normal","Schneider","None","None","None","2","2","I","3","Level","","3","2026","F01","A.J.S","Silver-Rhine Lorelei.png","Normal"],["Normal","Fischer","None","None","None","1","1","II","5","Level","","4","2026","F01","A.J.S","Silver-Rhine Lorelei.png","Normal"]]},"ICONS_WANTED.csv":{"h":["File","Folder","Used on","Stand-in now","What it should show","Notes"],"r":[["back.png","assets/icons/","Every screen's Back button","arrow","A left arrow","THE MOST USED ONE. Drop a PNG in and it appears everywhere at once - no code, no reimp"],["play.png","assets/icons/","Base / Season / Bounty Board / team shelf","triangle","A play triangle or a boot striking a ball",""],["season.png","assets/icons/","Base / Seasons shelf","grid","A league table or a calendar",""],["adventure.png","assets/icons/","Base","hill","A hill or a map",""]]},"SOUNDS_WANTED.csv":{"h":["File","Folder","Bus","When it plays","What it should sound like","Notes"],"r":[["menu_theme.wav","assets/audio/","Music","screen_opened  screen=main","The main menu. Keeps playing until another looping row claims the Music bus.","Named in the Sound column of Audio.csv. The row already works - the game is silent onl"],["base_calm.wav","assets/audio/","Music","screen_opened  screen=base","The base. Walking to the Pub and back does NOT restart it - the same track on the same","Named in the Sound column of Audio.csv. The row already works - the game is silent onl"],["base_warm.wav","assets/audio/","Music","screen_opened  screen=base","THE WHOLE IDEA IN ONE ROW: same moment, same bus, but only once the Brewery is open. T","Named in the Sound column of Audio.csv. The row already works - the game is silent onl"],["pub_room.wav","assets/audio/","Music","screen_opened  screen=pub","","Named in the Sound column of Audio.csv. The row already works - the game is silent onl"]]}};
 
 /* ============================================================
    THE SCHEMA — what every file is, and what its columns mean.
@@ -175,68 +213,145 @@ const SEED = {"Items.csv":{"h":["ID","Name","Kind","Stack","Art","Use","Target",
    itself never names a column.
    ============================================================ */
 const YN = ["", "yes", "no"];
+const TF = ["", "true", "false"];
+const TIERS = ["", "I", "II", "III", "IV"];
+
+/* The thirteen moments Juice.csv may answer to. Straight out of
+   juice_db.gd — if you add one there, add it here. */
+const MOMENTS = ["ball_received","ball_kicked","enemy_hit","enemy_died","player_hurt",
+  "player_exhausted","player_healed","combo_fired","shot_struck","enemy_windup",
+  "goal_scored","play_maker","star_switch"];
+/* The seven things an Adventure breakpoint can do. Out of trait_db.gd. */
+const EFFECTS = ["attack","strike","heal","stamina","revive","shield","spawn"];
+
 const S = {
-"Items.csv":{what:"Everything you can pick up, spend or use. Every item is a counter in the save, so anything that tests a counter works on it.",
-  key:"ID", enums:{Kind:["material","currency","recipe","kit"],Target:["","ally","enemy","downed"]},
-  help:"<b>Use</b> makes an item usable in a fight: <code>revive</code>, <code>heal:6</code>, <code>heal:3;all</code>, <code>hit:4</code>. Blank means it is just material."},
-"AdventureEnemies.csv":{what:"Who you meet in a biome. An enemy is two numbers: what it hits for, and what it is made of.",
+/* ---------- the rule everything obeys ---------- */
+"TierPowers.csv":{what:"THE LADDER. Every tier holds one card of each power, and every screen in the game obeys this file.",
+  key:"Tier", help:"Min to Max is read as the LIST OF SLOTS. Tier I is 0 to 2, so it holds one 0, one 1 and one 2 — never two the same. Keep each span three wide, or every squad in the game changes size."},
+
+/* ---------- Adventure: the pile ---------- */
+"AdventureTraits.csv":{what:"THE ICONS. What a player carries into an Adventure fight. Abilities are not read in Adventure at all — these are.",
+  key:"ID", colour:["Colour"], enums:{From:["element","class","star","tier"]},
+  help:"<b>From</b> says where an icon comes from. <code>element</code> reads the Element column of your unit CSV <i>and</i> of Brews.csv, so what a player drinks changes their icon. <code>class</code> reads the brewed class. <code>star</code> ignores Value entirely. <b>A player carries several icons</b> — one from their element, one from their class — and both bars move."},
+"AdventureCombos.csv":{what:"WHAT REACHING A STACK DOES. Three Fire on the pile and every shot is worth four more — this is the file that says so.",
+  key:"ID", enums:{Effect:EFFECTS, Lasts:["","held","once"]},
+  help:"<b>At</b> is how many it takes. <b>Only the highest breakpoint you have reached is active</b> for a <code>held</code> effect — three Fire gives you Blaze, not Kindling <i>and</i> Blaze, which is what makes 3/4 worth chasing. A <code>once</code> effect fires as you pass it and not again until the cycle comes round.<br><b>Target</b> depends on Effect: <code>strike</code> → all / focus · <code>heal</code> and <code>stamina</code> → lowest / all / last · <code>revive</code> → how much stamina each · <code>spawn</code> → a row of AdventureSpawns.csv · <code>attack</code> and <code>shield</code> → leave it blank."},
+"AdventureSpawns.csv":{what:"THE STAND-INS. A Treant that walks on to replace somebody you lost, and is a real party member from then on.",
+  key:"ID", enums:{Tier:TIERS},
+  help:"Leave <b>Tier</b> blank and it takes the tier of whoever it is replacing, which is almost always what you want. <b>Its Power is clamped into that tier's rungs</b> — the ladder is not broken even by a spawn, and the log says so if a number had to move."},
+
+/* ---------- Adventure: the run ---------- */
+"AdventureEnemies.csv":{what:"Who you meet in a biome. An enemy has NO TIER — it is what it hits for, and what it is made of.",
   key:"ID", enums:{Targeting:["weakest","strongest","lowest_stamina","aoe"],Boss:YN},
-  help:"<b>Layers</b> is <code>Name:Amount:Soak</code> separated by <code>|</code> — damage eats the outermost layer first. <b>Weight</b> 0 means it never turns up randomly (that is what a boss is)."},
+  help:"<b>Layers</b> is <code>Name:Amount:Soak</code> separated by <code>|</code>, outermost first — damage eats the outer layer before it reaches the next. <b>Weight</b> 0 means it never turns up randomly, which is what a boss is. <b>Buff</b> is what it gains per pass while you build your move: blank for most of them, and give it to the ones that should feel like a clock ticking."},
 "Biomes.csv":{what:"The areas you explore, and how each one looks.",
   key:"ID", colour:["Sky","Grass","Grass Stripe","Edge"],
-  help:"Colours are written <code>#213a26</code>. <b>Parallax</b> 0 is a still background, 1 moves with the ground."},
+  help:"Colours are written <code>#213a26</code>. <b>Parallax</b> 0 is a still background, 1 moves with the ground. <b>Difficulty</b> is multiplied by how many times you have cleared the place, so a repeat run is genuinely tougher rather than just longer."},
 "Bounties.csv":{what:"The jobs on the board. A bounty is a boss — go into that biome and kill the thing named on the paper.",
   key:"ID", enums:{Repeatable:YN},
   help:"<b>Waves</b> blank means \"as long as the biome is\". A number makes this one job shorter or longer through the same place."},
 "Drops.csv":{what:"What things leave behind. A drop table is every row sharing a Table name.",
   key:null, help:"<b>Chance</b> is 0 to 1. <b>Requires</b> gates a drop — a recipe only falls once you can brew."},
-"Brews.csv":{what:"What the Pub pours. A brew can change what class a card counts as for a match.",
-  key:"ID", enums:{Permanent:["true","false"]},
-  help:"<b>Cost</b> is <code>reed:6|bog_iron:2</code> — the Pub takes those out of your counters when it pours. <b>Becomes</b> is the class the card fights as."},
-"Talents.csv":{what:"The talent tree. A talent can edit any Tuning number permanently.",
-  key:"ID", help:"<b>Effects</b> with <code>count:tune_</code> in front of a Tuning key changes that number: <code>count:tune_press_speed+12</code>."},
-"Buildings.csv":{what:"The base. A building's Action is a recipe: Requires is the price, Action is the trade.",
-  key:"ID", help:"<code>Requires: count:reed&gt;=20</code> and <code>Action: count:reed-20;count:coins+60</code> is a working recipe with no code anywhere."},
-"TierPowers.csv":{what:"THE LADDER. Every tier holds one card of each power, and every screen in the game obeys this file.",
-  key:"Tier", help:"Min to Max is read as the list of slots. Tier I is 0 to 2, so it holds one 0, one 1 and one 2. Keep each span three wide."},
-"Teams.csv":{what:"The sides you play in the league.", key:"ID",
-  help:"<b>Cards</b> names the exact cards it fields, separated by <code>|</code>. Blank means any cards of its class."},
-"Season.csv":{what:"The fixture list, and the end of a season.", key:"ID", enums:{Final:YN},
-  help:"<b>Difficulty</b> is added to the opposition's SHOT, never to their cards — so the tier ladder holds."},
-"Stats.csv":{what:"What the game counts. A new counter is a new row and nothing else.",
-  key:null, enums:{Event:["goal_scored","goal_conceded","shot_taken","save_made","duel_won","duel_lost","brew_drunk","match_ended"]},
-  help:"<b>When</b> filters the event: <code>tier=I</code>, <code>star=yes</code>, <code>result=win</code>, <code>brew=fire</code>. Blank is always."},
-"Abilities.csv":{what:"What a card does. These are the effect words the engine knows.",
+"Items.csv":{what:"Everything you can pick up, spend or use. Every item is a counter in the save, so anything that tests a counter works on it.",
+  key:"ID", enums:{Kind:["material","currency","recipe","kit"],Target:["","ally","enemy","downed"]},
+  help:"<b>Use</b> makes an item usable in a fight: <code>revive</code>, <code>heal:6</code>, <code>heal:3;all</code>, <code>hit:4</code>. Blank means it is just material."},
+
+/* ---------- feel ---------- */
+"Juice.csv":{what:"SHAKE, FLASH, POP, SLOW-MOTION AND SOUND. No feel is typed into a script — the game says what happened, and this says what that looks like.",
+  key:"ID", colour:["Flash Colour"], enums:{When:MOMENTS, Who:["player","enemy","screen","ball"]},
+  help:"<b>Two rows may share a When and both fire</b> — that is how one hit shakes the enemy <i>and</i> the screen with different settings. <b>Shake Scale</b> is the interesting one: 0 means every hit shakes the same, 0.9 means a big hit shakes noticeably harder, 1.4 makes a big hit an event. The game works out what \"average\" is from the hits you actually land. <b>Slowmo</b> is seconds — several rows of one moment make ONE dip, the longest asked for."},
+"Audio.csv":{what:"Every sound, per moment, per condition. Volume, bus and fade all live here.",
+  key:"ID", enums:{Bus:["Music","Effects","UI","Master"],Loop:TF},
+  help:"<b>A blank When is legal</b> and means \"nothing fires this by itself; something asks for it by name\" — which is how a Juice.csv Sound column works. A name Audio.csv has never heard of is looked for as a file in <code>assets/audio/</code>, so you can drop a wav in and hear it without writing a row."},
+"Animations.csv":{what:"How a spritesheet is sliced. Leave Unit Type blank for a rule that covers every class.",
+  key:null, enums:{Loop:TF},
+  help:"A card with no matching row falls back to a 12 × 39 grid — which is why an unsliced sheet shows as a sliver rather than as nothing."},
+
+/* ---------- the league ---------- */
+"Abilities.csv":{what:"What a card does in a DUEL. League matches only — abilities are not read in Adventure.",
   key:"Ability ID", enums:{Scope:["duel","round","cycle","match"]},
   help:"THE ONE PLACE THE SPREADSHEET RUNS OUT. New <b>Effect</b> words need code — ask for a batch of them."},
-"Progression.csv":{what:"When things happen. Unlocks, story scenes and announcements, fired off any match event.",
-  key:"ID", enums:{Once:["true","false"]},
-  help:"Terms in Requires are joined with a semicolon. <code>and</code> is NOT a word this understands."},
-"Visitors.csv":{what:"People who turn up at the base.", key:"ID", enums:{Once:["true","false"]}},
+"Combos.csv":{what:"What a passing move is worth in a LEAGUE match. Adventure has its own table — AdventureCombos.csv.",
+  key:"ID", enums:{When:["same_element","same_class","all_different_class","rising_power","all_four","star_last"]},
+  help:"<b>Bonus</b> goes on the SHOT and never on a card. Keep these small: a team is normally all one class and most classes are all one element, so the element rules fire far more often than they look like they will."},
+"Season.csv":{what:"The fixture list, and the end of a season.", key:"ID", enums:{Final:YN},
+  help:"<b>Difficulty</b> is added to the opposition's SHOT, never to their cards — so the tier ladder holds."},
+"Seasons.csv":{what:"The shelf of competitions, laid out like a talent tree.", key:"ID", colour:["Colour"],
+  help:"<b>Row</b> and <b>Column</b> place a tile. Each row is CENTRED on screen, so Column sets the order and spacing within a row rather than an absolute position — and gaps in your numbers are kept, so a branch still looks like a branch. <b>After</b> draws the joining line."},
+"Teams.csv":{what:"The sides you play in the league.", key:"ID",
+  help:"<b>Cards</b> names the exact cards it fields, separated by <code>|</code>. Blank means any cards of its class."},
 "MatchModes.csv":{what:"The kinds of match. Timer 0 means no clock — it ends when the rounds do.",
-  key:"ID", enums:{"Records Season":YN,"Star Rotation":YN,Scene:["match","adventure"],Opponent:["team","biome"]}},
-"Goalies.csv":{what:"Keepers. The only thing with stamina in a league match.", key:"Name"},
-"ClassInfo.csv":{what:"The blurb and banner for each class on the class-select screen.", key:"Class"},
+  key:"ID", enums:{"Records Season":YN,"Star Rotation":YN,Scene:["match","adventure"],Opponent:["team","scratch","biome"]},
+  help:"<b>Opponent</b> <code>team</code> takes a fixture from Season.csv. <code>scratch</code> assembles a side on the spot at roughly your own level — that is what Play a Match from the base does."},
+"Goalies.csv":{what:"Keepers. The only thing with stamina in a league match, and not part of the tier ladder.", key:"Name"},
+"ClassInfo.csv":{what:"Which classes exist, and their blurb on the class-select screen.", key:"Class", enums:{Hidden:YN},
+  help:"<b>Class</b> must match the Unit Type column of your cards. A <b>Requires</b> that does not pass keeps the class off the screen entirely; <b>Hidden</b> removes it without deleting its cards."},
+"ScratchNames.csv":{what:"First and second halves of a name, combined at random to christen a pick-up side.", key:null},
+
+/* ---------- cards ---------- */
+"Units Set FO1 - Lorelei.csv":{what:"YOUR CARDS. Any file with a Unit Type column and a Base Power Left column is a unit file — the name does not matter.",
+  key:"Name", enums:{Tier:TIERS, "Player Type":["Normal","Star"]},
+  help:"<b>Base Power Left is the tier slot</b>, not a stat you tune. See TierPowers.csv. <b>Name is the card's identity everywhere, including in old saves</b> — renaming one breaks them. <b>Element</b> is what the Adventure pile reads."},
+"BasicTeam.csv":{what:"The starter side. Same columns as any unit file.",
+  key:"Name", enums:{Tier:TIERS, "Player Type":["Normal","Star"]},
+  help:"These ship as Unit Type = Normal and Element = None, which is why AdventureTraits.csv has a Journeyman row — without it they would put nothing on the pile at all."},
+
+/* ---------- the base and the glue ---------- */
+"Brews.csv":{what:"What the Pub pours. A brew changes what a card COUNTS AS — its class for the league, its icon for Adventure.",
+  key:"ID", enums:{Permanent:TF},
+  help:"<b>Cost</b> is <code>reed:6|bog_iron:2</code> — the Pub takes those out of your counters when it pours. <b>Becomes</b> is the class it fights as. <b>Element</b> is the icon it carries in Adventure: a Lorelei who drinks a Fire Brew genuinely brings Fire to the pile."},
+"Talents.csv":{what:"The talent tree. A talent can edit any Tuning number permanently.",
+  key:"ID", help:"<b>Effects</b> with <code>count:tune_</code> in front of a Tuning key changes that number: <code>count:tune_press_speed+12</code>. Any row of Tuning.csv can be driven this way."},
+"Buildings.csv":{what:"The base. A building's Action is a recipe: Requires is the price, Action is the trade.",
+  key:"ID", help:"<code>Requires: count:reed&gt;=20</code> and <code>Action: count:reed-20;count:coins+60</code> is a working recipe with no code anywhere."},
+"Visitors.csv":{what:"People who turn up at the base.", key:"ID", enums:{Once:TF}},
+"Progression.csv":{what:"WHEN THINGS HAPPEN. Unlocks, story scenes and announcements, fired off any game event.",
+  key:"ID", enums:{Once:TF},
+  help:"Terms in Requires are joined with a semicolon. <code>and</code> is NOT a word this understands. This is where achievements and unlocks are wired without code."},
+"Stats.csv":{what:"What the game counts. A new counter is a new row and nothing else.",
+  key:null, enums:{Event:["goal_scored","goal_conceded","shot_taken","save_made","duel_won","duel_lost","brew_drunk","match_ended","enemy_killed","wave_cleared"]},
+  help:"<b>When</b> filters the event: <code>tier=I</code>, <code>star=yes</code>, <code>result=win</code>, <code>brew=fire</code>. Blank is always. A Counter containing <code>{card}</code> makes one counter per card."},
+
+/* ---------- words and numbers ---------- */
+"Dialogue.csv":{what:"The story. A node graph in a spreadsheet: scenes, lines, and choices that carry effects.", key:null,
+  help:"A line with no choices runs on to <b>Next</b>. A line with choices stops and asks. A choice whose <b>Requires</b> fails is greyed out rather than hidden, so the player can see what they missed."},
+"Language.csv":{what:"Every word the game shows, by key. Add a column for a new language and the game finds it.", key:"Key"},
+"Keys.csv":{what:"Keyboard and controller bindings, rebindable in Settings.", key:"Action"},
 "MenuConfig.csv":{what:"The main menu. Buttons, where they sit, and what they do.", key:"Button ID"},
-"Audio.csv":{what:"Every sound, per moment, per condition.", key:"ID", enums:{Bus:["Music","Effects","UI"],Loop:["true","false"]}},
-"Dialogue.csv":{what:"The story. Scenes, lines, and choices that carry effects.", key:null},
-"Animations.csv":{what:"How a spritesheet is sliced.", key:"Animation"},
-"Tuning.csv":{what:"Every number in the game, in one place.", key:"Key"},
+"Tuning.csv":{what:"EVERY NUMBER IN THE GAME, in one place. A talent can edit any of these at runtime.", key:"Key",
+  help:"Rows worth knowing: <code>juice_scale</code> 0 kills every shake and flash · <code>juice_slowmo_depth</code> 1.0 means no slow-motion at all · <code>adventure_trait_bar</code> false hides the row of icons · <code>adventure_enemy_combos</code> false and the enemies get no combos."},
+"ICONS_WANTED.csv":{what:"The shopping list for art. Nothing loads it — it is for you and whoever is drawing.", key:null},
+"SOUNDS_WANTED.csv":{what:"The shopping list for audio. Nothing loads it — it is for you and whoever is recording.", key:null},
+"FileManifest.csv":{what:"Every file and the folder it belongs in. The title screen checks it and names anything missing, misplaced or duplicated.", key:null},
 };
+
 /* Which column points at which file's ids. */
 const REFS = {
  "Bounties.csv":{Biome:["Biomes.csv","ID"], Boss:["AdventureEnemies.csv","ID"]},
  "Biomes.csv":{Drops:["Drops.csv","Table"]},
- "AdventureEnemies.csv":{Drops:["Drops.csv","Table"]},
+ "AdventureEnemies.csv":{Drops:["Drops.csv","Table"], Ability:["Abilities.csv","Ability ID"]},
+ "AdventureCombos.csv":{Trait:["AdventureTraits.csv","ID"]},
  "Drops.csv":{Item:["Items.csv","ID"]},
  "Season.csv":{Team:["Teams.csv","ID"]},
+
+ "Seasons.csv":{After:["Seasons.csv","ID"]},
  "Talents.csv":{Parent:["Talents.csv","ID"]},
  "Visitors.csv":{Story:["Dialogue.csv","Scene"]},
+ "Brews.csv":{"Attack Ability":["Abilities.csv","Ability ID"], "Defend Ability":["Abilities.csv","Ability ID"]},
+/* Unit Type is deliberately NOT a hard reference. A class with no
+    ClassInfo row still works perfectly — it just has no blurb and no
+    banner. There is a gentler check for that in check() instead. */
 };
+
 /* Sensible defaults when you press New row. */
 const NEW = {
  "Items.csv":{Kind:"material",Stack:"99"},
- "AdventureEnemies.csv":{Attack:"2",Layers:"Body:6",Targeting:"weakest",Weight:"8",Boss:"no"},
+ "AdventureEnemies.csv":{Attack:"2",Layers:"Body:6",Targeting:"weakest",Weight:"8",Boss:"no",Buff:"0"},
+ "AdventureTraits.csv":{From:"element",Colour:"#8a95a4",Order:"90",Max:"4",Icon:"trait_new"},
+ "AdventureCombos.csv":{At:"2",Effect:"attack",Value:"2",Lasts:"held"},
+ "AdventureSpawns.csv":{Power:"2",Stamina:"4"},
+ "Juice.csv":{Who:"enemy",Shake:"4","Shake Scale":"0",Flash:"0",Pop:"0",Squash:"0",Slowmo:"0"},
+ "Audio.csv":{Bus:"Effects",Volume:"-5"},
  "Biomes.csv":{Waves:"4",Parallax:"0.3",Sky:"#12181c",Grass:"#213a26","Grass Stripe":"#1b2f1f",Edge:"#3a5c3f",Difficulty:"1",Order:"9"},
  "Bounties.csv":{Repeatable:"no","Recommended Power":"1"},
  "Drops.csv":{Amount:"1",Chance:"1.0"},
@@ -244,18 +359,96 @@ const NEW = {
  "Talents.csv":{Tree:"Tactics",Tier:"1",Cost:"1"},
  "Stats.csv":{Amount:"1",Event:"goal_scored"},
  "Season.csv":{Difficulty:"0"},
+ "Seasons.csv":{Row:"0",Column:"0",Colour:"#a95c14",Matches:"6"},
+ "Combos.csv":{When:"same_element",Needs:"3",Bonus:"1"},
  "MatchModes.csv":{"Records Season":"no",Timer:"0",Cycles:"1",Rounds:"4","Star Rotation":"no",Opponent:"team",Scene:"match"},
 };
-const LONG = ["Description","Notes","Text","What it does","Attack","Defend","Effects","Requires","Action","Do","Reward","On Win","On Loss"];
+const LONG = ["Description","Notes","Text","What it does","Attack","Defend","Effects","Requires",
+  "Action","Do","Reward","On Win","On Loss","Story","Passive / Ability"];
+
+/* ============================================================
+   WHERE THINGS GO — the folder map.
+
+   Every one of these is a real list in the code, and they are
+   tried IN ORDER, so the first folder is the tidy home and the
+   ones after it are fallbacks. A file in assets/ with no folder
+   at all is always found; it is just harder to live with once
+   there are two hundred of them.
+   ============================================================ */
+const FOLDERS = [
+ {dir:"assets/audio/", kind:"sound",
+  what:"<b>Every sound and every piece of music.</b> Named by the Sound column of Audio.csv and Juice.csv.",
+  formats:".ogg, .wav, .mp3 — <b>.ogg for music</b> (it loops properly and it is a tenth of the size), .wav for short effects",
+  also:"Also searched: assets/sound/, assets/music/, assets/",
+  from:[["Audio.csv","Sound"],["Juice.csv","Sound"],["Biomes.csv","Music"],["Dialogue.csv","Music"]]},
+
+ {dir:"assets/icons/", kind:"image",
+  what:"<b>Small square pictures.</b> The Adventure trait icons, item icons, menu button glyphs, anything that sits in a 34-pixel box.",
+  formats:".png with transparency, .webp, .jpg, .svg — <b>64×64 or 128×128</b>, and the same size for every one in a set",
+  also:"Also searched: assets/base/, assets/buildings/, assets/talents/, assets/brews/, assets/",
+  from:[["AdventureTraits.csv","Icon"],["AdventureCombos.csv","Icon"],["Items.csv","Art"],["MenuConfig.csv","Art Path"],["AdventureSpawns.csv","Art"]]},
+
+ {dir:"assets/players/", kind:"image",
+  what:"<b>Card spritesheets.</b> One sheet per card, sliced by Animations.csv.",
+  formats:".png. The default grid is <b>12 columns × 39 rows</b> — write a row in Animations.csv if yours is anything else, or the card shows as a sliver",
+  also:"Also searched: assets/portraits/, assets/",
+  from:[["Units Set FO1 - Lorelei.csv","Artwork"],["BasicTeam.csv","Artwork"],["Brews.csv","Artwork"]]},
+
+ {dir:"assets/goalies/", kind:"image",
+  what:"<b>Keeper art.</b> Same idea as a card sheet, but for the two keepers.",
+  formats:".png",
+  also:"Also searched: assets/players/, assets/",
+  from:[["Goalies.csv","Artwork"]]},
+
+ {dir:"assets/base/", kind:"image",
+  what:"<b>The base and the buildings on it.</b> A file called <code>background</code> in here is the base's backdrop.",
+  formats:".png or .jpg. Buildings are placed by the X and Y columns (0 to 1 across the screen), so draw them to sit on their own",
+  also:"Also searched: assets/buildings/, assets/backgrounds/, assets/",
+  from:[["Buildings.csv","Art"]]},
+
+ {dir:"assets/portraits/", kind:"image",
+  what:"<b>Faces for dialogue.</b> Whoever is speaking, and the visitors at the base.",
+  formats:".png with transparency. They are drawn at the side of the dialogue box",
+  also:"Also searched: assets/players/, assets/",
+  from:[["Visitors.csv","Portrait"],["Dialogue.csv","Portrait"]]},
+
+ {dir:"assets/backgrounds/", kind:"image",
+  what:"<b>Full-screen scenery.</b> Biome backdrops and dialogue scenes.",
+  formats:".jpg or .png at <b>1920×1080</b>. A biome background TILES and scrolls, so make its left and right edges match",
+  also:"Also searched: assets/scenes/, assets/",
+  from:[["Biomes.csv","Background"],["Dialogue.csv","Background"]]},
+
+ {dir:"assets/menu/", kind:"image",
+  what:"<b>Menu and class banners.</b> Anything a column names with a full <code>res://</code> path.",
+  formats:".png or .jpg. A class banner is wide — roughly 3:1",
+  also:"A column starting res:// is used exactly as written, wherever it points",
+  from:[["ClassInfo.csv","Banner Art"],["ClassInfo.csv","Formation Art"],["Seasons.csv","Art"],["Bounties.csv","Art"]]},
+
+ {dir:"assets/talents/", kind:"image",
+  what:"<b>Talent tree icons.</b>",
+  formats:".png, square, 64×64",
+  also:"Also searched: assets/base/, assets/",
+  from:[["Talents.csv","Art"]]},
+];
+
+/* Columns whose value is a file name, for the shopping list. */
+const ASSET_COLUMNS = {};
+FOLDERS.forEach(f => f.from.forEach(([file,col]) => {
+  ASSET_COLUMNS[file+"|"+col] = f;
+}));
+
 
 /* ============================================================ */
-let DATA = {}, CUR = null, PROBS = [], OPEN = true, SAMPLE = false;
+let DATA = {}, CUR = null, PROBS = [], OPEN = true, SAMPLE = false, HAVE = {};
 const $ = s => document.querySelector(s);
 const norm = s => String(s||"").trim().toLowerCase().replace(/[^a-z0-9]/g,"");
+const VIEWS = {"@assets":"Where things go", "@cheat":"Reference"};
 
 function boot(){
   let saved = null;
-  try{ saved = JSON.parse(localStorage.getItem("sturmball.v1")||"null"); }catch(e){}
+  try{ saved = JSON.parse(localStorage.getItem("sturmball.v2")||"null"); }catch(e){}
+  if(!saved){ try{ saved = JSON.parse(localStorage.getItem("sturmball.v1")||"null"); }catch(e){} }
+  try{ HAVE = JSON.parse(localStorage.getItem("sturmball.have")||"{}"); }catch(e){ HAVE={}; }
   SAMPLE = !(saved && Object.keys(saved).length);
   DATA = SAMPLE ? JSON.parse(JSON.stringify(unseed())) : saved;
   CUR = Object.keys(DATA)[0] || null;
@@ -267,8 +460,9 @@ function unseed(){
   return out;
 }
 function save(){
-  try{ localStorage.setItem("sturmball.v1", JSON.stringify(DATA)); }catch(e){}
+  try{ localStorage.setItem("sturmball.v2", JSON.stringify(DATA)); }catch(e){}
 }
+function saveHave(){ try{ localStorage.setItem("sturmball.have", JSON.stringify(HAVE)); }catch(e){} }
 
 /* ---------- CSV ---------- */
 function parseCSV(text){
@@ -295,11 +489,29 @@ function toCSV(f){
   })).join("\n")+"\n";
 }
 
+/* ---------- little readers ---------- */
+const at  = (f,c)=>DATA[f]?DATA[f].headers.indexOf(c):-1;
+const col = (f,c)=>{const i=at(f,c);return i<0?[]:DATA[f].rows.map(r=>(r[i]||"").trim());};
+const ids = (f,c)=>new Set(col(f,c).filter(Boolean).map(norm));
+/* Every unit file: anything with a Unit Type column and a power column. */
+function unitFiles(){
+  return Object.keys(DATA).filter(f => at(f,"Unit Type")>=0 && at(f,"Base Power Left")>=0);
+}
+
 /* ---------- rail ---------- */
 function paintRail(){
+  const sp=$("#special"); sp.innerHTML="";
+  for(const [k,label] of Object.entries(VIEWS)){
+    const b=document.createElement("button");
+    b.className="fitem special"+(k===CUR?" on":"");
+    const n = k==="@assets" ? String(assetWants().length) : "?";
+    b.innerHTML=`<span class="fn"></span><span class="fc">${n}</span>`;
+    b.querySelector(".fn").textContent=label;
+    b.onclick=()=>{CUR=k;paintRail();paintTable();};
+    sp.appendChild(b);
+  }
   const host=$("#files"); host.innerHTML="";
-  const names=Object.keys(DATA).sort();
-  for(const f of names){
+  for(const f of Object.keys(DATA).sort()){
     const b=document.createElement("button");
     b.className="fitem"+(f===CUR?" on":"");
     const bad=PROBS.some(p=>p.file===f);
@@ -313,20 +525,22 @@ function paintRail(){
 /* ---------- table ---------- */
 function paintTable(){
   const wrap=$("#wrap");
+  $("#tools").innerHTML="";
+  if(CUR==="@assets"){ return paintBoard(); }
+  if(CUR==="@cheat"){ return paintCheat(); }
   if(!CUR||!DATA[CUR]){
     $("#title").textContent="Nothing loaded";
     $("#what").textContent="";
-    $("#help").hidden=true; $("#tools").innerHTML="";
+    $("#help").hidden=true;
     wrap.innerHTML=`<div class="empty"><h3>Load your data folder</h3>
       <p>Drop your <span class="kbd">.csv</span> files in, or press <b>Load CSVs</b> and pick everything in your project's <span class="kbd">data</span> folder at once.</p></div>`;
     return;
   }
   const d=DATA[CUR], sch=S[CUR]||{};
   $("#title").textContent=CUR.replace(/\.csv$/i,"");
-  $("#what").textContent=sch.what||"A file the workbench does not have notes for. It still edits fine.";
+  $("#what").textContent=sch.what||"A file the workbench does not have notes for. It still edits fine, and the checker still watches its ids.";
   $("#help").hidden=!sch.help; if(sch.help) $("#help").innerHTML=sch.help;
 
-  $("#tools").innerHTML="";
   const mk=(t,fn,cls)=>{const b=document.createElement("button");b.className="btn sm "+(cls||"");b.textContent=t;b.onclick=fn;$("#tools").appendChild(b);return b;};
   mk("+ New row",()=>{
     const r=d.headers.map(h=>(NEW[CUR]||{})[h]||"");
@@ -347,7 +561,7 @@ function paintTable(){
   d.headers.forEach(h=>{
     const th=document.createElement("th");
     th.textContent=h;
-    if(/^(requires|effects|action|do|reward)$/i.test(h)) th.className="req";
+    if(/^(requires|effects|action|do|reward|on win|on loss)$/i.test(h)) th.className="req";
     hr.appendChild(th);
   });
   thead.appendChild(hr); tbl.appendChild(thead);
@@ -377,8 +591,15 @@ function paintTable(){
 function cell(file,head,row,ci,ri){
   const sch=S[file]||{}, val=row[ci]??"";
   const set=v=>{row[ci]=v;save();};
-  const opts=(sch.enums||{})[head];
+  let opts=(sch.enums||{})[head];
   const ref=(REFS[file]||{})[head];
+
+  /* A unit file is recognised by its columns, so its enums are too — that
+     way a set you add tomorrow gets the same dropdowns as the ones here. */
+  if(!opts && at(file,"Unit Type")>=0 && at(file,"Base Power Left")>=0){
+    if(head==="Tier") opts=TIERS;
+    if(head==="Player Type") opts=["Normal","Star"];
+  }
 
   if(opts||ref){
     const sel=document.createElement("select");
@@ -386,12 +607,13 @@ function cell(file,head,row,ci,ri){
     if(ref){
       const [rf,rc]=ref, src=DATA[rf];
       if(src){
-        const at=src.headers.indexOf(rc);
-        if(at>=0){ const seen=new Set();
-          src.rows.forEach(r=>{const v=(r[at]||"").trim(); if(v&&!seen.has(v)){seen.add(v);list.push(v);} }); }
+        const at2=src.headers.indexOf(rc);
+        if(at2>=0){ const seen=new Set();
+          src.rows.forEach(r=>{const v=(r[at2]||"").trim(); if(v&&!seen.has(v)){seen.add(v);list.push(v);} }); }
       }
       if(val&&!list.includes(val)) list.push(val);
     }
+    if(val&&!list.includes(val)) list.push(val);
     list.forEach(o=>{const e=document.createElement("option");e.value=o;e.textContent=o===""?"—":o;sel.appendChild(e);});
     sel.value=val; sel.onchange=()=>{set(sel.value);check();paintRail();};
     sel.id=`c_${norm(file)}_${ri}_${ci}`;
@@ -420,14 +642,209 @@ function cell(file,head,row,ci,ri){
 }
 
 /* ============================================================
+   WHERE THINGS GO — the folder board and the shopping list.
+   ============================================================ */
+
+/* Every file name the spreadsheets ask for, grouped by folder. */
+function assetWants(){
+  const out=[], seen=new Set();
+  for(const [key,folder] of Object.entries(ASSET_COLUMNS)){
+    const [file,c]=key.split("|");
+    /* A unit file is recognised by its columns, so Artwork is collected from
+       EVERY unit file, not only the one named in the map. */
+    const files = (c==="Artwork" && at(file,"Unit Type")>=0) ? unitFiles() : [file];
+    for(const f of files){
+      const i=at(f,c); if(i<0) continue;
+      const nameAt=at(f,"Name")>=0?at(f,"Name"):(at(f,"ID")>=0?at(f,"ID"):0);
+      DATA[f].rows.forEach((r,ri)=>{
+        let v=(r[i]||"").trim();
+        if(!v) return;
+        if(v.startsWith("res://")) return;      /* already a real path */
+        const k=folder.dir+"|"+v.toLowerCase();
+        if(seen.has(k)) return; seen.add(k);
+        out.push({name:v, folder, file:f, row:ri, col:c, who:(r[nameAt]||"").trim()});
+      });
+    }
+  }
+  return out;
+}
+
+function paintBoard(){
+  $("#title").textContent="Where things go";
+  $("#what").textContent="Every folder the game looks in, what belongs in each, and the live list of files your spreadsheets are asking for.";
+  $("#help").hidden=false;
+  $("#help").innerHTML="Nothing here is checked against your disk — the workbench is a web page and cannot see your project folder. <b>It is a list of what the spreadsheets have asked for</b>, and the ticks are yours to keep, saved in this browser.";
+
+  const mk=(t,fn,cls)=>{const b=document.createElement("button");b.className="btn sm "+(cls||"");b.textContent=t;b.onclick=fn;$("#tools").appendChild(b);return b;};
+  mk("Copy the whole list",()=>{
+    const lines=[];
+    FOLDERS.forEach(f=>{
+      const mine=assetWants().filter(w=>w.folder===f);
+      if(!mine.length) return;
+      lines.push("res://"+f.dir);
+      mine.forEach(w=>lines.push("    "+(HAVE[f.dir+w.name]?"[x] ":"[ ] ")+w.name+"   — "+(w.who||w.file)));
+      lines.push("");
+    });
+    const text=lines.join("\n");
+    navigator.clipboard.writeText(text).then(()=>alert("The list is on your clipboard."),
+      ()=>alert(text));
+  },"key");
+  mk("Untick everything",()=>{ if(confirm("Clear every tick?")){ HAVE={}; saveHave(); paintTable(); } });
+
+  const wants=assetWants();
+  const wrap=$("#wrap"); wrap.innerHTML="";
+  const board=document.createElement("div"); board.className="board";
+
+  const note=document.createElement("div"); note.className="hint";
+  note.innerHTML="<b>The rule for all of them:</b> a column holds the file NAME, without the folder and usually without the extension — a column reading <code>mill</code> finds <code>assets/icons/mill.png</code>. A column starting <code>res://</code> is used exactly as written, wherever it points. Nothing breaks while a file is missing: an icon draws as a coloured pip, a sound is silent, a card falls back to a plain disc. <b>Every folder below is tried in the order shown</b>, so the first one is the tidy home and the rest are fallbacks.";
+  board.appendChild(note);
+
+  FOLDERS.forEach(f=>{
+    const mine=wants.filter(w=>w.folder===f);
+    const done=mine.filter(w=>HAVE[f.dir+w.name]).length;
+    const box=document.createElement("div"); box.className="folder";
+    const h=document.createElement("h4");
+    h.innerHTML=`<span>res://${f.dir}</span><span class="cnt">${mine.length?`${done} of ${mine.length} ticked`:"nothing asks for anything here yet"}</span>`;
+    box.appendChild(h);
+
+    const bl=document.createElement("div"); bl.className="blurb";
+    bl.innerHTML=`${f.what}<br><b>Format:</b> ${f.formats}<br><span style="color:var(--faint)">${f.also}</span>`;
+    box.appendChild(bl);
+
+    mine.sort((a,b)=>a.name.localeCompare(b.name)).forEach(w=>{
+      const row=document.createElement("div");
+      const key=f.dir+w.name;
+      row.className="want"+(HAVE[key]?" done":"");
+      const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=!!HAVE[key];
+      cb.onchange=()=>{ if(cb.checked) HAVE[key]=true; else delete HAVE[key];
+        saveHave(); row.className="want"+(cb.checked?" done":"");
+        h.querySelector(".cnt").textContent=`${wants.filter(x=>x.folder===f&&HAVE[f.dir+x.name]).length} of ${mine.length} ticked`;
+        paintRail(); };
+      const body=document.createElement("div");
+      body.innerHTML=`<span class="nm"></span><span class="why"></span>`;
+      body.querySelector(".nm").textContent=w.name;
+      body.querySelector(".why").textContent=(w.who?w.who+" — ":"")+w.col;
+      const src=document.createElement("span"); src.className="src";
+      src.textContent=w.file.replace(/\.csv$/i,"")+" "+(w.row+2);
+      src.style.cursor="pointer";
+      src.onclick=()=>{ CUR=w.file; paintRail(); paintTable();
+        const el=document.getElementById(`c_${norm(w.file)}_${w.row}_${at(w.file,w.col)}`);
+        if(el){ el.scrollIntoView({block:"center",behavior:"smooth"}); el.focus(); } };
+      row.appendChild(cb); row.appendChild(body); row.appendChild(src);
+      box.appendChild(row);
+    });
+    board.appendChild(box);
+  });
+
+  const last=document.createElement("div"); last.className="hint";
+  last.innerHTML="<b>Two folders that are not on this list.</b> <code>res://data/</code> is where every spreadsheet lives — and <b>each .csv needs a .csv.import file beside it</b> containing <code>[remap]</code>, a blank line, then <code>importer=\"keep\"</code>. Without it Godot decides your spreadsheet is a translation table and litters the folder with .translation files. Copy an existing one and rename it. <code>res://src/</code> is the code and you never need to open it.";
+  board.appendChild(last);
+
+  wrap.appendChild(board);
+}
+
+/* ============================================================
+   THE REFERENCE SHEET — the words the spreadsheets speak.
+   ============================================================ */
+function paintCheat(){
+  $("#title").textContent="Reference";
+  $("#what").textContent="The small languages that turn up in a dozen different columns, and the lists the game checks against.";
+  $("#help").hidden=true;
+  const wrap=$("#wrap"); wrap.innerHTML="";
+  const board=document.createElement("div"); board.className="board";
+
+  const card=(title,html)=>{
+    const c=document.createElement("div"); c.className="cheat";
+    c.innerHTML=`<h4>${title}</h4><div class="in">${html}</div>`;
+    return c;
+  };
+  const rows=list=>"<table>"+list.map(([a,b])=>`<tr><td>${a}</td><td>${b}</td></tr>`).join("")+"</table>";
+
+  board.appendChild(card("Asking a question — the Requires column", rows([
+    ["flag:brave","the flag is set"],
+    ["!flag:brave","the flag is NOT set"],
+    ["unlocked:Lorelei","you have unlocked it"],
+    ["count:gold&gt;=10","a number comparison. <code>&gt;= &gt; &lt;= &lt; = !=</code> all work"],
+    ["count:gold","shorthand for \"more than zero\""],
+    ["is:winter","a state check"],
+    ["a;b","<b>both</b> must be true. The separator is a semicolon — <code>and</code> is not a word this understands"],
+  ])));
+
+  board.appendChild(card("Making something happen — Effects, Do, Action, On Win, Reward", rows([
+    ["unlock:Water Brew","unlock something by name"],
+    ["flag:beat_the_keeper","set a flag. An achievement is a flag and nothing else"],
+    ["flag:brave=false","clear a flag"],
+    ["count:gold+10","add to a number"],
+    ["count:gold-25","take some away. A shop price is one cell"],
+    ["count:gold=0","set it outright"],
+    ["count:tune_press_speed+12","<b>edit a row of Tuning.csv.</b> Any row. This is how talents work"],
+    ["story:prologue","play a dialogue scene"],
+    ["announce:First win!","put a banner on the screen"],
+  ])));
+
+  board.appendChild(card("The tier ladder", `
+    <p style="margin:0 0 9px">Every tier holds <b>one card of each power in its span</b> — never two the same.
+    Tier I is 0 to 2, so it holds one 0, one 1 and one 2.</p>
+    ${rows([["Tier I","0 · 1 · 2"],["Tier II","1 · 2 · 3"],["Tier III","2 · 3 · 4"],["Tier IV","3 · 4 · 5"]])}
+    <p style="margin:9px 0 0;color:var(--dim)">Three consequences. A card's power is its <b>slot</b>, not a stat.
+    Every legal team has the same total power — teams differ by what their players <i>do</i>.
+    And <b>a bonus is never added to a card</b>: combos, difficulty, talents and trait breakpoints
+    all go on the SHOT, because anything that moved a card would put two cards on one rung.</p>`));
+
+  board.appendChild(card("Adventure — the pile", `
+    <p style="margin:0 0 9px">Every player you draft drops their <b>icons</b> on a pile.
+    The pile does <b>not</b> empty each round — it empties at the end of the round in which the
+    <b>cycle</b> comes round, meaning every tier has fielded everybody it has.</p>
+    ${rows([
+      ["attack","Value is added to the SHOT. Target: —"],
+      ["strike","Value damage into enemies. Target: <code>all</code> / <code>focus</code>"],
+      ["heal","Value stamina back. Target: <code>lowest</code> / <code>all</code> / <code>last</code>"],
+      ["stamina","the same thing under a friendlier name"],
+      ["revive","Value players get up. Target: how much stamina each"],
+      ["shield","Value off every hit against you. Target: —"],
+      ["spawn","Value stand-ins walk on. Target: a row of AdventureSpawns.csv"],
+    ])}
+    <p style="margin:9px 0 0;color:var(--dim)"><b>held</b> applies for as long as you hold that many, and only the
+    HIGHEST breakpoint in a trait counts. <b>once</b> fires the moment you reach it and not again until the pile empties.</p>`));
+
+  board.appendChild(card("Juice — the thirteen moments", rows(
+    MOMENTS.map(m=>[m, ({
+      ball_received:"a player takes the ball",
+      ball_kicked:"a player strikes it",
+      enemy_hit:"your shot lands on an enemy",
+      enemy_died:"an enemy goes down",
+      player_hurt:"one of yours takes a hit",
+      player_exhausted:"one of yours runs out of stamina",
+      player_healed:"an item or a combo mends somebody",
+      combo_fired:"a breakpoint goes off",
+      shot_struck:"the final shot of an Adventure move",
+      enemy_windup:"an enemy gains its buff",
+      goal_scored:"a goal in a league match",
+      play_maker:"PLAY MAKER fires",
+      star_switch:"STAR PLAYER SWITCH",
+    })[m]||""])
+  )+`<p style="margin:9px 0 0;color:var(--dim)">A moment nobody wrote a row for simply does nothing.
+    Two rows may share one moment and both fire — one shaking the enemy, one shaking the screen.</p>`));
+
+  board.appendChild(card("Things that will bite you", `
+    ${rows([
+      ["a .csv with no .csv.import","Godot turns your spreadsheet into a translation table and litters the folder. See <b>Where things go</b>"],
+      ["renaming a card","a card is identified by its <b>Name</b> everywhere, including in saved games. Renaming one breaks them"],
+      ["two cards on one rung","the ladder says one card per power per tier. The checker below catches it"],
+      ["<code>and</code> in a Requires","use a semicolon. The checker catches this too"],
+      ["a counter nothing writes","a condition that can never be true. Also caught below"],
+      ["an icon that is not there","harmless — it draws as a coloured pip. The game never stops for missing art"],
+    ])}`));
+
+  wrap.appendChild(board);
+}
+
+/* ============================================================
    THE CHECKER — the same questions the game asks at startup.
    ============================================================ */
 function check(){
   PROBS=[];
   const add=(file,row,col,msg,fix)=>PROBS.push({file,row,col,msg,fix});
-  const at=(f,c)=>DATA[f]?DATA[f].headers.indexOf(c):-1;
-  const col=(f,c)=>{const i=at(f,c);return i<0?[]:DATA[f].rows.map(r=>(r[i]||"").trim());};
-  const ids=(f,c)=>new Set(col(f,c).filter(Boolean).map(norm));
 
   /* 1. duplicate keys */
   for(const f of Object.keys(DATA)){
@@ -446,6 +863,7 @@ function check(){
     for(const [c,[rf,rc]] of Object.entries(map)){
       const i=at(f,c); if(i<0||!DATA[rf]) continue;
       const pool=ids(rf,rc);
+      if(!pool.size) continue;
       DATA[f].rows.forEach((r,ri)=>{
         const v=(r[i]||"").trim(); if(!v) return;
         if(!pool.has(norm(v))) add(f,ri,c,`"${v}" is not in ${rf}.`,`Add a row there with that id, or pick one from the list.`);
@@ -453,7 +871,7 @@ function check(){
     }
   }
   /* 3. `and` where a semicolon belongs */
-  const CONDS=["Requires","Effects","Action","Do","Reward","On Win","On Loss","Use"];
+  const CONDS=["Requires","Effects","Action","Do","Reward","On Win","On Loss","Use","Rewards","Rewards On Win"];
   for(const f of Object.keys(DATA)) for(const c of CONDS){
     const i=at(f,c); if(i<0) continue;
     DATA[f].rows.forEach((r,ri)=>{
@@ -465,8 +883,9 @@ function check(){
   const written=new Set(), read=new Map();
   col("Stats.csv","Counter").forEach(v=>v&&written.add(norm(v)));
   col("Items.csv","ID").forEach(v=>v&&written.add(norm(v)));
-  const SEASON=["seasonwins","seasondraws","seasonlosses","seasongoalsfor","seasongoalsagainst","seasonpoints","seasonmatch","seasonnumber","talentpoints"];
-  SEASON.forEach(v=>written.add(v));
+  ["seasonwins","seasondraws","seasonlosses","seasongoalsfor","seasongoalsagainst",
+   "seasonpoints","seasonmatch","seasonnumber","talentpoints","matcheswon","matchesplayed",
+   "friendlywins"].forEach(v=>written.add(v));
   for(const f of Object.keys(DATA)) for(const c of CONDS){
     const i=at(f,c); if(i<0) continue;
     DATA[f].rows.forEach((r,ri)=>{
@@ -476,7 +895,7 @@ function check(){
         if(!read.has(norm(m[1]))) read.set(norm(m[1]),{f,ri,c,raw:m[1].trim()});
     });
   }
-  for(const [k,w] of read) if(!written.has(k)&&!k.startsWith("cleared"))
+  for(const [k,w] of read) if(!written.has(k)&&!k.startsWith("cleared")&&!k.startsWith("tune"))
     add(w.f,w.ri,w.c,`Nothing ever adds to "${w.raw}".`,`This condition can never be true. Add a Stats.csv row that counts it, or an Action/Effects that gives it.`);
   /* 5. unlocks required but never granted */
   const grant=new Set(), want=new Map();
@@ -496,6 +915,18 @@ function check(){
   }
   for(const [k,w] of want) if(!grant.has(k))
     add(w.f,w.ri,"Requires",`Nothing ever unlocks "${w.raw}".`,`Give it to somebody: <code>unlock:${w.raw}</code> in a Season reward, a Bounty reward, a Building action or a Progression row.`);
+  /* 5b. a talent pointing at a Tuning row that does not exist */
+  if(DATA["Tuning.csv"]){
+    const keys=ids("Tuning.csv","Key");
+    for(const f of Object.keys(DATA)) for(const c of CONDS){
+      const i=at(f,c); if(i<0) continue;
+      DATA[f].rows.forEach((r,ri)=>{
+        for(const m of (r[i]||"").matchAll(/count:\s*tune_([A-Za-z0-9_]+)/g))
+          if(!keys.has(norm(m[1])))
+            add(f,ri,c,`There is no Tuning row called "${m[1]}".`,`count:tune_ has to name a real Key in Tuning.csv, or the talent changes nothing at all.`);
+      });
+    }
+  }
   /* 6. the tier ladder */
   const rungs={};
   if(DATA["TierPowers.csv"]){
@@ -508,14 +939,26 @@ function check(){
       if(list.length!==3) add("TierPowers.csv",ri,"Max Attack",`Tier ${r[t]} holds ${list.length} cards, not three.`,`The pitch has three slots per tier. Keep Min to Max three wide.`);
     });
   }
-  for(const f of Object.keys(DATA)){
-    const u=at(f,"Unit Type"), p=at(f,"Base Power Left"), t=at(f,"Tier"), n=at(f,"Name");
-    if(u<0||p<0||t<0) continue;
+  for(const f of unitFiles()){
+    const p=at(f,"Base Power Left"), t=at(f,"Tier"), n=at(f,"Name");
     DATA[f].rows.forEach((r,ri)=>{
       const tier=norm(r[t]), pw=parseInt(r[p]);
       if(!rungs[tier]||isNaN(pw)) return;
       if(!rungs[tier].includes(pw))
         add(f,ri,"Base Power Left",`${r[n]||"This card"} is Tier ${r[t]} with ${pw} power.`,`Tier ${r[t]} holds ${rungs[tier].join(", ")}. Change the power or the tier.`);
+    });
+  }
+  /* 6b. two cards of the same class on the same rung */
+  for(const f of unitFiles()){
+    const p=at(f,"Base Power Left"), t=at(f,"Tier"), n=at(f,"Name"), u=at(f,"Unit Type");
+    const seen={};
+    DATA[f].rows.forEach((r,ri)=>{
+      const k=norm(r[u])+"|"+norm(r[t])+"|"+String(r[p]).trim();
+      if(!norm(r[t])||String(r[p]).trim()==="") return;
+      if(seen[k]!==undefined)
+        add(f,ri,"Base Power Left",`${r[n]||"This card"} and ${DATA[f].rows[seen[k]][n]||"another card"} are both Tier ${r[t]} at ${r[p]} power.`,
+          `A tier holds ONE card of each power. One of them has to move to a different rung.`);
+      else seen[k]=ri;
     });
   }
   /* 7. enemy layers */
@@ -541,8 +984,176 @@ function check(){
       });
     });
   }
+
+  /* ---------- 9. THE ADVENTURE PILE ---------- */
+  if(DATA["AdventureCombos.csv"]){
+    const F="AdventureCombos.csv";
+    const E=at(F,"Effect"), T=at(F,"Target"), V=at(F,"Value"), A=at(F,"At"),
+          L=at(F,"Lasts"), TR=at(F,"Trait"), NM=at(F,"Name");
+    const spawns=ids("AdventureSpawns.csv","ID");
+    DATA[F].rows.forEach((r,ri)=>{
+      const eff=norm(r[E]), tgt=(r[T]||"").trim(), nm=(r[NM]||"a row");
+      if(eff && !EFFECTS.includes(eff))
+        add(F,ri,"Effect",`"${(r[E]||"").trim()}" is not an effect the game knows.`,
+          `It must be one of: ${EFFECTS.join(", ")}. A row it cannot read is skipped, so this breakpoint would do nothing.`);
+      if(A>=0 && !(parseInt(r[A])>0))
+        add(F,ri,"At",`${nm} has no At.`,`At is how many of that icon it takes. 2 means two on the pile.`);
+      if(eff==="spawn"){
+        if(!tgt) add(F,ri,"Target",`${nm} spawns something, but does not say what.`,`Target names a row of AdventureSpawns.csv.`);
+        else if(spawns.size && !spawns.has(norm(tgt)))
+          add(F,ri,"Target",`"${tgt}" is not in AdventureSpawns.csv.`,`Add a row there, or point at one that exists.`);
+      }
+      if(eff==="strike" && tgt && !["all","focus"].includes(norm(tgt)))
+        add(F,ri,"Target",`A strike goes at "all" or "focus", not "${tgt}".`,`Blank counts as all.`);
+      if((eff==="heal"||eff==="stamina") && tgt && !["all","lowest","last"].includes(norm(tgt)))
+        add(F,ri,"Target",`A heal goes to "lowest", "all" or "last", not "${tgt}".`,`Blank counts as lowest.`);
+      if(eff==="revive" && tgt && isNaN(parseInt(tgt)))
+        add(F,ri,"Target",`For a revive, Target is HOW MUCH STAMINA they get up with.`,`Put a number there, or leave it blank to use adventure_revive_stamina from Tuning.csv.`);
+      if(V>=0 && eff && !(parseInt(r[V])>0))
+        add(F,ri,"Value",`${nm} is worth nothing.`,`Value is the number the effect uses — the damage, the stamina, how many to bring on.`);
+      /* held/once sanity */
+      const lasts=norm(r[L]);
+      if(lasts==="held" && ["revive","spawn","strike","heal","stamina"].includes(eff))
+        add(F,ri,"Lasts",`A ${eff} marked "held" would try to happen continuously.`,
+          `These are one-off things. Use <code>once</code>, or leave Lasts blank and the game picks it for you.`);
+      if(lasts==="once" && ["attack","shield"].includes(eff))
+        add(F,ri,"Lasts",`An ${eff} marked "once" does nothing at all.`,
+          `It is a standing bonus — it applies while you hold the icons. Use <code>held</code>, or leave Lasts blank.`);
+    });
+    /* two breakpoints at the same At on one trait */
+    const seen={};
+    DATA[F].rows.forEach((r,ri)=>{
+      const k=norm(r[TR])+"|"+String(r[A]).trim();
+      if(!norm(r[TR])) return;
+      if(seen[k]!==undefined) add(F,ri,"At",`Two breakpoints on ${(r[TR]||"").trim()} both fire at ${r[A]}.`,
+        `Only the higher one would ever be the "best" — give them different numbers.`);
+      else seen[k]=ri;
+    });
+  }
+  if(DATA["AdventureTraits.csv"]){
+    const F="AdventureTraits.csv";
+    const ID=at(F,"ID"), FR=at(F,"From"), VA=at(F,"Value"), NM=at(F,"Name"), MX=at(F,"Max");
+    /* every element and class the cards actually have */
+    const elements=new Set(), classes=new Set();
+    unitFiles().forEach(f=>{
+      col(f,"Element").forEach(v=>v&&elements.add(norm(v)));
+      col(f,"Unit Type").forEach(v=>v&&classes.add(norm(v)));
+    });
+    col("Brews.csv","Element").forEach(v=>v&&elements.add(norm(v)));
+    col("Brews.csv","Becomes").forEach(v=>v&&classes.add(norm(v)));
+    col("AdventureEnemies.csv","Element").forEach(v=>v&&elements.add(norm(v)));
+    col("AdventureEnemies.csv","Pool").forEach(v=>v&&classes.add(norm(v)));
+    col("AdventureSpawns.csv","Element").forEach(v=>v&&elements.add(norm(v)));
+    col("AdventureSpawns.csv","Class").forEach(v=>v&&classes.add(norm(v)));
+
+    const used=new Set(col("AdventureCombos.csv","Trait").map(norm));
+    DATA[F].rows.forEach((r,ri)=>{
+      const from=norm(r[FR]), val=norm(r[VA]), nm=(r[NM]||r[ID]||"this icon");
+      if(from!=="star" && !val)
+        add(F,ri,"Value",`${nm} has no Value.`,`Value is which Element or Unit Type counts as this icon. Only a "star" row may leave it blank.`);
+      if(from==="element" && val && elements.size && !elements.has(val))
+        add(F,ri,"Value",`No card, brew, enemy or spawn has the element "${(r[VA]||"").trim()}".`,
+          `Nothing would ever put this icon on the pile. Check the spelling, or give a card that Element.`);
+      if(from==="class" && val && classes.size && !classes.has(val))
+        add(F,ri,"Value",`No card, brew, enemy or spawn has the class "${(r[VA]||"").trim()}".`,
+          `Nothing would ever put this icon on the pile. Check the spelling against ClassInfo.csv and AdventureEnemies' Pool column.`);
+      if(!used.has(norm(r[ID])) && DATA["AdventureCombos.csv"])
+        add(F,ri,"ID",`Nothing happens when you collect ${nm}.`,
+          `The bar will show it filling up and it will never do anything. Add a row to AdventureCombos.csv with Trait = ${(r[ID]||"").trim()}.`);
+      if(MX>=0 && !(parseInt(r[MX])>0))
+        add(F,ri,"Max",`${nm} has no Max.`,`Max is how far the bar counts. Usually your biggest breakpoint.`);
+    });
+  }
+  if(DATA["AdventureSpawns.csv"]){
+    const F="AdventureSpawns.csv";
+    const P=at(F,"Power"), T=at(F,"Tier"), N=at(F,"Name");
+    DATA[F].rows.forEach((r,ri)=>{
+      const tier=norm(r[T]), pw=parseInt(r[P]);
+      if(tier && rungs[tier] && !isNaN(pw) && !rungs[tier].includes(pw))
+        add(F,ri,"Power",`${r[N]||"This stand-in"} is Tier ${r[T]} with ${pw} power.`,
+          `The game will clamp it into ${rungs[tier].join(", ")} when it walks on, so it will not arrive as the number you wrote here.`);
+    });
+  }
+  /* 10. Juice */
+  if(DATA["Juice.csv"]){
+    const F="Juice.csv";
+    const W=at(F,"When"), WHO=at(F,"Who"), SD=at(F,"Sound"), SL=at(F,"Slowmo"), ID=at(F,"ID");
+    const cues=ids("Audio.csv","ID");
+    const dips={};
+    DATA[F].rows.forEach((r,ri)=>{
+      const when=norm(r[W]);
+      if(when && !MOMENTS.map(norm).includes(when))
+        add(F,ri,"When",`"${(r[W]||"").trim()}" is not a moment the game ever announces.`,
+          `It must be one of: ${MOMENTS.join(", ")}. A row nobody fires does nothing.`);
+      const who=norm(r[WHO]);
+      if(who && !["player","enemy","screen","ball"].includes(who))
+        add(F,ri,"Who",`"${(r[WHO]||"").trim()}" is not something the game can shake.`,`player, enemy, screen or ball.`);
+      const snd=(r[SD]||"").trim();
+      if(snd && cues.size && !cues.has(norm(snd)))
+        add(F,ri,"Sound",`"${snd}" is not a row of Audio.csv.`,
+          `It will be looked for as a FILE in assets/audio/ instead, which works — but a row gives it volume, a bus and the Sound slider.`);
+      const dip=parseFloat(r[SL]);
+      if(dip>0.4) add(F,ri,"Slowmo",`${dip} seconds is a long dip.`,
+        `Slow-motion reads best under about a third of a second. Longer and it stops being a punch and starts being a wait.`);
+      if(dip>0 && when){ dips[when]=(dips[when]||0)+1; }
+    });
+    for(const [w,n] of Object.entries(dips)) if(n>1){
+      DATA[F].rows.forEach((r,ri)=>{
+        if(norm(r[W])===w && parseFloat(r[SL])>0 && !PROBS.some(p=>p.file===F&&p.row===ri&&p.col==="Slowmo"))
+          add(F,ri,"Slowmo",`${n} rows of "${(r[W]||"").trim()}" ask for slow-motion.`,
+            `Harmless — the game takes the LONGEST and makes one dip out of it. But only one of them is doing anything, so you may as well zero the others.`);
+      });
+    }
+  }
+  /* 11. Seasons shelf */
+  if(DATA["Seasons.csv"]){
+    const F="Seasons.csv", R=at(F,"Row"), C=at(F,"Column"), N=at(F,"Name");
+    const seen={};
+    DATA[F].rows.forEach((r,ri)=>{
+      const k=String(r[R]).trim()+"|"+String(r[C]).trim();
+      if(!String(r[R]).trim()) return;
+      if(seen[k]!==undefined) add(F,ri,"Column",`${r[N]||"This season"} sits on top of ${DATA[F].rows[seen[k]][N]||"another one"}.`,
+        `Two tiles at Row ${r[R]}, Column ${r[C]} are drawn in the same place. Move one.`);
+      else seen[k]=ri;
+    });
+  }
+  /* 12. soft notes — things that are legal but usually not what you meant */
+  {
+    /* a class that has Stars, and so will appear on the class-select screen,
+       but no ClassInfo row to describe it. Perfectly legal; it just turns up
+       with no blurb and no banner. */
+    const described=ids("ClassInfo.csv","Class");
+    if(described.size){
+      const starred=new Set(), where={};
+      unitFiles().forEach(f=>{
+        const u=at(f,"Unit Type"), pt=at(f,"Player Type");
+        DATA[f].rows.forEach((r,ri)=>{
+          if(pt>=0 && norm(r[pt])!=="star") return;
+          const k=norm(r[u]); if(!k) return;
+          if(!starred.has(k)){ starred.add(k); where[k]={f,ri,raw:(r[u]||"").trim()}; }
+        });
+      });
+      for(const k of starred) if(!described.has(k)){
+        const w=where[k];
+        add(w.f,w.ri,"Unit Type",`"${w.raw}" has Star players but no row in ClassInfo.csv.`,
+          `It will still be offered on the class-select screen — it just turns up with no description and no banner. Add a row to ClassInfo.csv to give it both.`);
+      }
+    }
+    /* Music and Background columns naming something Audio/asset-wise unknown
+       is not an error: the game looks for a FILE of that name. Say so once
+       rather than flagging every row. */
+    const cues=ids("Audio.csv","ID");
+    const M=at("Biomes.csv","Music");
+    if(M>=0 && cues.size) DATA["Biomes.csv"].rows.forEach((r,ri)=>{
+      const v=(r[M]||"").trim(); if(!v) return;
+      if(!cues.has(norm(v)))
+        add("Biomes.csv",ri,"Music",`"${v}" has no row in Audio.csv.`,
+          `The game will look for a file called that in assets/music/ instead, which works. A row would give it a volume, a fade and the Music slider.`);
+    });
+  }
   paintProbs();
 }
+
 
 function paintProbs(){
   const tag=$("#probtag"), list=$("#problist");
@@ -554,20 +1165,22 @@ function paintProbs(){
   if(SAMPLE && PROBS.length){
     const s=document.createElement("div"); s.className="prob";
     s.innerHTML='<span class="tag ok">sample</span><div><span>Most of these are the example set\'s own fault.</span>'+
-      '<span class="fix">It is only the first six rows of each of your real files, so plenty of ids point at rows that were trimmed off. '+
+      '<span class="fix">It is only the first four rows of each of your real files, so plenty of ids point at rows that were trimmed off. '+
       'Press <b>Load CSVs</b> and choose everything in your <b>data</b> folder — then this list is about your game.</span></div>';
     list.appendChild(s);
   }
   if(!PROBS.length){
     const d=document.createElement("div"); d.className="prob";
-    d.innerHTML='<span style="color:var(--dim)">Every id is unique, every reference resolves, every counter that is read is written somewhere, and every card sits on its proper rung.</span>';
+    d.innerHTML='<span style="color:var(--dim)">Every id is unique, every reference resolves, every counter that is read is written somewhere, '+
+      'every card sits on its proper rung, every trait has something that fires it, and every breakpoint does something the game knows how to do.</span>';
     list.appendChild(d); return;
   }
-  PROBS.slice(0,120).forEach(p=>{
+  PROBS.slice(0,160).forEach(p=>{
     const d=document.createElement("div"); d.className="prob";
     const b=document.createElement("b"); b.textContent=`${p.file.replace(/\.csv$/,"")} ${p.row+2}`;
     const body=document.createElement("div");
-    body.innerHTML=`<span>${p.msg}</span><span class="fix">${p.fix||""}</span>`;
+    body.innerHTML=`<span></span><span class="fix">${p.fix||""}</span>`;
+    body.children[0].textContent=p.msg;
     const j=document.createElement("button"); j.className="jump"; j.textContent="show";
     j.onclick=()=>{
       CUR=p.file; paintRail(); paintTable();
@@ -577,6 +1190,11 @@ function paintProbs(){
     d.appendChild(b); d.appendChild(body); d.appendChild(j);
     list.appendChild(d);
   });
+  if(PROBS.length>160){
+    const d=document.createElement("div"); d.className="prob";
+    d.innerHTML=`<span style="color:var(--dim)">…and ${PROBS.length-160} more. Fix a few and press Check again.</span>`;
+    list.appendChild(d);
+  }
 }
 
 /* ---------- loading ---------- */
@@ -599,7 +1217,7 @@ function loadFiles(list){
     rd.readAsText(f);
   });
   function done(){
-    if(n){ SAMPLE=false; CUR=CUR&&DATA[CUR]?CUR:Object.keys(DATA)[0]; save(); paintRail(); paintTable(); check(); }
+    if(n){ SAMPLE=false; CUR=(CUR&&(DATA[CUR]||VIEWS[CUR]))?CUR:Object.keys(DATA)[0]; save(); paintRail(); paintTable(); check(); }
     closeVeil();
     if(!n) alert("Nothing loaded — pick .csv files.");
   }
@@ -619,7 +1237,7 @@ function showLoad(){
   const v=veil(`<header><h3>Load your CSVs</h3></header>
     <div class="in">
       <div class="drop" id="drop"><b>Drop .csv files here</b><br>or use the button below. Pick them all at once — the workbench needs to see them together to check that they line up.</div>
-      <p class="note">Your project's files live in <span class="kbd">project_sb/data/</span>. Nothing is uploaded anywhere; this all happens in your browser, and your work is kept between visits.</p>
+      <p class="note">Your project's files live in <span class="kbd">project_sb/data/</span>. Take the tutorial folder too if you want it checked. Nothing is uploaded anywhere; this all happens in your browser, and your work is kept between visits.</p>
     </div>
     <footer><button class="btn key" id="bPickGo">Choose files</button>
       <button class="btn" id="bSeed">Start from the example set</button>
@@ -643,14 +1261,17 @@ function showExport(only){
     <div class="in">
       <select id="which" style="width:100%;padding:8px;background:var(--paper);border:1px solid var(--line);border-radius:3px;margin-bottom:10px"></select>
       <textarea class="csv" id="out" spellcheck="false"></textarea>
-      <p class="note"><b>Copy</b> puts the file on your clipboard — paste it into the real <span class="kbd">.csv</span> and save. <b>Download</b> writes the file directly, and works when you have opened this workbench from your own computer.</p>
+      <p class="note"><b>Copy</b> puts the file on your clipboard — paste it into the real <span class="kbd">.csv</span> and save.
+      <b>Download</b> writes the file directly. <b>Download all</b> gives you every file one after another, which your browser may ask about once.
+      <br>A file you have just created also needs a <span class="kbd">.csv.import</span> beside it — see <b>Where things go</b>.</p>
     </div>
     <footer><button class="btn key" id="bCopy">Copy</button>
       <button class="btn" id="bDown">Download</button>
+      <button class="btn" id="bAll">Download all</button>
       <span id="said" style="color:var(--pitch);font-size:13px"></span>
       <div class="grow"></div><button class="btn" id="bClose2">Close</button></footer>`);
   const sel=v.querySelector("#which"), out=v.querySelector("#out");
-  (only?names:Object.keys(DATA).sort()).forEach(n=>{
+  names.forEach(n=>{
     const o=document.createElement("option"); o.value=n; o.textContent=n; sel.appendChild(o);
   });
   const show=()=>{ out.value=toCSV(sel.value); };
@@ -662,12 +1283,20 @@ function showExport(only){
     v.querySelector("#said").textContent=`${sel.value} copied.`;
     setTimeout(()=>{const s=v.querySelector("#said"); if(s) s.textContent="";},2600);
   };
-  v.querySelector("#bDown").onclick=()=>{
-    const blob=new Blob([out.value],{type:"text/csv"});
+  const drop=(name,text)=>{
+    const blob=new Blob([text],{type:"text/csv"});
     const a=document.createElement("a");
-    a.href=URL.createObjectURL(blob); a.download=sel.value;
+    a.href=URL.createObjectURL(blob); a.download=name;
     document.body.appendChild(a); a.click(); a.remove();
+  };
+  v.querySelector("#bDown").onclick=()=>{
+    drop(sel.value, out.value);
     v.querySelector("#said").textContent="If nothing happened, use Copy instead.";
+  };
+  v.querySelector("#bAll").onclick=()=>{
+    const all=Object.keys(DATA).sort();
+    all.forEach((n,i)=>setTimeout(()=>drop(n,toCSV(n)), i*180));
+    v.querySelector("#said").textContent=`${all.length} files on their way.`;
   };
 }
 
