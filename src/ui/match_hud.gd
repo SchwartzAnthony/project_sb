@@ -9,8 +9,6 @@ extends HBoxContainer
 #    1x 2x 4x 8x   how fast time runs. Number keys 1-4 do the same.
 #                  Hold F for a blast of 20x, let go to drop back.
 #
-#  and, down beside the cards where the choosing happens:
-#
 #    AUTO          the game plays for you — it picks your cards at every
 #                  PLAY MAKER and every Star swap, throws the clash and
 #                  chooses attack or defend, so you can sit and watch a
@@ -68,11 +66,6 @@ var _turbo_held: bool = false
 var _speed_buttons: Array[Button] = []
 var _auto_button: Button = null
 
-## Worked out once in setup() and then asked, rather than re-tested on every
-## repaint — a Requires condition can touch the save file.
-var _unlocked := false
-
-
 # =============================================================
 #  IS AUTO-PICK ON?  — the only thing main_scene needs to ask
 # =============================================================
@@ -103,7 +96,6 @@ func setup(database: CardDatabase, save: GameState) -> void:
 	# flag at is thrown away here; only Tuning.csv can start a match on AUTO,
 	# and it is off unless you say otherwise.
 	set_auto_pick(state, db.tune_bool("auto_pick", false))
-	_unlocked = _speed_buttons_allowed()
 
 	add_theme_constant_override("separation", 5)
 	_build()
@@ -132,7 +124,7 @@ func _build() -> void:
 		# NORMAL SPEED IS NEVER LOCKED. Whatever the first step in
 		# game_speed_steps is, it is the speed the match already runs at, so
 		# locking it would be locking the game.
-		var locked := not _unlocked and not is_equal_approx(value, _steps[0])
+		var locked := GameSpeed.step_locked(value, db, state)
 		button.set_meta("speed", value)
 		button.set_meta("locked", locked)
 		button.tooltip_text = _locked_words() if locked \
@@ -141,50 +133,30 @@ func _build() -> void:
 		add_child(button)
 		_speed_buttons.append(button)
 
-	# THE AUTO BUTTON IS BUILT HERE AND PARENTED SOMEWHERE ELSE. It belongs
-	# beside the cards, because that is the thing it takes over — see
-	# take_auto_button() and main_scene's _place_auto_button().
+	# ============ AUTO LIVES HERE, IN THE CORNER ============
+	#
+	# It was tried down beside the cards for one round, on the theory that a
+	# button belongs next to the thing it takes over. In practice a button
+	# sitting in the middle of the pitch for ninety minutes is something you
+	# look at every time the ball goes past it, and it is also already in the
+	# pause menu — so there was never a moment you could not reach it.
+	#
+	# Back in the corner, where a control you use twice a match belongs.
+	var spacer := Control.new()
+	spacer.custom_minimum_size = Vector2(10, 0)
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(spacer)
+
 	_auto_button = _make_button("AUTO", 66.0)
 	_auto_button.tooltip_text = "Let the game play for you. Your cards and the clash buttons lock while it is on.\nPress AUTO or A to take back over."
 	_auto_button.pressed.connect(_toggle_auto)
+	add_child(_auto_button)
 
 
-## The AUTO button, for whoever is going to put it on the screen. It is not a
-## child of this strip — it lives beside the card row, where the choosing it
-## takes over from you actually happens.
-##
-## Returns null if it has already been taken, so calling this twice is safe.
-func take_auto_button() -> Button:
-	var button := _auto_button
-	if button != null and button.get_parent() != null:
-		return null
-	return button
-
-
-## What a locked speed button says. One row of Tuning.csv, so the wording is
-## yours and matches whatever you called the unlock.
+## THE RULE ITSELF IS IN GameSpeed, not here — the pause menu has a second
+## set of these buttons and has to obey exactly the same thing.
 func _locked_words() -> String:
-	if db == null:
-		return "Not unlocked yet."
-	return db.tune_text("game_speed_locked_words",
-		"Fast forward is not unlocked yet.")
-
-
-## Are the speed buttons on the HUD at all?
-##
-## `game_speed_buttons` is the plain on/off. `game_speed_buttons_needs` is a
-## Requires condition in the usual words, so you can hand them over later:
-## put <code>unlocked:Fast Forward</code> in it and give that unlock to a
-## talent, a season reward or a Progression row.
-func _speed_buttons_allowed() -> bool:
-	if db == null:
-		return false
-	if not db.tune_bool("game_speed_buttons", false):
-		return false
-	var need := db.tune_text("game_speed_buttons_needs", "").strip_edges()
-	if need == "" or state == null:
-		return true
-	return DialogueGrammar.test(need, state)
+	return GameSpeed.locked_words(db)
 
 
 func _make_button(text: String, width: float) -> Button:
@@ -204,7 +176,7 @@ func _choose(value: float) -> void:
 	# LOCKED MEANS IT SAYS SO. Not that it does nothing — a button that does
 	# nothing when you press it reads as a broken game, and the player has no
 	# way of learning that there is something here to earn.
-	if not _unlocked and not _steps.is_empty() and not is_equal_approx(value, _steps[0]):
+	if GameSpeed.step_locked(value, db, state):
 		speed_locked.emit(_locked_words())
 		print("[speed] %s is locked. %s" % [GameSpeed.label_for(value), _locked_words()])
 		return

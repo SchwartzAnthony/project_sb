@@ -43,6 +43,8 @@ var _quit_button: Button
 var _quit_armed: bool = false
 var _steps: Array[float] = []
 var _speed_buttons: Array[Button] = []
+## The line under the speed row that says why a locked one did nothing.
+var _note: Label
 var _auto_button: Button
 
 
@@ -149,14 +151,36 @@ func _build() -> void:
 	speed_row.add_theme_constant_override("separation", 6)
 	_panel.add_child(speed_row)
 
+	# ============ THE SAME LOCK AS THE HUD ============
+	#
+	# This screen used to hand out 4x and 8x freely while the strip in the
+	# corner had them greyed — which does not read as a half-finished feature,
+	# it reads as the lock being decoration. The rule is GameSpeed's, and both
+	# sets of buttons ask it.
 	_steps = GameSpeed.steps(db)
 	for value in _steps:
 		var button := _make_button(GameSpeed.label_for(value), Vector2(62, 34))
+		var locked := GameSpeed.step_locked(value, db, state)
+		button.set_meta("locked", locked)
+		button.tooltip_text = GameSpeed.locked_words(db) if locked \
+			else "Run the game at %s" % GameSpeed.label_for(value)
 		button.pressed.connect(func() -> void:
+			# NOT `disabled`: a disabled button swallows the click and so
+			# cannot tell you why nothing happened.
+			if GameSpeed.step_locked(value, db, state):
+				_note.text = GameSpeed.locked_words(db)
+				return
+			_note.text = ""
 			GameSpeed.set_speed(value)
 			_refresh())
 		speed_row.add_child(button)
 		_speed_buttons.append(button)
+
+	_note = Label.new()
+	_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_note.add_theme_font_size_override("font_size", 13)
+	_note.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
+	_panel.add_child(_note)
 
 	# --- auto ---
 	_panel.add_child(_section("WATCHING"))
@@ -214,7 +238,11 @@ func _on_quit() -> void:
 
 func _refresh() -> void:
 	for i in _speed_buttons.size():
-		_paint(_speed_buttons[i], is_equal_approx(_steps[i], GameSpeed.current()))
+		var button := _speed_buttons[i]
+		if bool(button.get_meta("locked", false)):
+			_paint_locked(button)
+			continue
+		_paint(button, is_equal_approx(_steps[i], GameSpeed.current()))
 
 	if _auto_button != null:
 		var on := MatchHUD.auto_pick_on(state)
@@ -227,7 +255,17 @@ func _refresh() -> void:
 		_warning.text = ""
 
 
+## A locked speed keeps its box and its label and goes grey and half-faded,
+## so it reads as "later" rather than as "broken".
+func _paint_locked(button: Button) -> void:
+	button.modulate = Color(1, 1, 1, 0.45)
+	button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
+		MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_TEXT_DIM))
+	button.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+
+
 func _paint(button: Button, lit: bool) -> void:
+	button.modulate = Color(1, 1, 1, 1)
 	button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
 		MenuSupport.COLOUR_SLOT_EMPTY if lit else MenuSupport.COLOUR_PANEL,
 		MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT_DIM))

@@ -1,14 +1,17 @@
-ID,Name,Kind,Tab,Stack,Art,Use,Target,Requires,Description
-reed,Reed,material,resources,99,reed,,,,Cut from the marsh. The Brewery takes it by the armful.
-bog_iron,Bog Iron,material,resources,99,bog_iron,,,,"Heavy, rusted, and worth melting down."
-ash_glass,Ash Glass,material,resources,99,ash_glass,,,,Fused in the burn. Sharp and light.
-deep_salt,Deep Salt,material,resources,99,deep_salt,,,,Scraped off the walls of the Hollowdeep.
-coins,Coins,currency,resources,999,coins,,,,What everyone takes.
-smelling_salts,Smelling Salts,kit,items,5,salts,revive,downed,,"Brings one knocked-out player back on, at half stamina."
-field_bandage,Field Bandage,kit,items,9,bandage,heal:6,ally,,Six stamina back to one player still standing.
-team_orange,Half-Time Orange,kit,items,5,orange,heal:3;all,ally,,Three stamina back to everyone still on their feet.
-throwing_stone,Throwing Stone,kit,items,9,stone,hit:4,enemy,,Four damage straight into whatever you are focusing.
-recipe_marsh_ale,Marsh Ale Recipe,recipe,keys,1,scroll,,,,Teaches the Brewery to pour Marsh Ale.
-recipe_cinder_stout,Cinder Stout Recipe,recipe,keys,1,scroll,,,,Teaches the Brewery to pour Cinder Stout.
-recipe_hollow_porter,Hollow Porter Recipe,recipe,keys,1,scroll,,,,Teaches the Brewery to pour Hollow Porter.
-marsh_key,Warden’s Key,key,keys,1,key,,,,"Taken off the Reed Warden. The gate at the end of the marsh knows it. YOUR EXAMPLE OF A KEY - Kind is key, so it lands in the Keys tab, it has no Use and it is never spent. Give one out with an On Win or a Drops row"
+ID,Name,Kind,Tab,Stack,Art,Use,Tags,Target,Requires,Description
+reed,Reed,material,resources,99,reed,,,,,Cut from the marsh. The Brewery takes it by the armful.
+bog_iron,Bog Iron,material,resources,99,bog_iron,,,,,"Heavy, rusted, and worth melting down."
+ash_glass,Ash Glass,material,resources,99,ash_glass,,,,,Fused in the burn. Sharp and light.
+deep_salt,Deep Salt,material,resources,99,deep_salt,,,,,Scraped off the walls of the Hollowdeep.
+coins,Coins,currency,resources,999,coins,,,,,What everyone takes.
+smelling_salts,Smelling Salts,kit,items,5,salts,revive,adventure_consume,downed,,"Brings one knocked-out player back on, at half stamina."
+field_bandage,Field Bandage,kit,items,9,bandage,heal:6,adventure_consume,ally,,Six stamina back to one player still standing.
+team_orange,Half-Time Orange,kit,items,5,orange,heal:3;all,,ally,,Three stamina back to everyone still on their feet.
+throwing_stone,Throwing Stone,kit,items,9,stone,hit:4,adventure_consume,enemy,,Four damage straight into whatever you are focusing.
+recipe_marsh_ale,Marsh Ale Recipe,recipe,keys,1,scroll,,,,,Teaches the Brewery to pour Marsh Ale.
+recipe_cinder_stout,Cinder Stout Recipe,recipe,keys,1,scroll,,,,,Teaches the Brewery to pour Cinder Stout.
+recipe_hollow_porter,Hollow Porter Recipe,recipe,keys,1,scroll,,,,,Teaches the Brewery to pour Hollow Porter.
+marsh_key,Warden’s Key,key,keys,1,key,,,,,"Taken off the Reed Warden. The gate at the end of the marsh knows it. YOUR EXAMPLE OF A KEY - Kind is key, so it lands in the Keys tab, it has no Use and it is never spent. Give one out with an On Win or a Drops row"
+brew_fire,Bottled Fire Brew,brew,items,9,brew_fire,brew:fire,match_consume,card,,"Ash on the tongue. Used on one player during the draft: they count as a Brandteufel until the final whistle. YOUR EXAMPLE OF A MADE ITEM - the Brewery bottles it (see Buildings.csv), the bag carries it, and Use brew:fire names the row of Brews.csv it pours"
+brew_water,Bottled Water Brew,brew,items,9,brew_water,brew:water,match_consume,card,,Cold and deep. Used on one player during the draft: they count as a Lorelei until the final whistle. Bottled at the Cold Cellar
+brew_keeper,Bottled Keeper's Tonic,brew,items,9,brew_keeper,brew:keeper,match_consume,card,,"Thick and bitter. Anyone may drink it - no class changes, they simply gain a defend ability for the match"

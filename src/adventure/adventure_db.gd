@@ -262,6 +262,12 @@ func _read_items(rows: Array, columns: Dictionary, where: String) -> void:
 			# and it is worked out from Kind — so an older Items.csv still
 			# sorts itself correctly. See tab_of() below.
 			"tab": _cell(row, columns, "tab").to_lower(),
+			# WHERE IT MAY BE USED — see tags_of() below. A semicolon list;
+			# `adventure_consume` and `match_consume` are the two the game
+			# reads, and anything else you write is yours to test with a
+			# Requires. No tag at all means "at the bar, before you set off",
+			# which is most things.
+			"tags": _cell(row, columns, "tags").to_lower(),
 			"where": "%s row %d" % [where, i + 1],
 		}
 
@@ -486,7 +492,7 @@ static func tab_of(entry: Dictionary) -> String:
 ## `brews` adds Brews.csv to the Items tab, because a brew is a thing you use
 ## on a player and the player should not have to remember that brews live
 ## somewhere else. Pass false where brews make no sense.
-func bag(state: GameState, brews: bool = true) -> Dictionary:
+func bag(state: GameState) -> Dictionary:
 	var out := {"items": [], "resources": [], "keys": []}
 	if state == null:
 		return out
@@ -500,12 +506,7 @@ func bag(state: GameState, brews: bool = true) -> Dictionary:
 			continue
 		var copy := entry.duplicate()
 		copy["held"] = held
-		copy["is_brew"] = false
 		(out[tab_of(entry)] as Array).append(copy)
-
-	if brews:
-		for entry in _brews_carried(state):
-			(out["items"] as Array).append(entry)
 
 	for tab in TABS:
 		(out[tab] as Array).sort_custom(func(a, b) -> bool:
@@ -513,51 +514,56 @@ func bag(state: GameState, brews: bool = true) -> Dictionary:
 	return out
 
 
-## ============ BREWS IN THE BAG ============
-##
-## A brew is not a thing you pick up — it is a thing you POUR, and pouring it
-## spends materials. Brews.csv already says what one costs and what must be
-## unlocked before it can be poured at all, so nothing new is stored anywhere:
-## a brew is "in your bag" when its Requires passes, and it is usable when you
-## are carrying the materials it costs.
-##
-## They are dressed as item rows so the Inventory can show them beside
-## everything else without knowing what a brew is. `affordable` is false for
-## one you cannot pay for — it is still shown, greyed, with the price, because
-## a brew you are two Reed short of is a thing to go and get.
-func _brews_carried(state: GameState) -> Array[Dictionary]:
-	var out: Array[Dictionary] = []
-	if state == null:
-		return out
-	var pub := BrewDB.get_db()
-	if pub == null:
-		return out
+# =============================================================
+#  TAGS — WHERE A THING MAY BE USED
+#
+#  The `Tags` column of Items.csv, a semicolon list. Two words mean something
+#  to the game today; anything else you write is yours to test with a
+#  Requires, and is ignored here.
+#
+#      adventure_consume   may be used DURING an Adventure fight
+#      match_consume       may be used ON A CARD during the match draft
+#
+#  ============ NO TAG MEANS THE BAR ============
+#
+#  Most things are drunk or eaten at the bar BEFORE the team sets off, not in
+#  the middle of a fight. That is the default, so an item with no tag is not
+#  broken and is not clickable either — it simply is not a thing you use out
+#  on the pitch.
+#
+#  This is also why a brew is an ordinary item now. A brew is MADE at the
+#  Brewery, bottled, and carried; the bag holds the bottle. It is not
+#  something you conjure out of raw reed from inside your own inventory,
+#  which is what it briefly was and which skipped the building that exists to
+#  make it.
+# =============================================================
 
-	for brew in pub.available_for(state):
-		var price := BrewDB.cost_text(brew, state)
-		var words := String(brew.get("description", ""))
-		if price != "":
-			words += "\n\nCosts %s." % price
-		var becomes := String(brew.get("becomes", "")).strip_edges()
-		if becomes != "":
-			words += "\nThe card counts as %s until the final whistle." % becomes
-		out.append({
-			"id": String(brew.get("id", "")),
-			"name": String(brew.get("name", brew.get("id", "?"))),
-			"kind": "brew",
-			"art": String(brew.get("artwork", "")),
-			"use": "brew",
-			"target": "card",
-			"requires": "",
-			"description": words,
-			"held": 1,
-			"is_brew": true,
-			"affordable": BrewDB.can_afford(brew, state),
-			"brew": brew,
-		})
+## The tags on one item row, lower-cased and tidied.
+static func tags_of(entry: Dictionary) -> Array[String]:
+	var out: Array[String] = []
+	for piece in String(entry.get("tags", "")).split(";", false):
+		var word := String(piece).strip_edges().to_lower().replace(" ", "_")
+		if word != "":
+			out.append(word)
 	return out
 
 
+static func has_tag(entry: Dictionary, tag: String) -> bool:
+	return tags_of(entry).has(tag.to_lower())
+
+
+## WHAT A BREW ITEM POURS. `Use` of `brew:fire` names a row of Brews.csv;
+## anything else is not a brew and this returns "".
+static func brew_in_use(entry: Dictionary) -> String:
+	var use := String(entry.get("use", "")).strip_edges().to_lower()
+	if not use.begins_with("brew:"):
+		return ""
+	return use.substr(5).strip_edges()
+
+
+## THE THINGS YOU MAY USE IN A FIGHT. A `Use` is not enough on its own — it
+## also has to be tagged `adventure_consume`, because most things are taken at
+## the bar before you set off rather than in the middle of a wave.
 func usable_items(state: GameState) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	if state == null:
@@ -565,6 +571,8 @@ func usable_items(state: GameState) -> Array[Dictionary]:
 	for key in items.keys():
 		var entry: Dictionary = items[key]
 		if String(entry["use"]).strip_edges() == "":
+			continue
+		if not has_tag(entry, "adventure_consume"):
 			continue
 		var held := state.count(String(entry["id"]))
 		if held <= 0:

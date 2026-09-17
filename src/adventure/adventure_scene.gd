@@ -339,14 +339,28 @@ func _spawn_party() -> void:
 ## A loose running shape rather than a grid. Slots are staggered on x as
 ## well as y, and each player drifts around its own slot (see the walker),
 ## so the party crosses over itself as it runs instead of marching in rows.
+##
+## ============ HOW MUCH ROOM A PARTY NEEDS ============
+##
+## Twelve players now carry a name over their head and a Tier/Power window at
+## their feet, which is a great deal wider than the player is. Four rows
+## across a 540-pixel band put those labels on top of each other.
+##
+## Both numbers are Tuning.csv rows so the shape can be opened out further
+## once the black background becomes a forest or a river bank and the lane
+## can afford to be deeper:
+##
+##     adventure_party_rows      how many across the band. 5 out of the box
+##     adventure_party_spacing   pixels between columns, back down the lane
 func _slot_for(index: int) -> Vector2:
-	var lanes := 4
+	var lanes := maxi(1, db.tune_int("adventure_party_rows", 5))
+	var spacing := db.tune_float("adventure_party_spacing", 108.0)
 	var seat := index % lanes
 	var column := index / lanes
 	# Odd columns sit half a lane lower, which breaks up the rows.
 	var stagger := 0.5 if column % 2 == 1 else 0.0
 	var y := LANE_TOP + 52.0 + (float(seat) + stagger) * (LANE_HEIGHT - 104.0) / float(lanes)
-	return Vector2(PARTY_X - column * 92.0 - (seat % 2) * 26.0, y)
+	return Vector2(PARTY_X - column * spacing - (seat % 2) * 26.0, y)
 
 
 ## Only for running this scene on its own — the first legal squad it can build.

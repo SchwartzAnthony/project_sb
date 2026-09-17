@@ -301,16 +301,29 @@ top of it; either one is dropped for a single pass if obeying it would leave
 the carrier with nobody at all to pass to, because a rule about what looks
 right is never worth freezing the match over.
 
-**At a restart both sides walk back into shape first.** The break is ended the
-moment the ball is dead rather than when play resumes, and then the game holds
-for a couple of seconds — the keeper stands there with the ball while everyone
-gets home. Nobody sprints; they simply set off earlier and the restart waits.
+**At a restart the keeper is left alone and everybody walks home.** The break
+is ended the moment the ball is dead rather than when play resumes, and then
+the whole pitch goes into a **restart hold**: nothing chases, nothing presses,
+nothing marks, and every outfield player walks back to their own starting
+position. The keeper stands there with the ball. When they kick it the hold
+ends mid-stride and the ordinary rules take over.
+
+That state had to exist on its own. Once the keeper has the ball, the ordinary
+rules say *"the ball is in my quarter and the other side has it, go and win
+it"* — so the far side's Tier I and Tier IV both set off for the keeper and
+stood over him, which is not a thing that happens in football.
 
 | Tuning row | |
 |---|---|
 | `goal_pause_seconds` | the hold after a goal. `2.0` |
 | `save_pause_seconds` | the hold before the keeper kicks. `2.0` |
+| `restart_walk_boost` | how briskly they walk home, as a multiple of walk speed. `1.6` is purposeful; `1` is an amble; past `2.5` it looks like a jog |
 | `goal_kick_tier` | which tier the keeper aims at. `III` |
+
+> `tools/restart_check.gd` is the test for this. It plays a real match with
+> AUTO on and prints, every second, how far everyone moved and how many
+> outfield players are standing over a keeper. Six was normal before; two is
+> normal now, and two is a side's own defenders in ordinary play.
 
 ### The kick-off
 
@@ -361,32 +374,35 @@ coin swells and turns gold and the chip that named it pulses — and it is a
 | `coin_exact_them_words` | the same when they do |
 | `coin_exact_seconds` | how long the celebration is held. `0.9` |
 
-### The speed buttons
+### The speed buttons, and AUTO
 
-**1x is always there. 2x, 4x and 8x are shown greyed until they are unlocked,
-and pressing a locked one says so** rather than doing nothing.
+There are **two sets of speed buttons** — the strip in the top-left corner and
+the pause menu behind Escape — and they obey exactly the same rule, because
+the rule lives in `game_speed.gd` rather than in either screen. (It used to
+live in the HUD, so the corner locked 4x and the pause menu handed it over,
+which does not read as a half-finished feature: it reads as the lock being
+decoration.)
 
-That is deliberate: a button you cannot press yet is a thing to want, and a
-button that is not there is a feature the player never learns exists. It is
-also not `disabled` in the Godot sense — a disabled button swallows the click
-and so cannot tell you why nothing happened.
+**1x always works. 2x, 4x and 8x are shown greyed until unlocked, and pressing
+a locked one says so** rather than doing nothing. A button you cannot press yet
+is a thing to want; a button that is not there is a feature the player never
+learns exists. They are deliberately not `disabled` in Godot's sense either —
+a disabled button swallows the click and so cannot tell you why nothing
+happened.
 
 | Tuning row | |
 |---|---|
 | `game_speed_buttons` | `true` and 2x / 4x / 8x work |
-| `game_speed_buttons_needs` | a `Requires` condition that must pass as well — e.g. `unlocked:Fast Forward`, handed out by a talent or a season reward |
+| `game_speed_buttons_needs` | a `Requires` condition that must pass as well — e.g. `unlocked:Fast Forward`, handed out by a talent or an achievement |
 | `game_speed_locked_words` | what a locked one says when pressed. Word it to match whatever you called the unlock |
 
 **Holding the mouse button or the spacebar through a duel still hurries it
 along whatever these say.** That is a different thing and it is always on.
 
-**AUTO sits beside the cards**, not in the corner. It is the button that takes
-the choosing over from you, so it belongs where the choosing happens.
-
-| Tuning row | |
-|---|---|
-| `auto_button_x` | across the screen. `0.5` is the middle |
-| `auto_button_y` | down the screen. **Leave it blank** and it follows the card row — half a card below `card_row_y` — so moving the cards moves the button with them |
+**AUTO is in the corner, beside the speed buttons**, and also in the pause
+menu. It was tried down beside the cards for one round; a button sitting in
+the middle of the pitch for ninety minutes is something you look at every time
+the ball goes past it, and it was reachable from Escape the whole time anyway.
 
 ### How a player is labelled — the nameplate
 
@@ -708,12 +724,26 @@ so a repeat run is genuinely tougher rather than just longer.
 
 ### `data/Items.csv` and `data/Drops.csv`
 
-Items: `ID`, `Name`, `Kind`, **`Tab`**, `Stack`, `Art`, `Use`, `Target`,
-`Requires`, `Description`. Every item is a counter in the save, so anything
-that can test a counter can test an item.
+Items: `ID`, `Name`, `Kind`, **`Tab`**, `Stack`, `Art`, `Use`, **`Tags`**,
+`Target`, `Requires`, `Description`. Every item is a counter in the save, so
+anything that can test a counter can test an item.
 
-`Use` is what happens when it is used in a fight — `revive`, `heal:6`,
-`heal:3;all`, `hit:4`. Blank means it is not usable.
+`Use` is **what it does**: `revive`, `heal:6`, `heal:3;all`, `hit:4`, or
+`brew:fire` to lay that row of `Brews.csv` over one player. Blank means it is
+not usable at all.
+
+`Tags` is **where you are allowed to do it** — a semicolon list:
+
+| Tag | |
+|---|---|
+| `adventure_consume` | may be used during an Adventure fight |
+| `match_consume` | may be used on a player during the match draft |
+| *no tag* | **the normal case.** Taken at the bar before the team sets off |
+| anything else | yours. The game ignores it; test it with a `Requires` |
+
+A `Use` with no tag is not broken — it is simply not something you pull out
+mid-wave. The Inventory shows it greyed with a line saying where it *can* be
+used, rather than hiding it or letting it do nothing.
 
 Drops: `Table`, `Item`, `Amount`, `Chance` (0–1), `Requires`. One table is
 several rows sharing a `Table` name.
@@ -753,36 +783,46 @@ and about one on Keys that has a `Use` (something that can never happen).
 > was the only thing in the game that looked like that. It is gone; everything
 > it did, this does.
 
-#### A brew is in the bag without being an item
+#### A brew is an ordinary item — a building makes it
 
-You never pick a brew up. `Brews.csv` already says what one **costs** in
-materials and what must be **unlocked** before it can be poured, so a brew is
-in your bag when its `Requires` passes and is clickable when you can pay its
-`Cost`. Nothing new is stored anywhere. One you cannot afford is still shown,
-greyed, with the price — a brew you are two Reed short of is a thing to go and
-get.
+**Nothing is made inside the inventory.** A brew is bottled at a building and
+carried; the bag holds the bottle. That is the difference between an inventory
+and a workshop, and it is why the whole thing is three cells:
 
-#### Pouring one on a card mid-draft
+```
+Buildings.csv   brewery
+  Requires      unlocked:Brewery;count:reed>=6
+  Action        count:reed-6;count:brew_fire+1;announce:A Fire Brew is bottled.
 
-Every card in the match draft has a small **flask in its top-left corner**.
-Pressing the card chooses that player; pressing the flask opens the Inventory
-and pours a brew on them there and then — the card changes class, art and
-abilities while you are still deciding.
+Items.csv       brew_fire
+  Use           brew:fire          <- names a row of Brews.csv
+  Tags          match_consume      <- used on a player, during the draft
+```
 
-It is the same pour the Pub does: the same cost, the same unlock, the same
-`For Class` rule (a Fire Brew written `For Class: Lorelei` is refused on a
-Brandteufel, out loud). It is always a **one-match** brew — a permanent
-decision in the middle of a match is not something anybody meant to make — so
-the final whistle takes it off again, which is the same line that has always
-cleared them.
+`The Cold Cellar` is the second worked example: a different unlock, two
+materials instead of one, and a different bottle out of the other end. A new
+building making a new consumable is nine cells and no code.
+
+#### Using one on a card mid-draft
+
+Every card in the match draft has a small **flask in its top-left corner**
+(the Star badge is top right). Pressing the card chooses that player; pressing
+the flask opens the Inventory showing what you are carrying that is tagged
+`match_consume`, and using one **spends the bottle** and changes the card's
+class, art and abilities while you are still deciding.
+
+The `For Class` rule still applies — a Fire Brew written `For Class: Lorelei`
+is refused on a Brandteufel, out loud, and **the bottle is not spent**. It is
+always a **one-match** brew, so the final whistle takes it off again, which is
+the same line that has always cleared them.
 
 | Tuning row | |
 |---|---|
-| `draft_brew_button` | `false` takes the flask off the cards and brews go back to being poured at the Pub only |
+| `draft_brew_button` | `false` takes the flask off the cards |
 
 ---
 
-## 9. `data/Tuning.csv` — 233 numbers
+## 9. `data/Tuning.csv` — 234 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -1005,6 +1045,16 @@ empty bag photographs as an empty box, which tells you nothing about how a
 full one lays out.
 
 ```
+godot --headless --script res://tools/restart_check.gd
+```
+Plays a real match with AUTO on and prints, every second, **how far everyone
+moved** and **how many outfield players are standing over a keeper**. Those
+are the two things a screenshot cannot show: eleven players standing still and
+eleven players running look identical in a still picture, and so do a shape
+and a scrum. It stops with STUCK if six seconds of live play go by with nobody
+moving.
+
+```
 godot --headless --script res://tools/clock_check.gd
 ```
 Fires every slow-motion moment in overlapping bursts and checks
@@ -1073,7 +1123,11 @@ that is almost always why.
 | add a new Adventure icon | `AdventureTraits.csv`, then breakpoints in `AdventureCombos.csv` |
 | **add something to the bag** | a row of `Items.csv`. `Tab` says which of the three pages it lands on; leave it blank and `Kind` decides |
 | **add a key item** | a row of `Items.csv` with `Kind: key` and no `Use`, then hand it out with a `Drops.csv` row or an `On Win` |
-| **stop brews being poured mid-draft** | `draft_brew_button` in `Tuning.csv` |
+| **stop items being used mid-draft** | `draft_brew_button` in `Tuning.csv` |
+| **make something at a building** | the `Action` column of `Buildings.csv` — `count:reed-6;count:brew_fire+1` |
+| **let an item be used in an Adventure fight** | put `adventure_consume` in its `Tags` |
+| **let an item be used on a player mid-match** | put `match_consume` in its `Tags`, and a `Use` of `brew:<id>` if it is a brew |
+| **give the Adventure party more room** | `adventure_lane_height`, `adventure_party_rows` and `adventure_party_spacing` |
 | **keep another tier out of the passing move** | `pass_skips_tiers` in `Tuning.csv` — `III;IV` |
 | **give the sides longer to get back into shape** | `goal_pause_seconds` and `save_pause_seconds` |
 | **make an icon something the player earns** | put `unlocked:Whatever` in the `Requires` column of `AdventureTraits.csv`, and hand that unlock out with a talent or a season reward |

@@ -86,3 +86,50 @@ static func label_for(value: float) -> String:
 	if is_equal_approx(value, roundf(value)):
 		return "%dx" % int(roundf(value))
 	return "%.1fx" % value
+
+
+# =============================================================
+#  IS FAST FORWARD UNLOCKED?
+#
+#  ============ WHY THIS LIVES HERE ============
+#
+#  There are two sets of speed buttons — the HUD strip in the corner and the
+#  pause menu behind Escape — and the rule used to be written in the HUD. So
+#  the corner locked 4x and the pause menu happily handed it over, which is
+#  not a half-finished feature but a way of saying the lock is decoration.
+#
+#  A rule that two screens obey belongs in neither of them. Both ask here.
+#
+#      game_speed_buttons        the plain on/off
+#      game_speed_buttons_needs  a Requires condition as well, so it can be
+#                                earned: unlocked:Fast Forward, handed out
+#                                by a talent, an achievement or a season
+#      game_speed_locked_words   what a locked button says when pressed
+# =============================================================
+
+## Has the player earned the faster speeds?
+static func unlocked(db: CardDatabase, state: GameState) -> bool:
+	if db == null:
+		return false
+	if not db.tune_bool("game_speed_buttons", false):
+		return false
+	var need := db.tune_text("game_speed_buttons_needs", "").strip_edges()
+	if need == "" or state == null:
+		return true
+	return DialogueGrammar.test(need, state)
+
+
+## Is THIS step locked? The first step is the speed the match already runs
+## at, so it is never locked — locking it would be locking the game.
+static func step_locked(value: float, db: CardDatabase, state: GameState) -> bool:
+	if unlocked(db, state):
+		return false
+	var all := steps(db)
+	return not all.is_empty() and not is_equal_approx(value, all[0])
+
+
+static func locked_words(db: CardDatabase) -> String:
+	if db == null:
+		return "Not unlocked yet."
+	return db.tune_text("game_speed_locked_words",
+		"Fast forward is not unlocked yet.")

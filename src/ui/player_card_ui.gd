@@ -103,7 +103,11 @@ func setup_card(data: PlayerData) -> void:
 ## ============ THE FLASK IN THE CORNER ============
 ##
 ## A small second button on top of the card. Pressing the card CHOOSES the
-## player; pressing the flask pours something on them first.
+## player; pressing the flask opens the bag and uses something on them first.
+##
+## Only things tagged `match_consume` in Items.csv can be used here, and using
+## one SPENDS it. Nothing is made — a bottled brew is made at the Brewery and
+## carried; this is where the bottle is opened.
 ##
 ## It has to be a separate button rather than a right-click or a long press,
 ## because both of those are invisible — nobody discovers a gesture nobody
@@ -119,7 +123,7 @@ func _add_brew_corner(_box: Vector2) -> void:
 
 	_flask = Button.new()
 	_flask.text = "⚗"
-	_flask.tooltip_text = "Pour a brew on this player before you choose them. It wears off at the final whistle."
+	_flask.tooltip_text = "Use something on this player before you choose them.\nOnly items tagged match_consume in Items.csv — a bottled brew, say.\nIt wears off at the final whistle."
 	_flask.focus_mode = Control.FOCUS_NONE
 	_flask.custom_minimum_size = Vector2(30, 30)
 	# TOP LEFT, because the Star badge is top right. Two things in one corner

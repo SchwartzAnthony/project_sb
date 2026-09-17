@@ -37,7 +37,8 @@ unit_roam_radius,40,How far a unit wanders from its formation slot
 shot_run_up_seconds,0.45,How long the shooter steps toward goal before striking
 relay_beat_seconds,0.25,Pause after each PLAY MAKER relay pass so you can see who has it
 goal_pause_seconds,2.0,"PAUSE AFTER THE BALL CROSSES THE LINE, before the restart. The break is ended the moment the ball is dead, so this is the time both sides have to WALK BACK TO THEIR OWN QUARTER before play starts again. Shorten it and the restart happens with everybody still stood at one end"
-save_pause_seconds,2.0,"PAUSE AFTER A SAVE, before the keeper kicks. Same idea as goal_pause_seconds - the keeper holds the ball while both sides get back into shape, and then kicks it down the field"
+save_pause_seconds,2.0,"PAUSE AFTER A SAVE, before the keeper kicks. The keeper is left ALONE on the ball for this long while every outfield player walks back to their own starting position - nobody stands over the keeper, and the ball is kicked into a pitch that has a shape again. Then they are all let go the instant it is struck"
+restart_walk_boost,1.6,"HOW BRISKLY THEY WALK HOME at a restart, as a multiple of their walk speed. Not a sprint: 1 is an amble, 1.6 is purposeful, 2.5 starts to look like a jog"
 ball_delivery_speed,520,Pixels per second for a scripted PLAY MAKER pass
 scoreboard_font_size,60,Score text size
 scoreboard_top_margin,18,Distance from the top of the screen
@@ -126,11 +127,9 @@ gains_max_rows,8,"How many lines the ""what you gained"" panel shows before it s
 season_difficulty_scale,1.0,"Multiplies the Difficulty column of Season.csv. 0 makes every fixture a fair fight, 2 doubles the handicap. Difficulty is added to the OPPOSITION SHOT, never to their cards"
 game_speed_steps,"1,2,4,8","The speed buttons in a match, comma separated. Number keys 1-4 do the same"
 game_speed_turbo,20,How fast time runs while you HOLD F. Let go and it drops back to the button you chose
-game_speed_buttons,false,"ARE THE 1x / 2x / 4x / 8x BUTTONS ON THE MATCH HUD AT ALL? Off out of the box. Speed buttons from the first match are a strong hint that a match is something to get through rather than something to watch - turn them on when you have decided otherwise. HOLDING THE MOUSE OR SPACEBAR through a duel still hurries it along either way; that is a different thing and it is always on"
-game_speed_buttons_needs,,"A Requires condition that must pass before the speed buttons appear, in the usual words. Put unlocked:Fast Forward here and hand that unlock out with a talent or a season reward, and the speed control becomes something the player earns rather than something they are handed"
+game_speed_buttons,false,"ARE THE FASTER SPEEDS UNLOCKED? The 1x / 2x / 4x / 8x buttons are ALWAYS on the HUD and always in the pause menu; this says whether the faster ones work. 1x is never locked - it is the speed the match already runs at. A locked one is greyed and SAYS SO when pressed rather than doing nothing, because a button you cannot press yet is a thing to want and a button that is not there is a feature the player never learns exists. HOLDING THE MOUSE OR SPACEBAR through a duel hurries it along either way; that is a different thing and it is always on"
+game_speed_buttons_needs,,"A Requires condition that must ALSO pass, in the usual words. Put unlocked:Fast Forward here and hand that unlock out with a talent or an achievement, and the speed control becomes something the player earns. BOTH sets of buttons obey this - the HUD strip and the pause menu behind Escape"
 game_speed_locked_words,Fast forward is not unlocked yet.,"WHAT A LOCKED SPEED BUTTON SAYS when it is pressed. The buttons are always on the HUD - a locked one is greyed rather than missing, because a button you cannot press yet is a thing to want and a button that is not there is a feature the player never learns exists. Word it to match whatever you called the unlock"
-auto_button_x,0.5,"Where the AUTO button sits across the screen. 0 = hard left, 0.5 = the middle, 1 = hard right. It sits beside the cards rather than in the corner, because the cards are what it takes over"
-auto_button_y,,"How far down the screen the AUTO button sits, as a fraction. LEAVE IT BLANK and it follows the card row - half a card below card_row_y - so moving the cards moves the button with them. Fill it in only if you want it somewhere else entirely"
 game_speed_start,1,Which speed a match begins at
 auto_pick,false,"Is AUTO already on when a match kicks off? Every match starts from THIS value, not from what you left the last one at. While AUTO is on your cards and the clash buttons are locked"
 auto_pick_seconds,0.9,How long AUTO waits before choosing so you can still see who was on offer
@@ -170,8 +169,10 @@ card_width,220,"How wide a player card is drawn during a match, in pixels. The p
 card_height,290,"How tall a player card is drawn during a match, in pixels"
 adventure_card_width,200,How wide a player card is drawn in the Adventure fight. Keep it near card_width so a player reads the same size in both places
 adventure_card_height,264,How tall a player card is drawn in the Adventure fight
-adventure_lane_top,250,"How far down the screen the Adventure grass band starts, in pixels"
-adventure_lane_height,540,"How deep the Adventure grass band is, in pixels. Deeper means more room to crisscross"
+adventure_lane_top,215,"How far down the screen the Adventure grass band starts, in pixels"
+adventure_lane_height,600,"How deep the Adventure grass band is, in pixels. Deeper means more room to crisscross - and more room for the name above a player and the Tier/Power window at their feet, which is what makes a full party look crowded. THE BAND IS NOT THE BACKGROUND: the grass is drawn to this depth and the art behind it is not, so a forest or a river bank painted across the whole screen makes the same band read as a much larger place"
+adventure_party_rows,5,"HOW MANY PLAYERS ACROSS the running shape before it starts a second column further back. 4 packed twelve players into three columns and their labels overlapped; 5 spreads them out. Raise it with adventure_lane_height or they get closer together again, not further apart"
+adventure_party_spacing,108,"Pixels between columns of the running shape, back down the lane. Larger spreads the party out behind itself"
 adventure_player_size,26,"How big an Adventure player is drawn, as a radius in pixels. Raise it with adventure_lane_height so the two stay in proportion"
 adventure_ball_size,7,"How big the Adventure ball is drawn, as a radius in pixels. The pitch ball is 6, so 7 keeps the two looking alike"
 escape_quits_instantly,false,"FALSE = Escape outside a match asks 'quit the game?' first. TRUE = it closes the game on the first press with no warning"

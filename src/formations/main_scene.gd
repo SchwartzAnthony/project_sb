@@ -199,6 +199,29 @@ var ball_roam_quarter_last: int = 3
 ## Which side is currently surging at goal: -1 nobody, 0 you, 1 them. Set for
 ## the few seconds between the last duel and the shot.
 var attack_surge_side: int = -1
+
+## ============ THE BALL IS DEAD: EVERYBODY HOME ============
+##
+## True from the whistle that follows a shot until play actually restarts —
+## the keeper's kick, or the kick-off after a goal.
+##
+## WHY IT HAD TO BE ITS OWN STATE. Once the keeper has the ball, the ordinary
+## rules say "the ball is in my quarter and the other side has it, go and win
+## it" — so the far side's Tier I and Tier IV both set off for the keeper and
+## stood over him. That is not a thing that happens in football, and it looked
+## exactly as odd as it sounds.
+##
+## While this is true nothing chases, nothing presses and nothing marks: every
+## outfield player walks back to their own starting position and waits there,
+## and the keeper is left alone with the ball. The moment it is kicked this
+## goes back to false and the ordinary rules take over mid-stride.
+var restart_hold: bool = false
+
+## How briskly they walk home at a restart, as a multiple of walk_speed. You
+## asked for no sprinting; 1.6 is a purposeful walk rather than a jog.
+## `restart_walk_boost` in Tuning.csv.
+var restart_walk_boost: float = 1.6
+
 ## How much of the remaining distance to goal a surging unit closes.
 ## 0 = nobody moves, 1 = everyone piles onto the goal line.
 var surge_advance: float = 0.45
@@ -515,6 +538,15 @@ func _assign_roles() -> void:
 		return
 	var units := _all_units()
 	if units.is_empty():
+		return
+
+	# THE BALL IS DEAD — see restart_hold. Everybody walks home and nobody
+	# goes near the keeper. This is checked before anything else because it
+	# outranks every other rule, including the break.
+	if restart_hold:
+		for unit in units:
+			unit.set_role(PlayerUnit.Role.HOLD, unit.home_position,
+				unit.walk_speed * restart_walk_boost)
 		return
 
 	# -1 loose, 0 you, 1 them. Answered even mid-pass, so nobody stands about
@@ -1926,52 +1958,6 @@ func spawn_hud() -> void:
 	hud.auto_pick_changed.connect(_on_auto_pick_changed)
 	# A locked speed says so on the big announcement, not in the corner.
 	hud.speed_locked.connect(func(words: String) -> void: announce(words, 1.6))
-	_place_auto_button()
-
-
-## AUTO GOES WHERE THE CHOOSING HAPPENS.
-##
-## It used to sit in the corner next to the speed buttons, which put "let the
-## game pick for you" as far as it is possible to get from the cards it picks
-## for you. It now sits just under the card row, so the offer is made where
-## the decision is.
-##
-## Both numbers are fractions of the window, like card_row_x / card_row_y, so
-## it lands in the same place at any resolution:
-##
-##     auto_button_x   0.5 is the middle of the screen
-##     auto_button_y   how far down. Just under the cards out of the box
-func _place_auto_button() -> void:
-	if hud == null or selection_ui == null:
-		return
-	var button := hud.take_auto_button()
-	if button == null:
-		return
-
-	var holder := CenterContainer.new()
-	holder.name = "AutoButtonHolder"
-	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.set_anchors_preset(Control.PRESET_TOP_WIDE, true)
-	holder.anchor_left = 0.0
-	holder.anchor_right = 1.0
-	# THE DEFAULT FOLLOWS THE CARDS. Half a card below card_row_y plus a small
-	# gap, worked out from the real card size — so moving the card row moves
-	# the button with it and you only set auto_button_y if you want it
-	# somewhere else entirely.
-	var window_high := maxf(1.0, get_viewport_rect().size.y)
-	var under_cards := db.tune_float("card_row_y", 0.5) \
-		+ (PlayerCardUI.card_size().y * 0.5 + 26.0) / window_high
-	var where := Vector2(
-		db.tune_float("auto_button_x", 0.5),
-		db.tune_float("auto_button_y", clampf(under_cards, 0.05, 0.95)))
-	holder.anchor_top = where.y
-	holder.anchor_bottom = where.y
-	holder.offset_top = -18.0
-	holder.offset_bottom = 18.0
-	holder.offset_left = (where.x - 0.5) * 2.0 * 200.0
-	holder.offset_right = (where.x - 0.5) * 2.0 * 200.0
-	holder.add_child(button)
-	selection_ui.add_child(holder)
 
 
 ## The hover window. It lives on the SelectionUI layer with the cards, so it
@@ -2795,39 +2781,62 @@ func _on_brew_wanted(card: PlayerData) -> void:
 		return
 
 	var bag := InventoryScreen.open(self, state, InventoryScreen.Use.ON_CARD,
-		"Pouring on %s. It wears off at the final whistle." % card.player_name)
+		"Using something on %s. It wears off at the final whistle." % card.player_name)
 	bag.used.connect(func(entry: Dictionary) -> void:
-		_pour_on_card(card, entry)
+		_use_on_card(card, entry)
 		if is_instance_valid(bag):
 			bag.close())
 
 
-func _pour_on_card(card: PlayerData, entry: Dictionary) -> void:
-	if not bool(entry.get("is_brew", false)):
+## ============ USING A CARRIED ITEM ON A CARD ============
+##
+## The item is SPENT — one comes off the counter — and whatever its `Use`
+## column says happens to this player. Today that is `brew:<id>`, which lays
+## the named row of Brews.csv over the card: a new class, new art and new
+## abilities until the final whistle.
+##
+## NOTHING IS MADE HERE. A brew is bottled at the Brewery, which is a building
+## with a recipe in its Action column; the bag holds the bottle. That is the
+## difference between an inventory and a workshop, and it is why this spends
+## the ITEM rather than the reed it was made from.
+func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
+	var item_id := String(entry.get("id", ""))
+	if item_id == "" or state.count(item_id) <= 0:
 		return
-	var brew: Dictionary = entry.get("brew", {})
+
+	var brew_id := AdventureDB.brew_in_use(entry)
+	if brew_id == "":
+		announce("%s cannot be used on a player." % entry.get("name", "That"), 1.5)
+		return
+
+	var brew := BrewDB.get_db().find(brew_id)
 	if brew.is_empty():
+		push_warning("[brew] %s has Use brew:%s but Brews.csv has no such row."
+			% [item_id, brew_id])
 		return
 
 	# THE CLASS RULE STILL APPLIES. A Fire Brew is written For Class Lorelei,
-	# and a Brandteufel drinking it would be nonsense — so it is refused here
-	# with a line on the screen rather than silently doing nothing.
+	# and a Brandteufel drinking it would be nonsense — so it is refused here,
+	# out loud, and the bottle is NOT spent.
 	if not BrewDB.suits(brew, card):
 		announce("%s cannot drink that." % NamePlate.short_name(card), 1.5)
-		print("[brew] %s is not %s — refused." % [
+		print("[brew] %s is not %s — refused, nothing spent." % [
 			card.player_name, brew.get("for_class", "?")])
 		return
 
-	BrewDB.pour(card, brew, false, state)
-	# APPLY IT NOW, not at the next kick-off. The point of pouring here is to
-	# see the card change while you are still deciding.
+	state.add_count(item_id, -1)
+	# THE BOTTLE IS THE COST. pour() would also charge the brew's material
+	# Cost, which is what the Brewery already took to make it — so the overlay
+	# is laid on directly rather than going through the Pub's till.
+	state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(card), brew_id)
 	BrewDB.get_db().apply_all(db, state)
 	state.save_to_disk()
 
 	_redraw_offered_cards()
 	announce("%s drinks %s." % [NamePlate.short_name(card),
 		brew.get("name", "it")], 1.6)
-	print("[brew] %s poured on %s mid-draft." % [brew.get("name", "?"), card.player_name])
+	print("[brew] %s used on %s mid-draft. %d left." % [
+		entry.get("name", item_id), card.player_name, state.count(item_id)])
 
 
 ## Rebuild the faces in the card row without changing which cards are on
@@ -3399,6 +3408,7 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 	if keeper == null or shot_power <= 0:
 		print("  No shot taken this round.")
 		_end_surge()
+		restart_hold = false
 		if ball != null:
 			ball.scripted_possession = false
 		round_resolved.emit(player_score, enemy_score)
@@ -3502,15 +3512,28 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 			# target_key is exactly that side (it owns the beaten keeper).
 			await _let_them_shape_up(db.tune_float("goal_pause_seconds", 2.0))
 			ball.global_position = get_play_rect().get_center()
+			# AND THEY GO. Ordinary rules again from the touch of the ball.
+			restart_hold = false
 			give_ball_to(target_key)
 		else:
 			# --- 4. Saved: the keeper hoofs it upfield to their own side ---
+			#
+			# The order matters. Everybody walks home FIRST, with the keeper
+			# left alone on the ball, and only then is it kicked — so the ball
+			# arrives into a pitch that has a shape, rather than into the
+			# scrum that had gathered around the keeper.
 			await _let_them_shape_up(db.tune_float("save_pause_seconds", 2.0))
+			restart_hold = false
 			await _goal_kick(target_key)
 
 	# The break is over, the ball comes off its rails, and everyone drifts back
 	# to their own quarter under the usual zone pull. The players never stopped.
 	_end_surge()
+	# BELT AND BRACES. restart_hold stops the whole pitch, so a path that
+	# leaves it set — a shot that ends early, a keeper that is missing, an
+	# await that throws — would look exactly like the game having frozen.
+	# It is cleared here as well, on every way out of a round.
+	restart_hold = false
 	if ball != null:
 		ball.scripted_possession = false
 	round_resolved.emit(player_score, enemy_score)
@@ -3528,10 +3551,16 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 ## everybody time to walk back to their own quarter first. Nobody sprints;
 ## they simply set off earlier and the restart waits for them.
 ##
-##     goal_pause_seconds   the hold after a goal
-##     save_pause_seconds   the hold before the keeper kicks
+##     goal_pause_seconds    the hold after a goal
+##     save_pause_seconds    the hold before the keeper kicks
+##     restart_walk_boost    how briskly they walk home
+##
+## THE CALLER CLEARS `restart_hold`, not this function — it has to stay true
+## until the ball is actually kicked, which is a line or two later.
 func _let_them_shape_up(seconds: float) -> void:
 	_end_surge()
+	restart_hold = true
+	restart_walk_boost = maxf(0.2, db.tune_float("restart_walk_boost", 1.6))
 	var wait := maxf(0.0, seconds)
 	if wait <= 0.0:
 		return

@@ -28,7 +28,11 @@ func _initialize() -> void:
 	for pair in [["reed", 34], ["bog_iron", 12], ["ash_glass", 7],
 			["deep_salt", 3], ["coins", 250], ["smelling_salts", 2],
 			["field_bandage", 4], ["team_orange", 1], ["throwing_stone", 6],
-			["recipe_marsh_ale", 1], ["marsh_key", 1]]:
+			["recipe_marsh_ale", 1], ["marsh_key", 1],
+			# The bottles a building has already made — without these the
+			# draft screen photographs as four greyed tiles, which is correct
+			# and tells you nothing.
+			["brew_fire", 2], ["brew_keeper", 1]]:
 		state.add_count(String(pair[0]), int(pair[1]))
 	state.unlock("Fire Brew")
 	state.unlock("Water Brew")
@@ -51,7 +55,7 @@ func _initialize() -> void:
 
 	# ---- the bag, as the draft opens it: brews, clickable ----
 	var pour := InventoryScreen.open(holder, state, InventoryScreen.Use.ON_CARD,
-		"Pouring on Silver-Rhine Lorelei. It wears off at the final whistle.")
+		"Using something on Silver-Rhine Lorelei. It wears off at the final whistle.")
 	await _settle()
 	_snap("bag-on-card")
 	pour.close()

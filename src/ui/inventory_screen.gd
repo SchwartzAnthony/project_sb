@@ -9,7 +9,7 @@ extends CanvasLayer
 #  writes what it is in the panel underneath. Nothing is labelled, because
 #  forty labelled tiles is a wall of words and forty pictures is a bag.
 #
-#      ITEMS      things you USE — brews, bandages, smelling salts
+#      ITEMS      things you USE — a bottled brew, a bandage, smelling salts
 #      RESOURCES  things you SPEND — reed, bog iron, coins
 #      KEYS       things you HOLD — a key, a token, a letter
 #
@@ -29,6 +29,10 @@ extends CanvasLayer
 #                                     the draft. `used` fires and the caller
 #                                     applies it to the card it had in mind
 #
+#  WHAT IS CLICKABLE IS DECIDED BY THE `Tags` COLUMN, not by the screen —
+#  `adventure_consume` out in a fight, `match_consume` on a card. Most things
+#  have neither and are taken at the bar before the team sets off.
+#
 #  ============ WHY THERE IS NO SEPARATE KIT SCREEN ============
 #
 #  There used to be one, called YOUR KIT, that listed usable items as lines
@@ -39,7 +43,7 @@ extends CanvasLayer
 enum Use { NOTHING, ITEM, ON_CARD }
 
 ## Somebody pressed a thing they can use. `entry` is the row out of Items.csv
-## (or a brew dressed as one — check `is_brew`), with `held` on top of it.
+## with `held` on top of it — how many you are carrying.
 signal used(entry: Dictionary)
 
 const TAB_WORDS := {
@@ -192,7 +196,7 @@ func _build() -> void:
 ## Read the save again and redraw. Called on open, and again after something
 ## has been used, so the count on a tile is never a lie.
 func refresh() -> void:
-	_bag = AdventureDB.get_db().bag(state, mode != Use.NOTHING)
+	_bag = AdventureDB.get_db().bag(state)
 	_show_tab(_tab)
 
 
@@ -259,17 +263,29 @@ func _tile(entry: Dictionary) -> Button:
 	return button
 
 
-## Can this be clicked on the screen it is currently open on?
+## ============ CAN THIS BE CLICKED HERE? ============
+##
+## Three things have to be true, and the third is the interesting one.
+##
+##   1. this screen allows using anything at all
+##   2. the thing has a `Use`, and is therefore on the Items tab
+##   3. it is TAGGED for the place you are standing
+##
+## Most things are taken at the bar before the team sets off, not in the
+## middle of a wave and not out of a pocket during a match. So a bandage with
+## no tag is a perfectly good item that simply cannot be used from here, and
+## it is shown greyed with a line saying where it CAN be used rather than
+## hidden or silently dead.
 func _can_use(entry: Dictionary) -> bool:
 	if mode == Use.NOTHING:
 		return false
 	if AdventureDB.tab_of(entry) != "items":
 		return false
-	if bool(entry.get("is_brew", false)):
-		# A brew is only ever used ON A CARD, and it has to be paid for.
-		return mode == Use.ON_CARD and bool(entry.get("affordable", true))
-	# Everything else is an ordinary item, and the draft is not where it goes.
-	return mode == Use.ITEM
+	if String(entry.get("use", "")).strip_edges() == "":
+		return false
+	if mode == Use.ITEM:
+		return AdventureDB.has_tag(entry, "adventure_consume")
+	return AdventureDB.has_tag(entry, "match_consume")
 
 
 func _describe(entry: Dictionary) -> String:
@@ -284,12 +300,25 @@ func _describe(entry: Dictionary) -> String:
 	if words != "":
 		lines.append(words)
 
-	if bool(entry.get("is_brew", false)) and not bool(entry.get("affordable", true)):
-		lines.append("You cannot pay for this yet.")
-	elif _can_use(entry):
-		lines.append("Click it to use it." if not bool(entry.get("is_brew", false))
-			else "Click it to pour it on this card.")
+	if _can_use(entry):
+		lines.append("Click it to pour it on this card." if mode == Use.ON_CARD
+			else "Click it to use it.")
+	elif mode != Use.NOTHING and AdventureDB.tab_of(entry) == "items":
+		lines.append(_where_it_goes(entry))
 	return "\n".join(lines)
+
+
+## Why a usable thing is not usable HERE. Never a bare "you cannot" — it says
+## where it can be used instead, because that is the sentence the player
+## actually needs.
+func _where_it_goes(entry: Dictionary) -> String:
+	var here := AdventureDB.has_tag(entry, "adventure_consume")
+	var draft := AdventureDB.has_tag(entry, "match_consume")
+	if mode == Use.ITEM and draft and not here:
+		return "Not out here. This one goes on a player during a match."
+	if mode == Use.ON_CARD and here and not draft:
+		return "Not on a card. This one is used during an Adventure fight."
+	return "Taken at the bar before the team sets off, not out on the pitch."
 
 
 ## The letter drawn on a tile whose art has not been made yet. It is not
