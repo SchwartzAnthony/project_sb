@@ -240,6 +240,19 @@ func _build_exits() -> void:
 		ScenePaths.go_to(get_tree(), ScenePaths.BOUNTY_BOARD))
 	row.add_child(to_adventure)
 
+	# THE BAG, WHERE YOU ARE STANDING. Everything you have carried home is in
+	# it, and the base is where you are when you want to know what that is.
+	# It opens the same window the Bounty Board, an Adventure fight and the
+	# match draft open — see inventory_screen.gd — and it is built with the
+	# same icon_button() as everything else in this row, so it looks like a
+	# door rather than a new kind of control.
+	var to_bag := MenuSupport.icon_button("inventory|⚒",
+		Loc.text("inventory", "Inventory"), EXIT_SIZE)
+	to_bag.tooltip_text = "Everything you are carrying: what you can use, what you can spend, and what you are holding on to."
+	to_bag.pressed.connect(func() -> void:
+		InventoryScreen.open(self, state, InventoryScreen.Use.NOTHING))
+	row.add_child(to_bag)
+
 	var to_teams := MenuSupport.icon_button("teams|⚑", "Your teams", EXIT_SIZE)
 	to_teams.tooltip_text = "Build a new side, or change one you have."
 	to_teams.pressed.connect(func() -> void:

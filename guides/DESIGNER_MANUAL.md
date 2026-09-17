@@ -84,8 +84,8 @@ res://
                   the tutorial only. Same columns, different content
   assets/         art, audio, icons
   src/core/       loaders, rules and shared helpers (51 scripts)
-  src/ui/         screens (29)
-  src/adventure/  Adventure mode (11)
+  src/ui/         screens (30)
+  src/adventure/  Adventure mode (12)
   src/units/      things that stand on the pitch (4)
   src/formations/ the league match itself (1, and it is a big one)
   tools/          test and inspection tools. Nothing in the game loads these
@@ -283,6 +283,35 @@ MatchModes.csv change that.
 > key your Audio.csv row is written against. The words on screen changed; the
 > spreadsheet key deliberately did not.
 
+### Who the ball goes to, and the restarts
+
+**Tier IV is never passed to in ordinary play.** Tier IV stands nearest the
+goal, and watching one take the ball on the edge of the box and knock it
+sideways raises the obvious question of why they did not simply shoot — the
+answer being that shooting is not what waiting play is for. So the ball goes
+round the other tiers and the front line waits for the PLAY MAKER.
+
+| Tuning row | |
+|---|---|
+| `pass_skips_tiers` | which tiers are never passed to. `IV` out of the box. `III;IV` keeps two of them out. **`none`** lets the ball go to anybody |
+
+It is a rule about **who**, not about where they are standing. There is a
+second, older rule about the end quarters of the pitch which still applies on
+top of it; either one is dropped for a single pass if obeying it would leave
+the carrier with nobody at all to pass to, because a rule about what looks
+right is never worth freezing the match over.
+
+**At a restart both sides walk back into shape first.** The break is ended the
+moment the ball is dead rather than when play resumes, and then the game holds
+for a couple of seconds — the keeper stands there with the ball while everyone
+gets home. Nobody sprints; they simply set off earlier and the restart waits.
+
+| Tuning row | |
+|---|---|
+| `goal_pause_seconds` | the hold after a goal. `2.0` |
+| `save_pause_seconds` | the hold before the keeper kicks. `2.0` |
+| `goal_kick_tier` | which tier the keeper aims at. `III` |
+
 ### The kick-off
 
 A match opens with the camera in on two players standing over the ball in the
@@ -320,20 +349,44 @@ distance from the coin, it goes to **you**.
 | `rps_reveal_seconds` / `rps_result_seconds` | the two pauses, also shared |
 | `use_rps_minigame` | `false` skips the clash screen entirely and decides it behind the scenes. Outranks both of the above |
 
-### The speed buttons
-
-The 1x / 2x / 4x / 8x strip on the match HUD is **off out of the box**. Speed
-buttons in the first match are a strong hint that a match is something to get
-through rather than something to watch; turn them on once you have decided
-otherwise.
+**Naming the number exactly is its own moment.** There are two ways to win the
+call and they are not the same thing: being nearer is arithmetic, naming it is
+worth leaning on. An exact call gets its own words and its own animation — the
+coin swells and turns gold and the chip that named it pulses — and it is a
+**Juice moment**, `coin_exact`, so a row in Juice.csv hangs the sound on it.
 
 | Tuning row | |
 |---|---|
-| `game_speed_buttons` | `true` and the strip is there |
-| `game_speed_buttons_needs` | a `Requires` condition that must pass first — e.g. `unlocked:Fast Forward`, handed out by a talent or a season reward. Then the speed control is something the player earns |
+| `coin_exact_words` | what it says when **you** name it. `CALLED IT!` |
+| `coin_exact_them_words` | the same when they do |
+| `coin_exact_seconds` | how long the celebration is held. `0.9` |
+
+### The speed buttons
+
+**1x is always there. 2x, 4x and 8x are shown greyed until they are unlocked,
+and pressing a locked one says so** rather than doing nothing.
+
+That is deliberate: a button you cannot press yet is a thing to want, and a
+button that is not there is a feature the player never learns exists. It is
+also not `disabled` in the Godot sense — a disabled button swallows the click
+and so cannot tell you why nothing happened.
+
+| Tuning row | |
+|---|---|
+| `game_speed_buttons` | `true` and 2x / 4x / 8x work |
+| `game_speed_buttons_needs` | a `Requires` condition that must pass as well — e.g. `unlocked:Fast Forward`, handed out by a talent or a season reward |
+| `game_speed_locked_words` | what a locked one says when pressed. Word it to match whatever you called the unlock |
 
 **Holding the mouse button or the spacebar through a duel still hurries it
 along whatever these say.** That is a different thing and it is always on.
+
+**AUTO sits beside the cards**, not in the corner. It is the button that takes
+the choosing over from you, so it belongs where the choosing happens.
+
+| Tuning row | |
+|---|---|
+| `auto_button_x` | across the screen. `0.5` is the middle |
+| `auto_button_y` | down the screen. **Leave it blank** and it follows the card row — half a card below `card_row_y` — so moving the cards moves the button with them |
 
 ### How a player is labelled — the nameplate
 
@@ -479,6 +532,17 @@ that. Tier II offering six cards (three ready, three resting) no longer grows
 the window up over the top of the screen the way it did. Raise it to `2` if you
 would rather see more at once and can spare the room.
 
+**The icons along the top have three looks, not two.** Grey is an icon you
+have none of. Full colour is one where you have reached a breakpoint. And
+while the mouse is over a card, every icon that card would move takes a
+coloured edge and blinks — *whether or not it is lit*.
+
+That third look is why pointing at a **Tier I** card now lights something.
+Tier I is the first card of a cycle, so its icon goes 0 → 1 and one is never
+enough to reach a breakpoint; the bar was answering "have you reached
+something" when the question the mouse is asking is "does this card touch this
+icon". Both are worth seeing and they now look different from each other.
+
 **Hovering a card does not open a grey box any more.** The card's league
 ability wording belongs to a league duel; it is not read in an Adventure fight
 and putting it under the mouse was telling the player something untrue. The
@@ -531,9 +595,20 @@ and season rewards. The workbench warns you if more icons are free from the
 first run than there are slots to carry them, because the ones that do not fit
 are chosen by load order, which is to say by accident.
 
-> The screen for **swapping which eight you carry** is not built yet — the data
-> and the rules underneath it are, and they are what this section describes. For
-> now the first eight available icons are the eight that go in.
+**The player chooses which eight**, on the **Edit Element Bonus** screen —
+the button beside Inventory at the bottom of the Bounty Board. Everything
+unlocked is on the shelf, the carried ones are lit and numbered in the order
+they appear along the top of a fight, and once eight are carried the rest say
+so rather than doing nothing. *Start again* puts back the first eight, the way
+a new save has them.
+
+The choice is kept in the **save**, not in a CSV, because it is the player's
+decision rather than yours. What you decide is which icons exist, what they
+do, and what has to be unlocked before one can be chosen at all — and those
+three are this file, AdventureCombos.csv and the `Requires` column.
+
+A save that has never opened the screen carries the first eight in `Order`
+order, so a new game always has a full bar without anybody visiting a screen.
 
 **A player carries several icons.** A Lorelei whose Element is Water stacks
 *Water* and *Lorelei*, from two different rows, and both bars move. That is
@@ -633,16 +708,81 @@ so a repeat run is genuinely tougher rather than just longer.
 
 ### `data/Items.csv` and `data/Drops.csv`
 
-Items: `ID`, `Name`, `Kind` (`material` / usable), `Stack`, `Art`, `Use`,
-`Target`, `Requires`, `Description`. A `material` is loot; anything with a
-`Use` can be used in a fight.
+Items: `ID`, `Name`, `Kind`, **`Tab`**, `Stack`, `Art`, `Use`, `Target`,
+`Requires`, `Description`. Every item is a counter in the save, so anything
+that can test a counter can test an item.
+
+`Use` is what happens when it is used in a fight — `revive`, `heal:6`,
+`heal:3;all`, `hit:4`. Blank means it is not usable.
 
 Drops: `Table`, `Item`, `Amount`, `Chance` (0–1), `Requires`. One table is
 several rows sharing a `Table` name.
 
+### THE INVENTORY — one bag, three tabs
+
+The same window opens from the base, the Bounty Board, an Adventure fight and
+the match draft. A grid of square buttons: the thing's picture with how many
+you have in the corner, and pointing at one writes what it is in the panel
+underneath. Nothing is labelled, because forty labelled tiles is a wall of
+words and forty pictures is a bag.
+
+| Tab | What goes on it |
+|---|---|
+| **Items** | things you **use** — brews, bandages, smelling salts. **The only clickable tab** |
+| **Resources** | things you **spend** — reed, bog iron, coins |
+| **Keys** | things you **hold** and never spend — a key, a token, a letter |
+
+The `Tab` column of Items.csv decides. **Leave it blank and it is worked out
+from `Kind`:**
+
+```
+kind = key / token / quest     ->  keys
+kind = material / currency     ->  resources
+anything with a Use            ->  items
+anything else                  ->  resources
+```
+
+A `Kind` you invent tomorrow lands in Resources unless you say otherwise,
+which is the safe place for it — nothing in Resources is clickable, so an
+unknown thing can never be used by accident. The workbench warns you about an
+item filed under Items with no `Use` (a tile that does nothing when pressed)
+and about one on Keys that has a `Use` (something that can never happen).
+
+> There used to be a separate screen called **YOUR KIT** that listed usable
+> items as lines of text. It showed a third of what you were carrying and it
+> was the only thing in the game that looked like that. It is gone; everything
+> it did, this does.
+
+#### A brew is in the bag without being an item
+
+You never pick a brew up. `Brews.csv` already says what one **costs** in
+materials and what must be **unlocked** before it can be poured, so a brew is
+in your bag when its `Requires` passes and is clickable when you can pay its
+`Cost`. Nothing new is stored anywhere. One you cannot afford is still shown,
+greyed, with the price — a brew you are two Reed short of is a thing to go and
+get.
+
+#### Pouring one on a card mid-draft
+
+Every card in the match draft has a small **flask in its top-left corner**.
+Pressing the card chooses that player; pressing the flask opens the Inventory
+and pours a brew on them there and then — the card changes class, art and
+abilities while you are still deciding.
+
+It is the same pour the Pub does: the same cost, the same unlock, the same
+`For Class` rule (a Fire Brew written `For Class: Lorelei` is refused on a
+Brandteufel, out loud). It is always a **one-match** brew — a permanent
+decision in the middle of a match is not something anybody meant to make — so
+the final whistle takes it off again, which is the same line that has always
+cleared them.
+
+| Tuning row | |
+|---|---|
+| `draft_brew_button` | `false` takes the flask off the cards and brews go back to being poured at the Pub only |
+
 ---
 
-## 9. `data/Tuning.csv` — 224 numbers
+## 9. `data/Tuning.csv` — 233 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -685,7 +825,7 @@ spreadsheet decides what that looks and sounds like.
 
 | Column | |
 |---|---|
-| `When` | the moment. Thirteen of them, listed below |
+| `When` | the moment. Fourteen of them, listed below |
 | `Who` | `player` / `enemy` / `screen` / `ball` — **what** gets shaken |
 | `Shake` | how far it jumps, in pixels |
 | `Shake Scale` | **how much harder a big hit shakes.** See below |
@@ -694,12 +834,12 @@ spreadsheet decides what that looks and sounds like.
 | `Sound` | a row of Audio.csv, or just a file name in `assets/audio/` |
 | `Slowmo` | seconds the whole game runs slow. Use sparingly |
 
-The thirteen moments:
+The fourteen moments:
 
 ```
 ball_received  ball_kicked   enemy_hit     enemy_died   player_hurt
 player_exhausted             player_healed combo_fired  shot_struck
-enemy_windup   goal_scored   play_maker    star_switch
+enemy_windup   goal_scored   play_maker    star_switch  coin_exact
 ```
 
 **Two rows may share a `When` and both fire.** That is how `enemy_hit` shakes
@@ -856,6 +996,15 @@ match, after a draft and a relay, which is a long way to walk to find out that
 a button is off the bottom of the screen.
 
 ```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/screen_shot.gd
+```
+Opens the **Inventory** and the **Edit Element Bonus** picker on their own,
+with a made-up save that has something in it, and photographs each tab. An
+empty bag photographs as an empty box, which tells you nothing about how a
+full one lays out.
+
+```
 godot --headless --script res://tools/clock_check.gd
 ```
 Fires every slow-motion moment in overlapping bursts and checks
@@ -922,9 +1071,16 @@ that is almost always why.
 | change what a passing move is worth (league) | `Combos.csv` |
 | **change what a passing move is worth (Adventure)** | `AdventureCombos.csv` |
 | add a new Adventure icon | `AdventureTraits.csv`, then breakpoints in `AdventureCombos.csv` |
+| **add something to the bag** | a row of `Items.csv`. `Tab` says which of the three pages it lands on; leave it blank and `Kind` decides |
+| **add a key item** | a row of `Items.csv` with `Kind: key` and no `Use`, then hand it out with a `Drops.csv` row or an `On Win` |
+| **stop brews being poured mid-draft** | `draft_brew_button` in `Tuning.csv` |
+| **keep another tier out of the passing move** | `pass_skips_tiers` in `Tuning.csv` — `III;IV` |
+| **give the sides longer to get back into shape** | `goal_pause_seconds` and `save_pause_seconds` |
 | **make an icon something the player earns** | put `unlocked:Whatever` in the `Requires` column of `AdventureTraits.csv`, and hand that unlock out with a talent or a season reward |
 | **write a player who damages an enemy the moment you pick them** | a breakpoint in `AdventureCombos.csv` with `Effect = strike`, `Target = focus` and `Lasts = once`. The `star_2` row has the whole note written on it |
 | change the kick-off, the clash or the speed buttons | the `kickoff_`, `coin_` and `game_speed_` rows of `Tuning.csv` — section 7 |
+| **put a sound on an exact coin call** | a `coin_exact` row in `Juice.csv` |
+| **choose which eight icons a run carries** | the player does, on Edit Element Bonus. You decide what exists and what unlocks it — `AdventureTraits.csv` |
 | change what is written over a player's head | the `plate_` rows of `Tuning.csv` — section 7 |
 | make a brew change what somebody counts as | the `Becomes` and `Element` columns of `Brews.csv` |
 | add a new enemy | `AdventureEnemies.csv`, and put its `Pool` on a biome |

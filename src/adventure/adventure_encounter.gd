@@ -1184,35 +1184,15 @@ func _target_for(how: String) -> PlayerData:
 func _open_items() -> void:
 	if step != Step.FOCUS and step != Step.DRAFT:
 		return
-	var carried := adventure.usable_items(state)
 
-	for child in _choice_row.get_children():
-		child.queue_free()
-
-	var menu := VBoxContainer.new()
-	menu.name = "ItemMenu"
-	menu.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	menu.add_theme_constant_override("separation", 4)
-	_choice_row.add_child(menu)
-
-	menu.add_child(MenuSupport.heading("YOUR KIT", 14, MenuSupport.COLOUR_TEXT_DIM))
-	if carried.is_empty():
-		menu.add_child(_quiet("Nothing you can use. Items with a Use column in Items.csv show up here."))
-	for entry in carried:
-		var button := Button.new()
-		button.text = "%s  x%d   —   %s" % [entry.get("name", "?"), int(entry.get("held", 1)),
-			entry.get("description", "")]
-		button.custom_minimum_size = Vector2(0, 34)
-		button.focus_mode = Control.FOCUS_NONE
-		button.pressed.connect(_use_item.bind(entry))
-		menu.add_child(button)
-
-	var close := Button.new()
-	close.text = "Close the kit"
-	close.custom_minimum_size = Vector2(0, 32)
-	close.focus_mode = Control.FOCUS_NONE
-	close.pressed.connect(_refresh)
-	menu.add_child(close)
+	# THE SAME BAG AS EVERYWHERE ELSE. This used to be a list of text buttons
+	# drawn into the card window, headed YOUR KIT, which was the only thing in
+	# the game that looked like that and showed only what could be used. The
+	# Inventory shows everything, with the usable things clickable and the
+	# rest simply there to be looked at.
+	var bag := InventoryScreen.open(self, state, InventoryScreen.Use.ITEM,
+		"Using one takes your turn nowhere — it is free.")
+	bag.used.connect(_use_item)
 
 
 ## Items are counters, so "using one" is spending a counter and applying the

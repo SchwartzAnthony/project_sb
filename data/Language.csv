@@ -38,6 +38,8 @@ star_players,STAR PLAYERS,STARSPIELER,
 formation,FORMATION,AUFSTELLUNG,
 combat,COMBAT,KAMPF,
 items,Items,Gegenstände,
+inventory,Inventory,Inventar,"The bag. Shown on the base button, the Bounty Board button and the title of the window itself - one key, so renaming it renames all three"
+edit_element_bonus,Edit Element Bonus,Elementbonus,The button on the Bounty Board that opens the eight-icon picker
 flee,Flee,Fliehen,
 show_log,Show log,Protokoll,
 hide_log,Hide log,Protokoll aus,

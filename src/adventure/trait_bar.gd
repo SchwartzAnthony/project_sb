@@ -308,10 +308,33 @@ func _paint(key: String, bits: Dictionary) -> void:
 
 	var tint: Color = entry["colour"]
 	var panel: PanelContainer = bits["panel"]
-	panel.add_theme_stylebox_override("panel", MenuSupport.panel_style(
-		Color(tint.r * 0.30, tint.g * 0.30, tint.b * 0.30, 0.92) if lit
-			else Color(0.10, 0.11, 0.14, 0.75),
-		tint if lit else Color(0.24, 0.26, 0.30)))
+
+	# ============ THREE LOOKS, NOT TWO ============
+	#
+	#   lit         a breakpoint has been reached. Full colour
+	#   previewing  the card under the mouse would move this icon. A coloured
+	#               edge and a lifted background, whether or not it is lit
+	#   neither     grey
+	#
+	# There used to be only the first and the last, and the difference showed
+	# up as a bug: pointing at a TIER I card lit nothing at all. Tier I is the
+	# first card of a cycle, so the count goes 0 → 1 and one is never enough
+	# to reach a breakpoint. Pointing at a Tier II card lit the bar, because
+	# by then the count was 1 and one more made 2.
+	#
+	# So the bar was answering "have you reached something" when the question
+	# the mouse is asking is "does this card touch this icon". Both are worth
+	# seeing, and they now look different from each other.
+	var edge := Color(0.24, 0.26, 0.30)
+	var fill := Color(0.10, 0.11, 0.14, 0.75)
+	if lit:
+		edge = tint
+		fill = Color(tint.r * 0.30, tint.g * 0.30, tint.b * 0.30, 0.92)
+	if previewing:
+		edge = tint.lightened(0.25)
+		fill = Color(tint.r * 0.42, tint.g * 0.42, tint.b * 0.42, 0.95) if lit \
+			else Color(tint.r * 0.22, tint.g * 0.22, tint.b * 0.22, 0.92)
+	panel.add_theme_stylebox_override("panel", MenuSupport.panel_style(fill, edge))
 
 	# THE PICTURE CHANGES AS YOU CLIMB. The breakpoint's own Icon when it has
 	# one, the trait's otherwise — so Fire at 3 can look different from Fire
@@ -326,16 +349,17 @@ func _paint(key: String, bits: Dictionary) -> void:
 	picture.visible = art != null
 	pip.visible = art == null
 	pip.add_theme_color_override("font_color",
-		tint if lit else Color(0.40, 0.43, 0.48))
+		tint if lit or previewing else Color(0.40, 0.43, 0.48))
 
-	var words: Color = MenuSupport.COLOUR_TEXT if lit else Color(0.50, 0.53, 0.58)
+	var words: Color = MenuSupport.COLOUR_TEXT if lit or previewing \
+		else Color(0.50, 0.53, 0.58)
 	(bits["name"] as Label).add_theme_color_override("font_color", words)
 
 	var score: Label = bits["score"]
 	# `2 → 3` while you are pointing at a card that would move it, `2/3`
 	# otherwise. The arrow is the whole message.
 	score.text = "%d→%d" % [have, shown] if previewing else "%d/%d" % [shown, need]
-	score.add_theme_color_override("font_color", tint if lit else words)
+	score.add_theme_color_override("font_color", tint if lit or previewing else words)
 
 	var step_name: Label = bits["step_name"]
 	var step_tag: Label = bits["step_tag"]

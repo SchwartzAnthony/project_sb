@@ -148,18 +148,36 @@ func _build_ui() -> void:
 	footer.add_child(MenuSupport.footer_gap(_detail))
 	page.add_child(footer)
 
-	# ITEMS, IN THE MIDDLE OF THE BOTTOM, and called ITEMS rather than KIT —
-	# because the button that opens the same list during a fight is called
-	# ITEMS, and two names for one thing is one name too many.
+	# THE INVENTORY, IN THE MIDDLE OF THE BOTTOM. The same bag that opens
+	# from the base, from a fight and from the match draft — see
+	# inventory_screen.gd. It used to be a screen of its own called YOUR KIT
+	# that listed a third of what you were carrying as lines of text.
 	#
-	# It is pinned to the screen rather than put in the footer row, so it sits
-	# in the centre regardless of how wide the Back button and the message
-	# beside it happen to be.
-	var items := MenuSupport.footer_button("items|✚", Loc.text("items", "Items"))
-	items.tooltip_text = "What you are carrying that can be used in a fight."
-	items.pressed.connect(_show_kit)
-	add_child(items)
-	MenuSupport.pin_bottom_centre(items)
+	# EDIT ELEMENT BONUS SITS BESIDE IT, because both are things you settle
+	# before you set off and neither belongs on a page of biomes. The two are
+	# pinned as a PAIR - pinning them one at a time would put them both in the
+	# middle, on top of each other.
+	var middle := HBoxContainer.new()
+	middle.add_theme_constant_override("separation", 10)
+	add_child(middle)
+
+	var items := MenuSupport.footer_button("inventory|\u2692",
+		Loc.text("inventory", "Inventory"))
+	items.tooltip_text = "Everything you are carrying \u2014 what you can use, what you can spend, and what you are holding on to."
+	items.pressed.connect(_show_inventory)
+	middle.add_child(items)
+
+	var loadout := MenuSupport.footer_button("traits|\u25c8",
+		Loc.text("edit_element_bonus", "Edit Element Bonus"))
+	loadout.tooltip_text = "Which %d icons you carry into a run. Everything else you have unlocked stays on the shelf and does nothing." % TraitDB.slots(db)
+	loadout.pressed.connect(_show_loadout)
+	middle.add_child(loadout)
+
+	# Its own footprint, or the pin would size it as a single button and the
+	# pair would sit half off centre. Two buttons plus the gap between them.
+	middle.custom_minimum_size = Vector2(
+		MenuSupport.FOOTER_BUTTON.x * 2.0 + 10.0, MenuSupport.FOOTER_BUTTON.y)
+	MenuSupport.pin_bottom_centre(middle)
 
 	_start = MenuSupport.footer_primary("play|▶", "START EXPLORING")
 	_start.disabled = true
@@ -438,56 +456,16 @@ func _refresh_footer() -> void:
 #  SETTING OFF
 # -------------------------------------------------------------
 
-## THE KIT, BEFORE YOU GO. Every item with a Use column, and how many you
-## have. Nothing is spent here — it is a reckoning, not a shop.
-func _show_kit() -> void:
-	var carried := adventure.usable_items(state)
+## THE INVENTORY, BEFORE YOU GO. Nothing is spent here — it is a reckoning,
+## not a shop, so it opens with nothing clickable. The version that opens
+## during a fight is the same window with Use.ITEM instead.
+func _show_loadout() -> void:
+	TraitLoadoutScreen.open(self, state, db)
 
-	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.7)
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(dim)
 
-	var panel := PanelContainer.new()
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left = -290.0
-	panel.offset_right = 290.0
-	panel.offset_top = -200.0
-	panel.offset_bottom = 200.0
-	panel.add_theme_stylebox_override("panel", MenuSupport.panel_style(
-		MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
-	dim.add_child(panel)
-
-	var pad := MarginContainer.new()
-	pad.add_theme_constant_override("margin_left", 22)
-	pad.add_theme_constant_override("margin_right", 22)
-	pad.add_theme_constant_override("margin_top", 18)
-	pad.add_theme_constant_override("margin_bottom", 18)
-	panel.add_child(pad)
-
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 8)
-	pad.add_child(column)
-
-	column.add_child(MenuSupport.heading("YOUR KIT", 26, MenuSupport.COLOUR_ACCENT))
-	if carried.is_empty():
-		column.add_child(_quiet(
-			"Nothing usable. Smelling Salts bring a knocked-out player back on and drop from bosses — the Reed Warden always leaves one."))
-	else:
-		for entry in carried:
-			var line := Label.new()
-			line.text = "%s   x%d\n%s" % [entry.get("name", "?"),
-				int(entry.get("held", 0)), entry.get("description", "")]
-			line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			line.add_theme_font_size_override("font_size", 14)
-			column.add_child(line)
-
-	column.add_child(_quiet(
-		"Kit is used from the ITEMS button during a fight. It is carried with you and does not need packing."))
-
-	var close := MenuSupport.icon_button("✕", Loc.text("close", "Close"), Vector2(180, 46))
-	close.pressed.connect(func() -> void: dim.queue_free())
-	column.add_child(close)
+func _show_inventory() -> void:
+	InventoryScreen.open(self, state, InventoryScreen.Use.NOTHING,
+		"Everything here comes with you. There is no packing.")
 
 
 func _on_start() -> void:

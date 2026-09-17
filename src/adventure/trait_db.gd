@@ -168,14 +168,45 @@ static func unlocked(state: GameState) -> Array[Dictionary]:
 	return out
 
 
+## WHERE THE CHOICE IS KEPT. One line of text in the save —
+## "fire;water;wand" — so it survives the game being closed, and a save that
+## has never opened the screen simply has nothing here and gets the default.
+const LOADOUT_KEY := "trait_loadout"
+
+
 ## Set the eight. Anything not in the list is simply not in the run.
-static func choose(ids: Array[String]) -> void:
+##
+## Hand it the save and the choice is written down. Hand it null and the
+## choice lasts until the game is closed, which is what a test wants and
+## nothing else.
+static func choose(ids: Array[String], state: GameState = null) -> void:
 	_loadout = ids.duplicate()
 	_live = []
+	if state != null:
+		state.set_text(LOADOUT_KEY, ";".join(ids))
+
+
+## The choice as the save remembers it. Empty means nobody has chosen yet.
+static func chosen_ids(state: GameState) -> Array[String]:
+	var out: Array[String] = []
+	if state == null:
+		return out
+	for piece in state.text(LOADOUT_KEY).split(";", false):
+		var word := String(piece).strip_edges()
+		if word != "":
+			out.append(word)
+	return out
 
 
 ## Work out the live eight and remember them. Called once as a run opens.
 static func refresh_loadout(state: GameState, db: CardDatabase = null) -> Array[Dictionary]:
+	# THE SAVE OUTRANKS THE MEMORY. `_loadout` is only a cache of what is in
+	# the save; reading it back here is what makes a choice survive the game
+	# being closed.
+	var remembered := chosen_ids(state)
+	if not remembered.is_empty():
+		_loadout = remembered
+
 	var have := unlocked(state)
 	var room := slots(db)
 	var out: Array[Dictionary] = []
@@ -422,6 +453,16 @@ static func icons_of_enemy(row: Dictionary) -> Array[String]:
 # =============================================================
 #  READING THE STACK
 # =============================================================
+
+## EVERY breakpoint an icon has, lowest At first, whether or not you have
+## reached it. What an icon is worth, for a screen that is describing it
+## rather than playing it — see the Edit Element Bonus screen.
+static func steps_of(trait_id: String) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for step in get_db().steps.get(trait_id.to_lower(), []):
+		out.append(step as Dictionary)
+	return out
+
 
 ## The breakpoints a count has reached, lowest first.
 static func reached(trait_id: String, count: int) -> Array[Dictionary]:

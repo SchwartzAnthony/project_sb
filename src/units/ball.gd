@@ -572,10 +572,28 @@ func make_pass(hurried: bool = false) -> void:
 		if unit.is_enemy == carrier.is_enemy:
 			mates.append(unit)
 
-	# Nobody in an end quarter may be passed to while the corridor is up, so
-	# Tier IV simply never sees the ball during waiting play. If that leaves
-	# no legal target at all, the restriction is dropped rather than the
-	# carrier standing there forever.
+	# ============ WHO IS NEVER PASSED TO ============
+	#
+	# Tier IV stands nearest the goal. Watching one take the ball on the edge
+	# of the box and knock it sideways is the most confusing thing on the
+	# pitch — the obvious question is why they did not simply shoot, and the
+	# answer is that shooting is not what waiting play is for.
+	#
+	# So the ball goes round the OTHER tiers and the front line is left alone
+	# until the PLAY MAKER sends it to them. This is by TIER, not by where a
+	# player happens to be standing: the corridor rule below does something
+	# similar but depends on the formation, and a Tier IV who had drifted back
+	# out of the end quarter was still a legal target.
+	#
+	#     pass_skips_tiers   which tiers are never passed to. "IV" out of the
+	#                        box; "III;IV" keeps two of them out; "none" lets
+	#                        the ball go to anybody
+	mates = _drop_skipped_tiers(mates)
+
+	# Nobody in an end quarter may be passed to while the corridor is up — a
+	# second line of defence for the same idea, which also covers anybody else
+	# who has wandered down there. If either rule leaves no legal target at
+	# all, it is dropped rather than the carrier standing there forever.
 	if corridor_active:
 		var reachable: Array[PlayerUnit] = []
 		for mate in mates:
@@ -628,6 +646,39 @@ func make_pass(hurried: bool = false) -> void:
 	_intended = target
 	carrier = null
 	_in_flight = true
+
+
+## Take the tiers named in `pass_skips_tiers` out of a list of possible
+## receivers — unless that would empty it, in which case everybody is back in
+## and the ball keeps moving. A rule about who looks right receiving a pass is
+## never worth freezing the match over.
+##
+## Reads the list straight from Tuning.csv every time rather than caching it,
+## so a talent that edits the row takes effect in the same match.
+func _drop_skipped_tiers(mates: Array[PlayerUnit]) -> Array[PlayerUnit]:
+	var db := CardDatabase.get_db()
+	if db == null:
+		return mates
+	var raw := db.tune_text("pass_skips_tiers", "IV").strip_edges()
+	# `none` rather than an empty cell, because an empty cell falls back to the
+	# default everywhere else in Tuning.csv and "blank means the opposite of
+	# blank" is the kind of rule nobody remembers a month later.
+	if raw == "" or raw.to_lower() == "none":
+		return mates
+
+	var skipped: Array[String] = []
+	for piece in raw.split(";", false):
+		var word := String(piece).strip_edges().to_upper()
+		if word != "":
+			skipped.append(word)
+	if skipped.is_empty():
+		return mates
+
+	var kept: Array[PlayerUnit] = []
+	for mate in mates:
+		if mate.data == null or not skipped.has(mate.data.get_tier_clean().to_upper()):
+			kept.append(mate)
+	return kept if not kept.is_empty() else mates
 
 
 func _advance_pass(delta: float) -> void:

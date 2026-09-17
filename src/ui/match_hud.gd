@@ -4,15 +4,26 @@ extends HBoxContainer
 # =============================================================
 #  THE MATCH HUD — the speed buttons and the AUTO toggle
 #
-#  A small strip in the top-left of a match. Two controls:
+#  A small strip in the top-left of a match:
 #
 #    1x 2x 4x 8x   how fast time runs. Number keys 1-4 do the same.
 #                  Hold F for a blast of 20x, let go to drop back.
+#
+#  and, down beside the cards where the choosing happens:
 #
 #    AUTO          the game plays for you — it picks your cards at every
 #                  PLAY MAKER and every Star swap, throws the clash and
 #                  chooses attack or defend, so you can sit and watch a
 #                  whole match without touching anything.
+#
+#  ============ A LOCKED SPEED IS SHOWN, NOT HIDDEN ============
+#
+#  1x is always there. 2x, 4x and 8x are shown greyed until they are
+#  unlocked, and pressing one says so instead of doing nothing.
+#
+#  A button you cannot press yet is a thing to want; a button that is not
+#  there is a feature the player never learns exists. The words are yours —
+#  `game_speed_locked_words` in Tuning.csv.
 #
 #  ============ AUTO STARTS OFF, EVERY MATCH ============
 #
@@ -41,6 +52,11 @@ const AUTO_FLAG := "auto_pick"
 
 signal auto_pick_changed(is_on: bool)
 
+## Somebody pressed a speed they have not unlocked. The match puts the words
+## on the screen — this does not, because a HUD strip in the corner is not
+## where anybody is looking.
+signal speed_locked(words: String)
+
 var db: CardDatabase
 var state: GameState
 
@@ -51,6 +67,10 @@ var _turbo_held: bool = false
 
 var _speed_buttons: Array[Button] = []
 var _auto_button: Button = null
+
+## Worked out once in setup() and then asked, rather than re-tested on every
+## repaint — a Requires condition can touch the save file.
+var _unlocked := false
 
 
 # =============================================================
@@ -83,6 +103,7 @@ func setup(database: CardDatabase, save: GameState) -> void:
 	# flag at is thrown away here; only Tuning.csv can start a match on AUTO,
 	# and it is off unless you say otherwise.
 	set_auto_pick(state, db.tune_bool("auto_pick", false))
+	_unlocked = _speed_buttons_allowed()
 
 	add_theme_constant_override("separation", 5)
 	_build()
@@ -106,23 +127,47 @@ func _build() -> void:
 	# THE HOLD-TO-HURRY IS UNTOUCHED. Holding the mouse or the spacebar
 	# through a duel still runs it fast; that is a different thing and it is
 	# always on. Only these buttons answer to this switch.
-	if _speed_buttons_allowed():
-		for value in _steps:
-			var button := _make_button(GameSpeed.label_for(value), 46.0)
-			button.tooltip_text = "Run the game at %s" % GameSpeed.label_for(value)
-			button.pressed.connect(_choose.bind(value))
-			add_child(button)
-			_speed_buttons.append(button)
+	for value in _steps:
+		var button := _make_button(GameSpeed.label_for(value), 46.0)
+		# NORMAL SPEED IS NEVER LOCKED. Whatever the first step in
+		# game_speed_steps is, it is the speed the match already runs at, so
+		# locking it would be locking the game.
+		var locked := not _unlocked and not is_equal_approx(value, _steps[0])
+		button.set_meta("speed", value)
+		button.set_meta("locked", locked)
+		button.tooltip_text = _locked_words() if locked \
+			else "Run the game at %s" % GameSpeed.label_for(value)
+		button.pressed.connect(_choose.bind(value))
+		add_child(button)
+		_speed_buttons.append(button)
 
-	var spacer := Control.new()
-	spacer.custom_minimum_size = Vector2(10, 0)
-	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(spacer)
-
+	# THE AUTO BUTTON IS BUILT HERE AND PARENTED SOMEWHERE ELSE. It belongs
+	# beside the cards, because that is the thing it takes over — see
+	# take_auto_button() and main_scene's _place_auto_button().
 	_auto_button = _make_button("AUTO", 66.0)
 	_auto_button.tooltip_text = "Let the game play for you. Your cards and the clash buttons lock while it is on.\nPress AUTO or A to take back over."
 	_auto_button.pressed.connect(_toggle_auto)
-	add_child(_auto_button)
+
+
+## The AUTO button, for whoever is going to put it on the screen. It is not a
+## child of this strip — it lives beside the card row, where the choosing it
+## takes over from you actually happens.
+##
+## Returns null if it has already been taken, so calling this twice is safe.
+func take_auto_button() -> Button:
+	var button := _auto_button
+	if button != null and button.get_parent() != null:
+		return null
+	return button
+
+
+## What a locked speed button says. One row of Tuning.csv, so the wording is
+## yours and matches whatever you called the unlock.
+func _locked_words() -> String:
+	if db == null:
+		return "Not unlocked yet."
+	return db.tune_text("game_speed_locked_words",
+		"Fast forward is not unlocked yet.")
 
 
 ## Are the speed buttons on the HUD at all?
@@ -156,6 +201,14 @@ func _make_button(text: String, width: float) -> Button:
 # =============================================================
 
 func _choose(value: float) -> void:
+	# LOCKED MEANS IT SAYS SO. Not that it does nothing — a button that does
+	# nothing when you press it reads as a broken game, and the player has no
+	# way of learning that there is something here to earn.
+	if not _unlocked and not _steps.is_empty() and not is_equal_approx(value, _steps[0]):
+		speed_locked.emit(_locked_words())
+		print("[speed] %s is locked. %s" % [GameSpeed.label_for(value), _locked_words()])
+		return
+
 	_chosen = value
 	if not _turbo_held:
 		GameSpeed.set_speed(_chosen)
@@ -221,8 +274,9 @@ func refresh_auto_button() -> void:
 
 func _refresh() -> void:
 	for i in _speed_buttons.size():
+		var button := _speed_buttons[i]
 		var live := is_equal_approx(_steps[i], _chosen) and not _turbo_held
-		_paint(_speed_buttons[i], live)
+		_paint(button, live, bool(button.get_meta("locked", false)))
 
 	if _auto_button != null:
 		var on := auto_pick_on(state)
@@ -230,7 +284,22 @@ func _refresh() -> void:
 		_paint(_auto_button, on)
 
 
-func _paint(button: Button, lit: bool) -> void:
+func _paint(button: Button, lit: bool, locked: bool = false) -> void:
+	# A LOCKED BUTTON IS STILL A BUTTON. It keeps its box and its label and
+	# goes grey and half-faded, so it reads as "later" rather than "broken".
+	# It is deliberately NOT `disabled`: a disabled button swallows the click
+	# and so cannot tell you why it did nothing.
+	if locked:
+		button.modulate = Color(1, 1, 1, 0.45)
+		button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
+			MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_TEXT_DIM))
+		button.add_theme_stylebox_override("hover", MenuSupport.panel_style(
+			MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_TEXT_DIM))
+		button.add_theme_stylebox_override("pressed", MenuSupport.panel_style(
+			MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_TEXT_DIM))
+		return
+
+	button.modulate = Color(1, 1, 1, 1)
 	var fill := MenuSupport.COLOUR_SLOT_EMPTY if lit else MenuSupport.COLOUR_PANEL
 	var edge := MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT_DIM
 	button.add_theme_stylebox_override("normal", MenuSupport.panel_style(fill, edge))

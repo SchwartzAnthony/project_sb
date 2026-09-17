@@ -272,8 +272,12 @@ func start() -> void:
 	_choice_row.visible = false
 	_coin.text = "?"
 	_coin.rotation = 0.0
+	# BACK TO A PLAIN COIN. An exact call leaves it gold and mid-swell, and a
+	# clash that opens gold has given the answer away before it is asked.
+	_coin.scale = Vector2.ONE
+	_coin.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
 	_title.text = "CALL IT"
-	_status.text = "Pick a number. The coin lands on one of the ten — whoever called closer chooses to attack or defend."
+	_status.text = "Pick a number. The coin lands on one of the %d — whoever called closer chooses to attack or defend." % faces
 	show()
 
 
@@ -384,9 +388,39 @@ func _reveal() -> void:
 	# the least satisfying way to lose anything.
 	var i_won := mine_off <= theirs_off
 
-	_title.text = "YOU CALLED CLOSER" if i_won else "THEY CALLED CLOSER"
+	# ============ CALLING IT EXACTLY ============
+	#
+	# There are two ways to win the call and they are not the same thing.
+	# Being nearer is arithmetic. Naming the number is the moment worth
+	# leaning on, and it deserves to look different from the other one —
+	# otherwise the best thing that can happen in the clash goes past
+	# unnoticed, in a line of small grey text, at the same speed as everything
+	# else.
+	#
+	#     coin_exact_words      what it says. Yours to rewrite
+	#     coin_exact_seconds    how long the extra celebration is held for
+	#
+	# `coin_exact` is also a JUICE MOMENT, so a row in Juice.csv hangs a
+	# sound, a shake and a flash on it with no code — see the manual.
+	var exact_mine := mine_off == 0
+	var exact_theirs := theirs_off == 0
+
+	if exact_mine:
+		_title.text = _words("coin_exact_words", "CALLED IT!")
+	elif exact_theirs:
+		_title.text = _words("coin_exact_them_words", "THEY CALLED IT")
+	else:
+		_title.text = "YOU CALLED CLOSER" if i_won else "THEY CALLED CLOSER"
+
 	_status.text = "The coin came up %d. You said %d (%d away), they said %d (%d away)." % [
 		_landed, _picked, mine_off, _theirs, theirs_off]
+
+	if exact_mine or exact_theirs:
+		_celebrate(exact_mine)
+		await get_tree().create_timer(
+			maxf(0.05, _number("coin_exact_seconds", 0.9))).timeout
+		if not _running:
+			return
 
 	await get_tree().create_timer(maxf(0.05, reveal_seconds)).timeout
 	if not _running:
@@ -407,6 +441,54 @@ func _reveal() -> void:
 	await get_tree().create_timer(maxf(0.05, result_seconds)).timeout
 	# If they attack, we defend. The signal says what YOUR side does.
 	_finish(not they_attack)
+
+
+## ============ THE EXACT-CALL CELEBRATION ============
+##
+## The coin swells and turns gold, and the chip that named it pulses beside
+## it. Two objects moving and nothing else, so it reads in the half second it
+## is on the screen.
+##
+## Drawn here rather than in Juice.csv because it happens on a screen of its
+## own with no pitch behind it — there is nothing for a screen shake to shake.
+## The Juice row is fired as well, and that is where the SOUND belongs.
+func _celebrate(mine: bool) -> void:
+	var gold := Color(1.0, 0.84, 0.35)
+	_coin.add_theme_color_override("font_color", gold if mine
+		else Color(0.92, 0.55, 0.45))
+
+	var swell := _coin.create_tween()
+	swell.tween_property(_coin, "scale", Vector2(1.9, 1.9), 0.14) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	swell.tween_property(_coin, "scale", Vector2(1.25, 1.25), 0.20)
+	swell.tween_property(_coin, "scale", Vector2(1.55, 1.55), 0.16)
+	swell.tween_property(_coin, "scale", Vector2.ONE, 0.22)
+
+	# The chip that named it, pulsing. Theirs when it was their call.
+	var row := _my_buttons if mine else _their_buttons
+	var index := (_picked if mine else _theirs) - 1
+	if index >= 0 and index < row.size():
+		var chip := row[index]
+		chip.modulate = Color(1, 1, 1, 1)
+		var beat := chip.create_tween()
+		beat.set_loops(3)
+		beat.tween_property(chip, "modulate", gold, 0.12)
+		beat.tween_property(chip, "modulate", Color(1, 1, 1, 1), 0.12)
+
+	# A SOUND AND A SHAKE WITHOUT CODE. Write a `coin_exact` row in Juice.csv
+	# and it plays here; write none and nothing happens, which is the same
+	# rule as every other moment.
+	Juice.fire(self, "coin_exact", {"who": "player" if mine else "enemy"})
+	print("[clash] Called it exactly — %s." % ("you" if mine else "they"))
+
+
+## A line of words out of Tuning.csv, so the wording is yours.
+func _words(key: String, fallback: String) -> String:
+	return db.tune_text(key, fallback) if db != null else fallback
+
+
+func _number(key: String, fallback: float) -> float:
+	return db.tune_float(key, fallback) if db != null else fallback
 
 
 func _choose(attack: bool) -> void:

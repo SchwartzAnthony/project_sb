@@ -1924,6 +1924,54 @@ func spawn_hud() -> void:
 	hud.setup(db, state)
 	# Turning AUTO on mid-draft should pick straight away, not next round.
 	hud.auto_pick_changed.connect(_on_auto_pick_changed)
+	# A locked speed says so on the big announcement, not in the corner.
+	hud.speed_locked.connect(func(words: String) -> void: announce(words, 1.6))
+	_place_auto_button()
+
+
+## AUTO GOES WHERE THE CHOOSING HAPPENS.
+##
+## It used to sit in the corner next to the speed buttons, which put "let the
+## game pick for you" as far as it is possible to get from the cards it picks
+## for you. It now sits just under the card row, so the offer is made where
+## the decision is.
+##
+## Both numbers are fractions of the window, like card_row_x / card_row_y, so
+## it lands in the same place at any resolution:
+##
+##     auto_button_x   0.5 is the middle of the screen
+##     auto_button_y   how far down. Just under the cards out of the box
+func _place_auto_button() -> void:
+	if hud == null or selection_ui == null:
+		return
+	var button := hud.take_auto_button()
+	if button == null:
+		return
+
+	var holder := CenterContainer.new()
+	holder.name = "AutoButtonHolder"
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.set_anchors_preset(Control.PRESET_TOP_WIDE, true)
+	holder.anchor_left = 0.0
+	holder.anchor_right = 1.0
+	# THE DEFAULT FOLLOWS THE CARDS. Half a card below card_row_y plus a small
+	# gap, worked out from the real card size — so moving the card row moves
+	# the button with it and you only set auto_button_y if you want it
+	# somewhere else entirely.
+	var window_high := maxf(1.0, get_viewport_rect().size.y)
+	var under_cards := db.tune_float("card_row_y", 0.5) \
+		+ (PlayerCardUI.card_size().y * 0.5 + 26.0) / window_high
+	var where := Vector2(
+		db.tune_float("auto_button_x", 0.5),
+		db.tune_float("auto_button_y", clampf(under_cards, 0.05, 0.95)))
+	holder.anchor_top = where.y
+	holder.anchor_bottom = where.y
+	holder.offset_top = -18.0
+	holder.offset_bottom = 18.0
+	holder.offset_left = (where.x - 0.5) * 2.0 * 200.0
+	holder.offset_right = (where.x - 0.5) * 2.0 * 200.0
+	holder.add_child(button)
+	selection_ui.add_child(holder)
 
 
 ## The hover window. It lives on the SelectionUI layer with the cards, so it
@@ -2710,6 +2758,7 @@ func create_card_for_unit(data: PlayerData) -> void:
 	card.card_hovered.connect(_on_card_hovered)
 	card.card_unhovered.connect(_on_card_unhovered)
 	card.card_selected.connect(_on_card_selected)
+	card.brew_wanted.connect(_on_brew_wanted)
 	# Born locked if AUTO is already running, so there is never a frame in
 	# which a fresh card is clickable during an automatic pick.
 	card.set_locked(_auto_is_on())
@@ -2720,6 +2769,78 @@ func create_card_for_unit(data: PlayerData) -> void:
 	# itself now (see MenuSupport.card_face), so flagging it here as well
 	# put two badges in the same corner. _flag_card_as_star() below is kept
 	# in case you want a bigger marker on the pitch than on the shelf.
+
+
+# =============================================================
+#  POURING A BREW ON A CARD, MID-DRAFT
+#
+#  The Pub is where you plan; this is where you react. You are looking at
+#  four cards and about to choose one, and THAT is the moment you know which
+#  of them wants to be something else — so the flask is on the card rather
+#  than three screens away.
+#
+#  NOTHING NEW IS STORED. It is the same pour the Pub does: it costs the same
+#  materials out of Brews.csv, it needs the same unlock, it lays the same
+#  overlay on the card, and the same line at the final whistle takes it off
+#  again — see BrewDB.clear_temporary(), which the whistle already calls.
+#  A brew poured here is a ONE-MATCH brew and is never made permanent, because
+#  making a permanent decision in the middle of a match is not a thing anybody
+#  meant to do.
+# =============================================================
+
+func _on_brew_wanted(card: PlayerData) -> void:
+	if card == null or state == null:
+		return
+	if _auto_is_on():
+		return
+
+	var bag := InventoryScreen.open(self, state, InventoryScreen.Use.ON_CARD,
+		"Pouring on %s. It wears off at the final whistle." % card.player_name)
+	bag.used.connect(func(entry: Dictionary) -> void:
+		_pour_on_card(card, entry)
+		if is_instance_valid(bag):
+			bag.close())
+
+
+func _pour_on_card(card: PlayerData, entry: Dictionary) -> void:
+	if not bool(entry.get("is_brew", false)):
+		return
+	var brew: Dictionary = entry.get("brew", {})
+	if brew.is_empty():
+		return
+
+	# THE CLASS RULE STILL APPLIES. A Fire Brew is written For Class Lorelei,
+	# and a Brandteufel drinking it would be nonsense — so it is refused here
+	# with a line on the screen rather than silently doing nothing.
+	if not BrewDB.suits(brew, card):
+		announce("%s cannot drink that." % NamePlate.short_name(card), 1.5)
+		print("[brew] %s is not %s — refused." % [
+			card.player_name, brew.get("for_class", "?")])
+		return
+
+	BrewDB.pour(card, brew, false, state)
+	# APPLY IT NOW, not at the next kick-off. The point of pouring here is to
+	# see the card change while you are still deciding.
+	BrewDB.get_db().apply_all(db, state)
+	state.save_to_disk()
+
+	_redraw_offered_cards()
+	announce("%s drinks %s." % [NamePlate.short_name(card),
+		brew.get("name", "it")], 1.6)
+	print("[brew] %s poured on %s mid-draft." % [brew.get("name", "?"), card.player_name])
+
+
+## Rebuild the faces in the card row without changing which cards are on
+## offer. A brewed card wears different art, a different class and different
+## abilities, and all three are drawn on the face.
+func _redraw_offered_cards() -> void:
+	if card_container == null:
+		return
+	for child in card_container.get_children():
+		var card := child as PlayerCardUI
+		if card != null and card.current_data != null:
+			card.setup_card(card.current_data)
+			card.set_locked(_auto_is_on())
 
 
 ## The same badge the unit wears on the pitch, in the corner of its selection
@@ -3379,12 +3500,12 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 		if scored:
 			# Restart from the centre. The side that CONCEDED kicks off, and
 			# target_key is exactly that side (it owns the beaten keeper).
-			await get_tree().create_timer(db.tune_float("goal_pause_seconds", 0.7)).timeout
+			await _let_them_shape_up(db.tune_float("goal_pause_seconds", 2.0))
 			ball.global_position = get_play_rect().get_center()
 			give_ball_to(target_key)
 		else:
 			# --- 4. Saved: the keeper hoofs it upfield to their own side ---
-			await get_tree().create_timer(db.tune_float("save_pause_seconds", 0.4)).timeout
+			await _let_them_shape_up(db.tune_float("save_pause_seconds", 2.0))
 			await _goal_kick(target_key)
 
 	# The break is over, the ball comes off its rails, and everyone drifts back
@@ -3394,6 +3515,27 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 		ball.scripted_possession = false
 	round_resolved.emit(player_score, enemy_score)
 	current_state = MatchState.PLAYING
+
+
+## ============ THE PAUSE BEFORE A RESTART ============
+##
+## The break is over the moment the ball is dead, not when play restarts. It
+## used to be ended afterwards, so the two teams were still in their attacking
+## shape when the keeper kicked — the whole front line up one end, nobody in
+## the middle, and a restart into a pitch that made no sense.
+##
+## Ending the surge here and then holding for a couple of seconds gives
+## everybody time to walk back to their own quarter first. Nobody sprints;
+## they simply set off earlier and the restart waits for them.
+##
+##     goal_pause_seconds   the hold after a goal
+##     save_pause_seconds   the hold before the keeper kicks
+func _let_them_shape_up(seconds: float) -> void:
+	_end_surge()
+	var wait := maxf(0.0, seconds)
+	if wait <= 0.0:
+		return
+	await get_tree().create_timer(wait).timeout
 
 
 ## After a save: the keeper launches it to whichever team-mate is furthest

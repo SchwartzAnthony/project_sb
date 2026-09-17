@@ -39,6 +39,7 @@ extends RefCounted
 #      goal_scored       a goal in a league match
 #      play_maker        PLAY MAKER fires
 #      star_switch       STAR PLAYER SWITCH
+#      coin_exact        somebody named the clash coin exactly
 #
 #  A moment nobody wrote a row for simply does nothing. Delete every row and
 #  the game plays identically, just flat.
@@ -78,7 +79,7 @@ var problems: Array[String] = []
 const MOMENTS: Array[String] = [
 	"ball_received", "ball_kicked", "enemy_hit", "enemy_died", "player_hurt",
 	"player_exhausted", "player_healed", "combo_fired", "shot_struck",
-	"enemy_windup", "goal_scored", "play_maker", "star_switch",
+	"enemy_windup", "goal_scored", "play_maker", "star_switch", "coin_exact",
 ]
 const WHO: Array[String] = ["player", "enemy", "screen", "ball"]
 

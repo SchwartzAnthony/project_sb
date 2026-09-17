@@ -12,6 +12,9 @@ kickoff_go_seconds,0.55,How long START is held before they are let go
 use_coin_clash,true,"TRUE = the NUMBER GUESS: both sides call one to ten, a coin lands on one, and whoever called closer chooses attack or defend. FALSE = the old rock-paper-scissors screen, which is still in the project and still works"
 coin_faces,10,"How many numbers are on the coin. Ten out of the box. Their call is always drawn from the ones you did NOT pick, so the two can never be the same number and there is no draw to explain"
 coin_spin_seconds,1.4,"How long the coin turns before it lands. It slows as it goes, so this is the whole spin rather than a per-step time"
+coin_exact_words,CALLED IT!,"WHAT IT SAYS WHEN YOU NAME THE COIN EXACTLY. There are two ways to win the call and they are not the same thing - being nearer is arithmetic, naming the number is the moment worth leaning on, so it gets its own words and its own animation"
+coin_exact_them_words,THEY CALLED IT,The same when the enemy names it exactly
+coin_exact_seconds,0.9,"How long the exact-call celebration is held before the clash carries on. Write a coin_exact row in Juice.csv to hang a sound on it"
 enemy_attack_chance,0.5,Enemy odds of choosing ATTACK when it wins the clash
 rps_reveal_seconds,0.9,Pause on the clash reveal
 rps_result_seconds,1.0,Pause on the clash decision
@@ -33,8 +36,8 @@ unit_interest_radius,190,How close the ball must be before a unit reacts
 unit_roam_radius,40,How far a unit wanders from its formation slot
 shot_run_up_seconds,0.45,How long the shooter steps toward goal before striking
 relay_beat_seconds,0.25,Pause after each PLAY MAKER relay pass so you can see who has it
-goal_pause_seconds,0.7,Pause after the ball crosses the line before the restart
-save_pause_seconds,0.4,Pause after a save before the goal kick
+goal_pause_seconds,2.0,"PAUSE AFTER THE BALL CROSSES THE LINE, before the restart. The break is ended the moment the ball is dead, so this is the time both sides have to WALK BACK TO THEIR OWN QUARTER before play starts again. Shorten it and the restart happens with everybody still stood at one end"
+save_pause_seconds,2.0,"PAUSE AFTER A SAVE, before the keeper kicks. Same idea as goal_pause_seconds - the keeper holds the ball while both sides get back into shape, and then kicks it down the field"
 ball_delivery_speed,520,Pixels per second for a scripted PLAY MAKER pass
 scoreboard_font_size,60,Score text size
 scoreboard_top_margin,18,Distance from the top of the screen
@@ -125,12 +128,16 @@ game_speed_steps,"1,2,4,8","The speed buttons in a match, comma separated. Numbe
 game_speed_turbo,20,How fast time runs while you HOLD F. Let go and it drops back to the button you chose
 game_speed_buttons,false,"ARE THE 1x / 2x / 4x / 8x BUTTONS ON THE MATCH HUD AT ALL? Off out of the box. Speed buttons from the first match are a strong hint that a match is something to get through rather than something to watch - turn them on when you have decided otherwise. HOLDING THE MOUSE OR SPACEBAR through a duel still hurries it along either way; that is a different thing and it is always on"
 game_speed_buttons_needs,,"A Requires condition that must pass before the speed buttons appear, in the usual words. Put unlocked:Fast Forward here and hand that unlock out with a talent or a season reward, and the speed control becomes something the player earns rather than something they are handed"
+game_speed_locked_words,Fast forward is not unlocked yet.,"WHAT A LOCKED SPEED BUTTON SAYS when it is pressed. The buttons are always on the HUD - a locked one is greyed rather than missing, because a button you cannot press yet is a thing to want and a button that is not there is a feature the player never learns exists. Word it to match whatever you called the unlock"
+auto_button_x,0.5,"Where the AUTO button sits across the screen. 0 = hard left, 0.5 = the middle, 1 = hard right. It sits beside the cards rather than in the corner, because the cards are what it takes over"
+auto_button_y,,"How far down the screen the AUTO button sits, as a fraction. LEAVE IT BLANK and it follows the card row - half a card below card_row_y - so moving the cards moves the button with them. Fill it in only if you want it somewhere else entirely"
 game_speed_start,1,Which speed a match begins at
 auto_pick,false,"Is AUTO already on when a match kicks off? Every match starts from THIS value, not from what you left the last one at. While AUTO is on your cards and the clash buttons are locked"
 auto_pick_seconds,0.9,How long AUTO waits before choosing so you can still see who was on offer
 hud_left_margin,16,Where the speed buttons sit from the left edge
 hud_top_margin,14,Where the speed buttons sit from the top edge
 goal_kick_tier,III,Which tier the keeper aims a goal kick at. IV was the far end of the pitch and felt like a punt. Blank = whoever is furthest forward
+pass_skips_tiers,IV,"WHICH TIERS ARE NEVER PASSED TO during ordinary play. IV out of the box: Tier IV stands nearest the goal, and watching one take the ball on the edge of the box and knock it sideways raises the obvious question of why they did not simply shoot. The ball goes round the other tiers and the front line waits for the PLAY MAKER. Several tiers are joined with a semicolon (III;IV). Write none to let the ball go to anybody"
 progress_bars_max,6,How many progress bars the post-match screen shows before it stops
 show_dev_tools,true,"Shows the Dev button at the base, which opens the save inspector. Set to false before showing the game to anyone"
 inspector_jump_buttons,14,"How many ""jump straight to"" buttons the save inspector offers"
@@ -168,6 +175,7 @@ adventure_lane_height,540,"How deep the Adventure grass band is, in pixels. Deep
 adventure_player_size,26,"How big an Adventure player is drawn, as a radius in pixels. Raise it with adventure_lane_height so the two stay in proportion"
 adventure_ball_size,7,"How big the Adventure ball is drawn, as a radius in pixels. The pitch ball is 6, so 7 keeps the two looking alike"
 escape_quits_instantly,false,"FALSE = Escape outside a match asks 'quit the game?' first. TRUE = it closes the game on the first press with no warning"
+draft_brew_button,true,"IS THERE A LITTLE FLASK IN THE CORNER OF EACH DRAFT CARD? Pressing it opens the Inventory and pours a brew on that player there and then, so the card changes class and art while you are still deciding. It is the same pour the Pub does - same cost out of Brews.csv, same unlock - and it is always a ONE-MATCH brew, so the final whistle takes it off again. FALSE and brews are poured at the Pub only, as before"
 card_row_x,0.5,"Where the row of player cards sits across the screen during a match. 0 = hard left, 0.5 = the middle, 1 = hard right"
 card_row_y,0.5,"Where the row of player cards sits down the screen during a match. 0 = the top, 0.5 = the middle, 1 = the bottom. It used to be pinned to the bottom edge of the window"
 card_row_gap,18,Pixels between the player cards during a match

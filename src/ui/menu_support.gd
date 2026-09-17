@@ -253,6 +253,110 @@ static func icon_button(icon: String, label: String,
 	return button
 
 
+# -------------------------------------------------------------
+#  A BAG SLOT — the square button the Inventory is made of
+#
+#  icon_button() above puts the picture on the LEFT and the words beside it,
+#  which is right for a menu of five things and wrong for a bag of forty.
+#  This is the other shape: a square with the picture in the middle, how many
+#  you have in the bottom corner, and NO WORDS AT ALL.
+#
+#  What it is is read by pointing at it. Every screen that shows one also
+#  shows a description panel, and the caller wires the hover up — see
+#  inventory_screen.gd, which is the one place all of this comes together.
+#
+#  `art` is a file name out of a CSV (Items.csv `Art`, Brews.csv `Artwork`).
+#  Missing art is not an error: `glyph` is drawn instead, which is why a bag
+#  full of items works long before any of them have been drawn.
+# -------------------------------------------------------------
+
+static func slot_button(art: String, glyph: String, count: int,
+		size: Vector2 = Vector2(84, 84), tint: Color = COLOUR_TEXT_DIM) -> Button:
+	var button := Button.new()
+	button.custom_minimum_size = size
+	button.focus_mode = Control.FOCUS_ALL
+	button.add_theme_stylebox_override("normal", panel_style(COLOUR_PANEL, tint))
+	button.add_theme_stylebox_override("hover", panel_style(COLOUR_SLOT_EMPTY, COLOUR_ACCENT))
+	button.add_theme_stylebox_override("pressed", panel_style(COLOUR_SLOT_EMPTY, COLOUR_ACCENT))
+	button.add_theme_stylebox_override("disabled", panel_style(COLOUR_LOCKED, COLOUR_TEXT_DIM))
+	button.add_theme_stylebox_override("focus", focus_style())
+
+	# --- the picture, filling the middle ---
+	var texture := icon_texture(art)
+	if texture != null:
+		var picture := TextureRect.new()
+		picture.texture = texture
+		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		picture.offset_left = 10.0
+		picture.offset_top = 8.0
+		picture.offset_right = -10.0
+		picture.offset_bottom = -18.0
+		picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		button.add_child(picture)
+	else:
+		var mark := Label.new()
+		mark.text = glyph
+		mark.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		mark.offset_bottom = -12.0
+		mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		mark.add_theme_font_size_override("font_size", int(size.y * 0.42))
+		mark.add_theme_color_override("font_color", tint)
+		mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		button.add_child(mark)
+
+	# --- how many, along the bottom. Hidden at one, because "x1" is noise ---
+	if count > 1:
+		var many := Label.new()
+		many.text = "x%d" % count
+		many.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+		# Inside the border on all three sides. Pinned to the edge it sat ON
+		# the border, and a number cut in half by a line reads as a glitch.
+		many.offset_top = -20.0
+		many.offset_bottom = -5.0
+		many.offset_left = 4.0
+		many.offset_right = -8.0
+		many.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		many.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		many.add_theme_font_size_override("font_size", 12)
+		many.add_theme_color_override("font_color", COLOUR_ACCENT)
+		many.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		button.add_child(many)
+
+	return button
+
+
+## A tab along the top of a window. A plain rectangle with a word in it —
+## icon_button() would give it an empty picture half, which on a tab is a
+## notch of dead space at the left of every one of them.
+static func tab_button(text: String, lit: bool,
+		size: Vector2 = Vector2(170, 38)) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.custom_minimum_size = size
+	button.focus_mode = Control.FOCUS_ALL
+	button.add_theme_font_size_override("font_size", 14)
+	paint_tab(button, lit)
+	button.add_theme_stylebox_override("hover",
+		panel_style(COLOUR_SLOT_EMPTY, COLOUR_ACCENT))
+	button.add_theme_stylebox_override("pressed",
+		panel_style(COLOUR_SLOT_EMPTY, COLOUR_ACCENT))
+	button.add_theme_stylebox_override("focus", focus_style())
+	return button
+
+
+## Light a tab, or put it out. Kept apart from tab_button() so a screen can
+## change which tab is lit without rebuilding the row.
+static func paint_tab(button: Button, lit: bool) -> void:
+	button.add_theme_stylebox_override("normal", panel_style(
+		COLOUR_SLOT_EMPTY if lit else COLOUR_PANEL,
+		COLOUR_ACCENT if lit else COLOUR_TEXT_DIM))
+	button.add_theme_color_override("font_color",
+		COLOUR_TEXT if lit else COLOUR_TEXT_DIM)
+
+
 ## The faint panel behind an icon half, with a hairline on its right edge.
 static func _half_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()

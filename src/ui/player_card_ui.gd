@@ -37,6 +37,9 @@ extends Control
 signal card_hovered(data: PlayerData)
 signal card_unhovered(data: PlayerData)
 signal card_selected(data: PlayerData)
+## The little flask in the corner was pressed — somebody wants to pour
+## something on this card before choosing it. main_scene opens the Inventory.
+signal brew_wanted(data: PlayerData)
 
 ## The size used when Tuning.csv has nothing to say. Bigger than the old
 ## hand-built card on purpose — this is the size you asked for.
@@ -49,6 +52,8 @@ var current_data: PlayerData
 var locked: bool = false
 
 var _face: Button
+## The little flask, top left. Null when draft_brew_button is off.
+var _flask: Button
 
 
 func _ready() -> void:
@@ -91,7 +96,53 @@ func setup_card(data: PlayerData) -> void:
 	_face.mouse_exited.connect(_on_mouse_exited)
 	_face.pressed.connect(_on_pressed)
 
+	_add_brew_corner(box)
 	_apply_lock()
+
+
+## ============ THE FLASK IN THE CORNER ============
+##
+## A small second button on top of the card. Pressing the card CHOOSES the
+## player; pressing the flask pours something on them first.
+##
+## It has to be a separate button rather than a right-click or a long press,
+## because both of those are invisible — nobody discovers a gesture nobody
+## told them about, and a card that quietly does two different things
+## depending on which mouse button you used is worse than a card with a
+## second button on it.
+##
+## `draft_brew_button` in Tuning.csv takes it off the cards entirely.
+func _add_brew_corner(_box: Vector2) -> void:
+	var db := CardDatabase.get_db()
+	if db != null and not db.tune_bool("draft_brew_button", true):
+		return
+
+	_flask = Button.new()
+	_flask.text = "⚗"
+	_flask.tooltip_text = "Pour a brew on this player before you choose them. It wears off at the final whistle."
+	_flask.focus_mode = Control.FOCUS_NONE
+	_flask.custom_minimum_size = Vector2(30, 30)
+	# TOP LEFT, because the Star badge is top right. Two things in one corner
+	# is how a Star card ends up with a flask drawn over its badge.
+	#
+	# Plain offsets from the top-left corner rather than an anchor preset: a
+	# TOP_RIGHT preset measures its offsets from the RIGHT edge, so the same
+	# numbers would put this a card's width off the side of the card.
+	_flask.offset_left = 6.0
+	_flask.offset_top = 6.0
+	_flask.offset_right = 36.0
+	_flask.offset_bottom = 36.0
+	_flask.add_theme_font_size_override("font_size", 16)
+	_flask.add_theme_stylebox_override("normal", MenuSupport.panel_style(
+		MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_TEXT_DIM))
+	_flask.add_theme_stylebox_override("hover", MenuSupport.panel_style(
+		MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+	_flask.add_theme_stylebox_override("pressed", MenuSupport.panel_style(
+		MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+	_flask.pressed.connect(func() -> void:
+		if current_data != null and not locked:
+			brew_wanted.emit(current_data))
+	add_child(_flask)
 
 
 ## Called by main_scene whenever AUTO is switched on or off, and once when
@@ -110,6 +161,9 @@ func _apply_lock() -> void:
 	# choose.
 	_face.mouse_filter = Control.MOUSE_FILTER_IGNORE if locked \
 		else Control.MOUSE_FILTER_STOP
+	if _flask != null and is_instance_valid(_flask):
+		_flask.disabled = locked
+		_flask.visible = not locked
 	modulate = Color(1, 1, 1, 0.45) if locked else Color(1, 1, 1, 1)
 
 

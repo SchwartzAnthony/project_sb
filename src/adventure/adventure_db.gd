@@ -257,6 +257,11 @@ func _read_items(rows: Array, columns: Dictionary, where: String) -> void:
 			"target": _cell(row, columns, "target").to_lower(),
 			"requires": _cell(row, columns, "requires"),
 			"description": _cell(row, columns, "description"),
+			# WHICH TAB OF THE INVENTORY IT SITS IN — items, resources or
+			# keys. Leave the cell blank, or leave the column out entirely,
+			# and it is worked out from Kind — so an older Items.csv still
+			# sorts itself correctly. See tab_of() below.
+			"tab": _cell(row, columns, "tab").to_lower(),
 			"where": "%s row %d" % [where, i + 1],
 		}
 
@@ -431,6 +436,128 @@ func draw_from_pool(pool: String) -> Dictionary:
 
 ## Everything you are carrying that can be used in a fight, in Items.csv
 ## order. Each row gains a "held" key: how many you have.
+# =============================================================
+#  THE INVENTORY — three tabs, and what is in each
+#
+#  Items      things you USE. A brew, a bandage, smelling salts
+#  Resources  things you SPEND. Reed, bog iron, coins
+#  Keys       things you HOLD. A door key, a token, a letter. Never spent
+#
+#  A row decides for itself with the `Tab` column of Items.csv. Left blank it
+#  is worked out from `Kind`, which is why this arrangement did not need
+#  every existing row edited:
+#
+#      kind = key / token / quest        -> keys
+#      kind = material / currency        -> resources
+#      anything with a Use               -> items
+#      anything else                     -> resources
+#
+#  A Kind you invent tomorrow lands in Resources unless you say otherwise in
+#  the Tab column, which is the safe place for it — nothing in Resources is
+#  clickable, so an unknown thing can never be used by accident.
+# =============================================================
+
+const TABS: Array[String] = ["items", "resources", "keys"]
+
+
+## Which tab one item row belongs in. Always one of TABS.
+static func tab_of(entry: Dictionary) -> String:
+	var said := String(entry.get("tab", "")).strip_edges().to_lower()
+	if TABS.has(said):
+		return said
+
+	var kind := String(entry.get("kind", "")).strip_edges().to_lower()
+	if kind in ["key", "token", "quest"]:
+		return "keys"
+	if kind in ["material", "currency"]:
+		return "resources"
+	if String(entry.get("use", "")).strip_edges() != "":
+		return "items"
+	return "resources"
+
+
+## EVERYTHING YOU ARE CARRYING, sorted into the three tabs.
+##
+## Returns {"items": [...], "resources": [...], "keys": [...]} with each entry
+## carrying a `held` count on top of its Items.csv row. Rows you have none of
+## are left out, and so is anything whose `Requires` does not pass — an item
+## you cannot yet understand is not in your bag.
+##
+## `brews` adds Brews.csv to the Items tab, because a brew is a thing you use
+## on a player and the player should not have to remember that brews live
+## somewhere else. Pass false where brews make no sense.
+func bag(state: GameState, brews: bool = true) -> Dictionary:
+	var out := {"items": [], "resources": [], "keys": []}
+	if state == null:
+		return out
+
+	for key in items.keys():
+		var entry: Dictionary = items[key]
+		var held := state.count(String(entry["id"]))
+		if held <= 0:
+			continue
+		if not DialogueGrammar.test(String(entry["requires"]), state):
+			continue
+		var copy := entry.duplicate()
+		copy["held"] = held
+		copy["is_brew"] = false
+		(out[tab_of(entry)] as Array).append(copy)
+
+	if brews:
+		for entry in _brews_carried(state):
+			(out["items"] as Array).append(entry)
+
+	for tab in TABS:
+		(out[tab] as Array).sort_custom(func(a, b) -> bool:
+			return String(a.get("name", "")).naturalnocasecmp_to(String(b.get("name", ""))) < 0)
+	return out
+
+
+## ============ BREWS IN THE BAG ============
+##
+## A brew is not a thing you pick up — it is a thing you POUR, and pouring it
+## spends materials. Brews.csv already says what one costs and what must be
+## unlocked before it can be poured at all, so nothing new is stored anywhere:
+## a brew is "in your bag" when its Requires passes, and it is usable when you
+## are carrying the materials it costs.
+##
+## They are dressed as item rows so the Inventory can show them beside
+## everything else without knowing what a brew is. `affordable` is false for
+## one you cannot pay for — it is still shown, greyed, with the price, because
+## a brew you are two Reed short of is a thing to go and get.
+func _brews_carried(state: GameState) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if state == null:
+		return out
+	var pub := BrewDB.get_db()
+	if pub == null:
+		return out
+
+	for brew in pub.available_for(state):
+		var price := BrewDB.cost_text(brew, state)
+		var words := String(brew.get("description", ""))
+		if price != "":
+			words += "\n\nCosts %s." % price
+		var becomes := String(brew.get("becomes", "")).strip_edges()
+		if becomes != "":
+			words += "\nThe card counts as %s until the final whistle." % becomes
+		out.append({
+			"id": String(brew.get("id", "")),
+			"name": String(brew.get("name", brew.get("id", "?"))),
+			"kind": "brew",
+			"art": String(brew.get("artwork", "")),
+			"use": "brew",
+			"target": "card",
+			"requires": "",
+			"description": words,
+			"held": 1,
+			"is_brew": true,
+			"affordable": BrewDB.can_afford(brew, state),
+			"brew": brew,
+		})
+	return out
+
+
 func usable_items(state: GameState) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	if state == null:

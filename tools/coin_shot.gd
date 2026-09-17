@@ -46,6 +46,22 @@ func _initialize() -> void:
 		await _wait(0.5)
 		_snap("chosen-%d" % i)
 
+	# ============ THE EXACT CALL ============
+	#
+	# Naming the coin is a one-in-ten event, so waiting for one to happen by
+	# itself is not a test. The celebration is played on purpose here and
+	# photographed, which is the only way to know it draws.
+	_clash.start()
+	await _wait(0.3)
+	_clash._picked = 4
+	_clash._landed = 4
+	_clash._coin.text = "4"
+	_clash._title.text = "CALLED IT!"
+	_clash._celebrate(true)
+	for i in 4:
+		await _wait(0.16)
+		_snap("exact-%d" % i)
+
 	print("[coin] done")
 	quit(0)
 
