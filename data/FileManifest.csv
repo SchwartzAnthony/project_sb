@@ -111,6 +111,7 @@ team_roster.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 team_select.gd,src/ui/,A screen or a piece of one,
 team_select.tscn,src/ui/,A screen or a piece of one,
 team_selection.gd,src/core/,"Engine. Rules, loaders and shared helpers",
+team_sheet.gd,src/ui/,A screen or a piece of one,"BEFORE A MATCH. Both crests, both names and three Stars a side with a loading bar, then the pitch with a START button between the crests. Nothing runs until it is pressed"
 test_run.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 tier_ladder.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 trait_loadout_screen.gd,src/adventure/,Adventure mode,"EDIT ELEMENT BONUS. Which eight icons go into a run. The choice is kept in the save, not in a CSV - it is the player decision, not the designer one"
@@ -120,6 +121,7 @@ unlock_board.tscn,src/ui/,A screen or a piece of one,
 unlock_progress.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 zone_overlay.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 Abilities.csv,data/,A spreadsheet you edit,
+AbilityTriggers.csv,data/,A spreadsheet you edit,"WHEN an ability goes off - and the plan for the triggers still to build. Status is live or planned; a card written against a planned trigger loads and waits"
 AdventureEnemies.csv,data/,A spreadsheet you edit,
 Animations.csv,data/,A spreadsheet you edit,
 Audio.csv,data/,A spreadsheet you edit,

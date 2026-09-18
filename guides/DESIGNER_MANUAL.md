@@ -84,7 +84,7 @@ res://
                   the tutorial only. Same columns, different content
   assets/         art, audio, icons
   src/core/       loaders, rules and shared helpers (51 scripts)
-  src/ui/         screens (30)
+  src/ui/         screens (31)
   src/adventure/  Adventure mode (12)
   src/units/      things that stand on the pitch (4)
   src/formations/ the league match itself (1, and it is a big one)
@@ -325,6 +325,38 @@ stood over him, which is not a thing that happens in football.
 > outfield players are standing over a keeper. Six was normal before; two is
 > normal now, and two is a side's own defenders in ordinary play.
 
+### Before the whistle — the team sheet and START
+
+A match no longer begins the instant the screen changes. There is a beat:
+
+1. **The team sheet.** A full screen with both sides on it — your crest, your
+   name and your three Star Players on the left, theirs on the right, a big
+   **VS** between them, and a bar filling along the bottom.
+2. **The gate.** The sheet lifts, the pitch is there with both teams already
+   in position, the two crests stay at the top and a **START** button sits
+   between them. Nothing runs until it is pressed: the pitch is frozen and the
+   clock is at 00:00. Enter and space press it too.
+3. **Then** the 3 · 2 · 1 · START countdown, and the match.
+
+**The bar is honest when it can be.** It follows whichever is further along —
+the real loading or the clock — so it never stalls on a fast machine and never
+lies on a slow one.
+
+**The crest comes from `Banner Art` in ClassInfo.csv**, which is where a
+class's picture already lives, so a new class gets a crest here the moment it
+gets one anywhere else. A class with no banner falls back to
+`banner_<class>`, then to `team_crest_fallback`, and a side with no art at all
+draws a lettered disc — nothing ever breaks over a missing crest. Put crest
+files in `assets/team/`.
+
+| Tuning row | |
+|---|---|
+| `team_sheet` | `false` skips all of it and a match opens straight into the countdown |
+| `team_sheet_seconds` | how long the sheet is held. `2.6` |
+| `team_sheet_stars` | how many Stars a side. `3`. The one actually playing is always first |
+| `kickoff_needs_button` | `false` and the countdown starts by itself — for a demo or a stream |
+| `team_crest_fallback` | the crest for a class with no Banner Art. `banner_normal_team` |
+
 ### The kick-off
 
 A match opens with the camera in on two players standing over the ball in the
@@ -452,6 +484,60 @@ the card, in the log and in the team builder.
 | `Opponent` | `team` = a fixture from Season.csv. `scratch` = a side assembled on the spot at roughly your level |
 | `Scene` | which scene to open |
 | `Rewards` / `Rewards On Win` | condition-language effects, paid out after |
+
+### `data/AbilityTriggers.csv` — WHEN an ability goes off
+
+An ability is five answers: **Trigger** (when), **Target** (who), **Effect**
+(what), **Value** (how much) and **Scope** (how long). The trigger list used
+to be six words buried in a script; it is a spreadsheet now, and it is also
+**where you keep the plan**.
+
+| Column | |
+|---|---|
+| `ID` | the word you write in the `Trigger` column of Abilities.csv |
+| `Name` | what you call it |
+| `Status` | **`live`** = the game fires it. **`planned`** = designed, not wired up yet |
+| `Phase` | your own note of which batch it belongs to. Not read by the game |
+| `Fires When` | one line |
+| `What It Needs` | what has to exist before it can be built |
+
+**A `planned` trigger is a legal thing to write.** The card loads, the row is
+not an error, and the Output panel says once that it is waiting. When the
+trigger goes live the card starts working with no edit. That is the point of
+the file: you can write the cards now.
+
+Live today:
+
+```
+on_duel_start   either way, when its duel begins
+on_attack       this card is the attacker
+on_defend       this card is the defender
+on_win_duel     after it WINS its duel
+on_lose_duel    after it LOSES its duel
+passive         once at the start of every round, no condition at all
+flip            the two cards turn face up
+```
+
+> **Win and Lose were already built.** `on_win_duel` and `on_lose_duel` have
+> been in the engine since the beginning — `BRAND_RALLY` and `BRAND_SCORCH`
+> in Abilities.csv both use them. That is one phase you do not have to wait
+> for.
+
+#### The flip
+
+The two duel cards arrive **face down** and turn over together. A card turns
+by being squashed to no width and back, and what it shows is swapped at the
+moment it has none — which is why it reads as a card rather than as a picture
+fading.
+
+It is the moment the duel begins: before it, neither side knows what the other
+has. And it is a hook — `flip` fires **before** `on_duel_start`, so a flip
+ability can change what the duel starts with.
+
+| Tuning row | |
+|---|---|
+| `duel_flip` | `false` and the cards are simply there, as before |
+| `duel_flip_seconds` | the whole turn, both halves. `0.42` |
 
 ### `data/Abilities.csv` — what a player does in a duel
 
@@ -822,7 +908,7 @@ the same line that has always cleared them.
 
 ---
 
-## 9. `data/Tuning.csv` — 234 numbers
+## 9. `data/Tuning.csv` — 245 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -1045,10 +1131,25 @@ empty bag photographs as an empty box, which tells you nothing about how a
 full one lays out.
 
 ```
+godot --headless --script res://tools/lane_check.gd
+```
+Puts a player in every row of the Adventure running shape, knocks each one
+over, and checks the **whole body** is still on the grass. Lying down makes a
+player a completely different shape — turned a quarter-turn, a sprite thirty
+wide and a hundred tall is a hundred wide and thirty tall — so somebody
+standing legally in the top row could lie down and reach ninety pixels above
+the band, onto the black. A screenshot only catches that if you happen to take
+it at the right moment.
+
+```
 godot --headless --script res://tools/restart_check.gd
 ```
-Plays a real match with AUTO on and prints, every second, **how far everyone
-moved** and **how many outfield players are standing over a keeper**. Those
+Calls the shot directly, four times, and watches the seconds that follow —
+printing **how far everyone moved**, **whether the restart hold is on**, **the
+clock**, and **how many players are standing over a keeper**. It calls the
+shot rather than waiting for one because a restart happens once every few
+minutes at the end of a long chain of duels, and a test that waits that long
+is a test you stop running. Those
 are the two things a screenshot cannot show: eleven players standing still and
 eleven players running look identical in a still picture, and so do a shape
 and a scrum. It stops with STUCK if six seconds of live play go by with nobody
@@ -1134,6 +1235,11 @@ that is almost always why.
 | **write a player who damages an enemy the moment you pick them** | a breakpoint in `AdventureCombos.csv` with `Effect = strike`, `Target = focus` and `Lasts = once`. The `star_2` row has the whole note written on it |
 | change the kick-off, the clash or the speed buttons | the `kickoff_`, `coin_` and `game_speed_` rows of `Tuning.csv` — section 7 |
 | **put a sound on an exact coin call** | a `coin_exact` row in `Juice.csv` |
+| **add a new ability trigger** | a row of `AbilityTriggers.csv`, marked `planned` until it is wired up |
+| **write a card against a trigger that is not built yet** | do it. Mark that trigger `planned` and the card loads and waits |
+| **turn the team sheet off** | `team_sheet` in `Tuning.csv` |
+| **start a match without pressing START** | `kickoff_needs_button` in `Tuning.csv` |
+| **give a class a crest** | the `Banner Art` column of `ClassInfo.csv`, and the file in `assets/team/` |
 | **choose which eight icons a run carries** | the player does, on Edit Element Bonus. You decide what exists and what unlocks it — `AdventureTraits.csv` |
 | change what is written over a player's head | the `plate_` rows of `Tuning.csv` — section 7 |
 | make a brew change what somebody counts as | the `Becomes` and `Element` columns of `Brews.csv` |

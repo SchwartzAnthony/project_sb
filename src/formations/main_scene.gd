@@ -217,6 +217,16 @@ var attack_surge_side: int = -1
 ## goes back to false and the ordinary rules take over mid-stride.
 var restart_hold: bool = false
 
+## The one player allowed to move during a restart hold: whoever the keeper is
+## kicking to. Without this exception the hold would have to be lifted before
+## the kick, and lifting it before the kick is what put two players back on
+## top of the keeper.
+var restart_receiver: PlayerUnit = null
+
+## The team sheet and START gate in front of the kick-off. Freed once START
+## is pressed; null for the rest of the match.
+var _sheet: TeamSheet = null
+
 ## How briskly they walk home at a restart, as a multiple of walk_speed. You
 ## asked for no sprinting; 1.6 is a purposeful walk rather than a jog.
 ## `restart_walk_boost` in Tuning.csv.
@@ -401,6 +411,12 @@ func _process(delta: float) -> void:
 	if current_state != MatchState.PLAYING:
 		return
 
+	# THE CLOCK STOPS FOR A DEAD BALL. It is already stopped for the shot and
+	# the draft, because those are not the PLAYING state; this covers the
+	# restart, which is. The clock starts again the moment the keeper kicks.
+	if restart_hold:
+		return
+
 	match_time_minutes += delta * time_scale
 
 	# --- Final whistle ---
@@ -545,6 +561,11 @@ func _assign_roles() -> void:
 	# outranks every other rule, including the break.
 	if restart_hold:
 		for unit in units:
+			if unit == restart_receiver and ball != null:
+				# The man the goal kick is aimed at. He may come to meet it.
+				unit.set_role(PlayerUnit.Role.RECEIVE, ball.global_position,
+					unit.chase_speed)
+				continue
 			unit.set_role(PlayerUnit.Role.HOLD, unit.home_position,
 				unit.walk_speed * restart_walk_boost)
 		return
@@ -1272,10 +1293,9 @@ func _resolve_kickoff_star(chosen: PlayerData) -> void:
 			unit.is_playmaker = true
 			unit.set_highlight(true)
 
-	# Kick-off: the countdown, then both sides go for a loose ball. See
-	# _kickoff_sequence(). With kickoff_countdown off it is the old behaviour
-	# — your Star simply starts with it.
-	_kickoff_sequence()
+	# Kick-off: the team sheet, then the countdown, then both sides go for a
+	# loose ball. See _open_the_team_sheet() and _kickoff_sequence().
+	_open_the_team_sheet()
 
 	print("Player class: %s  |  Star: %s (Tier %s)" % [
 		chosen.unit_type, chosen.player_name, player_star_tier])
@@ -1314,10 +1334,9 @@ func _apply_team_selection(picked: TeamSelection) -> void:
 			unit.set_highlight(true)
 
 	# THE MATCH IS NOT LIVE YET. _kickoff_sequence() marks it playing when the
-	# countdown reaches START. Marking it here as well started the clock the
-	# instant the teams were on the grass, so "3 - 2 - 1" played out over a
-	# clock that already read a minute and a half.
-	_kickoff_sequence()
+	# countdown reaches START, and the team sheet in front of it holds
+	# everything until you have seen who you are playing and pressed START.
+	_open_the_team_sheet()
 
 	print("Your team — %s | Star: %s (Tier %s)" % [
 		picked.unit_type, active_player_star.player_name, player_star_tier])
@@ -2534,6 +2553,96 @@ func trigger_hold_up_event() -> void:
 #      kickoff_go_seconds        how long START is held
 # =============================================================
 
+# =============================================================
+#  THE TEAM SHEET, AND THE START BUTTON
+#
+#  A match used to begin the instant the screen changed. Now there is a beat:
+#  both crests, both names and three Stars a side on a sheet with a bar
+#  filling along the bottom, then the sheet lifts to show the two teams
+#  standing on the grass with a START button between the crests.
+#
+#  NOTHING RUNS UNTIL START IS PRESSED. The pitch is frozen, the clock is at
+#  00:00 and the countdown has not begun.
+#
+#  `team_sheet` in Tuning.csv turns the whole thing off and a match opens
+#  straight into the 3 - 2 - 1, exactly as it did before.
+# =============================================================
+
+func _open_the_team_sheet() -> void:
+	if db == null or not db.tune_bool("team_sheet", true):
+		_kickoff_sequence()
+		return
+
+	# EVERYTHING STOPS. The teams are on the grass and in position, the ball
+	# is nowhere yet, and none of it moves until the sheet is done with.
+	freeze_play(true)
+	if camera != null and camera.has_method("lock_view"):
+		camera.call("lock_view", true)
+
+	_sheet = TeamSheet.make(db)
+	selection_ui.add_child(_sheet)
+	_sheet.kick_off_wanted.connect(_on_kick_off_wanted)
+	_sheet.show_for(_team_facts(false), _team_facts(true))
+
+
+func _on_kick_off_wanted() -> void:
+	freeze_play(false)
+	if camera != null and camera.has_method("lock_view"):
+		camera.call("lock_view", false)
+	_kickoff_sequence()
+
+
+## WHO IS PLAYING, for the sheet. A name, a crest and the Stars.
+##
+## The crest comes from the `Banner Art` column of ClassInfo.csv, which is
+## where a class's picture already lives — so a new class gets a crest on this
+## screen the moment it gets one anywhere else, with nothing to wire up. A
+## class with no banner yet falls back to `banner_<class>` and then to
+## `banner_normal_team`, and a side with no art at all draws a lettered disc.
+func _team_facts(theirs: bool) -> Dictionary:
+	var klass := ""
+	var stars: Array[PlayerData] = []
+	if theirs:
+		klass = active_enemy_star.unit_type if active_enemy_star != null else ""
+		stars = enemy_star_bundle.duplicate()
+	else:
+		klass = active_player_star.unit_type if active_player_star != null else ""
+		stars = player_star_bundle.duplicate()
+
+	# THE ONE WHO IS ACTUALLY PLAYING GOES FIRST. The other two are the bench
+	# for the Star switches, and reading them left to right should say so.
+	var playing := active_enemy_star if theirs else active_player_star
+	if playing != null and stars.has(playing):
+		stars.erase(playing)
+		stars.insert(0, playing)
+
+	var info := _class_info(klass)
+	var shown := MenuSupport.field(info, "Display Name").strip_edges()
+	if shown == "":
+		shown = klass if klass != "" else ("The Opposition" if theirs else "Your Club")
+
+	var crest := MenuSupport.field(info, "Banner Art").strip_edges()
+	if crest == "" or MenuSupport.icon_texture(crest) == null:
+		crest = "banner_%s" % CardDatabase._normalise(klass)
+	if MenuSupport.icon_texture(crest) == null:
+		crest = db.tune_text("team_crest_fallback", "banner_normal_team")
+
+	return {"name": shown, "crest": crest, "stars": stars}
+
+
+## One row of ClassInfo.csv, or {} if that class has none. Read through the
+## same forgiving reader every menu uses, so a missing file or a renamed
+## column is not an error here either.
+func _class_info(klass: String) -> Dictionary:
+	if klass == "":
+		return {}
+	var wanted := CardDatabase._normalise(klass)
+	for row in MenuSupport.read_csv("res://data/ClassInfo.csv"):
+		if CardDatabase._normalise(MenuSupport.field(row, "Class")) == wanted:
+			return row
+	return {}
+
+
 func _kickoff_sequence() -> void:
 	if db == null or not db.tune_bool("kickoff_countdown", true):
 		give_ball_to(false)
@@ -3523,8 +3632,17 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 			# arrives into a pitch that has a shape, rather than into the
 			# scrum that had gathered around the keeper.
 			await _let_them_shape_up(db.tune_float("save_pause_seconds", 2.0))
-			restart_hold = false
+			# THE HOLD STAYS ON THROUGH THE KICK. It used to be lifted a line
+			# earlier, which handed the pitch back to the ordinary rules while
+			# the keeper still had the ball — and the ordinary rules say "the
+			# other side has it in my quarter, go and win it". So the two who
+			# had just walked home turned round and walked back onto the
+			# keeper, which is exactly what you were seeing.
+			#
+			# The man the kick is aimed at is allowed to move; see
+			# restart_receiver.
 			await _goal_kick(target_key)
+			restart_hold = false
 
 	# The break is over, the ball comes off its rails, and everyone drifts back
 	# to their own quarter under the usual zone pull. The players never stopped.
@@ -3534,6 +3652,7 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 	# await that throws — would look exactly like the game having frozen.
 	# It is cleared here as well, on every way out of a round.
 	restart_hold = false
+	restart_receiver = null
 	if ball != null:
 		ball.scripted_possession = false
 	round_resolved.emit(player_score, enemy_score)
@@ -3560,8 +3679,48 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 func _let_them_shape_up(seconds: float) -> void:
 	_end_surge()
 	restart_hold = true
+	restart_receiver = null
 	restart_walk_boost = maxf(0.2, db.tune_float("restart_walk_boost", 1.6))
-	var wait := maxf(0.0, seconds)
+
+	# ============ THEY ARE WALKED HOME, NOT ASKED TO STEER HOME ============
+	#
+	# The first version of this set everyone's ROLE to "go home" and waited.
+	# That reads well and does not work, for two reasons that both bite at
+	# exactly the wrong moment:
+	#
+	#   * steering is leashed to a player's own quarter and can be stopped
+	#     dead by a freeze (a duel cut-away holds the whole pitch still), so
+	#     a player standing in the six-yard box after a shot could simply
+	#     stay there;
+	#   * and waiting for "is everybody home yet" then never came true, so
+	#     the hold ran on and FROZE them there — which is why two of them
+	#     ended up stood on the keeper instead of walking away from him.
+	#
+	# run_to() is the call the substitution and the shot run-up already use.
+	# It tweens the player to a point and is not leashed, not steered and not
+	# frozen. So the restart is now deterministic: they set off together, and
+	# when the walk is over every one of them IS home. Nobody sprints — the
+	# time is worked out from the distance, and it is a walk.
+	var slack := maxf(10.0, db.tune_float("restart_home_slack", 70.0))
+	var walk_speed := maxf(40.0, db.tune_float("restart_walk_speed", 420.0))
+	var longest := 0.0
+
+	for unit in _all_units():
+		var gap := unit.global_position.distance_to(unit.home_position)
+		if gap <= slack:
+			continue
+		# NOT ONE DURATION FOR EVERYBODY. A player four yards out of position
+		# and one at the other end of the pitch both arriving at the same
+		# moment is the thing that looks like a video game.
+		var takes := clampf(gap / walk_speed, 0.25,
+			maxf(0.3, db.tune_float("restart_walk_max_seconds", 2.6)))
+		longest = maxf(longest, takes)
+		unit.run_to(unit.home_position, takes)
+
+	# The hold is at least as long as the pause you asked for, and at least
+	# as long as the longest walk — so the ball is never put back into play
+	# with somebody still on their way.
+	var wait := maxf(maxf(0.0, seconds), longest)
 	if wait <= 0.0:
 		return
 	await get_tree().create_timer(wait).timeout
@@ -3613,8 +3772,10 @@ func _goal_kick(keeper_is_enemy: bool) -> void:
 		return
 	print("  Goal kick to %s (Tier %s)." % [
 		best.data.player_name, best.data.get_tier_clean()])
+	restart_receiver = best
 	ball.deliver_to(best)
 	await ball.delivery_arrived
+	restart_receiver = null
 
 
 ## Open the duel cut-away for one tier and wait for it to finish.

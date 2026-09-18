@@ -100,6 +100,12 @@ func setup(player: PlayerData, walk_speed: float = 260.0,
 	card = player
 	_speed = maxf(20.0, walk_speed)
 
+	# The nameplate. Built here rather than in _draw(), because adding a child
+	# from inside _draw() is a tree change in the middle of drawing the tree.
+	if _plate == null or not is_instance_valid(_plate):
+		_plate = NamePlate.make()
+		add_child(_plate)
+
 	# Everything below is per-player randomness. It is what stops ten units
 	# moving as one rectangle.
 	_bob = randf() * TAU
@@ -187,6 +193,9 @@ func _feet_y() -> float:
 ## The opaque rectangle inside the frame, as a fraction of it. Worked out in
 ## setup() and never again.
 var _box := Rect2(0, 0, 1, 1)
+## The nameplate node. See name_plate.gd — the words are Labels so they stay
+## crisp when the window is made smaller.
+var _plate: NamePlate
 
 
 ## The four edges of the drawn character, in this walker's own coordinates.
@@ -245,6 +254,13 @@ func lie_down() -> void:
 	lying = true
 	knocked_out = true
 	fetching = false
+
+	# LIE DOWN ON THE GRASS, not half off it. Lying makes a player much taller
+	# on screen than standing, so the room they need changes the moment they
+	# go over — and somebody who was legally placed standing can be off the
+	# band lying down. Re-clamped here, once, rather than every frame.
+	var room := _lane_room()
+	position.y = clampf(position.y, room.x, room.y)
 	target = position
 
 	if _art != null:
@@ -273,6 +289,35 @@ func get_up() -> void:
 	queue_redraw()
 
 
+## ============ HOW HIGH AND HOW LOW THIS PLAYER MAY STAND ============
+##
+## Returns the lowest and highest y the player's own position may take, so
+## that THE WHOLE BODY stays on the grass.
+##
+## It has to be worked out from the body rather than from a fixed radius,
+## because a player who is LYING DOWN is a completely different shape: turned
+## a quarter-turn, a sprite that was thirty pixels wide and a hundred tall is
+## a hundred wide and thirty tall, and it reaches up from the feet line by
+## half its own WIDTH.
+##
+## That is what put a knocked-out Tier I on the black. Tier I stands in the
+## top row of the running shape, a fixed radius of twenty-six pixels below
+## the top of the band — and then lay down and reached ninety pixels further
+## up, which is off the grass entirely.
+func _lane_room() -> Vector2:
+	var edge := _edges()
+	var above := absf(float(edge["top"]))
+	var below := absf(float(edge["bottom"]))
+	var lowest := lane_top + maxf(RADIUS * 0.5, above)
+	var highest := lane_bottom - maxf(RADIUS * 0.5, below)
+	# A band shallower than the player is a band the player cannot fit in.
+	# Centre them rather than letting the two clamps fight.
+	if lowest > highest:
+		var middle := (lane_top + lane_bottom) * 0.5
+		return Vector2(middle, middle)
+	return Vector2(lowest, highest)
+
+
 ## Where the sprite's top-left corner goes so that a player lying on their
 ## side rests ON the grass rather than hovering over it.
 ##
@@ -289,8 +334,19 @@ func _lying_art_position() -> Vector2:
 ## nothing, which is what `being_carried` is for.
 func carried_to(where: Vector2) -> void:
 	being_carried = true
-	position = where
-	target = where
+	place_at(where)
+
+
+## PUT THIS PLAYER SOMEWHERE, ON THE GRASS. The one way to move a walker
+## from outside, and the only one that is guaranteed to keep the whole body
+## inside the band — setting `position` by hand does not, which is how a
+## stand-in walked on above the top edge and then lay down on the black.
+##
+## `x` is left alone: the lane runs off both sides of the screen on purpose.
+func place_at(where: Vector2) -> void:
+	var room := _lane_room()
+	position = Vector2(where.x, clampf(where.y, room.x, room.y))
+	target = position
 
 
 func _process(delta: float) -> void:
@@ -312,7 +368,8 @@ func _process(delta: float) -> void:
 
 	# THE LANE IS ABSOLUTE. Whatever the drift wanted, the player stays on
 	# the grass — this is the clamp that keeps them off the black.
-	wanted.y = clampf(wanted.y, lane_top + RADIUS, lane_bottom - RADIUS)
+	var room := _lane_room()
+	wanted.y = clampf(wanted.y, room.x, room.y)
 
 	var to_target := wanted - position
 	var step := _speed * pace * delta
@@ -320,7 +377,7 @@ func _process(delta: float) -> void:
 		position = wanted
 	else:
 		position += to_target.normalized() * step
-	position.y = clampf(position.y, lane_top + RADIUS, lane_bottom - RADIUS)
+	position.y = clampf(position.y, room.x, room.y)
 
 	# A gentle bob while moving. Standing still, it settles.
 	#
@@ -386,8 +443,10 @@ func _draw() -> void:
 	# same card reads the same way in both modes. The only difference is the
 	# bar: a league player has no stamina, so there it is left off.
 	var edge := _edges()
-	NamePlate.draw_plate(self, edge, card,
-		clampf(stamina_fraction, 0.0, 1.0), knocked_out)
+	# NOT CREATED HERE — see player_unit.gd. setup() builds it.
+	if _plate == null or not is_instance_valid(_plate):
+		return
+	_plate.place(edge, card, clampf(stamina_fraction, 0.0, 1.0), knocked_out)
 
 	if knocked_out:
 		# THE CROSS GOES OVER THE MIDDLE OF THEM, wherever the middle is.
@@ -395,5 +454,7 @@ func _draw() -> void:
 		# body on the grass. _edges() already worked out which.
 		var middle := Vector2(float(edge["middle"]),
 			(float(edge["top"]) + float(edge["bottom"])) * 0.5)
-		NamePlate.draw_down_mark(self, middle,
+		_plate.mark_down(middle,
 			maxf(8.0, (float(edge["bottom"]) - float(edge["top"])) * 0.16))
+	else:
+		_plate.clear_down_mark()

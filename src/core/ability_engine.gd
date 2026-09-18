@@ -196,6 +196,11 @@ func resolve_duel_abilities(attacker: PlayerData, attacker_is_enemy: bool,
 		var is_enemy: bool = entry["enemy"]
 		var opponent: PlayerData = defender if entry["role"] == "attack" else attacker
 
+		# FLIP GOES FIRST. The cards turn face up and then the duel begins, so
+		# anything hung on `flip` has already happened by the time
+		# `on_duel_start` runs — which is what lets a flip ability change what
+		# the duel starts with.
+		_fire_for(card, is_enemy, "flip", opponent, not is_enemy)
 		_fire_for(card, is_enemy, "onduelstart", opponent, not is_enemy)
 		if entry["role"] == "attack":
 			_fire_for(card, is_enemy, "onattack", opponent, not is_enemy)

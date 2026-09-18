@@ -6,6 +6,11 @@ rounds_per_cycle,3,PLAY MAKERs before a HOLD UP!
 total_cycles,3,Cycles in a match
 ties_go_to_attacker,false,On an exact power tie: false = defender holds
 use_rps_minigame,true,"false = a silent coin flip and no clash screen at all. The Tier I attacker is decided behind the scenes"
+team_crest_fallback,banner_normal_team,"The crest used for a class whose ClassInfo.csv row has no Banner Art yet. Put the file in assets/team/. A side with no art at all draws a lettered disc instead, so nothing ever breaks over a missing crest"
+kickoff_needs_button,true,"MUST THE PLAYER PRESS START? TRUE and nothing happens until they do - the pitch is frozen and the clock is at 00:00. FALSE and the countdown begins by itself a moment after the sheet lifts, which is what you want for a demo or a stream"
+team_sheet_stars,3,"How many Star Players are shown a side on the team sheet. The one who is actually playing is always first"
+team_sheet_seconds,2.6,"How long the team sheet is held. The bar follows whichever is further along - the real loading or this clock - so it never stalls on a fast machine and never lies on a slow one"
+team_sheet,true,"IS THERE A TEAM SHEET BEFORE A MATCH? Both crests, both names and three Star Players a side on a full screen with a bar filling along the bottom, then the sheet lifts to show the two teams standing on the grass with a START button between the crests. FALSE and a match opens straight into the 3 - 2 - 1, as it did before"
 kickoff_countdown,true,"TRUE = a match opens with the camera in on two players over the ball in the centre circle, a 3 - 2 - 1 - START, and both sides running at a LOOSE ball. FALSE = your Star simply starts holding it, which is how it used to be"
 kickoff_count_seconds,0.7,How long each of 3 - 2 - 1 is held
 kickoff_go_seconds,0.55,How long START is held before they are let go
@@ -15,6 +20,7 @@ coin_spin_seconds,1.4,"How long the coin turns before it lands. It slows as it g
 coin_exact_words,CALLED IT!,"WHAT IT SAYS WHEN YOU NAME THE COIN EXACTLY. There are two ways to win the call and they are not the same thing - being nearer is arithmetic, naming the number is the moment worth leaning on, so it gets its own words and its own animation"
 coin_exact_them_words,THEY CALLED IT,The same when the enemy names it exactly
 coin_exact_seconds,0.9,"How long the exact-call celebration is held before the clash carries on. Write a coin_exact row in Juice.csv to hang a sound on it"
+clash_backdrop_dim,0.55,"HOW DARK THE PITCH GOES BEHIND THE CLASH, 0 to 1. Only what is BEHIND the window - nothing inside the clash is touched by it. It was 0.72 and the pitch had all but vanished"
 enemy_attack_chance,0.5,Enemy odds of choosing ATTACK when it wins the clash
 rps_reveal_seconds,0.9,Pause on the clash reveal
 rps_result_seconds,1.0,Pause on the clash decision
@@ -39,6 +45,9 @@ relay_beat_seconds,0.25,Pause after each PLAY MAKER relay pass so you can see wh
 goal_pause_seconds,2.0,"PAUSE AFTER THE BALL CROSSES THE LINE, before the restart. The break is ended the moment the ball is dead, so this is the time both sides have to WALK BACK TO THEIR OWN QUARTER before play starts again. Shorten it and the restart happens with everybody still stood at one end"
 save_pause_seconds,2.0,"PAUSE AFTER A SAVE, before the keeper kicks. The keeper is left ALONE on the ball for this long while every outfield player walks back to their own starting position - nobody stands over the keeper, and the ball is kicked into a pitch that has a shape again. Then they are all let go the instant it is struck"
 restart_walk_boost,1.6,"HOW BRISKLY THEY WALK HOME at a restart, as a multiple of their walk speed. Not a sprint: 1 is an amble, 1.6 is purposeful, 2.5 starts to look like a jog"
+restart_walk_speed,420,"HOW FAST A PLAYER WALKS HOME at a restart, in pixels a second. They are walked to their own position rather than left to steer there, so this is what turns a distance into a time - somebody four yards out of position takes a moment, somebody at the other end of the pitch takes longer, and they do not all arrive together"
+restart_walk_max_seconds,2.6,"The longest any one walk home may take, whatever the distance. The restart waits for the longest walk, so this is also the longest a restart can last"
+restart_home_slack,70,"HOW NEAR IS NEAR ENOUGH for the restart to count somebody as home, in pixels. They drift around their slot on purpose, so an exact test would never be true. Smaller makes the restart fussier and slower"
 ball_delivery_speed,520,Pixels per second for a scripted PLAY MAKER pass
 scoreboard_font_size,60,Score text size
 scoreboard_top_margin,18,Distance from the top of the screen
@@ -49,6 +58,8 @@ shootout_enabled,true,Show the shootout cut-away before a shot
 arena_speed,1.0,Cut-away playback speed. 2 = twice as fast
 arena_skip_speed,6.0,Speed while holding SPACE or clicking to skip
 arena_run_in_seconds,0.9,Both units run at each other
+duel_flip,true,"DO THE TWO DUEL CARDS TURN OVER? They arrive face down and flip together, which is the moment the duel begins - before it, neither side knows what the other has. It is also a hook: anything in Abilities.csv written against the flip trigger goes off as they land. FALSE and the cards are simply there, as before"
+duel_flip_seconds,0.42,"How long the flip takes, both halves of the turn together. A card turns over by being squashed to no width and back, and what it shows is swapped at the moment it has none"
 arena_reveal_seconds,0.5,Power numbers appear
 arena_ability_seconds,0.9,Each ability lights up and plays
 arena_compare_seconds,0.8,Final numbers settle before the verdict

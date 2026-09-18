@@ -465,7 +465,10 @@ static func card_face(card: PlayerData, db: CardDatabase, box: Vector2,
 
 const ICON_DIRS: Array[String] = [
 	"res://assets/icons/", "res://assets/base/", "res://assets/buildings/",
-	"res://assets/talents/", "res://assets/brews/", "res://assets/",
+	"res://assets/talents/", "res://assets/brews/",
+	# Crests and banners. A team's Banner Art is looked for here first, which
+	# is why assets/team/ is on the list — see team_sheet.gd.
+	"res://assets/team/", "res://assets/menu/", "res://assets/",
 ]
 const ICON_EXTENSIONS: Array[String] = [".png", ".webp", ".jpg", ".svg"]
 

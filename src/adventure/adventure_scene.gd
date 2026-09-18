@@ -324,8 +324,7 @@ func _spawn_party() -> void:
 			# LANE_TOP / LANE_HEIGHT and every player obeys the new band.
 			walker.lane_top = LANE_TOP
 			walker.lane_bottom = LANE_BOTTOM
-			walker.position = _slot_for(index)
-			walker.target = walker.position
+			walker.place_at(_slot_for(index))
 			walker.stamina_fraction = 1.0
 			_walkers.append(walker)
 			index += 1
@@ -929,8 +928,11 @@ func _walkers_for_new_arrivals() -> void:
 				if is_instance_valid(first):
 					beside = first.position + Vector2(randf_range(-70.0, 40.0),
 						randf_range(-90.0, 90.0))
-			walker.position = beside
-			walker.target = beside
+			# place_at(), not `position =`. A stand-in offered a slot beside
+			# whoever is at the front can be handed a y above the top of the
+			# band; place_at clamps it onto the grass. This is where the
+			# Treant that lay on the black came from.
+			walker.place_at(beside)
 			walker.stamina_fraction = 1.0
 			_walkers.append(walker)
 			_say("%s joins you" % card.player_name)

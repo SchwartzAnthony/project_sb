@@ -152,6 +152,17 @@ func play_duel(info: Dictionary) -> void:
 	_dress("left", left)
 	_dress("right", right)
 
+	# --- 0. THE FLIP ---
+	#
+	# The two cards arrive FACE DOWN and turn over together. It is the moment
+	# the duel actually begins — before it, neither side knows what the other
+	# has — and it is a hook: anything in Abilities.csv written against the
+	# `flip` trigger goes off as the cards land.
+	#
+	# `duel_flip` in Tuning.csv turns the animation off and the cards are
+	# simply there, which is how it was.
+	await _flip_them_over()
+
 	# --- 1. Both run at each other ---
 	await _beat(run_in_seconds)
 
@@ -220,6 +231,72 @@ func _fire_ability(key: String, data: Dictionary) -> void:
 func _ability_text(ability) -> String:
 	var title: String = ability.display_name if ability.display_name != "" else ability.id
 	return "%s\n%s %+d (%s)" % [title, ability.effect, ability.value, ability.scope]
+
+
+# =============================================================
+#  THE FLIP
+#
+#  A card turns over by being SQUASHED TO NOTHING and back — scale.x to zero
+#  and out again. Half way through, at the moment it has no width, is when
+#  what it shows is swapped. That is the whole trick, and it is why a flip
+#  looks like a card rather than like a picture fading.
+#
+#  Both sides turn at once and land together, because a duel is two cards
+#  being shown at the same time — turning them one after the other would say
+#  that one of them went first.
+# =============================================================
+
+func _flip_them_over() -> void:
+	if db != null and not db.tune_bool("duel_flip", true):
+		_face_up(true)
+		return
+
+	var seconds := 0.42
+	if db != null:
+		seconds = maxf(0.05, db.tune_float("duel_flip_seconds", 0.42))
+
+	_face_up(false)
+	var turn := create_tween()
+	turn.set_parallel(true)
+	for key in ["left", "right"]:
+		var stage: Control = _side[key]["stage"]
+		if stage == null:
+			continue
+		stage.pivot_offset = stage.size * 0.5
+		stage.scale = Vector2(1, 1)
+		turn.tween_property(stage, "scale:x", 0.0, seconds * 0.5) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	await turn.finished
+	if not _running:
+		return
+
+	# THE MIDDLE OF THE TURN. Nothing has any width, so this is the one frame
+	# in which the card can change what it is showing without being seen to.
+	_face_up(true)
+
+	var back := create_tween()
+	back.set_parallel(true)
+	for key in ["left", "right"]:
+		var stage: Control = _side[key]["stage"]
+		if stage == null:
+			continue
+		back.tween_property(stage, "scale:x", 1.0, seconds * 0.5) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await back.finished
+
+
+## Face down is a blank card: no name, no role, no numbers. Face up is
+## everything _dress() already put there.
+func _face_up(up: bool) -> void:
+	for key in ["left", "right"]:
+		var nodes: Dictionary = _side[key]
+		for part in ["role", "name", "power", "ability", "result"]:
+			var label: Label = nodes.get(part)
+			if label != null:
+				label.visible = up
+		var stage: Control = nodes["stage"]
+		if stage != null:
+			stage.modulate = Color(1, 1, 1, 1) if up else Color(0.18, 0.20, 0.26, 1)
 
 
 func _dress(key: String, data: Dictionary) -> void:

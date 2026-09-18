@@ -106,8 +106,18 @@ func _ready() -> void:
 # =============================================================
 
 func _build() -> void:
+	# ============ HOW DARK THE BACKDROP IS ============
+	#
+	# Only what is BEHIND the window. The panel is a sibling drawn after it,
+	# so nothing inside the clash is dimmed by this — what used to make the
+	# whole screen look dark was the chips themselves fading almost out (see
+	# _mark_chip), not this rectangle. It is still a little lighter than it
+	# was, because the pitch behind is worth seeing.
 	var dim := ColorRect.new()
-	dim.color = Color(0.03, 0.04, 0.06, 0.72)
+	var shade := 0.55
+	if db != null:
+		shade = clampf(db.tune_float("clash_backdrop_dim", 0.55), 0.0, 1.0)
+	dim.color = Color(0.03, 0.04, 0.06, shade)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 
@@ -238,6 +248,38 @@ func _number_chip(number: int, mine: bool) -> Button:
 	return button
 
 
+## ============ MARKING THE ONE THAT WAS CALLED ============
+##
+## The chosen chip is marked by COLOUR, not by fading everything else almost
+## out. Nine numbers at 30% alpha is nine numbers you cannot read, and with
+## two rows of them it made the whole window look as though the game had
+## dimmed itself — which is exactly what it looked like, because it had.
+##
+## The others stay legible. They are still part of the answer: "you said 7,
+## they said 3, it came up 2" only makes sense if you can see the row.
+## Back to an unmarked chip. A clash that opens with last round's number
+## still ringed in gold has answered the question before it is asked.
+func _plain_chip(button: Button) -> void:
+	for style in ["normal", "disabled"]:
+		button.remove_theme_stylebox_override(style)
+	for colour in ["font_color", "font_disabled_color"]:
+		button.remove_theme_color_override(colour)
+
+
+func _mark_chip(button: Button, called: bool) -> void:
+	button.modulate = Color(1, 1, 1, 1.0 if called else 0.72)
+	if called:
+		button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
+			MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+		button.add_theme_stylebox_override("disabled", MenuSupport.panel_style(
+			MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+		button.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
+		button.add_theme_color_override("font_disabled_color", MenuSupport.COLOUR_ACCENT)
+	else:
+		button.add_theme_color_override("font_disabled_color",
+			MenuSupport.COLOUR_TEXT_DIM)
+
+
 func _big_button(text: String) -> Button:
 	var button := Button.new()
 	button.text = text
@@ -263,9 +305,11 @@ func start() -> void:
 		_their_buttons[i].text = "?"
 		_their_buttons[i].disabled = true
 		_their_buttons[i].modulate = Color(1, 1, 1, 0.45)
+		_plain_chip(_their_buttons[i])
 	for button in _my_buttons:
 		button.disabled = _locked
 		button.modulate = Color(1, 1, 1, 1)
+		_plain_chip(button)
 	_random_button.disabled = _locked
 	_random_button.visible = true
 	_my_row.visible = true
@@ -341,7 +385,7 @@ func _pick(number: int) -> void:
 
 	for i in _my_buttons.size():
 		_my_buttons[i].disabled = true
-		_my_buttons[i].modulate = Color(1, 1, 1, 1.0 if i + 1 == _picked else 0.35)
+		_mark_chip(_my_buttons[i], i + 1 == _picked)
 	_random_button.disabled = true
 	_status.text = "You called %d." % _picked
 	await _spin()
@@ -380,7 +424,7 @@ func _reveal() -> void:
 	for i in _their_buttons.size():
 		var button := _their_buttons[i]
 		button.text = str(i + 1)
-		button.modulate = Color(1, 1, 1, 1.0 if i + 1 == _theirs else 0.3)
+		_mark_chip(button, i + 1 == _theirs)
 
 	var mine_off := absi(_picked - _landed)
 	var theirs_off := absi(_theirs - _landed)

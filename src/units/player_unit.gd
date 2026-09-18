@@ -87,6 +87,8 @@ var _star_badge: StarBadge = null
 
 
 func _ready() -> void:
+	_plate = NamePlate.make()
+	add_child(_plate)
 	# Fixed for life, so this unit always bends the same way round traffic
 	# rather than dithering left and right on the spot.
 	_swerve_sign = 1.0 if randf() < 0.5 else -1.0
@@ -179,6 +181,10 @@ func update_display() -> void:
 ## it. A frame is mostly transparent padding, and placing a label from the
 ## frame means placing it from the padding. Measured once per card.
 var _box := Rect2(0, 0, 1, 1)
+## The name over the head and the Tier/Power window at the feet. A node of
+## its own, because Godot only keeps TEXT crisp at a smaller window size when
+## it is a real Label — see name_plate.gd.
+var _plate: NamePlate
 
 
 func _measure() -> void:
@@ -202,8 +208,10 @@ func _draw() -> void:
 	# NO STAMINA BAR IN A LEAGUE MATCH. Only the keeper has stamina here, so
 	# there is nothing to draw one from — and twenty-two bars all reading
 	# full would say nothing at all. -1 means "this mode has no bar".
-	NamePlate.draw_plate(self, NamePlate.edges(_box, at, frame), data,
-		-1.0, is_exhausted)
+	# NOT CREATED HERE. Adding a child from inside _draw() is a tree change
+	# in the middle of drawing the tree; the plate is built in _ready().
+	if _plate != null and is_instance_valid(_plate):
+		_plate.place(NamePlate.edges(_box, at, frame), data, -1.0, is_exhausted)
 
 
 func _apply_artwork() -> void:

@@ -32,7 +32,23 @@ func _initialize() -> void:
 		quit(1)
 		return
 
-	# --- the kick-off ---
+	# --- the team sheet, then the gate, then the kick-off ---
+	for i in 6:
+		await _wait(0.6)
+		_snap("sheet-%d" % i)
+
+	# Press START the way a player would — once the gate has actually opened,
+	# which is the only moment a player could.
+	var sheet = _scene.get("_sheet")
+	for i in 20:
+		sheet = _scene.get("_sheet")
+		if sheet == null or not is_instance_valid(sheet):
+			break
+		if bool(sheet.get("_opened")):
+			_snap("gate")
+			sheet.call("_go")
+			break
+		await _wait(0.3)
 	for i in 9:
 		await _wait(0.45)
 		_snap("kickoff-%d" % i)
