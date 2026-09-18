@@ -112,6 +112,17 @@ func _build() -> void:
 	_edit.pressed.connect(_on_edit)
 	footer.add_child(_edit)
 
+	# ============ KNOW WHO YOU ARE PLAYING ============
+	#
+	# The ladder makes every legal team the same total power on purpose, so
+	# the interesting question is never "are they stronger" — it is "what do
+	# their players DO". That question deserves an answer you can go and read
+	# BEFORE you choose a side, not one you learn by losing.
+	var scout := MenuSupport.icon_button("scout|◎", "Enemy Team Data", Vector2(250, 54))
+	scout.tooltip_text = "The side you are about to play: every unit, its power, and what its abilities do."
+	scout.pressed.connect(_show_enemy_team)
+	footer.add_child(scout)
+
 	_detail = Label.new()
 	_detail.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_detail.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -124,6 +135,44 @@ func _build() -> void:
 	_lock.tooltip_text = "Straight to the match with this side."
 	_lock.pressed.connect(_on_lock)
 	footer.add_child(_lock)
+
+
+## THE OPPOSITION, BEFORE YOU PICK. A league fixture names the class in
+## Season.csv, so their whole squad can be listed. A friendly picks at
+## kick-off, so there is nothing to show yet and the window says so rather
+## than being missing.
+func _show_enemy_team() -> void:
+	var klass := _next_opponent_class()
+	var squad: Array[PlayerData] = []
+	var their_stars: Array[PlayerData] = []
+	if klass != "":
+		squad = db.roster_for_class(klass)
+		their_stars = db.stars_for_class(klass)
+		for star in their_stars:
+			if not squad.has(star):
+				squad.append(star)
+
+	EnemyTeamWindow.open(self, db, klass, squad, their_stars,
+		"" if klass != "" else "This is a friendly — the opposition is chosen at kick-off. A league fixture names them in Season.csv.")
+
+
+## Which class the next fixture puts in front of you, or "" for a friendly.
+func _next_opponent_class() -> String:
+	var fixture := SeasonDB.get_db().current(state) if SeasonDB.get_db() != null else {}
+	if fixture.is_empty():
+		return ""
+	var named := String(fixture.get("class", "")).strip_edges()
+	if named != "":
+		return named
+	# A fixture that names a TEAM rather than a class: look the team up.
+	var team := String(fixture.get("team", "")).strip_edges()
+	if team == "":
+		return ""
+	for row in MenuSupport.read_csv("res://data/Teams.csv"):
+		if CardDatabase._normalise(MenuSupport.field(row, "ID")) == CardDatabase._normalise(team) \
+				or CardDatabase._normalise(MenuSupport.field(row, "Name")) == CardDatabase._normalise(team):
+			return MenuSupport.field(row, "Class").strip_edges()
+	return ""
 
 
 # -------------------------------------------------------------

@@ -12,12 +12,14 @@ extends Node2D
 #
 #  ============ THE SHAPE ============
 #
-#            Silver-Rhine Lorelei        <- the NAME, over the head, centred
 #                  ,---.
 #                 ( o o )                <- the artwork
 #                  `-^-'
-#            Tier I         P: 2         <- at the feet. Tier left, power right
-#            [============    ]          <- the stamina bar, hugging them
+#            +----------------------+
+#            |  Silver-Rhine        |    <- the NAME, top line of the window
+#            |  Tier I        P: 2  |    <- Tier left, power right
+#            |  [============    ]  |    <- the stamina bar
+#            +----------------------+
 #
 #  THE BAR IS ADVENTURE ONLY. A league player has no stamina — only the
 #  keeper does — so there is nothing to draw one from, and a bar under every
@@ -234,15 +236,29 @@ func place(edge: Dictionary, card: PlayerData,
 	var left := middle - plate_wide * 0.5
 	var right := middle + plate_wide * 0.5
 
-	# ============ THE NAME ============
+	# ============ THE NAME IS IN THE WINDOW NOW ============
 	#
-	# A SHORT NAME. Your cards are called "Songbound Shore Lorelei" — the
-	# class is on the end of every one of them, and it is already obvious
-	# from the player standing there. The full name is still on the card, in
-	# the log and in the team builder.
+	# It used to sit over the player's head, on its own, which is where a name
+	# goes in a lot of games and is the wrong place in this one: the pitch is
+	# busy, the players are small, and a line of pale text floating on grass
+	# over somebody's hair is the hardest thing on the screen to read.
 	#
-	# AND NO WIDER THAN THE WINDOW UNDER IT, or in a crowd the names collide
-	# while the windows underneath them sit neatly side by side.
+	# So the name is the TOP LINE OF THE SAME PANEL as the Tier and the Power.
+	# One dark window per player, three facts in it, nothing anywhere else:
+	#
+	#         ,---.
+	#        ( o o )
+	#         `-^-'
+	#     +---------------+
+	#     | Silver-Rhine  |    <- the name
+	#     | Tier I   P: 2 |    <- the stats
+	#     | [=======   ]  |    <- Adventure only
+	#     +---------------+
+	#
+	# A SHORT NAME still. Your cards are called "Songbound Shore Lorelei" and
+	# the class is on the end of every one of them, which is already obvious
+	# from the player standing there. The full name is on the card, in the log
+	# and in the team builder.
 	var name_room := plate_wide * name_room_scale
 	var label := short_name(card)
 	_name_label.text = label
@@ -250,11 +266,16 @@ func place(edge: Dictionary, card: PlayerData,
 		label = label.substr(0, label.length() - 2) + "…"
 		_name_label.text = label
 	var name_size_box := _name_label.get_minimum_size()
-	_name_label.position = Vector2(middle - name_size_box.x * 0.5,
-		top - gap - name_size_box.y)
 	_name_label.add_theme_color_override("font_color", ink)
 
+	# The panel is as wide as the widest of the two lines, so a long name
+	# widens the window rather than hanging out of it.
+	plate_wide = clampf(maxf(plate_wide, name_size_box.x + pad * 2.0), 54.0, widest)
+	left = middle - plate_wide * 0.5
+	right = middle + plate_wide * 0.5
+
 	# ============ THE LITTLE WINDOW AT THEIR FEET ============
+	var name_high := name_size_box.y
 	var line_high := float(stat_size) + 4.0
 	var bar_high := 0.0
 	_show_bar = fraction >= 0.0
@@ -262,10 +283,13 @@ func place(edge: Dictionary, card: PlayerData,
 		bar_high = maxf(4.0, float(stat_size) * 0.42)
 
 	var panel_top := bottom + gap
-	var panel_high := line_high + (bar_high + bar_gap if _show_bar else 0.0) + 4.0
+	var panel_high := name_high + line_high \
+		+ (bar_high + bar_gap if _show_bar else 0.0) + 5.0
 	_panel = Rect2(Vector2(left, panel_top), Vector2(plate_wide, panel_high))
 
-	var text_y := panel_top + 1.0
+	_name_label.position = Vector2(middle - name_size_box.x * 0.5, panel_top + 1.0)
+
+	var text_y := panel_top + name_high + 2.0
 	_tier_label.position = Vector2(left + pad, text_y)
 	_power_label.position = Vector2(right - pad - power_wide, text_y)
 	_tier_label.add_theme_color_override("font_color",

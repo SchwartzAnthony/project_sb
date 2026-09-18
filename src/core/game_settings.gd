@@ -155,22 +155,68 @@ static func apply(tree: SceneTree, force: bool = false) -> void:
 	_apply_pad(settings)
 
 
+# =============================================================
+#  THE THREE WINDOW MODES
+#
+#  ============ WHY IT DID NOT WORK ============
+#
+#  It used to set the MODE and the BORDERLESS FLAG in whatever order the
+#  match arm happened to be written, straight from whichever mode the window
+#  was already in. That is two problems at once:
+#
+#    * going to fullscreen and then clearing the borderless flag can knock
+#      the window straight back out of fullscreen again — which is why
+#      "Fullscreen" appeared to do nothing at all;
+#    * and "Borderless" set the flag and only then asked for a size, on a
+#      window that was still carrying the small size it had been given last
+#      time it was windowed — which is why it looked like it shrank.
+#
+#  ============ WHAT IT DOES NOW ============
+#
+#  Always go back to a plain window first, clear every flag, and only then
+#  apply the mode that was asked for. One known starting point, three short
+#  arms, and no arm has to know what the last one left behind.
+#
+#      windowed    a normal window at the chosen resolution, centred
+#      fullscreen  the whole screen, no window at all
+#      borderless  a window with no frame, filling the screen it is on
+#
+#  `borderless` uses the size of THE SCREEN THE WINDOW IS ON, not screen 0,
+#  so it fills the right monitor on a two-monitor desk.
+# =============================================================
+
 static func _apply_screen(settings: Dictionary) -> void:
-	match String(settings.get("screen_mode", "windowed")):
+	var wanted := String(settings.get("screen_mode", "windowed"))
+
+	# ---- one known starting point ----
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
+
+	match wanted:
 		"fullscreen":
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
 		"borderless":
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+			var screen := DisplayServer.window_get_current_screen()
+			var box := DisplayServer.screen_get_size(screen)
+			var corner := DisplayServer.screen_get_position(screen)
+			# THE FLAG FIRST, THEN THE SIZE. A frame that is removed after the
+			# size is set takes its own thickness off the window, and the
+			# result is a window a few pixels short of the screen on two edges.
 			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
-			DisplayServer.window_set_size(DisplayServer.screen_get_size())
-			DisplayServer.window_set_position(Vector2i.ZERO)
+			DisplayServer.window_set_size(box)
+			DisplayServer.window_set_position(corner)
 		_:
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
-			var box := size_from_text(String(settings.get("resolution", "1920x1080")))
-			if box.x > 0 and box.y > 0:
-				DisplayServer.window_set_size(box)
+			var box2 := size_from_text(String(settings.get("resolution", "1920x1080")))
+			if box2.x > 0 and box2.y > 0:
+				DisplayServer.window_set_size(box2)
+			# CENTRED. Coming back from fullscreen leaves the window wherever
+			# the desktop feels like putting it, which is usually half off the
+			# top-left corner.
+			var screen2 := DisplayServer.window_get_current_screen()
+			var room := DisplayServer.screen_get_size(screen2)
+			var at := DisplayServer.screen_get_position(screen2)
+			DisplayServer.window_set_position(
+				at + (room - DisplayServer.window_get_size()) / 2)
 
 	DisplayServer.window_set_vsync_mode(
 		DisplayServer.VSYNC_ENABLED if bool(settings.get("vsync", true))

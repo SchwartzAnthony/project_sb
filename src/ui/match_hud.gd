@@ -55,6 +55,11 @@ signal auto_pick_changed(is_on: bool)
 ## where anybody is looking.
 signal speed_locked(words: String)
 
+## The scout button was pressed. The match opens the Enemy Team Data window —
+## this strip does not, because a HUD should say what happened and let the
+## screen that owns the information show it.
+signal scout_wanted
+
 var db: CardDatabase
 var state: GameState
 
@@ -151,6 +156,18 @@ func _build() -> void:
 	_auto_button.tooltip_text = "Let the game play for you. Your cards and the clash buttons lock while it is on.\nPress AUTO or A to take back over."
 	_auto_button.pressed.connect(_toggle_auto)
 	add_child(_auto_button)
+
+	# ============ KNOW WHO YOU ARE PLAYING, MID-MATCH ============
+	#
+	# The draft asks you to choose a card against a side whose abilities you
+	# cannot see. This is the button that answers that, and it is here rather
+	# than tucked in the pause menu because you want it WHILE you are looking
+	# at four cards, not after stopping the game.
+	var scout := _make_button("TEAM", 66.0)
+	scout.tooltip_text = "Enemy Team Data: their whole squad, every power and every ability."
+	scout.pressed.connect(func() -> void: scout_wanted.emit())
+	add_child(scout)
+	_paint(scout, false)
 
 
 ## THE RULE ITSELF IS IN GameSpeed, not here — the pause menu has a second

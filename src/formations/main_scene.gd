@@ -560,14 +560,25 @@ func _assign_roles() -> void:
 	# goes near the keeper. This is checked before anything else because it
 	# outranks every other rule, including the break.
 	if restart_hold:
+		var slack := maxf(10.0, db.tune_float("restart_home_slack", 70.0))
 		for unit in units:
 			if unit == restart_receiver and ball != null:
 				# The man the goal kick is aimed at. He may come to meet it.
 				unit.set_role(PlayerUnit.Role.RECEIVE, ball.global_position,
 					unit.chase_speed)
 				continue
-			unit.set_role(PlayerUnit.Role.HOLD, unit.home_position,
-				unit.walk_speed * restart_walk_boost)
+			# ============ HOME, THEN WANDER ============
+			#
+			# Walking to a fixed point and then standing on it for two seconds
+			# is eleven statues waiting for a whistle. Once a player is back in
+			# their own area they are given the ordinary wandering point
+			# instead, so the pitch is alive while the keeper has the ball —
+			# they are just not allowed to come and take it off him.
+			if unit.global_position.distance_to(unit.home_position) <= slack:
+				unit.set_role(PlayerUnit.Role.HOLD, _drift_point(unit), unit.walk_speed)
+			else:
+				unit.set_role(PlayerUnit.Role.HOLD, unit.home_position,
+					unit.walk_speed * restart_walk_boost)
 		return
 
 	# -1 loose, 0 you, 1 them. Answered even mid-pass, so nobody stands about
@@ -1024,6 +1035,12 @@ func _tune_unit(unit: PlayerUnit) -> void:
 		"unit_separation_strength", unit.separation_strength)
 	unit.contest_radius = db.tune_float("unit_contest_radius", unit.contest_radius)
 	unit.swerve_strength = db.tune_float("unit_swerve_strength", unit.swerve_strength)
+	# ---- the five that decide whether the pitch looks alive or twitchy ----
+	unit.personal_space = db.tune_float("unit_personal_space", unit.personal_space)
+	unit.contest_crowding = db.tune_float("unit_contest_crowding", unit.contest_crowding)
+	unit.arrive_radius = db.tune_float("unit_arrive_radius", unit.arrive_radius)
+	unit.still_threshold = db.tune_float("unit_still_threshold", unit.still_threshold)
+	unit.face_deadzone = db.tune_float("unit_face_deadzone", unit.face_deadzone)
 
 
 func _tune_goalie(keeper: GoalieUnit) -> void:
@@ -1977,6 +1994,7 @@ func spawn_hud() -> void:
 	hud.auto_pick_changed.connect(_on_auto_pick_changed)
 	# A locked speed says so on the big announcement, not in the corner.
 	hud.speed_locked.connect(func(words: String) -> void: announce(words, 1.6))
+	hud.scout_wanted.connect(show_enemy_team)
 
 
 ## The hover window. It lives on the SelectionUI layer with the cards, so it
@@ -2457,6 +2475,8 @@ func trigger_playmaker_event() -> void:
 	rounds_this_cycle += 1
 	round_player_picks.clear()
 	round_enemy_picks.clear()
+	# A card shown last round is not shown this one.
+	revealed_by_tier.clear()
 	round_in_progress = true
 
 	for unit in _all_units():
@@ -2487,6 +2507,7 @@ func trigger_hold_up_event() -> void:
 	round_in_progress = false
 	round_player_picks.clear()
 	round_enemy_picks.clear()
+	revealed_by_tier.clear()
 
 	# THE WHISTLE. This has to be the very first thing that happens — before
 	# the enemy's substitution and before the "STAR PLAYER SWITCH" banner, both of which
@@ -2573,6 +2594,21 @@ func _open_the_team_sheet() -> void:
 		_kickoff_sequence()
 		return
 
+	# ============ IN POSITION BEFORE ANYBODY LOOKS ============
+	#
+	# Every unit is put ON its own slot before the sheet goes up. Spawning
+	# leaves them near their slots rather than on them, and the freeze holds
+	# them wherever they happened to be — so the pitch you looked at behind
+	# the START button was not the pitch you got, and the instant START was
+	# pressed the whole formation shuffled into place. That shuffle is what
+	# looked like the players swapping.
+	for unit in _all_units():
+		unit.global_position = unit.home_position
+
+	# The duel window's card back wears the two crests, and this is the first
+	# moment both of them are known.
+	_tell_the_arena_who_is_playing()
+
 	# EVERYTHING STOPS. The teams are on the grass and in position, the ball
 	# is nowhere yet, and none of it moves until the sheet is done with.
 	freeze_play(true)
@@ -2583,6 +2619,38 @@ func _open_the_team_sheet() -> void:
 	selection_ui.add_child(_sheet)
 	_sheet.kick_off_wanted.connect(_on_kick_off_wanted)
 	_sheet.show_for(_team_facts(false), _team_facts(true))
+
+
+## THE CREST ON THE BACK OF THE DUEL CARD. The arena is built before either
+## team is chosen, so it is told afterwards rather than working it out — and
+## it is told here, where both sides are finally known.
+func _tell_the_arena_who_is_playing() -> void:
+	if duel_arena == null or not is_instance_valid(duel_arena):
+		return
+	var mine := _team_facts(false)
+	var theirs := _team_facts(true)
+	# LEFT IS ALWAYS YOU in the duel window, whichever side is attacking, so
+	# the crests are handed over the same way round every time.
+	duel_arena.left_crest = String(mine.get("crest", ""))
+	duel_arena.left_team = String(mine.get("name", ""))
+	duel_arena.right_crest = String(theirs.get("crest", ""))
+	duel_arena.right_team = String(theirs.get("name", ""))
+
+
+## THE OPPOSITION'S WHOLE SQUAD, any time during a match. The same window the
+## team shelf opens before you have even chosen a side.
+func show_enemy_team() -> void:
+	var facts := _team_facts(true)
+	var klass := active_enemy_star.unit_type if active_enemy_star != null else ""
+	var squad: Array[PlayerData] = []
+	if klass != "":
+		squad = db.roster_for_class(klass)
+	for star in enemy_star_bundle:
+		if star != null and not squad.has(star):
+			squad.append(star)
+	EnemyTeamWindow.open(self, db, String(facts.get("name", "")), squad,
+		enemy_star_bundle,
+		"Their three Stars are ringed. One is on the pitch; the other two come on at the STAR PLAYER SWITCH.")
 
 
 func _on_kick_off_wanted() -> void:
@@ -2854,6 +2922,7 @@ func create_card_for_unit(data: PlayerData) -> void:
 	card.card_unhovered.connect(_on_card_unhovered)
 	card.card_selected.connect(_on_card_selected)
 	card.brew_wanted.connect(_on_brew_wanted)
+	card.reveal_wanted.connect(_on_reveal_wanted)
 	# Born locked if AUTO is already running, so there is never a frame in
 	# which a fresh card is clickable during an automatic pick.
 	card.set_locked(_auto_is_on())
@@ -3095,6 +3164,64 @@ func _facts_for_card(card: PlayerData) -> Dictionary:
 	}
 
 
+# =============================================================
+#  SHOW — PLAYING A CARD FACE UP  (the `reveal` trigger)
+#
+#  ============ THE TRADE ============
+#
+#  Every pick until now has been simultaneous and hidden: you choose, they
+#  choose, the cards meet. SHOW breaks that on purpose, in one direction only.
+#
+#      you press SHOW      the card is chosen AND named out loud
+#      they answer it      knowing exactly what they are answering
+#      the card fires      whatever it has written against `reveal`
+#
+#  So the ability is not free. It costs the one thing a hidden draft gives
+#  you, which is that they have to guess — and a card worth showing has to be
+#  worth more than the guess.
+#
+#  ============ WHY THE ENEMY ANSWERS PROPERLY ============
+#
+#  They pick at random when your card is hidden, because there is nothing to
+#  pick against. Once you have shown one, they take the best answer they have
+#  in that tier: the strongest defence if you are attacking this round, the
+#  strongest attack if you are not. If the sides ever swap mid-round, the same
+#  line follows the swap, because it asks the round rather than remembering.
+#
+#  ============ IF BOTH SIDES SHOW ============
+#
+#  AbilityTriggers.csv says the LOWER POWER goes first, which is the ordinary
+#  ability-priority rule the duel already runs on — lower priority resolves
+#  first, attacker breaks a tie. A shown card is given a priority of its own
+#  power, so two shown cards resolve weakest-first with nothing special added
+#  to the duel code.
+# =============================================================
+
+## Which of your cards has been shown, by tier. Cleared each round.
+var revealed_by_tier: Dictionary = {}
+
+
+func _on_reveal_wanted(selected_data: PlayerData) -> void:
+	if selected_data == null or _auto_is_on():
+		return
+	if current_phase_index >= draft_phases.size():
+		return
+	var phase := draft_phases[current_phase_index]
+	# The Star phases are a different choice — you are swapping who is on the
+	# pitch, not answering anybody, so there is nothing to show them.
+	if phase == "Star" or phase == "StarChoice":
+		_on_card_selected(selected_data)
+		return
+
+	revealed_by_tier[phase] = selected_data
+	if abilities != null:
+		abilities.fire_reveal(selected_data, false)
+	announce("%s is played face up." % NamePlate.short_name(selected_data), 1.6)
+	print("[reveal] you show %s in Tier %s. They answer it knowing."
+		% [selected_data.player_name, phase])
+	_on_card_selected(selected_data)
+
+
 func _on_card_selected(selected_data: PlayerData) -> void:
 	AudioDirector.fire(get_tree(), "card_picked", _facts_for_card(selected_data), state)
 	if card_stats != null:
@@ -3222,7 +3349,23 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 	if choices.is_empty():
 		return
 
+	# ---- THEY ANSWER A CARD THEY CAN SEE ----
+	#
+	# Random while your hand is hidden, because there is nothing to pick
+	# against. Once you have pressed SHOW they take their best answer in this
+	# tier — which is the price of showing it.
 	var chosen: PlayerUnit = choices.pick_random()
+	if revealed_by_tier.has(tier_key):
+		var best: PlayerUnit = null
+		for unit in choices:
+			if unit.data == null:
+				continue
+			if best == null or _answering_power(unit.data) > _answering_power(best.data):
+				best = unit
+		if best != null:
+			chosen = best
+			print("[reveal] they answer your shown card with %s (%d)"
+				% [best.data.player_name, _answering_power(best.data)])
 	for unit in choices:
 		if unit == chosen:
 			unit.is_exhausted = true
@@ -3231,6 +3374,17 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 		else:
 			unit.set_highlight(false)
 	round_enemy_picks.append(chosen.data)
+
+
+## What the ENEMY is judged on when they are answering a card they can see.
+## Their defence when you are attacking this round, their attack when you are
+## not — asked of the round rather than remembered, so a side swap mid-round
+## is followed rather than ignored.
+func _answering_power(card: PlayerData) -> int:
+	if card == null:
+		return -1
+	return card.get_defense_power() if player_attacks_this_round \
+		else card.get_attack_power()
 
 
 func _on_draft_complete() -> void:
@@ -3373,7 +3527,11 @@ func resolve_round() -> void:
 
 		# Abilities go on the stack first: lowest priority resolves first,
 		# attacker breaks a tie. Only then are the numbers compared.
-		abilities.resolve_duel_abilities(atk, attacker_is_enemy, def)
+		# A card played face up in the draft resolves on its POWER rather than
+		# on its Ability Priority — see _on_reveal_wanted(). An empty list is
+		# passed when nothing was shown, which is the ordinary round.
+		abilities.resolve_duel_abilities(atk, attacker_is_enemy, def, "",
+			revealed_by_tier.values())
 
 		var atk_power := abilities.attack_power(atk, attacker_is_enemy)
 		var def_power := abilities.defense_power(def, not attacker_is_enemy)

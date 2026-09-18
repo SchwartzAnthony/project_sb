@@ -73,6 +73,43 @@ static func trigger_is_live(trigger: String) -> bool:
 static func forget_triggers() -> void:
 	_known = []
 	_rows = {}
+	_keywords = {}
+
+
+# ============ KEYWORDS.CSV ============
+#
+# One row per word the game understands, in every family: effects, targets,
+# scopes, condition words, Adventure effects, item tags. It is the reference
+# you read and the place you write a NEW word down so it can be built.
+#
+# Nothing here decides what a live word does — the code does that. What this
+# gives you is the difference between "not built yet" and "typo", which is
+# the difference between a card that waits and a card that is wrong.
+static var _keywords: Dictionary = {}
+
+
+## family -> {normalised keyword -> Status}
+static func _load_keywords() -> void:
+	if not _keywords.is_empty():
+		return
+	for row in MenuSupport.read_csv("res://data/Keywords.csv"):
+		var word := CardDatabase._normalise(MenuSupport.field(row, "Keyword"))
+		var family := MenuSupport.field(row, "Family").strip_edges().to_lower()
+		if word == "" or family == "":
+			continue
+		if not _keywords.has(family):
+			_keywords[family] = {}
+		(_keywords[family] as Dictionary)[word] = \
+			MenuSupport.field(row, "Status").strip_edges().to_lower()
+	if _keywords.is_empty():
+		# No file: nothing is planned, so everything unknown stays an error.
+		_keywords["_none"] = {}
+
+
+static func _keyword_is_planned(word: String, family: String) -> bool:
+	_load_keywords()
+	var in_family: Dictionary = _keywords.get(family, {})
+	return String(in_family.get(CardDatabase._normalise(word), "")) == "planned"
 
 const TARGETS_SIMPLE: Array[String] = [
 	"self",
@@ -122,7 +159,19 @@ func validate() -> String:
 		print("[abilities] '%s' waits on the '%s' trigger, which is still marked planned in AbilityTriggers.csv."
 			% [display_name if display_name != "" else id, trigger])
 	if not EFFECTS.has(effect):
-		return "Effect '%s' is not one of: %s" % [effect, ", ".join(EFFECTS)]
+		# ============ A PLANNED EFFECT IS NOT AN ERROR ============
+		#
+		# Keywords.csv is the list of every word the game understands, and a
+		# row marked `planned` there is one you have designed and nobody has
+		# written yet. Same rule as a planned trigger: the card loads, the row
+		# is legal, it simply never does anything until the effect is built.
+		#
+		# A word that is in NEITHER list is a typo, and that is still refused.
+		if _keyword_is_planned(effect, "ability effect"):
+			print("[abilities] '%s' waits on the '%s' effect, which is still marked planned in Keywords.csv."
+				% [display_name if display_name != "" else id, effect])
+		else:
+			return "Effect '%s' is not one of: %s" % [effect, ", ".join(EFFECTS)]
 	if not SCOPES.has(scope):
 		if scope == "":
 			scope = "duel"
@@ -149,3 +198,73 @@ func hits_goalie() -> bool:
 
 func describe() -> String:
 	return "%s: %s %s %+d to %s (%s)" % [id, trigger, effect, value, target, scope]
+
+
+## ============ THE SAME ROW, IN ENGLISH ============
+##
+## describe() is for the Output panel and reads like a database row.
+## This is for a player looking at the enemy's squad, and it has to read like
+## a sentence — "When it wins its duel: +1 attack to itself, for the round."
+##
+## Every word comes from the row, so an ability written tomorrow explains
+## itself here with nothing to keep in step.
+func plain() -> String:
+	return "%s: %s%s." % [_when_words(), _what_words(), _how_long_words()]
+
+
+func _when_words() -> String:
+	match trigger:
+		"onattack": return "When attacking"
+		"ondefend": return "When defending"
+		"onduelstart": return "When its duel begins"
+		"onwinduel": return "When it wins its duel"
+		"onloseduel": return "When it loses its duel"
+		"flip": return "When the cards are turned over"
+		"passive": return "Always"
+	# A trigger from AbilityTriggers.csv that has no sentence written for it
+	# yet reads as itself rather than as nothing.
+	return "On %s" % trigger
+
+
+func _what_words() -> String:
+	var who := _who_words()
+	match effect:
+		"addattack": return "%+d attack to %s" % [value, who]
+		"adddefense": return "%+d defence to %s" % [value, who]
+		"addpower": return "%+d attack and defence to %s" % [value, who]
+		"addshotpower": return "%+d on the shot at goal" % value
+		"drainstamina": return "%d stamina off %s" % [value, who]
+		"restorestamina": return "%d stamina back to %s" % [value, who]
+	return "%s %+d to %s" % [effect, value, who]
+
+
+func _who_words() -> String:
+	# MATCHED ON THE FLATTENED WORD. The Target column is written the way it
+	# reads in a spreadsheet — `enemy_goalie`, `all_allies` — and matching the
+	# raw text let every underscored one fall through to the bottom of this
+	# function and be printed as the id, which is the thing this whole function
+	# exists to avoid.
+	var flat := CardDatabase._normalise(target)
+	match flat:
+		"self": return "itself"
+		"opponent": return "the player it is up against"
+		"allallies": return "its whole side"
+		"allenemies": return "the whole other side"
+		"enemygoalie": return "the keeper it shoots at"
+		"owngoalie": return "its own keeper"
+	if target.begins_with("tag:"):
+		return "every %s on its side" % target.substr(4)
+	if target.begins_with("tier:"):
+		return "its own Tier %s" % target.substr(5).to_upper()
+	if target.begins_with("enemytier:") or target.begins_with("enemy_tier:"):
+		return "their Tier %s" % target.split(":")[-1].to_upper()
+	return target.replace("_", " ")
+
+
+func _how_long_words() -> String:
+	match scope:
+		"duel": return ", for this duel"
+		"round": return ", for the round"
+		"cycle": return ", for the cycle"
+		"match": return ", for the rest of the match"
+	return ""

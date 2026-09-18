@@ -40,6 +40,10 @@ signal card_selected(data: PlayerData)
 ## The little flask in the corner was pressed — somebody wants to pour
 ## something on this card before choosing it. main_scene opens the Inventory.
 signal brew_wanted(data: PlayerData)
+## SHOW was pressed. This card is being played face up: it is chosen, the
+## other side gets to see it before they answer, and anything written against
+## the `reveal` trigger goes off. main_scene does the rest.
+signal reveal_wanted(data: PlayerData)
 
 ## The size used when Tuning.csv has nothing to say. Bigger than the old
 ## hand-built card on purpose — this is the size you asked for.
@@ -54,6 +58,9 @@ var locked: bool = false
 var _face: Button
 ## The little flask, top left. Null when draft_brew_button is off.
 var _flask: Button
+## SHOW, along the bottom. Null unless this card has something written
+## against the `reveal` trigger — a card with nothing to show cannot show it.
+var _show: Button
 
 
 func _ready() -> void:
@@ -97,6 +104,7 @@ func setup_card(data: PlayerData) -> void:
 	_face.pressed.connect(_on_pressed)
 
 	_add_brew_corner(box)
+	_add_show_button(box)
 	_apply_lock()
 
 
@@ -149,6 +157,75 @@ func _add_brew_corner(_box: Vector2) -> void:
 	add_child(_flask)
 
 
+## ============ SHOW — PLAYING A CARD FACE UP ============
+##
+## The `reveal` trigger, and the only place in the game where you give
+## information away on purpose.
+##
+## Pressing the card CHOOSES this player with your hand still hidden, the way
+## every pick has worked until now. Pressing SHOW chooses them face up: the
+## other side sees the card before they answer it, and in exchange whatever
+## this card has written against `reveal` goes off.
+##
+## THE BUTTON IS ONLY ON A CARD THAT HAS SOMETHING TO SHOW. A card with no
+## reveal ability gains nothing by being shown and would simply be handing
+## the opposition a free look, so it does not offer the option at all — which
+## also means the button itself is a piece of information: a card wearing SHOW
+## has a trick on it.
+##
+## `draft_reveal_button` in Tuning.csv takes it off every card.
+func _add_show_button(box: Vector2) -> void:
+	var db := CardDatabase.get_db()
+	if db == null or not db.tune_bool("draft_reveal_button", true):
+		return
+	if not _has_reveal(db):
+		return
+
+	_show = Button.new()
+	_show.text = db.tune_text("draft_reveal_words", "SHOW")
+	_show.tooltip_text = "Play this card face up.\nThey see it before they answer it — and its reveal ability goes off.\nChoosing the card normally keeps it hidden and the ability asleep."
+	_show.focus_mode = Control.FOCUS_NONE
+	# ALONG THE BOTTOM, not in a corner: both corners are taken (the flask on
+	# the left, the Star badge on the right) and this one has a word on it
+	# rather than a symbol, so it needs the width.
+	#
+	# ABOVE the tier-and-power line, not over it. Those two numbers are the
+	# whole reason you are looking at the card, and a button that covers them
+	# to offer you a clever option is a bad trade.
+	var high := maxf(24.0, box.y * 0.13)
+	_show.offset_left = 8.0
+	_show.offset_right = box.x - 8.0
+	_show.offset_bottom = box.y - maxf(24.0, box.y * 0.13)
+	_show.offset_top = _show.offset_bottom - high
+	_show.add_theme_font_size_override("font_size", 14)
+	_show.add_theme_stylebox_override("normal", MenuSupport.panel_style(
+		MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
+	_show.add_theme_stylebox_override("hover", MenuSupport.panel_style(
+		MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+	_show.add_theme_stylebox_override("pressed", MenuSupport.panel_style(
+		MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+	_show.pressed.connect(func() -> void:
+		if current_data != null and not locked:
+			reveal_wanted.emit(current_data))
+	add_child(_show)
+
+
+## Does either of this card's abilities fire on `reveal`, and is that trigger
+## actually live? A trigger still marked `planned` in AbilityTriggers.csv does
+## not put a button on a card.
+func _has_reveal(db: CardDatabase) -> bool:
+	if current_data == null:
+		return false
+	if not AbilityData.trigger_is_live("reveal"):
+		return false
+	for ability_id in [current_data.active_attack_ability(),
+			current_data.active_defend_ability()]:
+		var ability := db.get_ability(String(ability_id))
+		if ability != null and ability.trigger == "reveal":
+			return true
+	return false
+
+
 ## Called by main_scene whenever AUTO is switched on or off, and once when
 ## the card is created. Safe to call before setup_card(): it checks.
 func set_locked(is_locked: bool) -> void:
@@ -168,6 +245,9 @@ func _apply_lock() -> void:
 	if _flask != null and is_instance_valid(_flask):
 		_flask.disabled = locked
 		_flask.visible = not locked
+	if _show != null and is_instance_valid(_show):
+		_show.disabled = locked
+		_show.visible = not locked
 	modulate = Color(1, 1, 1, 0.45) if locked else Color(1, 1, 1, 1)
 
 

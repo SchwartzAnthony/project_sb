@@ -167,8 +167,13 @@ func _build_ui() -> void:
 	items.pressed.connect(_show_inventory)
 	middle.add_child(items)
 
-	var loadout := MenuSupport.footer_button("traits|\u25c8",
-		Loc.text("edit_element_bonus", "Edit Element Bonus"))
+	# WIDE ENOUGH FOR ITS OWN LABEL. The ordinary footer button is 170 across
+	# and "Edit Element Bonus" is not; in a windowed game the words were cut
+	# off. icon_button() takes a size, so it is given one rather than being
+	# left to the default.
+	var loadout := MenuSupport.icon_button("traits|\u25c8",
+		Loc.text("edit_element_bonus", "Edit Element Bonus"),
+		Vector2(290, MenuSupport.FOOTER_BUTTON.y))
 	loadout.tooltip_text = "Which %d icons you carry into a run. Everything else you have unlocked stays on the shelf and does nothing." % TraitDB.slots(db)
 	loadout.pressed.connect(_show_loadout)
 	middle.add_child(loadout)
@@ -176,7 +181,7 @@ func _build_ui() -> void:
 	# Its own footprint, or the pin would size it as a single button and the
 	# pair would sit half off centre. Two buttons plus the gap between them.
 	middle.custom_minimum_size = Vector2(
-		MenuSupport.FOOTER_BUTTON.x * 2.0 + 10.0, MenuSupport.FOOTER_BUTTON.y)
+		MenuSupport.FOOTER_BUTTON.x + 290.0 + 10.0, MenuSupport.FOOTER_BUTTON.y)
 	MenuSupport.pin_bottom_centre(middle)
 
 	_start = MenuSupport.footer_primary("play|▶", "START EXPLORING")

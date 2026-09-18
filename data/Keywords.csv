@@ -1,0 +1,47 @@
+Keyword,Family,Status,What It Does,Example,Notes
+add_attack,ability effect,live,Adds to the card's ATTACK power for as long as the Scope says,"Value 1, Target self",The plain one. Use it when a card should simply hit harder
+add_defense,ability effect,live,Adds to the card's DEFENCE power,"Value 1, Target self",
+add_power,ability effect,live,Adds to BOTH attack and defence,"Value 1, Target self",Half as many rows as writing the two separately
+add_shot_power,ability effect,live,"Adds to this round's SHOT at goal, if that side takes it",Value 2,"THE ONE THAT OBEYS THE LADDER. A bonus goes on the shot, never on a card - see section 2 of the manual"
+drain_stamina,ability effect,live,Takes stamina off a keeper,"Value 3, Target enemy_goalie",How a card chips away at the keeper without scoring
+restore_stamina,ability effect,live,Puts stamina back on a keeper,"Value 2, Target own_goalie",
+negate_ability,ability effect,planned,Stops the opposing card's ability firing this duel,Target opponent,"PHASE 13 (8). Needs the duel to resolve abilities in two passes - collect, then apply"
+negate_power,ability effect,planned,Ignores the opposing card's power for this duel,Target opponent,PHASE 13 (9). Temporary only - a permanent change would break the ladder
+swap_sides,ability effect,planned,Makes the attacker defend and the defender attack,Target opponent,PHASE 12
+change_priority,ability effect,planned,Moves a card up or down the order abilities resolve in,Value -1,PHASE 13 (5)
+score_goal,ability effect,planned,"Scores, without a shot at the keeper",Value 1,One card in the whole game should probably be able to do this
+self,ability target,live,The card the ability is on,,
+opponent,ability target,live,The card it is duelling,,
+all_allies,ability target,live,Every card on its own side,,
+all_enemies,ability target,live,Every card on the other side,,
+enemy_goalie,ability target,live,The keeper it would shoot at,,
+own_goalie,ability target,live,Its own keeper,,
+tag:<tag>,ability target,live,Every card on its side carrying that tag,tag:brandteufel,"A tag is a class, an element or star - see PlayerData.get_tags"
+tier:<tier>,ability target,live,Its own side's cards in that tier,tier:III,
+enemy_tier:<tier>,ability target,live,The other side's cards in that tier,enemy_tier:IV,
+duel,ability scope,live,Until this duel is over,,The default. Leave Scope blank and this is what you get
+round,ability scope,live,Until the end of this PLAY MAKER round,,
+cycle,ability scope,live,Until the cycle comes round,,
+match,ability scope,live,Until the final whistle,,
+flag:<name>,condition,live,True when that flag is set,flag:brave,An achievement is a flag and nothing else
+!flag:<name>,condition,live,True when it is NOT set,!flag:brave,
+unlocked:<thing>,condition,live,True when that thing has been unlocked,unlocked:Fire Brew,
+count:<thing><op><n>,condition,live,A number comparison. >= > <= < = != all work,count:reed>=20,"Every item is a counter, so this works on items too"
+is:<state>,condition,live,A state check,is:winter,
+unlock:<thing>,effect word,live,Unlock something by name,unlock:Water Brew,
+count:<thing>+<n>,effect word,live,Add to a number,count:coins+60,Minus takes away; = sets it outright
+count:tune_<row>+<n>,effect word,live,Edit a row of Tuning.csv at runtime,count:tune_press_speed+12,How talents work. Any row
+story:<id>,effect word,live,Play a dialogue scene,story:prologue,
+announce:<words>,effect word,live,Put a banner on the screen,announce:First win!,
+attack,adventure effect,live,Adds to the SHOT for as long as you hold the breakpoint,"Value 2, Lasts held",
+strike,adventure effect,live,Damage straight into enemies,Target all or focus,
+heal,adventure effect,live,Stamina back to the party,Target lowest / all / last,
+stamina,adventure effect,live,The same thing under a friendlier name,,
+revive,adventure effect,live,Knocked-out players get up,Value is how much stamina each,
+shield,adventure effect,live,Takes damage off every hit against you,"Value 1, Lasts held",
+spawn,adventure effect,live,A stand-in walks on,Target a row of AdventureSpawns.csv,It leaves when the fight ends
+adventure_consume,item tag,live,This item may be used DURING an Adventure fight,,"Items.csv, Tags column"
+match_consume,item tag,live,This item may be used on a player during the match draft,,A bottled brew is the example
+goal_scored,juice moment,live,A goal in a league match,,"Juice.csv, When column"
+play_maker,juice moment,live,PLAY MAKER fires,,
+coin_exact,juice moment,live,Somebody named the clash coin exactly,,

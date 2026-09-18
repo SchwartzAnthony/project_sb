@@ -66,6 +66,18 @@ func _initialize() -> void:
 			elif clash.call("awaiting_choice"):
 				clash.call("_choose", true)
 
+	# --- the duel window, face down and then turned over ---
+	if _scene.get("duel_arena") != null:
+		var arena = _scene.get("duel_arena")
+		arena.call("play_duel", {
+			"tier": "III",
+			"left": {"card": null, "is_attacker": true, "power_before": 3, "power_after": 4, "wins": true},
+			"right": {"card": null, "is_attacker": false, "power_before": 2, "power_after": 2, "wins": false},
+		})
+		for i in 8:
+			await _wait(0.12)
+			_snap("flip-%d" % i)
+
 	print("[shot] done")
 	quit(0)
 

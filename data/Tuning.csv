@@ -9,6 +9,8 @@ use_rps_minigame,true,"false = a silent coin flip and no clash screen at all. Th
 team_crest_fallback,banner_normal_team,"The crest used for a class whose ClassInfo.csv row has no Banner Art yet. Put the file in assets/team/. A side with no art at all draws a lettered disc instead, so nothing ever breaks over a missing crest"
 kickoff_needs_button,true,"MUST THE PLAYER PRESS START? TRUE and nothing happens until they do - the pitch is frozen and the clock is at 00:00. FALSE and the countdown begins by itself a moment after the sheet lifts, which is what you want for a demo or a stream"
 team_sheet_stars,3,"How many Star Players are shown a side on the team sheet. The one who is actually playing is always first"
+team_sheet_abilities,true,"DOES THE SHEET SAY WHAT THE STARS DO? TRUE and every Star has its abilities written under it in plain words, out of Abilities.csv, which is the whole reason the sheet is there. FALSE prints the six names and nothing else"
+team_sheet_hold,true,"DOES THE TEAM SHEET WAIT FOR YOU? TRUE and the START button appears ON the sheet and the sheet stays up until it is pressed - which is what you want, because the sheet is where the six Star Players and their abilities are and taking it away after two seconds takes the reading away. FALSE and the sheet lifts on its own and START appears over the pitch instead"
 team_sheet_seconds,2.6,"How long the team sheet is held. The bar follows whichever is further along - the real loading or this clock - so it never stalls on a fast machine and never lies on a slow one"
 team_sheet,true,"IS THERE A TEAM SHEET BEFORE A MATCH? Both crests, both names and three Star Players a side on a full screen with a bar filling along the bottom, then the sheet lifts to show the two teams standing on the grass with a START button between the crests. FALSE and a match opens straight into the 3 - 2 - 1, as it did before"
 kickoff_countdown,true,"TRUE = a match opens with the camera in on two players over the ball in the centre circle, a 3 - 2 - 1 - START, and both sides running at a LOOSE ball. FALSE = your Star simply starts holding it, which is how it used to be"
@@ -60,6 +62,7 @@ arena_skip_speed,6.0,Speed while holding SPACE or clicking to skip
 arena_run_in_seconds,0.9,Both units run at each other
 duel_flip,true,"DO THE TWO DUEL CARDS TURN OVER? They arrive face down and flip together, which is the moment the duel begins - before it, neither side knows what the other has. It is also a hook: anything in Abilities.csv written against the flip trigger goes off as they land. FALSE and the cards are simply there, as before"
 duel_flip_seconds,0.42,"How long the flip takes, both halves of the turn together. A card turns over by being squashed to no width and back, and what it shows is swapped at the moment it has none"
+duel_back_seconds,0.5,"HOW LONG THE CARD BACK IS HELD before the window turns over. The back is the tier and the two crests; a back that is gone before you have read it may as well not be there. 0 turns it straight away"
 arena_reveal_seconds,0.5,Power numbers appear
 arena_ability_seconds,0.9,Each ability lights up and plays
 arena_compare_seconds,0.8,Final numbers settle before the verdict
@@ -100,6 +103,11 @@ unit_separation_radius,52,How close units get before they give way to each other
 unit_separation_strength,0.9,How hard they push apart relative to where they are heading.
 unit_contest_radius,70,Inside this distance of the ball the pushing-apart fades so they fight for it.
 unit_swerve_strength,0.35,How much units curve their run to the ball. 0 = straight lines.
+unit_personal_space,34,"NOBODY STANDS ON ANYBODY. Inside this many pixels two players shove apart at full strength whatever else they are doing, including fighting for the ball. Roughly how wide a player is drawn"
+unit_contest_crowding,0.55,"How much of the ordinary giving-way survives near the ball. 1 = they never crowd it, 0 = they pile on top of each other. The hard shove above still applies"
+unit_arrive_radius,14,"Pixels from its target where a player starts easing off instead of running at full tilt into the spot and bouncing back out. This is the row that stops the shaking"
+unit_still_threshold,0.12,"How weak the pull has to get before a player simply stands. Below this nothing moves, so a player being tugged two ways equally stops rather than vibrating"
+unit_face_deadzone,18,"How far the ball must be to one side before a player turns to face it, in pixels. 0 makes them flip back and forth every frame when the ball is dead ahead"
 zones_enabled,true,"false returns to the old layout - both squads in their own half, no quarters, no marking"
 zone_share,0.25,Fraction of the pitch each Tier owns outright
 zone_stretch,0.33,Fraction it may chase into before being pulled back
@@ -188,6 +196,8 @@ adventure_player_size,26,"How big an Adventure player is drawn, as a radius in p
 adventure_ball_size,7,"How big the Adventure ball is drawn, as a radius in pixels. The pitch ball is 6, so 7 keeps the two looking alike"
 escape_quits_instantly,false,"FALSE = Escape outside a match asks 'quit the game?' first. TRUE = it closes the game on the first press with no warning"
 draft_brew_button,true,"IS THERE A LITTLE FLASK IN THE CORNER OF EACH DRAFT CARD? Pressing it opens the Inventory and pours a brew on that player there and then, so the card changes class and art while you are still deciding. It is the same pour the Pub does - same cost out of Brews.csv, same unlock - and it is always a ONE-MATCH brew, so the final whistle takes it off again. FALSE and brews are poured at the Pub only, as before"
+draft_reveal_button,true,"IS THERE A SHOW BUTTON ON A DRAFT CARD? It only ever appears on a card that has an ability written against the reveal trigger. Pressing it chooses that card face up: the other side answers a card they can see - taking their best in that tier instead of picking blind - and the reveal ability fires. FALSE takes the button off every card and those abilities never go off"
+draft_reveal_words,SHOW,"What the face-up button says. One short word. PLAY IT OPEN and CALL IT both fit"
 card_row_x,0.5,"Where the row of player cards sits across the screen during a match. 0 = hard left, 0.5 = the middle, 1 = hard right"
 card_row_y,0.5,"Where the row of player cards sits down the screen during a match. 0 = the top, 0.5 = the middle, 1 = the bottom. It used to be pinned to the bottom edge of the window"
 card_row_gap,18,Pixels between the player cards during a match

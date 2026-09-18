@@ -84,7 +84,7 @@ res://
                   the tutorial only. Same columns, different content
   assets/         art, audio, icons
   src/core/       loaders, rules and shared helpers (51 scripts)
-  src/ui/         screens (31)
+  src/ui/         screens (32)
   src/adventure/  Adventure mode (12)
   src/units/      things that stand on the pitch (4)
   src/formations/ the league match itself (1, and it is a big one)
@@ -325,6 +325,57 @@ stood over him, which is not a thing that happens in football.
 > outfield players are standing over a keeper. Six was normal before; two is
 > normal now, and two is a side's own defenders in ordinary play.
 
+**Nobody stands still.** Once a player is home during a restart hold they do
+not freeze there waiting for the whistle — they are handed a wandering point
+inside their own quarter and they potter about it, the same drift they use at
+any other quiet moment. A pitch of twenty-two statues reads as a paused game;
+a pitch of twenty-two people shifting their weight reads as a game about to
+start. **The only things that stop the pitch are the ones the player chose:**
+picking a card, swapping a Star, the pause menu, and the START button.
+
+### Why they were shaking, and what fixed it
+
+A player is pulled by several things at once — the place they are going, the
+other players around them, their own quarter, their formation slot. The old
+code picked the strongest one and walked at full speed in that direction,
+which is why the left-hand side looked the way it did: two players a hair
+apart would each be pushed out, arrive, be pulled back, and do it again sixty
+times a second. That is not movement, it is an argument.
+
+Now every pull is **added up first** and the player moves once, along the sum,
+and:
+
+- **they ease off as they arrive** (`unit_arrive_radius`) instead of running
+  into the spot and overshooting it,
+- **a weak sum means standing** (`unit_still_threshold`) — a player tugged two
+  ways equally stops, which is what a person does,
+- **inside `unit_personal_space` the shove is at full strength** whatever else
+  is going on, so two players fighting for the ball still cannot occupy the
+  same pixel,
+- **turning to face the ball has a dead band** (`unit_face_deadzone`), so a
+  player with the ball dead ahead no longer flips left-right every frame.
+
+| Tuning row | |
+|---|---|
+| `unit_personal_space` | how close is too close, in pixels. `34`, about how wide a player is drawn |
+| `unit_arrive_radius` | where easing-off starts. `14`. **The row that stops the shaking** — raise it if a group still fidgets |
+| `unit_still_threshold` | how weak a pull has to be before they simply stand. `0.12` |
+| `unit_face_deadzone` | how far to one side the ball must be before they turn. `18` |
+| `unit_contest_crowding` | how much giving-way survives near the ball. `0.55`. `1` = they never crowd it; `0` = a scrum |
+
+> `tools/movement_check.gd` is the test. It plays ninety seconds with AUTO on
+> and prints **reversals per second** (how often somebody turns more than
+> 120°, which is what shaking actually is) and **the pile-up**, meaning pairs
+> closer together than a player is drawn wide, at the worst moment and on
+> average. It went from **11 reversals a second to 3**, and the pile-up now
+> averages **0.4 pairs** across twenty-two players — the worst moment is three,
+> and three for a tenth of a second is a scramble for a loose ball, which is
+> football.
+>
+> It counts reversals rather than "distance walked ÷ distance gained" on
+> purpose: the second number calls a wandering player a shaking one, and the
+> wandering is wanted.
+
 ### Before the whistle — the team sheet and START
 
 A match no longer begins the instant the screen changes. There is a beat:
@@ -338,9 +389,27 @@ A match no longer begins the instant the screen changes. There is a beat:
    clock is at 00:00. Enter and space press it too.
 3. **Then** the 3 · 2 · 1 · START countdown, and the match.
 
+**Both sides field three Stars and swap them during the match**, so the sheet
+names all three a side and, under each one, **what its abilities actually
+do** — in words, out of Abilities.csv, not the ability's id. A side you have
+never played deserves to be readable before the whistle and not only after
+the second goal.
+
+**The sheet waits for you.** It does not time out into the match: it fills its
+bar, then holds with a **START** on it and the words *"Read them. Press START
+when you are ready."* Reading six Stars' abilities takes longer than 2.6
+seconds and always will. `team_sheet_hold` is `false` if you would rather it
+ran on by itself.
+
 **The bar is honest when it can be.** It follows whichever is further along —
 the real loading or the clock — so it never stalls on a fast machine and never
 lies on a slow one.
+
+**Everyone is already standing where they belong.** The teams are put on their
+starting marks while the sheet is up rather than when START is pressed, so the
+pitch you look at behind the gate is the pitch you get. They used to be placed
+after the button and the whole formation visibly rearranged itself in front of
+you, which made the sheet look like a loading screen that had lied.
 
 **The crest comes from `Banner Art` in ClassInfo.csv**, which is where a
 class's picture already lives, so a new class gets a crest here the moment it
@@ -352,8 +421,10 @@ files in `assets/team/`.
 | Tuning row | |
 |---|---|
 | `team_sheet` | `false` skips all of it and a match opens straight into the countdown |
-| `team_sheet_seconds` | how long the sheet is held. `2.6` |
+| `team_sheet_seconds` | how long the bar takes to fill. `2.6`. It is the bar, not the wait |
+| `team_sheet_hold` | `true` and the sheet waits for START instead of running on when the bar is full. **`true` out of the box** |
 | `team_sheet_stars` | how many Stars a side. `3`. The one actually playing is always first |
+| `team_sheet_abilities` | `false` prints the Stars' names without what they do |
 | `kickoff_needs_button` | `false` and the countdown starts by itself — for a demo or a stream |
 | `team_crest_fallback` | the crest for a class with no Banner Art. `banner_normal_team` |
 
@@ -441,13 +512,22 @@ the ball goes past it, and it was reachable from Escape the whole time anyway.
 A player reads the same in a league match and in Adventure:
 
 ```
-        Silver-Rhine          <- the name, over the head, centred
             ,---.
            ( o o )            <- the artwork
             `-^-'
-      Tier I        P: 2      <- at the feet. Tier left, Power right
-      [==========    ]        <- Adventure only: the stamina bar
+      +--------------+
+      | Silver-Rhine |        <- the name, first line INSIDE the window
+      | Tier I   P: 2|        <- Tier left, Power right
+      | [=======   ] |        <- Adventure only: the stamina bar
+      +--------------+
 ```
+
+**The name sits inside the same window as the Tier and the Power, on the line
+above them.** It used to float over the player's head, and a head is exactly
+where the player behind is standing — half the names on a busy pitch were
+written across somebody's face. In one window there is one thing to read and
+one thing that can be moved out of the way, and the window widens to fit
+whichever of the three lines is longest.
 
 A league player has no stamina — only the keeper does — so there is nothing to
 draw a bar from and twenty-two of them would say the same thing anyway.
@@ -460,8 +540,8 @@ the card, in the log and in the team builder.
 | Tuning row | |
 |---|---|
 | `plate_names` | `false` hides every name in both modes. Tier and Power stay |
-| `plate_name_size` | the name over the head. `13` |
-| `plate_stat_size` | the Tier and Power at the feet. `11` |
+| `plate_name_size` | the name, the top line of the window. `13` |
+| `plate_stat_size` | the Tier and Power under it. `11` |
 | `plate_width_max` | the widest a plate may get, in pixels. `150` |
 | `plate_name_width` | how wide a name may be, **as a multiple of the window under it**. `1.0` = never wider, which is what stops eleven names in a crowd writing across each other. Anything longer is cut with a … |
 | `plate_gap` | pixels between the body and the first label. `5` |
@@ -471,6 +551,61 @@ the card, in the log and in the team builder.
 > different amount, so anything measured from the frame floats. Each texture is
 > measured once, so a label hugs the body whatever the padding is — and it keeps
 > working when you replace the art.
+
+### ENEMY TEAM DATA — reading the other side
+
+The ladder makes every legal team the same total power on purpose, so the
+interesting question about an opponent is never *how strong are they* — it is
+**what do they do**. That question now has an answer you can go and read, from
+three places, all of them the same window:
+
+| Where | The button |
+|---|---|
+| The team shelf, before you pick a side | **ENEMY TEAM DATA**, in the footer. Shows the side the next fixture puts in front of you |
+| During a match | **TEAM**, on the HUD, any time |
+| The team sheet | the three Stars a side, with their abilities, already on it |
+
+It lists their **whole squad by tier**, in ladder order: every card, its power
+and defence, and under it what each ability actually does — in plain English,
+built out of Abilities.csv, so an ability you write today explains itself here
+today and there is nothing to keep in step. The Stars they will field are
+marked. A card whose Attack Ability names a row that is not in Abilities.csv
+says so in orange, which is exactly the typo that is invisible in a match.
+
+Escape closes it. It pauses nothing and changes nothing.
+
+### `data/Keywords.csv` — every word the game understands
+
+**The file to open when you want to know what you are allowed to write.**
+Every effect, target, scope, condition, tag and juice moment the engine knows,
+one per row, each marked `live` or `planned` — and **the place to ask for a new
+one**.
+
+| Column | |
+|---|---|
+| `Keyword` | the word itself, exactly as it goes in a spreadsheet cell |
+| `Family` | which column it belongs in: `ability effect`, `ability target`, `ability scope`, `condition`, `effect word`, `adventure effect`, `item tag`, `juice moment` |
+| `Status` | **`live`** = built. **`planned`** = designed, waiting to be built |
+| `What It Does` | one clear sentence. **This sentence is the specification** — whoever builds the word works from your words, so write it the way you mean it |
+| `Example` | a cell that uses it |
+| `Notes` | yours |
+
+**To ask for a word, add a row with `Status` = `planned`.** Nothing else is
+needed. A card written against a planned effect **still loads** — it is not an
+error and it is not a typo, it simply does nothing until the word exists, and
+the Output panel says so once by name. So the cards can be written now and the
+words caught up with later, which is the same bargain AbilityTriggers.csv
+makes for triggers.
+
+Planned out of the box, as examples of the shape: `negate_ability`,
+`negate_power`, `swap_sides`, `change_priority`, `score_goal`.
+
+> **The Workbench has a page for this.** *Keywords* in the left rail groups
+> every word by family, marks the planned ones, and has two buttons: **+ Ask
+> for a keyword**, which writes the row for you, and **Copy the planned list**,
+> which hands you every planned word and its sentence as text you can paste
+> straight into a message. That list is a finished request — every word in it
+> came out of your own file.
 
 ### `data/MatchModes.csv` — the kinds of match
 
@@ -516,6 +651,7 @@ on_win_duel     after it WINS its duel
 on_lose_duel    after it LOSES its duel
 passive         once at the start of every round, no condition at all
 flip            the two cards turn face up
+reveal          YOU press SHOW on it during the draft
 ```
 
 > **Win and Lose were already built.** `on_win_duel` and `on_lose_duel` have
@@ -523,12 +659,73 @@ flip            the two cards turn face up
 > in Abilities.csv both use them. That is one phase you do not have to wait
 > for.
 
+#### SHOW — playing a card face up (`reveal`)
+
+Every pick until now has been hidden and simultaneous: you choose, they
+choose, the cards meet. **SHOW breaks that on purpose, in one direction.**
+
+A card that has an ability written against `reveal` wears a **SHOW** button in
+the draft. Pressing it chooses that card *and names it*:
+
+1. the card is locked in, exactly as clicking it would,
+2. **they answer a card they can see** — instead of picking at random in that
+   tier they take their best answer, the strongest defence if you are
+   attacking this round and the strongest attack if you are not,
+3. and the card's `reveal` ability fires, there and then, in the draft.
+
+So the ability is not free. It costs the one thing a hidden draft gives you,
+which is that they have to guess — and a card worth showing has to be worth
+more than the guess. That trade **is** the trigger.
+
+**The button is only ever on a card that has something to show.** A card with
+no `reveal` ability would be handing over a free look for nothing, so it does
+not offer the option — which makes the button itself a piece of information:
+a card wearing SHOW has a trick on it.
+
+**If both sides show, the lower power resolves first.** That is the ordinary
+ability-priority rule doing the work: a shown card is given a priority equal
+to its own power, so two shown cards sort weakest-first with nothing special
+added to the duel.
+
+| Tuning row | |
+|---|---|
+| `draft_reveal_button` | `false` takes SHOW off every card, and reveal abilities never go off |
+| `draft_reveal_words` | what the button says. `SHOW`. `PLAY IT OPEN` and `CALL IT` both fit |
+
+Two worked examples are in Abilities.csv, and both are on cards in
+`example_unit_csv_with_ability_columns.csv` so you can see the button in a
+real match:
+
+```
+LORE_OPEN_HAND      reveal  self  add_power       2  round
+BRAND_CALLED_SHOT   reveal  self  add_shot_power  3  round
+```
+
+`Open Hand` pays the card; `Called Shot` pays **the shot**, which is where
+section 2 says a bonus belongs. Write your own the same way — any effect, any
+scope. There is no opponent yet when a reveal fires, because nobody has
+answered, so a `reveal` ability should target its own side.
+
+> `tools/reveal_check.gd` is the test. It says whether the trigger is live,
+> which cards carry one, whether the ability actually lands, and — run under
+> `xvfb-run` — photographs one card that has a reveal ability beside one that
+> does not.
+
 #### The flip
 
-The two duel cards arrive **face down** and turn over together. A card turns
-by being squashed to no width and back, and what it shows is swapped at the
-moment it has none — which is why it reads as a card rather than as a picture
-fading.
+**The whole window turns over, not the two cards inside it.** The duel arrives
+face down as one card back: the tier it is — `TIER III` — with a crest to
+either side, yours and theirs. Then the window is squashed to no width, its
+face is swapped at the moment it has none, and it comes back as the duel with
+both players on it. Only then are the two compared, one after the other.
+
+That happens **for every tier in a combat**, so a combat reads as four cards
+being turned over rather than as a list appearing.
+
+It was two little cards flipping inside a window that was already open, which
+is a smaller gesture than the moment deserves: the tier and the two crests are
+what you are waiting to see, and a card back that says them is worth turning
+over.
 
 It is the moment the duel begins: before it, neither side knows what the other
 has. And it is a hook — `flip` fires **before** `on_duel_start`, so a flip
@@ -536,8 +733,11 @@ ability can change what the duel starts with.
 
 | Tuning row | |
 |---|---|
-| `duel_flip` | `false` and the cards are simply there, as before |
+| `duel_flip` | `false` and the duel is simply there, as before |
 | `duel_flip_seconds` | the whole turn, both halves. `0.42` |
+
+The crest on each side of the back is the same `Banner Art` the team sheet
+uses, so a class that has a crest anywhere has one here.
 
 ### `data/Abilities.csv` — what a player does in a duel
 
@@ -908,7 +1108,7 @@ the same line that has always cleared them.
 
 ---
 
-## 9. `data/Tuning.csv` — 245 numbers
+## 9. `data/Tuning.csv` — 255 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -919,7 +1119,7 @@ is not content lives here. Groups, by prefix:
 | `juice_` | 5 | how much shake, flash and slow-motion the whole game gets |
 | `card_` | 6 | card sizes |
 | `friendly_` | 3 | how a scratch opponent is matched to you |
-| everything else | ~135 | the match, the pitch, the menus, the economy |
+| everything else | ~145 | the match, the pitch, the menus, the economy |
 
 Rows worth knowing about:
 
@@ -1066,6 +1266,30 @@ Button`. Keyboard and controller bindings, rebindable in Settings.
 **`data/MenuConfig.csv`** — `Button ID`, `Label`, `X`, `Y`, `Width`,
 `Height`, `Action`, `Art Path`. The main menu, laid out in a spreadsheet.
 
+### The three window modes
+
+Not a spreadsheet — `user://settings.json`, written by the Settings screen —
+but worth knowing because all three behave the same way now:
+
+| Mode | |
+|---|---|
+| `windowed` | a normal window at the chosen resolution, **centred on the screen it is on** |
+| `fullscreen` | the whole screen, no window |
+| `borderless` | a window with no frame, filling **the screen it is on** — the right monitor on a two-monitor desk, not always screen 0 |
+
+**Fullscreen did nothing and Borderless shrank the window**, and it was one
+cause with two faces: the old code set the mode and the borderless flag in
+whichever order that arm happened to be written, starting from whatever the
+window was already in. Clearing the borderless flag *after* asking for
+fullscreen knocks the window straight back out of it; setting the flag and
+*then* asking for a size leaves the window carrying the small size it had last
+time it was a window.
+
+It now always goes back to a plain window and clears every flag **first**, and
+only then applies the mode asked for. One known starting point, three short
+arms, and no arm has to know what the last one left behind. Switching between
+the three in any order, any number of times, gets the same result every time.
+
 ---
 
 ## 13. Saving
@@ -1156,6 +1380,24 @@ and a scrum. It stops with STUCK if six seconds of live play go by with nobody
 moving.
 
 ```
+godot --headless --script res://tools/movement_check.gd
+```
+Plays ninety seconds of a real match with AUTO on and prints two numbers:
+**reversals per second** — how often a player turns more than 120° between one
+tenth of a second and the next, which is what "shaking" actually is — and the
+**pile-up**, meaning pairs of players standing closer together than a player
+is drawn wide, given both at the worst moment and on average. The average is
+the honest one: every scramble for a loose ball puts two players inside a
+player's width for a moment, and that is a tackle rather than a fault. It also
+prints any seconds of live play in which
+*nobody* moved, because a frozen pitch and a calm one look the same in a still
+picture.
+
+It counts reversals rather than "distance walked ÷ distance gained" on
+purpose: the second number scores a player wandering round their patch exactly
+like a player vibrating on the spot, and the wandering is wanted.
+
+```
 godot --headless --script res://tools/clock_check.gd
 ```
 Fires every slow-motion moment in overlapping bursts and checks
@@ -1236,8 +1478,17 @@ that is almost always why.
 | change the kick-off, the clash or the speed buttons | the `kickoff_`, `coin_` and `game_speed_` rows of `Tuning.csv` — section 7 |
 | **put a sound on an exact coin call** | a `coin_exact` row in `Juice.csv` |
 | **add a new ability trigger** | a row of `AbilityTriggers.csv`, marked `planned` until it is wired up |
+| **write a card you can play face up** | give it an ability whose `Trigger` is `reveal` — `LORE_OPEN_HAND` is the worked example |
+| **take the SHOW button off the cards** | `draft_reveal_button` in `Tuning.csv` |
 | **write a card against a trigger that is not built yet** | do it. Mark that trigger `planned` and the card loads and waits |
+| **ask for a keyword the game does not have yet** | a row of `Keywords.csv` with `Status: planned`. The sentence you write in `What It Does` is the specification |
+| **find out what words I am allowed to write** | `Keywords.csv`, or the **Keywords** page in the Workbench |
+| **write a card against an effect that is not built yet** | do it. Mark that word `planned` in `Keywords.csv` and the card loads and waits |
+| **see what the other side actually does** | **ENEMY TEAM DATA** on the team shelf, or **TEAM** on the match HUD |
 | **turn the team sheet off** | `team_sheet` in `Tuning.csv` |
+| **stop the team sheet waiting for START** | `team_sheet_hold` in `Tuning.csv` |
+| **hide what the enemy Stars do before kick-off** | `team_sheet_abilities` in `Tuning.csv` |
+| **stop players fidgeting / standing on each other** | `unit_arrive_radius` and `unit_personal_space` in `Tuning.csv` — section 7, and run `tools/movement_check.gd` |
 | **start a match without pressing START** | `kickoff_needs_button` in `Tuning.csv` |
 | **give a class a crest** | the `Banner Art` column of `ClassInfo.csv`, and the file in `assets/team/` |
 | **choose which eight icons a run carries** | the player does, on Edit Element Bonus. You decide what exists and what unlocks it — `AdventureTraits.csv` |

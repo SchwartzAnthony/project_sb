@@ -33,7 +33,23 @@ var movement_frozen: bool = false     # HOLD UP! substitution pauses everyone
 # few pixels. These three turn that into a shove: everybody keeps a little
 # room, EXCEPT near the ball, where fighting over it is the point.
 ## How close another unit has to be before this one starts giving way.
-@export var separation_radius: float = 52.0
+@export var separation_radius: float = 64.0
+## Closer than this and two players are drawn on top of each other. The push
+## apart at this range is at FULL strength however near the ball they are —
+## crowding a tackle is football, standing inside somebody is not.
+@export var personal_space: float = 34.0
+## How much of the separation push survives right on top of the ball. 0.2 was
+## too little and turned every loose ball into a pile.
+@export var contest_crowding: float = 0.55
+## How close to a target counts as arrived. Inside this the pull fades out,
+## which is what stops a unit stepping back and forth across its own slot.
+@export var arrive_radius: float = 14.0
+## Below this much total force a unit simply stops. Without it, a player in
+## balance shuffles on the spot for ever.
+@export var still_threshold: float = 0.12
+## How far past a unit the ball has to be before they turn round to look at
+## it. Stops a flicker when the two are level.
+@export var face_deadzone: float = 18.0
 ## How hard the shove is, relative to the pull of wherever they are heading.
 @export var separation_strength: float = 0.9
 ## Inside this distance of the ball the shove fades out, so a loose ball is
@@ -224,6 +240,8 @@ func _apply_artwork() -> void:
 	artwork.hframes = SHEET_HFRAMES
 	artwork.vframes = SHEET_VFRAMES
 	artwork.frame = IDLE_FRAME
+	# A starting direction only. _face_the_action() takes over the moment they
+	# move, and turns them toward the ball.
 	artwork.flip_h = is_enemy
 
 
@@ -356,33 +374,57 @@ func _physics_process(delta: float) -> void:
 		speed = walk_speed
 		role = Role.HOLD
 
-	# --- Steering ---
-	# The pull toward the target is one force among four, and the sum decides
-	# the heading. A plain move_toward() is what used to walk units through
-	# each other and stack them on one spot.
+	# ============ STEERING ============
+	#
+	# The pull toward the target is ONE FORCE AMONG FOUR, and the sum decides
+	# both the heading and how fast to go.
+	#
+	# ---- WHY THEY USED TO SHAKE ----
+	#
+	# The old version normalised the sum and then stepped at FULL SPEED along
+	# it, every frame, capped only by the distance to the target. So a player
+	# standing exactly on their slot, with a team-mate a little too close,
+	# still moved a whole frame's worth sideways — then the separation flipped
+	# sign and they moved back. That is the shaking, and it is also why two
+	# players ended up welded together: both were oscillating about the same
+	# point instead of settling apart.
+	#
+	# ---- WHAT IT DOES NOW ----
+	#
+	#   * the pull toward the target FADES AS THEY ARRIVE rather than staying
+	#     at full strength right up to the last pixel;
+	#   * the step is scaled by HOW MUCH FORCE THERE IS, so a player in
+	#     balance barely moves instead of moving flat out;
+	#   * and under a small threshold they simply stop, which is what "arrived"
+	#     should mean.
+	#
+	# Standing still is not the same as being STILL: a player with nothing to
+	# do is given a wandering target by the match (see _drift_point), so they
+	# amble around their own patch. The only things that stop the pitch are a
+	# choice, a substitution and the pause menu.
 	var to_target := target - global_position
 	var distance := to_target.length()
-	if distance < 0.5:
-		return
 
-	var heading := to_target / distance
+	var want := Vector2.ZERO
+	if distance > arrive_radius:
+		want = to_target / distance
+	elif distance > 0.001:
+		# Inside the arrival circle the pull shrinks to nothing at the middle.
+		want = (to_target / distance) * (distance / maxf(arrive_radius, 1.0))
 
 	# Bend the run, hard when far out and straightening as they arrive, so a
 	# group converging on the ball takes a spread of curved lines rather than
 	# forming one queue.
-	if _is_chasing() and not is_zero_approx(swerve_strength):
+	if _is_chasing() and not is_zero_approx(swerve_strength) and distance > 0.001:
 		var bend := clampf(distance / maxf(interest_radius, 1.0), 0.0, 1.0)
-		heading += heading.orthogonal() * _swerve_sign * swerve_strength * bend
+		want += (to_target / distance).orthogonal() * _swerve_sign * swerve_strength * bend
 
-	heading += _separation() * separation_strength
+	want += _separation() * separation_strength
 
 	# The break is the ONE time a unit is allowed to leave its quarter for
-	# good, so the zone spring is switched off for it. Everything else is
-	# pulled back toward its own patch.
-	# The break is the one time units are allowed to leave their quarter for
 	# good — the side breaking AND the side chasing them back.
 	if role != Role.SURGE and role != Role.RECOVER:
-		heading += _zone_force() * zone_pull
+		want += _zone_force() * zone_pull
 
 	# Springing back to the slot is what keeps a formation a formation. Only
 	# the positional roles get it: a unit going for the ball is supposed to
@@ -391,15 +433,41 @@ func _physics_process(delta: float) -> void:
 		var back := home_position - global_position
 		var stretched := back.length()
 		if stretched > leash * 0.5:
-			heading += (back / stretched) * slot_pull * minf(stretched / maxf(leash, 1.0), 1.5)
+			want += (back / stretched) * slot_pull * minf(stretched / maxf(leash, 1.0), 1.5)
 
-	if heading.length_squared() < 0.000001:
+	# ---- ARRIVED ----
+	var force := want.length()
+	if force < still_threshold:
 		return
 
-	# minf() with the remaining distance keeps the arrival behaviour: they stop
-	# on the target rather than jittering back and forth across it.
-	global_position += heading.normalized() * minf(speed * delta, distance)
+	# The step is the speed scaled by the force, so a player being nudged by
+	# one weak separation push takes a nudge-sized step rather than a stride.
+	var step := speed * delta * minf(force, 1.0)
+	# Never overshoot the target itself when that is the only thing pulling.
+	if distance > 0.001 and force <= 1.0:
+		step = minf(step, distance)
+	global_position += (want / force) * step
+	_face_the_action()
 	_clamp_to_bounds()
+
+
+## ============ WHICH WAY THEY ARE LOOKING ============
+##
+## At the ball, whenever the ball is worth looking at; otherwise up the pitch
+## the way this side is attacking. It used to be fixed by side, so half the
+## players spent the whole match with their back to the game.
+func _face_the_action() -> void:
+	if artwork == null:
+		return
+	var look_at := global_position.x + (1.0 if is_enemy else -1.0) * 100.0
+	if ball != null and is_instance_valid(ball):
+		look_at = ball.global_position.x
+	var gap := look_at - global_position.x
+	# A dead band, or a player standing level with the ball flickers between
+	# facing left and facing right every frame.
+	if absf(gap) < face_deadzone:
+		return
+	artwork.flip_h = gap < 0.0
 
 
 ## Pull a point back so it is never further than `leash` from this unit's slot,
@@ -458,9 +526,17 @@ func _separation() -> Vector2:
 	var ease_off := 1.0
 	if ball != null and is_instance_valid(ball) and contest_radius > 0.0:
 		ease_off = clampf(
-			global_position.distance_to(ball.global_position) / contest_radius, 0.2, 1.0)
+			global_position.distance_to(ball.global_position) / contest_radius,
+			contest_crowding, 1.0)
 
 	var push := Vector2.ZERO
+	# ============ PERSONAL SPACE IS NOT NEGOTIABLE ============
+	#
+	# The ordinary push fades near the ball so a tackle can actually happen.
+	# This one does not: inside `personal_space` two players are drawn on top
+	# of each other, which is not a tackle, it is a bug you can see. It is
+	# collected separately and added at full strength afterwards.
+	var shove := Vector2.ZERO
 	for sibling in parent.get_children():
 		# Goalies share this container but are GoalieUnits, so they cast to
 		# null here and stay out of the shoving.
@@ -474,10 +550,13 @@ func _separation() -> Vector2:
 			# Exactly superimposed. Break the tie by instance id so the two of
 			# them always separate instead of pushing each other equally.
 			push += Vector2(0.0, 1.0 if get_instance_id() > other.get_instance_id() else -1.0)
+		elif gap < personal_space:
+			# Hard. Nothing fades this one.
+			shove += (away / gap) * (1.0 - gap / personal_space) * 2.0
 		elif gap < separation_radius:
 			push += (away / gap) * (1.0 - gap / separation_radius)
 
-	return push * ease_off
+	return push * ease_off + shove
 
 
 func _ball_is_in_range() -> bool:

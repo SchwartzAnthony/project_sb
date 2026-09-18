@@ -49,6 +49,9 @@ var _bar_room: Control
 var _sheet: Control
 var _gate: Control
 var _start_button: Button
+## The START button on the SHEET, for when the sheet waits rather than lifting.
+var _sheet_start: Button
+var _waiting: Label
 var _progress := 0.0
 var _steps_done := 0
 var _steps_total := 1
@@ -108,6 +111,17 @@ func _process(delta: float) -> void:
 		_open_the_gate()
 
 
+## ============ THE SHEET WAITS FOR YOU ============
+##
+## `team_sheet_hold` keeps the sheet up until START is pressed, rather than
+## lifting it on a timer. With it on, the bar fills, the words change to say
+## the button is live, and the sheet stays where it is — which is what you
+## want when there are six Star Players with abilities to read on it.
+func _sheet_waits() -> bool:
+	return db != null and db.tune_bool("team_sheet_hold", true) \
+		and db.tune_bool("kickoff_needs_button", true)
+
+
 func _paint_bar() -> void:
 	if _bar_room == null:
 		return
@@ -123,6 +137,19 @@ func _open_the_gate() -> void:
 		return
 	_opened = true
 	set_process(false)
+
+	# THE SHEET MAY STAY UP. With team_sheet_hold on, the START button is put
+	# on the sheet itself and the pitch is not shown until it is pressed —
+	# because the sheet is where the six Stars and their abilities are, and
+	# taking it away after two seconds is taking the reading away.
+	if _sheet_waits():
+		_waiting.text = "Read them. Press START when you are ready."
+		_waiting.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
+		_sheet_start.visible = true
+		_sheet_start.modulate = Color(1, 1, 1, 0)
+		var arrive_here := create_tween()
+		arrive_here.tween_property(_sheet_start, "modulate", Color(1, 1, 1, 1), 0.3)
+		return
 
 	# The sheet gets out of the way so the pitch can be seen. The crests stay.
 	var fade := create_tween()
@@ -145,8 +172,13 @@ func _open_the_gate() -> void:
 
 
 func _go() -> void:
-	if _start_button != null and is_instance_valid(_start_button):
-		_start_button.disabled = true
+	for button in [_start_button, _sheet_start]:
+		if button != null and is_instance_valid(button):
+			button.disabled = true
+	# When the sheet held the START button, it has to get out of the way now.
+	if _sheet != null and is_instance_valid(_sheet) and _sheet.visible:
+		var lift := create_tween()
+		lift.tween_property(_sheet, "modulate", Color(1, 1, 1, 0), 0.3)
 	kick_off_wanted.emit()
 	var fade := create_tween()
 	fade.tween_property(_gate, "modulate", Color(1, 1, 1, 0), 0.3)
@@ -157,7 +189,11 @@ func _go() -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	# Enter or space starts it too. A button you can only reach with a mouse
 	# is a button somebody on a controller cannot press.
-	if not _opened or _gate == null or not _gate.visible:
+	if not _opened:
+		return
+	var showing := (_gate != null and _gate.visible) \
+		or (_sheet_start != null and is_instance_valid(_sheet_start) and _sheet_start.visible)
+	if not showing:
 		return
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:
@@ -243,12 +279,22 @@ func _build(mine: Dictionary, theirs: Dictionary) -> void:
 	_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_bar_room.add_child(_bar)
 
-	var waiting := Label.new()
-	waiting.text = "Walking out…"
-	waiting.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	waiting.add_theme_font_size_override("font_size", 14)
-	waiting.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	column.add_child(waiting)
+	_waiting = Label.new()
+	_waiting.text = "Walking out…"
+	_waiting.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_waiting.add_theme_font_size_override("font_size", 14)
+	_waiting.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+	column.add_child(_waiting)
+
+	# The START button that lives ON the sheet, for when the sheet waits.
+	_sheet_start = MenuSupport.icon_button("play|▶", "START", Vector2(260, 60))
+	_sheet_start.tooltip_text = "Kick off. Enter or space does the same."
+	_sheet_start.add_theme_font_size_override("font_size", 20)
+	_sheet_start.pressed.connect(_go)
+	_sheet_start.visible = false
+	var start_here := CenterContainer.new()
+	start_here.add_child(_sheet_start)
+	column.add_child(start_here)
 
 	# ---- the gate: crests at the top, START between them ----
 	_gate = Control.new()
@@ -378,7 +424,40 @@ func _star_face(card: PlayerData) -> Control:
 	under.add_theme_color_override("font_color",
 		MenuSupport.colour_for_tier(card.get_tier_clean()).lightened(0.35))
 	column.add_child(under)
+
+	# ============ WHAT THEY DO, ON THE TEAM SHEET ============
+	#
+	# Three Stars a side with nothing written under them is three pictures.
+	# The whole reason you are being shown the opposition before kick-off is
+	# so that you know what is coming, and that is the abilities.
+	for ability_id in [card.active_attack_ability(), card.active_defend_ability()]:
+		var line := _ability_line(String(ability_id))
+		if line != null:
+			column.add_child(line)
 	return column
+
+
+## One ability in plain words, out of Abilities.csv. Null when the card has
+## none, so nothing is added rather than a blank line.
+func _ability_line(ability_id: String) -> Label:
+	var clean := ability_id.strip_edges()
+	if clean == "" or db == null:
+		return null
+	# team_sheet_abilities = false prints the Stars and nothing under them, for
+	# a shorter sheet or for a stream where the opposition stays a surprise.
+	if not db.tune_bool("team_sheet_abilities", true):
+		return null
+	var ability: AbilityData = db.abilities.get(clean.to_lower())
+	if ability == null:
+		return null
+	var line := Label.new()
+	line.text = "%s — %s" % [ability.display_name, ability.plain()]
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.custom_minimum_size = Vector2(150, 0)
+	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	line.add_theme_font_size_override("font_size", 10)
+	line.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+	return line
 
 
 func _quiet(text: String) -> Label:

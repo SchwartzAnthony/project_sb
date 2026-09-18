@@ -174,17 +174,24 @@ func apply_passives(player_lineup: Array, enemy_lineup: Array) -> void:
 
 ## Resolve one tier duel's abilities, lowest ability priority first.
 ## On a tie the ATTACKER resolves first (design rule).
+##
+## `shown` is the cards that were played FACE UP in the draft — see
+## fire_reveal(). AbilityTriggers.csv promises that if both sides show, the
+## LOWER POWER goes first, and this is where that promise is kept: a shown
+## card is given a priority of its own power, so two shown cards sort
+## weakest-first through the ordinary rule rather than through a special case.
 func resolve_duel_abilities(attacker: PlayerData, attacker_is_enemy: bool,
-		defender: PlayerData, trigger_extra: String = "") -> void:
+		defender: PlayerData, trigger_extra: String = "",
+		shown: Array = []) -> void:
 	var defender_is_enemy := not attacker_is_enemy
 
 	var queue: Array = []
 	if attacker != null:
 		queue.append({"card": attacker, "enemy": attacker_is_enemy, "role": "attack",
-			"priority": attacker.get_ability_priority(), "order": 0})
+			"priority": _duel_priority(attacker, shown, true), "order": 0})
 	if defender != null:
 		queue.append({"card": defender, "enemy": defender_is_enemy, "role": "defend",
-			"priority": defender.get_ability_priority(), "order": 1})
+			"priority": _duel_priority(defender, shown, false), "order": 1})
 
 	queue.sort_custom(func(a, b):
 		if a["priority"] == b["priority"]:
@@ -208,6 +215,34 @@ func resolve_duel_abilities(attacker: PlayerData, attacker_is_enemy: bool,
 			_fire_for(card, is_enemy, "ondefend", opponent, not is_enemy)
 		if trigger_extra != "":
 			_fire_for(card, is_enemy, trigger_extra, opponent, not is_enemy)
+
+
+## Where a card sits in the resolving order. Its own Ability Priority
+## ordinarily; its POWER if it was played face up, which is what makes two
+## shown cards resolve weakest-first.
+func _duel_priority(card: PlayerData, shown: Array, attacking: bool) -> int:
+	if card == null:
+		return 0
+	if shown.has(card):
+		return card.get_attack_power() if attacking else card.get_defense_power()
+	return card.get_ability_priority()
+
+
+## ============ A CARD PLAYED FACE UP ============
+##
+## Fired the moment SHOW is pressed during the draft — not in the duel, and
+## that is the whole point of the trigger: a reveal ability happens EARLY,
+## while there is still a choice left for it to affect, and the other side
+## gets to answer a card they can see.
+##
+## It can do anything any other trigger can do, because it goes through the
+## same _apply_one(): a buff with a scope, a knock on a keeper, a bonus on
+## the shot. There is no opponent yet — nobody has answered — so an ability
+## written against `reveal` should target its own side.
+func fire_reveal(card: PlayerData, is_enemy: bool) -> void:
+	if not AbilityData.trigger_is_live("reveal"):
+		return
+	_fire_for(card, is_enemy, "reveal", null, not is_enemy)
 
 
 ## After a duel is decided.

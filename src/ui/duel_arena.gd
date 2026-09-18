@@ -159,9 +159,9 @@ func play_duel(info: Dictionary) -> void:
 	# has — and it is a hook: anything in Abilities.csv written against the
 	# `flip` trigger goes off as the cards land.
 	#
-	# `duel_flip` in Tuning.csv turns the animation off and the cards are
+	# `duel_flip` in Tuning.csv turns the animation off and the window is
 	# simply there, which is how it was.
-	await _flip_them_over()
+	await _flip_them_over(String(info.get("tier", "")))
 
 	# --- 1. Both run at each other ---
 	await _beat(run_in_seconds)
@@ -234,69 +234,203 @@ func _ability_text(ability) -> String:
 
 
 # =============================================================
-#  THE FLIP
+#  THE FLIP — the WHOLE WINDOW turns over
 #
-#  A card turns over by being SQUASHED TO NOTHING and back — scale.x to zero
-#  and out again. Half way through, at the moment it has no width, is when
-#  what it shows is swapped. That is the whole trick, and it is why a flip
-#  looks like a card rather than like a picture fading.
+#  A duel arrives face down. What you see is the back of one card: the tier
+#  it is, and the two crests. Then the whole window turns over — both panels,
+#  both players, everything — and the duel is underneath.
 #
-#  Both sides turn at once and land together, because a duel is two cards
-#  being shown at the same time — turning them one after the other would say
-#  that one of them went first.
+#  It is one card, not two. Flipping the two sides separately said that one
+#  of them was revealed before the other, which is not what happens: both
+#  cards are turned at once and then compared.
+#
+#  HOW A CARD TURNS. Scale on x to zero and out again. At the moment it has
+#  no width, the back is swapped for the front — that one frame is the whole
+#  trick, and it is why this reads as a card rather than as a picture fading.
+#
+#      duel_flip           false and the window is simply there, as before
+#      duel_flip_seconds   the whole turn, both halves together
 # =============================================================
 
-func _flip_them_over() -> void:
+## The two crests, for the back of the card. main_scene hands these over when
+## it builds the arena; blank draws a lettered disc instead.
+var left_crest := ""
+var right_crest := ""
+var left_team := ""
+var right_team := ""
+
+var _panels: Control
+var _back: Control
+var _back_tier: Label
+var _back_left: Control
+var _back_right: Control
+
+
+func _flip_them_over(tier: String) -> void:
+	if _panels == null:
+		_panels = get_node_or_null("Dim/Panels") as Control
+	if _panels == null:
+		return
+
 	if db != null and not db.tune_bool("duel_flip", true):
-		_face_up(true)
+		_panels.visible = true
+		if _back != null:
+			_back.visible = false
 		return
 
 	var seconds := 0.42
 	if db != null:
 		seconds = maxf(0.05, db.tune_float("duel_flip_seconds", 0.42))
 
-	_face_up(false)
+	_build_back()
+	_back_tier.text = "TIER %s" % tier
+	# The back sits exactly where the window does, so the turn happens on the
+	# spot rather than somewhere near it.
+	_back.position = _panels.position
+	_back.size = _panels.size
+	_back.pivot_offset = _back.size * 0.5
+	_panels.pivot_offset = _panels.size * 0.5
+
+	# THE TITLE OVER THE WINDOW GOES AWAY while the back is up, because the
+	# back already says which tier this is, in larger letters, and the same
+	# three words twice on one screen reads as a mistake.
+	if _tier_label != null:
+		_tier_label.visible = false
+
+	_back.visible = true
+	_back.scale = Vector2.ONE
+	_panels.visible = false
+
+	# HELD FOR A MOMENT BEFORE IT TURNS. A card back that is gone before you
+	# have read it may as well not be there.
+	var hold := 0.5
+	if db != null:
+		hold = maxf(0.0, db.tune_float("duel_back_seconds", 0.5))
+	if hold > 0.0:
+		await _beat(hold)
+		if not _running:
+			_back.visible = false
+			_panels.visible = true
+			_panels.scale = Vector2.ONE
+			if _tier_label != null:
+				_tier_label.visible = true
+			return
+
 	var turn := create_tween()
-	turn.set_parallel(true)
-	for key in ["left", "right"]:
-		var stage: Control = _side[key]["stage"]
-		if stage == null:
-			continue
-		stage.pivot_offset = stage.size * 0.5
-		stage.scale = Vector2(1, 1)
-		turn.tween_property(stage, "scale:x", 0.0, seconds * 0.5) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	turn.tween_property(_back, "scale:x", 0.0, seconds * 0.5) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 	await turn.finished
 	if not _running:
+		_back.visible = false
+		_panels.visible = true
+		_panels.scale = Vector2.ONE
+		if _tier_label != null:
+			_tier_label.visible = true
 		return
 
-	# THE MIDDLE OF THE TURN. Nothing has any width, so this is the one frame
-	# in which the card can change what it is showing without being seen to.
-	_face_up(true)
+	# THE MOMENT IT HAS NO WIDTH. Swap what the card is showing.
+	_back.visible = false
+	_panels.visible = true
+	_panels.scale = Vector2(0.0, 1.0)
+	if _tier_label != null:
+		_tier_label.visible = true
 
-	var back := create_tween()
-	back.set_parallel(true)
-	for key in ["left", "right"]:
-		var stage: Control = _side[key]["stage"]
-		if stage == null:
-			continue
-		back.tween_property(stage, "scale:x", 1.0, seconds * 0.5) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	await back.finished
+	var back_again := create_tween()
+	back_again.tween_property(_panels, "scale:x", 1.0, seconds * 0.5) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await back_again.finished
+	_panels.scale = Vector2.ONE
 
 
-## Face down is a blank card: no name, no role, no numbers. Face up is
-## everything _dress() already put there.
-func _face_up(up: bool) -> void:
-	for key in ["left", "right"]:
-		var nodes: Dictionary = _side[key]
-		for part in ["role", "name", "power", "ability", "result"]:
-			var label: Label = nodes.get(part)
-			if label != null:
-				label.visible = up
-		var stage: Control = nodes["stage"]
-		if stage != null:
-			stage.modulate = Color(1, 1, 1, 1) if up else Color(0.18, 0.20, 0.26, 1)
+## The back of the card: the tier, big, with a crest either side of it.
+## Built once and then re-used, because a duel happens four times a round.
+func _build_back() -> void:
+	if _back != null and is_instance_valid(_back):
+		_paint_crest(_back_left, left_crest, left_team)
+		_paint_crest(_back_right, right_crest, right_team)
+		return
+
+	_back = PanelContainer.new()
+	_back.name = "CardBack"
+	_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_back.add_theme_stylebox_override("panel", MenuSupport.panel_style(
+		Color(0.09, 0.10, 0.14, 1.0), MenuSupport.COLOUR_ACCENT))
+	var dim := get_node_or_null("Dim")
+	if dim != null:
+		dim.add_child(_back)
+
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 56)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_back.add_child(row)
+
+	_back_left = _crest_slot()
+	row.add_child(_back_left)
+
+	_back_tier = MenuSupport.heading("TIER", 76, MenuSupport.COLOUR_ACCENT)
+	_back_tier.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_back_tier.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(_back_tier)
+
+	_back_right = _crest_slot()
+	row.add_child(_back_right)
+
+	_paint_crest(_back_left, left_crest, left_team)
+	_paint_crest(_back_right, right_crest, right_team)
+
+
+## A crest with the club's name under it. The window it sits in is the whole
+## duel window, so a small crest in the middle of it reads as an accident —
+## these are drawn at a size you can see from the back of the room.
+func _crest_slot() -> Control:
+	var slot := VBoxContainer.new()
+	slot.alignment = BoxContainer.ALIGNMENT_CENTER
+	slot.add_theme_constant_override("separation", 10)
+	slot.custom_minimum_size = Vector2(CREST_BOX, CREST_BOX)
+	slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return slot
+
+
+const CREST_BOX := 230.0
+
+
+## A crest, or the team's first letter while the art is still to be drawn.
+func _paint_crest(slot: Control, art_name: String, team_name: String) -> void:
+	if slot == null:
+		return
+	for child in slot.get_children():
+		child.queue_free()
+
+	var art := MenuSupport.icon_texture(art_name)
+	if art != null:
+		var picture := TextureRect.new()
+		picture.texture = art
+		picture.custom_minimum_size = Vector2(CREST_BOX, CREST_BOX)
+		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(picture)
+	else:
+		var pip := Label.new()
+		pip.text = team_name.substr(0, 1).to_upper() if team_name != "" else "?"
+		pip.custom_minimum_size = Vector2(CREST_BOX, CREST_BOX)
+		pip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		pip.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		pip.add_theme_font_size_override("font_size", 96)
+		pip.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		slot.add_child(pip)
+
+	if team_name.strip_edges() == "":
+		return
+	var named := Label.new()
+	named.text = team_name.to_upper()
+	named.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	named.add_theme_font_size_override("font_size", 18)
+	named.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+	named.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(named)
 
 
 func _dress(key: String, data: Dictionary) -> void:
