@@ -1,4 +1,4 @@
 ID,Name,Power,Tier,Element,Class,Stamina,Art,Notes
 treant,Treant,2,,Wand,Treant,4,,"WHAT A SPAWN IS: a stand-in that walks on to take the place of somebody who is out. Leave Tier blank and it takes the tier of whoever it is replacing, which is almost always what you want. Power is clamped into that tier's legal rungs - see TierPowers.csv - so a spawn can never break the ladder"
 reed_wisp,Reed Wisp,1,I,Water,Wisp,3,,"Tier is filled in, so this one always arrives in Tier I whoever it replaces. Use that when a spawn is meant to be a specific kind of body rather than a general replacement"
-ember,Ember,3,,Fire,Ember,2,,"Hits harder than a Treant and falls over faster. Nothing in the code knows that - it is only these two numbers"
+ember,Ember,3,,Fire,Ember,2,,Hits harder than a Treant and falls over faster. Nothing in the code knows that - it is only these two numbers

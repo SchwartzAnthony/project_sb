@@ -7,5 +7,3 @@ LORE_TIDE,Rising Tide,passive,tier:I,add_power,1,round,Example. Every friendly T
 LORE_UNDERTOW,Undertow,on_lose_duel,opponent,add_defense,-1,round,Example. Negative values are legal — this is a debuff.
 LORE_SURGE,Siren Surge,on_attack,self,add_shot_power,2,round,Example. Adds to this round's shot if your side takes it.
 KEEP_BULWARK,Bulwark,passive,own_goalie,restore_stamina,2,round,Example. A card that tops your own keeper up each round.
-LORE_OPEN_HAND,Open Hand,reveal,self,add_power,2,round,"THE WORKED EXAMPLE FOR SHOW. Playing this card face up is worth +2 attack and defence to it for the whole round - but the other side now answers a card they can see, and takes their best in that tier instead of picking blind. That trade is the trigger"
-BRAND_CALLED_SHOT,Called Shot,reveal,self,add_shot_power,3,round,"The same bargain paid into the SHOT instead of the card, which is where the tier ladder says a bonus belongs. Show it, and if your side takes the shot this round it is worth three more"

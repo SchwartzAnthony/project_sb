@@ -1,11 +1,11 @@
 ID,When,Match,Sound,Bus,Loop,Volume,Fade,Requires,Notes
 menu_theme,screen_opened,screen=main,menu_theme,Music,true,-9,1.5,,The main menu. Keeps playing until another looping row claims the Music bus.
-base_theme,screen_opened,screen=base,base_calm,Music,true,-10,2,,"The base. Walking to the Pub and back does NOT restart it - the same track on the same bus is left alone."
+base_theme,screen_opened,screen=base,base_calm,Music,true,-10,2,,The base. Walking to the Pub and back does NOT restart it - the same track on the same bus is left alone.
 base_theme_brewing,screen_opened,screen=base,base_warm,Music,true,-10,2,unlocked:Brewery,"THE WHOLE IDEA IN ONE ROW: same moment, same bus, but only once the Brewery is open. The LAST matching row wins, so this one sits below the calm one."
 pub_theme,screen_opened,screen=pub,pub_room,Music,true,-11,1.5,,
 season_theme,screen_opened,screen=season,season_table,Music,true,-12,1,,
-match_theme,match_started,,crowd_loop,Music,true,-14,2,,The crowd. A loop under the whole match.
-kickoff_whistle,match_started,,whistle_long,Effects,,-4,,,
+match_theme,match_started,screen=match,match_theme,Music,true,-14,2,,The crowd. A loop under the whole match.
+kickoff_whistle,match_started,,kickoff_whistle,Effects,,-4,,,
 play_maker_whistle,play_maker,,whistle_short,Effects,,-4,,,Every PLAY MAKER.
 hold_up_whistle,hold_up,,whistle_double,Effects,,-4,,,Every STAR PLAYER SWITCH.
 goal_horn,goal_scored,,goal_horn,Effects,,-2,,,Any goal you score.
@@ -20,18 +20,18 @@ duel_lose,duel_lost,,duel_lose,Effects,,-7,,,
 brew_pour,brew_drunk,,pour,Effects,,-5,,,
 card_hover,card_hovered,,ui_tick,UI,,-16,,,Quiet on purpose - it fires every time the mouse crosses a card.
 card_lock,card_picked,,ui_confirm,UI,,-8,,,
-full_time_win,match_ended,result=win,fanfare_win,Music,,-4,,,"Not looping: it plays once over whatever the Music bus was doing."
+full_time_win,match_ended,result=win,fanfare_win,Music,,-4,,,Not looping: it plays once over whatever the Music bus was doing.
 full_time_loss,match_ended,result=loss,fanfare_loss,Music,,-6,,,
 full_time_draw,match_ended,result=draw,fanfare_draw,Music,,-6,,,
 ball_tap,,,ball_tap,Effects,,-5,,,"JUICE. A player taking the ball. Tiny - a scuff of boot on leather, nothing more. It plays several times a second while the party runs, so anything with a tail turns into a drone. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
 ball_kick,,,ball_kick,Effects,,-5,,,"JUICE. A player striking the ball on the run. Short, dry, a little harder than ball_tap. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
 hit_soft,,,hit_soft,Effects,,-5,,,"JUICE. An ordinary hit landing on an enemy. The workhorse - you will hear this more than any other sound in the game, so keep it short and unmemorable. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
 hit_heavy,,,hit_heavy,Effects,,-5,,,"JUICE. A big hit landing. Lower and fuller than hit_soft. It plays ON TOP of hit_soft rather than instead of it, so it should sit underneath rather than compete. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
-enemy_down,,,enemy_down,Effects,,-5,,,"JUICE. An enemy finished off. A short collapse - the release at the end of a fight. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
+enemy_down,,,enemy_down,Effects,,-5,,,JUICE. An enemy finished off. A short collapse - the release at the end of a fight. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty
 player_hurt,,,player_hurt,Effects,,-5,,,"JUICE. One of yours taking a hit. Should read as ours rather than theirs: less impact, more wince. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
-player_drop,,,player_drop,Effects,,-5,,,"JUICE. One of yours running out of stamina and going down on the grass. Heavier and slower than player_hurt - this one is final for the fight. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
-item_use,,,item_use,Effects,,-5,,,"JUICE. An item mending somebody. Warm and short. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
-combo_ping,,,combo_ping,Effects,,-5,,,"JUICE. A combo completing in the build-up window. A bright little confirmation - it is the sound of the move working. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
-shot_heavy,,,shot_heavy,Effects,,-5,,,"JUICE. The final shot of an Adventure move leaving the boot. The biggest kick in the game. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
+player_drop,,,player_drop,Effects,,-5,,,JUICE. One of yours running out of stamina and going down on the grass. Heavier and slower than player_hurt - this one is final for the fight. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty
+item_use,,,item_use,Effects,,-5,,,JUICE. An item mending somebody. Warm and short. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty
+combo_ping,,,combo_ping,Effects,,-5,,,JUICE. A combo completing in the build-up window. A bright little confirmation - it is the sound of the move working. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty
+shot_heavy,,,shot_heavy,Effects,,-5,,,JUICE. The final shot of an Adventure move leaving the boot. The biggest kick in the game. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty
 enemy_windup,,,enemy_windup,Effects,,-5,,,"JUICE. An enemy gaining its buff while you build your move. Should feel like a clock ticking, not like an attack. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
 crowd_goal,,,crowd_goal,Effects,,-5,,,"JUICE. A goal in a league match. The crowd going up. It sits UNDER goal_horn, which already fires - this is the roof coming off, not the whistle. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"

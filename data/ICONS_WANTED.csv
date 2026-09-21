@@ -18,16 +18,16 @@ sound.png,assets/icons/,Settings,note,A speaker or a note,
 colour.png,assets/icons/,Settings,half circle,A half-filled circle,
 controller.png,assets/icons/,Settings,cross,A gamepad,
 language.png,assets/icons/,Settings,glyph,A globe or two letters from two alphabets,
-season_county.png,assets/icons/,Seasons shelf,drawn crest,The County League's badge,"Named in the Art column of Seasons.csv. Until it exists a shield with the season's initial is drawn"
+season_county.png,assets/icons/,Seasons shelf,drawn crest,The County League's badge,Named in the Art column of Seasons.csv. Until it exists a shield with the season's initial is drawn
 season_winter.png,assets/icons/,Seasons shelf,drawn crest,The Winter Cup's badge,
 season_coast.png,assets/icons/,Seasons shelf,drawn crest,The Coast Division's badge,
 season_inland.png,assets/icons/,Seasons shelf,drawn crest,The Inland Shield's badge,
 season_crown.png,assets/icons/,Seasons shelf,drawn crest,The Crown's badge,
-button_start.png,assets/menu/,Title screen,plain button,The Start button,"Named in MenuConfig.csv. A plain labelled button is used until it exists"
+button_start.png,assets/menu/,Title screen,plain button,The Start button,Named in MenuConfig.csv. A plain labelled button is used until it exists
 button_settings.png,assets/menu/,Title screen,plain button,The Settings button,
 button_tutorial.png,assets/menu/,Title screen,plain button,The Tutorial button,
 button_quit.png,assets/menu/,Title screen,plain button,The Quit button,
 background.png,assets/menu/,Title screen,flat colour,The title screen art,
 background.png,assets/base/,The base,flat colour,The base's backdrop,
 star_badge.png,assets/ui/,Cards and the pitch,drawn star,The Star Player marker,Appears in three places at once
-disc.png,assets/team_icons/,Team badges,drawn shape,A team emblem,"One per shape in team_roster.gd - disc shield diamond chevron ring star bars cross wave flame leaf anvil. All twelve are drawn until you replace them"
+disc.png,assets/team_icons/,Team badges,drawn shape,A team emblem,One per shape in team_roster.gd - disc shield diamond chevron ring star bars cross wave flame leaf anvil. All twelve are drawn until you replace them

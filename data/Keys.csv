@@ -1,5 +1,5 @@
 Action,Label,Group,Default Key,Default Button,Notes
-pause,Pause / sub menu,General,Escape,Start,"In a match this opens the sub menu. Anywhere else it asks whether to quit the game"
+pause,Pause / sub menu,General,Escape,Start,In a match this opens the sub menu. Anywhere else it asks whether to quit the game
 confirm,Confirm / advance,General,Space,A,"Advances a line of dialogue, takes the shot, presses the highlighted button"
 cancel,Back,General,Backspace,B,Goes back one screen
 auto,Toggle AUTO,Match,A,Y,The game picks your cards and your throw. Your clicks lock while it is on

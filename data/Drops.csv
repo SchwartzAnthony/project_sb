@@ -29,9 +29,9 @@ mother_drops,deep_salt,20,1.0,,
 mother_drops,coins,300,1.0,,
 frost_ground,deep_salt,1,1.0,,Ground pickups in the Frostreach.
 frost_ground,coins,5,0.5,,
-frost_ground,smelling_salts,1,0.08,,"A rare find. Brings somebody back on."
+frost_ground,smelling_salts,1,0.08,,A rare find. Brings somebody back on.
 grub_drops,field_bandage,1,0.06,,"The odd bandage, so the item menu is not empty on a first run."
-warden_drops,smelling_salts,1,1.0,,"The first boss always leaves one."
+warden_drops,smelling_salts,1,1.0,,The first boss always leaves one.
 king_drops,team_orange,2,1.0,,
 tyrant_drops,smelling_salts,2,1.0,,
 mother_drops,smelling_salts,3,1.0,,

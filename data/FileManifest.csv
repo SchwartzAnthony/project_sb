@@ -25,7 +25,7 @@ card_popup.gd,src/ui/,A screen or a piece of one,
 card_stats_panel.gd,src/ui/,A screen or a piece of one,
 class_select.gd,src/ui/,A screen or a piece of one,
 class_select.tscn,src/ui/,A screen or a piece of one,
-coin_clash.gd,src/ui/,A screen or a piece of one,"The PLAY MAKER number guess. Built entirely in code - there is no .tscn for it. use_coin_clash in Tuning.csv chooses between this and rps_clash"
+coin_clash.gd,src/ui/,A screen or a piece of one,The PLAY MAKER number guess. Built entirely in code - there is no .tscn for it. use_coin_clash in Tuning.csv chooses between this and rps_clash
 combo_db.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 content_report.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 controller_focus.gd,src/core/,"Engine. Rules, loaders and shared helpers",
@@ -38,7 +38,6 @@ dialogue_view.tscn,src/ui/,A screen or a piece of one,
 duel_arena.gd,src/ui/,A screen or a piece of one,
 duel_arena.tscn,src/ui/,A screen or a piece of one,
 enemy_pick_layer.gd,src/adventure/,Adventure mode,
-enemy_team_window.gd,src/ui/,A screen or a piece of one,"ENEMY TEAM DATA. Their whole squad by tier - power, defence and what every ability actually does, in plain words. Opens from the team shelf, from the match HUD and from the team sheet"
 export_sheet_preview.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 field_bounds.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 game_keys.gd,src/core/,"Engine. Rules, loaders and shared helpers",
@@ -112,7 +111,6 @@ team_roster.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 team_select.gd,src/ui/,A screen or a piece of one,
 team_select.tscn,src/ui/,A screen or a piece of one,
 team_selection.gd,src/core/,"Engine. Rules, loaders and shared helpers",
-team_sheet.gd,src/ui/,A screen or a piece of one,"BEFORE A MATCH. Both crests, both names and three Stars a side with a loading bar, then the pitch with a START button between the crests. Nothing runs until it is pressed"
 test_run.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 tier_ladder.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 trait_loadout_screen.gd,src/adventure/,Adventure mode,"EDIT ELEMENT BONUS. Which eight icons go into a run. The choice is kept in the save, not in a CSV - it is the player decision, not the designer one"
@@ -122,7 +120,6 @@ unlock_board.tscn,src/ui/,A screen or a piece of one,
 unlock_progress.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 zone_overlay.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 Abilities.csv,data/,A spreadsheet you edit,
-AbilityTriggers.csv,data/,A spreadsheet you edit,"WHEN an ability goes off - and the plan for the triggers still to build. Status is live or planned; a card written against a planned trigger loads and waits"
 AdventureEnemies.csv,data/,A spreadsheet you edit,
 Animations.csv,data/,A spreadsheet you edit,
 Audio.csv,data/,A spreadsheet you edit,
@@ -141,7 +138,6 @@ Goalies.csv,data/,A spreadsheet you edit,
 ICONS_WANTED.csv,data/,A spreadsheet you edit,
 Items.csv,data/,A spreadsheet you edit,
 Keys.csv,data/,A spreadsheet you edit,
-Keywords.csv,data/,A spreadsheet you edit,"EVERY WORD THE GAME UNDERSTANDS. Effects, targets, scopes, conditions and tags, each marked live or planned. Add a row with Status planned to ask for a new one - the sentence you write is the specification"
 Language.csv,data/,A spreadsheet you edit,
 MatchModes.csv,data/,A spreadsheet you edit,
 MenuConfig.csv,data/,A spreadsheet you edit,
@@ -162,11 +158,11 @@ example_unit_csv_with_ability_columns.csv,data/,A spreadsheet you edit,
 Buildings.csv,data/tutorial/,The tutorial's own spreadsheet,"A file of this name is in data/ too - that is DELIBERATE, they are different spreadsheets"
 Dialogue.csv,data/tutorial/,The tutorial's own spreadsheet,"A file of this name is in data/ too - that is DELIBERATE, they are different spreadsheets"
 Visitors.csv,data/tutorial/,The tutorial's own spreadsheet,"A file of this name is in data/ too - that is DELIBERATE, they are different spreadsheets"
-juice.gd,src/core/,Engine. Plays whatever Juice.csv says a moment looks like,"One line at the moment something happens and every row of Juice.csv for that moment goes off"
+juice.gd,src/core/,Engine. Plays whatever Juice.csv says a moment looks like,One line at the moment something happens and every row of Juice.csv for that moment goes off
 juice_db.gd,src/core/,Engine. Loads Juice.csv,"The list of moments, and the maths behind a shake that grows with the size of a hit"
-Juice.csv,data/,"Data. The shakes, flashes, pops and sounds","THE FILE TO OPEN WHEN A HIT DOES NOT FEEL RIGHT. No feel is typed into a script any more"
-AdventureTraits.csv,data/,Data. The Adventure icon stacks,"WHAT AN ICON IS. Every player drops these onto the pile when you send them in"
-AdventureCombos.csv,data/,Data. What reaching a stack does,"THE HEART OF ADVENTURE COMBAT. Three Fire on the pile and every shot is worth four more - this is the file that says so"
+Juice.csv,data/,"Data. The shakes, flashes, pops and sounds",THE FILE TO OPEN WHEN A HIT DOES NOT FEEL RIGHT. No feel is typed into a script any more
+AdventureTraits.csv,data/,Data. The Adventure icon stacks,WHAT AN ICON IS. Every player drops these onto the pile when you send them in
+AdventureCombos.csv,data/,Data. What reaching a stack does,THE HEART OF ADVENTURE COMBAT. Three Fire on the pile and every shot is worth four more - this is the file that says so
 AdventureSpawns.csv,data/,Data. Stand-ins a combo can bring on,The Treant that walks on to replace somebody you lost
 trait_db.gd,src/adventure/,Adventure mode,Loads the three Adventure spreadsheets and answers which icons a player carries
 trait_stack.gd,src/adventure/,Adventure mode,The running pile - what is on it and what that is worth right now

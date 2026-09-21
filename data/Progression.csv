@@ -8,4 +8,4 @@ veteran_badge,match_ended,count:matches_played>=10,flag:veteran,true,An achievem
 talent_point,match_ended,unlocked:Talent Tree,count:talent_points+1,,One talent point after every match once the Training Ground is open. Delete this row and nothing earns points.
 season_opening,match_started,count:season_match<=1,announce:Matchday 1. Eleven to go.,,Fires as the first fixture of a season kicks off. season_match is kept by Season.csv.
 final_day,match_started,count:season_match>=11,announce:THE FINAL,,Fires at kick-off of the last fixture.
-champions,match_ended,flag:season_champion,announce:Champions. The season is yours.,true,"season_champion is set by the season when you win the final. An achievement is still just a flag."
+champions,match_ended,flag:season_champion,announce:Champions. The season is yours.,true,season_champion is set by the season when you win the final. An achievement is still just a flag.
