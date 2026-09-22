@@ -149,6 +149,16 @@ func _load_csv(path: String) -> void:
 			# is the run. A word ScenePaths.for_name() understands, so a new
 			# mode can point at a new screen without touching any code.
 			"scene": _first(_cell(row, columns, "scene"), "match"),
+			# ============ HOW MANY FIT PLAYERS THIS MODE NEEDS ============
+			#
+			# A league match wants a full squad — three of each Tier, because
+			# that is what the ladder drafts from. An Adventure run does not:
+			# four is enough, one of each Tier, which is what lets a tired
+			# side still go out and earn their rest back.
+			#
+			# Blank means 3, so every mode written before this column existed
+			# still asks for a full squad.
+			"per_tier": _whole(_cell(row, columns, "squadpertier"), 3),
 			"requires": _cell(row, columns, "requires"),
 			# WHAT PLAYING IT IS WORTH. Written in the same language as a
 			# dialogue Effects column, so everything that works there works
@@ -169,7 +179,7 @@ static func _fallback_season_row() -> Dictionary:
 	return {
 		"id": DEFAULT_ID, "name": "Season Match", "records": true,
 		"timer": 90.0, "cycles": 3, "rounds": 3, "rotation": true,
-		"opponent": "team", "scene": "match", "requires": "",
+		"opponent": "team", "scene": "match", "requires": "", "per_tier": 3,
 		"rewards": "", "rewards_win": "", "description": "",
 		"where": "(built in)",
 	}

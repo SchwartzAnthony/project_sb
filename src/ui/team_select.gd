@@ -156,6 +156,13 @@ func _show_enemy_team() -> void:
 		"" if klass != "" else "This is a friendly — the opposition is chosen at kick-off. A league fixture names them in Season.csv.")
 
 
+## HOW MANY FIT PLAYERS A TIER NEEDS FOR THE MODE YOU ARE ABOUT TO PLAY.
+## The `Squad Per Tier` column of MatchModes.csv: three for a league match,
+## one for an Adventure run.
+func _fit_needed() -> int:
+	return maxi(1, int(MatchMode.current(get_tree()).get("per_tier", 3)))
+
+
 ## Which class the next fixture puts in front of you, or "" for a friendly.
 func _next_opponent_class() -> String:
 	var fixture := SeasonDB.get_db().current(state) if SeasonDB.get_db() != null else {}
@@ -202,7 +209,9 @@ func _fill() -> void:
 
 func _team_card(entry: Dictionary) -> Control:
 	var id_text := String(entry["id"])
-	var trouble := book.trouble(entry, db)
+	var trouble := book.trouble(entry, db, _fit_needed())
+	if trouble == "":
+		trouble = book.resting(entry, db, state, _fit_needed())
 
 	var button := Button.new()
 	button.custom_minimum_size = CARD
@@ -287,12 +296,21 @@ func _refresh_footer() -> void:
 	if not has:
 		_detail.text = "No team chosen." if not book.teams.is_empty() else ""
 		return
-	var trouble := book.trouble(entry, db)
+	var trouble := book.trouble(entry, db, _fit_needed())
 	if trouble != "":
 		_lock.disabled = true
 		_detail.text = "%s cannot take the pitch — %s" % [entry["name"], trouble]
-	else:
-		_detail.text = "%s is ready." % entry["name"]
+		return
+	# A SIDE THAT IS FINE BUT TIRED. Worded differently on purpose: the team
+	# is not broken, it played last week. Adventure asks for one fit player a
+	# tier rather than three, so this is also the nudge toward going and
+	# earning the rest back.
+	var worn := book.resting(entry, db, state, _fit_needed())
+	if worn != "":
+		_lock.disabled = true
+		_detail.text = "%s is too tired — %s" % [entry["name"], worn]
+		return
+	_detail.text = "%s is ready." % entry["name"]
 
 
 # -------------------------------------------------------------
@@ -319,7 +337,9 @@ func _on_edit() -> void:
 ## is for, and separating them is the whole point of this screen.
 func _on_lock() -> void:
 	var entry := book.find(_chosen)
-	if entry.is_empty() or book.trouble(entry, db) != "":
+	if entry.is_empty() or book.trouble(entry, db, _fit_needed()) != "":
+		return
+	if book.resting(entry, db, state, _fit_needed()) != "":
 		return
 
 	TeamSelection.store(get_tree(), book.to_selection(entry, db))

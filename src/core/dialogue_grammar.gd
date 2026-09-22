@@ -93,7 +93,7 @@ static func complaints(expression: String, is_effect: bool) -> Array[String]:
 			out.append("'%s' — nothing after the colon" % term)
 			continue
 
-		var allowed := ["flag", "count", "unlock", "set", "clear"] if is_effect \
+		var allowed := ["flag", "count", "unlock", "set", "clear", "sign", "release"] if is_effect \
 			else ["flag", "count", "unlocked", "is"]
 		if not allowed.has(kind):
 			out.append("'%s' — '%s' is not one of %s" % [term, kind, ", ".join(allowed)])
@@ -257,6 +257,21 @@ static func _apply_one(term: String, state: GameState) -> void:
 				state.set_text(String(kv[0]), String(kv[1]))
 		"clear":
 			state.set_text(rest, "")
+		"sign":
+			# ============ A PLAYER JOINS YOUR CLUB ============
+			#
+			# The foundation under "a new game gives you three Stars". Until
+			# now a card in your CSVs was simply yours — every class's whole
+			# roster was available from the first minute, so there was no such
+			# thing as signing anybody and no such thing as a squad growing.
+			#
+			# `sign:Müller` in any Effects column marks one card as owned.
+			# NOTHING READS IT unless `squad_ownership` in Tuning.csv is on,
+			# so writing these rows today changes nothing and turning the row
+			# on later changes everything. See squad_book.gd.
+			SquadBook.sign(rest, state)
+		"release":
+			SquadBook.release(rest, state)
 
 
 static func _apply_count(rest: String, state: GameState) -> void:

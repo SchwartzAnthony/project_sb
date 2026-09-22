@@ -30,9 +30,17 @@ const SECONDS := 90
 const STEP := 0.1
 ## Closer than this and two players are drawn on top of each other.
 const TOO_CLOSE := 34.0
+## In the order of PlayerUnit.Role, so a number turns into a word.
+const ROLE_NAMES := ["HOLD", "MARK", "OPEN", "PRESS", "BALL", "RECEIVE", "DRIBBLE", "SURGE", "RECOVER"]
 
 
 func _initialize() -> void:
+	# THE SAME CARDS AND THE SAME COIN EVERY TIME. It does NOT make the run
+	# identical - a real match is running at a real frame rate underneath
+	# this, so the numbers still move a little between runs - but it takes
+	# the draft and the clash out of the swing. Run it twice before you
+	# believe a small change either way.
+	seed(20260921)
 	await process_frame
 	_pick_a_team()
 	MatchMode.choose(self, "friendly")
@@ -64,6 +72,13 @@ func _initialize() -> void:
 	var heading: Dictionary = {}
 	var flips: Dictionary = {}
 	var worst_shake := 0.0
+	var worst_who := "nobody"
+	# THE WORST SECOND IN EACH ROLE. A player in role BALL reversing is not a
+	# shake: the ball is handed from player to player during a relay, so it
+	# jumps, and turning round to follow it is the right answer. The roles
+	# that matter for "are they twitching" are the standing ones — HOLD, MARK
+	# and OPEN.
+	var by_role: Dictionary = {}
 	var worst_touch := 0
 	var touch_total := 0.0
 	var still_seconds := 0.0
@@ -100,7 +115,17 @@ func _initialize() -> void:
 		if clock >= 1.0:
 			for unit in units:
 				var id2: int = unit.get_instance_id()
-				worst_shake = maxf(worst_shake, float(flips.get(id2, 0)))
+				var turns := float(flips.get(id2, 0))
+				if turns > worst_shake:
+					worst_shake = turns
+					# NAME THE CULPRIT. "Something shook" is not a bug report —
+					# which player, in which role, is where a fix starts.
+					worst_who = "%s in role %s" % [
+						unit.data.player_name if unit.data != null else "?",
+						ROLE_NAMES[int(unit.role)] if int(unit.role) < ROLE_NAMES.size() else "?"]
+				var role_name: String = ROLE_NAMES[int(unit.role)] \
+					if int(unit.role) < ROLE_NAMES.size() else "?"
+				by_role[role_name] = maxf(float(by_role.get(role_name, 0.0)), turns)
 				flips[id2] = 0
 			clock = 0.0
 
@@ -119,13 +144,24 @@ func _initialize() -> void:
 			still_seconds += STEP
 
 	print("")
-	print("[move] worst shake  %.0f reversals in a second   (0-2 is walking or wandering. 6+ is vibrating)" % worst_shake)
+	print("[move] worst shake  %.0f reversals in a second by %s   (0-2 is walking or wandering. 6+ is vibrating)"
+		% [worst_shake, worst_who])
 	# THE AVERAGE IS THE HONEST ONE. The worst is a single tenth of a second
 	# somewhere in ninety, and every scramble for a loose ball puts two players
 	# inside a player's width for a moment — that is a tackle, not a fault. The
 	# average says whether the pitch is LIVING like that.
 	print("[move] pile-up: %d pairs at the worst moment, %.1f pairs on average, closer than %d pixels"
 		% [worst_touch, touch_total / maxf(float(samples), 1.0), int(TOO_CLOSE)])
+	var standing := 0.0
+	for role_name in ["HOLD", "MARK", "OPEN"]:
+		standing = maxf(standing, float(by_role.get(role_name, 0.0)))
+	print("[move] worst shake while STANDING ABOUT (HOLD/MARK/OPEN): %.0f   <- the number that matters"
+		% standing)
+	var parts: Array[String] = []
+	for role_name in ROLE_NAMES:
+		if by_role.has(role_name):
+			parts.append("%s %.0f" % [role_name, float(by_role[role_name])])
+	print("[move] by role: %s" % ", ".join(parts))
 	print("[move] seconds of live play with nobody moving: %.1f" % still_seconds)
 	quit(0)
 

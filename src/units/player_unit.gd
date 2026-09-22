@@ -312,6 +312,18 @@ var has_role_target: bool = false
 
 ## The opponent this unit shadows. Assigned once, after both teams spawn.
 var mark_target: PlayerUnit = null
+## WHICH SHOULDER this unit is currently marking off, -1 or 1. Remembered
+## rather than worked out fresh each frame: the side is decided by where the
+## ball is, and a ball drifting across the marked man's exact height would
+## otherwise flip it every frame and throw the marker back and forth. It only
+## changes when the ball is CLEARLY on the other side — see _mark_point().
+var mark_side: float = 0.0
+
+## HAS THIS PLAYER GOT HOME YET during the current restart? Set once they
+## arrive and cleared when the next restart begins. Without it the "am I
+## home" test is asked fresh every frame and a player bounces on and off the
+## edge of their own slack circle — see _assign_roles() in main_scene.
+var restart_settled: bool = false
 
 ## This unit's Tier quarter, and the wider band it may chase into.
 var tier_zone: Rect2 = Rect2()
@@ -426,14 +438,20 @@ func _physics_process(delta: float) -> void:
 	if role != Role.SURGE and role != Role.RECOVER:
 		want += _zone_force() * zone_pull
 
-	# Springing back to the slot is what keeps a formation a formation. Only
-	# the positional roles get it: a unit going for the ball is supposed to
-	# leave its post.
+	# Springing back to the slot is what keeps a formation a formation — but
+	# it used to start at HALF a leash, which is about a hundred pixels, and
+	# a player who is tugged homeward after a hundred pixels never gets
+	# anywhere. It starts at a FULL leash now, so the slot is somewhere a
+	# player comes back to rather than somewhere they are tied to.
+	#
+	# Only the positional roles get it at all: a unit going for the ball is
+	# supposed to leave its post and not be reminded of it.
 	if role == Role.HOLD or role == Role.MARK or role == Role.OPEN:
 		var back := home_position - global_position
 		var stretched := back.length()
-		if stretched > leash * 0.5:
-			want += (back / stretched) * slot_pull * minf(stretched / maxf(leash, 1.0), 1.5)
+		if stretched > leash:
+			want += (back / stretched) * slot_pull \
+				* minf((stretched - leash) / maxf(leash, 1.0), 1.5)
 
 	# ---- ARRIVED ----
 	var force := want.length()
@@ -470,20 +488,42 @@ func _face_the_action() -> void:
 	artwork.flip_h = gap < 0.0
 
 
-## Pull a point back so it is never further than `leash` from this unit's slot,
-## and never outside its soft quarter. THIS is what keeps a formation a
-## formation: a role may drag a unit off its post, but only so far.
+## ============ KEEPING A TARGET SENSIBLE — NOT CAGING IT ============
+##
+## This used to CLAMP every target into a band a third of the pitch wide, and
+## that one line is why nobody ever reached a touchline, nobody ever got near
+## a goal, and a player at the edge of their band simply stopped dead.
+##
+## It no longer clamps to a zone at all. It does two much smaller things:
+##
+##   * a target more than `leash` from the player's slot is pulled in along
+##     the same line, so an idle player does not wander off the map — and the
+##     leash is IGNORED ENTIRELY while chasing, because a defender who gives
+##     up at the end of a rope is not playing football;
+##   * the target is kept on the pitch.
+##
+## The zone is applied as a gentle force in _zone_force() instead, which a
+## player can lean against and walk straight through.
 func leash_point(point: Vector2) -> Vector2:
 	var out := point
-	var off := point - home_position
-	var stretched := off.length()
-	if stretched > leash and stretched > 0.001:
-		out = home_position + off / stretched * leash
+	if not _is_chasing():
+		var off := point - home_position
+		var stretched := off.length()
+		if stretched > leash and stretched > 0.001:
+			out = home_position + off / stretched * leash
 
-	if tier_soft_zone.size.x > 1.0:
-		out.x = clampf(out.x, tier_soft_zone.position.x, tier_soft_zone.end.x)
+		# AND KEEP AN IDLE TARGET INSIDE THE ROAM BAND. Not as a cage — a
+		# chasing player never reaches this line — but because _zone_force()
+		# pushes back from outside the band, and a player sent to stand
+		# somewhere the zone is pushing them out of walks into the push and
+		# back out of it, forever. That argument is what a shake IS.
+		if tier_soft_zone.size.x > 1.0:
+			out.x = clampf(out.x, tier_soft_zone.position.x, tier_soft_zone.end.x)
+
+	if play_bounds.size.x > 1.0:
+		out.x = clampf(out.x, play_bounds.position.x + 16.0, play_bounds.end.x - 16.0)
 	if play_bounds.size.y > 1.0:
-		out.y = clampf(out.y, play_bounds.position.y + 24.0, play_bounds.end.y - 24.0)
+		out.y = clampf(out.y, play_bounds.position.y + 20.0, play_bounds.end.y - 20.0)
 	return out
 
 
@@ -494,23 +534,32 @@ func set_role(new_role: int, target: Vector2, speed: float) -> void:
 	has_role_target = true
 
 
+## Going for the ball, in any sense. Nothing pulls a chasing player back.
 func _is_chasing() -> bool:
-	return role == Role.BALL or role == Role.PRESS or role == Role.RECEIVE
+	return role == Role.BALL or role == Role.PRESS or role == Role.RECEIVE \
+		or role == Role.DRIBBLE or role == Role.SURGE
 
 
-## A push back toward this unit's own quarter. Zero while inside it, growing
-## the further out it has drifted — so chasing a ball just over the line is
-## fine and drifting two zones away is not.
+## A gentle push back toward home. ZERO anywhere inside the wide roam band,
+## and zero at all times while chasing the ball.
+##
+## The band is sixty per cent of the pitch, so a Tier II has most of the grass
+## to move about in before anything tugs at it, and even then the tug is a
+## suggestion — it is summed with everything else pulling on the player and
+## loses to a ball worth going for.
 func _zone_force() -> Vector2:
-	if tier_zone.size.x <= 1.0:
+	if _is_chasing():
 		return Vector2.ZERO
-	if global_position.x >= tier_zone.position.x and global_position.x <= tier_zone.end.x:
+	var band := tier_soft_zone if tier_soft_zone.size.x > 1.0 else tier_zone
+	if band.size.x <= 1.0:
+		return Vector2.ZERO
+	if global_position.x >= band.position.x and global_position.x <= band.end.x:
 		return Vector2.ZERO
 
-	var edge: float = tier_zone.position.x
-	if global_position.x > tier_zone.end.x:
-		edge = tier_zone.end.x
-	var over := absf(global_position.x - edge) / maxf(tier_zone.size.x, 1.0)
+	var edge: float = band.position.x
+	if global_position.x > band.end.x:
+		edge = band.end.x
+	var over := absf(global_position.x - edge) / maxf(band.size.x, 1.0)
 	return Vector2(signf(edge - global_position.x) * minf(over * 2.0, 1.0), 0.0)
 
 

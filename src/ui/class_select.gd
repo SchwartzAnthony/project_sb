@@ -262,7 +262,7 @@ func _show_no_classes_message() -> void:
 
 To get a class to show up here, a CSV in res://data/ needs rows with:
   • a "Unit Type" column (the class name)
-  • a "Base Power Left" column
+  • a "Base Power" column (or "Base Power Left")
   • at least one row whose "Player Type" is Star
 
 Open the Output panel — CardDatabase prints exactly what it read and what

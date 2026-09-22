@@ -77,7 +77,7 @@ func load_all() -> void:
 		seasons.append({
 			"id": "season_one", "name": "The Season", "art": "",
 			"colour": Color(0.45, 0.62, 0.78), "requires": "",
-			"row": 0, "column": 0, "after": "", "matches": 0,
+			"row": 0, "column": 0, "after": "", "matches": 0, "story": "",
 			"description": "Every fixture in Season.csv.",
 		})
 		return
@@ -96,6 +96,16 @@ func load_all() -> void:
 			"row": int(MenuSupport.field_float(row, "Row", 0.0)),
 			"column": int(MenuSupport.field_float(row, "Column", 0.0)),
 			"after": MenuSupport.field(row, "After"),
+			# ============ THE SCENE THAT OPENS A SEASON ============
+			#
+			# The name of a Dialogue.csv scene played the FIRST time you open
+			# this competition — where the head coach and the side at the top
+			# of the pyramid introduce themselves, so that the last fixture
+			# has a face on it from the first one. Blank plays nothing.
+			#
+			# It is remembered by a flag (`season_told_<id>`), so it happens
+			# once and a reload does not replay it.
+			"story": MenuSupport.field(row, "Story").strip_edges(),
 			"matches": int(MenuSupport.field_float(row, "Matches", 0.0)),
 			"description": Loc.translated(row, "Description"),
 		})

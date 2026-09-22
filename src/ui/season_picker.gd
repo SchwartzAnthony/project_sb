@@ -324,6 +324,30 @@ func _tile(entry: Dictionary) -> Control:
 
 func _enter(entry: Dictionary) -> void:
 	SeasonBook.choose(state, String(entry["id"]))
+
+	# ============ THE SEASON INTRODUCES ITSELF, ONCE ============
+	#
+	# The `Story` column of Seasons.csv. This is where the head coach and the
+	# side at the top of the pyramid get to say something before you have
+	# played a single fixture, so that the last match of the season has a
+	# face on it from the first.
+	#
+	# Remembered by a flag, so it happens once and a reload does not replay
+	# it. A blank Story column plays nothing, which is every season out of
+	# the box except the first.
+	var scene := String(entry.get("story", "")).strip_edges()
+	var told := "season_told_%s" % String(entry["id"])
+	if scene != "" and state != null and not state.has_flag(told):
+		state.set_flag(told)
+		state.save_to_disk()
+		# The scene comes BACK to the season screen when it is finished, so
+		# the story is a doorway rather than a detour.
+		if DialogueDB.get_db().opening_line(scene, state) != null:
+			DialogueView.play(get_tree(), scene, ScenePaths.SEASON)
+			return
+		push_warning("[season] %s has Story '%s' but no such scene is in Dialogue.csv."
+			% [entry["id"], scene])
+
 	ScenePaths.go_to(get_tree(), ScenePaths.SEASON)
 
 

@@ -83,8 +83,8 @@ res://
   data/tutorial/  a second set of Dialogue / Buildings / Visitors, used by
                   the tutorial only. Same columns, different content
   assets/         art, audio, icons
-  src/core/       loaders, rules and shared helpers (51 scripts)
-  src/ui/         screens (32)
+  src/core/       loaders, rules and shared helpers (54 scripts)
+  src/ui/         screens (33)
   src/adventure/  Adventure mode (12)
   src/units/      things that stand on the pitch (4)
   src/formations/ the league match itself (1, and it is a big one)
@@ -185,10 +185,17 @@ reported by name on load rather than silently ignored.
 Five things worth knowing before you edit anything.
 
 **1. Files are identified by their COLUMNS, not their names.** A units file is
-anything with a `Unit Type` column and a `Base Power Left` column. You can
-call it `Units Set FO2 - Whatever.csv`, drop it in `data/`, and it loads. The
-same is true of brews, enemies, biomes and the rest. **Adding content usually
-means adding a file, not editing one.**
+anything with a `Unit Type` column and a power column — either `Base Power`
+or `Base Power Left`. You can call it `Units Set FO2 - Whatever.csv`, drop it
+in `data/`, and it loads. The same is true of brews, enemies, biomes and the
+rest. **Adding content usually means adding a file, not editing one.**
+
+> **And if it cannot read one, it now says so by name.** A file with a
+> `Unit Type` column and no power column used to fall through every test and
+> be **silently skipped** — the whole team simply was not in the game, with
+> nothing printed anywhere. That is the single most expensive kind of mistake
+> a CSV-driven game has, and it cost this project a team: `BasicTeam.csv` had
+> been simplified to one `Base Power` column and had not loaded since.
 
 **2. Column names are normalised.** `Base Power Left`, `base power left` and
 `BasePowerLeft` are the same column. Spaces, underscores, hyphens and case are
@@ -227,8 +234,8 @@ add with the same columns.**
 | `Unit Type` | the class / club. Must match a `Class` in ClassInfo.csv |
 | `Name` | the card's name. Used as its identity everywhere — **renaming a card breaks old saves** |
 | `Player Type` | `Normal` or `Star` |
-| `Base Power Left` | **ATTACK power. This is the tier slot.** See section 2 |
-| `Base Power Right` | defence power |
+| `Base Power` | **power. This is the tier slot.** See section 2. One column is enough — it is read as both attack and defence |
+| `Base Power Left` / `Base Power Right` | or write the two faces separately. Left is attack, right is defence. A file with both is read as both |
 | `Tier` | `I` / `II` / `III` / `IV` |
 | `Element` | Fire / Water / Wand / None. Drives Adventure icons and some targeting |
 | `Attack` / `Defend` | the printed card text. Flavour, not rules |
@@ -376,6 +383,128 @@ and:
 > purpose: the second number calls a wandering player a shaking one, and the
 > wandering is wanted.
 
+### The shape — why they were standing in pairs
+
+**A zone is a centre of gravity. It is not a fence.** That sentence is the
+whole of `pitch_zones.gd` and it is worth reading twice, because the zones
+were built to stop twenty-two players hovering around the ball in one heap and
+nothing else. Reaching a touchline, running into the box, chasing a ball three
+quarters of the pitch away — all of that is supposed to happen.
+
+There are **three bands**, from the inside out:
+
+| Band | | |
+|---|---|---|
+| **home** | a quarter of the pitch | where a Tier stands with nothing to do, and the point it is drawn back toward |
+| **roam** | `zone_roam`, **60%** of the pitch | where it moves about with **no pull at all**. The bands overlap enormously on purpose |
+| **chasing** | the whole pitch | a player going for the ball is never pulled back by anything |
+
+And a **fourth question that is not a band**: `zone_claim` — how much of the
+pitch a Tier treats a loose ball as *its job*. That is a third of the pitch,
+not sixty per cent, and running the two together is what made the midfield
+heap: if every Tier claims everything inside its roam band, a ball on the
+centre spot belongs to four Tiers at once and six players set off for it.
+
+#### The three things that put them in pairs
+
+**One: the lanes were mirrored.** Each lane is pushed a little forward or back
+from its neighbours so a back three is a stagger rather than a column — and
+the sign of that push used to **flip for the away side**. Work it through with
+a wave of 0.22 and an inset of 0.34:
+
+```
+lane 0   home 0.34 + 0.22 = 0.56      away 0.66 - 0.22 = 0.44
+lane 1   home 0.34 - 0.22 = 0.12      away 0.66 + 0.22 = 0.88
+lane 2   home 0.34 + 0.22 = 0.56      away 0.66 - 0.22 = 0.44
+```
+
+On every even lane the flip walks the two sides *toward* each other until they
+are about fifty pixels apart, while the odd lanes fly apart. That is the
+screenshot: some pairs glued, the rest nowhere near anybody. Both sides now
+read the **same** smooth wave at **different phases**, so the gap between them
+never closes and is never the same twice either.
+
+**Two: the defence snapped into pairs the instant a break started.** Ordinary
+marking is zonal and offset — goal-side, off one shoulder, only
+`mark_commitment` of the way there. The *recovery* rule that ran during a
+break ignored all of that and sent every defender to a point dead level with
+his man. It was the glued look at its very worst, at the one moment you are
+certain to be watching. It now uses the same zonal rule, and the nearest
+`recover_closers` go for the ball instead.
+
+**Three: every rule can average back to nought.** Commit half way toward a man
+who is a shoulder above you and you are half a shoulder above him; add a drift
+that happens to be pointing down and you are level again. So there is a floor
+under all of it — `mark_level_floor`, the smallest gap a marker may end up at
+from his man's exact height. It costs nothing when the offsets did their job.
+
+| Tuning row | |
+|---|---|
+| `zone_roam` | how much of the pitch a Tier moves in freely. `0.60`. **Not a fence** — raise it toward 1 and the shape loosens, drop it to 0.3 and you are back to four cages |
+| `zone_claim` | how much of it a Tier treats a loose ball as its job. `0.34`. Raise it and more players converge on every ball |
+| `zone_lane_stagger` | how far the away side's lanes sit against yours. `0.5` = exactly between them. `0` puts the pairs back |
+| `zone_lane_depth` | how far each lane sits forward or back of its neighbours. `0.22` |
+| `mark_level_floor` | the smallest gap from a man's exact height, as a share of `mark_shoulder`. `0.55`. **The last word against a parallel pair** |
+| `leash_band_fraction` | how far a player may stray from their slot, as a fraction of their roam band. `0.45`. A flat pixel count was the cage nobody was blaming |
+
+### Nobody is bobbing — the block follows the ball
+
+**"Why are they moving up and down when they don't have the ball?"** Because
+the only thing moving them was a sine wave. A player with no job walked a slow
+circle round their slot, and twenty-two slow circles is a pitch of people
+fidgeting — motion with no reason behind it, which is exactly what it looks
+like from above.
+
+A real side off the ball is not still and is not fidgeting either. It moves as
+**one shape**, and it moves **because the ball moved**: the block slides across
+when the ball goes wide and steps up when it goes forward. Every player is
+walking somewhere for a reason and it is the same reason for all ten of them.
+
+| Tuning row | |
+|---|---|
+| `block_follow` | how much of the way toward the ball the whole shape slides. `0.34`. **This is why a player off the ball is moving at all.** `0` holds the shape rigid and puts the aimless wandering back; past `0.6` the whole side chases the ball |
+| `block_depth_share` | how much of that slide is forward and back rather than across. `0.45` — a line shifts sideways far more readily than it changes its depth |
+| `drift_updown` | how much of a player's own sway is up and down. `0.22`. **The row that stopped the bobbing for good** |
+| `drift_reach` / `drift_pace` | how far and how quickly they wander on top of all that |
+
+### The shot, and the huddle that is not there any more
+
+**"Don't clump everyone together when the Tier IV is about to shoot."** The
+break had one rule for all ten: every player on the scoring side closed the
+same fraction of the distance to the same goal mouth. Ten people converging on
+one point is a heap however much you fan it out afterwards.
+
+A real side breaking has two jobs going at once:
+
+- **the runners** — the `surge_runners` nearest the goal attack the box, and
+  they attack **different parts** of it: near post, far post, the penalty
+  spot, the edge for the cut-back. Each has a station of its own and no two
+  share one.
+- **the rest** push up to support and hold their shape. They do not follow the
+  ball into the area; they are the reason there is somebody to pass back to.
+
+| Tuning row | |
+|---|---|
+| `surge_runners` | how many actually run into the box. `3` — a striker and two arriving. `10` puts the heap back |
+| `surge_rest_share` | how much of the runners' advance everybody else makes. `0.30` |
+| `recover_closers` | how many defenders go and close the ball down. `2`. The rest drop off and keep their spacing |
+| `surge_advance` / `surge_centring` / `surge_spread` | how far forward, how far in, and how wide the runners' arc is |
+
+> `tools/shape_check.gd` is the test, and it reports **per phase** — ordinary
+> play, the break, and the restart — because one average over a whole match
+> hides the two moments that were actually complained about. It also prints
+> how many squares of the pitch anybody stood in and how close anyone came to
+> each touchline and each goal.
+>
+> Measured over the same match: glued pairs went from **2.1–2.9 on average
+> (10 at the worst moment)** to **0.5–1.4 (3–7)**; the width of the pitch used
+> at any one moment from **72–76%** to **79–85%**; and somebody now gets
+> within 20 pixels of both touchlines and 17 of a goal.
+>
+> `tools/formation_shot.gd` photographs the same thing from the stand. Use
+> both: the numbers say whether it got better, the pictures say whether it
+> looks right.
+
 ### Before the whistle — the team sheet and START
 
 A match no longer begins the instant the screen changes. There is a beat:
@@ -401,6 +530,13 @@ when you are ready."* Reading six Stars' abilities takes longer than 2.6
 seconds and always will. `team_sheet_hold` is `false` if you would rather it
 ran on by itself.
 
+**Hover a Star and read it properly.** The lines under a Star are cut to fit
+three of them across a screen, and a card with two long abilities never will
+fit there. Put the mouse on the portrait and a panel opens beside it with
+**both** abilities in full — or the word **None**, which is itself worth
+knowing before kick-off. It flips to the other side of the portrait when there
+is no room, so the right-hand column works too.
+
 **The bar is honest when it can be.** It follows whichever is further along —
 the real loading or the clock — so it never stalls on a fast machine and never
 lies on a slow one.
@@ -425,6 +561,7 @@ files in `assets/team/`.
 | `team_sheet_hold` | `true` and the sheet waits for START instead of running on when the bar is full. **`true` out of the box** |
 | `team_sheet_stars` | how many Stars a side. `3`. The one actually playing is always first |
 | `team_sheet_abilities` | `false` prints the Stars' names without what they do |
+| `team_sheet_hover` | `false` turns off the hover panel described below |
 | `kickoff_needs_button` | `false` and the countdown starts by itself — for a demo or a stream |
 | `team_crest_fallback` | the crest for a class with no Banner Art. `banner_normal_team` |
 
@@ -711,6 +848,68 @@ answered, so a `reveal` ability should target its own side.
 > `xvfb-run` — photographs one card that has a reveal ability beside one that
 > does not.
 
+#### The card goes ON THE TABLE
+
+A reveal you cannot see is a rule, not a moment. So whatever has been played
+face up sits in a strip **above the row you are choosing from**, theirs on the
+left and yours on the right, each with its tier, its power, its defence and
+what its abilities do in plain words:
+
+```
+  +--------------------------------------------------------------+
+  |  THEY PLAYED IT FACE UP      |      YOU PLAYED IT FACE UP     |
+  |  Hexflame · Tier IV · P:4 D:4|  Cinderworks · Tier II · P:1   |
+  |  Attack — Called Shot. ...   |  Attack — Open Hand. ...       |
+  +--------------------------------------------------------------+
+        ( the four cards you are choosing from )
+```
+
+It shows one side, both sides, or — when nobody has revealed — it is not
+there at all. It is cleared at the end of every round.
+
+| Tuning row | |
+|---|---|
+| `reveal_strip` | `false` and a reveal is only a line in the announcement bar |
+| `reveal_strip_height` | how tall it is. `120` — two abilities in plain words need about this much |
+| `reveal_strip_inset` | how far in from each side of the window it stops. `220` |
+
+#### And the other side can show one too — `data/EnemyPlay.csv`
+
+**"Is there a simple solution to this without having to build a full AI?"**
+
+Yes, and it is the one board games have used for forty years. A boss in a
+board game has no AI; it has a **card with two or three lines on it** — *"if a
+hero is adjacent, attack the weakest; otherwise move toward the nearest"* —
+and you read the lines in order and do the first one that fits. It is
+completely predictable if you study it, and that is the point: the player's
+skill is learning to read it.
+
+So the opposition is a spreadsheet. The rows are read **from the lowest
+`Order` up, and the first one whose `When` is true is the one they use** —
+everything below it is ignored for that tier.
+
+| Column | |
+|---|---|
+| `Order` | read low to high. **First match wins**, so `always` belongs at the bottom |
+| `Style` | blank = every opponent. A word here matches the `Play Style` column of Teams.csv — that is how the side at the top of the pyramid plays differently from the one you open against |
+| `When` | `always`, `you_revealed`, `you_hid`, `attacking`, `defending`, `winning`, `losing`, `level`, `has_ability`, `tier:IV`, `round:3`, `flag:name`, `!flag:name` |
+| `Pick` | `random`, `strongest`, `weakest`, `counter`, `ability_first`, `no_ability` |
+| `Reveal` | `never`, `always`, `if_ability` (only when the card has a reveal ability to fire), `match` (only if you showed one first) |
+| `Do` | an effect run when the rule fires, in the same words as everywhere else. **`brew:fire` pours a brew on the card they just took** |
+
+**They reveal as they pick**, while the tier is still open — the whole value
+of knowing is that there is still a choice left to make with it.
+
+The last row of the file out of the box is `always / random / never`, which is
+exactly what the opposition did before the file existed. **Delete every other
+row and the game plays as it used to.**
+
+> `tools/enemy_play_check.gd` puts the same four cards in front of the rules
+> in every situation the columns can describe and prints which rule answered
+> and what it chose. **A rule that never appears in that list is a rule that
+> can never happen** — either its `When` is impossible or a row above it is
+> eating the same situations.
+
 #### The flip
 
 **The whole window turns over, not the two cards inside it.** The duel arrives
@@ -796,6 +995,95 @@ joining line.
 friendly.
 
 ---
+
+## 7b. The squad — tired players, and players you own
+
+Two systems that did not exist, both **off out of the box**, both one row away
+from being on. They are here because the story needs them: *"a new game starts
+with three Star Players"* and *"the players used in a match need to recover"*
+are both impossible to write while every card in your CSVs is yours forever
+and nobody ever needs a week off.
+
+### `data/Recovery.csv` — who is out next week
+
+A player named for a fixture comes out of it tired and sits out a number of
+**fixtures** that depends on their power. The better the player, the longer —
+so your best eleven cannot play every week, and **that is the whole reason to
+have a squad rather than a team**.
+
+**A fixture is anything that uses a squad**: a league match, a friendly, a cup
+tie, or a run in Adventure mode. Every one you play knocks one off everybody's
+rest — so going off to Adventure with four players is also how the other eight
+get their legs back. That is why the two modes want different numbers:
+
+| | |
+|---|---|
+| a match | a full squad — three of each Tier |
+| an Adventure run | **four**, one of each Tier |
+
+which is the `Squad Per Tier` column of MatchModes.csv.
+
+| Column of Recovery.csv | |
+|---|---|
+| `Power` | 0 to 5 |
+| `Turns` | fixtures out after playing one |
+
+Out of the box: powers 0 and 1 are back next week, 2 and 3 need one off, 4
+needs two, and **a power-5 Star is out for four fixtures**. A power with no row
+falls back to `recovery_turns_per_power` × its power, rounded up.
+
+The state lives in the save as ordinary counters (`rest_<card>`), so it
+survives a reload for free and you can read it in the save inspector. **A card
+is identified by name**, like everything else in the save.
+
+> ### It is OFF, and it should stay off for now
+>
+> `recovery` in Tuning.csv is `false`. A side is three players per tier and a
+> class in your CSVs has about three players per tier — so the moment anybody
+> needs a week off you cannot field eleven, and nor can you go to Adventure,
+> which needs one fit player per tier. There would then be no way to pass a
+> fixture and get anybody back. That is a dead end, not a difficulty curve.
+>
+> **Turn it on when a class has roughly twice a side in it — about six per
+> tier.** `tools/recovery_check.gd` answers that for your actual roster: it
+> plays six fixtures in a second and ends with a one-line verdict.
+
+### `sign:` — players you actually own
+
+`squad_ownership` in Tuning.csv, also `false` out of the box. While it is
+false every card in your CSVs is yours from the first minute, exactly as the
+game has always worked.
+
+Turn it on and only the cards a `sign:` effect has given you can be fielded:
+
+```
+sign:Müller;sign:Weber;sign:Koch      in any Effects column
+release:Müller
+```
+
+**Write the `sign:` rows now and turn the row on later.** While ownership is
+off, `sign:` still runs and still records the squad — it is simply not
+consulted. So the opening scene can be written, played and watched today, and
+the day it is finished you set one row to `true` and a new game starts with
+three players instead of everybody.
+
+> Turning it on **before** there is a scene that signs somebody starts a new
+> game with a squad of nobody. That is the only way to get this wrong.
+
+### The opening, in four rows
+
+The structure is in place for the story you described. None of it is written —
+these are the hooks, with skeletons in the spreadsheets to copy:
+
+| What | Where |
+|---|---|
+| **A new game gives you three Stars** | a `new_game` row in Progression.csv. `new_game` fires **once per save**, the first time the base is opened on a slot that has never been played |
+| **The first match is scripted — they pour a brew at Tier III** | the `tutorial_brew` row of EnemyPlay.csv. Its `When` is `flag:tutorial_match`, which the `new_game` row sets and the match-end row clears, so it happens in that one game and no other |
+| **Then the base, and learning to brew** | the ordinary Progression chain — `unlock:Brewery`, then buildings, ingredients and money gate what comes next |
+| **A season opens with the head coach** | the `Story` column of Seasons.csv names a Dialogue.csv scene, played **once**, the first time you open that competition. Write the side at the top of the pyramid into it and the last fixture has a face on it from the first |
+
+The three scene skeletons are in Dialogue.csv: `first_team`, `after_first_match`
+and `season_opening`. They say what belongs in them and nothing else.
 
 ## 8. Adventure mode
 
@@ -1108,7 +1396,7 @@ the same line that has always cleared them.
 
 ---
 
-## 9. `data/Tuning.csv` — 255 numbers
+## 9. `data/Tuning.csv` — 284 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -1119,7 +1407,7 @@ is not content lives here. Groups, by prefix:
 | `juice_` | 5 | how much shake, flash and slow-motion the whole game gets |
 | `card_` | 6 | card sizes |
 | `friendly_` | 3 | how a scratch opponent is matched to you |
-| everything else | ~145 | the match, the pitch, the menus, the economy |
+| everything else | ~174 | the match, the pitch, the menus, the economy |
 
 Rows worth knowing about:
 
@@ -1398,6 +1686,61 @@ purpose: the second number scores a player wandering round their patch exactly
 like a player vibrating on the spot, and the wandering is wanted.
 
 ```
+godot --headless --script res://tools/shape_check.gd
+```
+**Are they standing in pairs, and is anybody using the pitch?** Plays eighty
+seconds and prints **glued pairs** — two players from opposite sides both
+close together AND level with each other, which is the shape in the
+screenshot — plus how much of the pitch the shape covers at any one moment,
+the average gap to the nearest player, how often anybody leaves their own
+quarter, how many squares of the pitch anybody stood in, and how close anyone
+came to each touchline and each goal.
+
+**It reports all of that per phase as well** — ordinary play, the break, the
+restart — because one average over a whole match hides the two moments that
+were actually complained about, both of which are short.
+
+```
+godot --headless --script res://tools/enemy_play_check.gd
+```
+**Do the opposition's rules do what EnemyPlay.csv says?** Puts the same four
+cards in front of the rules in every situation the columns can describe and
+prints which rule answered and what it chose. A rule that never appears is a
+rule that can never happen.
+
+```
+godot --headless --script res://tools/recovery_check.gd
+```
+**Is your roster big enough for fatigue?** Plays six fixtures in a second,
+prints who is out and for how long each week, and ends with a verdict on
+whether to turn `recovery` on at all.
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/formation_shot.gd
+```
+The pitch from the stand, photographed every few seconds through ordinary
+waiting play. `shape_check` says whether it got better; this says whether it
+looks right.
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/reveal_shot.gd
+```
+The **strip above the card row**, with real cards on it. It only exists while
+something has been played face up, so this is the only way to look at it short
+of playing a match and hoping the right card comes up in the right tier.
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/sheet_hover_shot.gd
+```
+The team sheet's **hover panel**, opened by hand and photographed on the left
+column and on the right — a hover is the one thing an ordinary screenshot
+cannot catch, and the right-hand one has to flip to the other side of the
+portrait or it hangs off the screen.
+
+```
 godot --headless --script res://tools/clock_check.gd
 ```
 Fires every slow-motion moment in overlapping bursts and checks
@@ -1485,6 +1828,18 @@ that is almost always why.
 | **find out what words I am allowed to write** | `Keywords.csv`, or the **Keywords** page in the Workbench |
 | **write a card against an effect that is not built yet** | do it. Mark that word `planned` in `Keywords.csv` and the card loads and waits |
 | **see what the other side actually does** | **ENEMY TEAM DATA** on the team shelf, or **TEAM** on the match HUD |
+| **read one Star's abilities in full** | hover their portrait on the team sheet |
+| **change how the opposition plays** | `EnemyPlay.csv`. Order low to high, first match wins |
+| **give one opponent its own way of playing** | a word in the `Play Style` column of `Teams.csv`, and rows in `EnemyPlay.csv` with that `Style` |
+| **script something the enemy does in one match** | an `EnemyPlay.csv` row with `When: flag:yourflag` and a `Do` — `brew:fire` pours one on the card they just took |
+| **make players get tired** | `recovery` in `Tuning.csv`, and `Recovery.csv` for how long. Run `tools/recovery_check.gd` first |
+| **let Adventure go out with four players** | it already does — `Squad Per Tier` of `MatchModes.csv` |
+| **make the player own players rather than have them all** | `squad_ownership` in `Tuning.csv`, and `sign:Name` in an Effects column |
+| **give somebody three players at the start of a new game** | a `new_game` row in `Progression.csv` with `sign:` effects |
+| **play a scene when a season is opened** | the `Story` column of `Seasons.csv` |
+| **stop players bobbing about off the ball** | `block_follow` and `drift_updown` in `Tuning.csv` — section 7 |
+| **stop them standing in pairs** | `zone_lane_stagger` and `mark_level_floor`, and run `tools/shape_check.gd` |
+| **stop the huddle when somebody shoots** | `surge_runners` and `recover_closers` |
 | **turn the team sheet off** | `team_sheet` in `Tuning.csv` |
 | **stop the team sheet waiting for START** | `team_sheet_hold` in `Tuning.csv` |
 | **hide what the enemy Stars do before kick-off** | `team_sheet_abilities` in `Tuning.csv` |

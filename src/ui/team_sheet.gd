@@ -408,7 +408,28 @@ func _star_face(card: PlayerData) -> Control:
 	column.add_theme_constant_override("separation", 2)
 	column.custom_minimum_size = Vector2(150, 0)
 
-	column.add_child(MenuSupport.portrait_rect(card, db, Vector2(150, 150)))
+	# ============ HOVER IT AND READ IT PROPERLY ============
+	#
+	# The lines under a Star are cut to fit three of them across a screen. A
+	# card with two long abilities does not fit in that space and never will,
+	# so the portrait is also a hover: put the mouse on it and a panel opens
+	# beside it with BOTH abilities in full, or the word None.
+	#
+	# It is a Control over the portrait rather than a tooltip, because a
+	# tooltip cannot hold two wrapped paragraphs and cannot be styled to match
+	# the rest of the sheet.
+	var portrait := MenuSupport.portrait_rect(card, db, Vector2(150, 150))
+	var hover := Control.new()
+	hover.custom_minimum_size = Vector2(150, 150)
+	hover.mouse_filter = Control.MOUSE_FILTER_STOP
+	hover.tooltip_text = "Hover to read %s's abilities in full." % NamePlate.short_name(card)
+	# The card it belongs to, so tools/sheet_hover_shot.gd can photograph the
+	# panel without having to work out which portrait is whose.
+	hover.set_meta("card", card)
+	hover.mouse_entered.connect(_open_reader.bind(card, hover))
+	hover.mouse_exited.connect(_close_reader)
+	portrait.add_child(hover)
+	column.add_child(portrait)
 
 	var title := Label.new()
 	title.text = NamePlate.short_name(card)
@@ -435,6 +456,97 @@ func _star_face(card: PlayerData) -> Control:
 		if line != null:
 			column.add_child(line)
 	return column
+
+
+# =============================================================
+#  THE READER — one Star, both abilities, in full
+# =============================================================
+
+## The panel currently open, or null. One at a time, always.
+var _reader: PanelContainer = null
+
+
+func _open_reader(card: PlayerData, over: Control) -> void:
+	if db != null and not db.tune_bool("team_sheet_hover", true):
+		return
+	_close_reader()
+	if card == null or not is_instance_valid(over):
+		return
+
+	_reader = PanelContainer.new()
+	_reader.add_theme_stylebox_override("panel", MenuSupport.panel_style(
+		Color(0.05, 0.06, 0.09, 0.97), MenuSupport.COLOUR_ACCENT))
+	_reader.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_reader)
+
+	var pad := MarginContainer.new()
+	for side in ["margin_left", "margin_right"]:
+		pad.add_theme_constant_override(side, 14)
+	for side in ["margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(side, 10)
+	_reader.add_child(pad)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 4)
+	pad.add_child(column)
+
+	var title := Label.new()
+	title.text = card.player_name
+	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
+	column.add_child(title)
+
+	var stats := Label.new()
+	stats.text = "Tier %s   ·   Attack %d   ·   Defence %d" % [
+		card.get_tier_clean(), card.get_attack_power(), card.get_defense_power()]
+	stats.add_theme_font_size_override("font_size", 12)
+	stats.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+	column.add_child(stats)
+
+	# BOTH SIDES, ALWAYS, AND "NONE" WHEN THERE IS NOTHING. A blank where an
+	# ability should be reads as a bug; the word None reads as information,
+	# and "this one has no tricks" is worth knowing before kick-off.
+	for pair in [["Attack", card.active_attack_ability()],
+			["Defend", card.active_defend_ability()]]:
+		column.add_child(_reader_line(String(pair[0]), String(pair[1])))
+
+	# BESIDE THE PORTRAIT, and flipped to the other side when there is no room
+	# — the Stars on the right-hand column are close enough to the edge that a
+	# panel always opening rightward would hang off the screen.
+	_reader.reset_size()
+	await get_tree().process_frame
+	if not is_instance_valid(_reader) or not is_instance_valid(over):
+		return
+	var box := _reader.size
+	var at := over.get_global_rect()
+	var screen: Vector2 = get_viewport().get_visible_rect().size
+	var x := at.end.x + 12.0
+	if x + box.x > screen.x - 12.0:
+		x = at.position.x - box.x - 12.0
+	_reader.position = Vector2(
+		clampf(x, 12.0, maxf(12.0, screen.x - box.x - 12.0)),
+		clampf(at.position.y, 12.0, maxf(12.0, screen.y - box.y - 12.0)))
+
+
+func _close_reader() -> void:
+	if _reader != null and is_instance_valid(_reader):
+		_reader.queue_free()
+	_reader = null
+
+
+func _reader_line(side: String, ability_id: String) -> Label:
+	var line := Label.new()
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.custom_minimum_size = Vector2(320, 0)
+	line.add_theme_font_size_override("font_size", 12)
+	var clean := ability_id.strip_edges()
+	var ability: AbilityData = db.abilities.get(clean.to_lower()) if db != null and clean != "" else null
+	if ability == null:
+		line.text = "%s — None." % side
+		line.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+		return line
+	line.text = "%s — %s. %s" % [side, ability.display_name, ability.plain()]
+	return line
 
 
 ## One ability in plain words, out of Abilities.csv. Null when the card has

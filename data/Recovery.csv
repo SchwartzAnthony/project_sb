@@ -1,0 +1,7 @@
+Power,Turns,Notes
+0,1,"HOW LONG A PLAYER IS OUT AFTER PLAYING, by their power. A FIXTURE is anything that uses a squad - a league match, a friendly, a cup tie, or a run in Adventure mode - so going off to Adventure with four players is also how the other eight get their legs back. Power 0 is a squad player: back next week"
+1,1,"Still back next week. The first two rows being the same is what makes a bench worth having - your weakest players are the ones who can play every fixture"
+2,2,"One fixture off. From here up, a player cannot play two in a row"
+3,2,"Still two. The jump is at 4 on purpose, so Tier III and Tier IV do not feel identical"
+4,3,"Your good ones need a fixture and a half off, in effect. Three fixtures is a match, a bounty and a match"
+5,4,"YOUR BEST PLAYER. Four fixtures out. A Star you field every single week is a Star you are not fielding - and that is the decision this whole file exists to create. Lower it if the squad feels too thin, raise it if your best eleven is playing every game"

@@ -176,6 +176,13 @@ static var _moaned: Dictionary = {}
 
 
 func _play_once(cue: Dictionary) -> void:
+	# NO VOICES, NO SOUND, NO CRASH. The pool is built when the director
+	# enters the tree, and there are two ways it can be empty when a cue
+	# arrives: a headless run with no audio server (every tool in tools/),
+	# and the handful of frames before the director is ready. Neither is a
+	# reason to take the game down over a sound effect.
+	if _voices.is_empty():
+		return
 	var voice := _voices[_next_voice]
 	_next_voice = (_next_voice + 1) % _voices.size()
 

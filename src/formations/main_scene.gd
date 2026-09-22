@@ -183,8 +183,58 @@ var press_helpers: int = 2
 var press_speed: float = 92.0
 ## How far goal-side of his man a marker stands.
 var mark_distance: float = 54.0
+## And how far off his shoulder, so a marker is never level with his man.
+var mark_shoulder: float = 74.0
+## How far toward his man a defender actually commits. 1 = man-marking and
+## glued pairs; 0.5 = zonal, the man is a lean on top of his own position.
+var mark_commitment: float = 0.5
+## How far past his man the ball must travel before a marker changes shoulder.
+## Small numbers flip the marker back and forth and read as a shake.
+var mark_swap_gap: float = 90.0
+## How far a marker keeps shifting about on top of that. Never parked.
+var mark_drift: float = 26.0
 ## How far an attacker breaks off its marker to show for the ball.
 var open_spread: float = 230.0
+## How far forward a player breaks when showing for the pass.
+var open_break: float = 120.0
+## And how far toward its own touchline. Using the width of the pitch.
+var open_width: float = 150.0
+
+# --- Moving about with nothing to do ---
+## How far a waiting player wanders from its slot, in pixels.
+var drift_reach: float = 110.0
+## How quickly. Small is slow — this is a walk, not a shuffle.
+var drift_pace: float = 0.17
+## How far a waiting side leans toward the ball's end of the pitch, 0..1.
+var drift_ball_lean: float = 0.16
+## How much of the way toward the ball the WHOLE SHAPE slides. The reason a
+## player off the ball is moving at all.
+var block_follow: float = 0.34
+## How much of that shift is forward and back rather than across. A line
+## shifts sideways far more readily than it changes its depth.
+var block_depth_share: float = 0.45
+## How much of the personal sway is up and down rather than across. Small:
+## the up-and-down was the part that read as bobbing.
+var drift_updown: float = 0.22
+## How long everybody converges on the man a goal kick is aimed at.
+var goal_kick_converge_seconds: float = 2.6
+## How wide a surging side fans out instead of piling onto the goal mouth.
+var surge_spread: float = 210.0
+## How many of a breaking side actually run into the box. The rest push up
+## and hold the shape.
+var surge_runners: int = 3
+## How much of the runners' advance the players holding the shape make.
+var surge_rest_share: float = 0.30
+## How many defenders close the ball down while the other side breaks. The
+## rest drop off and keep their spacing.
+var recover_closers: int = 2
+## The smallest gap a marker may end up at from his man's exact height, as a
+## share of `mark_shoulder`. The last word against a pair standing level.
+var mark_level_floor: float = 0.55
+## How far a player may wander from their slot, as a fraction of their roam
+## band. The leash used to be a flat pixel count that was smaller than a
+## quarter, which caged everybody underneath the zones.
+var leash_band_fraction: float = 0.45
 ## The faint Tier colouring painted on the grass.
 var zone_overlay: ZoneOverlay = null
 
@@ -222,6 +272,14 @@ var restart_hold: bool = false
 ## the kick, and lifting it before the kick is what put two players back on
 ## top of the keeper.
 var restart_receiver: PlayerUnit = null
+## ============ EVERYBODY GOES WITH THE KICK ============
+## The man a goal kick is aimed at, and the moment the whole pitch stops
+## converging on him. Both sides break toward him — his own to support, the
+## other to intercept — for `goal_kick_converge_seconds`, then the ordinary
+## rules take over again. A window rather than a state, so nothing has to
+## remember to switch it off.
+var converge_on: PlayerUnit = null
+var converge_until: float = -1.0
 
 ## The team sheet and START gate in front of the kick-off. Freed once START
 ## is pressed; null for the rest of the match.
@@ -241,6 +299,9 @@ var surge_centring: float = 0.35
 ## Free-running seconds, used only for idle drift. Unlike the match clock this
 ## keeps ticking while play is stopped.
 var _anim_clock: float = 0.0
+## The ball's x, eased. What a waiting line leans on, so a relay hop moves the
+## shape smoothly instead of jolting it. INF until the first frame with a ball.
+var _ball_lean_x: float = INF
 
 # Team state
 ## Tier -> the three regulars picked in the team builder. Empty means
@@ -536,6 +597,24 @@ func _physics_process(delta: float) -> void:
 	# we are trying to get rid of.
 	_anim_clock += delta
 
+	# ============ A SMOOTHED BALL POSITION FOR THE LINE TO LEAN ON ============
+	#
+	# The waiting side leans toward the ball's end of the pitch — see
+	# _drift_point(). It cannot lean on the ball's REAL position, because
+	# during a relay the ball is handed from player to player and jumps
+	# hundreds of pixels between one frame and the next. Every waiting player
+	# would about-turn at every hop, which is the whole side twitching, and it
+	# is exactly the sort of shake this round is supposed to be removing.
+	#
+	# So it eases toward the ball instead: the line drifts up and back the way
+	# a real one does, and a hop in the ball is a lean rather than a jolt.
+	if ball != null and is_instance_valid(ball):
+		if is_inf(_ball_lean_x):
+			_ball_lean_x = ball.global_position.x
+		else:
+			_ball_lean_x = lerpf(_ball_lean_x, ball.global_position.x,
+				clampf(delta * 1.2, 0.0, 1.0))
+
 	# The quarters brighten while you are choosing and fade back once play
 	# restarts — loud exactly when they are useful.
 	if zone_overlay != null:
@@ -567,14 +646,28 @@ func _assign_roles() -> void:
 				unit.set_role(PlayerUnit.Role.RECEIVE, ball.global_position,
 					unit.chase_speed)
 				continue
-			# ============ HOME, THEN WANDER ============
+			# ============ HOME, THEN WANDER — ONCE ============
 			#
 			# Walking to a fixed point and then standing on it for two seconds
 			# is eleven statues waiting for a whistle. Once a player is back in
 			# their own area they are given the ordinary wandering point
 			# instead, so the pitch is alive while the keeper has the ball —
 			# they are just not allowed to come and take it off him.
-			if unit.global_position.distance_to(unit.home_position) <= slack:
+			#
+			# THE `settled` FLAG IS THE IMPORTANT PART, and leaving it out cost
+			# me an afternoon. Asking "am I within `slack` of home" every frame
+			# is a switch that flips both ways: a player arrives, is handed a
+			# wandering point three hundred pixels away, walks toward it, leaves
+			# the slack circle, is sent home again, arrives, is handed another
+			# wandering point... and so on, sixty times a second, for the whole
+			# restart. That is not a wander, it is a player vibrating on the
+			# edge of a circle.
+			#
+			# Once home, they STAY in wandering mode until the next restart.
+			if not unit.restart_settled \
+					and unit.global_position.distance_to(unit.home_position) <= slack:
+				unit.restart_settled = true
+			if unit.restart_settled:
 				unit.set_role(PlayerUnit.Role.HOLD, _drift_point(unit), unit.walk_speed)
 			else:
 				unit.set_role(PlayerUnit.Role.HOLD, unit.home_position,
@@ -612,6 +705,17 @@ func _assign_roles() -> void:
 			unit.set_role(PlayerUnit.Role.RECEIVE, ball.global_position, unit.chase_speed)
 			continue
 
+		# ============ THE GOAL KICK GOES UP AND EVERYBODY GOES WITH IT ============
+		#
+		# For a couple of seconds after the keeper launches one, the whole
+		# pitch breaks toward the man it is aimed at — his side to support
+		# him, theirs to get there first — instead of standing and watching
+		# the ball travel. See _goal_kick().
+		var converge := _converge_target(unit)
+		if converge != Vector2.INF:
+			unit.set_role(PlayerUnit.Role.BALL, converge, unit.chase_speed)
+			continue
+
 		# THE BREAK. Everyone on the scoring side abandons their quarter and
 		# runs at the goal together, so the shot arrives at the end of a move
 		# rather than out of nowhere.
@@ -627,8 +731,13 @@ func _assign_roles() -> void:
 			continue
 
 		# The ball is in MY quarter and it is not my team's — go and win it.
+		# `claims_x`, not `contains_x`. The roam band is 60% of the pitch, so
+		# asking it "is this ball in my territory" meant a ball in the centre
+		# circle belonged to four Tiers at once and six players set off for it.
+		# The claim band is a third of the pitch and it is a different question
+		# — see pitch_zones.gd.
 		var mine_to_win := side != unit_side and unit.steal_cooldown <= 0.0 \
-			and zones.contains_x(tier, unit.is_enemy, ball.global_position) \
+			and zones.claims_x(tier, unit.is_enemy, ball.global_position) \
 			and unit.global_position.distance_to(focus) < reach
 		if mine_to_win:
 			unit.set_role(PlayerUnit.Role.BALL, ball.global_position, unit.chase_speed)
@@ -724,8 +833,58 @@ func _ball_corridor() -> Rect2:
 		float(last - first + 1) * width, play.size.y)
 
 
-## Stand between your man and the goal you are defending — but leashed, so
-## marking cannot drag a whole tier out of position across the pitch.
+## ============ WHERE ONE PLAYER RUNS DURING A GOAL KICK ============
+##
+## Vector2.INF means "the window is shut, carry on as normal" — a sentinel
+## rather than a second flag to keep in step.
+##
+## They do not all run at the same square metre, which would be the clumping
+## problem again in a new hat. The man it is aimed at is the CENTRE and
+## everyone takes a place around him: his own side spread out behind and
+## beside him to receive a knock-down, the other side in front of him between
+## the ball and their goal.
+func _converge_target(unit: PlayerUnit) -> Vector2:
+	if converge_on == null or not is_instance_valid(converge_on):
+		return Vector2.INF
+	if _anim_clock > converge_until:
+		converge_on = null
+		return Vector2.INF
+	if unit == converge_on:
+		return Vector2.INF
+
+	var at := converge_on.global_position
+	var mine := unit.is_enemy == converge_on.is_enemy
+	# Their side gets between him and the goal he is running at; his side
+	# comes to support from behind and beside.
+	var forward := 1.0 if not converge_on.is_enemy else -1.0
+	var along := (26.0 if mine else 74.0) * (-forward if mine else forward)
+
+	# A fan, so ten people arriving do not arrive on one spot. Each player
+	# keeps their own slice of the circle for the whole window.
+	var slice := float(int(unit.get_instance_id()) % 7) / 7.0 * TAU
+	var ring := 86.0 + float(int(unit.get_instance_id()) % 3) * 44.0
+	var spot := at + Vector2(along, 0.0) + Vector2(cos(slice), sin(slice)) * ring
+	return unit.leash_point(spot)
+
+
+## ============ MARKING SOMEBODY WITHOUT STANDING ON THEM ============
+##
+## This is what made the two sides look glued together, and it was one line:
+## the marker stood `mark_distance` toward its own goal from its man, measured
+## along a vector from the man to a point AT THE MAN'S OWN HEIGHT. That vector
+## is perfectly horizontal, so the marker parked itself at exactly the man's
+## eye level, every frame, for the whole match. Twenty-two players in eleven
+## perfect horizontal pairs.
+##
+## A real defender stands GOAL-SIDE and OFF ONE SHOULDER, and never stops
+## adjusting. So now:
+##
+##   * goal-side by `mark_distance` as before,
+##   * plus a sideways offset of its own, so the pair is never level,
+##   * plus a slow personal drift, so nobody is ever parked,
+##   * and the shoulder they stand off is decided by where the BALL is, which
+##     means the marker shifts as play moves — the thing that reads as
+##     defending rather than as standing.
 func _mark_point(unit: PlayerUnit) -> Vector2:
 	var man := unit.mark_target
 	if man == null or not is_instance_valid(man):
@@ -733,12 +892,83 @@ func _mark_point(unit: PlayerUnit) -> Vector2:
 
 	var rect := get_play_rect()
 	var own_goal_x: float = rect.position.x if not unit.is_enemy else rect.end.x
-	var toward_goal := (Vector2(own_goal_x, man.global_position.y) - man.global_position).normalized()
-	return unit.leash_point(man.global_position + toward_goal * mark_distance)
+	var goal_side := signf(own_goal_x - man.global_position.x)
+
+	# ---- which shoulder ----
+	#
+	# The one the ball is on, so the defender stands between his man and the
+	# play. It is REMEMBERED on the unit and only changed once the ball is
+	# clearly on the other side (`mark_swap_gap`). Worked out fresh every
+	# frame, a ball drifting across the marked man's exact height flips the
+	# side sixty times a second and throws the marker back and forth — a shake
+	# of my own making.
+	if is_zero_approx(unit.mark_side):
+		unit.mark_side = 1.0 if (int(unit.get_instance_id()) % 2 == 0) else -1.0
+	if ball != null and is_instance_valid(ball):
+		var above := ball.global_position.y - man.global_position.y
+		if absf(above) > mark_swap_gap and not is_equal_approx(signf(above), unit.mark_side):
+			unit.mark_side = signf(above)
+	var shoulder := unit.mark_side
+
+	var phase := float(unit.get_instance_id() % 100) * 0.37
+	var spot := man.global_position
+	spot.x += goal_side * mark_distance
+	spot.y += shoulder * mark_shoulder
+
+	# ============ MARKING A ZONE, NOT A MAN ============
+	#
+	# `mark_commitment` is how far from their own position toward their man a
+	# defender actually goes. At 1.0 they follow him everywhere, which is
+	# where the glued pairs came from: two players locked together wandering
+	# the pitch as one object. At 0.5 the defender's OWN slot is still the
+	# bigger half of the decision and the man is a lean — which is zonal
+	# marking, and what an autobattler at this zoom should be showing.
+	spot = unit.home_position.lerp(spot, clampf(mark_commitment, 0.0, 1.0))
+
+	# Never parked: a slow wander on top of the marking spot, wider across
+	# than up and down so it does not fight the shoulder offset.
+	spot += Vector2(
+		sin(_anim_clock * 0.31 + phase) * mark_drift,
+		cos(_anim_clock * 0.23 + phase) * mark_drift * 0.45)
+	return unit.leash_point(_never_level(spot, man.global_position, unit.mark_side))
 
 
-## Show for the pass: get off whoever is nearest and drift a little the way
-## your team is attacking, without abandoning your lane.
+## ============ AND NEVER, EVER DEAD LEVEL ============
+##
+## "Don't have them be this parallel to each other."
+##
+## Every rule above pushes a marker off his man's shoulder, and every one of
+## them is a lerp or a sum, so every one of them can land back on nought.
+## Commit half way toward a man who is a shoulder's width above you and you
+## are half a shoulder above him; average that with a drift that happens to be
+## pointing down and you are level with him again. Not often — but on a pitch
+## of twenty-two, often enough that there is always a pair of them somewhere,
+## and a pair standing dead level is the thing that reads as glued.
+##
+## So the last word belongs to a floor: if a marker has ended up within
+## `least` pixels of his man's exact height, he is moved out to `least` on the
+## shoulder he had already chosen. It costs nothing when the offsets did their
+## job, which is nearly always.
+func _never_level(spot: Vector2, man: Vector2, side: float) -> Vector2:
+	var least := mark_shoulder * mark_level_floor
+	if least <= 0.0:
+		return spot
+	var gap := spot.y - man.y
+	if absf(gap) >= least:
+		return spot
+	var push := signf(gap) if not is_zero_approx(gap) else signf(side)
+	if is_zero_approx(push):
+		push = 1.0
+	return Vector2(spot.x, man.y + push * least)
+
+
+## ============ SHOWING FOR THE PASS ============
+##
+## Get off whoever is nearest, break the way your side is attacking, and — the
+## part that was missing — GO WIDE. Nobody ever went near a touchline because
+## every target was clamped into a narrow band and the only offset here was 45
+## pixels forward. A side that never uses the width of the pitch plays every
+## move through the middle, which is exactly what it looked like.
 func _open_point(unit: PlayerUnit) -> Vector2:
 	var nearest_foe: PlayerUnit = null
 	var best := INF
@@ -753,7 +983,19 @@ func _open_point(unit: PlayerUnit) -> Vector2:
 	var spot := unit.home_position
 	if nearest_foe != null and best < open_spread * 1.6:
 		spot += (unit.global_position - nearest_foe.global_position).normalized() * open_spread
-	spot.x += (1.0 if not unit.is_enemy else -1.0) * 45.0
+
+	# Forward, the way this side attacks.
+	spot.x += (1.0 if not unit.is_enemy else -1.0) * open_break
+
+	# AND WIDE. Whichever touchline this player is already nearer, pushed
+	# toward it — so a move has somebody on the wing to find.
+	var play := get_play_rect()
+	var middle := play.position.y + play.size.y * 0.5
+	var out := signf(unit.home_position.y - middle)
+	if is_zero_approx(out):
+		out = 1.0 if int(unit.get_instance_id()) % 2 == 0 else -1.0
+	spot.y += out * open_width
+
 	return unit.leash_point(spot)
 
 
@@ -774,13 +1016,93 @@ func _surge_point(unit: PlayerUnit) -> Vector2:
 	if unit.is_enemy:
 		line_x = mouth.x + edge
 
-	var spot := Vector2(
-		lerpf(unit.home_position.x, line_x, surge_advance),
-		lerpf(unit.home_position.y, mouth.y, surge_centring))
+	# ============ NOT EVERYBODY RUNS INTO THE BOX ============
+	#
+	# "Don't clump everyone together when the Tier IV is about to shoot, that
+	# is super unnatural."
+	#
+	# It was, and the reason was that the break had one rule for all ten: every
+	# player on the scoring side closed the same fraction of the distance to
+	# the same goal mouth. Ten people converging on one point is a heap however
+	# much you fan it out afterwards.
+	#
+	# A real side breaking has two jobs going at once:
+	#
+	#   THE RUNNERS   the few nearest players attack the box, and they attack
+	#                 DIFFERENT PARTS of it — near post, far post, the spot,
+	#                 the edge for the cut-back. Each one has a station of its
+	#                 own and no two share one.
+	#   THE REST      push up to support and hold their shape. They do not
+	#                 follow the ball into the area; they are the reason there
+	#                 is somebody to pass back to.
+	#
+	# `surge_runners` is how many go. Three is a striker and two arriving.
+	var station := _surge_station(unit)
+	var middle := rect.position.y + rect.size.y * 0.5
+	var spot := Vector2.ZERO
+
+	if station >= 0:
+		# ---- A RUNNER. Its own station around the box, nobody else's. ----
+		#
+		# Measured off the goal mouth: across the face of the goal by
+		# `surge_spread` and back off it by a share of the same, so the four
+		# stations make an arc rather than a line.
+		var arc: Array[Vector2] = [
+			Vector2(0.06, -0.62),   # near post
+			Vector2(0.02, 0.64),    # far post
+			Vector2(0.16, 0.00),    # the penalty spot
+			Vector2(0.30, -0.30),   # the edge, for the cut-back
+			Vector2(0.30, 0.34),    # and the other side of it
+		]
+		var pick: Vector2 = arc[station % arc.size()]
+		var forward := -1.0 if not unit.is_enemy else 1.0
+		spot = Vector2(
+			mouth.x + forward * (edge * 0.4 + rect.size.x * pick.x),
+			mouth.y + pick.y * surge_spread * 1.35)
+	else:
+		# ---- THE REST. Push the line up; keep the lane you are in. ----
+		#
+		# A quarter of the advance the runners make and NO centring at all, so
+		# the shape behind the ball stays a shape.
+		spot = Vector2(
+			lerpf(unit.home_position.x, line_x, surge_advance * surge_rest_share),
+			unit.home_position.y)
+		# The line squeezes toward the middle a little, the way a side does
+		# when it commits — but only a little, and out of its own lane.
+		spot.y = lerpf(spot.y, middle, surge_centring * 0.35)
+
+	# A slow shuffle on top, so a waiting forward is not a statue in the box.
+	var phase := float(unit.get_instance_id() % 100) * 0.37
+	spot += Vector2(
+		sin(_anim_clock * 0.5 + phase) * 28.0,
+		cos(_anim_clock * 0.41 + phase) * 22.0)
 
 	return Vector2(
 		clampf(spot.x, rect.position.x + 20.0, rect.end.x - 20.0),
 		clampf(spot.y, rect.position.y + 24.0, rect.end.y - 24.0))
+
+
+## Which station around the box this player is running to, or -1 for "you are
+## not one of the runners, hold the shape".
+##
+## Worked out by ORDER OF NEARNESS TO THE GOAL, and worked out fresh, so the
+## players who were already furthest forward are the ones who go — which is
+## what makes the front players the ones in the box and the back players the
+## ones holding. It is stable while the break lasts because their positions
+## barely change relative to each other over two seconds.
+func _surge_station(unit: PlayerUnit) -> int:
+	var forward := 1.0 if not unit.is_enemy else -1.0
+	var ahead: Array[PlayerUnit] = []
+	for other in _all_units():
+		if other.is_enemy != unit.is_enemy:
+			continue
+		ahead.append(other)
+	ahead.sort_custom(func(a: PlayerUnit, b: PlayerUnit) -> bool:
+		return a.global_position.x * forward > b.global_position.x * forward)
+	var place := ahead.find(unit)
+	if place < 0 or place >= maxi(0, surge_runners):
+		return -1
+	return place
 
 
 ## Where a defender drops back to while the other side breaks: goal-side of
@@ -790,6 +1112,21 @@ func _recover_point(unit: PlayerUnit) -> Vector2:
 	var rect := get_play_rect()
 	var own_goal_x: float = rect.position.x if not unit.is_enemy else rect.end.x
 
+	# ============ TWO OF THEM GO, THE REST DROP OFF ============
+	#
+	# Every defender used to be sent to a point `mark_distance` goal-side of
+	# his man, dead level with him and with no give in it at all — so the
+	# instant a break started, the whole defence snapped into pairs with the
+	# whole attack. It was the glued look at its very worst, at the one moment
+	# you are certain to be watching.
+	#
+	# A defence under a break does what a defence does: the nearest one or two
+	# go and close the ball down, everybody else drops off, stays goal-side,
+	# and holds the distance between them.
+	if _is_closest_to_ball(unit, recover_closers):
+		return ball.arrival_point() if ball != null and is_instance_valid(ball) \
+			else unit.home_position
+
 	var man := unit.mark_target
 	if man == null or not is_instance_valid(man):
 		# Nobody to track — fall back toward your own goal and hold the line.
@@ -797,11 +1134,43 @@ func _recover_point(unit: PlayerUnit) -> Vector2:
 			lerpf(unit.home_position.x, own_goal_x, surge_advance * 0.6),
 			unit.home_position.y)
 
-	var toward_goal := (Vector2(own_goal_x, man.global_position.y) - man.global_position).normalized()
-	var spot := man.global_position + toward_goal * mark_distance
+	# Goal-side of the man AND off one shoulder, and only `mark_commitment` of
+	# the way there from where this defender already belongs — the same zonal
+	# rule the ordinary marking uses, rather than a second, stricter one that
+	# only comes out when it shows most.
+	var goal_side := signf(own_goal_x - man.global_position.x)
+	if is_zero_approx(unit.mark_side):
+		unit.mark_side = 1.0 if (int(unit.get_instance_id()) % 2 == 0) else -1.0
+	var spot := man.global_position
+	spot.x += goal_side * mark_distance
+	spot.y += unit.mark_side * mark_shoulder
+	# Drop TOWARD THE OWN GOAL, not toward the slot: a defence under pressure
+	# retreats, it does not hold its kick-off line.
+	var dropped := Vector2(
+		lerpf(unit.home_position.x, own_goal_x, surge_advance * 0.5),
+		unit.home_position.y)
+	spot = dropped.lerp(spot, clampf(mark_commitment, 0.0, 1.0))
+	spot = _never_level(spot, man.global_position, unit.mark_side)
 	return Vector2(
 		clampf(spot.x, rect.position.x + 20.0, rect.end.x - 20.0),
 		clampf(spot.y, rect.position.y + 24.0, rect.end.y - 24.0))
+
+
+## Is this unit one of the `how_many` on its side nearest the ball? Used to
+## decide who goes and who holds, in the two places where "everybody goes"
+## turned into a heap.
+func _is_closest_to_ball(unit: PlayerUnit, how_many: int) -> bool:
+	if how_many <= 0 or ball == null or not is_instance_valid(ball):
+		return false
+	var at := ball.arrival_point()
+	var mine: Array[PlayerUnit] = []
+	for other in _all_units():
+		if other.is_enemy == unit.is_enemy:
+			mine.append(other)
+	mine.sort_custom(func(a: PlayerUnit, b: PlayerUnit) -> bool:
+		return a.global_position.distance_to(at) < b.global_position.distance_to(at))
+	var place := mine.find(unit)
+	return place >= 0 and place < how_many
 
 
 ## Called when the last duel is settled. `side_is_enemy` is whoever won it and
@@ -815,11 +1184,74 @@ func _end_surge() -> void:
 	attack_surge_side = -1
 
 
+## ============ WHAT A PLAYER DOES WHEN NOTHING IS HAPPENING ============
+##
+## This was a small circle: 34 pixels across and 46 up and down, at a fixed
+## rate, centred on the player's slot. Twenty-two people bobbing up and down
+## on the spot — which is exactly what it looked like, and the up-and-down was
+## the bigger of the two numbers, which is why the bobbing was vertical.
+##
+## A player with nothing to do in a real match DOES NOT vibrate on a spot.
+## They walk about: a few strides one way, a look around, a few strides back,
+## mostly sideways to sideways rather than up and down, over a patch far
+## bigger than their own bootprint.
+##
+## So the drift is now:
+##
+##   * WIDE — `drift_reach` across, and wider still across the pitch than up
+##     and down it, because a footballer shuffles across their line;
+##   * SLOW — `drift_pace` is about a third of the old rate, so a stride takes
+##     a couple of seconds instead of a couple of frames;
+##   * IRREGULAR — three waves at unrelated rates rather than one circle, so
+##     no two players ever trace the same shape and nobody loops;
+##   * and pulled gently toward the ball's end of the pitch, so a whole side
+##     shifts up and back with the play the way a real line does.
 func _drift_point(unit: PlayerUnit) -> Vector2:
-	var phase := float(unit.get_instance_id() % 100) * 0.06
-	return unit.leash_point(unit.home_position + Vector2(
-		sin(_anim_clock * 0.5 + phase) * 34.0,
-		cos(_anim_clock * 0.37 + phase) * 46.0))
+	var phase := float(unit.get_instance_id() % 100) * 0.37
+	var pace := drift_pace
+
+	# ============ THE BLOCK MOVES, THE PLAYER BARELY DOES ============
+	#
+	# "Why are they moving up and down when they don't have the ball?"
+	#
+	# Because the only thing moving them WAS a sine wave. A player with no job
+	# walked a slow circle round their slot, and twenty-two slow circles is a
+	# pitch of people fidgeting — motion with no reason behind it, which is
+	# exactly what it looks like from above.
+	#
+	# A real side off the ball is not still and is not fidgeting either. It
+	# moves as ONE SHAPE, and it moves because the ball moved: the whole block
+	# slides across when the ball goes wide and steps up when it goes forward.
+	# Every player is walking somewhere for a reason, and the reason is the
+	# same reason for all ten of them.
+	#
+	# So the drift is now mostly `block_follow_*` — the shape sliding after the
+	# ball — with a small personal sway on top for life. The sway is a third of
+	# what it was and the VERTICAL sway is smaller again, because the up-and-
+	# down was the part that read as bobbing.
+	var spot := unit.home_position
+	if ball != null and is_instance_valid(ball) and block_follow > 0.0:
+		var at := ball.global_position
+		# Sideways with the ball, and forward/back with it. A defensive line
+		# shifts across the pitch far more readily than it changes its depth,
+		# which is why the two have separate rows.
+		spot.y += (at.y - unit.home_position.y) * block_follow
+		spot.x += (at.x - unit.home_position.x) * block_follow * block_depth_share
+
+	# The old lean is still here and still does its job: it is the part of the
+	# shift that survives while the ball is dead, when there is nothing to
+	# follow. The block above takes over the moment there is.
+	if not is_inf(_ball_lean_x) and drift_ball_lean > 0.0:
+		spot.x += (_ball_lean_x - unit.home_position.x) * drift_ball_lean
+
+	# A stride, not a circle: two unrelated rates across and a much smaller one
+	# up and down, so nobody loops and nobody bobs.
+	spot += Vector2(
+		sin(_anim_clock * pace + phase) * drift_reach
+			+ sin(_anim_clock * pace * 0.31 + phase * 1.7) * drift_reach * 0.55,
+		cos(_anim_clock * pace * 0.73 + phase) * drift_reach * drift_updown)
+
+	return unit.leash_point(spot)
 
 
 # =============================================================
@@ -976,7 +1408,27 @@ func _apply_match_tuning() -> void:
 	press_helpers = db.tune_int("press_helpers", press_helpers)
 	press_speed = db.tune_float("press_speed", press_speed)
 	mark_distance = db.tune_float("mark_distance", mark_distance)
+	mark_shoulder = db.tune_float("mark_shoulder", mark_shoulder)
+	mark_commitment = db.tune_float("mark_commitment", mark_commitment)
+	mark_swap_gap = db.tune_float("mark_swap_gap", mark_swap_gap)
+	mark_drift = db.tune_float("mark_drift", mark_drift)
 	open_spread = db.tune_float("open_spread", open_spread)
+	open_break = db.tune_float("open_break", open_break)
+	open_width = db.tune_float("open_width", open_width)
+	drift_reach = db.tune_float("drift_reach", drift_reach)
+	drift_pace = db.tune_float("drift_pace", drift_pace)
+	drift_updown = db.tune_float("drift_updown", drift_updown)
+	block_follow = db.tune_float("block_follow", block_follow)
+	block_depth_share = db.tune_float("block_depth_share", block_depth_share)
+	drift_ball_lean = db.tune_float("drift_ball_lean", drift_ball_lean)
+	goal_kick_converge_seconds = db.tune_float(
+		"goal_kick_converge_seconds", goal_kick_converge_seconds)
+	surge_spread = db.tune_float("surge_spread", surge_spread)
+	surge_runners = db.tune_int("surge_runners", surge_runners)
+	surge_rest_share = db.tune_float("surge_rest_share", surge_rest_share)
+	recover_closers = db.tune_int("recover_closers", recover_closers)
+	mark_level_floor = db.tune_float("mark_level_floor", mark_level_floor)
+	leash_band_fraction = db.tune_float("leash_band_fraction", leash_band_fraction)
 
 
 func _tune_ball() -> void:
@@ -1143,6 +1595,20 @@ func _pay_out_the_mode(outcome: String) -> void:
 		"  ·  ".join(paid)])
 
 
+## EVERY CARD OF YOURS THAT WAS ON THE PITCH, Stars included. Read off the
+## units rather than off the draft, because a player who was named and never
+## picked still played the match — they stood in the rain for ninety minutes
+## like everybody else.
+func _squad_that_played() -> Array:
+	var out: Array = []
+	for unit in _all_units():
+		if unit.is_enemy or unit.data == null:
+			continue
+		if not out.has(unit.data):
+			out.append(unit.data)
+	return out
+
+
 func _full_time() -> void:
 	match_time_minutes = MATCH_LENGTH_MINUTES
 	current_state = MatchState.FULL_TIME
@@ -1165,6 +1631,19 @@ func _full_time() -> void:
 	facts["conceded"] = str(enemy_score)
 	facts["margin"] = str(player_score - enemy_score)
 	_report("match_ended", facts)
+
+	# ============ WHO PLAYED, AND WHO IS OUT NEXT WEEK ============
+	#
+	# A fixture has been played, so everybody's rest comes down by one — and
+	# THEN the players who were actually named go out for theirs. That order
+	# matters: the other way round, a player would be let off a fixture of
+	# their own rest by the very match they were playing in.
+	#
+	# `recovery` in Tuning.csv turns the whole thing off and the squad is
+	# available every week, as it was.
+	if state != null and db.tune_bool("recovery", false):
+		RecoveryBook.advance_turn(state, db)
+		RecoveryBook.played(_squad_that_played(), state, db)
 
 	# One-match brews wear off at the whistle. Permanent ones stay on.
 	var brews_off := BrewDB.clear_temporary(state)
@@ -1590,6 +2069,20 @@ func _place_in_zone(unit: PlayerUnit, tier_key: String) -> void:
 		return
 	unit.tier_zone = zones.zone_for(tier_key, unit.is_enemy)
 	unit.tier_soft_zone = zones.soft_zone_for(tier_key, unit.is_enemy)
+
+	# ============ THE LEASH FOLLOWS THE BAND ============
+	#
+	# The leash used to be a flat 210 pixels whatever size the pitch was, and
+	# on a normal pitch that is less than half a quarter — so a player could
+	# not reach the edge of their OWN zone, never mind anyone else's. It was
+	# the real cage, quietly, underneath the zone that everyone was blaming.
+	#
+	# It is now a fraction of the roam band, so it scales with the pitch and
+	# with zone_roam: at the default a player may wander most of their band
+	# before anything reminds them where they live.
+	var band := unit.tier_soft_zone.size.x
+	if band > 1.0:
+		unit.leash = maxf(160.0, band * leash_band_fraction)
 
 
 ## Top of the pitch first. A plain insertion sort — the lists are three long.
@@ -2319,8 +2812,14 @@ func _lock_geometry() -> void:
 
 	zones = PitchZones.new(_locked_play_rect,
 		db.tune_float("zone_share", 0.25),
-		db.tune_float("zone_stretch", 0.33),
-		db.tune_float("zone_side_inset", 0.34))
+		# zone_roam REPLACES zone_stretch, and the old row is deliberately not
+		# consulted: a band a third of the pitch wide was the cage, so falling
+		# back to it would quietly put the cage back. See pitch_zones.gd.
+		db.tune_float("zone_roam", 0.60),
+		db.tune_float("zone_side_inset", 0.34),
+		db.tune_float("zone_lane_stagger", 0.5),
+		db.tune_float("zone_lane_depth", 0.22),
+		db.tune_float("zone_claim", 0.34))
 
 	if zone_overlay != null:
 		zone_overlay.visible = zones_enabled
@@ -2477,6 +2976,8 @@ func trigger_playmaker_event() -> void:
 	round_enemy_picks.clear()
 	# A card shown last round is not shown this one.
 	revealed_by_tier.clear()
+	enemy_revealed_by_tier.clear()
+	_clear_the_table()
 	round_in_progress = true
 
 	for unit in _all_units():
@@ -2508,6 +3009,8 @@ func trigger_hold_up_event() -> void:
 	round_player_picks.clear()
 	round_enemy_picks.clear()
 	revealed_by_tier.clear()
+	enemy_revealed_by_tier.clear()
+	_clear_the_table()
 
 	# THE WHISTLE. This has to be the very first thing that happens — before
 	# the enemy's substitution and before the "STAR PLAYER SWITCH" banner, both of which
@@ -3199,6 +3702,11 @@ func _facts_for_card(card: PlayerData) -> Dictionary:
 
 ## Which of your cards has been shown, by tier. Cleared each round.
 var revealed_by_tier: Dictionary = {}
+## And which of THEIRS. Their rules in EnemyPlay.csv decide whether they show
+## one; see _enemy_reveals().
+var enemy_revealed_by_tier: Dictionary = {}
+## The strip above the card row that holds whatever is face up.
+var _table: RevealStrip = null
 
 
 func _on_reveal_wanted(selected_data: PlayerData) -> void:
@@ -3216,10 +3724,71 @@ func _on_reveal_wanted(selected_data: PlayerData) -> void:
 	revealed_by_tier[phase] = selected_data
 	if abilities != null:
 		abilities.fire_reveal(selected_data, false)
+	# ON THE TABLE, not just in the log. A reveal you cannot see is a rule,
+	# not a moment — the card goes face up above the row you are choosing
+	# from, where both sides can read it while the tier is still open.
+	_put_on_the_table(selected_data, false)
 	announce("%s is played face up." % NamePlate.short_name(selected_data), 1.6)
 	print("[reveal] you show %s in Tier %s. They answer it knowing."
 		% [selected_data.player_name, phase])
 	_on_card_selected(selected_data)
+
+
+## ============ THE OTHER SIDE SHOWS ONE ============
+##
+## Called from _enemy_pick_for_tier() the moment their rules say to play a
+## card face up, which is while the tier is still open — the whole value of
+## knowing is that there is still a choice left to make with it.
+func _enemy_reveals(tier_key: String, card: PlayerData) -> void:
+	enemy_revealed_by_tier[tier_key] = card
+	if abilities != null:
+		abilities.fire_reveal(card, true)
+	_put_on_the_table(card, true)
+	announce("They play %s face up." % NamePlate.short_name(card), 1.8)
+	print("[reveal] they show %s in Tier %s." % [card.player_name, tier_key])
+
+
+## The strip above the card row. Made the first time anything is shown and
+## kept afterwards, because a tier that reveals nothing should not have an
+## empty box sitting over it.
+func _put_on_the_table(card: PlayerData, is_enemy: bool) -> void:
+	if not db.tune_bool("reveal_strip", true):
+		return
+	if _table == null or not is_instance_valid(_table):
+		_table = RevealStrip.make(db)
+		var holder := get_node_or_null("SelectionUI")
+		if holder == null:
+			return
+		holder.add_child(_table)
+		_place_the_table()
+	_table.show_card(card, is_enemy)
+
+
+## Above the row of cards, the full width of the window, so it reads as a
+## table the cards are being played onto rather than as another window.
+func _place_the_table() -> void:
+	if _table == null or card_container == null:
+		return
+	var high := db.tune_float("reveal_strip_height", 120.0)
+	_table.set_anchors_preset(Control.PRESET_TOP_WIDE, true)
+	_table.anchor_top = card_container.anchor_top
+	_table.anchor_bottom = card_container.anchor_top
+	_table.anchor_left = 0.0
+	_table.anchor_right = 1.0
+	var inset := db.tune_float("reveal_strip_inset", 220.0)
+	_table.offset_left = inset
+	_table.offset_right = -inset
+	# Hung ABOVE the row: the cards' own box starts half a card above the
+	# anchor, so the strip ends where that begins.
+	var card_box := PlayerCardUI.card_size()
+	_table.offset_bottom = -card_box.y * 0.5 - 12.0
+	_table.offset_top = _table.offset_bottom - high
+
+
+## Take both cards off the table — the tier is settled.
+func _clear_the_table() -> void:
+	if _table != null and is_instance_valid(_table):
+		_table.clear()
 
 
 func _on_card_selected(selected_data: PlayerData) -> void:
@@ -3349,23 +3918,60 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 	if choices.is_empty():
 		return
 
-	# ---- THEY ANSWER A CARD THEY CAN SEE ----
+	# ============ THEY READ THEIR RULES AND PICK ============
 	#
-	# Random while your hand is hidden, because there is nothing to pick
-	# against. Once you have pressed SHOW they take their best answer in this
-	# tier — which is the price of showing it.
+	# Not an AI — a list of rules in EnemyPlay.csv, read top to bottom, first
+	# match wins. See enemy_play.gd for what a row may say. The old behaviour,
+	# "take one at random", is the last row of that file, so deleting the rest
+	# puts the game back exactly as it was.
+	var cards: Array = []
+	for unit in choices:
+		if unit.data != null:
+			cards.append(unit.data)
+
+	var verdict: Dictionary = EnemyPlay.decide({
+		"tier": tier_key,
+		"style": _their_play_style(),
+		"you_revealed": revealed_by_tier.get(tier_key, null),
+		"attacking": not player_attacks_this_round,
+		"their_goals": enemy_score,
+		"your_goals": player_score,
+		"round": rounds_this_cycle,
+		"choices": cards,
+		"state": state,
+	})
+
 	var chosen: PlayerUnit = choices.pick_random()
-	if revealed_by_tier.has(tier_key):
-		var best: PlayerUnit = null
+	var wanted = verdict.get("card", null)
+	if wanted != null:
 		for unit in choices:
-			if unit.data == null:
-				continue
-			if best == null or _answering_power(unit.data) > _answering_power(best.data):
-				best = unit
-		if best != null:
-			chosen = best
-			print("[reveal] they answer your shown card with %s (%d)"
-				% [best.data.player_name, _answering_power(best.data)])
+			if unit.data == wanted:
+				chosen = unit
+				break
+	if String(verdict.get("rule", "")) != "":
+		print("[enemy] Tier %s: %s by rule '%s'%s" % [tier_key,
+			chosen.data.player_name, verdict["rule"],
+			" — face up" if bool(verdict.get("face_up", false)) else ""])
+
+	# ---- AND IF THEY ARE SHOWING IT, THEY SHOW IT NOW ----
+	#
+	# "The enemy player has to reveal their card right away if they are going
+	# to use it." So the reveal happens HERE, as they pick, while the tier is
+	# still open — not when the duel starts, by which time knowing is no use
+	# to anybody.
+	if bool(verdict.get("face_up", false)) and chosen.data != null:
+		_enemy_reveals(tier_key, chosen.data)
+
+	# ---- AND WHATEVER ELSE THE RULE SAYS TO DO ----
+	#
+	# The `Do` column, in the same words every other spreadsheet uses. It is
+	# what lets the opening match be scripted — `brew:fire` pours one on the
+	# card they have just taken, which is the moment in the story where you
+	# find out brews exist at all.
+	var do_text := String(verdict.get("do", "")).strip_edges()
+	if do_text != "" and chosen.data != null:
+		_enemy_does(do_text, chosen.data)
+
 	for unit in choices:
 		if unit == chosen:
 			unit.is_exhausted = true
@@ -3374,6 +3980,48 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 		else:
 			unit.set_highlight(false)
 	round_enemy_picks.append(chosen.data)
+
+
+## ============ A SCRIPTED THING THE OTHER SIDE DOES ============
+##
+## `brew:<id>` pours a brew on the card they have just taken, exactly the way
+## the Pub and the flask do — same row of Brews.csv, same overlay, same wear
+## off at the final whistle. Anything else is handed to the ordinary effects
+## language, so `announce:`, `flag:` and `count:` all work here too.
+func _enemy_does(term: String, card: PlayerData) -> void:
+	var colon := term.find(":")
+	var kind := term.substr(0, colon).strip_edges().to_lower() if colon > 0 else ""
+	var rest := term.substr(colon + 1).strip_edges() if colon > 0 else ""
+
+	if kind == "brew":
+		var brew := BrewDB.get_db().find(rest)
+		if brew.is_empty():
+			push_warning("[enemy] Do said brew:%s but Brews.csv has no such row." % rest)
+			return
+		if not BrewDB.suits(brew, card):
+			print("[enemy] %s cannot drink %s — the For Class column refused it."
+				% [card.player_name, rest])
+			return
+		state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(card), rest)
+		BrewDB.get_db().apply_all(db, state)
+		_redraw_offered_cards()
+		announce("They pour %s on %s." % [brew.get("name", rest),
+			NamePlate.short_name(card)], 1.8)
+		print("[enemy] %s drinks %s." % [card.player_name, rest])
+		return
+
+	if kind == "announce":
+		announce(rest, db.tune_float("progression_announce_seconds", 1.6))
+		return
+
+	DialogueGrammar.apply(term, state)
+
+
+## WHICH SET OF RULES THIS OPPONENT PLAYS BY. The `Play Style` column of
+## Teams.csv, which is blank out of the box — a blank style uses the rows of
+## EnemyPlay.csv that have a blank Style, which is all of them.
+func _their_play_style() -> String:
+	return String(enemy_team.get("play_style", "")).strip_edges()
 
 
 ## What the ENEMY is judged on when they are answering a card they can see.
@@ -3530,8 +4178,12 @@ func resolve_round() -> void:
 		# A card played face up in the draft resolves on its POWER rather than
 		# on its Ability Priority — see _on_reveal_wanted(). An empty list is
 		# passed when nothing was shown, which is the ordinary round.
-		abilities.resolve_duel_abilities(atk, attacker_is_enemy, def, "",
-			revealed_by_tier.values())
+		# BOTH SIDES' face-up cards. AbilityTriggers.csv promises that if both
+		# show, the lower power resolves first, and that can only be kept if
+		# the list knows about theirs as well as yours.
+		var face_up: Array = revealed_by_tier.values()
+		face_up.append_array(enemy_revealed_by_tier.values())
+		abilities.resolve_duel_abilities(atk, attacker_is_enemy, def, "", face_up)
 
 		var atk_power := abilities.attack_power(atk, attacker_is_enemy)
 		var def_power := abilities.defense_power(def, not attacker_is_enemy)
@@ -3931,6 +4583,17 @@ func _goal_kick(keeper_is_enemy: bool) -> void:
 	print("  Goal kick to %s (Tier %s)." % [
 		best.data.player_name, best.data.get_tier_clean()])
 	restart_receiver = best
+	# ============ EVERYBODY GOES WITH THE KICK ============
+	#
+	# The whole pitch breaks toward the man it is aimed at: his own side to
+	# support him, the other side to get there first. That is what happens
+	# when a keeper launches one, and the restart used to end with twenty-two
+	# people standing still watching the ball travel.
+	#
+	# It is a WINDOW, not a state — see _converge_target(). It runs down on
+	# its own, so nothing has to remember to turn it off.
+	converge_on = best
+	converge_until = _anim_clock + goal_kick_converge_seconds
 	ball.deliver_to(best)
 	await ball.delivery_arrived
 	restart_receiver = null

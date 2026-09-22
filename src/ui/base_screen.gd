@@ -62,6 +62,21 @@ func _ready() -> void:
 	_build_chrome()
 	_rebuild()
 
+	# ============ A BRAND NEW SAVE ============
+	#
+	# `new_game` fires ONCE per save, the first time the base is opened on a
+	# slot that has never been played. That is the moment the opening of the
+	# game belongs to: the three players you are given, the flag that makes
+	# the first match the scripted one, the first scene.
+	#
+	# It is a flag in the save rather than a check on whether the file
+	# exists, because a save is written the moment anything happens and
+	# "has this save ever been played" then stops being answerable.
+	if state != null and not state.has_flag("game_begun"):
+		state.set_flag("game_begun")
+		state.save_to_disk()
+		_advance_progression("new_game")
+
 	# Anything Progression.csv wants to happen when the base is opened. This
 	# is where the prologue now lives, rather than firing at launch.
 	_advance_progression("base_opened")

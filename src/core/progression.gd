@@ -20,6 +20,9 @@ extends RefCounted
 #    Notes     for you; ignored by the game.
 #
 #  WHEN — the moments a row can be checked
+#    new_game        a save is played for the very first time. ONCE per
+#                    slot, before base_opened. Where the opening belongs:
+#                    the players you are given, the first scene
 #    game_start      the game is launched
 #    menu_opened     the main menu appears
 #    match_started   a match begins

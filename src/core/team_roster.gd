@@ -185,7 +185,12 @@ static func set_cards(entry: Dictionary, chosen: Dictionary) -> void:
 
 ## Is this team ready to take the pitch? Returns "" when it is, or a
 ## sentence saying what is wrong.
-func trouble(entry: Dictionary, db: CardDatabase) -> String:
+## `per_tier` is how many players a tier has to be able to put out for the
+## mode you are about to play. THREE — the full ladder, one of each power —
+## is a league match. ONE is an Adventure run, which is four players, one of
+## each Tier, and has no business asking for a complete ladder: the whole
+## point of going out there with four is that the other eight are resting.
+func trouble(entry: Dictionary, db: CardDatabase, per_tier: int = 3) -> String:
 	if entry.is_empty():
 		return "No team."
 	if db == null:
@@ -198,10 +203,54 @@ func trouble(entry: Dictionary, db: CardDatabase) -> String:
 	for tier in TierLadder.TIERS:
 		if tier == String(entry["star_tier"]):
 			continue
-		var gap := TierLadder.needs_text(built.get(tier, []), tier, db)
-		if gap != "":
-			short_of.append(gap)
+		if per_tier >= 3:
+			# THE FULL LADDER: one of each power in the tier.
+			var gap := TierLadder.needs_text(built.get(tier, []), tier, db)
+			if gap != "":
+				short_of.append(gap)
+		else:
+			# JUST ENOUGH BODIES. Which powers they are does not matter when
+			# only one of them is going.
+			var have: int = (built.get(tier, []) as Array).size()
+			if have < per_tier:
+				short_of.append("Tier %s has nobody in it" % tier if have == 0
+					else "Tier %s needs %d more" % [tier, per_tier - have])
 	return "  ·  ".join(short_of)
+
+
+## ============ AND WHO IS TOO TIRED TO PLAY ============
+##
+## Kept apart from trouble() on purpose. trouble() is about the TEAM — a side
+## that is short of a power in a tier is broken and stays broken until you
+## edit it. This is about TODAY: the same side is fine next week.
+##
+## `per_tier` comes from the mode, so a league match asks for three fit
+## players in every tier and an Adventure run asks for one. Returns "" when
+## the side can go out.
+func resting(entry: Dictionary, db: CardDatabase, state: GameState,
+		per_tier: int = 3) -> String:
+	if entry.is_empty() or db == null or state == null:
+		return ""
+	if not db.tune_bool("recovery", false):
+		return ""
+
+	var built := cards_for(entry, db)
+	var tired: Array[String] = []
+	var short_of: Array[String] = []
+	for tier in TierLadder.TIERS:
+		var fit := 0
+		for card in built.get(tier, []):
+			if RecoveryBook.is_tired(card, state):
+				tired.append("%s (%d)" % [NamePlate.short_name(card),
+					RecoveryBook.turns_left(card, state)])
+			else:
+				fit += 1
+		if fit < per_tier:
+			short_of.append("Tier %s is %d short" % [tier, per_tier - fit])
+
+	if short_of.is_empty():
+		return ""
+	return "%s. Resting: %s" % ["  ·  ".join(short_of), ", ".join(tired)]
 
 
 ## A one-line summary for the shelf: "Lorelei  ·  Tier IV Stars  ·  9 fielded"

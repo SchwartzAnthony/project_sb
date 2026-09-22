@@ -1,0 +1,16 @@
+Name,Unit Type,Emblem,Basic Side,Condition,Ultimate Side,For AI notes
+Belphegor,Rauhnacht-Feuergeister,Belphegor_Emblem.png,"When one of your fire units wins combat: 
+Gain a victory counter on this Emblem. Only two per Cycle.  ","Four Rauhnacht-Feuergeister units contributed to four victory counters: 
+Transform this Emblem.","Rauhnacht-Feuergeister get +1 Attack Power during combat for each victory counter. 
+After a goal, lose all counters and flip this Emblem back to it's basic side",The Attack Power is NOT part of the base power but is added addtionally when the unit triggers it ability priority. 
+Flauros,Rauhnacht-Feuergeister,Flauros_Emblem.png,"When a fire unit alters the Attack or Defense of another fire unit: 
+Give the unit with the changed stat +1 Attack during combat. ","Four Rauhnacht-Feuergeister units have fused with each other: 
+Transform this Emblem at the end of combat. ","Create a permanent weapon token for one Star Unit. The weapons attack is the strongest fused unit.  
+Break up all fused units and send them to the exhaust zone. ",The Attack Power is NOT part of the base power but is added addtionally when the unit triggers it ability priority. 
+Buer,Rauhnacht-Feuergeister,Buer_Emblem.png,"When a fire unit recieves a counter: 
+Give that fire unit on the field a + 1 Attack during their Combat (once per cycle) ","Eight Rauhnacht-Feuergeister have been active at some point: 
+Transform this Emblem at the start of ""Play Maker""","Give the permanent Teufel Mask counter on a unit in the field zone and change its unit type to basic. 
+When the unit is in combat, it obtains the Rauhnacht-Feuergeister unit type, and +1 Attack Power each counter on the Teufel Mask. 
+After each combat give the unit with Teufel Mask - 1 Attack Power during combat. 
+After the unit deals - 1 Attack Power during combat remove the Teufel Mask and return its unit type. 
+",The Attack Power is NOT part of the base power but is added addtionally when the unit triggers it ability priority. 

@@ -147,6 +147,10 @@ func _load_csv(path: String) -> void:
 			"requires": _cell(row, columns, "requires"),
 			"keeper": _cell(row, columns, "keeper"),
 			"description": _cell(row, columns, "description"),
+			# WHICH SET OF RULES THEY PLAY BY, out of EnemyPlay.csv. Blank —
+			# and the column may not be there at all — means the rules with a
+			# blank Style, which is all of them. See enemy_play.gd.
+			"play_style": _cell(row, columns, "play style"),
 			"where": where,
 		})
 

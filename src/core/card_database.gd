@@ -146,7 +146,20 @@ func _load_csv(path: String, bands_only: bool = false) -> void:
 	if bands_only:
 		return
 
-	if columns.has("unittype") and columns.has("basepowerleft"):
+	# ============ ONE "Base Power" COLUMN IS ENOUGH ============
+	#
+	# A card carries a left number and a right number because a card has two
+	# faces. Most sheets do not care: you write one number and mean both. So a
+	# file with a single `Base Power` column is a unit file too, and
+	# _read_units() reads that one number into both.
+	#
+	# This is not a convenience, it is a bug fix. The rule used to be "a unit
+	# file has Unit Type AND Base Power Left", and a file that failed it fell
+	# through to the bottom of this chain and was SILENTLY SKIPPED — so
+	# simplifying a spreadsheet down to one power column made a whole team
+	# quietly vanish from the game with nothing printed anywhere.
+	if columns.has("unittype") \
+			and (columns.has("basepowerleft") or columns.has("basepower")):
 		_read_units(rows, columns, short_name)
 	elif columns.has("maxstamina"):
 		_read_goalies(rows, columns, short_name)
@@ -156,6 +169,16 @@ func _load_csv(path: String, bands_only: bool = false) -> void:
 		_read_anims(rows, columns, short_name)
 	elif columns.has("key") and columns.has("value"):
 		_read_tuning(rows, columns)
+	elif columns.has("unittype") or columns.has("playertype"):
+		# ============ AND IT SAYS SO WHEN IT CANNOT READ ONE ============
+		#
+		# A file that looks like a team but cannot be read is the most
+		# expensive kind of mistake a CSV-driven game has: nothing crashes,
+		# nothing is printed, the players are simply not there, and there is
+		# nowhere to go and look. If it has a Unit Type column it was meant to
+		# be a team, so it is named out loud instead of being skipped.
+		push_warning("[CardDB] %s looks like a team but has no power column. Add 'Base Power'. NONE of its cards are in the game." % short_name)
+		print("[CardDB] %s was SKIPPED — it has a Unit Type column but no 'Base Power' column, so none of its cards loaded." % short_name)
 	# Anything else is simply not ours — silently skipped.
 
 
@@ -261,8 +284,16 @@ func _read_units(rows: Array, columns: Dictionary, source: String) -> void:
 		card.attack_text = _cell(row, columns, "attack")
 		card.defend_text = _cell(row, columns, "defend")
 		card.element = _cell(row, columns, "element")
-		card.base_power_left = _cell_int(row, columns, "basepowerleft")
-		card.base_power_right = _cell_int(row, columns, "basepowerright")
+		# A single `Base Power` column stands for both faces. A sheet that
+		# writes both is still read as both, so nothing that already worked
+		# changes — see the note at the top of _read_one().
+		var one_power := _cell(row, columns, "basepower")
+		if one_power.strip_edges() != "" and not columns.has("basepowerleft"):
+			card.base_power_left = int(one_power)
+			card.base_power_right = int(one_power)
+		else:
+			card.base_power_left = _cell_int(row, columns, "basepowerleft")
+			card.base_power_right = _cell_int(row, columns, "basepowerright")
 		card.tier = _cell(row, columns, "tier")
 		card.stufe = _cell(row, columns, "stufe")
 		card.tool = _cell(row, columns, "tool")

@@ -1,13 +1,13 @@
-Unit Type,Name,Attack,Defend,Element,Base Power ,Tier,Card Number,Set Name,Artwork,Player Type
-Normal,Müller,None,None,None,0,I,1,BASIC,mueller_basic.png,Normal
-Normal,Schmidt,None,None,None,1,I,2,BASIC,schmidt_basic.png,Normal
-Normal,Schneider,None,None,None,2,I,3,BASIC,schneider_basic.png,Normal
-Normal,Fischer,None,None,None,1,II,4,BASIC,fischer.png,Normal
-Normal,Weber,None,None,None,2,II,5,BASIC,weber_basic.png,Normal
-Normal,Meyer,None,None,None,3,II,6,BASIC,meyer_basic.png,Normal
-Normal,Wagner,None,None,None,2,III,7,BASIC,wagner_basic.png,Normal
-Normal,Becker,None,None,None,3,III,8,BASIC,becker_basic.png,Normal
-Normal,Schulz,None,None,None,4,III,9,BASIC,schulz_basic.png,Normal
-Normal,Hoffmann,None,None,None,3,IV,10,BASIC,hoffmann_basic.png,Star
-Normal,Schäfer,None,None,None,4,IV,11,BASIC,schaefer_basic.png,Star
-Normal,Koch,None,None,None,5,IV,12,BASIC,koch_basic.png,Star
+Unit Type,Name,Attack,Defend,Element,Base Power ,Tier,Card Number,Set Name,Artwork,Player Type,Attack Ability,Defend Ability
+Normal,Müller,None,None,None,0,I,1,BASIC,mueller_basic.png,Normal,,
+Normal,Schmidt,None,None,None,1,I,2,BASIC,schmidt_basic.png,Normal,,
+Normal,Schneider,None,None,None,2,I,3,BASIC,schneider_basic.png,Normal,,
+Normal,Fischer,None,None,None,1,II,4,BASIC,fischer.png,Normal,,
+Normal,Weber,None,None,None,2,II,5,BASIC,weber_basic.png,Normal,LORE_OPEN_HAND,
+Normal,Meyer,None,None,None,3,II,6,BASIC,meyer_basic.png,Normal,,
+Normal,Wagner,None,None,None,2,III,7,BASIC,wagner_basic.png,Normal,BRAND_CALLED_SHOT,
+Normal,Becker,None,None,None,3,III,8,BASIC,becker_basic.png,Normal,,
+Normal,Schulz,None,None,None,4,III,9,BASIC,schulz_basic.png,Normal,,
+Normal,Hoffmann,None,None,None,3,IV,10,BASIC,hoffmann_basic.png,Star,,
+Normal,Schäfer,None,None,None,4,IV,11,BASIC,schaefer_basic.png,Star,,
+Normal,Koch,None,None,None,5,IV,12,BASIC,koch_basic.png,Star,BRAND_MASK_ATK,LORE_VEIL
