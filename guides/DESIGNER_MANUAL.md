@@ -83,8 +83,8 @@ res://
   data/tutorial/  a second set of Dialogue / Buildings / Visitors, used by
                   the tutorial only. Same columns, different content
   assets/         art, audio, icons
-  src/core/       loaders, rules and shared helpers (56 scripts)
-  src/ui/         screens (33)
+  src/core/       loaders, rules and shared helpers (57 scripts)
+  src/ui/         screens (36)
   src/adventure/  Adventure mode (12)
   src/units/      things that stand on the pitch (4)
   src/formations/ the league match itself (1, and it is a big one)
@@ -530,12 +530,34 @@ when you are ready."* Reading six Stars' abilities takes longer than 2.6
 seconds and always will. `team_sheet_hold` is `false` if you would rather it
 ran on by itself.
 
-**Hover a Star and read it properly.** The lines under a Star are cut to fit
-three of them across a screen, and a card with two long abilities never will
-fit there. Put the mouse on the portrait and a panel opens beside it with
-**both** abilities in full — or the word **None**, which is itself worth
-knowing before kick-off. It flips to the other side of the portrait when there
-is no room, so the right-hand column works too.
+**Every Star's abilities are printed once, and tagged.** There used to be a
+hover panel over each portrait holding both abilities in full, *and* the same
+two abilities printed underneath — the same sentence twice, one copy of it
+hidden behind a mouse. The hover is gone. What is left is the printed pair,
+with the work done on it instead:
+
+```
+   ATK   Teufel Mask — When attacking: +1 attack to itself, for this duel.
+   DEF   Rhine Veil  — When defending: +1 defence to itself, for this duel.
+```
+
+**ATK is the warm colour and DEF is the cool one, and they are the same two
+colours as the ATTACKING / DEFENDING strip above the row of cards.** That is
+the whole point: the strip teaches them during the draft, the sheet uses them
+before kick-off, and after one match you can read a team sheet without reading
+a word of it. They live in the palette (`MenuSupport.COLOUR_ATTACK` /
+`COLOUR_DEFEND`) rather than in either screen, so they cannot drift apart and
+the Colour tab of Settings moves both at once — including for the colour-blind
+palettes, where the pair is re-picked to stay distinct.
+
+**Both sides always print, and a Star with nothing gets the word None.** A
+blank where an ability should be reads as a bug; *None* reads as information,
+and "this one has no tricks" is worth knowing before kick-off.
+
+The two tags are rows of `Language.csv` — `atk_tag`, `def_tag` and
+`ability_none` — so they translate. Keep a tag to three or four letters: it
+sits in a fixed 30-pixel box so that every sentence beside it starts on the
+same line down the column.
 
 **The bar is honest when it can be.** It follows whichever is further along —
 the real loading or the clock — so it never stalls on a fast machine and never
@@ -561,9 +583,39 @@ files in `assets/team/`.
 | `team_sheet_hold` | `true` and the sheet waits for START instead of running on when the bar is full. **`true` out of the box** |
 | `team_sheet_stars` | how many Stars a side. `3`. The one actually playing is always first |
 | `team_sheet_abilities` | `false` prints the Stars' names without what they do |
-| `team_sheet_hover` | `false` turns off the hover panel described below |
 | `kickoff_needs_button` | `false` and the countdown starts by itself — for a demo or a stream |
 | `team_crest_fallback` | the crest for a class with no Banner Art. `banner_normal_team` |
+
+### The line-ups walk out
+
+Between the team sheet and the countdown, both sides are introduced one
+player at a time — yours first, then theirs. A row per card: the portrait,
+the tier, the name with a star beside it if it is a Star, and its two numbers.
+The rows fill downward and stay, so by the end of a side you are looking at
+the whole eleven rather than at the last one of them.
+
+The team sheet tells you the two crests and the six Stars. It does not
+introduce the twenty other people about to play — and those twenty are
+precisely the cards you will be choosing between for the next ninety minutes.
+**A player you have been shown once is a player you recognise in the draft.**
+
+They are sorted **by tier, in ladder order**, because that is the order they
+are drafted in and therefore the order you will meet them.
+
+**It can always be skipped.** A click, space, enter or escape ends the whole
+thing — not one player, the lot. A flourish you cannot get out of is an
+obstacle.
+
+| Tuning row | |
+|---|---|
+| `line_up_parade` | `false` turns it off for good |
+| `line_up_gap` | seconds between one player and the next. `0.18` |
+| `line_up_between_sides` | the pause between your side and theirs, and after theirs before the countdown. `0.9` |
+
+> If every row on one side reads **"Unit Name"**, that is not the parade — it
+> is the `Name` column of that class's unit CSV, which still has the template
+> placeholder in it. The parade is simply the first screen big enough to show
+> you.
 
 ### The kick-off
 
@@ -581,6 +633,39 @@ like a ball dropped in open play, which is why it is uncertain who gets it.
 
 **The clock does not run during the countdown.** The match is not marked live
 until START, so the first whistle is at 00:00 and not at 00:52.
+
+### ATTACKING or DEFENDING — and it stays on screen
+
+Which way round the round is being played decides **which of the two numbers
+on a card is the one that counts**: attacking reads a card's attack, defending
+reads its defence. It is the single most important fact in the draft — and it
+used to be said once, in a line of small text, on a screen that closed a
+second later. From that moment you were choosing four cards with no way to
+check.
+
+Two things now, both loud:
+
+1. **The call.** The moment the clash decides, the word lands across the
+   middle of the pitch in its own colour for `side_call_seconds`.
+2. **The banner.** And then it *stays* — a strip pinned above the row of
+   cards for the whole draft, saying which tier you are choosing and which
+   way round you are, in the same colour and the same words. Under it, in
+   small letters, the reason it matters: *"their defence is what beats you —
+   pick on ATTACK."*
+
+It is hidden for the two Star phases, because swapping who is on the pitch is
+a different kind of choice and is not answering anybody.
+
+**The two colours are the ones the team sheet tags abilities with** — warm for
+attack, cool for defence. Learn them here, read them there.
+
+| Tuning row | |
+|---|---|
+| `side_call` | `false` drops the big word and keeps only the banner |
+| `side_call_seconds` | how long the call is held. `1.3` |
+| `side_banner_lift` | how far above the card row the strip sits, in pixels. `150` |
+
+The words themselves are `attacking` and `defending` in `Language.csv`.
 
 ### The PLAY MAKER clash — calling a number
 
@@ -937,6 +1022,123 @@ ability can change what the duel starts with.
 
 The crest on each side of the back is the same `Banner Art` the team sheet
 uses, so a class that has a crest anywhere has one here.
+
+### `data/Celebration.csv` — the goal celebration
+
+A goal used to be the word GOAL and then a restart. It is the moment the whole
+game is *for*, and it passed in about a second and a half.
+
+**Nothing about a celebration is a rule.** It is a sequence of moments, and
+which moments and how long each lasts is a thing you will change fifty times.
+So the code knows how to do seven things and **the spreadsheet decides which
+of them happen, in what order, and for how long.**
+
+#### One row is one beat
+
+The rows run **top to bottom, in the order you wrote them**. Move a row up and
+it happens earlier. Delete every row and a goal is exactly what it was before
+this existed.
+
+| Column | |
+|---|---|
+| `Step` | yours. A name so you can find the row again |
+| `Who` | `you` / `them` / `both` — whose goal this beat plays for |
+| `Do` | what happens. The seven are below |
+| `Seconds` | **how long before the next row starts** |
+| `Text` | the words, for `say` and `window` |
+| `Art` | an image file, for `window` |
+| `Animation` | a row of Animations.csv, for `window` |
+| `Sound` | a row of Audio.csv, or a file in `assets/audio/` |
+| `Notes` | yours |
+
+#### The seven things it can do
+
+| `Do` | |
+|---|---|
+| `slide` | the scorer drops and skids along the grass, away from the goal he has just scored in and out toward the nearer touchline |
+| `swarm` | everyone on his side runs in and rings him |
+| `confetti` | starts the confetti. It keeps falling until the whole celebration ends, whatever comes after this row |
+| `window` | opens the celebration window with your `Text` / `Art` / `Animation` in it |
+| `say` | the big word across the middle of the pitch |
+| `sound` | plays a cue. Usually with `Seconds` 0 |
+| `wait` | nothing but time |
+
+#### Seconds is a wait, not a length
+
+This is the one thing worth reading twice. **`Seconds` is how long the game
+waits before running the next row** — not how long the effect lasts.
+
+So `confetti` with `Seconds` 0 starts the confetti and immediately moves on,
+and the paper carries on falling under everything that follows. A `sound` with
+`Seconds` 0 starts playing and the list carries on over the top of it. A
+`wait` row is the only one whose whole job is the number.
+
+Two exceptions, and both are things you are meant to *look* at: a `window`
+holds for its Seconds, and a `say` clears itself when its Seconds are up.
+**Two rows of the same kind in a row replace each other without a gap** — so
+consecutive `window` rows are a slideshow inside one panel rather than a panel
+opening and shutting twice, and two `say` rows swap with no blank frame
+between them.
+
+#### What goes in the window
+
+One of two things, and `Art` wins if you fill in both, because an image is the
+more deliberate of the two — you went and drew it.
+
+- **an Animation** — a row of `Animations.csv`, played on **the scorer's own
+  spritesheet**. `win` is one you have already drawn. This is the default and
+  it already works for every card in the game.
+- **an Image** — whatever you name in `Art`, shown whole. This is how you give
+  one Star his own celebration: name a file, and that card's goals look
+  different from everybody else's.
+
+A row asking for an animation the scorer has no art for still opens the window
+with the caption and an empty stage. **A celebration is never allowed to be
+the thing that stops a match.**
+
+#### Words you can put in Text
+
+`{scorer}` · `{team}` · `{class}` · `{tier}` · `{score}` (always your goals
+first). A placeholder nothing fills in is left on screen exactly as written,
+so a mistyped one shows up instead of silently disappearing —
+`celebration_check.gd` names it as well.
+
+#### The numbers that are not per-beat
+
+How far the slide goes, how wide the ring is, how much paper there is: those
+are shape rather than sequence, so they are rows of `Tuning.csv`.
+
+| Tuning row | |
+|---|---|
+| `goal_celebration` | `false` is the old behaviour: GOAL for `verdict_seconds`, then the restart |
+| `celebration_slide_distance` | how far the skid carries him. `180` |
+| `celebration_swarm_radius` | how close the ring stands. `110`. Under about 70 they are drawn on top of each other; over about 200 it stops reading as a huddle |
+| `celebration_confetti_pieces` | how many. `260`. They are drawn in **one call**, so this number is cheap — 500 costs about the same as 140. `0` turns the confetti off without touching the spreadsheet |
+| `celebration_confetti_size` | how thick a piece is. `6`. Its length varies per piece |
+| `celebration_confetti_speed` | how fast it falls. `220` |
+| `celebration_confetti_colours` | the palette, hex separated by spaces. **Put your two club colours in here** |
+| `celebration_hide_names` | during a celebration every name plate comes off except the scorer's. `true` |
+| `celebration_skippable` | click or space cuts it short. `true` |
+
+#### Three things it is careful about
+
+**The name tags come off.** Nine plates inside a hundred-pixel huddle is a
+black smear with letters in it. One name in the middle of a ring of bodies is
+a photograph. They all come back at the end.
+
+**It can always be cut short**, and cutting it short still stands everybody
+up, still puts the plates back and still hands the ball to the keeper.
+
+**The confetti is drawn in one call.** Two hundred and sixty `draw_rect()`
+calls took the game from 22 frames a second to 2 — at the exact moment it is
+supposed to feel best. One `draw_multiline_colors()` does the same picture.
+This is why `celebration_confetti_size` is one number for every piece: a
+single call has a single width.
+
+> **How long is too long?** `tools/celebration_check.gd` adds it up for you and
+> says so past twelve seconds. Out of the box a goal of yours costs 7.3
+> seconds of celebration and then the 2 seconds of `goal_pause_seconds`
+> walking back; theirs costs 1.2 and the same 2.
 
 ### `data/Abilities.csv` — what a player does in a duel
 
@@ -1518,7 +1720,7 @@ row whose `Requires` fails is not drawn either — the same condition language
 as everywhere else, so the Stadium screen will be able to unlock a layer
 without a line of code.
 
-## 9. `data/Tuning.csv` — 294 numbers
+## 9. `data/Tuning.csv` — 308 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -1895,22 +2097,65 @@ of playing a match and hoping the right card comes up in the right tier.
 
 ```
 xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
-    --script res://tools/sheet_hover_shot.gd
+    --script res://tools/sheet_shot.gd
 ```
-The team sheet's **hover panel**, opened by hand and photographed on the left
-column and on the right — a hover is the one thing an ordinary screenshot
-cannot catch, and the right-hand one has to flip to the other side of the
-portrait or it hangs off the screen.
+
+The team sheet: six Stars, three a side, with their abilities printed under
+them and tagged ATK / DEF. It also counts the lines and tells you the number —
+six Stars should give twelve, and an odd number means somebody is missing a
+side, which a photograph cannot tell you.
+
+> It replaces `sheet_hover_shot.gd`, which photographed the hover panel that
+> no longer exists.
 
 ```
-godot --headless --script res://tools/audio_check.gd
+godot --headless --script res://tools/goal_shot.gd
 ```
-**Is the right sound going to play, and is the file even there?** Prints
-every row of Audio.csv against the files in `assets/audio/`, which rows
-answer each moment, what the result of a match sounds like, and the duel
-result worked through all four ways round. Sound is the hardest thing in the
-game to test by ear — you have to reach the moment and then trust yourself
-about which of two similar noises you heard.
+
+**The goal celebration, without having to score one.** It opens a match, gets
+past the sheet, the line-ups and the kick-off, then calls the celebration
+directly with a real card out of your own spreadsheets — every beat, from
+Celebration.csv, in your order and with your Seconds. Four pictures: the
+slide, the huddle, and both panels of the window.
+
+It also **measures the huddle**: nine men, the radius `celebration_swarm_radius`
+asked for, and the average, nearest and furthest they actually ended up. Run it
+headless for that number — a rendered window on a machine with no graphics card
+runs at two frames a second and the measurement wanders. Headless it reads
+`110 / 110 / 110`.
+
+```
+godot --headless --script res://tools/match_soak.gd
+```
+
+**A whole league match, played through with nobody watching.** AUTO on, speed
+up, and let it run from kick-off to full time. It is the one question no other
+tool answers — every other tool looks at a single moment — and it is the test
+that a celebration which never returns, or a hold that never lifts, would
+fail. Both of those look exactly like the game having frozen, and a frozen
+game prints nothing.
+
+It reports every goal, and if the score, the state and the clock are all
+unchanged for forty-five seconds it says **STUCK** and gives up, because a
+tool that hangs is a tool nobody runs. A clean run is about eighty seconds and
+ends `NO TROUBLE`.
+
+> Adventure has had `adventure_soak.gd` since round H and it has caught real
+> crashes. The league match had nothing until now.
+
+```
+godot --headless --script res://tools/celebration_check.gd
+```
+
+Reads `Celebration.csv` back to you: both running orders with a clock down the
+side, **how long a goal now costs** (yours and theirs, celebration plus the
+walk back), and then everything a row names that does not exist — a sound with
+no file, an animation with no row in Animations.csv, an `Art` file that is not
+in `assets/`, a `{placeholder}` nothing fills in.
+
+> The length is the number to watch. Eleven seconds reads beautifully the
+> first time and is unbearable by the fourth goal; the checker says so out
+> loud past twelve.
 
 ```
 godot --headless --script res://tools/class_check.gd
@@ -2038,7 +2283,7 @@ that is almost always why.
 | **make the item icons bigger** | `icon_tile_size` in `Tuning.csv` |
 | **add a spreadsheet without Godot mangling it** | run `tools/csv_import_fix.gd`, then delete `.godot` |
 | **check a class's files line up before drawing its cards** | `tools/class_check.gd` |
-| **read one Star's abilities in full** | hover their portrait on the team sheet |
+| **read one Star's abilities** | they are printed on the team sheet, tagged ATK and DEF. There is no hover any more |
 | **change how the opposition plays** | `EnemyPlay.csv`. Order low to high, first match wins |
 | **give one opponent its own way of playing** | a word in the `Play Style` column of `Teams.csv`, and rows in `EnemyPlay.csv` with that `Style` |
 | **script something the enemy does in one match** | an `EnemyPlay.csv` row with `When: flag:yourflag` and a `Do` — `brew:fire` pours one on the card they just took |
@@ -2050,6 +2295,11 @@ that is almost always why.
 | **stop players bobbing about off the ball** | `block_follow` and `drift_updown` in `Tuning.csv` — section 7 |
 | **stop them standing in pairs** | `zone_lane_stagger` and `mark_level_floor`, and run `tools/shape_check.gd` |
 | **stop the huddle when somebody shoots** | `surge_runners` and `recover_closers` |
+| **change what a goal celebration does** | rows of `data/Celebration.csv`, top to bottom. `tools/celebration_check.gd` reads it back |
+| **give one Star his own celebration** | put a picture file in that row's `Art` column |
+| **make a goal shorter** | lower the `Seconds` on its rows, or delete rows. The checker adds it up |
+| **put my club colours in the confetti** | `celebration_confetti_colours` in `Tuning.csv` |
+| **turn the line-up parade off** | `line_up_parade` in `Tuning.csv` |
 | **turn the team sheet off** | `team_sheet` in `Tuning.csv` |
 | **stop the team sheet waiting for START** | `team_sheet_hold` in `Tuning.csv` |
 | **hide what the enemy Stars do before kick-off** | `team_sheet_abilities` in `Tuning.csv` |

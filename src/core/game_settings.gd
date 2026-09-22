@@ -270,6 +270,8 @@ static func _apply_palette(name_text: String) -> void:
 	MenuSupport.COLOUR_ACCENT = Color(0.98, 0.76, 0.33)
 	MenuSupport.COLOUR_TEXT = Color(0.92, 0.93, 0.96)
 	MenuSupport.COLOUR_TEXT_DIM = Color(0.60, 0.63, 0.70)
+	MenuSupport.COLOUR_ATTACK = Color(0.95, 0.62, 0.36)
+	MenuSupport.COLOUR_DEFEND = Color(0.44, 0.73, 0.94)
 	MenuSupport.TIER_COLOURS = [
 		Color(0.30, 0.45, 0.62), Color(0.30, 0.56, 0.45),
 		Color(0.62, 0.46, 0.26), Color(0.55, 0.32, 0.48),
@@ -284,6 +286,8 @@ static func _apply_palette(name_text: String) -> void:
 				Color(0.80, 0.80, 0.86), Color(0.68, 0.34, 0.66),
 			]
 			MenuSupport.COLOUR_ACCENT = Color(0.55, 0.78, 0.98)
+			# Warm orange against cool blue survives red-green blindness
+			# intact, so ATTACK and DEFEND keep the colours they have above.
 		"tritanopia":
 			# Blue and yellow merge instead, so this set leans on red/green.
 			MenuSupport.TIER_COLOURS = [
@@ -291,6 +295,10 @@ static func _apply_palette(name_text: String) -> void:
 				Color(0.84, 0.52, 0.66), Color(0.55, 0.55, 0.60),
 			]
 			MenuSupport.COLOUR_ACCENT = Color(0.92, 0.45, 0.45)
+			# Blue and yellow merge under tritanopia, so the cool half of the
+			# attack/defend pair moves to a green that stays distinct.
+			MenuSupport.COLOUR_ATTACK = Color(0.90, 0.40, 0.38)
+			MenuSupport.COLOUR_DEFEND = Color(0.36, 0.68, 0.46)
 		"high_contrast":
 			MenuSupport.COLOUR_BACKGROUND = Color(0.02, 0.02, 0.03)
 			MenuSupport.COLOUR_PANEL = Color(0.08, 0.08, 0.10)
@@ -302,6 +310,8 @@ static func _apply_palette(name_text: String) -> void:
 				Color(0.36, 0.60, 0.90), Color(0.35, 0.80, 0.50),
 				Color(0.95, 0.70, 0.30), Color(0.85, 0.45, 0.80),
 			]
+			MenuSupport.COLOUR_ATTACK = Color(1.0, 0.66, 0.30)
+			MenuSupport.COLOUR_DEFEND = Color(0.45, 0.80, 1.0)
 
 
 # =============================================================

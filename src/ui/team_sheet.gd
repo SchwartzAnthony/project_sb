@@ -408,27 +408,19 @@ func _star_face(card: PlayerData) -> Control:
 	column.add_theme_constant_override("separation", 2)
 	column.custom_minimum_size = Vector2(150, 0)
 
-	# ============ HOVER IT AND READ IT PROPERLY ============
+	# ============ NO HOVER. IT IS PRINTED ============
 	#
-	# The lines under a Star are cut to fit three of them across a screen. A
-	# card with two long abilities does not fit in that space and never will,
-	# so the portrait is also a hover: put the mouse on it and a panel opens
-	# beside it with BOTH abilities in full, or the word None.
+	# There used to be a hover panel over this portrait that opened with both
+	# abilities in full — and underneath it, the same two abilities printed on
+	# the sheet. Two copies of the same sentence, one of which you had to go
+	# looking for with a mouse.
 	#
-	# It is a Control over the portrait rather than a tooltip, because a
-	# tooltip cannot hold two wrapped paragraphs and cannot be styled to match
-	# the rest of the sheet.
+	# "The star players abilities are listed twice, remove the hovering over
+	#  the star player."
+	#
+	# So the hover is gone and the printed lines are the only copy. They are
+	# what needed the work anyway — see _ability_line().
 	var portrait := MenuSupport.portrait_rect(card, db, Vector2(150, 150))
-	var hover := Control.new()
-	hover.custom_minimum_size = Vector2(150, 150)
-	hover.mouse_filter = Control.MOUSE_FILTER_STOP
-	hover.tooltip_text = "Hover to read %s's abilities in full." % NamePlate.short_name(card)
-	# The card it belongs to, so tools/sheet_hover_shot.gd can photograph the
-	# panel without having to work out which portrait is whose.
-	hover.set_meta("card", card)
-	hover.mouse_entered.connect(_open_reader.bind(card, hover))
-	hover.mouse_exited.connect(_close_reader)
-	portrait.add_child(hover)
 	column.add_child(portrait)
 
 	var title := Label.new()
@@ -451,125 +443,97 @@ func _star_face(card: PlayerData) -> Control:
 	# Three Stars a side with nothing written under them is three pictures.
 	# The whole reason you are being shown the opposition before kick-off is
 	# so that you know what is coming, and that is the abilities.
-	for ability_id in [card.active_attack_ability(), card.active_defend_ability()]:
-		var line := _ability_line(String(ability_id))
+	# BOTH SIDES, ALWAYS, IN THEIR OWN COLOURS — and the word None where there
+	# is nothing, because a blank where an ability should be reads as a bug
+	# while "None" reads as information you can plan around.
+	for pair in [[true, card.active_attack_ability()],
+			[false, card.active_defend_ability()]]:
+		var line := _ability_line(bool(pair[0]), String(pair[1]))
 		if line != null:
 			column.add_child(line)
 	return column
 
 
 # =============================================================
-#  THE READER — one Star, both abilities, in full
+#  ONE ABILITY, AND WHICH HALF OF THE GAME IT BELONGS TO
+#
+#  ============ WHAT WAS WRONG ============
+#
+#  "Make the attack and defender abilities more distinctive, right now they
+#   look the same."
+#
+#  They were two grey sentences in the same font, one above the other, and
+#  nothing on screen said which was which. You had to know that the first one
+#  is always the attack — which is exactly the kind of knowing that a player
+#  has to be taught and then has to remember.
+#
+#  ============ WHAT IT DOES NOW ============
+#
+#  A TAG, in one of the two colours the game has already taught you:
+#
+#      ATK  Open Hand — see one of their cards before you pick
+#      DEF  Stone Wall — the first shot at you is stopped
+#
+#  ATK is the warm colour and DEF is the cool one, and they are THE SAME TWO
+#  COLOURS as the ATTACKING / DEFENDING strip above the row of cards. They
+#  live in the palette (MenuSupport.COLOUR_ATTACK / COLOUR_DEFEND) rather
+#  than in either file, so the two can never drift apart and the Colour tab
+#  moves both at once.
+#
+#  That is the whole trick: the strip in the draft teaches the colours, the
+#  team sheet uses them, and after one match you can read a Star's sheet
+#  without reading the words.
 # =============================================================
 
-## The panel currently open, or null. One at a time, always.
-var _reader: PanelContainer = null
-
-
-func _open_reader(card: PlayerData, over: Control) -> void:
-	if db != null and not db.tune_bool("team_sheet_hover", true):
-		return
-	_close_reader()
-	if card == null or not is_instance_valid(over):
-		return
-
-	_reader = PanelContainer.new()
-	_reader.add_theme_stylebox_override("panel", MenuSupport.panel_style(
-		Color(0.05, 0.06, 0.09, 0.97), MenuSupport.COLOUR_ACCENT))
-	_reader.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_reader)
-
-	var pad := MarginContainer.new()
-	for side in ["margin_left", "margin_right"]:
-		pad.add_theme_constant_override(side, 14)
-	for side in ["margin_top", "margin_bottom"]:
-		pad.add_theme_constant_override(side, 10)
-	_reader.add_child(pad)
-
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 4)
-	pad.add_child(column)
-
-	var title := Label.new()
-	title.text = card.player_name
-	title.add_theme_font_size_override("font_size", 16)
-	title.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
-	column.add_child(title)
-
-	var stats := Label.new()
-	stats.text = "Tier %s   ·   Attack %d   ·   Defence %d" % [
-		card.get_tier_clean(), card.get_attack_power(), card.get_defense_power()]
-	stats.add_theme_font_size_override("font_size", 12)
-	stats.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	column.add_child(stats)
-
-	# BOTH SIDES, ALWAYS, AND "NONE" WHEN THERE IS NOTHING. A blank where an
-	# ability should be reads as a bug; the word None reads as information,
-	# and "this one has no tricks" is worth knowing before kick-off.
-	for pair in [["Attack", card.active_attack_ability()],
-			["Defend", card.active_defend_ability()]]:
-		column.add_child(_reader_line(String(pair[0]), String(pair[1])))
-
-	# BESIDE THE PORTRAIT, and flipped to the other side when there is no room
-	# — the Stars on the right-hand column are close enough to the edge that a
-	# panel always opening rightward would hang off the screen.
-	_reader.reset_size()
-	await get_tree().process_frame
-	if not is_instance_valid(_reader) or not is_instance_valid(over):
-		return
-	var box := _reader.size
-	var at := over.get_global_rect()
-	var screen: Vector2 = get_viewport().get_visible_rect().size
-	var x := at.end.x + 12.0
-	if x + box.x > screen.x - 12.0:
-		x = at.position.x - box.x - 12.0
-	_reader.position = Vector2(
-		clampf(x, 12.0, maxf(12.0, screen.x - box.x - 12.0)),
-		clampf(at.position.y, 12.0, maxf(12.0, screen.y - box.y - 12.0)))
-
-
-func _close_reader() -> void:
-	if _reader != null and is_instance_valid(_reader):
-		_reader.queue_free()
-	_reader = null
-
-
-func _reader_line(side: String, ability_id: String) -> Label:
-	var line := Label.new()
-	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	line.custom_minimum_size = Vector2(320, 0)
-	line.add_theme_font_size_override("font_size", 12)
-	var clean := ability_id.strip_edges()
-	var ability: AbilityData = db.abilities.get(clean.to_lower()) if db != null and clean != "" else null
-	if ability == null:
-		line.text = "%s — None." % side
-		line.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-		return line
-	line.text = "%s — %s. %s" % [side, ability.display_name, ability.plain()]
-	return line
-
-
-## One ability in plain words, out of Abilities.csv. Null when the card has
-## none, so nothing is added rather than a blank line.
-func _ability_line(ability_id: String) -> Label:
-	var clean := ability_id.strip_edges()
-	if clean == "" or db == null:
+## One ability, tagged. Null only when the sheet has been told not to print
+## abilities at all — a card with no ability still gets a line saying so.
+func _ability_line(attacking: bool, ability_id: String) -> Control:
+	if db == null:
 		return null
 	# team_sheet_abilities = false prints the Stars and nothing under them, for
 	# a shorter sheet or for a stream where the opposition stays a surprise.
 	if not db.tune_bool("team_sheet_abilities", true):
 		return null
-	var ability: AbilityData = db.abilities.get(clean.to_lower())
+
+	var tint := MenuSupport.COLOUR_ATTACK if attacking else MenuSupport.COLOUR_DEFEND
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 5)
+	row.custom_minimum_size = Vector2(150, 0)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# THE TAG IS A FIXED WIDTH so that the sentences beside it all start on
+	# the same line down the column, which is what makes six of them scan as
+	# a list instead of as six separate scraps.
+	var tag := Label.new()
+	tag.text = Loc.text("atk_tag", "ATK") if attacking else Loc.text("def_tag", "DEF")
+	tag.custom_minimum_size = Vector2(30, 0)
+	tag.add_theme_font_size_override("font_size", 10)
+	tag.add_theme_color_override("font_color", tint)
+	tag.add_theme_stylebox_override("normal", MenuSupport.panel_style(
+		Color(tint.r, tint.g, tint.b, 0.16), tint))
+	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# TOP, not centre. A long ability wraps to three lines and a tag floating
+	# beside the middle one looks like it belongs to that line rather than to
+	# the paragraph. At the top it reads as the label it is.
+	tag.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	row.add_child(tag)
+
+	var said := Label.new()
+	said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	said.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	said.add_theme_font_size_override("font_size", 10)
+
+	var clean := ability_id.strip_edges()
+	var ability: AbilityData = db.abilities.get(clean.to_lower()) if clean != "" else null
 	if ability == null:
-		return null
-	var line := Label.new()
-	line.text = "%s — %s" % [ability.display_name, ability.plain()]
-	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	line.custom_minimum_size = Vector2(150, 0)
-	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	line.add_theme_font_size_override("font_size", 10)
-	line.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	return line
+		said.text = Loc.text("ability_none", "None")
+		said.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM.darkened(0.2))
+	else:
+		said.text = "%s — %s" % [ability.display_name, ability.plain()]
+		said.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+	row.add_child(said)
+	return row
 
 
 func _quiet(text: String) -> Label:

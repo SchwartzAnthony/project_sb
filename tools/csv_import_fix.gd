@@ -48,6 +48,7 @@ func _initialize() -> void:
 	var written := 0
 	var removed := 0
 	var already := 0
+	var orphans := 0
 
 	for folder in FOLDERS:
 		var dir := DirAccess.open(folder)
@@ -94,6 +95,24 @@ func _initialize() -> void:
 				written += 1
 				print("[csv] wrote %s" % want)
 
+			# ============ AN .import FOR A SPREADSHEET YOU DELETED ============
+			#
+			# Delete a CSV out of data/ and its .csv.import stays behind. It
+			# does no harm — Godot ignores an import file with nothing to
+			# import — but it is a file in your repository describing a file
+			# that is not there, and the next person to read the folder
+			# (including you, in six months) will go looking for the CSV.
+			#
+			# This happened the day the old Lorelei and Brandteufel sets were
+			# removed, which is why it is here.
+			if file_name.to_lower().ends_with(".csv.import"):
+				var source := "%s/%s" % [folder, file_name.substr(0, file_name.length() - 7)]
+				if not FileAccess.file_exists(source):
+					var stale := "%s/%s" % [folder, file_name]
+					if DirAccess.remove_absolute(ProjectSettings.globalize_path(stale)) == OK:
+						orphans += 1
+						print("[csv] removed %s — the spreadsheet it describes is gone" % stale)
+
 			# ---- a .translation that only exists because one was missing ----
 			if file_name.to_lower().ends_with(".translation") \
 					or file_name.contains(".translation-"):
@@ -103,8 +122,8 @@ func _initialize() -> void:
 					print("[csv] removed %s" % stray)
 
 	print("")
-	print("[csv] %d .csv.import file(s) written, %d already there, %d stray .translation file(s) removed."
-		% [written, already, removed])
+	print("[csv] %d .csv.import file(s) written, %d already there, %d stray .translation file(s) removed, %d orphaned .csv.import file(s) removed."
+		% [written, already, removed, orphans])
 	if written > 0 or removed > 0:
 		print("[csv] DELETE THE .godot FOLDER and let the project reimport, or the")
 		print("[csv] old translations stay in the import cache.")

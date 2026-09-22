@@ -202,6 +202,22 @@ var _box := Rect2(0, 0, 1, 1)
 ## it is a real Label — see name_plate.gd.
 var _plate: NamePlate
 
+## ============ THE TAG COMES OFF FOR A CELEBRATION ============
+##
+## Nine players in a huddle is nine name plates inside about a hundred
+## pixels, and what that actually looks like is a black rectangle with bits
+## of text sticking out of it. So for the length of a goal celebration
+## everybody in the huddle loses their tag and THE SCORER KEEPS HIS — which
+## is not only tidier, it is the point of the picture.
+##
+## Set back to false at the end of the celebration, however it ended.
+var plate_hidden := false:
+	set(value):
+		plate_hidden = value
+		if _plate != null and is_instance_valid(_plate):
+			_plate.visible = not value
+		queue_redraw()
+
 
 func _measure() -> void:
 	if data == null:
@@ -227,7 +243,10 @@ func _draw() -> void:
 	# NOT CREATED HERE. Adding a child from inside _draw() is a tree change
 	# in the middle of drawing the tree; the plate is built in _ready().
 	if _plate != null and is_instance_valid(_plate):
-		_plate.place(NamePlate.edges(_box, at, frame), data, -1.0, is_exhausted)
+		if plate_hidden:
+			_plate.visible = false
+		else:
+			_plate.place(NamePlate.edges(_box, at, frame), data, -1.0, is_exhausted)
 
 
 func _apply_artwork() -> void:
@@ -653,3 +672,47 @@ func run_to(target: Vector2, duration: float = 0.6) -> void:
 func return_home(duration: float = 0.35) -> void:
 	# Used before a combat zoom-in so the camera frames a predictable spot.
 	await run_to(home_position, duration)
+
+
+# --- The goal celebration ------------------------------------
+#
+# ============ ONLY THE FIGURE GOES DOWN ============
+#
+# `artwork` is the sprite; the name plate is a separate child of this node.
+# Tipping the WHOLE unit over would lay the name tag on its side, and a name
+# you have to turn your head to read is worse than no name. So the sprite
+# rotates and the plate stays upright — which is also what a television
+# caption does, and for the same reason.
+
+## He skids to `target` over `seconds`, on his side. See stand_up().
+func slide_to(target: Vector2, seconds: float) -> void:
+	if seconds <= 0.0:
+		return
+	var was_roaming := is_roaming
+	is_roaming = false
+	# He falls toward whichever way he is facing, so a slide never looks like
+	# it went through him.
+	var tilt := deg_to_rad(76.0) * (-1.0 if is_enemy else 1.0)
+	var skid := create_tween()
+	skid.set_parallel(true)
+	skid.tween_property(self, "global_position", target, seconds) \
+		.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	if artwork != null:
+		# THE FALL IS QUICK AND THE SKID IS LONG. Going down takes a quarter
+		# of the time and the rest of it is him travelling along the grass,
+		# which is the shape of a real one.
+		skid.tween_property(artwork, "rotation", tilt, seconds * 0.25) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	await skid.finished
+	is_roaming = was_roaming
+
+
+## Back on his feet. Called at the END of the celebration however it ended —
+## including when it was skipped — so nobody is ever left lying on the grass
+## for the rest of the match.
+func stand_up(seconds: float = 0.3) -> void:
+	if artwork == null or is_zero_approx(artwork.rotation):
+		return
+	var up := create_tween()
+	up.tween_property(artwork, "rotation", 0.0, maxf(0.05, seconds)) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)

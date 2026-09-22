@@ -14,7 +14,7 @@ The order is not by size. It is:
 
 ---
 
-## Phase 1 — Sound, and the way in and out  ✅ IN THIS ZIP
+## Phase 1 — Sound, and the way in and out  ✅ DONE (round K)
 
 Everything here was broken rather than missing. Broken things come first
 because every other judgement you make about the game is made through them.
@@ -40,24 +40,33 @@ checked and written down, because you asked me to understand it now.
 
 ---
 
-## Phase 2 — Reading the match
+## Phase 2 — Reading the match  ✅ IN THIS ZIP
 
 You cannot tell whether the football is good if you cannot follow it. All of
 this is about the same thing: making the state of play obvious.
 
 | | |
 |---|---|
-| | **ATTACKING or DEFENDING, big.** On the clash result, and then held on screen through every tier pick, so there is never a moment where you are choosing a card without knowing which way round you are |
-| | **The line-ups walk out.** After the loading screen: your eleven one at a time, then theirs. Click, space or escape skips it |
-| | **The goal celebration.** The scorer slides, the team surrounds them, a window opens for an animation, confetti, the crowd. You dictate what is in it and for how long, in a CSV |
-| | **A Star's abilities once, not twice.** Remove the hover — it duplicated what is already printed — and make attack and defend read differently at a glance instead of being two identical grey lines |
+| ✅ | **ATTACKING or DEFENDING, big.** The word lands across the pitch on the clash result, and then a strip stays pinned above the card row for every tier pick — with the tier, and with the reason it matters in small letters underneath |
+| ✅ | **The line-ups walk out.** Between the team sheet and the countdown: your side a player at a time, then theirs. Click, space or escape skips the lot |
+| ✅ | **The goal celebration.** `data/Celebration.csv` — one row per beat, seven things it can do, your order and your seconds. The scorer slides, the team rings him, confetti, a window with his own animation or your own picture in it |
+| ✅ | **A Star's abilities once, not twice.** The hover is gone. The printed pair is tagged **ATK** and **DEF** in the same two colours as the strip above the cards, so the draft teaches the team sheet |
 
-**Why second:** it is all presentation of things that already work, so it is
-low risk, and it is what makes the next phases judgeable.
+**What made it worth doing in this order:** it is all presentation of things
+that already work, so it is low risk — and the two colours turned out to be
+one idea rather than two, which is why the banner and the team sheet ended up
+sharing a palette entry.
+
+**One thing that was not on the list and is in the zip anyway.** The confetti,
+written the obvious way, took the game from 22 frames a second to 2 — at the
+exact moment it is supposed to feel best. It is one draw call now. The
+measurement is in `src/ui/goal_celebration.gd`, in the comment above
+`_draw_paper()`, because it is the kind of thing that is invisible until
+somebody measures it.
 
 ---
 
-## Phase 3 — The skin
+## Phase 3 — The skin  ⬅ NEXT
 
 > *"Right now people can tell it is an AI game. I need to be able to
 > customise the windows."*
@@ -161,6 +170,11 @@ something to unlock.
 Say so. The only hard dependency is **Phase 3 after Phase 2** — skinning
 screens I am about to rebuild is work done twice. Everything else can move.
 
-The one I would personally pull forward is the **goal celebration** out of
-Phase 2, because it is the moment the game is *for* and it currently passes
-in silence.
+The one I pulled forward was the **goal celebration**, and it was the right
+call: it is the moment the game is *for* and it used to pass in about a second
+and a half.
+
+**Phase 3 is next unless you say otherwise.** It is the one you asked for in
+the strongest words — *"right now people can tell it is an AI game"* — and it
+is now unblocked, because Phase 2 was the last thing that was going to move
+the screens around.

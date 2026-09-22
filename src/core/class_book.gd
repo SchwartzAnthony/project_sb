@@ -244,8 +244,20 @@ static func set_for(unit_type: String, emblem_id: String) -> EmblemSet:
 ## This is the whole reason the file exists today. A class is spread over two
 ## spreadsheets that have to line up — a Set Name in one has to be an emblem
 ## Name in the other — and nothing in the game could see that they did not.
+## Things that are not wrong, only unwritten. See trouble() for the reason
+## these are kept apart from the real findings.
+static var _waiting: Array[String] = []
+
+
+## Classes whose emblem file does not exist yet. Filled by trouble(), so call
+## that first — class_check.gd does.
+static func waiting() -> Array[String]:
+	return _waiting
+
+
 static func trouble() -> Array[String]:
 	var out: Array[String] = []
+	_waiting = []
 	for key in classes():
 		var entry: ClassEntry = classes()[key]
 		var who := entry.unit_type
@@ -267,6 +279,23 @@ static func trouble() -> Array[String]:
 		# ---- the emblem sets ----
 		if entry.sets.is_empty() and entry.emblems.is_empty():
 			continue
+
+		# ============ A CLASS WITH NO EMBLEM FILE IS NOT A PROBLEM ============
+		#
+		# It is a class you have not got to yet, and there is a difference.
+		# Asking a class with no '<name> Emblems.csv' for three matching emblem
+		# sets produced four complaints per class about a file that does not
+		# exist — which buried the ONE finding that was real (Lorelei's Sitri
+		# against Gremory) under noise about work not yet started.
+		#
+		# So it says so once, in waiting() rather than here, and every
+		# cross-check below is skipped. The moment you write the file, all of
+		# them come back.
+		if entry.emblems.is_empty():
+			_waiting.append("%s: no '%s Emblems.csv' yet, so its %d unit set(s) are not checked against anything. Write the file and this becomes three real checks."
+				% [who, who, entry.sets.size()])
+			continue
+
 		if entry.sets.size() != 3 and not entry.sets.is_empty():
 			out.append("%s: %d emblem set(s) in the unit CSV, not 3. One per Star."
 				% [who, entry.sets.size()])

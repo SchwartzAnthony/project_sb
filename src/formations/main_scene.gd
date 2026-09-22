@@ -3148,6 +3148,7 @@ func trigger_playmaker_event() -> void:
 	# Rock/paper/scissors decides who attacks in Tier I, BEFORE the draft.
 	player_attacks_this_round = await run_rps_clash()
 	print("  Clash: %s attacks." % ("You" if player_attacks_this_round else "Enemy"))
+	await _say_which_way_round()
 
 	draft_phases.assign(ALL_TIERS)
 	current_phase_index = 0
@@ -3310,10 +3311,44 @@ func show_enemy_team() -> void:
 
 
 func _on_kick_off_wanted() -> void:
+	# ============ THE TEAMS WALK OUT ============
+	#
+	# Between the sheet and the countdown: your side one player at a time,
+	# then theirs. The team sheet shows two crests and six Stars; this is the
+	# twenty other people who are about to play, and every one of them is a
+	# card you will be choosing between for the next ninety minutes.
+	#
+	# The pitch stays frozen behind it — the parade is over the top, and
+	# unfreezing before it is done would start the match behind the curtain.
+	await _walk_them_out()
+
 	freeze_play(false)
 	if camera != null and camera.has_method("lock_view"):
 		camera.call("lock_view", false)
 	_kickoff_sequence()
+
+
+## Both line-ups, in order, skippable. Returns when it is done or skipped.
+func _walk_them_out() -> void:
+	if db == null or not db.tune_bool("line_up_parade", true):
+		return
+	var yours: Array = []
+	var others: Array = []
+	for unit in _all_units():
+		if unit.data == null:
+			continue
+		var into: Array = others if unit.is_enemy else yours
+		if not into.has(unit.data):
+			into.append(unit.data)
+	if yours.is_empty() and others.is_empty():
+		return
+
+	var mine_facts := _team_facts(false)
+	var their_facts := _team_facts(true)
+	var parade := LineUpParade.open(self, db, yours, others,
+		String(mine_facts.get("name", "YOUR SIDE")).to_upper(),
+		String(their_facts.get("name", "THEM")).to_upper())
+	await parade.finished
 
 
 ## WHO IS PLAYING, for the sheet. A name, a crest and the Stars.
@@ -3478,6 +3513,30 @@ func _fit_the_announcement() -> void:
 	event_announcement.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 
 
+## ============ THE CALL, LOUD, THE MOMENT IT IS DECIDED ============
+##
+## The clash closes and you are immediately choosing cards. Without this
+## there was nothing between the two: the result flashed on a screen that was
+## already going away.
+func _say_which_way_round() -> void:
+	if db != null and not db.tune_bool("side_call", true):
+		return
+	var seconds := db.tune_float("side_call_seconds", 1.3) if db != null else 1.3
+	if seconds <= 0.0:
+		return
+	var word := Loc.text("you_are_attacking", "YOU ARE ATTACKING") \
+		if player_attacks_this_round else Loc.text("you_are_defending", "YOU ARE DEFENDING")
+	# The same two colours the banner uses, so the word and the strip that
+	# follows it read as one thing.
+	var tint := SideBanner.attack_colour() if player_attacks_this_round \
+		else SideBanner.defend_colour()
+	if event_announcement != null:
+		event_announcement.add_theme_color_override("font_color", tint)
+	await announce(word, seconds)
+	if event_announcement != null:
+		event_announcement.remove_theme_color_override("font_color")
+
+
 ## Put a word on the screen right now and leave it there. The caller decides
 ## how long for — see the kick-off, which is doing its own timing.
 func _say_now(text: String) -> void:
@@ -3510,6 +3569,24 @@ func start_next_draft_phase() -> void:
 		return
 
 	var phase := draft_phases[current_phase_index]
+
+	# ============ AND IT STAYS ON SCREEN ============
+	#
+	# Which way round the round is played decides WHICH OF THE TWO NUMBERS on
+	# a card is the one that counts, so it is the single most important fact
+	# in the draft — and it used to be said once, in small text, on a screen
+	# that closed a second later. The banner sits above the cards for the
+	# whole draft and says the tier as well.
+	#
+	# The two Star phases are a different kind of choice — you are swapping
+	# who is on the pitch, not answering anybody — so it is hidden for those.
+	var banner := SideBanner.make(self)
+	if phase == "Star" or phase == "StarChoice":
+		banner.hide_it()
+	else:
+		banner.set_side(player_attacks_this_round)
+		banner.set_tier(phase)
+		banner.show_it()
 
 	if phase == "Star":
 		for star_data in _weakest_first(get_star_player_choices()):
@@ -4235,6 +4312,11 @@ func _answering_power(card: PlayerData) -> int:
 
 
 func _on_draft_complete() -> void:
+	# The draft is over; the banner belongs to the draft.
+	var banner := SideBanner.find_on(self)
+	if banner != null:
+		banner.hide_it()
+
 	# Kickoff / STAR PLAYER SWITCH drafts have no combat — just restart the clock.
 	if not round_in_progress:
 		# Both Stars are still jogging on at this point. Wait for them, or the
@@ -4641,8 +4723,13 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 		# --- 5. The verdict, once the ball has actually got there ---
 		if scored:
 			Juice.fire(self, "goal_scored", {})
-		await announce("GOAL!" if scored else "MISS",
-			db.tune_float("verdict_seconds", 1.4))
+			# THE CELEBRATION. What happens, in what order and for how long is
+			# every one of it a row of Celebration.csv — including the word
+			# GOAL itself, which is why there is no announce() on this branch
+			# any more. An empty spreadsheet puts it back exactly as it was.
+			await _celebrate_goal(shooter, shooter_is_player)
+		else:
+			await announce("MISS", db.tune_float("verdict_seconds", 1.4))
 
 		if scored:
 			# Restart from the centre. The side that CONCEDED kicks off, and
@@ -4685,6 +4772,252 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 		ball.scripted_possession = false
 	round_resolved.emit(player_score, enemy_score)
 	current_state = MatchState.PLAYING
+
+
+# =============================================================
+#  THE GOAL CELEBRATION
+#
+#  "Have the player who shot the goal slide on the ground and their teammates
+#  surround them. Then show a window open for an animation... confetti and
+#  cheering... ALLOW ME TO DICTATE WHAT IS IN THE ANIMATION AND FOR HOW LONG,
+#  then it goes back to being with the goalie as before."
+#
+#  So: nothing in here decides what a celebration IS. It knows how to make
+#  seven things happen and `data/Celebration.csv` says which of them happen,
+#  in what order, and for how long. Read celebration_book.gd for the columns.
+#
+#  Three things it is careful about, all of them the same worry — a flourish
+#  must never be the thing that breaks a match:
+#
+#    * an empty or missing spreadsheet is the OLD BEHAVIOUR, to the frame:
+#      the word GOAL for `verdict_seconds` and then the restart;
+#    * it can always be cut short, and cutting it short still puts everybody
+#      back on their feet and hands the ball to the keeper;
+#    * every unit it touches is checked for still existing first, because a
+#      celebration runs for several seconds and a match can end during one.
+# =============================================================
+
+func _celebrate_goal(scorer: PlayerUnit, scored_by_player: bool) -> void:
+	var beats := CelebrationBook.steps_for(scored_by_player)
+	if db == null or not db.tune_bool("goal_celebration", true) or beats.is_empty():
+		await announce("GOAL!", db.tune_float("verdict_seconds", 1.4) if db != null else 1.4)
+		return
+
+	var facts := _celebration_facts(scorer, scored_by_player)
+	var show := GoalCelebration.open(self, db, _celebration_colours())
+
+	# THE BALL IS DEAD and nobody is steering. `restart_hold` stops the clock
+	# — a celebration must not eat the match — and the freeze stops the
+	# ordinary rules from dragging people back toward the ball while they are
+	# being walked into a huddle by hand.
+	restart_hold = true
+	restart_receiver = null
+	freeze_play(true)
+
+	# THE NAME TAGS COME OFF, except the scorer's. Nine plates inside a
+	# hundred-pixel huddle is a black smear with letters in it; one name in
+	# the middle of a ring of bodies is a photograph. `celebration_hide_names`
+	# puts them all back.
+	var name_the_scorer := db.tune_bool("celebration_hide_names", true)
+	if name_the_scorer:
+		for unit in _all_units():
+			unit.plate_hidden = unit != scorer
+
+	for i in beats.size():
+		if not is_instance_valid(show) or show.was_cut():
+			break
+		var beat: Dictionary = beats[i]
+		var kind := String(beat["do"])
+		var seconds := float(beat["seconds"])
+
+		match kind:
+			"slide":
+				_slide_the_scorer(scorer, seconds)
+			"swarm":
+				_swarm_the_scorer(scorer, seconds)
+			"confetti":
+				show.confetti()
+			"sound":
+				AudioDirector.play_cue(get_tree(), String(beat["sound"]))
+			"say":
+				_say_now(CelebrationBook.fill(String(beat["text"]), facts))
+			"window":
+				show.show_panel(CelebrationBook.fill(String(beat["text"]), facts),
+					String(beat["art"]), String(beat["animation"]),
+					scorer.data if scorer != null and is_instance_valid(scorer) else null)
+			_:
+				pass   # "wait" — the row is the number
+
+		await _celebration_beat(seconds, show)
+
+		# ============ A BEAT TIDIES UP AFTER ITSELF ============
+		#
+		# Both of the beats that put something on the screen take it away
+		# again when their Seconds are up, UNLESS the next row is the same
+		# kind — which is what makes two window rows a slideshow inside one
+		# panel rather than a panel opening and shutting twice, and what
+		# stops GOAL! sitting across the middle of the huddle that follows
+		# it. (It did, and it looked like a bug.)
+		if not _next_beat_is(beats, i, kind):
+			if kind == "window" and is_instance_valid(show):
+				show.hide_panel()
+			elif kind == "say":
+				_say_now("")
+
+	# ============ AND EVERYTHING GOES BACK ============
+	# Every one of these runs however the celebration ended — finished,
+	# skipped, or cut off by the match ending mid-huddle.
+	_say_now("")
+	if is_instance_valid(show):
+		show.close()
+	for unit in _all_units():
+		unit.stand_up()
+		unit.plate_hidden = false
+	freeze_play(false)
+
+
+## Wait, but give up the moment somebody clicks. Sliced rather than one timer
+## because a single four-second timer cannot be cancelled, and a celebration
+## you asked to skip that then carries on for three more seconds is worse
+## than one you could not skip at all.
+func _celebration_beat(seconds: float, show: GoalCelebration) -> void:
+	if seconds <= 0.0:
+		await get_tree().process_frame
+		return
+
+	# ============ AN ABSOLUTE DEADLINE, NOT A COUNTDOWN ============
+	#
+	# The first version subtracted each slice from a running total, which
+	# drifts: a timer asked for 0.08 seconds fires on the first frame AFTER
+	# 0.08 seconds, so every slice overshoots by up to a frame and thirteen
+	# of them per second added up to the huddle forming half a second after
+	# the picture of the huddle was taken. Measured, not guessed.
+	#
+	# A deadline in real milliseconds is self-correcting: a slice that ran
+	# long simply makes the next one shorter, and the beat ends when your
+	# Seconds say it ends.
+	var deadline := Time.get_ticks_msec() + int(seconds * 1000.0)
+	while true:
+		if not is_instance_valid(show) or show.was_cut():
+			return
+		var left := float(deadline - Time.get_ticks_msec()) / 1000.0
+		if left <= 0.0:
+			return
+		# IGNORING TIME SCALE ON PURPOSE. goal_scored asks Juice for a
+		# slow-motion dip, and seconds in your spreadsheet should mean
+		# seconds rather than "seconds unless something slowed the game down".
+		await get_tree().create_timer(minf(left, 0.08), true, false, true).timeout
+
+
+## Is the row after this one the same kind of row? Two windows in a row are
+## one window showing two things; two `say` rows are one line replacing
+## another without a blank frame between them.
+func _next_beat_is(beats: Array[Dictionary], index: int, kind: String) -> bool:
+	return index + 1 < beats.size() and String(beats[index + 1]["do"]) == kind
+
+
+## The words Celebration.csv may put in a caption. A placeholder nobody has a
+## value for is left as written — see CelebrationBook.fill().
+func _celebration_facts(scorer: PlayerUnit, scored_by_player: bool) -> Dictionary:
+	var facts: Dictionary = {
+		"score": "%d - %d" % [player_score, enemy_score],
+		"scorer": "Somebody",
+		"team": String(_team_facts(not scored_by_player).get("name", "")),
+		"class": "",
+		"tier": "",
+	}
+	if scorer != null and is_instance_valid(scorer) and scorer.data != null:
+		facts["scorer"] = scorer.data.player_name
+		facts["class"] = scorer.data.unit_type
+		facts["tier"] = scorer.data.get_tier_clean()
+	return facts
+
+
+## The confetti palette, as a row of Tuning.csv: hex colours separated by
+## spaces. A blank row or a bad colour falls back to the five the window
+## ships with, so a typo is dull rather than invisible.
+func _celebration_colours() -> Array[Color]:
+	var out: Array[Color] = []
+	var written := db.tune_text("celebration_confetti_colours", "") if db != null else ""
+	for word in written.split(" ", false):
+		var text := String(word).strip_edges()
+		if text == "":
+			continue
+		if not text.begins_with("#"):
+			text = "#" + text
+		if Color.html_is_valid(text):
+			out.append(Color.html(text))
+	return out
+
+
+## ============ THE SCORER GOES DOWN ============
+##
+## Away from the goal he has just scored in and out toward the nearer
+## touchline, which is where a real one ends up — the corner flag is where
+## the crowd is. Clamped to the grass, because a slide that carries a player
+## off the pitch is a player the restart then has to walk all the way back.
+func _slide_the_scorer(scorer: PlayerUnit, seconds: float) -> void:
+	if scorer == null or not is_instance_valid(scorer) or seconds <= 0.0:
+		return
+	var rect := get_play_rect()
+	var far := db.tune_float("celebration_slide_distance", 180.0)
+	var sideways := signf(scorer.global_position.y - rect.get_center().y)
+	if is_zero_approx(sideways):
+		sideways = 1.0
+	var target := scorer.global_position + Vector2(
+		-scorer.attack_dir * far, sideways * far * 0.35)
+	target.x = clampf(target.x, rect.position.x + 40.0, rect.end.x - 40.0)
+	target.y = clampf(target.y, rect.position.y + 40.0, rect.end.y - 40.0)
+	scorer.slide_to(target, seconds)
+
+
+## ============ AND THE REST OF THEM ARRIVE ============
+##
+## A ring around him, and — this is the part worth the extra fifteen lines —
+## each player is given THE SLOT NEAREST TO WHERE HE ALREADY IS. Handing out
+## the slots in squad order instead makes half the team run past each other
+## on the way to the huddle, which reads as a bug even though every one of
+## them ends up in the right place.
+func _swarm_the_scorer(scorer: PlayerUnit, seconds: float) -> void:
+	if scorer == null or not is_instance_valid(scorer) or seconds <= 0.0:
+		return
+	var mates: Array[PlayerUnit] = []
+	for unit in _all_units():
+		if unit != scorer and unit.is_enemy == scorer.is_enemy:
+			mates.append(unit)
+	if mates.is_empty():
+		return
+
+	var rect := get_play_rect()
+	var radius := maxf(30.0, db.tune_float("celebration_swarm_radius", 110.0))
+	var middle := scorer.global_position
+
+	var slots: Array[float] = []
+	for i in mates.size():
+		slots.append(TAU * float(i) / float(mates.size()))
+
+	# NEAREST MAN CHOOSES FIRST. He is the one who will be seen to arrive, and
+	# the ones further out have further to come and more room to bend on the
+	# way, so any slot still going suits them.
+	mates.sort_custom(func(a: PlayerUnit, b: PlayerUnit) -> bool:
+		return a.global_position.distance_squared_to(middle) \
+			< b.global_position.distance_squared_to(middle))
+
+	for mate in mates:
+		var bearing := (mate.global_position - middle).angle()
+		var best := 0
+		var best_gap := INF
+		for s in slots.size():
+			var gap: float = absf(angle_difference(bearing, slots[s]))
+			if gap < best_gap:
+				best_gap = gap
+				best = s
+		var angle: float = slots[best]
+		slots.remove_at(best)
+		var spot := middle + Vector2(cos(angle), sin(angle)) * radius
+		spot.x = clampf(spot.x, rect.position.x + 20.0, rect.end.x - 20.0)
+		spot.y = clampf(spot.y, rect.position.y + 20.0, rect.end.y - 20.0)
+		mate.run_to(spot, maxf(0.2, seconds))
 
 
 ## ============ THE PAUSE BEFORE A RESTART ============

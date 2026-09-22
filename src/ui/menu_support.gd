@@ -529,6 +529,20 @@ static var COLOUR_ACCENT := Color(0.98, 0.76, 0.33)
 static var COLOUR_TEXT := Color(0.92, 0.93, 0.96)
 static var COLOUR_TEXT_DIM := Color(0.60, 0.63, 0.70)
 
+## ============ THE TWO COLOURS THAT MEAN THE MOST ============
+##
+## ATTACK is warm, DEFENCE is cool, and they mean exactly one thing each,
+## everywhere in the game: the strip above the cards that says which way
+## round the round is being played, and the ATK / DEF tags on a Star's
+## abilities. Learn them once in the draft and you can read a team sheet
+## without reading a word of it.
+##
+## They are in the palette rather than in the two files that use them
+## precisely so that they cannot drift apart, and so the Colour tab can
+## replace both at once.
+static var COLOUR_ATTACK := Color(0.95, 0.62, 0.36)
+static var COLOUR_DEFEND := Color(0.44, 0.73, 0.94)
+
 ## The four tier colours, in ladder order. Also a `static var`, for the same
 ## reason: red-green colour blindness makes the default Tier II green and
 ## Tier III amber hard to tell apart, and the Colour tab swaps the set.

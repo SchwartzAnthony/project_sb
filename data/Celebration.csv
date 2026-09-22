@@ -1,0 +1,9 @@
+Step,Who,Do,Seconds,Text,Art,Animation,Sound,Notes
+confetti,you,confetti,0,,,,,"STARTS THE CONFETTI and moves straight on, because Seconds is 0. It keeps falling until the whole celebration ends, so put it near the top and it rains over everything below it."
+shout,you,say,0.9,GOAL!,,,,"The big word across the middle of the pitch, for Seconds and then it clears. Two `say` rows in a row replace each other with no blank between. NO SOUND ROW NEEDED HERE - scoring already fires goal_horn through Audio.csv and a Sound column as well would blow it twice."
+slide,you,slide,1.0,,,,,"THE SCORER SLIDES. He drops and skids along the grass, away from the goal he just scored in and out toward the nearer touchline. Seconds is how long the skid takes; how FAR it carries him is celebration_slide_distance in Tuning.csv."
+mob,you,swarm,1.2,,,,,"AND THE TEAM ARRIVES. Everyone on his side runs in and rings him. Seconds is how long they take to get there; how CLOSE they stand is celebration_swarm_radius."
+hold,you,wait,0.4,,,,,A breath before the window opens. A `wait` row is the only one whose whole job is the number.
+window,you,window,2.2,{scorer} SCORES!,,win,,"THE WINDOW. Text is the caption. Animation is a row of Animations.csv played on the scorer's OWN spritesheet - `win` is one you have already drawn. Put a file name in Art instead and it shows that picture whole, which is how you give a Star his own celebration."
+window_2,you,window,1.6,{score}  ·  TIER {tier},,idle,,"A SECOND PANEL IN THE SAME WINDOW. Consecutive window rows swap what is inside without closing it, so this is a slideshow; the window shuts when the last one ends."
+their_goal,them,say,1.2,THEY SCORE,,,,"THEIR goals get one line and nothing else - the crowd groan is already fired by Audio.csv on goal_conceded. Change Who to `both` on any row above to give them the full treatment too, or copy the rows and set Who to `them`."

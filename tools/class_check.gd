@@ -71,4 +71,16 @@ func _initialize() -> void:
 		print("[class] %d problem(s). None of them stops the game running —" % problems.size())
 		print("[class] they are the things that will not work the day the talent")
 		print("[class] tree tries to use them.")
+
+	# ============ AND, SEPARATELY, WHAT IS SIMPLY NOT WRITTEN YET ============
+	#
+	# A class with no emblem file is work you have not started, not work you
+	# have got wrong. It used to be four complaints per class in the list
+	# above, which is how one real finding ended up in a list of six.
+	var waiting := ClassBook.waiting()
+	if not waiting.is_empty():
+		print("")
+		print("[class] ==== NOT WRONG, JUST NOT WRITTEN YET ====")
+		for line in waiting:
+			print("[class] %s" % line)
 	quit(0)

@@ -87,6 +87,8 @@ func _initialize() -> void:
 		quit(1)
 		return
 
+	# The banner is up because a draft is running — photograph it too.
+	_shoot("v_02_banner")
 	scene.call("_put_on_the_table", mine, false)
 	for j in 8:
 		await process_frame
