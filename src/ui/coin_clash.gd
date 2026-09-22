@@ -350,11 +350,36 @@ func auto_play(pause: float, attack_chance: float) -> void:
 		return
 	if _picked <= 0:
 		_pick(1 + randi() % faces)
-	# _pick() runs the spin and either shows the choice or finishes. If it is
-	# waiting on us, answer it.
-	await get_tree().create_timer(maxf(0.05, pause) + spin_seconds + reveal_seconds).timeout
-	if _running and _choice_row.visible:
-		_choose(randf() < attack_chance)
+
+	# ============ WAIT FOR THE BUTTONS. DO NOT GUESS WHEN ============
+	#
+	# THIS WAS A MATCH-ENDING HANG and it is worth the paragraph.
+	#
+	# It used to sleep for `pause + spin_seconds + reveal_seconds` and then
+	# press whatever happened to be on screen. That arithmetic was a copy of
+	# the landing sequence's timing — and the landing sequence grew a beat
+	# that this copy never heard about: calling the coin EXACTLY holds for
+	# `coin_exact_seconds` first.
+	#
+	# So on roughly one clash in ten, AUTO woke up nine tenths of a second
+	# early, found no buttons, and went home. The choice row then appeared
+	# with nobody left to press it, and the match sat there for ever.
+	#
+	# Two things worth taking from it. First: a duplicated timing is a bug
+	# waiting for somebody to add a beat, and somebody always does. Polling
+	# for the thing itself cannot drift out of step with a sequence it does
+	# not model. Second: `tools/match_soak.gd` caught this on its first run,
+	# which is the entire argument for having written it.
+	#
+	# It gives up after thirty seconds rather than looping for ever, because
+	# a tool that hangs is no better than the bug it was looking for.
+	for i in 600:
+		await get_tree().create_timer(0.05).timeout
+		if not _running:
+			return          # they won the call and it finished itself
+		if _choice_row.visible:
+			_choose(randf() < attack_chance)
+			return
 
 
 ## Used by the keyboard and controller handling in main_scene.gd.

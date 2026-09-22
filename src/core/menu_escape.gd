@@ -68,6 +68,18 @@ static func install(on: Node) -> MenuEscape:
 	# registered.
 	var tree := on.get_tree()
 	GameKeys.install(tree)
+
+	# ============ THE SKIN GOES ON BEFORE THE SETTINGS ============
+	#
+	# Theme.csv is the shipped look. The Colour tab's palettes — deuteranopia,
+	# tritanopia, high contrast — are a NEED, and a need has to be able to
+	# win, so GameSettings.apply() runs second and paints over anything the
+	# designer's palette said about the colours it cares about.
+	#
+	# This also sets the real Godot theme on the root window, which is how
+	# buttons laid out by hand in a .tscn — ones that never call MenuSupport
+	# at all — end up wearing the skin too.
+	ThemeBook.dress(tree)
 	GameSettings.apply(tree)
 
 	# CONTROLLER AND ARROW-KEY NAVIGATION, on every screen, from this one

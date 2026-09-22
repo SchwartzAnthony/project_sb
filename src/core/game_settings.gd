@@ -263,6 +263,12 @@ static func _apply_pad(settings: Dictionary) -> void:
 static func _apply_palette(name_text: String) -> void:
 	# Start from the shipped palette every time, so switching back and forth
 	# does not leave a stale colour behind.
+	#
+	# THE SHIPPED PALETTE IS THE ONE IN Theme.csv when there is one. The
+	# constants below are what the game looked like before that file existed
+	# and are what it falls back to without it. An accessibility palette then
+	# paints over BOTH, because red-green colour blindness is not a thing a
+	# designer's palette gets to overrule.
 	MenuSupport.COLOUR_BACKGROUND = Color(0.09, 0.10, 0.13)
 	MenuSupport.COLOUR_PANEL = Color(0.14, 0.15, 0.19)
 	MenuSupport.COLOUR_SLOT_EMPTY = Color(0.18, 0.19, 0.24)
@@ -276,6 +282,7 @@ static func _apply_palette(name_text: String) -> void:
 		Color(0.30, 0.45, 0.62), Color(0.30, 0.56, 0.45),
 		Color(0.62, 0.46, 0.26), Color(0.55, 0.32, 0.48),
 	]
+	ThemeBook.apply_palette()
 
 	match name_text:
 		"deuteranopia", "protanopia":

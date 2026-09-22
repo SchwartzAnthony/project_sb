@@ -101,6 +101,30 @@ custom_minimum_size = Vector2(0, 22)
 layout_mode = 2
 show_percentage = false
 
+[node name="ChanceBox" type="VBoxContainer" parent="Dim/Center/Frame/Margin/VBox/Readouts"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+
+[node name="ChanceCaption" type="Label" parent="Dim/Center/Frame/Margin/VBox/Readouts/ChanceBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "CHANCE OF A GOAL"
+horizontal_alignment = 1
+
+[node name="ChanceValue" type="Label" parent="Dim/Center/Frame/Margin/VBox/Readouts/ChanceBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.7, 0.4, 1)
+theme_override_font_sizes/font_size = 64
+text = "0%"
+horizontal_alignment = 1
+
+[node name="ChanceNote" type="Label" parent="Dim/Center/Frame/Margin/VBox/Readouts/ChanceBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.63, 0.7, 1)
+theme_override_font_sizes/font_size = 15
+text = ""
+horizontal_alignment = 1
+
 [node name="Stage" type="Control" parent="Dim/Center/Frame/Margin/VBox"]
 custom_minimum_size = Vector2(0, 500)
 layout_mode = 2

@@ -651,31 +651,43 @@ static func dialog(on: Node, title: String, under: String = "",
 	return layer
 
 
-static func panel_style(fill: Color, border: Color = Color(0, 0, 0, 0)) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = fill
-	style.corner_radius_top_left = 6
-	style.corner_radius_top_right = 6
-	style.corner_radius_bottom_left = 6
-	style.corner_radius_bottom_right = 6
-	style.content_margin_left = 8
-	style.content_margin_right = 8
-	style.content_margin_top = 6
-	style.content_margin_bottom = 6
-	if border.a > 0.0:
-		style.border_width_left = 2
-		style.border_width_right = 2
-		style.border_width_top = 2
-		style.border_width_bottom = 2
-		style.border_color = border
-	return style
+# ============ EVERY BOX IN THE GAME IS DRAWN HERE ============
+#
+# A card face, a tile, a dialog, the strip above the card row, the keeper's
+# number, a button, the celebration window. All of them. Which is exactly why
+# `data/Theme.csv` sits in front of this one function: change the `panel` row
+# and you have changed every box in the game without opening a screen.
+#
+# THE SHAPE COMES FROM THE SPREADSHEET, THE COLOUR FROM THE CALLER. Thirty-six
+# screens already pass the colour they want and those calls are not going
+# away, so a themed image is drawn MODULATED by it — one neutral grey PNG
+# arrives in every screen wearing that screen's own colour. The corner radius,
+# the border width and the padding come from the row.
+#
+# With no Theme.csv at all it draws precisely what it drew before: a flat box,
+# 6px corners, a 2px border, 8 by 6 of padding.
+static func panel_style(fill: Color, border: Color = Color(0, 0, 0, 0)) -> StyleBox:
+	return ThemeBook.style("panel", "", fill, border)
 
 
+## The same thing for a named element — a window, a slot, a tab — so a screen
+## that wants the dialog look can ask for it by name instead of by colour.
+static func styled(element: String, state: String = "",
+		fill: Color = Color(0, 0, 0, 0), border: Color = Color(0, 0, 0, 0)) -> StyleBox:
+	return ThemeBook.style(element, state, fill, border)
+
+
+## A heading. The FONT comes from the `heading` row of Theme.csv; the size
+## and colour are the caller's, because a screen knows how big its own title
+## should be relative to its own contents and a spreadsheet does not.
 static func heading(text: String, size: int = 28, colour: Color = COLOUR_TEXT) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", size)
 	label.add_theme_color_override("font_color", colour)
+	var face := ThemeBook.font(String(ThemeBook.row_for("heading").get("font", "")))
+	if face != null:
+		label.add_theme_font_override("font", face)
 	return label
 
 
@@ -770,23 +782,10 @@ static func footer_primary(icon: String, label: String) -> Button:
 ## THE "YOU ARE HERE" BOX, for a controller or the arrow keys. A thick accent
 ## border and nothing else, so it sits on top of whatever the button already
 ## looks like instead of replacing it.
-static func focus_style() -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0, 0, 0, 0)
-	style.border_width_left = 3
-	style.border_width_right = 3
-	style.border_width_top = 3
-	style.border_width_bottom = 3
-	style.border_color = COLOUR_ACCENT
-	style.corner_radius_top_left = 6
-	style.corner_radius_top_right = 6
-	style.corner_radius_bottom_left = 6
-	style.corner_radius_bottom_right = 6
-	style.expand_margin_left = 2
-	style.expand_margin_right = 2
-	style.expand_margin_top = 2
-	style.expand_margin_bottom = 2
-	return style
+static func focus_style() -> StyleBox:
+	# The `button` row's `focus` state. Its Fill is left empty on purpose —
+	# the box is drawn OVER the button, so filling it paints the button out.
+	return ThemeBook.style("button", "focus", Color(0, 0, 0, 0), COLOUR_ACCENT)
 
 
 # -------------------------------------------------------------

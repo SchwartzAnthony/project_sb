@@ -69,5 +69,9 @@ defending,DEFENDING,ABWEHR,
 atk_tag,ATK,ANG,"The tag beside a Star's ATTACK ability on the team sheet. Keep it to three or four letters - it sits in a fixed 30px box so that every sentence beside it starts on the same line"
 def_tag,DEF,ABW,The same for the DEFENCE ability. It is drawn in the cool colour; ATK is drawn in the warm one
 ability_none,None,Keine,"Printed where a Star has no ability on that side. A blank reads as a bug; this reads as information"
+you_shoot,YOU SHOOT,DU SCHIESST,The title of the shootout cut-away when it is your shot
+they_shoot,THEY SHOOT,SIE SCHIESSEN,And when it is theirs
+goal_chance,CHANCE OF A GOAL,TORCHANCE,"The caption over the percentage in the shootout cut-away"
+goal_is_open,the goal is open,das Tor ist offen,"Printed under the percentage when the keeper has no stamina left. It is not a probability any more, it is a fact, so it reads like one"
 you_are_attacking,YOU ARE ATTACKING,DU GREIFST AN,
 you_are_defending,YOU ARE DEFENDING,DU VERTEIDIGST,

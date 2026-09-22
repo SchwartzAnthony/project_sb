@@ -43,6 +43,8 @@ var _caption: Label
 var _shot_value: Label
 var _stamina_value: Label
 var _stamina_bar: ProgressBar
+var _chance_value: Label
+var _chance_note: Label
 var _keeper_stage: Control
 var _striker_stage: Control
 var _keeper_anim: SpriteAnimator
@@ -70,6 +72,8 @@ func _wire() -> void:
 	_shot_value = get_node_or_null(BASE + "/Readouts/ShotBox/ShotValue") as Label
 	_stamina_value = get_node_or_null(BASE + "/Readouts/StaminaBox/StaminaValue") as Label
 	_stamina_bar = get_node_or_null(BASE + "/Readouts/StaminaBox/StaminaBar") as ProgressBar
+	_chance_value = get_node_or_null(BASE + "/Readouts/ChanceBox/ChanceValue") as Label
+	_chance_note = get_node_or_null(BASE + "/Readouts/ChanceBox/ChanceNote") as Label
 	_keeper_stage = get_node_or_null(BASE + "/Stage/KeeperStage") as Control
 	_striker_stage = get_node_or_null(BASE + "/Stage/StrikerStage") as Control
 
@@ -138,7 +142,10 @@ func play_shot(info: Dictionary) -> void:
 	var keeper_data = info.get("keeper_data")
 
 	if _title:
-		_title.text = "%s SHOOTS" % ("YOU" if is_player else "THE ENEMY")
+		# "YOU SHOOTS" was on this screen for eleven rounds. One verb per
+		# side, and both are rows of Language.csv so they translate.
+		_title.text = Loc.text("you_shoot", "YOU SHOOT") if is_player \
+			else Loc.text("they_shoot", "THEY SHOOT")
 	if _caption:
 		_caption.text = card.player_name if card != null else "—"
 	if _shot_value:
@@ -148,6 +155,28 @@ func play_shot(info: Dictionary) -> void:
 	if _stamina_bar:
 		_stamina_bar.max_value = stamina_max
 		_stamina_bar.value = stamina
+
+	# ============ THE NUMBER THE WHOLE ROUND WAS FOR ============
+	#
+	# Shot power and keeper stamina were already on this screen, and between
+	# them they are the two halves of a sum the player was being asked to do
+	# in their head with no idea what the formula was. So the game does the
+	# sum: this is the chance, out of ShotOdds.csv, and IT IS THE NUMBER THAT
+	# IS ABOUT TO BE ROLLED — see take_shot() in goalie_unit.gd for why the
+	# order of operations there matters.
+	if _chance_value:
+		var percent := ShotOdds.chance(stamina, stamina_max, power)
+		_chance_value.text = "%d%%" % int(round(percent))
+		_chance_value.add_theme_color_override("font_color", ShotOdds.colour_for(percent))
+		if _chance_note:
+			# An empty keeper is not a probability any more, it is a fact, and
+			# it should read like one.
+			if stamina <= 0:
+				_chance_note.text = Loc.text("goal_is_open", "the goal is open")
+			elif percent >= 99.5:
+				_chance_note.text = "he cannot stop this"
+			else:
+				_chance_note.text = "%d of %d stamina left" % [stamina, stamina_max]
 
 	_dress_keeper(keeper_data)
 	_dress_striker(card, "idle")

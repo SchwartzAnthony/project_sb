@@ -1,0 +1,7 @@
+Stamina Left,Chance,Per Power,Notes
+0,100,0,"AN EMPTY KEEPER IS AN OPEN GOAL. 100 means it goes in, every time, whatever the shot. This is the row the whole file exists for - break the keeper and the next shot is a goal. Per Power is 0 because there is nothing left to add to."
+10,72,4,"Nearly gone. A hard shot here is 72 + 4 x power, so a power-5 shot is 92%."
+25,52,5,"THE TIPPING POINT. Past here the keeper is losing and the shooter knows it. Per Power is at its highest on this row on purpose - a big shot is worth most against a keeper who is already wobbling."
+50,30,4,Half a keeper. A power-5 shot is 50% - a coin.
+75,16,3,
+100,8,2,"A FRESH KEEPER. A power-5 shot is 8 + 10 = 18%. Low on purpose: the stamina is a wall, and the first shots of a match are meant to be about knocking it down rather than about scoring."

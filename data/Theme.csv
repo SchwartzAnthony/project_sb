@@ -1,0 +1,34 @@
+Element,State,Image,Tint,Slice,Fill,Border,Border Width,Corner,Pad X,Pad Y,Font,Size,Text Colour,Notes
+panel,,,,14,,,2,6,8,6,,,,"THE MOST IMPORTANT ROW IN THE FILE. Every box the game draws goes through this one - card faces, tiles, the strip above the cards, the keeper's number, the celebration window, all of it. PUT AN IMAGE HERE AND THE WHOLE GAME CHANGES AT ONCE - try typing panel_soft into the Image column and look at any screen. The image is TINTED by whatever colour the screen asked for, so one grey PNG becomes every panel in the game in its own colour. There are three to try in assets/ui/: panel_soft, window_frame, button_face. Tint `no` hands your image over untouched instead - see the manual for which to pick."
+window,,,,14,#0f1116,#fac355,3,10,26,20,,,,"Dialogs and the celebration window. The bigger, more deliberate box. Try window_frame in the Image column."
+button,,,,12,#23252e,#9aa0ad,2,6,14,10,,,,"A button doing nothing. Try button_face in the Image column - and then in the hover and pressed rows too, so it lights up."
+button,hover,,,6,#2e3140,#fac355,2,6,14,10,,,,Under the mouse.
+button,pressed,,,6,#3a3d4e,#fac355,2,6,14,10,,,,Held down.
+button,disabled,,,6,#1b1d24,#4a4e59,2,6,14,10,,,#6a6e79,"Greyed out. Text Colour is read for button rows, so a disabled button's words go grey too."
+button,focus,,,6,,#fac355,3,6,14,10,,,,"THE 'YOU ARE HERE' BOX for a controller or the arrow keys. It is drawn OVER whatever the button already looks like, so leave Fill empty or you will paint out the button underneath."
+button_primary,,,,6,#2e3140,#fac355,2,6,18,10,,,,"The one button on a screen you are most likely to want: PLAY, START, CONTINUE."
+button_primary,hover,,,6,#3a3d4e,#ffd98a,2,6,18,10,,,,
+slot,,,,8,#232630,#5b6070,2,8,16,14,,,,A save slot, a team tile, an item tile.
+slot,hover,,,8,#2c3040,#fac355,2,8,16,14,,,,
+tab,,,,6,#1b1d24,#3a3d48,2,6,16,8,,,#9aa0ad,An unselected tab.
+tab,selected,,,6,#2e3140,#fac355,2,6,16,8,,,#fac355,
+bar_back,,,,4,#15171d,#3a3d48,1,4,0,0,,,,"The empty half of a progress bar - loading, stamina, a talent's progress."
+bar_fill,,,,4,#fac355,,0,4,0,0,,,,The full half.
+tooltip,,,,6,#0f1116,#5b6070,1,6,10,8,,,,
+divider,,,,0,#3a3d48,,0,0,0,0,,,,A line between things. Fill is the line's colour; Border Width is ignored.
+heading,,,,,,,,,,,,34,#f2f3f7,"A FONT ROW. No box - only Font, Size and Text Colour are read. Put a .ttf in assets/fonts/ and name it in the Font column and every heading in the game changes."
+body,,,,,,,,,,,,16,#f2f3f7,The ordinary text size.
+small,,,,,,,,,,,,12,#9aa0ad,Captions and the quiet notes under things.
+colour accent,,,,,#fac355,,,,,,,,,"A PALETTE ROW. Only Fill is read. These set the base palette the whole game draws from; the Colour tab of Settings can still override them for a colour-blind or high-contrast player, and it should - that is a need, not a preference."
+colour background,,,,,#171a21,,,,,,,,,
+colour panel,,,,,#23262f,,,,,,,,,
+colour slot_empty,,,,,#2e3140,,,,,,,,,
+colour locked,,,,,#3d331f,,,,,,,,,
+colour text,,,,,#ebeef5,,,,,,,,,
+colour text_dim,,,,,#9aa0ad,,,,,,,,,
+colour attack,,,,,#f29e5c,,,,,,,,,"WARM. Attacking, and the ATK tag on a Star's ability. The same colour in both places on purpose."
+colour defend,,,,,#70bafa,,,,,,,,,COOL. Defending and the DEF tag.
+colour tier_1,,,,,#4d739e,,,,,,,,,The four tier colours, in ladder order.
+colour tier_2,,,,,#4d8f73,,,,,,,,,
+colour tier_3,,,,,#9e7542,,,,,,,,,
+colour tier_4,,,,,#8c527a,,,,,,,,,

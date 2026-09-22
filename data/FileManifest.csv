@@ -1,4 +1,7 @@
 File,Folder,What it is,Notes
+button_face.png,assets/ui/,Art you drew,A tintable 9-slice button face. A starting point - replace it
+panel_soft.png,assets/ui/,Art you drew,A tintable 9-slice panel. A starting point - replace it
+window_frame.png,assets/ui/,Art you drew,A tintable 9-slice window frame. A starting point - replace it
 Abilities.csv,data/,A spreadsheet you edit,
 AbilityTriggers.csv,data/,A spreadsheet you edit,WHEN an ability goes off - and the plan for the triggers still to build. Status is live or planned; a card written against a planned trigger loads and waits
 AdventureCombos.csv,data/,Data. What reaching a stack does,THE HEART OF ADVENTURE COMBAT. Three Fire on the pile and every shot is worth four more - this is the file that says so
@@ -35,11 +38,13 @@ Recovery.csv,data/,A spreadsheet you edit,"HOW LONG A PLAYER IS OUT AFTER PLAYIN
 ScratchNames.csv,data/,A spreadsheet you edit,
 Season.csv,data/,A spreadsheet you edit,
 Seasons.csv,data/,A spreadsheet you edit,
+ShotOdds.csv,data/,A spreadsheet you edit,"THE SCORING CURVE. Stamina Left against Chance and Per Power. The 0 row says 100, which is why an empty keeper is a certain goal"
 SOUNDS_WANTED.csv,data/,A spreadsheet you edit,
 Stadium.csv,data/,A spreadsheet you edit,"HOW BIG TO DRAW THE PITCH AND THE STADIUM, and the layers behind and over the grass. The pitch is 2560 x 1440 and has to stay 16:9"
 Stats.csv,data/,A spreadsheet you edit,
 Talents.csv,data/,A spreadsheet you edit,
 Teams.csv,data/,A spreadsheet you edit,
+Theme.csv,data/,A spreadsheet you edit,"THE SKIN, in one file. Panels, windows, buttons and bars from 9-slice images, the fonts, and the palette. The `panel` row reaches every box in the game"
 TierPowers.csv,data/,A spreadsheet you edit,
 Tuning.csv,data/,A spreadsheet you edit,
 Visitors.csv,data/,A spreadsheet you edit,
@@ -101,6 +106,7 @@ scene_paths.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 scratch_team.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 season_book.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 season_db.gd,src/core/,"Engine. Rules, loaders and shared helpers",
+shot_odds.gd,src/core/,"Engine. Rules, loaders and shared helpers",WILL IT GO IN? The curve in ShotOdds.csv that turns the keeper's stamina and the shot's power into a percentage - and the number it gives is the one printed on the screen and the one rolled
 sprite_animator.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 squad_book.gd,src/core/,"Engine. Rules, loaders and shared helpers",WHICH PLAYERS ARE ACTUALLY YOURS. Fed by sign: and release: in any Effects column. Inert until squad_ownership in Tuning.csv is true
 stadium_book.gd,src/core/,"Engine. Rules, loaders and shared helpers","WHAT THE PITCH IS MADE OF. The size to draw the pitch and the stadium at, and the layers behind and over the grass. See Stadium.csv"
@@ -112,6 +118,7 @@ team_level.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 team_roster.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 team_selection.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 test_run.gd,src/core/,"Engine. Rules, loaders and shared helpers",
+theme_book.gd,src/core/,"Engine. Rules, loaders and shared helpers","THE SKIN. Reads Theme.csv, builds the 9-slice boxes and the real Godot theme that dresses every screen in the project at once"
 tier_ladder.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 tutorial_base.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 unlock_progress.gd,src/core/,"Engine. Rules, loaders and shared helpers",
@@ -185,5 +192,9 @@ player_unit.gd,src/units/,A thing that stands on the pitch,
 player_unit.tscn,src/units/,A thing that stands on the pitch,
 celebration_check.gd,tools/,A tool. Nothing in the game loads it,"Reads Celebration.csv back to you: both running orders, HOW LONG A GOAL COSTS, and everything a row names that does not exist"
 goal_shot.gd,tools/,A tool. Nothing in the game loads it,"The celebration, photographed, without having to score one. Also MEASURES THE HUDDLE - run it headless for that number"
+keeper_shot.gd,tools/,A tool. Nothing in the game loads it,"The keeper's percentage photographed in both places it is shown: the cut-away, full and empty, and the band on the grass"
 match_soak.gd,tools/,A tool. Nothing in the game loads it,"A WHOLE LEAGUE MATCH, played through with AUTO on. Answers the one question no other tool does: does a match still get from kick-off to full time? Gives up rather than hanging"
 sheet_shot.gd,tools/,A tool. Nothing in the game loads it,"The team sheet, photographed, and a count of the ability lines. Six Stars should give twelve. Replaces sheet_hover_shot.gd"
+shot_odds_check.gd,tools/,A tool. Nothing in the game loads it,"The whole scoring grid printed, plus ten thousand shots at each stamina to check the dice agree with the table"
+theme_check.gd,tools/,A tool. Nothing in the game loads it,"Every Theme.csv element, what it is drawn from and whether that file exists; the palette; and what is in assets/ui/ that nothing uses"
+theme_shot.gd,tools/,A tool. Nothing in the game loads it,"THE SKIN BEFORE AND AFTER. The same screen as your file is written, and with the three starter images forced in. Changes nothing on disk"

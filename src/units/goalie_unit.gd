@@ -3,9 +3,17 @@ extends Area2D
 
 # =============================================================
 #  GOALIE
-#  Stamina is a WALL. While stamina remains, shots almost never go in.
-#  Once stamina hits 0 the goal is open and the next shot almost always
-#  goes in. Conceding a goal fully restores THIS goalie's stamina only.
+#
+#  Stamina is a WALL, and the wall gets weaker as you knock it down. How much
+#  weaker is a curve you draw in `data/ShotOdds.csv`, and the number it
+#  produces is PRINTED ON THE SCREEN before the shot is taken — in the
+#  shootout cut-away, and beside the keeper on the pitch.
+#
+#  AT 0 STAMINA THE GOAL IS OPEN AND THE SHOT GOES IN. That is the 0 row of
+#  ShotOdds.csv saying 100, not a rule in here, so you can change your mind
+#  about it in a spreadsheet.
+#
+#  Conceding a goal fully restores THIS goalie's stamina only.
 #
 #  NOTE: goalie_unit.tscn's ROOT NODE must be an Area2D. If it is a
 #  Node2D, instantiate() silently returns null and no goals can ever be
@@ -18,10 +26,22 @@ signal shot_saved(remaining_stamina: int)
 
 @export var max_stamina: int = 40
 
-## Chance a shot sneaks past while the goalie still has stamina.
+# ============ THE TWO OLD NUMBERS, KEPT AND NO LONGER USED ============
+#
+# `break_through_chance` was a FLAT 5% while the keeper had any stamina at
+# all, and `open_goal_chance` was 90% once he had none. Between them they
+# said that a keeper on 1 stamina is exactly as hard to beat as a keeper on
+# 30, and that an empty net still saves one shot in ten.
+#
+# ShotOdds.csv replaces both with a curve. They are kept here because
+# Tuning.csv still has rows pointing at them and an older save or an older
+# spreadsheet should not break — see `_tune_goalie()` in main_scene.gd — and
+# because `shot_odds` false in Tuning.csv puts the old behaviour back.
 @export_range(0.0, 1.0, 0.01) var break_through_chance: float = 0.05
-## Chance a shot goes in once stamina is 0 (the goalie can still get lucky).
 @export_range(0.0, 1.0, 0.01) var open_goal_chance: float = 0.90
+
+## false goes back to the two flat numbers above. Set from Tuning.csv.
+var use_shot_odds: bool = true
 
 var current_stamina: int
 var is_enemy: bool = false
@@ -103,6 +123,7 @@ func _refill() -> void:
 		stamina_bar.value = current_stamina
 	if artwork != null:
 		artwork.modulate = Color.WHITE
+	_refresh_plate()
 
 
 # =============================================================
@@ -110,7 +131,42 @@ func _refill() -> void:
 # =============================================================
 
 func take_shot(shot_power: int) -> bool:
-	# --- Open goal: stamina was already broken before this shot ---
+	if not use_shot_odds:
+		return _take_shot_the_old_way(shot_power)
+
+	# ============ ROLL FIRST, THEN TAKE THE STAMINA OFF ============
+	#
+	# THE ORDER IS THE WHOLE POINT. The player was shown a percentage a
+	# second ago, worked out from the stamina the keeper had then. Chipping
+	# the stamina before rolling would roll against a DIFFERENT number to the
+	# one on the screen — the cut-away would say 52% and the game would
+	# quietly roll 61%, and nobody could ever tell.
+	#
+	# So: roll against what was shown, then knock the wall down for next time.
+	# A shot that empties a keeper does not get the empty keeper's odds. The
+	# next one does, and it is a certainty.
+	var went_in := randf() < ShotOdds.odds(current_stamina, max_stamina, shot_power)
+
+	current_stamina = maxi(0, current_stamina - shot_power)
+	if stamina_bar != null:
+		stamina_bar.value = current_stamina
+	if current_stamina == 0:
+		stamina_depleted.emit()
+		play_exhausted_feedback()
+	_refresh_plate()
+
+	if went_in:
+		_concede()
+		return true
+
+	play_save_feedback()
+	shot_saved.emit(current_stamina)
+	return false
+
+
+## What it did before ShotOdds.csv: a flat 5% while he had anything left and
+## 90% once he did not. `shot_odds` false in Tuning.csv brings it back.
+func _take_shot_the_old_way(shot_power: int) -> bool:
 	if current_stamina <= 0:
 		if randf() < open_goal_chance:
 			_concede()
@@ -118,10 +174,10 @@ func take_shot(shot_power: int) -> bool:
 		play_save_feedback()
 		return false
 
-	# --- Wall: chip away at the stamina first ---
 	current_stamina = maxi(0, current_stamina - shot_power)
 	if stamina_bar != null:
 		stamina_bar.value = current_stamina
+	_refresh_plate()
 
 	if current_stamina == 0:
 		stamina_depleted.emit()
@@ -129,13 +185,35 @@ func take_shot(shot_power: int) -> bool:
 	else:
 		play_save_feedback()
 
-	# Small chance it still finds a way in.
 	if randf() < break_through_chance:
 		_concede()
 		return true
 
 	shot_saved.emit(current_stamina)
 	return false
+
+
+# =============================================================
+#  WHAT THE PLAYER IS TOLD
+# =============================================================
+
+## The chance a shot of this power scores, 0 to 100. What the cut-away shows.
+func chance_of_goal(shot_power: int) -> float:
+	if not use_shot_odds:
+		return 100.0 * (open_goal_chance if current_stamina <= 0 else break_through_chance)
+	return ShotOdds.chance(current_stamina, max_stamina, shot_power)
+
+
+## "8 – 18%", or a flat "100%" when the keeper is empty. What the pitch shows,
+## where nobody knows yet how hard the shot will be.
+func chance_band() -> String:
+	var top := 5
+	var db := CardDatabase.get_db()
+	if db != null:
+		top = int(db.tune_float("shot_power_shown", 5.0))
+	if not use_shot_odds:
+		return "%d%%" % int(round(chance_of_goal(0)))
+	return ShotOdds.band_text(current_stamina, max_stamina, top)
 
 
 func _concede() -> void:
@@ -156,6 +234,7 @@ func adjust_stamina(delta: int) -> void:
 	if current_stamina == 0:
 		stamina_depleted.emit()
 		play_exhausted_feedback()
+	_refresh_plate()
 
 
 ## Backwards-compatible alias for older call sites.
@@ -207,3 +286,68 @@ func play_concede_feedback() -> void:
 
 func _resting_colour() -> Color:
 	return Color(0.6, 0.6, 0.6, 0.8) if current_stamina == 0 else Color.WHITE
+
+
+# =============================================================
+#  THE PLATE ON THE PITCH
+#
+#  ============ WHY THE KEEPER SAYS A NUMBER NOW ============
+#
+#  The whole draft is a bet on one shot, and until now the only thing on
+#  screen about the keeper was a small bar going down. A bar tells you that
+#  something is happening; it does not tell you whether the next shot is
+#  worth taking. So the keeper says it out loud:
+#
+#      Undine Aegis
+#      8 – 18%
+#
+#  Two numbers, because on the pitch NOBODY KNOWS YET how hard the shot will
+#  be — the low end is a shot of no power at all and the high end is a shot
+#  of `shot_power_shown`. They collapse to one number when they agree, which
+#  is exactly what happens at 0 stamina: a flat, unambiguous 100%.
+#
+#  Coloured cool when the keeper is winning and warm when he is losing, on
+#  the same two colours as ATTACKING and DEFENDING everywhere else — because
+#  a low number and a high number here mean precisely those two things.
+#
+#  `keeper_chance_on_pitch` in Tuning.csv takes it off again.
+# =============================================================
+
+var _chance_label: Label
+
+
+func _refresh_plate() -> void:
+	if not is_node_ready():
+		return
+	var db := CardDatabase.get_db()
+	var wanted := db == null or db.tune_bool("keeper_chance_on_pitch", true)
+
+	if not wanted:
+		if _chance_label != null and is_instance_valid(_chance_label):
+			_chance_label.visible = false
+		return
+
+	if _chance_label == null or not is_instance_valid(_chance_label):
+		_chance_label = Label.new()
+		_chance_label.name = "ChanceLabel"
+		_chance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_chance_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Under the stamina bar, which sits at +26 to +38.
+		_chance_label.offset_left = -46.0
+		_chance_label.offset_right = 46.0
+		_chance_label.offset_top = 40.0
+		_chance_label.offset_bottom = 60.0
+		add_child(_chance_label)
+
+	var size := 12
+	if db != null:
+		size = int(db.tune_float("keeper_chance_size", 12.0))
+	_chance_label.visible = true
+	_chance_label.text = chance_band()
+	_chance_label.add_theme_font_size_override("font_size", size)
+	_chance_label.add_theme_color_override("font_color",
+		ShotOdds.colour_for(chance_of_goal(0)))
+	# A dark plate behind it, because white text on grass is white text on
+	# grass and this one is meant to be readable at a glance.
+	_chance_label.add_theme_stylebox_override("normal",
+		MenuSupport.panel_style(Color(0.05, 0.06, 0.09, 0.78)))

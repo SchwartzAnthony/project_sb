@@ -341,6 +341,12 @@ var enemy_score: int = 0
 func _ready() -> void:
 	randomize()
 
+	# THE SKIN. Every menu screen gets this from MenuEscape.install(); the
+	# match has its own pause menu and never calls it, which is exactly the
+	# kind of gap that left the pitch looking like a different game from the
+	# menus in front of it. One line.
+	ThemeBook.dress(get_tree())
+
 	db = CardDatabase.get_db()
 	abilities = AbilityEngine.new(db)
 	state = GameState.fetch(get_tree())
@@ -1497,6 +1503,10 @@ func _tune_unit(unit: PlayerUnit) -> void:
 
 
 func _tune_goalie(keeper: GoalieUnit) -> void:
+	# THE CURVE IS THE DEFAULT. The two flat numbers below it are what the
+	# keeper used before ShotOdds.csv existed, and `shot_odds` false is how
+	# you go back to them — see goalie_unit.gd.
+	keeper.use_shot_odds = db.tune_bool("shot_odds", true)
 	keeper.break_through_chance = db.tune_float("goalie_break_through_chance", keeper.break_through_chance)
 	keeper.open_goal_chance = db.tune_float("goalie_open_goal_chance", keeper.open_goal_chance)
 
@@ -3310,7 +3320,24 @@ func show_enemy_team() -> void:
 		"Their three Stars are ringed. One is on the pitch; the other two come on at the STAR PLAYER SWITCH.")
 
 
+## Set the first time START is pressed. See below.
+var _kick_off_started := false
+
+
 func _on_kick_off_wanted() -> void:
+	# ============ ONCE, HOWEVER MANY TIMES START IS PRESSED ============
+	#
+	# A double press used to run this twice: TWO line-up parades stacked on
+	# top of each other, two countdowns, two kick-offs. I found it because a
+	# tool held the button down, but a fast double-click on the real button,
+	# or space and the mouse together, would do exactly the same thing — and
+	# what the player would see is the team sheet appearing to come back.
+	#
+	# One flag, and the second press does nothing.
+	if _kick_off_started:
+		return
+	_kick_off_started = true
+
 	# ============ THE TEAMS WALK OUT ============
 	#
 	# Between the sheet and the countdown: your side one player at a time,

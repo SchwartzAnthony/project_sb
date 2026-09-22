@@ -40,7 +40,7 @@ checked and written down, because you asked me to understand it now.
 
 ---
 
-## Phase 2 — Reading the match  ✅ IN THIS ZIP
+## Phase 2 — Reading the match  ✅ DONE (round L)
 
 You cannot tell whether the football is good if you cannot follow it. All of
 this is about the same thing: making the state of play obvious.
@@ -66,33 +66,37 @@ somebody measures it.
 
 ---
 
-## Phase 3 — The skin  ⬅ NEXT
+## Phase 3 — The skin  ✅ IN THIS ZIP
 
 > *"Right now people can tell it is an AI game. I need to be able to
 > customise the windows."*
 
-This is the phase that changes how the game looks, and it is one system
-rather than four: everything drawn by the interface goes through
-`MenuSupport`, so a **`Theme.csv`** in front of that reaches all of it at
-once.
-
 | | |
 |---|---|
-| | Panels, buttons and windows drawn from **images** rather than flat colours — 9-slice, so one image stretches to any window without distorting its corners |
-| | Borders, corners and dividers as images |
-| | Fonts: the file, the sizes, per element |
-| | Colours: the palette in one place instead of constants in the code |
-| | A state per element — normal, hover, pressed, disabled, focused |
-| | Every number that is a size or a margin |
+| ✅ | Panels, buttons and windows drawn from **images** — 9-slice, so one 48×48 PNG stretches to any window without distorting its corners |
+| ✅ | Borders, corners and dividers, as numbers or as part of the image |
+| ✅ | Fonts: the file, the size, per element |
+| ✅ | Colours: the palette in one spreadsheet instead of constants in the code |
+| ✅ | A state per element — normal, hover, pressed, disabled, focus, selected |
+| ✅ | Every number that is a size or a margin |
 
-**Why third:** it is the largest *visual* change and it touches every screen,
-so it wants the screens to have stopped moving first — which is what Phase 2
-finishes doing. Doing it before would mean skinning things I am about to
-rebuild.
+**It is one file, `data/Theme.csv`, and it reaches everything.** Every box in
+the game is drawn by one function, and the spreadsheet sits in front of it —
+so the `panel` row changes card faces, tiles, dialogs, the strip above the
+card row and the keeper's number all at once. A real Godot theme is built
+from the same rows and set on the root window, which catches the buttons laid
+out by hand in `.tscn` files that never call that function at all.
 
----
+**Three images ship in `assets/ui/`** so you can see it work before drawing
+anything: put `panel_soft` in one cell and the whole game changes.
+`tools/theme_shot.gd` photographs the same screen both ways.
 
-## Phase 4 — Out of bounds, and the new PLAY MAKER
+**Also in this zip, and not a phase:** the keeper. `data/ShotOdds.csv` turns
+his stamina into a percentage that is printed on the screen before the shot,
+and an empty keeper is now a certain goal rather than a 90% one. See the
+round notes.
+
+## Phase 4 — Out of bounds, and the new PLAY MAKER  ⬅ NEXT
 
 Replacing the 1–10 coin with the sequence you described. One phase on its
 own because it is a chain of moments that all have to work together:
@@ -174,7 +178,10 @@ The one I pulled forward was the **goal celebration**, and it was the right
 call: it is the moment the game is *for* and it used to pass in about a second
 and a half.
 
-**Phase 3 is next unless you say otherwise.** It is the one you asked for in
-the strongest words — *"right now people can tell it is an AI game"* — and it
-is now unblocked, because Phase 2 was the last thing that was going to move
-the screens around.
+**Phase 4 is next unless you say otherwise** — the out-of-bounds sequence and
+the new PLAY MAKER. It changes the shape of a match, which is why it waited
+for the three phases that settle what a match looks like.
+
+Phase 5 (the class system) still wants achievements to exist first, and
+Phase 6 is content-shaped and will go faster now that Phase 3 has given it a
+look.

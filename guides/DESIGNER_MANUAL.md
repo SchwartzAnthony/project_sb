@@ -83,7 +83,7 @@ res://
   data/tutorial/  a second set of Dialogue / Buildings / Visitors, used by
                   the tutorial only. Same columns, different content
   assets/         art, audio, icons
-  src/core/       loaders, rules and shared helpers (57 scripts)
+  src/core/       loaders, rules and shared helpers (59 scripts)
   src/ui/         screens (36)
   src/adventure/  Adventure mode (12)
   src/units/      things that stand on the pitch (4)
@@ -109,6 +109,8 @@ fallbacks.
 
 | Folder | What goes in it | Format | Fed by |
 |---|---|---|---|
+| `assets/ui/` | **the skin**: 9-slice panels, windows, buttons, bars | `.png` with transparency. Small — 48×48 is plenty, because it stretches. Draw it **light and desaturated** unless the row says `Tint` = `no` | Theme.csv `Image` |
+| `assets/fonts/` | the game's typefaces | `.ttf` or `.otf` | Theme.csv `Font` |
 | `assets/audio/` | every sound and every piece of music | `.ogg` for music (it loops properly and is a tenth of the size), `.wav` for short effects | Audio.csv `Sound`, Juice.csv `Sound`, Biomes.csv `Music`, Dialogue.csv `Music` |
 | `assets/icons/` | small square pictures — trait icons, item icons, menu glyphs | `.png` with transparency, 64×64 or 128×128, the same size across a set | AdventureTraits `Icon`, AdventureCombos `Icon`, Items `Art`, MenuConfig `Art Path`, AdventureSpawns `Art` |
 | `assets/players/` | card spritesheets, one per card | `.png`. Default grid is **12 × 39** — write an Animations.csv row for anything else or the card shows as a sliver | any unit CSV's `Artwork`, Brews `Artwork` |
@@ -1023,6 +1025,104 @@ ability can change what the duel starts with.
 The crest on each side of the back is the same `Banner Art` the team sheet
 uses, so a class that has a crest anywhere has one here.
 
+### `data/ShotOdds.csv` — will it go in?
+
+The keeper's stamina is a wall, and **the wall gets weaker as you knock it
+down**. How much weaker is a curve you draw, and **the number it produces is
+printed on the screen before the shot is taken.**
+
+#### What was wrong
+
+The keeper had two numbers and nothing between them:
+
+```
+stamina left    a flat 5% chance the shot sneaks in
+stamina at 0    a 90% chance
+```
+
+So a keeper on 1 stamina was exactly as hard to beat as a keeper on 30 — the
+wall did not weaken, it simply fell over at the end. And an empty net still
+saved one shot in ten, which reads as the game cheating. None of it was ever
+shown, so you watched a bar go down with no idea what it was buying you.
+
+#### The curve
+
+| Column | |
+|---|---|
+| `Stamina Left` | how much of the keeper's stamina is left, 0 to 100 |
+| `Chance` | the % chance of scoring at that stamina, before shot power |
+| `Per Power` | how many points each point of shot power adds, at that stamina |
+
+Between two rows **both numbers are interpolated**, so six rows draw a smooth
+curve rather than six steps. Out of the box, on a keeper with 25 stamina:
+
+```
+stamina      P0     P1     P2     P3     P4     P5     P8
+  25/25       8%    10%    12%    14%    16%    18%    24%
+  15/25      24%    28%    32%    35%    39%    42%    53%
+  10/25      39%    43%    48%    52%    56%    61%    74%
+   3/25      69%    73%    78%    82%    86%    90%   100%
+   0/25     100%   100%   100%   100%   100%   100%   100%
+```
+
+**The 0 row is the one the file exists for.** It says 100, so an empty keeper
+is a certain goal — not 90, not 99. That is a row, not a rule, so you can
+change your mind about it in a spreadsheet.
+
+`Per Power` is highest in the middle of the curve on purpose: a big shot is
+worth most against a keeper who is already wobbling.
+
+#### The number you are shown is the number that is rolled
+
+This is the part that matters. The shot is rolled against the stamina the
+keeper had **when you were shown the number**, and the stamina is taken off
+afterwards. A shot that empties a keeper does not get the empty keeper's
+odds — the *next* one does.
+
+Doing it the other way round would be a lie: the cut-away would say 52% and
+the game would quietly roll 61%, and no player could ever tell.
+
+#### Where it is shown
+
+**In the shootout cut-away**, as a third readout beside shot power and keeper
+stamina — one number, because the shot power is known, and it is the number
+about to be rolled. At 0 stamina it reads **100%** and, underneath, *"the
+goal is open"*.
+
+**On the pitch**, under each keeper's stamina bar, as a band:
+
+```
+8 – 18%
+```
+
+because on the pitch nobody knows yet how hard the shot will be. The low end
+is a shot of no power and the high end is a shot of `shot_power_shown`. The
+two collapse to one number when they agree — which is exactly what happens at
+0 stamina, so an empty keeper reads a flat, unambiguous **100%**.
+
+Cool when the keeper is winning, warm when he is losing, on the same two
+colours as ATTACKING and DEFENDING — because a low number and a high number
+here mean precisely those two things.
+
+| Tuning row | |
+|---|---|
+| `shot_odds` | `false` goes back to the two flat numbers. They are still in the code and still work |
+| `shot_power_shown` | the top end of the band on the pitch. `5` |
+| `keeper_chance_on_pitch` | `false` leaves only the bar |
+| `keeper_chance_size` | how big the keeper's number is, in points. `12` |
+
+> **It changed how many goals a match has.** Three soaked matches went 3–3,
+> 3–1 and 2–3 where the old keeper gave 1–0. If that is too many, the
+> `Chance` column is the dial — lower the 25% and 50% rows first, because
+> that is the part of the curve most shots are taken against.
+>
+> ```
+> godot --headless --script res://tools/shot_odds_check.gd
+> ```
+>
+> prints the whole grid, the band the pitch will show, and then plays ten
+> thousand shots at each stamina to check the dice agree with the table.
+
 ### `data/Celebration.csv` — the goal celebration
 
 A goal used to be the word GOAL and then a restart. It is the moment the whole
@@ -1720,7 +1820,144 @@ row whose `Requires` fails is not drawn either — the same condition language
 as everywhere else, so the Stadium screen will be able to unlock a layer
 without a line of code.
 
-## 9. `data/Tuning.csv` — 308 numbers
+## 8c. `data/Theme.csv` — the skin
+
+> *"Right now people can tell it is an AI game. I need to be able to customise
+> the windows, the HUD, the lines, with images. Allow me to change the image
+> through CSV."*
+
+This is the file that changes how the game looks. **One row reaches every
+screen at once.**
+
+### Why one file can do that
+
+Every box the game draws — a card face, a tile, a dialog, the strip above the
+card row, the keeper's number, a button, the celebration window — is drawn by
+**one function**, `MenuSupport.panel_style()`. Theme.csv sits in front of it.
+Change the `panel` row and you have changed all of them without opening a
+single screen.
+
+And `ThemeBook.dress()` builds a real Godot `Theme` from the same rows and
+sets it on the root window, so **every Button, Panel, Label and ProgressBar
+in every `.tscn` in the project** picks it up too — including ones laid out
+by hand in the editor that never call MenuSupport at all. That is the half
+that makes this one file rather than thirty-six.
+
+### A row
+
+| Column | |
+|---|---|
+| `Element` | what kind of thing this is: `panel`, `button`, `window`, `slot`, `tab`, `bar_back`, `bar_fill`, `tooltip`, `divider`, and the three font rows `heading`, `body`, `small` |
+| `State` | blank, `hover`, `pressed`, `disabled`, `focus`, `selected` |
+| `Image` | a 9-slice PNG in `assets/ui/`. Blank = a flat colour |
+| `Tint` | `no` draws your image exactly as you drew it. See below |
+| `Slice` | how far in from the edge the corners are |
+| `Fill` | the colour, when there is no image |
+| `Border`, `Border Width` | the edge |
+| `Corner` | how round the corners are |
+| `Pad X`, `Pad Y` | the space between the edge and the words |
+| `Font`, `Size`, `Text Colour` | a `.ttf` in `assets/fonts/`, and the words |
+
+A state with no row of its own falls back to that element's ordinary row, and
+an element with no row at all falls back to `panel`. So you can skin the
+whole game with one row and then add detail where you want it.
+
+### Nine-slice, which is the whole point
+
+A window is not one picture. If it were, a wide window would be a stretched
+picture with oval corners. So an image is cut into nine: four corners that
+never stretch, four edges that stretch one way, and a middle that stretches
+both. `Slice` is how far in the cuts are.
+
+```
+   Slice 14, on a 48 x 48 image:
+
+     +----+--------+----+     the 14px corners keep their shape
+     | 14 |   20   | 14 |     the top and bottom edges stretch sideways
+     +----+--------+----+     the left and right stretch up and down
+     |    |        |    |     the middle stretches both ways
+     +----+--------+----+
+```
+
+**One 48 × 48 PNG draws every window in the game, at every size.**
+
+### Tint — read this before you draw anything
+
+By default the image is **tinted** by the colour the screen asked for. Every
+screen already passes a colour — a blue panel here, a warm one there, a
+locked grey one over there — and those calls are not going away. So one light
+grey PNG arrives in each of them wearing that screen's own colour.
+
+**The catch, and it will bite you the first afternoon:** tinting
+*multiplies*. A panel colour of `#23262f` is dark, so whatever you drew comes
+out darker, and the difference between the lightest and darkest parts of your
+image survives only in proportion. **Draw it light and desaturated, and keep
+the shape in the alpha rather than in the brightness.**
+
+`Tint` = `no` hands the image over untouched, exactly as you drew it. You
+then need one image per look instead of one for all of them.
+
+| | Tint blank (the default) | Tint `no` |
+|---|---|---|
+| how many images | **one**, for every colour in the game | one per look |
+| what to draw | light, desaturated, shape in the alpha | the finished thing |
+| when | you want a consistent material across the game | you are drawing a specific frame |
+
+### Try it in one cell
+
+Three images ship in `assets/ui/` so the system is visible before you have
+drawn anything: **`panel_soft`**, **`window_frame`**, **`button_face`**.
+
+Put `panel_soft` in the `Image` column of the `panel` row, run the game, and
+every box in it changes. Put it back to blank and they change back.
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/theme_shot.gd
+```
+
+photographs the same screen twice — as your file is written, and with those
+three images forced in — so you can look at both before you commit to
+anything. It changes nothing on disk.
+
+### The palette
+
+Rows whose `Element` starts with `colour ` set the base palette; only their
+`Fill` is read.
+
+```
+colour accent      colour background   colour panel      colour slot_empty
+colour locked      colour text         colour text_dim
+colour attack      colour defend
+colour tier_1      colour tier_2       colour tier_3     colour tier_4
+```
+
+`attack` and `defend` are the two that carry meaning rather than taste: the
+strip above the card row and the ATK / DEF tags on a Star's abilities both
+read them, and a player learns them in the draft.
+
+**The Colour tab of Settings still wins.** A deuteranopia or high-contrast
+palette is a *need*, not a preference, and a designer's palette must not be
+able to take it away. Theme.csv is the shipped look; the accessibility
+palettes paint over it.
+
+### Nothing breaks while it is empty
+
+A missing file, a missing image, a colour it cannot read: every one of them
+falls back to what the game looked like before this existed. **You can draw
+one button today and the rest next month.**
+
+```
+godot --headless --script res://tools/theme_check.gd
+```
+
+lists every element, what it is drawn from, whether that file exists, every
+palette colour and whether the game reads that name — and what is sitting in
+`assets/ui/` that no row is using.
+
+---
+
+## 9. `data/Tuning.csv` — 312 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -2125,6 +2362,42 @@ runs at two frames a second and the measurement wanders. Headless it reads
 `110 / 110 / 110`.
 
 ```
+godot --headless --script res://tools/theme_check.gd
+```
+
+Every element of `Theme.csv`, what it is drawn from and whether that file
+exists; every palette colour and whether the game reads that name; and what is
+sitting in `assets/ui/` that no row is using. An image name that is nearly
+right draws nothing, and nothing looks a lot like "I have not drawn it yet".
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/theme_shot.gd
+```
+
+**The skin, before and after.** The same screen twice: as Theme.csv is
+written now, and with the three starter images forced into it. It changes
+nothing on disk — the swap is in memory, for the length of one screenshot.
+
+```
+godot --headless --script res://tools/shot_odds_check.gd
+```
+
+**The scoring curve, printed.** The whole grid — every stamina band against
+every shot power — then the band the pitch will show, then ten thousand shots
+at each to check the dice agree with the table. It is specifically checking
+three things: that an empty keeper is 100%, that it gets easier all the way
+down, and that the number on the screen is the number being rolled.
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/keeper_shot.gd
+```
+
+The keeper's number in both places it is shown: the cut-away against a full
+keeper and against an empty one, and the band under both keepers on the grass.
+
+```
 godot --headless --script res://tools/match_soak.gd
 ```
 
@@ -2295,6 +2568,12 @@ that is almost always why.
 | **stop players bobbing about off the ball** | `block_follow` and `drift_updown` in `Tuning.csv` — section 7 |
 | **stop them standing in pairs** | `zone_lane_stagger` and `mark_level_floor`, and run `tools/shape_check.gd` |
 | **stop the huddle when somebody shoots** | `surge_runners` and `recover_closers` |
+| **change how the whole game looks** | the `panel` row of `data/Theme.csv`. One cell |
+| **draw my own windows and buttons** | 9-slice PNGs in `assets/ui/`, named in Theme.csv's `Image` column |
+| **use my own font** | a `.ttf` in `assets/fonts/`, named in the `heading` / `body` / `small` rows |
+| **make goals easier or harder** | the `Chance` column of `data/ShotOdds.csv`. `tools/shot_odds_check.gd` prints the grid |
+| **stop an empty keeper being a certain goal** | the `0` row of ShotOdds.csv. It says 100 |
+| **hide the keeper's percentage on the pitch** | `keeper_chance_on_pitch` in `Tuning.csv` |
 | **change what a goal celebration does** | rows of `data/Celebration.csv`, top to bottom. `tools/celebration_check.gd` reads it back |
 | **give one Star his own celebration** | put a picture file in that row's `Art` column |
 | **make a goal shorter** | lower the `Seconds` on its rows, or delete rows. The checker adds it up |
