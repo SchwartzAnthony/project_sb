@@ -66,7 +66,7 @@ somebody measures it.
 
 ---
 
-## Phase 3 — The skin  ✅ IN THIS ZIP
+## Phase 3 — The skin  ✅ DONE (round M), and dressed in round N
 
 > *"Right now people can tell it is an AI game. I need to be able to
 > customise the windows."*
@@ -96,28 +96,35 @@ his stamina into a percentage that is printed on the screen before the shot,
 and an empty keeper is now a certain goal rather than a 90% one. See the
 round notes.
 
-## Phase 4 — Out of bounds, and the new PLAY MAKER  ⬅ NEXT
+## Phase 4 — Out of bounds, and the new PLAY MAKER  ✅ IN THIS ZIP
 
-Replacing the 1–10 coin with the sequence you described. One phase on its
-own because it is a chain of moments that all have to work together:
+Replacing the 1–10 coin with the sequence you described. One phase on its own
+because it is a chain of moments that all have to work together:
 
-1. a hidden roll decides who gives the ball away
-2. that player kicks it out — **an animation window**, with a template so it
-   runs before any art exists
-3. the closest player from the other side walks to where it went out and
-   stands outside the line
-4. **then** the PLAY MAKER starts, and both sides pick their tiers
-5. whoever throws in chooses attack or defend
-6. the throw goes to a **team-mate**, and that player starts the relay to the
-   Tier I attacker
+| | |
+|---|---|
+| ✅ | a **hidden roll** decides who gives the ball away — the man nearest the ball, so nobody is blamed for a ball he never touched |
+| ✅ | that player **kicks it out**, over the nearest touchline |
+| ✅ | **an animation window**, with a template: an image if you drew one, that player's own `lose` animation if you did not, and the caption alone if neither |
+| ✅ | the closest player from the other side **walks to where it went out and stands outside the line** |
+| ✅ | **then** the PLAY MAKER starts, and both sides pick their tiers |
+| ✅ | **whoever throws in chooses attack or defend** — the same choice the coin used to give, earned rather than guessed |
+| ✅ | the throw goes to a **team-mate**, and that player starts the relay to the Tier I attacker |
 
-**Why fourth:** it changes the shape of a match, so everything in Phases 1–3
-should be settled first — otherwise I am fixing the presentation of a thing
-that is about to be replaced.
+**It is `data/OutOfBounds.csv`** — the same shape as Celebration.csv, one row
+per beat, and an empty file opens a round instantly the way it always could.
+`out_of_bounds` = `false` brings the coin back; it is still in the project
+and still works.
 
----
+**Also in this zip, and not a phase:**
 
-## Phase 5 — The class system: emblems, the tree, Team Spirit
+* **The scoring, retuned.** I had calibrated the keeper's curve against a
+  shot power of 0 to 8 and the game produces 10 to 22 — so matches were 3–3
+  and 0–4. It is 1.5 a side now, and there is a tool that measures it.
+* **The skin, worn.** Phase 3 built the system; this round drew a Bavarian
+  set for it and put three fonts in. `assets/ui/beerhall_*`.
+
+## Phase 5 — The class system: emblems, the tree, Team Spirit  ⬅ NEXT
 
 The biggest one, and the one I have already read and written down —
 see section 7c of the Designer Manual and `tools/class_check.gd`.
@@ -178,10 +185,16 @@ The one I pulled forward was the **goal celebration**, and it was the right
 call: it is the moment the game is *for* and it used to pass in about a second
 and a half.
 
-**Phase 4 is next unless you say otherwise** — the out-of-bounds sequence and
-the new PLAY MAKER. It changes the shape of a match, which is why it waited
-for the three phases that settle what a match looks like.
+**Two phases left, and they are the two biggest.**
 
-Phase 5 (the class system) still wants achievements to exist first, and
-Phase 6 is content-shaped and will go faster now that Phase 3 has given it a
-look.
+**Phase 5** is the class system — emblems, the talent tree, Team Spirit. It
+is the deepest system in the game and it wants **achievements to exist
+first**, which they do not. That is the honest blocker, and it is small
+enough to clear inside the same round.
+
+**Phase 6** is content-shaped — Adventure's enemy window, the pickup counts,
+Seasons with their own rules, the pre-season dialogue, the Stadium screen —
+and every piece of it will go faster now that there is a look to hang it on.
+
+Either order works. Phase 5 is the one that makes the cards you are drawing
+mean something, so that is the one I would take.

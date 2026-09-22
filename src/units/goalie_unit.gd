@@ -43,6 +43,32 @@ signal shot_saved(remaining_stamina: int)
 ## false goes back to the two flat numbers above. Set from Tuning.csv.
 var use_shot_odds: bool = true
 
+# ============ HOW MUCH A SHOT TAKES OUT OF HIM ============
+#
+# THE WALL HAS TO LAST LONGER THAN TWO SHOTS, or there is no wall.
+#
+# A shot used to take its whole power off the keeper's stamina. Shots in this
+# game are worth 10 to 22, and a keeper has 25 to 30 — so the SECOND shot of
+# a match emptied him and the third was a certain goal. The erosion the
+# stamina bar is there to tell a story about never happened; he was simply
+# fine and then gone.
+#
+# A shot now takes a FRACTION of its power. At 0.45, a 16-power shot costs
+# about 7, and a 28-stamina keeper survives four shots — which is the whole
+# of a cycle, and long enough for the bar to mean something.
+#
+# Raise it and keepers break sooner and matches have more goals. It is the
+# second-biggest dial on the scoreline, after the Chance column itself.
+var stamina_bite: float = 0.45
+
+
+## What this shot actually costs him. Never less than 1, so a tap still
+## counts for something and a keeper cannot be shot at for ever.
+func bite_of(shot_power: int) -> int:
+	if not use_shot_odds:
+		return shot_power      # the old behaviour took the whole power off
+	return maxi(1, int(round(float(shot_power) * maxf(0.01, stamina_bite))))
+
 var current_stamina: int
 var is_enemy: bool = false
 var data: GoalieData
@@ -147,7 +173,7 @@ func take_shot(shot_power: int) -> bool:
 	# next one does, and it is a certainty.
 	var went_in := randf() < ShotOdds.odds(current_stamina, max_stamina, shot_power)
 
-	current_stamina = maxi(0, current_stamina - shot_power)
+	current_stamina = maxi(0, current_stamina - bite_of(shot_power))
 	if stamina_bar != null:
 		stamina_bar.value = current_stamina
 	if current_stamina == 0:
@@ -174,7 +200,7 @@ func _take_shot_the_old_way(shot_power: int) -> bool:
 		play_save_feedback()
 		return false
 
-	current_stamina = maxi(0, current_stamina - shot_power)
+	current_stamina = maxi(0, current_stamina - bite_of(shot_power))
 	if stamina_bar != null:
 		stamina_bar.value = current_stamina
 	_refresh_plate()

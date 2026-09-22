@@ -1,4 +1,16 @@
 File,Folder,What it is,Notes
+Bonum-Bold.otf,assets/fonts/,Art you drew,"TeX Gyre Bonum, a Bookman. Every heading in the game. GUST Font License"
+Bonum-Regular.otf,assets/fonts/,Art you drew,The same at normal weight. Spare
+GUST-FONT-LICENSE.txt,assets/fonts/,Art you drew,The licence for the three fonts above. Keep it beside them
+Schola-Regular.otf,assets/fonts/,Art you drew,"TeX Gyre Schola, a Century Schoolbook. The body text. GUST Font License"
+beerhall_bar_back.png,assets/ui/,Art you drew,The Bavarian skin. 9-slice; the detail is in the corners because the middle stretches
+beerhall_bar_fill.png,assets/ui/,Art you drew,The Bavarian skin. 9-slice; the detail is in the corners because the middle stretches
+beerhall_button.png,assets/ui/,Art you drew,The Bavarian skin. 9-slice; the detail is in the corners because the middle stretches
+beerhall_button_hover.png,assets/ui/,Art you drew,The Bavarian skin. 9-slice; the detail is in the corners because the middle stretches
+beerhall_button_pressed.png,assets/ui/,Art you drew,The Bavarian skin. 9-slice; the detail is in the corners because the middle stretches
+beerhall_panel.png,assets/ui/,Art you drew,The Bavarian skin. 9-slice; the detail is in the corners because the middle stretches
+beerhall_slot.png,assets/ui/,Art you drew,The Bavarian skin. 9-slice; the detail is in the corners because the middle stretches
+beerhall_window.png,assets/ui/,Art you drew,The Bavarian skin. 9-slice; the detail is in the corners because the middle stretches
 button_face.png,assets/ui/,Art you drew,A tintable 9-slice button face. A starting point - replace it
 panel_soft.png,assets/ui/,Art you drew,A tintable 9-slice panel. A starting point - replace it
 window_frame.png,assets/ui/,Art you drew,A tintable 9-slice window frame. A starting point - replace it
@@ -33,6 +45,7 @@ Keywords.csv,data/,A spreadsheet you edit,"EVERY WORD THE GAME UNDERSTANDS. Effe
 Language.csv,data/,A spreadsheet you edit,
 MatchModes.csv,data/,A spreadsheet you edit,
 MenuConfig.csv,data/,A spreadsheet you edit,
+OutOfBounds.csv,data/,A spreadsheet you edit,"HOW A ROUND BEGINS, one row per beat. Same shape as Celebration.csv. It happens NINE TIMES A MATCH, so watch the total"
 Progression.csv,data/,A spreadsheet you edit,
 Recovery.csv,data/,A spreadsheet you edit,"HOW LONG A PLAYER IS OUT AFTER PLAYING, by their power. A fixture is anything that uses a squad - a match, a friendly, a cup tie or a run in Adventure"
 ScratchNames.csv,data/,A spreadsheet you edit,
@@ -97,6 +110,7 @@ match_camera.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 match_mode.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 match_report.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 menu_escape.gd,src/core/,"Engine. Rules, loaders and shared helpers",
+out_of_bounds_book.gd,src/core/,"Engine. Rules, loaders and shared helpers","HOW A ROUND BEGINS. Reads OutOfBounds.csv - the hidden roll, the kick out, the walk to the line, the throw. Replaces the 1-10 coin"
 pitch_zones.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 player_data.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 progression.gd,src/core/,"Engine. Rules, loaders and shared helpers",
@@ -128,6 +142,7 @@ lorelei_formation.tscn,src/formations/,The match and its formations,
 main_scene.gd,src/formations/,The match and its formations,
 main_scene.tscn,src/formations/,The match and its formations,
 soccer_field.tscn,src/match/,The match,
+anim_window.gd,src/ui/,Engine. A screen or a piece of one,"THE ANIMATION WINDOW, shared by the goal celebration and the out-of-bounds sequence. An image if you drew one, that player's own animation if you did not, the caption alone if neither"
 base_screen.gd,src/ui/,A screen or a piece of one,
 base_screen.tscn,src/ui/,A screen or a piece of one,
 bounty_board.gd,src/ui/,A screen or a piece of one,
@@ -182,6 +197,7 @@ team_builder.tscn,src/ui/,A screen or a piece of one,
 team_select.gd,src/ui/,A screen or a piece of one,
 team_select.tscn,src/ui/,A screen or a piece of one,
 team_sheet.gd,src/ui/,A screen or a piece of one,"BEFORE A MATCH. Both crests, both names and three Stars a side with a loading bar, then the pitch with a START button between the crests. Nothing runs until it is pressed"
+throw_in_view.gd,src/ui/,Engine. A screen or a piece of one,"THE THROW-IN, and the attack-or-defend choice that used to be a coin. Shown even when the choice is theirs, because watching the opposition decide is information"
 unlock_board.gd,src/ui/,A screen or a piece of one,
 unlock_board.tscn,src/ui/,A screen or a piece of one,
 ball.gd,src/units/,A thing that stands on the pitch,
@@ -194,7 +210,10 @@ celebration_check.gd,tools/,A tool. Nothing in the game loads it,"Reads Celebrat
 goal_shot.gd,tools/,A tool. Nothing in the game loads it,"The celebration, photographed, without having to score one. Also MEASURES THE HUDDLE - run it headless for that number"
 keeper_shot.gd,tools/,A tool. Nothing in the game loads it,"The keeper's percentage photographed in both places it is shown: the cut-away, full and empty, and the band on the grass"
 match_soak.gd,tools/,A tool. Nothing in the game loads it,"A WHOLE LEAGUE MATCH, played through with AUTO on. Answers the one question no other tool does: does a match still get from kick-off to full time? Gives up rather than hanging"
+out_of_bounds_check.gd,tools/,A tool. Nothing in the game loads it,"Reads OutOfBounds.csv back to you, including how long a round takes to open multiplied by the nine times it happens"
+scoring_balance.gd,tools/,A tool. Nothing in the game loads it,"HOW MANY GOALS IS A MATCH? Plays the shots rather than the matches, 2000 times. Run it after touching ShotOdds.csv"
 sheet_shot.gd,tools/,A tool. Nothing in the game loads it,"The team sheet, photographed, and a count of the ability lines. Six Stars should give twelve. Replaces sheet_hover_shot.gd"
 shot_odds_check.gd,tools/,A tool. Nothing in the game loads it,"The whole scoring grid printed, plus ten thousand shots at each stamina to check the dice agree with the table"
 theme_check.gd,tools/,A tool. Nothing in the game loads it,"Every Theme.csv element, what it is drawn from and whether that file exists; the palette; and what is in assets/ui/ that nothing uses"
 theme_shot.gd,tools/,A tool. Nothing in the game loads it,"THE SKIN BEFORE AND AFTER. The same screen as your file is written, and with the three starter images forced in. Changes nothing on disk"
+throw_in_shot.gd,tools/,A tool. Nothing in the game loads it,"The out-of-bounds sequence photographed, and a measurement of how far outside the line the thrower ended up"

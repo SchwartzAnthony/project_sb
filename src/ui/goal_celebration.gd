@@ -22,7 +22,8 @@ extends CanvasLayer
 #
 #  ============ THE WINDOW ============
 #
-#  A panel with a caption and, in the middle of it, ONE OF TWO THINGS:
+#  Not drawn here — it is `AnimWindow`, shared with the out-of-bounds
+#  sequence. It shows a caption and, in the middle of it, ONE OF TWO THINGS:
 #
 #      an ANIMATION   a row of Animations.csv, played on the scorer's own
 #                     spritesheet. `win` is the one you already have drawn
@@ -43,10 +44,6 @@ extends CanvasLayer
 
 signal skipped
 
-## How big the picture in the window is. The panel is this plus its padding
-## and its caption, so widening it widens the window.
-const STAGE := Vector2(420.0, 260.0)
-
 const FALLBACK_COLOURS: Array[Color] = [
 	Color(0.98, 0.76, 0.33),
 	Color(0.95, 0.35, 0.36),
@@ -64,11 +61,7 @@ var _speed := 220.0
 var _thickness := 6.0
 var _raining := false
 
-var _window: PanelContainer
-var _caption: Label
-var _stage: Control
-var _anim: SpriteAnimator
-var _picture: TextureRect
+var _window: AnimWindow
 var _skippable := true
 var _cut := false
 
@@ -103,57 +96,11 @@ func _build() -> void:
 	_paper.draw.connect(_draw_paper)
 	add_child(_paper)
 
-	_window = PanelContainer.new()
-	_window.visible = false
-	_window.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_window.add_theme_stylebox_override("panel", MenuSupport.panel_style(
-		Color(0.06, 0.07, 0.10, 0.95), MenuSupport.COLOUR_ACCENT))
-	add_child(_window)
-
-	var pad := MarginContainer.new()
-	for side in ["margin_left", "margin_right"]:
-		pad.add_theme_constant_override(side, 34)
-	for side in ["margin_top", "margin_bottom"]:
-		pad.add_theme_constant_override(side, 26)
-	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_window.add_child(pad)
-
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 16)
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pad.add_child(column)
-
-	# ============ A CentreContainer, NOT A PLAIN Control ============
-	#
-	# The first version was a plain Control with the animation anchored to its
-	# centre. An anchor preset is applied ONCE, against the size the child has
-	# at that moment — which is zero, because SpriteAnimator.fit_into() is what
-	# gives it a size and that happens later, when a card arrives. So the
-	# figure was pinned by its top-left corner to the middle of the panel and
-	# hung down over the caption. A CentreContainer centres whatever its child
-	# turns out to be, whenever it turns out to be it.
-	_stage = CenterContainer.new()
-	_stage.custom_minimum_size = STAGE
-	_stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(_stage)
-
-	_picture = TextureRect.new()
-	_picture.custom_minimum_size = STAGE
-	_picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_picture.visible = false
-	_stage.add_child(_picture)
-
-	_anim = SpriteAnimator.new()
-	_anim.visible = false
-	_stage.add_child(_anim)
-
-	_caption = MenuSupport.heading("", 34, MenuSupport.COLOUR_ACCENT)
-	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_caption.custom_minimum_size = Vector2(STAGE.x, 0.0)
-	column.add_child(_caption)
+	# THE WINDOW IS NOT DRAWN HERE. It is AnimWindow, which the out-of-bounds
+	# sequence also uses — two copies of a window is two windows that drift
+	# apart, one gets a new corner style and the other does not, and a year
+	# later the game has two looks for the same idea.
+	_window = AnimWindow.open(self, db, layer + 1)
 
 
 # =============================================================
@@ -272,53 +219,16 @@ func _screen_size() -> Vector2:
 #  THE WINDOW
 # =============================================================
 
-## Show (or swap the contents of) the celebration window.
+## Show, or swap what is inside, the celebration window.
 func show_panel(caption: String, art: String, animation: String,
 		card: PlayerData) -> void:
-	_caption.text = caption
-	_caption.visible = caption != ""
-
-	var picture: Texture2D = MenuSupport.icon_texture(art)
-	_picture.visible = picture != null
-	_picture.texture = picture
-
-	# ART WINS. If you have drawn the celebration as a picture, that is the
-	# more deliberate of the two and the animation steps aside.
-	var spec: AnimSpec = null
-	if picture == null and db != null and card != null and animation != "":
-		for candidate in [animation, "win", "idle"]:
-			spec = db.get_anim(candidate, card.unit_type)
-			if spec != null:
-				break
-	var playing := spec != null and card != null and card.artwork != null
-	_anim.visible = playing
-	if playing:
-		_anim.play(card.artwork, spec)
-		_anim.fit_into(STAGE - Vector2(20.0, 20.0))
-
-	if not _window.visible:
-		_window.visible = true
-		_window.modulate.a = 0.0
-		var fade := create_tween()
-		fade.tween_property(_window, "modulate:a", 1.0, 0.22)
-	_place_window()
+	if _window != null and is_instance_valid(_window):
+		_window.show_panel(caption, art, animation, card, ["win", "idle"])
 
 
 func hide_panel() -> void:
-	if _window != null:
-		_window.visible = false
-		if _anim != null:
-			_anim.stop()
-
-
-## Centred, its own size, and re-measured every time because the contents
-## change between panels and the window should fit whichever is up.
-func _place_window() -> void:
-	_window.reset_size()
-	var box := _window.size
-	var screen := _screen_size()
-	_window.set_anchors_preset(Control.PRESET_TOP_LEFT, true)
-	_window.position = (screen - box) * 0.5
+	if _window != null and is_instance_valid(_window):
+		_window.hide_panel()
 
 
 # =============================================================
@@ -349,5 +259,6 @@ func was_cut() -> bool:
 ## goes. Called at the end of the celebration however it ended.
 func close() -> void:
 	stop()
-	hide_panel()
+	if _window != null and is_instance_valid(_window):
+		_window.close()
 	queue_free()

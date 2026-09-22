@@ -83,8 +83,8 @@ res://
   data/tutorial/  a second set of Dialogue / Buildings / Visitors, used by
                   the tutorial only. Same columns, different content
   assets/         art, audio, icons
-  src/core/       loaders, rules and shared helpers (59 scripts)
-  src/ui/         screens (36)
+  src/core/       loaders, rules and shared helpers (60 scripts)
+  src/ui/         screens (38)
   src/adventure/  Adventure mode (12)
   src/units/      things that stand on the pitch (4)
   src/formations/ the league match itself (1, and it is a big one)
@@ -1111,17 +1111,44 @@ here mean precisely those two things.
 | `keeper_chance_on_pitch` | `false` leaves only the bar |
 | `keeper_chance_size` | how big the keeper's number is, in points. `12` |
 
-> **It changed how many goals a match has.** Three soaked matches went 3–3,
-> 3–1 and 2–3 where the old keeper gave 1–0. If that is too many, the
-> `Chance` column is the dial — lower the 25% and 50% rows first, because
-> that is the part of the curve most shots are taken against.
->
-> ```
-> godot --headless --script res://tools/shot_odds_check.gd
-> ```
->
-> prints the whole grid, the band the pitch will show, and then plays ten
-> thousand shots at each stamina to check the dice agree with the table.
+#### The scale — the mistake worth not repeating
+
+The first version of this curve was tuned against a shot power of 0 to 8.
+**Shot powers in this game are 10 to 22.** Every number in the `Per Power`
+column was doing about ten times the work it looked like it was doing, and
+matches came out 3–3 and 0–4.
+
+That was a guess where a measurement belonged, so there is now a tool for it:
+
+```
+godot --headless --script res://tools/scoring_balance.gd
+```
+
+It plays the *shots* rather than the matches — the real powers, the real
+keeper stamina, the real nine rounds, the real curve, two thousand times —
+and prints goals per side, the spread, the share of shots that go in, and how
+often somebody reaches six in a one-sided game. **Run it after touching any
+number in this file.** As it ships:
+
+```
+1.46 goals a side on average      32% of shots go in
+0 goals 12%  ·  1 goal 47%  ·  2 goals 32%  ·  3 goals 7%  ·  4+ 2%
+a one-sided game: the stronger side averages 2.7 and reaches six 0.2% of the time
+```
+
+and three real soaked matches went 2–3, 1–2 and 0–5.
+
+#### `shot_stamina_bite` — the second dial
+
+A shot used to take its **whole** power off the keeper's stamina. With shots
+worth 10 to 22 against a keeper who has 25 to 30, that emptied him on the
+*second* shot of the match and made the third a certainty — so the wall the
+stamina bar exists to describe never actually eroded; he was fine, and then
+he was gone.
+
+A shot now takes a **fraction** of its power. At `0.55` a keeper survives
+about three shots, which is a whole cycle, and the bar has time to tell its
+story. After `Chance`, this is the biggest dial on the scoreline.
 
 ### `data/Celebration.csv` — the goal celebration
 
@@ -1239,6 +1266,95 @@ single call has a single width.
 > says so past twelve seconds. Out of the box a goal of yours costs 7.3
 > seconds of celebration and then the 2 seconds of `goal_pause_seconds`
 > walking back; theirs costs 1.2 and the same 2.
+
+### `data/OutOfBounds.csv` — how a round begins
+
+A round used to open by asking you to call a number between one and ten, and
+whoever called closer chose attack or defend. It worked, and it was a
+fairground game bolted onto a football match: you were guessing a coin, not
+playing football.
+
+It opens with football now.
+
+```
+   1  a HIDDEN ROLL decides who gave the ball away
+   2  he puts it over the nearest touchline
+   3  an ANIMATION WINDOW: who it was, and what he did
+   4  the nearest opponent WALKS OVER and stands OUTSIDE the line
+   5  then the PLAY MAKER, and both sides pick their tiers
+   6  THE THROWER CHOOSES attack or defend
+   7  the throw goes to a TEAM-MATE, who starts the relay to Tier I
+```
+
+**The choice is the same choice.** What changed is that you earn it by not
+being the one who put the ball out, rather than by guessing a number.
+
+#### It is the same shape as Celebration.csv
+
+On purpose — you have already learned this file. One row is one beat, read
+top to bottom; `Seconds` is **how long before the next row starts**; delete
+every row and a round opens instantly, which is what it did before any of
+this existed.
+
+| `Do` | |
+|---|---|
+| `roll` | decides, out of sight, who gave the ball away |
+| `kick_out` | he strikes it over the nearest touchline |
+| `walk_up` | the nearest opponent walks to the spot and stands outside the line |
+| `window` | the animation window: a caption and a picture |
+| `say` | the big word across the middle of the pitch |
+| `sound` | plays a cue. Usually with `Seconds` 0 |
+| `wait` | nothing but time |
+
+`{loser}` `{thrower}` `{side}` `{tier}` all work in `Text`.
+
+**Write `roll` first.** The beats that follow are about the player it picks,
+and the game will do the roll first anyway rather than kicking a ball nobody
+gave away — but a list with an invisible step in it is a list that gets
+edited wrongly. `tools/out_of_bounds_check.gd` says so if you do not.
+
+#### The animation window is a template
+
+> *"An animation window, with a template so it runs before any art exists."*
+
+That is the whole reason the `window` row is not simply a place to put a
+video. It shows, in order of preference:
+
+1. **an image** — whatever you name in `Art`, shown whole;
+2. **an animation** — a row of Animations.csv, played on **that player's own
+   spritesheet**, so `lose` works today with art you already have;
+3. **nothing** — the caption alone. Which is not a failure: a window with a
+   caption is still a beat, and the match keeps going.
+
+It is `AnimWindow`, and the goal celebration uses the same one — two copies
+of a window is two windows that drift apart.
+
+#### How long it takes, and why that matters more here
+
+**This sequence happens nine times a match.** A second added to it is nine
+seconds of match. The checker prints the total and the multiplication:
+
+```
+godot --headless --script res://tools/out_of_bounds_check.gd
+```
+
+As it ships: **4.6 seconds**, so 41 seconds of every match.
+
+| Tuning row | |
+|---|---|
+| `out_of_bounds` | `false` brings back the 1–10 coin, which is still in the project and still works |
+| `out_of_bounds_player_chance` | how often it is **your** side that gives it away. `0.5` is even. Lower it and you get the ball back more often — the dial to reach for if the game feels unfair before you touch the cards |
+| `throw_in_inset` | how far outside the line the thrower stands, in pixels |
+| `throw_in_screen_margin` | and how close to the edge of the **picture** he may get. He is pushed out by the inset and then clamped back to here, because the camera never shows past the grass — 26 pixels outside the line turned out to be 18 pixels off the top of the screen. Visible and slightly wrong beats correct and invisible |
+| `throw_in_read_seconds` | how long **their** decision is held on screen. It is shown even when the choice is not yours, because watching the opposition decide is information |
+| `throw_in_settle_seconds` | a breath after the ball reaches the team-mate |
+
+#### The throw goes to a team-mate
+
+Not to whoever is duelling first. The thrower picks out the **nearest**
+team-mate on the pitch — a throw-in is a short ball — and the ordinary relay
+carries it from him to the Tier I attacker. That is what makes the throw-in a
+restart rather than a menu that hands the ball over.
 
 ### `data/Abilities.csv` — what a player does in a duel
 
@@ -1903,10 +2019,38 @@ then need one image per look instead of one for all of them.
 | what to draw | light, desaturated, shape in the alpha | the finished thing |
 | when | you want a consistent material across the game | you are drawing a specific frame |
 
-### Try it in one cell
+### What ships in `assets/ui/`
 
-Three images ship in `assets/ui/` so the system is visible before you have
-drawn anything: **`panel_soft`**, **`window_frame`**, **`button_face`**.
+**The game now comes wearing a skin.** `beerhall_*` is a Bavarian /
+Oktoberfest / late-autumn set: stained oak, brass frames with corner studs,
+cream beer-mat tiles with the blue-and-white lozenge, and a bar that is a
+glass of beer with a head on it. Theme.csv points at it out of the box.
+
+| | |
+|---|---|
+| `beerhall_panel` | light oak, **tintable** — it is the `panel` row, so it wears whatever colour each screen asks for |
+| `beerhall_window`, `beerhall_button` and its two states, `beerhall_slot`, `beerhall_bar_fill`, `beerhall_bar_back` | drawn finished, `Tint` = `no` |
+
+The three neutral ones from the round before — `panel_soft`, `window_frame`,
+`button_face` — are still there if you would rather start from grey.
+
+#### Drawing your own: the one rule
+
+**Detail survives only where the image does not stretch.**
+
+```
+   corners  (Slice x Slice)  never stretch      -> ALL the detail goes here
+   top/bottom                stretch SIDEWAYS   -> only horizontal lines survive
+   left/right                stretch UP/DOWN    -> only vertical lines survive
+   the middle                stretches both     -> keep it near-uniform
+```
+
+I learned this by ignoring it. The first beer-hall panel had wood grain
+running through the middle, and stretched across a 700-pixel tile each grain
+line became a 40-pixel bar. The grain lives in the corners now, the moulding
+runs round the edges as straight lines, and the middle is a plain gradient.
+
+### Try it in one cell
 
 Put `panel_soft` in the `Image` column of the `panel` row, run the game, and
 every box in it changes. Put it back to blank and they change back.
@@ -1919,6 +2063,29 @@ xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
 photographs the same screen twice — as your file is written, and with those
 three images forced in — so you can look at both before you commit to
 anything. It changes nothing on disk.
+
+### Fonts
+
+Drop a `.ttf` or `.otf` into `assets/fonts/` and name it in the `Font` column
+of the `heading`, `body` or `small` row. Nothing else to do.
+
+**Three ship with the game**, and they are the single biggest step away from
+"you can tell it is an AI game" — the default Godot font is the most
+recognisable thing on a screen.
+
+| file | what it is | where it is used |
+|---|---|---|
+| `Bonum-Bold.otf` | TeX Gyre Bonum — a Bookman. Heavy, wide, warm; the shape of a beer label | every `heading` |
+| `Bonum-Regular.otf` | the same at normal weight | spare |
+| `Schola-Regular.otf` | TeX Gyre Schola — a Century Schoolbook. Warm, sturdy, made to be read | `body` and `small` |
+
+Both families are under the **GUST Font License**, a free licence that allows
+redistribution; the licence text ships beside them in `assets/fonts/`.
+
+> **If you want a Fraktur**, put it on `heading` **only**. Blackletter at 13
+> points is unreadable, and a whole interface in it looks like a costume
+> rather than a design. The pairing that works is a Fraktur title over a warm
+> serif body — which is exactly what the two rows are for.
 
 ### The palette
 
@@ -1957,7 +2124,7 @@ palette colour and whether the game reads that name — and what is sitting in
 
 ---
 
-## 9. `data/Tuning.csv` — 312 numbers
+## 9. `data/Tuning.csv` — 319 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -2398,6 +2565,38 @@ The keeper's number in both places it is shown: the cut-away against a full
 keeper and against an empty one, and the band under both keepers on the grass.
 
 ```
+godot --headless --script res://tools/scoring_balance.gd
+```
+
+**How many goals is a match?** It plays the *shots* rather than the matches —
+the real shot powers, the real keeper stamina, the real nine rounds, the real
+curve, two thousand times — and prints goals per side, the spread, the share
+of shots that go in, and how often somebody reaches six in a one-sided game.
+**Run it after touching any number in ShotOdds.csv.**
+
+> It exists because I tuned that curve against a shot power of 0 to 8 and
+> then measured the game: shot powers are 10 to 22. A guess where a
+> measurement belonged.
+
+```
+godot --headless --script res://tools/out_of_bounds_check.gd
+```
+
+Every row of `OutOfBounds.csv` in order with a clock down the side, everything
+a row names that does not exist, the ordering rule — and **how long a round
+now takes to open, multiplied by the nine times it happens in a match.**
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/throw_in_shot.gd
+```
+
+The whole out-of-bounds sequence photographed: the ball on its way over the
+line, the animation window, the thrower standing outside the line, and the
+screen where the coin used to be. It also **measures** how far outside the
+line he ended up, because a picture cannot tell you that.
+
+```
 godot --headless --script res://tools/match_soak.gd
 ```
 
@@ -2568,6 +2767,12 @@ that is almost always why.
 | **stop players bobbing about off the ball** | `block_follow` and `drift_updown` in `Tuning.csv` — section 7 |
 | **stop them standing in pairs** | `zone_lane_stagger` and `mark_level_floor`, and run `tools/shape_check.gd` |
 | **stop the huddle when somebody shoots** | `surge_runners` and `recover_closers` |
+| **change what happens when the ball goes out** | rows of `data/OutOfBounds.csv`, top to bottom |
+| **bring back the 1–10 coin** | `out_of_bounds` = `false` in `Tuning.csv` |
+| **get the ball back more often** | lower `out_of_bounds_player_chance` |
+| **change how many goals a match has** | the `Chance` column of `ShotOdds.csv`, then `tools/scoring_balance.gd` |
+| **make the keeper last longer** | lower `shot_stamina_bite` |
+| **use a Fraktur** | put it on the `heading` row of `Theme.csv`. Only that row |
 | **change how the whole game looks** | the `panel` row of `data/Theme.csv`. One cell |
 | **draw my own windows and buttons** | 9-slice PNGs in `assets/ui/`, named in Theme.csv's `Image` column |
 | **use my own font** | a `.ttf` in `assets/fonts/`, named in the `heading` / `body` / `small` rows |

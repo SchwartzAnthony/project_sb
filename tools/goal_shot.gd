@@ -121,9 +121,20 @@ func _initialize() -> void:
 	await create_timer(1.5, true, false, true).timeout
 	_clock += 1.5
 	_measure_the_ring(scene, scorer)
-	await _at(_when(beats, "window", 0.6))
+	# POLL FOR THE WINDOW, DO NOT TIME IT. On a machine with no graphics card
+	# this runs at three frames a second and any computed time is wrong by
+	# the second picture — the first version of this photographed an empty
+	# pitch and I spent a while looking for a window that had not opened yet.
+	var panel = null
+	for i in 400:
+		await create_timer(0.05, true, false, true).timeout
+		panel = _find(current_scene, "AnimWindow")
+		if panel != null and bool(panel.call("is_open")):
+			break
+	await create_timer(0.6, true, false, true).timeout
 	_shoot("g_02_window")
-	await _at(_when(beats, "window", 0.95, 1))
+	# The second panel of the slideshow: wait out the first window row.
+	await create_timer(maxf(0.4, _seconds_of(beats, "window") * 0.9), true, false, true).timeout
 	_shoot("g_03_window_two")
 
 	print("[goal] pictures in %s" % ProjectSettings.globalize_path("user://"))
@@ -133,6 +144,14 @@ func _initialize() -> void:
 ## How many seconds into the celebration a beat of this kind is, `through` of
 ## the way into it. `skip` passes over that many earlier beats of the same
 ## kind, which is how the second window panel is found.
+## How long the FIRST beat of this kind lasts.
+func _seconds_of(beats: Array[Dictionary], kind: String) -> float:
+	for beat in beats:
+		if String(beat["do"]) == kind:
+			return float(beat["seconds"])
+	return 1.0
+
+
 func _when(beats: Array[Dictionary], kind: String, through: float,
 		skip: int = 0) -> float:
 	var clock := 0.0

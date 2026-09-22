@@ -22,6 +22,12 @@ team_sheet,true,"IS THERE A TEAM SHEET BEFORE A MATCH? Both crests, both names a
 kickoff_countdown,true,"TRUE = a match opens with the camera in on two players over the ball in the centre circle, a 3 - 2 - 1 - START, and both sides running at a LOOSE ball. FALSE = your Star simply starts holding it, which is how it used to be"
 kickoff_count_seconds,0.7,How long each of 3 - 2 - 1 is held
 kickoff_go_seconds,0.55,How long START is held before they are let go
+out_of_bounds,true,"HOW A ROUND BEGINS. true is the out-of-bounds sequence: a hidden roll decides who gave the ball away, he puts it over the touchline, the other side walks over and throws it back in, and THE THROWER CHOOSES attack or defend. false brings back the 1-10 coin, which is still in the project and still works. What the sequence CONTAINS is data/OutOfBounds.csv - one row per beat"
+out_of_bounds_player_chance,0.5,"HOW OFTEN IT IS YOUR SIDE THAT GIVES IT AWAY. 0.5 is even. Lower it and you get the ball back more often, which is the dial to reach for if the game feels unfair before you touch the cards"
+throw_in_inset,26,"HOW FAR OUTSIDE THE LINE the thrower stands, in pixels. A throw-in is taken from off the pitch, and this is the detail that makes the whole sequence read as football"
+throw_in_screen_margin,18,"HOW CLOSE TO THE EDGE OF THE PICTURE the thrower is allowed to stand. He is pushed outside the white line by throw_in_inset and then clamped back to here - because the camera is never allowed to show anything past the grass, and 26 pixels outside the line turned out to be 18 pixels off the top of the screen. Visible and slightly wrong beats correct and invisible"
+throw_in_read_seconds,1.4,"How long THEIR decision is held on screen before the picks start. It is shown even when the choice is not yours, because watching the opposition decide is information"
+throw_in_settle_seconds,0.35,A breath after the ball reaches the team-mate and before the relay starts
 use_coin_clash,true,"TRUE = the NUMBER GUESS: both sides call one to ten, a coin lands on one, and whoever called closer chooses attack or defend. FALSE = the old rock-paper-scissors screen, which is still in the project and still works"
 coin_faces,10,"How many numbers are on the coin. Ten out of the box. Their call is always drawn from the ones you did NOT pick, so the two can never be the same number and there is no draw to explain"
 coin_spin_seconds,1.4,"How long the coin turns before it lands. It slows as it goes, so this is the whole spin rather than a per-step time"
@@ -33,7 +39,8 @@ enemy_attack_chance,0.5,Enemy odds of choosing ATTACK when it wins the clash
 rps_reveal_seconds,0.9,Pause on the clash reveal
 rps_result_seconds,1.0,Pause on the clash decision
 shot_odds,true,"WILL IT GO IN? true reads the curve in data/ShotOdds.csv - the chance rises as the keeper's stamina falls, and an empty keeper is a certain goal. false goes back to the two flat numbers below it, which said a keeper on 1 stamina was exactly as hard to beat as a keeper on 30"
-shot_power_shown,5,"THE TOP END OF THE BAND beside a keeper on the pitch. Nobody knows on the pitch how hard the shot will be, so the keeper shows a range: the low end is a shot of no power and the high end is a shot of THIS power. Set it to whatever a big shot is in your game"
+shot_power_shown,16,"THE TOP END OF THE BAND beside a keeper on the pitch. Nobody knows on the pitch how hard the shot will be, so the keeper shows a range: the low end is a shot of no power and the high end is a shot of THIS power. Set it to whatever a TYPICAL shot is in your game - this one produces 10 to 22, so 16"
+shot_stamina_bite,0.55,"HOW MUCH OF A SHOT'S POWER COMES OFF THE KEEPER. 1.0 is the whole of it, which is what it used to be - and with shots worth 10 to 22 against a keeper with 25 to 30, that emptied him on the SECOND shot of the match and made the third a certainty. At 0.45 a keeper survives about four shots, which is a whole cycle, and the bar has time to tell its story. After Chance, this is the biggest dial on the scoreline"
 keeper_chance_on_pitch,true,"Does the keeper say his number on the pitch, under his stamina bar? false leaves only the bar. The shootout cut-away shows the real number either way"
 keeper_chance_size,12,"How big the keeper's number is on the pitch, in points"
 goalie_break_through_chance,0.05,Chance a shot scores while the keeper still has stamina

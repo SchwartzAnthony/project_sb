@@ -73,5 +73,20 @@ you_shoot,YOU SHOOT,DU SCHIESST,The title of the shootout cut-away when it is yo
 they_shoot,THEY SHOOT,SIE SCHIESSEN,And when it is theirs
 goal_chance,CHANCE OF A GOAL,TORCHANCE,"The caption over the percentage in the shootout cut-away"
 goal_is_open,the goal is open,das Tor ist offen,"Printed under the percentage when the keeper has no stamina left. It is not a probability any more, it is a fact, so it reads like one"
+throw_in_yours,YOUR THROW,DEIN EINWURF,The title of the throw-in screen when it is your throw
+throw_in_theirs,THEIR THROW,IHR EINWURF,And when it is theirs
+throw_in_ask,"Attack first, or hold and defend?","Zuerst angreifen oder halten und verteidigen?",The question under the two buttons
+choose_attack,ATTACK,ANGREIFEN,The warm button
+choose_attack_why,your attack against their defence,dein Angriff gegen ihre Abwehr,"The small line under ATTACK. It is the whole rule in seven words - which of the two numbers on a card is the one that counts"
+choose_defend,DEFEND,VERTEIDIGEN,The cool button
+choose_defend_why,their attack against your defence,ihr Angriff gegen deine Abwehr,The small line under DEFEND
+they_attack,They come forward.,Sie kommen nach vorn.,Shown when the opposition takes the throw and chooses to attack
+they_defend,They sit back and hold.,Sie bleiben hinten.,And when they choose to defend
+touchline_top,the top touchline,der oberen Seitenlinie,Where the ball went out
+touchline_bottom,the bottom touchline,der unteren Seitenlinie,
+third_left,the left third,dem linken Drittel,Which third of the pitch the throw is taken in
+third_middle,the middle third,dem mittleren Drittel,
+third_right,the right third,dem rechten Drittel,
+somebody,Somebody,Jemand,"Used when a player has no name - which is what a unit CSV with the placeholder still in its Name column produces"
 you_are_attacking,YOU ARE ATTACKING,DU GREIFST AN,
 you_are_defending,YOU ARE DEFENDING,DU VERTEIDIGST,

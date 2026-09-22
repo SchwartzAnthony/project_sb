@@ -1,0 +1,7 @@
+Step,Do,Seconds,Text,Art,Animation,Sound,Notes
+blame,roll,0,,,,,"THE HIDDEN ROLL. Somebody has to have given the ball away, and this is where it is decided - out of sight, so the moment reads as football rather than as a dice throw. `out_of_bounds_player_chance` in Tuning.csv weights it. Seconds 0 because nothing is shown."
+boot,kick_out,0.9,,,,ball_kick,"HE PUTS IT OUT. The guilty player strikes the ball to the nearest touchline and it crosses the line. Seconds is how long the ball takes to get there."
+whistle,sound,0,,,,play_maker_whistle,"The referee. Seconds 0 - a sound starts and the list carries on over the top of it."
+cutaway,window,1.8,{loser} puts it out,,lose,,"THE ANIMATION WINDOW. Text is the caption; Animation is a row of Animations.csv played on THAT PLAYER'S OWN spritesheet, so it works today with art you already have. Put a file name in Art instead to show a picture you drew. This is the template the round notes promise: it runs before any new art exists."
+walk,walk_up,1.1,,,,,"THE THROW-IN IS WALKED TO. The nearest player of the OTHER side goes to where the ball left the pitch and stands OUTSIDE the line. Seconds is how long the walk takes."
+call,say,0.8,THROW-IN,,,,"The big word across the middle of the pitch, for Seconds and then it clears."

@@ -287,10 +287,20 @@ static func slot_button(art: String, glyph: String, count: int,
 	var button := Button.new()
 	button.custom_minimum_size = size
 	button.focus_mode = Control.FOCUS_ALL
-	button.add_theme_stylebox_override("normal", panel_style(COLOUR_PANEL, tint))
-	button.add_theme_stylebox_override("hover", panel_style(COLOUR_SLOT_EMPTY, COLOUR_ACCENT))
-	button.add_theme_stylebox_override("pressed", panel_style(COLOUR_SLOT_EMPTY, COLOUR_ACCENT))
-	button.add_theme_stylebox_override("disabled", panel_style(COLOUR_LOCKED, COLOUR_TEXT_DIM))
+	# ============ A TILE ASKS FOR THE `slot` ROW BY NAME ============
+	#
+	# It used to call panel_style(), which is the `panel` row — so a save
+	# slot, an item tile and the strip above the card row were all the same
+	# box wearing three colours. The `slot` row exists so a tile can be its
+	# own thing: out of the box it is a beer mat with the blue-and-white
+	# Bavarian lozenge along the top and bottom.
+	#
+	# The caller's `tint` is still passed, so a row with no image of its own
+	# behaves exactly as before.
+	button.add_theme_stylebox_override("normal", styled("slot", "", COLOUR_PANEL, tint))
+	button.add_theme_stylebox_override("hover", styled("slot", "hover", COLOUR_SLOT_EMPTY, COLOUR_ACCENT))
+	button.add_theme_stylebox_override("pressed", styled("slot", "hover", COLOUR_SLOT_EMPTY, COLOUR_ACCENT))
+	button.add_theme_stylebox_override("disabled", styled("slot", "", COLOUR_LOCKED, COLOUR_TEXT_DIM))
 	button.add_theme_stylebox_override("focus", focus_style())
 
 	# --- the picture, filling the middle ---
@@ -619,8 +629,11 @@ static func dialog(on: Node, title: String, under: String = "",
 
 	var frame := PanelContainer.new()
 	frame.custom_minimum_size = Vector2(width, 0)
+	# THE `window` ROW, not `panel`. Every "are you sure" in the game is this
+	# box, and it is the one the player is meant to stop and read — so it is
+	# allowed to be a heavier, more deliberate frame than an ordinary panel.
 	frame.add_theme_stylebox_override("panel",
-		panel_style(COLOUR_PANEL, COLOUR_ACCENT))
+		styled("window", "", COLOUR_PANEL, COLOUR_ACCENT))
 	centre.add_child(frame)
 
 	var pad := MarginContainer.new()

@@ -1507,6 +1507,7 @@ func _tune_goalie(keeper: GoalieUnit) -> void:
 	# keeper used before ShotOdds.csv existed, and `shot_odds` false is how
 	# you go back to them — see goalie_unit.gd.
 	keeper.use_shot_odds = db.tune_bool("shot_odds", true)
+	keeper.stamina_bite = db.tune_float("shot_stamina_bite", 0.45)
 	keeper.break_through_chance = db.tune_float("goalie_break_through_chance", keeper.break_through_chance)
 	keeper.open_goal_chance = db.tune_float("goalie_open_goal_chance", keeper.open_goal_chance)
 
@@ -3149,15 +3150,27 @@ func trigger_playmaker_event() -> void:
 	# The pitch holds still from the whistle until the last card is locked in.
 	freeze_play(true)
 
+	# ============ THE BALL GOES OUT FIRST ============
+	#
+	# A round used to open by asking you to call a number between one and
+	# ten. It opens with football now: somebody gives the ball away, it goes
+	# over the touchline, and the other side walks over to throw it back in.
+	# See `data/OutOfBounds.csv` — every beat of it is a row.
+	#
+	# It runs BEFORE the PLAY MAKER call on purpose. The whistle is for the
+	# restart, and the restart is the throw-in.
+	await _put_it_out_of_play()
+
 	print("PLAY MAKER!  Cycle %d, Round %d" % [current_cycle, rounds_this_cycle])
 	AudioDirector.fire(get_tree(), "play_maker",
 		{"cycle": str(current_cycle), "round": str(rounds_this_cycle)}, state)
 	Juice.fire(self, "play_maker", {})
 	await announce("PLAY MAKER!")
 
-	# Rock/paper/scissors decides who attacks in Tier I, BEFORE the draft.
-	player_attacks_this_round = await run_rps_clash()
-	print("  Clash: %s attacks." % ("You" if player_attacks_this_round else "Enemy"))
+	# WHOEVER TAKES THE THROW CHOOSES. That is the whole of what the coin
+	# used to do, moved onto a thing that happens in a football match.
+	player_attacks_this_round = await _ask_the_thrower()
+	print("  Throw-in: %s." % ("you attack" if player_attacks_this_round else "they attack"))
 	await _say_which_way_round()
 
 	draft_phases.assign(ALL_TIERS)
@@ -4454,6 +4467,17 @@ func resolve_round() -> void:
 
 	print("  %s attacks first." % ("You" if player_has_ball else "Enemy"))
 
+	# ============ THE THROW GOES TO A TEAM-MATE ============
+	#
+	# "The throw goes to a team-mate, and that player starts the relay to the
+	#  Tier I attacker."
+	#
+	# So the ball does not simply appear at the feet of whoever is duelling
+	# first. It is thrown to somebody standing on the pitch, and the relay
+	# starts FROM HIM — which is what makes the throw-in a real restart
+	# rather than a menu that hands the ball over.
+	await _take_the_throw()
+
 	abilities.begin_round()
 	abilities.apply_passives(player_lineup, enemy_lineup)
 
@@ -5045,6 +5069,313 @@ func _swarm_the_scorer(scorer: PlayerUnit, seconds: float) -> void:
 		spot.x = clampf(spot.x, rect.position.x + 20.0, rect.end.x - 20.0)
 		spot.y = clampf(spot.y, rect.position.y + 20.0, rect.end.y - 20.0)
 		mate.run_to(spot, maxf(0.2, seconds))
+
+
+# =============================================================
+#  OUT OF BOUNDS — how a round begins
+#
+#  "Remove the 1-10 system and use an out of bounds system: a hidden roll
+#   decides who gives the ball away, that player kicks it out with an
+#   animation window, the closest player from the other side walks to where
+#   it went out and stands outside the line, THEN the PLAY MAKER starts."
+#
+#  Every beat of it is a row of `data/OutOfBounds.csv`, the same shape as
+#  Celebration.csv — one row is one beat, `Seconds` is how long before the
+#  NEXT row starts, and an empty file opens the round instantly, which is
+#  what it did before any of this existed.
+#
+#  Three things it holds on to, because the rows refer to them:
+#
+#      _gave_it_away   the player the hidden roll blamed
+#      _throw_spot     where on the touchline the ball left
+#      _thrower        the opponent who walked over to take it
+# =============================================================
+
+var _gave_it_away: PlayerUnit = null
+var _throw_spot: Vector2 = Vector2.ZERO
+var _thrower: PlayerUnit = null
+## true when the ball went out over the TOP touchline rather than the bottom.
+var _went_out_high := false
+
+
+func _put_it_out_of_play() -> void:
+	_gave_it_away = null
+	_thrower = null
+	if db == null or not db.tune_bool("out_of_bounds", true):
+		return
+	var beats := OutOfBoundsBook.steps()
+	if beats.is_empty():
+		return
+
+	# The pitch is already frozen by trigger_playmaker_event(); the ball and
+	# the two players involved are moved by hand from here.
+	var window := AnimWindow.open(self, db, 150)
+
+	for i in beats.size():
+		var beat: Dictionary = beats[i]
+		var kind := String(beat["do"])
+		var seconds := float(beat["seconds"])
+
+		match kind:
+			"roll":
+				_blame_somebody()
+			"kick_out":
+				_kick_it_out(seconds)
+			"walk_up":
+				_walk_up_to_it(seconds)
+			"sound":
+				AudioDirector.play_cue(get_tree(), String(beat["sound"]))
+			"say":
+				_say_now(OutOfBoundsBook.fill(String(beat["text"]), _throw_facts()))
+			"window":
+				# WHOEVER THE BEAT IS ABOUT. A `window` row after the roll is
+				# about the man who put it out; after the walk it is about the
+				# man taking the throw. Working it out from what has happened
+				# rather than from a column keeps the spreadsheet short.
+				var who := _thrower if _thrower != null else _gave_it_away
+				if is_instance_valid(window):
+					window.show_panel(
+						OutOfBoundsBook.fill(String(beat["text"]), _throw_facts()),
+						String(beat["art"]), String(beat["animation"]),
+						who.data if who != null and is_instance_valid(who) else null,
+						["lose", "idle"])
+			_:
+				pass   # "wait" — the row is the number
+
+		await _beat(seconds)
+
+		# A window closes when the next row is not another window; a `say`
+		# clears itself the same way. The same rule as the celebration, so
+		# the two files behave identically.
+		if not _next_is(beats, i, kind):
+			if kind == "window" and is_instance_valid(window):
+				window.hide_panel()
+			elif kind == "say":
+				_say_now("")
+
+	_say_now("")
+	if is_instance_valid(window):
+		window.close()
+
+
+## Sliced against an absolute deadline rather than counted down, for the same
+## reason the celebration is: a timer fires on the first frame AFTER its time,
+## so thirteen slices a second each overshoot and the beats drift apart.
+func _beat(seconds: float) -> void:
+	if seconds <= 0.0:
+		await get_tree().process_frame
+		return
+	var deadline := Time.get_ticks_msec() + int(seconds * 1000.0)
+	while true:
+		var left := float(deadline - Time.get_ticks_msec()) / 1000.0
+		if left <= 0.0:
+			return
+		await get_tree().create_timer(minf(left, 0.08), true, false, true).timeout
+
+
+func _next_is(beats: Array[Dictionary], index: int, kind: String) -> bool:
+	return index + 1 < beats.size() and String(beats[index + 1]["do"]) == kind
+
+
+## ============ THE HIDDEN ROLL ============
+##
+## Somebody has to have given it away. It is decided out of sight, so the
+## moment reads as football rather than as a dice throw — and it is weighted
+## by a Tuning row rather than being a straight coin, because "the side that
+## is behind gets the ball back a little more often" is a design lever you
+## may want and cannot have if this is hard-coded at a half.
+func _blame_somebody() -> void:
+	var player_loses := randf() < db.tune_float("out_of_bounds_player_chance", 0.5)
+	var pool: Array[PlayerUnit] = []
+	for unit in _all_units():
+		if unit.is_enemy != player_loses and unit.data != null:
+			pool.append(unit)
+	if pool.is_empty():
+		return
+	# THE ONE NEAREST THE BALL. Whoever was closest to it is the one who
+	# would have had it, and blaming a defender standing forty yards away
+	# for a ball he never touched is the kind of thing a player notices.
+	var here := ball.global_position if ball != null else get_play_rect().get_center()
+	pool.sort_custom(func(a: PlayerUnit, b: PlayerUnit) -> bool:
+		return a.global_position.distance_squared_to(here) \
+			< b.global_position.distance_squared_to(here))
+	_gave_it_away = pool[0]
+	print("  Out of bounds: %s put it out." % _who(_gave_it_away))
+
+
+## ============ HE PUTS IT OUT ============
+##
+## Straight over the NEARER touchline, from where he is standing. The spot is
+## kept inside the pitch's length so a throw is never taken from behind the
+## goal line, which is a corner and a different thing entirely.
+func _kick_it_out(seconds: float) -> void:
+	var rect := get_play_rect()
+	var from := _gave_it_away.global_position if _gave_it_away != null \
+		and is_instance_valid(_gave_it_away) else rect.get_center()
+
+	_went_out_high = from.y < rect.get_center().y
+	var edge := rect.position.y if _went_out_high else rect.end.y
+	var inset := db.tune_float("throw_in_inset", 26.0)
+
+	_throw_spot = Vector2(
+		clampf(from.x + randf_range(-90.0, 90.0),
+			rect.position.x + rect.size.x * 0.12,
+			rect.end.x - rect.size.x * 0.12),
+		edge)
+
+	if ball != null:
+		ball.scripted_possession = false
+		ball.shoot(_throw_spot + Vector2(0.0, -inset if _went_out_high else inset))
+	if _gave_it_away != null and is_instance_valid(_gave_it_away):
+		Juice.fire(self, "ball_kicked", {"node": _gave_it_away})
+	if seconds <= 0.0:
+		return
+
+
+## ============ AND THE OTHER SIDE WALKS OVER ============
+##
+## The nearest player of the OTHER side, and he stands OUTSIDE the line —
+## which is where a throw-in is taken from, and is the detail that makes the
+## whole sequence read as football rather than as a menu.
+func _walk_up_to_it(seconds: float) -> void:
+	if _gave_it_away == null or not is_instance_valid(_gave_it_away):
+		return
+	var theirs := not _gave_it_away.is_enemy
+	var pool: Array[PlayerUnit] = []
+	for unit in _all_units():
+		if unit.is_enemy == theirs and unit.data != null:
+			pool.append(unit)
+	if pool.is_empty():
+		return
+	pool.sort_custom(func(a: PlayerUnit, b: PlayerUnit) -> bool:
+		return a.global_position.distance_squared_to(_throw_spot) \
+			< b.global_position.distance_squared_to(_throw_spot))
+	_thrower = pool[0]
+
+	var stand := _standing_spot()
+	_thrower.run_to(stand, maxf(0.2, seconds))
+	print("  %s walks over to take the throw." % _who(_thrower))
+
+
+## ============ THE THROWER CHOOSES ============
+##
+## What the coin used to decide. Returns true when YOUR side attacks.
+func _ask_the_thrower() -> bool:
+	if db == null or not db.tune_bool("out_of_bounds", true):
+		return await run_rps_clash()      # the old coin, still there
+	# No thrower — nobody was on the pitch to take it. Fall back rather than
+	# stopping the match over a flourish.
+	if _thrower == null or not is_instance_valid(_thrower):
+		return randi() % 2 == 0
+
+	var yours := not _thrower.is_enemy
+	var view := ThrowInView.open(self, db, yours, _throw_words())
+	if _auto_is_on():
+		view.auto_play(db.tune_float("auto_pick_seconds", 0.9),
+			db.tune_float("auto_attack_chance", 0.5))
+	var result: Variant = await view.chosen
+	return bool(result)
+
+
+## ============ OUTSIDE THE LINE, BUT STILL ON THE SCREEN ============
+##
+## A throw-in is taken from off the pitch, and standing him there is the
+## detail that makes the whole sequence read as football. It is also the
+## detail that made him INVISIBLE the first time I looked at a screenshot:
+## the camera's wide shot is never allowed to show anything past the grass,
+## and the white lines run very close to the edge of the grass, so 26 pixels
+## outside the line was 18 pixels off the top of the screen.
+##
+## So the spot is pushed out by `throw_in_inset` and then clamped back into
+## the picture. If there is no room to stand outside, he stands ON the line
+## — visible and slightly wrong beats correct and invisible.
+func _standing_spot() -> Vector2:
+	var inset := db.tune_float("throw_in_inset", 26.0)
+	var stand := _throw_spot + Vector2(0.0, -inset if _went_out_high else inset)
+
+	var seen := get_visible_world_rect()
+	var grass := get_pitch_rect()
+	if grass.size.y > 1.0:
+		var both := seen.intersection(grass)
+		if both.size.y > 1.0:
+			seen = both
+	var edge := db.tune_float("throw_in_screen_margin", 18.0)
+	if seen.size.y > edge * 3.0:
+		stand.y = clampf(stand.y, seen.position.y + edge, seen.end.y - edge)
+	return stand
+
+
+## "Bauer throws in from the left touchline, twenty yards out."
+func _throw_words() -> String:
+	var rect := get_play_rect()
+	var side := Loc.text("touchline_top", "the top touchline") if _went_out_high \
+		else Loc.text("touchline_bottom", "the bottom touchline")
+	var across := 0.5
+	if rect.size.x > 1.0:
+		across = clampf((_throw_spot.x - rect.position.x) / rect.size.x, 0.0, 1.0)
+	var third := Loc.text("third_middle", "the middle third")
+	if across < 0.34:
+		third = Loc.text("third_left", "the left third")
+	elif across > 0.66:
+		third = Loc.text("third_right", "the right third")
+	return "%s takes it from %s, in %s." % [_who(_thrower), side, third]
+
+
+func _throw_facts() -> Dictionary:
+	return {
+		"loser": _who(_gave_it_away),
+		"thrower": _who(_thrower),
+		"side": "you" if (_thrower != null and is_instance_valid(_thrower)
+			and not _thrower.is_enemy) else "them",
+		"tier": _thrower.data.get_tier_clean() if _thrower != null
+			and is_instance_valid(_thrower) and _thrower.data != null else "",
+	}
+
+
+func _who(unit: PlayerUnit) -> String:
+	if unit == null or not is_instance_valid(unit) or unit.data == null:
+		return Loc.text("somebody", "Somebody")
+	return unit.data.player_name
+
+
+## ============ THE THROW ITSELF ============
+##
+## The thrower is standing outside the line. He throws to the NEAREST
+## team-mate who is actually on the pitch, and the ordinary relay picks it up
+## from there and carries it to the Tier I attacker.
+##
+## He stays outside the line while he throws, which is correct, and walks
+## back on his own the moment the pitch is unfrozen.
+func _take_the_throw() -> void:
+	if db == null or not db.tune_bool("out_of_bounds", true):
+		return
+	if _thrower == null or not is_instance_valid(_thrower) or ball == null:
+		return
+
+	var mates: Array[PlayerUnit] = []
+	for unit in _all_units():
+		if unit != _thrower and unit.is_enemy == _thrower.is_enemy and unit.data != null:
+			mates.append(unit)
+	if mates.is_empty():
+		return
+
+	# NEAREST, because a throw-in is a short ball. A thrower picking out
+	# somebody forty yards away is a highlight, not a restart.
+	mates.sort_custom(func(a: PlayerUnit, b: PlayerUnit) -> bool:
+		return a.global_position.distance_squared_to(_thrower.global_position) \
+			< b.global_position.distance_squared_to(_thrower.global_position))
+	var receiver := mates[0]
+
+	ball.global_position = _thrower.global_position
+	ball.scripted_possession = true
+	Juice.fire(self, "ball_kicked", {"node": _thrower})
+	ball.deliver_to(receiver)
+	await ball.delivery_arrived
+	print("  Throw-in: %s to %s." % [_who(_thrower), _who(receiver)])
+
+	var beat := db.tune_float("throw_in_settle_seconds", 0.35)
+	if beat > 0.0:
+		await get_tree().create_timer(beat).timeout
 
 
 ## ============ THE PAUSE BEFORE A RESTART ============
