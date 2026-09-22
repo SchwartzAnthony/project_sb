@@ -625,6 +625,7 @@ func _physics_process(delta: float) -> void:
 	if ball != null:
 		ball.set_corridor(_ball_corridor(), current_state == MatchState.PLAYING)
 
+	_move_the_scenery()
 	_assign_roles()
 
 
@@ -1846,6 +1847,16 @@ func _apply_team_selection(picked: TeamSelection) -> void:
 ## commonest confusion: every Star wearing another class's colours belongs to
 ## the OPPOSITION, and now wears a badge on the pitch to prove it.
 func _print_line_ups() -> void:
+	# ============ THE PITCH IS A SCREEN TOO ============
+	#
+	# Every menu announces itself through MenuEscape.install(); the match has
+	# its own pause menu and never called it, so `screen=match` rows in
+	# Audio.csv could never match and the crowd loop never started. This sits
+	# here because it is the one line BOTH ways into a match pass through —
+	# the drafted kick-off and the one that takes the team straight out of
+	# the builder.
+	AudioDirector.fire(get_tree(), "screen_opened", {"screen": "match"}, state)
+
 	for side: bool in [false, true]:
 		var label := "Enemy" if side else "Your team"
 		print("[team] %s:" % label)
@@ -2781,9 +2792,21 @@ func get_play_rect() -> Rect2:
 		var clipped := area.intersection(pitch)
 		if clipped.size.x > 1.0 and clipped.size.y > 1.0:
 			area = clipped
+	# ============ THE MARGIN BETWEEN THE IMAGE AND THE LINES ============
+	#
+	# The pitch IMAGE is 16:9 so the wide shot can show all of it with no
+	# black edges. The white LINES inside it are a real pitch shape, which is
+	# not 16:9 — so there is grass, a running track, whatever you draw, round
+	# the outside. These two numbers say how much, and they are what makes
+	# the game's play area line up with your drawing.
+	#
+	# They are rows because they belong to the picture: draw the lines closer
+	# to the edge and you lower them, draw a big surround and you raise them.
+	var side := db.tune_float("pitch_inset_x", 0.06) if db != null else 0.06
+	var ends := db.tune_float("pitch_inset_y", 0.10) if db != null else 0.10
 	return area.grow_individual(
-		-area.size.x * 0.06, -area.size.y * 0.10,
-		-area.size.x * 0.06, -area.size.y * 0.10)
+		-area.size.x * side, -area.size.y * ends,
+		-area.size.x * side, -area.size.y * ends)
 
 
 func get_pitch_rect() -> Rect2:
@@ -2796,11 +2819,141 @@ func get_pitch_rect() -> Rect2:
 	return get_viewport_rect()
 
 
+# =============================================================
+#  THE SCENERY — data/Stadium.csv
+#
+#  The pitch used to be a sprite placed by hand in the .tscn: a 1000 x 667
+#  photograph, scaled 2.216 across and 2.114 down. Two different scale
+#  factors, so the picture was very slightly squashed, and no answer at all
+#  to "what size should I draw one".
+#
+#  It is a spreadsheet now. The pitch is stretched to exactly the Width and
+#  Height of its row whatever size the file is drawn at, and the background
+#  layers are built here from the same file. See stadium_book.gd.
+# =============================================================
+
+## Every layer except the pitch, so they can be moved with the camera.
+var _scenery: Array[Dictionary] = []
+
+
+func _build_the_stadium() -> void:
+	if field_sprite == null:
+		return
+
+	# ---- THE PITCH, at exactly the size the spreadsheet asks for ----
+	var wanted := StadiumBook.pitch_size()
+	var pitch_row := StadiumBook.row_for("pitch")
+	var art := String(pitch_row.get("image", ""))
+	if art != "":
+		var swapped := _field_texture(art)
+		if swapped != null:
+			field_sprite.texture = swapped
+	if field_sprite.texture != null:
+		var raw := field_sprite.texture.get_size()
+		if raw.x > 1.0 and raw.y > 1.0:
+			# ONE SCALE PER AXIS, worked out from the drawing rather than
+			# typed in — so a file drawn at any size lands on the same
+			# rectangle and nothing is squashed by accident.
+			field_sprite.scale = Vector2(wanted.x / raw.x, wanted.y / raw.y)
+	field_sprite.centered = true
+	# ============ WHERE THE PITCH SITS, AND WHY NOT AT THE ORIGIN ============
+	#
+	# The obvious thing is to centre it on (0, 0). Doing that cost me a run.
+	#
+	# The play rectangle is the CAMERA'S VIEW intersected with the pitch, and
+	# the camera does not exist yet when the geometry is locked — so the view
+	# at that moment is the raw viewport, which starts at (0, 0) and runs
+	# down and right. A pitch centred on the origin has three quarters of
+	# itself in negative space, the intersection is a quarter of the grass,
+	# and twenty-two players get laid out in it. The measured symptom was the
+	# average gap between players falling from 155 pixels to 102.
+	#
+	# So it is centred on the middle of that first view, which is where the
+	# hand-placed sprite effectively was. The Offset X / Offset Y columns
+	# still move it from there.
+	var first_view := get_viewport_rect()
+	field_sprite.position = first_view.get_center() \
+		+ Vector2(pitch_row.get("offset", Vector2.ZERO))
+	field_sprite.z_index = -10
+
+	# ---- AND WHAT IS BEHIND AND OVER IT ----
+	_scenery.clear()
+	var order := {"background": -40, "crowd": -30, "lights": 60}
+	for row in StadiumBook.layers():
+		var layer_name := String(row["layer"])
+		if layer_name == "pitch" or not order.has(layer_name):
+			continue
+		if String(row.get("image", "")) == "":
+			continue
+		if not StadiumBook.allowed(row, state):
+			print("[stadium] '%s' is not drawn — its Requires does not pass." % layer_name)
+			continue
+		var texture := _field_texture(String(row["image"]))
+		if texture == null:
+			print("[stadium] '%s' names %s, which is not in assets/field/ yet."
+				% [layer_name, row["image"]])
+			continue
+		var sprite := Sprite2D.new()
+		sprite.name = "Stadium_%s" % layer_name
+		# Same centre as the pitch, so a background lines up with the grass.
+		sprite.texture = texture
+		sprite.centered = true
+		sprite.z_index = int(order[layer_name])
+		sprite.modulate = StadiumBook.tint_of(row)
+		var box: Vector2 = row.get("size", Vector2.ZERO)
+		var raw2 := texture.get_size()
+		if box.x > 1.0 and box.y > 1.0 and raw2.x > 1.0 and raw2.y > 1.0:
+			sprite.scale = Vector2(box.x / raw2.x, box.y / raw2.y)
+		add_child(sprite)
+		sprite.position = field_sprite.position \
+			+ Vector2(row.get("offset", Vector2.ZERO))
+		_scenery.append({
+			"node": sprite,
+			"home": sprite.position,
+			"parallax": float(row.get("parallax", 0.0)),
+		})
+	if not _scenery.is_empty():
+		print("[stadium] %d scenery layer(s) built." % _scenery.size())
+
+
+## Drift the background against the camera, so it reads as distance rather
+## than as a sticker on the grass. Called from _process().
+func _move_the_scenery() -> void:
+	if _scenery.is_empty() or camera == null:
+		return
+	var eye := camera.global_position
+	for entry in _scenery:
+		var sprite := entry["node"] as Sprite2D
+		if sprite == null or not is_instance_valid(sprite):
+			continue
+		sprite.global_position = Vector2(entry["home"]) + eye * float(entry["parallax"])
+
+
+## A picture out of assets/field/, by name, with or without an extension.
+func _field_texture(art: String) -> Texture2D:
+	var clean := art.strip_edges()
+	if clean == "":
+		return null
+	if clean.begins_with("res://"):
+		return load(clean) as Texture2D if ResourceLoader.exists(clean) else null
+	for tail in [".png", ".jpg", ".jpeg", ".webp", ""]:
+		var path := "res://assets/field/%s%s" % [clean, tail]
+		if ResourceLoader.exists(path):
+			return load(path) as Texture2D
+	return null
+
+
 ## Pin the play area for the duration of a spawn, so both teams are built
 ## against identical geometry. Always paired with _unlock_geometry().
 func _lock_geometry() -> void:
 	if _geometry_locked:
 		return
+
+	# THE SCENERY FIRST. The play rectangle is measured off the pitch sprite,
+	# so the sprite has to be the size Stadium.csv asks for BEFORE anything
+	# reads it — otherwise the formation is laid out against the old
+	# hand-placed rectangle and the grass moves underneath it.
+	_build_the_stadium()
 	# The camera is built here, before the play rect is pinned, so that the
 	# rectangle it is handed is the un-zoomed one. After this the two agree
 	# forever, because get_visible_world_rect() hands back the camera's own
@@ -3280,17 +3433,63 @@ func _kickoff_sequence() -> void:
 	# countdown — two minutes gone before anybody had touched the ball.
 	current_state = MatchState.PLAYING
 
+	# ============ AND THE WHISTLE GOES HERE ============
+	#
+	# It used to hang on `match_started`, which fires while the scene is
+	# still assembling itself — so the referee blew up over the loading
+	# screen, several seconds before anybody could kick anything. `kick_off`
+	# is its own moment: after the countdown, as play begins.
+	_report("kick_off", _facts_for(null))
+
+
+## ============ A LONG ANNOUNCEMENT RAN OFF THE SCREEN ============
+##
+## The label was placed by hand in the .tscn — a fixed box from x=660 to
+## x=1276 at 72 point, with no wrapping — which is fine for "PLAY MAKER!" and
+## is not fine for "They pour Fire Brew on Sapphire Current", which ran off
+## the right-hand edge mid-word. A line the player cannot finish reading is
+## worse than no line.
+##
+## So it is the full width of the window now, it wraps, and it shrinks to fit
+## rather than overflowing. Done here rather than in the scene file because
+## the window can be any size.
+func _fit_the_announcement() -> void:
+	if event_announcement == null:
+		return
+	event_announcement.set_anchors_preset(Control.PRESET_TOP_WIDE, true)
+	event_announcement.anchor_left = 0.0
+	event_announcement.anchor_right = 1.0
+	event_announcement.anchor_top = 0.32
+	event_announcement.anchor_bottom = 0.32
+	var inset := db.tune_float("announce_inset", 120.0) if db != null else 120.0
+	event_announcement.offset_left = inset
+	event_announcement.offset_right = -inset
+	event_announcement.offset_top = 0.0
+	event_announcement.offset_bottom = db.tune_float("announce_height", 240.0) \
+		if db != null else 240.0
+	event_announcement.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# SHRINK RATHER THAN SPILL. Godot will drop the point size as far as this
+	# to make the words fit the box, and only then start clipping.
+	event_announcement.add_theme_font_size_override("font_size",
+		int(db.tune_float("announce_font_size", 72.0)) if db != null else 72)
+	event_announcement.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	event_announcement.clip_text = false
+	event_announcement.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	event_announcement.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
 
 ## Put a word on the screen right now and leave it there. The caller decides
 ## how long for — see the kick-off, which is doing its own timing.
 func _say_now(text: String) -> void:
 	if event_announcement == null:
 		return
+	_fit_the_announcement()
 	event_announcement.text = text
 	event_announcement.visible = text != ""
 
 
 func announce(text: String, seconds: float = 2.0) -> void:
+	_fit_the_announcement()
 	event_announcement.text = text
 	event_announcement.show()
 	await get_tree().create_timer(seconds).timeout
@@ -4162,6 +4361,10 @@ func resolve_round() -> void:
 		abilities.begin_duel()
 
 		var attacker_is_enemy := not player_has_ball
+		# WHOSE BALL IT WAS GOING IN. Kept because `player_has_ball` is
+		# flipped by a turnover further down, and the duel has to be reported
+		# against the side that was attacking — see the note there.
+		var was_mine := player_has_ball
 		var atk: PlayerData = mine if player_has_ball else theirs
 		var def: PlayerData = theirs if player_has_ball else mine
 
@@ -4223,10 +4426,25 @@ func resolve_round() -> void:
 			print(line)
 		abilities.log_lines.clear()
 
-		# Report the duel before anything else reacts to it, so a counter is
-		# never one behind what is on screen.
+		# ============ THE WIN SOUND ON A LOSS ============
+		#
+		# "The win/lose sounds don't fit — it plays the win sound when I lose
+		# and the reverse sometimes too."
+		#
+		# It was reading `player_has_ball`, which the turnover above had
+		# ALREADY FLIPPED. Work the four cases through:
+		#
+		#     you attack and hold    wins=true,  ball still yours   -> won   ok
+		#     you attack and lose    wins=false, ball now theirs    -> WON   wrong
+		#     you defend and hold    wins=false, ball now yours     -> LOST  wrong
+		#     you defend and lose    wins=true,  ball still theirs  -> lost  ok
+		#
+		# Exactly half of them inverted, which is precisely "sometimes". It
+		# asks `was_mine` now — whose ball it was going INTO the duel — so
+		# the answer no longer depends on what the duel did to possession.
 		var my_unit := unit_for_card(mine, false)
-		if attacker_wins == player_has_ball:
+		var i_won := attacker_wins == was_mine
+		if i_won:
 			_report("duel_won", _facts_for(my_unit))
 		else:
 			_report("duel_lost", _facts_for(my_unit))

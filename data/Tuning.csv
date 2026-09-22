@@ -77,6 +77,8 @@ shootout_windup_seconds,0.8,The striker's kick animation
 shootout_close_seconds,0.4,Window closes
 verdict_seconds,1.4,How long GOAL / MISS stays on screen
 field_width,1280,Play area width in pixels. Art scales to fit this.
+pitch_inset_x,0.06,"HOW FAR IN FROM THE LEFT AND RIGHT EDGES OF THE PITCH IMAGE THE WHITE LINES ARE, as a fraction. The image is 16:9 so the camera can show all of it; a real pitch is not 16:9, so the lines sit inside a margin and the rest is grass and surround. AT 2560 x 1440 THIS MEANS THE LINES START 154 PIXELS IN. Everything in the match - the Tier quarters, both goal mouths, where a throw-in stands - is measured against the rectangle these two rows describe, so they have to match your drawing"
+pitch_inset_y,0.10,"THE SAME FROM THE TOP AND BOTTOM. At 2560 x 1440 the lines start 144 pixels down, so THE LINES OCCUPY THE MIDDLE 2253 x 1152 PIXELS. Draw a bigger surround and raise this; draw the lines to the edge and set both rows to 0"
 field_height,720,Play area height in pixels. Art scales to fit this.
 field_position_x,0,Play area X position in world space
 field_position_y,0,Play area Y position in world space
@@ -160,6 +162,9 @@ surge_lead_seconds,0.7,How long the winning side runs at goal before the ball st
 surge_advance,0.45,"How much of the remaining distance to goal the break closes. 0 = nobody moves, 1 = everyone piles on the goal line"
 surge_centring,0.35,How much the break funnels toward the goal mouth. 0 = everyone keeps their lane
 progression_announce_seconds,1.6,How long a Progression announce: line stays on screen during a match
+announce_font_size,72,"HOW BIG THE BIG WORDS IN THE MIDDLE OF THE PITCH ARE. PLAY MAKER, GOAL, FULL TIME and anything a spreadsheet announces. It shrinks below this to fit a long line rather than running off the edge, which it used to do"
+announce_inset,120,"HOW FAR IN FROM EACH EDGE OF THE WINDOW that line may reach, in pixels. Smaller lets a long announcement use more of the screen"
+announce_height,240,"How tall the announcement box is. Two lines of 72 point need about this much"
 camera_enabled,true,"Does the view follow the ball? false = the old fixed view of the whole pitch, and nothing else changes"
 camera_zoom,1.55,How far in the camera pushes during live play. 1 = the whole pitch. Try 1.8 for a much tighter game
 camera_zoom_close,2.10,How far in it pushes for a shot on goal
@@ -211,6 +216,8 @@ adventure_float_seconds,0.9,How long a damage number hangs in the air before fad
 adventure_repeat_step,0.35,How much harder a biome gets each time you clear its boss. 0.35 = +35 percent of the base per clear. 0 turns repeat scaling off
 adventure_meet_seconds,1.6,How long the two sides get to walk into place before the fight opens regardless
 card_width,220,"How wide a player card is drawn during a match, in pixels. The portrait, the writing and the Star badge all grow with it"
+icon_tile_size,120,"HOW BIG AN ITEM ICON IS IN THE BAG AND ON A SHELF, in pixels square. It was 84, which leaves about 64 for the drawing once the border and the count are taken off - a thumbnail on a 1080-line screen. 120 is readable across a room. Everything on the tile scales off this one number"
+icon_tile_padding,0.10,"HOW MUCH OF AN ICON TILE IS BORDER rather than drawing, as a fraction of its width. Lower puts more of your artwork on screen; 0 runs the picture to the edges"
 card_height,290,"How tall a player card is drawn during a match, in pixels"
 adventure_card_width,200,How wide a player card is drawn in the Adventure fight. Keep it near card_width so a player reads the same size in both places
 adventure_card_height,264,How tall a player card is drawn in the Adventure fight
@@ -227,6 +234,7 @@ draft_reveal_words,SHOW,"What the face-up button says. One short word. PLAY IT O
 reveal_strip,true,"IS THERE A STRIP ABOVE THE CARD ROW HOLDING WHATEVER HAS BEEN PLAYED FACE UP? A reveal you cannot see is a rule rather than a moment, so a shown card goes on the table above the choices - theirs on the left, yours on the right, each with its power and what its ability does. FALSE and a reveal is only a line in the announcement bar"
 reveal_strip_height,120,"How tall that strip is, in pixels. Two abilities in plain words need about this much"
 reveal_strip_inset,220,"How far in from each side of the window the strip stops, in pixels. Smaller makes it wider"
+reveal_strip_seconds,2.4,"HOW LONG YOUR OWN FACE-UP CARD STAYS ON THE TABLE before it takes itself away, in seconds. THEIRS does not use this: a card you did not choose waits for you to press OK, because you have to be given a moment to read it. 0 leaves yours up until the round ends, which is what it used to do and what put a window across the middle of the pitch for four tiers"
 card_row_x,0.5,"Where the row of player cards sits across the screen during a match. 0 = hard left, 0.5 = the middle, 1 = hard right"
 card_row_y,0.5,"Where the row of player cards sits down the screen during a match. 0 = the top, 0.5 = the middle, 1 = the bottom. It used to be pinned to the bottom edge of the window"
 card_row_gap,18,Pixels between the player cards during a match
@@ -272,6 +280,8 @@ adventure_bar_gap,4,"How far under the feet the stamina bar sits, in pixels. It 
 juice_slowmo_depth,0.35,"HOW FAR a slow-motion dip slows the game. 0.35 = a third speed. 1.0 = no dip at all, which is a gentler way to turn them off than juice_slowmo = false"
 juice_flash_strength,0.3,"HOW BRIGHT A FULL-SCREEN FLASH IS. It was a hard-coded 0.55 and a white flash at that strength across a whole screen is genuinely unpleasant. 0 turns screen flashes off entirely and leaves the shakes alone"
 juice_scale,1.0,"HOW MUCH SHAKE, FLASH AND POP THE WHOLE GAME GETS. 0 kills every effect stone dead, 0.5 halves them, 2 doubles them. This is the row to expose in Settings for people who dislike screen shake, and the row to set to 0 while you are debugging"
+music_follows_screen,true,"DOES THE MUSIC CHANGE WHEN THE SCREEN DOES? TRUE and a screen opening RECLAIMS the Music bus: if no looping row in Audio.csv claimed it for that screen, whatever was playing is faded out. THE ROW THAT FIXED THE BASE THEME PLAYING EVERYWHERE - a looping track holds its bus until something else takes it, and the base had a row while the team shelf and the bounty board did not, so walking out of the base handed the base theme a lease on the rest of the session. To carry a track ACROSS a screen on purpose, give that screen a row naming the same Sound: the loop sees the same cue and is left alone, so there is no gap. FALSE goes back to the old behaviour"
+music_fade_out_seconds,1.0,"How long the old track takes to go when a screen claims no music of its own. Short is a cut, long is a dissolve. 0 is a hard stop"
 juice_slowmo,true,"FALSE stops the slow-motion dips only, and leaves every shake and flash alone"
 juice_average_hit,0,"WHAT AN ORDINARY HIT IS WORTH, for the shake that grows with damage. Leave it at 0 and the game works it out from the hits you actually land"
 level_per_unique,1.0,"TEAM LEVEL. What each DIFFERENT card on a side is worth. This is the 'how many unique players' part - a side of nine different cards outranks one that fields the same three over and over"

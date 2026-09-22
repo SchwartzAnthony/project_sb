@@ -98,6 +98,27 @@ static func fire(tree: SceneTree, event: String, facts: Dictionary = {},
 		director.play_event(event, facts, state)
 
 
+## ============ A SCREEN SAYS WHAT IT IS ============
+##
+## Called from MenuEscape.install(), which every screen in the game already
+## calls, so the screen announces itself the moment it is built — however it
+## was reached. That includes the very first screen of the session, which is
+## simply there when the window opens and never went through go_to().
+##
+## The name is worked out from the scene file, so a screen added next year
+## gets its music from a row in Audio.csv and no code at all.
+static func announce_screen(tree: SceneTree, screen: Node) -> void:
+	if tree == null or screen == null:
+		return
+	var path := screen.scene_file_path
+	if path == "":
+		# A screen built in code rather than from a .tscn. Its node name is
+		# the best word we have, and it is usually the right one.
+		path = "res://%s.tscn" % screen.name.to_lower()
+	fire(tree, "screen_opened", {"screen": ScenePaths.screen_word(path)},
+		GameState.fetch(tree))
+
+
 ## Cues fired before this node reached the tree, oldest first.
 var _queued: Array[Dictionary] = []
 
@@ -135,11 +156,50 @@ func play_event(event: String, facts: Dictionary, state: GameState) -> void:
 		return
 	if db == null or _muted:
 		return
-	for cue in db.cues_for(event, facts, state):
+
+	var cues := db.cues_for(event, facts, state)
+	for cue in cues:
 		if bool(cue["loop"]):
 			_start_loop(cue)
 		else:
 			_play_once(cue)
+
+	# ============ AND A SCREEN WITH NO MUSIC IS QUIET ============
+	#
+	# THE BUG THIS FIXES: "the base music plays non-stop and no other music
+	# is able to play."
+	#
+	# A looping track holds its bus until something else claims it. The base
+	# has a row in Audio.csv; the team shelf, the bounty board and the
+	# builder do not — so walking out of the base handed the base theme a
+	# lease on the Music bus for the rest of the session, and every screen
+	# after it inherited the wrong music.
+	#
+	# So a screen opening is now a moment where the Music bus is RECLAIMED:
+	# if no looping row claimed it for this screen, the track that is
+	# playing is faded out. That is the cut between screens.
+	#
+	# To carry a track across a screen deliberately, give that screen a row
+	# naming the same Sound — the loop logic sees the same cue and leaves it
+	# alone, so there is no gap. `music_follows_screen` in Tuning.csv turns
+	# the whole reclaim off.
+	if event == "screen_opened" and _music_follows_screen():
+		var claimed := false
+		for cue in cues:
+			if bool(cue["loop"]) and String(cue["bus"]) == "Music":
+				claimed = true
+				break
+		if not claimed:
+			var quiet := 1.0
+			var db_card := CardDatabase.get_db()
+			if db_card != null:
+				quiet = db_card.tune_float("music_fade_out_seconds", 1.0)
+			stop_loop("Music", quiet)
+
+
+func _music_follows_screen() -> bool:
+	var book := CardDatabase.get_db()
+	return book == null or book.tune_bool("music_follows_screen", true)
 
 
 ## ============ PLAY ONE SOUND BY NAME ============
@@ -247,12 +307,12 @@ func _fade_out(player: AudioStreamPlayer, seconds: float) -> void:
 # =============================================================
 
 ## Stop the looping track on one bus — "" for all of them.
-func stop_loop(bus: String = "") -> void:
+func stop_loop(bus: String = "", seconds: float = 0.4) -> void:
 	for key in _loops.keys():
 		if bus != "" and String(key) != bus:
 			continue
 		var entry: Dictionary = _loops[key]
-		_fade_out(entry["player"] as AudioStreamPlayer, 0.4)
+		_fade_out(entry["player"] as AudioStreamPlayer, seconds)
 	if bus == "":
 		_loops.clear()
 	else:

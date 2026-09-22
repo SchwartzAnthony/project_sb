@@ -17,7 +17,6 @@ extends Control
 const TILE := Vector2(300.0, 200.0)
 
 var state: GameState
-var _wiping: int = -1
 var _list: HBoxContainer
 var _detail: Label
 
@@ -125,27 +124,90 @@ func _tile(about: Dictionary) -> Control:
 	button.pressed.connect(_play.bind(slot))
 	frame.add_child(button)
 
-	# ERASING ASKS TWICE. There is no undo, so the first press only arms it.
+	# ============ ERASING IS NOT A MAIN BUTTON ============
+	#
+	# It used to be the second button on every filled tile, the same size as
+	# PLAY and directly under it — so the destructive action sat where your
+	# hand already was, and the only thing between you and losing a save was
+	# pressing the same button twice.
+	#
+	# It is behind a cog now. The cog opens that slot's own window, the
+	# window holds Delete Profile, and Delete Profile asks Yes or No. Three
+	# deliberate steps, and Close gets you out at any point.
 	if used:
-		var wipe := MenuSupport.icon_button("✕",
-			"Press again to erase" if _wiping == slot else "Erase",
-			Vector2(TILE.x, 40))
-		if _wiping == slot:
-			wipe.add_theme_stylebox_override("normal", MenuSupport.panel_style(
-				MenuSupport.COLOUR_LOCKED, Color(0.92, 0.45, 0.42)))
-		wipe.pressed.connect(func() -> void:
-			if _wiping != slot:
-				_wiping = slot
-				_detail.text = "Erasing slot %d cannot be undone. Press it again to be sure." % slot
-				_fill()
-				return
-			SaveSlots.erase(slot)
-			_wiping = -1
-			_detail.text = "Slot %d is empty." % slot
-			_fill())
-		frame.add_child(wipe)
+		var cog := MenuSupport.icon_button("settings|⚙",
+			Loc.text("settings", "Settings"), Vector2(TILE.x, 40))
+		cog.tooltip_text = "What to do with this save, including deleting it."
+		cog.pressed.connect(_open_slot_settings.bind(slot, about))
+		frame.add_child(cog)
 
 	return frame
+
+
+# =============================================================
+#  ONE SAVE'S OWN WINDOW
+# =============================================================
+
+## Opened by the cog on a filled tile. Everything that is about this save
+## rather than about playing it lives here, which today is one thing and
+## will not stay one thing.
+func _open_slot_settings(slot: int, about: Dictionary) -> void:
+	var window := MenuSupport.dialog(self,
+		"SLOT %d" % slot, String(about.get("line", "")))
+	var column: VBoxContainer = window.get_meta("column")
+
+	var gone := MenuSupport.icon_button("✕",
+		Loc.text("delete_profile", "Delete Profile"), Vector2(0, 52))
+	gone.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	gone.add_theme_stylebox_override("normal", MenuSupport.panel_style(
+		MenuSupport.COLOUR_PANEL, Color(0.92, 0.45, 0.42)))
+	gone.pressed.connect(func() -> void:
+		_confirm_delete(slot, window))
+	column.add_child(gone)
+
+	var close := MenuSupport.icon_button("↩", Loc.text("close", "Close"),
+		Vector2(0, 52))
+	close.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	close.pressed.connect(func() -> void:
+		if is_instance_valid(window):
+			window.queue_free())
+	column.add_child(close)
+
+
+## Yes or No, and No comes back to the slot's settings window rather than
+## dumping you out to the shelf — you asked to look at this save, not to
+## leave it.
+func _confirm_delete(slot: int, parent_window: CanvasLayer) -> void:
+	var ask := MenuSupport.dialog(self,
+		Loc.text("are_you_sure", "Are you sure?"),
+		"Slot %d and everything in it — the teams, the unlocks, the season — is gone for good. There is no undo." % slot)
+	var column: VBoxContainer = ask.get_meta("column")
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	column.add_child(row)
+
+	var yes := MenuSupport.icon_button("✕", Loc.text("yes", "Yes"), Vector2(0, 52))
+	yes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	yes.add_theme_stylebox_override("normal", MenuSupport.panel_style(
+		MenuSupport.COLOUR_PANEL, Color(0.92, 0.45, 0.42)))
+	yes.pressed.connect(func() -> void:
+		SaveSlots.erase(slot)
+		print("[slots] Slot %d erased." % slot)
+		if is_instance_valid(ask):
+			ask.queue_free()
+		if is_instance_valid(parent_window):
+			parent_window.queue_free()
+		_detail.text = "Slot %d is empty." % slot
+		_fill())
+	row.add_child(yes)
+
+	var no := MenuSupport.icon_button("↩", Loc.text("no", "No"), Vector2(0, 52))
+	no.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	no.pressed.connect(func() -> void:
+		if is_instance_valid(ask):
+			ask.queue_free())
+	row.add_child(no)
 
 
 func _play(slot: int) -> void:

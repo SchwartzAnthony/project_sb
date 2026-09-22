@@ -272,6 +272,18 @@ static func icon_button(icon: String, label: String,
 
 static func slot_button(art: String, glyph: String, count: int,
 		size: Vector2 = Vector2(84, 84), tint: Color = COLOUR_TEXT_DIM) -> Button:
+	# ============ HOW BIG AN ITEM IS, FROM A SPREADSHEET ============
+	#
+	# "The icons are too small to see on the screen." They were 84 pixels
+	# square with ten pixels of padding a side, which leaves 64 for the
+	# drawing — and a 64-pixel drawing on a 1080-line screen is a thumbnail.
+	#
+	# `icon_tile_size` in Tuning.csv is the number, so the answer to "is that
+	# big enough" is a row you change and look at rather than a message to
+	# me. Everything scales off it: the padding, the count in the corner and
+	# the stand-in glyph are all fractions of the tile now, so one row moves
+	# all of them together.
+	size = Vector2(tuned("icon_tile_size", size.x), tuned("icon_tile_size", size.y))
 	var button := Button.new()
 	button.custom_minimum_size = size
 	button.focus_mode = Control.FOCUS_ALL
@@ -289,10 +301,13 @@ static func slot_button(art: String, glyph: String, count: int,
 		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		picture.offset_left = 10.0
-		picture.offset_top = 8.0
-		picture.offset_right = -10.0
-		picture.offset_bottom = -18.0
+		# A FRACTION OF THE TILE, not a fixed ten pixels — so making the tile
+		# bigger makes the DRAWING bigger rather than the border round it.
+		var pad := size.x * tuned("icon_tile_padding", 0.10)
+		picture.offset_left = pad
+		picture.offset_top = pad * 0.8
+		picture.offset_right = -pad
+		picture.offset_bottom = -maxf(pad * 1.8, 14.0)
 		picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		button.add_child(picture)
 	else:
@@ -536,6 +551,92 @@ static func colour_for_tier(tier: String) -> Color:
 
 ## A filled, rounded panel background — used for every card and slot so the
 ## whole menu shares one look.
+## ============ A WINDOW THAT SITS OVER A SCREEN ============
+##
+## Every "are you sure", every little settings box, every confirmation in the
+## game should look the same and behave the same, and until now each one was
+## built by hand where it was needed — which is how you end up with three
+## different ideas of what a dialog is.
+##
+## Hand it a title and a line of explanation; it returns a CanvasLayer with a
+## dimmed backdrop and a centred panel, and puts the VBoxContainer you should
+## add your buttons to in its `column` metadata:
+##
+##     var window := MenuSupport.dialog(self, "SLOT 2", "14 matches")
+##     var column: VBoxContainer = window.get_meta("column")
+##     column.add_child(my_button)
+##
+## Escape closes it, clicking the dim closes it, and it frees itself. It is
+## on layer 180 — above ordinary screen content, below the Escape panel
+## (150 is below it, the match's pause menu is 200), so a dialog cannot trap
+## you: Escape still reaches the panel behind it after this one is gone.
+## ONE NUMBER OUT OF Tuning.csv, safely. The card database is not always
+## loaded when a menu is being built — the title screen draws before anything
+## has read a spreadsheet — so this falls back to the value in code rather
+## than to zero, which would make a button no pixels wide.
+static func tuned(key: String, fallback: float) -> float:
+	var book := CardDatabase.get_db()
+	if book == null:
+		return fallback
+	return book.tune_float(key, fallback)
+
+
+static func dialog(on: Node, title: String, under: String = "",
+		width: float = 460.0) -> CanvasLayer:
+	var layer := CanvasLayer.new()
+	layer.name = "Dialog"
+	layer.layer = 180
+	on.add_child(layer)
+
+	var dim := ColorRect.new()
+	dim.color = Color(0.0, 0.0, 0.0, 0.72)
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.gui_input.connect(func(event: InputEvent) -> void:
+		var click := event as InputEventMouseButton
+		if click != null and click.pressed and is_instance_valid(layer):
+			layer.queue_free())
+	layer.add_child(dim)
+
+	var centre := CenterContainer.new()
+	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(centre)
+
+	var frame := PanelContainer.new()
+	frame.custom_minimum_size = Vector2(width, 0)
+	frame.add_theme_stylebox_override("panel",
+		panel_style(COLOUR_PANEL, COLOUR_ACCENT))
+	centre.add_child(frame)
+
+	var pad := MarginContainer.new()
+	for side in ["margin_left", "margin_right"]:
+		pad.add_theme_constant_override(side, 26)
+	for side in ["margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(side, 22)
+	frame.add_child(pad)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 12)
+	pad.add_child(column)
+
+	var head := heading(title, 26, COLOUR_ACCENT)
+	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(head)
+
+	if under.strip_edges() != "":
+		var note := Label.new()
+		note.text = under
+		note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		note.add_theme_font_size_override("font_size", 14)
+		note.add_theme_color_override("font_color", COLOUR_TEXT_DIM)
+		column.add_child(note)
+
+	layer.set_meta("column", column)
+	return layer
+
+
 static func panel_style(fill: Color, border: Color = Color(0, 0, 0, 0)) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = fill

@@ -52,9 +52,32 @@ static func make(db: CardDatabase) -> RevealStrip:
 
 
 func _ready() -> void:
+	# IGNORE everywhere except the OK button, which takes its own clicks —
+	# so the strip never eats a click meant for a card underneath it.
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build()
 	_repaint()
+
+
+## ============ IT IS A CARD YOU PUT DOWN, NOT A WINDOW THAT STAYS UP ============
+##
+## "When the enemy reveals their card I want to see it, click okay, and then
+## carry on picking. The window lingers through the whole game, which blocks
+## the field and the units."
+##
+## It did: it was put up when somebody revealed and taken down at the end of
+## the round, so it sat across the middle of the pitch for four tiers and
+## every duel in between.
+##
+## Now it has an OK button and it goes when you press it. THEIRS is the one
+## that matters — you have to be given a moment to read a card you did not
+## choose — so the button only appears once their card is on the table, and
+## the strip closes itself when there is only yours to look at, after
+## `reveal_strip_seconds`.
+signal dismissed
+
+var _waiting := false
+var _timer: SceneTreeTimer = null
 
 
 ## Put a card on the table. `is_enemy` says whose it is.
@@ -64,6 +87,41 @@ func show_card(card: PlayerData, is_enemy: bool) -> void:
 	else:
 		_mine = card
 	_repaint()
+
+	if _theirs != null:
+		# THEIRS IS ON THE TABLE. Wait for a person.
+		_waiting = true
+	elif not _waiting:
+		# Only yours, and you already knew what it was — show it briefly and
+		# take it away again rather than leaving it over the pitch.
+		var seconds := 2.4
+		var db := CardDatabase.get_db()
+		if db != null:
+			seconds = db.tune_float("reveal_strip_seconds", 2.4)
+		if seconds > 0.0 and is_inside_tree():
+			_timer = get_tree().create_timer(seconds)
+			_timer.timeout.connect(func() -> void:
+				if is_instance_valid(self) and not _waiting:
+					clear())
+
+
+## Pressed OK, or Escape, or Space. Everything comes off the table and the
+## match carries on.
+func dismiss() -> void:
+	_waiting = false
+	clear()
+	dismissed.emit()
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not _waiting:
+		return
+	var key := event as InputEventKey
+	if key == null or not key.pressed or key.echo:
+		return
+	if key.keycode in [KEY_ESCAPE, KEY_SPACE, KEY_ENTER, KEY_KP_ENTER]:
+		get_viewport().set_input_as_handled()
+		dismiss()
 
 
 ## The tier is settled — take both cards off the table.
@@ -85,6 +143,7 @@ func _build() -> void:
 	_panel = PanelContainer.new()
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_panel.add_theme_stylebox_override("panel", MenuSupport.panel_style(
 		Color(0.06, 0.07, 0.10, 0.92), MenuSupport.COLOUR_ACCENT))
 	add_child(_panel)
@@ -122,6 +181,16 @@ func _repaint() -> void:
 		_row.add_child(bar)
 	if _mine != null:
 		_row.add_child(_side_block(_mine, false))
+
+	# ---- and the way out of it ----
+	if _waiting or _theirs != null:
+		var ok := MenuSupport.icon_button("↩", Loc.text("ok", "OK"), Vector2(150, 44))
+		ok.tooltip_text = "Take it off the table and carry on. Space or Escape do the same."
+		ok.pressed.connect(dismiss)
+		var hold := CenterContainer.new()
+		hold.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		hold.add_child(ok)
+		_row.add_child(hold)
 
 
 func _side_block(card: PlayerData, is_enemy: bool) -> Control:

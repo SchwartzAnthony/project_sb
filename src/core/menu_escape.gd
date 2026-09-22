@@ -78,6 +78,22 @@ static func install(on: Node) -> MenuEscape:
 	# THE LANGUAGE. Loaded once per run from Language.csv; every screen then
 	# reads its words through Loc.text(). See localisation.gd.
 	Loc.install()
+
+	# ============ AND THE SCREEN SAYS WHAT IT IS ============
+	#
+	# THE BUG THIS FIXES: "the main menu music does not start until you go
+	# into the tutorial and come back."
+	#
+	# `screen_opened` used to be fired by ScenePaths.go_to(), which is every
+	# screen change in the game EXCEPT the first one — the main menu is the
+	# project's main scene and is simply there when the window opens, so it
+	# never went through go_to() and never asked for its music. Walking to
+	# the tutorial and back did go through go_to(), which is why that worked.
+	#
+	# Announcing it here instead means the screen itself says what it is, the
+	# moment it is built, whichever way it was reached. Firing twice is
+	# harmless: a looping cue that is already playing is left alone.
+	AudioDirector.announce_screen(tree, on)
 	return made
 
 
@@ -125,12 +141,37 @@ func _input(event: InputEvent) -> void:
 
 	get_viewport().set_input_as_handled()
 
-	if _armed or CardDatabase.get_db().tune_bool("escape_quits_instantly", false):
+	# ============ A SECOND ESCAPE CLOSES THE MENU ============
+	#
+	# It used to QUIT THE GAME. Escape twice in a row is the most natural
+	# thing in the world to do — open a menu, change your mind, press the key
+	# you opened it with — and doing that shut the game down without asking
+	# anything more. Escape is now the same key both ways: it opens the menu
+	# and it closes it.
+	#
+	# `escape_quits_instantly` in Tuning.csv is for a kiosk or a demo where
+	# one key should get you out; it is FALSE everywhere else.
+	if _armed:
+		_stand_down()
+		return
+	if CardDatabase.get_db().tune_bool("escape_quits_instantly", false):
 		_quit()
 		return
 
 	_armed = true
 	_panel.show()
+
+
+## Back to the title screen, with everything written to disk first. The
+## panel is stood down before the scene changes so it is not left armed on
+## the screen you arrive at.
+func _to_main_menu() -> void:
+	var state := GameState.fetch(get_tree())
+	if state != null:
+		state.save_to_disk()
+	_stand_down()
+	print("[menu] Back to the main menu from Escape.")
+	ScenePaths.go_to(get_tree(), ScenePaths.MAIN_MENU, false)
 
 
 func _quit() -> void:
@@ -184,28 +225,42 @@ func _build() -> void:
 	column.add_theme_constant_override("separation", 12)
 	pad.add_child(column)
 
-	var title := MenuSupport.heading("QUIT THE GAME?", 30, MenuSupport.COLOUR_ACCENT)
+	var title := MenuSupport.heading("PAUSED", 30, MenuSupport.COLOUR_ACCENT)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)
 
 	var note := Label.new()
-	note.text = "Your save and your teams are written to disk first. Press Escape again to quit, or carry on."
+	note.text = "Your save and your teams are written to disk before you go anywhere. Escape again closes this."
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	note.add_theme_font_size_override("font_size", 14)
 	note.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	column.add_child(note)
 
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	column.add_child(row)
+	# ============ THERE IS A WAY BACK NOW ============
+	#
+	# The panel used to offer exactly two things: carry on, or shut the game
+	# down. From the base that meant there was NO WAY BACK TO THE MAIN MENU
+	# at all — the only exit from the game was the exit from the program.
+	#
+	# Three buttons, stacked rather than in a row, because "Main Menu" and
+	# "Quit to Desktop" do not fit side by side at 440 wide and a button with
+	# its own words cut off is worse than a taller panel.
+	var back := MenuSupport.icon_button("↩", Loc.text("carry_on", "Carry on"),
+		Vector2(0, 52))
+	back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back.pressed.connect(_stand_down)
+	column.add_child(back)
 
-	var stay := MenuSupport.icon_button("↩", "Carry on", Vector2(200, 50))
-	stay.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stay.pressed.connect(_stand_down)
-	row.add_child(stay)
+	var home := MenuSupport.icon_button("home|⌂",
+		Loc.text("main_menu", "Main Menu"), Vector2(0, 52))
+	home.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	home.tooltip_text = "Back to the title screen. Everything is saved first."
+	home.pressed.connect(_to_main_menu)
+	column.add_child(home)
 
-	var out := MenuSupport.icon_button("✕", "Quit", Vector2(200, 50))
+	var out := MenuSupport.icon_button("✕",
+		Loc.text("quit_game", "Quit to Desktop"), Vector2(0, 52))
 	out.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	out.pressed.connect(_quit)
-	row.add_child(out)
+	column.add_child(out)

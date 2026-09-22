@@ -2,16 +2,16 @@ ID,When,Match,Sound,Bus,Loop,Volume,Fade,Requires,Notes
 menu_theme,screen_opened,screen=main,menu_theme,Music,true,-9,1.5,,The main menu. Keeps playing until another looping row claims the Music bus.
 base_theme,screen_opened,screen=base,base_calm,Music,true,-10,2,,The base. Walking to the Pub and back does NOT restart it - the same track on the same bus is left alone.
 base_theme_brewing,screen_opened,screen=base,base_warm,Music,true,-10,2,unlocked:Brewery,"THE WHOLE IDEA IN ONE ROW: same moment, same bus, but only once the Brewery is open. The LAST matching row wins, so this one sits below the calm one."
-pub_theme,screen_opened,screen=pub,pub_room,Music,true,-11,1.5,,
-season_theme,screen_opened,screen=season,season_table,Music,true,-12,1,,
-match_theme,match_started,screen=match,match_theme,Music,true,-14,2,,The crowd. A loop under the whole match.
-kickoff_whistle,match_started,,kickoff_whistle,Effects,,-4,,,
-play_maker_whistle,play_maker,,whistle_short,Effects,,-4,,,Every PLAY MAKER.
-hold_up_whistle,hold_up,,whistle_double,Effects,,-4,,,Every STAR PLAYER SWITCH.
-goal_horn,goal_scored,,goal_horn,Effects,,-2,,,Any goal you score.
+pub_theme,screen_opened,screen=pub,dialogue_theme,Music,true,-11,1.5,,"The Pub is where you talk to people, so it borrows the dialogue theme until it has one of its own."
+season_theme,screen_opened,screen=season,menu_theme,Music,true,-12,1.0,,The season shelf is a menu and sounds like one. Give it a track of its own and change this row.
+match_theme,screen_opened,screen=match,match_theme,Music,true,-14,2,,"The crowd, under the whole match. It hangs on screen_opened now rather than on match_started: match_started fires while the scene is still assembling and screen=match could never match it, so this loop never played at all."
+kickoff_whistle,kick_off,,kickoff_whistle,Effects,,-4,,,"AFTER THE COUNTDOWN, as play begins. It used to hang on match_started, which fires while the match is still loading - so the referee blew up over the loading screen several seconds before anybody could kick anything."
+play_maker_whistle,play_maker,,kickoff_whistle,Effects,,-4,,,"Every PLAY MAKER. STAND-IN: this is not the sound it should be, it is a file you already have so the moment is audible. Put the real one in assets/audio/ under the name in SOUNDS_WANTED.csv and this row picks it up with no edit."
+hold_up_whistle,hold_up,,kickoff_whistle,Effects,,-4,,,"Every STAR PLAYER SWITCH. STAND-IN: this is not the sound it should be, it is a file you already have so the moment is audible. Put the real one in assets/audio/ under the name in SOUNDS_WANTED.csv and this row picks it up with no edit."
+goal_horn,goal_scored,,crowd_goal,Effects,,-2,,,"Any goal you score. STAND-IN: this is not the sound it should be, it is a file you already have so the moment is audible. Put the real one in assets/audio/ under the name in SOUNDS_WANTED.csv and this row picks it up with no edit."
 goal_horn_star,goal_scored,star=yes,goal_horn_big,Effects,,-1,,,"A Star scored. Below the general row, so this one wins."
 goal_against,goal_conceded,,crowd_groan,Effects,,-8,,,
-shot_kick,shot_taken,,ball_kick,Effects,,-6,,,
+shot_kick,shot_taken,,ball_kick,Effects,,-6,,,"A shot leaving the boot. STAND-IN: this is not the sound it should be, it is a file you already have so the moment is audible. Put the real one in assets/audio/ under the name in SOUNDS_WANTED.csv and this row picks it up with no edit."
 keeper_save,save_made,,glove_catch,Effects,,-5,,,
 keeper_big_save,save_made,power>=4,glove_catch_big,Effects,,-3,,,A save against a shot of 4 power or more.
 duel_win,duel_won,,duel_win,Effects,,-6,,,
@@ -20,9 +20,9 @@ duel_lose,duel_lost,,duel_lose,Effects,,-7,,,
 brew_pour,brew_drunk,,pour,Effects,,-5,,,
 card_hover,card_hovered,,ui_tick,UI,,-16,,,Quiet on purpose - it fires every time the mouse crosses a card.
 card_lock,card_picked,,ui_confirm,UI,,-8,,,
-full_time_win,match_ended,result=win,fanfare_win,Music,,-4,,,Not looping: it plays once over whatever the Music bus was doing.
-full_time_loss,match_ended,result=loss,fanfare_loss,Music,,-6,,,
-full_time_draw,match_ended,result=draw,fanfare_draw,Music,,-6,,,
+full_time_win,match_ended,result=win,crowd_goal,Music,,-4,,,"The final whistle when you have won. STAND-IN: this is not the sound it should be, it is a file you already have so the moment is audible. Put the real one in assets/audio/ under the name in SOUNDS_WANTED.csv and this row picks it up with no edit."
+full_time_loss,match_ended,result=loss,player_drop,Music,,-6,,,"The final whistle when you have lost. STAND-IN: this is not the sound it should be, it is a file you already have so the moment is audible. Put the real one in assets/audio/ under the name in SOUNDS_WANTED.csv and this row picks it up with no edit."
+full_time_draw,match_ended,result=draw,ui_confirm,Music,,-6,,,"The final whistle on a draw. STAND-IN: this is not the sound it should be, it is a file you already have so the moment is audible. Put the real one in assets/audio/ under the name in SOUNDS_WANTED.csv and this row picks it up with no edit."
 ball_tap,,,ball_tap,Effects,,-5,,,"JUICE. A player taking the ball. Tiny - a scuff of boot on leather, nothing more. It plays several times a second while the party runs, so anything with a tail turns into a drone. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
 ball_kick,,,ball_kick,Effects,,-5,,,"JUICE. A player striking the ball on the run. Short, dry, a little harder than ball_tap. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
 hit_soft,,,hit_soft,Effects,,-5,,,"JUICE. An ordinary hit landing on an enemy. The workhorse - you will hear this more than any other sound in the game, so keep it short and unmemorable. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
@@ -35,3 +35,8 @@ combo_ping,,,combo_ping,Effects,,-5,,,JUICE. A combo completing in the build-up 
 shot_heavy,,,shot_heavy,Effects,,-5,,,JUICE. The final shot of an Adventure move leaving the boot. The biggest kick in the game. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty
 enemy_windup,,,enemy_windup,Effects,,-5,,,"JUICE. An enemy gaining its buff while you build your move. Should feel like a clock ticking, not like an attack. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
 crowd_goal,,,crowd_goal,Effects,,-5,,,"JUICE. A goal in a league match. The crowd going up. It sits UNDER goal_horn, which already fires - this is the roof coming off, not the whistle. Named by the Sound column of Juice.csv rather than fired by an event - that is why the When column is empty"
+teamselect_theme,screen_opened,screen=teamselect,menu_theme,Music,true,-12,1.0,,"THE TEAM SHELF. It had no row, so it inherited whatever was playing - usually the base theme, for the rest of the session."
+builder_theme,screen_opened,screen=teambuilder,menu_theme,Music,true,-12,1.0,,"The team builder, same as the shelf it is reached from."
+bounty_theme,screen_opened,screen=bounty,marsh_theme,Music,true,-12,1.5,,"The bounty board looks out at the marshes, so it plays them."
+story_theme,screen_opened,screen=dialogue,dialogue_theme,Music,true,-11,1.5,,Any conversation scene.
+talents_theme,screen_opened,screen=talent,menu_theme,Music,true,-12,1.0,,The talent tree.

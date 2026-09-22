@@ -83,7 +83,7 @@ res://
   data/tutorial/  a second set of Dialogue / Buildings / Visitors, used by
                   the tutorial only. Same columns, different content
   assets/         art, audio, icons
-  src/core/       loaders, rules and shared helpers (54 scripts)
+  src/core/       loaders, rules and shared helpers (56 scripts)
   src/ui/         screens (33)
   src/adventure/  Adventure mode (12)
   src/units/      things that stand on the pitch (4)
@@ -1085,6 +1085,73 @@ these are the hooks, with skeletons in the spreadsheets to copy:
 The three scene skeletons are in Dialogue.csv: `first_team`, `after_first_match`
 and `season_opening`. They say what belongs in them and nothing else.
 
+## 7c. A class, an emblem, and the Team Spirit
+
+**This is the structure your four new spreadsheets already describe.** None of
+it is built yet — the talent tree is Phase 5 — but it is read, checked and
+written down here so that what gets built matches what you meant.
+
+### What a class is made of
+
+Read the `Set Name` column of a unit CSV and the shape falls out:
+
+```
+Rauhnacht-Feuergeister
+  Set "Star"        3 cards, all Tier IV       <- the three Star Players
+  Set "Belphegor"   9 cards, Tiers I/II/III    <- an EMBLEM SET
+  Set "Flauros"     9 cards, Tiers I/II/III    <- an EMBLEM SET
+  Set "Buer"        9 cards, Tiers I/II/III    <- an EMBLEM SET
+```
+
+**One Star set plus three emblem sets.** The Star set holds one tier between
+its three cards — the tier ladder rule the game has always had — and each
+emblem set fills the other three tiers with nine cards, three per tier, one
+of each rung. Thirty cards a class.
+
+`Rauhnacht-Feuergeister Emblems.csv` then names Belphegor, Flauros and Buer:
+**the same three words**. That is not a coincidence and it is not optional —
+a set and its emblem are the same thing seen from two sides. The emblem is
+the card you hold; the set is the nine units it unlocks.
+
+### What an emblem is
+
+A **two-sided card**:
+
+| Column | |
+|---|---|
+| `Name` | must match a `Set Name` in the unit CSV |
+| `Unit Type` | the class |
+| `Emblem` | the picture |
+| `Basic Side` | what it does from the moment you have it |
+| `Condition` | what has to happen for it to turn over |
+| `Ultimate Side` | what it does afterwards — **and the basic side stays live** |
+
+### How it is meant to come together
+
+```
+   a Star Player          is tied to one emblem set
+        |
+   put into a node        unlocks that emblem's nine units, which are the
+   of the talent tree     recipe the Brewery works from
+        |
+   all three Stars        that section of the tree opens, you choose ONE of
+   of the same class      its three Emblems, and you may forge the
+                          TEAM SPIRIT drink
+```
+
+Which is why the Star set is three cards and there are three emblem sets:
+**the tree has three starting nodes and each one wants a Star.**
+
+### The checker
+
+> `tools/class_check.gd` prints what each class's files describe and then
+> everything that does not line up. It is the only way to see a mismatch: an
+> emblem whose set is missing unlocks nothing, which looks exactly like an
+> emblem you have not earned yet.
+>
+> **Run it before you draw thirty cards for a class.** It has already found
+> four things in your own files — see the top of the round notes.
+
 ## 8. Adventure mode
 
 `src/adventure/` — eleven scripts. The run is a scrolling pitch; the fight is
@@ -1396,7 +1463,62 @@ the same line that has always cleared them.
 
 ---
 
-## 9. `data/Tuning.csv` — 284 numbers
+## 8b. `data/Stadium.csv` — how big to draw the pitch
+
+**The two numbers you asked for:**
+
+```
+the pitch        2560 x 1440      assets/field/soccerfield.png
+the background   3840 x 2160      assets/field/stadium_back.png
+```
+
+### Why the pitch has to be 16:9
+
+The camera's widest shot **covers** the pitch rather than fitting inside it —
+it is never allowed to show anything past the grass, so a pitch taller than
+the window is cropped top and bottom and a wider one is cropped at the sides.
+2560 × 1440 is the window's own shape, and sharp at 1080p and at 1440p.
+
+### The white lines do not go to the edge
+
+A real pitch is 1.54:1 and a window is 1.78:1. So draw the **lines** inside a
+margin and fill the rest with grass, a running track, a advertising hoarding —
+whatever the stadium has.
+
+```
+     2560 wide
+  +--------------------------------------------------+
+  |                     144 px                       |
+  |     +--------------------------------------+     |   1440
+  | 154 |        THE LINES  2253 x 1152        | 154 |   tall
+  |     +--------------------------------------+     |
+  |                     144 px                       |
+  +--------------------------------------------------+
+```
+
+**Everything in the match is measured against that inner rectangle** — the
+four Tier quarters, both goal mouths, where a throw-in stands. The margins
+are `pitch_inset_x` (0.06) and `pitch_inset_y` (0.10) in Tuning.csv, so if
+you draw the lines closer to the edge you lower them and the game follows.
+
+**The file is stretched to exactly Width × Height whatever size you draw it**,
+so you can work at 5120 × 2880 and halve it later without touching a row.
+
+### The layers
+
+| Layer | | |
+|---|---|---|
+| `background` | behind the grass | 3840 × 2160. **Parallax `0.25`** — it drifts a quarter as fast as the camera, which is what reads as distance |
+| `crowd` | between the background and the grass | for a later unlock: a crowd, banners, a stand that fills as you win |
+| `pitch` | **the playing surface** | everything is measured against it |
+| `lights` | over the top of everything | `Tint` is multiplied over it, so a warm colour is floodlights and a cold one is a night game |
+
+A row with no `Image` draws nothing, which is how three of the four start. A
+row whose `Requires` fails is not drawn either — the same condition language
+as everywhere else, so the Stadium screen will be able to unlock a layer
+without a line of code.
+
+## 9. `data/Tuning.csv` — 294 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -1407,7 +1529,7 @@ is not content lives here. Groups, by prefix:
 | `juice_` | 5 | how much shake, flash and slow-motion the whole game gets |
 | `card_` | 6 | card sizes |
 | `friendly_` | 3 | how a scratch opponent is matched to you |
-| everything else | ~174 | the match, the pitch, the menus, the economy |
+| everything else | ~184 | the match, the pitch, the menus, the economy |
 
 Rows worth knowing about:
 
@@ -1479,6 +1601,46 @@ size of the hit is allowed to move that number.
 The game works out "average" by itself, from the hits you actually land in
 that fight, so it stays true whether your side hits for 4 or 40. Pin it with
 `juice_average_hit` if you would rather.
+
+### `data/Audio.csv` — and the four things that were wrong with it
+
+**Every screen announces itself.** `screen_opened` used to be fired by
+`ScenePaths.go_to()`, which is every screen change in the game *except the
+first* — the main menu is the project's main scene and is simply there when
+the window opens. So the menu had no music until you walked to the tutorial
+and back, which did go through `go_to()`. It is fired from
+`MenuEscape.install()` now, which every screen already calls, so a screen
+says what it is the moment it is built however it was reached.
+
+**A screen with no music is quiet.** A looping track holds its bus until
+something else claims it. The base had a row; the team shelf, the bounty
+board and the builder did not — so walking out of the base handed the base
+theme a lease on the Music bus for the rest of the session. A screen opening
+now RECLAIMS the bus: if no looping row claimed it, whatever was playing is
+faded out. **That is the cut between screens.**
+
+> To carry a track across a screen on purpose, give that screen a row naming
+> the same `Sound`. The loop sees the same cue and leaves it alone, so there
+> is no gap at all.
+
+**The pitch is a screen too.** The match has its own pause menu and never
+called `MenuEscape.install()`, so `screen=match` could never match and the
+crowd loop never played. It announces itself now.
+
+**And the whistle goes at the kick-off.** `kickoff_whistle` hung on
+`match_started`, which fires while the scene is still assembling — the
+referee blew up over the loading screen. There is a `kick_off` moment now,
+after the countdown, as play begins.
+
+| Tuning row | |
+|---|---|
+| `music_follows_screen` | `false` goes back to a track holding its bus until something takes it |
+| `music_fade_out_seconds` | how long the old track takes to go. `1.0`. Short is a cut, long is a dissolve |
+
+> `tools/audio_check.gd` prints every row in Audio.csv and whether its file
+> actually exists, which rows answer each moment, and the duel result worked
+> through all four ways round. **A row whose file is missing is silent, and
+> silence is indistinguishable from a bug** — that is what it is for.
 
 ### `data/Audio.csv`
 
@@ -1741,6 +1903,44 @@ cannot catch, and the right-hand one has to flip to the other side of the
 portrait or it hangs off the screen.
 
 ```
+godot --headless --script res://tools/audio_check.gd
+```
+**Is the right sound going to play, and is the file even there?** Prints
+every row of Audio.csv against the files in `assets/audio/`, which rows
+answer each moment, what the result of a match sounds like, and the duel
+result worked through all four ways round. Sound is the hardest thing in the
+game to test by ear — you have to reach the moment and then trust yourself
+about which of two similar noises you heard.
+
+```
+godot --headless --script res://tools/class_check.gd
+```
+**Do a class's spreadsheets agree with each other?** A class is spread over a
+unit CSV and an emblem CSV that have to line up by name. Prints what each
+class describes and everything that does not match. **Run it before drawing
+thirty cards for a class.**
+
+```
+godot --headless --script res://tools/csv_import_fix.gd
+```
+**Writes the missing `.csv.import` files and deletes the junk they cause.**
+Godot treats a .csv as a translation file unless a three-line `.csv.import`
+beside it says `importer="keep"` — so a new spreadsheet quietly produces one
+`.translation` file per column. Four new files made thirty-two of them.
+
+> It is not enough for the `.csv.import` to exist: when Godot imports a CSV
+> as a translation it **writes one itself**, saying
+> `importer="csv_translation"`. This checks what the file says, not whether
+> it is there.
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/menu_shot.gd
+```
+The save shelf, a slot's settings window, the Are You Sure, and the Escape
+panel — none of them reachable from a tool without clicking.
+
+```
 godot --headless --script res://tools/clock_check.gd
 ```
 Fires every slow-motion moment in overlapping bursts and checks
@@ -1828,6 +2028,16 @@ that is almost always why.
 | **find out what words I am allowed to write** | `Keywords.csv`, or the **Keywords** page in the Workbench |
 | **write a card against an effect that is not built yet** | do it. Mark that word `planned` in `Keywords.csv` and the card loads and waits |
 | **see what the other side actually does** | **ENEMY TEAM DATA** on the team shelf, or **TEAM** on the match HUD |
+| **change what plays on a screen** | a `screen_opened` row in `Audio.csv` with `screen=thatscreen` |
+| **make a screen keep the music from the one before** | give it a row naming the same `Sound` |
+| **stop the music cutting between screens** | `music_follows_screen` in `Tuning.csv` |
+| **find out why a sound is silent** | `tools/audio_check.gd`. It is nearly always a missing file |
+| **change how big the pitch is** | the `pitch` row of `Stadium.csv`. It has to stay 16:9 |
+| **put a stadium behind the pitch** | the `background` row of `Stadium.csv`, and a 3840x2160 file in `assets/field/` |
+| **move the white lines in or out** | `pitch_inset_x` and `pitch_inset_y` in `Tuning.csv` |
+| **make the item icons bigger** | `icon_tile_size` in `Tuning.csv` |
+| **add a spreadsheet without Godot mangling it** | run `tools/csv_import_fix.gd`, then delete `.godot` |
+| **check a class's files line up before drawing its cards** | `tools/class_check.gd` |
 | **read one Star's abilities in full** | hover their portrait on the team sheet |
 | **change how the opposition plays** | `EnemyPlay.csv`. Order low to high, first match wins |
 | **give one opponent its own way of playing** | a word in the `Play Style` column of `Teams.csv`, and rows in `EnemyPlay.csv` with that `Style` |

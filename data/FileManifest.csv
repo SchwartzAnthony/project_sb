@@ -24,6 +24,7 @@ card_database.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 card_popup.gd,src/ui/,A screen or a piece of one,
 card_stats_panel.gd,src/ui/,A screen or a piece of one,
 class_select.gd,src/ui/,A screen or a piece of one,
+class_book.gd,src/core/,"Engine. Rules, loaders and shared helpers","A CLASS, AN EMBLEM AND THE TEAM SPIRIT. Reads the Star set and the three emblem sets out of a unit CSV, reads the emblems out of <Class> Emblems.csv, and says where the two disagree"
 class_select.tscn,src/ui/,A screen or a piece of one,
 coin_clash.gd,src/ui/,A screen or a piece of one,"The PLAY MAKER number guess. Built entirely in code - there is no .tscn for it. use_coin_clash in Tuning.csv chooses between this and rps_clash"
 combo_db.gd,src/core/,"Engine. Rules, loaders and shared helpers",
@@ -88,6 +89,7 @@ save_slots.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 scene_paths.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 scratch_team.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 season_book.gd,src/core/,"Engine. Rules, loaders and shared helpers",
+stadium_book.gd,src/core/,"Engine. Rules, loaders and shared helpers","WHAT THE PITCH IS MADE OF. The size to draw the pitch and the stadium at, and the layers behind and over the grass. See Stadium.csv"
 squad_book.gd,src/core/,"Engine. Rules, loaders and shared helpers","WHICH PLAYERS ARE ACTUALLY YOURS. Fed by sign: and release: in any Effects column. Inert until squad_ownership in Tuning.csv is true"
 season_db.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 season_picker.gd,src/ui/,A screen or a piece of one,
@@ -156,6 +158,7 @@ SOUNDS_WANTED.csv,data/,A spreadsheet you edit,
 ScratchNames.csv,data/,A spreadsheet you edit,
 Season.csv,data/,A spreadsheet you edit,
 Seasons.csv,data/,A spreadsheet you edit,
+Stadium.csv,data/,A spreadsheet you edit,"HOW BIG TO DRAW THE PITCH AND THE STADIUM, and the layers behind and over the grass. The pitch is 2560 x 1440 and has to stay 16:9"
 Stats.csv,data/,A spreadsheet you edit,
 Talents.csv,data/,A spreadsheet you edit,
 Teams.csv,data/,A spreadsheet you edit,
