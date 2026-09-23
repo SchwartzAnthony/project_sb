@@ -58,6 +58,9 @@ const COUNTER_PREFIX := "res_"
 const WAITING_PREFIX := "brew_waiting_"
 ## And how many turns until they do.
 const WAIT_TURNS_PREFIX := "brew_wait_turns_"
+## Set the first time the opening stock is handed out, so it is handed out
+## exactly once per save. See stock_a_new_game().
+const STOCKED_FLAG := "brewery_stocked"
 
 static var _resources: Array[Dictionary] = []
 static var _sections: Array[Dictionary] = []
@@ -122,6 +125,12 @@ static func _load() -> void:
 			"how_many": maxi(1, MenuSupport.field_int(row, "How Many", 1)),
 			"wait_min": maxi(0, MenuSupport.field_int(row, "Wait Min", 0)),
 			"wait_max": maxi(0, MenuSupport.field_int(row, "Wait Max", 0)),
+			# WHERE IT STANDS ON THE MAP, as a fraction of the yard: 0 is the
+			# left/top edge, 1 the right/bottom. The same 0..1 shape
+			# Buildings.csv uses, so a number you already understand moves a
+			# section without anybody measuring pixels.
+			"x": clampf(MenuSupport.field_float(row, "X", 0.5), 0.0, 1.0),
+			"y": clampf(MenuSupport.field_float(row, "Y", 0.5), 0.0, 1.0),
 			"art": MenuSupport.field(row, "Art").strip_edges(),
 		})
 
@@ -270,14 +279,55 @@ static func add_stock(id_text: String, many: int, state: GameState) -> void:
 	state.add_count(counter_for(id_text), many)
 
 
-## The opening stock, from the Start column. Called once, when a new game is
-## made — it does NOT top anybody up, so calling it twice is not a refill.
+## The opening stock, from the Start column.
+##
+## IT HAPPENS ONCE AND IT LEAVES A FLAG SAYING SO. The first version only
+## filled a resource whose count was zero, which reads as "once" and is not:
+## spend your last germ, walk out of the Brewery, walk back in, and it hands
+## you five more. A flag is the difference between "you start with this" and
+## "this is free".
 static func stock_a_new_game(state: GameState) -> void:
-	if state == null:
+	if state == null or state.has_flag(STOCKED_FLAG):
 		return
+	state.set_flag(STOCKED_FLAG, true)
 	for res in resources():
-		if int(res["start"]) > 0 and stock(String(res["id"]), state) == 0:
+		if int(res["start"]) > 0:
 			state.set_count(counter_for(String(res["id"])), int(res["start"]))
+
+
+## WHICH ACHIEVEMENT OPENS THIS SECTION, as {"name", "description"}.
+##
+## A locked door with no sign on it is just a wall. "Needs Mill" tells a
+## player nothing they can act on; "Clean Sheet — win a match without
+## conceding" is a thing to go and do. The answer is not stored anywhere:
+## it is found by asking Achievements.csv who hands out the name this
+## section's Needs is waiting for, so moving the grant to a different
+## achievement changes the sign with no edit here.
+static func opened_by(section_id: String) -> Dictionary:
+	var one := section(section_id)
+	if one.is_empty():
+		return {}
+	for part in String(one["needs"]).split(";", false):
+		var clean := String(part).strip_edges()
+		if not clean.to_lower().begins_with("unlocked:"):
+			continue
+		var wanted := _squash(clean.substr(clean.find(":") + 1))
+		for row in AchievementBook.rows():
+			for handed in row["unlocks"]:
+				if _squash(String(handed)) == wanted:
+					return {"name": row["name"], "description": row["description"]}
+	return {}
+
+
+## Lowercase, letters and digits only — the same rule GameState uses on an
+## unlock name, so `Master Brewer` and `master_brewer` are one name.
+static func _squash(text: String) -> String:
+	var out := ""
+	for i in text.length():
+		var c := text[i].to_lower()
+		if (c >= "a" and c <= "z") or (c >= "0" and c <= "9"):
+			out += c
+	return out
 
 
 # =============================================================

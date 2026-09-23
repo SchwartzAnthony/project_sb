@@ -27,6 +27,9 @@ extends SceneTree
 
 const TURNS := 60
 
+## How many fixtures the season simulation plays. Ten is a short league.
+const SEASON := 10
+
 
 func _initialize() -> void:
 	var problems := 0
@@ -164,6 +167,70 @@ func _initialize() -> void:
 		if have > 0:
 			print("     %-10s %d" % [res["name"], have])
 
+	# ============ 5. A SEASON ============
+	#
+	# The walk above asks what the OPENING STOCK is worth. This asks the
+	# question a player actually lives in: what does a season of football buy
+	# you? It plays the Progression rows that pay the Brewery — the same rows
+	# the match fires — advances the cellar once per fixture, and works
+	# everything that can be worked in between.
+	print("")
+	print("  === A SEASON: %d fixtures, playing the real Progression rows ===" % SEASON)
+	var live := GameState.new()
+	BreweryBook.stock_a_new_game(live)
+	for one in sections:
+		for thing in _unlocks_named(String(one["needs"])):
+			live.unlock(thing)
+	live.unlock("Brewery")
+
+	var steps := Progression.get_rules()
+	var bottles_at_start := BreweryBook.stock(_last_makes(sections), live)
+	for fixture in SEASON:
+		# HALF THE FIXTURES ARE WINS. The harvest_win row pays hops and yeast
+		# only on a win, and assuming you win every match would flatter it.
+		live.set_flag("won_last_match", fixture % 2 == 0)
+		if steps != null:
+			steps.fire("match_ended", live)
+		BreweryBook.advance_turn(live)
+		for _pass in 6:
+			var did := false
+			for one in sections:
+				var id_text := String(one["id"])
+				while BreweryBook.can_work(id_text, live):
+					BreweryBook.work(id_text, live)
+					did = true
+			if not did:
+				break
+
+	var bottles_now := BreweryBook.stock(_last_makes(sections), live)
+	print("  %d fixture(s) produced %d bottle(s)." % [SEASON, bottles_now - bottles_at_start])
+	print("  Left in the store:")
+	for res in BreweryBook.resources():
+		var have := BreweryBook.stock(String(res["id"]), live)
+		if have > 0 and String(res["kind"]) != "tool":
+			print("     %-10s %d" % [res["name"], have])
+	var stuck := _what_stopped_it(live, sections)
+	if stuck != "nothing obvious":
+		print("  The chain is waiting on: %s" % stuck)
+
+	# ============ AND WHAT IS PILING UP ============
+	#
+	# The number that tells you where the REAL bottleneck is. A material the
+	# Brewery keeps making and cannot move on is a section downstream that
+	# cannot keep up — which is almost never the section you were watching.
+	var worst := ""
+	var most := 0
+	for res in BreweryBook.resources():
+		if String(res["kind"]) != "made" or String(res["id"]) == _last_makes(sections):
+			continue
+		var have := BreweryBook.stock(String(res["id"]), live)
+		if have > most:
+			most = have
+			worst = String(res["id"])
+	if most >= 5:
+		print("  PILING UP: %d %s. The section that eats it cannot keep up — %s."
+			% [most, worst, _who_eats(worst, sections)])
+
 	print("")
 	if problems == 0:
 		print("=== ALL GOOD ===")
@@ -227,3 +294,25 @@ func _what_stopped_it(state: GameState, sections: Array) -> String:
 		if not short.is_empty():
 			return "%s at the %s" % [", ".join(short), one["name"]]
 	return "nothing obvious"
+
+
+## What the LAST section makes — the bottom of the chain, whatever you have
+## called it. Asking for "bottle" by name would break the day you rename it.
+func _last_makes(sections: Array) -> String:
+	if sections.is_empty():
+		return ""
+	return String((sections[-1] as Dictionary)["makes"])
+
+
+## Which section consumes a material, and why it might be falling behind.
+func _who_eats(id_text: String, sections: Array) -> String:
+	for one in sections:
+		if not (one as Dictionary)["takes"].has(id_text):
+			continue
+		var section: Dictionary = one
+		if int(section["wait_max"]) > 0:
+			return "%s lagers one batch at a time, %d-%d turn(s) each" % [
+				section["name"], int(section["wait_min"]), int(section["wait_max"])]
+		return "%s wants %s as well" % [section["name"],
+			", ".join(PackedStringArray(section["takes"].keys()))]
+	return "nothing takes it at all"

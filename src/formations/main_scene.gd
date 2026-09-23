@@ -1659,6 +1659,16 @@ func _full_time() -> void:
 	elif player_score < enemy_score:
 		outcome = "loss"
 
+	# ============ "DID I WIN THE LAST ONE?" AS A FLAG ============
+	#
+	# Counters can say how many you have won; nothing could say whether the
+	# match that just finished was one. A Progression row that pays a bonus
+	# for winning needs exactly that, so it is written here, set on a win and
+	# CLEARED on anything else — a flag that is only ever set is a flag that
+	# is true forever.
+	if state != null:
+		state.set_flag("won_last_match", outcome == "win")
+
 	var facts := _facts_for(null)
 	facts["result"] = outcome
 	facts["scored"] = str(player_score)
@@ -1689,6 +1699,21 @@ func _full_time() -> void:
 	if state != null and db.tune_bool("recovery", false):
 		RecoveryBook.advance_turn(state, db)
 		RecoveryBook.played(_squad_that_played(), state, db)
+
+	# ============ AND A TURN PASSES IN THE CELLAR ============
+	#
+	# A fixture is the game's unit of time, so it has to be ONE unit: the
+	# Brewery's lagering is advanced from the same line the squad's rest is,
+	# and there is exactly one answer to "what is a turn". Whatever comes out
+	# of the cellar is listed on the what-you-gained panel, because a barrel
+	# that appeared while you were playing is a thing you want told about.
+	if state != null:
+		for came_out in BreweryBook.advance_turn(state):
+			var words := "%d %s out of the cellar" % [
+				int(came_out["many"]), came_out["made"]]
+			print("  [brewery] %s (%s)." % [words, came_out["section"]])
+			if gains != null:
+				gains.note(String(came_out["section"]), words)
 
 	# ============ AND THE ACHIEVEMENTS ARE REVIEWED ============
 	#

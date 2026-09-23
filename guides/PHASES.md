@@ -183,24 +183,26 @@ it is the only thing standing between that class and a working tree.
 
 ---
 
-## Phase 7 — The Brewery, built  ⬅ NEXT
+## Phase 7 — The Brewery, built  ✅ IN THIS ZIP
 
 The map, on top of the chain that is already in the zip.
 
 | | |
 |---|---|
-| | The **map** with the six sections laid out on it, each drawn and each walked to |
-| | The **resources window** and the **brewery-materials window**, at the top |
-| | Each section **locked until its achievement**, and visibly locked — a door you can see is a door you want to open |
-| | The **Maltster, Miller, Lauterer, Brewer, Cellarman and Bottler** as figures who do the work |
-| | The **cellar**: a barrel lagering for one to three turns, with the turns showing |
+| ✅ | The **map** with the six sections on it, placed by an `X` and a `Y` in the spreadsheet, with the chain drawn between them |
+| ✅ | The **resources window** and the **brewery-materials window**, at the top — split by the `Kind` column, not by the screen |
+| ✅ | Each section **locked until its achievement**, and the locked tile **names that achievement and what to do** |
+| ✅ | The **Maltster, Miller, Lauterer, Brewer, Cellarman and Bottler** named on their sections |
+| ✅ | The **cellar**: a barrel lagering for one to three turns, with the turns counting down at every fixture |
+| ✅ | **Where raw materials come from** — two Progression rows, so a fixture pays the Brewery and a win pays it better |
 
-**Why here:** the numbers are settled, so this phase is drawing and laying
-out rather than deciding. That is the cheapest possible order for it.
+**What is still to come here:** the six figures as drawn workers rather than
+names, and the five brewing mini-games (Phase 9). A mini-game decides how
+*well* a section runs; nothing on this screen changes when they arrive.
 
 ---
 
-## Phase 8 — The Pub, and the Traveling Brewer
+## Phase 8 — The Pub, and the Traveling Brewer  ⬅ NEXT
 
 Where the bottles go, and where the money is.
 
@@ -264,7 +266,7 @@ Crown` and `The Cup` unlocks are now handed out by achievements.
 | *(new)* Achievements | **Phase 5**, done |
 | *(new)* Talent Tree | **Phase 6**, done |
 | *(new)* Brewery — the chain | **Phase 5**, done |
-| *(new)* Brewery — the six sections on a map | **Phase 7** |
+| *(new)* Brewery — the six sections on a map | **Phase 7**, done |
 | *(new)* Pub | **Phase 8** |
 | *(new)* Traveling Brewer | **Phase 8** |
 | *(new)* Club House | **Phase 9** |

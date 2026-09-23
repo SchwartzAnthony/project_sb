@@ -235,3 +235,6 @@ class_tree_screen.tscn,src/ui/,A screen or a piece of one,
 class_tree_check.gd,tools/,A tool you run from the command line,
 class_tree_shot.gd,tools/,A tool you run from the command line,
 gate_shot.gd,tools/,A tool you run from the command line,
+brewery_screen.gd,src/ui/,A screen or a piece of one,"THE BREWERY MAP. Two windows at the top, six sections in the yard, placed by the X and Y columns of BrewerySections.csv"
+brewery_screen.tscn,src/ui/,A screen or a piece of one,
+brewery_shot.gd,tools/,A tool you run from the command line,

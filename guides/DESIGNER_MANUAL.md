@@ -2645,17 +2645,72 @@ your scorers. Anything counted here can be tested with `count:` anywhere else.
 
 ---
 
-## 11b. The Brewery — the chain, before the map
+## 11b. The Brewery — the chain, and the map
 
 Six sections, each unlocked by an achievement, each turning one thing into
-another. What is in the zip is **the chain as numbers**. No map, no
-buildings, no mini-games — those are Phase 7 and Phase 9.
+another. The **chain** went in first and the **map** was built on top of it,
+which is the order I would take anything of this shape:
 
-> **Why that order.** A production chain is a thing you get wrong in the
-> numbers, not in the pictures. If six bottles from a barrel is the wrong
-> number, no amount of drawing the Bottler fixes it, and you will have drawn
-> him twice. The chain goes in first, a tool walks it, and then the map is
-> built on top of something already known to work.
+> A production chain is a thing you get wrong in the **numbers**, not in the
+> pictures. If six bottles from a barrel is the wrong number, no amount of
+> drawing the Bottler fixes it, and you will have drawn him twice.
+
+The five brewing mini-games are still to come, and they change nothing here:
+a mini-game decides how **well** a section runs; this decides what it costs
+and what it gives.
+
+### The map
+
+`src/ui/brewery_screen.tscn`, reached from the Brewery on the base or with
+`goto:brewery`. Two windows along the top and a yard underneath.
+
+| | |
+|---|---|
+| **RESOURCES** | what comes from outside — wheat, water, germs, hops, yeast — and the **tools**, which are needed and not used up |
+| **BREWERY MATERIALS** | what the Brewery itself makes: malt, mash, wort, brew, barrel, bottle |
+
+**That split is the `Kind` column and nothing else.** `raw` and `tool` go
+left, `made` goes right. Add a resource tomorrow and it appears in the right
+window with no edit to any screen.
+
+**The yard is not laid out by hand either.** Every section has an **`X`** and
+a **`Y`**, as a fraction of the yard — `0.5,0.5` is the middle. The same two
+columns `Buildings.csv` uses. A thin arrow is drawn from each section to the
+next in `Order`, because `Order` is the column the whole file turns on and a
+list of numbers does not look like an order.
+
+### A locked section names its achievement
+
+Not its unlock. *"Needs Mill"* tells a player nothing they can act on;
+**"LOCKED — Clean Sheet · Win a match without conceding"** is a thing to go
+and do. Nothing stores that sign: the screen asks `Achievements.csv` who
+hands out the name in `Needs`, so moving the grant to a different achievement
+changes the sign with no edit anywhere.
+
+### Where raw materials come from
+
+Two rows of `Progression.csv`, and they are the whole supply:
+
+```
+harvest       every match, once the Brewery is open   3 wheat, 6 water, 2 germs
+harvest_win   and if you won it                       2 hops, 1 yeast
+```
+
+Hops and yeast are the two the chain runs out of last, which is what makes a
+good season taste different. **Keep the haul small on purpose** — the
+Traveling Brewer sells the rest at a premium, and that is Phase 8.
+
+### The turn, and the opening stock
+
+`BreweryBook.advance_turn()` is called from **the same line in `_full_time()`
+that advances the squad's rest**, so there is one answer to "what is a turn":
+a fixture. What comes out of the cellar is listed on the what-you-gained
+panel.
+
+`Start` is handed out on the first visit and **a flag is left behind**. The
+first version only filled a resource whose count was zero, which reads as
+"once" and is not: spend your last germ, walk out, walk back in, and it hands
+you five more.
 
 ### `data/BrewerySections.csv`
 
@@ -3121,6 +3176,14 @@ matches simulated at each level — fouls, yellows, reds and how often a match
 ends ten against eleven. It does the multiplication that makes "18%" mean
 something: both sides roll, nine times a match, which is eighteen rolls. See
 section 7d.
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/brewery_shot.gd
+```
+The Brewery map photographed with five sections locked, then all six open,
+then after one run of the chain with a barrel lagering. Getting there in a
+real game is ten matches away.
 
 ```
 xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
