@@ -3666,8 +3666,21 @@ out first. See section 11b.
 
 **`sturmball_workbench.html`** is the spreadsheet editor: drop your `data`
 folder into it and it edits every CSV with the right dropdowns, checks every
-id and reference, shows the asset shopping list, and exports back out. It
-runs in a browser and uploads nothing.
+id and reference, and exports back out. It runs in a browser and uploads
+nothing.
+
+It has **five pages down the left**, above the file list:
+
+| page | what it is |
+|---|---|
+| **Where things go** | every asset folder, and the **live** list of file names your spreadsheets are currently asking for — 148 of them today. Tick them off as you draw them |
+| **Art & sizes** | **every kind of picture the game will ever ask for**, the box it is drawn into, the canvas to draw it on, how it is fitted, and which column names it. Forty kinds, with ticks and a *Copy as a work list* button. Every number on it was read out of the running game rather than guessed |
+| **Handbook** | the rules the whole project obeys — how a CSV is read, what names a thing and what breaks if you rename it, the four actions that need a screen, where a number lives, what each tool measures *in*, the order to build content in, and the list of known gaps |
+| **Reference** | the small languages: what you may write in a `Requires`, a `Do`, an ability, a Juice row |
+| **Keywords** | the 49 words in 9 families the checkers test your cells against, and which 17 are planned rather than live |
+
+**Where things go** and **Art & sizes** are two halves of one question. The
+first is *which files am I missing*; the second is *how big should they be*.
 
 There are two more in the game itself: **`content_report.gd`** prints a
 readable audit of every spreadsheet, and **`install_check.gd`** runs on the
