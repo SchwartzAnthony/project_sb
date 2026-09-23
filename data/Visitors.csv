@@ -2,4 +2,3 @@ ID,Name,Portrait,Requires,Story,X,Y,Once,Notes
 heatwave_visit,Heatwave,heatwave,,prologue,0.13,0.78,true,"Here from the start. Talks once, then leaves for good because Once is true."
 brewer,The Brewer,brewer,unlocked:Brewery,prologue,0.50,0.78,,Only turns up once the Brewery is unlocked. Once is blank so you can talk again and again.
 scout,A Scout,scout,count:matches_won>=2,prologue,0.86,0.78,true,Turns up after two wins. Swap Story for your own scene when you write one.
-brewer_visit,The Brewer,brewer,unlocked:Brewery,brewery_open,0.40,0.70,true,"WORKED EXAMPLE - A VISITOR GATED ON A BUILDING. Appears at the base the moment the Brewery unlocks, tells brewery_open once, and goes."

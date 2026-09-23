@@ -215,8 +215,10 @@ func _squash(text: String) -> String:
 ## Progression.csv and the base can grant unlocks too — an achievement is not
 ## the only door, it is only meant to be the first one.
 func _granted_elsewhere(thing: String) -> bool:
+	# Shop.csv sells recipes and things: a `Sells` of unlock:X grants X.
 	for path in ["res://data/Progression.csv", "res://data/Buildings.csv",
-			"res://data/Season.csv", "res://data/Bounties.csv", "res://data/Talents.csv"]:
+			"res://data/Season.csv", "res://data/Bounties.csv", "res://data/Talents.csv",
+			"res://data/Shop.csv", "res://data/Training.csv"]:
 		if not FileAccess.file_exists(path):
 			continue
 		var handle := FileAccess.open(path, FileAccess.READ)
@@ -229,7 +231,7 @@ func _granted_elsewhere(thing: String) -> bool:
 			# `Effects` was missing, which meant every unlock a TALENT hands
 			# out looked ungranted — the file was already in the list above
 			# and the column it uses was not.
-			for column in ["Do", "Reward", "Action", "Effect", "Effects", "Grants"]:
+			for column in ["Do", "Reward", "Action", "Effect", "Effects", "Grants", "Sells"]:
 				for piece in MenuSupport.field(row, column).split(";", false):
 					var term := String(piece).strip_edges()
 					if term.to_lower().begins_with("unlock:") \

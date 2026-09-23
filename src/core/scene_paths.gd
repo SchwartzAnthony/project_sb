@@ -27,6 +27,12 @@ const TALENTS := "res://src/ui/talent_screen.tscn"
 const CLASS_TREE := "res://src/ui/class_tree_screen.tscn"
 const BREWERY := "res://src/ui/brewery_screen.tscn"
 const SHOP := "res://src/ui/shop_screen.tscn"
+## THE FOUR ROOMS AND THE BOARD. One script, five scenes — see room_screen.gd.
+const ACHIEVEMENTS := "res://src/ui/rooms/achievements.tscn"
+const DORMS := "res://src/ui/rooms/dorms.tscn"
+const CLUBHOUSE := "res://src/ui/rooms/clubhouse.tscn"
+const TROPHIES := "res://src/ui/rooms/trophies.tscn"
+const TRAINING := "res://src/ui/rooms/training.tscn"
 const PUB := "res://src/ui/pub_screen.tscn"
 const SEASON := "res://src/ui/season_screen.tscn"
 const STATS := "res://src/ui/match_stats_screen.tscn"
@@ -70,6 +76,16 @@ static func for_name(screen: String) -> String:
 			return BREWERY
 		"brewer", "shop", "cart", "traveling_brewer", "travelling_brewer":
 			return SHOP
+		"achievements", "achievement", "board_of_achievements":
+			return ACHIEVEMENTS
+		"dorms", "dorm", "beds":
+			return DORMS
+		"clubhouse", "club_house", "rest", "recovery":
+			return CLUBHOUSE
+		"trophies", "trophy", "trophy_room":
+			return TROPHIES
+		"training", "training_ground", "ausbildung":
+			return TRAINING
 		"pub", "tavern", "brews":
 			return PUB
 		"season", "table", "results", "fixtures":

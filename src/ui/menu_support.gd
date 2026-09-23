@@ -104,6 +104,16 @@ static func field_int(row: Dictionary, column: String, fallback: int) -> int:
 	return fallback
 
 
+## IS THIS SCREEN OPEN AS A WINDOW OVER THE BASE, rather than full screen?
+##
+## One flag, set by BaseWindow before the screen enters the tree. A screen
+## that says yes skips three things and nothing else: its own full-screen
+## background, its own Back button, and MenuEscape — because the window
+## already provides all three. See base_window.gd.
+static func in_a_window(screen: Node) -> bool:
+	return screen != null and bool(screen.get_meta("windowed", false))
+
+
 static func normalise(text: String) -> String:
 	return text.strip_edges().to_lower().replace(" ", "").replace("_", "").replace("-", "")
 

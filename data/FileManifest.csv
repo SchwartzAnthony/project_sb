@@ -246,3 +246,16 @@ shop_screen.gd,src/ui/,A screen or a piece of one,
 shop_screen.tscn,src/ui/,A screen or a piece of one,
 shop_check.gd,tools/,A tool you run from the command line,
 shop_shot.gd,tools/,A tool you run from the command line,
+Dorms.csv,data/,A spreadsheet you edit,"Beds. Beds is the TOTAL a dorm gives, not what it adds"
+Trophies.csv,data/,A spreadsheet you edit,What is on the shelf. A name and a condition
+Training.csv,data/,A spreadsheet you edit,Ausbildung and the five brewing mini-games
+base_rooms.gd,src/core/,"Engine. Rules, loaders and shared helpers","The Dorms, the Trophy Room and the Training Ground - three small things of one shape"
+base_window.gd,src/ui/,A screen or a piece of one,A WINDOW OVER THE BASE. Instantiates an ordinary screen scene with one flag set on it
+room_screen.gd,src/ui/,A screen or a piece of one,"One script, five scenes: the achievement board and the four rooms"
+achievements.tscn,src/ui/rooms/,A screen or a piece of one,
+dorms.tscn,src/ui/rooms/,A screen or a piece of one,
+clubhouse.tscn,src/ui/rooms/,A screen or a piece of one,
+trophies.tscn,src/ui/rooms/,A screen or a piece of one,
+training.tscn,src/ui/rooms/,A screen or a piece of one,
+rooms_check.gd,tools/,A tool you run from the command line,
+base_shot.gd,tools/,A tool you run from the command line,

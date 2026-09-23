@@ -1,0 +1,5 @@
+ID,Name,Beds,Price,Currency,Requires,Notes
+starting_hut,The Old Hut,12,0,,,"THE FIRST ROW IS FREE and it is what a new game has. Beds is the TOTAL from then on, not how many this row adds - so reading down the column tells you the whole story of your squad size at a glance."
+lean_to,The Lean-To,18,150,coins,unlocked:Dorms,"Price and Currency use data/Currencies.csv, so a dorm can be bought with marks if you would rather it came from quick matches."
+long_house,The Long House,26,400,coins,count:matches_won>=8,"Requires is the ordinary condition language, so a dorm can want an achievement, a season, anything."
+stone_wing,The Stone Wing,36,900,coins,unlocked:The Cup,"The last one written. Add another row with more Beds and it appears on the screen with no code."

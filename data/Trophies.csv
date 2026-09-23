@@ -1,0 +1,6 @@
+ID,Name,Competition,Won When,Art,Notes
+county_cup,The Kesselgrund Cup,county_league,unlocked:The Cup,trophy_cup.png,"WON WHEN is the ordinary condition language. The Cup is handed out by the last row of Season.csv - see its On Win column - so nothing here had to know how a season ends."
+the_crown,The Crown,,unlocked:The Crown,trophy_crown.png,A competition on the season shelf. Granted by the the_crown achievement at eight wins.
+treble,The Treble,,count:matches_won>=3,trophy_treble.png,"A trophy does NOT have to come from a competition. This one is three wins, which makes it the row to copy for anything you want on the shelf early."
+clean_season,The Clean Sheet Shield,,count:clean_sheets>=5,trophy_shield.png,Five clean sheets. Shares its condition with the second_vat achievement on purpose - one act can be worth two things.
+champions,The Championship,county_league,flag:season_won,trophy_league.png,The season itself. flag:season_won is set when a season is finished as a winner.

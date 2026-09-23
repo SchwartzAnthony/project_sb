@@ -337,9 +337,12 @@ const S = {
   help:"<b>Cost</b> is <code>reed:6|bog_iron:2</code> — the Pub takes those out of your counters when it pours. <b>Becomes</b> is the class it fights as. <b>Element</b> is the icon it carries in Adventure: a Lorelei who drinks a Fire Brew genuinely brings Fire to the pile."},
 "Talents.csv":{what:"The talent tree. A talent can edit any Tuning number permanently.",
   key:"ID", help:"<b>Effects</b> with <code>count:tune_</code> in front of a Tuning key changes that number: <code>count:tune_press_speed+12</code>. Any row of Tuning.csv can be driven this way."},
-"Buildings.csv":{what:"The base. A building's Action is a recipe: Requires is the price, Action is the trade.",
-  key:"ID", help:"<code>Requires: count:reed&gt;=20</code> and <code>Action: count:reed-20;count:coins+60</code> is a working recipe with no code anywhere.<br><b>A BUILDING IS WHERE THINGS ARE MADE.</b> <code>Action: count:reed-6;count:brew_fire+1</code> takes six reed and puts a bottled brew in the bag \u2014 and that bottle is a row of Items.csv like any other, so it can then be used on a player during the draft. Nothing is made inside the inventory; the inventory carries what a building made."},
-"Visitors.csv":{what:"People who turn up at the base.", key:"ID", enums:{Once:TF}},
+"Buildings.csv":{what:"THE NINE DOORS. Each one opens a window OVER the base rather than cutting to a new scene.",
+  key:"ID",
+  help:"<b>Action decides what the door does.</b> <code>window:brewery</code> opens that screen over the base, dimmed, with the building still under your cursor - which is what these nine are. <code>goto:brewery</code> names the SAME screen and throws the base away instead; it still works, and it is what a Progression row should use when the base is not already open.<br><b>A BUILDING IS ALSO A RECIPE, and that has not gone anywhere.</b> <code>Requires: count:reed&gt;=20</code> with <code>Action: count:reed-20;count:coins+60</code> is a working trade with no code: Requires is the price check, Action is the trade. The base used to have four of those as worked examples - the Forge, the Still, the Reed Press and the Cold Cellar - and they were removed because they were demonstrations rather than rooms. Copy the pattern into a new row any time.<br><b>X and Y</b> are a fraction of the yard; 0.5,0.5 is the middle. <b>Requires</b> is the ordinary condition language, and a building whose Requires does not pass is drawn greyed with the reason on it rather than hidden.<br><code>tools/rooms_check.gd</code> checks that every Action actually names a screen - a door that leads nowhere looks exactly like a door that works."},
+"Visitors.csv":{what:"People who turn up at the base. Their X and Y are a PREFERENCE - they are moved to free space so they never overlap a building or each other.",
+  key:"ID", enums:{Once:TF},
+  help:"<b>A VISITOR IS SOMEBODY WITH A FACE OR A ONE-TIME VISIT.</b> The loader recognises this file by its <code>Portrait</code> or <code>Once</code> column, not by its name - and that matters: Seasons.csv also has ID, Name and Story, so before that rule every season in the game was being drawn on the base as a person standing in the yard.<br><b>X and Y are only a preference.</b> If where a visitor wants to stand is on top of a building or another visitor, they are moved to the nearest free place; if the yard is genuinely full they are not drawn at all, because a visitor you cannot read is worse than one who is not there.<br><b>Story</b> names a Dialogue.csv scene. <b>Once</b> = true means they are gone after you have talked to them."},
 "Progression.csv":{what:"WHEN THINGS HAPPEN. Unlocks, story scenes and announcements, fired off any game event.",
   key:"ID", enums:{Once:TF},
   help:"Terms in Requires are joined with a semicolon. <code>and</code> is NOT a word this understands. This is where achievements and unlocks are wired without code."},
@@ -376,6 +379,15 @@ const S = {
 "Shop.csv":{what:"THE TRAVELING BREWER'S CART. What he has, what it costs, in which money, and how many he will ever sell you.",
   key:"ID",
   help:"<b>HE IS THE PRESSURE VALVE ON THE BREWERY.</b> <code>tools/brewery_check.gd</code> measures HOPS as the thing the chain runs dry of - they only arrive when you WIN - so he sells them, dear. He is there for the week you need them, not instead of the Brewery.<br><b>Sells</b> is <code>res:&lt;id&gt;</code> for a Brewery material (How Many of them) or <code>brew:&lt;id&gt;</code> for a RECIPE, which unlocks that row of Brews.csv by name exactly as a talent or an achievement would. Anything else is handed to the ordinary effects language, so <code>unlock:Something</code> works there too.<br><b>Stock is how many he has EVER</b>, not per visit. Buy the sack of hops three times and it is gone from his cart for good - which is what makes a shop a decision rather than a tap. Leave it blank for unlimited. A sold-out row STAYS on the screen and says SOLD OUT, because a thing that vanishes is a thing you think you imagined.<br><b>Requires</b> is the usual condition language, so a shelf can open late.<br><b>PRICE IT IN WINS, not in coins.</b> <code>tools/shop_check.gd</code> converts every price into wins for you - 45 coins is 1.1 wins when a season win pays 40 - and prints what a whole season's takings come to. That is the only number that makes a price mean anything."},
+"Dorms.csv":{what:"BEDS. How many players you are allowed to keep at all. The first row is free; the rest are bought.",
+  key:"ID",
+  help:"<b>BEDS IS THE TOTAL, not what this row adds.</b> Buying the Long House REPLACES the Lean-To rather than stacking on it, which is what makes the column readable - you can see your squad size at a glance instead of adding up.<br><b>The first row has to be free.</b> A new game cannot buy its first bed, and <code>tools/rooms_check.gd</code> says so if the cheapest dorm costs anything.<br><b>Price and Currency</b> use data/Currencies.csv, so a dorm can be bought with marks if you would rather it came from quick matches. <b>Requires</b> is the ordinary condition language.<br><b>PRICE IT IN SEASONS.</b> <code>tools/rooms_check.gd</code> converts every price for you against what a ten-fixture season actually pays: the Stone Wing is four seasons, which is a thing to aim at rather than a thing to buy."},
+"Trophies.csv":{what:"WHAT IS ON THE SHELF IN THE TROPHY ROOM. A trophy is a name and a condition - it does NOT have to come from a competition.",
+  key:"ID",
+  help:"<b>Won When is the ordinary condition language</b>, so <code>count:matches_won&gt;=3</code> is as good a trophy as <code>unlocked:The Cup</code>. That is the row to copy when you want something on the shelf early - an empty case is a room nobody goes back to.<br><b>Competition</b> is only a label. It names a Seasons.csv id so the case can say where the cup came from; leave it blank for a trophy that came from nowhere in particular.<br><b>A trophy with an empty Won When is on the shelf from the first minute</b>, which is almost never what you meant. The checker says so."},
+"Training.csv":{what:"THE TRAINING GROUND. Ausbildung trains a number for the whole side; a mini-game automates one Brewery section.",
+  key:"ID", enums:{Kind:["","ausbildung","minigame"]},
+  help:"<b>Kind splits the screen in two.</b> <code>ausbildung</code> is a training the whole side takes. <code>minigame</code> is one of the five that automate a Brewery section, and its <b>Section</b> column names a row of BrewerySections.csv.<br><b>What a mini-game gives TODAY is a vat</b> - <code>count:batches_&lt;section&gt;+1</code> - which is the foundation the played game will sit on top of later. Nothing on that screen changes when the game itself arrives; it slots in between pressing the button and the work being done.<br><b>Effect is the ordinary effects language.</b> <code>count:tune_&lt;any Tuning row&gt;+n</code> trains a number, and a MINUS is allowed - Cold Nerve does <code>count:tune_shot_stamina_bite-0.05</code>. <code>unlock:x</code> works too.<br><b>Cost and Currency</b> use data/Currencies.csv. <code>tools/rooms_check.gd</code> prices every row in SEASONS and checks that every mini-game names a real section."},
 "ICONS_WANTED.csv":{what:"The shopping list for art. Nothing loads it — it is for you and whoever is drawing.", key:null},
 "SOUNDS_WANTED.csv":{what:"The shopping list for audio. Nothing loads it — it is for you and whoever is recording.", key:null},
 "FileManifest.csv":{what:"Every file and the folder it belongs in. The title screen checks it and names anything missing, misplaced or duplicated.", key:null},
@@ -1204,6 +1216,14 @@ function check(){
     if(ut>=0 && nm>=0 && bs>=0) DATA[f].rows.forEach(r=>{
       const a=(r[ut]||"").trim(), b=(r[nm]||"").trim();
       if(a&&b){ grant.add(norm(a+" "+b+" Emblem")); grant.add(norm(a+" "+b+" Ultimate")); }
+    });
+  }
+  /* The Traveling Brewer's cart hands things out too: a Sells column of
+     unlock:X grants X, exactly as a talent's Effects would. */
+  {
+    const i=at("Shop.csv","Sells");
+    if(i>=0) (DATA["Shop.csv"]||{rows:[]}).rows.forEach(r=>{
+      for(const m of (r[i]||"").matchAll(/unlock:\s*([^;]+)/g)) grant.add(norm(m[1]));
     });
   }
   col("ClassTree.csv","Class").forEach(v=>{

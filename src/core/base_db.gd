@@ -137,7 +137,18 @@ func _load_csv(path: String) -> void:
 	if not columns.has("id"):
 		return
 	var is_buildings := columns.has("action") and columns.has("name")
-	var is_visitors := columns.has("story") and columns.has("name")
+	# ============ A STORY COLUMN IS NOT ENOUGH ============
+	#
+	# Seasons.csv also has ID, Name and Story — so every season in the game
+	# was being drawn on the base as a person standing in the yard, and
+	# "The County League" was wandering about next to the Brewery. It was
+	# invisible until the visitors were told not to overlap anything and
+	# started reporting that there was no room for them.
+	#
+	# A VISITOR IS SOMEBODY WITH A FACE OR A ONE-TIME VISIT: a `Portrait`
+	# column or an `Once` column. Both are things only a person has.
+	var is_visitors := columns.has("story") and columns.has("name") \
+		and (columns.has("portrait") or columns.has("once"))
 	if not (is_buildings or is_visitors):
 		return
 

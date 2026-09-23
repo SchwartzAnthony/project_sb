@@ -60,3 +60,13 @@ shop_fire.png,assets/shop/,The Traveling Brewer's cart,nothing - the row reads f
 shop_water.png,assets/shop/,The Traveling Brewer's cart,nothing - the row reads fine without it,A damp recipe card,"Also searched: assets/icons/, assets/. 64x64. The cart row draws it to the left of the name"
 coin.png,assets/shop/,The Traveling Brewer's cart,nothing - the row reads fine without it,A coin,"Also searched: assets/icons/, assets/. 64x64. The cart row draws it to the left of the name"
 mark.png,assets/shop/,The Traveling Brewer's cart,nothing - the row reads fine without it,A bog-iron token,"Also searched: assets/icons/, assets/. 64x64. The cart row draws it to the left of the name"
+shop_boots.png,assets/shop/,The Traveling Brewer's cart,a plain plaque with the name on it,Iron-shod boots,A building with no art is a plaque with its name on it and works perfectly. Roughly 190x78 for a base building
+achievements.png,assets/base/,The base map,a plain plaque with the name on it,A board with pins in it,A building with no art is a plaque with its name on it and works perfectly. Roughly 190x78 for a base building
+talents.png,assets/base/,The base map,a plain plaque with the name on it,A branching tree,A building with no art is a plaque with its name on it and works perfectly. Roughly 190x78 for a base building
+clubhouse.png,assets/base/,The base map,a plain plaque with the name on it,A low house with smoke,A building with no art is a plaque with its name on it and works perfectly. Roughly 190x78 for a base building
+dorms.png,assets/base/,The base map,a plain plaque with the name on it,A row of bunks,A building with no art is a plaque with its name on it and works perfectly. Roughly 190x78 for a base building
+trophy.png,assets/base/,The base map,a plain plaque with the name on it,A glass case,A building with no art is a plaque with its name on it and works perfectly. Roughly 190x78 for a base building
+training.png,assets/base/,The base map,a plain plaque with the name on it,A practice goal and cones,A building with no art is a plaque with its name on it and works perfectly. Roughly 190x78 for a base building
+pub.png,assets/base/,The base map,a plain plaque with the name on it,A lit doorway and a bench,A building with no art is a plaque with its name on it and works perfectly. Roughly 190x78 for a base building
+brewery.png,assets/base/,The base map,a plain plaque with the name on it,A copper and a chimney,A building with no art is a plaque with its name on it and works perfectly. Roughly 190x78 for a base building
+brewer.png,assets/base/,The base map,a plain plaque with the name on it,A cart and a mule,A building with no art is a plaque with its name on it and works perfectly. Roughly 190x78 for a base building

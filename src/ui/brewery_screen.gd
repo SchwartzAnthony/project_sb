@@ -61,8 +61,14 @@ var _status: Label
 func _ready() -> void:
 	# Escape, controller navigation, key bindings, settings and language, all
 	# from this one line. See menu_escape.gd.
-	MenuEscape.install(self)
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# THE WINDOW DOES ALL THREE when this screen is opened over the base:
+	# the background, the Back button and Escape. See base_window.gd.
+	var windowed := MenuSupport.in_a_window(self)
+	if not windowed:
+		MenuEscape.install(self)
+		# A WINDOW SIZES THIS SCREEN ITSELF. Pinning it to the whole viewport
+		# from in here would fight the container it has been put in.
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	db = CardDatabase.get_db()
 	state = GameState.fetch(get_tree())
@@ -79,11 +85,14 @@ func _ready() -> void:
 # =============================================================
 
 func _build_chrome() -> void:
-	var fill := ColorRect.new()
-	fill.color = MenuSupport.COLOUR_BACKGROUND
-	fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(fill)
+	# NO BACKGROUND OF ITS OWN IN A WINDOW — the window has one, and a second
+	# opaque rectangle would paint over the dimmed base behind it.
+	if not MenuSupport.in_a_window(self):
+		var fill := ColorRect.new()
+		fill.color = MenuSupport.COLOUR_BACKGROUND
+		fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(fill)
 
 	var title := MenuSupport.heading(
 		Loc.text("brewery_title", "THE BREWERY"), 32, MenuSupport.COLOUR_ACCENT)
@@ -92,6 +101,9 @@ func _build_chrome() -> void:
 	title.offset_top = 18.0
 	title.offset_bottom = 58.0
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# THE WINDOW'S TITLE BAR ALREADY SAYS THIS. Hidden rather than removed,
+	# so the layout below keeps the breathing room it was drawn with.
+	title.visible = not MenuSupport.in_a_window(self)
 	add_child(title)
 
 	# ---- the two windows, side by side along the top ----
@@ -143,6 +155,8 @@ func _build_chrome() -> void:
 	back.offset_top = -66.0
 	back.offset_right = -30.0
 	back.offset_bottom = -22.0
+	# THE WINDOW HAS A ✕. Two ways out of one screen is one too many.
+	back.visible = not MenuSupport.in_a_window(self)
 	back.pressed.connect(func() -> void:
 		state.save_to_disk()
 		ScenePaths.go_back(get_tree(), ScenePaths.BASE))

@@ -48,8 +48,14 @@ func _ready() -> void:
 	# Escape, controller navigation, the key bindings, the player's
 	# settings and the language — all five from this one line. See
 	# menu_escape.gd.
-	MenuEscape.install(self)
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# THE WINDOW DOES ALL THREE when this screen is opened over the base:
+	# the background, the Back button and Escape. See base_window.gd.
+	var windowed := MenuSupport.in_a_window(self)
+	if not windowed:
+		MenuEscape.install(self)
+		# A WINDOW SIZES THIS SCREEN ITSELF. Pinning it to the whole viewport
+		# from in here would fight the container it has been put in.
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	cards = CardDatabase.get_db()
 	brews = BrewDB.get_db()
@@ -66,11 +72,14 @@ func _ready() -> void:
 # =============================================================
 
 func _build_ui() -> void:
-	var fill := ColorRect.new()
-	fill.color = MenuSupport.COLOUR_BACKGROUND
-	fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(fill)
+	# NO BACKGROUND OF ITS OWN IN A WINDOW — the window has one, and a second
+	# opaque rectangle would paint over the dimmed base behind it.
+	if not MenuSupport.in_a_window(self):
+		var fill := ColorRect.new()
+		fill.color = MenuSupport.COLOUR_BACKGROUND
+		fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(fill)
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -89,6 +98,8 @@ func _build_ui() -> void:
 
 	var title := MenuSupport.heading("THE PUB", 32, MenuSupport.COLOUR_ACCENT)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# THE WINDOW'S TITLE BAR ALREADY SAYS THIS.
+	title.visible = not MenuSupport.in_a_window(self)
 	header.add_child(title)
 
 	_permanent = CheckBox.new()
@@ -104,6 +115,8 @@ func _build_ui() -> void:
 		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
 	back.add_theme_stylebox_override("hover",
 		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+	# THE WINDOW HAS A ✕. Two ways out of one screen is one too many.
+	back.visible = not MenuSupport.in_a_window(self)
 	back.pressed.connect(func() -> void:
 		state.save_to_disk()
 		ScenePaths.go_back(get_tree(), ScenePaths.BASE))

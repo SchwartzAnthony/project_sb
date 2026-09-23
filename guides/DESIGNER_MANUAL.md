@@ -2611,37 +2611,144 @@ are for you and your artists; nothing loads them.
 
 ---
 
-## 11. The base, and everything around a match
+## 11. The base — nine doors, and a window behind each one
 
-**`data/Buildings.csv`** — `ID`, `Name`, `Description`, `Requires`, `Art`,
-`X`, `Y`, `Action`. The base is a map of buildings; `Action` says which screen
-a building opens. A `Requires` that does not pass means the building is not
-there yet.
+> *"Each of these should have a new window open (not a new whole scene cut
+> from the base) with each of the content presented that way."*
 
-**`data/Visitors.csv`** — `ID`, `Name`, `Portrait`, `Requires`, `Story`, `X`,
-`Y`, `Once`. Somebody standing in the base with something to say.
+Clicking the Brewery no longer takes the base away and puts a Brewery in its
+place. **The base stays where it is, dims, and the screen opens on top of
+it.** Close the window and you are already home — no loading, no camera jump,
+and the building you just used is still under your cursor.
 
-**`data/Brews.csv`** — `ID`, `Name`, `Requires`, `For Class`, `Becomes`,
-`Element`, `Attack Ability`, `Defend Ability`, `Cost`, `Permanent`.
+### The nine
 
-A brew is an overlay on a card. `Becomes` changes its class; `Element`
-changes its Adventure icon; the two ability columns give it abilities for the
-league. `Cost` is `reed:6|bog_iron:2`. `Permanent` blank means it wears off
-after one match.
+| building | what it is |
+|---|---|
+| **Achievements** | the root. Everything is unlocked here first. **The only door with no `Requires`** — a game whose unlock board is itself locked has nothing to aim at |
+| **Talent Tree** | brew recipes, how many of one unit type you may field, which maps are open, and the Stars. Its ★ button swaps to the **Star Hall**, where three matching Stars open the Emblems |
+| **Club House** | exhaustion and recovery. A player's `P:x` is how many fixtures they need |
+| **Dorms** | beds — how many players you may keep at all |
+| **Trophy Room** | what you have won |
+| **Training Ground** | Ausbildung, or one of the five games that automate a Brewery section |
+| **Pub** | ten seats, ten drinks. Whoever is not in the room plays as a basic unit |
+| **Brewery** | six sections and a yard |
+| **The Traveling Brewer** | sells one thing at a time, dear |
 
-**`data/Talents.csv`** — `ID`, `Name`, `Tree`, `Tier`, `Parent`, `Requires`,
-`Cost`, `Effects`. A talent tree. `Effects` is the condition language, and
-`count:tune_<row>+<n>` is what lets a talent change any number in Tuning.csv.
+**Four buildings were removed** — the Forge, the Still, the Reed Press and
+the Cold Cellar — along with the Tap Room and the Gate. They were **worked
+examples of the recipe pattern**, not rooms. That pattern has not gone
+anywhere: `Requires: count:reed>=20` with `Action: count:reed-20;count:coins+60`
+is still a complete trade with no code, and the Buildings.csv note says so.
+The one thing they granted that something still needs — **Iron Boots**, which
+the Iron Shod talent waits on — is now a row of the Traveling Brewer's cart.
 
-**`data/Progression.csv`** — `ID`, `When`, `Requires`, `Do`, `Once`. The
-glue: when *this event* happens and *these conditions* hold, do *this*.
-`When` is a game event (`base_opened`, `match_ended`, …). This is where
-achievements, unlocks and story triggers are wired without code.
+### `window:` and `goto:`
 
-**`data/Stats.csv`** — `Counter`, `Event`, `When`, `Amount`, `Group`,
-`Label`. Every number the game counts. A counter name may contain `{card}`,
-which makes one counter per card — that is how the post-match screen lists
-your scorers. Anything counted here can be tested with `count:` anywhere else.
+```
+   Action: window:brewery     opens it OVER the base
+   Action: goto:brewery       throws the base away and opens it full-screen
+```
+
+Both name the **same screen** through the same ScenePaths word. `goto:` is
+still what a Progression row should use when the base is not already open.
+
+### How a screen becomes a window
+
+It is not rewritten. The **same scene file** is instantiated inside the
+frame, with one flag set on it first:
+
+```gdscript
+content.set_meta("windowed", true)
+```
+
+and every screen asks `MenuSupport.in_a_window(self)` in its `_ready()`.
+When the answer is yes it skips three things and nothing else:
+
+```
+   its own full-screen background    the window has one
+   its own "Back to the base"        the window has a ✕
+   MenuEscape.install()              the window handles Escape
+```
+
+That is the whole contract. Every one of these screens still works
+standalone, and there is **one copy of each** rather than a windowed one and
+a full-screen one drifting apart.
+
+**One window at a time.** Opening a second closes the first, and the dim
+behind it eats clicks — without that you can press a building *through* the
+window and open a second one on top.
+
+### Visitors go in the gaps
+
+> *"The dialogue option for people to come by will still be possible, but
+> not in the middle of the screen — rather on any empty space, and please do
+> not layer them."*
+
+A visitor's `X` and `Y` are a **preference** now. Buildings are placed first
+and keep their spots; then each visitor is fitted into the nearest **free**
+place, searching outward in rings so somebody written at `0.5,0.5` still
+ends up near the middle rather than in a corner. If the yard is genuinely
+full they are **not drawn at all** — a visitor you cannot read is worse than
+a visitor who is not there, and the Output panel says who is waiting outside.
+
+> **A bug that fell out of this.** `Seasons.csv` also has ID, Name and Story
+> columns, so the base loader had been treating every season as a person and
+> drawing "The County League" standing in the yard. It was invisible until
+> the visitors were told not to overlap anything and started reporting that
+> there was no room. **A visitors file is now recognised by its `Portrait` or
+> `Once` column** — things only a person has.
+
+### `data/Dorms.csv`
+
+| column | |
+|---|---|
+| `Beds` | **the TOTAL**, not what this row adds. Buying the Long House replaces the Lean-To rather than stacking on it, so reading down the column tells you the whole story of your squad size |
+| `Price` · `Currency` | from `Currencies.csv` |
+| `Requires` | the ordinary condition language |
+
+**The first row has to be free.** A new game cannot buy its first bed, and
+the checker says so if the cheapest dorm costs anything.
+
+### `data/Trophies.csv`
+
+A trophy is a **name and a condition**. It does not have to come from a
+competition — `count:matches_won>=3` is as good a trophy as a cup final, and
+that is the row to copy when you want something on the shelf early. An empty
+case is a room nobody goes back to.
+
+### `data/Training.csv`
+
+`Kind` splits the screen in two. **`ausbildung`** trains a number for the
+whole side. **`minigame`** is one of the five that automate a Brewery
+section, and its `Section` column names a row of `BrewerySections.csv`.
+
+**What a mini-game gives today is a vat** — `count:batches_<section>+1` —
+which is the foundation the played game will sit on top of later. Nothing on
+that screen changes when the game itself arrives; it slots in between
+pressing the button and the work being done.
+
+### The Club House has no spreadsheet
+
+It is a view onto `recovery_book.gd`, which already knows who is tired and
+for how long. Writing a second file for it would have been inventing a
+disagreement. `recovery` in `Tuning.csv` turns the whole thing on.
+
+### Price everything in seasons
+
+```
+godot --headless --script res://tools/rooms_check.gd
+
+  A season of 10 fixtures, half won, pays 225 coins.
+
+  The Lean-To       18 beds   150 coins    0.7 seasons
+  The Stone Wing    36 beds   900 coins    4.0 seasons
+  The Cellar Watch  minigame  300 coins    1.3 seasons
+```
+
+It also checks the thing a spreadsheet cannot: **that every building's Action
+names a screen that exists.** A door that leads nowhere looks exactly like a
+door that works.
 
 ---
 
@@ -3301,6 +3408,20 @@ matches simulated at each level — fouls, yellows, reds and how often a match
 ends ten against eleven. It does the multiplication that makes "18%" mean
 something: both sides roll, nine times a match, which is eighteen rolls. See
 section 7d.
+
+```
+godot --headless --script res://tools/rooms_check.gd
+```
+Every building, the screen its door opens, and whether that screen exists —
+plus the Dorms, the Trophies and the Training priced in SEASONS. See
+section 11.
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/base_shot.gd
+```
+The base, and then one picture per window opened over it. Eleven shots, and
+the point of every one is that the base is still there behind it.
 
 ```
 godot --headless --script res://tools/shop_check.gd

@@ -219,25 +219,30 @@ Where the bottles go, and where the money is.
 
 ---
 
-## Phase 9 — The Club House, the Dorms, the Trophy Room, the Training Ground  ⬅ NEXT
+## Phase 9 — The four rooms, and the base rebuilt  ✅ IN THIS ZIP
 
 The four rooms. One phase because they are four screens against one save
 file, and because each of them is small.
 
 | | |
 |---|---|
-| | **Club House** — exhaustion and recovery, with **P:x as the length of the rest**. Half of this is already written and switched off: `recovery` in Tuning.csv, and `src/core/recovery_book.gd` |
-| | **Dorms** — how many players you may keep. The number that makes a squad a choice |
-| | **Trophy Room** — the achievements board, which `AchievementBook.board()` already returns |
-| | **Training Ground** — Ausbildung, **or** the five brewing mini-games. A mini-game decides how *well* a section runs; Phase 5 decided what it costs and what it gives, so neither one waits for the other |
+| ✅ | **Club House** — who is resting and for how long. No spreadsheet of its own: it is a view onto `recovery_book.gd`, which already knew |
+| ✅ | **Dorms** — `data/Dorms.csv`. Beds is the TOTAL, the first row is free, the rest are bought |
+| ✅ | **Trophy Room** — `data/Trophies.csv`. A trophy is a name and a condition, and does not have to come from a competition |
+| ✅ | **Training Ground** — `data/Training.csv`. Ausbildung trains a number; a mini-game automates a Brewery section and buys it a vat today |
+| ✅ | **An Achievements building**, which was the one root that had no door |
+| ✅ | **THE BASE REBUILT.** Nine buildings and no others, and every one of them opens a **window over the base** instead of cutting to a new scene |
+| ✅ | **Visitors go in the gaps** — never in the middle, never layered, and not drawn at all if the yard is full |
 
-**Why last of the new systems:** every one of them reads something the four
-phases above write. A Dorm with no squad to hold and a Trophy Room with no
-trophies are rooms you build twice.
+**Four buildings were removed** — the Forge, the Still, the Reed Press and
+the Cold Cellar — plus the Tap Room and the Gate. They were worked examples
+of the recipe pattern rather than rooms, and that pattern is still a complete
+trade with no code. Iron Boots, the one thing they granted that something
+still needed, moved to the Traveling Brewer's cart.
 
 ---
 
-## Phase 10 — Around the match
+## Phase 10 — Around the match  ⬅ NEXT, AND LAST
 
 **This is the old Phase 6, unchanged — not one line removed.**
 
@@ -271,10 +276,10 @@ Crown` and `The Cup` unlocks are now handed out by achievements.
 | *(new)* Brewery — the six sections on a map | **Phase 7**, done |
 | *(new)* Pub | **Phase 8**, done |
 | *(new)* Traveling Brewer | **Phase 8**, done |
-| *(new)* Club House | **Phase 9** |
-| *(new)* Dorms | **Phase 9** |
-| *(new)* Trophy Room | **Phase 9** |
-| *(new)* Training Ground | **Phase 9** |
+| *(new)* Club House | **Phase 9**, done |
+| *(new)* Dorms | **Phase 9**, done |
+| *(new)* Trophy Room | **Phase 9**, done |
+| *(new)* Training Ground | **Phase 9**, done |
 
 ---
 

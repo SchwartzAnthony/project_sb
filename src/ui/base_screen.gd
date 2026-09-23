@@ -295,12 +295,97 @@ func _rebuild() -> void:
 	for child in _world.get_children():
 		child.queue_free()
 
+	# ============ BUILDINGS FIRST, AND THEY KEEP THEIR SPOTS ============
+	#
+	# A building's X and Y are a promise: the Brewery is where you left it.
+	# Every rectangle it takes is remembered so the visitors can be fitted
+	# around them.
+	_taken.clear()
 	for entry in base.buildings_for(state):
-		_world.add_child(_make_building(entry))
+		var plaque := _make_building(entry)
+		_world.add_child(plaque)
+		_taken.append(Rect2(plaque.position, BUILDING_SIZE))
+
+	# ============ AND THEN THE VISITORS, INTO WHATEVER IS LEFT ============
+	#
+	# "Not in the middle of the screen but rather on any empty space, please
+	#  do not layer them."
+	#
+	# So a visitor's own X and Y are only a PREFERENCE now. If where they
+	# want to stand is on top of a building or on top of another visitor,
+	# they are moved to the nearest place that is free — and if the yard is
+	# genuinely full they are not drawn at all, because a visitor you cannot
+	# read is worse than a visitor who is not there.
 	for entry in base.visitors_for(state):
-		_world.add_child(_make_visitor(entry))
+		var who := _make_visitor(entry)
+		var found: Variant = _free_spot_near(who.position, VISITOR_SIZE)
+		if found == null:
+			who.queue_free()
+			print("[base] No free space for %s — they wait outside." % entry["name"])
+			continue
+		var spot: Vector2 = found
+		who.position = spot
+		_world.add_child(who)
+		_taken.append(Rect2(spot, VISITOR_SIZE))
 
 	_refresh_footer()
+
+
+## Every rectangle already standing in the yard this rebuild.
+var _taken: Array[Rect2] = []
+
+
+## The nearest free place to `wanted` that a `box` fits in, or null.
+##
+## It searches outward in rings rather than scanning the whole yard from the
+## top-left, so a visitor written at 0.5,0.5 ends up NEAR the middle rather
+## than in the top-left corner — their column still means something, it is
+## just no longer allowed to overlap anything.
+func _free_spot_near(wanted: Vector2, box: Vector2) -> Variant:
+	var area := _world.size
+	if area.x < 2.0 or area.y < 2.0:
+		area = get_viewport_rect().size
+	var low := Vector2(8.0, 78.0)
+	var high := Vector2(maxf(area.x - box.x - 8.0, 8.0), maxf(area.y - box.y - 130.0, 78.0))
+
+	var step := 26.0
+	for ring in 24:
+		var reach := float(ring) * step
+		# Ring 0 is the spot they asked for; after that, eight directions.
+		#
+		# WRITTEN OUT RATHER THAN AS A TERNARY, and that is not style. An
+		# `a if c else b` over two Array literals is an untyped Array, and
+		# assigning one to an Array[Vector2] is refused AT RUNTIME — the
+		# whole search silently did nothing and every visitor was told there
+		# was no room. Third time this project has met that rule.
+		var tries: Array[Vector2] = []
+		if ring == 0:
+			tries.append(wanted)
+		else:
+			tries.append(wanted + Vector2(reach, 0.0))
+			tries.append(wanted + Vector2(-reach, 0.0))
+			tries.append(wanted + Vector2(0.0, reach))
+			tries.append(wanted + Vector2(0.0, -reach))
+			tries.append(wanted + Vector2(reach, reach))
+			tries.append(wanted + Vector2(-reach, reach))
+			tries.append(wanted + Vector2(reach, -reach))
+			tries.append(wanted + Vector2(-reach, -reach))
+		for candidate in tries:
+			var spot := Vector2(clampf(candidate.x, low.x, high.x),
+				clampf(candidate.y, low.y, high.y))
+			if _is_clear(Rect2(spot, box)):
+				return spot
+	return null
+
+
+## Nothing already in the yard touches this rectangle. A small margin is
+## added so two plaques never end up shoulder to shoulder with no gap.
+func _is_clear(box: Rect2) -> bool:
+	var padded := box.grow(10.0)
+	for other in _taken:
+		if padded.intersects(other):
+			return false
+	return true
 
 
 ## Where a 0..1 fraction lands on the actual screen, with the plaque centred
@@ -439,6 +524,15 @@ func _on_building(entry: Dictionary) -> void:
 	_carry_out(Progression.run_actions(action, state))
 
 
+## The words over a window. The building's own Name if we can find it, so
+## the title says "TRAINING GROUND" rather than "TRAINING".
+func _window_title(screen_word: String) -> String:
+	for entry in base.buildings_for(state):
+		if String(entry["action"]).to_lower().ends_with(screen_word.to_lower()):
+			return String(entry["name"])
+	return screen_word
+
+
 func _on_visitor(entry: Dictionary) -> void:
 	var scene := String(entry["story"]).strip_edges()
 	if bool(entry["once"]):
@@ -483,6 +577,22 @@ func _carry_out(actions: Array[Dictionary]) -> void:
 			"goto":
 				state.save_to_disk()
 				ScenePaths.go_to(get_tree(), ScenePaths.for_name(value))
+				return
+			"window":
+				# ============ A WINDOW, NOT A SCENE CHANGE ============
+				#
+				# The base stays where it is and the screen opens on top of
+				# it. `window:brewery` and `goto:brewery` name the same
+				# screen through the same ScenePaths word — the only
+				# difference is whether the base goes away.
+				state.save_to_disk()
+				var opened := BaseWindow.open(self, _window_title(value),
+					ScenePaths.for_name(value))
+				if opened != null:
+					# REBUILD ON CLOSE. You may have unlocked something in
+					# there, and a base that still shows the old doors is a
+					# base you will click twice.
+					opened.closed.connect(_rebuild)
 				return
 
 	state.save_to_disk()
