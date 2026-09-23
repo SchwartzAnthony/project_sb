@@ -82,6 +82,20 @@ static func install(on: Node) -> MenuEscape:
 	ThemeBook.dress(tree)
 	GameSettings.apply(tree)
 
+	# ============ ACHIEVEMENTS ARE REVIEWED WHEN A SCREEN OPENS ============
+	#
+	# Everything in this game is unlocked by an achievement first, so the
+	# question "have I earned anything since I last looked" has to be asked
+	# somewhere — and a screen opening is the natural moment, because it is
+	# exactly when the answer would be shown.
+	#
+	# It is idempotent and cheap: a few dozen condition tests, and anything
+	# already earned is skipped. The match asks again at full time, because a
+	# match can end without changing screen.
+	var here := GameState.fetch(tree)
+	if here != null:
+		AchievementBook.review(here)
+
 	# CONTROLLER AND ARROW-KEY NAVIGATION, on every screen, from this one
 	# line. A screen written next year gets it without knowing it exists.
 	# See controller_focus.gd.

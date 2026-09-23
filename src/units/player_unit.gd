@@ -93,6 +93,20 @@ var is_star_player: bool = false:
 var is_playmaker: bool = false     # picked during the current round
 var is_exhausted: bool = false     # already used this cycle
 
+# =============================================================
+#  DISCIPLINE — see src/core/foul_book.gd
+#
+#  `yellow_cards` is how many bookings this man has in THIS MATCH. Two of
+#  them is a red, if Tuning.csv says so.
+#
+#  `is_sent_off` is for the rest of the match, and NOTHING takes it back —
+#  not the end of a cycle, not the Star rotation, not a new round. That is
+#  the whole point of a red card, and the guard in reset_for_new_cycle()
+#  below is the one line that makes it stick.
+# =============================================================
+var yellow_cards: int = 0
+var is_sent_off: bool = false
+
 ## Which brew this unit drank at the Pub before the match, or "" for none.
 ## The Pub fills this in; the match reports it with every goal and duel, so
 ## Stats.csv rows like `goals_with_brew_{brew}` work with no code changes.
@@ -284,9 +298,28 @@ func set_highlight(is_highlighted: bool) -> void:
 
 
 func reset_for_new_cycle() -> void:
+	# A SENT-OFF MAN DOES NOT COME BACK. Everything else about a new cycle is
+	# a fresh start; this is the one thing that is not.
+	if is_sent_off:
+		is_exhausted = true
+		is_playmaker = false
+		return
 	is_exhausted = false
 	is_playmaker = false
 	set_highlight(false)
+
+
+## Off. For the rest of the match.
+##
+## He is marked exhausted as well as sent off, because every list in the game
+## that offers cards already skips the exhausted — so a red card is obeyed by
+## code that was written before red cards existed.
+func send_off() -> void:
+	is_sent_off = true
+	is_exhausted = true
+	is_playmaker = false
+	visible = false
+	set_physics_process(false)
 
 
 func clear_round_flags() -> void:

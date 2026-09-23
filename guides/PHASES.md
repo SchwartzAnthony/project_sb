@@ -1,9 +1,14 @@
-# The plan — twenty-three things, six phases
+# The plan — the order I would go through what is left
 
 You asked for a lot in one message and said to split it if it was too much.
 It was. This is the split, in the order I would do it and with the reason for
-that order. **Phase 1 is in the zip.** The rest is a promise you can hold me
-to, and you can reorder it at any point — the phases are mostly independent.
+that order. You can reorder it at any point — the phases are mostly
+independent, and where they are not, it says so.
+
+> **Round O renumbered the back half of this plan**, because you added nine
+> systems and a foul system to it. Nothing was dropped. The crosswalk is at
+> the bottom of this file: **old Phase 5 is now Phase 6, and old Phase 6 is
+> now Phase 10 with not one line removed.**
 
 The order is not by size. It is:
 
@@ -124,43 +129,112 @@ and still works.
 * **The skin, worn.** Phase 3 built the system; this round drew a Bavarian
   set for it and put three fonts in. `assets/ui/beerhall_*`.
 
-## Phase 5 — The class system: emblems, the tree, Team Spirit  ⬅ NEXT
+## Phase 5 — The roots: achievements, the referee, the chain  ✅ IN THIS ZIP
 
-The biggest one, and the one I have already read and written down —
-see section 7c of the Designer Manual and `tools/class_check.gd`.
-
-**What your spreadsheets already say.** A class is **one Star set plus three
-emblem sets**:
-
-```
-Rauhnacht-Feuergeister
-  Set "Star"        3 cards, all Tier IV      the three Star Players
-  Set "Belphegor"   9 cards, Tiers I/II/III   an emblem set
-  Set "Flauros"     9 cards, Tiers I/II/III   an emblem set
-  Set "Buer"        9 cards, Tiers I/II/III   an emblem set
-```
-
-and `Rauhnacht-Feuergeister Emblems.csv` names Belphegor, Flauros and Buer —
-the same three words. **That file set is exactly right and is the model.**
+Three things that nothing else can be built on top of until they exist.
 
 | | |
 |---|---|
-| | The **talent tree becomes the class system**: three starting nodes, one per Star |
-| | A Star in a node **unlocks its emblem's nine units** — the recipe the Brewery works from |
-| | **Three Stars of one class** opens that section and lets you choose one **Emblem** |
-| | An emblem is a **two-sided card**: Basic Side, a Condition, an Ultimate Side that turns over when the condition is met |
-| | The **Team Spirit** drink, forged when all three match, and the quest that changes it mid-match |
-| | Achievements unlock units; the tree makes them usable |
+| ✅ | **Achievements.** `data/Achievements.csv`, 21 rows. *"Everything needs to be unlocked here first"* — so this is the root of the game and every room, section, emblem, brew and Stadium layer below is handed out by a row of it |
+| ✅ | **The foul system.** `data/Fouls.csv`. The more a side sets off in a round, the more likely it is to have given a foul away doing it. Yellows, reds, two-yellows-is-a-red, a man sent off leaving nine — and a stand-in to cover the hole he leaves in the tier |
+| ✅ | **The Brewery's chain.** `data/BrewerySections.csv` and `data/BreweryResources.csv` — the six sections as *numbers*, with no map and no mini-games yet. See the note below on why that order |
 
-**Why fifth:** it is the deepest system in the game and it needs the
-achievements to exist, which they do not yet. Everything above is
-independent of it.
+**Why these three and not the talent tree.** Every one of the nine systems
+you listed is gated by an achievement, and six of them are gated by
+*something the Brewery makes*. Building the tree first would have meant
+writing the gates twice.
+
+> **Why the Brewery's numbers before its map.** A production chain is a thing
+> you get wrong in the numbers, not in the pictures. If six bottles from a
+> barrel is the wrong number, no amount of drawing the Bottler fixes it — and
+> you will have drawn him twice. `tools/brewery_check.gd` walks the whole
+> chain from a new game and tells you what the starting stock is worth (24
+> bottles) and **what ran out first** (germs, at the Malthouse). Now the map
+> can be built on top of something already known to work.
 
 ---
 
-## Phase 6 — Around the match
+## Phase 6 — The Talent Tree, and the classes  ⬅ NEXT
 
-The things that live outside ninety minutes.
+**This is the old Phase 5, grown.** The talent tree and the class system
+turned out to be the same thing described twice — the tree's three starting
+nodes *are* the three Stars of a class — so they are one phase.
+
+| | |
+|---|---|
+| | The tree itself: nodes, costs, what a node needs, what it hands over |
+| | **Brew recipes** — which rows of Brews.csv you may make at all |
+| | **Unit-type limits** — how many of a class you may field |
+| | **Resources** — what a node gives you, in the `res_` counters the Brewery already reads |
+| | **Adventure maps** — which ones are open |
+| | **Switches on Star Players** |
+| | **Three Stars of one class → Emblems.** The gate already exists: the `star_collector` achievement waits on `flag:three_of_a_kind`, and the team builder sets that flag when this lands |
+| | An emblem is a **two-sided card**: Basic Side, a Condition, an Ultimate Side that turns over when the condition is met |
+| | The **Team Spirit** drink, forged when all three match |
+
+**Why now:** it is the deepest system in the game, it is the one that makes
+the cards you are drawing *mean* something, and both of the things it was
+waiting on — achievements and resources — are in this zip.
+
+**What it needs from you:** `Lorelei Emblems.csv` and
+`Rauhnacht-Feuergeister Emblems.csv` are the model and one of them disagrees
+with itself. `tools/class_check.gd` names the two rows (Sitri and Gremory).
+
+---
+
+## Phase 7 — The Brewery, built
+
+The map, on top of the chain that is already in the zip.
+
+| | |
+|---|---|
+| | The **map** with the six sections laid out on it, each drawn and each walked to |
+| | The **resources window** and the **brewery-materials window**, at the top |
+| | Each section **locked until its achievement**, and visibly locked — a door you can see is a door you want to open |
+| | The **Maltster, Miller, Lauterer, Brewer, Cellarman and Bottler** as figures who do the work |
+| | The **cellar**: a barrel lagering for one to three turns, with the turns showing |
+
+**Why here:** the numbers are settled, so this phase is drawing and laying
+out rather than deciding. That is the cheapest possible order for it.
+
+---
+
+## Phase 8 — The Pub, and the Traveling Brewer
+
+Where the bottles go, and where the money is.
+
+| | |
+|---|---|
+| | **The Pub.** Choose ten players and give them drinks; whoever you do not choose plays as a basic unit. The pouring already works — `brew_drunk`, the overlay, the wear-off at the whistle — so this phase is the *choosing* |
+| | **The Traveling Brewer.** Sells brews at premium prices, so he is the answer when you did not brew enough rather than a shop you use instead of brewing |
+| | **Currency from wins, and a separate currency per mode** — league money is not adventure money |
+
+**Why after the Brewery:** a Pub with nothing to pour and a shop that
+undercuts a brewery you have not built are both the same mistake.
+
+---
+
+## Phase 9 — The Club House, the Dorms, the Trophy Room, the Training Ground
+
+The four rooms. One phase because they are four screens against one save
+file, and because each of them is small.
+
+| | |
+|---|---|
+| | **Club House** — exhaustion and recovery, with **P:x as the length of the rest**. Half of this is already written and switched off: `recovery` in Tuning.csv, and `src/core/recovery_book.gd` |
+| | **Dorms** — how many players you may keep. The number that makes a squad a choice |
+| | **Trophy Room** — the achievements board, which `AchievementBook.board()` already returns |
+| | **Training Ground** — Ausbildung, **or** the five brewing mini-games. A mini-game decides how *well* a section runs; Phase 5 decided what it costs and what it gives, so neither one waits for the other |
+
+**Why last of the new systems:** every one of them reads something the four
+phases above write. A Dorm with no squad to hold and a Trophy Room with no
+trophies are rooms you build twice.
+
+---
+
+## Phase 10 — Around the match
+
+**This is the old Phase 6, unchanged — not one line removed.**
 
 | | |
 |---|---|
@@ -170,31 +244,48 @@ The things that live outside ninety minutes.
 | | **A dialogue before a season** and **before a fixture** |
 | | **The Stadium screen** in the base: colours, background, lights, unlocked through achievements |
 
-**Why last:** none of it is broken, and all of it is content-shaped — it will
-go faster once Phase 3 has given it a look and Phase 5 has given achievements
-something to unlock.
+**Why still last:** none of it is broken, and all of it is content-shaped. It
+will go faster with a look to hang it on (Phase 3), achievements to unlock it
+(Phase 5) and rooms to put it next to (Phase 9). Three of its five items are
+already half-built and waiting — `Stadium.csv` has layers that nothing was
+switching on until this round, and the `Floodlights`, `Full House`, `The
+Crown` and `The Cup` unlocks are now handed out by achievements.
+
+---
+
+## The crosswalk — where everything went
+
+| it used to be | it is now |
+|---|---|
+| Phase 5, the class system | **Phase 6**, joined with the Talent Tree |
+| Phase 6, around the match | **Phase 10**, word for word |
+| *(new)* the foul system | **Phase 5**, done |
+| *(new)* Achievements | **Phase 5**, done |
+| *(new)* Talent Tree | **Phase 6** |
+| *(new)* Brewery — the chain | **Phase 5**, done |
+| *(new)* Brewery — the six sections on a map | **Phase 7** |
+| *(new)* Pub | **Phase 8** |
+| *(new)* Traveling Brewer | **Phase 8** |
+| *(new)* Club House | **Phase 9** |
+| *(new)* Dorms | **Phase 9** |
+| *(new)* Trophy Room | **Phase 9** |
+| *(new)* Training Ground | **Phase 9** |
 
 ---
 
 ## If you want a different order
 
-Say so. The only hard dependency is **Phase 3 after Phase 2** — skinning
-screens I am about to rebuild is work done twice. Everything else can move.
+Say so. There are only three hard dependencies in the whole plan:
 
-The one I pulled forward was the **goal celebration**, and it was the right
-call: it is the moment the game is *for* and it used to pass in about a second
-and a half.
+```
+   Phase 3 after Phase 2     skinning screens I am about to rebuild is
+                             work done twice
+   everything after Phase 5  nine of the systems are gated by an
+                             achievement, and six by something the
+                             Brewery makes
+   Phase 8 after Phase 7     a Pub with nothing to pour
+```
 
-**Two phases left, and they are the two biggest.**
-
-**Phase 5** is the class system — emblems, the talent tree, Team Spirit. It
-is the deepest system in the game and it wants **achievements to exist
-first**, which they do not. That is the honest blocker, and it is small
-enough to clear inside the same round.
-
-**Phase 6** is content-shaped — Adventure's enemy window, the pickup counts,
-Seasons with their own rules, the pre-season dialogue, the Stadium screen —
-and every piece of it will go faster now that there is a look to hang it on.
-
-Either order works. Phase 5 is the one that makes the cards you are drawing
-mean something, so that is the one I would take.
+Everything else can move. **Phases 9 and 10 in particular can be swapped, or
+either of them pulled forward**, if you would rather have rooms to walk
+around before the tree is finished.

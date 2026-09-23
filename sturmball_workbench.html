@@ -355,6 +355,18 @@ const S = {
 "MenuConfig.csv":{what:"The main menu. Buttons, where they sit, and what they do.", key:"Button ID"},
 "Tuning.csv":{what:"EVERY NUMBER IN THE GAME, in one place. A talent can edit any of these at runtime.", key:"Key",
   help:"Rows worth knowing: <code>juice_scale</code> 0 kills every shake and flash · <code>juice_slowmo_depth</code> 1.0 means no slow-motion at all · <code>adventure_trait_bar</code> false hides the row of icons · <code>adventure_enemy_combos</code> false and the enemies get no combos."},
+"Achievements.csv":{what:"THE ROOT OF THE GAME. Nothing exists until an achievement hands it over - every room, Brewery section, brew, emblem and Stadium layer below is unlocked here first.",
+  key:"ID", enums:{Hidden:YN},
+  help:"<b>EVERYTHING NEEDS TO BE UNLOCKED HERE FIRST.</b> That is what makes this the root of the game: a room in the base is not there, a Brewery section cannot be worked in, a Stadium layer is off, until a row of this file says so.<br><b>Needs</b> is the ordinary condition language - <code>count:goals&gt;=10</code>, <code>flag:x</code>, <code>unlocked:y</code>, joined with semicolons. <b>Unlocks</b> is what it hands over, semicolons for more than one. <b>Reward</b> is anything else in the Do language: <code>give:coins+50</code>, <code>announce:Text</code>, <code>story:chapter2</code>.<br><b>A row needs either an Unlocks or a Reward.</b> One with neither is earned and then does nothing.<br><b>IT IS NOT A NEW VOCABULARY, AND THAT IS THE POINT.</b> The game already had one way to say \"you have this\": <code>unlock:Brewery</code> grants it and <code>unlocked:Brewery</code> tests it. A second, parallel system would mean two answers to \"is the Brewery open\", and one day they would disagree. So the Unlocks column is turned into exactly those words, and everything downstream never knows this file exists - which means you can move where something is granted from without touching the thing that is granted.<br><b>Unlock names are matched loosely</b> - lowercase, letters and digits only. <code>Master Brewer</code>, <code>master_brewer</code> and <code>master brewer</code> are ONE unlock. Your spreadsheets spell it all three ways and that is fine.<br><b>Hidden = yes</b> keeps it off the board until it is earned. For endings and surprises.<br><b>It is reviewed when a screen opens and at the final whistle</b>, and it is idempotent - an achievement already earned is skipped, so nothing is ever granted twice.<br><code>tools/achievement_check.gd</code> asks the two questions a spreadsheet cannot: is anything gated behind a counter nothing counts, and is anything tested that nobody grants."},
+"Fouls.csv":{what:"THE REFEREE. The more a side set off in a round, the more likely it is to have given a foul away doing it. Yellows, reds, and a man sent off leaving nine.",
+  key:"Triggers",
+  help:"<b>IT PRICES THE THING THE REST OF THE GAME REWARDS WITHOUT LIMIT.</b> Firing everything you have every round used to be free. Now it costs, and what it costs is a man.<br><b>Triggers</b> is how many abilities and combos that side actually set off - one per ability that CHANGED A NUMBER, not one per ability a card owns. Every round the match prints <code>Triggers this round: you N, them N</code>, and that line is where the answer is when the cards feel too frequent or too rare, before you touch a row of this file.<br><b>Foul Chance</b> is the % it conceded a foul at that many. <b>Yellow</b> and <b>Red</b> are, IF a foul was given, what kind. Whatever is left of 100 is an ordinary free kick - which should be most fouls.<br><b>Rows are interpolated</b>, exactly like ShotOdds.csv, so five rows draw a smooth curve rather than five steps.<br><b>DO THE MULTIPLICATION.</b> 18% sounds small. It happens to BOTH SIDES, NINE TIMES A MATCH - eighteen rolls. <code>tools/foul_check.gd</code> simulates two thousand matches at each level and prints fouls, yellows, reds and how often a match ends ten against eleven.<br><b>AND THEN THE LADDER HAS A HOLE IN IT.</b> A tier holds one card of each power; send the 3 off and Tier III can only offer two cards. So a survivor of that tier is offered playing out of position: his name, the missing power, and NO abilities at all. A new copy is drawn every draft phase, so who covers the gap changes round to round. Both sides get them.<br><b>Tuning.csv:</b> <code>fouls</code> false turns the whole thing off · <code>foul_free_kick_power</code> is what a foul adds to the fouled side's shot · <code>foul_card_gives_possession</code> - a card stops the game, which is what makes it the moment a side gets the set piece · <code>foul_two_yellows_is_red</code> · <code>foul_stand_ins</code> false leaves the tier one card short instead · <code>foul_window_seconds</code> 0 shows no window."},
+"BrewerySections.csv":{what:"THE SIX SECTIONS OF THE BREWERY, as numbers. Wheat becomes malt becomes mash becomes wort becomes brew becomes a barrel becomes six bottles.",
+  key:"ID",
+  help:"<b>THE CHAIN, BEFORE THE MAP.</b> A production chain is a thing you get wrong in the NUMBERS, not in the pictures. If six bottles from a barrel is the wrong number, no amount of drawing the Bottler fixes it - and you will have drawn him twice.<br><b>Order is the map</b>, and it is also a rule: a section may only be given something an EARLIER section makes, or something raw. Otherwise the chain cannot be started, and that is the one way a chain breaks that a spreadsheet cannot show you - every cell spelled correctly and the map impossible.<br><b>Needs</b> is the unlock condition, so every section has to be opened by an achievement. <b>Takes</b> is <code>wheat:1;water:1;germs:1</code>. <b>Makes</b> is one resource ID and <b>How Many</b> is how many of it - Bottling makes 6, and that number is the whole economy of the Pub.<br><b>Wait Min / Wait Max</b> is the lagering, in turns, and a turn is a fixture. A section lagers ONE batch at a time, deliberately: it makes the cellar a decision rather than a queue.<br><b>Materials live in GameState counters named <code>res_&lt;id&gt;</code></b>, which is not a new store - so <code>count:res_malt&gt;=3</code> is already a condition an achievement, a talent or a dialogue line can read with no code written for it.<br><code>tools/brewery_check.gd</code> starts a new game, opens every section and works the chain until it runs dry: it prints what the starting stock is worth in bottles and WHAT RAN OUT FIRST. The bottleneck is almost never the one you expect."},
+"BreweryResources.csv":{what:"Everything the Brewery uses or makes. Raw things, made things, and the tools that are needed but not used up.",
+  key:"ID", enums:{Kind:["","raw","made","tool"], Kept:YN},
+  help:"<b>Kind</b> says where it comes from. <code>raw</code> arrives from outside the brewery - a match reward, the Traveling Brewer, an adventure. <code>made</code> is produced by one of the six sections. <code>tool</code> is equipment.<br><b>Kept = yes means it is NOT used up.</b> You need a Hammer to work the Mill and you still have it afterwards. That is the whole difference between equipment and an ingredient, and it is one cell.<br><b>Start</b> is what a new game begins with. A raw resource with Start 0 that nothing makes and something wants is a dead end, and the loader says so.<br><b>Each one is a GameState counter called <code>res_&lt;id&gt;</code></b>, so anything in the game can test how much of it you have."},
 "ICONS_WANTED.csv":{what:"The shopping list for art. Nothing loads it — it is for you and whoever is drawing.", key:null},
 "SOUNDS_WANTED.csv":{what:"The shopping list for audio. Nothing loads it — it is for you and whoever is recording.", key:null},
 "FileManifest.csv":{what:"Every file and the folder it belongs in. The title screen checks it and names anything missing, misplaced or duplicated.", key:null},
@@ -1120,21 +1132,32 @@ function check(){
   /* 5. unlocks required but never granted */
   const grant=new Set(), want=new Map();
   col("Talents.csv","ID").forEach(v=>v&&grant.add(norm(v)));
+  /* ACHIEVEMENTS ARE THE ROOT: everything is unlocked there first, and its
+     Unlocks column is a bare list of names rather than "unlock:x" terms. It
+     grants more than every other file in the project put together, so
+     without this line the workbench reports every room in the base as
+     unreachable. Semicolons for more than one. */
+  col("Achievements.csv","Unlocks").forEach(v=>{
+    (v||"").split(";").forEach(one=>{ const t=one.trim(); if(t) grant.add(norm(t)); });
+  });
+  /* A Brewery section is opened by an achievement and nothing else, so its
+     own Needs column is a want, not a grant - it is picked up below with
+     every other "unlocked:" in the project. */
   for(const f of Object.keys(DATA)) for(const c of CONDS){
     const i=at(f,c); if(i<0) continue;
     DATA[f].rows.forEach((r,ri)=>{
       for(const m of (r[i]||"").matchAll(/unlock:\s*([^;]+)/g)) grant.add(norm(m[1]));
     });
   }
-  for(const f of Object.keys(DATA)){
-    const i=at(f,"Requires"); if(i<0) continue;
+  for(const f of Object.keys(DATA)) for(const c of ["Requires","Needs"]){
+    const i=at(f,c); if(i<0) continue;
     DATA[f].rows.forEach((r,ri)=>{
       for(const m of (r[i]||"").matchAll(/unlocked:\s*([^;]+)/g))
-        if(!want.has(norm(m[1]))) want.set(norm(m[1]),{f,ri,raw:m[1].trim()});
+        if(!want.has(norm(m[1]))) want.set(norm(m[1]),{f,ri,c,raw:m[1].trim()});
     });
   }
   for(const [k,w] of want) if(!grant.has(k))
-    add(w.f,w.ri,"Requires",`Nothing ever unlocks "${w.raw}".`,`Give it to somebody: <code>unlock:${w.raw}</code> in a Season reward, a Bounty reward, a Building action or a Progression row.`);
+    add(w.f,w.ri,w.c||"Requires",`Nothing ever unlocks "${w.raw}".`,`Give it to somebody: <code>unlock:${w.raw}</code> in a Season reward, a Bounty reward, a Building action or a Progression row.`);
   /* 5b. a talent pointing at a Tuning row that does not exist */
   if(DATA["Tuning.csv"]){
     const keys=ids("Tuning.csv","Key");

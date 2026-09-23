@@ -136,6 +136,20 @@ func show_panel(caption: String, art: String, animation: String,
 		_anim.play(card.artwork, spec)
 		_anim.fit_into(STAGE - Vector2(20.0, 20.0))
 
+	# ============ NOTHING TO SHOW? DO NOT LEAVE THE HOLE ============
+	#
+	# A caption with no picture is still a beat and the match keeps going —
+	# but a 420x260 empty stage above one line of text makes the window look
+	# BROKEN rather than plain, which is the opposite of what the fallback is
+	# for. So the stage collapses when there is nothing in it and the window
+	# is just the words.
+	#
+	# Found by looking at tools/foul_shot.gd's picture, which is the whole
+	# argument for photographing a thing rather than reasoning about it.
+	var has_picture := playing or picture != null
+	_stage.visible = has_picture
+	_stage.custom_minimum_size = STAGE if has_picture else Vector2(STAGE.x, 0.0)
+
 	if not _frame.visible:
 		_frame.visible = true
 		_frame.modulate.a = 0.0

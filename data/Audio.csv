@@ -40,3 +40,6 @@ builder_theme,screen_opened,screen=teambuilder,menu_theme,Music,true,-12,1.0,,"T
 bounty_theme,screen_opened,screen=bounty,marsh_theme,Music,true,-12,1.5,,"The bounty board looks out at the marshes, so it plays them."
 story_theme,screen_opened,screen=dialogue,dialogue_theme,Music,true,-11,1.5,,Any conversation scene.
 talents_theme,screen_opened,screen=talent,menu_theme,Music,true,-12,1.0,,The talent tree.
+foul_whistle,foul_shown,,kickoff_whistle,Effects,,-5,,,"THE REFEREE. Fires for BOTH sides - a foul is a moment on the pitch, not a thing that happens to you, so the sound is the same whoever gave it away. `card` is yellow card, red card or free kick; the rows below match on it."
+foul_yellow,foul_shown,card=yellow card,duel_lose,Effects,,-4,,,"STAND-IN sound. Below the general row so it wins on a booking. Put the real one in assets/audio/ under the name in SOUNDS_WANTED.csv and this row picks it up with no edit."
+foul_red,foul_shown,card=red card,crowd_goal,Effects,,-2,,,"STAND-IN sound, and the loudest of the three on purpose - a sending-off should be the biggest noise in the round after a goal."

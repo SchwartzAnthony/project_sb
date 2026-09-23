@@ -325,6 +325,28 @@ var draft_phases: Array[String] = []
 var current_phase_index: int = 0
 var round_player_picks: Array[PlayerData] = []
 var round_enemy_picks: Array[PlayerData] = []
+
+# =============================================================
+#  DISCIPLINE — the match's half of the foul system
+#
+#  The rules live in src/core/foul_book.gd and the numbers in data/Fouls.csv.
+#  These three are the only things the match itself has to remember.
+# =============================================================
+
+## THE HOLES IN THE LADDER. "enemy|III" -> [3] means the away side's Tier III
+## has lost its 3-power man to a red card and needs a stand-in.
+var _ladder_holes: Dictionary = {}
+
+## A stand-in card -> THE UNIT THAT PLAYS HIM.
+##
+## A stand-in has no body of its own: he is a survivor of the same tier
+## playing out of position, so the card in the draft row and the man who runs
+## about the pitch are two different objects. Everything else in this file
+## finds a unit from a card through unit_for_card(), which asks here.
+var _stand_in_bodies: Dictionary = {}
+
+## Bookings and sendings-off this match, for the full-time line.
+var _cards_shown: Array[Dictionary] = []
 ## True only between "PLAY MAKER!" and its combat. Kickoff and STAR PLAYER SWITCH drafts
 ## must NOT resolve combat — without this they replay the previous round's
 ## picks and fire a phantom shot (11 shots per match instead of 9).
@@ -1644,6 +1666,17 @@ func _full_time() -> void:
 	facts["margin"] = str(player_score - enemy_score)
 	_report("match_ended", facts)
 
+	# ============ THE REFEREE'S NOTEBOOK ============
+	#
+	# Printed even when it is empty, because "no cards" is a result too and a
+	# line that only sometimes appears is a line you stop looking for.
+	if _cards_shown.is_empty():
+		print("  Discipline: no cards.")
+	else:
+		for shown in _cards_shown:
+			print("  %s card: %s (%s)" % [String(shown["colour"]).capitalize(),
+				shown["name"], "them" if bool(shown["side"]) else "you"])
+
 	# ============ WHO PLAYED, AND WHO IS OUT NEXT WEEK ============
 	#
 	# A fixture has been played, so everybody's rest comes down by one — and
@@ -1656,6 +1689,20 @@ func _full_time() -> void:
 	if state != null and db.tune_bool("recovery", false):
 		RecoveryBook.advance_turn(state, db)
 		RecoveryBook.played(_squad_that_played(), state, db)
+
+	# ============ AND THE ACHIEVEMENTS ARE REVIEWED ============
+	#
+	# Here rather than only when a screen opens, because a match can end and
+	# be read without changing screen — and "you have just unlocked the
+	# Brewery" belongs to the whistle, not to the next menu.
+	#
+	# It runs AFTER _report("match_ended"), so every counter this match filled
+	# has already been written and an achievement asking for it sees today's
+	# number rather than yesterday's.
+	var earned_now := AchievementBook.review(state)
+	if gains != null:
+		for row in earned_now:
+			gains.note(String(row["name"]), String(row["description"]))
 
 	# One-match brews wear off at the whistle. Permanent ones stay on.
 	var brews_off := BrewDB.clear_temporary(state)
@@ -2384,6 +2431,12 @@ func spawn_goalies() -> void:
 	if enemy_art:
 		enemy_art.flip_h = true
 	enemy_goalie.goal_conceded.connect(_on_goal_conceded.bind(true))
+	# BREAKING A KEEPER IS AN EVENT WORTH COUNTING. The moment their bar
+	# reaches zero is the moment the next shot becomes a certainty, so it is
+	# a real milestone rather than a number going down — and Stats.csv and
+	# Achievements.csv can both hang off it. Only THEIR keeper: everything
+	# the game unlocks is about what you did.
+	enemy_goalie.stamina_depleted.connect(_on_keeper_emptied)
 	goalies[true] = enemy_goalie
 
 	_tune_goalie(player_goalie)
@@ -2406,6 +2459,15 @@ func _load_goalie_for_team(team: String) -> GoalieData:
 	if keeper == null:
 		print("[goalies] No row for '%s' in Goalies.csv — using default stamina." % team)
 	return keeper
+
+
+## Their keeper has nothing left. Reported once per emptying — the goalie
+## refills on conceding, so this fires again the next time you break him.
+func _on_keeper_emptied() -> void:
+	var facts: Dictionary = {}
+	if active_player_star != null:
+		facts["class"] = active_player_star.unit_type
+	_report("keeper_emptied", facts)
 
 
 func _on_goal_conceded(conceded_by_enemy: bool) -> void:
@@ -2657,6 +2719,12 @@ func unit_for_card(card: PlayerData, side_is_enemy: bool) -> PlayerUnit:
 	for unit in _all_units():
 		if unit.is_enemy == side_is_enemy and unit.data == card:
 			return unit
+	# A STAND-IN. He is a copy of a survivor made to fill a hole a red card
+	# left in the ladder, so the body that plays him is the man he was copied
+	# from — see _stand_ins_for() and foul_book.gd.
+	var body: PlayerUnit = _stand_in_bodies.get(card, null)
+	if body != null and is_instance_valid(body) and body.is_enemy == side_is_enemy:
+		return body
 	return null
 
 
@@ -3121,7 +3189,24 @@ func filter_units_by_tier(roster: Array[PlayerData], tier_key: String) -> Array[
 	return matching
 
 
+## EVERYONE STILL ON THE PITCH.
+##
+## A sent-off man is not. This one line is what "the team only has 9 players
+## left" actually means: every draft list, every marking assignment, every
+## pass target and every search for a team-mate in this file already asks
+## here, so none of them had to be taught what a red card is.
 func _all_units() -> Array[PlayerUnit]:
+	var out: Array[PlayerUnit] = []
+	for child in units_container.get_children():
+		var unit := child as PlayerUnit
+		if unit != null and not unit.is_sent_off:
+			out.append(unit)
+	return out
+
+
+## Including the ones sent off. Only the discipline code wants this — to
+## count how many of a side are already gone, and for the full-time report.
+func _everyone_ever() -> Array[PlayerUnit]:
 	var out: Array[PlayerUnit] = []
 	for child in units_container.get_children():
 		if child is PlayerUnit:
@@ -3674,14 +3759,22 @@ func start_next_draft_phase() -> void:
 		start_next_draft_phase()
 		return
 
-	var tier_choices: Array[PlayerData] = []
+	var tier_bodies: Array[PlayerUnit] = []
 	for unit in _all_units():
 		if unit.is_enemy or unit.is_exhausted:
 			continue
 		if star_holds and unit.is_star_player:
 			continue
 		if unit.data != null and unit.data.get_tier_clean() == phase:
-			tier_choices.append(unit.data)
+			tier_bodies.append(unit)
+
+	var tier_choices: Array[PlayerData] = []
+	for unit in tier_bodies:
+		tier_choices.append(unit.data)
+	# ANYONE THE REFEREE TOOK OUT OF THIS TIER IS REPLACED BY A SURVIVOR
+	# PLAYING OUT OF POSITION. Nothing happens here in a match with no red
+	# cards in it, which is most of them.
+	tier_choices.append_array(_stand_ins_for(phase, false, tier_bodies))
 
 	var choices_found := 0
 	for card in _weakest_first(tier_choices):
@@ -4200,10 +4293,15 @@ func _swap_star_on_pitch(new_star: PlayerData, is_enemy: bool) -> void:
 
 func _resolve_tier_pick(tier_key: String, selected_data: PlayerData) -> void:
 	# --- Your pick ---
+	#
+	# THROUGH unit_for_card(), not by comparing data, because a stand-in is a
+	# card with somebody else's body: the man who gets tired is the survivor
+	# who agreed to play out of position, not the card that was drawn for him.
+	var picked := unit_for_card(selected_data, false)
 	for unit in _all_units():
 		if unit.is_enemy or unit.is_star_player:
 			continue
-		if unit.data == selected_data:
+		if unit == picked:
 			unit.is_exhausted = true
 			unit.is_playmaker = true
 			unit.set_highlight(true)
@@ -4244,6 +4342,10 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 	for unit in choices:
 		if unit.data != null:
 			cards.append(unit.data)
+	# THEY GET STAND-INS TOO. A red card costs them the same thing it costs
+	# you, and an enemy tier that quietly kept fielding three men while yours
+	# was down to two would be the worst kind of unfairness: invisible.
+	cards.append_array(_stand_ins_for(tier_key, true, choices))
 
 	var verdict: Dictionary = EnemyPlay.decide({
 		"tier": tier_key,
@@ -4257,16 +4359,19 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 		"state": state,
 	})
 
-	var chosen: PlayerUnit = choices.pick_random()
+	# WHAT THEY PICKED IS A CARD; WHO PLAYS IT IS LOOKED UP. Those are the
+	# same thing for everybody except a stand-in, and keeping them apart here
+	# is what lets a stand-in be an ordinary choice rather than a special case.
+	var chosen_card: PlayerData = cards.pick_random() as PlayerData
 	var wanted = verdict.get("card", null)
-	if wanted != null:
-		for unit in choices:
-			if unit.data == wanted:
-				chosen = unit
-				break
+	if wanted != null and cards.has(wanted):
+		chosen_card = wanted as PlayerData
+	var chosen := unit_for_card(chosen_card, true)
+	if chosen_card == null or chosen == null:
+		return
 	if String(verdict.get("rule", "")) != "":
 		print("[enemy] Tier %s: %s by rule '%s'%s" % [tier_key,
-			chosen.data.player_name, verdict["rule"],
+			chosen_card.player_name, verdict["rule"],
 			" — face up" if bool(verdict.get("face_up", false)) else ""])
 
 	# ---- AND IF THEY ARE SHOWING IT, THEY SHOW IT NOW ----
@@ -4275,8 +4380,8 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 	# to use it." So the reveal happens HERE, as they pick, while the tier is
 	# still open — not when the duel starts, by which time knowing is no use
 	# to anybody.
-	if bool(verdict.get("face_up", false)) and chosen.data != null:
-		_enemy_reveals(tier_key, chosen.data)
+	if bool(verdict.get("face_up", false)):
+		_enemy_reveals(tier_key, chosen_card)
 
 	# ---- AND WHATEVER ELSE THE RULE SAYS TO DO ----
 	#
@@ -4285,8 +4390,8 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 	# card they have just taken, which is the moment in the story where you
 	# find out brews exist at all.
 	var do_text := String(verdict.get("do", "")).strip_edges()
-	if do_text != "" and chosen.data != null:
-		_enemy_does(do_text, chosen.data)
+	if do_text != "":
+		_enemy_does(do_text, chosen_card)
 
 	for unit in choices:
 		if unit == chosen:
@@ -4295,7 +4400,7 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 			unit.set_highlight(true)
 		else:
 			unit.set_highlight(false)
-	round_enemy_picks.append(chosen.data)
+	round_enemy_picks.append(chosen_card)
 
 
 ## ============ A SCRIPTED THING THE OTHER SIDE DOES ============
@@ -4596,6 +4701,23 @@ func resolve_round() -> void:
 		if keeper != null:
 			keeper.adjust_stamina(int(change["delta"]))
 
+	# ============ AND THEN THE REFEREE ============
+	#
+	# After the combat, before the shot. See the FOULS section below.
+	var fouls: Dictionary = await _settle_fouls(player_lineup, enemy_lineup)
+	player_bank += int(fouls["player_bonus"])
+	enemy_bank += int(fouls["enemy_bonus"])
+	if int(fouls["possession_to"]) >= 0:
+		player_has_ball = int(fouls["possession_to"]) == 0
+		# The set piece is taken by whoever was last up that side, so the man
+		# who shoots is a man who was in the round rather than whoever the
+		# fallback happens to find nearest the goal.
+		var set_piece: Array = player_lineup if player_has_ball else enemy_lineup
+		for i in range(set_piece.size() - 1, -1, -1):
+			if set_piece[i] != null:
+				round_shooter_card = set_piece[i]
+				break
+
 	var bank := player_bank if player_has_ball else enemy_bank
 	bank += abilities.shot_bonus(not player_has_ball)
 
@@ -4663,6 +4785,254 @@ func _team_mate_nearest_to(side_is_enemy: bool, toward: PlayerUnit,
 			best_d = d
 			best = unit
 	return best
+
+
+# =============================================================
+#  FOULS, CARDS AND THE HOLE A RED CARD LEAVES
+#
+#  The rules and the reasoning are in src/core/foul_book.gd; the numbers are
+#  in data/Fouls.csv. This section is only the part that needs a pitch.
+#
+#  ============ WHEN IT HAPPENS ============
+#
+#  AFTER the four duels and BEFORE the shot, which is the order you asked
+#  for: "after the combat their % of creating a foul is established". It also
+#  happens to be the only place it can go and still matter — a free kick
+#  awarded after the shot is a free kick awarded to nobody.
+#
+#  ============ WHAT A FOUL IS WORTH ============
+#
+#      any foul      `foul_free_kick_power` on the fouled side's shot
+#      a card        and the fouled side takes the ball
+#
+#  A card stops the game; that is what makes it the moment a side gets the
+#  set piece. `foul_card_gives_possession` turns that half off if you would
+#  rather a booking were only a booking.
+# =============================================================
+
+## Roll both sides, show what happened, hand out the cards.
+##
+## Returns what the shot should know about it:
+##     player_bonus / enemy_bonus   extra shot power
+##     possession_to                -1 nobody, 0 you, 1 them
+func _settle_fouls(player_lineup: Array, enemy_lineup: Array) -> Dictionary:
+	var out: Dictionary = {"player_bonus": 0, "enemy_bonus": 0, "possession_to": -1}
+	if db == null or not db.tune_bool("fouls", true) or abilities == null:
+		return out
+	if FoulBook.rows().is_empty():
+		return out
+
+	var free_kick := db.tune_int("foul_free_kick_power", 3)
+	var card_gives_ball := db.tune_bool("foul_card_gives_possession", true)
+
+	# PRINTED EVERY ROUND, foul or no foul. The foul chance is a function of
+	# this number and nothing else, so when the cards feel too frequent or too
+	# rare this line in the Output panel is where the answer is — before
+	# touching a single row of Fouls.csv.
+	print("  Triggers this round: you %d, them %d." % [
+		abilities.triggers_for(false), abilities.triggers_for(true)])
+
+	# BOTH SIDES ARE ROLLED, yours first — only so that the match log reads
+	# the same way round every time.
+	for offender_is_enemy in [false, true]:
+		var many := abilities.triggers_for(offender_is_enemy)
+		var verdict := FoulBook.roll(many)
+		if verdict == "":
+			continue
+
+		var lineup: Array = enemy_lineup if offender_is_enemy else player_lineup
+		var culprit := _who_fouled(lineup, offender_is_enemy)
+		var odds := FoulBook.odds_at(many)
+		print("  FOUL: %s side, %d trigger(s) -> %.0f%% -> %s%s" % [
+			"away" if offender_is_enemy else "home", many,
+			float(odds["chance"]), verdict,
+			"" if culprit == null or culprit.data == null
+			else " (" + culprit.data.player_name + ")"])
+
+		if verdict == "yellow":
+			await _book_him(culprit, offender_is_enemy)
+		elif verdict == "red":
+			await _send_off(culprit, offender_is_enemy, "RED CARD")
+		else:
+			await _show_the_foul("FREE KICK", culprit, offender_is_enemy)
+
+		# YOUR fouls are counted; theirs are not. Every counter in Stats.csv
+		# is a counter about you, and a row called "fouls given away" that
+		# quietly included the opposition's would be a lie on the end-of-match
+		# screen. The sound fires for both — see _show_the_foul().
+		if not offender_is_enemy:
+			_report("foul_given", _facts_for(culprit))
+
+		# The other side gets the kick.
+		if offender_is_enemy:
+			out["player_bonus"] = int(out["player_bonus"]) + free_kick
+		else:
+			out["enemy_bonus"] = int(out["enemy_bonus"]) + free_kick
+		if card_gives_ball and verdict != "free kick":
+			out["possession_to"] = 0 if offender_is_enemy else 1
+
+	return out
+
+
+## WHO GAVE IT AWAY. One of the four who played this round, at random,
+## because the foul is the side's and the man is the story.
+##
+## Only somebody still on the pitch: a stand-in's body can be booked (he is a
+## real man out there), and anyone already sent off obviously cannot.
+func _who_fouled(lineup: Array, side_is_enemy: bool) -> PlayerUnit:
+	var pool: Array[PlayerUnit] = []
+	for card in lineup:
+		var unit := unit_for_card(card as PlayerData, side_is_enemy)
+		if unit != null and not unit.is_sent_off and not pool.has(unit):
+			pool.append(unit)
+	if pool.is_empty():
+		# Nobody from the round is available — anyone on that side will do
+		# rather than dropping the foul on the floor.
+		for unit in _all_units():
+			if unit.is_enemy == side_is_enemy:
+				pool.append(unit)
+	if pool.is_empty():
+		return null
+	return pool.pick_random()
+
+
+## A booking. And the second one is a red — the ordinary rule of football,
+## which is why it is a line in Tuning.csv and not a line in this file.
+func _book_him(unit: PlayerUnit, side_is_enemy: bool) -> void:
+	if unit == null:
+		await _show_the_foul("YELLOW CARD", null, side_is_enemy)
+		return
+	unit.yellow_cards += 1
+	_cards_shown.append({"side": side_is_enemy, "colour": "yellow",
+		"name": unit.data.player_name if unit.data != null else "?"})
+	if not side_is_enemy:
+		_report("card_yellow", _facts_for(unit))
+
+	if unit.yellow_cards >= 2 and db.tune_bool("foul_two_yellows_is_red", true):
+		await _send_off(unit, side_is_enemy, "SECOND YELLOW")
+		return
+	await _show_the_foul("YELLOW CARD", unit, side_is_enemy)
+
+
+## Off. And the ladder now has a hole in it — see _stand_ins_for().
+func _send_off(unit: PlayerUnit, side_is_enemy: bool, why: String) -> void:
+	if unit == null:
+		await _show_the_foul(why, null, side_is_enemy)
+		return
+
+	_cards_shown.append({"side": side_is_enemy, "colour": "red",
+		"name": unit.data.player_name if unit.data != null else "?"})
+	if not side_is_enemy:
+		_report("card_red", _facts_for(unit))
+
+	# ============ REMEMBER THE HOLE BEFORE HE IS GONE ============
+	#
+	# His tier and his power, because in a moment unit_for_card() will not be
+	# able to find him at all and the draft still has to know what is missing.
+	if unit.data != null:
+		var tier := unit.data.get_tier_clean()
+		var power := unit.data.base_power_left
+		var key := _hole_key(side_is_enemy, tier)
+		var holes: Array = _ladder_holes.get(key, [])
+		if not holes.has(power):
+			holes.append(power)
+		_ladder_holes[key] = holes
+		var whose := "Away" if side_is_enemy else "Home"
+		print("  SENT OFF: %s (%s, Tier %s P:%d). %s side down to %d." % [
+			unit.data.player_name, why, tier, power, whose,
+			_still_standing(side_is_enemy)])
+
+	await _show_the_foul(why, unit, side_is_enemy)
+
+	# AFTER the window, so you see the man it is about before he leaves.
+	if ball != null and ball.is_carried_by(unit):
+		ball.drop()
+	unit.send_off()
+
+
+## The window and the big word. The same window the goal celebration and the
+## throw-in use — see anim_window.gd for why there is only one.
+func _show_the_foul(headline: String, unit: PlayerUnit, side_is_enemy: bool) -> void:
+	var seconds := db.tune_float("foul_window_seconds", 1.6)
+	var who := "Them" if side_is_enemy else "You"
+	var name_text := unit.data.player_name if unit != null and unit.data != null else who
+	AudioDirector.fire(get_tree(), "foul_shown", {"card": headline.to_lower()}, state)
+	if seconds <= 0.0:
+		return
+
+	var window := AnimWindow.open(self, db, 150)
+	if is_instance_valid(window):
+		window.show_panel("%s — %s" % [headline, name_text], "", "lose",
+			unit.data if unit != null else null, ["lose", "idle"])
+	await get_tree().create_timer(seconds, true, false, true).timeout
+	if is_instance_valid(window):
+		window.close()
+
+
+func _hole_key(side_is_enemy: bool, tier_key: String) -> String:
+	return "%s|%s" % ["enemy" if side_is_enemy else "you", tier_key.to_upper()]
+
+
+func _still_standing(side_is_enemy: bool) -> int:
+	var many := 0
+	for unit in _all_units():
+		if unit.is_enemy == side_is_enemy:
+			many += 1
+	return many
+
+
+# =============================================================
+#  THE STAND-IN
+#
+#  "Tier III P:3 has gotten a red card. So now there are Tier III P:2 and P:4
+#   left. Either P:2 or P:4 at random will be chosen a replacement, keeping
+#   their Tier III and P:x name but getting the P:3 and having all abilities
+#   removed."
+#
+#  A red card breaks THE ONE RULE — a tier holds one card of each power — so
+#  the tier borrows a body to stand on the empty rung. He keeps his name, he
+#  takes the missing power, and he loses everything that made him good at
+#  anything, which is what playing out of position feels like.
+#
+#  A NEW COPY IS MADE EVERY DRAFT PHASE, on purpose: the donor is drawn at
+#  random each time, so who covers the gap changes from round to round the
+#  way it would in a real match.
+# =============================================================
+
+## The extra cards this tier should be offered because of red cards.
+## Empty — and free — in a match with no sendings-off, which is most of them.
+func _stand_ins_for(tier_key: String, side_is_enemy: bool,
+		survivors: Array) -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	if db == null or not db.tune_bool("foul_stand_ins", true):
+		return out
+	var holes: Array = _ladder_holes.get(_hole_key(side_is_enemy, tier_key), [])
+	if holes.is_empty() or survivors.is_empty():
+		return out
+
+	for power in holes:
+		# Somebody fit is already covering that rung — no stand-in needed.
+		var covered := false
+		for unit in survivors:
+			var body := unit as PlayerUnit
+			if body != null and body.data != null and body.data.base_power_left == int(power):
+				covered = true
+				break
+		if covered:
+			continue
+
+		var donor := (survivors.pick_random()) as PlayerUnit
+		if donor == null or donor.data == null:
+			continue
+		var card := FoulBook.stand_in_for(donor.data, int(power))
+		if card == null:
+			continue
+		_stand_in_bodies[card] = donor
+		out.append(card)
+		print("[fouls] %s Tier %s has no P:%d — %s covers it (no abilities)." % [
+			"Their" if side_is_enemy else "Your", tier_key.to_upper(),
+			int(power), donor.data.player_name])
+	return out
 
 
 ## Called by combat_arena.tscn (or by the headless path above).

@@ -29,3 +29,8 @@ brews_drunk,brew_drunk,,,Brews,Brews drunk,
 brews_drunk_{brew},brew_drunk,,,Brews,,
 goals_with_brew_fire,goal_scored,brew=fire,1,Brews,Goals with a Fire Brew,"Feeds the Brewery unlock in Progression.csv. The match reports `brew` on every goal, so this needs no code."
 matches_played,match_ended,,1,Match,Matches played,"Feeds the Pub unlock. Every match, league or otherwise."
+keeper_emptied,keeper_emptied,,,Goals,Keepers broken,"EVERY TIME YOU EMPTY AN OPPOSING KEEPER'S STAMINA. Reported by the match the moment their bar reaches zero - which is also the moment the next shot becomes a certainty, so it is worth counting"
+brews_poured,brew_drunk,,,Match,Brews poured,"Every brew poured on a player at the Pub. brew_drunk is the event BrewDB already reports - no new event was needed, which is the right answer whenever one already exists"
+fouls_given,foul_given,,,Match,Fouls given away,"EVERY FOUL YOUR SIDE CONCEDES. The foul chance is set by how many triggers you fired in the round, so this number is really a measure of how hard you played"
+yellow_cards,card_yellow,,,Match,Yellow cards,Bookings against your side
+red_cards,card_red,,,Match,Red cards,"Sendings-off against your side. Each one costs you a man for the rest of the match and leaves a hole in a tier that a survivor has to cover"

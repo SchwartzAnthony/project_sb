@@ -1,0 +1,16 @@
+ID,Name,Kind,Kept,Start,Icon,Notes
+wheat,Wheat,raw,no,10,,"KIND says where it comes from. `raw` arrives from outside the brewery - a match reward, the Traveling Brewer, an adventure. `made` is produced by one of the six sections. `tool` is a piece of equipment."
+water,Water,raw,no,20,,The one thing three different sections all want. Keep the Start high.
+germs,Germs,raw,no,5,,
+hops,Hops,raw,no,6,,
+yeast,Yeast,raw,no,4,,
+hammer,Hammer,tool,yes,1,,"KEPT = yes means it is NOT used up. You need to own one to work the Mill, and you still own it afterwards. That is the difference between equipment and an ingredient, and it is one cell."
+filter,Filter,tool,yes,1,,
+boiler,Boiler,tool,yes,1,,
+element,Element,tool,yes,1,,"The heat source. Kept, like the boiler - the Talent Tree is where a better one comes from."
+malt,Malt,made,no,0,,Made by the Malthouse.
+mash,Mash,made,no,0,,Made by the Mill.
+wort,Wort,made,no,0,,Made by Lautering.
+brew,Brew,made,no,0,,"Made by Boiling & Hopping. This is the point of the whole map - everything before it is preparation and everything after it is storage."
+barrel,Barrel,made,no,0,,Made by Cooling & Fermenting - and only after it has lagered.
+bottle,Bottle,made,no,0,,"Made by Bottling & Filling, several from one barrel. A bottle is what the Pub pours."

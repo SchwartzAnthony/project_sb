@@ -37,7 +37,8 @@ extends RefCounted
 #    Fixtures    every row of Season.csv
 #    Unlocks     every  unlock:Something  written anywhere at all, with the
 #                requirement of whatever row grants it
-#    Achievements  every  flag:something  a Progression row sets
+#    Achievements  every row of Achievements.csv, plus every  flag:something
+#                  a Progression row sets
 #
 #  Write a new Progression row tomorrow and it is on both screens, with a
 #  working progress bar, without touching a line of code.
@@ -208,6 +209,37 @@ func _gather(state: GameState) -> void:
 		_add(state, "Unlock", String(granter["thing"]), String(granter["condition"]),
 			String(granter["how"]), String(granter["where"]),
 			"unlocked:%s" % String(granter["thing"]))
+
+	# ============ ACHIEVEMENTS, WHICH ARE THE ROOT ============
+	#
+	# Every row of Achievements.csv, with its own condition and — the part
+	# that matters on this screen — WHAT IT HANDS OVER. An achievement is the
+	# only thing in the game that creates an unlock out of nothing, so this is
+	# where a chain starts: "the Brewery needs the First Brew, which needs
+	# three goals with a fire brew, and you have one."
+	#
+	# A hidden one stays off the board until it is earned, which is what
+	# `Hidden` is for.
+	for row in AchievementBook.rows():
+		if bool(row["hidden"]) and not AchievementBook.earned(String(row["id"]), state):
+			continue
+		var gives := ""
+		if not row["unlocks"].is_empty():
+			gives = "unlocks " + ", ".join(row["unlocks"])
+		_add(state, "Achievement", String(row["name"]), String(row["needs"]),
+			String(row["description"]) if gives == "" else "%s  (%s)" % [row["description"], gives],
+			"Achievements.csv",
+			"flag:%s%s" % [AchievementBook.EARNED_PREFIX, String(row["id"]).to_lower()],
+			"", String(row["art"]))
+
+		# AND THE THINGS IT HANDS OVER, each with the achievement as the
+		# reason. Without this an unlock granted only by an achievement had
+		# no row on the board at all — you could not see why the Brewery was
+		# shut, because nothing in Progression.csv mentioned it.
+		for thing in row["unlocks"]:
+			_add(state, "Unlock", String(thing), String(row["needs"]),
+				"from the achievement '%s'" % row["name"], "Achievements.csv",
+				"unlocked:%s" % String(thing))
 
 	# --- Achievements: a flag a Progression row sets ---
 	for rule in steps.rules:

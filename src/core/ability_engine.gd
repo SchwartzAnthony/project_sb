@@ -81,6 +81,17 @@ var side_bonus := {false: 0, true: 0}
 var max_power: int = 5
 var _stamina_pending: Array = []         # [{"enemy_side": bool, "delta": int}]
 
+## HOW MUCH EACH SIDE MADE HAPPEN THIS ROUND. One per ability that actually
+## did something — not one per ability a card owns, and not one per ability
+## that was merely looked at. Cleared at the start of every round.
+##
+## This is what the foul system prices. "If a team has triggered a certain
+## number of triggers during the combat, after the combat their % of creating
+## a foul is established" — so the number has to mean the same thing every
+## round, which is why it is counted in _apply_one() below, the one place
+## that knows an effect really landed.
+var triggers := {false: 0, true: 0}
+
 
 func _init(database: CardDatabase = null) -> void:
 	db = database if database != null else CardDatabase.get_db()
@@ -95,6 +106,7 @@ func begin_round() -> void:
 	_expire("round")
 	_shot_bonus = {false: 0, true: 0}
 	_stamina_pending.clear()
+	triggers = {false: 0, true: 0}
 	log_lines.clear()
 
 
@@ -151,6 +163,21 @@ func defense_power(card: PlayerData, is_enemy: bool) -> int:
 func shot_bonus(side_is_enemy: bool) -> int:
 	return int(_shot_bonus.get(side_is_enemy, 0)) \
 		+ int(side_shot_bonus.get(side_is_enemy, 0))
+
+
+## How many triggers this side has set off so far this round.
+func triggers_for(side_is_enemy: bool) -> int:
+	return int(triggers.get(side_is_enemy, 0))
+
+
+## Count one by hand.
+##
+## Abilities count themselves. This is here for everything else that will one
+## day want to be priced by the foul system — combos, brew effects, an item
+## that goes off — so that when you add one you add a single line here rather
+## than a second way of counting.
+func note_trigger(side_is_enemy: bool, how_many: int = 1) -> void:
+	triggers[side_is_enemy] = int(triggers.get(side_is_enemy, 0)) + maxi(0, how_many)
 
 
 ## Goalie stamina changes queued this round: [{enemy_side, delta}, ...]
@@ -269,6 +296,14 @@ func _fire_for(card: PlayerData, is_enemy: bool, trigger: String,
 
 func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 		opponent: PlayerData, opponent_is_enemy: bool) -> void:
+
+	# ============ ONE TRIGGER ============
+	#
+	# Counted HERE and nowhere else, because this is the only line the game
+	# reaches when an ability has actually gone off — past the trigger match,
+	# past the priority sort, about to change a number. The foul system reads
+	# it after the combat. See foul_book.gd.
+	note_trigger(source_is_enemy)
 
 	# --- Goalie effects resolve immediately, they are not buffs ---
 	if ability.hits_goalie():

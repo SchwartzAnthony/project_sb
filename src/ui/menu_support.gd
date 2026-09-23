@@ -92,6 +92,18 @@ static func field_float(row: Dictionary, column: String, fallback: float) -> flo
 	return fallback
 
 
+## A whole number out of a cell. Written because three spreadsheets in a row
+## wanted `int(field_float(...))` and rounding somebody's 2.5 down silently is
+## the kind of thing that is only ever noticed a month later.
+static func field_int(row: Dictionary, column: String, fallback: int) -> int:
+	var text := field(row, column, "")
+	if text.is_valid_int():
+		return text.to_int()
+	if text.is_valid_float():
+		return int(round(text.to_float()))
+	return fallback
+
+
 static func normalise(text: String) -> String:
 	return text.strip_edges().to_lower().replace(" ", "").replace("_", "").replace("-", "")
 

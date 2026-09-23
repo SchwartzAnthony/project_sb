@@ -318,3 +318,9 @@ friendly_default_level,6,The level a friendly assumes when it cannot work yours 
 friendly_single_class,false,"FALSE = a friendly opponent is a pick-up side drawn from every class. TRUE = it is a proper club of one class"
 show_friendly_level,true,Prints the opponent's level after its name so you can see at a glance whether the matching is working. Turn it off before a presentation
 slot_count,3,"How many save slots the title screen offers. Set it to 1 for a single-save game - the screen still works and simply has one tile"
+fouls,true,"THE FOUL SYSTEM. The more a side sets off in a round, the more likely it is to have given a foul away doing it - the curve is data/Fouls.csv. false turns the whole thing off and no card is ever shown, which is exactly how the game played before"
+foul_two_yellows_is_red,true,"The ordinary rule of football. A second booking in the same match is a sending-off. It lives here rather than in code because it is a rule about football, not a rule about this program"
+foul_free_kick_power,3,"WHAT A FOUL IS WORTH. Added to the shot of the side that was fouled. 0 makes a foul purely about the card"
+foul_card_gives_possession,true,"A YELLOW OR A RED ALSO HANDS THE BALL OVER. A card stops the game, which is what makes it the moment a side gets the set piece. false makes a booking only a booking, and the man who won the last duel still shoots"
+foul_stand_ins,true,"WHEN A RED CARD LEAVES A HOLE IN A TIER, a survivor of that tier is offered playing out of position: his name, the missing power, and no abilities at all. false leaves the tier one card short, which is harsher and perfectly playable"
+foul_window_seconds,1.6,"How long the card is held on screen. 0 shows no window at all and the match simply reports it in the log"

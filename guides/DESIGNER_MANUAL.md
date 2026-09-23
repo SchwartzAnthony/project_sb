@@ -182,6 +182,77 @@ reported by name on load rather than silently ignored.
 
 ---
 
+## 4b. Achievements — where everything comes from
+
+> *"Achievements = for new content, systems, players, resources, etc.
+> EVERYTHING NEEDS TO BE UNLOCKED HERE FIRST."*
+
+So `data/Achievements.csv` is the root of the game. A room in the base is not
+there until an achievement says so; a Brewery section cannot be worked in; a
+Stadium layer is off; an emblem does not exist. Nothing else is allowed to be
+the first gate.
+
+### A row
+
+| column | |
+|---|---|
+| `ID` | yours. It is how the game remembers you earned it, so it may not change once a save exists |
+| `Name` | what it is called on the board |
+| `Description` | what you did to get it |
+| `Needs` | **the condition language of section 4** — `count:goals>=10`, `flag:x`, `unlocked:y`, joined with semicolons |
+| `Unlocks` | what it hands over. Semicolons for more than one |
+| `Reward` | anything else, in the Do language — `give:coins+50`, `flag:x`, `announce:Text`, `story:chapter2` |
+| `Art` | an icon in `assets/icons/` |
+| `Hidden` | `yes` keeps it off the board until it is earned. For endings and surprises |
+
+A row needs **either** an Unlocks **or** a Reward. One with neither is
+earned and then does nothing, and the loader says so.
+
+### It is not a new vocabulary, and that is the whole point
+
+The game already had one way to say "you have this": `unlock:Brewery` grants
+it, `unlocked:Brewery` tests it, `GameState` remembers it. A second, parallel
+system for achievements would mean two answers to "is the Brewery open", and
+one day they would disagree.
+
+So the `Unlocks` column is turned into exactly those words. Everything
+downstream — buildings, talents, classes, Stadium layers, Brewery sections,
+brews — keeps testing `unlocked:` and never knows this file exists. **Which
+means you can move where something is granted from without touching the thing
+that is granted.**
+
+> **Unlock names are matched loosely** — lowercase, letters and digits only.
+> `Master Brewer`, `master_brewer` and `master brewer` are one unlock, not
+> three. Your spreadsheets spell it all three ways and that is fine.
+
+### When it is checked
+
+`AchievementBook.review()` runs **when a screen opens** and **at the final
+whistle**, walks every row, and grants anything that has just come true. It
+is idempotent: an achievement already earned is skipped, so calling it a
+hundred times grants nothing twice.
+
+The whistle one runs *after* the match has reported its counters, so an
+achievement asking for `count:goals>=10` sees today's number, not yesterday's.
+
+### The question only a tool can answer
+
+```
+godot --headless --script res://tools/achievement_check.gd
+```
+
+Two directions, and both of them matter:
+
+* **an achievement that waits on a counter nothing counts** is an achievement
+  nobody will ever earn. It names the counter
+* **something tested but nobody grants** — a room whose door no achievement
+  opens. This one is a real problem and it is printed as one
+* something granted that nothing tests yet is printed as a dot, not a
+  problem. That is a room waiting for its door, which is the normal state of
+  a game you are still building
+
+---
+
 ## 5. How the game reads a spreadsheet
 
 Five things worth knowing before you edit anything.
@@ -1570,6 +1641,126 @@ Which is why the Star set is three cards and there are three emblem sets:
 > **Run it before you draw thirty cards for a class.** It has already found
 > four things in your own files — see the top of the round notes.
 
+## 7d. The referee — fouls, cards, and the man you lose
+
+> *"If a team has triggered a certain number of triggers (such as combos)
+> during the combat, after the combat their % of increase of creating a foul
+> is established. Then the normal soccer foul system is in place, and if the
+> player gets a red card, they are removed and the team only has 9 players
+> left."*
+
+This is the one rule in the game that **prices** something the rest of it
+rewards without limit. Firing everything you have every round used to be free.
+Now it costs, and what it costs is a man.
+
+### `data/Fouls.csv`
+
+| column | |
+|---|---|
+| `Triggers` | how many abilities and combos that side set off in the round |
+| `Foul Chance` | the % chance it conceded a foul, at that many |
+| `Yellow` | **if** a foul was given, the % that it is a booking |
+| `Red` | and the % that it is a straight red |
+
+Whatever is left of 100 after Yellow and Red is a free kick and nothing else
+— which is most fouls, as it should be. Rows are **interpolated**, exactly
+like `ShotOdds.csv`, so five rows draw a smooth curve rather than five steps.
+
+### What a trigger is
+
+**One ability that actually went off.** Not one an ability a card owns, and
+not one the game merely looked at. It is counted in a single line of
+`ability_engine.gd`, in the one place the game reaches when an effect is
+about to change a number.
+
+Every round, the match prints:
+
+```
+  Triggers this round: you 2, them 5.
+```
+
+**That line is where the answer is** when the cards feel too frequent or too
+rare — before touching a row of `Fouls.csv`.
+
+### What a foul is worth
+
+| `Tuning.csv` | |
+|---|---|
+| `fouls` | `false` turns the whole thing off. No card is ever shown and the game plays exactly as it did before |
+| `foul_free_kick_power` | added to the **fouled** side's shot. `3` out of the box |
+| `foul_card_gives_possession` | a yellow or a red also hands the ball over — a card stops the game, which is what makes it the moment a side gets the set piece |
+| `foul_two_yellows_is_red` | the ordinary rule of football. It is here rather than in code because it is a rule about football, not a rule about this program |
+| `foul_stand_ins` | see below |
+| `foul_window_seconds` | how long the card is held on screen. `0` shows no window and the match only reports it in the log |
+
+### And then the ladder has a hole in it
+
+This is the part worth reading. Sending a man off breaks **the one rule** of
+section 2: a tier holds one card of each power. Tier III is a 2, a 3 and a 4;
+send the 3 off and the tier can only offer two cards.
+
+Your answer, and it is a good one:
+
+> *"Tier III P:3 has gotten a red card. So now there are Tier III P:2 and P:4
+> left. Either P:2 or P:4 at random will be chosen a replacement, keeping
+> their Tier III and P:x name but getting the P:3 and having all abilities
+> removed."*
+
+So the hole is filled by a **copy of a survivor**: the same name, the missing
+power, and no abilities at all — no attack ability, no defend ability, no
+brew, and not a Star whoever he was copied from. The ladder is never broken,
+the tier still offers three cards, and the replacement is visibly the weaker
+option. A man playing out of position, which is exactly what it is.
+
+**A new copy is drawn every draft phase**, so who covers the gap changes from
+round to round the way it would in a real match. And a stand-in has no body
+of his own — the man who gets tired is the survivor who agreed to play there.
+
+Both sides get stand-ins. An enemy tier that quietly kept fielding three men
+while yours was down to two would be the worst kind of unfairness: invisible.
+
+`foul_stand_ins` = `false` leaves the tier one card short instead. That is
+harsher and perfectly playable.
+
+### The multiplication, which is the whole reason for the tool
+
+```
+godot --headless --script res://tools/foul_check.gd
+```
+
+"18% at four triggers" sounds small. It happens **to both sides, nine times a
+match** — eighteen rolls. The tool does that arithmetic and simulates two
+thousand matches at each level, including the second-yellow reds, which a
+back-of-an-envelope count misses by about a third:
+
+```
+  triggers  fouls     yellows   reds      matches ending 10 v 11
+  0         0.27      0.19      0.01      1%
+  2         0.82      0.54      0.08      8%
+  4         1.63      1.04      0.28      25%
+  9         3.94      1.94      1.41      78%
+```
+
+Per side, per match. Find the row nearest the number your matches actually
+print and that is the row that is happening in your game.
+
+> **What I measured and you should know.** In a match between `BasicTeam` and
+> the Brandteufel, **your side fires zero triggers** — none of the basic cards
+> has an ability — so the foul system only ever punishes the opposition. That
+> is a content gap, not a bug: the moment your cards have abilities, they will
+> start giving fouls away too. It is worth knowing before you tune the curve
+> against what you see today.
+
+### What gets counted
+
+`Stats.csv` gained `fouls_given`, `yellow_cards` and `red_cards` — **yours
+only**. Every counter in that file is a counter about you, and a row called
+"fouls given away" that quietly included the opposition's would be a lie on
+the end-of-match screen. The *sound* fires for both sides, because a foul is a
+moment on the pitch rather than a thing that happens to you.
+
+---
+
 ## 8. Adventure mode
 
 `src/adventure/` — eleven scripts. The run is a scrolling pitch; the fight is
@@ -2301,6 +2492,97 @@ your scorers. Anything counted here can be tested with `count:` anywhere else.
 
 ---
 
+## 11b. The Brewery — the chain, before the map
+
+Six sections, each unlocked by an achievement, each turning one thing into
+another. What is in the zip is **the chain as numbers**. No map, no
+buildings, no mini-games — those are Phase 7 and Phase 9.
+
+> **Why that order.** A production chain is a thing you get wrong in the
+> numbers, not in the pictures. If six bottles from a barrel is the wrong
+> number, no amount of drawing the Bottler fixes it, and you will have drawn
+> him twice. The chain goes in first, a tool walks it, and then the map is
+> built on top of something already known to work.
+
+### `data/BrewerySections.csv`
+
+| column | |
+|---|---|
+| `Order` | **is the map**. It is also what may feed what — see below |
+| `ID` · `Name` · `Worker` | the Maltster, the Miller, the Lauterer, the Brewer, the Cellarman, the Bottler |
+| `Needs` | the unlock condition. `unlocked:Malthouse` |
+| `Takes` | `wheat:1;water:1;germs:1` |
+| `Makes` | one resource ID |
+| `How Many` | how many of it. Bottling makes **6** |
+| `Wait Min` · `Wait Max` | the lagering, in turns. A turn is a fixture |
+| `Art` · `Notes` | |
+
+```
+   1  MALTHOUSE   Maltster    Wheat + Water + Germs           -> Malt
+   2  MILL        Miller      Malt + Water + Hammer           -> Mash
+   3  LAUTERING   Lauterer    Mash + Filter                   -> Wort
+   4  BOILING     Brewer      Wort + Hops + Boiler + Element  -> Brew
+   5  COOLING     Cellarman   Brew + Yeast -> Barrel, lagered 1-3 turns
+   6  BOTTLING    Bottler     Barrel -> 6 Bottles -> the Pub
+```
+
+### `data/BreweryResources.csv`
+
+| column | |
+|---|---|
+| `ID` · `Name` | |
+| `Kind` | `raw` comes from outside the brewery · `made` is produced by a section · `tool` is equipment |
+| `Kept` | **`yes` means it is not used up.** You need a Hammer to work the Mill and you still have it afterwards. That is the whole difference between equipment and an ingredient, and it is one cell |
+| `Start` | what a new game begins with |
+| `Icon` · `Notes` | |
+
+### Where the materials live
+
+**In `GameState`'s counters, one per resource, named `res_<id>`.** Not a new
+store — which means `count:res_malt>=3` is already a condition the whole game
+can read. An achievement, a talent, a dialogue line and a Progression row can
+all ask how much malt you have without a line of code being written for them.
+
+### The order column is a rule, not a layout
+
+A section may only be given something an **earlier** section makes, or
+something raw. Otherwise the chain cannot be started, and that is the one way
+a production chain breaks that a spreadsheet cannot show you: every cell is
+spelled correctly and the map is impossible. The loader checks it and names
+the section.
+
+### The lagering
+
+A barrel is not yours when you press the button. It sits in the cellar for
+`Wait Min` to `Wait Max` turns. **A section lagers one batch at a time** —
+deliberately, because it makes the cellar a decision ("do I start this now?")
+rather than a queue. `BreweryBook.advance_turn()` is called from the same
+place `RecoveryBook.advance_turn()` is, so there is one answer to "what is a
+turn".
+
+### The walk
+
+```
+godot --headless --script res://tools/brewery_check.gd
+```
+
+It starts a new game, opens every section, and works the chain over and over
+until it runs dry:
+
+```
+  THE STARTING STOCK IS WORTH 24 BOTTLE(S).
+  It stopped because it ran out of: Germs 0/1 at the Malthouse
+```
+
+**That second line is the one worth tuning against.** The bottleneck is
+almost never the one you expect — it is germs, not wheat, and the game starts
+with twice as much wheat as it can ever use.
+
+It also prints which achievement opens each section, because a section
+nothing unlocks is a building you can never walk into.
+
+---
+
 ## 12. Words — dialogue, localisation, keys
 
 **`data/Dialogue.csv`** (and `data/tutorial/Dialogue.csv`) — a node graph in
@@ -2669,6 +2951,31 @@ godot --headless --script res://tools/phase_timing.gd
 ```
 Times both halves of one real Adventure round — yours and theirs — at two,
 four, eight and twelve enemies. "Their turn feels slow" becomes a number.
+
+```
+godot --headless --script res://tools/achievement_check.gd
+```
+Every achievement read back, the counter each one waits on, and the two
+questions a spreadsheet cannot answer: **is anything gated behind a counter
+nothing counts**, and **is anything tested that nobody grants**. See section
+4b.
+
+```
+godot --headless --script res://tools/foul_check.gd
+```
+The foul curve read back at every trigger count, and then two thousand
+matches simulated at each level — fouls, yellows, reds and how often a match
+ends ten against eleven. It does the multiplication that makes "18%" mean
+something: both sides roll, nine times a match, which is eighteen rolls. See
+section 7d.
+
+```
+godot --headless --script res://tools/brewery_check.gd
+```
+The six sections read back as a chain, which achievement opens each one, and
+then **the walk**: a new game, every section open, the chain worked until it
+runs dry. It prints what the starting stock is worth in bottles and what ran
+out first. See section 11b.
 
 **`sturmball_workbench.html`** is the spreadsheet editor: drop your `data`
 folder into it and it edits every CSV with the right dropdowns, checks every
