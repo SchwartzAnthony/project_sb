@@ -155,7 +155,6 @@ func _fill_achievements() -> void:
 				words.add_child(_small("Opened: " + ", ".join(PackedStringArray(hands))))
 		else:
 			words.add_child(_small(DialogueGrammar.describe(String(row["needs"]))))
-		_list.add_child(line)
 
 
 # ---- THE DORMS ----------------------------------------------
@@ -185,7 +184,6 @@ func _fill_dorms() -> void:
 					and int(dorm["beds"]) > beds
 					and DialogueGrammar.test(String(dorm["requires"]), state),
 				_buy_dorm.bind(String(dorm["id"]))))
-		_list.add_child(line)
 
 
 func _buy_dorm(id_text: String) -> void:
@@ -220,7 +218,6 @@ func _fill_clubhouse() -> void:
 		else:
 			resting += 1
 			words.add_child(_small("Resting — %d fixture(s) to go." % left))
-		_list.add_child(line)
 
 	if on and resting == 0:
 		_list.add_child(_small("Nobody is resting. The whole squad is fit."))
@@ -242,7 +239,6 @@ func _fill_trophies() -> void:
 				else "  %s." % cup["competition"])))
 		else:
 			words.add_child(_small(DialogueGrammar.describe(String(cup["won_when"]))))
-		_list.add_child(line)
 
 
 # ---- THE STADIUM --------------------------------------------
@@ -283,7 +279,6 @@ func _fill_stadium() -> void:
 		else:
 			words.add_child(_small("Showing: %s.png  ·  parallax %.2f"
 				% [layer["image"], float(layer["parallax"])]))
-		_list.add_child(line)
 
 
 ## Which achievement opens a Stadium layer, in words. Same question the
@@ -330,7 +325,6 @@ func _fill_training() -> void:
 					_can_pay(int(entry["cost"]), String(entry["currency"]))
 						and DialogueGrammar.test(String(entry["needs"]), state),
 					_train.bind(String(entry["id"]))))
-			_list.add_child(line)
 
 
 func _train(id_text: String) -> void:
@@ -357,14 +351,28 @@ func _can_pay(price: int, currency_id: String) -> bool:
 
 
 ## One row: a frame whose edge says at a glance whether you have it.
+##
+## ============ THIS ADDS THE ROW TO THE LIST ITSELF ============
+##
+## Read that twice, because it is the whole trap. What comes BACK is not the
+## frame — it is the HBoxContainer *inside* the frame, already parented and
+## ready for words. So a caller fills it and stops. It must NOT finish with
+## `_list.add_child(line)`: that asks Godot to give a node a second parent,
+## which it refuses, once per row, in red, in the Output panel.
+##
+## All six callers used to do exactly that. Every room you opened printed a
+## hundred-odd errors that changed nothing on screen — the rows drew fine,
+## because the frame was already in the list. That is the worst shape a bug
+## can take: harmless, loud and constant, so the Output panel fills with
+## noise and the one line that matters scrolls away. The whole point of
+## printing a spreadsheet's problems there is that you can still see them.
 func _row_frame(lit: bool) -> HBoxContainer:
 	var frame := PanelContainer.new()
 	frame.add_theme_stylebox_override("panel", MenuSupport.panel_style(
 		MenuSupport.COLOUR_PANEL,
 		MenuSupport.COLOUR_ATTACK if lit else MenuSupport.COLOUR_SLOT_EMPTY))
+	# HERE. The frame goes into the list here, and nowhere else.
 	_list.add_child(frame)
-	# The frame is added here and returned as its inner row, so a caller
-	# writes one line per row instead of four.
 	var pad := MarginContainer.new()
 	for side in ["margin_left", "margin_right"]:
 		pad.add_theme_constant_override(side, 12)

@@ -172,6 +172,39 @@ announce:First win!       put a banner on the screen
 `count:gold-25`. An achievement is `flag:beat_the_keeper`. Base building is
 `count:wood+10`. None of that needs new code — you write it in a cell.
 
+### The four that need a screen
+
+Everything above is written into the save on the spot. **Four cannot be**,
+because they *open* something, and only the screen that asked knows where to
+open it:
+
+```
+story:prologue            play a dialogue scene
+goto:brewery              leave this screen, open that one full-screen
+announce:First win!       put a banner on the screen
+window:brewery            open that screen OVER this one, in a window
+```
+
+These are the **deferred** actions. `Progression.run_actions()` hands them
+back to whoever called it instead of applying them, and that caller does the
+opening. The list lives in exactly one place — `DEFERRED`, at the top of
+`src/core/progression.gd` — so if a fifth is ever added, that constant is the
+only thing to edit.
+
+> **This is where a real bug lived, and it is worth reading once.** `window`
+> was missing from that list. So a building whose `Action` said
+> `window:brewery` had the term quietly handed to the condition language
+> instead — which does not know the word `window`, and ignores what it does
+> not know. Clicking a building showed its description and **did nothing
+> else**: no error, no warning, nothing in the Output panel.
+>
+> It is fixed, and so is the *shape* of the mistake. **A term whose kind is
+> neither deferred nor part of the condition language is now said out loud**,
+> by name, in the Output panel, every time it runs. Any typo you ever make in
+> a `Do` or `Action` column will now complain instead of going quiet. An
+> action nobody handles is the hardest kind of bug there is, because there is
+> nowhere to look.
+
 A special case worth knowing: **`count:tune_<row>+<n>` edits a row of
 Tuning.csv.** That is how talents work. `count:tune_press_speed+12` adds 12
 to the `press_speed` row for as long as the talent is held. Any Tuning row
@@ -2653,6 +2686,27 @@ the Iron Shod talent waits on — is now a row of the Traveling Brewer's cart.
 Both name the **same screen** through the same ScenePaths word. `goto:` is
 still what a Progression row should use when the base is not already open.
 
+Both are **deferred** actions — see *"The four that need a screen"* in
+section 4. `window` was missing from that list for a while, which is why
+clicking a building used to print its description along the bottom and open
+nothing at all. That is fixed, and an unknown action kind is now loud.
+
+### No footer
+
+There used to be a line along the bottom of the base listing every unlock you
+had ever earned. It is **gone**. It was a *developer's* line — useful while
+wiring content, and to a player a wall of small text under their base saying
+things they already know. **The Achievements building says all of it
+properly**, and says what is still missing as well.
+
+If you want it back for a minute while writing content, the same information
+is one line: `print(state.unlocked_names())`.
+
+A **problem in a spreadsheet** still has to be said — it just does not go
+across the bottom of the screen any more. It prints to the **Output panel**,
+where every other loader's complaints already go, and **once**, when the base
+opens, rather than on every rebuild.
+
 ### How a screen becomes a window
 
 It is not rewritten. The **same scene file** is instantiated inside the
@@ -3538,8 +3592,25 @@ section 11.
 xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
     --script res://tools/base_shot.gd
 ```
-The base, and then one picture per window opened over it. Eleven shots, and
+The base, and then one picture per window opened over it. Twelve shots, and
 the point of every one is that the base is still there behind it.
+
+**It presses the real buttons.** It finds each building's plaque on the map
+by name and emits `pressed`, exactly as your mouse would, then checks that a
+window actually appeared. It ends with one of two lines:
+
+```
+  [base] EVERY DOOR OPENED A WINDOW WHEN PRESSED.
+  [base] 3 DOOR(S) DID NOT OPEN.        <- and it names them
+```
+
+> **Why it works that way.** It used to call `BaseWindow.open()` itself.
+> Every picture came out perfect while the game was broken, because the
+> buildings' `window:` actions were being dropped on the way through (see
+> section 4). **A tool that reaches past the button cannot see a broken
+> button.** If you ever write another screenshot tool, press the thing a
+> player presses — it costs four lines and it is the difference between a
+> picture and a test.
 
 ```
 godot --headless --script res://tools/shop_check.gd
@@ -3632,6 +3703,24 @@ the screen and the log ran off the right. If a panel is half off the screen,
 that is almost always why.
 
 **Renaming a card.** See section 13.
+
+**An action nobody handles.** A `Do` or `Action` term whose kind is not real —
+`window:` before it was deferred, or any plain typo — used to be handed to the
+condition language, which ignores what it does not know. The cell looked fine,
+the button did nothing, and nothing anywhere said why. **That is now loud:** an
+unrecognised term is named in the Output panel every time it runs. If a button
+in your spreadsheet does nothing, look in the Output panel first — it will be
+there.
+
+**Adding a row to a list twice.** `room_screen.gd`'s `_row_frame()` puts the
+row into the list *itself* and returns the box inside it. Six callers used to
+finish with `_list.add_child(line)` on top of that, which asks Godot to give
+a node a second parent. Godot refuses — once per row, in red. **Nothing
+changed on screen**, because the frame was already in the list, so it looked
+like a working screen that happened to print a hundred errors. That is the
+worst shape a bug can take: harmless, loud and constant, until the Output
+panel is so full of noise that the one line that matters scrolls away. If a
+helper adds a node for you, say so in a comment above it, in capitals.
 
 ---
 

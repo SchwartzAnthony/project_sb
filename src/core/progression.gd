@@ -54,7 +54,19 @@ extends RefCounted
 const DATA_DIR := "res://data/"
 ## Actions that cannot be done from here because they need the scene tree.
 ## They are handed back to the caller instead.
-const DEFERRED: Array[String] = ["story", "goto", "announce"]
+## ============ THE ACTIONS THAT NEED THE SCENE TREE ============
+##
+## Everything else in a `Do` column is applied to the save on the spot. These
+## four cannot be: they open something, and only the screen that asked knows
+## where to open it. They are handed back to the caller instead.
+##
+## `window` WAS MISSING, and that was a real bug you found: a building whose
+## Action said `window:brewery` had that term quietly handed to the condition
+## language, which does not know the word, which ignores it. So the click
+## showed the building's description and did nothing else — no error, no
+## warning, nothing in the Output panel. An action nobody handles should be
+## loud, not silent; see the check in _validate() below, which now says so.
+const DEFERRED: Array[String] = ["story", "goto", "announce", "window"]
 ## Flag prefix used to remember that a once-only row has fired.
 const DONE_PREFIX := "progression_done_"
 
@@ -219,8 +231,25 @@ static func run_actions(do_text: String, state: GameState) -> Array[Dictionary]:
 
 		if DEFERRED.has(kind):
 			deferred.append({"kind": kind, "value": value, "id": ""})
-		else:
-			DialogueGrammar.apply(term, state)
+			continue
+
+		# ============ AND AN ACTION NOBODY KNOWS IS SAID OUT LOUD ============
+		#
+		# This is the guard that was missing. A term whose kind is neither
+		# deferred nor part of the condition language used to be handed to
+		# DialogueGrammar.apply(), which ignores what it does not recognise —
+		# so `window:brewery`, and any typo you ever make in a Do or Action
+		# column, did NOTHING AND SAID NOTHING. A click that quietly does
+		# nothing is the hardest kind of bug to find, because there is
+		# nowhere to look.
+		var complaints := DialogueGrammar.complaints(term, true)
+		if not complaints.is_empty():
+			push_warning("[progression] '%s' is not something the game can do: %s"
+				% [term, ", ".join(PackedStringArray(complaints))])
+			print("[progression] IGNORED '%s' — %s" % [term, complaints[0]])
+			continue
+
+		DialogueGrammar.apply(term, state)
 
 	return deferred
 

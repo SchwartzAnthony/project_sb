@@ -1,18 +1,27 @@
 extends SceneTree
 
 # =============================================================
-#  THE BASE, AND EVERY WINDOW THAT OPENS OVER IT
+#  THE BASE, AND EVERY WINDOW — OPENED BY PRESSING THE BUTTON
 #
-#  Nine buildings, five of them opening screens that used to be whole scenes.
-#  The thing worth photographing is that the base is STILL THERE behind each
-#  one — dimmed, with the building you clicked still under your cursor.
+#  ============ WHY THIS TOOL WAS WRONG, AND IS NOW RIGHT ============
+#
+#  It used to call BaseWindow.open() itself. Every picture came out perfect
+#  and the game was broken: a building's Action said `window:brewery`, that
+#  term was quietly dropped on its way through the effects language, and
+#  clicking a building showed its description and did nothing else.
+#
+#  A tool that reaches past the button cannot see a broken button. So this
+#  one PRESSES THE REAL BUTTON — it finds the building's plaque on the base
+#  by its name and emits `pressed`, exactly as a player's mouse would — and
+#  then checks that a window actually appeared. If none did, it says which
+#  building and carries on.
 #
 #      xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
 #          --script res://tools/base_shot.gd
 #
 #      bs_00_base.png      the nine doors, some locked
 #      bs_01_open.png      everything unlocked, and the visitors placed
-#      bs_02..bs_10        one shot per window
+#      bs_02..bs_11        one shot per window, each opened by its own button
 #
 #  It works on the save IN MEMORY only — nothing is written to disk.
 #
@@ -20,17 +29,11 @@ extends SceneTree
 # =============================================================
 
 ## Which window to photograph, and what the base calls it.
-const WINDOWS: Array = [
-	["achievements", "Achievements"],
-	["talents", "Talent Tree"],
-	["clubhouse", "Club House"],
-	["dorms", "Dorms"],
-	["trophies", "Trophy Room"],
-	["training", "Training Ground"],
-	["pub", "Pub"],
-	["brewery", "Brewery"],
-	["brewer", "The Traveling Brewer"],
-	["stadium", "The Stadium"],
+## The buildings to press, by the Name in Buildings.csv, plus the Stadium,
+## which is a button on the top bar rather than a building.
+const DOORS: Array[String] = [
+	"Achievements", "Talent Tree", "Club House", "Dorms", "Trophy Room",
+	"Training Ground", "Pub", "Brewery", "The Traveling Brewer",
 ]
 
 
@@ -70,20 +73,51 @@ func _initialize() -> void:
 	_shoot("bs_01_open")
 
 	var at := 2
-	for pair in WINDOWS:
-		var word := String(pair[0])
-		var title := String(pair[1])
-		var window := BaseWindow.open(base, title, ScenePaths.for_name(word))
-		if window == null:
-			print("[base] %s did not open." % word)
+	var broken := 0
+	for who in DOORS:
+		var button := _plaque_named(base, who)
+		if button == null:
+			print("[base] ! no plaque called '%s' on the base." % who)
+			broken += 1
 			continue
+
+		# ============ PRESS IT, DO NOT REACH PAST IT ============
+		button.emit_signal("pressed")
 		for i in 12:
 			await process_frame
 		await create_timer(0.7, true, false, true).timeout
-		_shoot("bs_%02d_%s" % [at, word])
+
+		var window := _open_window(base)
+		if window == null:
+			print("[base] ! pressing '%s' opened NO WINDOW. Check its Action column." % who)
+			broken += 1
+			continue
+		_shoot("bs_%02d_%s" % [at, who.to_lower().replace(" ", "_")])
 		window.close()
 		await create_timer(0.2, true, false, true).timeout
 		at += 1
+
+	# ---- and the Stadium, which is a top-bar button ----
+	var stadium := _bar_button_named(base, "The stadium")
+	if stadium == null:
+		print("[base] ! no 'The stadium' button on the top bar.")
+		broken += 1
+	else:
+		stadium.emit_signal("pressed")
+		for i in 12:
+			await process_frame
+		await create_timer(0.7, true, false, true).timeout
+		if _open_window(base) == null:
+			print("[base] ! the stadium button opened NO WINDOW.")
+			broken += 1
+		else:
+			_shoot("bs_%02d_stadium" % at)
+
+	print("")
+	if broken == 0:
+		print("[base] EVERY DOOR OPENED A WINDOW WHEN PRESSED.")
+	else:
+		print("[base] %d DOOR(S) DID NOT OPEN. See above." % broken)
 
 	print("[base] pictures in %s" % ProjectSettings.globalize_path("user://"))
 	quit(0)
@@ -101,3 +135,41 @@ func _dismiss_panels(base: Node) -> void:
 	for child in base.get_children():
 		if child is NewUnlocksPanel:
 			child.queue_free()
+
+
+## The building plaque whose label says this. Buildings are Buttons with a
+## VBox of a picture and a Label inside them — so the search is for the
+## label's text, which is what a player reads.
+func _plaque_named(base: Node, who: String) -> Button:
+	for node in _every(base):
+		var button := node as Button
+		if button == null:
+			continue
+		for label in _every(button):
+			var text := label as Label
+			if text != null and text.text.strip_edges().begins_with(who):
+				return button
+	return null
+
+
+## A button on the top bar. Those are made by MenuSupport.icon_button(), so
+## their words are in a Label too — but they are not plaques, so the search
+## is the same and the caller says which it wanted.
+func _bar_button_named(base: Node, who: String) -> Button:
+	return _plaque_named(base, who)
+
+
+## The window that is open over the base, or null.
+func _open_window(base: Node) -> BaseWindow:
+	for child in base.get_children():
+		if child is BaseWindow:
+			return child
+	return null
+
+
+func _every(from: Node) -> Array[Node]:
+	var out: Array[Node] = []
+	for child in from.get_children():
+		out.append(child)
+		out.append_array(_every(child))
+	return out

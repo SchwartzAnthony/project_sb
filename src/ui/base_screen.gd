@@ -44,7 +44,6 @@ var steps: Progression
 
 var _world: Control
 var _detail: Label
-var _footer: Label
 
 
 func _ready() -> void:
@@ -60,6 +59,7 @@ func _ready() -> void:
 	MenuEscape.install(self)
 
 	_build_chrome()
+	_report_problems()
 	_rebuild()
 
 	# ============ A BRAND NEW SAVE ============
@@ -149,15 +149,16 @@ func _build_chrome() -> void:
 	_detail.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_detail)
 
-	_footer = Label.new()
-	_footer.add_theme_font_size_override("font_size", 13)
-	_footer.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	_footer.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	_footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_footer.offset_top = -34.0
-	_footer.offset_bottom = -12.0
-	_footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_footer)
+	# ============ NO FOOTER ============
+	#
+	# There used to be a line along the bottom listing every unlock you had
+	# ever earned. It was a DEVELOPER'S line — useful to me while wiring
+	# content, and to a player a wall of small text under their base saying
+	# things they already know. The Achievements building says all of it
+	# properly, and says what is still missing as well.
+	#
+	# If you ever want it back while writing content, the same information is
+	# one line: `print(state.unlocked_names())`.
 
 	_build_exits()
 
@@ -346,8 +347,6 @@ func _rebuild() -> void:
 		who.position = spot
 		_world.add_child(who)
 		_taken.append(Rect2(spot, VISITOR_SIZE))
-
-	_refresh_footer()
 
 
 ## Every rectangle already standing in the yard this rebuild.
@@ -624,19 +623,15 @@ func _carry_out(actions: Array[Dictionary]) -> void:
 
 ## A quiet line showing what you have earned. Handy while writing content:
 ## if an unlock is not appearing, this says whether the game thinks you have it.
-func _refresh_footer() -> void:
-	if _footer == null or state == null:
+## A PROBLEM IN A SPREADSHEET STILL HAS TO BE SAID, just not across the
+## bottom of the screen. It goes to the Output panel, where every other
+## loader's complaints already go — and ONCE, when the base opens, rather
+## than on every rebuild.
+func _report_problems() -> void:
+	if base == null or base.problems.is_empty():
 		return
-	var unlocked := state.unlocked_names()
-	var text := "%d building%s here" % [base.buildings.size(),
-		"" if base.buildings.size() == 1 else "s"]
-	if not unlocked.is_empty():
-		text += "   ·   unlocked: " + ", ".join(unlocked)
-	if not base.problems.is_empty():
-		text += "   ⚠ %d problem%s in Buildings.csv / Visitors.csv — see the Output panel" % [
-			base.problems.size(), "" if base.problems.size() == 1 else "s"]
-		_footer.add_theme_color_override("font_color", Color(1.0, 0.72, 0.4))
-	_footer.text = text
+	for problem in base.problems:
+		print("[base] %s" % problem)
 
 
 ## A plain labelled button. The exits across the top use

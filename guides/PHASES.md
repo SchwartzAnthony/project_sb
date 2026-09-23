@@ -270,6 +270,26 @@ Crown` and `The Cup` unlocks are now handed out by achievements.
 
 ---
 
+## After the phases — the fixes
+
+Every phase is done, so from here a round is whatever you found wrong.
+
+### Round U — the doors, and the line under the base
+
+| | |
+|---|---|
+| ✅ | **Clicking a building opens a window again.** `window` was missing from the four actions that need a screen, so `window:brewery` was quietly handed to the effects language, which ignores what it does not know. The click showed the building's description and opened nothing, with nothing said anywhere. Section 4 of the manual has the whole story |
+| ✅ | **An action nobody handles is now loud.** Any term in a `Do` or `Action` column whose kind is not real is named in the Output panel every time it runs. That was the actual bug — not the missing word, but that a missing word could go unnoticed |
+| ✅ | **The line of unlocks under the base is gone.** It was a developer's line. The Achievements building says all of it properly and says what is still missing too. A spreadsheet problem still gets reported — to the Output panel, once, when the base opens |
+| ✅ | **`tools/base_shot.gd` now presses the real buttons** and checks a window appeared, instead of opening the windows itself. The old tool produced twelve perfect pictures of a broken game |
+| ✅ | **~150 red errors per room, gone.** `room_screen.gd` was adding every row to its list twice — harmless on screen, and loud enough to bury the one Output line that mattered |
+
+**The lesson worth keeping:** a tool that reaches past the button cannot see
+a broken button. Both bugs this round were *silent*, and both fixes were
+half about the bug and half about making that kind of silence impossible.
+
+---
+
 ## The crosswalk — where everything went
 
 | it used to be | it is now |
