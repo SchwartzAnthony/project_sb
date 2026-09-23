@@ -30,6 +30,7 @@ const WINDOWS: Array = [
 	["pub", "Pub"],
 	["brewery", "Brewery"],
 	["brewer", "The Traveling Brewer"],
+	["stadium", "The Stadium"],
 ]
 
 

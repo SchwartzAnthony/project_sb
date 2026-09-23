@@ -117,6 +117,7 @@ func _title() -> String:
 		"clubhouse": return "The Club House"
 		"trophies": return "The Trophy Room"
 		"training": return "The Training Ground"
+		"stadium": return "The Stadium"
 		_: return "Achievements"
 
 
@@ -132,6 +133,7 @@ func _rebuild() -> void:
 		"clubhouse": _fill_clubhouse()
 		"trophies": _fill_trophies()
 		"training": _fill_training()
+		"stadium": _fill_stadium()
 		_: _fill_achievements()
 
 
@@ -241,6 +243,63 @@ func _fill_trophies() -> void:
 		else:
 			words.add_child(_small(DialogueGrammar.describe(String(cup["won_when"]))))
 		_list.add_child(line)
+
+
+# ---- THE STADIUM --------------------------------------------
+
+func _fill_stadium() -> void:
+	# NOTHING IS BOUGHT IN HERE. Every layer of the ground is unlocked by an
+	# achievement, which is the rule the whole game runs on — so this room is
+	# a READ-OUT, not a shop. What it is for is telling you what your ground
+	# would look like if you went and earned the next one.
+	var layers := StadiumBook.layers()
+	var on := 0
+	for layer in layers:
+		if StadiumBook.allowed(layer, state):
+			on += 1
+	_intro.text = "%d of %d layer(s) showing. Your ground is drawn from data/Stadium.csv, back to front — the stadium behind, then the crowd, then the grass, then the lights over everything." % [
+		on, layers.size()]
+
+	for layer in layers:
+		var showing := StadiumBook.allowed(layer, state)
+		var drawn := String(layer["image"]) != ""
+		var line := _row_frame(showing and drawn)
+		var words := _row_words(line)
+		var box: Vector2 = layer["size"]
+		words.add_child(_name_label("%s  ·  %d x %d"
+			% [layer["layer"], int(box.x), int(box.y)], showing and drawn))
+
+		if not showing:
+			var door := _who_opens(String(layer["requires"]))
+			if door == "":
+				words.add_child(_small("LOCKED — " + DialogueGrammar.describe(String(layer["requires"]))))
+			else:
+				words.add_child(_small("LOCKED — %s" % door))
+		elif not drawn:
+			# UNLOCKED AND NOT DRAWN is the ordinary state of a game being
+			# made, and it is worth saying out loud rather than showing an
+			# empty row that looks broken.
+			words.add_child(_small("Open, and nothing drawn yet. Put a PNG in assets/field/ and name it in the Image column."))
+		else:
+			words.add_child(_small("Showing: %s.png  ·  parallax %.2f"
+				% [layer["image"], float(layer["parallax"])]))
+		_list.add_child(line)
+
+
+## Which achievement opens a Stadium layer, in words. Same question the
+## Brewery map asks about its sections — and the same answer: nothing stores
+## it, the board is asked who hands out the name.
+func _who_opens(requires: String) -> String:
+	for part in requires.split(";", false):
+		var clean := String(part).strip_edges()
+		if not clean.to_lower().begins_with("unlocked:"):
+			continue
+		var wanted := clean.substr(clean.find(":") + 1).strip_edges()
+		for entry in AchievementBook.rows():
+			for handed in entry["unlocks"]:
+				if MenuSupport.normalise(String(handed)) == MenuSupport.normalise(wanted):
+					return "%s: %s" % [entry["name"], entry["description"]]
+	return ""
 
 
 # ---- THE TRAINING GROUND ------------------------------------

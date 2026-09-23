@@ -212,12 +212,31 @@ func _build_exits() -> void:
 			ScenePaths.go_to(get_tree(), ScenePaths.INSPECTOR))
 		row.add_child(to_dev)
 
-	var to_board := MenuSupport.icon_button("unlocks|◇", "Unlocks", EXIT_SIZE)
-	to_board.tooltip_text = "Everything you can earn, and exactly what is missing."
-	to_board.pressed.connect(func() -> void:
+	# ============ THE UNLOCKS BUTTON IS GONE ============
+	#
+	# It showed everything you can earn and what is missing — which is
+	# exactly what the ACHIEVEMENTS building on the base now shows, in the
+	# same words, from the same file. Two doors to one room is one door too
+	# many, and the one that is a building is the one that belongs.
+	#
+	# The screen itself is still in the project and still works: `goto:board`
+	# opens it, and tools/unlock_progress.gd still reports through it.
+
+	# THE STADIUM, which is not a building either.
+	#
+	# It is what your ground looks like rather than a room you walk into, and
+	# you said the base is those nine buildings and no others — so it lives
+	# up here beside the season instead. Say the word and it is a tenth
+	# building: one row of Buildings.csv with `window:stadium`.
+	var to_stadium := MenuSupport.icon_button("stadium|▲",
+		Loc.text("the_stadium", "The stadium"), EXIT_SIZE)
+	to_stadium.tooltip_text = "Your ground: the background, the crowd, the floodlights. Every layer is unlocked by an achievement."
+	to_stadium.pressed.connect(func() -> void:
 		state.save_to_disk()
-		ScenePaths.go_to(get_tree(), ScenePaths.UNLOCKS))
-	row.add_child(to_board)
+		var opened := BaseWindow.open(self, "The Stadium", ScenePaths.STADIUM)
+		if opened != null:
+			opened.closed.connect(_rebuild))
+	row.add_child(to_stadium)
 
 	# THE SEASONS SHELF, not the table. There is more than one competition
 	# now — Seasons.csv — and the table is what opens when you pick one.

@@ -242,19 +242,26 @@ still needed, moved to the Traveling Brewer's cart.
 
 ---
 
-## Phase 10 — Around the match  ⬅ NEXT, AND LAST
+## Phase 10 — Around the match  ✅ IN THIS ZIP — THE LAST ONE
 
 **This is the old Phase 6, unchanged — not one line removed.**
 
 | | |
 |---|---|
-| | **Adventure's enemy window** shows the enemies on *that run*, not a league squad |
-| | **A fixed number of pickups** before each wave and the boss, from a CSV, instead of however many happen to spawn |
-| | **Seasons with their own rules**: what is allowed, what is on the field, what is different — per season, in a CSV |
-| | **A dialogue before a season** and **before a fixture** |
-| | **The Stadium screen** in the base: colours, background, lights, unlocked through achievements |
+| ✅ | **Adventure's enemy window** shows the enemies on *that run* — the biome's own pool, with how often each turns up and the boss marked |
+| ✅ | **A fixed number of pickups** — `data/Pickups.csv`, spaced evenly over the stretch instead of arriving on a random timer |
+| ✅ | **Seasons with their own rules** — `data/SeasonRules.csv`. Allowed classes, no brews, no stars, per tier, and any row of Tuning.csv — all of it **lent and handed back** |
+| ✅ | **A dialogue before a season** (already there) **and before a fixture** — a new `Story` column on `Season.csv`, played on the way to the team sheet |
+| ✅ | **The Stadium screen** — every layer, whether it is showing, and which achievement opens it. On the top bar rather than a tenth building |
 
-**Why still last:** none of it is broken, and all of it is content-shaped. It
+**And the Unlocks button is gone** — the Achievements building shows the same
+thing from the same file, and two doors to one room is one door too many.
+
+**That is every phase.** From here it is refining, which is what you said
+you wanted — and every system now has a tool that measures it, so refining
+means changing a number and reading what happened rather than guessing.
+
+**Why it was last:** none of it was broken, and all of it is content-shaped. It
 will go faster with a look to hang it on (Phase 3), achievements to unlock it
 (Phase 5) and rooms to put it next to (Phase 9). Three of its five items are
 already half-built and waiting — `Stadium.csv` has layers that nothing was

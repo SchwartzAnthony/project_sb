@@ -1397,6 +1397,19 @@ func _apply_fixture() -> void:
 func _apply_match_mode() -> void:
 	match_mode = MatchMode.current(get_tree())
 
+	# ============ AND THE COMPETITION'S OWN RULES ============
+	#
+	# A competition may bend any row of Tuning.csv for the length of itself —
+	# see season_rules.gd. The rules are LENT: applying "" hands back
+	# whatever the last one borrowed, which is what a friendly or a quick
+	# match does. Called here, before _apply_match_tuning() reads anything,
+	# so the borrowed numbers are the ones the match sees.
+	var competition := ""
+	if bool(match_mode.get("records", false)) and SeasonDB.get_db() != null:
+		var fixture := SeasonDB.get_db().current(state)
+		competition = String(fixture.get("season", "")) if not fixture.is_empty() else ""
+	SeasonRules.apply_to(competition, db)
+
 	TOTAL_CYCLES = maxi(1, int(match_mode["cycles"]))
 	ROUNDS_PER_CYCLE = maxi(1, int(match_mode["rounds"]))
 

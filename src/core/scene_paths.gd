@@ -33,6 +33,7 @@ const DORMS := "res://src/ui/rooms/dorms.tscn"
 const CLUBHOUSE := "res://src/ui/rooms/clubhouse.tscn"
 const TROPHIES := "res://src/ui/rooms/trophies.tscn"
 const TRAINING := "res://src/ui/rooms/training.tscn"
+const STADIUM := "res://src/ui/rooms/stadium.tscn"
 const PUB := "res://src/ui/pub_screen.tscn"
 const SEASON := "res://src/ui/season_screen.tscn"
 const STATS := "res://src/ui/match_stats_screen.tscn"
@@ -86,6 +87,8 @@ static func for_name(screen: String) -> String:
 			return TROPHIES
 		"training", "training_ground", "ausbildung":
 			return TRAINING
+		"stadium", "ground", "lights":
+			return STADIUM
 		"pub", "tavern", "brews":
 			return PUB
 		"season", "table", "results", "fixtures":

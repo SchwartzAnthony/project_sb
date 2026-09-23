@@ -1,0 +1,3 @@
+Biome,Before Wave,Before Boss,Drops,Notes
+*,3,5,,"THE FALLBACK ROW, and the whole point of this file. Pickups used to arrive on a TIMER with a random gap, so a run gave you somewhere between one and six of them and nobody could say which. Now the number is written down: three on the way to each wave, five on the way to the boss, spaced evenly over whatever distance that turns out to be. Leave Drops blank and a pickup gives what the biome's own Drops table gives."
+marshlands,4,6,marsh_ground,"More than the fallback, because the Marshlands is where you learn - and the drop table is named outright so this biome can be generous without changing anybody else's."

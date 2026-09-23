@@ -73,6 +73,10 @@ var _scroll_speed := 120.0
 var _base_scroll_speed := 120.0
 var _travelled := 0.0
 var _next_pickup_at := 0.0
+## How many pickups are still owed on this stretch, and how far apart they
+## are. Both come from Pickups.csv — see _plan_ahead().
+var _pickups_left := 0
+var _pickup_step := 0.0
 var _next_wave_at := 0.0
 ## How long the two sides have been walking towards each other.
 var _meeting_clock := 0.0
@@ -384,14 +388,25 @@ func _stand_in_squad() -> Dictionary:
 #  WHAT IS COMING UP
 # =============================================================
 
+## ============ THE STRETCH AHEAD, PLANNED RATHER THAN ROLLED ============
+##
+## "A fixed number of pickups before each wave and the boss, from a CSV."
+##
+## The wave is put at a fixed distance, and THEN the pickups are shared out
+## evenly over that distance — so the count is the number in Pickups.csv
+## whatever the run's speed happens to be. It used to be a timer with a
+## random gap, which gave a run somewhere between one and six pickups and
+## made a biome's haul impossible to balance against. See run_plan.gd.
 func _plan_ahead() -> void:
-	_next_pickup_at = _travelled + _pickup_gap()
 	_next_wave_at = _travelled + _wave_gap()
 
-
-func _pickup_gap() -> float:
-	var seconds := db.tune_float("adventure_pickup_gap", 3.0)
-	return maxf(60.0, seconds * _scroll_speed) * randf_range(0.7, 1.3)
+	var biome_id := String(run.biome.get("id", "")) if run != null else ""
+	var boss_next := run != null and run.wave + 1 >= run.waves()
+	_pickups_left = RunPlan.how_many(biome_id, boss_next)
+	_pickup_step = (_next_wave_at - _travelled) / float(_pickups_left + 1)
+	_next_pickup_at = _travelled + _pickup_step
+	print("[adventure] %d pickup(s) on this stretch%s."
+		% [_pickups_left, " — the boss is next" if boss_next else ""])
 
 
 func _wave_gap() -> float:
@@ -485,8 +500,11 @@ func _scroll(delta: float) -> void:
 	for foe in _foes:
 		foe.position.x -= step
 
-	if _travelled >= _next_pickup_at:
-		_next_pickup_at = _travelled + _pickup_gap()
+	# COUNTED DOWN, NOT TIMED. When the stretch's pickups are used up no
+	# more arrive, however long the walk turns out to be.
+	if _pickups_left > 0 and _travelled >= _next_pickup_at:
+		_pickups_left -= 1
+		_next_pickup_at = _travelled + _pickup_step
 		_drop_a_pickup()
 
 	if _travelled >= _next_wave_at:
@@ -1290,8 +1308,9 @@ func _continue_forward() -> void:
 		_popup = null
 	run.wave += 1
 	current_state = RunState.RUNNING
-	_next_wave_at = _travelled + _wave_gap()
-	_next_pickup_at = _travelled + _pickup_gap()
+	# ONE PLACE PLANS THE NEXT STRETCH, so the pickup count and the wave
+	# distance can never be worked out two different ways.
+	_plan_ahead()
 	_refresh_wave()
 	_say("Onward — wave %d" % run.wave)
 

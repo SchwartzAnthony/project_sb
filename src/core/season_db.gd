@@ -177,6 +177,10 @@ func _load_csv(path: String) -> void:
 			"requires": _cell(row, columns, "requires"),
 			"on_win": _cell(row, columns, "onwin"),
 			"on_loss": _cell(row, columns, "onloss"),
+			# A DIALOGUE BEFORE THIS FIXTURE. A Dialogue.csv scene name, or
+			# blank for none — see season_screen.gd, which plays it on the
+			# way to the team sheet.
+			"story": _cell(row, columns, "story"),
 			"description": _cell(row, columns, "description"),
 			"where": where,
 		})

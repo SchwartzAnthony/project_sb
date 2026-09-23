@@ -3023,6 +3023,116 @@ worth checking about a shop.
 
 ---
 
+## 11d. Around the match — competitions, runs, and the ground
+
+### `data/SeasonRules.csv` — a competition's own rules
+
+> *"Seasons with their own rules: what is allowed, what is on the field,
+> what is different — per season, in a CSV."*
+
+Three questions, three groups of columns:
+
+| | |
+|---|---|
+| **what is allowed** | `Only Classes` · `No Brews` · `No Stars` |
+| **what is on the field** | `Per Tier` |
+| **what is different** | `Tuning` — any row of `Tuning.csv`, for the length of the competition |
+
+**A competition's rules are LENT, not given.** Everything here is put back
+the moment you play something outside that competition — because a Winter Cup
+that quietly leaves the keeper tired for the rest of the game is a bug nobody
+will ever trace back to the Winter Cup.
+
+```
+winter_cup     no brews, shot stamina bite is 0.75, out of bounds player chance is 0.6
+the_crown      only Lorelei, Rauhnacht-Feuergeister, 3 per tier, max card power is 4
+```
+
+**The three named columns are Tuning rows too.** `No Brews`, `No Stars` and
+`Per Tier` are written as their own columns because that is how you think
+about them — and folded into the same Tuning machinery underneath, so there
+is **one way to lend a rule and one way to hand it back**, not four. They
+lend `brews_allowed`, `stars_allowed` and `season_per_tier`, which are
+ordinary rows of `Tuning.csv` with ordinary defaults.
+
+**Every key in a `Tuning` column has to be a real Tuning row.** A
+misspelling there is a competition that *looks* like it bends the game and
+does not, which is the worst kind of wrong. The checker names it.
+
+### A dialogue before a season, and before a fixture
+
+| | |
+|---|---|
+| `Seasons.csv` → `Story` | plays when you open that competition |
+| `SeasonRules.csv` → `Story Before` | the same, for a competition whose rules you are writing anyway |
+| **`Season.csv` → `Story`** | **NEW.** Plays before that one fixture |
+
+A fixture's scene plays **on the way to the team sheet** — before you pick
+anybody, which is the only moment a scene can still change your mind about
+who to field. It comes back to the team sheet afterwards, so a scene is a
+detour and never a dead end. A fixture's Story plays every time that fixture
+is played; use `flag:x` inside the scene if it should only happen once.
+
+### `data/Pickups.csv` — what a run is worth
+
+> *"A fixed number of pickups before each wave and the boss, from a CSV,
+> instead of however many happen to spawn."*
+
+That was exactly the problem. Pickups arrived on a **timer with a random
+gap**, so a run gave you somewhere between one and six of them and nobody —
+not you, not me, not a tool — could say which. A biome whose haul is a dice
+roll you never see cannot be balanced.
+
+Now the number is written down, and the pickups are **spaced evenly** over
+whatever distance the wave turns out to be, so a faster run is not a poorer
+one.
+
+```
+godot --headless --script res://tools/season_check.gd
+
+  biome                  per wave     boss         a whole run
+  The Marshlands         4            6            18 pickup(s) over 4 wave(s)
+  The Hollowdeep         3            5            20 pickup(s) over 6 wave(s)
+```
+
+`Biome = *` sets the pacing of every biome at once, which is the edit you
+actually want while tuning.
+
+### The enemy window knows where you are going
+
+The window in front of a match used to show whichever class the next
+**fixture** named — even when you were about to walk into the Marshlands. It
+reads the run's own biome now, listing everything in that pool with how often
+it turns up and marking the boss:
+
+```
+   Mire Grub  ·  attack 1  ·  4 layer(s)  ·  turns up often
+   THE BOSS — The Marsh King  ·  attack 3  ·  12 layer(s)  ·  turns up rarely
+```
+
+`Weight` is read back in words on purpose. A number nobody can feel becomes a
+sentence everybody can.
+
+### The Stadium
+
+Your ground — the background, the crowd, the floodlights — is `Stadium.csv`,
+and every layer is unlocked by an achievement like everything else. The
+screen is a **read-out, not a shop**: what it is for is telling you what your
+ground would look like if you went and earned the next one, and which
+achievement that is.
+
+**It is on the top bar, not a building.** You said the base is those nine
+buildings and no others, and the Stadium is what your ground *looks like*
+rather than a room you walk into. Say the word and it is a tenth building:
+one row of `Buildings.csv` with `window:stadium`.
+
+> **The Unlocks button is gone.** It showed everything you can earn and what
+> is missing — which is exactly what the **Achievements** building now shows,
+> in the same words, from the same file. The screen itself is still in the
+> project and `goto:board` still opens it.
+
+---
+
 ## 12. Words — dialogue, localisation, keys
 
 **`data/Dialogue.csv`** (and `data/tutorial/Dialogue.csv`) — a node graph in
@@ -3408,6 +3518,14 @@ matches simulated at each level — fouls, yellows, reds and how often a match
 ends ten against eleven. It does the multiplication that makes "18%" mean
 something: both sides roll, nine times a match, which is eighteen rolls. See
 section 7d.
+
+```
+godot --headless --script res://tools/season_check.gd
+```
+Every competition's rules in a sentence, every borrowed Tuning row applied
+and then checked that it was handed back, what a whole Adventure run is
+worth in pickups, and which fixtures have a dialogue before them. See
+section 11d.
 
 ```
 godot --headless --script res://tools/rooms_check.gd

@@ -176,6 +176,16 @@ func find(brew_id: String) -> Dictionary:
 ## The brews the Pub can pour right now.
 func available_for(state: GameState) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
+	# ============ A COMPETITION MAY SHUT THE TAPS ============
+	#
+	# `brews_allowed` is true out of the box and stays true; the `No Brews`
+	# column of SeasonRules.csv lends a false for the length of one
+	# competition and it is handed back afterwards. Asked HERE, in the one
+	# place that answers "what can the Pub pour", so nothing else had to
+	# learn what a competition is.
+	var cards := CardDatabase.get_db()
+	if cards != null and not cards.tune_bool("brews_allowed", true):
+		return out
 	for entry in brews:
 		if DialogueGrammar.test(String(entry["requires"]), state):
 			out.append(entry)

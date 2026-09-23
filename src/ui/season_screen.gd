@@ -391,6 +391,18 @@ func _fill_buttons() -> void:
 				# is a friendly against a scratch side; this is the fixture,
 				# and it is the only button that sets the `season` mode.
 				MatchMode.choose(get_tree(), "season")
+
+				# ============ A DIALOGUE BEFORE A FIXTURE ============
+				#
+				# The fixture's own Story column, played ON THE WAY to the
+				# team sheet — before you pick anybody, which is the only
+				# moment a scene can still change your mind about who to
+				# field. It comes back to the team sheet when it is done, so
+				# a scene is a detour and never a dead end.
+				var scene := String(next.get("story", "")).strip_edges()
+				if scene != "":
+					DialogueView.play(get_tree(), scene, ScenePaths.TEAM_SELECT)
+					return
 				ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT))
 
 	# BACK GOES BOTTOM-LEFT, like every other screen, and PLAY sits in the

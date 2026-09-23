@@ -33,12 +33,22 @@ var squad: Array[PlayerData] = []
 ## Which of them are the Stars they will actually field, marked on the list.
 var stars: Array[PlayerData] = []
 
+## ============ WHEN THE OPPOSITION IS NOT A SQUAD ============
+##
+## An Adventure run is not played against a team of cards — it is played
+## against a biome's enemy pool, which is rows of AdventureEnemies.csv with
+## layers and a weight rather than tiers and powers. So the window takes a
+## plain list of lines as well, and shows those instead when there is no
+## squad. One window, two kinds of opposition, and nothing pretends a Mire
+## Grub is a Tier II card.
+var lines: Array[String] = []
+
 
 ## Build it and put it up. `cards` is the opposition squad; `who` is their
 ## name, for the title.
 static func open(on: Node, database: CardDatabase, who: String,
 		cards: Array[PlayerData], their_stars: Array[PlayerData] = [],
-		under_title: String = "") -> EnemyTeamWindow:
+		under_title: String = "", plain: Array[String] = []) -> EnemyTeamWindow:
 	var made := EnemyTeamWindow.new()
 	made.name = "EnemyTeamWindow"
 	made.db = database
@@ -46,6 +56,7 @@ static func open(on: Node, database: CardDatabase, who: String,
 	made.subtitle = under_title
 	made.squad = cards.duplicate()
 	made.stars = their_stars.duplicate()
+	made.lines = plain.duplicate()
 	on.add_child(made)
 	return made
 
@@ -120,7 +131,10 @@ func _build() -> void:
 	list.add_theme_constant_override("separation", 6)
 	scroller.add_child(list)
 
-	if squad.is_empty():
+	if squad.is_empty() and not lines.is_empty():
+		for words in lines:
+			list.add_child(_quiet(words))
+	elif squad.is_empty():
 		list.add_child(_quiet("Nobody is named yet. The opposition is chosen at kick-off in a friendly; a league fixture names them in Season.csv."))
 	else:
 		# BY TIER, in ladder order, because that is the order you draft in.

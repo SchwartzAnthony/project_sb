@@ -142,6 +142,18 @@ func _build() -> void:
 ## kick-off, so there is nothing to show yet and the window says so rather
 ## than being missing.
 func _show_enemy_team() -> void:
+	# ============ AN ADVENTURE RUN IS NOT A LEAGUE SQUAD ============
+	#
+	# It used to show whichever class the next FIXTURE named, even when you
+	# were about to walk into the Marshlands — so the window in front of an
+	# Adventure was a list of people you were not going to meet. It reads the
+	# run's own biome now.
+	var lines := _adventure_enemies()
+	if not lines.is_empty():
+		EnemyTeamWindow.open(self, db, _adventure_where(), [], [],
+			"Everything that lives here. What turns up on any one wave is drawn from this pool by Weight.", lines)
+		return
+
 	var klass := _next_opponent_class()
 	var squad: Array[PlayerData] = []
 	var their_stars: Array[PlayerData] = []
@@ -160,6 +172,12 @@ func _show_enemy_team() -> void:
 ## The `Squad Per Tier` column of MatchModes.csv: three for a league match,
 ## one for an Adventure run.
 func _fit_needed() -> int:
+	# A COMPETITION MAY OVERRIDE THE MODE. `season_per_tier` is 0 out of the
+	# box, which means "use the mode's own number"; the Per Tier column of
+	# SeasonRules.csv lends a different one for the length of a competition.
+	var lent := db.tune_int("season_per_tier", 0)
+	if lent > 0:
+		return lent
 	return maxi(1, int(MatchMode.current(get_tree()).get("per_tier", 3)))
 
 
@@ -351,3 +369,51 @@ func _on_lock() -> void:
 	# league match, the scroll for an Adventure run.
 	var scene := String(MatchMode.current(get_tree()).get("scene", "match"))
 	ScenePaths.go_to(get_tree(), ScenePaths.for_name(scene))
+
+
+## WHERE THIS RUN IS GOING, or "" when it is not an Adventure.
+func _adventure_where() -> String:
+	var run := AdventureRun.current(get_tree())
+	return run.biome_name() if run != null else ""
+
+
+## Everything that lives in this run's biome, one line each. Empty when the
+## next thing you are playing is not an Adventure.
+func _adventure_enemies() -> Array[String]:
+	var out: Array[String] = []
+	var run := AdventureRun.current(get_tree())
+	if run == null:
+		return out
+	var adventure := AdventureDB.get_db()
+	if adventure == null:
+		return out
+	var pool := String(run.biome.get("pool", ""))
+	if pool == "":
+		return out
+
+	# THE BOSS LAST, and marked. It is the one you are walking towards.
+	var ordinary: Array[String] = []
+	var bosses: Array[String] = []
+	for foe in adventure.pool_enemies(pool):
+		var words := "%s  ·  attack %d  ·  %d layer(s)  ·  turns up %s" % [
+			foe["name"], int(foe.get("attack", 0)),
+			AdventureDB.total_layers(foe), _how_often(int(foe.get("weight", 0)))]
+		if bool(foe.get("boss", false)):
+			bosses.append("THE BOSS — " + words)
+		else:
+			ordinary.append(words)
+	out.append_array(ordinary)
+	out.append_array(bosses)
+	return out
+
+
+## A Weight read back in words. A number nobody can feel becomes a sentence
+## everybody can: 10 against 2 is "often" against "rarely".
+func _how_often(weight: int) -> String:
+	if weight >= 10:
+		return "often"
+	if weight >= 5:
+		return "sometimes"
+	if weight > 0:
+		return "rarely"
+	return "only when something calls it"

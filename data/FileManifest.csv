@@ -259,3 +259,9 @@ trophies.tscn,src/ui/rooms/,A screen or a piece of one,
 training.tscn,src/ui/rooms/,A screen or a piece of one,
 rooms_check.gd,tools/,A tool you run from the command line,
 base_shot.gd,tools/,A tool you run from the command line,
+SeasonRules.csv,data/,A spreadsheet you edit,A competition's own rules. Lent for its length and handed back afterwards
+Pickups.csv,data/,A spreadsheet you edit,"How many pickups arrive before each wave and the boss, per biome"
+season_rules.gd,src/core/,"Engine. Rules, loaders and shared helpers","Reads SeasonRules.csv, lends a competition's rules to the database and takes them back"
+run_plan.gd,src/core/,"Engine. Rules, loaders and shared helpers",What a run is made of - the pickup count per stretch
+stadium.tscn,src/ui/rooms/,A screen or a piece of one,
+season_check.gd,tools/,A tool you run from the command line,
