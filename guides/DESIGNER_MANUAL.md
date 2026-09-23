@@ -2700,6 +2700,41 @@ Hops and yeast are the two the chain runs out of last, which is what makes a
 good season taste different. **Keep the haul small on purpose** — the
 Traveling Brewer sells the rest at a premium, and that is Phase 8.
 
+### The cellar, and the vats you unlock
+
+> *"The amount of batches will also be unlockable through achievements. The
+> most basic foundation is there free, and everything that would make it
+> easier or more can be unlocked later on."*
+
+So every section has a **`Batches`** column — how many jobs it can have
+running at once — and that column is what you get for nothing. Everything
+above it is earned:
+
+```
+   count:batches_cooling+1     in an achievement's Reward, a talent's
+                               Effects, a building's Action — anywhere
+```
+
+Nothing new had to be invented to say that: it is the counter language the
+whole game already speaks, and it works for **any** section, not just the
+cellar. `batches_boiling`, `batches_malthouse` — all of them.
+
+There are two worked rows in `Achievements.csv` (`second_vat`, `third_vat`).
+And the measurement that says whether a vat was worth an achievement:
+
+```
+godot --headless --script res://tools/brewery_check.gd
+
+  10 fixture(s) produced 24 bottle(s).
+  With 1 more vat(s) unlocked: 48 bottle(s).
+  With 2 more vat(s) unlocked: 54 bottle(s).
+```
+
+**The first extra vat doubles a season. The second adds a quarter of that**,
+because by then hops are the limit rather than the cellar — which is the
+shape a good unlock should have, and the point at which the Traveling Brewer
+becomes the thing to spend on instead.
+
 ### The turn, and the opening stock
 
 `BreweryBook.advance_turn()` is called from **the same line in `_full_time()`
@@ -2788,6 +2823,96 @@ with twice as much wheat as it can ever use.
 
 It also prints which achievement opens each section, because a section
 nothing unlocks is a building you can never walk into.
+
+---
+
+## 11c. The Pub, and the Traveling Brewer
+
+### Tonight's ten
+
+> *"The Pub: choose 10 players and give them drinks, else basic units."*
+
+So the Pub is **two decisions**. First who is in the room — ten of them, and
+the number is `pub_capacity` in `Tuning.csv`. Then what each of them drinks,
+which is what the Pub already did. Anyone not in the room plays as they are:
+printed power, no brew, no borrowed class.
+
+**Right-click** a card to seat it or send it home. Left-click still pours,
+and a card that is not in the room cannot be poured for — it is dimmed, not
+hidden, because you need to see who you left out.
+
+`pub_ten` in `Tuning.csv` is **false** out of the box. While it is false the
+room is everybody and nothing on that screen changes. Turn it on the day the
+squad is big enough for ten to be a choice rather than a chore.
+
+The seats live in the save as `pub_ten`, one text, names separated by `|` —
+the same shape `SquadBook` uses, for the same reason.
+
+### `data/Currencies.csv`
+
+| column | |
+|---|---|
+| `ID` · `Name` | |
+| `Counter` | the GameState counter it lives in. **Defaults to the ID**, so a currency called `coins` is the `coins` counter the game already had |
+| `Earned In` | **the MatchModes.csv id that pays it.** Blank means every mode |
+| `Win` · `Draw` · `Loss` | paid at the final whistle |
+| `Icon` | |
+
+**`Earned In` is the separation.** A Quick Match never pays league coins and
+a season match never pays marks — which is the whole of *"separate currencies
+per mode"*, and it is one column.
+
+**A second currency is how a mode earns its place.** If the only thing a
+Quick Match gave you was the same coins a league match gives, there would be
+no reason to play one. Price something good in marks and there is.
+
+### `data/Shop.csv` — the Traveling Brewer
+
+| column | |
+|---|---|
+| `Sells` | `res:hops` for a Brewery material, `brew:fire` for a **recipe** |
+| `How Many` | of the material |
+| `Price` · `Currency` | |
+| `Stock` | **how many he has EVER**, not per visit. Blank is unlimited |
+| `Requires` | the usual condition language |
+| `Art` | a 64×64 in `assets/shop/`, and the row reads fine without it |
+
+`brew:<id>` unlocks that row of `Brews.csv` **by name**, exactly as a talent
+or an achievement would. Anything else in `Sells` is handed to the ordinary
+effects language, so `unlock:Something` works there too.
+
+A sold-out row **stays on the screen and says SOLD OUT**. A thing that
+vanishes is a thing you think you imagined.
+
+### He is the pressure valve on the Brewery
+
+`tools/brewery_check.gd` measures **hops** as the thing the chain runs dry of
+— they only arrive when you win — and reports wort backing up nineteen deep
+behind the boiling copper waiting for them. The Brewer sells hops, dear. He
+is there for the week you need them, not instead of the Brewery.
+
+### Price it in wins, not in coins
+
+```
+godot --headless --script res://tools/shop_check.gd
+
+  hops_sack        6 Hops             45 coins    3 left    1.1 wins
+  fire_recipe      the fire recipe    150 coins   1 left    3.8 wins
+  EVERYTHING HE HAS, in coins: 790  (20 wins)
+
+  === A SEASON: 10 fixtures, half won, half lost ===
+  Coins          225
+```
+
+**"45 coins" means nothing on its own.** It means something beside "a season
+win pays 40" — that sack is a win and a bit, and the whole cart is twenty
+wins against a season that pays 225. That multiplication is the only thing
+worth checking about a shop.
+
+> Note that `Season.csv` also pays coins on some fixtures (`count:coins+25`
+> on matchday 4, `+250` for winning the final). Those are on top of the
+> per-match pay-out and they are meant to be — a cup final should feel like
+> one — but it does mean a real season is richer than the 225 above.
 
 ---
 
@@ -3176,6 +3301,19 @@ matches simulated at each level — fouls, yellows, reds and how often a match
 ends ten against eleven. It does the multiplication that makes "18%" mean
 something: both sides roll, nine times a match, which is eighteen rolls. See
 section 7d.
+
+```
+godot --headless --script res://tools/shop_check.gd
+```
+Every price on the Traveling Brewer's cart converted into WINS, and what a
+ten-fixture season actually pays. See section 11c.
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/shop_shot.gd
+```
+The cart with an empty purse and with a season's takings, and the Pub with
+the ten-seat room forced on.
 
 ```
 xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \

@@ -233,11 +233,12 @@ func _make_section(section: Dictionary) -> Control:
 	var id_text := String(section["id"])
 	var open := BreweryBook.is_open(id_text, state)
 	var waiting := BreweryBook.is_waiting(id_text, state)
+	var full := BreweryBook.is_full(id_text, state)
 	var short := BreweryBook.missing(id_text, state)
 
 	var edge := MenuSupport.COLOUR_SLOT_EMPTY
 	if open:
-		edge = MenuSupport.COLOUR_DEFEND if waiting \
+		edge = MenuSupport.COLOUR_DEFEND if full \
 			else (MenuSupport.COLOUR_ATTACK if short.is_empty() else MenuSupport.COLOUR_TEXT_DIM)
 
 	var frame := PanelContainer.new()
@@ -292,10 +293,20 @@ func _make_section(section: Dictionary) -> Control:
 
 	column.add_child(_small("%s  ·  %s" % [section["worker"], _recipe_words(section)]))
 
-	# ---- WORKING: the cellar ----
+	# ---- THE CELLAR: how many vats, how many working ----
+	#
+	# Shown whenever a section HAS more than one vat, even when they are all
+	# idle, because "1 of 3 vats" is the line that tells you the other two
+	# were worth unlocking.
+	var vats := BreweryBook.batches_for(id_text, state)
 	if waiting:
-		var turns := BreweryBook.turns_left(id_text, state)
-		column.add_child(_small("Lagering — %d turn(s) to go. A turn is a fixture." % turns))
+		column.add_child(_small("%d of %d vat(s) working — next out in %d turn(s). A turn is a fixture." % [
+			BreweryBook.busy(id_text, state), vats,
+			BreweryBook.turns_left(id_text, state)]))
+	elif vats > 1:
+		column.add_child(_small("%d vats, all idle." % vats))
+
+	if full:
 		return frame
 
 	# ---- SHORT: name what is missing ----

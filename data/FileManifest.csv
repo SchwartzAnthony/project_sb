@@ -238,3 +238,11 @@ gate_shot.gd,tools/,A tool you run from the command line,
 brewery_screen.gd,src/ui/,A screen or a piece of one,"THE BREWERY MAP. Two windows at the top, six sections in the yard, placed by the X and Y columns of BrewerySections.csv"
 brewery_screen.tscn,src/ui/,A screen or a piece of one,
 brewery_shot.gd,tools/,A tool you run from the command line,
+Currencies.csv,data/,A spreadsheet you edit,"What money there is, which MODE pays it, and what a win is worth"
+Shop.csv,data/,A spreadsheet you edit,"The Traveling Brewer's cart. Sells res:<id> for materials, brew:<id> for recipes"
+shop_book.gd,src/core/,"Engine. Rules, loaders and shared helpers","The cart, the purses, and the per-mode pay-out at the final whistle"
+pub_book.gd,src/core/,"Engine. Rules, loaders and shared helpers",TONIGHT'S TEN. Who is in the room and may be given a drink
+shop_screen.gd,src/ui/,A screen or a piece of one,
+shop_screen.tscn,src/ui/,A screen or a piece of one,
+shop_check.gd,tools/,A tool you run from the command line,
+shop_shot.gd,tools/,A tool you run from the command line,

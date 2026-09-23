@@ -12,6 +12,22 @@ extends Control
 #  Base cards have no abilities. A brew is where a card's ability comes
 #  from, and it changes what class the card counts as, so a Lorelei who
 #  drank a Fire Brew is hit by "give all Brandteufel +1 power".
+#
+#  ============ TONIGHT'S TEN ============
+#
+#  "Choose 10 players and give them drinks, else basic units."
+#
+#  So the Pub is TWO decisions. First who is in the room — ten of them, and
+#  the number is `pub_capacity` in Tuning.csv. Then what each of them drinks,
+#  which is what this screen already did. Anyone not in the room plays as
+#  they are: printed power, no brew, no borrowed class.
+#
+#  RIGHT-CLICK a card to put it in the room or send it home. Left-click
+#  still pours, and a card that is not in the room cannot be poured for.
+#
+#  It is OFF out of the box — `pub_ten` in Tuning.csv — because a room with
+#  ten seats is only a choice once you have more than ten cards. While it is
+#  false the room is everybody and nothing on this screen changes.
 # =============================================================
 
 const CARD_SIZE := Vector2(150.0, 176.0)
@@ -25,6 +41,7 @@ var _card_grid: GridContainer
 var _detail: Label
 var _permanent: CheckBox
 var _selected: Dictionary = {}
+var _seats: Label
 
 
 func _ready() -> void:
@@ -41,6 +58,7 @@ func _ready() -> void:
 	_build_ui()
 	_rebuild_brews()
 	_rebuild_cards()
+	_refresh_seats()
 
 
 # =============================================================
@@ -90,6 +108,11 @@ func _build_ui() -> void:
 		state.save_to_disk()
 		ScenePaths.go_back(get_tree(), ScenePaths.BASE))
 	header.add_child(back)
+
+	_seats = Label.new()
+	_seats.add_theme_font_size_override("font_size", 14)
+	_seats.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
+	page.add_child(_seats)
 
 	_detail = Label.new()
 	_detail.text = "Pick a brew on the left, then a card to pour it for."
@@ -235,6 +258,13 @@ func _summary(entry: Dictionary) -> String:
 #  THE CARD GRID
 # =============================================================
 
+## "7 of 10 seats taken", or the line that says the system is off.
+func _refresh_seats() -> void:
+	if _seats != null:
+		_seats.text = PubBook.words(state, cards) \
+			+ ("  ·  right-click a card to seat it or send it home." if PubBook.on(cards) else "")
+
+
 func _rebuild_cards() -> void:
 	for child in _card_grid.get_children():
 		child.queue_free()
@@ -250,7 +280,8 @@ func _make_card(card: PlayerData) -> Control:
 	var permanent := BrewDB.is_permanent(card, state)
 	# AFFORDABLE AS WELL AS SUITABLE. A brew you cannot pay for is shown but
 	# cannot be poured, and the detail line says what it would cost.
-	var pourable := not _selected.is_empty() and BrewDB.suits(_selected, card) \
+	var seated := PubBook.allowed(card, state, cards)
+	var pourable := seated and not _selected.is_empty() and BrewDB.suits(_selected, card) \
 		and BrewDB.can_afford(_selected, state)
 
 	var button := Button.new()
@@ -265,6 +296,10 @@ func _make_card(card: PlayerData) -> Control:
 		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, edge))
 	button.add_theme_stylebox_override("hover",
 		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+
+	# NOT IN THE ROOM = DIMMED, not hidden. You need to see who you left out.
+	if not seated:
+		button.modulate = Color(0.55, 0.55, 0.58, 1.0)
 
 	var box := VBoxContainer.new()
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -301,7 +336,27 @@ func _make_card(card: PlayerData) -> Control:
 	box.add_child(footer)
 
 	button.pressed.connect(_on_card.bind(card))
+	button.gui_input.connect(_on_card_right_click.bind(card))
 	return button
+
+
+## Right-click seats a card or sends it home. It is the second decision on
+## this screen and it needed a second gesture — a modal "choose ten" step in
+## front of the brews would have made pouring one drink a three-click job.
+func _on_card_right_click(event: InputEvent, card: PlayerData) -> void:
+	if not PubBook.on(cards):
+		return
+	var click := event as InputEventMouseButton
+	if click == null or not click.pressed or click.button_index != MOUSE_BUTTON_RIGHT:
+		return
+	var result := PubBook.toggle(card, state, cards)
+	_detail.text = String(result["why"])
+	_detail.add_theme_color_override("font_color",
+		MenuSupport.COLOUR_TEXT if bool(result["ok"]) else Color(1.0, 0.72, 0.4))
+	if bool(result["ok"]):
+		state.save_to_disk()
+	_refresh_seats()
+	_rebuild_cards()
 
 
 func _on_card(card: PlayerData) -> void:
@@ -312,6 +367,11 @@ func _on_card(card: PlayerData) -> void:
 		_detail.text = "%s is back to their old self." % card.player_name
 		state.save_to_disk()
 		_rebuild_cards()
+		return
+
+	if not PubBook.allowed(card, state, cards):
+		_detail.text = "%s is not in the room. Right-click to give them a seat — %s" % [
+			card.player_name, PubBook.words(state, cards).to_lower()]
 		return
 
 	if _selected.is_empty():

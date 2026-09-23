@@ -1700,6 +1700,19 @@ func _full_time() -> void:
 		RecoveryBook.advance_turn(state, db)
 		RecoveryBook.played(_squad_that_played(), state, db)
 
+	# ============ AND THE MATCH PAYS ============
+	#
+	# Which purse, and how much, is data/Currencies.csv — and WHICH MODE pays
+	# it is a column of that file, so a Quick Match never pays league coins
+	# and a season match never pays marks. That is the whole of "separate
+	# currencies per mode", and the match only has to say which mode it was.
+	if state != null:
+		var mode_id := String(match_mode.get("id", MatchMode.DEFAULT_ID))
+		for coin in ShopBook.pay_out(mode_id, outcome, state):
+			print("  [purse] %+d %s." % [int(coin["amount"]), coin["name"]])
+			if gains != null:
+				gains.note(String(coin["name"]), "%+d" % int(coin["amount"]))
+
 	# ============ AND A TURN PASSES IN THE CELLAR ============
 	#
 	# A fixture is the game's unit of time, so it has to be ONE unit: the

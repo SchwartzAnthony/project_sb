@@ -202,22 +202,24 @@ names, and the five brewing mini-games (Phase 9). A mini-game decides how
 
 ---
 
-## Phase 8 — The Pub, and the Traveling Brewer  ⬅ NEXT
+## Phase 8 — The Pub, and the Traveling Brewer  ✅ IN THIS ZIP
 
 Where the bottles go, and where the money is.
 
 | | |
 |---|---|
-| | **The Pub.** Choose ten players and give them drinks; whoever you do not choose plays as a basic unit. The pouring already works — `brew_drunk`, the overlay, the wear-off at the whistle — so this phase is the *choosing* |
-| | **The Traveling Brewer.** Sells brews at premium prices, so he is the answer when you did not brew enough rather than a shop you use instead of brewing |
-| | **Currency from wins, and a separate currency per mode** — league money is not adventure money |
+| ✅ | **The Pub.** Right-click seats a player; ten seats, and anyone not in the room plays as a basic unit. Off out of the box (`pub_ten`) because ten seats is only a choice once you have more than ten cards |
+| ✅ | **The Traveling Brewer.** `data/Shop.csv` — materials, tools and recipes, priced in wins rather than in coins |
+| ✅ | **Currency from wins, and a separate currency per mode** — `data/Currencies.csv`, and `Earned In` is the whole of the separation |
+| ✅ | **And the cellar's vats are unlockable**, which was your answer to last round's question: the basic foundation free, everything bigger earned |
 
-**Why after the Brewery:** a Pub with nothing to pour and a shop that
-undercuts a brewery you have not built are both the same mistake.
+**Measured, not guessed:** a season pays 225 coins and the whole cart is 790
+(twenty wins). One vat makes 24 bottles a season, two make 48, three make 54
+— and at three, hops are the limit, which is exactly what the Brewer sells.
 
 ---
 
-## Phase 9 — The Club House, the Dorms, the Trophy Room, the Training Ground
+## Phase 9 — The Club House, the Dorms, the Trophy Room, the Training Ground  ⬅ NEXT
 
 The four rooms. One phase because they are four screens against one save
 file, and because each of them is small.
@@ -267,8 +269,8 @@ Crown` and `The Cup` unlocks are now handed out by achievements.
 | *(new)* Talent Tree | **Phase 6**, done |
 | *(new)* Brewery — the chain | **Phase 5**, done |
 | *(new)* Brewery — the six sections on a map | **Phase 7**, done |
-| *(new)* Pub | **Phase 8** |
-| *(new)* Traveling Brewer | **Phase 8** |
+| *(new)* Pub | **Phase 8**, done |
+| *(new)* Traveling Brewer | **Phase 8**, done |
 | *(new)* Club House | **Phase 9** |
 | *(new)* Dorms | **Phase 9** |
 | *(new)* Trophy Room | **Phase 9** |

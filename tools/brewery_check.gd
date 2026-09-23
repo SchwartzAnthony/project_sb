@@ -213,6 +213,18 @@ func _initialize() -> void:
 	if stuck != "nothing obvious":
 		print("  The chain is waiting on: %s" % stuck)
 
+	# ============ AND WHAT AN UNLOCKED VAT IS WORTH ============
+	#
+	# "The most basic foundation is there free, and everything that would
+	# make it easier or more can be unlocked later on." A vat is one of those
+	# things, and this is the line that tells you whether it was worth an
+	# achievement: the SAME season, played again, with more vats in the
+	# cellar. If the second number is not bigger, the cellar was not the
+	# bottleneck and the achievement is a dud.
+	for extra in [1, 2]:
+		print("  With %d more vat(s) unlocked: %d bottle(s)."
+			% [extra, _play_a_season(sections, extra)])
+
 	# ============ AND WHAT IS PILING UP ============
 	#
 	# The number that tells you where the REAL bottleneck is. A material the
@@ -316,3 +328,38 @@ func _who_eats(id_text: String, sections: Array) -> String:
 		return "%s wants %s as well" % [section["name"],
 			", ".join(PackedStringArray(section["takes"].keys()))]
 	return "nothing takes it at all"
+
+
+## The same ten fixtures again, quietly, with `extra` vats unlocked in every
+## section that lagers. Returns how many of the last section's output it made.
+func _play_a_season(sections: Array, extra: int) -> int:
+	var live := GameState.new()
+	BreweryBook.stock_a_new_game(live)
+	for one in sections:
+		for thing in _unlocks_named(String(one["needs"])):
+			live.unlock(thing)
+		# ONLY THE SECTIONS THAT LAGER. Handing a spare vat to a section that
+		# finishes instantly changes nothing, and counting it would make the
+		# answer look better than it is.
+		if int((one as Dictionary)["wait_max"]) > 0:
+			live.add_count(BreweryBook.BATCHES_PREFIX + String(one["id"]), extra)
+	live.unlock("Brewery")
+
+	var steps := Progression.get_rules()
+	var last := _last_makes(sections)
+	var before := BreweryBook.stock(last, live)
+	for fixture in SEASON:
+		live.set_flag("won_last_match", fixture % 2 == 0)
+		if steps != null:
+			steps.fire("match_ended", live)
+		BreweryBook.advance_turn(live)
+		for _pass in 6:
+			var did := false
+			for one in sections:
+				var id_text := String(one["id"])
+				while BreweryBook.can_work(id_text, live):
+					BreweryBook.work(id_text, live)
+					did = true
+			if not did:
+				break
+	return BreweryBook.stock(last, live) - before

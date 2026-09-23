@@ -54,10 +54,24 @@ const SECTIONS_FILE := "res://data/BrewerySections.csv"
 
 ## Every resource is a GameState counter with this in front of its ID.
 const COUNTER_PREFIX := "res_"
-## How many of a section's output are waiting to come out of the cellar.
-const WAITING_PREFIX := "brew_waiting_"
-## And how many turns until they do.
-const WAIT_TURNS_PREFIX := "brew_wait_turns_"
+## THE CELLAR, AS ONE READABLE LINE PER SECTION.
+##
+## `brew_jobs_cooling` = "6:3|6:1" means two vats working: six barrels in
+## three turns and six more in one. A text rather than a pile of counters,
+## because a save you can read in the inspector is a save you can debug —
+## and because the number of vats is not fixed (see BATCHES below), so there
+## is no fixed number of counters to make.
+const JOBS_PREFIX := "brew_jobs_"
+
+## HOW MANY VATS A SECTION HAS, ON TOP OF ITS `Batches` COLUMN.
+##
+## "The most basic foundation is there free, and everything that would make
+## it easier or more can be unlocked later on." So the column is what you get
+## for nothing, and `count:batches_cooling+1` — in an achievement's Reward, a
+## talent's Effects, a building's Action, anywhere — adds a vat. Nothing new
+## had to be invented to say that: it is the counter language the whole game
+## already speaks.
+const BATCHES_PREFIX := "batches_"
 ## Set the first time the opening stock is handed out, so it is handed out
 ## exactly once per save. See stock_a_new_game().
 const STOCKED_FLAG := "brewery_stocked"
@@ -123,6 +137,7 @@ static func _load() -> void:
 			"takes": _cost_of(MenuSupport.field(row, "Takes")),
 			"makes": MenuSupport.field(row, "Makes").strip_edges().to_lower(),
 			"how_many": maxi(1, MenuSupport.field_int(row, "How Many", 1)),
+			"batches": maxi(1, MenuSupport.field_int(row, "Batches", 1)),
 			"wait_min": maxi(0, MenuSupport.field_int(row, "Wait Min", 0)),
 			"wait_max": maxi(0, MenuSupport.field_int(row, "Wait Max", 0)),
 			# WHERE IT STANDS ON THE MAP, as a fraction of the yard: 0 is the
@@ -363,22 +378,72 @@ static func missing(section_id: String, state: GameState) -> Array[String]:
 	return out
 
 
+## HOW MANY JOBS THIS SECTION CAN HAVE RUNNING AT ONCE.
+##
+## Its `Batches` column plus whatever has been unlocked. One for free, more
+## earned — see BATCHES_PREFIX above.
+static func batches_for(section_id: String, state: GameState) -> int:
+	var one := section(section_id)
+	var base := int(one["batches"]) if not one.is_empty() else 1
+	if state == null:
+		return base
+	return maxi(1, base + state.count(BATCHES_PREFIX + section_id.to_lower()))
+
+
+## What is in the cellar: [{"many": 6, "turns": 3}, ...], soonest first.
+static func jobs(section_id: String, state: GameState) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if state == null:
+		return out
+	for piece in state.text(JOBS_PREFIX + section_id.to_lower()).split("|", false):
+		var clean := String(piece).strip_edges()
+		var colon := clean.find(":")
+		if colon <= 0:
+			continue
+		out.append({
+			"many": maxi(0, int(clean.substr(0, colon))),
+			"turns": maxi(0, int(clean.substr(colon + 1))),
+		})
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return int(a["turns"]) < int(b["turns"]))
+	return out
+
+
+static func _write_jobs(section_id: String, list: Array, state: GameState) -> void:
+	if state == null:
+		return
+	var parts: Array[String] = []
+	for job in list:
+		parts.append("%d:%d" % [int(job["many"]), int(job["turns"])])
+	state.set_text(JOBS_PREFIX + section_id.to_lower(), "|".join(parts))
+
+
+## How many vats are working right now.
+static func busy(section_id: String, state: GameState) -> int:
+	return jobs(section_id, state).size()
+
+
+## IS EVERY VAT TAKEN? This is what stops you starting another batch — not
+## "is anything in the cellar", which is a different question and was the
+## right one only while there was exactly one vat.
+static func is_full(section_id: String, state: GameState) -> bool:
+	return busy(section_id, state) >= batches_for(section_id, state)
+
+
+## Anything at all in the cellar?
+static func is_waiting(section_id: String, state: GameState) -> bool:
+	return busy(section_id, state) > 0
+
+
+## Turns until the NEXT thing comes out, or 0 if nothing is in there.
+static func turns_left(section_id: String, state: GameState) -> int:
+	var list := jobs(section_id, state)
+	return int(list[0]["turns"]) if not list.is_empty() else 0
+
+
 static func can_work(section_id: String, state: GameState) -> bool:
 	return is_open(section_id, state) and missing(section_id, state).is_empty() \
-		and not is_waiting(section_id, state)
-
-
-## IS THE CELLAR BUSY? A section with a wait lagers one batch at a time.
-static func is_waiting(section_id: String, state: GameState) -> bool:
-	if state == null:
-		return false
-	return state.count(WAITING_PREFIX + section_id.to_lower()) > 0
-
-
-static func turns_left(section_id: String, state: GameState) -> int:
-	if state == null:
-		return 0
-	return state.count(WAIT_TURNS_PREFIX + section_id.to_lower())
+		and not is_full(section_id, state)
 
 
 ## Do the work. Spends what it takes, and either gives you the output now or
@@ -395,9 +460,10 @@ static func work(section_id: String, state: GameState) -> Dictionary:
 	if not is_open(section_id, state):
 		out["why"] = "%s is not unlocked yet" % one["name"]
 		return out
-	if is_waiting(section_id, state):
-		out["why"] = "%s is still working — %d turn(s) to go" % [
-			one["name"], turns_left(section_id, state)]
+	if is_full(section_id, state):
+		out["why"] = "every vat at the %s is taken — %d of %d working, next one out in %d turn(s)" % [
+			one["name"], busy(section_id, state),
+			batches_for(section_id, state), turns_left(section_id, state)]
 		return out
 	var short := missing(section_id, state)
 	if not short.is_empty():
@@ -424,8 +490,9 @@ static func work(section_id: String, state: GameState) -> Dictionary:
 		add_stock(makes, many, state)
 		return out
 
-	state.set_count(WAITING_PREFIX + section_id.to_lower(), many)
-	state.set_count(WAIT_TURNS_PREFIX + section_id.to_lower(), wait)
+	var list := jobs(section_id, state)
+	list.append({"many": many, "turns": wait})
+	_write_jobs(section_id, list, state)
 	out["waiting"] = true
 	out["turns"] = wait
 	return out
@@ -442,15 +509,23 @@ static func advance_turn(state: GameState) -> Array[Dictionary]:
 		return came_out
 	for one in sections():
 		var id_text := String(one["id"])
-		var waiting := state.count(WAITING_PREFIX + id_text)
-		if waiting <= 0:
+		var list := jobs(id_text, state)
+		if list.is_empty():
 			continue
-		var left := state.count(WAIT_TURNS_PREFIX + id_text) - 1
-		if left > 0:
-			state.set_count(WAIT_TURNS_PREFIX + id_text, left)
-			continue
-		state.set_count(WAITING_PREFIX + id_text, 0)
-		state.set_count(WAIT_TURNS_PREFIX + id_text, 0)
-		add_stock(String(one["makes"]), waiting, state)
-		came_out.append({"section": one["name"], "made": one["makes"], "many": waiting})
+		# EVERY VAT TICKS, and the ones that reach zero come out. The single
+		# job this replaced could only ever finish one thing per fixture,
+		# which quietly capped the whole Brewery at one barrel a match
+		# however many vats you had unlocked.
+		var still_going: Array[Dictionary] = []
+		var out_now := 0
+		for job in list:
+			var left := int(job["turns"]) - 1
+			if left > 0:
+				still_going.append({"many": int(job["many"]), "turns": left})
+			else:
+				out_now += int(job["many"])
+		_write_jobs(id_text, still_going, state)
+		if out_now > 0:
+			add_stock(String(one["makes"]), out_now, state)
+			came_out.append({"section": one["name"], "made": one["makes"], "many": out_now})
 	return came_out

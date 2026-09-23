@@ -26,6 +26,7 @@ const BASE := "res://src/ui/base_screen.tscn"
 const TALENTS := "res://src/ui/talent_screen.tscn"
 const CLASS_TREE := "res://src/ui/class_tree_screen.tscn"
 const BREWERY := "res://src/ui/brewery_screen.tscn"
+const SHOP := "res://src/ui/shop_screen.tscn"
 const PUB := "res://src/ui/pub_screen.tscn"
 const SEASON := "res://src/ui/season_screen.tscn"
 const STATS := "res://src/ui/match_stats_screen.tscn"
@@ -67,6 +68,8 @@ static func for_name(screen: String) -> String:
 			return CLASS_TREE
 		"brewery", "brewhouse", "malthouse":
 			return BREWERY
+		"brewer", "shop", "cart", "traveling_brewer", "travelling_brewer":
+			return SHOP
 		"pub", "tavern", "brews":
 			return PUB
 		"season", "table", "results", "fixtures":
