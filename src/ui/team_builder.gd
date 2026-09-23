@@ -76,6 +76,10 @@ var entry: Dictionary = {}
 var _chosen: Dictionary = {}
 ## Every card of this class you are allowed to field, Stars excluded.
 var _library: Array[PlayerData] = []
+## How many cards the class tree's gate took out of the collection. Shown in
+## the status line when a tier cannot be filled, because "Tier II still needs
+## a 3" with no 3 anywhere in the collection is a dead end with no sign on it.
+var _gated_away: int = 0
 
 var _tier_column: VBoxContainer
 var _collection_grid: GridContainer
@@ -179,6 +183,19 @@ func _slotted(tier: String) -> Array[PlayerData]:
 
 func _load_library() -> void:
 	_library = db.roster_for_class(selection.unit_type)
+
+	# ============ THE CLASS TREE'S GATE ============
+	#
+	# An emblem set's nine units are only yours once a Star is standing in
+	# that set's node. ONE LINE, because the gate is a question about a card
+	# and class_tree.gd is the one place that answers it.
+	#
+	# While `class_tree_gates_units` is false in Tuning.csv this hands the
+	# list straight back, which is how the whole class tree went in without
+	# changing a squad you had already built.
+	var before_gate := _library.size()
+	_library = ClassTree.gate_cards(_library, state, db)
+	_gated_away = before_gate - _library.size()
 
 	# Optional Collection.csv trims the library to cards you own.
 	var rows := MenuSupport.read_csv(COLLECTION_PATH)
@@ -637,10 +654,24 @@ func _rebuild_collection() -> void:
 				any = true
 
 	if not any:
-		var note := MenuSupport.heading(
-			"Every card is on the pitch. Click one on the left to bring it back here.",
-			14, MenuSupport.COLOUR_TEXT_DIM)
+		# ============ THE NOTE NEEDS A WIDTH ============
+		#
+		# A GridContainer gives a child its minimum size, and a wrapping Label
+		# reports a minimum of ONE CHARACTER — so this note used to come out
+		# as a single column of letters running down the screen. It was
+		# invisible until the class tree's gate emptied the collection and I
+		# photographed the result.
+		#
+		# It also says something different when the gate is what emptied it,
+		# because "every card is on the pitch" is a lie when the cards are
+		# locked in the Star Hall.
+		var words := "Every card is on the pitch. Click one on the left to bring it back here."
+		if _gated_away > 0 and _library.is_empty():
+			words = "No cards yet. The %s units are waiting on the Star Hall — put a Star in a node and they appear here." % selection.unit_type
+		var note := MenuSupport.heading(words, 15, MenuSupport.COLOUR_TEXT_DIM)
 		note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		note.custom_minimum_size = Vector2(320.0, 0.0)
+		note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_collection_grid.add_child(note)
 
 
@@ -663,7 +694,12 @@ func _update_status() -> void:
 		_lock_button.disabled = false
 		_save_button.disabled = false
 	else:
-		_status.text = "  ·  ".join(missing)
+		var words := "  ·  ".join(missing)
+		# THE GATE LEAVES A SIGN. Without this the collection is simply short
+		# of cards and nothing on the screen says where they went.
+		if _gated_away > 0:
+			words += "  ·  %d card(s) are waiting on the Star Hall — put a Star in that set's node." % _gated_away
+		_status.text = words
 		_status.add_theme_color_override("font_color", Color(1.0, 0.72, 0.4))
 		_lock_button.disabled = true
 		# SAVING AN UNFINISHED TEAM IS ALLOWED. You can put a side half

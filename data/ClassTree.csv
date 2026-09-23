@@ -1,0 +1,4 @@
+Class,Node Cost,Emblem Cost,Spirit Cost,Spirit Brew,Requires,Notes
+*,1,2,3,,,"THE FALLBACK ROW. A class with no row of its own uses this one, so a new class you add tomorrow already has a working tree with no edit here. Class = * means ""anybody""."
+Lorelei,1,2,3,spirit_lorelei,,"Spirit Brew is the ID of a row in Brews.csv. Forging the Team Spirit unlocks that brew and nothing else - which means the drink itself is written where every other drink is written, and this column is only the pointer."
+Rauhnacht-Feuergeister,1,2,3,spirit_rauhnacht,,

@@ -367,10 +367,34 @@ const S = {
 "BreweryResources.csv":{what:"Everything the Brewery uses or makes. Raw things, made things, and the tools that are needed but not used up.",
   key:"ID", enums:{Kind:["","raw","made","tool"], Kept:YN},
   help:"<b>Kind</b> says where it comes from. <code>raw</code> arrives from outside the brewery - a match reward, the Traveling Brewer, an adventure. <code>made</code> is produced by one of the six sections. <code>tool</code> is equipment.<br><b>Kept = yes means it is NOT used up.</b> You need a Hammer to work the Mill and you still have it afterwards. That is the whole difference between equipment and an ingredient, and it is one cell.<br><b>Start</b> is what a new game begins with. A raw resource with Start 0 that nothing makes and something wants is a dead end, and the loader says so.<br><b>Each one is a GameState counter called <code>res_&lt;id&gt;</code></b>, so anything in the game can test how much of it you have."},
+"ClassTree.csv":{what:"WHAT A CLASS TREE COSTS. Three nodes per class, one per emblem set; a Star in a node opens that set's nine units; all three filled lets you choose ONE emblem and forge the Team Spirit.",
+  key:"Class",
+  help:"<b>THE TREE ITSELF IS NOT WRITTEN DOWN ANYWHERE, AND THAT IS DELIBERATE.</b> Its nodes are your class's emblem sets, read straight off the unit spreadsheets - add a fourth set to a class tomorrow and its tree has four nodes this afternoon. A tree written twice is a tree that will disagree with itself, so this file holds only the part the sets cannot tell us.<br><b>Class = *</b> is the fallback row every class without one of its own uses. Keep it.<br><b>Node Cost / Emblem Cost / Spirit Cost</b> are talent points, out of the same pool the ordinary talent tree spends. One point per match once the Training Ground is open, so a full three-node class costs about eight matches.<br><b>Spirit Brew</b> is the ID of a row in Brews.csv. Forging unlocks the words <code>Team Spirit &lt;Class&gt;</code> and does NOTHING else - that brew row's Requires asks for exactly those words. So you can rewrite the drink completely, the element, both abilities, the price, whether it is permanent, without touching a line of code.<br><code>tools/class_tree_check.gd</code> checks all four files against each other and then WALKS the tree on a throwaway save, so it can tell you what the whole thing costs before a player finds out.<br><b>Tuning.csv:</b> <code>class_tree</code> false hides the screen · <code>class_tree_gates_units</code> is the subtractive half and is FALSE - turn it on and a set's nine units are not yours until its node has a Star in it."},
 "ICONS_WANTED.csv":{what:"The shopping list for art. Nothing loads it — it is for you and whoever is drawing.", key:null},
 "SOUNDS_WANTED.csv":{what:"The shopping list for audio. Nothing loads it — it is for you and whoever is recording.", key:null},
 "FileManifest.csv":{what:"Every file and the folder it belongs in. The title screen checks it and names anything missing, misplaced or duplicated.", key:null},
 };
+
+/* ============================================================
+   SCHEMAS BY NAME PATTERN.
+   "<Class> Emblems.csv" is a family, not a file: Lorelei Emblems.csv,
+   Rauhnacht-Feuergeister Emblems.csv, and whatever you write next. One
+   entry teaches the workbench about all of them.
+   ============================================================ */
+const S_PATTERNS = [
+ [/ Emblems\.csv$/i, {
+   what:"THE EMBLEMS OF ONE CLASS. An emblem is a TWO-SIDED card: a Basic Side it has from the moment you choose it, a Condition, and an Ultimate Side it turns over to. The Basic Side stays live.",
+   key:"Name",
+   help:"<b>Name HAS TO MATCH A Set Name IN THE UNIT CSV.</b> That is the whole join: the set called Sallos is the nine units the Sallos emblem opens. A Set Name with no emblem is a node that leads nowhere, and an emblem with no set opens nothing - <code>tools/class_tree_check.gd</code> names both.<br><b>Condition and Turns On are the same idea twice, on purpose.</b> <b>Condition</b> is the prose that goes on the card, and it can be a paragraph. <b>Turns On</b> is the same thing in the condition language the rest of the game uses - <code>count:duels_won_as_Rauhnacht-Feuergeister&gt;=4</code> - and THAT is what the game tests. An empty Turns On means the emblem can never turn over, which is a perfectly good state for one you are still writing.<br><b>Unit Type</b> is the class, spelled as the unit CSV spells it. Matching is loose - lowercase, letters and digits only - so a hyphen or an underscore will not break the join.<br><b>You choose ONE emblem per class</b>, in the Star Hall, once all three nodes hold a Star. It cannot be changed afterwards."}],
+];
+
+/* The schema for a file: its own entry, else the first pattern that
+   matches, else nothing. */
+function sch(file){
+  if(S[file]) return S[file];
+  for(const [re,entry] of S_PATTERNS) if(re.test(file)) return entry;
+  return {};
+}
 
 /* Which column points at which file's ids. */
 const REFS = {
@@ -591,10 +615,10 @@ function paintTable(){
       <p>Drop your <span class="kbd">.csv</span> files in, or press <b>Load CSVs</b> and pick everything in your project's <span class="kbd">data</span> folder at once.</p></div>`;
     return;
   }
-  const d=DATA[CUR], sch=S[CUR]||{};
+  const d=DATA[CUR], scheme=sch(CUR);
   $("#title").textContent=CUR.replace(/\.csv$/i,"");
-  $("#what").textContent=sch.what||"A file the workbench does not have notes for. It still edits fine, and the checker still watches its ids.";
-  $("#help").hidden=!sch.help; if(sch.help) $("#help").innerHTML=sch.help;
+  $("#what").textContent=scheme.what||"A file the workbench does not have notes for. It still edits fine, and the checker still watches its ids.";
+  $("#help").hidden=!scheme.help; if(scheme.help) $("#help").innerHTML=scheme.help;
 
   const mk=(t,fn,cls)=>{const b=document.createElement("button");b.className="btn sm "+(cls||"");b.textContent=t;b.onclick=fn;$("#tools").appendChild(b);return b;};
   mk("+ New row",()=>{
@@ -644,9 +668,9 @@ function paintTable(){
 }
 
 function cell(file,head,row,ci,ri){
-  const sch=S[file]||{}, val=row[ci]??"";
+  const scheme=sch(file), val=row[ci]??"";
   const set=v=>{row[ci]=v;save();};
-  let opts=(sch.enums||{})[head];
+  let opts=(scheme.enums||{})[head];
   const ref=(REFS[file]||{})[head];
 
   /* A unit file is recognised by its columns, so its enums are too — that
@@ -674,7 +698,7 @@ function cell(file,head,row,ci,ri){
     sel.id=`c_${norm(file)}_${ri}_${ci}`;
     return sel;
   }
-  if((sch.colour||[]).includes(head)){
+  if((scheme.colour||[]).includes(head)){
     const box=document.createElement("div"); box.style.display="flex"; box.style.alignItems="center";
     const sw=document.createElement("input"); sw.type="color"; sw.value=/^#[0-9a-f]{6}$/i.test(val)?val:"#213a26";
     sw.style.cssText="width:26px;min-width:26px;height:24px;border:1px solid var(--line);padding:0;margin:5px 0 5px 7px;cursor:pointer;background:none";
@@ -1069,13 +1093,13 @@ function check(){
 
   /* 1. duplicate keys */
   for(const f of Object.keys(DATA)){
-    const k=(S[f]||{}).key; if(!k) continue;
+    const k=sch(f).key; if(!k) continue;
     const i=at(f,k); if(i<0) continue;
     // SOME FILES HAVE A TWO-PART KEY. Theme.csv is keyed by Element AND
     // State — `button` appears five times on purpose, once per state — so
     // checking the first column alone reported five duplicates that were
     // the whole design. `key2` in the schema names the second half.
-    const k2=(S[f]||{}).key2;
+    const k2=sch(f).key2;
     const i2=k2?at(f,k2):-1;
     const seen={};
     // An exclamation mark is kept here on purpose: "flag:brave" and
@@ -1143,6 +1167,31 @@ function check(){
   /* A Brewery section is opened by an achievement and nothing else, so its
      own Needs column is a want, not a grant - it is picked up below with
      every other "unlocked:" in the project. */
+
+  /* ============ WHAT THE CLASS TREE HANDS OUT ============
+     The Star Hall is the one granter in the game that is NOT a spreadsheet
+     cell: putting a Star into a node unlocks "<Class> <Set Name>", choosing
+     an emblem unlocks "<Class> <Emblem> Emblem", and forging the Team Spirit
+     unlocks "Team Spirit <Class>" - which is exactly what the Brews.csv row
+     asks for. Without these three lines the workbench reports every one of
+     them as unreachable, which is a tool crying wolf. */
+  for(const f of Object.keys(DATA)){
+    const ut=at(f,"Unit Type"), sn=at(f,"Set Name");
+    if(ut>=0 && sn>=0) DATA[f].rows.forEach(r=>{
+      const a=(r[ut]||"").trim(), b=(r[sn]||"").trim();
+      if(a&&b) grant.add(norm(a+" "+b));
+    });
+    /* "<Class> Emblems.csv": Name is the emblem. */
+    const nm=at(f,"Name"), bs=at(f,"Basic Side");
+    if(ut>=0 && nm>=0 && bs>=0) DATA[f].rows.forEach(r=>{
+      const a=(r[ut]||"").trim(), b=(r[nm]||"").trim();
+      if(a&&b){ grant.add(norm(a+" "+b+" Emblem")); grant.add(norm(a+" "+b+" Ultimate")); }
+    });
+  }
+  col("ClassTree.csv","Class").forEach(v=>{
+    const c=(v||"").trim();
+    if(c && c!=="*") grant.add(norm("Team Spirit "+c));
+  });
   for(const f of Object.keys(DATA)) for(const c of CONDS){
     const i=at(f,c); if(i<0) continue;
     DATA[f].rows.forEach((r,ri)=>{

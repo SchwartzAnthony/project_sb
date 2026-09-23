@@ -117,6 +117,28 @@ func _build_chrome() -> void:
 		ScenePaths.go_back(get_tree(), ScenePaths.BASE))
 	add_child(back)
 
+	# ============ AND THE OTHER HALF OF THE TREE ============
+	#
+	# The Stars and the Emblems are a second screen, because they are a
+	# different SHAPE — three plinths and a choice, not a grid of nodes with
+	# lines between them. Trying to draw both on one screen made each of them
+	# worse. They share one pool of points, which is what makes them one tree.
+	var stars := MenuSupport.icon_button("★", "The Star Hall", Vector2(210, 46))
+	stars.add_theme_font_size_override("font_size", 17)
+	stars.add_theme_stylebox_override("normal",
+		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ATTACK))
+	stars.add_theme_stylebox_override("hover",
+		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ATTACK))
+	stars.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	stars.offset_left = -470.0
+	stars.offset_top = 26.0
+	stars.offset_right = -260.0
+	stars.offset_bottom = 72.0
+	stars.pressed.connect(func() -> void:
+		state.save_to_disk()
+		ScenePaths.go_to(get_tree(), ScenePaths.CLASS_TREE))
+	add_child(stars)
+
 
 # =============================================================
 #  LAYOUT — worked out from the CSV, never positioned by hand

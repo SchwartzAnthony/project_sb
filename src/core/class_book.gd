@@ -76,6 +76,18 @@ class Emblem extends RefCounted:
 	var art: String = ""
 	var basic: String = ""
 	var condition: String = ""
+	## THE SAME CONDITION, IN THE LANGUAGE THE GAME READS.
+	##
+	## `condition` above is the prose that goes on the card — "If all three
+	## Tier I Units that were removed to create Rose Token Units were
+	## Lorelei" — which is exactly right for a player and impossible for a
+	## program. So there is a second column, `Turns On`, holding the same idea
+	## as `count:rose_lorelei>=3`, and THAT is what ClassTree tests.
+	##
+	## Two columns for one idea, on purpose. Empty means the emblem never
+	## turns over, which is a perfectly good state for one you are still
+	## writing — tools/class_tree_check.gd says so rather than complaining.
+	var turns_on: String = ""
 	var ultimate: String = ""
 	var notes: String = ""
 
@@ -194,6 +206,7 @@ static func _read_emblem_file(path: String) -> void:
 		badge.art = MenuSupport.field(row, "Emblem").strip_edges()
 		badge.basic = MenuSupport.field(row, "Basic Side").strip_edges()
 		badge.condition = MenuSupport.field(row, "Condition").strip_edges()
+		badge.turns_on = MenuSupport.field(row, "Turns On").strip_edges()
 		badge.ultimate = MenuSupport.field(row, "Ultimate Side").strip_edges()
 		badge.notes = MenuSupport.field(row, "For AI notes").strip_edges()
 

@@ -34,3 +34,4 @@ brews_poured,brew_drunk,,,Match,Brews poured,"Every brew poured on a player at t
 fouls_given,foul_given,,,Match,Fouls given away,"EVERY FOUL YOUR SIDE CONCEDES. The foul chance is set by how many triggers you fired in the round, so this number is really a measure of how hard you played"
 yellow_cards,card_yellow,,,Match,Yellow cards,Bookings against your side
 red_cards,card_red,,,Match,Red cards,"Sendings-off against your side. Each one costs you a man for the rest of the match and leaves a hole in a tier that a survivor has to cover"
+duels_won_as_{class},duel_won,,,Duels,,"ONE COUNTER PER CLASS. duels_won_as_Lorelei, duels_won_as_Rauhnacht-Feuergeister, and so on - the game makes them as it meets them. Written for the emblems: the Belphegor emblem turns over at count:duels_won_as_Rauhnacht-Feuergeister>=4, which is your card text made testable."

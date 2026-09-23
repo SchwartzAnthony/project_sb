@@ -87,7 +87,8 @@ func _initialize() -> void:
 	for thing in granted:
 		granted_keys.append(_squash(thing))
 	for thing in tested:
-		if granted_keys.has(_squash(thing)) or _granted_elsewhere(thing):
+		if granted_keys.has(_squash(thing)) or _granted_elsewhere(thing) \
+				or _granted_by_the_star_hall(thing):
 			continue
 		print("  ! unlocked:%s is tested somewhere, but no achievement and no" % thing)
 		print("    Progression row ever grants it. That content can never appear.")
@@ -225,10 +226,40 @@ func _granted_elsewhere(thing: String) -> bool:
 		# The same loose matching the game uses, so `unlock:Master Brewer`
 		# here answers a `unlocked:master_brewer` there.
 		for row in MenuSupport.read_csv(path):
-			for column in ["Do", "Reward", "Action", "Effect", "Grants"]:
+			# `Effects` was missing, which meant every unlock a TALENT hands
+			# out looked ungranted — the file was already in the list above
+			# and the column it uses was not.
+			for column in ["Do", "Reward", "Action", "Effect", "Effects", "Grants"]:
 				for piece in MenuSupport.field(row, column).split(";", false):
 					var term := String(piece).strip_edges()
 					if term.to_lower().begins_with("unlock:") \
 							and _squash(term.substr(7)) == _squash(thing):
 						return true
+	return false
+
+
+## ============ THE ONE GRANTER THAT IS NOT A SPREADSHEET CELL ============
+##
+## The Star Hall. Putting a Star into a node unlocks "<Class> <Set Name>",
+## choosing an emblem unlocks "<Class> <Emblem> Emblem", and forging the Team
+## Spirit unlocks "Team Spirit <Class>" — which is exactly what the Brews.csv
+## row asks for. Without this the checker reports all of them as unreachable,
+## and a tool that cries wolf gets ignored on the day it is right.
+func _granted_by_the_star_hall(thing: String) -> bool:
+	var want := _squash(thing)
+	for key in ClassBook.classes():
+		var entry: ClassBook.ClassEntry = ClassBook.classes()[key]
+		var who := entry.unit_type
+		if _squash(ClassTree.spirit_unlock(who)) == want:
+			return true
+		for set_key in entry.sets:
+			var kit: ClassBook.EmblemSet = entry.sets[set_key]
+			if _squash(ClassTree.unlock_name(who, kit.id)) == want:
+				return true
+		for emblem_key in entry.emblems:
+			var badge: ClassBook.Emblem = entry.emblems[emblem_key]
+			if _squash("%s %s Emblem" % [who, badge.id]) == want:
+				return true
+			if _squash("%s %s Ultimate" % [who, badge.id]) == want:
+				return true
 	return false

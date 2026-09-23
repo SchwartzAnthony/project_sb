@@ -217,3 +217,21 @@ shot_odds_check.gd,tools/,A tool. Nothing in the game loads it,"The whole scorin
 theme_check.gd,tools/,A tool. Nothing in the game loads it,"Every Theme.csv element, what it is drawn from and whether that file exists; the palette; and what is in assets/ui/ that nothing uses"
 theme_shot.gd,tools/,A tool. Nothing in the game loads it,"THE SKIN BEFORE AND AFTER. The same screen as your file is written, and with the three starter images forced in. Changes nothing on disk"
 throw_in_shot.gd,tools/,A tool. Nothing in the game loads it,"The out-of-bounds sequence photographed, and a measurement of how far outside the line the thrower ended up"
+Achievements.csv,data/,A spreadsheet you edit,THE ROOT OF THE GAME. Nothing exists until a row of this hands it over
+Fouls.csv,data/,A spreadsheet you edit,"The referee: triggers to a foul chance, and to a yellow or a red"
+BrewerySections.csv,data/,A spreadsheet you edit,"The six sections of the Brewery, as a chain of recipes"
+BreweryResources.csv,data/,A spreadsheet you edit,"Everything the Brewery uses or makes. Kept = yes is equipment, not an ingredient"
+achievement_book.gd,src/core/,"Engine. Rules, loaders and shared helpers",Reads Achievements.csv and grants what has just come true
+foul_book.gd,src/core/,"Engine. Rules, loaders and shared helpers","The foul curve, and the stand-in that covers a rung a red card emptied"
+brewery_book.gd,src/core/,"Engine. Rules, loaders and shared helpers","The Brewery chain: what a section takes, what it makes, and the lagering"
+achievement_check.gd,tools/,A tool you run from the command line,
+foul_check.gd,tools/,A tool you run from the command line,
+brewery_check.gd,tools/,A tool you run from the command line,
+foul_shot.gd,tools/,A tool you run from the command line,
+ClassTree.csv,data/,A spreadsheet you edit,"What a class tree costs, and which Brews.csv row its Team Spirit is. The tree's NODES are read off the unit spreadsheets, not written here"
+class_tree.gd,src/core/,"Engine. Rules, loaders and shared helpers",THE STAR HALL. A Star in a node opens that emblem set's nine units; all three opens the emblem and the Team Spirit
+class_tree_screen.gd,src/ui/,A screen or a piece of one,
+class_tree_screen.tscn,src/ui/,A screen or a piece of one,
+class_tree_check.gd,tools/,A tool you run from the command line,
+class_tree_shot.gd,tools/,A tool you run from the command line,
+gate_shot.gd,tools/,A tool you run from the command line,

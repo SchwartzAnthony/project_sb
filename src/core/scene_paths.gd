@@ -24,6 +24,7 @@ const MATCH := "res://src/formations/main_scene.tscn"
 const STORY := "res://src/ui/dialogue_view.tscn"
 const BASE := "res://src/ui/base_screen.tscn"
 const TALENTS := "res://src/ui/talent_screen.tscn"
+const CLASS_TREE := "res://src/ui/class_tree_screen.tscn"
 const PUB := "res://src/ui/pub_screen.tscn"
 const SEASON := "res://src/ui/season_screen.tscn"
 const STATS := "res://src/ui/match_stats_screen.tscn"
@@ -61,6 +62,8 @@ static func for_name(screen: String) -> String:
 			return BASE
 		"talents", "talent", "tree":
 			return TALENTS
+		"classtree", "class_tree", "classes_tree", "emblems", "stars":
+			return CLASS_TREE
 		"pub", "tavern", "brews":
 			return PUB
 		"season", "table", "results", "fixtures":

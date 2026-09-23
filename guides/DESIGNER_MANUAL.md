@@ -1761,6 +1761,159 @@ moment on the pitch rather than a thing that happens to you.
 
 ---
 
+## 7e. The Star Hall — the class tree, the emblems, the Team Spirit
+
+> *"Talent Tree: brew recipes, unit-type limits, resources, adventure maps,
+> switches on Star Players, and if you have three matching Stars you get
+> Emblems."*
+
+Four of those six were already a row of `Talents.csv` and always had been:
+
+| what you asked for | the row |
+|---|---|
+| brew recipes | `unlock:Fire Brew` |
+| resources | `count:res_hops+6` — `res_<id>` is where the Brewery keeps a material |
+| adventure maps | `unlock:Marshlands` — a Biomes.csv row tests `Requires` like everything else |
+| unit-type limits | `count:class_set_limit+1`, or `count:limit_lorelei_sitri+1` for one set |
+
+There are worked examples of all four in `Talents.csv` now — **Hop Garden**,
+**Good Water**, **Depth of Squad** and **The Marsh Map**. None of them needed
+a line of code, and that is the point: if a thing you want is "give me some
+of X" or "let me have Y", it is already a talent.
+
+**The two that needed code are the Stars and the Emblems.** They are a
+different shape — three plinths and a choice, not a grid of nodes with lines
+between them — so they are a second screen: **the Star Hall**. One pool of
+points, which is what makes them one tree.
+
+### The shape, which your spreadsheets already describe
+
+A class is **one Star set plus three emblem sets** (section 7c). So:
+
+```
+   THREE NODES, one per emblem set
+
+   Put one of your Star Players into a node
+       -> that set's NINE UNITS become yours to field
+
+   All three nodes filled
+       -> CHOOSE ONE EMBLEM, and it cannot be changed
+       -> FORGE THE TEAM SPIRIT
+```
+
+**The tree is not written down anywhere, and that is deliberate.** Its nodes
+are read off the unit spreadsheets. Add a fourth emblem set to a class
+tomorrow and its tree has four nodes this afternoon, with no second file to
+keep in step — because a tree written twice is a tree that will disagree with
+itself.
+
+### `data/ClassTree.csv` — the part the sets cannot tell us
+
+| column | |
+|---|---|
+| `Class` | the class. **`*` is the fallback row** every class without one of its own uses — keep it |
+| `Node Cost` · `Emblem Cost` · `Spirit Cost` | talent points, out of the same pool the ordinary tree spends |
+| `Spirit Brew` | the **ID of a row in Brews.csv** |
+| `Requires` | |
+
+**One point per match** once the Training Ground is open, so a full
+three-node class costs about **eight matches**.
+
+### The Team Spirit is an ordinary brew
+
+Forging unlocks the words **`Team Spirit <Class>`** and does nothing else.
+The `Brews.csv` row named in `Spirit Brew` asks for exactly those words in
+its `Requires`. The two halves meet on a name, the way every unlock in this
+game does — so you can rewrite the drink completely, the element, both
+abilities, the price, whether it is permanent, without touching code.
+
+Both are in `Brews.csv` already: `spirit_lorelei` and `spirit_rauhnacht`.
+
+### An emblem is a two-sided card, and it has two condition columns
+
+| column | |
+|---|---|
+| `Basic Side` | what it does from the moment you choose it |
+| `Condition` | **the prose.** What a player reads. It may be a paragraph |
+| `Turns On` | **the same thing in the condition language**, so the game can read it |
+| `Ultimate Side` | what it does afterwards. The basic side stays live |
+
+Two columns for one idea, on purpose. Your Conditions are paragraphs — *"If
+all three Tier I Units that were removed to create Rose Token Units were
+Lorelei"* — which is exactly right for a card and impossible for a program.
+So the prose stays for the player and `Turns On` is what the game tests.
+
+**One is wired as the worked example.** Belphegor turns over at
+`count:duels_won_as_Rauhnacht-Feuergeister>=4`, which needed one new row of
+`Stats.csv` (`duels_won_as_{class}`) and nothing else. The other five have a
+Condition and no `Turns On`, so they can never turn over yet — the checker
+lists them apart from the real problems, because that is prose waiting for a
+mechanic, not a mistake.
+
+### The gate, and why it is off
+
+`class_tree_gates_units` in `Tuning.csv` is **false**.
+
+Turn it on and an emblem set's nine units are **not yours** until a Star
+stands in its node — the team builder simply does not offer them. It is one
+line in `_load_library()`, because "is this card mine" is a question
+`class_tree.gd` answers.
+
+It is off for the same reason `squad_ownership` and `recovery` are off: **a
+gate switched on before there is a way through it is a game you cannot
+start.** With it false the whole Star Hall is additive and not one squad you
+have already built changes.
+
+### Where the save keeps it
+
+All ordinary `GameState` entries, so all of it is testable from any
+spreadsheet:
+
+```
+   text   star_in_<class>_<set>    which Star is in which node
+   text   emblem_<class>           the emblem you chose
+   flag   spirit_<class>           the Team Spirit is forged
+   flag   flipped_<class>          the emblem has turned over
+   flag   three_of_a_kind          three Stars of one class are placed
+   unlock <Class> <Set>            that set's nine units
+   unlock Team Spirit <Class>      the drink
+```
+
+`three_of_a_kind` is the one the `star_collector` achievement has been
+waiting on since it was written. **It is earnable now.**
+
+> **A Star is remembered by name AND card number.** Every Star in
+> `Unit_Set_Lorelei.csv` is currently called "Unit Name", and with names alone
+> the first one placed blocked the other two — the tree said "you have no Star
+> left" with three sitting there. The card number is the thing your
+> spreadsheets already guarantee is unique.
+
+### The four-way check
+
+```
+godot --headless --script res://tools/class_tree_check.gd
+```
+
+A class is spread over **four** files that have to agree: the unit CSV (`Set
+Name`), `<Class> Emblems.csv` (`Name`), `ClassTree.csv` (`Spirit Brew`) and
+`Brews.csv` (`Requires`). Nothing but a tool can see that they line up.
+
+It then **walks** the tree on a throwaway save — fills every node, chooses an
+emblem, forges the spirit — and prints what the whole thing cost and what the
+gate would do:
+
+```
+  Lorelei:                   THE WHOLE TREE COSTS 8 POINT(S).
+     three of a kind: yes   emblem: Gremory   spirit: forged
+     the gate: 0 of 27 set cards before, 27 after.
+```
+
+A class with no `<Class> Emblems.csv` at all is listed as *waiting*, not as a
+problem. BasicTeam and the Brandteufel are both in that state and neither is
+broken.
+
+---
+
 ## 8. Adventure mode
 
 `src/adventure/` — eleven scripts. The run is a scrolling pitch; the fight is
@@ -2315,7 +2468,7 @@ palette colour and whether the game reads that name — and what is sitting in
 
 ---
 
-## 9. `data/Tuning.csv` — 319 numbers
+## 9. `data/Tuning.csv` — 328 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -2968,6 +3121,29 @@ matches simulated at each level — fouls, yellows, reds and how often a match
 ends ten against eleven. It does the multiplication that makes "18%" mean
 something: both sides roll, nine times a match, which is eighteen rolls. See
 section 7d.
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/gate_shot.gd
+```
+The team builder photographed with `class_tree_gates_units` off and then
+forced on, so you can see what turning that switch does before a player
+does. It caught two bugs the day it was written — see its header.
+
+```
+godot --headless --script res://tools/class_tree_check.gd
+```
+The four files a class is spread over, checked against each other — and then
+the tree WALKED on a throwaway save, so you find out what it costs before a
+player does. See section 7e.
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/class_tree_shot.gd
+```
+The Star Hall photographed empty, with the Star picker open, and with every
+node filled — which in a real game is eight matches away.
+
 
 ```
 godot --headless --script res://tools/brewery_check.gd

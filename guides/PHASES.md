@@ -154,7 +154,7 @@ writing the gates twice.
 
 ---
 
-## Phase 6 — The Talent Tree, and the classes  ⬅ NEXT
+## Phase 6 — The Talent Tree, and the classes  ✅ IN THIS ZIP
 
 **This is the old Phase 5, grown.** The talent tree and the class system
 turned out to be the same thing described twice — the tree's three starting
@@ -162,27 +162,28 @@ nodes *are* the three Stars of a class — so they are one phase.
 
 | | |
 |---|---|
-| | The tree itself: nodes, costs, what a node needs, what it hands over |
-| | **Brew recipes** — which rows of Brews.csv you may make at all |
-| | **Unit-type limits** — how many of a class you may field |
-| | **Resources** — what a node gives you, in the `res_` counters the Brewery already reads |
-| | **Adventure maps** — which ones are open |
-| | **Switches on Star Players** |
-| | **Three Stars of one class → Emblems.** The gate already exists: the `star_collector` achievement waits on `flag:three_of_a_kind`, and the team builder sets that flag when this lands |
-| | An emblem is a **two-sided card**: Basic Side, a Condition, an Ultimate Side that turns over when the condition is met |
-| | The **Team Spirit** drink, forged when all three match |
+| ✅ | The tree itself: nodes, costs, what a node needs, what it hands over — **`data/ClassTree.csv`** and the **Star Hall** screen |
+| ✅ | **Brew recipes** — `unlock:Fire Brew`. Already a talent row, and always was |
+| ✅ | **Unit-type limits** — `count:class_set_limit+1` for every set, `count:limit_lorelei_sitri+1` for one. Worked example: **Depth of Squad** |
+| ✅ | **Resources** — `count:res_hops+6`, straight into the counters the Brewery reads. Worked examples: **Hop Garden**, **Good Water** |
+| ✅ | **Adventure maps** — `unlock:Marshlands`. Worked example: **The Marsh Map** |
+| ✅ | **Switches on Star Players** — a Star goes into a node, and that node's nine units become yours |
+| ✅ | **Three Stars of one class → Emblems.** `flag:three_of_a_kind` is set by the Star Hall, so the `star_collector` achievement is earnable |
+| ✅ | An emblem is a **two-sided card**: Basic Side, a Condition in prose, a **`Turns On`** in the condition language, an Ultimate Side |
+| ✅ | The **Team Spirit** drink — an ordinary row of Brews.csv, unlocked by name |
 
-**Why now:** it is the deepest system in the game, it is the one that makes
-the cards you are drawing *mean* something, and both of the things it was
-waiting on — achievements and resources — are in this zip.
+**Four of the six were spreadsheet rows and needed no code at all.** The two
+that needed code were the Stars and the Emblems, and they are a different
+shape from the talent grid — three plinths and a choice — so they are a
+second screen sharing one pool of points.
 
-**What it needs from you:** `Lorelei Emblems.csv` and
-`Rauhnacht-Feuergeister Emblems.csv` are the model and one of them disagrees
-with itself. `tools/class_check.gd` names the two rows (Sitri and Gremory).
+**What it still needs from you:** `Lorelei Emblems.csv` says `Gremory` where
+the unit sheet says `Sitri`. `tools/class_tree_check.gd` names both rows, and
+it is the only thing standing between that class and a working tree.
 
 ---
 
-## Phase 7 — The Brewery, built
+## Phase 7 — The Brewery, built  ⬅ NEXT
 
 The map, on top of the chain that is already in the zip.
 
@@ -257,11 +258,11 @@ Crown` and `The Cup` unlocks are now handed out by achievements.
 
 | it used to be | it is now |
 |---|---|
-| Phase 5, the class system | **Phase 6**, joined with the Talent Tree |
+| Phase 5, the class system | **Phase 6**, joined with the Talent Tree — done |
 | Phase 6, around the match | **Phase 10**, word for word |
 | *(new)* the foul system | **Phase 5**, done |
 | *(new)* Achievements | **Phase 5**, done |
-| *(new)* Talent Tree | **Phase 6** |
+| *(new)* Talent Tree | **Phase 6**, done |
 | *(new)* Brewery — the chain | **Phase 5**, done |
 | *(new)* Brewery — the six sections on a map | **Phase 7** |
 | *(new)* Pub | **Phase 8** |
