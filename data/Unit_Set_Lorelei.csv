@@ -2,9 +2,6 @@ Unit Type,Name,Attack,Defend,Element,Base Power ,Tier,Card Number,Set Name,Artwo
 Lorelei,Unit Name,If you control a token: Deal 1 damage to the enemy goalie at the end of the cycle ,While in exile: Give a Tier I water unit +1 power during comabt ,WATER,0,I,1,Sitri,Sitri_Lorelei.png,Normal
 Lorelei,Unit Name,If you control a token: During combat remove 1 power from a Tier I unit,While in exile: Deal 1 damage to the enemy goalie at the end of a cycle ,WATER,1,I,2,Sitri,Sitri_Lorelei.png,Normal
 Lorelei,Unit Name,If you control a token: Give your the next water unit +1 power during combat,While in exile: Give a Tier II water unit ability priority during combat,WATER,2,I,3,Sitri,Sitri_Lorelei.png,Normal
-Lorelei,Unit Name,If you control 4 tokens: Deal +2 damage during combat,If you control 3 tokens: negate the enemy ability,WATER,1,II,4,Star,Star_Lorelei.png,Star
-Lorelei,Unit Name,Reveal: Deal +1 damage during combat,Reveal: Deal 1 damage to the enemy goalie ,WATER,2,II,5,Star,Star_Lorelei.png,Star
-Lorelei,Unit Name,When your Cups or Wand Unit defends and wins combat get a Song counter and place it on an enemy Unit in the Active Zone. Songs permanently mark Units that have been song to and they get -1 Attack Power. (Emblem to show to keep track on pen&paper),None,WATER,3,II,6,Star,Star_Lorelei.png,Star
 Lorelei,Unit Name,If you control a token: Swap the attack of the token with this unit power,While in exile: During combat remove 1 power from a Tier III unit,WATER,2,III,7,Sitri,Sitri_Lorelei.png,Normal
 Lorelei,Unit Name,If you control a token: Force the enemy TIer III to use their other ability ,While in exile: Give your goalie 1 stamina after Tier IV combat,WATER,3,III,8,Sitri,Sitri_Lorelei.png,Normal
 Lorelei,Unit Name,If you control a token: Deal 1 damage to the enemy goalie at the end of the cycle ,While in exile: Force then enemy Tier III to use their other ability during combat,WATER,4,III,9,Sitri,Sitri_Lorelei.png,Normal
@@ -20,12 +17,12 @@ Lorelei,Unit Name,If this unit is a swan: Give the enemy -1 attack power during 
 Lorelei,Unit Name,If this unit is a swan: Give the enemy -1 attack power during combat,Reveal: Reveal another unit card. ,WATER,3,IV,10,Zepar,Zepar_Lorelei.png,Normal
 Lorelei,Unit Name,If this unit is a swan: Give the enemy -1 attack power during combat,Reveal: This card ability cannot be countered. ,WATER,4,IV,11,Zepar,Zepar_Lorelei.png,Normal
 Lorelei,Unit Name,If this unit is a swan: Give the enemy -1 attack power during combat,Reveal: Give the next Tier I water unit +1 power next combat. ,WATER,5,IV,12,Zepar,Zepar_Lorelei.png,Normal
-Lorelei,Unit Name,None,None,WATER,0,I,1,Sallos,Sallos_Lorelei.png,Normal
-Lorelei,Unit Name,None,None,WATER,1,I,2,Sallos,Sallos_Lorelei.png,Normal
-Lorelei,Unit Name,None,None,WATER,2,I,3,Sallos,Sallos_Lorelei.png,Normal
-Lorelei,Unit Name,None,None,WATER,2,III,7,Sallos,Sallos_Lorelei.png,Normal
-Lorelei,Unit Name,None,None,WATER,3,III,8,Sallos,Sallos_Lorelei.png,Normal
-Lorelei,Unit Name,None,None,WATER,4,III,9,Sallos,Sallos_Lorelei.png,Normal
-Lorelei,Unit Name,None,None,WATER,3,IV,10,Sallos,Sallos_Lorelei.png,Normal
-Lorelei,Unit Name,None,None,WATER,4,IV,11,Sallos,Sallos_Lorelei.png,Normal
-Lorelei,Unit Name,None,None,WATER,5,IV,12,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: Give the next Tier II water unit +1 power next combat. ,WATER,0,I,1,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending:,WATER,1,I,2,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: ,WATER,2,I,3,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: ,WATER,2,III,7,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: ,WATER,3,III,8,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: ,WATER,4,III,9,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: ,WATER,3,IV,10,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: ,WATER,4,IV,11,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: ,WATER,5,IV,12,Sallos,Sallos_Lorelei.png,Normal
