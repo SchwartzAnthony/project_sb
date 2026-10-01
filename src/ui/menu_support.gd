@@ -203,6 +203,16 @@ static func icon_button(icon: String, label: String,
 		size: Vector2 = Vector2(180, 48)) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = size
+	# ============ IT MOVES WHEN YOU TOUCH IT ============
+	#
+	# Hover lifts it two pixels, a press pushes it three down, and letting go
+	# springs it back. All three numbers are rows of Motion.csv, so the feel
+	# of every button in the game is three cells you change and look at.
+	#
+	# This is the single highest-value line in the file: a button that does
+	# nothing under the mouse reads as a picture of a button, and two pixels
+	# is the whole difference.
+	MotionBook.press_feel(button)
 	# FOCUS_ALL, NOT FOCUS_NONE. A button that cannot take focus cannot be
 	# reached with a stick or the arrow keys, and that is the whole of
 	# controller navigation — see controller_focus.gd. The focus box below is

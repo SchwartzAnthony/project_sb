@@ -284,8 +284,7 @@ static func reset_after_goal(state: GameState) -> void:
 	state.set_text(ASCENDED, "")
 	for class_key in ClassBook.classes():
 		var entry: ClassBook.ClassEntry = ClassBook.classes()[class_key]
-		for key in entry.emblems:
-			var badge: ClassBook.Emblem = entry.emblems[key]
+		for badge in for_class(entry.unit_type):
 			state.set_flag(FLIPPED_PREFIX + _key(badge.id), false)
 			var found := _counter_in(badge.turns_on)
 			if not found.is_empty():
@@ -340,14 +339,23 @@ static func problems() -> Array[String]:
 		var entry: ClassBook.ClassEntry = ClassBook.classes()[class_key]
 		if entry.emblems.is_empty():
 			continue
-		if entry.emblems.size() != 3:
+		# COUNT THE EMBLEMS, not the keys. Each one is filed under its own
+		# name and under its Star's, so `emblems.size()` is six for a class
+		# of three — `for_class()` walks the names only.
+		var many := for_class(entry.unit_type).size()
+		if many != 3:
 			out.append("%s has %d Emblem(s), not 3. A class is three Stars and each one carries one."
-				% [entry.unit_type, entry.emblems.size()])
+				% [entry.unit_type, many])
+		# WHICH STARS ARE HERE, filed under every name they might be looked
+		# up by: their own, and whatever their Emblem column says. The emblem
+		# row is called "Vassago's Emblem" and the Star is called "Vassago",
+		# so matching on one name alone reported every new class as carried
+		# by nobody.
 		var stars := {}
 		for star in entry.stars:
+			stars[_key(star.player_name)] = star
 			stars[_key(star.emblem_id())] = star
-		for key in entry.emblems:
-			var badge: ClassBook.Emblem = entry.emblems[key]
+		for badge in for_class(entry.unit_type):
 			var who := "%s (%s)" % [badge.id, entry.unit_type]
 
 			if badge.turns_on == "" and badge.condition != "":
@@ -360,7 +368,7 @@ static func problems() -> Array[String]:
 			if badge.token == "":
 				out.append("%s has no Token. That is the word its nine units make and spend — without one the set has no engine and the Condition will not fill."
 					% who)
-			if not stars.has(_key(badge.id)):
+			if not (stars.has(_key(badge.id)) or stars.has(_key(badge.star))):
 				out.append("%s is carried by no Star Player. An Emblem reaches the pitch on a Star and no other way, so this one can never be in a match."
 					% who)
 			var nine := ClassBook.set_for(entry.unit_type, badge.id)

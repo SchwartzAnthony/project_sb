@@ -2114,6 +2114,188 @@ offers. Nothing enforces four; it is just how many there are.
 
 ---
 
+## 7g. The referee — his attention, and what he misses
+
+> *"A % of causing fouls and getting yellow cards. A bar with 1-5 sections
+> that fill up. Once the yellow is committed, the % is high to be caught when
+> causing a foul. So when a foul happens and the bar isn't full, the ref
+> won't say anything. I also need a ref on the side that will pop up when a
+> foul happens."*
+
+### A foul is now two questions
+
+```
+   1. DID A FOUL HAPPEN?    Fouls.csv, exactly as before. The more a side
+                            set off in a round, the likelier it gave one away
+
+   2. DID HE SEE IT?        Referee.csv. And if he did not, NOTHING happens
+                            — no card, no free kick, no whistle
+```
+
+That second question is the whole feature. A foul system where every foul is
+called is a tax. A foul system where fouls go unseen **until his patience
+runs out** is a decision, because you can watch the bar filling and choose to
+keep playing that way or to stop.
+
+### The bar
+
+```
+   every trigger you set off      + Fill Per Trigger    (a little)
+   every foul he does NOT see     + Fill Per Foul       (a lot)
+```
+
+He has `Segments` of them — five out of the box, four for the strict one.
+While it fills, the chance he notices is `Caught Per Segment` for each lit
+segment. **Full, it is `Caught When Full`** — 95 or 100, so the next foul is
+a card near enough every time.
+
+**And once you have been booked he is watching you.** `Caught After Yellow`
+replaces all of it, whatever the bar says.
+
+**Red is built from yellows.** `Red Per Yellow` is added to the chance a
+*yellow* becomes a *red*, for every booking that side already has. With no
+yellows it adds nothing at all.
+
+### `data/Referee.csv`
+
+| column | |
+|---|---|
+| `ID` · `Name` · `Portrait` | `*` is the fallback every competition uses. The picture goes in `assets/portraits/` |
+| `Segments` | how many sections the bar has — your "1 to 5" |
+| `Fill Per Trigger` · `Fill Per Foul` | how fast he notices |
+| `Caught When Full` | the chance he sees a foul once the bar is full |
+| `Caught Per Segment` | and per lit segment before that |
+| `Caught After Yellow` | which replaces both, once you are booked |
+| `Red Per Yellow` | how much worse a second offence is |
+| `Empties On` | `card` (the default) or `never` |
+| `Says Nothing` / `Free Kick` / `Yellow` / `Red` | his lines, in his voice |
+
+**Three referees ship.** `*` for everyday, `lenient` (Old Brauer, five
+segments he fills slowly) and `strict` (Der Preusse, four segments and
+`Caught When Full` at 100). `referee_id` in Tuning.csv picks, so a cup final
+can have a stricter man than a friendly.
+
+### Price him in fouls
+
+```
+godot --headless --script res://tools/referee_check.gd
+
+  === HERR SCHIEDSRICHTER (*) ===
+  an average round sets off 3.0 trigger(s), which fills 0.75 of a segment.
+  SO THE BAR FILLS IN ABOUT 6.7 ROUNDS if nothing is given away.
+
+  fouls committed                    1520
+  HE DID NOT SEE                     823  (54%)
+  he blew the whistle                697  (46%)
+  yellow cards                       393
+  red cards                          131
+```
+
+**The miss rate is the number to watch.** Over about 80% and the bar is
+decoration — a player never sees a card and never learns the rule. Under
+about 20% and it is the system you had before the bar existed. Around half
+is the shape you want: getting away with one is common, getting away with
+four is not.
+
+> **A bug this tool caught on its first run.** My first wiring rolled the red
+> share *again* against a card Fouls.csv had already decided, so a yellow got
+> a second chance at being red using the base number. It printed 297 yellows
+> against 204 reds — two reds for every three bookings, which is not football,
+> it is a riot. It is 393 to 131 now. **The measurement found it; reading the
+> code did not.**
+
+### The man himself
+
+`ref_window.gd`. He slides in from the left over about a fifth of a second,
+holds the card up at an angle, says his line and goes again — because a
+referee who appears instantly reads as a bug and a referee who walks on reads
+as a referee. `ref_window_seconds` is how long he is held; 0 turns the window
+off and leaves the match reporting it in the log.
+
+**The card is drawn, not loaded.** A yellow rectangle is a yellow card in
+every country on earth and it can never be a missing file. The *portrait* is
+an image, and until `ref_default.png` exists he is a dark panel with a
+whistle on it.
+
+**He does not pop up for a foul he did not see.** That is the point — you got
+away with it, and the only sign is the bar creeping up. `ref_shows_uncalled`
+TRUE shows him anyway and is a debugging setting.
+
+### League only
+
+An Adventure fight has no referee, no fouls and no cards. That is not a
+switch: the bar is only ever created by `main_scene.gd`, and
+`adventure_scene.gd` does not know this file exists.
+
+---
+
+## 7h. Dev mode — own everything, or nothing
+
+> *"For the test, add a feature for me the developer to use all or none of
+> the units."*
+
+`dev_mode` in Tuning.csv is **FALSE**. Set it true and the pause menu grows a
+**DEV** section:
+
+```
+   Own EVERY card          signs every card in every unit CSV
+   Own NOTHING             clears the lot
+   What is in the game?    the roster counted by class, to the Output panel
+```
+
+**And a red strip sits across the top of every screen for as long as it is
+on.** That strip is not decoration — it is what stops a build going out with
+a free roster in it, because you cannot take a screenshot without seeing it.
+`dev_banner` FALSE hides it for one clean screenshot. Put it back.
+
+It writes to the **ordinary save**, through the same `SquadBook.sign()` a
+`sign:Müller` row in Dialogue.csv calls — a developer switch with its own
+private store is a developer switch that tests something other than the game.
+And because `squad_ownership` is FALSE out of the box, neither button changes
+a single match until you turn ownership on.
+
+**It touches the roster and nothing else.** Not coins, not achievements, not
+the tree. One switch that does six things is a switch nobody can reason
+about.
+
+---
+
+## 7i. How things move — `data/Motion.csv`
+
+> *"The general animation feel of the buttons, screen move and more."*
+
+Every movement in the game, in one spreadsheet — because **feel is a number
+you change and look at**, and a feel buried in fifteen scripts is a feel
+nobody ever tunes.
+
+| column | |
+|---|---|
+| `Moment` | `button_press`, `window_open`, `goal`, `ref_walk_on`… |
+| `Seconds` | how long |
+| `Move X` / `Move Y` | how far it travels **from where it ends up** |
+| `Scale` | how big it starts. **Under 1 grows into place, over 1 shrinks into place** — and those read completely differently: growing is arriving, shrinking is being put away |
+| `Ease` | `out` fast-then-settling, `in` slow-then-arriving, `both`, `none` |
+| `Shake` | pixels, multiplied by `juice_scale` |
+
+**Every number in here is small and fast.** Two pixels, three per cent, a
+tenth of a second. The temptation is to make them bigger and the result is a
+game that feels like it is wading: a button that moves two pixels reads as
+pressable, one that moves ten reads as broken. `goal` is the one exception,
+because it is what the match is for.
+
+A moment with no row simply does not move, so you can delete every row and
+the game still works — it just stops feeling like anything.
+
+```gdscript
+MotionBook.play(window, "window_open")    # one line, anywhere
+MotionBook.press_feel(button)             # hover, press and release at once
+```
+
+`MenuSupport.icon_button()` calls `press_feel` for you, so **every button in
+the game already has it**.
+
+---
+
 ## 8. Adventure mode
 
 `src/adventure/` — eleven scripts. The run is a scrolling pitch; the fight is
@@ -2479,6 +2661,84 @@ A row with no `Image` draws nothing, which is how three of the four start. A
 row whose `Requires` fails is not drawn either — the same condition language
 as everywhere else, so the Stadium screen will be able to unlock a layer
 without a line of code.
+
+## 8b2. The look — Marcinelle, in pixels
+
+> *"1970's-1990's european comic style reminiscent of Asterix & Obelix,
+> Motomania, Smart & Clever, Kleiner Arschloch. I believe this art style is
+> called MARCINELLE SCHOOL COMICS. The entire theme: Bavarian mythological
+> and Oktoberfest brew drinking while playing soccer."*
+
+### The honest problem, and the answer
+
+Marcinelle is **brush-and-ink comic art**. This game is **pixel art** — 96×96
+nine-slice chrome, 128×64 sprite cells, nearest-neighbour filtering
+everywhere. Those are two different media, and pretending otherwise would
+have meant rebuilding every asset in the project.
+
+So: **keep the medium and borrow the language.** Five things carry over, and
+all five survive at 96 pixels:
+
+| | |
+|---|---|
+| **heavy black outline** | 1px, pure black, closed all the way round |
+| **flat fill** | two or three tones a shape. No gradients, ever |
+| **exaggerated silhouette** | big hands, small heads, round bellies |
+| **a warm limited palette** | oak, brass, cream, **one** hot accent |
+| **hand-wobble** | lines that are not perfectly straight |
+
+### One hot colour, and only one
+
+```
+   colour accent       #f2b33d   BEER GOLD
+```
+
+In Marcinelle the eye is led by **one** hot colour against a warm neutral
+ground — Uderzo does it with the red of the trousers, Franquin with the
+yellow of the Marsupilami. So: everything you want pressed is the accent and
+**nothing else is**. The four tier colours are deliberately muted, because a
+tier colour is a label and four more bright colours would fight the one that
+matters.
+
+```
+   colour background   #19110a   stained oak, almost black
+   colour panel        #3a2415   walnut
+   colour text         #f3e8d4   cream enamel — NOT white
+   colour attack       #dd6f24   burnt orange, late autumn
+   colour defend       #5a93cc   bavarian sky blue
+```
+
+**The text is cream, not white.** Pure white on this ground is a hole, and
+the comics this is drawn from print on paper, never on light.
+
+### `data/ArtOrders.csv` — the work order
+
+Fourteen assets, in the order to make them, each with the exact PixelLab
+tool, the exact prompt, the exact size and what to do with the result.
+
+**Order 1 is the panel, and nothing else starts until it is right.** Every
+box in the game is drawn from it, and the result is then passed as
+`style_image` to all thirteen below — that is what makes fourteen separate
+generations read as one game rather than fourteen.
+
+| phase | what |
+|---|---|
+| **1 · the chrome** | panel, window, button ×3, slot, bars. Seven files that dress every screen at once |
+| **2 · the screens you see first** | title wallpaper, menu plaques, the base yard, **the pitch** |
+| **3 · the characters** | the referee, twelve emblems, optionally a font |
+
+### Two numbers in that file worth knowing
+
+**The wallpaper is 480 × 270.** That is exactly a quarter of 1920 × 1080, so
+scaling up lands on whole pixels and stays sharp. The game already draws
+everything nearest-neighbour, so it reads as deliberate rather than blurry.
+
+**The pitch is the biggest single win available.** The one in the project is
+1000 × 667 — the wrong shape, stretched into a 16:9 box and blown up 2.56×.
+`Stadium.csv` asks for 2560 × 1440, and section 8b has where the white lines
+must sit inside it.
+
+---
 
 ## 8c. `data/Theme.csv` — the skin
 
@@ -3892,6 +4152,12 @@ that is almost always why.
 
 **Renaming a card.** See section 13.
 
+**A loop over a bare `[...]` literal.** `for folder in ["a", "b"]` iterates an
+UNTYPED array, so `folder` comes out untyped, so `var path := folder + name`
+cannot be inferred and the file will not compile. Declare the list as
+`Array[String]` first. **This has now cost five rounds in five different
+files** — it is the single most common way to break a build here.
+
 **Assuming two names are the same name.** A Star is called Gremory and its
 nine units are the Sitri set. For months the checker reported that as two
 problems and there was nothing to fix, because the *code* assumed a Star and
@@ -3939,6 +4205,10 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | **add something to the bag** | a row of `Items.csv`. `Tab` says which of the three pages it lands on; leave it blank and `Kind` decides |
 | **add a key item** | a row of `Items.csv` with `Kind: key` and no `Use`, then hand it out with a `Drops.csv` row or an `On Win` |
 | **stop items being used mid-draft** | `draft_brew_button` in `Tuning.csv` |
+| **make the referee stricter** | a row of `Referee.csv`, then `referee_id` in Tuning.csv. Run `referee_check` to see what it did |
+| **change how a button feels** | three rows of `Motion.csv` — `button_hover`, `button_press`, `button_release` |
+| **unlock every unit to test with** | `dev_mode` TRUE in Tuning.csv, then the DEV section of the pause menu |
+| **make the art** | `data/ArtOrders.csv`, in order. Do number 1 first and pass it as the style image to the rest |
 | **add a new class** | the **+ New class** button in the workbench. Emblem → Ultimate → Star → nine units, three times, then it writes all four files |
 | **change what an Emblem is about** | its `Token` column. That is the word its nine units make and spend |
 | **let another class of your element play** | the Element node of the class tree, or hand out `unlocked:Open Water` from anywhere |

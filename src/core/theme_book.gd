@@ -492,3 +492,52 @@ static func dress(tree: SceneTree) -> void:
 	var wanted := godot_theme()
 	if tree.root.theme != wanted:
 		tree.root.theme = wanted
+	_dev_strip(tree)
+
+
+## ============ THE RED STRIP ============
+##
+## It hangs off dressing the screen because dressing the screen is the one
+## thing EVERY screen in the game does — MenuEscape.install() calls it on the
+## way in and the match calls it in _ready(). So there is one place that puts
+## it up and no screen has to remember to.
+##
+## It is parented to the ROOT and not to a screen, so changing scene does not
+## take it away: there is no moment where dev mode is on and nothing says so.
+static func _dev_strip(tree: SceneTree) -> void:
+	var db := CardDatabase.get_db()
+	var want := DevMode.on(db) and (db == null or db.tune_bool("dev_banner", true))
+	var found := tree.root.get_node_or_null("DevStrip")
+
+	if not want:
+		if found != null:
+			found.queue_free()
+		return
+	if found != null:
+		return
+
+	var layer := CanvasLayer.new()
+	layer.name = "DevStrip"
+	# ABOVE EVERYTHING. A window, a dialogue box and the pause menu all sit
+	# under this, because the one thing it must never do is be hidden.
+	layer.layer = 200
+	tree.root.add_child(layer)
+
+	var strip := ColorRect.new()
+	strip.color = Color(0.78, 0.16, 0.16, 0.92)
+	strip.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	strip.offset_bottom = 22.0
+	# IT DOES NOT EAT CLICKS. It covers the top of every screen and a button
+	# that happens to be under it still has to work.
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(strip)
+
+	var says := Label.new()
+	says.text = "DEV MODE — this build has the developer's door open"
+	says.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	says.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	says.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	says.add_theme_font_size_override("font_size", 12)
+	says.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
+	says.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	strip.add_child(says)

@@ -197,6 +197,34 @@ func _build() -> void:
 		auto_pick_changed.emit(now))
 	_panel.add_child(_auto_button)
 
+	# ============ THE DEVELOPER'S DOOR ============
+	#
+	# Only here when `dev_mode` is TRUE in Tuning.csv. While it is false this
+	# whole block does not exist, so there is no way to reach it by accident
+	# and no way for it to ship by accident either — see dev_mode.gd.
+	if DevMode.on(db):
+		_panel.add_child(_section("DEV"))
+		var says := _quiet(DevMode.banner(db, state))
+		_panel.add_child(says)
+
+		var all_in := _make_button("Own EVERY card", Vector2(0, 40))
+		all_in.pressed.connect(func() -> void:
+			says.text = DevMode.own_everything(state, db))
+		_panel.add_child(all_in)
+
+		var none_in := _make_button("Own NOTHING", Vector2(0, 40))
+		none_in.pressed.connect(func() -> void:
+			says.text = DevMode.own_nothing(state, db))
+		_panel.add_child(none_in)
+
+		var count := _make_button("What is in the game?", Vector2(0, 40))
+		count.pressed.connect(func() -> void:
+			var lines := DevMode.roster_report(db)
+			for line in lines:
+				print("[dev] %s" % line)
+			says.text = "%d card(s) in all — the breakdown is in the Output panel." % db.players.size())
+		_panel.add_child(count)
+
 	# --- out ---
 	_panel.add_child(_section("LEAVE"))
 

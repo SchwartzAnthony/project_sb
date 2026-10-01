@@ -338,6 +338,30 @@ const S = {
   help:"<b>Cost</b> is <code>reed:6|bog_iron:2</code> — the Pub takes those out of your counters when it pours. <b>Becomes</b> is the class it fights as. <b>Element</b> is the icon it carries in Adventure: a Lorelei who drinks a Fire Brew genuinely brings Fire to the pile."},
 "Talents.csv":{what:"The talent tree. A talent can edit any Tuning number permanently.",
   key:"ID", help:"<b>Effects</b> with <code>count:tune_</code> in front of a Tuning key changes that number: <code>count:tune_press_speed+12</code>. Any row of Tuning.csv can be driven this way."},
+"Referee.csv":{key:"ID", what:"THE MAN WITH THE WHISTLE. A foul is two questions now: did one happen, and did he see it.",
+  cols:{"ID":"text","Name":"text","Portrait":"text","Segments":"num","Fill Per Trigger":"num","Fill Per Foul":"num","Caught When Full":"num","Caught Per Segment":"num","Caught After Yellow":"num","Red Per Yellow":"num","Empties On":["card","never"],"Says Nothing":"long","Says Free Kick":"long","Says Yellow":"long","Says Red":"long"},
+  help:"<b>Fouls.csv decides whether a foul HAPPENED. This file decides whether he SAW IT</b> - and if he did not, nothing happens at all: no card, no free kick, no whistle. You got away with it.<br><b>The bar.</b> Every trigger a side sets off adds <code>Fill Per Trigger</code>; every foul he MISSES adds <code>Fill Per Foul</code>, which is much bigger - getting away with one is exactly when he starts paying attention. He has <code>Segments</code> of them, which is your 1 to 5.<br><b>While it fills</b> the chance he notices is <code>Caught Per Segment</code> for each lit segment. <b>Full</b>, it is <code>Caught When Full</code> - 95 or 100, so the next foul is a card near enough every time. <b>And once you have been booked he is watching you:</b> <code>Caught After Yellow</code> replaces all of it whatever the bar says.<br><b>Red is built from yellows.</b> <code>Red Per Yellow</code> is added to the chance a yellow becomes a red, for every booking that side already has. With no yellows it adds nothing.<br><b>Three referees ship</b> - <code>*</code> for everyday, a lenient one and a strict one - and <code>referee_id</code> in Tuning.csv picks, so a cup final can have a stricter man than a friendly. <code>tools/referee_check.gd</code> plays ten thousand rounds against each and tells you what share of fouls he misses. <b>Around half is the shape you want:</b> over 80% and the bar is decoration, under 20% and it is the system you had before the bar existed."},
+
+"Motion.csv":{key:"Moment", what:"HOW EVERYTHING MOVES. Buttons, windows, screens, the referee walking on.",
+  cols:{"Moment":"text","Seconds":"num","Move X":"num","Move Y":"num","Scale":"num","Ease":["out","in","both","none"],"Shake":"num"},
+  help:"<b>Feel is a number you change and look at.</b> A feel buried in fifteen scripts is a feel nobody ever tunes, so every movement in the game is a row here.<br><b>Move X/Y is how far it travels FROM WHERE IT ENDS UP</b>, so -2 on Y means it starts two pixels high and settles down. <b>Scale is how big it starts:</b> under 1 it GROWS into place, over 1 it SHRINKS into place - and those read completely differently. Growing is a thing arriving; shrinking is a thing being put away.<br><b>Ease</b> is the shape of the movement: <code>out</code> is fast then settling, which is how a real object behaves; <code>in</code> is slow then arriving, which is right for a press because your finger is doing the work; <code>none</code> is linear and reads as a machine.<br><b>EVERY NUMBER IN HERE IS SMALL AND FAST.</b> Two pixels, three per cent, a tenth of a second. The temptation is to make them bigger and the result is a game that feels like it is wading - a button that moves two pixels reads as pressable, one that moves ten reads as broken. <code>goal</code> is the one row allowed to be loud.<br><b>A moment with no row simply does not move</b>, so you can delete every row in this file and the game still works. It just stops feeling like anything."},
+
+"ArtOrders.csv":{key:"ID", what:"THE WORK ORDER FOR THE ART. Fourteen assets, in the order to make them.",
+  cols:{"Order":"num","ID":"text","Tool":"text","Width":"num","Height":"num","Elements":"text","Palette":"text","Prompt":"long","Then":"text","Goes To":"text"},
+  help:"<b>Do number 1 first and do not move on until it is right.</b> Every box in the game is drawn from the panel, so it sets the look of everything - and the result is then passed as <code>style_image</code> to all thirteen below. That is what makes fourteen separate generations read as one game rather than fourteen.<br><b>Three phases.</b> 1-7 is the nine-slice chrome, which dresses every screen at once. 8-11 is the screens you see first, including the pitch. 12-14 is the referee, the twelve emblems and optionally a font.<br><b>Two numbers worth knowing.</b> The wallpaper is 480x270 because that is exactly a quarter of 1920x1080, so scaling up lands on whole pixels and stays sharp - the game already draws everything nearest-neighbour, so it reads as deliberate rather than blurry. And the pitch is the biggest single win available: the one in the project is 1000x667, the wrong shape, stretched into a 16:9 box and blown up 2.56 times.<br><b>Marcinelle in pixels.</b> Heavy 1px black outline, flat fills with no gradients, exaggerated silhouettes, a warm limited palette and ONE hot accent. All five survive at 96 pixels; a brush line does not."},
+
+"Star Players.csv":{key:"Name", what:"THE THREE STARS OF EACH CLASS. They carry the Emblems onto the pitch.",
+  cols:{"Unit Type":"text","Name":"text","Front Side":"long","Ultimate Side":"long","Element":"text","Base Power ":"num","Tier":"tier","Card Number":"num","Emblem":"text","Set":"text","Set Name":"text","Artwork":"text","Ultimate Artwork":"text","Player Type":"text"},
+  help:"<b>A Star has ONE ability, not two.</b> <code>Front Side</code> is where a unit file writes Attack and Defend, and that is the design rather than a shortcut: a Star has one ability and an Ultimate; a normal unit has two abilities and no Ultimate. The loader fills both faces from Front Side.<br><b>Ultimate Side</b> is the other face. It is readable on hover at any time - earned or not, because an Ultimate you only see once you have it is one you never aimed at - and it goes live when this Star's Emblem completes its Condition. The Emblem and the Star turn over together.<br><b>Emblem</b> names the row of &lt;Class&gt; Emblems.csv this Star carries; <b>Set</b> names the set of nine that can complete it. Both default to the Star's own name, so you only fill them in when they differ - which for Gremory, whose nine are the Sitri set, they do."},
+
+"Elements.csv":{key:"Element", what:"THE FOUR ELEMENTS. What a class shares with OTHER classes.",
+  cols:{"Element":"text","Display Name":"text","Colour":"text","Icon":"text","Order":"num","Opposes":"text"},
+  help:"<b>An Emblem's Basic side is fed by ELEMENT and its Condition is fulfilled by CLASS.</b> Any water unit, whatever its class, counts toward a Lorelei Emblem's Basic side; only a Lorelei can complete the Condition that turns it over.<br>So a mixed water team gets a broader engine and gives up the Ultimate, and a mono-class team gets the Ultimate and a narrower engine. That is a real choice and it costs no code - it is the <code>Basic Feeds</code> column of an Emblems file, and <code>element</code> is its default.<br>Four elements is the whole set. The plan is one class per element first, then more classes inside each element."},
+
+"UnitActions.csv":{key:"ID", what:"THE VOCABULARY UNIT ABILITIES ARE ROLLED FROM. Triggers and effects.",
+  cols:{"ID":"text","Kind":["trigger","effect"],"Keyword":"text","Text":"long","Element":"text","Class":"text","Set":"text","Tier":"text","Side":["attack","defend","both"],"Weight":"num"},
+  help:"<b>Every unit ability is a TRIGGER and an EFFECT joined by a colon</b> - which is exactly how you already write them: \"If you control a token: Deal 1 damage to the enemy goalie\". That is why they can be generated, and this file is the two halves.<br><b>The placeholders.</b> <code>{token}</code> is the SET'S OWN WORD, out of the Token column of its Emblems row - Rose Unit, Swan, Song counter, burn counter, Teufel Mask. That single placeholder is what makes nine units read as a set that belongs together rather than nine units that happen to share a class. <code>{tier}</code>, <code>{element}</code>, <code>{class}</code> and <code>{n}</code> are filled from the class and the card being rolled.<br><b>Element, Class, Set and Tier narrow where a line may appear</b> - <code>*</code> means anywhere. A line with Element FIRE is never rolled for a water set, which is how a class keeps its voice while most of the vocabulary is shared. <b>Side</b> is attack, defend or both. <b>Weight</b> is how often it comes up: a weight-3 line turns up three times as often as a weight-1.<br><b>The + New class button is what uses this.</b> A roll is a first draft and every line is editable before anything is written."},
+
 "Buildings.csv":{what:"THE NINE DOORS. Each one opens a window OVER the base rather than cutting to a new scene.",
   key:"ID",
   help:"<b>Action decides what the door does.</b> <code>window:brewery</code> opens that screen over the base, dimmed, with the building still under your cursor - which is what these nine are. <code>goto:brewery</code> names the SAME screen and throws the base away instead; it still works, and it is what a Progression row should use when the base is not already open.<br><b>A BUILDING IS ALSO A RECIPE, and that has not gone anywhere.</b> <code>Requires: count:reed&gt;=20</code> with <code>Action: count:reed-20;count:coins+60</code> is a working trade with no code: Requires is the price check, Action is the trade. The base used to have four of those as worked examples - the Forge, the Still, the Reed Press and the Cold Cellar - and they were removed because they were demonstrations rather than rooms. Copy the pattern into a new row any time.<br><b>X and Y</b> are a fraction of the yard; 0.5,0.5 is the middle. <b>Requires</b> is the ordinary condition language, and a building whose Requires does not pass is drawn greyed with the reason on it rather than hidden.<br><code>tools/rooms_check.gd</code> checks that every Action actually names a screen - a door that leads nowhere looks exactly like a door that works. <br><b>A TERM THE GAME DOES NOT KNOW IS NOW SAID OUT LOUD.</b> <code>window</code>, <code>goto</code>, <code>story</code> and <code>announce</code> are the four actions that open something, so they are handed back to the screen rather than written into the save; everything else is ordinary effects language. For a while <code>window</code> was missing from that list of four, so <code>window:brewery</code> was quietly handed to the effects language, which ignores what it does not recognise - and clicking a building showed its description and opened nothing, with no error anywhere. That is fixed, and so is the shape of it: any term whose kind is neither of those four nor real effects language is now named in Godot's Output panel every time it runs. <b>If a button you wrote does nothing, look in the Output panel first.</b>"},
@@ -2018,6 +2042,75 @@ function paintBook(){
       ["a counter","a row of <b>Stats.csv</b>. <code>count:goals</code> reads it. A condition that waits on a counter nothing ever writes can never be true — the checker catches that"],
     ])}`);
 
+  card("A class, in one picture", `
+    <p style="margin:0 0 10px"><b>A class is 30 cards.</b> Three Star Players holding one whole tier between
+    them, and three sets of nine covering the other three tiers, three cards per tier.</p>
+    ${rows([
+      ["3 Star Players","one tier, one power each. <code>Star Players.csv</code>"],
+      ["3 sets of nine","the other three tiers. <code>Unit_Set_&lt;Class&gt;.csv</code>, keyed by <b>Set Name</b>"],
+      ["3 Emblems","one per Star, one per set. <code>&lt;Class&gt; Emblems.csv</code>"],
+      ["you field twelve","three Stars and nine regulars"],
+      ["to play all three Stars","take one tier's worth from EACH of the three sets — that leaves 18 on the bench"],
+    ])}
+    <p style="margin:10px 0 0;color:var(--dim)"><b>The + New class button walks exactly this.</b> Emblem →
+    Ultimate → Star → nine units, three times, then it writes all four files at once.</p>`);
+
+  card("The Emblems — three on the pitch, one may ascend", `
+    <p style="margin:0 0 10px"><b>An Emblem arrives with its Star.</b> Field the Star and its Emblem is on the
+    bar along the top of the pitch; take the Star out and the Emblem goes with them. It is not bought in the
+    talent tree any more.</p>
+    ${rows([
+      ["it is a race","all three collect all match. The FIRST to meet its Condition turns over and the other two are held on Basic. <code>emblem_race</code>"],
+      ["element feeds Basic","a water unit of ANY class counts toward a Lorelei Emblem's Basic side"],
+      ["class fulfils the Condition","only a Lorelei can complete it. <b>That is the one rule no column can loosen</b>"],
+      ["a goal ends the race","everything back to Basic, every count to zero. <code>emblem_reset_on_goal</code>"],
+      ["both faces flip together","the Emblem turns over AND the Star turns to its Ultimate Side"],
+      ["a Star has ONE ability","<code>Front Side</code>, not an Attack and a Defend. The second line is spent on the Ultimate"],
+      ["hover shows the Ultimate","always, earned or not. An Ultimate you only see once you have it is one you never aimed at"],
+    ])}
+    <p style="margin:10px 0 0;color:var(--dim)">So a mixed-element team gets a broader engine and gives up the
+    Ultimate, and a mono-class team gets the Ultimate and a narrower engine. <b>That is the whole reason a
+    second class of the same element is worth writing</b>, and it costs no code.</p>
+    <p style="margin:9px 0 0;color:var(--dim)"><b>The two columns that do the work.</b>
+    <code>Token</code> is the set's own word — Rose Unit, Swan, Song counter — and it is what its nine units
+    make and spend; without one the set has no engine and the Condition never fills.
+    <code>Set</code> says which nine answer for an Emblem, which is how Gremory can be carried by a Star of
+    that name while its units are the Sitri set. <b>That column closed the last red mark in any checker.</b></p>
+    <p style="margin:9px 0 0;color:var(--dim)"><b>Price the race in duels:</b>
+    <code>tools/emblem_check.gd</code>. Only the first to complete turns over, so an Emblem needing eight
+    where another needs three is written, drawn and never seen. Keep the three within one or two.</p>`);
+
+  card("The referee, and his attention", `
+    <p style="margin:0 0 10px"><b>A foul is two questions now.</b> Fouls.csv decides whether one HAPPENED;
+    Referee.csv decides whether he SAW IT. And if he did not, nothing happens at all.</p>
+    ${rows([
+      ["the bar fills","every trigger a side sets off adds a little; every foul he MISSES adds a lot"],
+      ["while it fills","<code>Caught Per Segment</code> for each lit segment — so an early foul is usually missed"],
+      ["full","<code>Caught When Full</code>, 95 or 100. The next foul is a card"],
+      ["after a booking","<code>Caught After Yellow</code> replaces all of it. He is watching you"],
+      ["red","<code>Red Per Yellow</code> per booking that side already has. With none it adds nothing"],
+      ["a goal / a card","empties the bar. <code>Empties On</code>"],
+      ["league only","an Adventure fight has no referee and never draws the bar"],
+    ])}
+    <p style="margin:10px 0 0;color:var(--dim)"><b>The number to watch is the MISS RATE</b>, from
+    <code>tools/referee_check.gd</code>. Over 80% and the bar is decoration — a player never sees a card and
+    never learns the rule. Under 20% and it is the system you had before the bar existed. Around half is the
+    shape you want: getting away with one is common, getting away with four is not.</p>`);
+
+  card("Dev mode", `
+    <p style="margin:0 0 10px"><code>dev_mode</code> in Tuning.csv is FALSE. True adds a DEV section to the
+    pause menu and puts a <b>red strip across the top of every screen</b> for as long as it is on.</p>
+    ${rows([
+      ["Own EVERY card","signs every card in every unit CSV"],
+      ["Own NOTHING","clears the lot — what a new game looks like, without deleting a save"],
+      ["What is in the game?","the roster counted by class, to the Output panel"],
+      ["the red strip","not decoration. It is what stops a build going out with a free roster in it, because you cannot take a screenshot without seeing it"],
+    ])}
+    <p style="margin:10px 0 0;color:var(--dim)">It writes to the ORDINARY save through the same
+    <code>sign:</code> a dialogue row uses, because a developer switch with its own private store tests
+    something other than the game. And <code>squad_ownership</code> is FALSE out of the box, so neither
+    button changes a match until you turn ownership on.</p>`);
+
   card("The four actions that need a screen", `
     <p style="margin:0 0 10px">Everything you write in a <b>Do</b>, <b>Effects</b>, <b>Action</b>, <b>On Win</b> or <b>Reward</b> column is written straight into your save. <b>Four cannot be</b>, because they <i>open</i> something and only the screen that asked knows where to open it:</p>
     ${rows([
@@ -2101,7 +2194,7 @@ function paintBook(){
   card("Known gaps, today", `
     <p style="margin:0 0 10px">Carried forward round to round. None of these stops anything; they are the list of what is half-written.</p>
     ${rows([
-      ["the Lorelei emblem","the class tree names <code>Gremory</code> where <code>Lorelei Emblems.csv</code> expects <code>Sitri</code>. <b>The only red mark left in any checker.</b> One cell fixes it"],
+      ["<s>the Lorelei emblem</s>","<b>FIXED.</b> Nothing was wrong with the data — the code assumed a Star and its set share a name. The <code>Set</code> column says which, and every checker is green"],
       ["three emblems","have no <code>Turns On</code> — they are earned and then do nothing"],
       ["two unlocks","<code>Emblems</code> and <code>Trophy Case</code> are granted and nothing tests them. A room waiting for its door"],
       ["eleven sounds","named in Audio.csv with no file. <code>SOUNDS_WANTED.csv</code> describes each"],

@@ -323,6 +323,13 @@ var player_star_bundle: Array[PlayerData] = []
 # so a substitution changes the bar and nothing has to be told about it.
 # `emblems_on_field` FALSE in Tuning.csv and it is never created at all.
 var emblem_bar: EmblemBar = null
+
+# ============ THE REFEREE'S ATTENTION, ALONG THE BOTTOM ============
+#
+# Two bars, one per side, in a LEAGUE match only — an Adventure fight has no
+# referee and adventure_scene.gd does not know this exists. `ref_bar` FALSE
+# in Tuning.csv hides it and the rules still run.
+var ref_bar: RefBar = null
 var enemy_star_bundle: Array[PlayerData] = []
 var available_player_stars: Array[PlayerData] = []
 var available_enemy_stars: Array[PlayerData] = []
@@ -1921,6 +1928,7 @@ func _resolve_kickoff_star(chosen: PlayerData) -> void:
 	# the field place their emblem" — this is that moment, and there is only
 	# one of it per match whichever way the side was chosen.
 	_open_emblem_bar()
+	_open_ref_bar()
 	_report("match_started", _facts_for(null))
 	_advance_progression("match_started")
 
@@ -1966,6 +1974,7 @@ func _apply_team_selection(picked: TeamSelection) -> void:
 	# the field place their emblem" — this is that moment, and there is only
 	# one of it per match whichever way the side was chosen.
 	_open_emblem_bar()
+	_open_ref_bar()
 	_report("match_started", _facts_for(null))
 	_advance_progression("match_started")
 
@@ -4914,6 +4923,14 @@ func _settle_fouls(player_lineup: Array, enemy_lineup: Array) -> Dictionary:
 	print("  Triggers this round: you %d, them %d." % [
 		abilities.triggers_for(false), abilities.triggers_for(true)])
 
+	# ============ THE REFEREE'S EYEBROWS GO UP ============
+	#
+	# Every trigger a side sets off fills his bar a little, whether or not
+	# anything came of it. This happens BEFORE the rolls below, so a round
+	# full of needle can be the round he finally notices.
+	for side in [false, true]:
+		Referee.watch_round(side, abilities.triggers_for(side), db)
+
 	# BOTH SIDES ARE ROLLED, yours first — only so that the match log reads
 	# the same way round every time.
 	for offender_is_enemy in [false, true]:
@@ -4925,11 +4942,50 @@ func _settle_fouls(player_lineup: Array, enemy_lineup: Array) -> Dictionary:
 		var lineup: Array = enemy_lineup if offender_is_enemy else player_lineup
 		var culprit := _who_fouled(lineup, offender_is_enemy)
 		var odds := FoulBook.odds_at(many)
-		print("  FOUL: %s side, %d trigger(s) -> %.0f%% -> %s%s" % [
+
+		# ============ AND DID HE SEE IT? ============
+		#
+		# THE SECOND QUESTION, and the one the whole feature is about. A foul
+		# happened; that is settled. Whether anything comes of it is the
+		# referee's, and while his bar is filling the answer is usually no.
+		#
+		# A foul he misses costs NOTHING — no card, no free kick, no
+		# possession — and fills his bar by a lot. Which is what makes the
+		# bar worth watching: you can see him running out of patience.
+		var booked_already := _yellows_for(offender_is_enemy)
+		if not Referee.notices(offender_is_enemy, booked_already, db):
+			Referee.got_away_with_it(offender_is_enemy, db)
+			print("  FOUL: %s side, %d trigger(s) -> %s — AND HE DID NOT SEE IT. %s" % [
+				"away" if offender_is_enemy else "home", many, verdict,
+				Referee.reading(offender_is_enemy, booked_already, db)])
+			await RefWindow.show_it(self, db, "",
+				culprit.data.player_name if culprit != null and culprit.data != null else "",
+				offender_is_enemy)
+			_refresh_ref_bar()
+			continue
+
+		# HE SAW IT. The bar is spent, and red is rebuilt from the bookings
+		# that side already has — a first card is almost never red and a
+		# third foul after two bookings very often is.
+		# A BOOKING ALREADY ON THAT SIDE MAKES THE NEXT ONE WORSE. Fouls.csv
+		# has already chosen between a free kick, a yellow and a red; this
+		# only upgrades a yellow, and only by the bump the bookings earn.
+		# With no yellows yet it adds nothing at all.
+		if verdict == "yellow" and randf() * 100.0 < Referee.red_bonus(booked_already, db):
+			verdict = "red"
+		Referee.whistled(offender_is_enemy, db)
+
+		print("  FOUL: %s side, %d trigger(s) -> %.0f%% -> %s%s  [%s]" % [
 			"away" if offender_is_enemy else "home", many,
 			float(odds["chance"]), verdict,
 			"" if culprit == null or culprit.data == null
-			else " (" + culprit.data.player_name + ")"])
+			else " (" + culprit.data.player_name + ")",
+			String(Referee.on_duty(db)["name"])])
+
+		await RefWindow.show_it(self, db, verdict,
+			culprit.data.player_name if culprit != null and culprit.data != null else "",
+			offender_is_enemy)
+		_refresh_ref_bar()
 
 		if verdict == "yellow":
 			await _book_him(culprit, offender_is_enemy)
@@ -6128,3 +6184,47 @@ func _settle_emblems() -> void:
 	_refresh_emblems()
 	if turned != null:
 		announce("%s  —  ULTIMATE" % turned.id.to_upper())
+
+
+# =============================================================
+#  THE REFEREE'S BAR
+# =============================================================
+
+## How many bookings that side has, counted off the cards actually shown.
+##
+## Read rather than stored, because `_cards_shown` is already the one true
+## record of the afternoon and a second tally is a second thing to get wrong.
+func _yellows_for(side_is_enemy: bool) -> int:
+	var many := 0
+	for shown in _cards_shown:
+		if bool(shown["side"]) == side_is_enemy and String(shown["colour"]) == "yellow":
+			many += 1
+	return many
+
+
+func _reds_for(side_is_enemy: bool) -> int:
+	var many := 0
+	for shown in _cards_shown:
+		if bool(shown["side"]) == side_is_enemy and String(shown["colour"]) == "red":
+			many += 1
+	return many
+
+
+func _open_ref_bar() -> void:
+	if ref_bar != null and is_instance_valid(ref_bar):
+		_refresh_ref_bar()
+		return
+	# A FRESH AFTERNOON. His patience is about one match and carrying it into
+	# the next would be a bug nobody could ever trace.
+	Referee.clear_heat()
+	ref_bar = RefBar.open(selection_ui if selection_ui != null else self, db)
+	_refresh_ref_bar()
+
+
+func _refresh_ref_bar() -> void:
+	if ref_bar == null or not is_instance_valid(ref_bar):
+		return
+	for side in [false, true]:
+		ref_bar.yellows[side] = _yellows_for(side)
+		ref_bar.reds[side] = _reds_for(side)
+	ref_bar.refresh()

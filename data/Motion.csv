@@ -1,0 +1,14 @@
+Moment,Seconds,Move X,Move Y,Scale,Ease,Shake,Notes
+button_hover,0.10,0,-2,1.03,out,0,"THE FEEL OF THE WHOLE GAME LIVES IN THIS FILE. A button that does nothing when the mouse is over it reads as a picture of a button. Two pixels up and three per cent bigger, over a tenth of a second, is enough to read as 'this is a thing you can press' and little enough that a row of eight of them is not a disco. Ease `out` means it moves fast and settles - which is how a real object behaves and a linear move does not."
+button_press,0.06,0,3,0.97,in,0,"AND DOWN AGAIN. Shorter than the hover and in the opposite direction, so a press feels like a press. Ease `in` is the right way round here: a press starts slow and arrives, because your finger is what is doing the work."
+button_release,0.12,0,0,1.0,out,0,"Back to rest. Longer than the press, so it springs rather than snaps."
+window_open,0.16,0,-14,0.94,out,0,"A WINDOW OVER THE BASE. It comes up from slightly below at ninety-four per cent and settles - which reads as a thing arriving rather than a thing appearing. Scale under 1 means it grows INTO place; over 1 would mean it shrinks into place, which reads as a thing being put away."
+window_shut,0.10,0,10,0.96,in,0,Faster than opening. Closing a window is never the interesting part.
+screen_in,0.22,0,0,1.0,out,0,"A whole screen arriving. It is a fade: Move and Scale are both nothing, and only Seconds matters."
+screen_out,0.14,0,0,1.0,in,0,"And leaving. Shorter than arriving, always - waiting to leave is the most annoying wait there is."
+dialogue_line,0.0,0,0,1.0,out,0,"HOW FAST A LINE OF DIALOGUE TYPES ITSELF, in seconds per character. 0 shows the whole line at once. 0.02 is a comfortable read-along; 0.05 is slow enough to be annoying on a long line."
+card_deal,0.14,0,24,0.9,out,0,"A player card arriving in the draft row. From below and small, so a row of them deals like a hand of cards."
+card_pick,0.09,0,-8,1.06,out,0,"And the one you chose, lifting out of the row."
+ref_walk_on,0.18,-40,0,1.0,out,0,THE REFEREE COMING ON. Move X is negative because he comes from off the LEFT edge. See ref_window.gd - a referee who appears instantly reads as a bug and a referee who walks on reads as a referee.
+goal,0.30,0,0,1.08,out,7,"A GOAL. The one moment in the game that is allowed to be loud: the screen swells eight per cent and shakes seven pixels. Shake is in pixels and it is multiplied by `juice_scale` in Tuning.csv, so a player who dislikes screen shake can turn this off without you editing it."
+card_shown,0.20,0,0,1.03,out,4,"A yellow or a red. Smaller than a goal, because a booking is a bad moment and bad moments should not feel like fireworks."

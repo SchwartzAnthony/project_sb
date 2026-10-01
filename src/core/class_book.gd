@@ -135,7 +135,15 @@ class ClassEntry extends RefCounted:
 	## Set id -> EmblemSet. Three of them, in a finished class.
 	var sets: Dictionary = {}
 	## Emblem id -> Emblem, out of "<Class> Emblems.csv".
+	##
+	## EVERY EMBLEM IS IN HERE TWICE when its own name and its Star's name
+	## differ — once under each — so a Star can find its Emblem whatever the
+	## row is called. `aliases` below says which keys are the second name.
 	var emblems: Dictionary = {}
+	## The keys of `emblems` that are a Star's name rather than the emblem's
+	## own. Anything COUNTING emblems skips these, or a class with three
+	## emblems reports six.
+	var aliases: Dictionary = {}
 
 
 static var _classes: Dictionary = {}
@@ -273,6 +281,27 @@ static func _read_emblem_file(path: String) -> void:
 			entry.unit_type = badge.unit_type
 			_classes[key] = entry
 		entry.emblems[CardDatabase._normalise(badge.id)] = badge
+
+		# ============ AN EMBLEM IS ALSO FINDABLE BY ITS STAR ============
+		#
+		# Your emblem rows are called "Gremory's Emblem" and your Star is
+		# called "Gremory". Both are right: one is the name of a thing on a
+		# card and the other is the name of a person. The code used to need
+		# them to be the same word, so a Star went looking for its Emblem and
+		# found nothing — silently, which is the worst way for it to fail.
+		#
+		# So the same Emblem is filed under BOTH names. It is the same object
+		# either way, so nothing is duplicated and nothing can drift, and
+		# `aliases` remembers which keys are the second name so that anything
+		# counting emblems does not count them twice.
+		#
+		# The upshot for you: name an emblem row whatever reads best on the
+		# card. `Star` is the column that ties it to a player.
+		var star_key := CardDatabase._normalise(badge.star)
+		if star_key != "" and star_key != CardDatabase._normalise(badge.id):
+			entry.emblems[star_key] = badge
+			entry.aliases[star_key] = true
+
 		found += 1
 	if found > 0:
 		print("[class] %d emblem(s) from %s" % [found, path.get_file()])
@@ -292,6 +321,11 @@ static func emblems_for(unit_type: String) -> Array[Emblem]:
 	if entry == null:
 		return out
 	for key in entry.emblems:
+		# SKIP THE SECOND NAME. Every emblem is filed under its own name and
+		# under its Star's, so walking the whole dictionary would report a
+		# class of three as a class of six.
+		if entry.aliases.has(key):
+			continue
 		out.append(entry.emblems[key])
 	return out
 
@@ -467,8 +501,9 @@ static func trouble() -> Array[String]:
 		# An emblem's `Set` column names its set now, so the pairing is read
 		# rather than guessed.
 		var claimed := {}
-		for badge_key in entry.emblems:
-			var pairing: Emblem = entry.emblems[badge_key]
+		# EMBLEMS, NOT KEYS. Each one is filed under its own name and under
+		# its Star's, so walking the dictionary reports every problem twice.
+		for pairing in ClassBook.emblems_for(who):
 			var mine := ClassBook.set_for(who, pairing.id)
 			if mine == null:
 				out.append("%s: emblem '%s' names the set '%s' and there is no set of that name in the unit CSV, so it unlocks nothing."
@@ -482,8 +517,7 @@ static func trouble() -> Array[String]:
 			out.append("%s: unit set '%s' is named by no emblem's Set column, so nothing opens it."
 				% [who, orphan.id])
 
-		for badge_key in entry.emblems:
-			var badge: Emblem = entry.emblems[badge_key]
+		for badge in ClassBook.emblems_for(who):
 			if badge.basic.strip_edges() == "":
 				out.append("%s: emblem '%s' has an empty Basic Side." % [who, badge.id])
 			if badge.condition.strip_edges() != "" and badge.ultimate.strip_edges() == "":

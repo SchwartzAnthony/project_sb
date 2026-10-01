@@ -274,3 +274,16 @@ Star Players.csv.import,data/,Godot bookkeeping,Three lines. It was missing - ad
 emblem_book.gd,src/core/,Code,"The emblem rules: the race, who feeds what, progress, ascension. It reads nothing itself - class_book.gd owns the files."
 emblem_bar.gd,src/ui/,Code,"The three emblems along the top of the pitch, with live progress."
 emblem_check.gd,tools/,A measuring tool,Prices the race in duels and tells you which of a class's three Ultimates a player will actually see.
+Referee.csv,data/,A spreadsheet you edit,THE MAN WITH THE WHISTLE. A foul is two questions now - did one happen (Fouls.csv) and did he see it (this). Three referees ship; referee_id in Tuning.csv picks.
+Motion.csv,data/,A spreadsheet you edit,"HOW EVERYTHING MOVES. Buttons, windows, screens, the referee walking on. Every number in it is small and fast on purpose."
+ArtOrders.csv,data/,A spreadsheet you edit,"THE WORK ORDER FOR THE ART. Fourteen PixelLab jobs in the order to do them, with the exact prompts and sizes. Do number 1 first."
+referee.gd,src/core/,Code,"His attention: the bar, whether he notices, and how red is built from yellows."
+dev_mode.gd,src/core/,Code,Own everything or own nothing. Shut unless dev_mode is TRUE.
+motion_book.gd,src/core/,Code,Reads Motion.csv and plays a moment on any Control.
+ref_bar.gd,src/ui/,Code,"The five-segment attention bar, one per side. League matches only."
+ref_window.gd,src/ui/,Code,"The referee himself, sliding in from the left with the card."
+referee_check.gd,tools/,A measuring tool,Ten thousand rounds against each referee. The miss rate is the number to watch.
+ref_shot.gd,tools/,A measuring tool,Photographs the bar at three fills and the referee for each verdict.
+Referee.csv.import,data/,Godot bookkeeping,Three lines. Without it Godot reads the CSV as a translation table.
+Motion.csv.import,data/,Godot bookkeeping,Three lines. Without it Godot reads the CSV as a translation table.
+ArtOrders.csv.import,data/,Godot bookkeeping,Three lines. Without it Godot reads the CSV as a translation table.

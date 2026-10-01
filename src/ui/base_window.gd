@@ -92,6 +92,11 @@ func _build(title: String, scene_path: String) -> void:
 	frame.add_theme_stylebox_override("panel", MenuSupport.styled(
 		"window", "", MenuSupport.COLOUR_BACKGROUND, MenuSupport.COLOUR_ACCENT))
 	add_child(frame)
+	# IT COMES UP INTO PLACE rather than appearing. `window_open` in
+	# Motion.csv — fourteen pixels and six per cent over a sixth of a second,
+	# which reads as a thing arriving. Delete the row and it simply appears.
+	frame.call_deferred("set_pivot_offset", frame.size * 0.5)
+	MotionBook.play(frame, "window_open")
 
 	var pad := MarginContainer.new()
 	for side in ["margin_left", "margin_right"]:

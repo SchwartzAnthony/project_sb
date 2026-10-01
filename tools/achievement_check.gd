@@ -258,8 +258,7 @@ func _granted_by_the_star_hall(thing: String) -> bool:
 			var kit: ClassBook.EmblemSet = entry.sets[set_key]
 			if _squash(ClassTree.unlock_name(who, kit.id)) == want:
 				return true
-		for emblem_key in entry.emblems:
-			var badge: ClassBook.Emblem = entry.emblems[emblem_key]
+		for badge in ClassBook.emblems_for(who):
 			if _squash("%s %s Emblem" % [who, badge.id]) == want:
 				return true
 			if _squash("%s %s Ultimate" % [who, badge.id]) == want:

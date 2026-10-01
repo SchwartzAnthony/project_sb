@@ -86,8 +86,7 @@ func _initialize() -> void:
 		# An emblem's `Set` column names its set now, so the pairing is read
 		# rather than guessed, and the two false problems are gone.
 		var claimed := {}
-		for emblem_key in entry.emblems:
-			var badge: ClassBook.Emblem = entry.emblems[emblem_key]
+		for badge in ClassBook.emblems_for(who):
 			var kit := ClassBook.set_for(who, badge.id)
 			if kit == null:
 				print("    ! emblem '%s' names the set '%s' and there is no set of that name, so its nine units do not exist."
@@ -142,8 +141,7 @@ func _initialize() -> void:
 	var prose_only := 0
 	for key in ClassBook.classes():
 		var entry: ClassBook.ClassEntry = ClassBook.classes()[key]
-		for emblem_key in entry.emblems:
-			var badge: ClassBook.Emblem = entry.emblems[emblem_key]
+		for badge in ClassBook.emblems_for(entry.unit_type):
 			if badge.turns_on == "":
 				prose_only += 1
 				continue
