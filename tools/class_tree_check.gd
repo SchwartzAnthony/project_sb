@@ -59,8 +59,8 @@ func _initialize() -> void:
 		print("  %s" % who.to_upper())
 		print("    %d Star(s), %d emblem set(s), %d emblem card(s)"
 			% [entry.stars.size(), entry.sets.size(), entry.emblems.size()])
-		print("    costs: node %d, emblem %d, spirit %d"
-			% [int(costs["node"]), int(costs["emblem"]), int(costs["spirit"])])
+		print("    costs: node %d, element %d, spirit %d"
+			% [int(costs["node"]), int(costs["element"]), int(costs["spirit"])])
 
 		# ============ A CLASS WITH NO EMBLEM FILE IS NOT BROKEN ============
 		#
@@ -74,22 +74,38 @@ func _initialize() -> void:
 			continue
 
 		# ---- THE FOUR-WAY CHECK, half one: sets and emblems ----
-		for set_key in entry.sets:
-			var kit: ClassBook.EmblemSet = entry.sets[set_key]
-			var badge: ClassBook.Emblem = entry.emblems.get(set_key)
-			if badge == null:
-				print("    ! set '%s' (%d cards) has no emblem of that name. A node with no emblem can be filled and then leads nowhere."
-					% [kit.id, kit.cards.size()])
-				problems += 1
-			else:
-				print("    node %-12s %2d units  ->  emblem %s"
-					% [kit.id, kit.cards.size(), badge.id])
+		#
+		# ============ IT ASKS THE Set COLUMN, NOT THE NAME ============
+		#
+		# This check used to match an emblem to a set BY NAME, which quietly
+		# assumed a Star and its set share a word. Gremory's nine are the
+		# SITRI set, so it reported two problems — one for the set with "no
+		# emblem" and one for the emblem with "no set" — and there was
+		# nothing to fix. The data was right and the check was wrong.
+		#
+		# An emblem's `Set` column names its set now, so the pairing is read
+		# rather than guessed, and the two false problems are gone.
+		var claimed := {}
 		for emblem_key in entry.emblems:
-			if not entry.sets.has(emblem_key):
-				var lonely: ClassBook.Emblem = entry.emblems[emblem_key]
-				print("    ! emblem '%s' has no unit set of that name, so choosing it would open nothing."
-					% lonely.id)
+			var badge: ClassBook.Emblem = entry.emblems[emblem_key]
+			var kit := ClassBook.set_for(who, badge.id)
+			if kit == null:
+				print("    ! emblem '%s' names the set '%s' and there is no set of that name, so its nine units do not exist."
+					% [badge.id, badge.set_id])
 				problems += 1
+				continue
+			claimed[CardDatabase._normalise(kit.id)] = badge.id
+			var same := CardDatabase._normalise(badge.id) == CardDatabase._normalise(kit.id)
+			print("    node %-12s %2d units  ->  emblem %s%s"
+				% [kit.id, kit.cards.size(), badge.id,
+				   "" if same else "   (the Set column says so)"])
+		for set_key in entry.sets:
+			if claimed.has(set_key):
+				continue
+			var orphan: ClassBook.EmblemSet = entry.sets[set_key]
+			print("    ! set '%s' (%d cards) is named by no emblem's Set column. A node with no emblem can be filled and then leads nowhere."
+				% [orphan.id, orphan.cards.size()])
+			problems += 1
 
 		# ---- half two: the Team Spirit ----
 		var brew_id := String(costs["brew"])
@@ -155,7 +171,7 @@ func _initialize() -> void:
 		var who := entry.unit_type
 		var costs := ClassTree.costs_for(who)
 		var needed := entry.sets.size() * int(costs["node"]) \
-			+ int(costs["emblem"]) + int(costs["spirit"])
+			+ int(costs["element"]) + int(costs["spirit"])
 		state.set_count(ClassTree.POINTS, needed)
 
 		# WHAT THE GATE WOULD DO WITH NOTHING PLACED. Measured before a
@@ -191,16 +207,16 @@ func _initialize() -> void:
 		if not ClassTree.all_placed(who, state):
 			continue
 
-		var first := ""
-		for emblem_key in entry.emblems:
-			first = (entry.emblems[emblem_key] as ClassBook.Emblem).id
-			break
-		if first != "":
-			var chose := ClassTree.choose_emblem(who, first, state, db)
-			if bool(chose["ok"]):
-				spent += int(costs["emblem"])
+		# THE EMBLEM IS NOT BOUGHT HERE ANY MORE — it arrives with its Star.
+		# What the fourth node sells now is the ELEMENT: permission to field
+		# units of other classes that share yours. See emblem_check.gd for
+		# the emblems themselves.
+		if ClassTree.element_node_offered(who, db):
+			var opened := ClassTree.open_element(who, state, db)
+			if bool(opened["ok"]):
+				spent += int(costs["element"])
 			else:
-				print("  %s: could not choose an emblem — %s" % [who, chose["why"]])
+				print("  %s: could not open its element — %s" % [who, opened["why"]])
 				problems += 1
 
 		var forged := ClassTree.forge_spirit(who, state, db)
@@ -211,9 +227,9 @@ func _initialize() -> void:
 			problems += 1
 
 		print("  %-26s THE WHOLE TREE COSTS %d POINT(S)." % [who + ":", spent])
-		print("     three of a kind: %s   emblem: %s   spirit: %s" % [
+		print("     three of a kind: %s   element: %s   spirit: %s" % [
 			"yes" if state.has_flag(ClassTree.THREE_OF_A_KIND) else "NO",
-			ClassTree.chosen_emblem(who, state),
+			"open" if ClassTree.element_open(who, state) else "shut",
 			"forged" if ClassTree.spirit_forged(who, state) else "no"])
 
 		# WHAT THE GATE WOULD DO. Asked with the gate forced on, because that

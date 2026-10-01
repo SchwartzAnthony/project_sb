@@ -22,14 +22,35 @@ extends RefCounted
 #
 #  A class is ONE STAR SET plus THREE EMBLEM SETS — see class_book.gd. So:
 #
-#      THREE NODES, one per emblem set.
+#      THREE NODES, one per set of nine.
 #
 #      Put one of your Star Players into a node
-#          -> that emblem set's NINE UNITS become yours to field
+#          -> that set's NINE UNITS become yours to field
 #
 #      All three nodes filled
-#          -> the class section opens. You CHOOSE ONE EMBLEM
+#          -> the class section opens. You may open the ELEMENT NODE
 #          -> and you may FORGE THE TEAM SPIRIT
+#
+#  ============ WHAT CHANGED, AND WHY IT IS BETTER ============
+#
+#  THE EMBLEM IS NOT BOUGHT HERE ANY MORE. It arrives with its Star: field
+#  the Star and the Emblem is on the bar along the top of the pitch; take the
+#  Star out and the Emblem goes with them. See emblem_book.gd.
+#
+#  The old tree made you fill three nodes and then CHOOSE ONE emblem, which
+#  meant two of your three Stars were carrying nothing — and the choice was
+#  made at a menu, before you had played a minute of the match it decided.
+#  Now all three ride on, all three collect, and the first to complete its
+#  Condition turns over. The choice is made by PLAY.
+#
+#  So the node that sold you an emblem sells you an ELEMENT instead:
+#
+#      OPEN WATER (or Open Fire, Open Earth, Open Air)
+#          -> you may field units of OTHER classes that share your element
+#
+#  That is the door the other water classes walk through. A Lorelei Emblem's
+#  Basic side is already fed by ANY water unit — this node is what lets you
+#  put one on the pitch.
 #
 #  The tree is therefore not written down anywhere: it is READ OFF THE UNIT
 #  SPREADSHEETS. Add a fourth emblem set to a class tomorrow and its tree has
@@ -76,9 +97,16 @@ const POINTS := "talent_points"
 ## THE SAVE VOCABULARY. Every one of these is an ordinary GameState entry, so
 ## every one of them can be tested from any spreadsheet in the game.
 const STAR_PREFIX := "star_in_"          # text: which Star is in which node
-const EMBLEM_PREFIX := "emblem_"         # text: the emblem you chose
+## THE ELEMENT NODE. `element_lorelei` — a flag, because it is bought once
+## and never chosen between. The emblem_ key that used to be here is gone:
+## nothing chooses an emblem any more, the Stars bring all three.
+const ELEMENT_PREFIX := "open_element_"
+
 const SPIRIT_PREFIX := "spirit_"         # flag: the Team Spirit is forged
-const FLIPPED_PREFIX := "flipped_"       # flag: the emblem has turned over
+## Kept for old saves only. Nothing sets it any more: EmblemBook owns the
+## turning-over now and uses its own `emblem_flipped_` key. A save made before
+## the rework still has these flags and they simply do nothing.
+const FLIPPED_PREFIX := "flipped_"
 const THREE_OF_A_KIND := "three_of_a_kind"
 
 static var _costs: Dictionary = {}
@@ -110,7 +138,12 @@ static func _load() -> void:
 		_costs[_key(klass)] = {
 			"class": klass,
 			"node": maxi(0, MenuSupport.field_int(row, "Node Cost", 1)),
-			"emblem": maxi(0, MenuSupport.field_int(row, "Emblem Cost", 2)),
+			# `Emblem Cost` became `Element Cost` when emblems stopped being
+			# bought. The old name is still read as a fallback so a sheet you
+			# have not updated yet keeps working rather than silently costing
+			# nothing.
+			"element": maxi(0, MenuSupport.field_int(row, "Element Cost",
+				MenuSupport.field_int(row, "Emblem Cost", 2))),
 			"spirit": maxi(0, MenuSupport.field_int(row, "Spirit Cost", 3)),
 			"brew": MenuSupport.field(row, "Spirit Brew").strip_edges(),
 			"requires": MenuSupport.field(row, "Requires").strip_edges(),
@@ -134,7 +167,7 @@ static func costs_for(unit_type: String) -> Dictionary:
 	var any: Dictionary = _costs.get(_key("*"), {})
 	if not any.is_empty():
 		return any
-	return {"class": unit_type, "node": 1, "emblem": 2, "spirit": 3,
+	return {"class": unit_type, "node": 1, "element": 2, "spirit": 3,
 		"brew": "", "requires": ""}
 
 
@@ -322,55 +355,97 @@ static func all_placed(unit_type: String, state: GameState) -> bool:
 
 
 # =============================================================
-#  THE EMBLEM
+#  THE ELEMENT NODE — where the other classes of your element come in
+#
+#  ============ WHAT IT REPLACED ============
+#
+#  This is where you used to buy an Emblem. Emblems arrive with their Stars
+#  now, so the node was free to become the thing the four-element plan
+#  actually needs: permission to field units of OTHER classes that share your
+#  element.
+#
+#  It is a FLAG and not a choice. There is one element per class and nothing
+#  to pick between, so buying it is a yes and not a menu — which also means it
+#  can be handed out by an achievement, a dialogue line or a Progression row
+#  with the ordinary unlock words and no knowledge of this file.
 # =============================================================
 
-static func chosen_emblem(unit_type: String, state: GameState) -> String:
-	if state == null:
+## The unlock an Element node hands over. Anything may test it:
+## `unlocked:Open Water`.
+static func element_unlock(unit_type: String) -> String:
+	var element := ClassBook.element_of(unit_type)
+	if element == "":
 		return ""
-	return state.text(EMBLEM_PREFIX + _key(unit_type))
+	return "Open %s" % element.capitalize()
 
 
-## Choose ONE. It cannot be changed afterwards, which is what makes it a
-## choice rather than a menu.
-static func choose_emblem(unit_type: String, emblem_id: String,
-		state: GameState, db: CardDatabase) -> Dictionary:
+static func element_open(unit_type: String, state: GameState) -> bool:
+	if state == null:
+		return false
+	if state.has_flag(ELEMENT_PREFIX + _key(unit_type)):
+		return true
+	var word := element_unlock(unit_type)
+	return word != "" and state.is_unlocked(word)
+
+
+## Is the node even offered? A class with no Element in ClassInfo.csv has
+## nothing to open, and `class_tree_element_node` FALSE turns it off for
+## everybody.
+static func element_node_offered(unit_type: String, db: CardDatabase) -> bool:
+	if db != null and not db.tune_bool("class_tree_element_node", true):
+		return false
+	return ClassBook.element_of(unit_type) != ""
+
+
+## Buy it. Returns {"ok": bool, "why": String}.
+static func open_element(unit_type: String, state: GameState,
+		db: CardDatabase) -> Dictionary:
 	if state == null:
 		return {"ok": false, "why": "no save"}
+	if not element_node_offered(unit_type, db):
+		return {"ok": false, "why": "%s has no Element in ClassInfo.csv, so there is nothing to open" % unit_type}
+	if element_open(unit_type, state):
+		return {"ok": false, "why": "it is already open"}
 	if not all_placed(unit_type, state):
 		return {"ok": false, "why": "all three nodes need a Star first"}
-	if chosen_emblem(unit_type, state) != "":
-		return {"ok": false, "why": "you have already chosen %s"
-			% chosen_emblem(unit_type, state)}
 
-	var cost := int(costs_for(unit_type)["emblem"])
+	var cost := int(costs_for(unit_type)["element"])
 	if state.count(POINTS) < cost:
 		return {"ok": false, "why": "you need %d talent point(s) and have %d"
 			% [cost, state.count(POINTS)]}
 
 	state.add_count(POINTS, -cost)
-	state.set_text(EMBLEM_PREFIX + _key(unit_type), emblem_id)
-	state.unlock("%s %s Emblem" % [unit_type, emblem_id])
+	state.set_flag(ELEMENT_PREFIX + _key(unit_type), true)
+	var word := element_unlock(unit_type)
+	if word != "":
+		state.unlock(word)
 	review(state, db)
-	return {"ok": true, "why": "%s is your emblem." % emblem_id}
+	var others := ClassBook.classes_of_element(ClassBook.element_of(unit_type))
+	others.erase(unit_type)
+	var said := ", ".join(PackedStringArray(others)) if not others.is_empty() \
+		else "nothing else yet — write another class of this element and it lands here"
+	return {"ok": true, "why": "%s is open. You may field: %s"
+		% [word, said]}
 
 
-## Has the chosen emblem turned over to its Ultimate Side?
-static func emblem_turned(unit_type: String, state: GameState) -> bool:
-	if state == null:
+## MAY THIS CARD BE FIELDED ALONGSIDE THIS CLASS?
+##
+## Its own class always. Another class of the same element once the Element
+## node is open. Anything else, no.
+##
+## This is the whole of the cross-class rule and it lives in one function on
+## purpose: the day you want to loosen it, loosen it here and every screen
+## follows.
+static func may_field(card: PlayerData, unit_type: String,
+		state: GameState) -> bool:
+	if card == null:
 		return false
-	return state.has_flag(FLIPPED_PREFIX + _key(unit_type))
-
-
-## The Emblem card you chose, or null.
-static func emblem_of(unit_type: String, state: GameState) -> ClassBook.Emblem:
-	var id_text := chosen_emblem(unit_type, state)
-	if id_text == "":
-		return null
-	var entry := ClassBook.entry_for(unit_type)
-	if entry == null:
-		return null
-	return entry.emblems.get(CardDatabase._normalise(id_text))
+	if _key(card.active_unit_type()) == _key(unit_type):
+		return true
+	if not element_open(unit_type, state):
+		return false
+	var mine := ClassBook.element_of(unit_type)
+	return mine != "" and _key(card.active_element()) == _key(mine)
 
 
 # =============================================================
@@ -455,19 +530,19 @@ static func review(state: GameState, db: CardDatabase) -> void:
 				print("[class tree] Three of a kind: %s." % entry.unit_type)
 				break
 
-	# ---- HAS AN EMBLEM TURNED OVER? ----
-	for key in ClassBook.classes():
-		var entry: ClassBook.ClassEntry = ClassBook.classes()[key]
-		var who := entry.unit_type
-		if emblem_turned(who, state):
-			continue
-		var badge := emblem_of(who, state)
-		if badge == null or badge.turns_on == "":
-			continue
-		if DialogueGrammar.test(badge.turns_on, state):
-			state.set_flag(FLIPPED_PREFIX + _key(who), true)
-			state.unlock("%s %s Ultimate" % [who, badge.id])
-			print("[class tree] %s turns over: %s" % [badge.id, badge.ultimate])
+	# ============ AN EMBLEM NO LONGER TURNS OVER HERE ============
+	#
+	# It used to: you chose one emblem in this tree, and this loop watched its
+	# Turns On and set a flag when it came true, outside any match.
+	#
+	# That is gone, and the reason is the whole of the rework. An Emblem is a
+	# MATCH-TIME thing now — three of them ride onto the pitch with their
+	# Stars, they race, one turns over, and a goal puts them all back. None of
+	# that is a save-file question, so none of it belongs in the tree.
+	#
+	# EmblemBook.settle() runs the race and EmblemBook.reset_after_goal()
+	# ends it. If you are looking for the code that turns an emblem over,
+	# it is there and it is the only copy.
 
 
 # =============================================================

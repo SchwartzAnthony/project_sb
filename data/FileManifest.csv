@@ -265,3 +265,12 @@ season_rules.gd,src/core/,"Engine. Rules, loaders and shared helpers","Reads Sea
 run_plan.gd,src/core/,"Engine. Rules, loaders and shared helpers",What a run is made of - the pickup count per stretch
 stadium.tscn,src/ui/rooms/,A screen or a piece of one,
 season_check.gd,tools/,A tool you run from the command line,
+Elements.csv,data/,A spreadsheet you edit,THE FOUR ELEMENTS. What a class shares with other classes. An Emblem's Basic side is fed by element and its Condition is fulfilled by class - see section 7f.
+Elements.csv.import,data/,Godot bookkeeping,Three lines. Without it Godot reads the CSV as a translation table and litters the folder.
+UnitActions.csv,data/,A spreadsheet you edit,"THE VOCABULARY UNIT ABILITIES ARE ROLLED FROM. Triggers and effects, with {token} {tier} {element} placeholders. The New Class wizard in the workbench is what uses it."
+UnitActions.csv.import,data/,Godot bookkeeping,Three lines.
+Star Players.csv,data/,A spreadsheet you edit,THE THREE STARS OF EACH CLASS. Front Side is the one ability; Ultimate Side is the other face. Emblem and Set say which Emblem they carry and which nine answer for it.
+Star Players.csv.import,data/,Godot bookkeeping,Three lines. It was missing - added this round.
+emblem_book.gd,src/core/,Code,"The emblem rules: the race, who feeds what, progress, ascension. It reads nothing itself - class_book.gd owns the files."
+emblem_bar.gd,src/ui/,Code,"The three emblems along the top of the pitch, with live progress."
+emblem_check.gd,tools/,A measuring tool,Prices the race in duels and tells you which of a class's three Ultimates a player will actually see.

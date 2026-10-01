@@ -103,12 +103,34 @@ func show_card(card: PlayerData, near: Vector2) -> void:
 	_power.text = "%d attack     %d defence" % [
 		card.get_attack_power(), card.get_defense_power()]
 
-	_attack.text = "ATTACK   " + _ability_words(card.active_attack_ability(), card.attack_text)
-	_defend.text = "DEFEND   " + _ability_words(card.active_defend_ability(), card.defend_text)
+	# ============ A STAR HAS ONE ABILITY, NOT TWO ============
+	#
+	# "They only have one ability, and when you hover you get to see the
+	# Ultimate." So a Star gets one line rather than an ATTACK line and a
+	# DEFEND line that say the same sentence twice, and the second line is
+	# spent on the thing worth reading: the other side of the card.
+	if card.is_star() and card.has_ultimate():
+		_attack.text = "ABILITY   " + _ability_words(card.active_attack_ability(), card.attack_text)
+		_defend.text = _ultimate_words(card)
+	else:
+		_attack.text = "ATTACK   " + _ability_words(card.active_attack_ability(), card.attack_text)
+		_defend.text = "DEFEND   " + _ability_words(card.active_defend_ability(), card.defend_text)
 
 	var band := db.tier_band_text(card.get_tier_clean()) if db != null else ""
-	_footer.text = band if band != "" else ""
-	_footer.visible = band != ""
+	# ---- and what it would take to turn it over ----
+	var footer := band
+	if card.is_star() and card.has_ultimate():
+		var badge := EmblemBook.for_star(card)
+		if badge != null:
+			var need := badge.condition if badge.condition != "" \
+				else DialogueGrammar.describe(badge.turns_on)
+			var along := EmblemBook.progress(badge, GameState.fetch(get_tree()))
+			var how := ""
+			if int(along["need"]) > 0:
+				how = "   (%d of %d)" % [int(along["have"]), int(along["need"])]
+			footer = "%s ·  %s%s" % [badge.id.to_upper(), need, how]
+	_footer.text = footer
+	_footer.visible = footer != ""
 
 	show()
 	_place(near)
@@ -156,3 +178,17 @@ func _place(near: Vector2) -> void:
 	at.x = clampf(at.x, 8.0, maxf(screen.x - box.x - 8.0, 8.0))
 	at.y = clampf(at.y, 8.0, maxf(screen.y - box.y - 8.0, 8.0))
 	position = at
+
+
+## THE OTHER SIDE OF A STAR, on hover, whether or not it has turned over.
+##
+## Shown all the time on purpose. The point of the change is that a player can
+## always read what they are playing toward — an Ultimate you only see once
+## you have earned it is one you never aimed at.
+func _ultimate_words(card: PlayerData) -> String:
+	var up := EmblemBook.star_is_ultimate(card, GameState.fetch(get_tree()))
+	var head := "★ ULTIMATE   " if up else "ULTIMATE (locked)   "
+	var body := card.ultimate_text.strip_edges()
+	if body == "":
+		body = "written, but the Ultimate Side column is empty."
+	return head + body

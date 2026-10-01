@@ -8,16 +8,16 @@ recovery_turns_per_power,0.8,"THE FALLBACK when Recovery.csv has no row for a po
 squad_ownership,false,"DO YOU HAVE TO OWN A PLAYER BEFORE YOU CAN FIELD THEM? FALSE - and this is deliberate - means every card in your CSVs is yours from the first minute, exactly as the game has always worked. TRUE means only the cards a sign: effect has given you, which is what makes A NEW GAME STARTS WITH THREE STAR PLAYERS possible. Leave it FALSE until there is an opening scene that actually signs somebody, or a new game starts with a squad of nobody. See squad_book.gd"
 total_cycles,3,Cycles in a match
 ties_go_to_attacker,false,On an exact power tie: false = defender holds
-use_rps_minigame,true,"false = a silent coin flip and no clash screen at all. The Tier I attacker is decided behind the scenes"
+use_rps_minigame,true,false = a silent coin flip and no clash screen at all. The Tier I attacker is decided behind the scenes
 team_crest_fallback,banner_normal_team,"The crest used for a class whose ClassInfo.csv row has no Banner Art yet. Put the file in assets/team/. A side with no art at all draws a lettered disc instead, so nothing ever breaks over a missing crest"
 kickoff_needs_button,true,"MUST THE PLAYER PRESS START? TRUE and nothing happens until they do - the pitch is frozen and the clock is at 00:00. FALSE and the countdown begins by itself a moment after the sheet lifts, which is what you want for a demo or a stream"
-team_sheet_stars,3,"How many Star Players are shown a side on the team sheet. The one who is actually playing is always first"
+team_sheet_stars,3,How many Star Players are shown a side on the team sheet. The one who is actually playing is always first
 team_sheet_abilities,true,"DOES THE SHEET SAY WHAT THE STARS DO? TRUE and every Star has its abilities written under it in plain words, out of Abilities.csv, which is the whole reason the sheet is there. FALSE prints the six names and nothing else"
 line_up_parade,true,"DO THE TEAMS WALK OUT BEFORE KICK-OFF? After the team sheet and before the countdown, your side appears one player at a time and then theirs, with tier, power and defence. The sheet shows two crests and six Stars; this is the twenty other people about to play, every one of them a card you will be choosing between. A CLICK, SPACE OR ESCAPE SKIPS THE WHOLE THING at any point. FALSE goes straight from START to the countdown"
 line_up_gap,0.18,"How long between one player appearing and the next, in seconds. Twenty players at 0.18 is about four seconds a side. 0 puts the whole side up at once"
 line_up_between_sides,0.9,"The pause between your side and theirs, and after theirs before the countdown"
 team_sheet_hold,true,"DOES THE TEAM SHEET WAIT FOR YOU? TRUE and the START button appears ON the sheet and the sheet stays up until it is pressed - which is what you want, because the sheet is where the six Star Players and their abilities are and taking it away after two seconds takes the reading away. FALSE and the sheet lifts on its own and START appears over the pitch instead"
-team_sheet_seconds,2.6,"How long the team sheet is held. The bar follows whichever is further along - the real loading or this clock - so it never stalls on a fast machine and never lies on a slow one"
+team_sheet_seconds,2.6,How long the team sheet is held. The bar follows whichever is further along - the real loading or this clock - so it never stalls on a fast machine and never lies on a slow one
 team_sheet,true,"IS THERE A TEAM SHEET BEFORE A MATCH? Both crests, both names and three Star Players a side on a full screen with a bar filling along the bottom, then the sheet lifts to show the two teams standing on the grass with a START button between the crests. FALSE and a match opens straight into the 3 - 2 - 1, as it did before"
 kickoff_countdown,true,"TRUE = a match opens with the camera in on two players over the ball in the centre circle, a 3 - 2 - 1 - START, and both sides running at a LOOSE ball. FALSE = your Star simply starts holding it, which is how it used to be"
 kickoff_count_seconds,0.7,How long each of 3 - 2 - 1 is held
@@ -33,7 +33,7 @@ coin_faces,10,"How many numbers are on the coin. Ten out of the box. Their call 
 coin_spin_seconds,1.4,"How long the coin turns before it lands. It slows as it goes, so this is the whole spin rather than a per-step time"
 coin_exact_words,CALLED IT!,"WHAT IT SAYS WHEN YOU NAME THE COIN EXACTLY. There are two ways to win the call and they are not the same thing - being nearer is arithmetic, naming the number is the moment worth leaning on, so it gets its own words and its own animation"
 coin_exact_them_words,THEY CALLED IT,The same when the enemy names it exactly
-coin_exact_seconds,0.9,"How long the exact-call celebration is held before the clash carries on. Write a coin_exact row in Juice.csv to hang a sound on it"
+coin_exact_seconds,0.9,How long the exact-call celebration is held before the clash carries on. Write a coin_exact row in Juice.csv to hang a sound on it
 clash_backdrop_dim,0.55,"HOW DARK THE PITCH GOES BEHIND THE CLASH, 0 to 1. Only what is BEHIND the window - nothing inside the clash is touched by it. It was 0.72 and the pitch had all but vanished"
 enemy_attack_chance,0.5,Enemy odds of choosing ATTACK when it wins the clash
 rps_reveal_seconds,0.9,Pause on the clash reveal
@@ -65,13 +65,13 @@ goal_pause_seconds,2.0,"PAUSE AFTER THE BALL CROSSES THE LINE, before the restar
 save_pause_seconds,2.0,"PAUSE AFTER A SAVE, before the keeper kicks. The keeper is left ALONE on the ball for this long while every outfield player walks back to their own starting position - nobody stands over the keeper, and the ball is kicked into a pitch that has a shape again. Then they are all let go the instant it is struck"
 goal_celebration,true,"THE WHOLE GOAL CELEBRATION, on or off. false is the old behaviour: the word GOAL for verdict_seconds and then the restart. What the celebration actually CONTAINS is not here - it is the rows of data/Celebration.csv, one row per beat, in the order you wrote them"
 celebration_slide_distance,180,"How far the scorer skids along the grass. He goes away from the goal he just scored in and out toward the nearer touchline, and he is always clamped to the pitch. How LONG the skid takes is the Seconds column of the slide row in Celebration.csv"
-celebration_swarm_radius,110,"How close his team-mates stand when they ring him. Under about 70 they are drawn on top of each other; over about 200 it stops reading as a huddle"
+celebration_swarm_radius,110,How close his team-mates stand when they ring him. Under about 70 they are drawn on top of each other; over about 200 it stops reading as a huddle
 celebration_confetti_pieces,260,"How many bits of paper. They are DRAWN rather than spawned as nodes, so this number is cheap - 500 costs about as much as 140. 0 turns the confetti off without touching the spreadsheet"
 celebration_confetti_size,6,"How thick a piece of confetti is drawn, in pixels. Its LENGTH varies per piece and shortens as it turns edge-on; this is the one number they share, because every piece is drawn in a single call and a single call has one width. That one call is why the celebration does not cost you twenty frames a second - see goal_celebration.gd"
 celebration_confetti_speed,220,"How fast the confetti falls. Each piece varies either side of this, so they do not come down as a sheet"
-celebration_confetti_colours,#ffc255 #f2594b #6bb8f2 #8ce085 #f2f2f7,"The confetti palette: hex colours separated by spaces. Put your two club colours in here. A blank row or a colour it cannot read falls back to these five"
-celebration_hide_names,true,"During a celebration every name plate comes off EXCEPT THE SCORER'S. Nine of them inside a hundred-pixel huddle is a black smear with letters in it; one name in the middle of a ring of bodies is a photograph. false keeps them all on"
-celebration_skippable,true,"Click or space cuts the celebration short. It still puts everybody back on their feet and still hands the ball to the keeper - the twentieth goal of an evening is not the first one"
+celebration_confetti_colours,#ffc255 #f2594b #6bb8f2 #8ce085 #f2f2f7,The confetti palette: hex colours separated by spaces. Put your two club colours in here. A blank row or a colour it cannot read falls back to these five
+celebration_hide_names,true,During a celebration every name plate comes off EXCEPT THE SCORER'S. Nine of them inside a hundred-pixel huddle is a black smear with letters in it; one name in the middle of a ring of bodies is a photograph. false keeps them all on
+celebration_skippable,true,Click or space cuts the celebration short. It still puts everybody back on their feet and still hands the ball to the keeper - the twentieth goal of an evening is not the first one
 restart_walk_boost,1.6,"HOW BRISKLY THEY WALK HOME at a restart, as a multiple of their walk speed. Not a sprint: 1 is an amble, 1.6 is purposeful, 2.5 starts to look like a jog"
 restart_walk_speed,420,"HOW FAST A PLAYER WALKS HOME at a restart, in pixels a second. They are walked to their own position rather than left to steer there, so this is what turns a distance into a time - somebody four yards out of position takes a moment, somebody at the other end of the pitch takes longer, and they do not all arrive together"
 restart_walk_max_seconds,2.6,"The longest any one walk home may take, whatever the distance. The restart waits for the longest walk, so this is also the longest a restart can last"
@@ -88,7 +88,7 @@ arena_skip_speed,6.0,Speed while holding SPACE or clicking to skip
 arena_run_in_seconds,0.9,Both units run at each other
 duel_flip,true,"DO THE TWO DUEL CARDS TURN OVER? They arrive face down and flip together, which is the moment the duel begins - before it, neither side knows what the other has. It is also a hook: anything in Abilities.csv written against the flip trigger goes off as they land. FALSE and the cards are simply there, as before"
 duel_flip_seconds,0.42,"How long the flip takes, both halves of the turn together. A card turns over by being squashed to no width and back, and what it shows is swapped at the moment it has none"
-duel_back_seconds,0.5,"HOW LONG THE CARD BACK IS HELD before the window turns over. The back is the tier and the two crests; a back that is gone before you have read it may as well not be there. 0 turns it straight away"
+duel_back_seconds,0.5,HOW LONG THE CARD BACK IS HELD before the window turns over. The back is the tier and the two crests; a back that is gone before you have read it may as well not be there. 0 turns it straight away
 arena_reveal_seconds,0.5,Power numbers appear
 arena_ability_seconds,0.9,Each ability lights up and plays
 arena_compare_seconds,0.8,Final numbers settle before the verdict
@@ -133,7 +133,7 @@ unit_contest_radius,70,Inside this distance of the ball the pushing-apart fades 
 unit_swerve_strength,0.35,How much units curve their run to the ball. 0 = straight lines.
 unit_personal_space,34,"NOBODY STANDS ON ANYBODY. Inside this many pixels two players shove apart at full strength whatever else they are doing, including fighting for the ball. Roughly how wide a player is drawn"
 unit_contest_crowding,0.55,"How much of the ordinary giving-way survives near the ball. 1 = they never crowd it, 0 = they pile on top of each other. The hard shove above still applies"
-unit_arrive_radius,14,"Pixels from its target where a player starts easing off instead of running at full tilt into the spot and bouncing back out. This is the row that stops the shaking"
+unit_arrive_radius,14,Pixels from its target where a player starts easing off instead of running at full tilt into the spot and bouncing back out. This is the row that stops the shaking
 unit_still_threshold,0.12,"How weak the pull has to get before a player simply stands. Below this nothing moves, so a player being tugged two ways equally stops rather than vibrating"
 unit_face_deadzone,18,"How far the ball must be to one side before a player turns to face it, in pixels. 0 makes them flip back and forth every frame when the ball is dead ahead"
 drift_reach,110,"HOW FAR A WAITING PLAYER WANDERS FROM THEIR SLOT, in pixels. THIS IS THE ROW THAT STOPPED THE BOBBING. It used to be 34 across and 46 up and down, which is a player vibrating on a spot rather than a player walking about. Wider than it is tall on purpose - a footballer with nothing to do shuffles ACROSS their line"
@@ -186,9 +186,9 @@ surge_centring,0.35,How much the break funnels toward the goal mouth. 0 = everyo
 progression_announce_seconds,1.6,How long a Progression announce: line stays on screen during a match
 announce_font_size,72,"HOW BIG THE BIG WORDS IN THE MIDDLE OF THE PITCH ARE. PLAY MAKER, GOAL, FULL TIME and anything a spreadsheet announces. It shrinks below this to fit a long line rather than running off the edge, which it used to do"
 announce_inset,120,"HOW FAR IN FROM EACH EDGE OF THE WINDOW that line may reach, in pixels. Smaller lets a long announcement use more of the screen"
-announce_height,240,"How tall the announcement box is. Two lines of 72 point need about this much"
+announce_height,240,How tall the announcement box is. Two lines of 72 point need about this much
 side_call,true,"DOES THE GAME SAY YOU ARE ATTACKING OR YOU ARE DEFENDING out loud the moment the clash decides? It used to say it once, in small text, on a screen that closed a second later - and which way round the round is played decides WHICH OF THE TWO NUMBERS on a card is the one that counts, so it was the most important fact in the draft and the least visible one"
-side_call_seconds,1.3,"How long that word is held. 0 turns it off and leaves only the banner"
+side_call_seconds,1.3,How long that word is held. 0 turns it off and leaves only the banner
 side_banner_lift,150,"HOW FAR ABOVE THE ROW OF CARDS THE ATTACKING/DEFENDING STRIP SITS, in pixels. It stays up for the whole draft and says the tier as well. Raise it if it crowds the cards, lower it if it drifts away from them"
 camera_enabled,true,"Does the view follow the ball? false = the old fixed view of the whole pitch, and nothing else changes"
 camera_zoom,1.55,How far in the camera pushes during live play. 1 = the whole pitch. Try 1.8 for a much tighter game
@@ -252,10 +252,10 @@ adventure_party_rows,5,"HOW MANY PLAYERS ACROSS the running shape before it star
 adventure_party_spacing,108,"Pixels between columns of the running shape, back down the lane. Larger spreads the party out behind itself"
 adventure_player_size,26,"How big an Adventure player is drawn, as a radius in pixels. Raise it with adventure_lane_height so the two stay in proportion"
 adventure_ball_size,7,"How big the Adventure ball is drawn, as a radius in pixels. The pitch ball is 6, so 7 keeps the two looking alike"
-escape_quits_instantly,false,"FALSE = Escape outside a match asks 'quit the game?' first. TRUE = it closes the game on the first press with no warning"
+escape_quits_instantly,false,FALSE = Escape outside a match asks 'quit the game?' first. TRUE = it closes the game on the first press with no warning
 draft_brew_button,true,"IS THERE A LITTLE FLASK IN THE CORNER OF EACH DRAFT CARD? Pressing it opens the Inventory and pours a brew on that player there and then, so the card changes class and art while you are still deciding. It is the same pour the Pub does - same cost out of Brews.csv, same unlock - and it is always a ONE-MATCH brew, so the final whistle takes it off again. FALSE and brews are poured at the Pub only, as before"
-draft_reveal_button,true,"IS THERE A SHOW BUTTON ON A DRAFT CARD? It only ever appears on a card that has an ability written against the reveal trigger. Pressing it chooses that card face up: the other side answers a card they can see - taking their best in that tier instead of picking blind - and the reveal ability fires. FALSE takes the button off every card and those abilities never go off"
-draft_reveal_words,SHOW,"What the face-up button says. One short word. PLAY IT OPEN and CALL IT both fit"
+draft_reveal_button,true,IS THERE A SHOW BUTTON ON A DRAFT CARD? It only ever appears on a card that has an ability written against the reveal trigger. Pressing it chooses that card face up: the other side answers a card they can see - taking their best in that tier instead of picking blind - and the reveal ability fires. FALSE takes the button off every card and those abilities never go off
+draft_reveal_words,SHOW,What the face-up button says. One short word. PLAY IT OPEN and CALL IT both fit
 reveal_strip,true,"IS THERE A STRIP ABOVE THE CARD ROW HOLDING WHATEVER HAS BEEN PLAYED FACE UP? A reveal you cannot see is a rule rather than a moment, so a shown card goes on the table above the choices - theirs on the left, yours on the right, each with its power and what its ability does. FALSE and a reveal is only a line in the announcement bar"
 reveal_strip_height,120,"How tall that strip is, in pixels. Two abilities in plain words need about this much"
 reveal_strip_inset,220,"How far in from each side of the window the strip stops, in pixels. Smaller makes it wider"
@@ -266,34 +266,34 @@ card_row_gap,18,Pixels between the player cards during a match
 adventure_player_art_scale,3.4,"How TALL an Adventure player is drawn, as a multiple of adventure_player_size. The width follows from the artwork's own shape - this is the row that actually makes them bigger"
 adventure_log_top,170,"How far down the screen the WHAT HAPPENED log sits. It hangs from the right-hand edge and grows LEFT and DOWN, so it can never run off the side"
 adventure_enemy_reach_scale,1.0,How big the invisible click area over each enemy is. Raise it if picking an enemy ever feels fiddly
-adventure_buildup,true,"FALSE skips the two build-up windows and goes straight to the kick. The result is identical either way - it is only what you watch"
+adventure_buildup,true,FALSE skips the two build-up windows and goes straight to the kick. The result is identical either way - it is only what you watch
 adventure_buildup_step,0.55,Seconds each player takes to come on in the build-up window. Lower is snappier
 adventure_buildup_hold,0.9,Seconds the finished move is held on screen before the windows close
 adventure_death_seconds,0.55,How long an enemy takes to go down when it is killed
-adventure_death_animation,lose,"Which row of Animations.csv an enemy plays when it dies. `lose` already exists in your sheet; add a `death` row and put that word here instead"
+adventure_death_animation,lose,Which row of Animations.csv an enemy plays when it dies. `lose` already exists in your sheet; add a `death` row and put that word here instead
 adventure_choice_top,130,"THE CEILING on the card-choice window, in pixels from the top of the screen. The window grows upwards to fit its cards and stops here, scrolling past that - so this is really `do not cover the row of icons`"
 adventure_choice_bottom,140,"Where the BOTTOM edge of the card-choice window sits, in pixels up from the bottom of the screen. It never moves, which is what stops the window being cut off. It has to clear the COMBAT bar, so keep it above adventure_bar_height + adventure_bar_inset"
 adventure_choice_rows,1,"HOW MANY ROWS OF CARDS the choice window shows before it scrolls. 1 means the window is EXACTLY THE SAME HEIGHT for every tier - Tier II offering six cards (three ready, three resting) no longer grows the window up over the screen the way it did. Raise it to 2 if you would rather see more at once and can spare the room"
-plate_names,true,"FALSE hides every player name in both modes. The Tier and Power at the feet stay"
+plate_names,true,FALSE hides every player name in both modes. The Tier and Power at the feet stay
 plate_name_size,13,"How big a player name is, over their head. It is drawn with a dark edge so it reads over grass and over a white shirt"
 plate_stat_size,11,The size of the Tier and Power written at a player feet
 plate_width_max,150,"The widest a nameplate may get, in pixels. The plate is as wide as its contents need and never wider - so eleven players in a crowd all carry the same small label instead of eleven labels of eleven different widths"
 plate_gap,5,"Pixels between the drawn body and the first label. The labels are placed from the rectangle the ARTWORK actually fills, not from the frame it sits in - so this stays right whatever padding a spritesheet has"
 plate_name_width,1.0,"HOW WIDE A NAME MAY BE, as a multiple of the Tier/Power window under it. 1.0 means a name is never wider than its own window, which is what keeps eleven labels in a crowd from writing across each other. Raise it to 1.4 if you would rather see more of a long name and can live with the overlap. Anything longer is cut with a ..."
-adventure_enemy_buildup,true,"FALSE and the enemies never get a build-up window of their own - you still get yours. Their combos still fire; this only hides the watching of it"
-adventure_enemy_combos,true,"FALSE and the enemies do not get combos at all. They read the same AdventureTraits.csv and AdventureCombos.csv you do - their Element and their Pool are the icons they carry - and only the attack ones apply to them"
+adventure_enemy_buildup,true,FALSE and the enemies never get a build-up window of their own - you still get yours. Their combos still fire; this only hides the watching of it
+adventure_enemy_combos,true,FALSE and the enemies do not get combos at all. They read the same AdventureTraits.csv and AdventureCombos.csv you do - their Element and their Pool are the icons they carry - and only the attack ones apply to them
 adventure_turn_over_seconds,0.5,How long THEIR TURN IS OVER stays on screen after the enemies have finished hitting you
-adventure_stretcher,true,"TRUE and anybody lying on the ground is carried off by two players who are not on your team once the last enemy is down. FALSE and they simply stay where they fell"
+adventure_stretcher,true,TRUE and anybody lying on the ground is carried off by two players who are not on your team once the last enemy is down. FALSE and they simply stay where they fell
 adventure_stretcher_seconds,2.4,"How long the whole stretcher takes - in, lift, and out. It runs before the loot popup, so make it short if you find yourself waiting"
 adventure_bar_height,104,"How tall the COMBAT bar along the bottom starts out, in pixels. IT GROWS UPWARDS when the writing needs more room, so it can never be pushed off the bottom of the screen again - raise this only if you want it taller to begin with"
 adventure_bar_inset,16,How far the COMBAT bar sits above the very bottom of the screen
 adventure_trait_slots,8,"HOW MANY ICONS GO INTO A RUN. You may write forty and unlock every one of them; only this many are carried. Reading eight bars across the top every round is already near the limit of what anybody takes in at a glance. An icon that is not in the eight does nothing at all - no bar, no icons on the pile, no breakpoints"
-adventure_trait_bar,true,"FALSE and the row of icons across the top is not drawn. The pile still works underneath and the combos still fire - you just cannot see them"
+adventure_trait_bar,true,FALSE and the row of icons across the top is not drawn. The pile still works underneath and the combos still fire - you just cannot see them
 adventure_trait_bar_top,22,How far down the screen the row of icons starts
-adventure_trait_bar_left,260,"How far in from the LEFT the row of icons starts. It has to clear the biome name in the corner"
-adventure_trait_bar_right,240,"How far in from the RIGHT it stops. It has to clear the `carrying` line in the corner"
+adventure_trait_bar_left,260,How far in from the LEFT the row of icons starts. It has to clear the biome name in the corner
+adventure_trait_bar_right,240,How far in from the RIGHT it stops. It has to clear the `carrying` line in the corner
 adventure_trait_tile_width,164,"How wide one icon tile is. They wrap onto a second line on their own, so adding a seventh trait does not need this changed"
-adventure_revive_stamina,3,"How much stamina somebody gets up with when a combo revives them and that combo Target column is blank. Put a number in the Target column of the row to override it for that one combo"
+adventure_revive_stamina,3,How much stamina somebody gets up with when a combo revives them and that combo Target column is blank. Put a number in the Target column of the row to override it for that one combo
 adventure_enemy_beat,0.18,"The pause between one enemy striking and the next. It was 0.45, which is fine for two enemies and five seconds of nothing for twelve"
 adventure_enemy_strike_seconds,1.6,"THE WHOLE BUDGET for the pauses between their strikes, shared out between however many are striking. Twelve enemies get a short pause each rather than twelve long ones - being hit twelve times slowly is not more dramatic than being hit twelve times"
 adventure_round_end_beat,0.35,"The breath at the end of a round, before the cards come back. It was 0.7, which on top of everything else in their half made their turn read as the slow one"
@@ -303,27 +303,27 @@ adventure_enemy_buildup_seconds,1.2,"THE WHOLE BUDGET for their build-up window,
 adventure_enemy_buildup_hold,0.35,How long their finished total is held before their window closes
 adventure_bar_gap,4,"How far under the feet the stamina bar sits, in pixels. It used to be worked out from the DISC size, so a player with artwork ended up with their bar floating a long way beneath them"
 juice_slowmo_depth,0.35,"HOW FAR a slow-motion dip slows the game. 0.35 = a third speed. 1.0 = no dip at all, which is a gentler way to turn them off than juice_slowmo = false"
-juice_flash_strength,0.3,"HOW BRIGHT A FULL-SCREEN FLASH IS. It was a hard-coded 0.55 and a white flash at that strength across a whole screen is genuinely unpleasant. 0 turns screen flashes off entirely and leaves the shakes alone"
+juice_flash_strength,0.3,HOW BRIGHT A FULL-SCREEN FLASH IS. It was a hard-coded 0.55 and a white flash at that strength across a whole screen is genuinely unpleasant. 0 turns screen flashes off entirely and leaves the shakes alone
 juice_scale,1.0,"HOW MUCH SHAKE, FLASH AND POP THE WHOLE GAME GETS. 0 kills every effect stone dead, 0.5 halves them, 2 doubles them. This is the row to expose in Settings for people who dislike screen shake, and the row to set to 0 while you are debugging"
 music_follows_screen,true,"DOES THE MUSIC CHANGE WHEN THE SCREEN DOES? TRUE and a screen opening RECLAIMS the Music bus: if no looping row in Audio.csv claimed it for that screen, whatever was playing is faded out. THE ROW THAT FIXED THE BASE THEME PLAYING EVERYWHERE - a looping track holds its bus until something else takes it, and the base had a row while the team shelf and the bounty board did not, so walking out of the base handed the base theme a lease on the rest of the session. To carry a track ACROSS a screen on purpose, give that screen a row naming the same Sound: the loop sees the same cue and is left alone, so there is no gap. FALSE goes back to the old behaviour"
 music_fade_out_seconds,1.0,"How long the old track takes to go when a screen claims no music of its own. Short is a cut, long is a dissolve. 0 is a hard stop"
 juice_slowmo,true,"FALSE stops the slow-motion dips only, and leaves every shake and flash alone"
 juice_average_hit,0,"WHAT AN ORDINARY HIT IS WORTH, for the shake that grows with damage. Leave it at 0 and the game works it out from the hits you actually land"
-level_per_unique,1.0,"TEAM LEVEL. What each DIFFERENT card on a side is worth. This is the 'how many unique players' part - a side of nine different cards outranks one that fields the same three over and over"
+level_per_unique,1.0,TEAM LEVEL. What each DIFFERENT card on a side is worth. This is the 'how many unique players' part - a side of nine different cards outranks one that fields the same three over and over
 level_per_card_level,1.0,TEAM LEVEL. The share of the average card's Level column. Fill the Level column in your unit CSVs to use this
 level_per_power,1.5,TEAM LEVEL. The share of the average card's power. This is the 'how strong the players are' part
 level_star_bonus,2.0,TEAM LEVEL. What each Star Player on the side adds
-friendly_level_spread,4,"How far either way a friendly looks for opponents. 4 means a level 20 side meets sides between 16 and 24"
+friendly_level_spread,4,How far either way a friendly looks for opponents. 4 means a level 20 side meets sides between 16 and 24
 friendly_default_level,6,The level a friendly assumes when it cannot work yours out - usually only when the scene is run on its own from the editor
-friendly_single_class,false,"FALSE = a friendly opponent is a pick-up side drawn from every class. TRUE = it is a proper club of one class"
+friendly_single_class,false,FALSE = a friendly opponent is a pick-up side drawn from every class. TRUE = it is a proper club of one class
 show_friendly_level,true,Prints the opponent's level after its name so you can see at a glance whether the matching is working. Turn it off before a presentation
-slot_count,3,"How many save slots the title screen offers. Set it to 1 for a single-save game - the screen still works and simply has one tile"
+slot_count,3,How many save slots the title screen offers. Set it to 1 for a single-save game - the screen still works and simply has one tile
 fouls,true,"THE FOUL SYSTEM. The more a side sets off in a round, the more likely it is to have given a foul away doing it - the curve is data/Fouls.csv. false turns the whole thing off and no card is ever shown, which is exactly how the game played before"
 foul_two_yellows_is_red,true,"The ordinary rule of football. A second booking in the same match is a sending-off. It lives here rather than in code because it is a rule about football, not a rule about this program"
-foul_free_kick_power,3,"WHAT A FOUL IS WORTH. Added to the shot of the side that was fouled. 0 makes a foul purely about the card"
+foul_free_kick_power,3,WHAT A FOUL IS WORTH. Added to the shot of the side that was fouled. 0 makes a foul purely about the card
 foul_card_gives_possession,true,"A YELLOW OR A RED ALSO HANDS THE BALL OVER. A card stops the game, which is what makes it the moment a side gets the set piece. false makes a booking only a booking, and the man who won the last duel still shoots"
 foul_stand_ins,true,"WHEN A RED CARD LEAVES A HOLE IN A TIER, a survivor of that tier is offered playing out of position: his name, the missing power, and no abilities at all. false leaves the tier one card short, which is harsher and perfectly playable"
-foul_window_seconds,1.6,"How long the card is held on screen. 0 shows no window at all and the match simply reports it in the log"
+foul_window_seconds,1.6,How long the card is held on screen. 0 shows no window at all and the match simply reports it in the log
 class_tree,true,"THE CLASS TREE. Three nodes per class, one per emblem set; a Star in a node opens that set's nine units; all three filled lets you choose ONE emblem and forge the Team Spirit. false hides the screen and nothing on it can be spent."
 class_tree_gates_units,false,"THE SUBTRACTIVE HALF, AND IT IS OFF. Turn it on and an emblem set's nine units are NOT yours until a Star stands in its node - the team builder simply does not offer them. Leave it false while you are still writing the opening, exactly as squad_ownership and recovery are left false: a gate switched on before there is a way through it is a game you cannot start."
 class_set_limit,0,"HOW MANY CARDS OF ONE EMBLEM SET may be in a team. 0 is no limit, which is what the game has always done. A talent raises it per set with count:limit_lorelei_sitri+1."
@@ -332,3 +332,11 @@ pub_capacity,10,"How many seats the room has. Ten is the number you asked for. I
 brews_allowed,true,"MAY THE PUB POUR AT ALL? true always. A competition sets it to false for its own length through the `No Brews` column of SeasonRules.csv, and it is handed back the moment you play anything else - so a Winter Cup cannot leave the taps shut for the rest of the game."
 stars_allowed,true,"MAY A STAR PLAYER BE FIELDED? The `No Stars` column of SeasonRules.csv sets it to false for one competition. Lent, like everything else there."
 season_per_tier,0,"HOW MANY FIT PLAYERS A TIER NEEDS in this competition. 0 means `use the match mode's Squad Per Tier`, which is the ordinary answer; the `Per Tier` column of SeasonRules.csv lends a different one."
+emblems_on_field,true,THE BIG SWITCH. Each Star Player carries its own Emblem onto the pitch and the three of them sit along the top of the screen. FALSE puts the game back exactly as it was - the emblems stay in the class tree and nothing is drawn. Turn it off if you ever need to compare the two.
+emblem_race,true,"ONLY ONE EMBLEM MAY REACH ULTIMATE AT A TIME. All three collect on their Basic side all match; the FIRST to meet its Condition turns over, and the other two are held on Basic until the reset. FALSE lets all three turn over, which is simpler and much more explosive - it is a real choice, not a safety switch."
+emblem_reset_on_goal,true,"A goal ends the race. Every Emblem turns back to its Basic side, every count goes to zero and the next race starts. FALSE makes an Ultimate permanent for the match."
+emblem_element_feeds_basic,true,"AN EMBLEM'S BASIC SIDE IS FED BY ELEMENT, NOT BY CLASS - so a water unit of any class counts toward a Lorelei Emblem's Basic side. The CONDITION is always class-only whatever this says, which is what keeps a mono-class team the only route to an Ultimate. FALSE makes the Basic side class-only too, and other classes of the same element then do nothing for it. A single Emblem can override this in its own `Basic Feeds` column."
+emblem_bar_size,56,"How big an Emblem is drawn along the top of the pitch, in pixels square. The pips and the name scale off it. 56 rather than 64 because three tiles side by side with their Conditions on them is already a wide strip."
+emblem_bar_top,126,"How far down from the top of the window the Emblem bar sits. 126 CLEARS THE SCOREBOARD - the score box is scoreboard_height (96) tall and starts about 20 down, so anything under about 120 puts the emblems over the score. The first version of this was 18 and the first screenshot showed three emblems sitting on top of 0 - 0, which is exactly the kind of thing a picture catches and a parse check never will."
+star_hover_ultimate,true,"HOLD THE MOUSE OVER A STAR AND ITS ULTIMATE SIDE IS SHOWN, together with the Emblem Condition that would turn it face up. It is shown whether or not the Emblem has completed - the point is that a player can always read what they are playing toward."
+class_tree_element_node,true,"The class tree's fourth node: OPEN WATER (or Open Fire, and so on). Buying it lets you field units of OTHER classes that share your element. FALSE removes the node and a class tree is its three sets plus the Team Spirit."

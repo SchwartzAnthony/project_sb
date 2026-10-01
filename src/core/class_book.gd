@@ -91,6 +91,41 @@ class Emblem extends RefCounted:
 	var ultimate: String = ""
 	var notes: String = ""
 
+	# ============ THE FIVE COLUMNS THAT CAME WITH THE REWORK ============
+	#
+	# An Emblem is no longer bought in the talent tree. It ARRIVES WITH ITS
+	# STAR: field the Star and the Emblem is on the bar along the top of the
+	# pitch; take the Star out and the Emblem goes with them. These five are
+	# what that needs.
+
+	## Which Star Player carries it. Blank in the sheet means "the Star with
+	## my name", which is how both files are written today.
+	var star: String = ""
+
+	## WHICH SET OF NINE CAN COMPLETE IT — and the column that closed a
+	## complaint the checker made on every single run.
+	##
+	## The old code assumed a Star's name and its set's name were the same
+	## word. Gremory's nine are the SITRI set, so it was reported as broken
+	## when nothing was: the data was right and the assumption was wrong. A
+	## Star and its set may share a name or not, and this column says which.
+	var set_id: String = ""
+
+	## THE SET'S OWN WORD — Rose Unit, Swan, Song counter, burn counter,
+	## Teufel Mask. It is what the nine units of that set make and spend, and
+	## it is the single thing that makes nine cards read as a set that belongs
+	## together rather than nine cards that happen to share a class. The
+	## workbench fills `{token}` with it when it rolls a unit's ability.
+	var token: String = ""
+
+	## `element` (the default), `class` or `any` — who may feed the BASIC
+	## side. See EmblemBook.feeds_basic(); the Condition is always class-only
+	## and no column can loosen that.
+	var feeds: String = "element"
+
+	## Left to right on the emblem bar.
+	var order: int = 0
+
 
 class ClassEntry extends RefCounted:
 	var unit_type: String = ""
@@ -110,6 +145,11 @@ static var _loaded := false
 static func forget() -> void:
 	_classes = {}
 	_loaded = false
+	# ClassInfo.csv is cached separately, so it has to be forgotten separately
+	# — a tool that reloads the data and then asks for an element would
+	# otherwise get the answer from before its own edit.
+	_info = {}
+	_info_loaded = false
 
 
 # =============================================================
@@ -210,6 +250,22 @@ static func _read_emblem_file(path: String) -> void:
 		badge.ultimate = MenuSupport.field(row, "Ultimate Side").strip_edges()
 		badge.notes = MenuSupport.field(row, "For AI notes").strip_edges()
 
+		# ---- the rework's five ----
+		#
+		# A BLANK Star OR Set MEANS "THE ONE WITH MY NAME". That is the
+		# ordinary case and it keeps the sheet short; the columns exist for
+		# when they differ, which for Gremory they do.
+		badge.star = MenuSupport.field(row, "Star").strip_edges()
+		if badge.star == "":
+			badge.star = badge.id
+		badge.set_id = MenuSupport.field(row, "Set").strip_edges()
+		if badge.set_id == "":
+			badge.set_id = badge.id
+		badge.token = MenuSupport.field(row, "Token").strip_edges()
+		var feeds := MenuSupport.field(row, "Basic Feeds").strip_edges().to_lower()
+		badge.feeds = feeds if feeds == "class" or feeds == "any" else "element"
+		badge.order = MenuSupport.field_int(row, "Order", found + 1)
+
 		var key := CardDatabase._normalise(badge.unit_type)
 		var entry: ClassEntry = _classes.get(key)
 		if entry == null:
@@ -240,12 +296,83 @@ static func emblems_for(unit_type: String) -> Array[Emblem]:
 	return out
 
 
-## The nine units an emblem unlocks, or an empty set if no set matches it.
+## The nine units an emblem answers for, or null if no set matches it.
+##
+## ============ IT ASKS THE EMBLEM WHICH SET IS ITS OWN ============
+##
+## It used to look the emblem's own NAME up in the set list, which quietly
+## assumed a Star and its set share a word. Gremory's nine are the SITRI set,
+## so that lookup failed and the checker reported a problem with nothing to
+## fix. Now the emblem's `Set` column is asked, and it falls back to the name
+## for the ordinary case where they do match.
 static func set_for(unit_type: String, emblem_id: String) -> EmblemSet:
 	var entry := entry_for(unit_type)
 	if entry == null:
 		return null
-	return entry.sets.get(CardDatabase._normalise(emblem_id))
+	var wanted := emblem_id
+	var badge: Emblem = entry.emblems.get(CardDatabase._normalise(emblem_id))
+	if badge != null and badge.set_id != "":
+		wanted = badge.set_id
+	return entry.sets.get(CardDatabase._normalise(wanted))
+
+
+# =============================================================
+#  ONE ROW OF ClassInfo.csv
+#
+#  ============ WHY IT MOVED HERE ============
+#
+#  Three different screens were each opening ClassInfo.csv and picking out
+#  the row they wanted, which is three places for the same question and three
+#  places to edit when a column is added. It is one place now, and the two
+#  columns the rework added — `Element` and `Star Tier` — are read here.
+#
+#  ELEMENT IS THE IMPORTANT ONE. It is what a class shares with OTHER classes,
+#  and the whole of "a water unit of any class feeds a Lorelei Emblem's Basic
+#  side" hangs off it.
+# =============================================================
+
+static var _info: Dictionary = {}
+static var _info_loaded := false
+
+
+static func info_row(unit_type: String) -> Dictionary:
+	if not _info_loaded:
+		_info_loaded = true
+		_info = {}
+		for row in MenuSupport.read_csv("res://data/ClassInfo.csv"):
+			var who := MenuSupport.field(row, "Class").strip_edges()
+			if who == "":
+				continue
+			_info[CardDatabase._normalise(who)] = {
+				"class": who,
+				"name": MenuSupport.field(row, "Display Name", who).strip_edges(),
+				"description": MenuSupport.field(row, "Description").strip_edges(),
+				"element": MenuSupport.field(row, "Element").strip_edges(),
+				"star_tier": MenuSupport.field(row, "Star Tier").strip_edges(),
+				"banner": MenuSupport.field(row, "Banner Art").strip_edges(),
+				"formation": MenuSupport.field(row, "Formation Art").strip_edges(),
+				"requires": MenuSupport.field(row, "Requires").strip_edges(),
+				"hidden": MenuSupport.field(row, "Hidden").strip_edges(),
+			}
+	return _info.get(CardDatabase._normalise(unit_type), {})
+
+
+## A class's element, or "" — the one question EmblemBook asks most.
+static func element_of(unit_type: String) -> String:
+	return String(info_row(unit_type).get("element", ""))
+
+
+## Every class that shares an element, including this one.
+static func classes_of_element(element_text: String) -> Array[String]:
+	var out: Array[String] = []
+	if element_text.strip_edges() == "":
+		return out
+	info_row("")  # make sure the file is read
+	for key in _info:
+		if CardDatabase._normalise(String(_info[key]["element"])) == CardDatabase._normalise(element_text):
+			out.append(String(_info[key]["class"]))
+	out.sort()
+	return out
 
 
 # =============================================================
@@ -328,16 +455,35 @@ static func trouble() -> Array[String]:
 					out.append("%s / set '%s': %d card(s) in Tier %s, not 3."
 						% [who, kit.id, many, tier])
 
-			# ---- and does an emblem of that name exist ----
-			if not entry.emblems.has(set_key):
-				out.append("%s: unit set '%s' has no emblem of that name in '%s Emblems.csv'. A set and its emblem are the same thing and have to share a name."
-					% [who, kit.id, who])
+		# ============ IT ASKS THE Set COLUMN, NOT THE NAME ============
+		#
+		# This used to pair a set with an emblem BY NAME, which quietly
+		# assumed a Star and its set share a word. Gremory's nine are the
+		# SITRI set, so it reported two problems on every run — one for the
+		# set with "no emblem" and one for the emblem with "no set" — and
+		# there was nothing to fix. The data was right and the check was
+		# wrong.
+		#
+		# An emblem's `Set` column names its set now, so the pairing is read
+		# rather than guessed.
+		var claimed := {}
+		for badge_key in entry.emblems:
+			var pairing: Emblem = entry.emblems[badge_key]
+			var mine := ClassBook.set_for(who, pairing.id)
+			if mine == null:
+				out.append("%s: emblem '%s' names the set '%s' and there is no set of that name in the unit CSV, so it unlocks nothing."
+					% [who, pairing.id, pairing.set_id])
+			else:
+				claimed[CardDatabase._normalise(mine.id)] = true
+		for set_key2 in entry.sets:
+			if claimed.has(set_key2):
+				continue
+			var orphan: EmblemSet = entry.sets[set_key2]
+			out.append("%s: unit set '%s' is named by no emblem's Set column, so nothing opens it."
+				% [who, orphan.id])
 
 		for badge_key in entry.emblems:
 			var badge: Emblem = entry.emblems[badge_key]
-			if not entry.sets.has(badge_key):
-				out.append("%s: emblem '%s' has no unit set of that name in the unit CSV, so it unlocks nothing."
-					% [who, badge.id])
 			if badge.basic.strip_edges() == "":
 				out.append("%s: emblem '%s' has an empty Basic Side." % [who, badge.id])
 			if badge.condition.strip_edges() != "" and badge.ultimate.strip_edges() == "":

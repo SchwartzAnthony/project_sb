@@ -56,6 +56,68 @@ extends Resource
 
 
 # =============================================================
+#  THE OTHER SIDE OF A STAR
+#
+#  ============ WHAT YOU ASKED FOR ============
+#
+#  "Star Players have their normal ability. The Ultimate form is their other
+#   side when their Emblem condition is met. When hovered over them, show
+#   their ultimate card side."
+#
+#  So a Star is a TWO-SIDED CARD and a normal unit is not. The columns live in
+#  data/Star Players.csv:
+#
+#      Front Side        THE ONE ABILITY A STAR HAS. It fills both
+#                        attack_text and defend_text, because a Star now has
+#                        one ability rather than two — that is the change
+#      Ultimate Side     what it becomes. Readable on hover at any time, and
+#                        live once this Star's Emblem turns over
+#      Ultimate Artwork  the other face of the card
+#
+#  ============ WHY THESE ARE ON EVERY CARD AND NOT ONLY ON STARS ============
+#
+#  Because PlayerData is one resource, and giving Stars a subclass of their
+#  own would mean every screen asking "which kind is this?" before it could
+#  draw anything. A normal unit leaves them empty, and `has_ultimate()` below
+#  is the question anything actually asks.
+# =============================================================
+
+## The Star's other ability. Empty on a normal unit.
+@export_multiline var ultimate_text: String
+## The other face. Empty falls back to `artwork`, so a Star with one drawing
+## still works — it just does not change when it turns over.
+@export var ultimate_artwork: Texture2D
+## Which row of `<Class> Emblems.csv` this Star carries onto the pitch.
+## Blank means "the one with my name", which is the normal case.
+@export var emblem_name: String = ""
+## Which of the class's three sets of nine belongs to this Star — the units
+## whose play can complete this Star's Emblem. Blank means "the set named
+## after me".
+@export var star_set: String = ""
+
+
+## Has this card another side to turn over to?
+func has_ultimate() -> bool:
+	return ultimate_text.strip_edges() != ""
+
+
+## The Emblem this Star brings onto the pitch. Falls back to its own name,
+## which is how both Emblems files are written today.
+func emblem_id() -> String:
+	return emblem_name if emblem_name.strip_edges() != "" else player_name
+
+
+## The set of nine this Star answers for. Falls back to its own name.
+##
+## THIS IS THE COLUMN THAT CLOSED THE OLD MISMATCH. The game used to assume a
+## Star's name and its set's name were the same word, so Gremory — whose nine
+## are the Sitri set — was reported as a problem on every run. They are two
+## different questions and they now have two different answers.
+func set_id() -> String:
+	return star_set if star_set.strip_edges() != "" else player_name
+
+
+# =============================================================
 #  THE BREW OVERLAY
 #
 #  A brew from the Pub does NOT overwrite the card. It lays a thin overlay

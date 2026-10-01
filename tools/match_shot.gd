@@ -84,13 +84,32 @@ func _initialize() -> void:
 
 func _pick_a_team() -> void:
 	var db := CardDatabase.get_db()
+
+	# ============ A CLASS THAT HAS EMBLEMS, IF THERE IS ONE ============
+	#
+	# It used to take the first Star in the whole database, which is a
+	# BasicTeam card — the Normal class, which has no Emblems file at all. So
+	# every picture came out of a match with no emblem bar in it, and the bar
+	# could have been broken for a month without one screenshot noticing.
+	#
+	# Same lesson as the base screenshot tool last round: a tool has to
+	# photograph the thing you are trying to look at, not whatever turns up
+	# first in the list.
 	var wanted := ""
-	for card in db.players:
-		if card.is_star():
-			wanted = card.unit_type
-			break
+	for key in ClassBook.classes():
+		var entry: ClassBook.ClassEntry = ClassBook.classes()[key]
+		if entry.emblems.is_empty() or entry.stars.is_empty():
+			continue
+		wanted = entry.unit_type
+		break
+	if wanted == "":
+		for card in db.players:
+			if card.is_star():
+				wanted = card.unit_type
+				break
 	if wanted == "":
 		return
+	print("[shot] class: %s" % wanted)
 	var roster := db.roster_for_class(wanted)
 	var picked := TeamSelection.new()
 	picked.unit_type = wanted

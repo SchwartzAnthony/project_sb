@@ -1,4 +1,4 @@
-Class,Node Cost,Emblem Cost,Spirit Cost,Spirit Brew,Requires,Notes
-*,1,2,3,,,"THE FALLBACK ROW. A class with no row of its own uses this one, so a new class you add tomorrow already has a working tree with no edit here. Class = * means ""anybody""."
+Class,Node Cost,Element Cost,Spirit Cost,Spirit Brew,Requires,Notes
+*,1,2,3,,,"THE FALLBACK ROW. A class with no row of its own uses this one, so a new class you add tomorrow already has a working tree with no edit here. EMBLEM COST IS GONE AND ELEMENT COST HAS TAKEN ITS PLACE. Emblems are no longer bought in the tree - each Star Player carries its own onto the pitch. What the tree sells now is the ROSTER: one node per set of nine, and then the Element node, which lets you field units of other classes that share your element."
 Lorelei,1,2,3,spirit_lorelei,,"Spirit Brew is the ID of a row in Brews.csv. Forging the Team Spirit unlocks that brew and nothing else - which means the drink itself is written where every other drink is written, and this column is only the pointer."
 Rauhnacht-Feuergeister,1,2,3,spirit_rauhnacht,,

@@ -169,6 +169,18 @@ func _load_csv(path: String, bands_only: bool = false) -> void:
 		_read_anims(rows, columns, short_name)
 	elif columns.has("key") and columns.has("value"):
 		_read_tuning(rows, columns)
+	elif columns.has("basicside") and columns.has("name"):
+		# ============ AN EMBLEMS FILE IS NOT A TEAM ============
+		#
+		# "<Class> Emblems.csv" has a Unit Type column and a Name column, so
+		# it walked straight into the complaint below and was announced as a
+		# broken team on every single startup — twice, once per class.
+		#
+		# It is not broken and it is not a team: class_book.gd reads it, and
+		# `Basic Side` is the column only an Emblems file has. Recognised and
+		# passed over in silence, which is what a file that belongs to
+		# somebody else deserves.
+		pass
 	elif columns.has("unittype") or columns.has("playertype"):
 		# ============ AND IT SAYS SO WHEN IT CANNOT READ ONE ============
 		#
@@ -283,6 +295,28 @@ func _read_units(rows: Array, columns: Dictionary, source: String) -> void:
 		card.player_name = name_text
 		card.attack_text = _cell(row, columns, "attack")
 		card.defend_text = _cell(row, columns, "defend")
+
+		# ============ A STAR HAS ONE ABILITY, NOT TWO ============
+		#
+		# data/Star Players.csv writes `Front Side` where a unit file writes
+		# `Attack` and `Defend`, and that is the design rather than an
+		# accident: a Star has ONE ability and an Ultimate; a normal unit has
+		# two abilities and no Ultimate. So Front Side fills both faces.
+		#
+		# It is read as a FALLBACK and not as a replacement, so a sheet that
+		# writes Attack and Defend keeps working exactly as it did, and a
+		# sheet that writes all three is not quietly overwritten by the
+		# shorter column.
+		var front := _cell(row, columns, "frontside")
+		if front != "":
+			if card.attack_text == "":
+				card.attack_text = front
+			if card.defend_text == "":
+				card.defend_text = front
+
+		card.ultimate_text = _cell(row, columns, "ultimateside")
+		card.emblem_name = _cell(row, columns, "emblem")
+		card.star_set = _cell(row, columns, "set")
 		card.element = _cell(row, columns, "element")
 		# A single `Base Power` column stands for both faces. A sheet that
 		# writes both is still read as both, so nothing that already worked
@@ -325,6 +359,13 @@ func _read_units(rows: Array, columns: Dictionary, source: String) -> void:
 			card.artwork = _find_texture(art_name, PLAYER_ART_DIRS)
 			if card.artwork == null:
 				problems.append("%s: artwork '%s' not found for %s" % [source, art_name, name_text])
+
+		# THE OTHER FACE. Missing is not a problem worth reporting: a Star
+		# with one drawing works, it simply does not change when it turns
+		# over — and every Star is in that state until the art is made.
+		var ult_art := _cell(row, columns, "ultimateartwork")
+		if ult_art != "":
+			card.ultimate_artwork = _find_texture(ult_art, PLAYER_ART_DIRS)
 
 		if card.is_star():
 			var formation_name := _cell(row, columns, "formation")

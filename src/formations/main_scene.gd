@@ -312,6 +312,17 @@ var chosen_regulars: Dictionary = {}
 var _offered_star_classes: Array[String] = []
 
 var player_star_bundle: Array[PlayerData] = []
+
+# ============ THE EMBLEMS YOUR STARS BROUGHT ON ============
+#
+# One tile per Emblem along the top of the pitch, with the Condition it is
+# racing toward and how far along it is. It is created when the Stars are
+# known, read again at the end of every round, and reset by a goal.
+#
+# It owns nothing: everything on it is read out of EmblemBook each refresh,
+# so a substitution changes the bar and nothing has to be told about it.
+# `emblems_on_field` FALSE in Tuning.csv and it is never created at all.
+var emblem_bar: EmblemBar = null
 var enemy_star_bundle: Array[PlayerData] = []
 var available_player_stars: Array[PlayerData] = []
 var available_enemy_stars: Array[PlayerData] = []
@@ -1906,6 +1917,10 @@ func _resolve_kickoff_star(chosen: PlayerData) -> void:
 	print("Player class: %s  |  Star: %s (Tier %s)" % [
 		chosen.unit_type, chosen.player_name, player_star_tier])
 	_print_line_ups()
+	# THE STARS ARE KNOWN, SO THE EMBLEMS ARE. "Star Units when coming into
+	# the field place their emblem" — this is that moment, and there is only
+	# one of it per match whichever way the side was chosen.
+	_open_emblem_bar()
 	_report("match_started", _facts_for(null))
 	_advance_progression("match_started")
 
@@ -1947,6 +1962,10 @@ func _apply_team_selection(picked: TeamSelection) -> void:
 	print("Your team — %s | Star: %s (Tier %s)" % [
 		picked.unit_type, active_player_star.player_name, player_star_tier])
 	_print_line_ups()
+	# THE STARS ARE KNOWN, SO THE EMBLEMS ARE. "Star Units when coming into
+	# the field place their emblem" — this is that moment, and there is only
+	# one of it per match whichever way the side was chosen.
+	_open_emblem_bar()
 	_report("match_started", _facts_for(null))
 	_advance_progression("match_started")
 
@@ -2537,6 +2556,18 @@ func _on_goal_conceded(conceded_by_enemy: bool) -> void:
 		_report("goal_scored", _facts_for(scorer))
 	else:
 		_report("goal_conceded", _facts_for(null))
+
+	# ============ A GOAL ENDS THE EMBLEM RACE ============
+	#
+	# Every Emblem turns back to its Basic side and the counters their
+	# Conditions watch go to zero, so the next race starts level. That is what
+	# stops one early Ultimate deciding the whole ninety minutes, and it is
+	# why the race is worth running more than once.
+	#
+	# AFTER the report, not before: a Stats.csv row may be counting the very
+	# goal that is resetting things, and zeroing first would lose it.
+	EmblemBook.reset_after_goal(state)
+	_refresh_emblems()
 
 
 # =============================================================
@@ -5242,6 +5273,7 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 	restart_receiver = null
 	if ball != null:
 		ball.scripted_possession = false
+	_settle_emblems()
 	round_resolved.emit(player_score, enemy_score)
 	current_state = MatchState.PLAYING
 
@@ -6042,3 +6074,57 @@ func _goal_mouth(keeper_is_enemy: bool) -> Vector2:
 	var y := keeper.global_position.y if keeper != null else rect.get_center().y
 	var x := rect.end.x + 40.0 if keeper_is_enemy else rect.position.x - 40.0
 	return Vector2(x, y)
+
+
+# =============================================================
+#  THE EMBLEM BAR
+#
+#  Three small functions, because the bar is three small questions: build it
+#  when the Stars are known, run the race when a counter may have moved, and
+#  read it again when something changed. Everything else is EmblemBook's.
+# =============================================================
+
+## The cards this side has brought — which is what decides the emblems.
+##
+## The whole squad and not only the Star on the pitch: a Star waiting for the
+## STAR PLAYER SWITCH has still brought their Emblem with them, which is the
+## point of "they place their emblem when they come into the field".
+func _my_cards() -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	for star in player_star_bundle:
+		if star != null and not out.has(star):
+			out.append(star)
+	if active_player_star != null and not out.has(active_player_star):
+		out.append(active_player_star)
+	return out
+
+
+## Put the bar up. Safe to call twice — the second call just reads it again.
+func _open_emblem_bar() -> void:
+	if emblem_bar != null and is_instance_valid(emblem_bar):
+		_refresh_emblems()
+		return
+	emblem_bar = EmblemBar.open(self, _my_cards(), state)
+
+
+func _refresh_emblems() -> void:
+	if emblem_bar == null or not is_instance_valid(emblem_bar):
+		return
+	emblem_bar.squad = _my_cards()
+	emblem_bar.state = state
+	emblem_bar.refresh()
+
+
+## RUN THE RACE, then read the bar again.
+##
+## EmblemBook.settle() is idempotent, so hanging this off the end of every
+## round costs nothing and means no caller has to remember whether it has
+## already been called. When one turns over it is announced, because an
+## Ultimate that arrives silently is an Ultimate nobody notices.
+func _settle_emblems() -> void:
+	if state == null:
+		return
+	var turned := EmblemBook.settle(_my_cards(), state)
+	_refresh_emblems()
+	if turned != null:
+		announce("%s  —  ULTIMATE" % turned.id.to_upper())

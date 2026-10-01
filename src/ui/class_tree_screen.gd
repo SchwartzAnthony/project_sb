@@ -175,8 +175,8 @@ func _column_for(entry: ClassBook.ClassEntry) -> Control:
 	column.add_child(heading)
 
 	var costs := ClassTree.costs_for(who)
-	column.add_child(_small("%d Star node(s) · a node costs %d, the emblem %d, the spirit %d"
-		% [entry.sets.size(), int(costs["node"]), int(costs["emblem"]), int(costs["spirit"])]))
+	column.add_child(_small("%d Star node(s) · a node costs %d, your element %d, the spirit %d"
+		% [entry.sets.size(), int(costs["node"]), int(costs["element"]), int(costs["spirit"])]))
 
 	# ---- the nodes ----
 	for node in ClassTree.nodes_for(who, state):
@@ -265,39 +265,53 @@ func _emblem_block(entry: ClassBook.ClassEntry) -> Control:
 	var who := entry.unit_type
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 6)
-	box.add_child(MenuSupport.heading("EMBLEM", 18, MenuSupport.COLOUR_ACCENT))
 
+	# ============ THIS PANEL NO LONGER SELLS YOU AN EMBLEM ============
+	#
+	# It used to: fill three nodes, then choose ONE emblem, for points. That
+	# is gone. An Emblem arrives with its Star — field the Star and it is on
+	# the bar along the top of the pitch.
+	#
+	# So the panel reads them back instead of selling them, and the node that
+	# was here sells an ELEMENT: permission to field units of other classes
+	# that share yours. See ClassTree.open_element().
+
+	box.add_child(MenuSupport.heading("EMBLEMS", 18, MenuSupport.COLOUR_ACCENT))
 	if entry.emblems.is_empty():
 		box.add_child(_small("No \"%s Emblems.csv\" yet. Write one and this fills in." % who))
-		return box
-
-	var chosen := ClassTree.chosen_emblem(who, state)
-	if chosen != "":
-		var badge := ClassTree.emblem_of(who, state)
-		var turned := ClassTree.emblem_turned(who, state)
-		box.add_child(MenuSupport.heading(chosen, 20,
-			MenuSupport.COLOUR_ATTACK if turned else MenuSupport.COLOUR_TEXT))
-		if badge != null:
+	else:
+		box.add_child(_small("Each Star carries one onto the pitch. All three collect; the first to complete its Condition turns over, and a goal puts them all back."))
+		for badge in EmblemBook.for_class(who):
+			var line := "%s  ·  %s" % [badge.id, badge.token if badge.token != "" else "no token yet"]
+			box.add_child(MenuSupport.heading(line, 16, MenuSupport.COLOUR_TEXT))
 			box.add_child(_small(badge.basic))
-			if turned:
-				box.add_child(_small("TURNED OVER — %s" % badge.ultimate))
-			elif badge.turns_on == "":
-				box.add_child(_small("It has no Turns On condition yet, so it cannot turn over."))
+			if badge.turns_on == "":
+				box.add_child(_small("No Turns On condition yet, so it can never turn over."))
 			else:
 				box.add_child(_small("Turns over when: %s"
 					% DialogueGrammar.describe(badge.turns_on)))
-		return box
 
-	if not ClassTree.all_placed(who, state):
-		box.add_child(_small("Fill all three nodes and you may choose ONE emblem."))
-		return box
-
-	box.add_child(_small("Choose ONE. It cannot be changed afterwards."))
-	for badge in ClassBook.emblems_for(who):
-		var button := _button(badge.id, MenuSupport.COLOUR_ACCENT)
-		button.pressed.connect(_choose.bind(who, badge.id))
-		box.add_child(button)
-		box.add_child(_small(badge.basic))
+	# ---- THE ELEMENT NODE ----
+	if ClassTree.element_node_offered(who, db):
+		box.add_child(HSeparator.new())
+		var word := ClassTree.element_unlock(who)
+		box.add_child(MenuSupport.heading(word.to_upper(), 18, MenuSupport.COLOUR_ACCENT))
+		var others := ClassBook.classes_of_element(ClassBook.element_of(who))
+		others.erase(who)
+		var said := ", ".join(PackedStringArray(others)) if not others.is_empty() \
+			else "nothing else of this element is written yet — the node is ready for the day one is"
+		if ClassTree.element_open(who, state):
+			box.add_child(_small("OPEN. You may field: %s" % said))
+		elif not ClassTree.all_placed(who, state):
+			box.add_child(_small("Fill all three nodes first. Then: %s" % said))
+		else:
+			var cost := int(ClassTree.costs_for(who)["element"])
+			var button := _button("Open %s  —  %d point(s)" % [word, cost],
+				MenuSupport.COLOUR_ACCENT)
+			button.pressed.connect(_open_element.bind(who))
+			box.add_child(button)
+			box.add_child(_small("Lets you field units of other classes that share your element. An Emblem's Basic side already counts any %s unit; this is what puts one on the pitch."
+				% ClassBook.element_of(who).to_lower()))
 	return box
 
 
@@ -348,8 +362,8 @@ func _place(who: String, set_id: String, star: PlayerData) -> void:
 	_rebuild()
 
 
-func _choose(who: String, emblem_id: String) -> void:
-	_say(ClassTree.choose_emblem(who, emblem_id, state, db))
+func _open_element(who: String) -> void:
+	_say(ClassTree.open_element(who, state, db))
 	_rebuild()
 
 

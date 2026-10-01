@@ -1824,15 +1824,34 @@ points, which is what makes them one tree.
 A class is **one Star set plus three emblem sets** (section 7c). So:
 
 ```
-   THREE NODES, one per emblem set
+   THREE NODES, one per set of nine
 
    Put one of your Star Players into a node
        -> that set's NINE UNITS become yours to field
 
    All three nodes filled
-       -> CHOOSE ONE EMBLEM, and it cannot be changed
+       -> OPEN YOUR ELEMENT, and field other classes that share it
        -> FORGE THE TEAM SPIRIT
 ```
+
+> ### THE EMBLEM IS NOT BOUGHT HERE ANY MORE
+>
+> It arrives with its Star. Field the Star and its Emblem is on the bar along
+> the top of the pitch; take the Star out and the Emblem goes with them. The
+> whole of it is section **7f** below, and the code is `emblem_book.gd`.
+>
+> **Why that is better than what it replaced.** The old tree made you fill
+> three nodes and then choose ONE emblem — so two of your three Stars were
+> carrying nothing, and the choice was made at a menu before you had played a
+> minute of the match it decided. Now all three ride on, all three collect,
+> and the first to complete its Condition turns over. **The choice is made by
+> play.**
+>
+> So the node that sold you an emblem sells you an **element** instead:
+> `Open Water`, `Open Fire`. Buying it lets you field units of other classes
+> that share your element — which is the door the next water class walks
+> through. `Emblem Cost` in ClassTree.csv became `Element Cost`; the old name
+> is still read as a fallback so a sheet you have not updated keeps working.
 
 **The tree is not written down anywhere, and that is deliberate.** Its nodes
 are read off the unit spreadsheets. Add a fourth emblem set to a class
@@ -1944,6 +1963,154 @@ gate would do:
 A class with no `<Class> Emblems.csv` at all is listed as *waiting*, not as a
 problem. BasicTeam and the Brandteufel are both in that state and neither is
 broken.
+
+---
+
+## 7f. The Emblems — three on the pitch, one may ascend
+
+> *"Star Units when coming into the field place their emblem, which has the
+> conditions on it. Each Star Player has their own Emblem. Star Players have
+> their normal ability; the Ultimate form is their other side when their
+> Emblem condition is met. When hovered over them, show their ultimate card
+> side."*
+
+That is the whole change and it is the biggest one since the tier ladder.
+
+### What a class is, in one picture
+
+```
+   A CLASS = 30 CARDS
+
+     3 Star Players     one whole tier between them, one power each
+     3 sets of nine     the other three tiers, three cards per tier
+     3 Emblems          one per Star, one per set
+
+   Lorelei:    Stars are Tier II.   Each set covers I, III, IV.
+   Rauhnacht:  Stars are Tier IV.   Each set covers I, II, III.
+```
+
+**You field twelve: three Stars and nine regulars.** To play all three Stars
+you take one tier's worth from each of the three sets — *"divided into three
+players each"* — which leaves eighteen on the bench to swap around. That
+constraint is the deckbuilding, and everything below is built on it rather
+than around it.
+
+### The three rules
+
+**1. IT IS A RACE.** All three Emblems ride on and all three collect on their
+Basic side all match. The **first** to meet its Condition turns over, and the
+other two are held on Basic until the reset. `emblem_race` in Tuning.csv;
+FALSE lets all three turn over, which is simpler and much more explosive — a
+real choice, not a safety switch.
+
+**2. ELEMENT FEEDS THE BASIC SIDE, CLASS FULFILS THE CONDITION.** A water
+unit of *any* class counts toward a Lorelei Emblem's Basic side; only a
+Lorelei can complete the Condition that turns it over.
+
+```
+   Gremory · Basic side
+     "When two or more WATER units enter the exhaust…"
+       -> any water unit, any class.              YES
+
+   Gremory · Condition
+     "If all three Tier I Units removed were LORELEI…"
+       -> Lorelei only.                            no, for anyone else
+```
+
+So a mixed water team gets a broader engine and gives up the Ultimate, and a
+mono-class team gets the Ultimate and a narrower engine. **That is the whole
+reason the next water class is worth writing**, and it costs no code: it is
+the `Basic Feeds` column and the `Element` column of ClassInfo.csv.
+`emblem_element_feeds_basic` turns it off for everybody; a single Emblem
+overrides it with `Basic Feeds: class`.
+
+**3. A GOAL ENDS THE RACE.** Every Emblem turns back to Basic, the counters
+their Conditions watch go to zero, and the next race starts level.
+`emblem_reset_on_goal` FALSE makes an Ultimate last the rest of the match.
+
+### What flips
+
+**Both, together.** The Emblem turns to its Ultimate Side *and* the Star
+turns to its Ultimate Side, at the same moment. One event, two faces of it.
+
+**A Star has ONE ability, not two.** `data/Star Players.csv` writes
+`Front Side` where a unit file writes `Attack` and `Defend`, and that is the
+design: a Star has one ability and an Ultimate; a normal unit has two
+abilities and no Ultimate. The loader fills both faces from `Front Side`.
+
+**Hover a Star and you read its Ultimate Side at any time**, together with
+the Condition that would turn it face up and how far along that is.
+Deliberately, always: an Ultimate you only see once you have earned it is one
+you never aimed at. `star_hover_ultimate` in Tuning.csv.
+
+### `data/<Class> Emblems.csv`
+
+| column | |
+|---|---|
+| `Name` | the demon — Gremory, Zepar, Sallos, Belphegor, Flauros, Buer |
+| `Unit Type` | the class |
+| `Emblem` | the picture, in `assets/icons/` |
+| `Star` | which Star carries it. **Blank means "the Star with my name"** |
+| `Set` | **which set of nine can complete it.** Blank means "the set with my name" |
+| `Token` | **the set's own word** — Rose Unit, Swan, Song counter, burn counter, Teufel Mask |
+| `Basic Side` | the prose. What it does from kick-off |
+| `Condition` | the prose. What a player reads |
+| `Turns On` | the same thing the game can read — `count:lorelei_swans_made>=5` |
+| `Basic Feeds` | `element` (the default), `class` or `any` |
+| `Ultimate Side` | the prose for the other side. The Basic side stays live |
+| `Order` | left to right on the bar |
+
+**`Token` is the column that makes nine cards a set.** It is what those nine
+make and spend, and it is what the New Class wizard fills `{token}` with when
+it rolls their abilities. A set with no token is nine cards that happen to
+share a class.
+
+> ### `Set` — the column that closed a complaint the checker made every run
+>
+> The old code assumed a Star's name and its set's name were the same word.
+> **Gremory's nine are the SITRI set**, so `class_check` reported two problems
+> — one for the set with "no emblem" and one for the emblem with "no set" —
+> and there was nothing to fix. The data was right and the assumption was
+> wrong.
+>
+> A Star and its set may share a name or not, and this column says which.
+> **That was the last red mark in any checker.**
+
+### Progress comes out of `Turns On`, not out of a column
+
+A condition is `count:<counter>>=<n>` — a counter and a target, which is
+everything a progress bar needs. So there is no second column to keep in
+step, and a Condition you rewrite tomorrow moves its own bar this afternoon.
+An Emblem whose `Turns On` is a flag test simply has no pips, which is fine.
+
+### Price the race in duels
+
+```
+godot --headless --script res://tools/emblem_check.gd
+
+  Lorelei
+  emblem       counter it waits on        needs
+  Gremory      lorelei_tier_i_traded          3
+  Zepar        lorelei_swans_made             5
+  Sallos       lorelei_songs_marked           5
+      SHORTEST: Gremory at 3. Spread is 2 — close enough that which one
+      wins depends on how the match goes, which is what you want.
+```
+
+**This is the number that decides which Ultimates exist.** Only the first to
+complete turns over, so an Emblem needing eight where another needs three is
+written, drawn, and never seen. Keep the three within one or two of each
+other. The tool says **SPREAD IS n** and tells you off when it is not.
+
+It also prints the element rule worked through with your real cards, so the
+YES/no columns can be read down rather than taken on trust.
+
+### `data/Elements.csv`
+
+Four rows: WATER, FIRE, EARTH, AIR — a display name, a colour, an icon, an
+order and an `Opposes`. The plan is **one class per element first, then more
+classes inside each element**, and this is the list the New Class wizard
+offers. Nothing enforces four; it is just how many there are.
 
 ---
 
@@ -3516,6 +3683,14 @@ in `assets/`, a `{placeholder}` nothing fills in.
 > loud past twelve.
 
 ```
+godot --headless --script res://tools/emblem_check.gd
+```
+Every class with its element and its Star tier; every Emblem with its Star,
+its set, its token and who feeds it; **the race priced in duels**, with the
+shortest named and the spread called out; and the element rule worked through
+with your real cards. See section 7f.
+
+```
 godot --headless --script res://tools/class_check.gd
 ```
 **Do a class's spreadsheets agree with each other?** A class is spread over a
@@ -3717,6 +3892,18 @@ that is almost always why.
 
 **Renaming a card.** See section 13.
 
+**Assuming two names are the same name.** A Star is called Gremory and its
+nine units are the Sitri set. For months the checker reported that as two
+problems and there was nothing to fix, because the *code* assumed a Star and
+its set shared a word. The fix was a column (`Set`) that says which, not a
+rename. **When a tool reports a problem you cannot find, check whether the
+tool is asserting something nobody ever wrote down.**
+
+**A Star with two abilities.** `Star Players.csv` has one `Front Side`, not an
+Attack and a Defend. Writing both is not an error — the loader prefers them —
+but it is not the design any more, and the second one will never be the
+reason a Star is interesting. The Ultimate Side is.
+
 **An action nobody handles.** A `Do` or `Action` term whose kind is not real —
 `window:` before it was deferred, or any plain typo — used to be handed to the
 condition language, which ignores what it does not know. The cell looked fine,
@@ -3752,6 +3939,10 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | **add something to the bag** | a row of `Items.csv`. `Tab` says which of the three pages it lands on; leave it blank and `Kind` decides |
 | **add a key item** | a row of `Items.csv` with `Kind: key` and no `Use`, then hand it out with a `Drops.csv` row or an `On Win` |
 | **stop items being used mid-draft** | `draft_brew_button` in `Tuning.csv` |
+| **add a new class** | the **+ New class** button in the workbench. Emblem → Ultimate → Star → nine units, three times, then it writes all four files |
+| **change what an Emblem is about** | its `Token` column. That is the word its nine units make and spend |
+| **let another class of your element play** | the Element node of the class tree, or hand out `unlocked:Open Water` from anywhere |
+| **make an Emblem easier or harder to turn over** | the number in its `Turns On`, then run `emblem_check` to see the spread |
 | **make something at a building** | the `Action` column of `Buildings.csv` — `count:reed-6;count:brew_fire+1` |
 | **let an item be used in an Adventure fight** | put `adventure_consume` in its `Tags` |
 | **let an item be used on a player mid-match** | put `match_consume` in its `Tags`, and a `Use` of `brew:<id>` if it is a brew |

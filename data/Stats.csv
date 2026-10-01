@@ -33,5 +33,10 @@ keeper_emptied,keeper_emptied,,,Goals,Keepers broken,"EVERY TIME YOU EMPTY AN OP
 brews_poured,brew_drunk,,,Match,Brews poured,"Every brew poured on a player at the Pub. brew_drunk is the event BrewDB already reports - no new event was needed, which is the right answer whenever one already exists"
 fouls_given,foul_given,,,Match,Fouls given away,"EVERY FOUL YOUR SIDE CONCEDES. The foul chance is set by how many triggers you fired in the round, so this number is really a measure of how hard you played"
 yellow_cards,card_yellow,,,Match,Yellow cards,Bookings against your side
-red_cards,card_red,,,Match,Red cards,"Sendings-off against your side. Each one costs you a man for the rest of the match and leaves a hole in a tier that a survivor has to cover"
+red_cards,card_red,,,Match,Red cards,Sendings-off against your side. Each one costs you a man for the rest of the match and leaves a hole in a tier that a survivor has to cover
 duels_won_as_{class},duel_won,,,Duels,,"ONE COUNTER PER CLASS. duels_won_as_Lorelei, duels_won_as_Rauhnacht-Feuergeister, and so on - the game makes them as it meets them. Written for the emblems: the Belphegor emblem turns over at count:duels_won_as_Rauhnacht-Feuergeister>=4, which is your card text made testable."
+lorelei_tier_i_traded,duel_won,,,Emblems,Lorelei Tier I traded,"GREMORY'S CONDITION WAITS ON THIS. Every Emblem's `Turns On` is an ordinary condition over an ordinary counter, which means the emblem bar can show progress without anything new: it reads the number out of the condition. Wire the Event and When columns to whatever really happens in your match and the bar starts filling."
+lorelei_swans_made,duel_won,,,Emblems,Lorelei turned into Swans,ZEPAR'S CONDITION.
+lorelei_songs_marked,duel_won,,,Emblems,Enemies marked with Song,SALLOS'S CONDITION.
+rauhnacht_fusions,duel_won,,,Emblems,Rauhnacht fusions,FLAUROS'S CONDITION.
+rauhnacht_units_active,duel_won,,,Emblems,Rauhnacht units fielded,BUER'S CONDITION.
