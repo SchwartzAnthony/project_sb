@@ -93,7 +93,9 @@ static func _load_keywords() -> void:
 	if not _keywords.is_empty():
 		return
 	for row in MenuSupport.read_csv("res://data/Keywords.csv"):
-		var word := CardDatabase._normalise(MenuSupport.field(row, "Keyword"))
+		# The word BEFORE any colon: "has_counter:<kind>" is the word
+		# has_counter, whatever kind a card later writes after it.
+		var word := CardDatabase._normalise(MenuSupport.field(row, "Keyword").split(":")[0])
 		var family := MenuSupport.field(row, "Family").strip_edges().to_lower()
 		if word == "" or family == "":
 			continue
@@ -150,6 +152,111 @@ var notes: String = ""
 ## one card in one match. 0 or blank = no limit, which is every row written
 ## before round X.
 var max_uses: int = 0
+## Round Y: what the Max counts over - "match" (a plain number, as before),
+## "cycle" (`1/cycle`, "once per cycle") or "game" (`1/game`, the same as a
+## match). Read from the same Max cell.
+var max_per: String = "match"
+## ROUND Y - THE `If` COLUMN. Words that must ALL be true (semicolons
+## between them) for the ability to go off. Blank = always. See CONDITIONS.
+var condition: String = ""
+
+# ============ THE CONDITION WORDS (round Y, phase C1) ============
+#
+# What may go in the If column today. A word written in Keywords.csv as an
+# `ability condition` with Status `planned` is legal too - the card loads and
+# the condition is simply FALSE until the word is built, and the Output
+# panel says so once. Anything else is a typo and the row is refused.
+#
+#     defending / attacking      this card's role in its duel
+#     won / lost                 how its duel went (after the outcome)
+#     last_ally_won              your previous card to duel won / lost
+#     last_ally_lost
+#     enemy_element:air          the card it is facing is / is not that
+#     enemy_not_element:air      element
+#     own_goalie_lower           your keeper has less stamina than theirs
+#     enemy_below_base           the enemy's power now is below its printed power
+#     in_exhaust / in_field      which zone this card is in
+#     in_combat
+#     has_tag:swan               the card carries that tag (see PlayerData)
+const CONDITIONS: Array[String] = [
+	"defending", "attacking", "won", "lost", "lastallywon", "lastallylost",
+	"enemyelement", "enemynotelement", "owngoalielower", "enemybelowbase",
+	"inexhaust", "infield", "incombat", "hastag",
+]
+
+
+## The condition words of one If cell, split and flattened: "has_tag:swan"
+## -> ["hastag", "swan"] pairs.
+static func condition_terms(text: String) -> Array:
+	var out: Array = []
+	for piece in text.split(";"):
+		var clean := String(piece).strip_edges()
+		if clean == "":
+			continue
+		var bits := clean.split(":", true, 1)
+		var negate := clean.begins_with("!")
+		var word := CardDatabase._normalise(String(bits[0]).trim_prefix("!"))
+		out.append({"word": word, "arg": String(bits[1]).strip_edges().to_lower() if bits.size() > 1 else "",
+			"not": negate, "raw": clean})
+	return out
+
+
+static func condition_is_live(word: String) -> bool:
+	return CONDITIONS.has(word)
+
+
+static func condition_is_planned(word: String) -> bool:
+	return _keyword_is_planned(word, "ability condition")
+
+
+# ============ THE NEW TARGETS (round Y, phase C1) ============
+#
+#     next_self                this card, in its NEXT duel
+#     next_ally                your next card to duel
+#     next_ally:fire           ...that is fire (an element, a class, a tier
+#     next_ally:water+II       like II, or a tag - joined with +)
+#     next_ally*2:unkengeister the next TWO
+#     next_enemy               their next card to duel
+#     ally:water+I             your card in that tier THIS round
+#
+# "Next" waits until that card duels - later this round, or in a later round
+# (ruling R03). It never runs out on its own.
+static func parse_next(target_text: String) -> Dictionary:
+	var flat := target_text.strip_edges().to_lower()
+	var head := flat.split(":", true, 1)[0]
+	var filter := flat.split(":", true, 1)[1] if flat.contains(":") else ""
+	var count := 1
+	if head.contains("*"):
+		var parts := head.split("*")
+		head = parts[0]
+		if String(parts[1]).is_valid_int():
+			count = maxi(1, int(String(parts[1])))
+	if not (head in ["next_self", "next_ally", "next_enemy", "ally"]):
+		return {}
+	return {"kind": head, "count": count, "filter": filter}
+
+
+## Does this card match a filter like "water+II" or "fire" or "swan"?
+## Each piece must match: an element, a class, a tier, or a tag.
+static func card_matches(card: PlayerData, filter: String) -> bool:
+	if card == null:
+		return false
+	for piece in filter.split("+"):
+		var want := String(piece).strip_edges().to_lower()
+		if want == "":
+			continue
+		if want in ["i", "ii", "iii", "iv"]:
+			if card.get_tier_clean() != want.to_upper():
+				return false
+			continue
+		if CardDatabase._normalise(card.active_element()) == CardDatabase._normalise(want):
+			continue
+		if CardDatabase._normalise(card.active_unit_type()) == CardDatabase._normalise(want):
+			continue
+		if card.has_tag(want):
+			continue
+		return false
+	return true
 
 
 ## Returns "" when the row is usable, otherwise a plain-English complaint
@@ -188,12 +295,23 @@ func validate() -> String:
 		return "Target '%s' is not recognised" % target
 	if value == 0:
 		return "Value is 0, so this ability would do nothing"
+	for term in condition_terms(condition):
+		var word := String(term["word"])
+		if condition_is_live(word):
+			continue
+		if condition_is_planned(word):
+			print("[abilities] '%s' waits on the '%s' condition, which is still marked planned in Keywords.csv - until then it is never true."
+				% [display_name if display_name != "" else id, term["raw"]])
+			continue
+		return "If '%s' is not a condition the game knows (see Keywords.csv, family 'ability condition')" % term["raw"]
 	return ""
 
 
 func _target_is_known() -> bool:
 	var flat := CardDatabase._normalise(target)
 	if TARGETS_SIMPLE.has(flat):
+		return true
+	if not parse_next(target).is_empty():
 		return true
 	return target.begins_with("tag:") or target.begins_with("tier:") or target.begins_with("enemytier:")
 

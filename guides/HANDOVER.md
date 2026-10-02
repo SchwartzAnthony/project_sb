@@ -387,6 +387,37 @@ in the old chat - remind him.
    counter in a match yet.
 4. The Pub lists Rivals (enemy) cards under YOUR CARDS - pre-existing.
 
+## 12b. Round Y — DONE
+
+**His answers:** a team is **12** (3 Stars + 9) and must exist, with its class's
+Stars placed, before the Pub or any match; Stars gate the set cards; the
+Talent Tree building became **Team Build** (Star Hall / Your Teams /
+Talents); option (a) for tiers that cannot turn; fouls "do what you think"
+(doubled); **no PixelLab until further notice**; the focus is now **every
+ability, emblem and star working as written**. Pin the other suggestions and
+remind him once the combat system is complete (listed in guides/PHASES.md).
+
+**Built:** `team_build.gd` + `team_build_screen.gd` (gate at the Pub door,
+Play a match, The season, the team shelf's LOCK IN; first 3 Stars free via
+`team_build_free_stars`); button re-cut from the slim PixelLab plaque (slice
+12) because the big plaque's rule crossed text on short buttons; Fouls.csv
+x2 (~1 card/match/side).
+
+**The combat plan:** `guides/COMBAT_PHASES.md`. `tools/ability_audit.py`
+reads all 276 texts into When/If/Cost/Do/Target/Value/Scope/Max ->
+`data/AbilityAudit.csv` + `data/AbilityRulings.csv` (F1-F4 + R01-R17, answers
+preserved on re-run). **Phase C1 built**: zone book (field/combat/exhaust,
+contemplation/rejuvenation), moments (match_start, round_end, end_of_cycle,
+while_in_exhaust, after_duel, on_shot, goalie_save, on_goal, on_concede),
+`If` column, next_ally/next_enemy/next_self/ally: targets that WAIT, Max
+1/cycle, one side per duel (`ability_uses_role_side`), multi-ID cells.
+`tools/ability_rows.py` writes `data/CardAbilities.csv` (C_ IDs) from every
+reading whose phase is in BUILT_PHASES and wires the card cells.
+`ability_coverage.gd`: 33/228 work. `ability_check.gd`: 40/40 fire right.
+
+**Next: C2** (counters, tokens, Ore pool) — add "C2" to BUILT_PHASES in
+ability_rows.py when built, re-run both scripts. Answer-dependent: R12 (Ore).
+
 ## 13. Ideas worth offering him
 
 - An `Ultimate In Short` column so the emblem bar and hover can show one line

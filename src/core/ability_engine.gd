@@ -104,9 +104,61 @@ var card_chance := {false: 0.0, true: 0.0}
 ## column. Keyed "<card instance>|<ability id>".
 var _uses: Dictionary = {}
 
+# =============================================================
+#  ROUND Y — PHASE C1: ZONES, MOMENTS, CONDITIONS AND "THE NEXT ONE"
+#
+#  The plan is guides/COMBAT_PHASES.md. In short:
+#
+#  THE ZONES. Every card in the match is in exactly one:
+#      field    took the pitch, still to play this cycle
+#      combat   drafted this round, until the round ends
+#      exhaust  played this cycle; back to the field when the cycle ends
+#  (Exile comes in phase C5.) Entering the exhaust fires `contemplation`,
+#  leaving it fires `rejuvenation` - your two triggers from AbilityTriggers.csv.
+#
+#  THE MOMENTS. match_start, round_end, end_of_cycle, while_in_exhaust,
+#  after_duel, on_shot, goalie_save, on_goal, on_concede - each one called
+#  from exactly one place in main_scene.gd.
+#
+#  ONE SIDE PER DUEL (ruling F1). A card attacking uses its ATTACK ability, a
+#  card defending its DEFEND ability. Outside a duel, the side it played last
+#  (F2). `ability_uses_role_side` FALSE in Tuning.csv fires both, as before.
+#
+#  THE If COLUMN. Conditions that must be true - see AbilityData.CONDITIONS.
+#
+#  "THE NEXT ONE". A target of next_ally / next_enemy / next_self does not
+#  land now: it WAITS, and lands on that card when it next duels.
+# =============================================================
+
+const FIELD := "field"
+const COMBAT := "combat"
+const EXHAUST := "exhaust"
+
+## card -> {"zone": String, "enemy": bool}
+var _zone: Dictionary = {}
+## card -> "attack" / "defend": its role in its current, or last, duel
+var _role: Dictionary = {}
+## card -> "won" / "lost": how its last duel went
+var _outcome: Dictionary = {}
+## side -> "won" / "lost": how that side's most recent duel went
+var _last_result := {false: "", true: ""}
+## This round's four cards a side, for `ally:` targets.
+var _lineup := {false: [], true: []}
+## "Next" effects waiting for their card: {kind, count, filter, ability, source, source_enemy, side}
+var _pending: Array = []
+## Each keeper's stamina, set by the match before every duel, for own_goalie_lower.
+var keeper_stamina := {false: 0, true: 0}
+## Which cycle this is, so a "1/cycle" Max can tell the cycles apart.
+var cycle_number := 1
+var role_side := true
+var _match_started := false
+## Planned words already mentioned, so the Output panel says each once.
+var _said: Dictionary = {}
+
 
 func _init(database: CardDatabase = null) -> void:
 	db = database if database != null else CardDatabase.get_db()
+	role_side = db == null or db.tune_bool("ability_uses_role_side", true)
 
 
 # =============================================================
@@ -128,12 +180,137 @@ func begin_round() -> void:
 	log_lines.clear()
 
 
+## A NEW CYCLE. Closes the old one first: `end_of_cycle` for every card in
+## the match, then everyone in the exhaust walks back onto the field
+## (`rejuvenation`). The match calls this at the STAR PLAYER SWITCH, and
+## finish_match() does the same for the last cycle at full time.
 func begin_cycle() -> void:
+	close_cycle()
 	_expire("cycle")
 
 
-func begin_duel() -> void:
+func close_cycle() -> void:
+	for card in _zone.keys():
+		_fire_for(card, bool(_zone[card]["enemy"]), "endofcycle", null, not bool(_zone[card]["enemy"]))
+	for card in _zone.keys():
+		if String(_zone[card]["zone"]) == EXHAUST:
+			_move(card, bool(_zone[card]["enemy"]), FIELD)
+	cycle_number += 1
+
+
+## Full time. The last cycle has no STAR PLAYER SWITCH to close it.
+func finish_match() -> void:
+	close_cycle()
+
+
+## A duel is about to start between these two. Any "next" effect waiting for
+## either of them lands now, and every card sitting in the exhaust gets its
+## `while_in_exhaust` moment.
+func begin_duel(player_card: PlayerData = null, enemy_card: PlayerData = null) -> void:
 	_expire("duel")
+	if player_card != null:
+		_consume_pending(player_card, false)
+	if enemy_card != null:
+		_consume_pending(enemy_card, true)
+	for card in _zone.keys():
+		if String(_zone[card]["zone"]) == EXHAUST:
+			var side := bool(_zone[card]["enemy"])
+			var facing: PlayerData = enemy_card if not side else player_card
+			_fire_for(card, side, "whileinexhaust", facing, not side)
+
+
+# =============================================================
+#  ZONES (round Y, C1)
+# =============================================================
+
+## Everyone on the pitch, both sides. Cards the book has not seen yet go onto
+## the FIELD; the first time it is called is the match's `match_start`.
+func sync_field(player_cards: Array, enemy_cards: Array) -> void:
+	var fresh: Array = []
+	for pair in [[player_cards, false], [enemy_cards, true]]:
+		for thing in pair[0]:
+			var card := thing as PlayerData
+			if card != null and not _zone.has(card):
+				_zone[card] = {"zone": FIELD, "enemy": pair[1]}
+				fresh.append(card)
+	if not _match_started:
+		_match_started = true
+		for card in fresh:
+			_fire_for(card, bool(_zone[card]["enemy"]), "matchstart", null, not bool(_zone[card]["enemy"]))
+
+
+## This round's line-ups: drafted cards leave the field for COMBAT.
+func round_lineups(player_lineup: Array, enemy_lineup: Array) -> void:
+	_lineup = {false: player_lineup.duplicate(), true: enemy_lineup.duplicate()}
+	for pair in [[player_lineup, false], [enemy_lineup, true]]:
+		for thing in pair[0]:
+			var card := thing as PlayerData
+			if card != null:
+				_move(card, pair[1], COMBAT)
+
+
+## The round is over. `round_end` for the cards that played it, then they go
+## to the EXHAUST - which fires `contemplation` for each.
+func round_finished() -> void:
+	var played: Array = []
+	for card in _zone.keys():
+		if String(_zone[card]["zone"]) == COMBAT:
+			played.append(card)
+	for card in played:
+		_fire_for(card, bool(_zone[card]["enemy"]), "roundend", null, not bool(_zone[card]["enemy"]))
+	for card in played:
+		_move(card, bool(_zone[card]["enemy"]), EXHAUST)
+
+
+func zone_of(card: PlayerData) -> String:
+	return String((_zone.get(card, {}) as Dictionary).get("zone", ""))
+
+
+## Every card of one side in one zone ("" = every zone).
+func cards_in(side_is_enemy: bool, zone: String = "") -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	for card in _zone.keys():
+		if bool(_zone[card]["enemy"]) == side_is_enemy and (zone == "" or String(_zone[card]["zone"]) == zone):
+			out.append(card)
+	return out
+
+
+func _move(card: PlayerData, side_is_enemy: bool, to: String) -> void:
+	var was := zone_of(card)
+	_zone[card] = {"zone": to, "enemy": side_is_enemy}
+	if was == to:
+		return
+	if to == EXHAUST:
+		_fire_for(card, side_is_enemy, "contemplation", null, not side_is_enemy)
+	elif was == EXHAUST:
+		_fire_for(card, side_is_enemy, "rejuvenation", null, not side_is_enemy)
+
+
+# =============================================================
+#  THE SHOT AND THE KEEPERS (round Y, C1)
+# =============================================================
+
+## The shooter is about to shoot. Returns the extra shot power its
+## `on_shot` abilities added.
+func fire_on_shot(shooter: PlayerData, shooter_is_enemy: bool) -> int:
+	var before := int(_shot_bonus.get(shooter_is_enemy, 0))
+	_fire_for(shooter, shooter_is_enemy, "onshot", null, not shooter_is_enemy)
+	return int(_shot_bonus.get(shooter_is_enemy, 0)) - before
+
+
+## The shot is in, or it is not. A goal is `on_goal` for every card of the
+## scoring side and `on_concede` for the other; a save is `goalie_save` for
+## every card of the side whose keeper saved it - conditions like in_exhaust
+## narrow it down to the cards that care.
+func after_shot(shooter_is_enemy: bool, scored: bool) -> void:
+	if scored:
+		for card in cards_in(shooter_is_enemy):
+			_fire_for(card, shooter_is_enemy, "ongoal", null, not shooter_is_enemy)
+		for card in cards_in(not shooter_is_enemy):
+			_fire_for(card, not shooter_is_enemy, "onconcede", null, shooter_is_enemy)
+	else:
+		for card in cards_in(not shooter_is_enemy):
+			_fire_for(card, not shooter_is_enemy, "goaliesave", null, shooter_is_enemy)
 
 
 func end_match() -> void:
@@ -243,6 +420,15 @@ func resolve_duel_abilities(attacker: PlayerData, attacker_is_enemy: bool,
 			return a["order"] < b["order"]     # attacker first on a tie
 		return a["priority"] < b["priority"])  # lower resolves first
 
+	# WHO IS DOING WHAT, before anything fires - a condition like `defending`
+	# and ONE SIDE PER DUEL both read it.
+	if attacker != null:
+		_role[attacker] = "attack"
+		_outcome.erase(attacker)
+	if defender != null:
+		_role[defender] = "defend"
+		_outcome.erase(defender)
+
 	for entry in queue:
 		var card: PlayerData = entry["card"]
 		var is_enemy: bool = entry["enemy"]
@@ -301,19 +487,60 @@ func fire(card: PlayerData, is_enemy: bool, trigger: String,
 ## After a duel is decided.
 func resolve_duel_outcome(winner: PlayerData, winner_is_enemy: bool,
 		loser: PlayerData, loser_is_enemy: bool) -> void:
+	if winner != null:
+		_outcome[winner] = "won"
+	if loser != null:
+		_outcome[loser] = "lost"
 	_fire_for(winner, winner_is_enemy, "onwinduel", loser, loser_is_enemy)
 	_fire_for(loser, loser_is_enemy, "onloseduel", winner, winner_is_enemy)
+	_fire_for(winner, winner_is_enemy, "afterduel", loser, loser_is_enemy)
+	_fire_for(loser, loser_is_enemy, "afterduel", winner, winner_is_enemy)
+	# "Your last unit won combat" - remembered AFTER this duel's own abilities,
+	# so it means the PREVIOUS duel to whoever asks next.
+	_last_result[winner_is_enemy] = "won"
+	_last_result[loser_is_enemy] = "lost"
+
+
+## Moments where BOTH of a card's abilities are looked at: nothing about
+## them belongs to one role.
+const BOTH_SIDES: Array[String] = ["passive", "matchstart"]
 
 
 func _fire_for(card: PlayerData, is_enemy: bool, trigger: String,
 		opponent: PlayerData, opponent_is_enemy: bool) -> void:
 	if card == null:
 		return
-	for ability_id in [card.active_attack_ability(), card.active_defend_ability()]:
-		var ability := db.get_ability(String(ability_id))
-		if ability == null or ability.trigger != trigger:
-			continue
-		_apply_one(ability, card, is_enemy, opponent, opponent_is_enemy)
+	# ============ ONE SIDE PER DUEL (ruling F1 / F2) ============
+	# Its role in its duel, or - outside a duel - the role it played last.
+	# A card that has not duelled yet counts as attacking, which is also the
+	# Reveal rule until ruling F3 is answered.
+	var slots: Array[String] = ["attack", "defend"]
+	if role_side and not BOTH_SIDES.has(trigger):
+		var played: Array[String] = [String(_role.get(card, "attack"))]
+		slots = played
+		# REVEAL comes before anyone knows who attacks (ruling F3). Until you
+		# rule, the side that HAS a reveal ability fires - the Attack side if
+		# both do - so a card whose only Reveal is on its Defend side still
+		# works, and a card with two never fires twice.
+		# (Two typed lists, not `[a] if c else [b]` - that makes an untyped
+		# Array and fails silently at runtime. The typed-array rule.)
+		if trigger == "reveal" and not _role.has(card):
+			var only_defend: Array[String] = ["defend"]
+			var only_attack: Array[String] = ["attack"]
+			if not _slot_has(card.active_attack_ability(), "reveal") \
+					and _slot_has(card.active_defend_ability(), "reveal"):
+				slots = only_defend
+			else:
+				slots = only_attack
+	for slot in slots:
+		var cell := card.active_attack_ability() if slot == "attack" else card.active_defend_ability()
+		# A CELL MAY NAME SEVERAL ROWS, separated by semicolons, so one
+		# sentence with two halves ("+1 now. If this wins: ...") is two rows.
+		for piece in String(cell).split(";"):
+			var ability := db.get_ability(String(piece).strip_edges())
+			if ability == null or ability.trigger != trigger:
+				continue
+			_apply_one(ability, card, is_enemy, opponent, opponent_is_enemy)
 
 
 # =============================================================
@@ -328,8 +555,16 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 	# "(Max 5)" on a card means it goes off five times in a match and then
 	# stops. Checked before anything else, so a spent ability does not even
 	# count as a trigger - it did not happen.
+	# ============ THE If COLUMN (round Y) ============
+	# Before anything else: a condition that is not met means it did not
+	# happen - not counted, not spent against its Max.
+	if not _condition_ok(ability, source, source_is_enemy, opponent, opponent_is_enemy):
+		return
+
 	if ability.max_uses > 0 and source != null:
 		var use_key := "%d|%s" % [source.get_instance_id(), ability.id]
+		if ability.max_per == "cycle":
+			use_key += "|cycle%d" % cycle_number
 		var used := int(_uses.get(use_key, 0))
 		if used >= ability.max_uses:
 			return
@@ -354,6 +589,23 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 			log_lines.append("      %s: %s %d on the %s keeper"
 				% [source.player_name, ability.effect, absi(delta),
 				   "away" if keeper_is_enemy else "home"])
+		return
+
+	# --- "THE NEXT ONE" waits for its card (round Y) ---
+	var next := AbilityData.parse_next(ability.target)
+	if not next.is_empty():
+		if String(next["kind"]) == "ally":
+			# Not "next": your card in that tier/kind THIS round, now.
+			for thing in (_lineup.get(source_is_enemy, []) as Array):
+				var mate := thing as PlayerData
+				if mate != null and AbilityData.card_matches(mate, String(next["filter"])):
+					_land_buff(ability, mate, source_is_enemy, source)
+			return
+		var side := not source_is_enemy if String(next["kind"]) == "next_enemy" else source_is_enemy
+		_pending.append({"kind": next["kind"], "count": int(next["count"]), "filter": next["filter"],
+			"ability": ability, "source": source, "source_enemy": source_is_enemy, "side": side})
+		log_lines.append("      %s: %s %+d waits for %s" % [source.player_name, ability.effect,
+			ability.value, ability.target])
 		return
 
 	# --- A word in the referee's ear. Against the OTHER side, always. ---
@@ -431,3 +683,149 @@ func _aim(buff: Buff, target: String, source: PlayerData, source_is_enemy: bool,
 		return buff.tier != ""
 
 	return false
+
+
+# =============================================================
+#  CONDITIONS AND "NEXT" (round Y, C1)
+# =============================================================
+
+func _condition_ok(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
+		opponent: PlayerData, opponent_is_enemy: bool) -> bool:
+	if ability.condition.strip_edges() == "":
+		return true
+	for term in AbilityData.condition_terms(ability.condition):
+		var word := String(term["word"])
+		var arg := String(term["arg"])
+		var ok := false
+		match word:
+			"defending":
+				ok = String(_role.get(source, "")) == "defend"
+			"attacking":
+				ok = String(_role.get(source, "")) == "attack"
+			"won":
+				ok = String(_outcome.get(source, "")) == "won"
+			"lost":
+				ok = String(_outcome.get(source, "")) == "lost"
+			"lastallywon":
+				ok = String(_last_result.get(source_is_enemy, "")) == "won"
+			"lastallylost":
+				ok = String(_last_result.get(source_is_enemy, "")) == "lost"
+			"enemyelement":
+				ok = opponent != null and CardDatabase._normalise(opponent.active_element()) == CardDatabase._normalise(arg)
+			"enemynotelement":
+				ok = opponent != null and CardDatabase._normalise(opponent.active_element()) != CardDatabase._normalise(arg)
+			"owngoalielower":
+				ok = int(keeper_stamina.get(source_is_enemy, 0)) < int(keeper_stamina.get(not source_is_enemy, 0))
+			"enemybelowbase":
+				if opponent != null:
+					var now := attack_power(opponent, opponent_is_enemy) \
+						if String(_role.get(opponent, "attack")) == "attack" \
+						else defense_power(opponent, opponent_is_enemy)
+					ok = now < opponent.base_power_left
+			"inexhaust":
+				ok = zone_of(source) == EXHAUST
+			"infield":
+				ok = zone_of(source) == FIELD
+			"incombat":
+				ok = zone_of(source) == COMBAT
+			"hastag":
+				ok = source.has_tag(arg)
+			_:
+				# A planned word: never true yet. Said once.
+				if not _said.has(word):
+					_said[word] = true
+					print("[abilities] the '%s' condition is not built yet, so it is never true." % term["raw"])
+				ok = false
+		if bool(term["not"]):
+			ok = not ok
+		if not ok:
+			return false
+	return true
+
+
+## A card is about to duel: land every "next" effect that was waiting for it.
+func _consume_pending(card: PlayerData, card_is_enemy: bool) -> void:
+	var kept: Array = []
+	for p in _pending:
+		var take := bool(p["side"]) == card_is_enemy
+		if take:
+			match String(p["kind"]):
+				"next_self":
+					take = p["source"] == card
+				"next_ally":
+					take = p["source"] != card and AbilityData.card_matches(card, String(p["filter"]))
+				_:
+					take = AbilityData.card_matches(card, String(p["filter"]))
+		if not take:
+			kept.append(p)
+			continue
+		var ability: AbilityData = p["ability"]
+		var source: PlayerData = p["source"]
+		if ability.effect in ["drainstamina", "restorestamina", "addshotpower", "addcardchance"]:
+			_land_side_effect(ability, source, bool(p["source_enemy"]))
+		else:
+			_land_buff(ability, card, card_is_enemy, source)
+		p["count"] = int(p["count"]) - 1
+		if int(p["count"]) > 0:
+			kept.append(p)
+	_pending = kept
+
+
+## A buff from `ability` on exactly this card, for this duel.
+func _land_buff(ability: AbilityData, card: PlayerData, card_is_enemy: bool, source: PlayerData) -> void:
+	var buff := Buff.new()
+	buff.scope = "duel" if ability.scope in ["", "duel"] else ability.scope
+	buff.card = card
+	buff.side_is_enemy = card_is_enemy
+	match ability.effect:
+		"addattack":
+			buff.attack = ability.value
+		"adddefense":
+			buff.defense = ability.value
+		"addpower":
+			buff.attack = ability.value
+			buff.defense = ability.value
+		_:
+			return
+	_buffs.append(buff)
+	log_lines.append("      %s: %s %+d lands on %s" % [
+		source.player_name if source != null else "?", ability.effect, ability.value, card.player_name])
+
+
+## A keeper or a shot effect that was waiting - it belongs to the SOURCE's side.
+func _land_side_effect(ability: AbilityData, source: PlayerData, source_is_enemy: bool) -> void:
+	if ability.effect == "addshotpower":
+		_shot_bonus[source_is_enemy] = int(_shot_bonus.get(source_is_enemy, 0)) + ability.value
+		return
+	if ability.effect == "addcardchance":
+		card_chance[not source_is_enemy] = float(card_chance.get(not source_is_enemy, 0.0)) + float(ability.value)
+		return
+	var flat := CardDatabase._normalise(ability.target)
+	var keeper_is_enemy := not source_is_enemy if flat != "owngoalie" else source_is_enemy
+	var delta := -ability.value if ability.effect == "drainstamina" else ability.value
+	_stamina_pending.append({"enemy_side": keeper_is_enemy, "delta": delta})
+
+
+func _slot_has(cell: String, trigger: String) -> bool:
+	for piece in cell.split(";"):
+		var ability := db.get_ability(String(piece).strip_edges())
+		if ability != null and ability.trigger == trigger:
+			return true
+	return false
+
+
+## The IDs of every ability still waiting for its card, for a tool.
+func pending_ids() -> Array[String]:
+	var out: Array[String] = []
+	for p in _pending:
+		out.append((p["ability"] as AbilityData).id)
+	return out
+
+
+## What is still waiting, for a tool or a screen.
+func pending_count(side_is_enemy: bool) -> int:
+	var n := 0
+	for p in _pending:
+		if bool(p["side"]) == side_is_enemy:
+			n += int(p["count"])
+	return n

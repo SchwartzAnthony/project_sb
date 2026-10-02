@@ -305,3 +305,18 @@ cut_chrome.py,tools/,A measuring tool,"ROUND X. Cuts the PixelLab sheets in art_
 03_button_sheet.png,art_source/pixellab/,Art PixelLab drew,ROUND X. Order 3. The button - hover and pressed are made from it.
 06_slot_sheet.png,art_source/pixellab/,Art PixelLab drew,"ROUND X. Order 6. The beer mat (painted, so it is reduced to pixels)."
 07_bars_sheet.png,art_source/pixellab/,Art PixelLab drew,ROUND X. Order 7. The rack of steins the bar colours come from.
+team_build.gd,src/core/,Code,ROUND Y. The gate: a team of 12 and its Stars placed before the Pub or a match.
+team_build_screen.gd,src/ui/,Code,"ROUND Y. The Team Build hub - Star Hall, Your Teams, Talents."
+team_build_screen.tscn,src/ui/,A scene,ROUND Y. The Team Build hub.
+team_build_shot.gd,tools/,A measuring tool,"ROUND Y. Presses the Pub and Play buttons on a new game; checks Team Build opens, then that the Pub opens once ready."
+ability_audit.py,tools/,A measuring tool,ROUND Y. Reads every ability text into engine words -> AbilityAudit.csv and AbilityRulings.csv. Keeps your rulings. Run: python3 tools/ability_audit.py
+ability_rows.py,tools/,A measuring tool,ROUND Y. Wires every reading the engine can run -> CardAbilities.csv + the card cells. Run: python3 tools/ability_rows.py
+ability_coverage.gd,tools/,A measuring tool,ROUND Y. The meter: how many of your class abilities work in a match.
+ability_check.gd,tools/,A measuring tool,ROUND Y. Stages every wired card's moment and checks the effect landed where its sentence says.
+AbilityAudit.csv,data/,Data you edit,"ROUND Y. Every ability text read into When/If/Cost/Do/Target/Value/Scope/Max, with its phase. Write only in Your Ruling."
+AbilityAudit.csv.import,data/,Godot bookkeeping,Keeps the CSV as a CSV.
+AbilityRulings.csv,data/,Data you edit,"ROUND Y. 21 questions about how abilities read, each once. Answer in Your Ruling."
+AbilityRulings.csv.import,data/,Godot bookkeeping,Keeps the CSV as a CSV.
+CardAbilities.csv,data/,Data the tools write,"ROUND Y. Your cards' abilities made from their text by ability_rows.py. Rebuilt every run - edit the card, not this."
+CardAbilities.csv.import,data/,Godot bookkeeping,Keeps the CSV as a CSV.
+COMBAT_PHASES.md,guides/,A guide,"ROUND Y. The plan for making every ability work: the timing chart, the zones, the audit, phases C1-C8."

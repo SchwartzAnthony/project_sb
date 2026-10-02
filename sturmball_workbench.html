@@ -271,7 +271,7 @@ const S = {
 /* ---------- the league ---------- */
 "Abilities.csv":{what:"What a card does in a DUEL. League matches only — abilities are not read in Adventure.",
   key:"Ability ID", enums:{Scope:["duel","round","cycle","match"]},
-  help:"<b>Max</b> (round X) is the <i>(Max 5)</i> on your cards: how many times this ability may go off for ONE card in ONE match. Blank = no limit.<br><b>add_card_chance</b> (round X) leans on the referee: Value % that a foul the OTHER side commits, once he has seen it, is a yellow instead of a free kick. For the match. Karl's ore card, <code>BERG_ORE_WHISPER</code>, is the example.<br><b>Trigger</b> is WHEN it goes off, and the list is a spreadsheet of its own now — <b>AbilityTriggers.csv</b>. A trigger marked <code>planned</code> there is legal to write: the card loads, the row is not an error, and it simply never fires until that trigger is built.<br>THE ONE PLACE THE SPREADSHEET STILL RUNS OUT is <b>Effect</b>. New effect words need code — ask for a batch of them."},
+  help:"<b>ROUND Y.</b> <b>If</b> is a new column: conditions that must all be true - <code>defending</code>, <code>in_exhaust</code>, <code>last_ally_won</code>, <code>enemy_not_element:air</code>... (Keywords.csv, family <i>ability condition</i>). <b>Max</b> also takes <code>1/cycle</code>. New targets: <code>next_ally:fire</code>, <code>next_ally:water+II</code>, <code>next_ally*2:unkengeister</code>, <code>next_enemy</code>, <code>next_self</code> (they WAIT until that card duels) and <code>ally:water+I</code> (this round's card). <b>One side per duel:</b> a card attacking uses its Attack ability, defending its Defend ability (<code>ability_uses_role_side</code>). Your cards' own abilities live in <b>CardAbilities.csv</b>, made from their text.<br><b>Max</b> (round X) is the <i>(Max 5)</i> on your cards: how many times this ability may go off for ONE card in ONE match. Blank = no limit.<br><b>add_card_chance</b> (round X) leans on the referee: Value % that a foul the OTHER side commits, once he has seen it, is a yellow instead of a free kick. For the match. Karl's ore card, <code>BERG_ORE_WHISPER</code>, is the example.<br><b>Trigger</b> is WHEN it goes off, and the list is a spreadsheet of its own now — <b>AbilityTriggers.csv</b>. A trigger marked <code>planned</code> there is legal to write: the card loads, the row is not an error, and it simply never fires until that trigger is built.<br>THE ONE PLACE THE SPREADSHEET STILL RUNS OUT is <b>Effect</b>. New effect words need code — ask for a batch of them."},
 "Keywords.csv":{what:"EVERY WORD THE GAME UNDERSTANDS, and what it does. The reference you read, and the place you write a new word down so it can be built.",
   key:"Keyword", enums:{Status:["live","planned"],
     Family:["ability effect","ability target","ability scope","condition","effect word","adventure effect","item tag","juice moment"]},
@@ -333,6 +333,13 @@ const S = {
   help:"These ship as Unit Type = Normal and Element = None, which is why AdventureTraits.csv has a Journeyman row — without it they would put nothing on the pile at all."},
 
 /* ---------- the base and the glue ---------- */
+"CardAbilities.csv":{key:"Ability ID", what:"YOUR CARDS' ABILITIES, MADE FROM THEIR TEXT. Do not edit here - change the card and re-run the two scripts.",
+  enums:{Scope:["duel","round","cycle","match"]},
+  help:"<b>Written by <code>python3 tools/ability_rows.py</code></b> from the readings in AbilityAudit.csv - one row per effect, ID <code>C_&lt;card&gt;_&lt;A/D/F&gt;</code>, and the ID goes into the card's Attack / Defend Ability cell. Only rows whose words the engine runs are written; each finished phase adds the next batch.<br><b>Rebuilt from scratch every time</b>, so an edit here is lost. To change what a card does: change its text (or a ruling in AbilityRulings.csv), then run <code>python3 tools/ability_audit.py</code> and <code>python3 tools/ability_rows.py</code>.<br>Your own hand-written rows stay in Abilities.csv and are never touched - and a card cell you wrote yourself is left alone."},
+"AbilityAudit.csv":{key:null, what:"EVERY ABILITY TEXT IN THE GAME, READ INTO ENGINE WORDS. 276 rows: the set cards, the Stars, the Emblems.",
+  help:"<b>Written by <code>python3 tools/ability_audit.py</code>.</b> Each row is one sentence broken into <b>When / If / Cost / Do / Target / Value / Scope / Max</b> - the same answers an Abilities row gives - then <b>Words Needed</b> (what the engine does not know yet), <b>Phase</b> (which build phase brings them, guides/COMBAT_PHASES.md) and <b>Status</b>.<br><b>Your Ruling</b> is yours: write in it and re-running the script keeps it. The questions themselves are grouped, once each, in AbilityRulings.csv - answer there."},
+"AbilityRulings.csv":{key:"ID", what:"THE QUESTIONS THE CARD TEXT LEAVES OPEN - each asked once. Write in Your Ruling.",
+  help:"<b>F1-F4 decide how every ability fires</b> (one side per duel, outside a duel, Reveal, priority). <b>R01-R17</b> are about wording: which keeper, what \u201cnext\u201d means, where Ore lives... <b>Cards</b> says how many cards each answer touches - R03 and R12 move the most.<br>Until you answer, the engine uses <b>My Reading</b>. Re-running <code>tools/ability_audit.py</code> keeps your answers."},
 "Names.csv":{key:null, what:"EVERY PLAYER'S OWN NAME. Common German first names, and surnames for when they run out.",
   cols:{"First Name":"text","Surname":"text","Notes":"long"},
   help:"<b>Two lists in two columns</b> - they do not have to be the same length and order does not matter. A recruit gets a FIRST NAME nobody has; when those run out, a first name AND a surname (<i>Johannes Bauer</i>).<br><b>Taken means</b> any card in any unit file is called that, or any player at your base is. So a recruit is never Gremory, never M\u00fcller, and never a second Johannes.<br><b>He keeps it until he leaves the base</b> (<code>release:Johannes</code>). Drinking, turning into a Lorelei, a red card - none of those touch his name.<br>Recruit somebody with <code>recruit:I0</code> (Tier I, Power 0) or <code>recruit:I0=Johannes</code> in any Effects, Do, Action or Reward column. Nobody shows on screen until <code>named_recruits</code> in Tuning.csv is true. <code>tools/round_x_check.gd</code> hands out 300 names and checks none repeat."},
@@ -389,7 +396,7 @@ const S = {
 "Achievements.csv":{what:"THE ROOT OF THE GAME. Nothing exists until an achievement hands it over - every room, Brewery section, brew, emblem and Stadium layer below is unlocked here first.",
   key:"ID", enums:{Hidden:YN},
   help:"<b>EVERYTHING NEEDS TO BE UNLOCKED HERE FIRST.</b> That is what makes this the root of the game: a room in the base is not there, a Brewery section cannot be worked in, a Stadium layer is off, until a row of this file says so.<br><b>Needs</b> is the ordinary condition language - <code>count:goals&gt;=10</code>, <code>flag:x</code>, <code>unlocked:y</code>, joined with semicolons. <b>Unlocks</b> is what it hands over, semicolons for more than one. <b>Reward</b> is anything else in the Do language: <code>give:coins+50</code>, <code>announce:Text</code>, <code>story:chapter2</code>.<br><b>A row needs either an Unlocks or a Reward.</b> One with neither is earned and then does nothing.<br><b>IT IS NOT A NEW VOCABULARY, AND THAT IS THE POINT.</b> The game already had one way to say \"you have this\": <code>unlock:Brewery</code> grants it and <code>unlocked:Brewery</code> tests it. A second, parallel system would mean two answers to \"is the Brewery open\", and one day they would disagree. So the Unlocks column is turned into exactly those words, and everything downstream never knows this file exists - which means you can move where something is granted from without touching the thing that is granted.<br><b>Unlock names are matched loosely</b> - lowercase, letters and digits only. <code>Master Brewer</code>, <code>master_brewer</code> and <code>master brewer</code> are ONE unlock. Your spreadsheets spell it all three ways and that is fine.<br><b>Hidden = yes</b> keeps it off the board until it is earned. For endings and surprises.<br><b>It is reviewed when a screen opens and at the final whistle</b>, and it is idempotent - an achievement already earned is skipped, so nothing is ever granted twice.<br><code>tools/achievement_check.gd</code> asks the two questions a spreadsheet cannot: is anything gated behind a counter nothing counts, and is anything tested that nobody grants."},
-"Fouls.csv":{what:"THE REFEREE. The more a side set off in a round, the more likely it is to have given a foul away doing it. Yellows, reds, and a man sent off leaving nine.",
+"Fouls.csv":{what:"THE REFEREE. (Round Y: every Foul Chance was doubled - about one card a match per side now.) The more a side set off in a round, the more likely it is to have given a foul away doing it. Yellows, reds, and a man sent off leaving nine.",
   key:"Triggers",
   help:"<b>IT PRICES THE THING THE REST OF THE GAME REWARDS WITHOUT LIMIT.</b> Firing everything you have every round used to be free. Now it costs, and what it costs is a man.<br><b>Triggers</b> is how many abilities and combos that side actually set off - one per ability that CHANGED A NUMBER, not one per ability a card owns. Every round the match prints <code>Triggers this round: you N, them N</code>, and that line is where the answer is when the cards feel too frequent or too rare, before you touch a row of this file.<br><b>Foul Chance</b> is the % it conceded a foul at that many. <b>Yellow</b> and <b>Red</b> are, IF a foul was given, what kind. Whatever is left of 100 is an ordinary free kick - which should be most fouls.<br><b>Rows are interpolated</b>, exactly like ShotOdds.csv, so five rows draw a smooth curve rather than five steps.<br><b>DO THE MULTIPLICATION.</b> 18% sounds small. It happens to BOTH SIDES, NINE TIMES A MATCH - eighteen rolls. <code>tools/foul_check.gd</code> simulates two thousand matches at each level and prints fouls, yellows, reds and how often a match ends ten against eleven.<br><b>AND THEN THE LADDER HAS A HOLE IN IT.</b> A tier holds one card of each power; send the 3 off and Tier III can only offer two cards. So a survivor of that tier is offered playing out of position: his name, the missing power, and NO abilities at all. A new copy is drawn every draft phase, so who covers the gap changes round to round. Both sides get them.<br><b>Tuning.csv:</b> <code>fouls</code> false turns the whole thing off · <code>foul_free_kick_power</code> is what a foul adds to the fouled side's shot · <code>foul_card_gives_possession</code> - a card stops the game, which is what makes it the moment a side gets the set piece · <code>foul_two_yellows_is_red</code> · <code>foul_stand_ins</code> false leaves the tier one card short instead · <code>foul_window_seconds</code> 0 shows no window."},
 "BrewerySections.csv":{what:"THE SIX SECTIONS OF THE BREWERY, as numbers. Wheat becomes malt becomes mash becomes wort becomes brew becomes a barrel becomes six bottles.",
@@ -454,6 +461,7 @@ const REFS = {
  "Biomes.csv":{Drops:["Drops.csv","Table"]},
  "AdventureEnemies.csv":{Drops:["Drops.csv","Table"], Ability:["Abilities.csv","Ability ID"]},
  "Abilities.csv":{Trigger:["AbilityTriggers.csv","ID"]},
+ "CardAbilities.csv":{Trigger:["AbilityTriggers.csv","ID"]},
  "AdventureCombos.csv":{Trait:["AdventureTraits.csv","ID"]},
  "Drops.csv":{Item:["Items.csv","ID"]},
  "Season.csv":{Team:["Teams.csv","ID"]},
@@ -1029,6 +1037,7 @@ function paintCheat(){
     ["count:gold=0","set it outright"],
     ["count:tune_press_speed+12","<b>edit a row of Tuning.csv.</b> Any row. This is how talents work"],
     ["sign:Müller","a card joins your squad (read once <code>squad_ownership</code> is on)"],
+    ["count:tune_foul_card_bonus_enemy+1","a talent leaning on the referee - every opponent easier to book"],
     ["recruit:I0","<b>a new plain player</b>, Tier I Power 0, with a unique name from Names.csv. <code>recruit:I0=Johannes</code> asks for a name"],
     ["release:Johannes","he leaves the base for good, and his name is free again"],
     ["story:prologue","play a dialogue scene"],
@@ -1214,6 +1223,24 @@ function check(){
         if(named[k]) add(f,ri,"Name",`"${v}" is also the name of a card in ${named[k]}.`,`Every player needs a name of his own - saves, brews and turned players are all stored against it.`);
         else named[k]=f;
       });
+    }
+  }
+  /* 2c. ABILITY CELLS ON CARDS (round Y). A card's Attack / Defend Ability
+     cell may name SEVERAL rows, separated by semicolons, from Abilities.csv
+     OR CardAbilities.csv. Each one has to exist. */
+  {
+    const known=new Set([...ids("Abilities.csv","Ability ID"), ...ids("CardAbilities.csv","Ability ID")]);
+    if(known.size) for(const f of Object.keys(DATA)){
+      if(at(f,"Unit Type")<0 && f!=="Star Players.csv") continue;
+      for(const c of ["Attack Ability","Defend Ability"]){
+        const i=at(f,c); if(i<0) continue;
+        DATA[f].rows.forEach((r,ri)=>{
+          for(const one of (r[i]||"").split(";")){
+            const v=one.trim(); if(!v) continue;
+            if(!known.has(norm(v))) add(f,ri,c,`"${v}" is not a row of Abilities.csv or CardAbilities.csv.`,`Write the row, or re-run <code>python3 tools/ability_rows.py</code> if it is one of the C_ rows made from the card text.`);
+          }
+        });
+      }
     }
   }
   /* 3. `and` where a semicolon belongs */
@@ -2122,6 +2149,28 @@ function paintBook(){
     never learns the rule. Under 20% and it is the system you had before the bar existed. Around half is the
     shape you want: getting away with one is common, getting away with four is not.</p>`);
 
+  card("Team Build — before the Pub and every match (round Y)", `
+    <p style="margin:0 0 10px"><b>The Talent Tree building is Team Build now</b>, with three tabs: <b>Star Hall</b>, <b>Your Teams</b>, <b>Talents</b>.</p>
+    ${rows([
+      ["the gate","the Pub and every match stay shut until you have a team of <b>12</b> (three Stars + nine) AND that class's three Stars are placed"],
+      ["Stars first","the Stars open the set cards a team is made of (<code>class_tree_gates_units</code> is on), so a new game lands on the Star Hall"],
+      ["free Stars","the first three cost nothing - <code>team_build_free_stars</code>. Talent points come from matches, and matches now need Stars"],
+      ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
+    ])}`);
+
+  card("Combat abilities — the plan (round Y)", `
+    <p style="margin:0 0 10px"><b>Every ability text is read</b> into engine words in <b>AbilityAudit.csv</b>, and the open questions are in <b>AbilityRulings.csv</b>, once each. guides/COMBAT_PHASES.md has the timing chart and the phases.</p>
+    ${rows([
+      ["C1 · built","zones (field, combat, exhaust), the new moments, the <code>If</code> column, \u201cthe next one\u201d, one side per duel. <b>33 abilities work</b>"],
+      ["C2","counters, tokens, Ore - +65"],
+      ["C3","the keeper and the referee - +18"],
+      ["C4","bending the duel - +33"],
+      ["C5","exile and the other zones - +17"],
+      ["C6","mines, fusing, the ball, gravestones - +60"],
+      ["C7 · C8","the Emblems' Basic Sides, then the Stars' Ultimates"],
+    ])}
+    <p style="margin:10px 0 0;color:var(--dim)"><b>The three commands:</b> <code>python3 tools/ability_audit.py</code> (read the cards) · <code>python3 tools/ability_rows.py</code> (wire what is built) · <code>ability_coverage.gd</code> (the meter).</p>`);
+
   card("Names, recruits and three beers (round X)", `
     <p style="margin:0 0 10px"><b>Stars carry Goetia names. Everyone else carries a common German one</b>, and keeps it for as long as he is at your base.</p>
     ${rows([
@@ -2214,6 +2263,10 @@ function paintBook(){
       ["recovery_check","whether the squad is deep enough to turn the recovery system on"],
       ["match_soak / adventure_soak","<b>a whole match and a hundred fights, with no window.</b> Run these after any change to a number that matters"],
       ["base_shot","opens the base and <b>presses every building</b>, then checks a window appeared"],
+      ["ability_coverage","<b>how many of your abilities work in a match</b>, by class. The meter for the combat phases"],
+      ["ability_check","stages every wired card's moment and checks the effect landed where its sentence says"],
+      ["ability_audit.py / ability_rows.py","read every card text into engine words; then wire the ones the engine can run"],
+      ["team_build_shot","presses the Pub and Play buttons on a new game and checks Team Build opens instead"],
       ["round_x_check","<b>names, recruits, three beers, the repeat offender and the ore card</b>, on a scratch save"],
       ["pub_turn_shot","presses the real Pub buttons through three beers and the choice, and photographs it"],
       ["cut_chrome.py","cuts the PixelLab sheets in <code>art_source/pixellab/</code> into the eight chrome files. <code>python3 tools/cut_chrome.py</code>"],
@@ -2240,7 +2293,7 @@ function paintBook(){
       ["eleven sounds","named in Audio.csv with no file. <code>SOUNDS_WANTED.csv</code> describes each"],
       ["four buildings","Achievements, Talent Tree, Dorms and The Traveling Brewer draw as plain plaques"],
       ["the pitch image","1000 × 667 where the game wants 2560 × 1440. See <b>Art &amp; sizes</b>"],
-      ["unit abilities","the 108 set cards' Attack and Defend are prose; only a card with an Ability ID (Abilities.csv) does anything in a match. Karl's ore card is the first one wired"],
+      ["unit abilities","33 of 228 class abilities work in a match (round Y, phase C1). The rest wait on phases C2-C8 - AbilityAudit.csv says which"],
       ["Ore","there is no Ore counter in a match yet, so <i>Consume 3 Ore</i> is not charged"],
       ["<code>recovery</code>","deliberately <code>false</code> in Tuning.csv. With three players a tier, one fixture puts enough out that you can field neither a match nor a run. Six a tier is the number to aim at"],
       ["17 keywords","written into Keywords.csv and not implemented yet. The Keywords page marks them"],

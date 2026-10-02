@@ -1533,6 +1533,35 @@ team-mate on the pitch — a throw-in is a short ball — and the ordinary relay
 carries it from him to the Tier I attacker. That is what makes the throw-in a
 restart rather than a menu that hands the ball over.
 
+### Combat abilities — round Y, phase C1
+
+**The plan for making every card's ability work is `guides/COMBAT_PHASES.md`**
+— the timing chart of a round, the zones, the audit and the phases C1–C8.
+What C1 added to this file:
+
+| | |
+|---|---|
+| **`If` column** | conditions that must all be true: `defending`, `attacking`, `won`, `lost`, `last_ally_won`, `last_ally_lost`, `enemy_element:air`, `enemy_not_element:air`, `own_goalie_lower`, `enemy_below_base`, `in_exhaust`, `in_field`, `in_combat`, `has_tag:swan`. `!` in front means NOT; semicolons join |
+| **new targets** | `next_ally`, `next_ally:fire`, `next_ally:water+II`, `next_ally*2:unkengeister`, `next_enemy`, `next_self` — these **wait** and land when that card next duels. `ally:water+I` is your card in that tier *this* round |
+| **new moments** | `match_start`, `round_end`, `end_of_cycle`, `while_in_exhaust`, `after_duel`, `on_shot`, `goalie_save`, `on_goal`, `on_concede`, and your `contemplation` / `rejuvenation` (entering / leaving the exhaust zone) are live |
+| **`Max`** | also `1/cycle` and `2/cycle` |
+| **one side per duel** | a card attacking uses its **Attack** ability, defending its **Defend** ability; outside a duel, the side it played last. `ability_uses_role_side` in Tuning.csv |
+| **several rows in one cell** | `C_Fritz_A1;C_Fritz_A2` — a sentence with two halves |
+
+**Your cards' own abilities** are made from their text, not written by hand:
+
+```
+python3 tools/ability_audit.py     reads all 276 texts -> data/AbilityAudit.csv
+                                   and the open questions -> data/AbilityRulings.csv
+python3 tools/ability_rows.py      every reading the engine can run -> data/CardAbilities.csv,
+                                   and its ID onto the card
+godot --headless --script res://tools/ability_coverage.gd    how many work
+godot --headless --script res://tools/ability_check.gd       and that each one fires right
+```
+
+**33 of 228 class abilities work in a match after C1**, up from 1. Change a
+card's text and run the first two again.
+
 ### `data/Abilities.csv` — what a player does in a duel
 
 | Column | |
@@ -3103,7 +3132,7 @@ palette colour and whether the game reads that name — and what is sitting in
 
 ---
 
-## 9. `data/Tuning.csv` — 354 numbers
+## 9. `data/Tuning.csv` — 357 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -3261,7 +3290,7 @@ and the building you just used is still under your cursor.
 | building | what it is |
 |---|---|
 | **Achievements** | the root. Everything is unlocked here first. **The only door with no `Requires`** — a game whose unlock board is itself locked has nothing to aim at |
-| **Talent Tree** | brew recipes, how many of one unit type you may field, which maps are open, and the Stars. Its ★ button swaps to the **Star Hall**, where three matching Stars open the Emblems |
+| **Team Build** *(was the Talent Tree, round Y)* | three tabs: **Star Hall** (place your three Stars), **Your Teams** (create and edit sides) and **Talents** (the old talent tree, still behind `unlocked:Talent Tree`). **The Pub and every match wait on it** — see section 11e |
 | **Club House** | exhaustion and recovery. A player's `P:x` is how many fixtures they need |
 | **Dorms** | beds — how many players you may keep at all |
 | **Trophy Room** | what you have won |
@@ -3847,6 +3876,67 @@ one row of `Buildings.csv` with `window:stadium`.
 
 ---
 
+## 11e. Team Build — the gate before the Pub and every match (round Y)
+
+> *"A team has to be made before entering a pub... They also need to add the
+> three star players to their talent tree before they can enter the pub or
+> start a match. These are mandatory players and dictate their build
+> entirely. Maybe rename talent tree to Team Build and the 'create a team'
+> feature to that hub."*
+
+### The rule
+
+You are **ready** when at least one saved team is **complete — 12 players,
+three Stars and nine more** — and **every Star of that team's class stands in
+the Star Hall**. Until then:
+
+- the **Pub** door, **Play a match** and **The season** open **Team Build**
+  instead, on the tab you're missing, with the reason on the base;
+- the team shelf's **LOCK IN** stays shut for a side whose Stars aren't
+  placed;
+- a `goto:pub` from a story line still lands on a Pub that says it's shut.
+
+**Adventure is not gated.** You said Adventure comes later.
+
+### The hub
+
+```
+   TEAM BUILD
+   ✖ Stars placed 0 / 3    ✖ Team 0 / 12
+   Place your three Stars in the Star Hall, then build a team of 12.
+   [ STAR HALL ]  [ YOUR TEAMS ]  [ TALENTS ]
+```
+
+The base building (it keeps its ID, `talent_tree`, so nothing pointing at it
+breaks) and the **Your teams** button both open it.
+
+### The Stars come first
+
+`class_tree_gates_units` is **on** now: a set's nine cards can only go into a
+team once its Star stands in its node. That's "the Stars dictate the build",
+and it's why a new player lands on the Star Hall tab.
+
+### Two things that would have locked a new game
+
+| problem | answer |
+|---|---|
+| Stars cost talent points, and talent points come from matches | **`team_build_free_stars`** (3): the first three Stars you ever place are free. The Star Hall says so on each class |
+| The Talent Tree building only appeared after an unlock | Team Build has **no Requires**. The **Talents** tab inside still waits for `unlocked:Talent Tree` |
+
+### The switches
+
+| Tuning row | |
+|---|---|
+| `team_build_gate` | `true`. `false` and nothing is gated |
+| `team_build_free_stars` | `3` |
+| `class_tree_gates_units` | `true` since round Y |
+
+Code: `src/core/team_build.gd` (the rule), `src/ui/team_build_screen.gd` (the
+hub). `tools/team_build_shot.gd` presses the real doors on a new game and
+checks they open Team Build — then that they open the Pub once you're ready.
+
+---
+
 ## 12. Words — dialogue, localisation, keys
 
 **`data/Dialogue.csv`** (and `data/tutorial/Dialogue.csv`) — a node graph in
@@ -3908,6 +3998,18 @@ accept that renames need a migration.
 ## 14. The tools
 
 In `tools/`. Nothing in the game loads them; they are for you.
+
+**Round Y, the combat abilities** — see the box in section 7 for the four
+commands: `ability_audit.py`, `ability_rows.py`, `ability_coverage.gd`
+(the meter) and `ability_check.gd` (the proof).
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/team_build_shot.gd
+```
+**Round Y.** On a throwaway save: presses the Pub and Play a match on a new
+game and checks both open Team Build; places three free Stars and a team of
+twelve; checks the Pub then opens. Photographs each step.
 
 ```
 godot --headless --script res://tools/round_x_check.gd
@@ -4448,6 +4550,15 @@ helper adds a node for you, say so in a comment above it, in capitals.
 
 ---
 
+### Round Y additions
+
+- **Edit a card's TEXT, not CardAbilities.csv.** That file is rebuilt from
+  scratch by `tools/ability_rows.py` every time.
+- **A ternary over two list literals is untyped** (`[a] if c else [b]`).
+  It broke the SHOW button in round Y for a moment; `tools/ability_check.gd`
+  caught it. The typed-array rule from the handover, again.
+- **Fouls.csv was doubled.** About one card per match per side now.
+
 ### Round X additions
 
 - **A set card's Name is now a save key for everyone who turned into it.**
@@ -4481,6 +4592,10 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | **recruit a named player** | `recruit:I0` in any Effects / Do / Action / Reward. `named_recruits` TRUE for him to show |
 | **add or remove names** | `data/Names.csv` |
 | **make a new turning brew** | a Brews.csv row with For Class `Normal`, a Becomes, an Element and a number in `Drinks` |
+| **make a card's ability work** | change its text if needed, then `python3 tools/ability_audit.py` and `python3 tools/ability_rows.py`. If its row says C2 or later, the engine needs that phase first |
+| **answer a question about how an ability reads** | the `Your Ruling` column of `data/AbilityRulings.csv` |
+| **see how many abilities work** | `tools/ability_coverage.gd` |
+| **let a player into the Pub without a team** | `team_build_gate` FALSE in Tuning.csv |
 | **let a card lean on the referee** | an Abilities.csv row with Effect `add_card_chance`, Scope `match` and a `Max`, then put its ID in the card's Attack Ability or Defend Ability column |
 | **make repeat offenders easier to book** | `Caught Per Own Foul` and `Card Per Own Foul` in Referee.csv |
 | **add a new class** | the **+ New class** button in the workbench. Emblem → Ultimate → Star → nine units, three times, then it writes all four files |

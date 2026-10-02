@@ -68,6 +68,17 @@ func _ready() -> void:
 	_rebuild_brews()
 	_rebuild_cards()
 	_refresh_seats()
+	# ============ SHUT UNTIL TEAM BUILD IS DONE (round Y) ============
+	# The base sends you to Team Build first, but a `goto:pub` from a story
+	# line could still land here - so the Pub says it too, and pours nothing.
+	var ready := TeamBuild.status(state, cards)
+	if not bool(ready["ok"]) and not TutorialBase.active(get_tree()):
+		_detail.text = "The Pub is shut. " + String(ready["why"])
+		_selected = {}
+		for child in _brew_list.get_children():
+			child.queue_free()
+		for child in _card_grid.get_children():
+			child.queue_free()
 
 
 # =============================================================

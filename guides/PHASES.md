@@ -290,6 +290,21 @@ half about the bug and half about making that kind of silence impossible.
 
 ---
 
+## After the fixes — the combat abilities (round Y onward)
+
+The next stretch of work has a plan of its own: **`guides/COMBAT_PHASES.md`**.
+Eight phases, C1 to C8, each bringing a measured batch of your cards' abilities
+to life. C1 shipped in round Y (33 abilities work, up from 1); C2 — counters,
+tokens and Ore — is next.
+
+On hold until the combat abilities are done, at your request:
+
+- **Pass 2 of the art** (title, base yard, the pitch) — no PixelLab until then.
+- A **recruitment board** in the Club House, so `named_recruits` can be turned on.
+- Hiding the **Rivals'** cards from the Pub.
+- Which **tier** a plain player can turn into when only Stars hold it (you chose
+  option (a): leave it).
+
 ## The crosswalk — where everything went
 
 | it used to be | it is now |

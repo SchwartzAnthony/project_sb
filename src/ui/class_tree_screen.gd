@@ -175,8 +175,14 @@ func _column_for(entry: ClassBook.ClassEntry) -> Control:
 	column.add_child(heading)
 
 	var costs := ClassTree.costs_for(who)
-	column.add_child(_small("%d Star node(s) · a node costs %d, your element %d, the spirit %d"
-		% [entry.sets.size(), int(costs["node"]), int(costs["element"]), int(costs["spirit"])]))
+	# ROUND Y: the first `team_build_free_stars` Stars cost nothing, and the
+	# line says so - a new game shows 0 talent points beside "costs 1".
+	var free_left := maxi(0, CardDatabase.get_db().tune_int("team_build_free_stars", 3)
+		- ClassTree.every_star_placed(state))
+	var node_cost := "free (%d free Star%s left)" % [free_left, "" if free_left == 1 else "s"] \
+		if free_left > 0 else str(int(costs["node"]))
+	column.add_child(_small("%d Star node(s) · a node costs %s, your element %d, the spirit %d"
+		% [entry.sets.size(), node_cost, int(costs["element"]), int(costs["spirit"])]))
 
 	# ---- the nodes ----
 	for node in ClassTree.nodes_for(who, state):

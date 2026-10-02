@@ -232,6 +232,8 @@ func _team_card(entry: Dictionary) -> Control:
 	var id_text := String(entry["id"])
 	var trouble := book.trouble(entry, db, _fit_needed())
 	if trouble == "":
+		trouble = _stars_missing(entry)
+	if trouble == "":
 		trouble = book.resting(entry, db, state, _fit_needed())
 
 	var button := Button.new()
@@ -318,6 +320,8 @@ func _refresh_footer() -> void:
 		_detail.text = "No team chosen." if not book.teams.is_empty() else ""
 		return
 	var trouble := book.trouble(entry, db, _fit_needed())
+	if trouble == "":
+		trouble = _stars_missing(entry)
 	if trouble != "":
 		_lock.disabled = true
 		_detail.text = "%s cannot take the pitch — %s" % [entry["name"], trouble]
@@ -359,6 +363,9 @@ func _on_edit() -> void:
 func _on_lock() -> void:
 	var entry := book.find(_chosen)
 	if entry.is_empty() or book.trouble(entry, db, _fit_needed()) != "":
+		return
+	if _stars_missing(entry) != "":
+		_detail.text = "%s cannot take the pitch — %s." % [entry["name"], _stars_missing(entry)]
 		return
 	if book.resting(entry, db, state, _fit_needed()) != "":
 		return
@@ -420,3 +427,13 @@ func _how_often(weight: int) -> String:
 	if weight > 0:
 		return "rarely"
 	return "only when something calls it"
+
+
+## ROUND Y: a MATCH needs this team's Stars in the Star Hall. An Adventure
+## run does not - you said Adventure comes later. "" when it may go.
+func _stars_missing(entry: Dictionary) -> String:
+	if String(MatchMode.current(get_tree()).get("scene", "match")) != "match":
+		return ""
+	if TutorialBase.active(get_tree()):
+		return ""
+	return TeamBuild.team_trouble(entry, state, db)

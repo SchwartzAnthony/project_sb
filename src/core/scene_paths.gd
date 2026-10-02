@@ -25,6 +25,9 @@ const STORY := "res://src/ui/dialogue_view.tscn"
 const BASE := "res://src/ui/base_screen.tscn"
 const TALENTS := "res://src/ui/talent_screen.tscn"
 const CLASS_TREE := "res://src/ui/class_tree_screen.tscn"
+## Round Y: the hub that used to be the Talent Tree building - Star Hall,
+## Your Teams and Talents in one window. See team_build_screen.gd.
+const TEAM_BUILD := "res://src/ui/team_build_screen.tscn"
 const BREWERY := "res://src/ui/brewery_screen.tscn"
 const SHOP := "res://src/ui/shop_screen.tscn"
 ## THE FOUR ROOMS AND THE BOARD. One script, five scenes — see room_screen.gd.
@@ -71,6 +74,8 @@ static func for_name(screen: String) -> String:
 			return BASE
 		"talents", "talent", "tree":
 			return TALENTS
+		"teambuild", "team_build", "build", "hub_teams":
+			return TEAM_BUILD
 		"classtree", "class_tree", "classes_tree", "emblems", "stars":
 			return CLASS_TREE
 		"brewery", "brewhouse", "malthouse":

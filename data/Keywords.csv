@@ -46,3 +46,52 @@ match_consume,item tag,live,This item may be used on a player during the match d
 goal_scored,juice moment,live,A goal in a league match,,"Juice.csv, When column"
 play_maker,juice moment,live,PLAY MAKER fires,,
 coin_exact,juice moment,live,Somebody named the clash coin exactly,,
+next_self,ability target,live,"THIS card, in its NEXT duel. For an ability that fires outside a duel (a save, the end of a cycle) and says ""+1 power during combat"".","add_power 1, Target next_self",Round Y (C1).
+next_ally,ability target,live,"Your next card to duel - later this round, or in a later round. It WAITS until that card duels. Filter it: next_ally:fire, next_ally:water+II (element, class, tier or tag, joined with +). next_ally*2 is the next TWO.","add_power 1, Target next_ally:fire","Round Y (C1). Ruling R03 decides whether ""next"" reaches into the next round; it does today."
+next_enemy,ability target,live,"Their next card to duel. Waits the same way, and takes the same filters.","add_power -1, Target next_enemy",Round Y (C1).
+ally:<filter>,ability target,live,"Your card in this round's line-up that matches - ally:water+I is your Tier I card this round if it is water. Lands now, not next.","add_power 1, Target ally:water+I",Round Y (C1).
+defending,ability condition,live,"If column: this card is defending in its duel. Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
+attacking,ability condition,live,"If column: this card is attacking in its duel. Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
+won,ability condition,live,"If column: its duel was won (on after_duel / on_win_duel). Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
+lost,ability condition,live,"If column: its duel was lost. Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
+last_ally_won,ability condition,live,"If column: your previous card to duel won. Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
+last_ally_lost,ability condition,live,"If column: your previous card to duel lost. Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
+enemy_element:<el>,ability condition,live,"If column: the card it faces is that element. Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
+enemy_not_element:<el>,ability condition,live,"If column: the card it faces is NOT that element (""if the enemy isn't air""). Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
+own_goalie_lower,ability condition,live,"If column: your keeper has less stamina than theirs. Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
+enemy_below_base,ability condition,live,"If column: the card it faces is below its printed power right now. Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
+in_exhaust,ability condition,live,"If column: this card is in the exhaust zone. Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
+in_field,ability condition,live,"If column: this card is on the field, not yet played this cycle. Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
+in_combat,ability condition,live,"If column: this card is in this round's line-up. Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
+has_tag:<tag>,ability condition,live,"If column: this card carries that tag. Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
+has_token,ability condition,planned,If column: you control a token (a Rose or Swan unit). PHASE C2 - until then it is never true.,,From the round Y audit.
+tokens_at_least:<n>,ability condition,planned,If column: you control at least n tokens. PHASE C2 - until then it is never true.,,From the round Y audit.
+has_counter:<kind>,ability condition,planned,"If column: this card carries a counter of that kind (""burn""). PHASE C2 - until then it is never true.",,From the round Y audit.
+enemy_has_counter,ability condition,planned,If column: the card it faces carries any counter. PHASE C2 - until then it is never true.,,From the round Y audit.
+is_swan,ability condition,planned,If column: this card is a swan (a creature type). PHASE C2 - until then it is never true.,,From the round Y audit.
+ore_this_round,ability condition,planned,If column: your side collected Ore this round. PHASE C2 - until then it is never true.,,From the round Y audit.
+mining,ability condition,planned,If column: another unit of yours is mining. PHASE C6 - until then it is never true.,,From the round Y audit.
+touched_ball,ability condition,planned,If column: this card touched the ball since the last PLAY MAKER. PHASE C6 - until then it is never true.,,From the round Y audit.
+touched_before_playmaker,ability condition,planned,If column: this card touched the ball BEFORE the PLAY MAKER call. PHASE C6 - until then it is never true.,,From the round Y audit.
+fused,ability condition,planned,If column: this card is fused with another. PHASE C6 - until then it is never true.,,From the round Y audit.
+goalie_chance,ability effect,planned,Moves a keeper's chance to save by Value % for the round. PHASE C3.,,From the round Y audit - guides/COMBAT_PHASES.md.
+goalie_shield,ability effect,planned,Gives a keeper Value shields (ruling R11 says what a shield stops). PHASE C3.,,From the round Y audit - guides/COMBAT_PHASES.md.
+remove_shields,ability effect,planned,Takes every shield off the enemy keeper. PHASE C3.,,From the round Y audit - guides/COMBAT_PHASES.md.
+foul_heat,ability effect,planned,Adds Value segments to the enemy's yellow-card bar. PHASE C3.,,From the round Y audit - guides/COMBAT_PHASES.md.
+foul_chance,ability effect,planned,Raises the enemy's chance of committing a foul by Value %. PHASE C3.,,From the round Y audit - guides/COMBAT_PHASES.md.
+add_counter,ability effect,planned,Puts Value counters of a kind on the target: add_counter:burn. PHASE C2.,,From the round Y audit - guides/COMBAT_PHASES.md.
+remove_counter,ability effect,planned,Takes a counter off. PHASE C2.,,From the round Y audit - guides/COMBAT_PHASES.md.
+gain_ore,ability effect,planned,Adds Value Ore to your side's pool. PHASE C2.,,From the round Y audit - guides/COMBAT_PHASES.md.
+create_token,ability effect,planned,Makes a Rose or Swan unit token. PHASE C2.,,From the round Y audit - guides/COMBAT_PHASES.md.
+switch_to_defender,ability effect,planned,This card defends instead of attacking. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
+swap_power,ability effect,planned,This card and its target swap power for the duel. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
+use_enemy_power,ability effect,planned,This card uses the enemy's power for the duel. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
+force_ability,ability effect,planned,The target must use its attack / defend / other ability. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
+negate_buff,ability effect,planned,Cancels power buffs on the target for the duel. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
+give_priority,ability effect,planned,The target resolves FIRST in its duel. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
+uncounterable,ability effect,planned,This card's ability cannot be negated. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
+send_to_exile,ability effect,planned,Moves the card to the exile zone. PHASE C5.,,From the round Y audit - guides/COMBAT_PHASES.md.
+swap_from_exile,ability effect,planned,Swaps this card with one of the same tier and power from exile. PHASE C5.,,From the round Y audit - guides/COMBAT_PHASES.md.
+fuse,ability effect,planned,Fuses this card with another. PHASE C6.,,From the round Y audit - guides/COMBAT_PHASES.md.
+gravestone,ability effect,planned,Puts a gravestone on the pitch. PHASE C6.,,From the round Y audit - guides/COMBAT_PHASES.md.
+cold_touch,ability effect,planned,Marks the ball with cold touch. PHASE C6.,,From the round Y audit - guides/COMBAT_PHASES.md.

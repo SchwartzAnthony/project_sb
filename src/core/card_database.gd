@@ -434,7 +434,16 @@ func _read_abilities(rows: Array, columns: Dictionary, source: String) -> void:
 		ability.value = _cell_int(row, columns, "value")
 		ability.scope = _normalise(_cell(row, columns, "scope"))
 		ability.notes = _cell(row, columns, "notes")
-		ability.max_uses = maxi(0, _cell_int(row, columns, "max"))
+		# MAX: "5" = five a match, "1/cycle" = once a cycle, "1/game" = once a
+		# match. Round Y added the per-cycle form for "(once per cycle)".
+		var max_text := _cell(row, columns, "max").strip_edges().to_lower()
+		if max_text.contains("/"):
+			var max_bits := max_text.split("/")
+			ability.max_uses = maxi(0, int(String(max_bits[0]))) if String(max_bits[0]).is_valid_int() else 0
+			ability.max_per = "cycle" if String(max_bits[1]).begins_with("cycle") else "match"
+		else:
+			ability.max_uses = maxi(0, int(max_text)) if max_text.is_valid_int() else 0
+		ability.condition = _cell(row, columns, "if")
 
 		var complaint := ability.validate()
 		if complaint != "":

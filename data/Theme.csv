@@ -1,13 +1,13 @@
 Element,State,Image,Tint,Slice,Fill,Border,Border Width,Corner,Pad X,Pad Y,Font,Size,Text Colour,Repeat,Notes
 panel,,beerhall_panel,,28,,,2,6,10,8,,,,,"THE MOST IMPORTANT ROW IN THE FILE. Every box the game draws goes through this one - card faces, tiles, the strip above the cards, the keeper's number, the celebration window, all of it. It is drawn from beerhall_panel, which is LIGHT OAK so the tint lands on it: each screen still passes its own colour and the wood arrives wearing it. Blank the Image cell and every box goes back to a flat colour."
 window,,beerhall_window,no,28,#1a120b,#96742f,3,10,28,22,,,,,"Dialogs and the celebration window. Tint is `no` - this one is drawn finished, dark stained oak with a brass frame and four corner studs, and tinting it would only muddy it. The studs live inside the 28px corner, so they never stretch however big the window gets."
-button,,beerhall_button,no,26,#56351a,#b28a3e,2,10,18,12,,,#f2e4c6,,"A brass-edged plaque. Untinted, because a button should look the same on every screen."
-button,hover,beerhall_button_hover,no,26,#a36e37,#e9be5a,2,10,18,12,,,#fff4d8,,Lit from above - the same plaque under the lamp.
-button,pressed,beerhall_button_pressed,no,26,#603e20,#96742f,2,10,18,12,,,#e6d3ab,,"Pushed in. Same wood, bevel flipped."
+button,,beerhall_button,no,12,#56351a,#b28a3e,2,10,18,12,,,#f2e4c6,,"A brass-edged plaque. Untinted, because a button should look the same on every screen. ROUND Y: Slice 12, not 26 - the button is now cut from PixelLab's slim plaque so a short button keeps its words clear of the brass."
+button,hover,beerhall_button_hover,no,12,#a36e37,#e9be5a,2,10,18,12,,,#fff4d8,,Lit from above - the same plaque under the lamp.
+button,pressed,beerhall_button_pressed,no,12,#603e20,#96742f,2,10,18,12,,,#e6d3ab,,"Pushed in. Same wood, bevel flipped."
 button,disabled,,,10,#2b2018,#5a4a34,2,10,18,12,,,#7a6a52,,Greyed out. No image on purpose: a disabled button should not look like a thing you can press.
 button,focus,,,10,,#f2c14e,3,10,18,12,,,,,"THE 'YOU ARE HERE' BOX for a controller or the arrow keys. Drawn OVER whatever the button already looks like, so leave Fill empty or you will paint out the button underneath."
-button_primary,,beerhall_button_hover,no,26,#a36e37,#f2c14e,3,10,22,12,,,#fff4d8,,"The one button on a screen you are most likely to want: PLAY, START, CONTINUE. It wears the lit plaque all the time."
-button_primary,hover,beerhall_button_hover,no,26,#c08844,#ffe08a,3,10,22,12,,,#fffaf0,,
+button_primary,,beerhall_button_hover,no,12,#a36e37,#f2c14e,3,10,22,12,,,#fff4d8,,"The one button on a screen you are most likely to want: PLAY, START, CONTINUE. It wears the lit plaque all the time."
+button_primary,hover,beerhall_button_hover,no,12,#c08844,#ffe08a,3,10,22,12,,,#fffaf0,,
 slot,,beerhall_slot,no,28,#e6ddc8,#96742f,2,10,18,16,,,#3b2a18,tile,A beer mat: cream card with the blue-and-white Bavarian lozenge along the top and bottom. Text Colour is DARK here because the card is light - the one place in the game where that is true.
 slot,hover,beerhall_slot,no,28,#f4ecda,#f2c14e,3,10,18,16,,,#2e2012,tile,
 tab,,,,6,#2b2018,#5a4a34,2,6,18,9,,,#b9a583,,An unselected tab.

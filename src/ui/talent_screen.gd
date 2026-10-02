@@ -162,6 +162,9 @@ func _build_chrome() -> void:
 				BaseWindow.open(over, "The Star Hall", ScenePaths.CLASS_TREE)
 			return
 		ScenePaths.go_to(get_tree(), ScenePaths.CLASS_TREE))
+	# INSIDE TEAM BUILD the Star Hall is the tab next door; a second way
+	# there would swap the whole window out from under the hub.
+	stars.visible = not bool(get_meta("in_team_build", false))
 	add_child(stars)
 
 

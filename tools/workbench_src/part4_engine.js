@@ -450,6 +450,7 @@ function paintCheat(){
     ["count:gold=0","set it outright"],
     ["count:tune_press_speed+12","<b>edit a row of Tuning.csv.</b> Any row. This is how talents work"],
     ["sign:Müller","a card joins your squad (read once <code>squad_ownership</code> is on)"],
+    ["count:tune_foul_card_bonus_enemy+1","a talent leaning on the referee - every opponent easier to book"],
     ["recruit:I0","<b>a new plain player</b>, Tier I Power 0, with a unique name from Names.csv. <code>recruit:I0=Johannes</code> asks for a name"],
     ["release:Johannes","he leaves the base for good, and his name is free again"],
     ["story:prologue","play a dialogue scene"],
@@ -635,6 +636,24 @@ function check(){
         if(named[k]) add(f,ri,"Name",`"${v}" is also the name of a card in ${named[k]}.`,`Every player needs a name of his own - saves, brews and turned players are all stored against it.`);
         else named[k]=f;
       });
+    }
+  }
+  /* 2c. ABILITY CELLS ON CARDS (round Y). A card's Attack / Defend Ability
+     cell may name SEVERAL rows, separated by semicolons, from Abilities.csv
+     OR CardAbilities.csv. Each one has to exist. */
+  {
+    const known=new Set([...ids("Abilities.csv","Ability ID"), ...ids("CardAbilities.csv","Ability ID")]);
+    if(known.size) for(const f of Object.keys(DATA)){
+      if(at(f,"Unit Type")<0 && f!=="Star Players.csv") continue;
+      for(const c of ["Attack Ability","Defend Ability"]){
+        const i=at(f,c); if(i<0) continue;
+        DATA[f].rows.forEach((r,ri)=>{
+          for(const one of (r[i]||"").split(";")){
+            const v=one.trim(); if(!v) continue;
+            if(!known.has(norm(v))) add(f,ri,c,`"${v}" is not a row of Abilities.csv or CardAbilities.csv.`,`Write the row, or re-run <code>python3 tools/ability_rows.py</code> if it is one of the C_ rows made from the card text.`);
+          }
+        });
+      }
     }
   }
   /* 3. `and` where a semicolon belongs */

@@ -1,16 +1,16 @@
 ID,Name,Status,Phase,Fires When,What It Needs,Notes
-on_duel_start,Duel Start,live,0,"Either way, the moment its duel begins",nothing,"The plain one. Use it when an ability should happen whichever side the card is on"
-on_attack,Attacking,live,0,This card is the attacker in its duel,nothing,"Half of the attack/defend pair. The attacker is decided by the clash"
+on_duel_start,Duel Start,live,0,"Either way, the moment its duel begins",nothing,The plain one. Use it when an ability should happen whichever side the card is on
+on_attack,Attacking,live,0,This card is the attacker in its duel,nothing,Half of the attack/defend pair. The attacker is decided by the clash
 on_defend,Defending,live,0,This card is the defender in its duel,nothing,The other half
 on_win_duel,Win,live,4,After this card WINS its duel,nothing,"PHASE 4 WAS ALREADY BUILT. Win and Lose have been in the engine since the beginning - see BRAND_RALLY and BRAND_SCORCH in Abilities.csv, which both use this"
-on_lose_duel,Lose,live,4,After this card LOSES its duel,nothing,"Also already built. A losing card that still does something is one of the better feelings in the game"
+on_lose_duel,Lose,live,4,After this card LOSES its duel,nothing,Also already built. A losing card that still does something is one of the better feelings in the game
 passive,Passive,live,0,Once at the start of every round,nothing,No condition at all. Applied and forgotten
-flip,Flip,live,2,"The two cards are turned face up at the start of a duel",the duel arena,"PHASE 2. The cards arrive face down and turn over together; anything written against `flip` goes off as they land. It fires BEFORE on_duel_start, so a flip ability can change what the duel starts with"
+flip,Flip,live,2,The two cards are turned face up at the start of a duel,the duel arena,"PHASE 2. The cards arrive face down and turn over together; anything written against `flip` goes off as they land. It fires BEFORE on_duel_start, so a flip ability can change what the duel starts with"
 reveal,Reveal,live,2,"You press SHOW on this card during the draft, before the other side answers",nothing,"BUILT. Showing the card chooses it AND names it: they answer a card they can see, taking their best in that tier instead of picking blind, and this ability fires there and then. If both sides show, the LOWER POWER resolves first. The button only appears on a card that has a reveal ability on it"
-contemplation,Contemplation,planned,3,This card ENTERS the Exhausted Zone,the Exhausted Zone,PHASE 3. The zone itself comes first - a button that opens the pile of cards already played this cycle
-rejuvenation,Rejuvenation,planned,3,This card LEAVES the Exhausted Zone,the Exhausted Zone,"PHASE 3. Everything comes back when the cycle is complete, so this fires on all of them at once"
+contemplation,Contemplation,live,C1,This card ENTERS the Exhausted Zone,the Exhausted Zone,"BUILT IN ROUND Y (C1). ""If sent to Exhaust"" on your cards. Fires when the round a card played in is over and it goes to the exhaust zone. PHASE 3. The zone itself comes first - a button that opens the pile of cards already played this cycle"
+rejuvenation,Rejuvenation,live,C1,This card LEAVES the Exhausted Zone,the Exhausted Zone,"BUILT IN ROUND Y (C1). Fires at the end of the cycle, when every exhausted card walks back onto the field. PHASE 3. Everything comes back when the cycle is complete, so this fires on all of them at once"
 fused,Fused,planned,5,Two player units have become one,fusing,"PHASE 5. The fused card replaces both, and the ladder still has to hold - one card per power per tier - so the replacement is a spawn like the Treant"
-last_player,Last Player,planned,6,The card played in the PREVIOUS tier matched a condition,a memory of the last card,"PHASE 6. 'Last player was a Brandteufel' - so a Tier I can answer what the Tier IV did. Needs the round to remember the tier before"
+last_player,Last Player,planned,6,The card played in the PREVIOUS tier matched a condition,a memory of the last card,PHASE 6. 'Last player was a Brandteufel' - so a Tier I can answer what the Tier IV did. Needs the round to remember the tier before
 marked,Marked,planned,7,This card carries a mark,marks,"PHASE 7. Mask is the example. A mark is temporary or permanent, and the Exhausted Zone is where a temporary one is cleaned off"
 counters,Counters,planned,7,This card has N counters of a named kind,counters,"PHASE 7. 'Enemy has 3 hypnosis counters: negate their ability'. Counters go on a card, ours or theirs"
 cards_left,Cards Left,planned,8,How many playable cards remain,a count of the hand,PHASE 8
@@ -18,4 +18,14 @@ odd_even,Odd or Even,planned,8,"Somebody's leftover exhaust points are odd, or e
 copy,Copy,planned,9,This card copies an ability,copying,"PHASE 9. Copying an ally's or an enemy's, or firing when they share one"
 swap,Swap,planned,10,This card sends the enemy's card back to their hand,swapping,"PHASE 10. Higher priority wins, they must choose again, and they may not replay the same card"
 currency,Currency,planned,11,This card can pay a cost to activate,per-card currency,PHASE 11. Like counters but shown in its own window
-last_side,Last Side,planned,12,"The previous card was attacking, or defending",a memory of the last side,"PHASE 12. Also the hook for abilities that CHANGE who attacks"
+last_side,Last Side,planned,12,"The previous card was attacking, or defending",a memory of the last side,PHASE 12. Also the hook for abilities that CHANGE who attacks
+match_start,Match Start,live,C1,"Once, the first time the cards take the field",nothing,ROUND Y (C1). Both of a card's abilities are looked at.
+round_end,Round End,live,C1,"After the shot, for the four cards that played the round - just before they go to the exhaust",the zone book,ROUND Y (C1).
+end_of_cycle,End of Cycle,live,C1,"When a cycle closes (at the STAR PLAYER SWITCH, and at full time for the last one), for every card in the match",the zone book,"ROUND Y (C1). ""At the end of the cycle"" on your cards."
+while_in_exhaust,While in Exhaust,live,C1,"At the start of EVERY duel, for each card sitting in the exhaust zone",the zone book,"ROUND Y (C1). ""While in Exhaust"" on your cards. Pair it with a Max of 1/cycle for ""(once per cycle)"", or it fires four times a round."
+after_duel,After Duel,live,C1,"After its duel is decided, win or lose - after on_win_duel / on_lose_duel",nothing,ROUND Y (C1).
+on_shot,Shooting,live,C1,This card is about to shoot at goal. Anything it adds to the shot counts for THIS shot,nothing,"ROUND Y (C1). ""Shooting at goal"" on your cards."
+goalie_save,Keeper Saves,live,C1,"Your keeper has just stopped a shot - for every card on your side, wherever it is",nothing,"ROUND Y (C1). ""Goaly successfully defends"". Narrow it with the If column: in_exhaust."
+on_goal,We Scored,live,C1,Your side has just scored - for every card on your side,nothing,"ROUND Y (C1). ""After a goal"" on your cards."
+on_concede,We Conceded,live,C1,The other side has just scored - for every card on your side,nothing,ROUND Y (C1).
+while_in_exile,While in Exile,planned,C5,"At the start of every duel, for each card in the exile zone",the Exile zone,"PHASE C5. ""While in exile"" on your Sitri cards."

@@ -32,7 +32,7 @@ extends SceneTree
 ## The buildings to press, by the Name in Buildings.csv, plus the Stadium,
 ## which is a button on the top bar rather than a building.
 const DOORS: Array[String] = [
-	"Achievements", "Talent Tree", "Club House", "Dorms", "Trophy Room",
+	"Achievements", "Team Build", "Club House", "Dorms", "Trophy Room",
 	"Training Ground", "Pub", "Brewery", "The Traveling Brewer",
 ]
 

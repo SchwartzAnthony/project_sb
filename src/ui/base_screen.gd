@@ -245,6 +245,8 @@ func _build_exits() -> void:
 		Loc.text("the_season", "The season"), EXIT_SIZE)
 	to_season.tooltip_text = "Every competition you can enter. Pick one and its table opens."
 	to_season.pressed.connect(func() -> void:
+		if _turned_away():
+			return
 		state.save_to_disk()
 		ScenePaths.go_to(get_tree(), ScenePaths.SEASON_PICKER))
 	row.add_child(to_season)
@@ -257,6 +259,8 @@ func _build_exits() -> void:
 	var to_match := MenuSupport.icon_button("play|▶", "Play a match", EXIT_SIZE)
 	to_match.tooltip_text = "A friendly against a side at your own level. Nothing goes in the table, but you still come away with something."
 	to_match.pressed.connect(func() -> void:
+		if _turned_away():
+			return
 		state.save_to_disk()
 		MatchMode.choose(get_tree(), "friendly")
 		# THE TEAM SHELF, not the class picker. You pick a side you already
@@ -289,10 +293,14 @@ func _build_exits() -> void:
 	row.add_child(to_bag)
 
 	var to_teams := MenuSupport.icon_button("teams|⚑", "Your teams", EXIT_SIZE)
-	to_teams.tooltip_text = "Build a new side, or change one you have."
+	to_teams.tooltip_text = "Team Build: your Stars, your sides and your talents."
 	to_teams.pressed.connect(func() -> void:
+		# ROUND Y: the same hub as the building, opened on the teams tab.
 		state.save_to_disk()
-		ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT))
+		TeamBuildScreen.open_on = "Your Teams"
+		var opened := BaseWindow.open(self, "Team Build", ScenePaths.TEAM_BUILD)
+		if opened != null:
+			opened.closed.connect(_rebuild))
 	row.add_child(to_teams)
 
 	# THE WAY OUT OF THE TUTORIAL, and only there. In the real base there is
@@ -544,6 +552,26 @@ func _on_building(entry: Dictionary) -> void:
 
 ## The words over a window. The building's own Name if we can find it, so
 ## the title says "TRAINING GROUND" rather than "TRAINING".
+## THE GATE (round Y). True when the player may NOT go on yet - and in that
+## case Team Build has been opened for them, on the tab they are missing,
+## with the reason on the base's detail line. See src/core/team_build.gd.
+## The tutorial walks its own path and is never turned away.
+func _turned_away() -> bool:
+	if TutorialBase.active(get_tree()):
+		return false
+	var now := TeamBuild.status(state, CardDatabase.get_db())
+	if bool(now["ok"]):
+		return false
+	_detail.text = String(now["why"])
+	print("[team build] turned away: %s" % now["why"])
+	state.save_to_disk()
+	TeamBuildScreen.open_on = TeamBuild.tab_for(state, CardDatabase.get_db())
+	var opened := BaseWindow.open(self, "Team Build", ScenePaths.TEAM_BUILD)
+	if opened != null:
+		opened.closed.connect(_rebuild)
+	return true
+
+
 func _window_title(screen_word: String) -> String:
 	for entry in base.buildings_for(state):
 		if String(entry["action"]).to_lower().ends_with(screen_word.to_lower()):
@@ -597,6 +625,9 @@ func _carry_out(actions: Array[Dictionary]) -> void:
 				ScenePaths.go_to(get_tree(), ScenePaths.for_name(value))
 				return
 			"window":
+				# ============ THE PUB WAITS FOR TEAM BUILD (round Y) ============
+				if ScenePaths.for_name(value) == ScenePaths.PUB and _turned_away():
+					return
 				# ============ A WINDOW, NOT A SCENE CHANGE ============
 				#
 				# The base stays where it is and the screen opens on top of

@@ -320,6 +320,12 @@ static func place_star(unit_type: String, set_id: String, star: PlayerData,
 		return {"ok": false, "why": "%s is already in another node" % star.player_name}
 
 	var cost := int(costs_for(unit_type)["node"])
+	# ============ THE FIRST THREE ARE ON THE HOUSE (round Y) ============
+	# A match now needs your Stars placed, and talent points come FROM
+	# matches - so a new game could never start. `team_build_free_stars`
+	# Stars cost nothing; after that the Node Cost applies as before.
+	if db != null and every_star_placed(state) < db.tune_int("team_build_free_stars", 3):
+		cost = 0
 	if state.count(POINTS) < cost:
 		return {"ok": false, "why": "you need %d talent point(s) and have %d"
 			% [cost, state.count(POINTS)]}
@@ -335,6 +341,18 @@ static func place_star(unit_type: String, set_id: String, star: PlayerData,
 	# cheerfully spent the player's real talent points every time it ran.
 	return {"ok": true, "why": "%s takes the %s node — its %d units are yours."
 		% [star.player_name, set_id, _cards_in(unit_type, set_id)]}
+
+
+## How many Stars stand in nodes across EVERY class. For the free ones.
+static func every_star_placed(state: GameState) -> int:
+	if state == null:
+		return 0
+	var many := 0
+	var prefix := CardDatabase._normalise(STAR_PREFIX)
+	for key in state.texts.keys():
+		if String(key).begins_with(prefix) and String(state.texts[key]).strip_edges() != "":
+			many += 1
+	return many
 
 
 static func _cards_in(unit_type: String, set_id: String) -> int:

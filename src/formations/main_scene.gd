@@ -1674,9 +1674,22 @@ func _squad_that_played() -> Array:
 	return out
 
 
+## Every card on one side of the pitch, for the zone book.
+func _cards_of_side(side_is_enemy: bool) -> Array:
+	var out: Array = []
+	for unit in _all_units():
+		if unit.is_enemy == side_is_enemy and unit.data != null and not out.has(unit.data):
+			out.append(unit.data)
+	return out
+
+
 func _full_time() -> void:
 	match_time_minutes = MATCH_LENGTH_MINUTES
 	current_state = MatchState.FULL_TIME
+	# The last cycle has no STAR PLAYER SWITCH to close it - end_of_cycle for
+	# everyone, here. See ability_engine.gd (round Y, C1).
+	if abilities != null:
+		abilities.finish_match()
 	timer_label.text = "FULL TIME" if no_clock \
 		else "%02d:00" % int(MATCH_LENGTH_MINUTES)
 	event_announcement.text = "FULL TIME  %d - %d" % [player_score, enemy_score]
@@ -4675,6 +4688,11 @@ func resolve_round() -> void:
 	await _take_the_throw()
 
 	abilities.begin_round()
+	# ROUND Y (C1): the zone book. Everyone on the pitch is on the FIELD (the
+	# first time, that is the match's match_start); this round's four leave it
+	# for COMBAT. See ability_engine.gd.
+	abilities.sync_field(_cards_of_side(false), _cards_of_side(true))
+	abilities.round_lineups(player_lineup, enemy_lineup)
 	abilities.apply_passives(player_lineup, enemy_lineup)
 
 	var player_bank := 0
@@ -4687,7 +4705,14 @@ func resolve_round() -> void:
 			print("  Tier %s: no contest (missing card)." % ALL_TIERS[i])
 			continue
 
-		abilities.begin_duel()
+		# Each keeper's stamina, for `own_goalie_lower`; then the duel opens -
+		# "next" effects waiting for these two land, and the exhaust zone
+		# gets its while_in_exhaust moment.
+		for keeper_side in [false, true]:
+			var keeper_now: GoalieUnit = goalies.get(keeper_side)
+			if keeper_now != null:
+				abilities.keeper_stamina[keeper_side] = keeper_now.current_stamina
+		abilities.begin_duel(mine, theirs)
 
 		var attacker_is_enemy := not player_has_ball
 		# WHOSE BALL IT WAS GOING IN. Kept because `player_has_ball` is
@@ -5202,6 +5227,7 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 
 	if keeper == null or shot_power <= 0:
 		print("  No shot taken this round.")
+		abilities.round_finished()
 		_end_surge()
 		restart_hold = false
 		if ball != null:
@@ -5253,8 +5279,13 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 		await shootout.view_closed
 
 	# --- 3. Decide the outcome, THEN show it ---
+	# ROUND Y (C1): the shooter's `on_shot` abilities add to the shot first,
+	# and the keepers' sides hear how it went straight after.
+	if shooter != null and shooter.data != null:
+		shot_power += abilities.fire_on_shot(shooter.data, shooter.is_enemy)
 	var stamina_before := keeper.current_stamina
 	var scored := keeper.take_shot(shot_power)
+	abilities.after_shot(not shooter_is_player, scored)
 	var stamina_spent := maxi(0, stamina_before - keeper.current_stamina)
 
 	# Report the shot and, if your keeper stopped it, the save. Both carry
@@ -5347,6 +5378,8 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 	if ball != null:
 		ball.scripted_possession = false
 	_settle_emblems()
+	# ROUND Y (C1): round_end, then this round's four go to the EXHAUST.
+	abilities.round_finished()
 	round_resolved.emit(player_score, enemy_score)
 	current_state = MatchState.PLAYING
 

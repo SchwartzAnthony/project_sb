@@ -491,6 +491,28 @@ function paintBook(){
     never learns the rule. Under 20% and it is the system you had before the bar existed. Around half is the
     shape you want: getting away with one is common, getting away with four is not.</p>`);
 
+  card("Team Build — before the Pub and every match (round Y)", `
+    <p style="margin:0 0 10px"><b>The Talent Tree building is Team Build now</b>, with three tabs: <b>Star Hall</b>, <b>Your Teams</b>, <b>Talents</b>.</p>
+    ${rows([
+      ["the gate","the Pub and every match stay shut until you have a team of <b>12</b> (three Stars + nine) AND that class's three Stars are placed"],
+      ["Stars first","the Stars open the set cards a team is made of (<code>class_tree_gates_units</code> is on), so a new game lands on the Star Hall"],
+      ["free Stars","the first three cost nothing - <code>team_build_free_stars</code>. Talent points come from matches, and matches now need Stars"],
+      ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
+    ])}`);
+
+  card("Combat abilities — the plan (round Y)", `
+    <p style="margin:0 0 10px"><b>Every ability text is read</b> into engine words in <b>AbilityAudit.csv</b>, and the open questions are in <b>AbilityRulings.csv</b>, once each. guides/COMBAT_PHASES.md has the timing chart and the phases.</p>
+    ${rows([
+      ["C1 · built","zones (field, combat, exhaust), the new moments, the <code>If</code> column, \u201cthe next one\u201d, one side per duel. <b>33 abilities work</b>"],
+      ["C2","counters, tokens, Ore - +65"],
+      ["C3","the keeper and the referee - +18"],
+      ["C4","bending the duel - +33"],
+      ["C5","exile and the other zones - +17"],
+      ["C6","mines, fusing, the ball, gravestones - +60"],
+      ["C7 · C8","the Emblems' Basic Sides, then the Stars' Ultimates"],
+    ])}
+    <p style="margin:10px 0 0;color:var(--dim)"><b>The three commands:</b> <code>python3 tools/ability_audit.py</code> (read the cards) · <code>python3 tools/ability_rows.py</code> (wire what is built) · <code>ability_coverage.gd</code> (the meter).</p>`);
+
   card("Names, recruits and three beers (round X)", `
     <p style="margin:0 0 10px"><b>Stars carry Goetia names. Everyone else carries a common German one</b>, and keeps it for as long as he is at your base.</p>
     ${rows([
@@ -583,6 +605,10 @@ function paintBook(){
       ["recovery_check","whether the squad is deep enough to turn the recovery system on"],
       ["match_soak / adventure_soak","<b>a whole match and a hundred fights, with no window.</b> Run these after any change to a number that matters"],
       ["base_shot","opens the base and <b>presses every building</b>, then checks a window appeared"],
+      ["ability_coverage","<b>how many of your abilities work in a match</b>, by class. The meter for the combat phases"],
+      ["ability_check","stages every wired card's moment and checks the effect landed where its sentence says"],
+      ["ability_audit.py / ability_rows.py","read every card text into engine words; then wire the ones the engine can run"],
+      ["team_build_shot","presses the Pub and Play buttons on a new game and checks Team Build opens instead"],
       ["round_x_check","<b>names, recruits, three beers, the repeat offender and the ore card</b>, on a scratch save"],
       ["pub_turn_shot","presses the real Pub buttons through three beers and the choice, and photographs it"],
       ["cut_chrome.py","cuts the PixelLab sheets in <code>art_source/pixellab/</code> into the eight chrome files. <code>python3 tools/cut_chrome.py</code>"],
@@ -609,7 +635,7 @@ function paintBook(){
       ["eleven sounds","named in Audio.csv with no file. <code>SOUNDS_WANTED.csv</code> describes each"],
       ["four buildings","Achievements, Talent Tree, Dorms and The Traveling Brewer draw as plain plaques"],
       ["the pitch image","1000 × 667 where the game wants 2560 × 1440. See <b>Art &amp; sizes</b>"],
-      ["unit abilities","the 108 set cards' Attack and Defend are prose; only a card with an Ability ID (Abilities.csv) does anything in a match. Karl's ore card is the first one wired"],
+      ["unit abilities","33 of 228 class abilities work in a match (round Y, phase C1). The rest wait on phases C2-C8 - AbilityAudit.csv says which"],
       ["Ore","there is no Ore counter in a match yet, so <i>Consume 3 Ore</i> is not charged"],
       ["<code>recovery</code>","deliberately <code>false</code> in Tuning.csv. With three players a tier, one fixture puts enough out that you can field neither a match nor a run. Six a tier is the number to aim at"],
       ["17 keywords","written into Keywords.csv and not implemented yet. The Keywords page marks them"],
