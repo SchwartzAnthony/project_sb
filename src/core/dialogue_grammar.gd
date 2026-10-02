@@ -93,10 +93,14 @@ static func complaints(expression: String, is_effect: bool) -> Array[String]:
 			out.append("'%s' — nothing after the colon" % term)
 			continue
 
-		var allowed := ["flag", "count", "unlock", "set", "clear", "sign", "release"] if is_effect \
+		var allowed := ["flag", "count", "unlock", "set", "clear", "sign", "release", "recruit"] if is_effect \
 			else ["flag", "count", "unlocked", "is"]
 		if not allowed.has(kind):
 			out.append("'%s' — '%s' is not one of %s" % [term, kind, ", ".join(allowed)])
+			continue
+
+		if kind == "recruit" and RecruitBook.parse(rest.split("=")[0]).is_empty():
+			out.append("'%s' — expected a tier and a power, e.g. recruit:I0 or recruit:III3=Johannes" % term)
 			continue
 
 		if kind == "count":
@@ -272,6 +276,12 @@ static func _apply_one(term: String, state: GameState) -> void:
 			SquadBook.sign(rest, state)
 		"release":
 			SquadBook.release(rest, state)
+			# A RECRUIT LEAVES THE BASE ENTIRELY: his name is free again.
+			RecruitBook.release(rest, state)
+		"recruit":
+			# A PLAIN PLAYER WITH A NAME OF HIS OWN. recruit:I0, recruit:I0=Johannes.
+			# See recruit_book.gd - nothing shows until `named_recruits` is on.
+			RecruitBook.recruit(rest, state, CardDatabase.get_db())
 
 
 static func _apply_count(rest: String, state: GameState) -> void:

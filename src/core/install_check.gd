@@ -59,6 +59,11 @@ static func run(tree: SceneTree, force: bool = false) -> void:
 		var folder := MenuSupport.field(row, "Folder")
 		if file_name == "" or folder == "":
 			continue
+		# SOURCE ART IS NOT PART OF THE GAME (round X). art_source/ holds the
+		# PixelLab sheets the chrome is cut from; it has a .gdignore, so an
+		# exported game never contains it and asking for it would always fail.
+		if folder.strip_edges().begins_with("art_source"):
+			continue
 		checked += 1
 
 		var should_be := "res://" + folder.strip_edges().trim_suffix("/") + "/" + file_name

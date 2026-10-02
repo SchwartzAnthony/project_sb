@@ -434,6 +434,7 @@ func _read_abilities(rows: Array, columns: Dictionary, source: String) -> void:
 		ability.value = _cell_int(row, columns, "value")
 		ability.scope = _normalise(_cell(row, columns, "scope"))
 		ability.notes = _cell(row, columns, "notes")
+		ability.max_uses = maxi(0, _cell_int(row, columns, "max"))
 
 		var complaint := ability.validate()
 		if complaint != "":

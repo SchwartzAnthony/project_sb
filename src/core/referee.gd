@@ -71,6 +71,11 @@ const FILE := "res://data/Referee.csv"
 ## would be a bug nobody could ever trace.
 static var _heat := {false: 0.0, true: 0.0}
 
+## HOW MANY FOULS EACH MAN HAS COMMITTED THIS MATCH, seen or not. Keyed by
+## the unit on the pitch, so two cards that happen to share a name are still
+## two men. Cleared with the heat, at kick-off.
+static var _by_man: Dictionary = {}
+
 static var _rows: Dictionary = {}
 static var _problems: Array[String] = []
 static var _loaded := false
@@ -85,6 +90,7 @@ static func forget() -> void:
 
 static func clear_heat() -> void:
 	_heat = {false: 0.0, true: 0.0}
+	_by_man = {}
 
 
 static func _key(text: String) -> String:
@@ -117,6 +123,13 @@ static func _load() -> void:
 			"per_segment": MenuSupport.field_float(row, "Caught Per Segment", 9.0),
 			"after_yellow": MenuSupport.field_float(row, "Caught After Yellow", 80.0),
 			"red_per_yellow": MenuSupport.field_float(row, "Red Per Yellow", 6.0),
+			# ============ A REPEAT OFFENDER (round X) ============
+			# "When a player commits a number of fouls, that increases the %
+			# as well to get a card." Both are PER FOUL HE HAS ALREADY
+			# COMMITTED THIS MATCH, the unseen ones included - so the man who
+			# keeps getting away with it is the one he is watching.
+			"per_own_foul": MenuSupport.field_float(row, "Caught Per Own Foul", 0.0),
+			"card_per_own_foul": MenuSupport.field_float(row, "Card Per Own Foul", 0.0),
 			"empties_on": MenuSupport.field(row, "Empties On", "card").strip_edges().to_lower(),
 			"says_nothing": MenuSupport.field(row, "Says Nothing").strip_edges(),
 			"says_free": MenuSupport.field(row, "Says Free Kick").strip_edges(),
@@ -170,6 +183,7 @@ static func on_duty(db: CardDatabase) -> Dictionary:
 	return {"id": "*", "name": "The referee", "portrait": "", "segments": 5,
 		"per_trigger": 0.25, "per_foul": 0.6, "when_full": 95.0, "per_segment": 9.0,
 		"after_yellow": 80.0, "red_per_yellow": 6.0, "empties_on": "card",
+		"per_own_foul": 0.0, "card_per_own_foul": 0.0,
 		"says_nothing": "", "says_free": "", "says_yellow": "", "says_red": ""}
 
 
@@ -216,10 +230,18 @@ static func watch_round(side_is_enemy: bool, triggers: int, db: CardDatabase) ->
 
 ## DID HE SEE IT? The question the whole file exists to answer.
 ##
-## `yellows` is how many bookings that side already has.
-static func notices(side_is_enemy: bool, yellows: int, db: CardDatabase) -> bool:
+## `yellows` is how many bookings that side already has. `own_fouls` is how
+## many fouls THIS MAN has already committed this match - see fouls_by().
+static func notices(side_is_enemy: bool, yellows: int, db: CardDatabase,
+		own_fouls: int = 0) -> bool:
+	return randf() * 100.0 < notice_chance(side_is_enemy, yellows, db, own_fouls)
+
+
+## The same question as a number, so a tool can print it.
+static func notice_chance(side_is_enemy: bool, yellows: int, db: CardDatabase,
+		own_fouls: int = 0) -> float:
 	if not on(db):
-		return true           # no referee system: everything is called
+		return 101.0          # no referee system: everything is called
 	var ref := on_duty(db)
 	var chance := 0.0
 	if yellows > 0:
@@ -231,7 +253,50 @@ static func notices(side_is_enemy: bool, yellows: int, db: CardDatabase) -> bool
 		chance = float(ref["when_full"])
 	else:
 		chance = float(ref["per_segment"]) * float(segments(side_is_enemy, db)["lit"])
-	return randf() * 100.0 < chance
+	# HE KNOWS THIS ONE. Added on top of whatever the bar says.
+	chance += float(ref.get("per_own_foul", 0.0)) * float(maxi(0, own_fouls))
+	return clampf(chance, 0.0, 100.0)
+
+
+# =============================================================
+#  THE MAN, NOT JUST THE SIDE (round X)
+# =============================================================
+
+## How many fouls this man has committed so far this match.
+static func fouls_by(unit: Object) -> int:
+	if unit == null:
+		return 0
+	return int(_by_man.get(unit.get_instance_id(), 0))
+
+
+## He did it again. Called for EVERY foul, seen or unseen, after the
+## referee has decided - so the foul being judged never counts against itself.
+static func record_foul(unit: Object) -> void:
+	if unit == null:
+		return
+	var key := unit.get_instance_id()
+	_by_man[key] = int(_by_man.get(key, 0)) + 1
+
+
+## THE EXTRA CHANCE THAT A FOUL HE SAW BECOMES A YELLOW instead of a free
+## kick. Three things add up here, and every one is a number you own:
+##
+##     Card Per Own Foul  x  fouls this man already committed   Referee.csv
+##     foul_card_bonus_you / foul_card_bonus_enemy                Tuning.csv
+##     an ability's add_card_chance, passed in as `from_abilities`
+##
+## The Tuning rows are the TALENT door: `count:tune_foul_card_bonus_enemy+1`
+## in a talent's Effects makes every opponent easier to book for as long as
+## you hold it. The ability door is the in-match one - see AbilityEngine.
+static func card_bump(side_is_enemy: bool, own_fouls: int, db: CardDatabase,
+		from_abilities: float = 0.0) -> float:
+	if not on(db):
+		return 0.0
+	var bump := float(on_duty(db).get("card_per_own_foul", 0.0)) * float(maxi(0, own_fouls))
+	if db != null:
+		bump += db.tune_float("foul_card_bonus_enemy" if side_is_enemy else "foul_card_bonus_you", 0.0)
+	bump += from_abilities
+	return clampf(bump, 0.0, 100.0)
 
 
 ## A foul he did NOT see. It still fills the bar — and by a lot, because

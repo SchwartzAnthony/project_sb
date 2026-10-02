@@ -147,6 +147,10 @@ static func load_it() -> void:
 			"image": MenuSupport.field(row, "Image").strip_edges(),
 			"tint": MenuSupport.field(row, "Tint", "yes").strip_edges().to_lower(),
 			"slice": MenuSupport.field(row, "Slice").strip_edges(),
+			# `tile` repeats the four edges instead of stretching them. For a
+			# border with a PATTERN in it - the beer mat's lozenges - where a
+			# stretch would smear the diamonds into stripes. Blank = stretch.
+			"repeat": MenuSupport.field(row, "Repeat").strip_edges().to_lower(),
 			"fill": MenuSupport.field(row, "Fill").strip_edges(),
 			"border": MenuSupport.field(row, "Border").strip_edges(),
 			"border_width": MenuSupport.field_float(row, "Border Width", -1.0),
@@ -268,6 +272,9 @@ static func _build(row: Dictionary, tint: Color, edge: Color) -> StyleBox:
 		boxed.texture_margin_top = cuts.y
 		boxed.texture_margin_right = cuts.z
 		boxed.texture_margin_bottom = cuts.w
+		if String(row.get("repeat", "")) in ["tile", "repeat", "yes"]:
+			boxed.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_TILE_FIT
+			boxed.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_TILE_FIT
 		# ============ THE TINT, AND WHEN TO TURN IT OFF ============
 		#
 		# Each screen already asks for its own colour and those calls are not

@@ -60,6 +60,9 @@ func _ready() -> void:
 	cards = CardDatabase.get_db()
 	brews = BrewDB.get_db()
 	state = GameState.fetch(get_tree())
+	# WHO HAS TURNED INTO WHAT, and any named recruits - before the grid is
+	# drawn, so a turned Johannes shows as the Lorelei he now is.
+	TransformBook.apply_all(cards, state)
 
 	_build_ui()
 	_rebuild_brews()
@@ -264,6 +267,11 @@ func _summary(entry: Dictionary) -> String:
 
 	if bool(entry["permanent"]):
 		bits.append("can be permanent")
+	if TransformBook.is_turning(entry):
+		bits.append("%d beers, for good" % TransformBook.drinks_needed(entry))
+	var price := BrewDB.cost_text(entry)
+	if price != "":
+		bits.append(price)
 	return " · ".join(bits)
 
 
@@ -295,7 +303,8 @@ func _make_card(card: PlayerData) -> Control:
 	# cannot be poured, and the detail line says what it would cost.
 	var seated := PubBook.allowed(card, state, cards)
 	var pourable := seated and not _selected.is_empty() and BrewDB.suits(_selected, card) \
-		and BrewDB.can_afford(_selected, state)
+		and BrewDB.can_afford(_selected, state) \
+		and TransformBook.refusal(card, _selected, state, cards) == ""
 
 	var button := Button.new()
 	button.custom_minimum_size = CARD_SIZE
@@ -337,7 +346,19 @@ func _make_card(card: PlayerData) -> Control:
 	var footer := Label.new()
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	footer.add_theme_font_size_override("font_size", 11)
-	if on_it != "":
+	# HALFWAY THROUGH HIS THREE BEERS: "Water ●●○". Shown before anything
+	# else, because it is the thing you are in the middle of.
+	var beers := TransformBook.progress(card, state)
+	if String(beers["element"]) != "" and not TransformBook.has_turned(card, state):
+		var need := 3
+		for entry2 in brews.brews:
+			if TransformBook.is_turning(entry2) and TransformBook.element_of(entry2) == String(beers["element"]):
+				need = TransformBook.drinks_needed(entry2)
+				break
+		footer.text = "%s %s%s" % [String(beers["element"]).capitalize(),
+			"●".repeat(int(beers["count"])), "○".repeat(maxi(0, need - int(beers["count"])))]
+		footer.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
+	elif on_it != "":
 		var entry := brews.find(on_it)
 		var label := String(entry["name"]) if not entry.is_empty() else on_it
 		footer.text = ("%s (kept)" % label) if permanent else label
@@ -373,6 +394,13 @@ func _on_card_right_click(event: InputEvent, card: PlayerData) -> void:
 
 
 func _on_card(card: PlayerData) -> void:
+	# A TURNING BREW IS ITS OWN THING - a count towards a change for good,
+	# not an overlay - so it is handled before anything below can take a
+	# one-match brew off by accident.
+	if TransformBook.is_turning(_selected):
+		_pour_turning(card)
+		return
+
 	# Clicking a card that already has a brew takes it off. That is how you
 	# remove a permanent one, which you asked for.
 	if BrewDB.brew_id_for(card, state) != "":
@@ -405,3 +433,95 @@ func _on_card(card: PlayerData) -> void:
 	_detail.text = "%s drinks the %s.%s" % [card.player_name, _selected["name"],
 		"  It will stick until you remove it." if kept else "  It wears off after the next match."]
 	_rebuild_cards()
+
+
+# =============================================================
+#  THREE BEERS (round X) - see transform_book.gd
+# =============================================================
+
+func _pour_turning(card: PlayerData) -> void:
+	if not PubBook.allowed(card, state, cards):
+		_detail.text = "%s is not in the room. Right-click to give them a seat." % card.player_name
+		return
+	if not BrewDB.suits(_selected, card):
+		_detail.text = "%s is %s. %s is only for %s players." % [
+			card.player_name, card.unit_type, _selected["name"], _selected["for_class"]]
+		return
+	var result := TransformBook.pour(card, _selected, state, cards)
+	_detail.text = String(result["why"])
+	if not bool(result["ok"]):
+		return
+	state.save_to_disk()
+	_rebuild_cards()
+	if bool(result["ready"]):
+		_ask_who(card, _selected)
+
+
+## "Who does Johannes become?" - one button per set. Closing it without
+## choosing is fine: he keeps his three beers and the Pub asks again the
+## next time you click him with the same brew.
+func _ask_who(card: PlayerData, entry: Dictionary) -> void:
+	var options := TransformBook.choices(card, entry, cards)
+	if options.is_empty():
+		return
+
+	var shade := ColorRect.new()
+	shade.name = "WhoDoesHeBecome"
+	shade.color = Color(0, 0, 0, 0.6)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(shade)
+
+	var centre := CenterContainer.new()
+	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.add_child(centre)
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(760, 0)
+	panel.add_theme_stylebox_override("panel", MenuSupport.styled("window"))
+	centre.add_child(panel)
+
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 10)
+	panel.add_child(list)
+
+	list.add_child(MenuSupport.heading("WHO DOES %s BECOME?" % card.player_name.to_upper(),
+		24, MenuSupport.COLOUR_ACCENT))
+	var line := Label.new()
+	line.text = "Tier %s · Power %d · %s. He keeps his name; he takes the card's class, abilities and art." % [
+		card.get_tier_clean(), card.base_power_left, String(entry["becomes"])]
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+	list.add_child(line)
+
+	for role in options:
+		var pick := Button.new()
+		pick.custom_minimum_size = Vector2(0, 64)
+		pick.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		pick.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		pick.text = "%s set  —  %s\n    %s / %s" % [role.card_set, role.player_name,
+			role.attack_text.strip_edges(), role.defend_text.strip_edges()]
+		# STYLED AS A PANEL, like every other big button on this screen: the
+		# button skin's brass inner rule would run straight through two lines
+		# of ability text.
+		pick.add_theme_stylebox_override("normal",
+			MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_SLOT_EMPTY))
+		pick.add_theme_stylebox_override("hover",
+			MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+		pick.add_theme_stylebox_override("pressed",
+			MenuSupport.panel_style(MenuSupport.COLOUR_LOCKED, MenuSupport.COLOUR_ACCENT))
+		pick.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
+		pick.add_theme_font_size_override("font_size", 15)
+		pick.pressed.connect(func() -> void:
+			TransformBook.complete(card, role, state)
+			state.save_to_disk()
+			TransformBook.apply_all(cards, state)
+			_detail.text = "%s is a %s now - the %s set. Same name, same tier, same power." % [
+				card.player_name, role.unit_type, role.card_set]
+			shade.queue_free()
+			_rebuild_cards())
+		list.add_child(pick)
+
+	var later := Button.new()
+	later.text = "Not yet - he keeps his beers"
+	later.pressed.connect(shade.queue_free)
+	list.add_child(later)

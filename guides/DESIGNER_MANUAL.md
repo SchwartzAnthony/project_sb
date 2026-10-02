@@ -166,7 +166,15 @@ count:gold-25             take some away
 count:gold=0              set it outright
 story:prologue            play a dialogue scene
 announce:First win!       put a banner on the screen
+sign:Müller               a card joins your squad (read once squad_ownership is on)
+recruit:I0                a NEW plain player, Tier I Power 0, with a name of his own
+recruit:I0=Johannes       ...and call him Johannes, if nobody else is
+release:Johannes          he leaves the base for good; his name is free again
 ```
+
+`recruit:` is round X — see section 6b. Its tier and power are written
+together: `I0`, `II3`, `IV5`. A typo (`recruit:V9`) is refused out loud in
+the Output panel, like every other word this language does not know.
 
 **`count:` and `flag:` are the escape hatches.** A shop price is
 `count:gold-25`. An achievement is `flag:beat_the_keeper`. Base building is
@@ -338,7 +346,7 @@ add with the same columns.**
 | Column | What it does |
 |---|---|
 | `Unit Type` | the class / club. Must match a `Class` in ClassInfo.csv |
-| `Name` | the card's name. Used as its identity everywhere — **renaming a card breaks old saves** |
+| `Name` | the card's name. Used as its identity everywhere — **renaming a card breaks old saves**. Every card needs its own: since round X the workbench flags two cards with one name, and flags `Unit Name` as a placeholder |
 | `Player Type` | `Normal` or `Star` |
 | `Base Power` | **power. This is the tier slot.** See section 2. One column is enough — it is read as both attack and defence |
 | `Base Power Left` / `Base Power Right` | or write the two faces separately. Left is attack, right is defence. A file with both is read as both |
@@ -366,6 +374,71 @@ add with the same columns.**
 Frame`, `Frames`, `FPS`, `Loop`. Leave `Unit Type` blank for a rule that
 covers every class. If a card has no matching row it falls back to a 12 × 39
 grid, which is why an unsliced sheet shows as a sliver rather than nothing.
+
+---
+
+## 6b. Names — every player has his own (round X)
+
+> *"The Goetia names are for the star players. For the other names it would
+> be German names that are common... they all have to have unique names, and
+> when they are on a team, on the field or in the player's database they keep
+> that name until they are removed from the base entirely."*
+
+### The 108 set cards are named
+
+Every `Unit Name` in the four `Unit_Set_*.csv` files is now a common German
+first name — Tobias, Erich, Karl, Kerstin, Matthias… — no two alike, and none
+shared with BasicTeam's surnames or the Goetia Stars. **Change any of them;
+just keep them unique.** (Your own example, Johannes, is deliberately left
+free for a recruit.)
+
+### `data/Names.csv`
+
+| column | |
+|---|---|
+| `First Name` | the list a new player's name is drawn from |
+| `Surname` | used only when every first name is taken: *Johannes Bauer* |
+| `Notes` | yours |
+
+The two columns are independent lists — they need not be the same length.
+**Taken** means: any card in any unit file has that name, or any player at
+your base does. So a recruit is never Gremory, never Müller, never a second
+Johannes. 180 first names and 110 surnames ship; 72 first names are still
+free after the set cards, and then there are 19,800 pairs.
+
+### Recruits — plain players with names of their own
+
+A recruit is **not a new row in a spreadsheet**. He is a copy of a plain card
+— BasicTeam's Tier I Power 0, say — wearing his own name. Recruit three
+Tier I Power 0s and you have three men, one card underneath, three names.
+
+```
+   recruit:I0              a Tier I, Power 0 plain player, any free name
+   recruit:III3            Tier III, Power 3
+   recruit:I0=Johannes     and call him Johannes, if nobody else is
+   release:Johannes        gone from the base; the name is free again
+```
+
+Those go in any `Effects` / `Do` / `Action` / `Reward` column. A recruit is
+**signed into the squad** at the same time, so `squad_ownership` sees him.
+
+### It is behind a switch, like squad ownership
+
+`named_recruits` in Tuning.csv is **false**. While it is false a `recruit:`
+is still written into the save — you can write the rows today — but nobody
+new appears on any screen. **Turn it on together with `squad_ownership`**
+once there is a scene or a building that recruits anybody: then your card
+list is your recruits plus whoever you have signed, and the plain templates
+and set cards you have not signed disappear from your side.
+
+`recruit_plain_class` (Tuning.csv, `Normal`) says which class a recruit is a
+plain copy *of*.
+
+### Where it lives
+
+In the save: `recruits` (`Johannes|Lukas|Theresa`), `recruit_<name>` (his
+tier and power), and `names_held` — the list `NameBook` checks before it
+hands a name out. Code: `src/core/name_book.gd`, `src/core/recruit_book.gd`.
 
 ---
 
@@ -1471,6 +1544,14 @@ restart rather than a menu that hands the ball over.
 | `Effect` | `add_attack`, `add_power`, … |
 | `Value` | the number |
 | `Scope` | `duel` = this duel only. `round` = the rest of the round |
+| `Max` | **round X.** The *(Max 5)* on your cards: how many times it may go off for one card in one match. Blank = no limit |
+
+**`add_card_chance`** (round X) is the first effect that reaches the referee
+— see section 7g. **And one honest note:** the 108 set cards' Attack and
+Defend columns are *prose*. A card only does something in a match when its
+`Attack Ability` / `Defend Ability` column names a row here. Karl is the first
+set card wired that way (`BERG_ORE_WHISPER`); every other set card is still
+words on a card.
 
 **Abilities do nothing in Adventure mode.** They are not read there at all.
 
@@ -2167,6 +2248,8 @@ yellows it adds nothing at all.
 | `Caught Per Segment` | and per lit segment before that |
 | `Caught After Yellow` | which replaces both, once you are booked |
 | `Red Per Yellow` | how much worse a second offence is |
+| `Caught Per Own Foul` | **round X.** Added to the chance he notices, for every foul THAT MAN has already committed this match — seen or not |
+| `Card Per Own Foul` | **round X.** The chance a foul he sees is a yellow instead of a free kick, per earlier foul by that man |
 | `Empties On` | `card` (the default) or `never` |
 | `Says Nothing` / `Free Kick` / `Yellow` / `Red` | his lines, in his voice |
 
@@ -2174,6 +2257,60 @@ yellows it adds nothing at all.
 segments he fills slowly) and `strict` (Der Preusse, four segments and
 `Caught When Full` at 100). `referee_id` in Tuning.csv picks, so a cup final
 can have a stricter man than a friendly.
+
+### The repeat offender (round X)
+
+> *"Fouls happen naturally too, so when a player commits a number of fouls,
+> that increases the % as well to get a card."*
+
+The referee now remembers **the man**, not just the side. Every foul — the
+ones he misses included — is counted against the player who committed it,
+for the rest of the match. Two columns use that count:
+
+```
+   Herr Schiedsrichter        1st foul   2nd     3rd     4th
+   extra chance he SEES it        0%     +8%    +16%    +24%
+   extra chance it is a YELLOW    0%    +10%    +20%    +30%
+```
+
+The foul being judged never counts against itself. `tools/round_x_check.gd`
+prints that table for all three referees.
+
+> **Measured, and worth knowing before you tune it:** a side commits about
+> 1.4 fouls a match, spread over twelve men, so a man rarely commits a second
+> one. As shipped this rule turns about **2 free kicks in 1,000 matches** into
+> yellows. It is built and correct; it only *matters* once fouls are commoner
+> — raise `Foul Chance` in Fouls.csv (x2 gives about 2.7 fouls and 0.94 cards a
+> match per side) or lower the `Yellow` share so there are more free kicks to
+> upgrade. Your call.
+
+### Leaning on him — an ability, or a talent (round X)
+
+**An ability.** `add_card_chance` is a new effect in Abilities.csv: Value %
+that a foul the **other** side commits, once he has seen it, is a yellow
+instead of a free kick. It lasts the match. Pair it with the new **`Max`**
+column — the *(Max 5)* on your cards — so it stops stacking:
+
+```
+   BERG_ORE_WHISPER   on_attack   all_enemies   add_card_chance   1   match   Max 5
+```
+
+That is **Karl's card** (Bergmännlein, Belial set, Tier I Power 2):
+*"Consume 3 Ore: Add +1% to enemy Yellow Card chance (Max 5)."* He fires it
+each time he attacks; the fifth time is the last.
+
+**The Ore is not charged yet**, because there is no Ore counter in a match to
+spend. When there is, change the row's Trigger and nothing else.
+
+**A talent.** Two new Tuning rows, both 0: `foul_card_bonus_enemy` and
+`foul_card_bonus_you`. A talent with `count:tune_foul_card_bonus_enemy+1` in
+its Effects makes every opponent easier to book for as long as you hold it —
+the same door every talent already uses.
+
+> **Measured:** at full stack (+5%), Karl's card turns about 9 of every 1,000
+> *seen* enemy fouls from a free kick into a yellow. That is small, because
+> 70% of seen fouls are already yellows. If you want the card to be felt,
+> make it +3% a step, or make it raise the chance he *sees* the foul instead.
 
 ### Price him in fouls
 
@@ -2727,6 +2864,43 @@ generations read as one game rather than fourteen.
 | **2 · the screens you see first** | title wallpaper, menu plaques, the base yard, **the pitch** |
 | **3 · the characters** | the referee, twelve emblems, optionally a font |
 
+### Round X — orders 1 to 7 are done
+
+PixelLab's UI tool does not hand back one 96 x 96 tile. It hands back a
+**whole sheet of panels** in the style you asked for. So three new columns
+in ArtOrders.csv say how each game file is cut from a sheet:
+
+| column | |
+|---|---|
+| `Status` | what happened to the order |
+| `Sheet` | the PNG in `art_source/pixellab/` it is cut from |
+| `Cut` | `x y width height corner` — which piece, and how big its corners are |
+| `Finish` | what is done to it afterwards (below) |
+
+```
+python3 tools/cut_chrome.py
+```
+
+writes all eight chrome files from those three columns. **That is the loop
+from now on:** regenerate a sheet in PixelLab, save it over the old one in
+`art_source/pixellab/`, fix its `Cut` if the piece moved, run the script.
+(`art_source/` has a `.gdignore`, so Godot never imports the big sheets.)
+
+**What each order needed, and why:**
+
+| order | finish | why |
+|---|---|---|
+| panel | `light` | **every screen tints the panel with its own colour, and tinting multiplies** — dark walnut came out nearly black. Black ink is kept; wood and brass are lifted so each screen's colour lands. The *mid-size* plaque was used, because the big ornate one's gold flourish ran 60px into each corner, past the 28px slice |
+| window | `dark-centre` | PixelLab drew the opening cream; it is painted the window colour |
+| button | `plain-button` | the big plaque at the top of the sheet; its scrollwork is cut at the 26px corner |
+| hover, pressed | `lit:button`, `pressed:button` | **not generated** — made from the button itself, so they are certainly the same plaque |
+| slot | `reduce` | the UI tool *painted* the beer mat rather than pixelling it, so it is shrunk to 96 x 96 and snapped to the palette. A Pixel-model retry lost the lozenges |
+| bars | `bar-back`, `bar-fill` | it drew a lovely rack of steins, but a rounded rack cut to 32 x 32 became a blob — so both tiles are built from its colours: an oak track, and foam over amber |
+
+**`tools/make_chrome.py` now refuses to run** while the PixelLab art is in,
+so it can never paint the placeholders over it by accident.
+`python3 tools/make_chrome.py --placeholders` brings them back on purpose.
+
 ### Two numbers in that file worth knowing
 
 **The wallpaper is 480 × 270.** That is exactly a quarter of 1920 × 1080, so
@@ -2777,6 +2951,7 @@ that makes this one file rather than thirty-six.
 | `Corner` | how round the corners are |
 | `Pad X`, `Pad Y` | the space between the edge and the words |
 | `Font`, `Size`, `Text Colour` | a `.ttf` in `assets/fonts/`, and the words |
+| `Repeat` | **round X.** `tile` REPEATS the four edges instead of stretching them — for a border with a pattern in it, like the beer mat's lozenges, which a stretch smears into stripes. Blank = stretch |
 
 A state with no row of its own falls back to that element's ordinary row, and
 an element with no row at all falls back to `panel`. So you can skin the
@@ -2928,7 +3103,7 @@ palette colour and whether the game reads that name — and what is sitting in
 
 ---
 
-## 9. `data/Tuning.csv` — 328 numbers
+## 9. `data/Tuning.csv` — 354 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -3436,6 +3611,64 @@ squad is big enough for ten to be a choice rather than a chore.
 The seats live in the save as `pub_ten`, one text, names separated by `|` —
 the same shape `SquadBook` uses, for the same reason.
 
+### Three beers — turning a plain player into a class (round X)
+
+> *"Johannes is a plain Tier I Power 0, but when he drinks 3 water element
+> beer he becomes a Tier I Power 0 Lorelei. Same for all of the other
+> elements."*
+
+**A number in the new `Drinks` column of Brews.csv makes a TURNING brew.**
+Blank is an ordinary brew, exactly as before.
+
+```
+   pour 1   Johannes  Water ●○○
+   pour 2   Johannes  Water ●●○
+   pour 3   Johannes  Water ●●●   ->  "Who does Johannes become?"
+                                       [ Sitri set  - Matthias ]
+                                       [ Zepar set  - Werner   ]
+                                       [ Sallos set - Johanna  ]
+```
+
+Your three answers are the rules:
+
+| question | rule |
+|---|---|
+| whose abilities? | **you pick.** The Pub shows the class's cards at his tier and power, one per set, and he becomes the one you choose |
+| mixing beers? | **a new element starts again.** Water, water, fire = Fire 1 of 3 |
+| switched on? | **yes, for every plain card today** (BasicTeam's). Named recruits are a separate switch — section 6b |
+
+**What he keeps:** his name, his tier, his power. **What he takes** from the
+card you chose: class, element, set, both ability texts, both ability IDs and
+its artwork. It is for good. He can still drink an ordinary brew on top — a
+turned Lorelei may drink the Fire Brew, which is For Class Lorelei.
+
+Closing the question without choosing is fine: he keeps his three beers, and
+the Pub asks again the next time you click him with that brew.
+
+**Four rows ship:** `turn_water` (Rhine Water Lager → Lorelei), `turn_fire`
+(Rauhnacht Smoke Beer → Rauhnacht-Feuergeister), `turn_earth` (Miner's
+Dunkel → Bergmännlein), `turn_air` (Unken Weisse → Unkengeister). Each is
+For Class `Normal`, Drinks 3, and costs 2 of a material a beer.
+
+**One gap the tool found:** each class has one tier that belongs to its Stars
+alone, so a plain player of that tier has nothing to turn into:
+
+```
+   Lorelei                  nothing at Tier II
+   Rauhnacht-Feuergeister   nothing at Tier IV
+   Bergmännlein             nothing at Tier III
+   Unkengeister             nothing at Tier II
+```
+
+The Pub refuses the first beer and says why, rather than taking three beers
+and then having nothing to offer. Whether that tier should be able to turn —
+into the Star? into a stand-in? not at all? — is a design question for you.
+
+**Where it lives:** `drinks_<name>` (`water:2`) and `became_<name>` (the
+Name of the card he became) in the save. Because it is stored against the
+card he *became*, **renaming that set card breaks the link** — the same rule
+as every card name. Code: `src/core/transform_book.gd`.
+
 ### `data/Currencies.csv`
 
 | column | |
@@ -3675,6 +3908,31 @@ accept that renames need a migration.
 ## 14. The tools
 
 In `tools/`. Nothing in the game loads them; they are for you.
+
+```
+godot --headless --script res://tools/round_x_check.gd
+```
+**Round X, measured, on a scratch save that never touches yours.** Hands out
+300 names and checks none repeat; recruits three players and releases one;
+pours water, water, fire, then three waters, and checks he keeps his name and
+takes the chosen card's abilities; prints which tier of each class has
+nothing to turn into; prints the repeat-offender table for every referee; and
+fires Karl's ore card seven times to prove it stops at its Max. Ends ALL GOOD
+or with sentences.
+
+```
+xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/pub_turn_shot.gd
+```
+**Presses the real Pub buttons** — the Rhine Water Lager, then Müller three
+times — photographs the "who does he become?" question, presses the first
+set, and photographs the result. A broken button fails the run.
+
+```
+python3 tools/cut_chrome.py
+```
+Cuts the PixelLab sheets in `art_source/pixellab/` into the eight chrome
+files, following the Sheet / Cut / Finish columns of ArtOrders.csv. See 8b2.
 
 ```
 godot --headless --script res://tools/adventure_soak.gd
@@ -4190,6 +4448,16 @@ helper adds a node for you, say so in a comment above it, in capitals.
 
 ---
 
+### Round X additions
+
+- **A set card's Name is now a save key for everyone who turned into it.**
+  Rename Matthias and every player who became Matthias goes back to plain.
+- **`make_chrome.py` will not overwrite the PixelLab art** unless you add
+  `--placeholders`. If you want the old drawn chrome back, that is how.
+- **A turning brew's cost has to be an item** (Items.csv). The brewery's
+  bottles are a different counter (`res_bottle`), which is why the four
+  turning brews cost reed, ash glass, bog iron and deep salt.
+
 ## 16. "I want to…" — the cookbook
 
 | I want to | Open |
@@ -4209,6 +4477,12 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | **change how a button feels** | three rows of `Motion.csv` — `button_hover`, `button_press`, `button_release` |
 | **unlock every unit to test with** | `dev_mode` TRUE in Tuning.csv, then the DEV section of the pause menu |
 | **make the art** | `data/ArtOrders.csv`, in order. Do number 1 first and pass it as the style image to the rest |
+| **redo a piece of chrome from a new PixelLab sheet** | save it over the sheet in `art_source/pixellab/`, fix its `Cut` in ArtOrders.csv, run `python3 tools/cut_chrome.py` |
+| **recruit a named player** | `recruit:I0` in any Effects / Do / Action / Reward. `named_recruits` TRUE for him to show |
+| **add or remove names** | `data/Names.csv` |
+| **make a new turning brew** | a Brews.csv row with For Class `Normal`, a Becomes, an Element and a number in `Drinks` |
+| **let a card lean on the referee** | an Abilities.csv row with Effect `add_card_chance`, Scope `match` and a `Max`, then put its ID in the card's Attack Ability or Defend Ability column |
+| **make repeat offenders easier to book** | `Caught Per Own Foul` and `Card Per Own Foul` in Referee.csv |
 | **add a new class** | the **+ New class** button in the workbench. Emblem → Ultimate → Star → nine units, three times, then it writes all four files |
 | **change what an Emblem is about** | its `Token` column. That is the word its nine units make and spend |
 | **let another class of your element play** | the Element node of the class tree, or hand out `unlocked:Open Water` from anywhere |

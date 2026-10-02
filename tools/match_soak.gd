@@ -34,6 +34,7 @@ extends SceneTree
 ## celebration and a restart together are ten seconds of nothing happening.
 const STUCK_SECONDS := 45.0
 const GIVE_UP_SECONDS := 900.0
+var _last_minute := 0.0
 
 var _last_change := 0.0
 var _last_state := ""
@@ -99,7 +100,18 @@ func _initialize() -> void:
 
 		if not is_instance_valid(scene):
 			print("[soak] the match scene disappeared after %.0fs — that is the end of it." % ran)
+			# ============ A FALSE ALARM THIS USED TO RAISE (round X) ============
+			# The game can reach full time AND leave for the next screen
+			# between two of these half-second looks, so the soak never saw
+			# state 4 and called a finished match a failure. If the clock was
+			# within one round of the end when it was last seen, the match
+			# finished - the Output panel above says FULL TIME either way.
+			var length := float(CardDatabase.get_db().tune_int("match_length_minutes", 90))
+			if _last_minute >= length - 12.0:
+				print("[soak] it was at minute %.0f of %.0f - it finished and moved on before the soak looked." % [_last_minute, length])
+				finished = true
 			break
+		_last_minute = float(scene.get("match_time_minutes"))
 
 		var score := "%d-%d" % [int(scene.get("player_score")), int(scene.get("enemy_score"))]
 		var here := "%s %d %.1f" % [score, int(scene.get("current_state")),

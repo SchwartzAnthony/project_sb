@@ -1,34 +1,34 @@
-Element,State,Image,Tint,Slice,Fill,Border,Border Width,Corner,Pad X,Pad Y,Font,Size,Text Colour,Notes
-panel,,beerhall_panel,,28,,,2,6,10,8,,,,"THE MOST IMPORTANT ROW IN THE FILE. Every box the game draws goes through this one - card faces, tiles, the strip above the cards, the keeper's number, the celebration window, all of it. It is drawn from beerhall_panel, which is LIGHT OAK so the tint lands on it: each screen still passes its own colour and the wood arrives wearing it. Blank the Image cell and every box goes back to a flat colour."
-window,,beerhall_window,no,28,#1a120b,#96742f,3,10,28,22,,,,"Dialogs and the celebration window. Tint is `no` - this one is drawn finished, dark stained oak with a brass frame and four corner studs, and tinting it would only muddy it. The studs live inside the 28px corner, so they never stretch however big the window gets."
-button,,beerhall_button,no,26,#56351a,#b28a3e,2,10,18,12,,,#f2e4c6,"A brass-edged plaque. Untinted, because a button should look the same on every screen."
-button,hover,beerhall_button_hover,no,26,#a36e37,#e9be5a,2,10,18,12,,,#fff4d8,Lit from above - the same plaque under the lamp.
-button,pressed,beerhall_button_pressed,no,26,#603e20,#96742f,2,10,18,12,,,#e6d3ab,"Pushed in. Same wood, bevel flipped."
-button,disabled,,,10,#2b2018,#5a4a34,2,10,18,12,,,#7a6a52,Greyed out. No image on purpose: a disabled button should not look like a thing you can press.
-button,focus,,,10,,#f2c14e,3,10,18,12,,,,"THE 'YOU ARE HERE' BOX for a controller or the arrow keys. Drawn OVER whatever the button already looks like, so leave Fill empty or you will paint out the button underneath."
-button_primary,,beerhall_button_hover,no,26,#a36e37,#f2c14e,3,10,22,12,,,#fff4d8,"The one button on a screen you are most likely to want: PLAY, START, CONTINUE. It wears the lit plaque all the time."
-button_primary,hover,beerhall_button_hover,no,26,#c08844,#ffe08a,3,10,22,12,,,#fffaf0,
-slot,,beerhall_slot,no,28,#e6ddc8,#96742f,2,10,18,16,,,#3b2a18,A beer mat: cream card with the blue-and-white Bavarian lozenge along the top and bottom. Text Colour is DARK here because the card is light - the one place in the game where that is true.
-slot,hover,beerhall_slot,no,28,#f4ecda,#f2c14e,3,10,18,16,,,#2e2012,
-tab,,,,6,#2b2018,#5a4a34,2,6,18,9,,,#b9a583,An unselected tab.
-tab,selected,,,6,#56351a,#f2c14e,2,6,18,9,,,#f2c14e,
-bar_back,,beerhall_bar_back,no,10,#26180d,#5a4a34,1,5,0,0,,,,"The empty glass. Loading bars, keeper stamina, a talent's progress."
-bar_fill,,beerhall_bar_fill,no,10,#f2c14e,,0,5,0,0,,,,"The beer, with a head on it."
-tooltip,,,,6,#1a120b,#96742f,1,6,12,9,,,,
-divider,,,,0,#5a4a34,,0,0,0,0,,,,A line between things. Fill is the line's colour; Border Width is ignored.
-heading,,,,,,,,,,,Bonum-Bold,34,#f7e9c9,"A FONT ROW. No box - only Font, Size and Text Colour are read. Bonum is a Bookman: heavy, wide and warm, which is the shape of a beer label. THIS ONE CELL IS THE BIGGEST SINGLE CHANGE IN THE ROUND - the default Godot font is the most recognisable thing on a screen. Swap it for a Fraktur if you find one you like; blackletter belongs on the big titles only, never on the body."
-body,,,,,,,,,,,Schola-Regular,17,#f0e6d2,"Schola is a Century Schoolbook: warm, sturdy and made to be read. Keep the body a serif you can read at 12 points - a Fraktur here would be unreadable and would look like a costume."
-small,,,,,,,,,,,Schola-Regular,13,#b9a583,Captions and the quiet notes under things.
-colour accent,,,,,#f2b33d,,,,,,,,,"BEER GOLD, and the only bright thing on screen. In Marcinelle the eye is led by ONE hot colour against a warm neutral ground - Asterix does it with the red of the pants, Franquin with the yellow of the Marsupilami. Everything you want pressed is this and nothing else is."
-colour background,,,,,#19110a,,,,,,,,,"Stained oak, almost black. The inside of a beer hall at night, and dark enough that a 1px black outline still reads against it.", almost black. The inside of a beer hall at night.
-colour panel,,,,,#3a2415,,,,,,,,,Walnut. One step up from the ground so a panel reads as sitting ON something.
-colour slot_empty,,,,,#4c2f1c,,,,,,,,,
-colour locked,,,,,#372c1a,,,,,,,,,
-colour text,,,,,#f3e8d4,,,,,,,,,"Cream enamel. NOT white: pure white on this ground is a hole, and the comics this is drawn from print on paper, never on light."
-colour text_dim,,,,,#bca888,,,,,,,,,
-colour attack,,,,,#dd6f24,,,,,,,,,"BURNT ORANGE - late autumn, and the warm half of the pair. Attacking, and the ATK tag on a Star's ability."
-colour defend,,,,,#5a93cc,,,,,,,,,BAVARIAN SKY BLUE - the cool half. The blue-and-white lozenge is the one piece of real Bavaria in the palette and it earns its place.
-colour tier_1,,,,,#4a6b8a,,,,,,,,,"The four tiers in ladder order. Autumn: slate, moss, copper, plum. They are deliberately MUTED - a tier colour is a label, not a feature, and four more bright colours would fight the accent."
-colour tier_2,,,,,#5a7a44,,,,,,,,,
-colour tier_3,,,,,#b07a32,,,,,,,,,
-colour tier_4,,,,,#8c4a5a,,,,,,,,,
+Element,State,Image,Tint,Slice,Fill,Border,Border Width,Corner,Pad X,Pad Y,Font,Size,Text Colour,Repeat,Notes
+panel,,beerhall_panel,,28,,,2,6,10,8,,,,,"THE MOST IMPORTANT ROW IN THE FILE. Every box the game draws goes through this one - card faces, tiles, the strip above the cards, the keeper's number, the celebration window, all of it. It is drawn from beerhall_panel, which is LIGHT OAK so the tint lands on it: each screen still passes its own colour and the wood arrives wearing it. Blank the Image cell and every box goes back to a flat colour."
+window,,beerhall_window,no,28,#1a120b,#96742f,3,10,28,22,,,,,"Dialogs and the celebration window. Tint is `no` - this one is drawn finished, dark stained oak with a brass frame and four corner studs, and tinting it would only muddy it. The studs live inside the 28px corner, so they never stretch however big the window gets."
+button,,beerhall_button,no,26,#56351a,#b28a3e,2,10,18,12,,,#f2e4c6,,"A brass-edged plaque. Untinted, because a button should look the same on every screen."
+button,hover,beerhall_button_hover,no,26,#a36e37,#e9be5a,2,10,18,12,,,#fff4d8,,Lit from above - the same plaque under the lamp.
+button,pressed,beerhall_button_pressed,no,26,#603e20,#96742f,2,10,18,12,,,#e6d3ab,,"Pushed in. Same wood, bevel flipped."
+button,disabled,,,10,#2b2018,#5a4a34,2,10,18,12,,,#7a6a52,,Greyed out. No image on purpose: a disabled button should not look like a thing you can press.
+button,focus,,,10,,#f2c14e,3,10,18,12,,,,,"THE 'YOU ARE HERE' BOX for a controller or the arrow keys. Drawn OVER whatever the button already looks like, so leave Fill empty or you will paint out the button underneath."
+button_primary,,beerhall_button_hover,no,26,#a36e37,#f2c14e,3,10,22,12,,,#fff4d8,,"The one button on a screen you are most likely to want: PLAY, START, CONTINUE. It wears the lit plaque all the time."
+button_primary,hover,beerhall_button_hover,no,26,#c08844,#ffe08a,3,10,22,12,,,#fffaf0,,
+slot,,beerhall_slot,no,28,#e6ddc8,#96742f,2,10,18,16,,,#3b2a18,tile,A beer mat: cream card with the blue-and-white Bavarian lozenge along the top and bottom. Text Colour is DARK here because the card is light - the one place in the game where that is true.
+slot,hover,beerhall_slot,no,28,#f4ecda,#f2c14e,3,10,18,16,,,#2e2012,tile,
+tab,,,,6,#2b2018,#5a4a34,2,6,18,9,,,#b9a583,,An unselected tab.
+tab,selected,,,6,#56351a,#f2c14e,2,6,18,9,,,#f2c14e,,
+bar_back,,beerhall_bar_back,no,10,#26180d,#5a4a34,1,5,0,0,,,,,"The empty glass. Loading bars, keeper stamina, a talent's progress."
+bar_fill,,beerhall_bar_fill,no,10,#f2c14e,,0,5,0,0,,,,,"The beer, with a head on it."
+tooltip,,,,6,#1a120b,#96742f,1,6,12,9,,,,,
+divider,,,,0,#5a4a34,,0,0,0,0,,,,,A line between things. Fill is the line's colour; Border Width is ignored.
+heading,,,,,,,,,,,Bonum-Bold,34,#f7e9c9,,"A FONT ROW. No box - only Font, Size and Text Colour are read. Bonum is a Bookman: heavy, wide and warm, which is the shape of a beer label. THIS ONE CELL IS THE BIGGEST SINGLE CHANGE IN THE ROUND - the default Godot font is the most recognisable thing on a screen. Swap it for a Fraktur if you find one you like; blackletter belongs on the big titles only, never on the body."
+body,,,,,,,,,,,Schola-Regular,17,#f0e6d2,,"Schola is a Century Schoolbook: warm, sturdy and made to be read. Keep the body a serif you can read at 12 points - a Fraktur here would be unreadable and would look like a costume."
+small,,,,,,,,,,,Schola-Regular,13,#b9a583,,Captions and the quiet notes under things.
+colour accent,,,,,#f2b33d,,,,,,,,,,"BEER GOLD, and the only bright thing on screen. In Marcinelle the eye is led by ONE hot colour against a warm neutral ground - Asterix does it with the red of the pants, Franquin with the yellow of the Marsupilami. Everything you want pressed is this and nothing else is."
+colour background,,,,,#19110a,,,,,,,,,,"Stained oak, almost black. The inside of a beer hall at night, and dark enough that a 1px black outline still reads against it.", almost black. The inside of a beer hall at night.
+colour panel,,,,,#3a2415,,,,,,,,,,Walnut. One step up from the ground so a panel reads as sitting ON something.
+colour slot_empty,,,,,#4c2f1c,,,,,,,,,,
+colour locked,,,,,#372c1a,,,,,,,,,,
+colour text,,,,,#f3e8d4,,,,,,,,,,"Cream enamel. NOT white: pure white on this ground is a hole, and the comics this is drawn from print on paper, never on light."
+colour text_dim,,,,,#bca888,,,,,,,,,,
+colour attack,,,,,#dd6f24,,,,,,,,,,"BURNT ORANGE - late autumn, and the warm half of the pair. Attacking, and the ATK tag on a Star's ability."
+colour defend,,,,,#5a93cc,,,,,,,,,,BAVARIAN SKY BLUE - the cool half. The blue-and-white lozenge is the one piece of real Bavaria in the palette and it earns its place.
+colour tier_1,,,,,#4a6b8a,,,,,,,,,,"The four tiers in ladder order. Autumn: slate, moss, copper, plum. They are deliberately MUTED - a tier colour is a label, not a feature, and four more bright colours would fight the accent."
+colour tier_2,,,,,#5a7a44,,,,,,,,,,
+colour tier_3,,,,,#b07a32,,,,,,,,,,
+colour tier_4,,,,,#8c4a5a,,,,,,,,,,

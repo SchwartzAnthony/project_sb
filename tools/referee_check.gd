@@ -110,6 +110,11 @@ func _measure(db: CardDatabase, ref: Dictionary) -> void:
 	Referee.clear_heat()
 	var yellows_this_match := 0
 	var fouls_this_match := 0
+	# ROUND X: WHO did it. Twelve men a side; each foul is one of them, and
+	# his own record makes the next one easier to see and likelier to be a
+	# booking - Caught Per Own Foul and Card Per Own Foul.
+	var by_man: Dictionary = {}
+	var repeat_bookings := 0
 
 	for i in ROUNDS:
 		# A MATCH IS NINE ROUNDS, and the bar is a thing about one afternoon.
@@ -120,6 +125,7 @@ func _measure(db: CardDatabase, ref: Dictionary) -> void:
 			Referee.clear_heat()
 			yellows_this_match = 0
 			fouls_this_match = 0
+			by_man.clear()
 
 		var many: int = TRIGGER_SHAPE[randi() % TRIGGER_SHAPE.size()]
 		Referee.watch_round(false, many, db)
@@ -129,7 +135,10 @@ func _measure(db: CardDatabase, ref: Dictionary) -> void:
 			continue
 		fouls_this_match += 1
 
-		if not Referee.notices(false, yellows_this_match, db):
+		var man := randi() % 12
+		var his := int(by_man.get(man, 0))
+		by_man[man] = his + 1
+		if randf() * 100.0 >= Referee.notice_chance(false, yellows_this_match, db, his):
 			missed += 1
 			Referee.got_away_with_it(false, db)
 			continue
@@ -145,7 +154,12 @@ func _measure(db: CardDatabase, ref: Dictionary) -> void:
 		elif verdict == "red":
 			reds += 1
 		else:
-			frees += 1
+			if randf() * 100.0 < Referee.card_bump(false, his, db):
+				yellows += 1
+				yellows_this_match += 1
+				repeat_bookings += 1
+			else:
+				frees += 1
 
 		if not counted_first and verdict != "free kick":
 			fouls_before_first_card = fouls_this_match
@@ -160,6 +174,7 @@ func _measure(db: CardDatabase, ref: Dictionary) -> void:
 	print("  %-34s %d" % ["free kicks", frees])
 	print("  %-34s %d" % ["yellow cards", yellows])
 	print("  %-34s %d" % ["red cards", reds])
+	print("  %-34s %d   (free kicks his own record turned into yellows)" % ["...of which repeat offenders", repeat_bookings])
 	if matches > 0:
 		print("  %-34s %.2f" % ["cards per match", float(yellows + reds) / float(matches)])
 	print("")

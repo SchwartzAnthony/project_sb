@@ -36,6 +36,7 @@ var _lock_button: Button
 
 func _ready() -> void:
 	db = CardDatabase.get_db()
+	TransformBook.apply_all(db, GameState.fetch(get_tree()))
 	MenuEscape.install(self)
 	_load_class_info()
 	_build_ui()

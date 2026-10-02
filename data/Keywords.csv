@@ -3,6 +3,7 @@ add_attack,ability effect,live,Adds to the card's ATTACK power for as long as th
 add_defense,ability effect,live,Adds to the card's DEFENCE power,"Value 1, Target self",
 add_power,ability effect,live,Adds to BOTH attack and defence,"Value 1, Target self",Half as many rows as writing the two separately
 add_shot_power,ability effect,live,"Adds to this round's SHOT at goal, if that side takes it",Value 2,"THE ONE THAT OBEYS THE LADDER. A bonus goes on the shot, never on a card - see section 2 of the manual"
+add_card_chance,ability effect,live,Adds Value % to the chance that a foul the OTHER side commits - once the referee has SEEN it - is a yellow card instead of a free kick. Lasts the match.,"Value 1, Scope match, Max 5","Round X, for the Bergmännlein ore card. Target is ignored: it always works against the other side. Pair it with the Max column so it cannot stack forever."
 drain_stamina,ability effect,live,Takes stamina off a keeper,"Value 3, Target enemy_goalie",How a card chips away at the keeper without scoring
 restore_stamina,ability effect,live,Puts stamina back on a keeper,"Value 2, Target own_goalie",
 negate_ability,ability effect,planned,Stops the opposing card's ability firing this duel,Target opponent,"PHASE 13 (8). Needs the duel to resolve abilities in two passes - collect, then apply"

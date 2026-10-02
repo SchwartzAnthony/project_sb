@@ -16,7 +16,8 @@ extends RefCounted
 #    Counter   the counter to add to. May contain {facts} — see below.
 #    Event     which event feeds it: goal_scored, goal_conceded, duel_won,
 #              duel_lost, brew_drunk, match_ended, match_started,
-#              save_made, shot_taken, stamina_spent
+#              save_made, shot_taken, stamina_spent, player_turned,
+#              player_recruited
 #    When      optional filter. Blank means "every time".
 #    Amount    how much to add. Blank means 1. May also be a {fact}, so
 #              `{stamina}` adds however much stamina that shot actually cost.
@@ -46,6 +47,10 @@ extends RefCounted
 #    shot_taken                    class, tier, card, brew, star, power
 #    save_made                     class (the KEEPER's side), power, stamina
 #    stamina_spent                 class, stamina
+#    player_turned                 card, class, set, tier   (round X: the
+#                                  last of three beers - transform_book.gd)
+#    player_recruited              card, tier               (round X: a
+#                                  recruit: action - recruit_book.gd)
 #
 #  THE `When` FILTER, semicolons between terms, all must pass:
 #    result=win        the fact equals this

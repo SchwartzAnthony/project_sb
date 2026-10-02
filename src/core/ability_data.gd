@@ -131,6 +131,9 @@ const EFFECTS: Array[String] = [
 	"addshotpower",   # +value to this round's shot if its side takes the shot
 	"drainstamina",   # -value stamina from the targeted goalie
 	"restorestamina", # +value stamina to the targeted goalie
+	"addcardchance",  # +value % that a foul the OTHER side commits, once the
+	                  # referee has seen it, is a yellow and not a free kick
+	                  # (round X - your Bergmännlein ore card)
 ]
 
 const SCOPES: Array[String] = ["duel", "round", "cycle", "match"]
@@ -143,6 +146,10 @@ var effect: String = ""
 var value: int = 0
 var scope: String = "duel"
 var notes: String = ""
+## THE "(Max 5)" ON YOUR CARDS. How many times this ability may go off for
+## one card in one match. 0 or blank = no limit, which is every row written
+## before round X.
+var max_uses: int = 0
 
 
 ## Returns "" when the row is usable, otherwise a plain-English complaint

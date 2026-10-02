@@ -271,7 +271,7 @@ const S = {
 /* ---------- the league ---------- */
 "Abilities.csv":{what:"What a card does in a DUEL. League matches only — abilities are not read in Adventure.",
   key:"Ability ID", enums:{Scope:["duel","round","cycle","match"]},
-  help:"<b>Trigger</b> is WHEN it goes off, and the list is a spreadsheet of its own now — <b>AbilityTriggers.csv</b>. A trigger marked <code>planned</code> there is legal to write: the card loads, the row is not an error, and it simply never fires until that trigger is built.<br>THE ONE PLACE THE SPREADSHEET STILL RUNS OUT is <b>Effect</b>. New effect words need code — ask for a batch of them."},
+  help:"<b>Max</b> (round X) is the <i>(Max 5)</i> on your cards: how many times this ability may go off for ONE card in ONE match. Blank = no limit.<br><b>add_card_chance</b> (round X) leans on the referee: Value % that a foul the OTHER side commits, once he has seen it, is a yellow instead of a free kick. For the match. Karl's ore card, <code>BERG_ORE_WHISPER</code>, is the example.<br><b>Trigger</b> is WHEN it goes off, and the list is a spreadsheet of its own now — <b>AbilityTriggers.csv</b>. A trigger marked <code>planned</code> there is legal to write: the card loads, the row is not an error, and it simply never fires until that trigger is built.<br>THE ONE PLACE THE SPREADSHEET STILL RUNS OUT is <b>Effect</b>. New effect words need code — ask for a batch of them."},
 "Keywords.csv":{what:"EVERY WORD THE GAME UNDERSTANDS, and what it does. The reference you read, and the place you write a new word down so it can be built.",
   key:"Keyword", enums:{Status:["live","planned"],
     Family:["ability effect","ability target","ability scope","condition","effect word","adventure effect","item tag","juice moment"]},
@@ -291,8 +291,8 @@ const S = {
 "Theme.csv":{what:"THE SKIN. Panels, windows, buttons and bars drawn from 9-slice images, the fonts, and the palette. ONE ROW REACHES EVERY SCREEN AT ONCE.",
   key:"Element", key2:"State", enums:{
     State:["","hover","pressed","disabled","focus","selected"],
-    Tint:["","yes","no"]},
-  help:"<b>THE <code>panel</code> ROW IS THE MOST IMPORTANT ONE IN THE GAME.</b> Every box the game draws - a card face, a tile, a dialog, the strip above the card row, the keeper's number, the celebration window - goes through ONE function, and this row sits in front of it. Put <code>panel_soft</code> in its Image column and every one of them changes at once.<br><b>NINE-SLICE.</b> An image is cut into nine: four corners that never stretch, four edges that stretch one way, a middle that stretches both. <b>Slice</b> is how far in the cuts are. One 48 x 48 PNG draws every window in the game at every size.<br><b>TINT - read this before drawing anything.</b> By default the image is MULTIPLIED by the colour the screen asked for, so one light grey PNG becomes every panel in the game in its own colour. The catch: multiplying by a dark panel colour DARKENS whatever you drew, so draw it light and desaturated and keep the shape in the ALPHA rather than in the brightness. <b>Tint = no</b> hands your image over untouched - one image per look instead of one for all of them, which is the right trade once you are drawing a finished frame.<br><b>Rows whose Element starts with <code>colour </code> set the palette</b>; only their Fill is read. <code>attack</code> and <code>defend</code> are the two that carry meaning rather than taste - the strip above the cards and the ATK/DEF tags on a Star both read them. <b>The Colour tab of Settings still wins</b>, because a colour-blind palette is a need and not a preference.<br><b>A state with no row falls back to that element's ordinary row, and an element with no row falls back to <code>panel</code></b>, so you can skin the whole game with one row and add detail later.<br><b>Nothing breaks while it is empty.</b> A missing image, a colour it cannot read: everything falls back to what the game looked like before this file existed. <code>tools/theme_check.gd</code> lists every row, whether its file is there, and what is sitting in assets/ui/ that nothing uses."},
+    Tint:["","yes","no"], Repeat:["","tile"]},
+  help:"<b>Repeat</b> (round X): <code>tile</code> REPEATS the four edges instead of stretching them. For a border with a pattern in it - the beer mat's lozenges - which a stretch smears into stripes. Blank = stretch.<br><b>The chrome is PixelLab art now</b>, cut by <code>tools/cut_chrome.py</code> from the sheets in <code>art_source/pixellab/</code> - see ArtOrders.csv.<br><b>THE <code>panel</code> ROW IS THE MOST IMPORTANT ONE IN THE GAME.</b> Every box the game draws - a card face, a tile, a dialog, the strip above the card row, the keeper's number, the celebration window - goes through ONE function, and this row sits in front of it. Put <code>panel_soft</code> in its Image column and every one of them changes at once.<br><b>NINE-SLICE.</b> An image is cut into nine: four corners that never stretch, four edges that stretch one way, a middle that stretches both. <b>Slice</b> is how far in the cuts are. One 48 x 48 PNG draws every window in the game at every size.<br><b>TINT - read this before drawing anything.</b> By default the image is MULTIPLIED by the colour the screen asked for, so one light grey PNG becomes every panel in the game in its own colour. The catch: multiplying by a dark panel colour DARKENS whatever you drew, so draw it light and desaturated and keep the shape in the ALPHA rather than in the brightness. <b>Tint = no</b> hands your image over untouched - one image per look instead of one for all of them, which is the right trade once you are drawing a finished frame.<br><b>Rows whose Element starts with <code>colour </code> set the palette</b>; only their Fill is read. <code>attack</code> and <code>defend</code> are the two that carry meaning rather than taste - the strip above the cards and the ATK/DEF tags on a Star both read them. <b>The Colour tab of Settings still wins</b>, because a colour-blind palette is a need and not a preference.<br><b>A state with no row falls back to that element's ordinary row, and an element with no row falls back to <code>panel</code></b>, so you can skin the whole game with one row and add detail later.<br><b>Nothing breaks while it is empty.</b> A missing image, a colour it cannot read: everything falls back to what the game looked like before this file existed. <code>tools/theme_check.gd</code> lists every row, whether its file is there, and what is sitting in assets/ui/ that nothing uses."},
 "Celebration.csv":{what:"THE GOAL CELEBRATION. One row per beat, read top to bottom. Nothing in the code decides what a celebration IS \u2014 it knows how to do seven things and this file says which of them happen, in what order, and for how long.",
   key:"Step", enums:{
     Who:["you","them","both"],
@@ -333,22 +333,25 @@ const S = {
   help:"These ship as Unit Type = Normal and Element = None, which is why AdventureTraits.csv has a Journeyman row — without it they would put nothing on the pile at all."},
 
 /* ---------- the base and the glue ---------- */
+"Names.csv":{key:null, what:"EVERY PLAYER'S OWN NAME. Common German first names, and surnames for when they run out.",
+  cols:{"First Name":"text","Surname":"text","Notes":"long"},
+  help:"<b>Two lists in two columns</b> - they do not have to be the same length and order does not matter. A recruit gets a FIRST NAME nobody has; when those run out, a first name AND a surname (<i>Johannes Bauer</i>).<br><b>Taken means</b> any card in any unit file is called that, or any player at your base is. So a recruit is never Gremory, never M\u00fcller, and never a second Johannes.<br><b>He keeps it until he leaves the base</b> (<code>release:Johannes</code>). Drinking, turning into a Lorelei, a red card - none of those touch his name.<br>Recruit somebody with <code>recruit:I0</code> (Tier I, Power 0) or <code>recruit:I0=Johannes</code> in any Effects, Do, Action or Reward column. Nobody shows on screen until <code>named_recruits</code> in Tuning.csv is true. <code>tools/round_x_check.gd</code> hands out 300 names and checks none repeat."},
 "Brews.csv":{what:"What the Pub pours. A brew changes what a card COUNTS AS — its class for the league, its icon for Adventure.",
   key:"ID", enums:{Permanent:TF},
-  help:"<b>Cost</b> is <code>reed:6|bog_iron:2</code> — the Pub takes those out of your counters when it pours. <b>Becomes</b> is the class it fights as. <b>Element</b> is the icon it carries in Adventure: a Lorelei who drinks a Fire Brew genuinely brings Fire to the pile."},
+  help:"<b>Drinks</b> (round X) makes a <b>TURNING BREW</b>: a number here means it takes that many pours on a plain card, and then the card BECOMES the class for good, at its own tier and power, keeping its name. On the last pour the Pub asks which card he becomes - one per set. A different element in between starts the count again. Blank = an ordinary brew, exactly as before. The four <code>turn_</code> rows are the examples.<br><b>Cost</b> is <code>reed:6|bog_iron:2</code> — the Pub takes those out of your counters when it pours. <b>Becomes</b> is the class it fights as. <b>Element</b> is the icon it carries in Adventure: a Lorelei who drinks a Fire Brew genuinely brings Fire to the pile."},
 "Talents.csv":{what:"The talent tree. A talent can edit any Tuning number permanently.",
   key:"ID", help:"<b>Effects</b> with <code>count:tune_</code> in front of a Tuning key changes that number: <code>count:tune_press_speed+12</code>. Any row of Tuning.csv can be driven this way."},
 "Referee.csv":{key:"ID", what:"THE MAN WITH THE WHISTLE. A foul is two questions now: did one happen, and did he see it.",
-  cols:{"ID":"text","Name":"text","Portrait":"text","Segments":"num","Fill Per Trigger":"num","Fill Per Foul":"num","Caught When Full":"num","Caught Per Segment":"num","Caught After Yellow":"num","Red Per Yellow":"num","Empties On":["card","never"],"Says Nothing":"long","Says Free Kick":"long","Says Yellow":"long","Says Red":"long"},
-  help:"<b>Fouls.csv decides whether a foul HAPPENED. This file decides whether he SAW IT</b> - and if he did not, nothing happens at all: no card, no free kick, no whistle. You got away with it.<br><b>The bar.</b> Every trigger a side sets off adds <code>Fill Per Trigger</code>; every foul he MISSES adds <code>Fill Per Foul</code>, which is much bigger - getting away with one is exactly when he starts paying attention. He has <code>Segments</code> of them, which is your 1 to 5.<br><b>While it fills</b> the chance he notices is <code>Caught Per Segment</code> for each lit segment. <b>Full</b>, it is <code>Caught When Full</code> - 95 or 100, so the next foul is a card near enough every time. <b>And once you have been booked he is watching you:</b> <code>Caught After Yellow</code> replaces all of it whatever the bar says.<br><b>Red is built from yellows.</b> <code>Red Per Yellow</code> is added to the chance a yellow becomes a red, for every booking that side already has. With no yellows it adds nothing.<br><b>Three referees ship</b> - <code>*</code> for everyday, a lenient one and a strict one - and <code>referee_id</code> in Tuning.csv picks, so a cup final can have a stricter man than a friendly. <code>tools/referee_check.gd</code> plays ten thousand rounds against each and tells you what share of fouls he misses. <b>Around half is the shape you want:</b> over 80% and the bar is decoration, under 20% and it is the system you had before the bar existed."},
+  cols:{"ID":"text","Name":"text","Portrait":"text","Segments":"num","Fill Per Trigger":"num","Fill Per Foul":"num","Caught When Full":"num","Caught Per Segment":"num","Caught After Yellow":"num","Red Per Yellow":"num","Caught Per Own Foul":"num","Card Per Own Foul":"num","Empties On":["card","never"],"Says Nothing":"long","Says Free Kick":"long","Says Yellow":"long","Says Red":"long"},
+  help:"<b>Fouls.csv decides whether a foul HAPPENED. This file decides whether he SAW IT</b> - and if he did not, nothing happens at all: no card, no free kick, no whistle. You got away with it.<br><b>The bar.</b> Every trigger a side sets off adds <code>Fill Per Trigger</code>; every foul he MISSES adds <code>Fill Per Foul</code>, which is much bigger - getting away with one is exactly when he starts paying attention. He has <code>Segments</code> of them, which is your 1 to 5.<br><b>While it fills</b> the chance he notices is <code>Caught Per Segment</code> for each lit segment. <b>Full</b>, it is <code>Caught When Full</code> - 95 or 100, so the next foul is a card near enough every time. <b>And once you have been booked he is watching you:</b> <code>Caught After Yellow</code> replaces all of it whatever the bar says.<br><b>Red is built from yellows.</b> <code>Red Per Yellow</code> is added to the chance a yellow becomes a red, for every booking that side already has. With no yellows it adds nothing.<br><b>THE REPEAT OFFENDER</b> (round X). <code>Caught Per Own Foul</code> is added to the chance he notices, for every foul THAT MAN has already committed this match - unseen ones included. <code>Card Per Own Foul</code> is the chance a foul he does see is a yellow instead of a free kick, per earlier foul. A man on his third foul is easy to spot however quiet the bar is.<br><b>Three referees ship</b> - <code>*</code> for everyday, a lenient one and a strict one - and <code>referee_id</code> in Tuning.csv picks, so a cup final can have a stricter man than a friendly. <code>tools/referee_check.gd</code> plays ten thousand rounds against each and tells you what share of fouls he misses. <b>Around half is the shape you want:</b> over 80% and the bar is decoration, under 20% and it is the system you had before the bar existed."},
 
 "Motion.csv":{key:"Moment", what:"HOW EVERYTHING MOVES. Buttons, windows, screens, the referee walking on.",
   cols:{"Moment":"text","Seconds":"num","Move X":"num","Move Y":"num","Scale":"num","Ease":["out","in","both","none"],"Shake":"num"},
   help:"<b>Feel is a number you change and look at.</b> A feel buried in fifteen scripts is a feel nobody ever tunes, so every movement in the game is a row here.<br><b>Move X/Y is how far it travels FROM WHERE IT ENDS UP</b>, so -2 on Y means it starts two pixels high and settles down. <b>Scale is how big it starts:</b> under 1 it GROWS into place, over 1 it SHRINKS into place - and those read completely differently. Growing is a thing arriving; shrinking is a thing being put away.<br><b>Ease</b> is the shape of the movement: <code>out</code> is fast then settling, which is how a real object behaves; <code>in</code> is slow then arriving, which is right for a press because your finger is doing the work; <code>none</code> is linear and reads as a machine.<br><b>EVERY NUMBER IN HERE IS SMALL AND FAST.</b> Two pixels, three per cent, a tenth of a second. The temptation is to make them bigger and the result is a game that feels like it is wading - a button that moves two pixels reads as pressable, one that moves ten reads as broken. <code>goal</code> is the one row allowed to be loud.<br><b>A moment with no row simply does not move</b>, so you can delete every row in this file and the game still works. It just stops feeling like anything."},
 
 "ArtOrders.csv":{key:"ID", what:"THE WORK ORDER FOR THE ART. Fourteen assets, in the order to make them.",
-  cols:{"Order":"num","ID":"text","Tool":"text","Width":"num","Height":"num","Elements":"text","Palette":"text","Prompt":"long","Then":"text","Goes To":"text"},
-  help:"<b>Do number 1 first and do not move on until it is right.</b> Every box in the game is drawn from the panel, so it sets the look of everything - and the result is then passed as <code>style_image</code> to all thirteen below. That is what makes fourteen separate generations read as one game rather than fourteen.<br><b>Three phases.</b> 1-7 is the nine-slice chrome, which dresses every screen at once. 8-11 is the screens you see first, including the pitch. 12-14 is the referee, the twelve emblems and optionally a font.<br><b>Two numbers worth knowing.</b> The wallpaper is 480x270 because that is exactly a quarter of 1920x1080, so scaling up lands on whole pixels and stays sharp - the game already draws everything nearest-neighbour, so it reads as deliberate rather than blurry. And the pitch is the biggest single win available: the one in the project is 1000x667, the wrong shape, stretched into a 16:9 box and blown up 2.56 times.<br><b>Marcinelle in pixels.</b> Heavy 1px black outline, flat fills with no gradients, exaggerated silhouettes, a warm limited palette and ONE hot accent. All five survive at 96 pixels; a brush line does not."},
+  cols:{"Order":"num","ID":"text","Tool":"text","Width":"num","Height":"num","Elements":"text","Palette":"text","Prompt":"long","Then":"text","Goes To":"text","Status":"text","Sheet":"text","Cut":"text","Finish":["","plain","light","dark-centre","plain-button","reduce","bar-back","bar-fill","lit:button","pressed:button"]},
+  help:"<b>ROUND X: ORDERS 1-7 ARE DONE</b> and in the game. PixelLab's UI tool returns a whole SHEET of panels, so three columns say how a file is cut from one: <b>Sheet</b> (in <code>art_source/pixellab/</code>), <b>Cut</b> (<code>x y width height corner</code>) and <b>Finish</b>. Then run <code>python3 tools/cut_chrome.py</code>. Regenerate a sheet, save it over the old one, run it again - that is the whole loop.<br><b>Do number 1 first and do not move on until it is right.</b> Every box in the game is drawn from the panel, so it sets the look of everything - and the result is then passed as <code>style_image</code> to all thirteen below. That is what makes fourteen separate generations read as one game rather than fourteen.<br><b>Three phases.</b> 1-7 is the nine-slice chrome, which dresses every screen at once. 8-11 is the screens you see first, including the pitch. 12-14 is the referee, the twelve emblems and optionally a font.<br><b>Two numbers worth knowing.</b> The wallpaper is 480x270 because that is exactly a quarter of 1920x1080, so scaling up lands on whole pixels and stays sharp - the game already draws everything nearest-neighbour, so it reads as deliberate rather than blurry. And the pitch is the biggest single win available: the one in the project is 1000x667, the wrong shape, stretched into a 16:9 box and blown up 2.56 times.<br><b>Marcinelle in pixels.</b> Heavy 1px black outline, flat fills with no gradients, exaggerated silhouettes, a warm limited palette and ONE hot accent. All five survive at 96 pixels; a brush line does not."},
 
 "Star Players.csv":{key:"Name", what:"THE THREE STARS OF EACH CLASS. They carry the Emblems onto the pitch.",
   cols:{"Unit Type":"text","Name":"text","Front Side":"long","Ultimate Side":"long","Element":"text","Base Power ":"num","Tier":"tier","Card Number":"num","Emblem":"text","Set":"text","Set Name":"text","Artwork":"text","Ultimate Artwork":"text","Player Type":"text"},
@@ -372,7 +375,7 @@ const S = {
   key:"ID", enums:{Once:TF},
   help:"Terms in Requires are joined with a semicolon. <code>and</code> is NOT a word this understands. This is where achievements and unlocks are wired without code."},
 "Stats.csv":{what:"What the game counts. A new counter is a new row and nothing else.",
-  key:null, enums:{Event:["goal_scored","goal_conceded","shot_taken","save_made","duel_won","duel_lost","brew_drunk","match_ended","enemy_killed","wave_cleared"]},
+  key:null, enums:{Event:["goal_scored","goal_conceded","shot_taken","save_made","duel_won","duel_lost","brew_drunk","match_ended","enemy_killed","wave_cleared","player_turned","player_recruited","foul_given"]},
   help:"<b>When</b> filters the event: <code>tier=I</code>, <code>star=yes</code>, <code>result=win</code>, <code>brew=fire</code>. Blank is always. A Counter containing <code>{card}</code> makes one counter per card."},
 
 /* ---------- words and numbers ---------- */
@@ -1025,6 +1028,9 @@ function paintCheat(){
     ["count:gold-25","take some away. A shop price is one cell"],
     ["count:gold=0","set it outright"],
     ["count:tune_press_speed+12","<b>edit a row of Tuning.csv.</b> Any row. This is how talents work"],
+    ["sign:Müller","a card joins your squad (read once <code>squad_ownership</code> is on)"],
+    ["recruit:I0","<b>a new plain player</b>, Tier I Power 0, with a unique name from Names.csv. <code>recruit:I0=Johannes</code> asks for a name"],
+    ["release:Johannes","he leaves the base for good, and his name is free again"],
     ["story:prologue","play a dialogue scene"],
     ["announce:First win!","put a banner on the screen"],
   ])));
@@ -1190,6 +1196,23 @@ function check(){
       DATA[f].rows.forEach((r,ri)=>{
         const v=(r[i]||"").trim(); if(!v) return;
         if(!pool.has(norm(v))) add(f,ri,c,`"${v}" is not in ${rf}.`,`Add a row there with that id, or pick one from the list.`);
+      });
+    }
+  }
+  /* 2b. ONE NAME, ONE PLAYER (round X). A card is identified by its Name -
+     saves, brews and turned players all hang off it - so two cards sharing
+     one is a save bug waiting to happen. And "Unit Name" is a placeholder. */
+  {
+    const named={};
+    for(const f of Object.keys(DATA)){
+      const ni=at(f,"Name"), ti=at(f,"Tier");
+      if(ni<0||ti<0||at(f,"Unit Type")<0) continue;
+      DATA[f].rows.forEach((r,ri)=>{
+        const v=(r[ni]||"").trim(); if(!v) return;
+        if(/^unit name$/i.test(v)){ add(f,ri,"Name",`"Unit Name" is a placeholder, not a name.`,`Give him a name from Names.csv. A card is identified by its Name, so a placeholder shared by many cards is many cards that save as one.`); return; }
+        const k=norm(v);
+        if(named[k]) add(f,ri,"Name",`"${v}" is also the name of a card in ${named[k]}.`,`Every player needs a name of his own - saves, brews and turned players are all stored against it.`);
+        else named[k]=f;
       });
     }
   }
@@ -2089,6 +2112,8 @@ function paintBook(){
       ["full","<code>Caught When Full</code>, 95 or 100. The next foul is a card"],
       ["after a booking","<code>Caught After Yellow</code> replaces all of it. He is watching you"],
       ["red","<code>Red Per Yellow</code> per booking that side already has. With none it adds nothing"],
+      ["a repeat offender","<code>Caught Per Own Foul</code> and <code>Card Per Own Foul</code>, per foul THAT MAN has already committed this match — seen or not (round X)"],
+      ["leaning on him","an ability with <code>add_card_chance</code>, or a talent with <code>count:tune_foul_card_bonus_enemy+1</code>, makes the other side's seen fouls likelier to be yellows"],
       ["a goal / a card","empties the bar. <code>Empties On</code>"],
       ["league only","an Adventure fight has no referee and never draws the bar"],
     ])}
@@ -2096,6 +2121,18 @@ function paintBook(){
     <code>tools/referee_check.gd</code>. Over 80% and the bar is decoration — a player never sees a card and
     never learns the rule. Under 20% and it is the system you had before the bar existed. Around half is the
     shape you want: getting away with one is common, getting away with four is not.</p>`);
+
+  card("Names, recruits and three beers (round X)", `
+    <p style="margin:0 0 10px"><b>Stars carry Goetia names. Everyone else carries a common German one</b>, and keeps it for as long as he is at your base.</p>
+    ${rows([
+      ["Names.csv","first names, and surnames for when they run out. A name is never handed out twice"],
+      ["<code>recruit:I0</code>","a plain Tier I Power 0 player with a name of his own. <code>recruit:I0=Johannes</code> asks for one"],
+      ["<code>release:Johannes</code>","he leaves the base and the name is free again"],
+      ["<code>named_recruits</code>","Tuning.csv, <b>false</b>. Recruits are remembered but nobody shows until it is true — turn it on with <code>squad_ownership</code>"],
+      ["a TURNING brew","a number in Brews.csv's <b>Drinks</b> column. Three pours on a plain card and he becomes that class at his own tier and power, keeping his name. You choose which card - one per set"],
+      ["mixing","a different element starts the count again: water, water, fire = fire 1 of 3"],
+    ])}
+    <p style="margin:10px 0 0;color:var(--dim)"><b>One gap worth knowing:</b> each class has one tier that belongs to its Stars alone (Lorelei and Unkengeister: Tier II), so a plain player of that tier has nothing to turn into. <code>tools/round_x_check.gd</code> prints the list.</p>`);
 
   card("Dev mode", `
     <p style="margin:0 0 10px"><code>dev_mode</code> in Tuning.csv is FALSE. True adds a DEV section to the
@@ -2177,6 +2214,9 @@ function paintBook(){
       ["recovery_check","whether the squad is deep enough to turn the recovery system on"],
       ["match_soak / adventure_soak","<b>a whole match and a hundred fights, with no window.</b> Run these after any change to a number that matters"],
       ["base_shot","opens the base and <b>presses every building</b>, then checks a window appeared"],
+      ["round_x_check","<b>names, recruits, three beers, the repeat offender and the ore card</b>, on a scratch save"],
+      ["pub_turn_shot","presses the real Pub buttons through three beers and the choice, and photographs it"],
+      ["cut_chrome.py","cuts the PixelLab sheets in <code>art_source/pixellab/</code> into the eight chrome files. <code>python3 tools/cut_chrome.py</code>"],
       ["csv_import_fix","writes the missing .csv.import files"],
     ])}
     <p style="margin:10px 0 0;color:var(--dim)">The full list, with the exact command line for each, is section 14 of the Designer Manual. <b>A tool that reaches past the button cannot see a broken button</b> — if you ever write one, press the thing a player presses.</p>`);
@@ -2200,6 +2240,8 @@ function paintBook(){
       ["eleven sounds","named in Audio.csv with no file. <code>SOUNDS_WANTED.csv</code> describes each"],
       ["four buildings","Achievements, Talent Tree, Dorms and The Traveling Brewer draw as plain plaques"],
       ["the pitch image","1000 × 667 where the game wants 2560 × 1440. See <b>Art &amp; sizes</b>"],
+      ["unit abilities","the 108 set cards' Attack and Defend are prose; only a card with an Ability ID (Abilities.csv) does anything in a match. Karl's ore card is the first one wired"],
+      ["Ore","there is no Ore counter in a match yet, so <i>Consume 3 Ore</i> is not charged"],
       ["<code>recovery</code>","deliberately <code>false</code> in Tuning.csv. With three players a tier, one fixture puts enough out that you can field neither a match nor a run. Six a tier is the number to aim at"],
       ["17 keywords","written into Keywords.csv and not implemented yet. The Keywords page marks them"],
     ])}`);
@@ -2359,6 +2401,24 @@ function wizOne(set, side, tier){
   return t + ": " + e;
 }
 
+/* A NAME OF HIS OWN (round X). A first name from Names.csv that no card in
+   any loaded unit file has, and that this wizard has not already handed out.
+   Falls back to "Unit Name" only if Names.csv is not loaded - and the
+   checker then flags it. */
+const WIZ_NAMES_GIVEN = new Set();
+function wizName(){
+  const taken = new Set(WIZ_NAMES_GIVEN);
+  for(const f of Object.keys(DATA)){
+    if(at(f,"Name")<0 || at(f,"Tier")<0) continue;
+    col(f,"Name").forEach(v=>v && taken.add(norm(v)));
+  }
+  const free = col("Names.csv","First Name").filter(v=>v && !taken.has(norm(v)));
+  if(!free.length) return "Unit Name";
+  const pick = free[Math.floor(Math.random()*free.length)];
+  WIZ_NAMES_GIVEN.add(norm(pick));
+  return pick;
+}
+
 /* ROLL THE NINE. Three per tier, one of each power in that tier's span, so
    the ladder is obeyed by construction rather than checked afterwards. */
 function wizRoll(set){
@@ -2367,7 +2427,7 @@ function wizRoll(set){
     WIZ_POWERS[tier].forEach(power=>{
       out.push({
         tier, power,
-        name: "Unit Name",
+        name: wizName(),
         attack: wizOne(set, "attack", tier),
         defend: wizOne(set, "defend", tier),
       });

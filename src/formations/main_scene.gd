@@ -4953,7 +4953,12 @@ func _settle_fouls(player_lineup: Array, enemy_lineup: Array) -> Dictionary:
 		# possession — and fills his bar by a lot. Which is what makes the
 		# bar worth watching: you can see him running out of patience.
 		var booked_already := _yellows_for(offender_is_enemy)
-		if not Referee.notices(offender_is_enemy, booked_already, db):
+		# HOW MANY HE HAS ALREADY COMMITTED this match, seen or not. Read
+		# before this foul is added, so it never counts against itself.
+		var his_fouls := Referee.fouls_by(culprit)
+		var seen := Referee.notices(offender_is_enemy, booked_already, db, his_fouls)
+		Referee.record_foul(culprit)
+		if not seen:
 			Referee.got_away_with_it(offender_is_enemy, db)
 			print("  FOUL: %s side, %d trigger(s) -> %s — AND HE DID NOT SEE IT. %s" % [
 				"away" if offender_is_enemy else "home", many, verdict,
@@ -4973,6 +4978,18 @@ func _settle_fouls(player_lineup: Array, enemy_lineup: Array) -> Dictionary:
 		# With no yellows yet it adds nothing at all.
 		if verdict == "yellow" and randf() * 100.0 < Referee.red_bonus(booked_already, db):
 			verdict = "red"
+		# ============ A FREE KICK THAT BECOMES A BOOKING (round X) ============
+		#
+		# Three things can tip a seen foul from a word into a yellow: this
+		# man's own record today (Card Per Own Foul in Referee.csv), a talent
+		# (foul_card_bonus_* in Tuning.csv) and an ability one of the OTHER
+		# side's cards fired (add_card_chance in Abilities.csv).
+		if verdict == "free kick":
+			var bump := Referee.card_bump(offender_is_enemy, his_fouls, db,
+				float(abilities.card_chance.get(offender_is_enemy, 0.0)))
+			if bump > 0.0 and randf() * 100.0 < bump:
+				verdict = "yellow"
+				print("  ...and it is a BOOKING after all: %.0f%% from his record, talents and abilities." % bump)
 		Referee.whistled(offender_is_enemy, db)
 
 		print("  FOUL: %s side, %d trigger(s) -> %.0f%% -> %s%s  [%s]" % [

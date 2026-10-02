@@ -95,6 +95,9 @@ var _badge_picker: Control
 func _ready() -> void:
 	db = CardDatabase.get_db()
 	state = GameState.fetch(get_tree())
+	# Turned players wear their new class, and named recruits are in the
+	# list, before anything here sorts cards by class. See transform_book.gd.
+	TransformBook.apply_all(db, state)
 	MenuEscape.install(self)
 
 	_load_team()

@@ -92,6 +92,18 @@ var _stamina_pending: Array = []         # [{"enemy_side": bool, "delta": int}]
 ## that knows an effect really landed.
 var triggers := {false: 0, true: 0}
 
+## ============ LEANING ON THE REFEREE (round X) ============
+##
+## The percent added AGAINST that side: card_chance[true] is how much likelier
+## the ENEMY is to be booked when he is caught, because one of YOUR cards
+## fired add_card_chance. Lasts the match - it is not cleared by
+## begin_round(), only by begin_match().
+var card_chance := {false: 0.0, true: 0.0}
+
+## How many times each card's ability has gone off this match, for the Max
+## column. Keyed "<card instance>|<ability id>".
+var _uses: Dictionary = {}
+
 
 func _init(database: CardDatabase = null) -> void:
 	db = database if database != null else CardDatabase.get_db()
@@ -100,6 +112,12 @@ func _init(database: CardDatabase = null) -> void:
 # =============================================================
 #  LIFECYCLE — call these from main_scene
 # =============================================================
+
+## Kick-off. Forgets everything that lasts a whole match.
+func begin_match() -> void:
+	card_chance = {false: 0.0, true: 0.0}
+	_uses.clear()
+
 
 func begin_round() -> void:
 	_expire("duel")
@@ -272,6 +290,14 @@ func fire_reveal(card: PlayerData, is_enemy: bool) -> void:
 	_fire_for(card, is_enemy, "reveal", null, not is_enemy)
 
 
+## Fire one trigger for one card by name - "on_attack", "on_win_duel". For
+## tools that need to prove an ability does what its row says without
+## playing a whole match. The match itself never calls this.
+func fire(card: PlayerData, is_enemy: bool, trigger: String,
+		opponent: PlayerData = null, opponent_is_enemy: bool = false) -> void:
+	_fire_for(card, is_enemy, CardDatabase._normalise(trigger), opponent, opponent_is_enemy)
+
+
 ## After a duel is decided.
 func resolve_duel_outcome(winner: PlayerData, winner_is_enemy: bool,
 		loser: PlayerData, loser_is_enemy: bool) -> void:
@@ -297,6 +323,18 @@ func _fire_for(card: PlayerData, is_enemy: bool, trigger: String,
 func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 		opponent: PlayerData, opponent_is_enemy: bool) -> void:
 
+	# ============ THE MAX COLUMN ============
+	#
+	# "(Max 5)" on a card means it goes off five times in a match and then
+	# stops. Checked before anything else, so a spent ability does not even
+	# count as a trigger - it did not happen.
+	if ability.max_uses > 0 and source != null:
+		var use_key := "%d|%s" % [source.get_instance_id(), ability.id]
+		var used := int(_uses.get(use_key, 0))
+		if used >= ability.max_uses:
+			return
+		_uses[use_key] = used + 1
+
 	# ============ ONE TRIGGER ============
 	#
 	# Counted HERE and nowhere else, because this is the only line the game
@@ -316,6 +354,15 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 			log_lines.append("      %s: %s %d on the %s keeper"
 				% [source.player_name, ability.effect, absi(delta),
 				   "away" if keeper_is_enemy else "home"])
+		return
+
+	# --- A word in the referee's ear. Against the OTHER side, always. ---
+	if ability.effect == "addcardchance":
+		var against := not source_is_enemy
+		card_chance[against] = float(card_chance.get(against, 0.0)) + float(ability.value)
+		log_lines.append("      %s: the %s side is %+d%% likelier to be booked (now %+.0f%%)"
+			% [source.player_name, "away" if against else "home", ability.value,
+				float(card_chance[against])])
 		return
 
 	# --- Shot power is a per-side running total, also not a buff ---

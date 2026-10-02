@@ -157,6 +157,11 @@ func _load_csv(path: String) -> void:
 			#
 			# Blank costs nothing, which is what every brew did before.
 			"cost": parse_cost(_cell(row, columns, "cost")),
+			# ============ A TURNING BREW (round X) ============
+			# A number here makes this a brew that takes that many pours and
+			# then changes the player's class FOR GOOD. Blank = an ordinary
+			# brew, exactly as before. See transform_book.gd.
+			"drinks": maxi(0, int(_cell(row, columns, "drinks"))) if _cell(row, columns, "drinks").is_valid_int() else 0,
 			"where": "%s row %d" % [short_name, i + 1],
 		})
 
@@ -346,10 +351,16 @@ func apply_all(cards: CardDatabase, state: GameState) -> int:
 	restore_all()
 	if cards == null or state == null:
 		return 0
+	# WHO HE HAS BECOME comes first, because it is permanent and a one-match
+	# brew is poured on top of it. See transform_book.gd.
+	TransformBook.apply_all(cards, state)
 
 	var count := 0
 	for card in cards.players:
 		var brew_id := brew_id_for(card, state)
+		var poured := find(brew_id)
+		if TransformBook.is_turning(poured):
+			continue          # a turning brew is a count, never an overlay
 		if brew_id == "":
 			continue
 		var entry := find(brew_id)
@@ -444,6 +455,9 @@ func _validate() -> void:
 				problems.append("%s: '%s' is not a class any card belongs to — check the spelling"
 					% [entry["where"], class_name_text])
 
+		if int(entry.get("drinks", 0)) > 0 and String(entry["becomes"]).strip_edges() == "":
+			problems.append("%s: brew '%s' has a Drinks number but no Becomes - there is nothing to turn into"
+				% [entry["where"], entry["id"]])
 		if String(entry["becomes"]).strip_edges() == "" \
 				and String(entry["attack"]).strip_edges() == "" \
 				and String(entry["defend"]).strip_edges() == "":

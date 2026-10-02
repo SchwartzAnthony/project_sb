@@ -277,7 +277,7 @@ emblem_check.gd,tools/,A measuring tool,Prices the race in duels and tells you w
 Referee.csv,data/,A spreadsheet you edit,THE MAN WITH THE WHISTLE. A foul is two questions now - did one happen (Fouls.csv) and did he see it (this). Three referees ship; referee_id in Tuning.csv picks.
 Motion.csv,data/,A spreadsheet you edit,"HOW EVERYTHING MOVES. Buttons, windows, screens, the referee walking on. Every number in it is small and fast on purpose."
 ArtOrders.csv,data/,A spreadsheet you edit,"THE WORK ORDER FOR THE ART. Fourteen PixelLab jobs in the order to do them, with the exact prompts and sizes. Do number 1 first."
-referee.gd,src/core/,Code,"His attention: the bar, whether he notices, and how red is built from yellows."
+referee.gd,src/core/,Code,"His attention: the bar, whether he notices, and how red is built from yellows. Round X: also remembers each man's fouls this match (the repeat offender) and adds up the card bump from Referee.csv, talents and abilities."
 dev_mode.gd,src/core/,Code,Own everything or own nothing. Shut unless dev_mode is TRUE.
 motion_book.gd,src/core/,Code,Reads Motion.csv and plays a moment on any Control.
 ref_bar.gd,src/ui/,Code,"The five-segment attention bar, one per side. League matches only."
@@ -287,3 +287,21 @@ ref_shot.gd,tools/,A measuring tool,Photographs the bar at three fills and the r
 Referee.csv.import,data/,Godot bookkeeping,Three lines. Without it Godot reads the CSV as a translation table.
 Motion.csv.import,data/,Godot bookkeeping,Three lines. Without it Godot reads the CSV as a translation table.
 ArtOrders.csv.import,data/,Godot bookkeeping,Three lines. Without it Godot reads the CSV as a translation table.
+HANDOVER.md,guides/,A guide,"EVERYTHING A NEW SESSION NEEDS. The architecture, the rules, every system, the four classes, the decisions made and the work in progress. Give it to any new chat first."
+make_chrome.py,tools/,A measuring tool,Draws PLACEHOLDER chrome from the Theme.csv palette. Since round X it refuses to run while the PixelLab art is in (it would paint over it) - use --placeholders to force it.
+gd_lint.py,tools/,A measuring tool,Checks every .gd for spaces-in-indentation. Five known false positives on continuation lines.
+build.sh,tools/workbench_src/,A measuring tool,"Rebuilds sturmball_workbench.html from its parts. Edit the parts, then run this."
+Names.csv,data/,Data you edit,"ROUND X. Common German first names, and surnames for when they run out. Every recruit gets one nobody else has. See section 6b of the manual."
+Names.csv.import,data/,Godot bookkeeping,Tells Godot to keep the CSV as a CSV.
+name_book.gd,src/core/,Code,"ROUND X. Hands out unique names from Names.csv, holds them in the save, gives them back on release:."
+recruit_book.gd,src/core/,Code,ROUND X. recruit:I0 - a plain card copied under a player's own name. Behind named_recruits in Tuning.csv.
+transform_book.gd,src/core/,Code,"ROUND X. Three beers: the Drinks column of Brews.csv, the count, the choice of set, and wearing the new class."
+round_x_check.gd,tools/,A measuring tool,"ROUND X. Names, recruits, three beers, the repeat offender and Karl's ore card, on a scratch save. Says ALL GOOD or what is wrong."
+pub_turn_shot.gd,tools/,A measuring tool,"ROUND X. Presses the real Pub buttons through three beers and the set choice, and photographs it. Run under xvfb-run."
+cut_chrome.py,tools/,A measuring tool,"ROUND X. Cuts the PixelLab sheets in art_source/pixellab/ into the eight chrome files, following Sheet / Cut / Finish in ArtOrders.csv. Run: python3 tools/cut_chrome.py"
+.gdignore,art_source/,Godot bookkeeping,Tells Godot not to import anything in art_source/ - the PixelLab sheets are big and only cut_chrome.py reads them.
+01_panel_sheet.png,art_source/pixellab/,Art PixelLab drew,ROUND X. Order 1. The sheet the panel is cut from.
+02_window_sheet.png,art_source/pixellab/,Art PixelLab drew,ROUND X. Order 2. The window.
+03_button_sheet.png,art_source/pixellab/,Art PixelLab drew,ROUND X. Order 3. The button - hover and pressed are made from it.
+06_slot_sheet.png,art_source/pixellab/,Art PixelLab drew,"ROUND X. Order 6. The beer mat (painted, so it is reduced to pixels)."
+07_bars_sheet.png,art_source/pixellab/,Art PixelLab drew,ROUND X. Order 7. The rack of steins the bar colours come from.

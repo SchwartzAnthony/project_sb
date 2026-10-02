@@ -36,6 +36,9 @@ func _ready() -> void:
 	GameSpeed.reset()
 	db = CardDatabase.get_db()
 	state = GameState.fetch(get_tree())
+	# Turned players wear their new class, and named recruits are in the
+	# list, before anything here sorts cards by class. See transform_book.gd.
+	TransformBook.apply_all(db, state)
 	book = TeamRoster.load_all()
 	MenuEscape.install(self)
 

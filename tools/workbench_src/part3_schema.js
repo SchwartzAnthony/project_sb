@@ -1,0 +1,370 @@
+/* ============================================================
+   THE SCHEMA — what every file is, and what its columns mean.
+   Adding a file here teaches the workbench about it; the editor
+   itself never names a column.
+   ============================================================ */
+const YN = ["", "yes", "no"];
+const TF = ["", "true", "false"];
+const TIERS = ["", "I", "II", "III", "IV"];
+
+/* The fourteen moments Juice.csv may answer to. Straight out of
+   juice_db.gd — if you add one there, add it here. */
+const MOMENTS = ["ball_received","ball_kicked","enemy_hit","enemy_died","player_hurt",
+  "player_exhausted","player_healed","combo_fired","shot_struck","enemy_windup",
+  "goal_scored","play_maker","star_switch","coin_exact"];
+/* The seven things an Adventure breakpoint can do. Out of trait_db.gd. */
+const EFFECTS = ["attack","strike","heal","stamina","revive","shield","spawn"];
+
+const S = {
+/* ---------- the rule everything obeys ---------- */
+"TierPowers.csv":{what:"THE LADDER. Every tier holds one card of each power, and every screen in the game obeys this file.",
+  key:"Tier", help:"Min to Max is read as the LIST OF SLOTS. Tier I is 0 to 2, so it holds one 0, one 1 and one 2 — never two the same. Keep each span three wide, or every squad in the game changes size."},
+
+/* ---------- Adventure: the pile ---------- */
+"AdventureTraits.csv":{what:"THE ICONS. What a player carries into an Adventure fight. Abilities are not read in Adventure at all — these are.",
+  key:"ID", colour:["Colour"], enums:{From:["element","class","star","tier"]},
+  help:"<b>From</b> says where an icon comes from. <code>element</code> reads the Element column of your unit CSV <i>and</i> of Brews.csv, so what a player drinks changes their icon. <code>class</code> reads the brewed class. <code>star</code> ignores Value entirely. <b>A player carries several icons</b> — one from their element, one from their class — and both bars move.<br><b>ONLY EIGHT ICONS GO INTO A RUN.</b> <code>adventure_trait_slots</code> in Tuning.csv says how many; the rest of this file is the shelf they are chosen from. An icon that is not in the eight does nothing at all — no bar, nothing on the pile, no breakpoints.<br><b>Requires</b> decides whether an icon is on that shelf, in the usual condition words. Blank means it is there from the first run. <code>unlocked:Frost Study</code> means it turns up once something hands that unlock out — which is how you write forty icons and let the player earn which eight they carry."},
+"AdventureCombos.csv":{what:"WHAT REACHING A STACK DOES. Three Fire on the pile and every shot is worth four more — this is the file that says so.",
+  key:"ID", enums:{Effect:EFFECTS, Lasts:["","held","once"]},
+  help:"<b>At</b> is how many it takes. <b>Only the highest breakpoint you have reached is active</b> for a <code>held</code> effect — three Fire gives you Blaze, not Kindling <i>and</i> Blaze, which is what makes 3/4 worth chasing. A <code>once</code> effect fires as you pass it and not again until the cycle comes round.<br><b>Target</b> depends on Effect: <code>strike</code> → all / focus · <code>heal</code> and <code>stamina</code> → lowest / all / last · <code>revive</code> → how much stamina each · <code>spawn</code> → a row of AdventureSpawns.csv · <code>attack</code> and <code>shield</code> → leave it blank."},
+"AdventureSpawns.csv":{what:"THE STAND-INS. A Treant that walks on to replace somebody you lost, and is a real party member from then on.",
+  key:"ID", enums:{Tier:TIERS},
+  help:"Leave <b>Tier</b> blank and it takes the tier of whoever it is replacing, which is almost always what you want. <b>Its Power is clamped into that tier's rungs</b> — the ladder is not broken even by a spawn, and the log says so if a number had to move."},
+
+/* ---------- Adventure: the run ---------- */
+"AdventureEnemies.csv":{what:"Who you meet in a biome. An enemy has NO TIER — it is what it hits for, and what it is made of.",
+  key:"ID", enums:{Targeting:["weakest","strongest","lowest_stamina","aoe"],Boss:YN},
+  help:"<b>Layers</b> is <code>Name:Amount:Soak</code> separated by <code>|</code>, outermost first — damage eats the outer layer before it reaches the next. <b>Weight</b> 0 means it never turns up randomly, which is what a boss is. <b>Buff</b> is what it gains per pass while you build your move: blank for most of them, and give it to the ones that should feel like a clock ticking."},
+"Biomes.csv":{what:"The areas you explore, and how each one looks.",
+  key:"ID", colour:["Sky","Grass","Grass Stripe","Edge"],
+  help:"Colours are written <code>#213a26</code>. <b>Parallax</b> 0 is a still background, 1 moves with the ground. <b>Difficulty</b> is multiplied by how many times you have cleared the place, so a repeat run is genuinely tougher rather than just longer."},
+"Bounties.csv":{what:"The jobs on the board. A bounty is a boss — go into that biome and kill the thing named on the paper.",
+  key:"ID", enums:{Repeatable:YN},
+  help:"<b>Waves</b> blank means \"as long as the biome is\". A number makes this one job shorter or longer through the same place."},
+"Drops.csv":{what:"What things leave behind. A drop table is every row sharing a Table name.",
+  key:null, help:"<b>Chance</b> is 0 to 1. <b>Requires</b> gates a drop — a recipe only falls once you can brew."},
+"Items.csv":{what:"Everything you can pick up, spend or use. Every item is a counter in the save, so anything that tests a counter works on it.",
+  key:"ID", enums:{Kind:["material","currency","recipe","kit","brew","key","token","quest"],
+    Tab:["","items","resources","keys"],Target:["","ally","enemy","downed","card"]},
+  help:"<b>Use</b> is what happens when it is used: <code>revive</code>, <code>heal:6</code>, <code>heal:3;all</code>, <code>hit:4</code>, or <code>brew:fire</code> to lay a row of Brews.csv over one player. Blank means it is not usable at all.<br><b>Tags</b> says WHERE it may be used \u2014 a semicolon list. <code>adventure_consume</code> during an Adventure fight, <code>match_consume</code> on a card during the match draft. <b>No tag is the normal case</b> and means it is taken at the bar before the team sets off, so a bandage with no tag is not broken, it just is not something you pull out mid-wave. Any other word you write is yours, to test with a Requires.<br><b>A brew is an ordinary item.</b> It is MADE at a building \u2014 see the Brewery row of Buildings.csv \u2014 bottled, and carried; the bottle is what you use. Nothing is conjured out of the inventory.<br><b>Tab</b> is which page of the Inventory it sits on \u2014 <code>items</code> are things you USE, <code>resources</code> things you SPEND, <code>keys</code> things you HOLD and never spend. Leave it blank and it is worked out from Kind: key/token/quest \u2192 keys, material/currency \u2192 resources, anything with a Use \u2192 items, anything else \u2192 resources."},
+
+/* ---------- feel ---------- */
+"Juice.csv":{what:"SHAKE, FLASH, POP, SLOW-MOTION AND SOUND. No feel is typed into a script — the game says what happened, and this says what that looks like.",
+  key:"ID", colour:["Flash Colour"], enums:{When:MOMENTS, Who:["player","enemy","screen","ball"]},
+  help:"<b>Two rows may share a When and both fire</b> — that is how one hit shakes the enemy <i>and</i> the screen with different settings. <b>Shake Scale</b> is the interesting one: 0 means every hit shakes the same, 0.9 means a big hit shakes noticeably harder, 1.4 makes a big hit an event. The game works out what \"average\" is from the hits you actually land. <b>Slowmo</b> is seconds — several rows of one moment make ONE dip, the longest asked for."},
+"Audio.csv":{what:"Every sound, per moment, per condition. Volume, bus and fade all live here.",
+  key:"ID", enums:{Bus:["Music","Effects","UI","Master"],Loop:TF},
+  help:"<b>A blank When is legal</b> and means \"nothing fires this by itself; something asks for it by name\" — which is how a Juice.csv Sound column works. A name Audio.csv has never heard of is looked for as a file in <code>assets/audio/</code>, so you can drop a wav in and hear it without writing a row."},
+"Animations.csv":{what:"How a spritesheet is sliced. Leave Unit Type blank for a rule that covers every class.",
+  key:null, enums:{Loop:TF},
+  help:"A card with no matching row falls back to a 12 × 39 grid — which is why an unsliced sheet shows as a sliver rather than as nothing."},
+
+/* ---------- the league ---------- */
+"Abilities.csv":{what:"What a card does in a DUEL. League matches only — abilities are not read in Adventure.",
+  key:"Ability ID", enums:{Scope:["duel","round","cycle","match"]},
+  help:"<b>Max</b> (round X) is the <i>(Max 5)</i> on your cards: how many times this ability may go off for ONE card in ONE match. Blank = no limit.<br><b>add_card_chance</b> (round X) leans on the referee: Value % that a foul the OTHER side commits, once he has seen it, is a yellow instead of a free kick. For the match. Karl's ore card, <code>BERG_ORE_WHISPER</code>, is the example.<br><b>Trigger</b> is WHEN it goes off, and the list is a spreadsheet of its own now — <b>AbilityTriggers.csv</b>. A trigger marked <code>planned</code> there is legal to write: the card loads, the row is not an error, and it simply never fires until that trigger is built.<br>THE ONE PLACE THE SPREADSHEET STILL RUNS OUT is <b>Effect</b>. New effect words need code — ask for a batch of them."},
+"Keywords.csv":{what:"EVERY WORD THE GAME UNDERSTANDS, and what it does. The reference you read, and the place you write a new word down so it can be built.",
+  key:"Keyword", enums:{Status:["live","planned"],
+    Family:["ability effect","ability target","ability scope","condition","effect word","adventure effect","item tag","juice moment"]},
+  help:"This is the answer to \u201cwhat can I already write?\u201d. Every effect, target, scope, condition word, Adventure effect and item tag is a row here with a plain sentence saying what it does.<br><b>Status</b> works the same way it does for triggers: <code>live</code> is built, <code>planned</code> is designed and not built yet. <b>A card written against a planned effect still loads</b> \u2014 it is not an error, it simply does nothing until the effect exists, and the Output panel says so once.<br><b>TO ASK FOR A NEW KEYWORD</b>: add a row, pick the family, set Status to <code>planned</code>, and write <b>What It Does</b> as one clear sentence. That sentence is the specification \u2014 whoever builds it works from your words rather than guessing.<br><b>Triggers are not here.</b> They have a file of their own, AbilityTriggers.csv, because the game reads that one as a list."},
+"EnemyPlay.csv":{what:"HOW THE OTHER SIDE PLAYS. A list of rules read top to bottom \u2014 the first one whose When is true decides what they take this tier. This is the opposition's whole brain, and it is not an AI.",
+  key:"ID", enums:{
+    When:["always","you_revealed","you_hid","attacking","defending","winning","losing","level","has_ability","tier:I","tier:II","tier:III","tier:IV","round:1","round:2","round:3"],
+    Pick:["random","strongest","weakest","counter","ability_first","no_ability"],
+    Reveal:["never","always","if_ability","match"]},
+  help:"<b>ORDER MATTERS AND IT IS THE WHOLE TRICK.</b> The rows are read from the lowest Order up, and the FIRST one whose <b>When</b> is true is used \u2014 everything below it is ignored for that tier. So a rule with <code>always</code> belongs at the bottom, and a rule you want to win an argument belongs at the top.<br><b>When</b> can also be <code>flag:name</code> or <code>!flag:name</code>, which is how one scripted match behaves differently from every other.<br><b>Do</b> runs an effect when the rule fires, in the same words as everywhere else: <code>brew:fire</code> pours a brew on the card they just took.<br><b>Style</b> is blank for \u201cevery opponent\u201d. Put a word there and only the team whose <code>Play Style</code> in Teams.csv matches will use it \u2014 that is how the side at the top of the pyramid plays differently from the one you open against.<br><b>Nothing here learns or searches.</b> It is completely readable and completely predictable, which is the point: the skill is learning to read it."},
+"OutOfBounds.csv":{what:"HOW A ROUND BEGINS. A hidden roll decides who gave the ball away, he puts it over the touchline, the other side walks over and throws it back in, and THE THROWER CHOOSES attack or defend. This replaced the 1-10 coin.",
+  key:"Step", enums:{Do:["roll","kick_out","walk_up","window","say","sound","wait"]},
+  help:"<b>IT IS THE SAME SHAPE AS Celebration.csv</b>, on purpose - you have already learned this file. One row is one beat, read top to bottom; <b>Seconds is HOW LONG BEFORE THE NEXT ROW STARTS</b>, not how long the effect lasts; and deleting every row opens a round instantly, which is what it did before any of this existed.<br><b>WRITE <code>roll</code> FIRST.</b> The beats that follow are about the player it picks. The game will do the roll first anyway rather than kicking a ball nobody gave away, but a list with an invisible step in it is a list that gets edited wrongly.<br><b>THE WINDOW IS A TEMPLATE.</b> It shows, in order: an <b>Art</b> file if you drew one \u00b7 a row of Animations.csv played on THAT PLAYER'S OWN spritesheet (<code>lose</code> works today with art you already have) \u00b7 the caption alone. The third case is not a failure - a window with a caption is still a beat and the match keeps going.<br><b>THIS HAPPENS NINE TIMES A MATCH.</b> A second added here is nine seconds of match. <code>tools/out_of_bounds_check.gd</code> prints the total and does the multiplication for you.<br><b>WORDS FOR Text:</b> <code>{loser}</code> <code>{thrower}</code> <code>{side}</code> <code>{tier}</code>.<br><b>Tuning.csv:</b> <code>out_of_bounds</code> false brings the coin back \u00b7 <code>out_of_bounds_player_chance</code> is how often it is YOUR side that gives it away, and is the dial to reach for if the game feels unfair before you touch the cards \u00b7 <code>throw_in_inset</code> and <code>throw_in_screen_margin</code> put the thrower outside the line and then keep him on the screen."},
+"ShotOdds.csv":{what:"WILL IT GO IN? The curve that turns the keeper's remaining stamina and the shot's power into a percentage - and that percentage is PRINTED ON THE SCREEN before the shot and is the number that is rolled.",
+  key:"Stamina Left",
+  help:"<b>THE 0 ROW IS THE ONE THIS FILE EXISTS FOR.</b> It says 100, so an empty keeper is a CERTAIN goal. The old keeper saved one shot in ten at an empty net, which reads as the game cheating.<br><b>Stamina Left</b> is a percentage of the keeper's max, 0 to 100. <b>Chance</b> is the % of scoring at that stamina before power. <b>Per Power</b> is how many points each point of shot power adds THERE - keep it highest in the middle of the curve, so a big shot is worth most against a keeper who is already wobbling.<br><b>Between two rows both numbers are interpolated</b>, so six rows draw a smooth curve rather than six steps. The order you type them in does not matter; they are sorted on load.<br><b>IT MUST GET EASIER ALL THE WAY DOWN.</b> A curve that dips in the middle is a keeper who gets HARDER to beat as you hurt him, which no player will ever guess. <code>tools/scoring_balance.gd</code> answers the question you actually care about - how many goals a match has - and <code>tools/shot_odds_check.gd</code> checks for exactly that, prints the whole grid, and then plays ten thousand shots at each stamina to confirm the dice agree with the table.<br><b>The number you are shown is the number that is rolled.</b> The shot is rolled against the stamina the keeper had when you were shown the percentage, and the stamina comes off afterwards - so a shot that empties a keeper does not get the empty keeper's odds. The next one does.<br><b>Tuning.csv:</b> <code>shot_odds</code> false goes back to the two flat numbers this replaced \u00b7 <code>shot_power_shown</code> is the top end of the band shown beside a keeper on the pitch \u00b7 <code>shot_stamina_bite</code> is HOW MUCH OF A SHOT COMES OFF HIM - it used to be all of it, which emptied a keeper on the second shot of the match \u00b7 <code>keeper_chance_on_pitch</code> takes that band off."},
+"Theme.csv":{what:"THE SKIN. Panels, windows, buttons and bars drawn from 9-slice images, the fonts, and the palette. ONE ROW REACHES EVERY SCREEN AT ONCE.",
+  key:"Element", key2:"State", enums:{
+    State:["","hover","pressed","disabled","focus","selected"],
+    Tint:["","yes","no"], Repeat:["","tile"]},
+  help:"<b>Repeat</b> (round X): <code>tile</code> REPEATS the four edges instead of stretching them. For a border with a pattern in it - the beer mat's lozenges - which a stretch smears into stripes. Blank = stretch.<br><b>The chrome is PixelLab art now</b>, cut by <code>tools/cut_chrome.py</code> from the sheets in <code>art_source/pixellab/</code> - see ArtOrders.csv.<br><b>THE <code>panel</code> ROW IS THE MOST IMPORTANT ONE IN THE GAME.</b> Every box the game draws - a card face, a tile, a dialog, the strip above the card row, the keeper's number, the celebration window - goes through ONE function, and this row sits in front of it. Put <code>panel_soft</code> in its Image column and every one of them changes at once.<br><b>NINE-SLICE.</b> An image is cut into nine: four corners that never stretch, four edges that stretch one way, a middle that stretches both. <b>Slice</b> is how far in the cuts are. One 48 x 48 PNG draws every window in the game at every size.<br><b>TINT - read this before drawing anything.</b> By default the image is MULTIPLIED by the colour the screen asked for, so one light grey PNG becomes every panel in the game in its own colour. The catch: multiplying by a dark panel colour DARKENS whatever you drew, so draw it light and desaturated and keep the shape in the ALPHA rather than in the brightness. <b>Tint = no</b> hands your image over untouched - one image per look instead of one for all of them, which is the right trade once you are drawing a finished frame.<br><b>Rows whose Element starts with <code>colour </code> set the palette</b>; only their Fill is read. <code>attack</code> and <code>defend</code> are the two that carry meaning rather than taste - the strip above the cards and the ATK/DEF tags on a Star both read them. <b>The Colour tab of Settings still wins</b>, because a colour-blind palette is a need and not a preference.<br><b>A state with no row falls back to that element's ordinary row, and an element with no row falls back to <code>panel</code></b>, so you can skin the whole game with one row and add detail later.<br><b>Nothing breaks while it is empty.</b> A missing image, a colour it cannot read: everything falls back to what the game looked like before this file existed. <code>tools/theme_check.gd</code> lists every row, whether its file is there, and what is sitting in assets/ui/ that nothing uses."},
+"Celebration.csv":{what:"THE GOAL CELEBRATION. One row per beat, read top to bottom. Nothing in the code decides what a celebration IS \u2014 it knows how to do seven things and this file says which of them happen, in what order, and for how long.",
+  key:"Step", enums:{
+    Who:["you","them","both"],
+    Do:["slide","swarm","confetti","window","say","sound","wait"]},
+  help:"<b>SECONDS IS A WAIT, NOT A LENGTH.</b> This is the one thing worth reading twice. <code>Seconds</code> is how long the game waits BEFORE RUNNING THE NEXT ROW \u2014 it is not how long the effect lasts. So <code>confetti</code> with Seconds 0 starts the confetti and immediately moves on, and the paper carries on falling under everything below it. A <code>sound</code> with Seconds 0 starts playing and the list carries on over the top of it. A <code>wait</code> row is the only one whose whole job is the number.<br><b>Two exceptions</b>, and both are things you are meant to look at: a <code>window</code> holds for its Seconds, and a <code>say</code> clears itself when its Seconds are up. <b>Two rows of the same kind in a row replace each other with no gap</b>, so consecutive <code>window</code> rows are a slideshow inside ONE panel rather than a panel opening and shutting twice.<br><b>THE SEVEN THINGS:</b> <code>slide</code> the scorer skids along the grass away from the goal he scored in \u00b7 <code>swarm</code> his side runs in and rings him \u00b7 <code>confetti</code> \u00b7 <code>window</code> the celebration panel \u00b7 <code>say</code> the big word across the pitch \u00b7 <code>sound</code> \u00b7 <code>wait</code>.<br><b>WHAT GOES IN THE WINDOW:</b> an <b>Animation</b> (a row of Animations.csv, played on the SCORER'S OWN spritesheet \u2014 <code>win</code> is one you have already drawn) or an <b>Art</b> file shown whole. Art wins if you fill in both, because a picture you went and drew is the more deliberate of the two. <b>This is how you give one Star his own celebration.</b><br><b>WORDS FOR Text:</b> <code>{scorer}</code> <code>{team}</code> <code>{class}</code> <code>{tier}</code> <code>{score}</code>. A placeholder nothing fills in is left on screen as written, so a typo shows up instead of vanishing.<br><b>Who</b> is whose goal the beat plays for. Blank means both.<br><b>The shape numbers are in Tuning.csv</b>, not here: <code>celebration_slide_distance</code>, <code>celebration_swarm_radius</code>, <code>celebration_confetti_pieces</code>, <code>celebration_confetti_colours</code>, <code>celebration_hide_names</code>, <code>celebration_skippable</code>. <code>goal_celebration</code> false is the old behaviour.<br><b>HOW LONG IS TOO LONG?</b> Add the Seconds up. Eleven seconds reads beautifully the first time and is unbearable by the fourth goal \u2014 <code>tools/celebration_check.gd</code> does the sum and says so past twelve."},
+"Stadium.csv":{what:"HOW BIG TO DRAW THE PITCH AND THE STADIUM, and what is layered behind and over the grass.",
+  key:"Layer", enums:{Layer:["background","crowd","pitch","lights"]}, colour:["Tint"],
+  help:"<b>THE TWO NUMBERS:</b> the pitch is <b>2560 x 1440</b> and the background is <b>3840 x 2160</b>.<br><b>The pitch has to stay 16:9.</b> The camera's widest shot COVERS the pitch rather than fitting inside it \u2014 it is never allowed to show anything past the grass \u2014 so a pitch taller than the window is cropped top and bottom.<br><b>The white lines do not go to the edge.</b> A real pitch is 1.54:1 and a window is 1.78:1, so draw the lines inside a margin and fill the rest with grass and surround. The margin is <code>pitch_inset_x</code> and <code>pitch_inset_y</code> in Tuning.csv, which at 2560 x 1440 means the lines occupy the middle <b>2253 x 1152</b>, centred. Everything in the match is measured against that inner rectangle.<br><b>Parallax</b> is how much slower than the camera a layer drifts. Only the background should have any.<br><b>Requires</b> works as it does everywhere else, so the Stadium screen will be able to unlock a layer. A row with no Image draws nothing."},
+"Recovery.csv":{what:"HOW LONG A PLAYER IS OUT AFTER PLAYING, by their power. One row per power.",
+  key:"Power",
+  help:"A <b>FIXTURE</b> is anything that uses a squad \u2014 a league match, a friendly, a cup tie, or a run in Adventure. Every fixture you play knocks one off everybody's rest, so going to Adventure with four players is also how the other eight get their legs back.<br><b>The whole system is off until <code>recovery</code> in Tuning.csv is true</b>, and it should stay off until a class has roughly twice a side in it \u2014 about six per tier. With three per tier, one match puts enough of them out that you can field nothing at all. <code>tools/recovery_check.gd</code> answers that for your actual roster.<br>A power with no row falls back to <code>recovery_turns_per_power</code> multiplied by the power."},
+"AbilityTriggers.csv":{what:"WHEN AN ABILITY GOES OFF, and the list of the ones still to build. This is the file to keep the trigger plan in.",
+  key:"ID", enums:{Status:["live","planned"]},
+  help:"<b>ID</b> is the word you write in the <code>Trigger</code> column of Abilities.csv. <b>Status</b> is the useful column: <code>live</code> means the game fires it, <code>planned</code> means you have designed it and nobody has wired it up yet.<br><b>A planned trigger is not a mistake.</b> Write the card now — it loads, it is not an error, and the Output panel says once that it is waiting on that trigger. When the trigger goes live the card starts working with no edit.<br><b>Phase</b> is just your own note of which batch it belongs to, and <b>What It Needs</b> is what has to exist first. Neither is read by the game."},
+"Combos.csv":{what:"What a passing move is worth in a LEAGUE match. Adventure has its own table — AdventureCombos.csv.",
+  key:"ID", enums:{When:["same_element","same_class","all_different_class","rising_power","all_four","star_last"]},
+  help:"<b>Bonus</b> goes on the SHOT and never on a card. Keep these small: a team is normally all one class and most classes are all one element, so the element rules fire far more often than they look like they will."},
+"Season.csv":{what:"The fixture list, and the end of a season.", key:"ID", enums:{Final:YN},
+  help:"<b>Difficulty</b> is added to the opposition's SHOT, never to their cards — so the tier ladder holds."},
+"Seasons.csv":{what:"The shelf of competitions, laid out like a talent tree.", key:"ID", colour:["Colour"],
+  help:"<b>Row</b> and <b>Column</b> place a tile. Each row is CENTRED on screen, so Column sets the order and spacing within a row rather than an absolute position — and gaps in your numbers are kept, so a branch still looks like a branch. <b>After</b> draws the joining line."},
+"Teams.csv":{what:"The sides you play in the league.", key:"ID",
+  help:"<b>Cards</b> names the exact cards it fields, separated by <code>|</code>. Blank means any cards of its class."},
+"MatchModes.csv":{what:"The kinds of match. Timer 0 means no clock — it ends when the rounds do.",
+  key:"ID", enums:{"Records Season":YN,"Star Rotation":YN,Scene:["match","adventure"],Opponent:["team","scratch","biome"]},
+  help:"<b>Opponent</b> <code>team</code> takes a fixture from Season.csv. <code>scratch</code> assembles a side on the spot at roughly your own level — that is what Play a Match from the base does."},
+"Goalies.csv":{what:"Keepers. The only thing with stamina in a league match, and not part of the tier ladder.", key:"Name"},
+"ClassInfo.csv":{what:"Which classes exist, and their blurb on the class-select screen.", key:"Class", enums:{Hidden:YN},
+  help:"<b>Class</b> must match the Unit Type column of your cards. A <b>Requires</b> that does not pass keeps the class off the screen entirely; <b>Hidden</b> removes it without deleting its cards."},
+"ScratchNames.csv":{what:"First and second halves of a name, combined at random to christen a pick-up side.", key:null},
+
+/* ---------- cards ---------- */
+"Units Set FO1 - Lorelei.csv":{what:"YOUR CARDS. Any file with a Unit Type column and a Base Power Left column is a unit file — the name does not matter.",
+  key:"Name", enums:{Tier:TIERS, "Player Type":["Normal","Star"]},
+  help:"<b>Base Power Left is the tier slot</b>, not a stat you tune. See TierPowers.csv. <b>Name is the card's identity everywhere, including in old saves</b> — renaming one breaks them. <b>Element</b> is what the Adventure pile reads."},
+"BasicTeam.csv":{what:"The starter side. Same columns as any unit file.",
+  key:"Name", enums:{Tier:TIERS, "Player Type":["Normal","Star"]},
+  help:"These ship as Unit Type = Normal and Element = None, which is why AdventureTraits.csv has a Journeyman row — without it they would put nothing on the pile at all."},
+
+/* ---------- the base and the glue ---------- */
+"Names.csv":{key:null, what:"EVERY PLAYER'S OWN NAME. Common German first names, and surnames for when they run out.",
+  cols:{"First Name":"text","Surname":"text","Notes":"long"},
+  help:"<b>Two lists in two columns</b> - they do not have to be the same length and order does not matter. A recruit gets a FIRST NAME nobody has; when those run out, a first name AND a surname (<i>Johannes Bauer</i>).<br><b>Taken means</b> any card in any unit file is called that, or any player at your base is. So a recruit is never Gremory, never M\u00fcller, and never a second Johannes.<br><b>He keeps it until he leaves the base</b> (<code>release:Johannes</code>). Drinking, turning into a Lorelei, a red card - none of those touch his name.<br>Recruit somebody with <code>recruit:I0</code> (Tier I, Power 0) or <code>recruit:I0=Johannes</code> in any Effects, Do, Action or Reward column. Nobody shows on screen until <code>named_recruits</code> in Tuning.csv is true. <code>tools/round_x_check.gd</code> hands out 300 names and checks none repeat."},
+"Brews.csv":{what:"What the Pub pours. A brew changes what a card COUNTS AS — its class for the league, its icon for Adventure.",
+  key:"ID", enums:{Permanent:TF},
+  help:"<b>Drinks</b> (round X) makes a <b>TURNING BREW</b>: a number here means it takes that many pours on a plain card, and then the card BECOMES the class for good, at its own tier and power, keeping its name. On the last pour the Pub asks which card he becomes - one per set. A different element in between starts the count again. Blank = an ordinary brew, exactly as before. The four <code>turn_</code> rows are the examples.<br><b>Cost</b> is <code>reed:6|bog_iron:2</code> — the Pub takes those out of your counters when it pours. <b>Becomes</b> is the class it fights as. <b>Element</b> is the icon it carries in Adventure: a Lorelei who drinks a Fire Brew genuinely brings Fire to the pile."},
+"Talents.csv":{what:"The talent tree. A talent can edit any Tuning number permanently.",
+  key:"ID", help:"<b>Effects</b> with <code>count:tune_</code> in front of a Tuning key changes that number: <code>count:tune_press_speed+12</code>. Any row of Tuning.csv can be driven this way."},
+"Referee.csv":{key:"ID", what:"THE MAN WITH THE WHISTLE. A foul is two questions now: did one happen, and did he see it.",
+  cols:{"ID":"text","Name":"text","Portrait":"text","Segments":"num","Fill Per Trigger":"num","Fill Per Foul":"num","Caught When Full":"num","Caught Per Segment":"num","Caught After Yellow":"num","Red Per Yellow":"num","Caught Per Own Foul":"num","Card Per Own Foul":"num","Empties On":["card","never"],"Says Nothing":"long","Says Free Kick":"long","Says Yellow":"long","Says Red":"long"},
+  help:"<b>Fouls.csv decides whether a foul HAPPENED. This file decides whether he SAW IT</b> - and if he did not, nothing happens at all: no card, no free kick, no whistle. You got away with it.<br><b>The bar.</b> Every trigger a side sets off adds <code>Fill Per Trigger</code>; every foul he MISSES adds <code>Fill Per Foul</code>, which is much bigger - getting away with one is exactly when he starts paying attention. He has <code>Segments</code> of them, which is your 1 to 5.<br><b>While it fills</b> the chance he notices is <code>Caught Per Segment</code> for each lit segment. <b>Full</b>, it is <code>Caught When Full</code> - 95 or 100, so the next foul is a card near enough every time. <b>And once you have been booked he is watching you:</b> <code>Caught After Yellow</code> replaces all of it whatever the bar says.<br><b>Red is built from yellows.</b> <code>Red Per Yellow</code> is added to the chance a yellow becomes a red, for every booking that side already has. With no yellows it adds nothing.<br><b>THE REPEAT OFFENDER</b> (round X). <code>Caught Per Own Foul</code> is added to the chance he notices, for every foul THAT MAN has already committed this match - unseen ones included. <code>Card Per Own Foul</code> is the chance a foul he does see is a yellow instead of a free kick, per earlier foul. A man on his third foul is easy to spot however quiet the bar is.<br><b>Three referees ship</b> - <code>*</code> for everyday, a lenient one and a strict one - and <code>referee_id</code> in Tuning.csv picks, so a cup final can have a stricter man than a friendly. <code>tools/referee_check.gd</code> plays ten thousand rounds against each and tells you what share of fouls he misses. <b>Around half is the shape you want:</b> over 80% and the bar is decoration, under 20% and it is the system you had before the bar existed."},
+
+"Motion.csv":{key:"Moment", what:"HOW EVERYTHING MOVES. Buttons, windows, screens, the referee walking on.",
+  cols:{"Moment":"text","Seconds":"num","Move X":"num","Move Y":"num","Scale":"num","Ease":["out","in","both","none"],"Shake":"num"},
+  help:"<b>Feel is a number you change and look at.</b> A feel buried in fifteen scripts is a feel nobody ever tunes, so every movement in the game is a row here.<br><b>Move X/Y is how far it travels FROM WHERE IT ENDS UP</b>, so -2 on Y means it starts two pixels high and settles down. <b>Scale is how big it starts:</b> under 1 it GROWS into place, over 1 it SHRINKS into place - and those read completely differently. Growing is a thing arriving; shrinking is a thing being put away.<br><b>Ease</b> is the shape of the movement: <code>out</code> is fast then settling, which is how a real object behaves; <code>in</code> is slow then arriving, which is right for a press because your finger is doing the work; <code>none</code> is linear and reads as a machine.<br><b>EVERY NUMBER IN HERE IS SMALL AND FAST.</b> Two pixels, three per cent, a tenth of a second. The temptation is to make them bigger and the result is a game that feels like it is wading - a button that moves two pixels reads as pressable, one that moves ten reads as broken. <code>goal</code> is the one row allowed to be loud.<br><b>A moment with no row simply does not move</b>, so you can delete every row in this file and the game still works. It just stops feeling like anything."},
+
+"ArtOrders.csv":{key:"ID", what:"THE WORK ORDER FOR THE ART. Fourteen assets, in the order to make them.",
+  cols:{"Order":"num","ID":"text","Tool":"text","Width":"num","Height":"num","Elements":"text","Palette":"text","Prompt":"long","Then":"text","Goes To":"text","Status":"text","Sheet":"text","Cut":"text","Finish":["","plain","light","dark-centre","plain-button","reduce","bar-back","bar-fill","lit:button","pressed:button"]},
+  help:"<b>ROUND X: ORDERS 1-7 ARE DONE</b> and in the game. PixelLab's UI tool returns a whole SHEET of panels, so three columns say how a file is cut from one: <b>Sheet</b> (in <code>art_source/pixellab/</code>), <b>Cut</b> (<code>x y width height corner</code>) and <b>Finish</b>. Then run <code>python3 tools/cut_chrome.py</code>. Regenerate a sheet, save it over the old one, run it again - that is the whole loop.<br><b>Do number 1 first and do not move on until it is right.</b> Every box in the game is drawn from the panel, so it sets the look of everything - and the result is then passed as <code>style_image</code> to all thirteen below. That is what makes fourteen separate generations read as one game rather than fourteen.<br><b>Three phases.</b> 1-7 is the nine-slice chrome, which dresses every screen at once. 8-11 is the screens you see first, including the pitch. 12-14 is the referee, the twelve emblems and optionally a font.<br><b>Two numbers worth knowing.</b> The wallpaper is 480x270 because that is exactly a quarter of 1920x1080, so scaling up lands on whole pixels and stays sharp - the game already draws everything nearest-neighbour, so it reads as deliberate rather than blurry. And the pitch is the biggest single win available: the one in the project is 1000x667, the wrong shape, stretched into a 16:9 box and blown up 2.56 times.<br><b>Marcinelle in pixels.</b> Heavy 1px black outline, flat fills with no gradients, exaggerated silhouettes, a warm limited palette and ONE hot accent. All five survive at 96 pixels; a brush line does not."},
+
+"Star Players.csv":{key:"Name", what:"THE THREE STARS OF EACH CLASS. They carry the Emblems onto the pitch.",
+  cols:{"Unit Type":"text","Name":"text","Front Side":"long","Ultimate Side":"long","Element":"text","Base Power ":"num","Tier":"tier","Card Number":"num","Emblem":"text","Set":"text","Set Name":"text","Artwork":"text","Ultimate Artwork":"text","Player Type":"text"},
+  help:"<b>A Star has ONE ability, not two.</b> <code>Front Side</code> is where a unit file writes Attack and Defend, and that is the design rather than a shortcut: a Star has one ability and an Ultimate; a normal unit has two abilities and no Ultimate. The loader fills both faces from Front Side.<br><b>Ultimate Side</b> is the other face. It is readable on hover at any time - earned or not, because an Ultimate you only see once you have it is one you never aimed at - and it goes live when this Star's Emblem completes its Condition. The Emblem and the Star turn over together.<br><b>Emblem</b> names the row of &lt;Class&gt; Emblems.csv this Star carries; <b>Set</b> names the set of nine that can complete it. Both default to the Star's own name, so you only fill them in when they differ - which for Gremory, whose nine are the Sitri set, they do."},
+
+"Elements.csv":{key:"Element", what:"THE FOUR ELEMENTS. What a class shares with OTHER classes.",
+  cols:{"Element":"text","Display Name":"text","Colour":"text","Icon":"text","Order":"num","Opposes":"text"},
+  help:"<b>An Emblem's Basic side is fed by ELEMENT and its Condition is fulfilled by CLASS.</b> Any water unit, whatever its class, counts toward a Lorelei Emblem's Basic side; only a Lorelei can complete the Condition that turns it over.<br>So a mixed water team gets a broader engine and gives up the Ultimate, and a mono-class team gets the Ultimate and a narrower engine. That is a real choice and it costs no code - it is the <code>Basic Feeds</code> column of an Emblems file, and <code>element</code> is its default.<br>Four elements is the whole set. The plan is one class per element first, then more classes inside each element."},
+
+"UnitActions.csv":{key:"ID", what:"THE VOCABULARY UNIT ABILITIES ARE ROLLED FROM. Triggers and effects.",
+  cols:{"ID":"text","Kind":["trigger","effect"],"Keyword":"text","Text":"long","Element":"text","Class":"text","Set":"text","Tier":"text","Side":["attack","defend","both"],"Weight":"num"},
+  help:"<b>Every unit ability is a TRIGGER and an EFFECT joined by a colon</b> - which is exactly how you already write them: \"If you control a token: Deal 1 damage to the enemy goalie\". That is why they can be generated, and this file is the two halves.<br><b>The placeholders.</b> <code>{token}</code> is the SET'S OWN WORD, out of the Token column of its Emblems row - Rose Unit, Swan, Song counter, burn counter, Teufel Mask. That single placeholder is what makes nine units read as a set that belongs together rather than nine units that happen to share a class. <code>{tier}</code>, <code>{element}</code>, <code>{class}</code> and <code>{n}</code> are filled from the class and the card being rolled.<br><b>Element, Class, Set and Tier narrow where a line may appear</b> - <code>*</code> means anywhere. A line with Element FIRE is never rolled for a water set, which is how a class keeps its voice while most of the vocabulary is shared. <b>Side</b> is attack, defend or both. <b>Weight</b> is how often it comes up: a weight-3 line turns up three times as often as a weight-1.<br><b>The + New class button is what uses this.</b> A roll is a first draft and every line is editable before anything is written."},
+
+"Buildings.csv":{what:"THE NINE DOORS. Each one opens a window OVER the base rather than cutting to a new scene.",
+  key:"ID",
+  help:"<b>Action decides what the door does.</b> <code>window:brewery</code> opens that screen over the base, dimmed, with the building still under your cursor - which is what these nine are. <code>goto:brewery</code> names the SAME screen and throws the base away instead; it still works, and it is what a Progression row should use when the base is not already open.<br><b>A BUILDING IS ALSO A RECIPE, and that has not gone anywhere.</b> <code>Requires: count:reed&gt;=20</code> with <code>Action: count:reed-20;count:coins+60</code> is a working trade with no code: Requires is the price check, Action is the trade. The base used to have four of those as worked examples - the Forge, the Still, the Reed Press and the Cold Cellar - and they were removed because they were demonstrations rather than rooms. Copy the pattern into a new row any time.<br><b>X and Y</b> are a fraction of the yard; 0.5,0.5 is the middle. <b>Requires</b> is the ordinary condition language, and a building whose Requires does not pass is drawn greyed with the reason on it rather than hidden.<br><code>tools/rooms_check.gd</code> checks that every Action actually names a screen - a door that leads nowhere looks exactly like a door that works. <br><b>A TERM THE GAME DOES NOT KNOW IS NOW SAID OUT LOUD.</b> <code>window</code>, <code>goto</code>, <code>story</code> and <code>announce</code> are the four actions that open something, so they are handed back to the screen rather than written into the save; everything else is ordinary effects language. For a while <code>window</code> was missing from that list of four, so <code>window:brewery</code> was quietly handed to the effects language, which ignores what it does not recognise - and clicking a building showed its description and opened nothing, with no error anywhere. That is fixed, and so is the shape of it: any term whose kind is neither of those four nor real effects language is now named in Godot's Output panel every time it runs. <b>If a button you wrote does nothing, look in the Output panel first.</b>"},
+"Visitors.csv":{what:"People who turn up at the base. Their X and Y are a PREFERENCE - they are moved to free space so they never overlap a building or each other.",
+  key:"ID", enums:{Once:TF},
+  help:"<b>A VISITOR IS SOMEBODY WITH A FACE OR A ONE-TIME VISIT.</b> The loader recognises this file by its <code>Portrait</code> or <code>Once</code> column, not by its name - and that matters: Seasons.csv also has ID, Name and Story, so before that rule every season in the game was being drawn on the base as a person standing in the yard.<br><b>X and Y are only a preference.</b> If where a visitor wants to stand is on top of a building or another visitor, they are moved to the nearest free place; if the yard is genuinely full they are not drawn at all, because a visitor you cannot read is worse than one who is not there.<br><b>Story</b> names a Dialogue.csv scene. <b>Once</b> = true means they are gone after you have talked to them."},
+"Progression.csv":{what:"WHEN THINGS HAPPEN. Unlocks, story scenes and announcements, fired off any game event.",
+  key:"ID", enums:{Once:TF},
+  help:"Terms in Requires are joined with a semicolon. <code>and</code> is NOT a word this understands. This is where achievements and unlocks are wired without code."},
+"Stats.csv":{what:"What the game counts. A new counter is a new row and nothing else.",
+  key:null, enums:{Event:["goal_scored","goal_conceded","shot_taken","save_made","duel_won","duel_lost","brew_drunk","match_ended","enemy_killed","wave_cleared","player_turned","player_recruited","foul_given"]},
+  help:"<b>When</b> filters the event: <code>tier=I</code>, <code>star=yes</code>, <code>result=win</code>, <code>brew=fire</code>. Blank is always. A Counter containing <code>{card}</code> makes one counter per card."},
+
+/* ---------- words and numbers ---------- */
+"Dialogue.csv":{what:"The story. A node graph in a spreadsheet: scenes, lines, and choices that carry effects.", key:null,
+  help:"A line with no choices runs on to <b>Next</b>. A line with choices stops and asks. A choice whose <b>Requires</b> fails is greyed out rather than hidden, so the player can see what they missed."},
+"Language.csv":{what:"Every word the game shows, by key. Add a column for a new language and the game finds it.", key:"Key"},
+"Keys.csv":{what:"Keyboard and controller bindings, rebindable in Settings.", key:"Action"},
+"MenuConfig.csv":{what:"The main menu. Buttons, where they sit, and what they do.", key:"Button ID"},
+"Tuning.csv":{what:"EVERY NUMBER IN THE GAME, in one place. A talent can edit any of these at runtime.", key:"Key",
+  help:"Rows worth knowing: <code>juice_scale</code> 0 kills every shake and flash · <code>juice_slowmo_depth</code> 1.0 means no slow-motion at all · <code>adventure_trait_bar</code> false hides the row of icons · <code>adventure_enemy_combos</code> false and the enemies get no combos."},
+"Achievements.csv":{what:"THE ROOT OF THE GAME. Nothing exists until an achievement hands it over - every room, Brewery section, brew, emblem and Stadium layer below is unlocked here first.",
+  key:"ID", enums:{Hidden:YN},
+  help:"<b>EVERYTHING NEEDS TO BE UNLOCKED HERE FIRST.</b> That is what makes this the root of the game: a room in the base is not there, a Brewery section cannot be worked in, a Stadium layer is off, until a row of this file says so.<br><b>Needs</b> is the ordinary condition language - <code>count:goals&gt;=10</code>, <code>flag:x</code>, <code>unlocked:y</code>, joined with semicolons. <b>Unlocks</b> is what it hands over, semicolons for more than one. <b>Reward</b> is anything else in the Do language: <code>give:coins+50</code>, <code>announce:Text</code>, <code>story:chapter2</code>.<br><b>A row needs either an Unlocks or a Reward.</b> One with neither is earned and then does nothing.<br><b>IT IS NOT A NEW VOCABULARY, AND THAT IS THE POINT.</b> The game already had one way to say \"you have this\": <code>unlock:Brewery</code> grants it and <code>unlocked:Brewery</code> tests it. A second, parallel system would mean two answers to \"is the Brewery open\", and one day they would disagree. So the Unlocks column is turned into exactly those words, and everything downstream never knows this file exists - which means you can move where something is granted from without touching the thing that is granted.<br><b>Unlock names are matched loosely</b> - lowercase, letters and digits only. <code>Master Brewer</code>, <code>master_brewer</code> and <code>master brewer</code> are ONE unlock. Your spreadsheets spell it all three ways and that is fine.<br><b>Hidden = yes</b> keeps it off the board until it is earned. For endings and surprises.<br><b>It is reviewed when a screen opens and at the final whistle</b>, and it is idempotent - an achievement already earned is skipped, so nothing is ever granted twice.<br><code>tools/achievement_check.gd</code> asks the two questions a spreadsheet cannot: is anything gated behind a counter nothing counts, and is anything tested that nobody grants."},
+"Fouls.csv":{what:"THE REFEREE. The more a side set off in a round, the more likely it is to have given a foul away doing it. Yellows, reds, and a man sent off leaving nine.",
+  key:"Triggers",
+  help:"<b>IT PRICES THE THING THE REST OF THE GAME REWARDS WITHOUT LIMIT.</b> Firing everything you have every round used to be free. Now it costs, and what it costs is a man.<br><b>Triggers</b> is how many abilities and combos that side actually set off - one per ability that CHANGED A NUMBER, not one per ability a card owns. Every round the match prints <code>Triggers this round: you N, them N</code>, and that line is where the answer is when the cards feel too frequent or too rare, before you touch a row of this file.<br><b>Foul Chance</b> is the % it conceded a foul at that many. <b>Yellow</b> and <b>Red</b> are, IF a foul was given, what kind. Whatever is left of 100 is an ordinary free kick - which should be most fouls.<br><b>Rows are interpolated</b>, exactly like ShotOdds.csv, so five rows draw a smooth curve rather than five steps.<br><b>DO THE MULTIPLICATION.</b> 18% sounds small. It happens to BOTH SIDES, NINE TIMES A MATCH - eighteen rolls. <code>tools/foul_check.gd</code> simulates two thousand matches at each level and prints fouls, yellows, reds and how often a match ends ten against eleven.<br><b>AND THEN THE LADDER HAS A HOLE IN IT.</b> A tier holds one card of each power; send the 3 off and Tier III can only offer two cards. So a survivor of that tier is offered playing out of position: his name, the missing power, and NO abilities at all. A new copy is drawn every draft phase, so who covers the gap changes round to round. Both sides get them.<br><b>Tuning.csv:</b> <code>fouls</code> false turns the whole thing off · <code>foul_free_kick_power</code> is what a foul adds to the fouled side's shot · <code>foul_card_gives_possession</code> - a card stops the game, which is what makes it the moment a side gets the set piece · <code>foul_two_yellows_is_red</code> · <code>foul_stand_ins</code> false leaves the tier one card short instead · <code>foul_window_seconds</code> 0 shows no window."},
+"BrewerySections.csv":{what:"THE SIX SECTIONS OF THE BREWERY, as numbers. Wheat becomes malt becomes mash becomes wort becomes brew becomes a barrel becomes six bottles.",
+  key:"ID",
+  help:"<b>THE CHAIN, BEFORE THE MAP.</b> A production chain is a thing you get wrong in the NUMBERS, not in the pictures. If six bottles from a barrel is the wrong number, no amount of drawing the Bottler fixes it - and you will have drawn him twice.<br><b>Order is the map</b>, and it is also a rule: a section may only be given something an EARLIER section makes, or something raw. Otherwise the chain cannot be started, and that is the one way a chain breaks that a spreadsheet cannot show you - every cell spelled correctly and the map impossible.<br><b>Needs</b> is the unlock condition, so every section has to be opened by an achievement. <b>Takes</b> is <code>wheat:1;water:1;germs:1</code>. <b>Makes</b> is one resource ID and <b>How Many</b> is how many of it - Bottling makes 6, and that number is the whole economy of the Pub.<br><b>Wait Min / Wait Max</b> is the lagering, in turns, and a turn is a fixture.<br><b>BATCHES is how many jobs a section can have running at once, and it is the shape of the whole Brewery:</b> the basic foundation is free and everything that makes it bigger is earned. The cellar starts with ONE vat - this column - and an achievement Reward of <code>count:batches_cooling+1</code> adds another. Any section, any source: an achievement, a talent, a building action. <code>tools/brewery_check.gd</code> plays the same season again with more vats unlocked and tells you what one is worth (one vat: 24 bottles; two: 48; three: 54, because by then hops are the limit and the Brewer is the answer).<br><b>Materials live in GameState counters named <code>res_&lt;id&gt;</code></b>, which is not a new store - so <code>count:res_malt&gt;=3</code> is already a condition an achievement, a talent or a dialogue line can read with no code written for it.<br><code>tools/brewery_check.gd</code> starts a new game, opens every section and works the chain until it runs dry: it prints what the starting stock is worth in bottles and WHAT RAN OUT FIRST. The bottleneck is almost never the one you expect.<br><b>X and Y ARE THE MAP.</b> A fraction of the yard - 0.5, 0.5 is the middle, 0 is the left or top edge. The same two columns Buildings.csv uses, so moving the Mill is a number you already know how to change, and nothing is positioned by hand in the code.<br><b>Art</b> is a file in assets/brewery/ (also searched: assets/base/, assets/). It is a nicety: a section with no art is a tile with its name on it and works perfectly.<br><b>A LOCKED SECTION NAMES ITS ACHIEVEMENT</b> on the map - not the unlock. \"Needs Mill\" tells a player nothing they can act on; \"Clean Sheet - win a match without conceding\" is a thing to go and do. That sign is found by asking Achievements.csv who hands out the name in Needs, so moving the grant changes the sign with no edit anywhere."},
+"BreweryResources.csv":{what:"Everything the Brewery uses or makes. Raw things, made things, and the tools that are needed but not used up.",
+  key:"ID", enums:{Kind:["","raw","made","tool"], Kept:YN},
+  help:"<b>Kind</b> says where it comes from. <code>raw</code> arrives from outside the brewery - a match reward, the Traveling Brewer, an adventure. <code>made</code> is produced by one of the six sections. <code>tool</code> is equipment.<br><b>Kept = yes means it is NOT used up.</b> You need a Hammer to work the Mill and you still have it afterwards. That is the whole difference between equipment and an ingredient, and it is one cell.<br><b>Start</b> is what a new game begins with. A raw resource with Start 0 that nothing makes and something wants is a dead end, and the loader says so.<br><b>Each one is a GameState counter called <code>res_&lt;id&gt;</code></b>, so anything in the game can test how much of it you have."},
+"ClassTree.csv":{what:"WHAT A CLASS TREE COSTS. Three nodes per class, one per emblem set; a Star in a node opens that set's nine units; all three filled lets you choose ONE emblem and forge the Team Spirit.",
+  key:"Class",
+  help:"<b>THE TREE ITSELF IS NOT WRITTEN DOWN ANYWHERE, AND THAT IS DELIBERATE.</b> Its nodes are your class's emblem sets, read straight off the unit spreadsheets - add a fourth set to a class tomorrow and its tree has four nodes this afternoon. A tree written twice is a tree that will disagree with itself, so this file holds only the part the sets cannot tell us.<br><b>Class = *</b> is the fallback row every class without one of its own uses. Keep it.<br><b>Node Cost / Emblem Cost / Spirit Cost</b> are talent points, out of the same pool the ordinary talent tree spends. One point per match once the Training Ground is open, so a full three-node class costs about eight matches.<br><b>Spirit Brew</b> is the ID of a row in Brews.csv. Forging unlocks the words <code>Team Spirit &lt;Class&gt;</code> and does NOTHING else - that brew row's Requires asks for exactly those words. So you can rewrite the drink completely, the element, both abilities, the price, whether it is permanent, without touching a line of code.<br><code>tools/class_tree_check.gd</code> checks all four files against each other and then WALKS the tree on a throwaway save, so it can tell you what the whole thing costs before a player finds out.<br><b>Tuning.csv:</b> <code>class_tree</code> false hides the screen · <code>class_tree_gates_units</code> is the subtractive half and is FALSE - turn it on and a set's nine units are not yours until its node has a Star in it."},
+"Currencies.csv":{what:"WHAT MONEY THERE IS, which MODE pays it, and what a win, a draw and a loss are worth. This is the whole of “currency from wins with separate currencies per mode”.",
+  key:"ID",
+  help:"<b>Earned In IS THE SEPARATION.</b> It names a MatchModes.csv id, and only that mode pays this currency - so a Quick Match never pays league coins and a season match never pays marks. Leave it BLANK and it is paid in every mode.<br><b>Counter</b> is the GameState counter it lives in, and it defaults to the ID - so a currency called <code>coins</code> is the <code>coins</code> counter the game already had, and <code>count:coins&gt;=200</code> keeps working everywhere it already worked.<br><b>Win / Draw / Loss</b> are paid at the final whistle. A currency where all three are 0 is never paid by a match at all, and anything priced in it is unbuyable unless something else hands it out - <code>tools/shop_check.gd</code> says so.<br><b>A SECOND CURRENCY IS HOW A MODE EARNS ITS PLACE.</b> If the only thing a Quick Match gave you was the same coins a league match gives, there would be no reason to play one. Price something good in marks and there is."},
+"Shop.csv":{what:"THE TRAVELING BREWER'S CART. What he has, what it costs, in which money, and how many he will ever sell you.",
+  key:"ID",
+  help:"<b>HE IS THE PRESSURE VALVE ON THE BREWERY.</b> <code>tools/brewery_check.gd</code> measures HOPS as the thing the chain runs dry of - they only arrive when you WIN - so he sells them, dear. He is there for the week you need them, not instead of the Brewery.<br><b>Sells</b> is <code>res:&lt;id&gt;</code> for a Brewery material (How Many of them) or <code>brew:&lt;id&gt;</code> for a RECIPE, which unlocks that row of Brews.csv by name exactly as a talent or an achievement would. Anything else is handed to the ordinary effects language, so <code>unlock:Something</code> works there too.<br><b>Stock is how many he has EVER</b>, not per visit. Buy the sack of hops three times and it is gone from his cart for good - which is what makes a shop a decision rather than a tap. Leave it blank for unlimited. A sold-out row STAYS on the screen and says SOLD OUT, because a thing that vanishes is a thing you think you imagined.<br><b>Requires</b> is the usual condition language, so a shelf can open late.<br><b>PRICE IT IN WINS, not in coins.</b> <code>tools/shop_check.gd</code> converts every price into wins for you - 45 coins is 1.1 wins when a season win pays 40 - and prints what a whole season's takings come to. That is the only number that makes a price mean anything."},
+"Dorms.csv":{what:"BEDS. How many players you are allowed to keep at all. The first row is free; the rest are bought.",
+  key:"ID",
+  help:"<b>BEDS IS THE TOTAL, not what this row adds.</b> Buying the Long House REPLACES the Lean-To rather than stacking on it, which is what makes the column readable - you can see your squad size at a glance instead of adding up.<br><b>The first row has to be free.</b> A new game cannot buy its first bed, and <code>tools/rooms_check.gd</code> says so if the cheapest dorm costs anything.<br><b>Price and Currency</b> use data/Currencies.csv, so a dorm can be bought with marks if you would rather it came from quick matches. <b>Requires</b> is the ordinary condition language.<br><b>PRICE IT IN SEASONS.</b> <code>tools/rooms_check.gd</code> converts every price for you against what a ten-fixture season actually pays: the Stone Wing is four seasons, which is a thing to aim at rather than a thing to buy."},
+"Trophies.csv":{what:"WHAT IS ON THE SHELF IN THE TROPHY ROOM. A trophy is a name and a condition - it does NOT have to come from a competition.",
+  key:"ID",
+  help:"<b>Won When is the ordinary condition language</b>, so <code>count:matches_won&gt;=3</code> is as good a trophy as <code>unlocked:The Cup</code>. That is the row to copy when you want something on the shelf early - an empty case is a room nobody goes back to.<br><b>Competition</b> is only a label. It names a Seasons.csv id so the case can say where the cup came from; leave it blank for a trophy that came from nowhere in particular.<br><b>A trophy with an empty Won When is on the shelf from the first minute</b>, which is almost never what you meant. The checker says so."},
+"Training.csv":{what:"THE TRAINING GROUND. Ausbildung trains a number for the whole side; a mini-game automates one Brewery section.",
+  key:"ID", enums:{Kind:["","ausbildung","minigame"]},
+  help:"<b>Kind splits the screen in two.</b> <code>ausbildung</code> is a training the whole side takes. <code>minigame</code> is one of the five that automate a Brewery section, and its <b>Section</b> column names a row of BrewerySections.csv.<br><b>What a mini-game gives TODAY is a vat</b> - <code>count:batches_&lt;section&gt;+1</code> - which is the foundation the played game will sit on top of later. Nothing on that screen changes when the game itself arrives; it slots in between pressing the button and the work being done.<br><b>Effect is the ordinary effects language.</b> <code>count:tune_&lt;any Tuning row&gt;+n</code> trains a number, and a MINUS is allowed - Cold Nerve does <code>count:tune_shot_stamina_bite-0.05</code>. <code>unlock:x</code> works too.<br><b>Cost and Currency</b> use data/Currencies.csv. <code>tools/rooms_check.gd</code> prices every row in SEASONS and checks that every mini-game names a real section."},
+"SeasonRules.csv":{what:"A COMPETITION'S OWN RULES. What is allowed, what is on the field, and what is different - per competition.",
+  key:"Season", enums:{"No Brews":YN, "No Stars":YN},
+  help:"<b>A COMPETITION'S RULES ARE LENT, NOT GIVEN.</b> Everything here is put back the moment you play something outside that competition - a friendly, a quick match - because a Winter Cup that quietly leaves the keeper tired for the rest of the game is a bug nobody will ever trace back to the Winter Cup. <code>tools/season_check.gd</code> applies every competition and then releases it, and says so if anything was left changed.<br><b>Only Classes</b> is pipe-separated and matched loosely; blank means anybody. <b>Per Tier</b> overrides the match mode's Squad Per Tier. <b>No Brews</b> shuts the Pub's taps for the competition; <b>No Stars</b> keeps Star Players off the pitch.<br><b>Tuning is key=value pairs separated by a pipe</b>, and every key has to be a REAL row of Tuning.csv - a misspelling there is a competition that looks like it bends the game and does not, which is the worst kind of wrong. The checker names it.<br><b>THE THREE NAMED COLUMNS ARE TUNING ROWS TOO.</b> No Brews, No Stars and Per Tier are written as their own columns because that is how you think about them, and folded into the same Tuning machinery underneath - so there is one way to lend a rule and one way to hand it back, not four.<br><b>Story Before</b> names a Dialogue.csv scene played before the competition. A FIXTURE'S own dialogue is the Story column of Season.csv instead.<br><b>Season = *</b> is the fallback every competition without a row of its own plays by. Keep it."},
+"Pickups.csv":{what:"HOW MANY PICKUPS ARRIVE on the way to each wave and on the way to the boss. Per biome.",
+  key:"Biome",
+  help:"<b>THIS FILE EXISTS BECAUSE THE OLD ANSWER WAS A DICE ROLL.</b> Pickups arrived on a TIMER with a random gap, so a run gave you somewhere between one and six of them and nobody - not you, not a tool - could say which. A biome whose haul is a number you never see cannot be balanced.<br><b>Now the number is written down</b> and the pickups are spaced evenly over whatever distance the wave turns out to be, so a faster run is not a poorer one.<br><b>Biome = *</b> sets the pacing of every biome at once, which is the edit you actually want while tuning. A named biome overrides it.<br><b>Drops</b> names a Drops.csv table, or blank for the biome's own.<br><code>tools/season_check.gd</code> prints WHAT A WHOLE RUN IS WORTH for every biome - the ordinary stretches plus the boss stretch - which is the number to balance a biome against."},
+"ICONS_WANTED.csv":{what:"The shopping list for art. Nothing loads it — it is for you and whoever is drawing.", key:null},
+"SOUNDS_WANTED.csv":{what:"The shopping list for audio. Nothing loads it — it is for you and whoever is recording.", key:null},
+"FileManifest.csv":{what:"Every file and the folder it belongs in. The title screen checks it and names anything missing, misplaced or duplicated.", key:null},
+};
+
+/* ============================================================
+   SCHEMAS BY NAME PATTERN.
+   "<Class> Emblems.csv" is a family, not a file: Lorelei Emblems.csv,
+   Rauhnacht-Feuergeister Emblems.csv, and whatever you write next. One
+   entry teaches the workbench about all of them.
+   ============================================================ */
+const S_PATTERNS = [
+ [/ Emblems\.csv$/i, {
+   what:"THE EMBLEMS OF ONE CLASS. An emblem is a TWO-SIDED card: a Basic Side it has from the moment you choose it, a Condition, and an Ultimate Side it turns over to. The Basic Side stays live.",
+   key:"Name",
+   help:"<b>Name HAS TO MATCH A Set Name IN THE UNIT CSV.</b> That is the whole join: the set called Sallos is the nine units the Sallos emblem opens. A Set Name with no emblem is a node that leads nowhere, and an emblem with no set opens nothing - <code>tools/class_tree_check.gd</code> names both.<br><b>Condition and Turns On are the same idea twice, on purpose.</b> <b>Condition</b> is the prose that goes on the card, and it can be a paragraph. <b>Turns On</b> is the same thing in the condition language the rest of the game uses - <code>count:duels_won_as_Rauhnacht-Feuergeister&gt;=4</code> - and THAT is what the game tests. An empty Turns On means the emblem can never turn over, which is a perfectly good state for one you are still writing.<br><b>Unit Type</b> is the class, spelled as the unit CSV spells it. Matching is loose - lowercase, letters and digits only - so a hyphen or an underscore will not break the join.<br><b>You choose ONE emblem per class</b>, in the Star Hall, once all three nodes hold a Star. It cannot be changed afterwards."}],
+];
+
+/* The schema for a file: its own entry, else the first pattern that
+   matches, else nothing. */
+function sch(file){
+  if(S[file]) return S[file];
+  for(const [re,entry] of S_PATTERNS) if(re.test(file)) return entry;
+  return {};
+}
+
+/* Which column points at which file's ids. */
+const REFS = {
+ "Bounties.csv":{Biome:["Biomes.csv","ID"], Boss:["AdventureEnemies.csv","ID"]},
+ "Biomes.csv":{Drops:["Drops.csv","Table"]},
+ "AdventureEnemies.csv":{Drops:["Drops.csv","Table"], Ability:["Abilities.csv","Ability ID"]},
+ "Abilities.csv":{Trigger:["AbilityTriggers.csv","ID"]},
+ "AdventureCombos.csv":{Trait:["AdventureTraits.csv","ID"]},
+ "Drops.csv":{Item:["Items.csv","ID"]},
+ "Season.csv":{Team:["Teams.csv","ID"]},
+
+ "Seasons.csv":{After:["Seasons.csv","ID"]},
+ "Talents.csv":{Parent:["Talents.csv","ID"]},
+ "Visitors.csv":{Story:["Dialogue.csv","Scene"]},
+ "Brews.csv":{"Attack Ability":["Abilities.csv","Ability ID"], "Defend Ability":["Abilities.csv","Ability ID"]},
+/* Unit Type is deliberately NOT a hard reference. A class with no
+    ClassInfo row still works perfectly — it just has no blurb and no
+    banner. There is a gentler check for that in check() instead. */
+};
+
+/* Sensible defaults when you press New row. */
+const NEW = {
+ "Items.csv":{Kind:"material",Tab:"resources",Stack:"99",Tags:""},
+ "Keywords.csv":{Family:"ability effect",Status:"planned"},
+ "EnemyPlay.csv":{Order:"50",When:"always",Pick:"random",Reveal:"never"},
+ "Recovery.csv":{Turns:"1"},
+ "Stadium.csv":{Parallax:"0",Width:"3840",Height:"2160"},
+ "AbilityTriggers.csv":{Status:"planned"},
+ "AdventureEnemies.csv":{Attack:"2",Layers:"Body:6",Targeting:"weakest",Weight:"8",Boss:"no",Buff:"0"},
+ "AdventureTraits.csv":{From:"element",Colour:"#8a95a4",Order:"90",Max:"4",Icon:"trait_new",Requires:""},
+ "AdventureCombos.csv":{At:"2",Effect:"attack",Value:"2",Lasts:"held"},
+ "AdventureSpawns.csv":{Power:"2",Stamina:"4"},
+ "Juice.csv":{Who:"enemy",Shake:"4","Shake Scale":"0",Flash:"0",Pop:"0",Squash:"0",Slowmo:"0"},
+ "Audio.csv":{Bus:"Effects",Volume:"-5"},
+ "Biomes.csv":{Waves:"4",Parallax:"0.3",Sky:"#12181c",Grass:"#213a26","Grass Stripe":"#1b2f1f",Edge:"#3a5c3f",Difficulty:"1",Order:"9"},
+ "Bounties.csv":{Repeatable:"no","Recommended Power":"1"},
+ "Drops.csv":{Amount:"1",Chance:"1.0"},
+ "Brews.csv":{Permanent:"false"},
+ "Talents.csv":{Tree:"Tactics",Tier:"1",Cost:"1"},
+ "Stats.csv":{Amount:"1",Event:"goal_scored"},
+ "Season.csv":{Difficulty:"0"},
+ "Seasons.csv":{Row:"0",Column:"0",Colour:"#a95c14",Matches:"6"},
+ "Combos.csv":{When:"same_element",Needs:"3",Bonus:"1"},
+ "MatchModes.csv":{"Records Season":"no",Timer:"0",Cycles:"1",Rounds:"4","Star Rotation":"no",Opponent:"team",Scene:"match"},
+};
+const LONG = ["Description","Notes","Text","What it does","Attack","Defend","Effects","Requires",
+  "Action","Do","Reward","On Win","On Loss","Story","Passive / Ability"];
+
+/* ============================================================
+   WHERE THINGS GO — the folder map.
+
+   Every one of these is a real list in the code, and they are
+   tried IN ORDER, so the first folder is the tidy home and the
+   ones after it are fallbacks. A file in assets/ with no folder
+   at all is always found; it is just harder to live with once
+   there are two hundred of them.
+   ============================================================ */
+const FOLDERS = [
+ {dir:"assets/audio/", kind:"sound",
+  what:"<b>Every sound and every piece of music.</b> Named by the Sound column of Audio.csv and Juice.csv.",
+  formats:".ogg, .wav, .mp3 — <b>.ogg for music</b> (it loops properly and it is a tenth of the size), .wav for short effects",
+  also:"Also searched: assets/sound/, assets/music/, assets/",
+  from:[["Audio.csv","Sound"],["Juice.csv","Sound"],["Biomes.csv","Music"],["Dialogue.csv","Music"]]},
+
+ {dir:"assets/icons/", kind:"image",
+  what:"<b>Small square pictures.</b> The Adventure trait icons, item icons, menu button glyphs, anything that sits in a 34-pixel box.",
+  formats:".png with transparency, .webp, .jpg, .svg — <b>64×64 or 128×128</b>, and the same size for every one in a set",
+  also:"Also searched: assets/base/, assets/buildings/, assets/talents/, assets/brews/, assets/",
+  from:[["AdventureTraits.csv","Icon"],["AdventureCombos.csv","Icon"],["Items.csv","Art"],["MenuConfig.csv","Art Path"],["AdventureSpawns.csv","Art"],["BreweryResources.csv","Icon"],["Achievements.csv","Art"]]},
+
+ {dir:"assets/brewery/", kind:"image",
+  what:"<b>The six sections of the Brewery map.</b> One picture per section, sitting above its name inside the tile.",
+  formats:".png, roughly 230\u00d756 — it is drawn KEEP_ASPECT_CENTERED so a wider or taller one still fits",
+  also:"Also searched: assets/base/, assets/. A section with no art is a tile with its name on it and works perfectly",
+  from:[["BrewerySections.csv","Art"]]},
+
+ {dir:"assets/shop/", kind:"image",
+  what:"<b>The Traveling Brewer's cart.</b> One picture per row, drawn to the left of the name.",
+  formats:".png, 64\u00d764",
+  also:"Also searched: assets/icons/, assets/. A row with no art reads perfectly without it",
+  from:[["Shop.csv","Art"],["Currencies.csv","Icon"]]},
+
+ {dir:"assets/players/", kind:"image",
+  what:"<b>Card spritesheets.</b> One sheet per card, sliced by Animations.csv.",
+  formats:".png. The default grid is <b>12 columns × 39 rows</b> — write a row in Animations.csv if yours is anything else, or the card shows as a sliver",
+  also:"Also searched: assets/portraits/, assets/",
+  from:[["Units Set FO1 - Lorelei.csv","Artwork"],["BasicTeam.csv","Artwork"],["Brews.csv","Artwork"]]},
+
+ {dir:"assets/goalies/", kind:"image",
+  what:"<b>Keeper art.</b> Same idea as a card sheet, but for the two keepers.",
+  formats:".png",
+  also:"Also searched: assets/players/, assets/",
+  from:[["Goalies.csv","Artwork"]]},
+
+ {dir:"assets/base/", kind:"image",
+  what:"<b>The base and the buildings on it.</b> A file called <code>background</code> in here is the base's backdrop.",
+  formats:".png or .jpg. Buildings are placed by the X and Y columns (0 to 1 across the screen), so draw them to sit on their own",
+  also:"Also searched: assets/buildings/, assets/backgrounds/, assets/",
+  from:[["Buildings.csv","Art"]]},
+
+ {dir:"assets/portraits/", kind:"image",
+  what:"<b>Faces for dialogue.</b> Whoever is speaking, and the visitors at the base.",
+  formats:".png with transparency. They are drawn at the side of the dialogue box",
+  also:"Also searched: assets/players/, assets/",
+  from:[["Visitors.csv","Portrait"],["Dialogue.csv","Portrait"]]},
+
+ {dir:"assets/backgrounds/", kind:"image",
+  what:"<b>Full-screen scenery.</b> Biome backdrops and dialogue scenes.",
+  formats:".jpg or .png at <b>1920×1080</b>. A biome background TILES and scrolls, so make its left and right edges match",
+  also:"Also searched: assets/scenes/, assets/",
+  from:[["Biomes.csv","Background"],["Dialogue.csv","Background"]]},
+
+ {dir:"assets/menu/", kind:"image",
+  what:"<b>Menu and class banners.</b> Anything a column names with a full <code>res://</code> path.",
+  formats:".png or .jpg. A class banner is wide — roughly 3:1",
+  also:"A column starting res:// is used exactly as written, wherever it points",
+  from:[["ClassInfo.csv","Banner Art"],["ClassInfo.csv","Formation Art"],["Seasons.csv","Art"],["Bounties.csv","Art"]]},
+
+ {dir:"assets/talents/", kind:"image",
+  what:"<b>Talent tree icons.</b>",
+  formats:".png, square, 64×64",
+  also:"Also searched: assets/base/, assets/",
+  from:[["Talents.csv","Art"]]},
+];
+
+/* Columns whose value is a file name, for the shopping list. */
+const ASSET_COLUMNS = {};
+FOLDERS.forEach(f => f.from.forEach(([file,col]) => {
+  ASSET_COLUMNS[file+"|"+col] = f;
+}));

@@ -1,0 +1,74 @@
+
+/* ---- v2: the asset board and the reference sheet ---- */
+#wrap .board{padding:6px 2px 30px}
+.folder{background:var(--card);border:1px solid var(--line);border-radius:4px;margin:0 0 12px}
+.folder > h4{margin:0;padding:11px 14px;border-bottom:1px solid var(--hair);display:flex;
+  align-items:center;gap:10px;font-family:var(--mono);font-size:13.5px;font-weight:500;color:var(--accent)}
+.folder > h4 .cnt{margin-left:auto;font-family:var(--sans);font-size:12px;color:var(--faint)}
+.folder .blurb{padding:9px 14px;color:var(--dim);font-size:13px;border-bottom:1px solid var(--hair)}
+.folder .blurb b{color:var(--ink)}
+.want{display:flex;gap:10px;align-items:flex-start;padding:7px 14px;border-bottom:1px solid var(--hair);font-size:13px}
+.want:last-child{border-bottom:0}
+.want input[type=checkbox]{margin:3px 0 0;width:15px;height:15px;accent-color:var(--pitch);flex:0 0 auto}
+.want .nm{font-family:var(--mono);font-size:13px;word-break:break-all}
+.want.done .nm{text-decoration:line-through;color:var(--faint)}
+.want .src{color:var(--faint);font-size:12px;margin-left:auto;text-align:right;flex:0 0 auto;padding-left:10px}
+.want .why{color:var(--dim);font-size:12.5px;display:block}
+.hint{background:var(--accent-soft);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:3px;padding:10px 14px;margin:0 0 14px;font-size:13px;color:var(--ink)}
+.hint b{color:var(--accent)}
+.cheat{background:var(--card);border:1px solid var(--line);border-radius:4px;margin:0 0 12px;overflow:hidden}
+.cheat h4{margin:0;padding:11px 14px;border-bottom:1px solid var(--hair);font-family:var(--disp);
+  text-transform:uppercase;letter-spacing:.08em;font-size:14px;color:var(--accent)}
+.cheat .in{padding:12px 14px;font-size:13.3px}
+.cheat table{width:100%;border-collapse:collapse}
+.cheat td{padding:5px 8px 5px 0;vertical-align:top;border-bottom:1px solid var(--hair)}
+.cheat td:first-child{font-family:var(--mono);font-size:12.5px;color:var(--accent);white-space:nowrap;width:1%}
+.cheat tr:last-child td{border-bottom:0}
+.cheat code{font-family:var(--mono);font-size:12.5px;background:var(--raise);padding:1px 5px;border-radius:3px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px;align-items:start}
+.fitem.special{color:var(--pitch)}
+.fitem.special .fc{background:var(--pitch-soft);color:var(--pitch)}
+@media (max-width:860px){ .want .src{display:none} }
+</style>
+
+<div id="shell">
+  <header id="bar">
+    <h1>Sturmball <span>Workbench</span></h1>
+    <div class="grow"></div>
+    <button class="btn" id="bNewClass">+ New class</button>
+    <button class="btn" id="bLoad">Load CSVs</button>
+    <button class="btn" id="bCheck">Check</button>
+    <button class="btn key" id="bExport">Export</button>
+    <button class="btn sm" id="bTheme" title="Light / dark">◐</button>
+  </header>
+
+  <div id="body">
+    <nav id="rail">
+      <div class="railhead lbl">Where things go</div>
+      <div id="special"></div>
+      <div class="railhead lbl">Files</div>
+      <div id="files"></div>
+    </nav>
+    <main id="main">
+      <div id="head"><h2 id="title">—</h2><div id="what"></div></div>
+      <div class="help" id="help" hidden></div>
+      <div id="tools"></div>
+      <div id="wrap"><div class="empty" id="blank"></div></div>
+    </main>
+  </div>
+
+  <section id="probs">
+    <button id="probhead">
+      <span class="lbl">Problems</span>
+      <span id="probtag" class="tag ok">checking…</span>
+      <span class="grow"></span>
+      <span id="probchev" style="color:var(--faint)">▾</span>
+    </button>
+    <div id="problist"></div>
+  </section>
+</div>
+
+<input type="file" id="pick" multiple accept=".csv" hidden>
+
+<script>
