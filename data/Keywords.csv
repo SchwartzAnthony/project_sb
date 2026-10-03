@@ -74,11 +74,11 @@ mining,ability condition,planned,If column: another unit of yours is mining. PHA
 touched_ball,ability condition,planned,If column: this card touched the ball since the last PLAY MAKER. PHASE C6 - until then it is never true.,,From the round Y audit.
 touched_before_playmaker,ability condition,planned,If column: this card touched the ball BEFORE the PLAY MAKER call. PHASE C6 - until then it is never true.,,From the round Y audit.
 fused,ability condition,planned,If column: this card is fused with another. PHASE C6 - until then it is never true.,,From the round Y audit.
-goalie_chance,ability effect,planned,Moves a keeper's chance to save by Value % for the round. PHASE C3.,,From the round Y audit - guides/COMBAT_PHASES.md.
-goalie_shield,ability effect,planned,Gives a keeper Value shields (ruling R11 says what a shield stops). PHASE C3.,,From the round Y audit - guides/COMBAT_PHASES.md.
-remove_shields,ability effect,planned,Takes every shield off the enemy keeper. PHASE C3.,,From the round Y audit - guides/COMBAT_PHASES.md.
-foul_heat,ability effect,planned,Adds Value segments to the enemy's yellow-card bar. PHASE C3.,,From the round Y audit - guides/COMBAT_PHASES.md.
-foul_chance,ability effect,planned,Raises the enemy's chance of committing a foul by Value %. PHASE C3.,,From the round Y audit - guides/COMBAT_PHASES.md.
+goalie_chance,ability effect,live,"Moves how likely a keeper is to be BEATEN by Value percentage points (ruling R02: the %, never the stamina). Target enemy_goalie (easier for you to score) or own_goalie (harder for them). -100 = he cannot be beaten. Scope round = until the next shot; match = for the match. Shown on the keeper's label and the shot window. LIVE since round AA (C3).",,Round AA (C3).
+goalie_shield,ability effect,live,Gives a keeper Value shields: a second bar that empties BEFORE his stamina (ruling R11) - a shot's bite and a drain both come off the shield first. Shown as 'shield 2' on the keeper. LIVE since round AA (C3).,,Round AA (C3).
+remove_shields,ability effect,live,Takes every shield off the target keeper. LIVE since round AA (C3).,,Round AA (C3).
+foul_heat,ability effect,live,Adds Value SEGMENTS to the referee's bar against the other side (ruling R09). Lands at the next fouls. LIVE since round AA (C3).,,Round AA (C3).
+foul_chance,ability effect,live,"+Value % that the other side commits a foul (rulings R10, R16). Scope round = the next fouls only; match = for the match. LIVE since round AA (C3).",,Round AA (C3).
 add_counter,ability effect,live,Puts Value counters of a kind on the target: add_counter:burn. add_counter:power -1 is a -1 POWER COUNTER - the card is 1 weaker in every duel for the rest of the match. Target `side` puts them on your side instead (Belphegor's victory counters). The card receiving one fires on_counter. LIVE since round Z (C2).,,Round Z (C2).
 remove_counter,ability effect,live,Takes Value counters off the target (remove_counter:burn for one kind). LIVE since round Z (C2).,,Round Z (C2).
 gain_ore,ability effect,live,"Adds Value Ore to your side's pool (ruling R12: one pool per side, on the match tracker). LIVE since round Z (C2).",,Round Z (C2).
@@ -105,3 +105,5 @@ side,ability target,live,Your side rather than a card: gain_ore and add_counter:
 replace:<filter>,ability target,live,"For create_token: one of your cards matching the filter is replaced (field first, lowest power first, never a Star or a token).",replace:water+I,Round Z (C2).
 ore:<n>,ability cost,live,"The Cost column. Spend n Ore from your side's pool before the ability goes off; not enough and it does not happen at all (not counted, not spent against its Max).",ore:3,"Round Z (C2), ruling R12."
 <n>/round/side,ability max,live,The Max column. '/round' or '/cycle' counts per round or cycle; '/side' shares the count across the whole side (Belphegor's 'only two per cycle').,2/cycle/side,Round Z (C2).
+foul_coin_flip,ability effect,live,"The next foul YOUR side commits is a coin toss: heads, it goes to the other side instead (Manfred). One banked at a time.",Target self,Round AA (C3).
+yes,ability ask,live,The Ask column of Abilities.csv. 'yes' = you are asked before it goes off ('you CAN transform'). A row with a Cost is asked anyway while ask_before_spending_ore is on. The other side and AUTO always say yes.,Ask: yes,Round AA.

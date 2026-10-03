@@ -215,11 +215,60 @@ var _depth := 0
 ## Tuning: does a Swan count as a token for "if you control a token"?
 var swans_are_tokens := true
 
+# ---- round AA: C3, the keeper and the referee ----
+## keeper side -> percentage points on the chance he is BEATEN. Round / match.
+var _keeper_shift_round := {false: 0.0, true: 0.0}
+var _keeper_shift_match := {false: 0.0, true: 0.0}
+## side -> referee's-bar segments to add against that side, at the fouls.
+var _heat_add := {false: 0.0, true: 0.0}
+## side -> + % that side commits a foul. Round / match.
+var _foul_shift_round := {false: 0.0, true: 0.0}
+var _foul_shift_match := {false: 0.0, true: 0.0}
+## side -> coin flips banked (Manfred). Never more than one.
+var _coin_flips := {false: 0, true: 0}
+
+# ---- round AA: THE PLAYER IS ASKED ----
+#
+# Your rulings: the player CHOOSES which unit a Rose token replaces, whether
+# to spend Ore, whether to accept a Swan, and which side of a card stays up in
+# the exhaust. The engine cannot stop in the middle of a duel to wait for a
+# click, so there are two ways a question reaches you:
+#
+#   BEFORE A DUEL  the match asks duel_questions() what could cost Ore or
+#                  needs a yes in the coming duel, asks you, and tells the
+#                  engine with consent(). A "no" means it does not happen.
+#   AFTER A MOMENT a reveal, the end of a round, the end of a cycle: the
+#                  engine puts the question in take_asks() and waits. The
+#                  match shows it and calls answer().
+#
+# `interactive[side]` is true only for YOUR side with AUTO off. The other
+# side and AUTO always take the default (yes / the engine's own pick), so a
+# soak, a tool and the AI never wait for anyone.
+var interactive := {false: false, true: false}
+var ask_before_ore := true
+## "cardkey|ability id" -> true / false, for this duel.
+var _consent: Dictionary = {}
+## Questions waiting for the match: {id, kind, side, card, ...}.
+var _asks: Array = []
+var _ask_serial := 0
+## key -> {"slot": "attack"/"defend", "cycle": n}. Ruling F2: the side of a
+## card that stays up OUTSIDE a duel, chosen once per cycle.
+var _side_up: Dictionary = {}
+## key -> ability ids that went off for that card in this duel (for the duel
+## window: "did it fire?").
+var _fired: Dictionary = {}
+## key -> true once that card has played a duel this match (card_played).
+var _played_once: Dictionary = {}
+## Tuning: does a goal send every Rose token home (ruling, round AA)?
+var rose_ends_on_goal := true
+
 
 func _init(database: CardDatabase = null) -> void:
 	db = database if database != null else CardDatabase.get_db()
 	role_side = db == null or db.tune_bool("ability_uses_role_side", true)
 	swans_are_tokens = db == null or db.tune_bool("swans_count_as_tokens", true)
+	ask_before_ore = db == null or db.tune_bool("ask_before_spending_ore", true)
+	rose_ends_on_goal = db == null or db.tune_bool("rose_tokens_end_on_goal", true)
 
 
 ## The key for one card on one side. See "EVERY KEY BELOW" above.
@@ -239,6 +288,10 @@ func begin_match() -> void:
 	_pool = {false: {}, true: {}}
 	_kinds.clear()
 	_held.clear()
+	_keeper_shift_match = {false: 0.0, true: 0.0}
+	_foul_shift_match = {false: 0.0, true: 0.0}
+	_coin_flips = {false: 0, true: 0}
+	_side_up.clear()
 
 
 func begin_round() -> void:
@@ -251,6 +304,9 @@ func begin_round() -> void:
 	round_number += 1
 	_pool_round = {false: {}, true: {}}
 	_exhausted_round = {false: [], true: []}
+	# NOT the keeper and foul shifts: a "round" shift lasts until the next
+	# shot / the next fouls, so one made after them (a save, the exhaust)
+	# still counts. See after_shot() and fouls_settled().
 
 
 ## A NEW CYCLE. Closes the old one first: `end_of_cycle` for every card in
@@ -284,6 +340,7 @@ func finish_match() -> void:
 ## `while_in_exhaust` moment.
 func begin_duel(player_card: PlayerData = null, enemy_card: PlayerData = null) -> void:
 	_expire("duel")
+	_fired.clear()
 	if player_card != null:
 		_consume_pending(player_card, false)
 	if enemy_card != null:
@@ -323,6 +380,11 @@ func round_lineups(player_lineup: Array, enemy_lineup: Array) -> void:
 		for thing in pair[0]:
 			var card := thing as PlayerData
 			if card != null:
+				# Round AA: "card_played" for Stats.csv (Buer's "eight have been
+				# active at some point" counts first plays).
+				var first := not _played_once.has(_k(card, pair[1]))
+				_played_once[_k(card, pair[1])] = true
+				_event("card_played", card, pair[1], {"first": "yes" if first else "no"})
 				_move(card, pair[1], COMBAT)
 
 
@@ -382,6 +444,7 @@ func _move(card: PlayerData, side_is_enemy: bool, to: String) -> void:
 	if was == to:
 		return
 	if to == EXHAUST:
+		_maybe_ask_side(card, side_is_enemy)
 		_fire_for(card, side_is_enemy, "contemplation", null, not side_is_enemy)
 	elif was == EXHAUST:
 		_fire_for(card, side_is_enemy, "rejuvenation", null, not side_is_enemy)
@@ -404,7 +467,13 @@ func fire_on_shot(shooter: PlayerData, shooter_is_enemy: bool) -> int:
 ## every card of the side whose keeper saved it - conditions like in_exhaust
 ## narrow it down to the cards that care.
 func after_shot(shooter_is_enemy: bool, scored: bool) -> void:
+	# The shot used up this round's keeper shifts (round AA, C3).
+	_keeper_shift_round = {false: 0.0, true: 0.0}
 	if scored:
+		# RULING (round AA): Rose tokens last until a goal. Then every
+		# original walks back on in its token's place.
+		if rose_ends_on_goal:
+			end_tokens("rose")
 		for card in cards_in(shooter_is_enemy):
 			_fire_for(card, shooter_is_enemy, "ongoal", null, not shooter_is_enemy)
 		for card in cards_in(not shooter_is_enemy):
@@ -572,6 +641,9 @@ func marks_for(card: PlayerData, side_is_enemy: bool) -> String:
 		var n := int(on[kind])
 		if n != 0:
 			bits.append("%s %s" % [kind, ("%+d" % n) if kind == "power" else str(n)])
+	# RULING F4 / Q7: priority is its own number. Shown when the power moved.
+	if int(on.get("power", 0)) != 0 and card != null:
+		bits.append("priority %d" % card.get_ability_priority())
 	if card != null and card.is_token():
 		bits.append("TOKEN")
 	elif is_kind(card, side_is_enemy, "swan"):
@@ -596,6 +668,265 @@ func emblem_reveal_for(card: PlayerData, side_is_enemy: bool) -> bool:
 			if _condition_ok(ability, card, side_is_enemy, null, not side_is_enemy):
 				return true
 	return false
+
+
+# =============================================================
+#  THE KEEPER AND THE REFEREE (round AA, phase C3)
+# =============================================================
+
+## How much likelier that keeper is to be BEATEN, in percentage points, now.
+func keeper_shift(keeper_is_enemy: bool) -> float:
+	return float(_keeper_shift_round.get(keeper_is_enemy, 0.0)) \
+		+ float(_keeper_shift_match.get(keeper_is_enemy, 0.0))
+
+
+## The fouls have been rolled: this round's foul shifts are used up.
+func fouls_settled() -> void:
+	_foul_shift_round = {false: 0.0, true: 0.0}
+
+
+## + % that side commits a foul, now.
+func foul_shift(side_is_enemy: bool) -> float:
+	return float(_foul_shift_round.get(side_is_enemy, 0.0)) \
+		+ float(_foul_shift_match.get(side_is_enemy, 0.0))
+
+
+## The referee's-bar segments abilities added against that side since the
+## last call. The match hands them to Referee.add_heat() at the fouls.
+func take_heat(side_is_enemy: bool) -> float:
+	var n := float(_heat_add.get(side_is_enemy, 0.0))
+	_heat_add[side_is_enemy] = 0.0
+	return n
+
+
+## Spend that side's coin flip, if it has one (Manfred).
+func use_coin_flip(side_is_enemy: bool) -> bool:
+	if int(_coin_flips.get(side_is_enemy, 0)) <= 0:
+		return false
+	_coin_flips[side_is_enemy] = 0
+	return true
+
+
+func coin_flips(side_is_enemy: bool) -> int:
+	return int(_coin_flips.get(side_is_enemy, 0))
+
+
+func _keeper_effect(ability: AbilityData, source: PlayerData, keeper_is_enemy: bool) -> void:
+	var who := "away" if keeper_is_enemy else "home"
+	var name_text := source.player_name if source != null else "?"
+	match ability.effect:
+		"goaliechance":
+			if ability.scope == "match":
+				_keeper_shift_match[keeper_is_enemy] = float(_keeper_shift_match[keeper_is_enemy]) + float(ability.value)
+			else:
+				_keeper_shift_round[keeper_is_enemy] = float(_keeper_shift_round[keeper_is_enemy]) + float(ability.value)
+			log_lines.append("      %s: the %s keeper is %+d%% to be beaten (now %+.0f%%)" % [
+				name_text, who, ability.value, keeper_shift(keeper_is_enemy)])
+		"goalieshield":
+			_stamina_pending.append({"enemy_side": keeper_is_enemy, "delta": 0, "shield": ability.value})
+			log_lines.append("      %s: +%d shield on the %s keeper" % [name_text, ability.value, who])
+		"removeshields":
+			_stamina_pending.append({"enemy_side": keeper_is_enemy, "delta": 0, "clear_shields": true})
+			log_lines.append("      %s: every shield off the %s keeper" % [name_text, who])
+
+
+func _referee_effect(ability: AbilityData, source: PlayerData, source_is_enemy: bool) -> void:
+	var name_text := source.player_name if source != null else "?"
+	var against := not source_is_enemy
+	match ability.effect:
+		"foulheat":
+			_heat_add[against] = float(_heat_add[against]) + float(ability.value)
+			log_lines.append("      %s: +%d on the referee's bar against the %s side" % [
+				name_text, ability.value, "away" if against else "home"])
+		"foulchance":
+			if ability.scope == "match":
+				_foul_shift_match[against] = float(_foul_shift_match[against]) + float(ability.value)
+			else:
+				_foul_shift_round[against] = float(_foul_shift_round[against]) + float(ability.value)
+			log_lines.append("      %s: the %s side is %+d%% likelier to foul (now %+.0f%%)" % [
+				name_text, "away" if against else "home", ability.value, foul_shift(against)])
+		"foulcoinflip":
+			_coin_flips[source_is_enemy] = 1
+			log_lines.append("      %s: the next foul of the %s side is a coin toss" % [
+				name_text, "away" if source_is_enemy else "home"])
+
+
+# =============================================================
+#  ASKING THE PLAYER (round AA)
+# =============================================================
+
+## Does this ability need a yes from this side?
+func needs_yes(ability: AbilityData, side_is_enemy: bool) -> bool:
+	if not bool(interactive.get(side_is_enemy, false)):
+		return false
+	return ability.ask or (ability.cost_kind == "ore" and ask_before_ore)
+
+
+## BEFORE A DUEL: the abilities of this card (and its Emblem rows) that could
+## go off in the coming duel AND need a yes - a Cost it can pay, or an Ask.
+## The match asks you about each and calls consent().
+func duel_questions(card: PlayerData, side_is_enemy: bool, role: String,
+		opponent: PlayerData, opponent_is_enemy: bool) -> Array[AbilityData]:
+	var out: Array[AbilityData] = []
+	if card == null or not bool(interactive.get(side_is_enemy, false)):
+		return out
+	var key := _k(card, side_is_enemy)
+	var was = _role.get(key, null)
+	_role[key] = role
+	var wanted: Array[String] = ["flip", "onduelstart", "onattack" if role == "attack" else "ondefend"]
+	var cells: Array[String] = [card.active_attack_ability() if role == "attack" or not role_side else card.active_defend_ability()]
+	if not role_side:
+		cells = [card.active_attack_ability(), card.active_defend_ability()]
+	var rows: Array[AbilityData] = []
+	for cell in cells:
+		for piece in String(cell).split(";"):
+			var a := db.get_ability(String(piece).strip_edges())
+			if a != null:
+				rows.append(a)
+	for thing in (_emblems.get(side_is_enemy, []) as Array):
+		var badge := thing as ClassBook.Emblem
+		if badge != null and badge.basic_ability != "" and EmblemBook.feeds_basic(card, badge):
+			for piece in badge.basic_ability.split(";"):
+				var a := db.get_ability(String(piece).strip_edges())
+				if a != null:
+					rows.append(a)
+	var ore_left := pool(side_is_enemy, "ore")
+	for a in rows:
+		if not wanted.has(a.trigger) or not needs_yes(a, side_is_enemy):
+			continue
+		if a.cost_kind == "ore" and ore_left < a.cost_amount:
+			continue
+		if not _condition_ok(a, card, side_is_enemy, opponent, opponent_is_enemy):
+			continue
+		if a.max_uses > 0:
+			var use_key := ("side%d" % int(side_is_enemy)) if a.max_shared else key
+			use_key += "|" + a.id
+			if a.max_per == "cycle":
+				use_key += "|cycle%d" % cycle_number
+			elif a.max_per == "round":
+				use_key += "|round%d" % round_number
+			if int(_uses.get(use_key, 0)) >= a.max_uses:
+				continue
+		out.append(a)
+	if was == null:
+		_role.erase(key)
+	else:
+		_role[key] = was
+	return out
+
+
+## Your answer to one of duel_questions(), for this duel.
+func consent(card: PlayerData, side_is_enemy: bool, ability_id: String, yes: bool) -> void:
+	_consent[_k(card, side_is_enemy) + "|" + ability_id] = yes
+
+
+func _queue_ask(ask: Dictionary) -> void:
+	_ask_serial += 1
+	ask["id"] = _ask_serial
+	_asks.append(ask)
+
+
+## The questions waiting for the match, oldest first. Each is a Dictionary:
+##   kind "confirm"  yes / no                    answer(ask, true)
+##   kind "pick"     one of ask["options"]       answer(ask, card)
+##   kind "side"     "attack" / "defend"         answer(ask, "attack")
+## and ask["text"] says it in words.
+func take_asks() -> Array:
+	var out := _asks.duplicate()
+	_asks.clear()
+	return out
+
+
+func answer(ask: Dictionary, choice) -> void:
+	var side := bool(ask["side"])
+	match String(ask["kind"]):
+		"confirm":
+			if bool(choice):
+				_apply_one(ask["ability"], ask["card"], side, ask.get("opponent"),
+					bool(ask.get("opponent_enemy", not side)), ask.get("badge"), true)
+			else:
+				log_lines.append("      you said no to %s" % (ask["ability"] as AbilityData).id)
+		"pick":
+			var chosen := choice as PlayerData
+			if chosen == null or not (ask["options"] as Array).has(chosen):
+				chosen = ask["default"]
+			_make_token(String(ask["token"]), chosen, side, ask["card"])
+		"side":
+			set_side_up(ask["card"], side, String(choice))
+
+
+## What happens when nobody answers: yes, the engine's own pick, the side it
+## played last.
+func answer_default(ask: Dictionary) -> void:
+	match String(ask["kind"]):
+		"confirm":
+			answer(ask, true)
+		"pick":
+			answer(ask, ask["default"])
+		"side":
+			answer(ask, String(ask["default"]))
+
+
+## RULING F2: which side of this card counts outside a duel, this cycle.
+func set_side_up(card: PlayerData, side_is_enemy: bool, slot: String) -> void:
+	if not (slot in ["attack", "defend"]):
+		return
+	_side_up[_k(card, side_is_enemy)] = {"slot": slot, "cycle": cycle_number}
+
+
+func side_up(card: PlayerData, side_is_enemy: bool) -> String:
+	var up: Dictionary = _side_up.get(_k(card, side_is_enemy), {})
+	if not up.is_empty() and int(up.get("cycle", -1)) == cycle_number:
+		return String(up["slot"])
+	return String(_role.get(_k(card, side_is_enemy), "attack"))
+
+
+## A card is going to the exhaust. If BOTH its sides have something to do out
+## there, you are asked which one stays up - once per cycle (ruling F2).
+func _maybe_ask_side(card: PlayerData, side_is_enemy: bool) -> void:
+	if not role_side or not bool(interactive.get(side_is_enemy, false)):
+		return
+	var up: Dictionary = _side_up.get(_k(card, side_is_enemy), {})
+	if not up.is_empty() and int(up.get("cycle", -1)) == cycle_number:
+		return
+	if not (_outside_text(card.active_attack_ability()) and _outside_text(card.active_defend_ability())):
+		return
+	var played := String(_role.get(_k(card, side_is_enemy), "attack"))
+	set_side_up(card, side_is_enemy, played)
+	_queue_ask({"kind": "side", "side": side_is_enemy, "card": card, "default": played,
+		"attack_text": card.attack_text, "defend_text": card.defend_text,
+		"text": "%s goes to the exhaust. Which side stays up this cycle?" % card.player_name})
+
+
+func _outside_text(cell: String) -> bool:
+	for piece in cell.split(";"):
+		var a := db.get_ability(String(piece).strip_edges())
+		if a != null and OUTSIDE_DUEL.has(a.trigger):
+			return true
+	return false
+
+
+## Which of this card's abilities went off in the duel just played.
+func fired_in_duel(card: PlayerData, side_is_enemy: bool) -> Array:
+	return (_fired.get(_k(card, side_is_enemy), []) as Array).duplicate()
+
+
+## ROUND AA: every token of that kind goes home. The original walks back on
+## in the token's place and zone; the body gets its card back (take_swaps).
+func end_tokens(kind: String = "rose") -> void:
+	for swap in _all_swaps:
+		if not bool(swap.get("active", false)) or String(swap.get("kind", "")) != kind:
+			continue
+		var side := bool(swap["side"])
+		var token: PlayerData = swap["new"]
+		var original: PlayerData = swap["old"]
+		var where := _zone_for(token, side)
+		_zone.erase(_k(token, side))
+		_held.erase(_k(original, side))
+		_zone[_k(original, side)] = {"card": original, "zone": where if where != "" else FIELD, "enemy": side}
+		swap["active"] = false
+		_swaps.append({"side": side, "old": token, "new": original, "kind": kind, "active": false})
+		log_lines.append("      the %s Unit token goes; %s is back" % [kind.capitalize(), original.player_name])
 
 
 ## ---- FOR TOOLS, AND ONE DAY FOR MINES AND ITEMS ----
@@ -624,9 +955,13 @@ func take_swaps() -> Array:
 	return out
 
 
-## Every token made this match, so full time can put the originals back.
+## Every token still standing, so full time can put the originals back.
 func all_swaps() -> Array:
-	return _all_swaps.duplicate()
+	var out: Array = []
+	for swap in _all_swaps:
+		if bool(swap.get("active", false)):
+			out.append(swap)
+	return out
 
 
 ## The events since the last call, for Stats.csv: [{event, facts, enemy}].
@@ -772,11 +1107,22 @@ func resolve_duel_outcome(winner: PlayerData, winner_is_enemy: bool,
 	# so it means the PREVIOUS duel to whoever asks next.
 	_last_result[winner_is_enemy] = "won"
 	_last_result[loser_is_enemy] = "lost"
+	# This duel's yes / no answers are spent.
+	_consent.clear()
 
 
 ## Moments where BOTH of a card's abilities are looked at: nothing about
 ## them belongs to one role.
 const BOTH_SIDES: Array[String] = ["passive", "matchstart"]
+
+## Moments OUTSIDE a duel, where ruling F2's chosen side counts.
+const OUTSIDE_DUEL: Array[String] = ["whileinexhaust", "endofcycle", "aftercombat",
+	"goaliesave", "ongoal", "onconcede", "rejuvenation"]
+
+## Moments the match can stop and ask at (after a reveal, a round, a cycle).
+## Anything else happens inside a duel and is asked BEFORE it.
+const ASK_AFTER: Array[String] = ["reveal", "contemplation", "roundend", "aftercombat",
+	"endofcycle", "rejuvenation", "matchstart", "goaliesave", "ongoal", "onconcede"]
 
 
 func _fire_for(card: PlayerData, is_enemy: bool, trigger: String,
@@ -805,6 +1151,14 @@ func _fire_for(card: PlayerData, is_enemy: bool, trigger: String,
 				slots = only_defend
 			else:
 				slots = only_attack
+	# ============ RULING F2 (round AA): ONE SIDE UP OUTSIDE A DUEL ============
+	# Chosen once per cycle - by you, when the card goes to the exhaust; until
+	# then, and for the other side, the side it played last.
+	if role_side and OUTSIDE_DUEL.has(trigger):
+		var up: Dictionary = _side_up.get(key, {})
+		if not up.is_empty() and int(up.get("cycle", -1)) == cycle_number:
+			var chosen: Array[String] = [String(up["slot"])]
+			slots = chosen
 	for slot in slots:
 		var cell := card.active_attack_ability() if slot == "attack" else card.active_defend_ability()
 		# A CELL MAY NAME SEVERAL ROWS, separated by semicolons, so one
@@ -833,7 +1187,8 @@ func _fire_for(card: PlayerData, is_enemy: bool, trigger: String,
 # =============================================================
 
 func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
-		opponent: PlayerData, opponent_is_enemy: bool, badge: ClassBook.Emblem = null) -> void:
+		opponent: PlayerData, opponent_is_enemy: bool, badge: ClassBook.Emblem = null,
+		answered: bool = false) -> void:
 
 	# ============ THE If COLUMN (round Y) ============
 	# Before anything else: a condition that is not met means it did not
@@ -860,9 +1215,25 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 
 	# ============ THE Cost COLUMN (round Z) ============
 	# "Consume 3 Ore:" - not enough Ore and it simply does not happen.
-	if ability.cost_kind == "ore":
-		if pool(source_is_enemy, "ore") < ability.cost_amount:
+	if ability.cost_kind == "ore" and pool(source_is_enemy, "ore") < ability.cost_amount:
+		return
+
+	# ============ ASK THE PLAYER (round AA) ============
+	if not answered and needs_yes(ability, source_is_enemy):
+		if ASK_AFTER.has(ability.trigger):
+			# The match will ask, and call answer(). Nothing happens yet.
+			_queue_ask({"kind": "confirm", "side": source_is_enemy, "card": source,
+				"ability": ability, "opponent": opponent, "opponent_enemy": opponent_is_enemy,
+				"badge": badge,
+				"text": "%s - %s" % [source.player_name, ability.plain()]})
 			return
+		# In a duel: the answer was asked before it. No answer = yes.
+		var said = _consent.get(_k(source, source_is_enemy) + "|" + ability.id, null)
+		if said != null and not bool(said):
+			log_lines.append("      %s: you said no to %s" % [source.player_name, ability.id])
+			return
+
+	if ability.cost_kind == "ore":
 		_pool_add(source_is_enemy, "ore", -ability.cost_amount)
 		_event("ore_spent", source, source_is_enemy, {"amount": str(ability.cost_amount)})
 		log_lines.append("      %s pays %d Ore (%d left)" % [source.player_name, ability.cost_amount,
@@ -878,6 +1249,11 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 	# past the priority sort, about to change a number. The foul system reads
 	# it after the combat. See foul_book.gd.
 	note_trigger(source_is_enemy)
+	if source != null:
+		var fk := _k(source, source_is_enemy)
+		if not _fired.has(fk):
+			_fired[fk] = []
+		(_fired[fk] as Array).append(ability.id)
 	if badge != null:
 		_event("emblem_basic", source, source_is_enemy, {"emblem": badge.star, "effect": ability.effect})
 
@@ -892,6 +1268,13 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 			log_lines.append("      %s: %s %d on the %s keeper"
 				% [source.player_name, ability.effect, absi(delta),
 				   "away" if keeper_is_enemy else "home"])
+		else:
+			_keeper_effect(ability, source, keeper_is_enemy)
+		return
+
+	# --- The referee (round AA, C3) - always against a SIDE ---
+	if ability.effect in ["foulheat", "foulchance", "foulcoinflip"]:
+		_referee_effect(ability, source, source_is_enemy)
 		return
 
 	# --- The side's own pools: Ore, victory counters (round Z) ---
@@ -918,8 +1301,17 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 			return
 		if ability.target.begins_with("replace:"):
 			var victim := _pick_to_replace(source_is_enemy, ability.target.substr(8))
-			if victim != null:
-				_make_token(kind, victim, source_is_enemy, source)
+			if victim == null:
+				return
+			# RULING (round AA): YOU choose which unit the token replaces.
+			if bool(interactive.get(source_is_enemy, false)):
+				var options := _candidates_to_replace(source_is_enemy, ability.target.substr(8))
+				if options.size() > 1:
+					_queue_ask({"kind": "pick", "side": source_is_enemy, "card": source,
+						"token": kind, "options": options, "default": victim,
+						"text": "A %s Unit token takes the place of one of your units. Which one?" % kind.capitalize()})
+					return
+			_make_token(kind, victim, source_is_enemy, source)
 		return
 
 	# --- "THE NEXT ONE" waits for its card (round Y) ---
@@ -1078,7 +1470,8 @@ func _land_on(ability: AbilityData, card: PlayerData, card_is_enemy: bool,
 			(_kinds[key] as Dictionary)["swan"] = true
 			_event("swan_made", card, card_is_enemy)
 			log_lines.append("      %s becomes a Swan" % card.player_name)
-		"drainstamina", "restorestamina", "addshotpower", "addcardchance":
+		"drainstamina", "restorestamina", "addshotpower", "addcardchance", \
+		"goaliechance", "goalieshield", "removeshields", "foulheat", "foulchance", "foulcoinflip":
 			_land_side_effect(ability, source, source_is_enemy)
 		"gainore":
 			_gain_ore(source, source_is_enemy, ability.value)
@@ -1117,6 +1510,22 @@ func _remove_counter(card: PlayerData, card_is_enemy: bool, kind: String, n: int
 		if int(on.get(k, 0)) == 0:
 			on.erase(k)
 	log_lines.append("      %s loses a counter" % card.player_name)
+
+
+## Every card a token could replace, best first (the default first).
+func _candidates_to_replace(side_is_enemy: bool, filter: String) -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	for card in cards_in(side_is_enemy):
+		if card.is_token() or card.is_star() or _held.has(_k(card, side_is_enemy)):
+			continue
+		if _zone_for(card, side_is_enemy) == COMBAT or not matches(card, side_is_enemy, filter):
+			continue
+		out.append(card)
+	out.sort_custom(func(a: PlayerData, b: PlayerData) -> bool:
+		var za := 0 if _zone_for(a, side_is_enemy) == FIELD else 10
+		var zb := 0 if _zone_for(b, side_is_enemy) == FIELD else 10
+		return a.get_attack_power() + za < b.get_attack_power() + zb)
+	return out
 
 
 ## Which of your cards a token replaces: one matching the filter ("water+I"),
@@ -1165,7 +1574,7 @@ func _make_token(kind: String, original: PlayerData, side_is_enemy: bool, source
 	_move(original, side_is_enemy, EXHAUST)
 	_held[_k(original, side_is_enemy)] = true
 	_zone[_k(token, side_is_enemy)] = {"card": token, "zone": was, "enemy": side_is_enemy}
-	var swap := {"side": side_is_enemy, "old": original, "new": token}
+	var swap := {"side": side_is_enemy, "old": original, "new": token, "kind": kind, "active": true}
 	_swaps.append(swap)
 	_all_swaps.append(swap)
 	_event("token_made", original, side_is_enemy, {"kind": kind,
@@ -1344,6 +1753,13 @@ func _land_buff(ability: AbilityData, card: PlayerData, card_is_enemy: bool, sou
 
 ## A keeper or a shot effect that was waiting - it belongs to the SOURCE's side.
 func _land_side_effect(ability: AbilityData, source: PlayerData, source_is_enemy: bool) -> void:
+	if ability.effect in ["foulheat", "foulchance", "foulcoinflip"]:
+		_referee_effect(ability, source, source_is_enemy)
+		return
+	if ability.effect in ["goaliechance", "goalieshield", "removeshields"]:
+		var own := CardDatabase._normalise(ability.target) == "owngoalie"
+		_keeper_effect(ability, source, source_is_enemy if own else not source_is_enemy)
+		return
 	if ability.effect == "addshotpower":
 		_shot_bonus[source_is_enemy] = int(_shot_bonus.get(source_is_enemy, 0)) + ability.value
 		return

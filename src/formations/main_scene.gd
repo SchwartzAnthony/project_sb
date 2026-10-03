@@ -3399,6 +3399,7 @@ func trigger_hold_up_event() -> void:
 
 	abilities.begin_cycle()
 	_absorb_ability_news()
+	_answer_ability_asks(false)
 	for unit in _all_units():
 		unit.reset_for_new_cycle()
 
@@ -4252,6 +4253,7 @@ func _on_reveal_wanted(selected_data: PlayerData) -> void:
 	if abilities != null:
 		abilities.fire_reveal(selected_data, false)
 		_absorb_ability_news()
+		await _answer_ability_asks()
 	# ON THE TABLE, not just in the log. A reveal you cannot see is a rule,
 	# not a moment — the card goes face up above the row you are choosing
 	# from, where both sides can read it while the tier is still open.
@@ -4272,6 +4274,7 @@ func _enemy_reveals(tier_key: String, card: PlayerData) -> void:
 	if abilities != null:
 		abilities.fire_reveal(card, true)
 		_absorb_ability_news()
+		_answer_ability_asks(false)
 	_put_on_the_table(card, true)
 	announce("They play %s face up." % NamePlate.short_name(card), 1.8)
 	print("[reveal] they show %s in Tier %s." % [card.player_name, tier_key])
@@ -4730,6 +4733,9 @@ func resolve_round() -> void:
 			if keeper_now != null:
 				abilities.keeper_stamina[keeper_side] = keeper_now.current_stamina
 		abilities.begin_duel(mine, theirs)
+		# ROUND AA: anything of YOURS that would spend Ore or needs a yes in
+		# this duel is asked now, before it starts (your rulings Q5, R17).
+		await _ask_duel_questions(mine, theirs, player_has_ball)
 
 		var attacker_is_enemy := not player_has_ball
 		# WHOSE BALL IT WAS GOING IN. Kept because `player_has_ball` is
@@ -4768,7 +4774,9 @@ func resolve_round() -> void:
 
 		# --- The cut-away, before the outcome is applied ---
 		await show_duel_arena(ALL_TIERS[i], atk, def, attacker_is_enemy,
-			atk_before, atk_power, def_before, def_power, attacker_wins)
+			atk_before, atk_power, def_before, def_power, attacker_wins,
+			abilities.fired_in_duel(atk, attacker_is_enemy),
+			abilities.fired_in_duel(def, not attacker_is_enemy))
 
 		if attacker_wins:
 			abilities.resolve_duel_outcome(atk, attacker_is_enemy, def, not attacker_is_enemy)
@@ -4830,10 +4838,7 @@ func resolve_round() -> void:
 		round_shooter_card = mine if player_has_ball else theirs
 
 	# Goalie stamina changes queued by abilities land before the shot.
-	for change in abilities.take_pending_stamina():
-		var keeper: GoalieUnit = goalies.get(bool(change["enemy_side"]))
-		if keeper != null:
-			keeper.adjust_stamina(int(change["delta"]))
+	_apply_keeper_changes()
 
 	# ============ AND THEN THE REFEREE ============
 	#
@@ -4973,14 +4978,28 @@ func _settle_fouls(player_lineup: Array, enemy_lineup: Array) -> Dictionary:
 	# full of needle can be the round he finally notices.
 	for side in [false, true]:
 		Referee.watch_round(side, abilities.triggers_for(side), db)
+		# ROUND AA (C3): "+1 to the enemy yellow card bar" - segments.
+		Referee.add_heat(side, abilities.take_heat(side), db)
 
 	# BOTH SIDES ARE ROLLED, yours first — only so that the match log reads
 	# the same way round every time.
-	for offender_is_enemy in [false, true]:
-		var many := abilities.triggers_for(offender_is_enemy)
-		var verdict := FoulBook.roll(many)
+	for rolling_side in [false, true]:
+		var many := abilities.triggers_for(rolling_side)
+		# ROUND AA (C3): + % from abilities ("increase enemy % of committing
+		# a foul by 5%").
+		var verdict := FoulBook.roll(many, abilities.foul_shift(rolling_side))
 		if verdict == "":
 			continue
+		var offender_is_enemy: bool = rolling_side
+		# MANFRED'S COIN (round AA): "if you cause a foul, instead flip a coin
+		# to see if the enemy gets it instead."
+		if abilities.use_coin_flip(rolling_side):
+			var heads := randf() < 0.5
+			print("  COIN FLIP for the %s side's foul: %s" % ["away" if rolling_side else "home",
+				"it goes to the OTHER side" if heads else "it stays"])
+			if heads:
+				offender_is_enemy = not rolling_side
+				announce("COIN FLIP — the foul goes the other way!", 1.6)
 
 		var lineup: Array = enemy_lineup if offender_is_enemy else player_lineup
 		var culprit := _who_fouled(lineup, offender_is_enemy)
@@ -5069,6 +5088,8 @@ func _settle_fouls(player_lineup: Array, enemy_lineup: Array) -> Dictionary:
 		if card_gives_ball and verdict != "free kick":
 			out["possession_to"] = 0 if offender_is_enemy else 1
 
+	# Round AA (C3): "for the round" foul shifts are spent on these rolls.
+	abilities.fouls_settled()
 	return out
 
 
@@ -5247,6 +5268,7 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 		print("  No shot taken this round.")
 		abilities.round_finished()
 		_absorb_ability_news()
+		await _answer_ability_asks()
 		_end_surge()
 		restart_hold = false
 		if ball != null:
@@ -5285,6 +5307,12 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 			db.tune_float("shot_run_up_min_seconds", 0.35),
 			db.tune_float("shot_run_up_max_seconds", 1.3)))
 
+	# ROUND Y (C1): the shooter's `on_shot` abilities add to the shot first.
+	# Round AA: BEFORE the cut-away, so the number on it is the number shot.
+	if shooter != null and shooter.data != null:
+		shot_power += abilities.fire_on_shot(shooter.data, shooter.is_enemy)
+	_apply_keeper_changes()
+
 	# --- 2. The shootout cut-away, showing the numbers BEFORE the shot ---
 	if shootout != null:
 		shootout.play_shot({
@@ -5294,18 +5322,17 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 			"keeper_data": keeper.data,
 			"keeper_stamina": keeper.current_stamina,
 			"keeper_max": keeper.max_stamina,
+			"chance_shift": keeper.chance_shift,
+			"shield": keeper.shield,
 		})
 		await shootout.view_closed
 
 	# --- 3. Decide the outcome, THEN show it ---
-	# ROUND Y (C1): the shooter's `on_shot` abilities add to the shot first,
-	# and the keepers' sides hear how it went straight after.
-	if shooter != null and shooter.data != null:
-		shot_power += abilities.fire_on_shot(shooter.data, shooter.is_enemy)
 	var stamina_before := keeper.current_stamina
 	var scored := keeper.take_shot(shot_power)
 	abilities.after_shot(not shooter_is_player, scored)
 	_absorb_ability_news()
+	await _answer_ability_asks()
 	var stamina_spent := maxi(0, stamina_before - keeper.current_stamina)
 
 	# Report the shot and, if your keeper stopped it, the save. Both carry
@@ -5401,6 +5428,7 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 	# ROUND Y (C1): round_end, then this round's four go to the EXHAUST.
 	abilities.round_finished()
 	_absorb_ability_news()
+	await _answer_ability_asks()
 	round_resolved.emit(player_score, enemy_score)
 	current_state = MatchState.PLAYING
 
@@ -6092,7 +6120,8 @@ func _goal_kick(keeper_is_enemy: bool) -> void:
 ## LEFT is always your side and RIGHT always the enemy, whichever attacks.
 func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		attacker_is_enemy: bool, atk_before: int, atk_after: int,
-		def_before: int, def_after: int, attacker_wins: bool) -> void:
+		def_before: int, def_after: int, attacker_wins: bool,
+		atk_fired: Array = [], def_fired: Array = []) -> void:
 	if duel_arena == null:
 		return
 
@@ -6102,7 +6131,8 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		"priority": atk.get_ability_priority(),
 		"power_before": atk_before,
 		"power_after": atk_after,
-		"ability": _first_ability(atk.active_attack_ability()),
+		"ability": _shown_ability(atk.active_attack_ability(), atk_fired),
+		"fired": not atk_fired.is_empty(),
 		"printed": atk.get_attack_power(),
 		"wins": attacker_wins,
 	}
@@ -6112,7 +6142,8 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		"priority": def.get_ability_priority(),
 		"power_before": def_before,
 		"power_after": def_after,
-		"ability": _first_ability(def.active_defend_ability()),
+		"ability": _shown_ability(def.active_defend_ability(), def_fired),
+		"fired": not def_fired.is_empty(),
 		"printed": def.get_defense_power(),
 		"wins": not attacker_wins,
 	}
@@ -6142,6 +6173,16 @@ func _dress_card(card: PlayerCardUI, data: PlayerData) -> void:
 	card.set_marks(abilities.marks_for(data, false))
 	if abilities.emblem_reveal_for(data, false):
 		card.allow_show()
+
+
+## The row the duel window shows: one that WENT OFF in this duel if any did,
+## otherwise the first the cell names (and the window says it waited).
+func _shown_ability(cell: String, fired: Array) -> AbilityData:
+	for id_text in fired:
+		var hit := db.get_ability(String(id_text))
+		if hit != null:
+			return hit
+	return _first_ability(cell)
 
 
 ## The first row an ability cell names - a cell may name several, semicolons
@@ -6240,6 +6281,13 @@ func _goal_mouth(keeper_is_enemy: bool) -> Vector2:
 ## point of "they place their emblem when they come into the field".
 func _my_cards() -> Array[PlayerData]:
 	var out: Array[PlayerData] = []
+	# ROUND AA: AN EMBLEM IS ON THE FIELD ONLY WHILE ITS STAR IS. "When the
+	# star player leaves, it takes their emblem with them and the new star
+	# player brings their own." `emblem_follows_star` FALSE puts back all three.
+	if db == null or db.tune_bool("emblem_follows_star", true):
+		if active_player_star != null:
+			out.append(active_player_star)
+		return out
 	for star in player_star_bundle:
 		if star != null and not out.has(star):
 			out.append(star)
@@ -6339,9 +6387,15 @@ func _refresh_ref_bar() -> void:
 var match_tracker: MatchTracker = null
 
 
-## The Stars a side brought - the three in its bundle and whoever is on now.
+## The Stars whose Emblems are on the field for a side. Round AA: only the
+## one on the pitch now (`emblem_follows_star`).
 func _stars_of(side_is_enemy: bool) -> Array[PlayerData]:
 	var out: Array[PlayerData] = []
+	var on_pitch: PlayerData = active_enemy_star if side_is_enemy else active_player_star
+	if db == null or db.tune_bool("emblem_follows_star", true):
+		if on_pitch != null:
+			out.append(on_pitch)
+		return out
 	var bundle: Array[PlayerData] = enemy_star_bundle if side_is_enemy else player_star_bundle
 	for star in bundle:
 		if star != null and not out.has(star):
@@ -6358,7 +6412,18 @@ func _arm_abilities() -> void:
 	if abilities == null:
 		return
 	for side in [false, true]:
-		abilities.set_emblems(side, EmblemBook.on_the_field(_stars_of(side)))
+		var badges: Array = []
+		for badge in EmblemBook.on_the_field(_stars_of(side)):
+			# ROUND AA: once ONE Emblem has turned over, the others are locked
+			# and do nothing - not even their Basic side. Yours only; the
+			# other side's race is not kept.
+			if not side and state != null and EmblemBook.is_locked(badge, state) \
+					and db.tune_bool("emblem_locked_is_inactive", true):
+				continue
+			badges.append(badge)
+		abilities.set_emblems(side, badges)
+	# YOU ARE ASKED only when you are playing it yourself.
+	abilities.interactive = {false: not _auto_is_on(), true: false}
 	abilities.sync_field(_cards_of_side(false), _cards_of_side(true))
 
 
@@ -6389,3 +6454,100 @@ func _absorb_ability_news() -> void:
 		match_tracker = MatchTracker.open(self, abilities)
 	elif match_tracker != null:
 		match_tracker.refresh()
+
+
+# =============================================================
+#  ROUND AA - THE KEEPERS, AND ASKING YOU
+# =============================================================
+
+## Everything abilities queued for the keepers: stamina, shields, and the
+## shift on how likely each is to be beaten (phase C3).
+func _apply_keeper_changes() -> void:
+	if abilities == null:
+		return
+	for change in abilities.take_pending_stamina():
+		var keeper: GoalieUnit = goalies.get(bool(change["enemy_side"]))
+		if keeper == null:
+			continue
+		if change.has("shield"):
+			keeper.add_shield(int(change["shield"]))
+		elif change.has("clear_shields"):
+			keeper.clear_shields()
+		else:
+			keeper.adjust_stamina(int(change["delta"]))
+	for side in [false, true]:
+		var keeper: GoalieUnit = goalies.get(side)
+		if keeper != null:
+			keeper.chance_shift = abilities.keeper_shift(side)
+			keeper._refresh_plate()
+
+
+## BEFORE A DUEL: your abilities in it that cost Ore or need a yes.
+func _ask_duel_questions(mine: PlayerData, theirs: PlayerData, i_attack: bool) -> void:
+	if abilities == null or mine == null:
+		return
+	var role := "attack" if i_attack else "defend"
+	var questions := abilities.duel_questions(mine, false, role, theirs, true)
+	if questions.is_empty():
+		return
+	freeze_play(true)
+	for ability in questions:
+		var title := "SPEND ORE?" if ability.cost_kind == "ore" else "USE IT?"
+		var yes_words := ("Spend %d Ore" % ability.cost_amount) if ability.cost_kind == "ore" else "Yes"
+		var body := "%s (%s)\n\n%s\n\nYour Ore: %d" % [mine.player_name, role,
+			ability.plain(), abilities.pool(false, "ore")]
+		var options: Array[String] = [yes_words, "No"]
+		var picked := await ChoiceWindow.ask(self, title, body, options)
+		abilities.consent(mine, false, ability.id, picked == 0)
+	freeze_play(false)
+
+
+## AFTER A MOMENT: the questions the engine is holding. `ask_you` false (or
+## AUTO on) answers each with its default and shows nothing.
+func _answer_ability_asks(ask_you: bool = true) -> void:
+	if abilities == null:
+		return
+	var asks := abilities.take_asks()
+	if asks.is_empty():
+		return
+	var froze := false
+	for ask in asks:
+		if not ask_you or bool(ask["side"]) or _auto_is_on():
+			abilities.answer_default(ask)
+			continue
+		if not froze:
+			freeze_play(true)
+			froze = true
+		match String(ask["kind"]):
+			"confirm":
+				var a: AbilityData = ask["ability"]
+				var title := "SPEND ORE?" if a.cost_kind == "ore" else "YOUR CHOICE"
+				var yes_words := "Yes"
+				if a.effect == "makeswan":
+					title = "BECOME A SWAN?"
+					yes_words = "Transform %s" % (ask["card"] as PlayerData).player_name
+				var options: Array[String] = [yes_words, "No"]
+				var picked := await ChoiceWindow.ask(self, title, String(ask["text"]), options)
+				abilities.answer(ask, picked == 0)
+			"pick":
+				var options: Array[String] = []
+				var notes: Array[String] = []
+				var cards: Array = ask["options"]
+				for c in cards:
+					var card := c as PlayerData
+					options.append("%s   (Tier %s, power %d, %s)" % [card.player_name, card.get_tier_clean(),
+						card.get_attack_power(), abilities.zone_of(card, 0)])
+					notes.append(card.defend_text if card.defend_text != "" else card.attack_text)
+				var picked := await ChoiceWindow.ask(self, "%s UNIT TOKEN" % String(ask["token"]).to_upper(),
+					String(ask["text"]) + "\nThe unit you pick waits in the exhaust, where its \"While in exhaust\" side works.",
+					options, notes)
+				abilities.answer(ask, cards[clampi(picked, 0, cards.size() - 1)])
+			"side":
+				var card: PlayerData = ask["card"]
+				var options: Array[String] = ["ATTACK side: " + card.attack_text, "DEFEND side: " + card.defend_text]
+				var picked := await ChoiceWindow.ask(self, "WHICH SIDE STAYS UP?",
+					String(ask["text"]) + "\nThe other side does nothing until the cycle ends.", options)
+				abilities.answer(ask, "attack" if picked == 0 else "defend")
+	if froze:
+		freeze_play(false)
+	_absorb_ability_news()

@@ -299,6 +299,15 @@ static func card_bump(side_is_enemy: bool, own_fouls: int, db: CardDatabase,
 	return clampf(bump, 0.0, 100.0)
 
 
+## ROUND AA (phase C3): an ability put `n` SEGMENTS on his bar against that
+## side (ruling R09: one segment of the yellow bar per +1).
+static func add_heat(side_is_enemy: bool, n: float, db: CardDatabase) -> void:
+	if not on(db) or n <= 0.0:
+		return
+	var ref := on_duty(db)
+	_heat[side_is_enemy] = minf(float(_heat[side_is_enemy]) + n, float(ref["segments"]))
+
+
 ## A foul he did NOT see. It still fills the bar — and by a lot, because
 ## getting away with one is exactly when he starts paying attention.
 static func got_away_with_it(side_is_enemy: bool, db: CardDatabase) -> void:

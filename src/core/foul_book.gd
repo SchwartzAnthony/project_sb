@@ -139,9 +139,12 @@ static func odds_at(triggers: int) -> Dictionary:
 
 
 ## Roll it. Returns "" for no foul, or "free kick", "yellow" or "red".
-static func roll(triggers: int) -> String:
+##
+## `extra` (round AA): + % from abilities - "increase enemy % of committing a
+## foul by 5%" (foul_chance in Abilities.csv).
+static func roll(triggers: int, extra: float = 0.0) -> String:
 	var odds := odds_at(triggers)
-	if randf() * 100.0 >= float(odds["chance"]):
+	if randf() * 100.0 >= clampf(float(odds["chance"]) + extra, 0.0, 100.0):
 		return ""
 	var card := randf() * 100.0
 	if card < float(odds["red"]):

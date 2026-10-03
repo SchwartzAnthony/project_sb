@@ -2,7 +2,7 @@ ID,Kind,Keyword,Text,Element,Class,Set,Tier,Side,Weight,Notes
 t_reveal,trigger,reveal,Reveal,*,*,*,*,both,3,"EVERY UNIT ABILITY IS A TRIGGER AND AN EFFECT, joined by a colon - which is exactly how you already write them: ""If you control a token: Deal 1 damage to the enemy goalie"". That is why they can be rolled. This file is the two halves, and the New Class wizard in the workbench draws one of each."
 t_wins,trigger,wins,If this wins,*,*,*,*,both,3,
 t_defending,trigger,defending,If Defending,*,*,*,*,defend,3,
-t_exile,trigger,exile,While in exile,*,*,*,*,defend,2,
+t_exile,trigger,exile,While in exhaust,*,*,*,*,defend,2,
 t_push_wins,trigger,push,Give this unit +{n} power during combat. If this wins,*,*,*,*,attack,2,A COMPOUND TRIGGER - it pays something out before it asks its question. Worth one or two in a set; a whole set of them reads the same.
 t_token,trigger,token,If you control a {token},*,*,*,*,both,3,"{token} IS THE SET'S OWN WORD. Every Emblem names one in the Token column of its Emblems file - Rose Unit, Swan, Song counter, burn counter, Teufel Mask - and it is filled in when the ability is rolled. That single placeholder is what makes nine units read as a set that belongs together rather than nine units that happen to share a class."
 t_has_counter,trigger,counter,If this has a {token},*,*,*,*,both,3,
@@ -25,12 +25,12 @@ e_collect,effect,collect,Add +{n} power to the damage collection,*,*,*,*,attack,
 e_goalie_stamina,effect,keeper,Give your goalie {n} stamina after Tier {tier} combat,*,*,*,*,defend,1,
 e_reveal_another,effect,reveal,Reveal another unit card.,*,*,*,*,both,1,
 e_give_token,effect,token,Give the next Tier {tier} {element} ally a {token},*,*,*,*,both,3,"THE ENGINE LINE. Roughly a third of a set should MAKE its token and another third should SPEND it, or the Emblem's Condition never fills and the Ultimate is decoration."
-e_make_token,effect,token,Send this unit to exile and replace it with a {token} (same attack power),*,*,*,*,both,2,
+e_make_token,effect,token,Send this unit to the exhaust and replace it with a {token} (same attack power),*,*,*,*,both,2,
 e_token_dmg,effect,token,Your next {token} deals {n} damage to the enemy goalie,*,*,*,*,attack,2,
 e_token_up,effect,token,Your next {token} has +{n} power during combat,*,*,*,*,both,2,
 e_swap_token,effect,token,Swap the attack of the {token} with this unit's power,*,*,*,*,both,1,
 e_remove_token,effect,token,Remove a {token},*,*,*,*,both,2,
 e_fuse,effect,fuse,Can be fused. This unit fuses itself with a Tier {tier} {element} unit from outside of the game,FIRE,*,*,*,both,2,"FIRE'S OWN LINE. Element = FIRE, so it is never rolled for a water set. That column is how a class keeps its voice while everything else is shared."
 e_fuse_boost,effect,fuse,Can be fused. Give the next {element} ally +{n} damage during combat,FIRE,*,*,*,both,2,
-e_exile_swap,effect,exile,"Double its attack for its next combat, then swap a card from exile of the same Tier",WATER,*,*,*,attack,1,
+e_exile_swap,effect,exile,"Double its attack for its next combat, then swap a card from the exhaust of the same Tier",WATER,*,*,*,attack,1,
 e_foul_coin,effect,foul,"If you cause a foul, instead flip a coin to see if the enemy gets it instead",*,*,*,*,defend,1,

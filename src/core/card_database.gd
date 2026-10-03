@@ -457,6 +457,8 @@ func _read_abilities(rows: Array, columns: Dictionary, source: String) -> void:
 		else:
 			ability.max_uses = maxi(0, int(max_text)) if max_text.is_valid_int() else 0
 		ability.condition = _cell(row, columns, "if")
+		# ROUND AA: the Ask column - `yes` asks the player first.
+		ability.ask = _cell(row, columns, "ask").strip_edges().to_lower() in ["yes", "true", "1", "ask"]
 
 		var complaint := ability.validate()
 		if complaint != "":

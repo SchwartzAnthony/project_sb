@@ -226,11 +226,19 @@ func _fire_ability(key: String, data: Dictionary) -> void:
 
 	if ability_label:
 		ability_label.text = _ability_text(ability)
-		# RULING F4: a priority that is not the card's power is shown.
+		# RULING F4 / Q7: priority is its own number, shown when it is not the
+		# card's power or when the power it fights with moved.
 		var card = data.get("card")
-		if card != null and int(data.get("priority", 0)) != int(data.get("printed", data.get("priority", 0))):
+		var printed := int(data.get("printed", data.get("priority", 0)))
+		if card != null and (int(data.get("priority", 0)) != printed \
+				or int(data.get("power_after", printed)) != printed):
 			ability_label.text += "\npriority %d" % int(data.get("priority", 0))
 		ability_label.add_theme_color_override("font_color", LIVE_TEXT)
+		# ROUND AA: did it actually go off? One whose If was not met, or
+		# whose Ore you kept, is shown dim with "not this time".
+		if data.has("fired") and not bool(data.get("fired", true)):
+			ability_label.text += "\n(not this time)"
+			ability_label.add_theme_color_override("font_color", DIM_TEXT)
 
 	_play_anim(key, data.get("card"), "ability")
 	await _beat(ability_seconds)

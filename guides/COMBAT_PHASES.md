@@ -1,4 +1,4 @@
-# Combat abilities — the plan (round Y · C2 built in round Z)
+# Combat abilities — the plan (round Y · C2 in round Z · C3 in round AA)
 
 > *"We need to go through each of the unique players and see if their
 > triggers work when they should (during attack/defend or in void, on the
@@ -128,8 +128,9 @@ C8. "Not written" means the six Ultimates you haven't written yet.
 
 **Running total of class abilities that work in a match** (the meter,
 `ability_coverage.gd`, counts the 228 Attack/Defend sides of the set cards and
-Stars' Front Sides): 1 before C1 → 33 after C1 → **103 after C2 (round Z)** →
-about 122 after C3 → 157 after C4 → 168 after C5 → 228 after C6. C7 and C8
+Stars' Front Sides): 1 before C1 → 33 after C1 → 103 after C2 (round Z) →
+**122 after C3 (round AA, 54%)** → about 157 after C4 → 168 after C5 → 228
+after C6. C7 and C8
 are the Emblems and Ultimates on top.
 
 ### Your rulings (answered in round Z) and what they changed
@@ -156,7 +157,25 @@ are the Emblems and Ultimates on top.
 | R15 | yes | C4 |
 | R16 | just +5% foul for the match, once per game | Nils's text rewritten; C3 |
 | R17 | during combat the exhaust zone **lights up** when a card in it can act; before the duel you may swap; only interrupt when someone has a choice | C5 (it is a screen) |
-| **R18** | NEW: "attack power during combat" = the power it fights with, either side? | read that way (round Z) |
+| **R18** | your answer was about **Sven**: if you control a token, choose one of the same tier and use its power, and show it on screen | Sven is C4. The Gerhard half is asked again as Q001 in `data/Questions.csv` |
+
+**Round AA answers** (your notes on the round Z READ ME):
+
+| | you said | built |
+|---|---|---|
+| Swans count as tokens | yes | `swans_count_as_tokens` stays on |
+| Rose tokens last | until a goal | a goal - either side's - sends every Rose home (`rose_tokens_end_on_goal`) |
+| who picks the Rose | the player | a window lists the units it can replace |
+| spending Ore | ask the player | asked before the duel (`ask_before_spending_ore`) |
+| Zepar's Swan | the player may say no | asked after the reveal (the `Ask` column = yes) |
+| power vs priority | two numbers; show priority when power moved | the card strip and the duel window show "priority N" |
+| burn | the set names were swapped in your file | Buer's set burns, Belphegor's set makes power counters |
+| F2 side choice | once per cycle | asked when a card goes to the exhaust, if both its sides work out there |
+| Gremory's pace | maybe too slow; must be usable once | **measured: it turns over at the very end of its cycle - see Questions Q013** |
+| emblems | only the Star on the pitch brings its Emblem; once one turns over the others are locked | `emblem_follows_star`, `emblem_locked_is_inactive` |
+
+**From now on every open question is in `data/Questions.csv`** (59 to start),
+not ten at a time in the READ ME. `python3 tools/questions.py` counts them.
 
 ---
 
@@ -237,7 +256,7 @@ The moments, the conditions and "the next one":
   (Bergmännlein, Lorelei, Rauhnacht) with no trouble - the Lorelei one made
   three Rose tokens and turned Gremory over.
 
-### C3 — The keeper and the referee · +19 → about 122 · NEXT
+### C3 — The keeper and the referee · 122 working · ✅ BUILT IN ROUND AA
 
 All five rulings it needed are in (R01, R02, R09, R10, R11, and R16):
 
@@ -252,15 +271,32 @@ All five rulings it needed are in (R01, R02, R09, R10, R11, and R16):
   round, R10), Nils (5%, the match, once per game, R16).
 - **The coin flip** (Manfred's Defend): "if you cause a foul, flip a coin to
   see if the enemy gets it instead".
-- On screen: the keeper's shield bar, the save % moving on the keeper's
-  label, and the referee bar taking a segment.
+- On screen: the keeper's label shows `(+5%)` and `shield 2`; the shot
+  window says "+5% from abilities"; the referee bar takes the segment.
+- A "for the round" keeper shift lasts **until the next shot**, and a "for
+  the round" foul shift **until the next fouls** - so a card that fires after
+  them (a save, the exhaust) still counts.
 
-### C4 — Bending the duel · +35
+**Also built in round AA, alongside C3:**
+
+- **The question window** (`src/ui/choice_window.gd`): Ore (before the duel),
+  Zepar's Swan, the Rose pick, which side stays up (F2). Only for your side,
+  never in AUTO.
+- **The duel window** shows the ability that really went off, a dim "(not
+  this time)" when its If was not met, and the If in words ("... if you
+  control a token").
+- **The clutter**: the emblem tile moved to the top right, and the emblem bar
+  and tracker sit UNDER the duel and shot windows.
+
+### C4 — Bending the duel · +35 · NEXT
 
 `switch_to_defender`, `always_defending`, `swap_power`, `use_enemy_power`,
 `force_ability` (attack / defend / other), `negate_ability`, `negate_buff`,
 `change_priority`, `give_priority`, `uncounterable`, `double_attack`,
-`power_from_count`. **Needs F1, F4, R15.**
+`power_from_count`, and **Sven's "use a token's power"** (your R18 answer:
+choose a token of the same tier, shown on screen). All the rulings it needs
+are in, plus Q045-Q053 in `data/Questions.csv` (priority, Luis, Nicole, Carl, René, Lothar,
+Susanne, Herbert).
 
 ### C5 — Zones in action, and the choices · +11
 
@@ -295,8 +331,8 @@ the Emblems. **Six Ultimates still need writing.**
 
 ## What I need from you
 
-1. **R18** in `data/AbilityRulings.csv` - "attack power during combat".
-2. The round Z questions in the READ ME (tokens, Ore spending, swans, the
-   side choice) - each has a default that is already playing.
+1. **`data/Questions.csv`** - 59 questions, each with the default that is
+   already playing. Q009 (the Emblem lock) and Q013 (Gremory's pace) matter
+   most.
 3. **The six unwritten Ultimates** (Bergmännlein and Unkengeister) and
    **Vassago's Token**, before C7/C8.

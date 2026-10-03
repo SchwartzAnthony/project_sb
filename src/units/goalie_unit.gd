@@ -70,6 +70,39 @@ func bite_of(shot_power: int) -> int:
 	return maxi(1, int(round(float(shot_power) * maxf(0.01, stamina_bite))))
 
 var current_stamina: int
+
+## ============ ROUND AA (phase C3): WHAT ABILITIES DO TO A KEEPER ============
+##
+## `chance_shift`: percentage points ADDED to the chance he is beaten (ruling
+## R02 - the %, never the stamina). Set by the match from the ability engine
+## before every shot; +5 = five points easier to score on him.
+##
+## `shield`: a second bar that empties BEFORE his stamina (ruling R11). Every
+## point of stamina he would lose - a shot's bite, a drain - comes off the
+## shield first.
+var chance_shift: float = 0.0
+var shield: int = 0
+
+
+## Add shields; `clear_shields()` takes them all off.
+func add_shield(n: int) -> void:
+	shield = maxi(0, shield + n)
+	_refresh_plate()
+
+
+func clear_shields() -> void:
+	shield = 0
+	_refresh_plate()
+
+
+## Stamina loss goes through the shield first. Returns what is left for the
+## stamina itself.
+func _through_shield(loss: int) -> int:
+	if loss <= 0 or shield <= 0:
+		return loss
+	var soaked := mini(shield, loss)
+	shield -= soaked
+	return loss - soaked
 var is_enemy: bool = false
 var data: GoalieData
 
@@ -171,9 +204,9 @@ func take_shot(shot_power: int) -> bool:
 	# So: roll against what was shown, then knock the wall down for next time.
 	# A shot that empties a keeper does not get the empty keeper's odds. The
 	# next one does, and it is a certainty.
-	var went_in := randf() < ShotOdds.odds(current_stamina, max_stamina, shot_power)
+	var went_in := randf() < shifted_odds(shot_power)
 
-	current_stamina = maxi(0, current_stamina - bite_of(shot_power))
+	current_stamina = maxi(0, current_stamina - _through_shield(bite_of(shot_power)))
 	if stamina_bar != null:
 		stamina_bar.value = current_stamina
 	if current_stamina == 0:
@@ -227,7 +260,12 @@ func _take_shot_the_old_way(shot_power: int) -> bool:
 func chance_of_goal(shot_power: int) -> float:
 	if not use_shot_odds:
 		return 100.0 * (open_goal_chance if current_stamina <= 0 else break_through_chance)
-	return ShotOdds.chance(current_stamina, max_stamina, shot_power)
+	return clampf(ShotOdds.chance(current_stamina, max_stamina, shot_power) + chance_shift, 0.0, 100.0)
+
+
+## The chance he is beaten as 0..1, with abilities' shift - what is rolled.
+func shifted_odds(shot_power: int) -> float:
+	return chance_of_goal(shot_power) / 100.0
 
 
 ## "8 – 18%", or a flat "100%" when the keeper is empty. What the pitch shows,
@@ -239,7 +277,13 @@ func chance_band() -> String:
 		top = int(db.tune_float("shot_power_shown", 5.0))
 	if not use_shot_odds:
 		return "%d%%" % int(round(chance_of_goal(0)))
-	return ShotOdds.band_text(current_stamina, max_stamina, top)
+	var band := ShotOdds.band_text(current_stamina, max_stamina, top)
+	# Round AA: abilities moved his %, and he may carry a shield.
+	if absf(chance_shift) >= 0.5:
+		band += "  (%+d%%)" % int(round(chance_shift))
+	if shield > 0:
+		band += "  shield %d" % shield
+	return band
 
 
 func _concede() -> void:
@@ -254,6 +298,8 @@ func _concede() -> void:
 
 ## Used by abilities (drain_stamina / restore_stamina from Abilities.csv).
 func adjust_stamina(delta: int) -> void:
+	if delta < 0:
+		delta = -_through_shield(-delta)
 	current_stamina = clampi(current_stamina + delta, 0, max_stamina)
 	if stamina_bar != null:
 		stamina_bar.value = current_stamina

@@ -18,6 +18,9 @@ extends RefCounted
 #              duel_lost, brew_drunk, match_ended, match_started,
 #              save_made, shot_taken, stamina_spent, player_turned,
 #              player_recruited
+#              and from the ability engine (rounds Z / AA): token_made,
+#              swan_made, counter_placed, ore_gained, ore_spent,
+#              emblem_basic, card_played
 #    When      optional filter. Blank means "every time".
 #    Amount    how much to add. Blank means 1. May also be a {fact}, so
 #              `{stamina}` adds however much stamina that shot actually cost.
@@ -51,6 +54,17 @@ extends RefCounted
 #                                  last of three beers - transform_book.gd)
 #    player_recruited              card, tier               (round X: a
 #                                  recruit: action - recruit_book.gd)
+#    token_made                    class, tier, card (the card REPLACED),
+#                                  kind (rose / swan), by
+#    swan_made                     class, tier, card, element
+#    counter_placed                kind (burn / song / power / victory),
+#                                  class, tier, card (who placed it), on,
+#                                  on_class
+#    ore_gained / ore_spent        class, tier, card, amount
+#    emblem_basic                  emblem (the Star's name), effect, class,
+#                                  tier, card - an Emblem's Basic side went off
+#    card_played                   class, tier, card, first (yes the first
+#                                  time that card plays this match)
 #
 #  THE `When` FILTER, semicolons between terms, all must pass:
 #    result=win        the fact equals this

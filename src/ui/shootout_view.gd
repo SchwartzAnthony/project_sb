@@ -165,7 +165,9 @@ func play_shot(info: Dictionary) -> void:
 	# IS ABOUT TO BE ROLLED — see take_shot() in goalie_unit.gd for why the
 	# order of operations there matters.
 	if _chance_value:
-		var percent := ShotOdds.chance(stamina, stamina_max, power)
+		# Round AA: abilities move the keeper's % (chance_shift, from the match).
+		var shift := float(info.get("chance_shift", 0.0))
+		var percent := clampf(ShotOdds.chance(stamina, stamina_max, power) + shift, 0.0, 100.0)
 		_chance_value.text = "%d%%" % int(round(percent))
 		_chance_value.add_theme_color_override("font_color", ShotOdds.colour_for(percent))
 		if _chance_note:
@@ -177,6 +179,10 @@ func play_shot(info: Dictionary) -> void:
 				_chance_note.text = "he cannot stop this"
 			else:
 				_chance_note.text = "%d of %d stamina left" % [stamina, stamina_max]
+			if absf(shift) >= 0.5:
+				_chance_note.text += "   %+d%% from abilities" % int(round(shift))
+			if int(info.get("shield", 0)) > 0:
+				_chance_note.text += "   shield %d" % int(info.get("shield", 0))
 
 	_dress_keeper(keeper_data)
 	_dress_striker(card, "idle")

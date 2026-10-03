@@ -42,7 +42,8 @@ static func open(on: Node, abilities: AbilityEngine) -> MatchTracker:
 		return null
 	var made := MatchTracker.new()
 	made.name = "MatchTracker"
-	made.layer = 80
+	# Round AA: under the duel and shot windows, like the emblem bar.
+	made.layer = db.tune_int("emblem_bar_layer", 18) if db != null else 18
 	made.engine = abilities
 	on.add_child(made)
 	made.refresh()

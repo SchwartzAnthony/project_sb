@@ -457,6 +457,46 @@ stories**. Soaks: `SOAK_CLASS=Lorelei` env var picks the class.
 
 **Next: C3** (keeper % / shield / foul heat / foul chance / coin flip). Then C4.
 
+## 12d. Round AA — DONE (phase C3 + the choices)
+
+**His answers to round Z:** swans count as tokens; Rose tokens last until a
+goal; the PLAYER picks which unit becomes a Rose, is asked before Ore is
+spent and before a Swan transformation; priority and power are two numbers
+(show priority when power moved); F2 side choice once per cycle; Gremory
+must be comfortably usable once. He swapped Buer/Belphegor Set Names in
+Unit_Set_Rauhnacht_Feuergeister.csv - BUT HIS FILE WAS AN OLD COPY: every name
+was "Unit Name" and the ability-ID columns and my exile->exhaust edits were
+gone. I merged by row: his Set Names and his "(once per cycle)" additions on
+the Sitri cards kept, names / exhaust wording restored, ID columns re-added
+by ability_rows.py. **Check for this every round** (diff his commits).
+His notes: emblems only while their Star is on the pitch, one ascension locks
+the rest; the combat screen was unreadable (bars over the duel window); he
+wants a questions FILE with no limit -> `data/Questions.csv` +
+`tools/questions.py`. Read it first every round.
+
+**Built:** C3 - `goalie_chance` (keeper_shift, until the next shot),
+`goalie_shield` / `remove_shields` (GoalieUnit.shield soaks stamina loss
+first), `foul_heat` (Referee.add_heat), `foul_chance` (FoulBook.roll extra,
+until the next fouls), `foul_coin_flip` (banked, spent in _settle_fouls).
+Asking: engine `interactive[side]` (player, AUTO off), `duel_questions()` +
+`consent()` before each duel, `take_asks()` / `answer()` / `answer_default()`
+after reveals, rounds, cycles; `ChoiceWindow.ask()` (src/ui/choice_window.gd).
+Abilities.csv `Ask` column. F2: `_side_up` per cycle, `OUTSIDE_DUEL`.
+`end_tokens("rose")` on any goal. Emblems: `_my_cards()` / `_stars_of()` =
+the Star on the pitch only (`emblem_follows_star`), locked emblems dropped
+from the engine (`emblem_locked_is_inactive`). Placeholder Stats rows that
+counted "every duel won" rewired (one had turned Haures over by accident -
+dangerous now that a turn-over locks the others). Duel window shows what
+fired. Emblem bar + tracker on layer 18 (under duel 20 / shot 21), emblem
+tile right-aligned. on_shot fires BEFORE the shot window now.
+
+**Measured:** coverage 122/228 (54%). ability_check 152 + Emblem stories +
+the asking stories. Soaks clean (Lorelei, Bergmännlein, Rauhnacht).
+**Gremory finding:** it turns over at the end of round 3 of its own cycle -
+zero rounds of Ultimate before the switch takes it off (Questions Q013).
+
+**Next: C4** (bending the duel, Sven's token power).
+
 ## 13. Ideas worth offering him
 
 - An `Ultimate In Short` column so the emblem bar and hover can show one line

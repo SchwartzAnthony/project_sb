@@ -41,10 +41,10 @@ AUDIT = os.path.join(DATA, "AbilityAudit.csv")
 OUT = os.path.join(DATA, "CardAbilities.csv")
 
 ## The phases the engine has finished. Each round adds the phase it built
-## (C1 in round Y, C2 in round Z).
-BUILT_PHASES = ["C1", "C2"]
+## (C1 in round Y, C2 in round Z, C3 in round AA).
+BUILT_PHASES = ["C1", "C2", "C3"]
 
-COLUMNS = ["Ability ID", "Name", "Trigger", "Target", "Effect", "Value", "Scope", "Max", "If", "Cost", "Notes"]
+COLUMNS = ["Ability ID", "Name", "Trigger", "Target", "Effect", "Value", "Scope", "Max", "If", "Cost", "Ask", "Notes"]
 SIDE_CODE = {"Attack": "A", "Defend": "D", "Star Front Side": "F"}
 
 
@@ -89,6 +89,8 @@ def rows_for(audit):
             "Max": audit["Max"],
             "If": nth(ifs, i),
             "Cost": nth(costs, i),
+            # Round AA: "you CAN ..." on a card asks you first.
+            "Ask": "yes" if " can " in (" " + audit["Text"].lower() + " ") and "can be fused" not in audit["Text"].lower() and "cannot" not in audit["Text"].lower() else "",
             "Notes": "MADE FROM THE CARD TEXT by tools/ability_rows.py - do not edit here; change the card (or a ruling) and re-run. Text: " + audit["Text"],
         })
         ids.append(ability_id)

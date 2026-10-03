@@ -146,6 +146,19 @@ const EFFECTS: Array[String] = [
 	"createtoken",    # create_token:rose - a Rose (or Swan) Unit token takes a
 	                  # card's place; the card goes to the exhaust and stays
 	"makeswan",       # the target becomes a Swan creature type for the match
+	# ---- ROUND AA, PHASE C3: the keeper and the referee ----
+	"goaliechance",   # +value PERCENTAGE POINTS on the chance that keeper is
+	                  # beaten (ruling R02: the %, never the stamina). -100 =
+	                  # he cannot be beaten. Scope round or match.
+	"goalieshield",   # +value shield on that keeper: a second bar that empties
+	                  # BEFORE his stamina (ruling R11)
+	"removeshields",  # every shield off that keeper
+	"foulheat",       # +value SEGMENTS of the referee's bar against that side
+	                  # (ruling R09)
+	"foulchance",     # +value % that side commits a foul (ruling R10, R16).
+	                  # Scope round or match
+	"foulcoinflip",   # the next foul YOUR side commits: a coin decides
+	                  # whether it is yours or theirs (Manfred)
 ]
 
 const SCOPES: Array[String] = ["duel", "round", "cycle", "match"]
@@ -181,6 +194,11 @@ var cost_amount: int = 0
 ## ROUND Z - a Max that counts for the whole SIDE rather than for one card:
 ## `2/cycle/side` (Belphegor's "only two per cycle").
 var max_shared: bool = false
+## ROUND AA - THE Ask COLUMN. `yes` = the player is asked before it goes off
+## ("you CAN transform" - Zepar). A row with a Cost is asked anyway, while
+## `ask_before_spending_ore` is on in Tuning.csv. The other side, and AUTO,
+## always say yes.
+var ask: bool = false
 
 # ============ THE CONDITION WORDS (round Y, phase C1) ============
 #
@@ -377,7 +395,50 @@ func describe() -> String:
 ## itself here with nothing to keep in step.
 func plain() -> String:
 	var pay := ("pay %d Ore, then " % cost_amount) if cost_kind == "ore" else ""
-	return "%s: %s%s%s." % [_when_words(), pay, _what_words(), _how_long_words()]
+	var only := ""
+	if condition.strip_edges() != "":
+		only = " if %s" % condition_words()
+	return "%s%s: %s%s%s." % [_when_words(), only, pay, _what_words(), _how_long_words()]
+
+
+## ROUND AA: the If column in words - "it has a burn counter and you control
+## a token". So the duel window can say what an ability is waiting for.
+func condition_words() -> String:
+	var parts: PackedStringArray = PackedStringArray()
+	for term in condition_terms(condition):
+		var arg := String(term["arg"])
+		var w := String(term["word"])
+		var said := ""
+		match w:
+			"defending": said = "it is defending"
+			"attacking": said = "it is attacking"
+			"won": said = "it won"
+			"lost": said = "it lost"
+			"lastallywon": said = "your last unit won"
+			"lastallylost": said = "your last unit lost"
+			"enemyelement": said = "the enemy is %s" % arg
+			"enemynotelement": said = "the enemy is not %s" % arg
+			"owngoalielower": said = "your keeper has less stamina"
+			"enemybelowbase": said = "the enemy is below its printed power"
+			"inexhaust": said = "it is in the exhaust"
+			"infield": said = "it is on the field"
+			"incombat": said = "it is in combat"
+			"hastag": said = "it is %s" % arg
+			"hascounter": said = ("it has a %s counter" % arg) if arg != "" else "it has a counter"
+			"enemyhascounter": said = ("the enemy has a %s counter" % arg) if arg != "" else "the enemy has a counter"
+			"hastoken": said = "you control a token"
+			"tokensatleast": said = "you control %s tokens" % arg
+			"isswan": said = "it is a Swan"
+			"istoken": said = "it is a token"
+			"orethisround": said = "you gained Ore this round"
+			"oreatleast": said = "you have %s Ore" % arg
+			"element": said = "it is %s" % arg
+			"exhaustedthisround": said = "%s units went to the exhaust this round" % arg.replace(":", " ")
+			_: said = String(term["raw"])
+		if bool(term["not"]):
+			said = "NOT " + said
+		parts.append(said)
+	return " and ".join(parts)
 
 
 func _when_words() -> String:
@@ -387,6 +448,13 @@ func _when_words() -> String:
 		"onduelstart": return "When its duel begins"
 		"onwinduel": return "When it wins its duel"
 		"oncounter": return "When it receives a counter"
+		"whileinexhaust": return "While in the exhaust, each duel"
+		"endofcycle": return "At the end of the cycle"
+		"aftercombat": return "After the combat"
+		"goaliesave": return "When your keeper saves"
+		"onshot": return "When shooting"
+		"contemplation": return "When it goes to the exhaust"
+		"rejuvenation": return "When it leaves the exhaust"
 		"reveal": return "When it is revealed"
 		"onloseduel": return "When it loses its duel"
 		"flip": return "When the cards are turned over"
@@ -398,6 +466,12 @@ func _when_words() -> String:
 
 func _what_words() -> String:
 	var who := _who_words()
+	# A keeper effect WAITING for a card: it lands when that card duels.
+	if effect in ["drainstamina", "restorestamina"] and not parse_next(target).is_empty():
+		var keeper := "their keeper" if effect == "drainstamina" else "your keeper"
+		var verb := "duel" if int(parse_next(target)["count"]) > 1 else "duels"
+		return "when %s %s, %d stamina %s %s" % [who, verb, value,
+			"off" if effect == "drainstamina" else "back to", keeper]
 	match effect:
 		"addattack": return "%+d attack to %s" % [value, who]
 		"adddefense": return "%+d defence to %s" % [value, who]
@@ -410,6 +484,12 @@ func _what_words() -> String:
 		"gainore": return "+%d Ore for your side" % value
 		"createtoken": return "a %s Unit token takes the place of %s" % [effect_arg.capitalize(), who]
 		"makeswan": return "%s becomes a Swan" % who
+		"goaliechance": return "%+d%% to beat %s" % [value, who]
+		"goalieshield": return "+%d shield on %s" % [value, who]
+		"removeshields": return "every shield off %s" % who
+		"foulheat": return "+%d on the referee's bar against them" % value
+		"foulchance": return "+%d%% that they commit a foul" % value
+		"foulcoinflip": return "your next foul is a coin toss"
 	return "%s %+d to %s" % [effect, value, who]
 
 
@@ -427,6 +507,30 @@ func _who_words() -> String:
 		"allenemies": return "the whole other side"
 		"enemygoalie": return "the keeper it shoots at"
 		"owngoalie": return "its own keeper"
+	# Round AA: "the next one" targets in words, for the duel window.
+	var next := parse_next(target)
+	if not next.is_empty():
+		var kind_words := String(next["filter"]).replace("+", " ").replace(" i", " Tier I").replace(" ii", " Tier II") \
+			.replace(" iii", " Tier III").replace(" iv", " Tier IV")
+		if kind_words in ["i", "ii", "iii", "iv"]:
+			kind_words = "Tier " + kind_words.to_upper()
+		var unit := ("%s unit" % kind_words) if kind_words != "" else "unit"
+		var many := int(next["count"])
+		match String(next["kind"]):
+			"next_self": return "itself, in its next duel"
+			"next_enemy": return "the next enemy %s" % unit
+			"next_tier_ally": return "your next unit played (if %s)" % kind_words if kind_words != "" else "your next unit played"
+			"ally": return "your %s this round" % unit
+		return ("your next %d %ss" % [many, unit]) if many > 1 else "your next %s" % unit
+	if target.begins_with("replace:"):
+		var f := target.substr(8).replace("+", " ")
+		for t in ["iv", "iii", "ii", "i"]:
+			if f.ends_with(" " + t):
+				f = f.substr(0, f.length() - t.length()) + "Tier " + t.to_upper()
+				break
+		return "one of your %s units" % f
+	if CardDatabase._normalise(target) == "side":
+		return "your side"
 	if target.begins_with("tag:"):
 		return "every %s on its side" % target.substr(4)
 	if target.begins_with("tier:"):

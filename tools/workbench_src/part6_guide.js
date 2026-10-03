@@ -500,6 +500,17 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("The keeper, the referee, and being asked (round AA, phase C3)", `
+    <p style="margin:0 0 10px"><b>122 of your 228 class abilities work in a match</b> (54%). <b>All my questions are in Questions.csv</b> now - answer there.</p>
+    ${rows([
+      ["keeper %","<code>goalie_chance</code>: percentage points on how likely a keeper is beaten - until the next shot. Shown as (+5%) on the keeper"],
+      ["shield","<code>goalie_shield</code>: a bar that empties before his stamina"],
+      ["referee","<code>foul_heat</code> (bar segments), <code>foul_chance</code> (+% to foul), Manfred's coin flip"],
+      ["asked","before a duel: spend Ore? After a reveal: become a Swan? After a round: which unit becomes the Rose, which side stays up. Never in AUTO"],
+      ["emblems","only the Star on the pitch brings its Emblem; once one turns over, the others are locked"],
+      ["Roses","go home at a goal"],
+    ])}`);
+
   card("Counters, Ore, tokens and swans (round Z, phase C2)", `
     <p style="margin:0 0 10px"><b>103 of your 228 class abilities work in a match now</b> (45%, up from 33) - and five Emblems' Basic sides play.</p>
     ${rows([
@@ -515,8 +526,8 @@ function paintBook(){
     <p style="margin:0 0 10px"><b>Every ability text is read</b> into engine words in <b>AbilityAudit.csv</b>, and the open questions are in <b>AbilityRulings.csv</b>, once each. guides/COMBAT_PHASES.md has the timing chart and the phases.</p>
     ${rows([
       ["C1 · built","zones (field, combat, exhaust), the new moments, the <code>If</code> column, \u201cthe next one\u201d, one side per duel"],
-      ["C2 · built","counters, tokens, Ore, swans, five Emblem Basic sides. <b>103 abilities work</b>"],
-      ["C3","the keeper and the referee - +18"],
+      ["C2 · built","counters, tokens, Ore, swans, five Emblem Basic sides"],
+      ["C3 · built","the keeper and the referee, and the question windows. <b>122 abilities work</b>"],
       ["C4","bending the duel - +33"],
       ["C5","exile and the other zones - +17"],
       ["C6","mines, fusing, the ball, gravestones - +60"],

@@ -52,7 +52,9 @@ static func open(on: Node, cards: Array[PlayerData], save: GameState) -> EmblemB
 		return null
 	var made := EmblemBar.new()
 	made.name = "EmblemBar"
-	made.layer = 80
+	# ROUND AA: UNDER THE DUEL AND SHOT WINDOWS (layers 20 and 21), so a duel
+	# is never read through the bar. `emblem_bar_layer` in Tuning.csv.
+	made.layer = db.tune_int("emblem_bar_layer", 18) if db != null else 18
 	made.squad = cards
 	made.state = save
 	on.add_child(made)
@@ -78,7 +80,15 @@ func _ready() -> void:
 
 	_row = HBoxContainer.new()
 	_row.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	# ROUND AA: TO THE RIGHT by default, under the clock - the middle of the
+	# screen belongs to the ATTACKING / DEFENDING banner during the draft, and
+	# the two were drawn on top of each other. `emblem_bar_align`: left,
+	# centre or right.
+	var align := db.tune_text("emblem_bar_align", "right").to_lower() if db != null else "right"
+	_row.alignment = BoxContainer.ALIGNMENT_END if align == "right" \
+		else (BoxContainer.ALIGNMENT_BEGIN if align == "left" else BoxContainer.ALIGNMENT_CENTER)
+	_row.offset_right = -16.0
+	_row.offset_left = 16.0
 	_row.add_theme_constant_override("separation", 10)
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.add_child(_row)

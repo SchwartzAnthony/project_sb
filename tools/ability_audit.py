@@ -205,8 +205,8 @@ DO_RULES = [
     (r"add \+(\d) to goalie shield", "goalie_shield", "own_goalie", r"\1", "match"),
     (r"remove any shields on the enemy goalie", "remove_shields", "enemy_goalie", "1", "now"),
     (r"increase enemy goalie % (chance )?by (\d)%", "goalie_chance", "enemy_goalie", r"\2", "round"),
-    (r"increase (\d)% on enemy chance", "goalie_chance", "enemy_goalie?", r"\1", "round"),
-    (r"increase 5% on enemy chance", "goalie_chance", "enemy_goalie?", "5", "round"),
+    # RULING R02: "enemy chance" = how likely THEIR keeper is to be beaten.
+    (r"increase (\d)% on enemy chance", "goalie_chance", "enemy_goalie", r"\1", "round"),
     (r"incease the enemy goalie miss by (\d)%", "goalie_chance", "enemy_goalie", r"\1", "round"),
     (r"increase enemy goalie % of missing by (\d)%", "goalie_chance", "enemy_goalie", r"\1", "round"),
     (r"decrease goalie % of missing by -?(\d)%", "goalie_chance", "own_goalie", r"-\1", "round"),

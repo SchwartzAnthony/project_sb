@@ -184,6 +184,19 @@ func _check(card: PlayerData, slot: String, ability: AbilityData, db: CardDataba
 			_prepare(engine, card, opp, ability)
 			ore_before = engine.pool(me, "ore")
 			engine.fire_reveal(card, me)
+		"contemplation":
+			# It plays its round and goes to the exhaust - that is the moment.
+			engine.round_lineups([card], [opp])
+			engine.begin_round()
+			_prepare(engine, card, opp, ability)
+			ore_before = engine.pool(me, "ore")
+			engine.begin_duel(card, opp)
+			if slot == "attack":
+				engine.resolve_duel_abilities(card, me, opp)
+			else:
+				engine.resolve_duel_abilities(opp, true, card)
+			engine.take_pending_stamina()
+			engine.round_finished()
 		"whileinexhaust", "endofcycle", "aftercombat":
 			# It plays a round first, in its own role, and goes to the exhaust.
 			engine.round_lineups([card], [opp])
@@ -312,6 +325,28 @@ func _check(card: PlayerData, slot: String, ability: AbilityData, db: CardDataba
 		"gainore":
 			landed = engine.pool(me, "ore") >= ability.value
 			why = "the Ore pool holds %d" % engine.pool(me, "ore")
+		# ---- round AA, C3: the keeper and the referee ----
+		"goaliechance":
+			var keeper_side := CardDatabase._normalise(ability.target) != "owngoalie"
+			var shift := engine.keeper_shift(keeper_side)
+			landed = is_equal_approx(shift, float(ability.value))
+			why = "the %s keeper's shift is %+.0f%%, not %+d%%" % ["enemy" if keeper_side else "own", shift, ability.value]
+		"goalieshield", "removeshields":
+			var want := "shield" if ability.effect == "goalieshield" else "clear_shields"
+			for change in stamina:
+				if (change as Dictionary).has(want):
+					landed = true
+			why = "no %s change reached a keeper" % want
+		"foulheat":
+			var heat := engine.take_heat(true)
+			landed = heat >= float(ability.value)
+			why = "the referee's bar against them got %.1f" % heat
+		"foulchance":
+			landed = engine.foul_shift(true) >= float(ability.value)
+			why = "their foul chance moved %+.0f%%" % engine.foul_shift(true)
+		"foulcoinflip":
+			landed = engine.coin_flips(me) == 1
+			why = "no coin flip banked"
 		"createtoken":
 			engine.round_finished()
 			var swaps := engine.take_swaps()
@@ -416,6 +451,7 @@ func _events_named(engine: AbilityEngine, event: String) -> int:
 
 func _check_emblems(db: CardDatabase) -> void:
 	var opp := _dummy("Opponent", "I", 1, "Earth", "Normal")
+	_check_asks(db)
 
 	# ---- ZEPAR: a water unit revealed becomes a Swan, and a Swan is +1 ----
 	var zepar := _badge("Zepar")
@@ -542,3 +578,120 @@ func _check_emblems(db: CardDatabase) -> void:
 		e.round_lineups([c, d], [opp])
 		e.round_finished()
 		_say(e.take_swaps().size() == 1, "Gremory's Emblem: and again next round", "no token in the next round")
+
+
+# =============================================================
+#  ASKING YOU (round AA) - the answers change what happens
+# =============================================================
+
+func _check_asks(db: CardDatabase) -> void:
+	var opp := _dummy("Opponent", "I", 1, "Earth", "Normal")
+	# ---- Ore: asked before the duel; NO keeps the Ore ----
+	var erich: PlayerData = null
+	for card in db.players:
+		if card.player_name == "Erich":
+			erich = card
+	if erich != null:
+		for answer_yes in [true, false]:
+			var e := AbilityEngine.new(db)
+			e.begin_match()
+			e.interactive = {false: true, true: false}
+			e.sync_field([erich], [opp])
+			e.round_lineups([erich], [opp])
+			e.begin_round()
+			e.add_to_pool(false, "ore", 5)
+			e.begin_duel(erich, opp)
+			var asked := e.duel_questions(erich, false, "defend", opp, true)
+			for a in asked:
+				e.consent(erich, false, a.id, answer_yes)
+			e.resolve_duel_abilities(opp, true, erich)
+			var spent := 5 - e.pool(false, "ore")
+			_say(asked.size() == 1 and spent == (2 if answer_yes else 0),
+				"Ore is asked before the duel, and %s" % ("YES spends it" if answer_yes else "NO keeps it"),
+				"asked %d question(s), %d Ore spent" % [asked.size(), spent])
+	# ---- Zepar: asked AFTER the reveal; no = no Swan ----
+	var zepar := _badge("Zepar")
+	if zepar != null:
+		for answer_yes in [true, false]:
+			var e := AbilityEngine.new(db)
+			e.begin_match()
+			e.interactive = {false: true, true: false}
+			var water := _dummy("Wave", "I", 1, "Water", "Lorelei")
+			e.set_emblems(false, [zepar])
+			e.sync_field([water], [opp])
+			e.fire_reveal(water, false)
+			var before := e.is_kind(water, false, "swan")
+			var asks := e.take_asks()
+			for a in asks:
+				e.answer(a, answer_yes)
+			_say(not before and asks.size() == 1 and e.is_kind(water, false, "swan") == answer_yes,
+				"Zepar asks before the Swan, and %s" % ("yes transforms" if answer_yes else "no does not"),
+				"swan before the answer %s, %d ask(s), swan after %s" % [before, asks.size(), e.is_kind(water, false, "swan")])
+	# ---- Gremory: YOU pick which unit becomes the Rose ----
+	var gremory := _badge("Gremory")
+	if gremory != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		e.interactive = {false: true, true: false}
+		var a := _dummy("Brook", "I", 0, "Water", "Lorelei")
+		var b := _dummy("Rill", "II", 2, "Water", "Lorelei")
+		var weak := _dummy("Spring", "I", 0, "Water", "Lorelei")
+		var strong := _dummy("Fountain", "I", 2, "Water", "Lorelei")
+		e.set_emblems(false, [gremory])
+		e.sync_field([a, b, weak, strong], [opp])
+		e.begin_round()
+		e.round_lineups([a, b], [opp])
+		e.round_finished()
+		var asks := e.take_asks()
+		var picked_ok := false
+		for ask in asks:
+			if String(ask["kind"]) == "pick":
+				picked_ok = (ask["options"] as Array).has(strong)
+				e.answer(ask, strong)
+		var swaps := e.take_swaps()
+		_say(picked_ok and swaps.size() == 1 and swaps[0]["old"] == strong,
+			"Gremory: you choose which unit the Rose replaces",
+			"asks %d, swaps %d" % [asks.size(), swaps.size()])
+		# ---- and a goal sends it home ----
+		e.after_shot(true, true)
+		var back := e.take_swaps()
+		_say(back.size() == 1 and back[0]["new"] == strong and e.token_count(false) == 0 \
+				and e.zone_of(strong, 0) != "",
+			"A goal sends the Rose token home and the unit walks back on",
+			"%d swap(s) back, tokens left %d" % [back.size(), e.token_count(false)])
+	# ---- F2: the side that stays up in the exhaust ----
+	var both: PlayerData = null
+	for card in db.players:
+		if both == null and _outside(card.active_attack_ability(), db) and _outside(card.active_defend_ability(), db):
+			both = card
+	if both != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		e.interactive = {false: true, true: false}
+		e.sync_field([both], [opp])
+		e.round_lineups([both], [opp])
+		e.begin_round()
+		e.begin_duel(both, opp)
+		e.resolve_duel_abilities(both, false, opp)        # it attacked
+		e.round_finished()
+		var asks := e.take_asks()
+		var side_ask: Dictionary = {}
+		for ask in asks:
+			if String(ask["kind"]) == "side":
+				side_ask = ask
+		if not side_ask.is_empty():
+			e.answer(side_ask, "defend")
+		_say(not side_ask.is_empty() and e.side_up(both, false) == "defend",
+			"%s: you choose which side stays up in the exhaust (F2)" % both.player_name,
+			"asked %s, side up now %s" % [not side_ask.is_empty(), e.side_up(both, false)])
+		e.begin_cycle()
+		_say(e.side_up(both, false) != "defend" or e.cycle_number == 1,
+			"...and it is asked again next cycle", "the choice outlived its cycle")
+
+
+func _outside(cell: String, db: CardDatabase) -> bool:
+	for piece in cell.split(";"):
+		var a := db.get_ability(String(piece).strip_edges())
+		if a != null and AbilityEngine.OUTSIDE_DUEL.has(a.trigger):
+			return true
+	return false

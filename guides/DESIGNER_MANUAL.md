@@ -1604,6 +1604,40 @@ is two rows with two moments (`on_attack`, then `on_win_duel`).
   number printed on it, and "priority 2" when its priority is not its power
   (ruling F4).
 
+### Combat abilities — round AA, phase C3: the keeper, the referee, and being asked
+
+**122 of 228 class abilities work in a match now** (54%).
+
+| new in Abilities.csv | what it does |
+|---|---|
+| `goalie_chance` | Value **percentage points** on how likely that keeper is to be beaten (ruling R02 - the %, never the stamina). `enemy_goalie` = easier for you to score; `own_goalie` with a minus = harder for them. Scope `round` = until the next shot; `match` = all match |
+| `goalie_shield` | Value shields on that keeper: a second bar that empties **before** his stamina (R11). A shot's bite and a drain both come off the shield first |
+| `remove_shields` | every shield off that keeper |
+| `foul_heat` | Value **segments** of the referee's bar against the other side (R09), at the next fouls |
+| `foul_chance` | +Value % that the other side commits a foul (R10, R16). `round` = the next fouls only |
+| `foul_coin_flip` | the next foul your side commits is a coin toss - heads, it goes to the other side (Manfred) |
+| **`Ask` column** | `yes` = you are asked before it goes off ("you CAN transform"). Rows with a Cost are asked anyway (`ask_before_spending_ore`) |
+
+**You are asked, from now on** - only when there is a real choice, only for
+your side, and never in AUTO:
+
+| when | the question |
+|---|---|
+| before a duel | "SPEND ORE?" for each of your abilities in it that could pay a Cost |
+| after a reveal | "BECOME A SWAN?" (Zepar) |
+| after a round | "ROSE UNIT TOKEN - which one?" (Gremory) and "WHICH SIDE STAYS UP?" for a card going to the exhaust whose two sides both work out there (ruling F2, once per cycle) |
+
+`choice_window_seconds` makes a question answer itself after a while. The
+other side and AUTO take the defaults (yes / the engine's pick / the side it
+last played).
+
+**The duel window** now shows the ability that really went off, "(not this
+time)" when its If was not met (or you kept your Ore), the If in words, and
+"priority N" whenever the power it fights with moved.
+
+**Rose tokens go home at a goal** (`rose_tokens_end_on_goal`), and the units
+they replaced walk back on.
+
 ### `data/Abilities.csv` — what a player does in a duel
 
 | Column | |
@@ -1618,6 +1652,7 @@ is two rows with two moments (`on_attack`, then `on_win_duel`).
 | `Max` | **round X.** The *(Max 5)* on your cards: how many times it may go off for one card in one match. Blank = no limit. Also `1/cycle`, `1/round`, `2/cycle/side` |
 | `If` | **round Y.** Conditions that must all be true - see above |
 | `Cost` | **round Z.** `ore:3` - paid from your side's Ore pool before it goes off |
+| `Ask` | **round AA.** `yes` - you are asked first |
 
 **`add_card_chance`** (round X) is the first effect that reaches the referee
 — see section 7g. **And one honest note:** the 108 set cards' Attack and
@@ -2142,6 +2177,16 @@ broken.
 > counters, which respects the two-per-cycle) and Valefor's is
 > `count:bergmann_ore_collected>=4`. The rest (Flauros, Bergmännlein mines,
 > Unkengeister) are phase C6/C7.
+>
+> **ROUND AA: AN EMBLEM IS ON THE FIELD ONLY WHILE ITS STAR IS.** When the
+> Star leaves at the STAR PLAYER SWITCH it takes its Emblem with it, and the
+> new Star brings its own - so the bar shows ONE Emblem, top right. Once one
+> of your Emblems turns over, every other Emblem of yours is **locked and does
+> nothing**, not even its Basic side, until a goal resets the race.
+> `emblem_follows_star` and `emblem_locked_is_inactive` in Tuning.csv. The
+> Conditions that still waited on the "every duel won" placeholder are wired
+> to `emblem_basic` / `card_played` / `ore_gained` instead - a placeholder
+> could turn an Emblem over by accident, and now that locks the others.
 >
 > **Each Star only fits its own set's node** in the Star Hall (Gremory into
 > Sitri - the Emblem's Set column decides). `star_fits_own_set_only` in
@@ -3201,7 +3246,7 @@ palette colour and whether the game reads that name — and what is sitting in
 
 ---
 
-## 9. `data/Tuning.csv` — 361 numbers
+## 9. `data/Tuning.csv` — 368 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -4072,6 +4117,27 @@ In `tools/`. Nothing in the game loads them; they are for you.
 commands: `ability_audit.py`, `ability_rows.py`, `ability_coverage.gd`
 (the meter) and `ability_check.gd` (the proof).
 
+**Round AA — `data/Questions.csv`, the questions file.** Everything I need
+to ask you that is not about one card's wording goes here, as many as there
+are: `ID, Area, Question, Why It Matters, Options, My Default (playing now),
+Your Answer, Status, Round`. Write in **Your Answer** (a letter is enough);
+leave the rest - the default is already in the game. The workbench edits it
+like any other file.
+
+```
+python3 tools/questions.py     how many are open, and which answers are not built yet
+```
+
+```
+SOAK_CLASS=Lorelei xvfb-run -a godot --rendering-driver opengl3 \
+    --resolution 1920x1080 --script res://tools/combat_shot.gd
+xvfb-run -a godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/choice_shot.gd
+```
+**Round AA.** `combat_shot` photographs a real match every 1.5 seconds
+(`cs_000.png`...) - the way to check what sits on top of what during combat.
+`choice_shot` photographs the question window.
+
 **Round Z.** `ability_check.gd` now makes each card's **If and Cost true**
 before its moment (3 Ore for "Consume 3 Ore", a Rose token for "if you control
 a token"), checks the Ore was spent, checks it does NOT go off with no Ore,
@@ -4636,6 +4702,17 @@ helper adds a node for you, say so in a comment above it, in capitals.
 
 ---
 
+### Round AA additions
+
+- **Diff your own commits.** The Rauhnacht file you sent this round was an
+  older copy: every name had become "Unit Name" and the ability-ID columns
+  were gone. I merged it by row and kept your Set Name swaps - but always edit
+  the newest file (pull first), or the next round undoes the last.
+- **A question window pauses the match.** Only for you, never in AUTO, so a
+  soak or a tool never waits.
+- **One Emblem at a time.** A side's Emblem is the Star on the pitch's.
+- **The emblem bar and tracker are UNDER the duel window now** (layer 18).
+
 ### Round Z additions
 
 - **A token changes the card a body plays.** Mid-match, the unit that was
@@ -4680,6 +4757,8 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | make an ability cost Ore | the `Cost` column of Abilities.csv: `ore:3` |
 | make an Emblem's Basic side do something | write an `EMB_` row in Abilities.csv (copy one), then name it in the Emblem's `Basic Ability` column |
 | make a card's ability work from its text | change the text, run `python3 tools/ability_audit.py` and `python3 tools/ability_rows.py`, then `ability_coverage.gd` |
+| ask the player before an ability goes off | the `Ask` column of Abilities.csv: `yes` |
+| answer my questions | `data/Questions.csv`, the `Your Answer` column |
 | change what a Swan or a Rose token is | `EMB_ZEPAR_WINGS` / `EMB_GREMORY_ROSE` in Abilities.csv; `swans_count_as_tokens` in Tuning.csv |
 | change what a passing move is worth (league) | `Combos.csv` |
 | **change what a passing move is worth (Adventure)** | `AdventureCombos.csv` |
