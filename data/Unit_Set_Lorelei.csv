@@ -1,28 +1,28 @@
-Unit Type,Name,Attack,Defend,Element,Base Power ,Tier,Card Number,Set Name,Artwork,Player Type,Attack Ability,Defend Ability
-Lorelei,Matthias,If you control a token: Deal 1 damage to the enemy goalie at the end of the cycle ,While in exhaust: Give a Tier I water unit +1 power during comabt ,WATER,0,I,1,Sitri,Sitri_Lorelei.png,Normal,C_Matthias_A,C_Matthias_D
-Lorelei,Magdalena,If you control a token: During combat remove 1 power from a Tier I unit,While in exhaust: Deal 1 damage to the enemy goalie at the end of a cycle ,WATER,1,I,2,Sitri,Sitri_Lorelei.png,Normal,C_Magdalena_A,C_Magdalena_D
-Lorelei,Leonhard,If you control a token: Give your the next water unit +1 power during combat,While in exhaust: Give a Tier II water unit ability priority during combat,WATER,2,I,3,Sitri,Sitri_Lorelei.png,Normal,C_Leonhard_A,
-Lorelei,Ignaz,If you control a token: Swap the attack of the token with this unit power,While in exhaust: During combat remove 1 power from a Tier III unit,WATER,2,III,7,Sitri,Sitri_Lorelei.png,Normal,,C_Ignaz_D
-Lorelei,Carl,If you control a token: Force the enemy TIer III to use their other ability ,While in exhaust: Give your goalie 1 stamina after Tier IV combat,WATER,3,III,8,Sitri,Sitri_Lorelei.png,Normal,,C_Carl_D
-Lorelei,Dennis,If you control a token: Deal 1 damage to the enemy goalie at the end of the cycle ,While in exhaust: Force then enemy Tier III to use their other ability during combat,WATER,4,III,9,Sitri,Sitri_Lorelei.png,Normal,C_Dennis_A,
-Lorelei,Lothar,"If you control a token: Doulbe its attack for its next combat, but then swap a card from the exhaust of the same Tier",While in exhaust: Give a Tier IV water unit +1 power during comabt ,WATER,3,IV,10,Sitri,Sitri_Lorelei.png,Normal,,C_Lothar_D
-Lorelei,Sven,If you control a token: Use its attack power during combat,While in exhaust: Deal 1 damage to the enemy goalie at the end of a cycle ,WATER,4,IV,11,Sitri,Sitri_Lorelei.png,Normal,,C_Sven_D
-Lorelei,Manfred,If you control a token: Send this unit to the exhaust and replace it with a Rose Unit Token (same attack power),"While in exhaust: If you cause a foul, instead flip a coin to see if the enemy gets it instead",WATER,5,IV,12,Sitri,Sitri_Lorelei.png,Normal,C_Manfred_A,
-Lorelei,Werner,Reveal: Your next 2 swan units deal 1 damage to the enemy goalie,Reveal: Your next 3 swan units deal 1 damage to the enemy goalie,WATER,0,I,1,Zepar,Zepar_Lorelei.png,Normal,C_Werner_A,C_Werner_D
-Lorelei,Bartholomäus,Reveal: Your next swan units deal 1 damage to the enemy goalie,Reveal: Your next swan units deal 1 damage to the enemy goalie,WATER,1,I,2,Zepar,Zepar_Lorelei.png,Normal,C_Bartholomäus_A,C_Bartholomäus_D
-Lorelei,Alexander,Reveal: Your next swan has +1 power during combat ,Reveal: Your next swan has +1 power during combat ,WATER,2,I,3,Zepar,Zepar_Lorelei.png,Normal,C_Alexander_A,C_Alexander_D
-Lorelei,Gerhard,If this unit is a swan: Give the enemy -1 attack power during combat,Reveal: Your next swan deals 1 damage to the enemy goalie,WATER,2,III,7,Zepar,Zepar_Lorelei.png,Normal,C_Gerhard_A,C_Gerhard_D
-Lorelei,Jakob,If this unit is a swan: Give the enemy -1 attack power during combat,Reveal: If this unit is a swan: Send it to the exhaust. Create a Swan unit token with this units power. ,WATER,3,III,8,Zepar,Zepar_Lorelei.png,Normal,C_Jakob_A,
-Lorelei,Edgar,If this unit is a swan: Give the enemy -1 attack power during combat,Reveal: If you control a token: Give enemy of same Tier -1 power during combat,WATER,4,III,9,Zepar,Zepar_Lorelei.png,Normal,C_Edgar_A,C_Edgar_D
-Lorelei,Ingrid,If this unit is a swan: Give the enemy -1 attack power during combat,Reveal: Reveal another unit card. ,WATER,3,IV,10,Zepar,Zepar_Lorelei.png,Normal,C_Ingrid_A,
-Lorelei,Herbert,If this unit is a swan: Give the enemy -1 attack power during combat,Reveal: This card ability cannot be countered. ,WATER,4,IV,11,Zepar,Zepar_Lorelei.png,Normal,C_Herbert_A,
-Lorelei,Gregor,If this unit is a swan: Give the enemy -1 attack power during combat,Reveal: Give the next Tier I water unit +1 power next combat. ,WATER,5,IV,12,Zepar,Zepar_Lorelei.png,Normal,C_Gregor_A,C_Gregor_D
-Lorelei,Johanna,Switch to being the defender,If Defending: Give the next Tier II water unit +1 power next combat. ,WATER,0,I,1,Sallos,Sallos_Lorelei.png,Normal,,C_Johanna_D
-Lorelei,Severin,Switch to being the defender,If Defending: Deal 1 damage to the enemy goalie,WATER,1,I,2,Sallos,Sallos_Lorelei.png,Normal,,C_Severin_D
-Lorelei,Thomas,Switch to being the defender,If Defending: Give then enemy +1 yellow card progression,WATER,2,I,3,Sallos,Sallos_Lorelei.png,Normal,,
-Lorelei,Sabine,Switch to being the defender,If Defending: Enemy uses their defense ability ,WATER,2,III,7,Sallos,Sallos_Lorelei.png,Normal,,
-Lorelei,Luis,Switch to being the defender,If Defending: Give a token this sequence +1 attack during combat,WATER,3,III,8,Sallos,Sallos_Lorelei.png,Normal,,C_Luis_D
-Lorelei,Mario,Switch to being the defender,If Defending: Your Tier IV gets + 1 attack during combat,WATER,4,III,9,Sallos,Sallos_Lorelei.png,Normal,,C_Mario_D
-Lorelei,Monika,Switch to being the defender,If Defending: Remove any shields on the enemy goalie,WATER,3,IV,10,Sallos,Sallos_Lorelei.png,Normal,,
-Lorelei,Siegfried,Switch to being the defender,If Defending: Negat the enemy ability ,WATER,4,IV,11,Sallos,Sallos_Lorelei.png,Normal,,
-Lorelei,Kurt,Switch to being the defender,If Defending: Incease the enemy goalie miss by 5% ,WATER,5,IV,12,Sallos,Sallos_Lorelei.png,Normal,,
+Unit Type,Name,Attack,Defend,Element,Base Power ,Tier,Card Number,Set Name,Artwork,Player Type
+Lorelei,Unit Name,If you control a token: Deal 1 damage to the enemy goalie at the end of the cycle ,While in exile: Give a Tier I water unit +1 power during comabt (once per cycle),WATER,0,I,1,Sitri,Sitri_Lorelei.png,Normal
+Lorelei,Unit Name,If you control a token: During combat remove 1 power from a Tier I unit,While in exile: Deal 1 damage to the enemy goalie at the end of a cycle  (once per cycle),WATER,1,I,2,Sitri,Sitri_Lorelei.png,Normal
+Lorelei,Unit Name,If you control a token: Give your the next water unit +1 power during combat,While in exile: Give a Tier II water unit ability priority during combat (once per cycle),WATER,2,I,3,Sitri,Sitri_Lorelei.png,Normal
+Lorelei,Unit Name,If you control a token: Swap the attack of the token with this unit power,While in exile: During combat remove 1 power from a Tier III unit (once per cycle),WATER,2,III,7,Sitri,Sitri_Lorelei.png,Normal
+Lorelei,Unit Name,If you control a token: Force the enemy TIer III to use their other ability ,While in exile: Give your goalie 1 stamina after Tier IV combat (once per cycle),WATER,3,III,8,Sitri,Sitri_Lorelei.png,Normal
+Lorelei,Unit Name,If you control a token: Deal 1 damage to the enemy goalie at the end of the cycle ,While in exile: Force then enemy Tier III to use their other ability during combat (once per cycle),WATER,4,III,9,Sitri,Sitri_Lorelei.png,Normal
+Lorelei,Unit Name,"If you control a token: Doulbe its attack for its next combat, but then swap a card from exile of the same Tier",While in exile: Give a Tier IV water unit +1 power during comabt  (once per cycle),WATER,3,IV,10,Sitri,Sitri_Lorelei.png,Normal
+Lorelei,Unit Name,If you control a token: Use its attack power during combat,While in exile: Deal 1 damage to the enemy goalie at the end of a cycle  (once per cycle),WATER,4,IV,11,Sitri,Sitri_Lorelei.png,Normal
+Lorelei,Unit Name,If you control a token: Send this unit to exile and replace it with a Rose Unit Token (same attack power),"While in exile: If you cause a foul, instead flip a coin to see if the enemy gets it instead (once per cycle)",WATER,5,IV,12,Sitri,Sitri_Lorelei.png,Normal
+Lorelei,Unit Name,Reveal: Your next 2 swan units deal 1 damage to the enemy goalie,Reveal: Your next 3 swan units deal 1 damage to the enemy goalie,WATER,0,I,1,Zepar,Zepar_Lorelei.png,Normal
+Lorelei,Unit Name,Reveal: Your next swan units deal 1 damage to the enemy goalie,Reveal: Your next swan units deal 1 damage to the enemy goalie,WATER,1,I,2,Zepar,Zepar_Lorelei.png,Normal
+Lorelei,Unit Name,Reveal: Your next swan has +1 power during combat ,Reveal: Your next swan has +1 power during combat ,WATER,2,I,3,Zepar,Zepar_Lorelei.png,Normal
+Lorelei,Unit Name,If this unit is a swan: Give the enemy -1 attack power during combat,Reveal: Your next swan deals 1 damage to the enemy goalie,WATER,2,III,7,Zepar,Zepar_Lorelei.png,Normal
+Lorelei,Unit Name,If this unit is a swan: Give the enemy -1 attack power during combat,Reveal: If this unit is a swan: Send it to Exile. Create a Swan unit token with this units power. ,WATER,3,III,8,Zepar,Zepar_Lorelei.png,Normal
+Lorelei,Unit Name,If this unit is a swan: Give the enemy -1 attack power during combat,Reveal: If you control a token: Give enemy of same Tier -1 power during combat,WATER,4,III,9,Zepar,Zepar_Lorelei.png,Normal
+Lorelei,Unit Name,If this unit is a swan: Give the enemy -1 attack power during combat,Reveal: Reveal another unit card. ,WATER,3,IV,10,Zepar,Zepar_Lorelei.png,Normal
+Lorelei,Unit Name,If this unit is a swan: Give the enemy -1 attack power during combat,Reveal: This card ability cannot be countered. ,WATER,4,IV,11,Zepar,Zepar_Lorelei.png,Normal
+Lorelei,Unit Name,If this unit is a swan: Give the enemy -1 attack power during combat,Reveal: Give the next Tier I water unit +1 power next combat. ,WATER,5,IV,12,Zepar,Zepar_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: Give the next Tier II water unit +1 power next combat. ,WATER,0,I,1,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: Deal 1 damage to the enemy goalie,WATER,1,I,2,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: Give then enemy +1 yellow card progression,WATER,2,I,3,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: Enemy uses their defense ability ,WATER,2,III,7,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: Give a token this sequence +1 attack during combat,WATER,3,III,8,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: Your Tier IV gets + 1 attack during combat,WATER,4,III,9,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: Remove any shields on the enemy goalie,WATER,3,IV,10,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: Negat the enemy ability ,WATER,4,IV,11,Sallos,Sallos_Lorelei.png,Normal
+Lorelei,Unit Name,Switch to being the defender,If Defending: Incease the enemy goalie miss by 5% ,WATER,5,IV,12,Sallos,Sallos_Lorelei.png,Normal
