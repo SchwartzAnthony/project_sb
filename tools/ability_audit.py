@@ -59,7 +59,7 @@ LIVE = {
     "add_power", "add_attack", "add_defense", "add_shot_power",
     "drain_stamina", "restore_stamina", "add_card_chance",
     # targets
-    "self", "opponent", "all_allies", "all_enemies", "enemy_goalie", "own_goalie",
+    "self", "opponent", "all_allies", "all_enemies", "enemy_goalie", "own_goalie", "enemytier",
     # scopes
     "duel", "round", "cycle", "match",
 }
@@ -74,6 +74,8 @@ PHASE = {
     "own_goalie_lower": "C1", "enemy_below_base": "C1",
     "next_ally": "C1", "next_enemy": "C1", "next_ally_tier": "C1", "tier": "C1", "next_ally*2": "C1",
     "ally_tier": "C1", "enemy_tier": "C1", "once_per_cycle": "C1", "once_per_game": "C1",
+    # round Z: "the next unit played" (ruling R03) - strict, the very next one
+    "next_tier_ally": "C2", "after_combat": "C2",
     # C2 - counters, tokens, creature types
     "has_counter": "C2", "enemy_has_counter": "C2", "add_counter": "C2",
     "remove_counter": "C2", "power_counter": "C2", "has_token": "C2",
@@ -89,7 +91,7 @@ PHASE = {
     "uncounterable": "C4", "double_attack": "C4", "power_from_count": "C4",
     "reveal_another": "C4", "remove_condition": "C4",
     # C5 - zones in action
-    "while_in_exile": "C5", "send_to_exile": "C5", "swap_from_exile": "C5",
+    "send_to_exhaust": "C5", "swap_from_exhaust": "C5", "swapped_was": "C5", "revealed_was": "C5",
     "swap_from_void": "C5", "swap_in_tier": "C5", "exhaust_other_return": "C5",
     "reveal_from_exhaust": "C5", "copy_from_exhaust": "C5",
     # C6 - the class engines
@@ -118,8 +120,12 @@ def row(**kw):
 
 WHEN_RULES = [
     (r"^reveal\b", {"When": "reveal"}),
-    (r"while in exile", {"When": "while_in_exile"}),
-    (r"while in exhaust", {"When": "while_in_exhaust"}),
+    # RULING R14: "Exile" was the old name of the exhaust zone. Both read the same.
+    # "While in exhaust: ... at the end of a cycle" is ONCE, at the end of the
+    # cycle, if it is in the exhaust - not at every duel (round Z).
+    (r"while in (exile|exhaust).*at the end of (the|a) cycle", {"When": "end_of_cycle", "If": "in_exhaust"}),
+    (r"while in (exile|exhaust).*after tier (i|ii|iii|iv) combat", {"When": "after_combat", "If": "in_exhaust"}),
+    (r"while in (exile|exhaust)", {"When": "while_in_exhaust"}),
     (r"if sent to exhaust", {"When": "contemplation"}),
     (r"in exhaust & goaly successfully defends", {"When": "goalie_save", "If": "in_exhaust"}),
     (r"^if this wins", {"When": "on_win_duel"}),
@@ -160,37 +166,42 @@ DO_RULES = [
     # ---- power in this duel ----
     (r"give this unit \+(\d) power during combat", "add_power", "self", r"\1", "duel"),
     (r"gain \+(\d) power during combat", "add_power", "self", r"\1", "duel"),
-    (r"give this unit \+(\d) attack during combat", "add_attack", "self", r"\1", "duel"),
+    # RULING R18 (my reading, round Z): "attack" during combat is the power the
+    # card fights with in that combat, whichever side it is on.
+    (r"give this unit \+(\d) attack during combat", "add_power", "self", r"\1", "duel"),
     (r"give this unit \+(\d) during combat", "add_power", "self", r"\1", "duel"),
     (r"give this \+(\d) power during combat", "add_power", "self", r"\1", "duel"),
     (r"deal \+(\d) damage during combat", "add_power", "self", r"\1", "duel"),
-    (r"give the enemy -(\d) attack power during combat", "add_attack", "opponent", r"-\1", "duel"),
+    (r"give the enemy -(\d) attack power during combat", "add_power", "opponent", r"-\1", "duel"),
     (r"give (the )?enemy (unit )?-(\d) power during combat", "add_power", "opponent", r"-\3", "duel"),
     (r"give -(\d) to enemy during combat", "add_power", "opponent", r"-\1", "duel"),
     (r"give the enemy -(\d) during combat", "add_power", "opponent", r"-\1", "duel"),
     (r"enemy deals -(\d) power during combat", "add_power", "opponent", r"-\1", "duel"),
-    (r"give enemy of same tier -(\d) power", "add_power", "opponent", r"-\1", "duel"),
-    (r"during combat remove (\d) power from a tier (i|ii|iii|iv) unit", "add_power", "enemy_tier", r"-\1", "duel"),
+    (r"give enemy of same tier -(\d) power", "add_power", "next_enemy:SAMETIER", r"-\1", "duel"),
+    (r"during combat remove (\d) power from a tier (i|ii|iii|iv) unit", "add_power", r"enemytier:TIER\2", r"-\1", "duel"),
     # ---- the next one ----
-    (r"give (the )?next (tier )?fire ally a burn counter", "add_counter:burn", "next_ally:fire", "1", "match"),
+    # RULING R03: "the next Tier ... ally" is the VERY NEXT card played.
+    (r"give (the )?next tier fire ally a burn counter", "add_counter:burn", "next_tier_ally:fire", "1", "match"),
+    (r"give (the )?next fire ally a burn counter", "add_counter:burn", "next_ally:fire", "1", "match"),
     (r"give the next fire ally \+(\d) (damage )?during combat", "add_power", "next_ally:fire", r"\1", "duel"),
     (r"give the next enemy -(\d) during combat", "add_power", "next_enemy", r"-\1", "duel"),
     (r"give the next ally unit \+(\d) power during combat", "add_power", "next_ally", r"\1", "duel"),
     (r"give (your )?the next water unit \+(\d) power", "add_power", "next_ally:water", r"\2", "duel"),
     (r"next tier (i|ii|iii|iv) water unit \+(\d) power", "add_power", r"next_ally:water+TIER\1", r"\2", "duel"),
     (r"give a tier (i|ii|iii|iv) water unit \+(\d) power", "add_power", r"ally:water+TIER\1", r"\2", "duel"),
-    (r"your tier iv gets \+ ?(\d) attack", "add_attack", "tier:IV", r"\1", "duel"),
-    (r"next (\d )?swans?( units?)? deals? (\d) damage to the enemy goalie", "drain_stamina", "next_ally:swan", r"\3", "cycle"),
+    (r"your tier iv gets \+ ?(\d) attack", "add_power", "tier:IV", r"\1", "duel"),
+    (r"next (\d) swans?( units?)? deals? (\d) damage to the enemy goalie", "drain_stamina", r"next_ally*\1:swan", r"\3", "cycle"),
+    (r"next swans?( units?)? deals? (\d) damage to the enemy goalie", "drain_stamina", "next_ally:swan", r"\2", "cycle"),
     (r"next swan has \+(\d) power", "add_power", "next_ally:swan", r"\1", "duel"),
     (r"next two unkengeister units get \+(\d) power", "add_power", "next_ally*2:unkengeister", r"\1", "duel"),
-    (r"give a token this sequence \+(\d) attack", "add_attack", "token", r"\1", "duel"),
+    (r"give a token this sequence \+(\d) attack", "add_power", "ally:token", r"\1", "duel"),
     (r"give another unit a temporary weapon", "weapon", "ally", "1", "duel"),
     # ---- the keepers ----
     (r"deal (\d) damage to (the )?enemy goalie", "drain_stamina", "enemy_goalie", r"\1", "now"),
     (r"enemy goalie takes (\d) damage", "drain_stamina", "enemy_goalie", r"\1", "now"),
     (r"give your goalie \+?(\d) stamina", "restore_stamina", "own_goalie", r"\1", "now"),
     (r"give \+(\d) stamina to goalie", "restore_stamina", "own_goalie", r"\1", "now"),
-    (r"give -(\d) stamina to goalie", "drain_stamina", "enemy_goalie?", r"\1", "now"),
+    (r"give -(\d) stamina to goalie", "drain_stamina", "enemy_goalie", r"\1", "now"),
     (r"add \+(\d) to goalie shield", "goalie_shield", "own_goalie", r"\1", "match"),
     (r"remove any shields on the enemy goalie", "remove_shields", "enemy_goalie", "1", "now"),
     (r"increase enemy goalie % (chance )?by (\d)%", "goalie_chance", "enemy_goalie", r"\2", "round"),
@@ -206,8 +217,8 @@ DO_RULES = [
     (r"add \+(\d)% to enemy yellow card chance", "add_card_chance", "all_enemies", r"\1", "match"),
     (r"\+(\d) to the enemy yellow card bar", "foul_heat", "all_enemies", r"\1", "match"),
     (r"\+(\d) yellow card progression", "foul_heat", "opponent", r"\1", "match"),
-    (r"increase enemy % of committing a foul", "foul_chance", "all_enemies", "?", "round"),
-    (r"increase (\d)% intoxication to foul", "foul_chance", "opponent", r"\1", "match"),
+    (r"increase enemy % of committing a foul by (\d)%", "foul_chance", "all_enemies", r"\1", "round"),
+    (r"give the enemy \+(\d)% foul chance for the match", "foul_chance", "all_enemies", r"\1", "match"),
     (r"if you cause a foul, instead flip a coin", "foul_coin_flip", "self", "1", "match"),
     # ---- bending the duel ----
     (r"switch to being the defender", "switch_to_defender", "self", "1", "duel"),
@@ -223,7 +234,7 @@ DO_RULES = [
     (r"negate power buff", "negate_buff", "opponent", "1", "duel"),
     (r"(increase|ncrease) enemy priority by \+(\d)", "change_priority", "opponent", r"\2", "duel"),
     (r"change (the )?enemy priority by -(\d)", "change_priority", "opponent", r"-\2", "duel"),
-    (r"decrease the next ally player unit priority", "change_priority", "next_ally", "-1", "duel"),
+    (r"give the next ally unit -(\d) priority", "change_priority", "next_tier_ally", r"-\1", "duel"),
     (r"ability priority during combat", "give_priority", "ally_tier:water", "1", "duel"),
     (r"cannot be countered", "uncounterable", "self", "1", "duel"),
     (r"doulbe its attack|double its attack", "double_attack", "token", "1", "duel"),
@@ -236,18 +247,18 @@ DO_RULES = [
     (r"give this unit -(\d) power counter", "add_counter:power", "self", r"-\1", "match"),
     (r"remove a counter", "remove_counter", "self", "1", "match"),
     (r"remove 1 victory counter", "remove_counter:victory", "self", "1", "match"),
-    (r"send this unit to exile and replace it with a rose unit token", "create_token:rose", "self", "1", "cycle"),
-    (r"create a swan unit token", "create_token:swan", "self", "1", "cycle"),
-    (r"send it to exile", "send_to_exile", "self", "1", "cycle"),
+    (r"send this unit to the exhaust and replace it with a rose unit token", "create_token:rose", "self", "1", "match"),
+    (r"create a swan unit token", "create_token:swan", "self", "1", "match"),
+    (r"send it to the exhaust", "send_to_exhaust", "self", "1", "cycle"),
     # ---- zones ----
-    (r"swap this card with one of same power and tier from exile", "swap_from_exile", "self", "1", "duel"),
+    (r"swap this card with one of same power and tier from the exhaust", "swap_from_exhaust", "self", "1", "duel"),
     (r"swap this unit with another of same tier from the void", "swap_from_void", "self", "1", "duel"),
     (r"swap this unit with another tier i during combat", "swap_in_tier", "self", "1", "duel"),
-    (r"swap a card from exile of the same tier", "swap_from_exile", "token", "1", "duel"),
+    (r"swap a card from the exhaust of the same tier", "swap_from_exhaust", "token", "1", "duel"),
     (r"send a different tier iv to the exhaust zone and return this to the stack", "exhaust_other_return", "self", "1", "duel"),
     (r"reveal a unit from your exhaust zone", "reveal_from_exhaust", "self", "1", "duel"),
     # ---- the class engines ----
-    (r"gain (\d) ore counters", "gain_ore", "self", r"\1", "match"),
+    (r"gain (\d) ore counters", "gain_ore", "side", r"\1", "match"),
     (r"choose 1 mine", "mine", "ally", "1", "round"),
     (r"fuses itself with a tier (i|ii|iii|iv) fire unit", "fuse", "self", "1", "match"),
     (r"can be fused", "fused", "self", "1", "match"),
@@ -265,14 +276,15 @@ QUESTIONS = [
     (r"from the void", "\"The void\": the 18 cards NOT in the match (your bench), or the Exile zone? (Read as the bench.)"),
     (r"from outside of the game", "\"Outside of the game\": the bench (the 18 not fielded)? And does the fused card keep its own name? (Read as the bench; the fused card keeps this card's name.)"),
     (r"yellow card bar|yellow card progression", "+1 to the yellow card bar: one whole SEGMENT of the referee's bar, or one Fill Per Trigger? (Read as one segment.)"),
-    (r"committing a foul", "By how much? No number is written. (Read as +10% for the round.)"),
+    (r"committing a foul$", "By how much? No number is written. (Read as +10% for the round.)"),
     (r"goalie shield", "A shield: blocks the next N stamina lost? the next goal? (Proposed: absorbs one point of stamina damage per shield.)"),
     (r"mining|mine\b|ore counters", "Ore lives where - on the CARD, or in one pool for the side? (Proposed: one pool per side, shown on the emblem bar.)"),
     (r"touched the ball", "\"Touched the ball\": held it at any point in open play since the last PLAY MAKER? (Read that way.)"),
-    (r"exile", "Exile vs Exhaust: exhausted cards come back at the end of the cycle; exiled ones only when a rule says so. Is that right? (Read that way.)"),
+    (r"exile|from the exhaust|to the exhaust", "Exile vs Exhaust: exhausted cards come back at the end of the cycle; exiled ones only when a rule says so. Is that right? (Read that way.)"),
     (r"switch to being the defender", "Switch to defender: the duel flips (you defend, they attack) - and does the BALL then stay with whoever wins as normal? (Read: yes, the ball follows the winner as always.)"),
-    (r"intoxication", "\"Intoxication to foul\": this card's own foul chance, or a mark that raises that enemy's foul chance? (Read as a mark: that enemy is +5% to foul for the match.)"),
-    (r"swap this unit with another tier i", "Swap with ANOTHER Tier I: one of yours from the field, from the exhaust zone, or the enemy's? (Read as one of YOUR Tier I cards still on the field.)"),
+    (r"intoxication|foul chance for the match", "\"Intoxication to foul\": this card's own foul chance, or a mark that raises that enemy's foul chance? (Read as a mark: that enemy is +5% to foul for the match.)"),
+    (r"swap this unit with another tier i\b", "Swap with ANOTHER Tier I: one of yours from the field, from the exhaust zone, or the enemy's? (Read as one of YOUR Tier I cards still on the field.)"),
+    (r"attack power during combat|\+\d attack during combat|gets \+ ?\d attack|this sequence \+\d attack", "\"Attack power during combat\": the power the card FIGHTS with in that combat, whichever side it is on - so a -1 to a DEFENDING enemy still bites? (Read that way.)"),
 ]
 
 ELEMENT_OF = {"lorelei": "water", "rauhnacht-feuergeister": "fire",
@@ -351,6 +363,7 @@ def words_of(r):
     for field in ("When", "If", "Cost", "Do", "Target", "Scope"):
         for piece in str(r[field]).replace("|", ";").split(";"):
             w = piece.strip().split(":")[0].rstrip("?")
+            w = re.sub(r"\*\d+$", "*2", w)      # next_ally*3 is the same word as *2
             if w and w not in words:
                 words.append(w)
     if r["Max"]:
@@ -358,11 +371,20 @@ def words_of(r):
     return words
 
 
+RULED = {}   # question text -> your ruling, filled by main() before anything is read
+
+
+def ruled(question_text):
+    """True when every question in this row has a ruling from you."""
+    asked = [q for _p, q in QUESTIONS if q in question_text]
+    return bool(asked) and all(RULED.get(q, "").strip() for q in asked)
+
+
 def finish(r, side_kind):
     """Fill Words Needed, Phase and Status from the proposed words."""
     needed = []
     for w in words_of(r):
-        if w in LIVE or w in ("now", "max", "ally", "field", "ball", "in_exhaust"):
+        if w in LIVE or w in ("now", "max", "ally", "field", "ball", "in_exhaust", "side"):
             if w == "in_exhaust":
                 needed.append("while_in_exhaust")
             continue
@@ -389,36 +411,80 @@ def finish(r, side_kind):
     if not r["Do"]:
         r["Status"] = "needs your ruling"
         r["Question"] = ("I could not turn this into engine words - what should it DO? " + r["Question"]).strip()
-    elif not needed:
+    elif not needed and (not r["Question"] or ruled(r["Question"])):
         r["Status"] = "works today"
-    elif r["Question"]:
+    elif r["Question"] and not ruled(r["Question"]):
         r["Status"] = "%s - needs your ruling" % r["Phase"]
     else:
         r["Status"] = r["Phase"]
     return r
 
 
-def from_text(base, text, side_kind):
+def _part_rows(text, side_kind, base):
+    """One sentence-part -> (when, if, cost, [do], [target], [value], [scope], max, questions)."""
     parsed = read_text(text)
-    r = row(**base)
-    r["Text"] = text
-    r["When"] = parsed["When"] or ("" if side_kind in ("Ultimate Side", "Basic Side", "Condition") else
-                                   ("on_attack" if side_kind == "Attack" else "on_defend"))
-    r["If"] = parsed["If"]
-    r["Cost"] = parsed["Cost"]
-    r["Do"] = " | ".join(parsed["Do"])
-    r["Target"] = " | ".join(parsed["Target"])
-    r["Value"] = " | ".join(parsed["Value"])
-    r["Scope"] = " | ".join(parsed["Scope"])
-    r["Max"] = parsed["Max"]
-    r["Question"] = " ".join(parsed["Q"])
+    when = parsed["When"] or ("" if side_kind in ("Ultimate Side", "Basic Side", "Condition") else
+                              ("on_attack" if side_kind == "Attack" else "on_defend"))
+    targets = []
+    for t in parsed["Target"]:
+        # "enemy of same Tier" - the card's own tier, filled in here.
+        targets.append(t.replace("SAMETIER", (base.get("Tier") or "").strip().upper()))
     # OUTSIDE A DUEL, "DURING COMBAT" MEANS THE NEXT ONE. A card in the
     # exhaust zone gaining "+1 power during combat" when its keeper saves has
     # no combat to be in - so it is its NEXT duel, and "the enemy" is the
     # next enemy it meets.
-    if r["When"] in NOT_A_DUEL and "duel" in r["Scope"]:
-        r["Target"] = " | ".join({"self": "next_self", "opponent": "next_enemy"}.get(t.strip(), t.strip())
-                                 for t in r["Target"].split("|"))
+    if when in NOT_A_DUEL:
+        targets = [{"self": "next_self", "opponent": "next_enemy"}.get(t, t)
+                   if sc == "duel" else t for t, sc in zip(targets, parsed["Scope"])]
+    return when, parsed, targets
+
+
+# A SENTENCE WITH TWO HALVES. "Give this unit +1 power during combat. If this
+# wins: Give this unit -1 power counter." is two abilities with two different
+# moments - the first when it duels, the second when it wins. Split there.
+TWO_PARTS = re.compile(r"(?<=\.)\s+(?=if this (?:wins|loses))", re.IGNORECASE)
+
+
+def from_text(base, text, side_kind):
+    r = row(**base)
+    r["Text"] = text
+    whens, ifs, costs, dos, targets, values, scopes, qs = [], [], [], [], [], [], [], []
+    maxes = []
+    for part in TWO_PARTS.split(text):
+        when, parsed, part_targets = _part_rows(part, side_kind, base)
+        for i, do in enumerate(parsed["Do"]):
+            whens.append(when)
+            ifs.append(parsed["If"])
+            costs.append(parsed["Cost"])
+            dos.append(do)
+            targets.append(part_targets[i])
+            values.append(parsed["Value"][i])
+            scopes.append(parsed["Scope"][i])
+        if not parsed["Do"]:
+            whens.append(when)
+            ifs.append(parsed["If"])
+            costs.append(parsed["Cost"])
+        if parsed["Max"]:
+            maxes.append(parsed["Max"])
+        for q in parsed["Q"]:
+            if q not in qs:
+                qs.append(q)
+
+    def one_or_many(items):
+        """All the same -> one value; different -> one per effect, '|' between."""
+        if not items:
+            return ""
+        return items[0] if len(set(items)) == 1 else " | ".join(items)
+
+    r["When"] = one_or_many(whens[:max(1, len(dos))])
+    r["If"] = one_or_many(ifs[:max(1, len(dos))])
+    r["Cost"] = one_or_many(costs[:max(1, len(dos))])
+    r["Do"] = " | ".join(dos)
+    r["Target"] = " | ".join(targets)
+    r["Value"] = " | ".join(values)
+    r["Scope"] = " | ".join(scopes)
+    r["Max"] = maxes[0] if maxes else ""
+    r["Question"] = " ".join(qs)
     return finish(r, side_kind)
 
 
@@ -427,6 +493,14 @@ NOT_A_DUEL = {"goalie_save", "on_goal", "on_concede", "end_of_cycle", "round_end
 
 
 def main():
+    # YOUR RULINGS FIRST, so a question you have answered stops holding its
+    # card back ("C2 - needs your ruling" becomes plain "C2").
+    rp = os.path.join(DATA, "AbilityRulings.csv")
+    if os.path.exists(rp):
+        with open(rp, encoding="utf-8") as f:
+            for old in csv.DictReader(f):
+                if (old.get("Your Ruling") or "").strip():
+                    RULED[old["Question"]] = old["Your Ruling"]
     kept = {}
     if os.path.exists(OUT):
         with open(OUT, encoding="utf-8") as f:

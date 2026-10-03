@@ -473,7 +473,7 @@ function wizWrite(){
        "Notes":"Written by the New Class wizard." }]);
 
   wizAdd(emb,
-    ["Name","Unit Type","Emblem","Star","Set","Token","Basic Feeds","Order","Basic Side","Condition","Turns On","Ultimate Side","For AI notes"],
+    ["Name","Unit Type","Emblem","Star","Set","Token","Basic Feeds","Order","Basic Side","Basic Ability","Condition","Turns On","Ultimate Side","For AI notes"],
     WIZ.sets.map((s,i)=>({
       "Name":s.emblem, "Unit Type":cls, "Emblem":`${s.emblem}_Emblem.png`,
       "Star":s.emblem, "Set":s.emblem, "Token":s.token,

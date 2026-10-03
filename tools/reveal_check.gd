@@ -34,9 +34,13 @@ func _initialize() -> void:
 	# ---- 2. which cards carry one ----
 	var carriers: Array[PlayerData] = []
 	for card in db.players:
-		for ability_id in [card.active_attack_ability(), card.active_defend_ability()]:
-			var ability := db.get_ability(String(ability_id))
-			if ability != null and ability.trigger == "reveal":
+		for cell in [card.active_attack_ability(), card.active_defend_ability()]:
+			var found := false
+			for ability_id in String(cell).split(";"):
+				var ability := db.get_ability(String(ability_id).strip_edges())
+				if ability != null and ability.trigger == "reveal":
+					found = true
+			if found:
 				carriers.append(card)
 				break
 	print("[reveal] cards with a reveal ability: %d" % carriers.size())
@@ -57,10 +61,18 @@ func _initialize() -> void:
 		var shot: int = int(engine.shot_bonus(false)) if engine.has_method("shot_bonus") else 0
 		print("[reveal] %s: attack %d -> %d, shot bonus %+d" % [
 			card.player_name, before, after, shot])
-		if after == before and shot == 0:
-			print("[reveal]   NOTHING HAPPENED — check the Effect column of %s"
-				% card.active_attack_ability())
-			bad += 1
+		# ROUND Z: "your next swan..." does not change this card - it WAITS for
+		# the next one. Anything that went off at all counts (the engine counts
+		# a trigger only when an ability really fired). One whose If is not met
+		# here ("if you control a token") is reported, not failed.
+		var went_off := engine.triggers_for(false) > 0
+		if after == before and shot == 0 and not went_off:
+			if _has_condition(card, db):
+				print("[reveal]   waits on its If column - nothing to show here, which is right")
+			else:
+				print("[reveal]   NOTHING HAPPENED — check the Effect column of %s"
+					% card.active_attack_ability())
+				bad += 1
 
 	# ---- 4. and the order when both sides show ----
 	#
@@ -109,3 +121,12 @@ func _initialize() -> void:
 	print("")
 	print("[reveal] %s" % ("ALL GOOD." if bad == 0 else "%d PROBLEM(S) ABOVE." % bad))
 	quit(0 if bad == 0 else 1)
+
+
+func _has_condition(card: PlayerData, db: CardDatabase) -> bool:
+	for cell in [card.active_attack_ability(), card.active_defend_ability()]:
+		for ability_id in String(cell).split(";"):
+			var ability := db.get_ability(String(ability_id).strip_edges())
+			if ability != null and ability.trigger == "reveal" and ability.condition.strip_edges() != "":
+				return true
+	return false

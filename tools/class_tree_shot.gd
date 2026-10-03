@@ -60,7 +60,7 @@ func _initialize() -> void:
 		for node in ClassTree.nodes_for(entry.unit_type, screen.state):
 			var taken := ClassTree.stars_placed(entry.unit_type, screen.state)
 			for star in ClassTree.stars_you_own(entry.unit_type, screen.state, db):
-				if taken.has(ClassTree.star_key(star)):
+				if taken.has(ClassTree.star_key(star)) or not ClassTree.fits(star, String(node["set_id"]), db):
 					continue
 				ClassTree.place_star(entry.unit_type, String(node["set_id"]),
 					star, screen.state, db)

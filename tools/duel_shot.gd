@@ -59,14 +59,18 @@ func _initialize() -> void:
 		"card": cards[0], "is_attacker": true, "priority": 0,
 		"power_before": cards[0].get_attack_power(),
 		"power_after": cards[0].get_attack_power() + 1,
-		"ability": db.get_ability(cards[0].active_attack_ability()),
+		"printed": cards[0].get_attack_power(),
+		"ability": _first(db, cards[0].active_attack_ability()),
 		"wins": true,
 	}
 	var right := {
-		"card": cards[1], "is_attacker": false, "priority": 0,
+		"card": cards[1], "is_attacker": false,
+		# Round Z, ruling F4: a priority that is not its power is shown.
+		"priority": cards[1].get_defense_power() - 1,
 		"power_before": cards[1].get_defense_power(),
 		"power_after": cards[1].get_defense_power(),
-		"ability": db.get_ability(cards[1].active_defend_ability()),
+		"printed": cards[1].get_defense_power(),
+		"ability": _first(db, cards[1].active_defend_ability()),
 		"wins": false,
 	}
 
@@ -81,6 +85,15 @@ func _initialize() -> void:
 
 	print("[duel] %d pictures in %s" % [_n, ProjectSettings.globalize_path("user://")])
 	quit(0)
+
+
+## The first row a cell names (a cell may name several since round Y).
+func _first(db: CardDatabase, cell: String) -> AbilityData:
+	for piece in cell.split(";"):
+		var a := db.get_ability(String(piece).strip_edges())
+		if a != null:
+			return a
+	return null
 
 
 ## Two cards of one tier, from different classes when the data allows it, so

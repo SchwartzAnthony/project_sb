@@ -1562,6 +1562,48 @@ godot --headless --script res://tools/ability_check.gd       and that each one f
 **33 of 228 class abilities work in a match after C1**, up from 1. Change a
 card's text and run the first two again.
 
+### Combat abilities — round Z, phase C2: counters, Ore, tokens, swans
+
+**103 of 228 class abilities work in a match now** (45%). Your rulings are in
+and they changed the cards themselves: **"Exile" is the exhaust zone** (every
+text that said exile says exhaust), Nils's intoxication is "+5% foul chance for
+the match (once per game)", Konstantin's foul is "by 5%", Lennart gives "-1
+priority", and Tobias's mine is "(Max 1)".
+
+| new in Abilities.csv | what it does |
+|---|---|
+| **`Cost` column** | `ore:3` - pay 3 Ore from your side's pool first. Not enough Ore and the ability **does not happen** (not counted, not spent against its Max) |
+| `add_counter:burn` | Value counters of that kind on the target, for the whole match, whatever zone it is in. `add_counter:power` with **-1** is a **power counter**: the card is 1 weaker in every duel after |
+| `remove_counter` | takes Value counters off (`remove_counter:burn` for one kind) |
+| `gain_ore` | Value Ore into **your side's pool** (ruling R12: one pool per side) |
+| `create_token:rose` | a **Rose Unit token** takes a card's place: same tier, same power, no text. The card waits in the exhaust - where its *While in exhaust* side works - and comes back at full time. Target `self` (after its round) or `replace:water+I` |
+| `make_swan` | the target is a **Swan** for the match |
+| target `side` | your side, not a card - `gain_ore`, Belphegor's victory counters |
+| target `next_tier_ally:fire` | **the very next card you play** (ruling R03). If it is not fire, the effect is lost. (`next_ally:fire` waits for the next FIRE card instead) |
+| If words | `has_counter`, `has_counter:burn`, `enemy_has_counter`, `has_token`, `tokens_at_least:4`, `is_swan`, `is_token`, `ore_this_round`, `ore_at_least:3`, `element:water`, `exhausted_this_round:2:water` |
+| `Max` | also `1/round`, and `/side` to share the count across the side: `2/cycle/side` |
+| new moments | `on_counter` (it received a counter), `after_combat` (once a round after the Tier IV duel, every card in any zone) |
+
+**What a sentence turns into.** "While in exhaust: deal 1 damage to the enemy
+goalie *at the end of a cycle*" is **once**, at the end of the cycle, if it is
+in the exhaust (`end_of_cycle` + `in_exhaust`) - not at every duel. "Give this
+unit +1 power during combat. *If this wins:* give this unit -1 power counter"
+is two rows with two moments (`on_attack`, then `on_win_duel`).
+
+**The Emblems' Basic sides play** (five of them). See section 7f: the new
+**Basic Ability** column.
+
+**On the pitch you can now see:**
+
+- **The match tracker**, top left: each side's Ore, tokens and victory
+  counters, and **every "next" effect still waiting** - "2 x next swan ally: 1
+  off their keeper" (ruling F3). `match_tracker_on` / `match_tracker_top`.
+- **A strip on the draft card**: `burn 1  power -1  SWAN` - what it carries
+  this match.
+- **The duel window**: `3 (+1)` when the number it fights with is not the
+  number printed on it, and "priority 2" when its priority is not its power
+  (ruling F4).
+
 ### `data/Abilities.csv` — what a player does in a duel
 
 | Column | |
@@ -1573,7 +1615,9 @@ card's text and run the first two again.
 | `Effect` | `add_attack`, `add_power`, … |
 | `Value` | the number |
 | `Scope` | `duel` = this duel only. `round` = the rest of the round |
-| `Max` | **round X.** The *(Max 5)* on your cards: how many times it may go off for one card in one match. Blank = no limit |
+| `Max` | **round X.** The *(Max 5)* on your cards: how many times it may go off for one card in one match. Blank = no limit. Also `1/cycle`, `1/round`, `2/cycle/side` |
+| `If` | **round Y.** Conditions that must all be true - see above |
+| `Cost` | **round Z.** `ore:3` - paid from your side's Ore pool before it goes off |
 
 **`add_card_chance`** (round X) is the first effect that reaches the referee
 — see section 7g. **And one honest note:** the 108 set cards' Attack and
@@ -2077,6 +2121,31 @@ broken.
 ---
 
 ## 7f. The Emblems — three on the pitch, one may ascend
+
+> **ROUND Z: the Basic side PLAYS.** A new column in each Emblems file,
+> **`Basic Ability`**, names rows of `Abilities.csv` (the `EMB_` rows at the
+> bottom). While the Emblem is on the field, every card of that side that
+> feeds the Basic side carries those rows as if they were its own:
+>
+> | Emblem | Basic Ability | in a match |
+> |---|---|---|
+> | Gremory | `EMB_GREMORY_ROSE` | the 2nd water unit into the exhaust in a round: a **Rose Unit token** replaces a water Tier I |
+> | Zepar | `EMB_ZEPAR_SWAN; EMB_ZEPAR_WINGS` | a water unit revealed becomes a **Swan**; a Swan is +1 in combat. Water cards get a **SHOW** button for it |
+> | Sallos | `EMB_SALLOS_SONG` | a water unit that defends and wins puts a **Song** counter on the enemy |
+> | Belphegor | `EMB_BELPHEGOR_VICTORY` | a fire win puts a **victory counter** on your side, two per cycle |
+> | Buer | `EMB_BUER_MASK` | a fire unit that receives a counter is **+1** in its combat, once a cycle |
+>
+> **The Conditions now fill from what really happens.** Stats.csv listens for
+> the new events - `token_made`, `swan_made`, `counter_placed`, `ore_gained`,
+> `ore_spent` - so `lorelei_swans_made` counts Swans, not duels won.
+> Belphegor's Turns On is now `count:rauhnacht_victories>=4` (four victory
+> counters, which respects the two-per-cycle) and Valefor's is
+> `count:bergmann_ore_collected>=4`. The rest (Flauros, Bergmännlein mines,
+> Unkengeister) are phase C6/C7.
+>
+> **Each Star only fits its own set's node** in the Star Hall (Gremory into
+> Sitri - the Emblem's Set column decides). `star_fits_own_set_only` in
+> Tuning.csv turns that off.
 
 > *"Star Units when coming into the field place their emblem, which has the
 > conditions on it. Each Star Player has their own Emblem. Star Players have
@@ -3132,7 +3201,7 @@ palette colour and whether the game reads that name — and what is sitting in
 
 ---
 
-## 9. `data/Tuning.csv` — 357 numbers
+## 9. `data/Tuning.csv` — 361 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -4003,6 +4072,19 @@ In `tools/`. Nothing in the game loads them; they are for you.
 commands: `ability_audit.py`, `ability_rows.py`, `ability_coverage.gd`
 (the meter) and `ability_check.gd` (the proof).
 
+**Round Z.** `ability_check.gd` now makes each card's **If and Cost true**
+before its moment (3 Ore for "Consume 3 Ore", a Rose token for "if you control
+a token"), checks the Ore was spent, checks it does NOT go off with no Ore,
+and plays **five Emblem stories** (Zepar, Sallos, Belphegor, Buer, Gremory).
+
+```
+xvfb-run -a godot --rendering-driver opengl3 --resolution 1920x1080 \
+    --script res://tools/c2_shot.gd
+```
+**Round Z.** A Lorelei draft with Ore, a burn and a power counter, a Swan and
+Werner's "next 2 swans" waiting - a picture of the match tracker, the card
+strip and Zepar's SHOW button (`c2_01_draft.png`).
+
 ```
 xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
     --script res://tools/team_build_shot.gd
@@ -4271,7 +4353,11 @@ line he ended up, because a picture cannot tell you that.
 
 ```
 godot --headless --script res://tools/match_soak.gd
+SOAK_CLASS=Lorelei godot --headless --script res://tools/match_soak.gd
 ```
+
+(Round Z: `SOAK_CLASS` plays that class - so a Lorelei soak makes Rose
+tokens and a Rauhnacht one burns.)
 
 **A whole league match, played through with nobody watching.** AUTO on, speed
 up, and let it run from kick-off to full time. It is the one question no other
@@ -4550,6 +4636,19 @@ helper adds a node for you, say so in a comment above it, in capitals.
 
 ---
 
+### Round Z additions
+
+- **A token changes the card a body plays.** Mid-match, the unit that was
+  Matthias is a "Rose Unit". Anything that reads a squad DURING the match sees
+  the token; at full time every original is put back before the squad is read.
+- **The ability engine keys everything by card AND side.** Both teams can
+  field the very same card (a friendly, a mirror match). If you write a tool
+  that asks the engine about a card, say which side.
+- **"Exile" is gone from the card texts.** If you write a new card, write
+  "exhaust". The audit still reads an old "exile" as exhaust.
+- **A Cost the side cannot pay means nothing happened** - not a trigger for
+  the referee, not a use against its Max.
+
 ### Round Y additions
 
 - **Edit a card's TEXT, not CardAbilities.csv.** That file is rebuilt from
@@ -4578,6 +4677,10 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | make a class unlockable | the `Requires` column of `ClassInfo.csv` |
 | change how strong a tier is | `TierPowers.csv` — and read section 2 first |
 | give a player an ability (league) | `Abilities.csv`, then the ability columns of the unit CSV |
+| make an ability cost Ore | the `Cost` column of Abilities.csv: `ore:3` |
+| make an Emblem's Basic side do something | write an `EMB_` row in Abilities.csv (copy one), then name it in the Emblem's `Basic Ability` column |
+| make a card's ability work from its text | change the text, run `python3 tools/ability_audit.py` and `python3 tools/ability_rows.py`, then `ability_coverage.gd` |
+| change what a Swan or a Rose token is | `EMB_ZEPAR_WINGS` / `EMB_GREMORY_ROSE` in Abilities.csv; `swans_count_as_tokens` in Tuning.csv |
 | change what a passing move is worth (league) | `Combos.csv` |
 | **change what a passing move is worth (Adventure)** | `AdventureCombos.csv` |
 | add a new Adventure icon | `AdventureTraits.csv`, then breakpoints in `AdventureCombos.csv` |

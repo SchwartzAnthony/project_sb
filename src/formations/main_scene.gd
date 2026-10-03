@@ -1690,6 +1690,14 @@ func _full_time() -> void:
 	# everyone, here. See ability_engine.gd (round Y, C1).
 	if abilities != null:
 		abilities.finish_match()
+		_absorb_ability_news()
+		# ROUND Z: EVERY TOKEN HANDS ITS BODY BACK before anything reads the
+		# squad that played - the post-match screen, the experience, the save
+		# must see Matthias, never "Rose Unit".
+		for swap in abilities.all_swaps():
+			var body := unit_for_card(swap["new"], bool(swap["side"]))
+			if body != null:
+				body.update_unit_data(swap["old"])
 	timer_label.text = "FULL TIME" if no_clock \
 		else "%02d:00" % int(MATCH_LENGTH_MINUTES)
 	event_announcement.text = "FULL TIME  %d - %d" % [player_score, enemy_score]
@@ -3390,6 +3398,7 @@ func trigger_hold_up_event() -> void:
 	freeze_play(true)
 
 	abilities.begin_cycle()
+	_absorb_ability_news()
 	for unit in _all_units():
 		unit.reset_for_new_cycle()
 
@@ -3798,6 +3807,9 @@ func start_next_draft_phase() -> void:
 		return
 
 	var phase := draft_phases[current_phase_index]
+	# Round Z: the Emblems are known before the first card is offered, so an
+	# Emblem's Reveal is on the cards from the first draft.
+	_arm_abilities()
 
 	# ============ AND IT STAYS ON SCREEN ============
 	#
@@ -3934,6 +3946,7 @@ func create_card_for_unit(data: PlayerData) -> void:
 	var card := PLAYER_CARD_SCENE.instantiate() as PlayerCardUI
 	card_container.add_child(card)
 	card.setup_card(data)
+	_dress_card(card, data)
 	card.card_hovered.connect(_on_card_hovered)
 	card.card_unhovered.connect(_on_card_unhovered)
 	card.card_selected.connect(_on_card_selected)
@@ -4043,6 +4056,7 @@ func _redraw_offered_cards() -> void:
 		var card := child as PlayerCardUI
 		if card != null and card.current_data != null:
 			card.setup_card(card.current_data)
+			_dress_card(card, card.current_data)
 			card.set_locked(_auto_is_on())
 
 
@@ -4237,6 +4251,7 @@ func _on_reveal_wanted(selected_data: PlayerData) -> void:
 	revealed_by_tier[phase] = selected_data
 	if abilities != null:
 		abilities.fire_reveal(selected_data, false)
+		_absorb_ability_news()
 	# ON THE TABLE, not just in the log. A reveal you cannot see is a rule,
 	# not a moment — the card goes face up above the row you are choosing
 	# from, where both sides can read it while the tier is still open.
@@ -4256,6 +4271,7 @@ func _enemy_reveals(tier_key: String, card: PlayerData) -> void:
 	enemy_revealed_by_tier[tier_key] = card
 	if abilities != null:
 		abilities.fire_reveal(card, true)
+		_absorb_ability_news()
 	_put_on_the_table(card, true)
 	announce("They play %s face up." % NamePlate.short_name(card), 1.8)
 	print("[reveal] they show %s in Tier %s." % [card.player_name, tier_key])
@@ -4690,10 +4706,11 @@ func resolve_round() -> void:
 	abilities.begin_round()
 	# ROUND Y (C1): the zone book. Everyone on the pitch is on the FIELD (the
 	# first time, that is the match's match_start); this round's four leave it
-	# for COMBAT. See ability_engine.gd.
-	abilities.sync_field(_cards_of_side(false), _cards_of_side(true))
+	# for COMBAT. See ability_engine.gd. Round Z: and each side's Emblems.
+	_arm_abilities()
 	abilities.round_lineups(player_lineup, enemy_lineup)
 	abilities.apply_passives(player_lineup, enemy_lineup)
+	_absorb_ability_news()
 
 	var player_bank := 0
 	var enemy_bank := 0
@@ -4779,6 +4796,7 @@ func resolve_round() -> void:
 		for line in abilities.log_lines:
 			print(line)
 		abilities.log_lines.clear()
+		_absorb_ability_news()
 
 		# ============ THE WIN SOUND ON A LOSS ============
 		#
@@ -5228,6 +5246,7 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 	if keeper == null or shot_power <= 0:
 		print("  No shot taken this round.")
 		abilities.round_finished()
+		_absorb_ability_news()
 		_end_surge()
 		restart_hold = false
 		if ball != null:
@@ -5286,6 +5305,7 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 	var stamina_before := keeper.current_stamina
 	var scored := keeper.take_shot(shot_power)
 	abilities.after_shot(not shooter_is_player, scored)
+	_absorb_ability_news()
 	var stamina_spent := maxi(0, stamina_before - keeper.current_stamina)
 
 	# Report the shot and, if your keeper stopped it, the save. Both carry
@@ -5380,6 +5400,7 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 	_settle_emblems()
 	# ROUND Y (C1): round_end, then this round's four go to the EXHAUST.
 	abilities.round_finished()
+	_absorb_ability_news()
 	round_resolved.emit(player_score, enemy_score)
 	current_state = MatchState.PLAYING
 
@@ -6081,7 +6102,8 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		"priority": atk.get_ability_priority(),
 		"power_before": atk_before,
 		"power_after": atk_after,
-		"ability": db.get_ability(atk.active_attack_ability()),
+		"ability": _first_ability(atk.active_attack_ability()),
+		"printed": atk.get_attack_power(),
 		"wins": attacker_wins,
 	}
 	var defender_side := {
@@ -6090,7 +6112,8 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		"priority": def.get_ability_priority(),
 		"power_before": def_before,
 		"power_after": def_after,
-		"ability": db.get_ability(def.active_defend_ability()),
+		"ability": _first_ability(def.active_defend_ability()),
+		"printed": def.get_defense_power(),
 		"wins": not attacker_wins,
 	}
 
@@ -6109,6 +6132,26 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 	await duel_arena.duel_finished
 
 	freeze_play(false)
+
+
+## ROUND Z: what the card carries this match (counters, SWAN, TOKEN), and a
+## SHOW button when an Emblem gives it a Reveal (Zepar's Swan).
+func _dress_card(card: PlayerCardUI, data: PlayerData) -> void:
+	if abilities == null or data == null or card == null:
+		return
+	card.set_marks(abilities.marks_for(data, false))
+	if abilities.emblem_reveal_for(data, false):
+		card.allow_show()
+
+
+## The first row an ability cell names - a cell may name several, semicolons
+## between ("C_Fritz_A1;C_Fritz_A2"), and asking for the whole cell found none.
+func _first_ability(cell: String) -> AbilityData:
+	for piece in cell.split(";"):
+		var ability := db.get_ability(String(piece).strip_edges())
+		if ability != null:
+			return ability
+	return null
 
 
 ## The on-pitch unit holding the ball at the end of the duel chain.
@@ -6278,3 +6321,71 @@ func _refresh_ref_bar() -> void:
 		ref_bar.yellows[side] = _yellows_for(side)
 		ref_bar.reds[side] = _reds_for(side)
 	ref_bar.refresh()
+
+
+# =============================================================
+#  ROUND Z (C2) - WHAT THE ABILITY ENGINE TELLS THE MATCH
+#
+#  The engine decides; the match shows. Three things come back out of it:
+#
+#    TOKENS   a Rose Unit token took a card's place - the body on the pitch
+#             that played that card now plays the token (take_swaps)
+#    EVENTS   ore gained, a swan made, a counter placed - reported to
+#             Stats.csv for YOUR side, which is what fills the Emblem
+#             Conditions (lorelei_swans_made and the rest)
+#    THE TRACKER   Ore, tokens and every "next" effect still waiting
+# =============================================================
+
+var match_tracker: MatchTracker = null
+
+
+## The Stars a side brought - the three in its bundle and whoever is on now.
+func _stars_of(side_is_enemy: bool) -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	var bundle: Array[PlayerData] = enemy_star_bundle if side_is_enemy else player_star_bundle
+	for star in bundle:
+		if star != null and not out.has(star):
+			out.append(star)
+	var on_now: PlayerData = active_enemy_star if side_is_enemy else active_player_star
+	if on_now != null and not out.has(on_now):
+		out.append(on_now)
+	return out
+
+
+## Tell the engine who is on the pitch and which Emblems each side carries.
+## Cheap; called before every draft and every round.
+func _arm_abilities() -> void:
+	if abilities == null:
+		return
+	for side in [false, true]:
+		abilities.set_emblems(side, EmblemBook.on_the_field(_stars_of(side)))
+	abilities.sync_field(_cards_of_side(false), _cards_of_side(true))
+
+
+## Everything the engine has to tell the match since the last time it asked.
+func _absorb_ability_news() -> void:
+	if abilities == null:
+		return
+	# What happened outside a duel (a reveal, the end of a round, a cycle) is
+	# printed too - the duel loop only prints its own.
+	for line in abilities.log_lines:
+		print(line)
+	abilities.log_lines.clear()
+	for swap in abilities.take_swaps():
+		var body := unit_for_card(swap["old"], bool(swap["side"]))
+		if body != null:
+			body.update_unit_data(swap["new"])
+			print("[abilities] %s's place is taken by a %s." % [
+				(swap["old"] as PlayerData).player_name, (swap["new"] as PlayerData).player_name])
+	var mine := 0
+	for e in abilities.take_events():
+		if bool(e["enemy"]):
+			continue
+		_report(String(e["event"]), e["facts"])
+		mine += 1
+	if mine > 0:
+		_settle_emblems()
+	if match_tracker == null or not is_instance_valid(match_tracker):
+		match_tracker = MatchTracker.open(self, abilities)
+	elif match_tracker != null:
+		match_tracker.refresh()

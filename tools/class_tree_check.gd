@@ -185,7 +185,7 @@ func _initialize() -> void:
 			var free_star: PlayerData = null
 			var taken := ClassTree.stars_placed(who, state)
 			for star in ClassTree.stars_you_own(who, state, db):
-				if not taken.has(ClassTree.star_key(star)):
+				if not taken.has(ClassTree.star_key(star)) and ClassTree.fits(star, String(node["set_id"]), db):
 					free_star = star
 					break
 			if free_star == null:

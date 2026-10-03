@@ -500,11 +500,22 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("Counters, Ore, tokens and swans (round Z, phase C2)", `
+    <p style="margin:0 0 10px"><b>103 of your 228 class abilities work in a match now</b> (45%, up from 33) - and five Emblems' Basic sides play.</p>
+    ${rows([
+      ["counters","burn, song, power - on a CARD for the whole match. A <b>-1 power counter</b> makes it 1 weaker in every duel after. Shown on the draft card"],
+      ["Ore","one pool per SIDE (ruling R12). <code>gain_ore</code> fills it; a <b>Cost</b> of <code>ore:3</code> spends it before the ability goes off"],
+      ["tokens","a <b>Rose Unit</b> takes a card's place (same power, no text); the card waits in the exhaust - where its <i>While in exhaust</i> side works"],
+      ["swans","a creature type, not a card: Zepar's Emblem turns a revealed water unit into a Swan, +1 in every combat"],
+      ["the tracker","a panel on the pitch: Ore, tokens, victory counters, and every <i>next one</i> still waiting (ruling F3)"],
+      ["exile","= the exhaust zone (ruling R14). The card texts say exhaust now"],
+    ])}`);
+
   card("Combat abilities — the plan (round Y)", `
     <p style="margin:0 0 10px"><b>Every ability text is read</b> into engine words in <b>AbilityAudit.csv</b>, and the open questions are in <b>AbilityRulings.csv</b>, once each. guides/COMBAT_PHASES.md has the timing chart and the phases.</p>
     ${rows([
-      ["C1 · built","zones (field, combat, exhaust), the new moments, the <code>If</code> column, \u201cthe next one\u201d, one side per duel. <b>33 abilities work</b>"],
-      ["C2","counters, tokens, Ore - +65"],
+      ["C1 · built","zones (field, combat, exhaust), the new moments, the <code>If</code> column, \u201cthe next one\u201d, one side per duel"],
+      ["C2 · built","counters, tokens, Ore, swans, five Emblem Basic sides. <b>103 abilities work</b>"],
       ["C3","the keeper and the referee - +18"],
       ["C4","bending the duel - +33"],
       ["C5","exile and the other zones - +17"],

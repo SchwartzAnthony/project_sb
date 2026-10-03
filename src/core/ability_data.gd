@@ -136,6 +136,16 @@ const EFFECTS: Array[String] = [
 	"addcardchance",  # +value % that a foul the OTHER side commits, once the
 	                  # referee has seen it, is a yellow and not a free kick
 	                  # (round X - your Bergmännlein ore card)
+	# ---- ROUND Z, PHASE C2: counters, the Ore pool, tokens, swans ----
+	"addcounter",     # add_counter:burn  - value counters of that kind on the
+	                  # target card (add_counter:power -1 = a -1 POWER COUNTER,
+	                  # which changes its power for the rest of the match).
+	                  # Target `side` puts them on your SIDE instead (victory).
+	"removecounter",  # remove_counter[:kind] - takes value counters off
+	"gainore",        # +value Ore into your side's pool (ruling R12)
+	"createtoken",    # create_token:rose - a Rose (or Swan) Unit token takes a
+	                  # card's place; the card goes to the exhaust and stays
+	"makeswan",       # the target becomes a Swan creature type for the match
 ]
 
 const SCOPES: Array[String] = ["duel", "round", "cycle", "match"]
@@ -160,6 +170,18 @@ var max_per: String = "match"
 ## between them) for the ability to go off. Blank = always. See CONDITIONS.
 var condition: String = ""
 
+## ROUND Z - THE WORD AFTER THE COLON in the Effect cell: `add_counter:burn`
+## is effect addcounter with effect_arg "burn". Blank for most effects.
+var effect_arg: String = ""
+## ROUND Z - THE Cost COLUMN. `ore:3` = spend three Ore from your side's pool
+## BEFORE it goes off. Not enough Ore and it simply does not happen - it is
+## not counted, not spent against its Max. Blank = free.
+var cost_kind: String = ""
+var cost_amount: int = 0
+## ROUND Z - a Max that counts for the whole SIDE rather than for one card:
+## `2/cycle/side` (Belphegor's "only two per cycle").
+var max_shared: bool = false
+
 # ============ THE CONDITION WORDS (round Y, phase C1) ============
 #
 # What may go in the If column today. A word written in Keywords.csv as an
@@ -178,10 +200,23 @@ var condition: String = ""
 #     in_exhaust / in_field      which zone this card is in
 #     in_combat
 #     has_tag:swan               the card carries that tag (see PlayerData)
+#
+#   ROUND Z - PHASE C2:
+#     has_counter / has_counter:burn        this card carries a counter (of that kind)
+#     enemy_has_counter[:kind]              the card it is facing does
+#     has_token / tokens_at_least:4         your side controls a token / at least n
+#     is_swan / is_token                    this card is a Swan / a token
+#     ore_this_round                        your side gained Ore this round
+#     ore_at_least:3                        your pool holds at least n Ore
+#     element:water                         THIS card is that element
+#     exhausted_this_round:2:water          at least n of your cards (of that
+#                                           kind) went to the exhaust this round
 const CONDITIONS: Array[String] = [
 	"defending", "attacking", "won", "lost", "lastallywon", "lastallylost",
 	"enemyelement", "enemynotelement", "owngoalielower", "enemybelowbase",
 	"inexhaust", "infield", "incombat", "hastag",
+	"hascounter", "enemyhascounter", "hastoken", "tokensatleast", "isswan", "istoken",
+	"orethisround", "oreatleast", "element", "exhaustedthisround",
 ]
 
 
@@ -218,6 +253,9 @@ static func condition_is_planned(word: String) -> bool:
 #     next_ally*2:unkengeister the next TWO
 #     next_enemy               their next card to duel
 #     ally:water+I             your card in that tier THIS round
+#     next_tier_ally:fire      ROUND Z, ruling R03: the VERY NEXT card of yours
+#                              to duel. If it is not fire, the effect is lost -
+#                              it does not wait for a fire card further on.
 #
 # "Next" waits until that card duels - later this round, or in a later round
 # (ruling R03). It never runs out on its own.
@@ -231,7 +269,7 @@ static func parse_next(target_text: String) -> Dictionary:
 		head = parts[0]
 		if String(parts[1]).is_valid_int():
 			count = maxi(1, int(String(parts[1])))
-	if not (head in ["next_self", "next_ally", "next_enemy", "ally"]):
+	if not (head in ["next_self", "next_ally", "next_tier_ally", "next_enemy", "ally"]):
 		return {}
 	return {"kind": head, "count": count, "filter": filter}
 
@@ -291,6 +329,8 @@ func validate() -> String:
 			scope = "duel"
 		else:
 			return "Scope '%s' is not one of: %s" % [scope, ", ".join(SCOPES)]
+	if cost_kind != "" and cost_kind != "ore":
+		return "Cost '%s' is not one the game knows (today: ore:N)" % cost_kind
 	if not _target_is_known():
 		return "Target '%s' is not recognised" % target
 	if value == 0:
@@ -309,7 +349,9 @@ func validate() -> String:
 
 func _target_is_known() -> bool:
 	var flat := CardDatabase._normalise(target)
-	if TARGETS_SIMPLE.has(flat):
+	if TARGETS_SIMPLE.has(flat) or flat == "side":
+		return true
+	if target.begins_with("replace:") or target.begins_with("enemy_tier:"):
 		return true
 	if not parse_next(target).is_empty():
 		return true
@@ -334,7 +376,8 @@ func describe() -> String:
 ## Every word comes from the row, so an ability written tomorrow explains
 ## itself here with nothing to keep in step.
 func plain() -> String:
-	return "%s: %s%s." % [_when_words(), _what_words(), _how_long_words()]
+	var pay := ("pay %d Ore, then " % cost_amount) if cost_kind == "ore" else ""
+	return "%s: %s%s%s." % [_when_words(), pay, _what_words(), _how_long_words()]
 
 
 func _when_words() -> String:
@@ -343,6 +386,8 @@ func _when_words() -> String:
 		"ondefend": return "When defending"
 		"onduelstart": return "When its duel begins"
 		"onwinduel": return "When it wins its duel"
+		"oncounter": return "When it receives a counter"
+		"reveal": return "When it is revealed"
 		"onloseduel": return "When it loses its duel"
 		"flip": return "When the cards are turned over"
 		"passive": return "Always"
@@ -360,6 +405,11 @@ func _what_words() -> String:
 		"addshotpower": return "%+d on the shot at goal" % value
 		"drainstamina": return "%d stamina off %s" % [value, who]
 		"restorestamina": return "%d stamina back to %s" % [value, who]
+		"addcounter": return "%+d %s counter on %s" % [value, effect_arg, who]
+		"removecounter": return "remove %d counter(s) from %s" % [value, who]
+		"gainore": return "+%d Ore for your side" % value
+		"createtoken": return "a %s Unit token takes the place of %s" % [effect_arg.capitalize(), who]
+		"makeswan": return "%s becomes a Swan" % who
 	return "%s %+d to %s" % [effect, value, who]
 
 

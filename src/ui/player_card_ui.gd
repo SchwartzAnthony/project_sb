@@ -88,6 +88,9 @@ func setup_card(data: PlayerData) -> void:
 
 	for child in get_children():
 		child.queue_free()
+	# The SHOW button went with the children; forget it, or a redraw (a brew
+	# poured mid-draft) would think the card still had one.
+	_show = null
 
 	var box := card_size()
 	custom_minimum_size = box
@@ -174,11 +177,11 @@ func _add_brew_corner(_box: Vector2) -> void:
 ## has a trick on it.
 ##
 ## `draft_reveal_button` in Tuning.csv takes it off every card.
-func _add_show_button(box: Vector2) -> void:
+func _add_show_button(box: Vector2, forced: bool = false) -> void:
 	var db := CardDatabase.get_db()
 	if db == null or not db.tune_bool("draft_reveal_button", true):
 		return
-	if not _has_reveal(db):
+	if _show != null or (not forced and not _has_reveal(db)):
 		return
 
 	_show = Button.new()
@@ -218,12 +221,44 @@ func _has_reveal(db: CardDatabase) -> bool:
 		return false
 	if not AbilityData.trigger_is_live("reveal"):
 		return false
-	for ability_id in [current_data.active_attack_ability(),
+	for cell in [current_data.active_attack_ability(),
 			current_data.active_defend_ability()]:
-		var ability := db.get_ability(String(ability_id))
-		if ability != null and ability.trigger == "reveal":
-			return true
+		# A cell may name several rows, semicolons between (round Y).
+		for ability_id in String(cell).split(";"):
+			var ability := db.get_ability(String(ability_id).strip_edges())
+			if ability != null and ability.trigger == "reveal":
+				return true
 	return false
+
+
+## ROUND Z. Something other than the card's own text gives it a Reveal - an
+## Emblem on the field (Zepar's: "when your water unit reveals itself").
+## main_scene asks the ability engine and calls this.
+func allow_show() -> void:
+	_add_show_button(card_size(), true)
+
+
+## ROUND Z - WHAT THE CARD IS CARRYING THIS MATCH. A thin strip across the top
+## of the card: "burn 1  power -1  SWAN". The counters stay on a card for the
+## whole match, so you need to see them when you pick it. Blank hides it.
+func set_marks(words: String) -> void:
+	if words.strip_edges() == "":
+		return
+	var box := card_size()
+	var strip := Label.new()
+	strip.text = words
+	strip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	strip.add_theme_font_size_override("font_size", 13)
+	strip.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
+	strip.add_theme_stylebox_override("normal", MenuSupport.panel_style(
+		MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
+	# Right of the flask in the top-left corner, so it never hides it.
+	strip.offset_left = 50.0
+	strip.offset_right = box.x - 8.0
+	strip.offset_top = 6.0
+	strip.offset_bottom = 28.0
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(strip)
 
 
 ## Called by main_scene whenever AUTO is switched on or off, and once when

@@ -177,8 +177,12 @@ func play_duel(info: Dictionary) -> void:
 		await _fire_ability(key, data)
 
 	# --- 4. Final numbers ---
-	_set_power(_side["left"], int(left.get("power_after", 0)), LIVE_TEXT)
-	_set_power(_side["right"], int(right.get("power_after", 0)), LIVE_TEXT)
+	# RULING F4: when the number it fights with is not the number printed on
+	# the card, the difference is shown beside it - "3  (+1)".
+	_set_power(_side["left"], int(left.get("power_after", 0)), LIVE_TEXT,
+		int(left.get("power_after", 0)) - int(left.get("printed", left.get("power_after", 0))))
+	_set_power(_side["right"], int(right.get("power_after", 0)), LIVE_TEXT,
+		int(right.get("power_after", 0)) - int(right.get("printed", right.get("power_after", 0))))
 	await _beat(compare_seconds)
 
 	# --- 5. Result ---
@@ -222,6 +226,10 @@ func _fire_ability(key: String, data: Dictionary) -> void:
 
 	if ability_label:
 		ability_label.text = _ability_text(ability)
+		# RULING F4: a priority that is not the card's power is shown.
+		var card = data.get("card")
+		if card != null and int(data.get("priority", 0)) != int(data.get("printed", data.get("priority", 0))):
+			ability_label.text += "\npriority %d" % int(data.get("priority", 0))
 		ability_label.add_theme_color_override("font_color", LIVE_TEXT)
 
 	_play_anim(key, data.get("card"), "ability")
@@ -230,7 +238,9 @@ func _fire_ability(key: String, data: Dictionary) -> void:
 
 func _ability_text(ability) -> String:
 	var title: String = ability.display_name if ability.display_name != "" else ability.id
-	return "%s\n%s %+d (%s)" % [title, ability.effect, ability.value, ability.scope]
+	# Round Z: the sentence, not the database row - "When attacking: +1
+	# attack and defence to itself, for this duel."
+	return "%s\n%s" % [title, ability.plain()]
 
 
 # =============================================================
@@ -501,11 +511,11 @@ func _play_anim(key: String, card, anim_name: String) -> void:
 	animator.fit_into(Vector2(stage.size.x if stage != null and stage.size.x > 1.0 else 600.0, 360.0))
 
 
-func _set_power(nodes: Dictionary, value: int, colour: Color) -> void:
+func _set_power(nodes: Dictionary, value: int, colour: Color, change: int = 0) -> void:
 	var label: Label = nodes["power"]
 	if label == null:
 		return
-	label.text = str(value)
+	label.text = str(value) if change == 0 else "%d  (%+d)" % [value, change]
 	label.add_theme_color_override("font_color", colour)
 
 

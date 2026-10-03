@@ -254,6 +254,9 @@ func _picker_for(who: String, set_id: String) -> Control:
 	for star in ClassTree.stars_you_own(who, state, db):
 		if taken.has(ClassTree.star_key(star)):
 			continue
+		# Round Z: only the Star whose set this node is (star_fits_own_set_only).
+		if not ClassTree.fits(star, set_id, db):
+			continue
 		var button := _button("%s   (Tier %s, P:%d, card %d)" % [
 			star.player_name, star.get_tier_clean(), star.base_power_left,
 			star.card_number],
@@ -263,7 +266,7 @@ func _picker_for(who: String, set_id: String) -> Control:
 		offered += 1
 
 	if offered == 0:
-		box.add_child(_small("You have no Star of this class left to place."))
+		box.add_child(_small("The Star of this set is not yours yet, or is already placed. Each Star fits its own set's node."))
 	return box
 
 

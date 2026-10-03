@@ -294,8 +294,9 @@ half about the bug and half about making that kind of silence impossible.
 
 The next stretch of work has a plan of its own: **`guides/COMBAT_PHASES.md`**.
 Eight phases, C1 to C8, each bringing a measured batch of your cards' abilities
-to life. C1 shipped in round Y (33 abilities work, up from 1); C2 — counters,
-tokens and Ore — is next.
+to life. C1 shipped in round Y (33 abilities work, up from 1); **C2 — counters,
+tokens, Ore, swans and five Emblem Basic sides — in round Z (103 work)**.
+**C3 — the keeper and the referee — is next.**
 
 On hold until the combat abilities are done, at your request:
 
@@ -304,6 +305,7 @@ On hold until the combat abilities are done, at your request:
 - Hiding the **Rivals'** cards from the Pub.
 - Which **tier** a plain player can turn into when only Stars hold it (you chose
   option (a): leave it).
+- **Rotate the PixelLab API key** that was pasted into a chat (round X).
 
 ## The crosswalk — where everything went
 

@@ -173,8 +173,12 @@ func _find(node: Node, wanted: String):
 
 func _pick_a_team() -> void:
 	var db := CardDatabase.get_db()
-	var wanted := ""
+	# ROUND Z: SOAK_CLASS=Lorelei (an environment variable) plays that class,
+	# so each class's engine - tokens, swans, burn, Ore - gets a full match.
+	var wanted := OS.get_environment("SOAK_CLASS")
 	for card in db.players:
+		if wanted != "":
+			break
 		if card.is_star():
 			wanted = card.unit_type
 			break

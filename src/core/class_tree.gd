@@ -303,6 +303,35 @@ static func stars_placed(unit_type: String, state: GameState) -> Array[String]:
 	return out
 
 
+## Can this Star stand in that set's node? Its own set only, unless
+## `star_fits_own_set_only` is off in Tuning.csv.
+static func fits(star: PlayerData, set_id: String, db: CardDatabase) -> bool:
+	if star == null:
+		return false
+	if db != null and not db.tune_bool("star_fits_own_set_only", true):
+		return true
+	var want := CardDatabase._normalise(set_id)
+	if CardDatabase._normalise(_set_of(star)) == want:
+		return true
+	# A NODE NO STAR CLAIMS takes any of them - the old one-node classes
+	# (Normal, Brandteufel) have no Emblems saying which Star is whose.
+	var entry := ClassBook.entry_for(star.unit_type)
+	if entry != null:
+		for other in entry.stars:
+			if CardDatabase._normalise(_set_of(other)) == want:
+				return false
+	return true
+
+
+## Which set a Star answers for: its Emblem's Set column (Gremory -> Sitri),
+## else the Star's own set (blank = its name).
+static func _set_of(star: PlayerData) -> String:
+	var badge := EmblemBook.for_star(star)
+	if badge != null and badge.set_id != "":
+		return badge.set_id
+	return star.set_id()
+
+
 ## Put a Star into a node. Returns {"ok": bool, "why": String}.
 ##
 ## One Star, one node. A Star already standing somewhere else cannot be in
@@ -318,6 +347,12 @@ static func place_star(unit_type: String, set_id: String, star: PlayerData,
 		return {"ok": false, "why": "that node already has a Star in it"}
 	if stars_placed(unit_type, state).has(star_key(star)):
 		return {"ok": false, "why": "%s is already in another node" % star.player_name}
+	# ============ EACH STAR FITS ITS OWN SET'S NODE (round Z) ============
+	# You said yes: Gremory goes into the Sitri node, Zepar into Zepar. The
+	# Star's set comes from Star Players.csv (blank = the set with its name).
+	# `star_fits_own_set_only` FALSE in Tuning.csv lets any Star into any node.
+	if not fits(star, set_id, db):
+		return {"ok": false, "why": "%s belongs in the %s node" % [star.player_name, _set_of(star)]}
 
 	var cost := int(costs_for(unit_type)["node"])
 	# ============ THE FIRST THREE ARE ON THE HOUSE (round Y) ============

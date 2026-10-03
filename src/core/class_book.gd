@@ -126,6 +126,13 @@ class Emblem extends RefCounted:
 	## Left to right on the emblem bar.
 	var order: int = 0
 
+	## ROUND Z - WHAT THE BASIC SIDE DOES IN A MATCH. The `Basic Ability`
+	## column names one or more rows of Abilities.csv (semicolons between),
+	## and while this Emblem is on the field every card of its side that
+	## FEEDS the Basic side (see EmblemBook.feeds_basic) carries those rows as
+	## well as its own. Blank = the Basic side is still words only.
+	var basic_ability: String = ""
+
 
 class ClassEntry extends RefCounted:
 	var unit_type: String = ""
@@ -273,6 +280,7 @@ static func _read_emblem_file(path: String) -> void:
 		var feeds := MenuSupport.field(row, "Basic Feeds").strip_edges().to_lower()
 		badge.feeds = feeds if feeds == "class" or feeds == "any" else "element"
 		badge.order = MenuSupport.field_int(row, "Order", found + 1)
+		badge.basic_ability = MenuSupport.field(row, "Basic Ability").strip_edges()
 
 		var key := CardDatabase._normalise(badge.unit_type)
 		var entry: ClassEntry = _classes.get(key)

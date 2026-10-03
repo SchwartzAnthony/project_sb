@@ -1,4 +1,4 @@
-# Combat abilities — the plan (round Y)
+# Combat abilities — the plan (round Y · C2 built in round Z)
 
 > *"We need to go through each of the unique players and see if their
 > triggers work when they should (during attack/defend or in void, on the
@@ -17,7 +17,7 @@ Two spreadsheets go with it:
 | file | what it is |
 |---|---|
 | `data/AbilityAudit.csv` | **every ability text in the game**, one row each, broken into When / If / Cost / Do / Target / Value / Scope / Max, with the phase that makes it work |
-| `data/AbilityRulings.csv` | **21 questions, each asked once.** Fill in `Your Ruling`. Until you do, the engine uses `My Reading` |
+| `data/AbilityRulings.csv` | **22 questions, each asked once.** You answered the first 21 in round Z; R18 is new. Until a question is answered, the engine uses `My Reading` |
 
 `python3 tools/ability_audit.py` rebuilds both from your card files and
 **keeps every ruling you've written**. Run it whenever you change a card's
@@ -49,12 +49,15 @@ MATCH START ............... match_start            (C1)
 │   │   ├─ DUEL, Tier I -> II -> III -> IV
 │   │   │   ├─ duel start . **on_duel_start**, **flip**
 │   │   │   │               while_in_exhaust       (C1) cards already used this cycle
-│   │   │   │               while_in_exile         (C5)
+│   │   │   │               "next" effects land    (C1) on the card that waited for them
 │   │   │   ├─ the stack .. **on_attack** / **on_defend**
 │   │   │   │               lowest PRIORITY first, attacker first on a tie
 │   │   │   ├─ compare .... attack vs defence
 │   │   │   └─ outcome .... **on_win_duel** / **on_lose_duel**
-│   │   │                   after_duel             (C1) "after Tier IV combat"
+│   │   │                   after_duel             (C1)
+│   │   │   (any time) .... on_counter             (C2) a card receives a counter
+│   │   │
+│   │   ├─ AFTER COMBAT ... after_combat           (C2) every card, any zone - "after Tier IV combat"
 │   │   │
 │   │   ├─ FOULS .......... the referee            (Fouls.csv, Referee.csv)
 │   │   ├─ THE SHOT ....... on_shot                (C1) "shooting at goal"
@@ -82,19 +85,23 @@ asks whether to keep it).
 
 ---
 
-## 2. Where cards can be — the five zones
+## 2. Where cards can be — the zones
 
 | zone | who is there | today |
 |---|---|---|
-| **Bench** ("the void"?) | the 18 cards in your collection that are not in this match | exists, unnamed |
-| **Field** | the 12 who took the pitch and are still to play this cycle | exists |
-| **Combat** | the 4 drafted this round, until the round ends | exists |
-| **Exhaust** | cards already used this cycle. They return to the field at the end of the cycle | exists as a flag (`is_exhausted`) |
-| **Exile** | cards removed by a rule (a Rose token replacing a unit, a swan going to exile). They come back only when a rule says so | **does not exist** (C5) |
+| **Bench** ("outside the game") | cards not in this match. Ruling R08: **at most 3**, and you choose which | C6 (fusing) |
+| **Field** | the 12 who took the pitch and are still to play this cycle | built (C1) |
+| **Combat** | the 4 drafted this round, until the round ends | built (C1) |
+| **Exhaust** | cards already used this cycle. They return to the field at the end of the cycle | built (C1) |
 
-C1 turns the first four into a proper **zone book**: every card on both sides
-always has exactly one zone, and moving between zones *fires* (enter
-exhaust, leave exhaust). Exile comes with C5.
+**There is no Exile zone.** Ruling R14: *"Exile = Exhaust, Exile was the old
+name."* Every card text that said exile now says exhaust (round Z). **"The
+void"** (ruling R07) is the exhaust if the card says so, otherwise that
+card's own tier zone - the cards of its tier not played yet.
+
+One card is **held** in the exhaust: a card a Rose Unit token replaced. It
+stays there while its token plays, and does not come back at the end of the
+cycle (round Z).
 
 ---
 
@@ -103,40 +110,53 @@ exhaust, leave exhaust). Exile comes with C5.
 **276 ability texts**: 216 on the 108 set cards, 24 on the 12 Stars, 36 on the
 12 Emblems.
 
-| | works today | C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8 | systems | not written |
+Round Z re-read the cards with your rulings (Exile = Exhaust moved most of
+the old C5 rows into C1/C2):
+
+| | works today | C1 ✅ | C2 ✅ | C3 | C4 | C5 | C6 | C7 | C8 | systems | not written |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | Bergmännlein | 0 | 8 | 18 | 9 | 8 | 0 | 14 | 3 | 0 | 6 | 3 |
-| Lorelei | 0 | 5 | 21 | 3 | 17 | 11 | 0 | 3 | 3 | 6 | 0 |
-| Rauhnacht-Feuergeister | 7 | 11 | 26 | 0 | 2 | 0 | 10 | 3 | 0 | 9 | 0 |
-| Unkengeister | 0 | 1 | 0 | 6 | 6 | 6 | 36 | 3 | 0 | 6 | 3 |
-| **total** | **7** | **25** | **65** | **18** | **33** | **17** | **60** | **12** | **3** | **27** | **6** |
+| Lorelei | 0 | 10 | 22 | 4 | 19 | 2 | 0 | 3 | 3 | 6 | 0 |
+| Rauhnacht-Feuergeister | 7 | 11 | 26 | 0 | 2 | 1 | 10 | 3 | 0 | 9 | 0 |
+| Unkengeister | 0 | 1 | 0 | 6 | 6 | 8 | 36 | 3 | 0 | 6 | 3 |
+| **total** | **7** | **30** | **66** | **19** | **35** | **11** | **60** | **12** | **3** | **27** | **6** |
 
 A row sits in the **highest** phase any of its words needs. "Systems" are
 Emblem Basic Sides and Star Ultimates. Each is a small rule-set of its own (a
 mine in every zone, Rose tokens replacing units) and is built whole in C7 or
 C8. "Not written" means the six Ultimates you haven't written yet.
 
-**Running total of abilities that work:** 7 before C1 → **32** after C1 (done
-in this round — plus Karl's ore card, 33) → **97** after C2 → 115 → 148 → 165
-→ **225** after C6 → all of them after C8.
+**Running total of class abilities that work in a match** (the meter,
+`ability_coverage.gd`, counts the 228 Attack/Defend sides of the set cards and
+Stars' Front Sides): 1 before C1 → 33 after C1 → **103 after C2 (round Z)** →
+about 122 after C3 → 157 after C4 → 168 after C5 → 228 after C6. C7 and C8
+are the Emblems and Ultimates on top.
 
-### The four rulings that decide everything else
+### Your rulings (answered in round Z) and what they changed
 
-These are in `AbilityRulings.csv` as F1–F4. They aren't about any one
-sentence; they're about how a card with two abilities behaves at all.
-
-- **F1. One side per duel.** A card attacking uses its Attack ability, a card
-  defending uses its Defend ability. (Today the engine fires both, which is
-  wrong for your cards: "Enemy has to use Attack Ability" only makes sense if
-  a card normally uses one.)
-- **F2. Outside a duel** (exhaust, exile, end of cycle): the side it played
-  last.
-- **F3. Reveal** happens before anyone knows who attacks: two SHOW buttons?
-- **F4. Priority:** keep "power = priority, lowest first"?
-
-Then 17 more about wording (R01–R17): which keeper "goalie" means, what
-"next" means, where Ore lives, what "the void" is, and so on. **36 cards hang
-on R03 ("next") and 35 on R12 (Ore)**, so those two answers move the most.
+| | your ruling, short | built as |
+|---|---|---|
+| **F1** | the attacker uses its Attack side, the defender its Defend side, unless a card says otherwise; "switch to defender" = it now uses its Defend side | built in C1; the switch is C4 |
+| **F2** | Exile = Exhaust; outside a duel the **player chooses one side**, never both | today: the side it played last. The choice is a screen - planned for C5 (see the questions) |
+| **F3** | the enemy may Reveal in the same tier; the next tier waits for both; after picking a Reveal card you are **asked** whether to reveal it; a **window tracks the pending buffs** | the **match tracker** is built (round Z). The ask-after-pick flow is C5 |
+| **F4** | keep it; "-1 priority" moves priority, not power; show a **priority bubble** when it differs from power, and a **+/- bubble** for combat power | built: the duel window shows `3 (+1)` and "priority 2" (round Z) |
+| R01 | both keepers possible; most are the enemy's | "goalie" = the enemy's, unless "your goalie" |
+| R02 | change the %, not stamina | C3 |
+| R03 | "next" = **the next unit played** (Tier III → Tier IV); old cards meant "-1 priority" | new target `next_tier_ally` (round Z); Lennart's text now says "-1 priority" |
+| R04 | while in combat and burning, +1 power | built (C2) |
+| R05 / R06 | Max = per match; once per cycle = per card | built |
+| R07 | the void = the exhaust (if it says so) or its unplayed tier zone | C5 |
+| R08 | outside the game = the bench, **max 3, the player picks them** | C6 |
+| R09 | one tier segment of the yellow bar | C3 |
+| R10 | a real %, start at 5% | Konstantin's text says 5% now; C3 |
+| R11 | a shield is a separate bar that goes before stamina | C3 |
+| R12 | one Ore pool per side; mines by emblem and other means, on the side of the field; any mine (even in the exhaust) +1 ore; Tobias's mine "one per game" | **the pool is built (C2)**; Tobias says (Max 1); mines are C6 |
+| R13 | before the PLAY MAKER | C6 |
+| R14 | **Exile = Exhaust** | every card text changed; no exile zone |
+| R15 | yes | C4 |
+| R16 | just +5% foul for the match, once per game | Nils's text rewritten; C3 |
+| R17 | during combat the exhaust zone **lights up** when a card in it can act; before the duel you may swap; only interrupt when someone has a choice | C5 (it is a screen) |
+| **R18** | NEW: "attack power during combat" = the power it fights with, either side? | read that way (round Z) |
 
 ---
 
@@ -172,46 +192,99 @@ The moments, the conditions and "the next one":
   built into a real row in `data/CardAbilities.csv`, and puts its ID on the
   card. Each later phase adds itself to that script's list and runs it again.
 
-### C2 — Counters, tokens and Ore · +65 → 97
+### C2 — Counters, tokens and Ore · 103 working · ✅ BUILT IN ROUND Z
 
-Counters on a card (`burn`, `power`, `song`, `victory`), the side's **Ore
-pool** (`gain_ore`, `Cost: ore:3`, "if collected Ore this round"), tokens (a
-Rose or Swan unit standing in for a card), and creature types (a unit that
-*is a swan*). **Needs R12** (where Ore lives).
+- **Counters on cards**, for the whole match, whatever zone: `add_counter:burn`,
+  `remove_counter`, and the **power counter** (`add_counter:power` -1: Fritz's
+  "-1 power counter" makes him 1 weaker in every later duel). A card receiving
+  one fires the new moment **`on_counter`**. If words: `has_counter[:kind]`,
+  `enemy_has_counter[:kind]`.
+- **The Ore pool, one per side** (ruling R12): `gain_ore`, and a new **Cost**
+  column - `ore:3` is paid *before* the ability fires; not enough Ore and it
+  does not happen at all (not counted, not spent against its Max). If words:
+  `ore_this_round`, `ore_at_least:n`.
+- **Tokens**: `create_token:rose`. A Rose Unit token is a copy of the card it
+  replaces (same tier, same power, no text); the card is **held** in the
+  exhaust while the token plays - where its "While in exhaust" side works.
+  The body on the pitch changes card; at full time every original comes back.
+  If words: `has_token`, `tokens_at_least:n`, `is_token`.
+- **Swans**, a creature type: `make_swan`; `is_swan`; `next_ally:swan` finds
+  them. While `swans_count_as_tokens` is on, a Swan counts as a token.
+- **`next_tier_ally`** (ruling R03): the very next card played. **`side`**
+  and **`replace:<filter>`** targets. **Max** takes `1/round` and `/side`.
+- **`after_combat`**: once a round, after the Tier IV duel, for every card in
+  any zone (Carl: "while in exhaust ... after Tier IV combat"). "While in
+  exhaust ... at the end of a cycle" now reads as **once**, at the end of the
+  cycle - not at every duel.
+- **Five Emblems' Basic sides play** (pulled forward from C7, because the
+  Sitri and Zepar cards are dead without them). A new **Basic Ability** column
+  in the Emblems files names `EMB_` rows in Abilities.csv:
+  - **Gremory** - two water units into the exhaust in a round: a Rose token
+    replaces a water Tier I.
+  - **Zepar** - a revealed water unit becomes a Swan; a Swan is +1 in combat.
+    The draft card gets a SHOW button for it.
+  - **Sallos** - a water unit that defends and wins puts a Song on the enemy.
+  - **Belphegor** - a fire win is a victory counter, two per cycle per side.
+  - **Buer** - a fire unit receiving a counter is +1 in its combat, once a cycle.
+  Their Conditions now fill from **real events** in Stats.csv (`token_made`,
+  `swan_made`, `counter_placed`, `ore_gained`, `ore_spent`) instead of the old
+  "every duel won" placeholder.
+- **On screen**: the **match tracker** (Ore, tokens, victory counters, every
+  "next" still waiting - ruling F3), a strip on each draft card (`burn 1
+  power -1 SWAN`), and the duel window's `(+1)` and priority bubbles (F4).
+- **Measured**: `ability_coverage` 103 of 228 (45%); `ability_check` stages
+  125 abilities and the five Emblem stories - ALL GOOD; three match soaks
+  (Bergmännlein, Lorelei, Rauhnacht) with no trouble - the Lorelei one made
+  three Rose tokens and turned Gremory over.
 
-### C3 — The keeper and the referee · +18 → 115
+### C3 — The keeper and the referee · +19 → about 122 · NEXT
 
-`goalie_chance` (± % on a keeper), `goalie_shield`, `remove_shields`,
-`foul_heat` (+1 on the yellow-card bar), `foul_chance`, the coin-flip foul.
-**Needs R01, R02, R09, R10, R11.**
+All five rulings it needed are in (R01, R02, R09, R10, R11, and R16):
 
-### C4 — Bending the duel · +33 → 148
+- **`goalie_chance`**: ± % on a keeper's save chance for the round - the %,
+  never the stamina (R02). Erich, Dominik, Harald, Michael, Hannah, Frank,
+  Kurt, Konstantin, Silke, Kerstin ("to 0% this turn").
+- **The shield** (R11): a second bar on the keeper that empties before
+  stamina. `goalie_shield` (Rudolf), `remove_shields` (Monika).
+- **`foul_heat`**: one tier segment of the enemy's yellow-card bar (R09) -
+  Thomas, Carsten, Jan.
+- **`foul_chance`**: +n% for the enemy to commit a foul - Konstantin (5%, the
+  round, R10), Nils (5%, the match, once per game, R16).
+- **The coin flip** (Manfred's Defend): "if you cause a foul, flip a coin to
+  see if the enemy gets it instead".
+- On screen: the keeper's shield bar, the save % moving on the keeper's
+  label, and the referee bar taking a segment.
+
+### C4 — Bending the duel · +35
 
 `switch_to_defender`, `always_defending`, `swap_power`, `use_enemy_power`,
 `force_ability` (attack / defend / other), `negate_ability`, `negate_buff`,
 `change_priority`, `give_priority`, `uncounterable`, `double_attack`,
 `power_from_count`. **Needs F1, F4, R15.**
 
-### C5 — Zones in action · +17 → 165
+### C5 — Zones in action, and the choices · +11
 
-The **Exile** zone. `while_in_exile`, `send_to_exile`, swapping from exile
-or the bench, "send a different Tier IV to the exhaust and return this to
-the stack", revealing from the exhaust, copying from the exhaust (Vassago).
-**Needs F2, R07, R14, R17.**
+No exile zone any more (R14). What is left is the **interactive** part, and
+it is mostly screens: the exhaust zone **lighting up** when a card in it can
+act, with the swap before the duel (R17); the **ask-after-pick Reveal** flow
+(F3); **choosing which side** a card outside a duel uses (F2); swapping from
+the exhaust or the void (R07); "send a different Tier IV to the exhaust and
+return this to the stack"; revealing and copying from the exhaust (Vassago).
 
-### C6 — The class engines · +60 → 225
+### C6 — The class engines · +60
 
 The things on the pitch: **mines and mining** (Bergmännlein), **fusing**
 (Feuergeister), **touching the ball, cold touch, gravestones** (Unkengeister).
 These are the ones that need the match to *watch the pitch* rather than the
 cards. **Needs R08, R13.**
 
-### C7 — The Emblems' Basic Sides · 12 systems + 12 conditions
+### C7 — The Emblems' Basic Sides · 7 systems left
 
-Each Basic Side built as a whole: Rose tokens, the swan transformation, Song
-counters, victory counters, the fire buffs, mines and craters and the rock
-keeper, the air rules. And every `Turns On` counter fed by a **real** event
-instead of a placeholder, so the emblem bar finally moves.
+Five were built early in C2 (Gremory, Zepar, Sallos, Belphegor, Buer). Left:
+Flauros (fused units - after C6), the Bergmännlein mines, crater and rock
+keeper (after C6), and the three Unkengeister rules. Plus the Turns On
+counters still on the placeholder (`rauhnacht_units_active` and the
+Bergmännlein / Unkengeister ones).
 
 ### C8 — The Stars · 12 Front Sides + 15 Ultimates
 
@@ -222,10 +295,8 @@ the Emblems. **Six Ultimates still need writing.**
 
 ## What I need from you
 
-1. **`data/AbilityRulings.csv`**: the four F rulings first, then R03 and R12
-   (they decide 71 cards between them). Everything else can wait for its
-   phase.
-2. **The six unwritten Ultimates** (Bergmännlein and Unkengeister) and
+1. **R18** in `data/AbilityRulings.csv` - "attack power during combat".
+2. The round Z questions in the READ ME (tokens, Ore spending, swans, the
+   side choice) - each has a default that is already playing.
+3. **The six unwritten Ultimates** (Bergmännlein and Unkengeister) and
    **Vassago's Token**, before C7/C8.
-3. Nothing else for C1–C3. They can be built on the default readings and
-   changed by a ruling later; the rulings sheet says what each default is.

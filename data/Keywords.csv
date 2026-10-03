@@ -64,12 +64,12 @@ in_exhaust,ability condition,live,"If column: this card is in the exhaust zone. 
 in_field,ability condition,live,"If column: this card is on the field, not yet played this cycle. Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
 in_combat,ability condition,live,"If column: this card is in this round's line-up. Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
 has_tag:<tag>,ability condition,live,"If column: this card carries that tag. Semicolons join several, and all must be true; ! in front means NOT.",If defending,Round Y (C1).
-has_token,ability condition,planned,If column: you control a token (a Rose or Swan unit). PHASE C2 - until then it is never true.,,From the round Y audit.
-tokens_at_least:<n>,ability condition,planned,If column: you control at least n tokens. PHASE C2 - until then it is never true.,,From the round Y audit.
-has_counter:<kind>,ability condition,planned,"If column: this card carries a counter of that kind (""burn""). PHASE C2 - until then it is never true.",,From the round Y audit.
-enemy_has_counter,ability condition,planned,If column: the card it faces carries any counter. PHASE C2 - until then it is never true.,,From the round Y audit.
-is_swan,ability condition,planned,If column: this card is a swan (a creature type). PHASE C2 - until then it is never true.,,From the round Y audit.
-ore_this_round,ability condition,planned,If column: your side collected Ore this round. PHASE C2 - until then it is never true.,,From the round Y audit.
+has_token,ability condition,live,"If column: your side controls a token - a Rose or Swan Unit token, and every Swan while swans_count_as_tokens is on in Tuning.csv. LIVE since round Z (C2).",,Round Z (C2).
+tokens_at_least:<n>,ability condition,live,If column: your side controls at least n tokens (Gremory: tokens_at_least:4). LIVE since round Z (C2).,,Round Z (C2).
+has_counter:<kind>,ability condition,live,"If column: this card carries a counter of that kind (burn, song, power). has_counter alone = any counter. LIVE since round Z (C2).",,Round Z (C2).
+enemy_has_counter,ability condition,live,If column: the card it faces carries a counter (enemy_has_counter:burn for one kind). LIVE since round Z (C2).,,Round Z (C2).
+is_swan,ability condition,live,If column: this card is a Swan this match. LIVE since round Z (C2).,,Round Z (C2).
+ore_this_round,ability condition,live,If column: Ore came into your side's pool this round (any way at all). LIVE since round Z (C2).,,Round Z (C2).
 mining,ability condition,planned,If column: another unit of yours is mining. PHASE C6 - until then it is never true.,,From the round Y audit.
 touched_ball,ability condition,planned,If column: this card touched the ball since the last PLAY MAKER. PHASE C6 - until then it is never true.,,From the round Y audit.
 touched_before_playmaker,ability condition,planned,If column: this card touched the ball BEFORE the PLAY MAKER call. PHASE C6 - until then it is never true.,,From the round Y audit.
@@ -79,10 +79,10 @@ goalie_shield,ability effect,planned,Gives a keeper Value shields (ruling R11 sa
 remove_shields,ability effect,planned,Takes every shield off the enemy keeper. PHASE C3.,,From the round Y audit - guides/COMBAT_PHASES.md.
 foul_heat,ability effect,planned,Adds Value segments to the enemy's yellow-card bar. PHASE C3.,,From the round Y audit - guides/COMBAT_PHASES.md.
 foul_chance,ability effect,planned,Raises the enemy's chance of committing a foul by Value %. PHASE C3.,,From the round Y audit - guides/COMBAT_PHASES.md.
-add_counter,ability effect,planned,Puts Value counters of a kind on the target: add_counter:burn. PHASE C2.,,From the round Y audit - guides/COMBAT_PHASES.md.
-remove_counter,ability effect,planned,Takes a counter off. PHASE C2.,,From the round Y audit - guides/COMBAT_PHASES.md.
-gain_ore,ability effect,planned,Adds Value Ore to your side's pool. PHASE C2.,,From the round Y audit - guides/COMBAT_PHASES.md.
-create_token,ability effect,planned,Makes a Rose or Swan unit token. PHASE C2.,,From the round Y audit - guides/COMBAT_PHASES.md.
+add_counter,ability effect,live,Puts Value counters of a kind on the target: add_counter:burn. add_counter:power -1 is a -1 POWER COUNTER - the card is 1 weaker in every duel for the rest of the match. Target `side` puts them on your side instead (Belphegor's victory counters). The card receiving one fires on_counter. LIVE since round Z (C2).,,Round Z (C2).
+remove_counter,ability effect,live,Takes Value counters off the target (remove_counter:burn for one kind). LIVE since round Z (C2).,,Round Z (C2).
+gain_ore,ability effect,live,"Adds Value Ore to your side's pool (ruling R12: one pool per side, on the match tracker). LIVE since round Z (C2).",,Round Z (C2).
+create_token,ability effect,live,"create_token:rose - a Rose Unit token takes a card's place: same tier, same power, no ability text. Target self = this card (after its round); replace:water+I = one of your cards matching the filter, picked from the field first. The card it replaced waits in the exhaust for the rest of the match. LIVE since round Z (C2).",,Round Z (C2).
 switch_to_defender,ability effect,planned,This card defends instead of attacking. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
 swap_power,ability effect,planned,This card and its target swap power for the duel. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
 use_enemy_power,ability effect,planned,This card uses the enemy's power for the duel. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
@@ -90,8 +90,18 @@ force_ability,ability effect,planned,The target must use its attack / defend / o
 negate_buff,ability effect,planned,Cancels power buffs on the target for the duel. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
 give_priority,ability effect,planned,The target resolves FIRST in its duel. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
 uncounterable,ability effect,planned,This card's ability cannot be negated. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
-send_to_exile,ability effect,planned,Moves the card to the exile zone. PHASE C5.,,From the round Y audit - guides/COMBAT_PHASES.md.
-swap_from_exile,ability effect,planned,Swaps this card with one of the same tier and power from exile. PHASE C5.,,From the round Y audit - guides/COMBAT_PHASES.md.
+send_to_exhaust,ability effect,planned,Moves the card to the exhaust zone outside its turn (ruling R14: Exile = Exhaust). PHASE C5.,,From the round Y audit - guides/COMBAT_PHASES.md.
+swap_from_exhaust,ability effect,planned,Swaps this card with one of the same tier and power from the exhaust (ruling R14). PHASE C5.,,From the round Y audit - guides/COMBAT_PHASES.md.
 fuse,ability effect,planned,Fuses this card with another. PHASE C6.,,From the round Y audit - guides/COMBAT_PHASES.md.
 gravestone,ability effect,planned,Puts a gravestone on the pitch. PHASE C6.,,From the round Y audit - guides/COMBAT_PHASES.md.
 cold_touch,ability effect,planned,Marks the ball with cold touch. PHASE C6.,,From the round Y audit - guides/COMBAT_PHASES.md.
+make_swan,ability effect,live,"The target becomes a Swan creature type for the rest of the match (Zepar's Emblem, on reveal).",Target self,Round Z (C2).
+is_token,ability condition,live,If column: this card is a token.,,Round Z (C2).
+ore_at_least:<n>,ability condition,live,If column: your side's Ore pool holds at least n.,ore_at_least:3,Round Z (C2).
+element:<element>,ability condition,live,If column: THIS card is that element (element:water). Emblem rows use it - 'when your water unit...'.,element:fire,Round Z (C2).
+exhausted_this_round:<n>:<filter>,ability condition,live,If column: at least n of your cards (matching the filter) went to the exhaust this round. Gremory's 'two or more water units enter the exhaust'.,exhausted_this_round:2:water,Round Z (C2).
+next_tier_ally,ability target,live,"The VERY NEXT card of yours to duel (ruling R03 - 'the next unit played'). next_tier_ally:fire: if that card is not fire, the effect is lost; it does not wait for a later fire card. Compare next_ally:fire, which waits for the next FIRE card however far away.",next_tier_ally:fire,Round Z (C2).
+side,ability target,live,Your side rather than a card: gain_ore and add_counter:victory land here.,add_counter:victory with Target side,Round Z (C2).
+replace:<filter>,ability target,live,"For create_token: one of your cards matching the filter is replaced (field first, lowest power first, never a Star or a token).",replace:water+I,Round Z (C2).
+ore:<n>,ability cost,live,"The Cost column. Spend n Ore from your side's pool before the ability goes off; not enough and it does not happen at all (not counted, not spent against its Max).",ore:3,"Round Z (C2), ruling R12."
+<n>/round/side,ability max,live,The Max column. '/round' or '/cycle' counts per round or cycle; '/side' shares the count across the whole side (Belphegor's 'only two per cycle').,2/cycle/side,Round Z (C2).

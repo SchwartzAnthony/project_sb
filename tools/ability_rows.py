@@ -40,10 +40,11 @@ DATA = os.path.join(HERE, "data")
 AUDIT = os.path.join(DATA, "AbilityAudit.csv")
 OUT = os.path.join(DATA, "CardAbilities.csv")
 
-## The phases the engine has finished. Add "C2" here the round C2 ships.
-BUILT_PHASES = ["C1"]
+## The phases the engine has finished. Each round adds the phase it built
+## (C1 in round Y, C2 in round Z).
+BUILT_PHASES = ["C1", "C2"]
 
-COLUMNS = ["Ability ID", "Name", "Trigger", "Target", "Effect", "Value", "Scope", "Max", "If", "Notes"]
+COLUMNS = ["Ability ID", "Name", "Trigger", "Target", "Effect", "Value", "Scope", "Max", "If", "Cost", "Notes"]
 SIDE_CODE = {"Attack": "A", "Defend": "D", "Star Front Side": "F"}
 
 
@@ -63,6 +64,14 @@ def rows_for(audit):
     targets = [t.strip().rstrip("?") for t in audit["Target"].split("|")]
     values = [v.strip() for v in audit["Value"].split("|")]
     scopes = [s.strip() for s in audit["Scope"].split("|")]
+    # ROUND Z: a sentence with two halves has a moment (and an If, and a
+    # Cost) PER HALF - "+1 now | if this wins: -1 power counter".
+    whens = [w.strip() for w in audit["When"].split("|")]
+    ifs = [w.strip() for w in audit["If"].split("|")]
+    costs = [w.strip() for w in audit["Cost"].split("|")]
+
+    def nth(items, i):
+        return items[i] if len(items) > 1 and i < len(items) else items[0]
     ids, out = [], []
     for i, do in enumerate(dos):
         ability_id = "C_%s_%s%s" % (audit["Card"].replace(" ", "_"), code, (i + 1) if len(dos) > 1 else "")
@@ -72,13 +81,14 @@ def rows_for(audit):
         out.append({
             "Ability ID": ability_id,
             "Name": "%s (%s)" % (audit["Card"], audit["Side"]),
-            "Trigger": audit["When"],
+            "Trigger": nth(whens, i),
             "Target": targets[i] if i < len(targets) else "self",
             "Effect": do,
             "Value": values[i] if i < len(values) else "1",
             "Scope": scope,
             "Max": audit["Max"],
-            "If": audit["If"],
+            "If": nth(ifs, i),
+            "Cost": nth(costs, i),
             "Notes": "MADE FROM THE CARD TEXT by tools/ability_rows.py - do not edit here; change the card (or a ruling) and re-run. Text: " + audit["Text"],
         })
         ids.append(ability_id)

@@ -1,25 +1,25 @@
 Unit Type,Name,Attack,Defend,Element,Base Power ,Tier,Card Number,Set Name,Artwork,Player Type,Attack Ability,Defend Ability
-Bergmännlein,Tobias,Consume 1 Ore: Choose 1 mine. Units mining get +1 ore counter. (Max 3),Gain 3 Ore counters,EARTH,0,I,1,Belial,Belial_Bergmännlein.png,Normal,,
-Bergmännlein,Erich,Consume 2 Ore: Increase enemy goalie % chance by 2% (Max 3) ,Consume 2 Ore: Give -1 to enemy during combat (Max 1),EARTH,1,I,2,Belial,Belial_Bergmännlein.png,Normal,,
+Bergmännlein,Tobias,Consume 1 Ore: Choose 1 mine. Units mining get +1 ore counter. (Max 1),Gain 3 Ore counters,EARTH,0,I,1,Belial,Belial_Bergmännlein.png,Normal,,C_Tobias_D
+Bergmännlein,Erich,Consume 2 Ore: Increase enemy goalie % chance by 2% (Max 3) ,Consume 2 Ore: Give -1 to enemy during combat (Max 1),EARTH,1,I,2,Belial,Belial_Bergmännlein.png,Normal,,C_Erich_D
 Bergmännlein,Karl,Consume 3 Ore: Add +1% to enemy Yellow Card chance (Max 5)  ,Consume 3 Ore: Negate power buff (Max 1) ,EARTH,2,I,3,Belial,Belial_Bergmännlein.png,Normal,BERG_ORE_WHISPER,
-Bergmännlein,Nicole,If another Unit is mining: Use the attack power of an enemy unit,If another Unit is mining: Swap this card with one of same power and tier from exile,EARTH,1,II,4,Belial,Belial_Bergmännlein.png,Normal,,
+Bergmännlein,Nicole,If another Unit is mining: Use the attack power of an enemy unit,If another Unit is mining: Swap this card with one of same power and tier from the exhaust,EARTH,1,II,4,Belial,Belial_Bergmännlein.png,Normal,,
 Bergmännlein,Oliver,If another Unit is mining: Player using Defend Ability,If another Unit is mining: Add +1 to goalie shield,EARTH,2,II,5,Belial,Belial_Bergmännlein.png,Normal,,
-Bergmännlein,Lennart,If another Unit is mining: Decrease the next ally player unit priority,If another Unit is mining: Deal 1 damage to enemy goalie,EARTH,3,II,6,Belial,Belial_Bergmännlein.png,Normal,,
+Bergmännlein,Lennart,If another Unit is mining: Give the next ally unit -1 priority,If another Unit is mining: Deal 1 damage to enemy goalie,EARTH,3,II,6,Belial,Belial_Bergmännlein.png,Normal,,
 Bergmännlein,Volker,If another Unit is mining: Gain +1 power during combat,If another Unit is mining: Give -1 Stamina to goalie,EARTH,3,IV,10,Belial,Belial_Bergmännlein.png,Normal,,
 Bergmännlein,Kai,If another Unit is mining: Deal 1 damage to enemy goalie,If another Unit is mining: Give +1 Stamina to goalie,EARTH,4,IV,11,Belial,Belial_Bergmännlein.png,Normal,,
 Bergmännlein,Walter,If another Unit is mining: Give -1 to enemy during combat,If another Unit is mining: Gain +1 power during combat,EARTH,5,IV,12,Belial,Belial_Bergmännlein.png,Normal,,
-Bergmännlein,Kerstin,Consume 1 Ore: Reduce the ally goalie % chance to 0% this turn (once per game),Gain 3 Ore counters,EARTH,0,I,1,Valefor,Valefor_Bergmännlein.png,Normal,,
+Bergmännlein,Kerstin,Consume 1 Ore: Reduce the ally goalie % chance to 0% this turn (once per game),Gain 3 Ore counters,EARTH,0,I,1,Valefor,Valefor_Bergmännlein.png,Normal,,C_Kerstin_D
 Bergmännlein,Dominik,Consume 2 Ore:  Enemy has to use Attack Ability,Consume 2 Ore: Increase 5% on enemy chance (Max 1) ,EARTH,1,I,2,Valefor,Valefor_Bergmännlein.png,Normal,,
-Bergmännlein,Nils,Consume 3 Ore: Mark enemy. Increase 5% intoxication to foul (Max 1),Consume 3 Ore: Gain +1 Power during combat (Max 2) ,EARTH,2,I,3,Valefor,Valefor_Bergmännlein.png,Normal,,
-Bergmännlein,Lea,If collected Ore this round (Mining or otherwise): Give +1 Stamina to goalie,If collected Ore this round (Mining or otherwise): Gain +1 power during combat,EARTH,1,II,4,Valefor,Valefor_Bergmännlein.png,Normal,,
-Bergmännlein,Kevin,If collected Ore this round (Mining or otherwise): Deal 1 damage to enemy goalie,If collected Ore this round (Mining or otherwise): This units uses its attack ability,EARTH,2,II,5,Valefor,Valefor_Bergmännlein.png,Normal,,
-Bergmännlein,Harald,If collected Ore this round (Mining or otherwise): Increase 2% on enemy chance  ,If collected Ore this round (Mining or otherwise): Give -1 to enemy during combat,EARTH,3,II,6,Valefor,Valefor_Bergmännlein.png,Normal,,
-Bergmännlein,Sebastian,If collected Ore this round (Mining or otherwise): Give -1 Stamina to goalie,If collected Ore this round (Mining or otherwise): Negate enemy ability,EARTH,3,IV,10,Valefor,Valefor_Bergmännlein.png,Normal,,
-Bergmännlein,Reinhold,If collected Ore this round (Mining or otherwise): Deal 1 damage to enemy goalie,If collected Ore this round (Mining or otherwise): Gain +1 power during combat,EARTH,4,IV,11,Valefor,Valefor_Bergmännlein.png,Normal,,
+Bergmännlein,Nils,Consume 3 Ore: Give the enemy +5% foul chance for the match (once per game),Consume 3 Ore: Gain +1 Power during combat (Max 2) ,EARTH,2,I,3,Valefor,Valefor_Bergmännlein.png,Normal,,C_Nils_D
+Bergmännlein,Lea,If collected Ore this round (Mining or otherwise): Give +1 Stamina to goalie,If collected Ore this round (Mining or otherwise): Gain +1 power during combat,EARTH,1,II,4,Valefor,Valefor_Bergmännlein.png,Normal,C_Lea_A,C_Lea_D
+Bergmännlein,Kevin,If collected Ore this round (Mining or otherwise): Deal 1 damage to enemy goalie,If collected Ore this round (Mining or otherwise): This units uses its attack ability,EARTH,2,II,5,Valefor,Valefor_Bergmännlein.png,Normal,C_Kevin_A,
+Bergmännlein,Harald,If collected Ore this round (Mining or otherwise): Increase 2% on enemy chance  ,If collected Ore this round (Mining or otherwise): Give -1 to enemy during combat,EARTH,3,II,6,Valefor,Valefor_Bergmännlein.png,Normal,,C_Harald_D
+Bergmännlein,Sebastian,If collected Ore this round (Mining or otherwise): Give -1 Stamina to goalie,If collected Ore this round (Mining or otherwise): Negate enemy ability,EARTH,3,IV,10,Valefor,Valefor_Bergmännlein.png,Normal,C_Sebastian_A,
+Bergmännlein,Reinhold,If collected Ore this round (Mining or otherwise): Deal 1 damage to enemy goalie,If collected Ore this round (Mining or otherwise): Gain +1 power during combat,EARTH,4,IV,11,Valefor,Valefor_Bergmännlein.png,Normal,C_Reinhold_A,C_Reinhold_D
 Bergmännlein,Michael,If collected Ore this round (Mining or otherwise): Increase enemy priority by +1 ,If collected Ore this round (Mining or otherwise): Increase enemy goalie % by 2%,EARTH,5,IV,12,Valefor,Valefor_Bergmännlein.png,Normal,,
-Bergmännlein,Georg,Consume 1 Ore: Give your goalie 1 Stamina (Max 5),Gain 3 Ore counters,EARTH,0,I,1,Haures,Haures_Bergmännlein.png,Normal,,
+Bergmännlein,Georg,Consume 1 Ore: Give your goalie 1 Stamina (Max 5),Gain 3 Ore counters,EARTH,0,I,1,Haures,Haures_Bergmännlein.png,Normal,C_Georg_A,C_Georg_D
 Bergmännlein,Leon,Consume 2 Ore: Remove next ally Condition (Max 1) ,Consume 2 Ore: Negate power buff (Max 1) ,EARTH,1,I,2,Haures,Haures_Bergmännlein.png,Normal,,
-Bergmännlein,Balthasar,Consume 3 Ore: Give -1 Stamina to goalie (Max 3) ,Consume 3 Ore: Deal 1 damage to enemy goalie (Max 5) ,EARTH,2,I,3,Haures,Haures_Bergmännlein.png,Normal,,
+Bergmännlein,Balthasar,Consume 3 Ore: Give -1 Stamina to goalie (Max 3) ,Consume 3 Ore: Deal 1 damage to enemy goalie (Max 5) ,EARTH,2,I,3,Haures,Haures_Bergmännlein.png,Normal,C_Balthasar_A,C_Balthasar_D
 Bergmännlein,Sepp,In exhaust & Goaly successfully defends: Give -1 to enemy during combat,In exhaust & Goaly successfully defends: Deal 1 damage to enemy goalie,EARTH,1,II,4,Haures,Haures_Bergmännlein.png,Normal,C_Sepp_A,C_Sepp_D
 Bergmännlein,Ursula,In exhaust & Goaly successfully defends: Gain +1 power during combat,In exhaust & Goaly successfully defends: Give +1 Stamina to goalie,EARTH,2,II,5,Haures,Haures_Bergmännlein.png,Normal,C_Ursula_A,C_Ursula_D
 Bergmännlein,Hannah,In exhaust & Goaly successfully defends: ncrease enemy priority by +1 ,In exhaust & Goaly successfully defends: Increase enemy goalie % by 2%,EARTH,3,II,6,Haures,Haures_Bergmännlein.png,Normal,,

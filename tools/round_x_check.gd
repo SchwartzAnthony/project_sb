@@ -332,6 +332,9 @@ func _ore_card(db: CardDatabase) -> void:
 
 	var engine := AbilityEngine.new(db)
 	engine.begin_match()
+	# ROUND Z: "Consume 3 Ore:" is real now - he needs 3 Ore a go. Given
+	# plenty, so this checks the Max, not the cost (ability_check does that).
+	engine.add_to_pool(false, "ore", 99)
 	var after: Array[String] = []
 	for i in 7:
 		engine.fire(karl, false, "on_attack")
@@ -343,6 +346,9 @@ func _ore_card(db: CardDatabase) -> void:
 				ability.value * ability.max_uses])
 	if float(engine.card_chance[false]) != 0.0:
 		trouble.append("Karl's card made HIS OWN side easier to book.")
+	if engine.pool(false, "ore") != 99 - 3 * ability.max_uses:
+		trouble.append("Karl should have spent %d Ore over his %d goes; the pool holds %d of 99."
+			% [3 * ability.max_uses, ability.max_uses, engine.pool(false, "ore")])
 
 	# --- what it does to a match, in cards ---
 	var plain := _bookings(db, 0.0)

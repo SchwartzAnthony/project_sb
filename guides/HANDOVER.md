@@ -418,6 +418,45 @@ reading whose phase is in BUILT_PHASES and wires the card cells.
 **Next: C2** (counters, tokens, Ore pool) — add "C2" to BUILT_PHASES in
 ability_rows.py when built, re-run both scripts. Answer-dependent: R12 (Ore).
 
+## 12c. Round Z — DONE (phase C2)
+
+**His answers:** all of F1-F4 and R01-R17 in `data/AbilityRulings.csv`
+(summarised as a table in guides/COMBAT_PHASES.md §3). The big ones: **Exile =
+Exhaust** (R14 - every card text changed, no exile zone); "next" = **the next
+unit played** (R03 -> new target `next_tier_ally`); one Ore pool per side
+(R12); F3 wants a pending-buff window and an ask-after-pick reveal; F4 wants
+priority / +- power bubbles; F2 and R17 want the PLAYER to choose (screens -
+C5). He also said yes to "each Star only fits its own set's node". He wants
+**in-depth questions** every round, and asked for the next phase each time.
+
+**Built (C2):** counters on cards (`_counters`, keyed card+side - the engine
+keys EVERYTHING by `_k(card, side)` now because both teams can field the same
+resource), side pools (`_pool`: ore, victory), the **Cost** column (`ore:N`,
+paid after the Max check, before the effect; unpaid = did not happen),
+tokens (`_make_token`: duplicate PlayerData with `extra_tags` ["rose","token"],
+original HELD in exhaust; the match re-cards the body via `take_swaps()` and
+reverts `all_swaps()` at full time BEFORE the squad is read), swans
+(`_kinds`), `on_counter` and `after_combat` triggers, `next_tier_ally`,
+`replace:<filter>` / `side` targets, Max `1/round` and `/side`, conditions
+has_counter / enemy_has_counter / has_token / tokens_at_least / is_swan /
+is_token / ore_this_round / ore_at_least / element / exhausted_this_round.
+**Emblem Basic Ability column** -> EMB_ rows in Abilities.csv fire for every
+card that feeds the emblem (Gremory, Zepar, Sallos, Belphegor, Buer). Engine
+`events` -> main_scene `_absorb_ability_news()` -> Stats.csv events
+(token_made, swan_made, counter_placed, ore_gained, ore_spent, emblem_basic)
+for the player's side, which fills the Emblem conditions. UI: `MatchTracker`
+(src/ui/match_tracker.gd), card marks strip + emblem SHOW
+(`PlayerCardUI.set_marks/allow_show`), duel window `(+1)` and priority line.
+Star Hall: `ClassTree.fits()` (emblem Set column decides; `star_fits_own_set_only`).
+
+**Audit changes:** two-part sentences split at ". If this wins" with a When per
+part (ability_rows takes When/If/Cost per part); answered questions no longer
+mark a row "needs your ruling"; R18 added (attack power = combat power).
+BUILT_PHASES = C1, C2. Coverage **103/228**. ability_check **125 + 5 emblem
+stories**. Soaks: `SOAK_CLASS=Lorelei` env var picks the class.
+
+**Next: C3** (keeper % / shield / foul heat / foul chance / coin flip). Then C4.
+
 ## 13. Ideas worth offering him
 
 - An `Ultimate In Short` column so the emblem bar and hover can show one line

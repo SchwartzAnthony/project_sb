@@ -28,4 +28,5 @@ on_shot,Shooting,live,C1,This card is about to shoot at goal. Anything it adds t
 goalie_save,Keeper Saves,live,C1,"Your keeper has just stopped a shot - for every card on your side, wherever it is",nothing,"ROUND Y (C1). ""Goaly successfully defends"". Narrow it with the If column: in_exhaust."
 on_goal,We Scored,live,C1,Your side has just scored - for every card on your side,nothing,"ROUND Y (C1). ""After a goal"" on your cards."
 on_concede,We Conceded,live,C1,The other side has just scored - for every card on your side,nothing,ROUND Y (C1).
-while_in_exile,While in Exile,planned,C5,"At the start of every duel, for each card in the exile zone",the Exile zone,"PHASE C5. ""While in exile"" on your Sitri cards."
+on_counter,Counter Received,live,C2,"The moment this card receives a counter (burn, song, power...)",the counters,"ROUND Z (C2). Buer's Emblem: 'when a fire unit receives a counter'. A counter added by an on_counter ability fires on_counter again, at most three deep."
+after_combat,After the Combat,live,C2,"Once a round, after the Tier IV duel and before the shot - for EVERY card in the match, whatever zone it is in",the zone book,"ROUND Z (C2). Carl: 'While in exhaust: give your goalie 1 stamina after Tier IV combat' = after_combat with If in_exhaust. Without an If it goes off for every card you have, so it nearly always wants one."

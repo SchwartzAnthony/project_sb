@@ -285,7 +285,19 @@ func get_tags() -> PackedStringArray:
 		tags.append("star")
 	else:
 		tags.append("normal")
+	tags.append_array(extra_tags)
 	return tags
+
+
+## ROUND Z - WHAT A TOKEN IS. A Rose or Swan Unit token is a fresh copy of
+## the card it replaced, made by the ability engine during a match, and these
+## are the words that say so: ["rose", "token"]. Never saved, never on a card
+## you own - an ordinary card always has none.
+var extra_tags: PackedStringArray = PackedStringArray()
+
+
+func is_token() -> bool:
+	return extra_tags.has("token")
 
 
 func has_tag(tag: String) -> bool:

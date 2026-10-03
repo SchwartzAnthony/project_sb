@@ -430,7 +430,17 @@ func _read_abilities(rows: Array, columns: Dictionary, source: String) -> void:
 		ability.display_name = _cell(row, columns, "name")
 		ability.trigger = _normalise(_cell(row, columns, "trigger"))
 		ability.target = _cell(row, columns, "target").strip_edges().to_lower()
-		ability.effect = _normalise(_cell(row, columns, "effect"))
+		# ROUND Z: `add_counter:burn` - the word, then what it is about.
+		var effect_text := _cell(row, columns, "effect").strip_edges()
+		ability.effect = _normalise(effect_text.split(":")[0])
+		if effect_text.contains(":"):
+			ability.effect_arg = effect_text.split(":", true, 1)[1].strip_edges().to_lower()
+		# ROUND Z: the Cost column - `ore:3`.
+		var cost_text := _cell(row, columns, "cost").strip_edges().to_lower()
+		if cost_text != "":
+			var cost_bits := cost_text.split(":")
+			ability.cost_kind = _normalise(String(cost_bits[0]))
+			ability.cost_amount = maxi(1, int(String(cost_bits[1]))) if cost_bits.size() > 1 and String(cost_bits[1]).is_valid_int() else 1
 		ability.value = _cell_int(row, columns, "value")
 		ability.scope = _normalise(_cell(row, columns, "scope"))
 		ability.notes = _cell(row, columns, "notes")
@@ -440,7 +450,10 @@ func _read_abilities(rows: Array, columns: Dictionary, source: String) -> void:
 		if max_text.contains("/"):
 			var max_bits := max_text.split("/")
 			ability.max_uses = maxi(0, int(String(max_bits[0]))) if String(max_bits[0]).is_valid_int() else 0
-			ability.max_per = "cycle" if String(max_bits[1]).begins_with("cycle") else "match"
+			var per := String(max_bits[1]).strip_edges()
+			ability.max_per = "cycle" if per.begins_with("cycle") else ("round" if per.begins_with("round") else "match")
+			# `2/cycle/side`: the whole side shares the count (round Z).
+			ability.max_shared = max_text.ends_with("/side")
 		else:
 			ability.max_uses = maxi(0, int(max_text)) if max_text.is_valid_int() else 0
 		ability.condition = _cell(row, columns, "if")

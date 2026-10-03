@@ -84,7 +84,11 @@ func _initialize() -> void:
 	var nodes := ClassTree.nodes_for(CLASS, state)
 	var stars := ClassTree.stars_you_own(CLASS, state, db)
 	for i in nodes.size():
-		var result := ClassTree.place_star(CLASS, String(nodes[i]["set_id"]), stars[i], state, db)
+		var fitting: PlayerData = stars[i]
+		for star in stars:
+			if ClassTree.fits(star, String(nodes[i]["set_id"]), db):
+				fitting = star
+		var result := ClassTree.place_star(CLASS, String(nodes[i]["set_id"]), fitting, state, db)
 		print("[team build] %s" % result["why"])
 		if not bool(result["ok"]):
 			trouble.append("Placing a free Star failed: %s" % result["why"])

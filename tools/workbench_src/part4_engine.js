@@ -655,6 +655,25 @@ function check(){
         });
       }
     }
+    /* ROUND Z: an Emblem's Basic Ability names Abilities rows the same way. */
+    if(known.size) for(const f of Object.keys(DATA)){
+      if(!/ Emblems\.csv$/i.test(f)) continue;
+      const i=at(f,"Basic Ability"); if(i<0) continue;
+      DATA[f].rows.forEach((r,ri)=>{
+        for(const one of (r[i]||"").split(";")){
+          const v=one.trim(); if(!v) continue;
+          if(!known.has(norm(v))) add(f,ri,"Basic Ability",`"${v}" is not a row of Abilities.csv.`,`Write the EMB_ row in Abilities.csv - the EMB_ rows already there are worked examples.`);
+        }
+      });
+    }
+    /* ROUND Z: the Cost column - only ore:N is known. */
+    for(const f of ["Abilities.csv","CardAbilities.csv"]){
+      const i=at(f,"Cost"); if(i<0) continue;
+      DATA[f].rows.forEach((r,ri)=>{
+        const v=(r[i]||"").trim().toLowerCase();
+        if(v && !/^ore:\d+$/.test(v)) add(f,ri,"Cost",`"${v}" is not a cost the game knows.`,`Today a Cost is <code>ore:N</code> - spend N Ore from your side's pool.`);
+      });
+    }
   }
   /* 3. `and` where a semicolon belongs */
   const CONDS=["Requires","Effects","Action","Do","Reward","On Win","On Loss","Use","Rewards","Rewards On Win"];
