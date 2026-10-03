@@ -19,7 +19,7 @@ extends PanelContainer
 #  overlay that follows the mouse, and there is only one of it.
 # =============================================================
 
-const WIDTH := 330.0
+const WIDTH := 460.0
 
 var db: CardDatabase
 
@@ -88,6 +88,9 @@ func show_card(card: PlayerData, near: Vector2) -> void:
 		hide()
 		return
 
+	# Back to the normal width; _place widens it again if it does not fit.
+	custom_minimum_size = Vector2(WIDTH, 0)
+	reset_size()
 	_title.text = card.player_name
 
 	# active_unit_type() rather than unit_type: a brewed card COUNTS AS its
@@ -150,15 +153,23 @@ func _ability_words(ability_id: String, printed_text: String) -> String:
 
 	if db == null:
 		return id_text
-	var ability := db.get_ability(id_text)
-	if ability == null:
-		return "%s  (no such ability in Abilities.csv)" % id_text
+	# ROUND AB: the printed sentence first (it is the card), then what the
+	# game will DO, in words. A cell may name several rows (C_Fritz_A1;A2).
+	var said: PackedStringArray = PackedStringArray()
+	for piece in id_text.split(";"):
+		var ability := db.get_ability(String(piece).strip_edges())
+		if ability == null:
+			said.append("%s (no such row)" % String(piece).strip_edges())
+		else:
+			said.append(ability.plain())
+	var printed := printed_text.strip_edges()
+	if printed != "":
+		return "%s\n      %s" % [printed, "  ".join(said)]
+	return "  ".join(said)
 
-	var title: String = ability.display_name if ability.display_name != "" else ability.id
-	return "%s: %s %+d (%s)" % [title, ability.effect, ability.value, ability.scope]
 
-
-## Sit above the card, and never off the edge of the screen.
+## ROUND AB: sit BELOW the card (`near` is the bottom of it), never off the
+## screen, and never over the referee's bar at the bottom.
 func _place(near: Vector2) -> void:
 	# The panel has to be laid out before its height is known, so this waits
 	# one frame. Without it the first card you hover is placed using last
@@ -169,14 +180,22 @@ func _place(near: Vector2) -> void:
 
 	var screen := get_viewport_rect().size
 	var box := size
-	var at := Vector2(near.x - box.x * 0.5, near.y - box.y - 18.0)
-
-	# Not enough room above? Go below instead.
-	if at.y < 8.0:
-		at.y = near.y + 22.0
-
+	var keep_clear := db.tune_float("hover_panel_keep_bottom", 170.0) if db != null else 170.0
+	# ROUND AB: too tall to fit between the card and the foul bars? Then it
+	# goes WIDE instead (shorter), rather than sliding up over the card.
+	var room := screen.y - keep_clear - (near.y + 12.0)
+	if box.y > room:
+		var wide := db.tune_float("hover_panel_wide_width", 900.0) if db != null else 900.0
+		custom_minimum_size = Vector2(minf(wide, screen.x - 16.0), 0)
+		reset_size()
+		await get_tree().process_frame
+		if not visible:
+			return
+		reset_size()
+		box = size
+	var at := Vector2(near.x - box.x * 0.5, near.y + 12.0)
 	at.x = clampf(at.x, 8.0, maxf(screen.x - box.x - 8.0, 8.0))
-	at.y = clampf(at.y, 8.0, maxf(screen.y - box.y - 8.0, 8.0))
+	at.y = clampf(at.y, 8.0, maxf(screen.y - box.y - keep_clear, 8.0))
 	position = at
 
 

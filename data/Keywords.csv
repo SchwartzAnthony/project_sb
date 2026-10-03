@@ -6,10 +6,10 @@ add_shot_power,ability effect,live,"Adds to this round's SHOT at goal, if that s
 add_card_chance,ability effect,live,Adds Value % to the chance that a foul the OTHER side commits - once the referee has SEEN it - is a yellow card instead of a free kick. Lasts the match.,"Value 1, Scope match, Max 5","Round X, for the Bergmännlein ore card. Target is ignored: it always works against the other side. Pair it with the Max column so it cannot stack forever."
 drain_stamina,ability effect,live,Takes stamina off a keeper,"Value 3, Target enemy_goalie",How a card chips away at the keeper without scoring
 restore_stamina,ability effect,live,Puts stamina back on a keeper,"Value 2, Target own_goalie",
-negate_ability,ability effect,planned,Stops the opposing card's ability firing this duel,Target opponent,"PHASE 13 (8). Needs the duel to resolve abilities in two passes - collect, then apply"
+negate_ability,ability effect,live,"The side the target is using does nothing more this duel, and its buffs this duel are taken back. A card that switched sides dodged it (Q050). LIVE since round AB (C4).",Target opponent,Round AB (C4).
 negate_power,ability effect,planned,Ignores the opposing card's power for this duel,Target opponent,PHASE 13 (9). Temporary only - a permanent change would break the ladder
 swap_sides,ability effect,planned,Makes the attacker defend and the defender attack,Target opponent,PHASE 12
-change_priority,ability effect,planned,Moves a card up or down the order abilities resolve in,Value -1,PHASE 13 (5)
+change_priority,ability effect,live,+/- Value on the target's place in the order abilities resolve (lower first). Stacks; lands before the stack if it comes from the exhaust or a 'next' (Q045). LIVE since round AB (C4).,Value -1,Round AB (C4).
 score_goal,ability effect,planned,"Scores, without a shot at the keeper",Value 1,One card in the whole game should probably be able to do this
 self,ability target,live,The card the ability is on,,
 opponent,ability target,live,The card it is duelling,,
@@ -83,13 +83,13 @@ add_counter,ability effect,live,Puts Value counters of a kind on the target: add
 remove_counter,ability effect,live,Takes Value counters off the target (remove_counter:burn for one kind). LIVE since round Z (C2).,,Round Z (C2).
 gain_ore,ability effect,live,"Adds Value Ore to your side's pool (ruling R12: one pool per side, on the match tracker). LIVE since round Z (C2).",,Round Z (C2).
 create_token,ability effect,live,"create_token:rose - a Rose Unit token takes a card's place: same tier, same power, no ability text. Target self = this card (after its round); replace:water+I = one of your cards matching the filter, picked from the field first. The card it replaced waits in the exhaust for the rest of the match. LIVE since round Z (C2).",,Round Z (C2).
-switch_to_defender,ability effect,planned,This card defends instead of attacking. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
-swap_power,ability effect,planned,This card and its target swap power for the duel. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
-use_enemy_power,ability effect,planned,This card uses the enemy's power for the duel. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
-force_ability,ability effect,planned,The target must use its attack / defend / other ability. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
-negate_buff,ability effect,planned,Cancels power buffs on the target for the duel. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
-give_priority,ability effect,planned,The target resolves FIRST in its duel. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
-uncounterable,ability effect,planned,This card's ability cannot be negated. PHASE C4.,,From the round Y audit - guides/COMBAT_PHASES.md.
+switch_to_defender,ability effect,live,"After the abilities, this card DEFENDS instead: it uses its Defend side and the other card attacks; whoever wins attacks next (rulings F1, R15, Q047). LIVE since round AB (C4).",,Round AB (C4).
+swap_power,ability effect,live,This card and the target swap PRINTED power for the duel (Q052). Target token = this card takes a token's power (Ignaz). LIVE since round AB (C4).,,Round AB (C4).
+use_enemy_power,ability effect,live,"This card fights with the power of the enemy it duels (Nicole, Q048). LIVE since round AB (C4).",,Round AB (C4).
+force_ability,ability effect,live,force_ability:attack / :defend / :other - the side the target must use this duel. On itself it fires that side now. LIVE since round AB (C4).,,Round AB (C4).
+negate_buff,ability effect,live,The target loses its power buffs this duel. LIVE since round AB (C4).,,Round AB (C4).
+give_priority,ability effect,live,The target resolves FIRST this duel. LIVE since round AB (C4).,,Round AB (C4).
+uncounterable,ability effect,live,"Cannot be negated or forced this duel (Herbert, Q053). LIVE since round AB (C4).",,Round AB (C4).
 send_to_exhaust,ability effect,planned,Moves the card to the exhaust zone outside its turn (ruling R14: Exile = Exhaust). PHASE C5.,,From the round Y audit - guides/COMBAT_PHASES.md.
 swap_from_exhaust,ability effect,planned,Swaps this card with one of the same tier and power from the exhaust (ruling R14). PHASE C5.,,From the round Y audit - guides/COMBAT_PHASES.md.
 fuse,ability effect,planned,Fuses this card with another. PHASE C6.,,From the round Y audit - guides/COMBAT_PHASES.md.
@@ -107,3 +107,8 @@ ore:<n>,ability cost,live,"The Cost column. Spend n Ore from your side's pool be
 <n>/round/side,ability max,live,The Max column. '/round' or '/cycle' counts per round or cycle; '/side' shares the count across the whole side (Belphegor's 'only two per cycle').,2/cycle/side,Round Z (C2).
 foul_coin_flip,ability effect,live,"The next foul YOUR side commits is a coin toss: heads, it goes to the other side instead (Manfred). One banked at a time.",Target self,Round AA (C3).
 yes,ability ask,live,The Ask column of Abilities.csv. 'yes' = you are asked before it goes off ('you CAN transform'). A row with a Cost is asked anyway while ask_before_spending_ore is on. The other side and AUTO always say yes.,Ask: yes,Round AA.
+always_defending,ability effect,live,Counts as defending for every 'If Defending' all match (Sallos). LIVE since round AB (C4).,,Round AB (C4).
+set_power_from_token,ability effect,live,"The target fights with the power of a token you own - you pick which (Sven, Q002/Q003). LIVE since round AB (C4).",,Round AB (C4).
+power_from_count,ability effect,live,"power_from_count:victory / :enemy_exhaust_II / :field_objects - its power IS that number this duel. field_objects counts the different elements on the pitch (structures in C6), Value = the cap. LIVE since round AB (C4).",,Round AB (C4).
+remove_condition,ability effect,live,The target's If column is ignored this duel (Leon). LIVE since round AB (C4).,,Round AB (C4).
+token,ability target,live,"A token you own - you pick which when there are several (Sven, Ignaz). LIVE since round AB (C4).",,Round AB (C4).

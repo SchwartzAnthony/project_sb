@@ -64,7 +64,7 @@ func _build() -> void:
 	var up := 96.0
 	if db != null:
 		up = db.tune_float("ref_bar_bottom", 96.0)
-	offset_top = -up - 54.0
+	offset_top = -up - 64.0
 	offset_bottom = -up
 
 	var line := HBoxContainer.new()
@@ -77,11 +77,24 @@ func _build() -> void:
 	# YOURS ON THE LEFT, THEIRS ON THE RIGHT, always, whichever way the pitch
 	# is facing — a bar that swaps sides is a bar nobody trusts.
 	for side_is_enemy in [false, true]:
+		# ROUND AB: "the text is not legible - a no-border dark see-through
+		# background". Each side sits on its own dark glass, no edge.
+		var glass := PanelContainer.new()
+		var back := StyleBoxFlat.new()
+		back.bg_color = Color(0.02, 0.03, 0.05, db.tune_float("ref_bar_glass", 0.62) if db != null else 0.62)
+		back.set_corner_radius_all(6)
+		back.content_margin_left = 12.0
+		back.content_margin_right = 12.0
+		back.content_margin_top = 6.0
+		back.content_margin_bottom = 6.0
+		glass.add_theme_stylebox_override("panel", back)
+		glass.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		line.add_child(glass)
 		var column := VBoxContainer.new()
-		column.add_theme_constant_override("separation", 3)
+		column.add_theme_constant_override("separation", 4)
 		column.alignment = BoxContainer.ALIGNMENT_CENTER
 		column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		line.add_child(column)
+		glass.add_child(column)
 
 		var pips := HBoxContainer.new()
 		pips.add_theme_constant_override("separation", 3)
@@ -92,8 +105,8 @@ func _build() -> void:
 
 		var says := Label.new()
 		says.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		says.add_theme_font_size_override("font_size", 11)
-		says.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+		says.add_theme_font_size_override("font_size", db.tune_int("ref_bar_text_size", 15) if db != null else 15)
+		says.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
 		says.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		column.add_child(says)
 		_labels[side_is_enemy] = says
@@ -132,7 +145,7 @@ func refresh() -> void:
 		(_labels[side_is_enemy] as Label).text = "%s  ·  %s" % [
 			who, Referee.reading(side_is_enemy, int(yellows[side_is_enemy]), db)]
 		(_labels[side_is_enemy] as Label).add_theme_color_override("font_color",
-			MenuSupport.COLOUR_ATTACK if bool(bits["full"]) else MenuSupport.COLOUR_TEXT_DIM)
+			MenuSupport.COLOUR_ATTACK if bool(bits["full"]) else MenuSupport.COLOUR_TEXT)
 
 	# The referee's name, once, so a player knows whose afternoon this is.
 	var first: Label = _labels[false]

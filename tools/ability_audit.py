@@ -88,8 +88,8 @@ PHASE = {
     "switch_to_defender": "C4", "always_defending": "C4", "swap_power": "C4",
     "use_enemy_power": "C4", "force_ability": "C4", "negate_ability": "C4",
     "negate_buff": "C4", "change_priority": "C4", "give_priority": "C4",
-    "uncounterable": "C4", "double_attack": "C4", "power_from_count": "C4",
-    "reveal_another": "C4", "remove_condition": "C4",
+    "uncounterable": "C4", "double_attack": "C4", "power_from_count": "C4", "set_power_from_token": "C4",
+    "reveal_another": "C5", "remove_condition": "C4",
     # C5 - zones in action
     "send_to_exhaust": "C5", "swap_from_exhaust": "C5", "swapped_was": "C5", "revealed_was": "C5",
     "swap_from_void": "C5", "swap_in_tier": "C5", "exhaust_other_return": "C5",
@@ -172,7 +172,9 @@ DO_RULES = [
     (r"give this unit \+(\d) during combat", "add_power", "self", r"\1", "duel"),
     (r"give this \+(\d) power during combat", "add_power", "self", r"\1", "duel"),
     (r"deal \+(\d) damage during combat", "add_power", "self", r"\1", "duel"),
-    (r"give the enemy -(\d) attack power during combat", "add_power", "opponent", r"-\1", "duel"),
+    # Q001 (round AB): "attack power" is now written "base power" - the power
+    # the card fights with in combat.
+    (r"give the enemy -(\d) (attack|base) power during combat", "add_power", "opponent", r"-\1", "duel"),
     (r"give (the )?enemy (unit )?-(\d) power during combat", "add_power", "opponent", r"-\3", "duel"),
     (r"give -(\d) to enemy during combat", "add_power", "opponent", r"-\1", "duel"),
     (r"give the enemy -(\d) during combat", "add_power", "opponent", r"-\1", "duel"),
@@ -211,6 +213,7 @@ DO_RULES = [
     (r"increase enemy goalie % of missing by (\d)%", "goalie_chance", "enemy_goalie", r"\1", "round"),
     (r"decrease goalie % of missing by -?(\d)%", "goalie_chance", "own_goalie", r"-\1", "round"),
     (r"reduce the ally goalie % chance to 0%", "goalie_chance", "own_goalie", "-100", "round"),
+    (r"reduce the ally goalie % chance by (\d+)%", "goalie_chance", "own_goalie", r"-\1", "round"),
     (r"add \+(\d) power to the damage collection", "add_shot_power", "self", r"\1", "round"),
     (r"deal \+(\d) damage to goalie", "add_shot_power", "self", r"\1", "round"),
     # ---- the referee ----
@@ -223,19 +226,22 @@ DO_RULES = [
     # ---- bending the duel ----
     (r"switch to being the defender", "switch_to_defender", "self", "1", "duel"),
     (r"always counts as defending", "always_defending", "self", "1", "match"),
-    (r"swap the (next )?enemy unit power with this one", "swap_power", "opponent", "1", "duel"),
+    (r"swap the next enemy unit power with this one", "swap_power", "next_enemy", "1", "duel"),
+    (r"swap the enemy unit power with this one", "swap_power", "opponent", "1", "duel"),
     (r"swap the attack of the token with this unit power", "swap_power", "token", "1", "duel"),
-    (r"use (the attack power of an enemy unit|its attack power)", "use_enemy_power", "opponent", "1", "duel"),
+    (r"use (the (attack|base) power of an enemy unit|its (attack|base) power)", "use_enemy_power", "opponent", "1", "duel"),
+    # Sven (Q002, round AB): the enemy fights with the power of a token YOU own.
+    (r"change the enemy'?s base power to the power of a token you own", "set_power_from_token", "opponent", "1", "duel"),
     (r"enemy (has to )?uses? (their )?attack ability", "force_ability:attack", "opponent", "1", "duel"),
     (r"(player using|enemy uses their) defen[cds]e? ability", "force_ability:defend", "opponent", "1", "duel"),
-    (r"force (the|then) enemy tier iii to use their other ability", "force_ability:other", "enemy_tier", "1", "duel"),
+    (r"force (the|then) enemy tier (i|ii|iii|iv) to use their other ability", "force_ability:other", r"enemytier:TIER\2", "1", "duel"),
     (r"this units uses its attack ability", "force_ability:attack", "self", "1", "duel"),
     (r"negate (the )?enemy ability|negat the enemy ability", "negate_ability", "opponent", "1", "duel"),
     (r"negate power buff", "negate_buff", "opponent", "1", "duel"),
     (r"(increase|ncrease) enemy priority by \+(\d)", "change_priority", "opponent", r"\2", "duel"),
     (r"change (the )?enemy priority by -(\d)", "change_priority", "opponent", r"-\2", "duel"),
     (r"give the next ally unit -(\d) priority", "change_priority", "next_tier_ally", r"-\1", "duel"),
-    (r"ability priority during combat", "give_priority", "ally_tier:water", "1", "duel"),
+    (r"give a tier (i|ii|iii|iv) water unit ability priority", "give_priority", r"ally:water+TIER\1", "1", "duel"),
     (r"cannot be countered", "uncounterable", "self", "1", "duel"),
     (r"doulbe its attack|double its attack", "double_attack", "token", "1", "duel"),
     (r"reveal another unit card", "reveal_another", "self", "1", "duel"),
@@ -246,7 +252,7 @@ DO_RULES = [
     # ---- counters, tokens ----
     (r"give this unit -(\d) power counter", "add_counter:power", "self", r"-\1", "match"),
     (r"remove a counter", "remove_counter", "self", "1", "match"),
-    (r"remove 1 victory counter", "remove_counter:victory", "self", "1", "match"),
+    (r"remove 1 victory counter", "remove_counter:victory", "side", "1", "match"),
     (r"send this unit to the exhaust and replace it with a rose unit token", "create_token:rose", "self", "1", "match"),
     (r"create a swan unit token", "create_token:swan", "self", "1", "match"),
     (r"send it to the exhaust", "send_to_exhaust", "self", "1", "cycle"),
@@ -337,6 +343,8 @@ def read_text(text):
         out["Max"] = m.group(1)
     elif "once per cycle" in low:
         out["Max"] = "1/cycle"
+    elif "once per round" in low:
+        out["Max"] = "1/round"
     elif "once per game" in low:
         out["Max"] = "1/game"
     elif "only two per cycle" in low:
@@ -436,6 +444,13 @@ def _part_rows(text, side_kind, base):
     if when in NOT_A_DUEL:
         targets = [{"self": "next_self", "opponent": "next_enemy"}.get(t, t)
                    if sc == "duel" else t for t, sc in zip(targets, parsed["Scope"])]
+    # WHILE IN EXHAUST, "A TIER IV WATER UNIT" IS THE NEXT ONE OF THOSE TO
+    # DUEL (round AB). It goes off at the start of a duel - usually the Tier I
+    # duel - and a buff aimed at this round's Tier IV ran out before Tier IV
+    # played. It now waits for that card.
+    if when == "while_in_exhaust":
+        targets = [("next_ally:" + t[5:]) if t.startswith("ally:") else
+                   (("next_enemy:" + t[10:]) if t.startswith("enemytier:") else t) for t in targets]
     return when, parsed, targets
 
 
@@ -484,6 +499,10 @@ def from_text(base, text, side_kind):
     r["Value"] = " | ".join(values)
     r["Scope"] = " | ".join(scopes)
     r["Max"] = maxes[0] if maxes else ""
+    # "(max 3)" after "power is equal to ..." is a CAP on the number, not a
+    # use limit (Glasya-Labolas) - round AB.
+    if "power_from_count" in r["Do"]:
+        r["Max"] = ""
     r["Question"] = " ".join(qs)
     return finish(r, side_kind)
 

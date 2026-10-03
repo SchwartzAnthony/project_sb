@@ -61,6 +61,7 @@ extends RefCounted
 ## tested from any spreadsheet in the game with `flag:` or `count:`.
 const ASCENDED := "emblem_ascended"        ## text: which Emblem turned over
 const FLIPPED_PREFIX := "emblem_flipped_"  ## flag: this one turned over
+const BLOCKED_PREFIX := "emblem_blocked_"  ## flag: it turned over AFTER another - its Ultimate does nothing (round AB)
 
 
 static func _key(text: String) -> String:
@@ -257,19 +258,48 @@ static func settle(squad: Array, state: GameState) -> ClassBook.Emblem:
 	if state == null or not _on():
 		return null
 	var racing := _tuned_bool("emblem_race", true)
-	if racing and ascended(state) != "":
-		return null
 	for badge in on_the_field(squad):
 		if not bool(progress(badge, state)["done"]):
 			continue
 		if state.has_flag(FLIPPED_PREFIX + _key(badge.id)):
 			continue
+		state.set_flag(FLIPPED_PREFIX + _key(badge.id), true)
+		# ROUND AB (your answer Q009): ONE ULTIMATE PER GAME. A second Emblem
+		# that gets there still turns over - but greyed out, with a red X,
+		# and its Ultimate does nothing. Its Basic side keeps working.
+		if racing and ascended(state) != "":
+			state.set_flag(BLOCKED_PREFIX + _key(badge.id), true)
+			print("[emblems] %s turns over - BLOCKED, %s already used this game's Ultimate" % [badge.id, ascended(state)])
+			return badge
 		if racing:
 			state.set_text(ASCENDED, badge.id)
-		state.set_flag(FLIPPED_PREFIX + _key(badge.id), true)
 		print("[emblems] %s ASCENDED — %s" % [badge.id, badge.condition])
 		return badge
 	return null
+
+
+## Did this one turn over AFTER another had - so its Ultimate does nothing?
+static func is_blocked(badge: ClassBook.Emblem, state: GameState) -> bool:
+	if badge == null or state == null:
+		return false
+	return state.has_flag(BLOCKED_PREFIX + _key(badge.id))
+
+
+## A NEW MATCH (round AB). Every Emblem back to Basic and every Condition
+## counter to zero - they are about THIS match. Before round AB nothing did
+## this, so a counter could carry over from the last match in the save.
+static func new_match(state: GameState) -> void:
+	if state == null:
+		return
+	state.set_text(ASCENDED, "")
+	for class_key in ClassBook.classes():
+		var entry: ClassBook.ClassEntry = ClassBook.classes()[class_key]
+		for badge in for_class(entry.unit_type):
+			state.set_flag(FLIPPED_PREFIX + _key(badge.id), false)
+			state.set_flag(BLOCKED_PREFIX + _key(badge.id), false)
+			var found := _counter_in(badge.turns_on)
+			if not found.is_empty():
+				state.set_count(String(found["counter"]), 0)
 
 
 ## A GOAL ENDS THE RACE. Everything goes back to its Basic side and the
@@ -286,6 +316,7 @@ static func reset_after_goal(state: GameState) -> void:
 		var entry: ClassBook.ClassEntry = ClassBook.classes()[class_key]
 		for badge in for_class(entry.unit_type):
 			state.set_flag(FLIPPED_PREFIX + _key(badge.id), false)
+			state.set_flag(BLOCKED_PREFIX + _key(badge.id), false)
 			var found := _counter_in(badge.turns_on)
 			if not found.is_empty():
 				state.set_count(String(found["counter"]), 0)

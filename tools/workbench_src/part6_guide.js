@@ -500,6 +500,17 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("Bending the duel (round AB, phase C4)", `
+    <p style="margin:0 0 10px"><b>156 of your 228 class abilities work in a match</b> (68%).</p>
+    ${rows([
+      ["switch","Luis and the Sallos set: the abilities go off, THEN the card defends and the other attacks"],
+      ["force / negate","make a card use one side; stop the side it is using (its own buffs taken back)"],
+      ["priority","+/- priority, 'resolves first' - the stack re-sorts as they land"],
+      ["power","swap printed power, fight with a token's power (Sven - you pick the token), power = a count (Buer)"],
+      ["emblems","only the Star on the pitch; one Ultimate per game - a second turns over greyed with a red X; THEIRS shown too"],
+      ["your answers","all of Questions.csv is read; new questions are at the bottom (Q060 on)"],
+    ])}`);
+
   card("The keeper, the referee, and being asked (round AA, phase C3)", `
     <p style="margin:0 0 10px"><b>122 of your 228 class abilities work in a match</b> (54%). <b>All my questions are in Questions.csv</b> now - answer there.</p>
     ${rows([
@@ -527,8 +538,8 @@ function paintBook(){
     ${rows([
       ["C1 · built","zones (field, combat, exhaust), the new moments, the <code>If</code> column, \u201cthe next one\u201d, one side per duel"],
       ["C2 · built","counters, tokens, Ore, swans, five Emblem Basic sides"],
-      ["C3 · built","the keeper and the referee, and the question windows. <b>122 abilities work</b>"],
-      ["C4","bending the duel - +33"],
+      ["C3 · built","the keeper and the referee, and the question windows"],
+      ["C4 · built","bending the duel. <b>156 abilities work</b>"],
       ["C5","exile and the other zones - +17"],
       ["C6","mines, fusing, the ball, gravestones - +60"],
       ["C7 · C8","the Emblems' Basic Sides, then the Stars' Ultimates"],

@@ -24,6 +24,8 @@ class Buff:
 	var card: PlayerData = null       # null means "matched by tag/tier"
 	var tag: String = ""
 	var tier: String = ""
+	## Round AB (C4): whose ability made it, so a negate can take it back.
+	var source_key: String = ""
 
 	func matches(other: PlayerData, other_is_enemy: bool) -> bool:
 		if other == null or other_is_enemy != side_is_enemy:
@@ -257,8 +259,32 @@ var _side_up: Dictionary = {}
 ## key -> ability ids that went off for that card in this duel (for the duel
 ## window: "did it fire?").
 var _fired: Dictionary = {}
+# ---- round AB, PHASE C4: bending the duel. Every one of these lasts the
+# duel it was made in (cleared in begin_duel), except always_defending. ----
+## key -> + / - on its place in the order abilities resolve (lower = first).
+var _prio_mod: Dictionary = {}
+## key -> "attack" / "defend": the side it is FORCED to use this duel.
+var _force_slot: Dictionary = {}
+## key -> the side of it that was negated this duel.
+var _negated: Dictionary = {}
+## key -> true: its ability cannot be negated or forced this duel (Herbert).
+var _uncounterable: Dictionary = {}
+## key -> true: its If column is ignored this duel (Leon).
+var _ignore_if: Dictionary = {}
+## key -> true: "always counts as defending" (Sallos) - for the match.
+var _always_def: Dictionary = {}
+## key -> the token whose power it used / gave this duel (Sven, Ignaz).
+var _token_used: Dictionary = {}
+## The card that switched to defender in the duel just resolved, or null -
+## the match reads it (take_switch) and turns the duel round.
+var _switch_card: PlayerData = null
+var _switch_side := false
+var _last_switch := {}
+
 ## key -> true once that card has played a duel this match (card_played).
 var _played_once: Dictionary = {}
+## Tuning: does the AI save its Ore for its most expensive card (Q018)?
+var ai_saves_ore := true
 ## Tuning: does a goal send every Rose token home (ruling, round AA)?
 var rose_ends_on_goal := true
 
@@ -269,6 +295,7 @@ func _init(database: CardDatabase = null) -> void:
 	swans_are_tokens = db == null or db.tune_bool("swans_count_as_tokens", true)
 	ask_before_ore = db == null or db.tune_bool("ask_before_spending_ore", true)
 	rose_ends_on_goal = db == null or db.tune_bool("rose_tokens_end_on_goal", true)
+	ai_saves_ore = db == null or db.tune_bool("ai_saves_ore", true)
 
 
 ## The key for one card on one side. See "EVERY KEY BELOW" above.
@@ -341,16 +368,27 @@ func finish_match() -> void:
 func begin_duel(player_card: PlayerData = null, enemy_card: PlayerData = null) -> void:
 	_expire("duel")
 	_fired.clear()
-	if player_card != null:
-		_consume_pending(player_card, false)
-	if enemy_card != null:
-		_consume_pending(enemy_card, true)
+	_prio_mod.clear()
+	_force_slot.clear()
+	_negated.clear()
+	_uncounterable.clear()
+	_ignore_if.clear()
+	_token_used.clear()
+	_switch_card = null
+	# THE EXHAUST FIRST, THEN "THE NEXT ONE" (round AB). A card in the exhaust
+	# that says "give a Tier II water unit priority" makes a waiting effect -
+	# and the Tier II about to duel is the one it is for, so it must already
+	# be waiting when this duel's waiting effects land.
 	for key in _zone.keys():
 		var e: Dictionary = _zone[key]
 		if String(e["zone"]) == EXHAUST:
 			var side := bool(e["enemy"])
 			var facing: PlayerData = enemy_card if not side else player_card
 			_fire_for(e["card"], side, "whileinexhaust", facing, not side)
+	if player_card != null:
+		_consume_pending(player_card, false)
+	if enemy_card != null:
+		_consume_pending(enemy_card, true)
 
 
 # =============================================================
@@ -472,8 +510,11 @@ func after_shot(shooter_is_enemy: bool, scored: bool) -> void:
 	if scored:
 		# RULING (round AA): Rose tokens last until a goal. Then every
 		# original walks back on in its token's place.
+		# Round AB (Q005 / Q021): only when THEIR OWNER scores - the scoring
+		# side's Rose tokens go home and its Swans turn back.
 		if rose_ends_on_goal:
-			end_tokens("rose")
+			end_tokens("rose", 1 if shooter_is_enemy else 0)
+			end_swans(shooter_is_enemy)
 		for card in cards_in(shooter_is_enemy):
 			_fire_for(card, shooter_is_enemy, "ongoal", null, not shooter_is_enemy)
 		for card in cards_in(not shooter_is_enemy):
@@ -663,11 +704,221 @@ func emblem_reveal_for(card: PlayerData, side_is_enemy: bool) -> bool:
 			var ability := db.get_ability(String(piece).strip_edges())
 			if ability == null or ability.trigger != "reveal":
 				continue
-			if ability.effect == "makeswan" and is_kind(card, side_is_enemy, "swan"):
-				continue
 			if _condition_ok(ability, card, side_is_enemy, null, not side_is_enemy):
 				return true
 	return false
+
+
+# =============================================================
+#  BENDING THE DUEL (round AB, phase C4)
+# =============================================================
+
+const C4_EFFECTS: Array[String] = ["switchtodefender", "alwaysdefending", "swappower",
+	"setpowerfromtoken", "useenemypower", "forceability", "negateability", "negatebuff",
+	"changepriority", "givepriority", "uncounterable", "powerfromcount", "removecondition"]
+
+
+## ---- what C4 did, for tools and screens ----
+func forced_side(card: PlayerData, side_is_enemy: bool) -> String:
+	return String(_force_slot.get(_k(card, side_is_enemy), ""))
+
+
+func negated_side(card: PlayerData, side_is_enemy: bool) -> String:
+	return String(_negated.get(_k(card, side_is_enemy), ""))
+
+
+func priority_mod(card: PlayerData, side_is_enemy: bool) -> int:
+	return int(_prio_mod.get(_k(card, side_is_enemy), 0))
+
+
+func is_uncounterable(card: PlayerData, side_is_enemy: bool) -> bool:
+	return _uncounterable.has(_k(card, side_is_enemy))
+
+
+func ignores_if(card: PlayerData, side_is_enemy: bool) -> bool:
+	return _ignore_if.has(_k(card, side_is_enemy))
+
+
+func is_always_defending(card: PlayerData, side_is_enemy: bool) -> bool:
+	return _always_def.has(_k(card, side_is_enemy))
+
+
+## Is this card protected from negate / force this duel (Herbert, Q053)?
+func _protected(card: PlayerData, side_is_enemy: bool) -> bool:
+	return _uncounterable.has(_k(card, side_is_enemy))
+
+
+## One C4 effect on one card. `card` is who it lands on; `source` whose it is.
+func _bend(ability: AbilityData, card: PlayerData, card_is_enemy: bool, source: PlayerData,
+		source_is_enemy: bool, opponent: PlayerData, opponent_is_enemy: bool) -> void:
+	if card == null:
+		return
+	var key := _k(card, card_is_enemy)
+	var hostile := card_is_enemy != source_is_enemy
+	var who := card.player_name
+	match ability.effect:
+		"switchtodefender":
+			if String(_role.get(key, "")) == "attack":
+				_switch_card = card
+				_switch_side = card_is_enemy
+		"alwaysdefending":
+			_always_def[key] = true
+		"changepriority":
+			_prio_mod[key] = int(_prio_mod.get(key, 0)) + ability.value
+			log_lines.append("      %s: priority %+d (now %d)" % [who, ability.value,
+				card.get_ability_priority() + int(_prio_mod[key])])
+		"givepriority":
+			_prio_mod[key] = int(_prio_mod.get(key, 0)) - 100
+			log_lines.append("      %s resolves FIRST this duel" % who)
+		"uncounterable":
+			_uncounterable[key] = true
+			log_lines.append("      %s cannot be countered this duel" % who)
+		"removecondition":
+			_ignore_if[key] = true
+			log_lines.append("      %s: its If is ignored this duel" % who)
+		"forceability":
+			if hostile and _protected(card, card_is_enemy):
+				log_lines.append("      %s cannot be forced" % who)
+				return
+			var slot := ability.effect_arg
+			var playing := String(_role.get(key, "attack"))
+			if slot == "other" or slot == "":
+				slot = "defend" if playing == "attack" else "attack"
+			_force_slot[key] = slot
+			log_lines.append("      %s must use its %s side" % [who, slot.to_upper()])
+			# On ITSELF ("this unit uses its attack ability") it happens now.
+			if not hostile and slot != playing:
+				var t := "onattack" if slot == "attack" else "ondefend"
+				var cell := card.active_attack_ability() if slot == "attack" else card.active_defend_ability()
+				for piece in cell.split(";"):
+					var a := db.get_ability(String(piece).strip_edges())
+					if a != null and a.trigger == t:
+						_apply_one(a, card, card_is_enemy, opponent, opponent_is_enemy)
+		"negateability":
+			if hostile and _protected(card, card_is_enemy):
+				log_lines.append("      %s cannot be countered" % who)
+				return
+			# Q050: the side it is using NOW is negated - a card that has
+			# switched sides has dodged it.
+			var side := String(_force_slot.get(key, _role.get(key, "attack")))
+			_negated[key] = side
+			var kept: Array[Buff] = []
+			for b in _buffs:
+				if b.scope == "duel" and b.source_key == key:
+					continue
+				kept.append(b)
+			_buffs = kept
+			log_lines.append("      %s's %s ability is NEGATED" % [who, side])
+		"negatebuff":
+			if hostile and _protected(card, card_is_enemy):
+				return
+			var kept2: Array[Buff] = []
+			for b in _buffs:
+				if b.card == card and b.side_is_enemy == card_is_enemy and (b.attack > 0 or b.defense > 0):
+					continue
+				kept2.append(b)
+			_buffs = kept2
+			log_lines.append("      %s loses its power buffs" % who)
+		"swappower":
+			# Q052: PRINTED powers. Against a token (Ignaz), the token's.
+			if CardDatabase._normalise(ability.target) == "token":
+				# Ignaz: this card takes the power of a token you own.
+				var token := _pick_token(source, source_is_enemy)
+				if token == null:
+					return
+				_token_used[_k(source, source_is_enemy)] = token
+				_set_power(source, source_is_enemy, token.get_attack_power(), source)
+				log_lines.append("      %s takes the power of %s (%d)" % [source.player_name, token.player_name, token.get_attack_power()])
+			else:
+				# The card it lands on and the source swap PRINTED power; the
+				# source only changes if it is fighting too (not from the exhaust).
+				var mine := source.get_attack_power()
+				var theirs := card.get_attack_power()
+				_set_power(card, card_is_enemy, mine, source)
+				if _zone_for(source, source_is_enemy) == COMBAT and source != card:
+					_set_power(source, source_is_enemy, theirs, source)
+				log_lines.append("      %s swaps power with %s" % [source.player_name, who])
+		"setpowerfromtoken":
+			var token := _pick_token(source, source_is_enemy)
+			if token == null:
+				return
+			_token_used[_k(source, source_is_enemy)] = token
+			_set_power(card, card_is_enemy, token.get_attack_power(), source)
+			log_lines.append("      %s fights with the power of %s (%d)" % [who, token.player_name, token.get_attack_power()])
+		"useenemypower":
+			if opponent != null:
+				var now := attack_power(opponent, opponent_is_enemy) if String(_role.get(_k(opponent, opponent_is_enemy), "attack")) == "attack" else defense_power(opponent, opponent_is_enemy)
+				_set_power(card, card_is_enemy, now, source)
+		"powerfromcount":
+			var n := _count_for(ability.effect_arg, card_is_enemy, ability.value)
+			_set_power(card, card_is_enemy, n, source)
+			log_lines.append("      %s: power = %d (%s)" % [who, n, ability.effect_arg])
+
+
+## Make a card fight with exactly `power` this duel: a buff of the difference.
+func _set_power(card: PlayerData, card_is_enemy: bool, power: int, source: PlayerData) -> void:
+	var now_atk := attack_power(card, card_is_enemy)
+	var now_def := defense_power(card, card_is_enemy)
+	var buff := Buff.new()
+	buff.scope = "duel"
+	buff.card = card
+	buff.side_is_enemy = card_is_enemy
+	buff.attack = power - now_atk
+	buff.defense = power - now_def
+	buff.source_key = _k(source, card_is_enemy) if source != null else ""
+	_buffs.append(buff)
+
+
+## What power_from_count counts. victory = your side's victory counters;
+## enemy_exhaust_II = their Tier II cards in the exhaust; field_objects =
+## different elements on the pitch (and, in C6, structures), up to `cap`.
+func _count_for(what: String, side_is_enemy: bool, cap: int) -> int:
+	var n := 0
+	match what:
+		"victory":
+			n = pool(side_is_enemy, "victory")
+		"enemyexhaustii", "enemy_exhaust_ii":
+			for c in cards_in(not side_is_enemy, EXHAUST):
+				if c.get_tier_clean() == "II":
+					n += 1
+		"fieldobjects", "field_objects":
+			var seen := {}
+			for side in [false, true]:
+				for c in cards_in(side):
+					seen[CardDatabase._normalise(c.active_element())] = true
+			n = seen.size()
+			if cap > 0:
+				n = mini(n, cap)
+	return n
+
+
+## The token a card uses (Sven, Ignaz): the one YOU picked before the duel
+## (consent), else the weakest - Sven makes the ENEMY fight with it.
+func _pick_token(source: PlayerData, side_is_enemy: bool) -> PlayerData:
+	var picked = _consent.get(_k(source, side_is_enemy) + "|token", null)
+	if picked is PlayerData:
+		return picked
+	var best: PlayerData = null
+	for c in tokens_of(side_is_enemy):
+		if best == null or c.get_attack_power() < best.get_attack_power():
+			best = c
+	return best
+
+
+## Every token a side controls (the cards themselves), for a pick window.
+func tokens_of(side_is_enemy: bool) -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	for card in cards_in(side_is_enemy):
+		if _held.has(_k(card, side_is_enemy)):
+			continue
+		if card.is_token() or (swans_are_tokens and is_kind(card, side_is_enemy, "swan")):
+			out.append(card)
+	return out
+
+
+## Your token pick for a duel (Q003).
+func consent_token(card: PlayerData, side_is_enemy: bool, token: PlayerData) -> void:
+	_consent[_k(card, side_is_enemy) + "|token"] = token
 
 
 # =============================================================
@@ -755,6 +1006,18 @@ func _referee_effect(ability: AbilityData, source: PlayerData, source_is_enemy: 
 #  ASKING THE PLAYER (round AA)
 # =============================================================
 
+## The most Ore any ability of this side's cards (still in the match) costs.
+func _biggest_ore_cost(side_is_enemy: bool) -> int:
+	var top := 0
+	for card in cards_in(side_is_enemy):
+		for cell in [card.active_attack_ability(), card.active_defend_ability()]:
+			for piece in String(cell).split(";"):
+				var a := db.get_ability(String(piece).strip_edges())
+				if a != null and a.cost_kind == "ore":
+					top = maxi(top, a.cost_amount)
+	return top
+
+
 ## Does this ability need a yes from this side?
 func needs_yes(ability: AbilityData, side_is_enemy: bool) -> bool:
 	if not bool(interactive.get(side_is_enemy, false)):
@@ -792,7 +1055,7 @@ func duel_questions(card: PlayerData, side_is_enemy: bool, role: String,
 					rows.append(a)
 	var ore_left := pool(side_is_enemy, "ore")
 	for a in rows:
-		if not wanted.has(a.trigger) or not needs_yes(a, side_is_enemy):
+		if not wanted.has(a.trigger) or not (needs_yes(a, side_is_enemy) or needs_token_pick(a, side_is_enemy)):
 			continue
 		if a.cost_kind == "ore" and ore_left < a.cost_amount:
 			continue
@@ -813,6 +1076,15 @@ func duel_questions(card: PlayerData, side_is_enemy: bool, role: String,
 	else:
 		_role[key] = was
 	return out
+
+
+## Round AB (Q003): does this ability make you choose one of SEVERAL tokens?
+func needs_token_pick(ability: AbilityData, side_is_enemy: bool) -> bool:
+	if not bool(interactive.get(side_is_enemy, false)):
+		return false
+	var uses_token := ability.effect == "setpowerfromtoken" \
+		or (ability.effect == "swappower" and CardDatabase._normalise(ability.target) == "token")
+	return uses_token and tokens_of(side_is_enemy).size() > 1
 
 
 ## Your answer to one of duel_questions(), for this duel.
@@ -913,11 +1185,13 @@ func fired_in_duel(card: PlayerData, side_is_enemy: bool) -> Array:
 
 ## ROUND AA: every token of that kind goes home. The original walks back on
 ## in the token's place and zone; the body gets its card back (take_swaps).
-func end_tokens(kind: String = "rose") -> void:
+func end_tokens(kind: String = "rose", only_side: int = -1) -> void:
 	for swap in _all_swaps:
 		if not bool(swap.get("active", false)) or String(swap.get("kind", "")) != kind:
 			continue
 		var side := bool(swap["side"])
+		if only_side >= 0 and side != (only_side == 1):
+			continue
 		var token: PlayerData = swap["new"]
 		var original: PlayerData = swap["old"]
 		var where := _zone_for(token, side)
@@ -927,6 +1201,17 @@ func end_tokens(kind: String = "rose") -> void:
 		swap["active"] = false
 		_swaps.append({"side": side, "old": token, "new": original, "kind": kind, "active": false})
 		log_lines.append("      the %s Unit token goes; %s is back" % [kind.capitalize(), original.player_name])
+
+
+## Round AB (Q021): every Swan of that side turns back at its goal.
+func end_swans(side_is_enemy: bool) -> void:
+	var n := 0
+	for key in _kinds.keys():
+		if String(key).ends_with("|%d" % (1 if side_is_enemy else 0)) and bool((_kinds[key] as Dictionary).get("swan", false)):
+			(_kinds[key] as Dictionary).erase("swan")
+			n += 1
+	if n > 0:
+		log_lines.append("      %d Swan(s) of the %s side turn back" % [n, "away" if side_is_enemy else "home"])
 
 
 ## ---- FOR TOOLS, AND ONE DAY FOR MINES AND ITEMS ----
@@ -1032,7 +1317,18 @@ func resolve_duel_abilities(attacker: PlayerData, attacker_is_enemy: bool,
 		_role[_k(defender, defender_is_enemy)] = "defend"
 		_outcome.erase(_k(defender, defender_is_enemy))
 
-	for entry in queue:
+	# ROUND AB (C4): THE STACK RE-SORTS AS IT GOES. A priority change that
+	# lands before a card resolves moves it in the queue (give / change
+	# priority, mostly from the exhaust and from "next" effects).
+	while not queue.is_empty():
+		for e in queue:
+			e["priority"] = _duel_priority(e["card"], shown, e["role"] == "attack") \
+				+ int(_prio_mod.get(_k(e["card"], e["enemy"]), 0))
+		queue.sort_custom(func(a, b):
+			if a["priority"] == b["priority"]:
+				return a["order"] < b["order"]
+			return a["priority"] < b["priority"])
+		var entry: Dictionary = queue.pop_front()
 		var card: PlayerData = entry["card"]
 		var is_enemy: bool = entry["enemy"]
 		var opponent: PlayerData = defender if entry["role"] == "attack" else attacker
@@ -1049,6 +1345,36 @@ func resolve_duel_abilities(attacker: PlayerData, attacker_is_enemy: bool,
 			_fire_for(card, is_enemy, "ondefend", opponent, not is_enemy)
 		if trigger_extra != "":
 			_fire_for(card, is_enemy, trigger_extra, opponent, not is_enemy)
+
+	# ============ SWITCH TO BEING THE DEFENDER (C4, ruling F1, Q047) ============
+	# Abilities first, THEN the switch: the card now defends and uses its
+	# Defend side, the other card attacks, and the winner attacks next as
+	# always. The match reads take_switch() to turn the comparison round.
+	_last_switch = {}
+	if _switch_card != null:
+		var flipper := _switch_card
+		var flipper_enemy := _switch_side
+		var other: PlayerData = defender if flipper == attacker else attacker
+		_role[_k(flipper, flipper_enemy)] = "defend"
+		if other != null:
+			_role[_k(other, not flipper_enemy)] = "attack"
+		log_lines.append("      %s switches to being the DEFENDER" % flipper.player_name)
+		_fire_for(flipper, flipper_enemy, "ondefend", other, not flipper_enemy)
+		_last_switch = {"card": flipper, "enemy": flipper_enemy}
+		_switch_card = null
+
+
+## Did a card switch to defender in the duel just resolved? {card, enemy} or
+## {}. Read once by the match.
+func take_switch() -> Dictionary:
+	var out := _last_switch
+	_last_switch = {}
+	return out
+
+
+## The token a card used in this duel (Sven, Ignaz), for the duel window.
+func token_used(card: PlayerData, side_is_enemy: bool) -> PlayerData:
+	return _token_used.get(_k(card, side_is_enemy), null)
 
 
 ## Where a card sits in the resolving order. Its own Ability Priority
@@ -1159,13 +1485,25 @@ func _fire_for(card: PlayerData, is_enemy: bool, trigger: String,
 		if not up.is_empty() and int(up.get("cycle", -1)) == cycle_number:
 			var chosen: Array[String] = [String(up["slot"])]
 			slots = chosen
+	# ============ FORCED TO USE ONE SIDE (C4) ============
+	# "Enemy has to use Attack Ability": its forced side answers its role's
+	# moment - a defender forced to attack fires its ATTACK side's on_attack
+	# rows when its on_defend moment comes.
+	var wanted := trigger
+	if _force_slot.has(key) and (trigger == "onattack" or trigger == "ondefend"):
+		var forced: Array[String] = [String(_force_slot[key])]
+		slots = forced
+		wanted = "onattack" if String(_force_slot[key]) == "attack" else "ondefend"
 	for slot in slots:
+		# NEGATED (C4): that side of this card does nothing more this duel.
+		if String(_negated.get(key, "")) == slot:
+			continue
 		var cell := card.active_attack_ability() if slot == "attack" else card.active_defend_ability()
 		# A CELL MAY NAME SEVERAL ROWS, separated by semicolons, so one
 		# sentence with two halves ("+1 now. If this wins: ...") is two rows.
 		for piece in String(cell).split(";"):
 			var ability := db.get_ability(String(piece).strip_edges())
-			if ability == null or ability.trigger != trigger:
+			if ability == null or ability.trigger != wanted:
 				continue
 			_apply_one(ability, card, is_enemy, opponent, opponent_is_enemy)
 	# ============ THE EMBLEMS' BASIC ABILITIES (round Z) ============
@@ -1217,6 +1555,13 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 	# "Consume 3 Ore:" - not enough Ore and it simply does not happen.
 	if ability.cost_kind == "ore" and pool(source_is_enemy, "ore") < ability.cost_amount:
 		return
+	# ROUND AB (Q018): THE AI SAVES FOR ITS BIGGEST CARD. A side nobody asks
+	# (the other side) does not spend on a small Cost if that would leave it
+	# unable to pay its most expensive one. `ai_saves_ore` in Tuning.csv.
+	if ability.cost_kind == "ore" and not bool(interactive.get(source_is_enemy, false)) and ai_saves_ore:
+		var biggest := _biggest_ore_cost(source_is_enemy)
+		if ability.cost_amount < biggest and pool(source_is_enemy, "ore") - ability.cost_amount < biggest:
+			return
 
 	# ============ ASK THE PLAYER (round AA) ============
 	if not answered and needs_yes(ability, source_is_enemy):
@@ -1280,6 +1625,11 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 	# --- The side's own pools: Ore, victory counters (round Z) ---
 	if ability.effect == "gainore":
 		_gain_ore(source, source_is_enemy, ability.value)
+		return
+	if ability.effect == "removecounter" and CardDatabase._normalise(ability.target) == "side":
+		_pool_add(source_is_enemy, ability.effect_arg, -ability.value)
+		log_lines.append("      %s: -%d %s from the side (now %d)" % [source.player_name, ability.value,
+			ability.effect_arg, pool(source_is_enemy, ability.effect_arg)])
 		return
 	if ability.effect == "addcounter" and CardDatabase._normalise(ability.target) == "side":
 		_pool_add(source_is_enemy, ability.effect_arg, ability.value)
@@ -1346,6 +1696,12 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 		log_lines.append("      %s: %+d shot power" % [source.player_name, ability.value])
 		return
 
+	# --- Bending the duel (round AB, C4) ---
+	if C4_EFFECTS.has(ability.effect):
+		for pair in _cards_hit(ability.target, source, source_is_enemy, opponent, opponent_is_enemy):
+			_bend(ability, pair[0], pair[1], source, source_is_enemy, opponent, opponent_is_enemy)
+		return
+
 	# --- Counters and swans land on CARDS (round Z) ---
 	if ability.effect in ["addcounter", "removecounter", "makeswan"]:
 		for pair in _cards_hit(ability.target, source, source_is_enemy, opponent, opponent_is_enemy):
@@ -1368,6 +1724,7 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 
 	if not _aim(buff, ability.target, source, source_is_enemy, opponent, opponent_is_enemy):
 		return
+	buff.source_key = _k(source, source_is_enemy)
 
 	_buffs.append(buff)
 	log_lines.append("      %s: %s %+d (%s, %s)"
@@ -1430,6 +1787,23 @@ func _cards_hit(target: String, source: PlayerData, source_is_enemy: bool,
 		"allenemies":
 			for card in cards_in(not source_is_enemy):
 				out.append([card, not source_is_enemy])
+	var lower := target.strip_edges().to_lower().replace("enemy_tier:", "enemytier:")
+	if lower.begins_with("enemytier:"):
+		var t := lower.substr(10).to_upper()
+		for thing in (_lineup.get(not source_is_enemy, []) as Array):
+			var c := thing as PlayerData
+			if c != null and c.get_tier_clean() == t:
+				out.append([c, not source_is_enemy])
+	elif lower.begins_with("tier:"):
+		var t2 := lower.substr(5).to_upper()
+		for thing in (_lineup.get(source_is_enemy, []) as Array):
+			var c2 := thing as PlayerData
+			if c2 != null and c2.get_tier_clean() == t2:
+				out.append([c2, source_is_enemy])
+	elif lower == "token":
+		var t3 := _pick_token(source, source_is_enemy)
+		if t3 != null:
+			out.append([source, source_is_enemy])
 	return out
 
 
@@ -1476,7 +1850,10 @@ func _land_on(ability: AbilityData, card: PlayerData, card_is_enemy: bool,
 		"gainore":
 			_gain_ore(source, source_is_enemy, ability.value)
 		_:
-			_land_buff(ability, card, card_is_enemy, source)
+			if C4_EFFECTS.has(ability.effect):
+				_bend(ability, card, card_is_enemy, source, source_is_enemy, null, not card_is_enemy)
+			else:
+				_land_buff(ability, card, card_is_enemy, source)
 
 
 func _add_counter(card: PlayerData, card_is_enemy: bool, kind: String, n: int, source: PlayerData) -> void:
@@ -1608,13 +1985,16 @@ func _condition_ok(ability: AbilityData, source: PlayerData, source_is_enemy: bo
 	if ability.condition.strip_edges() == "":
 		return true
 	var me := _k(source, source_is_enemy)
+	# Leon (C4): "remove next ally Condition" - this duel its If is ignored.
+	if _ignore_if.has(me):
+		return true
 	for term in AbilityData.condition_terms(ability.condition):
 		var word := String(term["word"])
 		var arg := String(term["arg"])
 		var ok := false
 		match word:
 			"defending":
-				ok = String(_role.get(me, "")) == "defend"
+				ok = String(_role.get(me, "")) == "defend" or _always_def.has(me)
 			"attacking":
 				ok = String(_role.get(me, "")) == "attack"
 			"won":
@@ -1736,6 +2116,7 @@ func _land_buff(ability: AbilityData, card: PlayerData, card_is_enemy: bool, sou
 	buff.scope = "duel" if ability.scope in ["", "duel"] else ability.scope
 	buff.card = card
 	buff.side_is_enemy = card_is_enemy
+	buff.source_key = _k(source, card_is_enemy) if source != null else ""
 	match ability.effect:
 		"addattack":
 			buff.attack = ability.value

@@ -1,4 +1,4 @@
-# Combat abilities — the plan (round Y · C2 in round Z · C3 in round AA)
+# Combat abilities — the plan (round Y · C2 Z · C3 AA · C4 AB)
 
 > *"We need to go through each of the unique players and see if their
 > triggers work when they should (during attack/defend or in void, on the
@@ -129,8 +129,8 @@ C8. "Not written" means the six Ultimates you haven't written yet.
 **Running total of class abilities that work in a match** (the meter,
 `ability_coverage.gd`, counts the 228 Attack/Defend sides of the set cards and
 Stars' Front Sides): 1 before C1 → 33 after C1 → 103 after C2 (round Z) →
-**122 after C3 (round AA, 54%)** → about 157 after C4 → 168 after C5 → 228
-after C6. C7 and C8
+122 after C3 (round AA) → **156 after C4 (round AB, 68%)** → about 168 after
+C5 → 228 after C6. C7 and C8
 are the Emblems and Ultimates on top.
 
 ### Your rulings (answered in round Z) and what they changed
@@ -288,17 +288,24 @@ All five rulings it needed are in (R01, R02, R09, R10, R11, and R16):
 - **The clutter**: the emblem tile moved to the top right, and the emblem bar
   and tracker sit UNDER the duel and shot windows.
 
-### C4 — Bending the duel · +35 · NEXT
+### C4 — Bending the duel · 156 working · ✅ BUILT IN ROUND AB
 
 `switch_to_defender`, `always_defending`, `swap_power`, `use_enemy_power`,
 `force_ability` (attack / defend / other), `negate_ability`, `negate_buff`,
 `change_priority`, `give_priority`, `uncounterable`, `double_attack`,
-`power_from_count`, and **Sven's "use a token's power"** (your R18 answer:
-choose a token of the same tier, shown on screen). All the rulings it needs
-are in, plus Q045-Q053 in `data/Questions.csv` (priority, Luis, Nicole, Carl, René, Lothar,
-Susanne, Herbert).
+`power_from_count`, and **Sven** (Q002: the enemy fights with the power of a
+token you own - you pick it, Q003, and the duel window shows it, Q004).
 
-### C5 — Zones in action, and the choices · +11
+Built as you answered: the abilities go off **then** the card switches to
+defender (Q047) and the winner attacks next; a negate stops the side the
+enemy is using - one that switched sides dodged it (Q050); Lothar's double
+is printed power, buffs after (Q051, C5); swaps use printed power (Q052);
+"cannot be countered" stops negate and force (Q053); priority changes stack
+(Q045). **The stack re-sorts as it goes**, so a priority change that lands
+before a card resolves moves it. And from the exhaust, "a Tier IV water
+unit" now WAITS for that card (it used to expire at the Tier I duel).
+
+### C5 — Zones in action, and the choices · +12 · NEXT
 
 No exile zone any more (R14). What is left is the **interactive** part, and
 it is mostly screens: the exhaust zone **lighting up** when a card in it can

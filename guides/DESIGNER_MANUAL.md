@@ -1604,6 +1604,61 @@ is two rows with two moments (`on_attack`, then `on_win_duel`).
   number printed on it, and "priority 2" when its priority is not its power
   (ruling F4).
 
+### Combat abilities — round AB, phase C4: bending the duel
+
+**156 of 228 class abilities work in a match now** (68%).
+
+| new in Abilities.csv | what it does |
+|---|---|
+| `switch_to_defender` | the abilities go off, **then** the card defends (with its Defend side) and the other card attacks; the winner attacks next as always |
+| `always_defending` | every "If Defending" is true for it, all match (Sallos) |
+| `swap_power` | it and the target swap **printed** power for the duel. Target `token`: it takes the power of a token you own (Ignaz) |
+| `set_power_from_token` | the target fights with the power of a token you own - you pick which when you have several (Sven) |
+| `use_enemy_power` | it fights with the power of the enemy it duels (Nicole) |
+| `force_ability:attack` / `:defend` / `:other` | the target must use that side this duel |
+| `negate_ability` | the side the target is using does nothing more this duel; buffs it gave itself are taken back |
+| `negate_buff` | the target loses its power buffs this duel |
+| `change_priority` / `give_priority` | +/- its place in the order abilities resolve / it resolves first |
+| `uncounterable` | it cannot be negated or forced this duel |
+| `power_from_count:victory` | its power IS that number this duel (also `enemy_exhaust_II`, `field_objects`) |
+| `remove_condition` | its If is ignored this duel |
+
+**The stack re-sorts as it goes**, so a priority change that lands before a
+card resolves really moves it. **From the exhaust**, "give a Tier IV water
+unit +1" now waits for that card - before, it ran out at the Tier I duel.
+
+**Card texts changed by your answers:** every "attack power" now says **"base
+power"** (Q001); Sven: "Change the enemy's base power to the power of a token
+you own during combat" (Q002); Kerstin: "...by 50% this turn (once per round)"
+(Q030).
+
+### Round AB: your testing notes
+
+| you said | now |
+|---|---|
+| the foul text is unreadable | the referee's bar sits on dark see-through glass, no border, bigger white text (`ref_bar_glass`, `ref_bar_text_size`) |
+| can't read the hover window | it opens BELOW the card, on its own layer above the banner, and never over the referee's bar (`hover_panel_layer`, `hover_panel_keep_bottom`). If there is not room under the card it goes wide and short instead of covering the card (`hover_panel_wide_width`). It also says the card's text and what the game does with it |
+| kicked across the whole field | the ball goes from his own feet over the touchline NEAREST to him (`throw_in_drift`) |
+| no Emblem, feels like an old build | a build stamp bottom-left of every match (`build_stamp`) and an `[emblems] the bar shows ...` line in the Output panel. Also fixed: Emblems were never reset between matches |
+| variety for PLAY MAKER | a proposal in Questions Q060 |
+
+**Emblems now (your answers Q009-Q012):** an Emblem's Basic side works
+whenever its Star is on the pitch. **One Ultimate per game:** a second Emblem
+that meets its Condition still turns over - greyed, with a red X - and its
+Ultimate does nothing. A goal no longer resets them (`emblem_reset_on_goal`
+false); a Star that comes back brings its Emblem back as it was. The other
+side's Emblem is shown too, marked THEIRS (`emblem_show_enemy`).
+
+**AUTO menu (Q040):** switching AUTO on asks which questions AUTO should also
+answer for you - spend Ore, Swans, the Rose pick, the side that stays up
+(`auto_menu`). **One window for all the side choices** of a round (Q037).
+**Manfred's coin is shown** (Q034, `coin_toss_seconds`). **The tracker shows
+what the other side just did** (Q041) and what its cards do to you (Q035).
+**Rose tokens and Swans end when their OWNER scores** (Q005, Q021). **The AI
+saves Ore** for its most expensive card (Q018, `ai_saves_ore`). **Shields stop
+shots only** (Q029, `shield_blocks_drains`). The draft button says
+**REVEAL** (Q043).
+
 ### Combat abilities — round AA, phase C3: the keeper, the referee, and being asked
 
 **122 of 228 class abilities work in a match now** (54%).
@@ -3246,7 +3301,7 @@ palette colour and whether the game reads that name — and what is sitting in
 
 ---
 
-## 9. `data/Tuning.csv` — 368 numbers
+## 9. `data/Tuning.csv` — 381 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -4117,6 +4172,20 @@ In `tools/`. Nothing in the game loads them; they are for you.
 commands: `ability_audit.py`, `ability_rows.py`, `ability_coverage.gd`
 (the meter) and `ability_check.gd` (the proof).
 
+**Round AB — the balance report** (your answer Q059):
+
+```
+python3 tools/balance_report.py              5 matches per class
+python3 tools/balance_report.py 20           20 per class (about 1.5 hours)
+python3 tools/balance_report.py 10 Lorelei   one class
+```
+
+Plays whole matches with nobody watching, four at a time, each with its own
+seed, and counts from the Output log: won / drawn / lost, goals, every Emblem
+that turned over (or was blocked), Rose tokens, Swans, Ore, counters,
+switches, negates, fouls, cards, coin flips - and any SCRIPT ERROR. Writes
+`tools/balance_report.md`. It is the tool for the mass-testing phase. Round AB's first report (5 per class) is shipped as an example.
+
 **Round AA — `data/Questions.csv`, the questions file.** Everything I need
 to ask you that is not about one card's wording goes here, as many as there
 are: `ID, Area, Question, Why It Matters, Options, My Default (playing now),
@@ -4704,6 +4773,8 @@ helper adds a node for you, say so in a comment above it, in capitals.
 
 ### Round AA additions
 
+- **Round AB: `Status` in Questions.csv** is `open`, `answered` (built in a
+  later phase), `built`, or `pinned` (your "test this later").
 - **Diff your own commits.** The Rauhnacht file you sent this round was an
   older copy: every name had become "Unit Name" and the ability-ID columns
   were gone. I merged it by row and kept your Set Name swaps - but always edit
@@ -4757,6 +4828,8 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | make an ability cost Ore | the `Cost` column of Abilities.csv: `ore:3` |
 | make an Emblem's Basic side do something | write an `EMB_` row in Abilities.csv (copy one), then name it in the Emblem's `Basic Ability` column |
 | make a card's ability work from its text | change the text, run `python3 tools/ability_audit.py` and `python3 tools/ability_rows.py`, then `ability_coverage.gd` |
+| make a card switch to defender, force or negate | the C4 effects in Abilities.csv - or write the sentence on the card and run the two scripts |
+| run many matches and see the numbers | `python3 tools/balance_report.py` |
 | ask the player before an ability goes off | the `Ask` column of Abilities.csv: `yes` |
 | answer my questions | `data/Questions.csv`, the `Your Answer` column |
 | change what a Swan or a Rose token is | `EMB_ZEPAR_WINGS` / `EMB_GREMORY_ROSE` in Abilities.csv; `swans_count_as_tokens` in Tuning.csv |

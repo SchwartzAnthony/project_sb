@@ -298,7 +298,10 @@ func _concede() -> void:
 
 ## Used by abilities (drain_stamina / restore_stamina from Abilities.csv).
 func adjust_stamina(delta: int) -> void:
-	if delta < 0:
+	# ROUND AB (Q029): a shield stops SHOTS only - a drain goes straight to
+	# the stamina. `shield_blocks_drains` TRUE puts the round AA rule back.
+	var db := CardDatabase.get_db()
+	if delta < 0 and db != null and db.tune_bool("shield_blocks_drains", false):
 		delta = -_through_shield(-delta)
 	current_stamina = clampi(current_stamina + delta, 0, max_stamina)
 	if stamina_bar != null:

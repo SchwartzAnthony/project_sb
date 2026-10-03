@@ -38,6 +38,9 @@ extends CanvasLayer
 
 ## The cards this side has on the pitch. Set it and call refresh().
 var squad: Array[PlayerData] = []
+## ROUND AB (your answer Q011): the OTHER side's Star(s) on the pitch, so you
+## can see the Emblem you are playing against. `emblem_show_enemy` in Tuning.
+var enemy_squad: Array[PlayerData] = []
 var state: GameState = null
 
 var _row: HBoxContainer = null
@@ -103,10 +106,23 @@ func refresh() -> void:
 		child.queue_free()
 	_tiles = {}
 
+	var db := CardDatabase.get_db()
+	if db == null or db.tune_bool("emblem_show_enemy", true):
+		for badge in EmblemBook.on_the_field(enemy_squad):
+			_row.add_child(_enemy_tile(badge))
+	var shown := 0
 	for badge in EmblemBook.on_the_field(squad):
 		var tile := _tile(badge)
 		_row.add_child(tile)
 		_tiles[CardDatabase._normalise(badge.id)] = tile
+		shown += 1
+	# Said in the Output panel, so "I do not see the Emblem" can be checked
+	# against what the game thinks it is showing.
+	var names: PackedStringArray = PackedStringArray()
+	for card in squad:
+		if card != null:
+			names.append(card.player_name)
+	print("[emblems] the bar shows %d Emblem(s) for %s" % [shown, ", ".join(names) if not names.is_empty() else "NO STAR"])
 
 
 func _tile(badge: ClassBook.Emblem) -> Control:
@@ -117,7 +133,11 @@ func _tile(badge: ClassBook.Emblem) -> Control:
 
 	var up := EmblemBook.is_up(badge, state)
 	var held := EmblemBook.is_locked(badge, state)
+	var blocked := EmblemBook.is_blocked(badge, state)
 	var bits := EmblemBook.progress(badge, state)
+	# ROUND AB (Q009): a held Emblem keeps its Basic side, so it is only
+	# dimmed when the old rule (emblem_locked_is_inactive) is back on.
+	var basic_dead := db != null and db.tune_bool("emblem_locked_is_inactive", false)
 
 	var edge := MenuSupport.COLOUR_TEXT_DIM
 	if up:
@@ -133,7 +153,9 @@ func _tile(badge: ClassBook.Emblem) -> Control:
 	# THE BAR DOES NOT EAT CLICKS. It sits over the pitch and a player has to
 	# be able to press a card that happens to be under it.
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if held:
+	if blocked:
+		frame.modulate = Color(0.55, 0.55, 0.55, 0.9)
+	elif held and basic_dead:
 		frame.modulate = Color(1.0, 1.0, 1.0, 0.45)
 
 	var pad := MarginContainer.new()
@@ -189,15 +211,46 @@ func _tile(badge: ClassBook.Emblem) -> Control:
 	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	words.add_child(heading)
 
-	if up:
+	if blocked:
+		var x := _small("X  ULTIMATE BLOCKED — %s already used this game's Ultimate. The Basic side still works." % EmblemBook.ascended(state), Color(0.95, 0.25, 0.22))
+		x.add_theme_font_size_override("font_size", 13)
+		words.add_child(x)
+	elif up:
 		words.add_child(_small(badge.ultimate, MenuSupport.COLOUR_ACCENT))
 	elif held:
-		words.add_child(_small("HELD — %s got there first." % EmblemBook.ascended(state)))
+		words.add_child(_pips(int(bits["have"]), int(bits["need"]), badge))
+		words.add_child(_small("Ultimate taken by %s - the Basic side still works." % EmblemBook.ascended(state)
+			if not basic_dead else "HELD — %s got there first." % EmblemBook.ascended(state)))
 	else:
 		words.add_child(_pips(int(bits["have"]), int(bits["need"]), badge))
 		words.add_child(_small(badge.condition if badge.condition != ""
 			else DialogueGrammar.describe(badge.turns_on)))
 
+	return frame
+
+
+## ROUND AB: the OTHER side's Emblem - its name, THEIRS, and its Basic side.
+## Their race is not kept, so there are no pips.
+func _enemy_tile(badge: ClassBook.Emblem) -> Control:
+	var frame := PanelContainer.new()
+	frame.add_theme_stylebox_override("panel",
+		MenuSupport.styled("panel", "", MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_DEFEND))
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var pad := MarginContainer.new()
+	for side in ["margin_left", "margin_right"]:
+		pad.add_theme_constant_override(side, 10)
+	for side in ["margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(side, 7)
+	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(pad)
+	var words := VBoxContainer.new()
+	words.add_theme_constant_override("separation", 2)
+	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pad.add_child(words)
+	var heading := MenuSupport.heading("THEIRS · " + badge.id.to_upper(), 14, MenuSupport.COLOUR_DEFEND)
+	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	words.add_child(heading)
+	words.add_child(_small(badge.basic))
 	return frame
 
 

@@ -16,7 +16,8 @@
 #
 #  HOW CLAUDE USES IT
 #    Every round starts by reading this file. An answered question becomes
-#    `answered`, then `built` once the game does what you said. New questions
+#    `answered`, then `built` once the game does what you said - or `pinned`
+#    when you said "test this later" (the mass-testing phase). New questions
 #    are added at the bottom with the round they came from; your answers are
 #    never overwritten.
 #
@@ -45,13 +46,19 @@ def main():
     print("")
     for area in by_area:
         print("   %-14s %2d asked, %2d open" % (area, by_area[area], open_area.get(area, 0)))
-    waiting = [r for r in answered if (r.get("Status") or "").strip().lower() != "built"]
+    waiting = [r for r in answered if (r.get("Status") or "").strip().lower() not in ("built", "pinned")]
+    pinned = [r for r in rows if (r.get("Status") or "").strip().lower() == "pinned"]
     if waiting:
         print("")
         print("Answered, not built yet:")
         for r in waiting:
             print("   %s  %s" % (r["ID"], r["Question"][:90]))
             print("        -> %s" % r["Your Answer"].strip()[:120])
+    if pinned:
+        print("")
+        print("Pinned for the mass-testing phase (%d):" % len(pinned))
+        for r in pinned:
+            print("   %s  %s" % (r["ID"], r["Question"][:90]))
     return 0
 
 

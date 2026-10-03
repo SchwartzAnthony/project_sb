@@ -497,6 +497,37 @@ zero rounds of Ultimate before the switch takes it off (Questions Q013).
 
 **Next: C4** (bending the duel, Sven's token power).
 
+## 12e. Round AB — DONE (phase C4 + his testing notes)
+
+**His Questions.csv answers** (all 59): "attack power" -> "base power" in
+every card text; Sven = the enemy uses a token's power (you pick, shown);
+Rose and Swans end when THEIR OWNER scores; Emblems: Basic always active with
+its Star, ONE Ultimate per game (a second turns over greyed + red X), no goal
+reset, kept when the Star returns; show the enemy Emblem; AI saves Ore;
+shields stop shots only; Kerstin -50% once per round; one window for all side
+choices; AUTO menu; enemy moves on the tracker; coin shown; SHOW -> REVEAL.
+Statuses in Questions.csv: built / answered (later phase) / pinned (mass
+testing). New questions Q060-Q075.
+
+**His notes:** foul text unreadable -> ref bar on dark glass; hover window
+-> own layer 130, BELOW the card (and _card_top_centre had always fallen back
+to the row centre - it read `data`, the card UI's field is `current_data`);
+kick-out -> from the player's feet to the nearest touchline; play-maker
+variety -> proposal in Q060; "no Emblem, feels like an old build" -> could NOT
+reproduce (tile visible at 3 resolutions); added `build_stamp` bottom-left
+and an [emblems] log line, asked in Q062. ALSO FOUND: Emblem flags/counters
+were never reset between matches -> EmblemBook.new_match().
+
+**C4 built:** switch_to_defender (take_switch -> main_scene turns the duel
+round), always_defending, swap_power, set_power_from_token (consent_token,
+pick window), use_enemy_power, force_ability, negate_ability (Buff.source_key
+lets it take buffs back), negate_buff, change/give_priority (dynamic stack),
+uncounterable, power_from_count, remove_condition. Exhaust abilities fire
+BEFORE pending effects land in begin_duel. Coverage 156/228.
+
+**New tools:** tools/balance_report.py (SOAK_SEED/SOAK_SPEED env on
+match_soak), tools/combat_shot.gd. **Next: C5.**
+
 ## 13. Ideas worth offering him
 
 - An `Ultimate In Short` column so the emblem bar and hover can show one line

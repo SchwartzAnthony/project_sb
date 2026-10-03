@@ -297,8 +297,9 @@ Eight phases, C1 to C8, each bringing a measured batch of your cards' abilities
 to life. C1 shipped in round Y (33 abilities work, up from 1); **C2 — counters,
 tokens, Ore, swans and five Emblem Basic sides — in round Z (103 work)**.
 **C3 — the keeper and the referee — in round AA (122 work)**, with the
-question windows you asked for. **C4 — bending the duel — is next.** Every
-open question now lives in `data/Questions.csv`.
+question windows you asked for. **C4 — bending the duel — in round AB (156 work).** **C5 — the zones and
+the choice screens — is next.** Every open question lives in
+`data/Questions.csv`.
 
 On hold until the combat abilities are done, at your request:
 
@@ -308,6 +309,13 @@ On hold until the combat abilities are done, at your request:
 - Which **tier** a plain player can turn into when only Stars hold it (you chose
   option (a): leave it).
 - **Rotate the PixelLab API key** that was pasted into a chat (round X).
+- **Free kicks as a real set piece** (Questions Q033 / Q075).
+
+**Pinned for the MASS-TESTING phase** (Status `pinned` in Questions.csv):
+Gremory's pace and the goal reset (Q007), Thomas filling the referee bar
+(Q032), the side choice (Q036, Q038), priority ties (Q046), mines (Q054,
+Q055), fusing balance (Q056), touching the ball (Q057), gravestones (Q058).
+`python3 tools/balance_report.py 20` is the tool for it.
 
 ## The crosswalk — where everything went
 

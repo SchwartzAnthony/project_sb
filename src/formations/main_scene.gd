@@ -2680,10 +2680,27 @@ func spawn_hud() -> void:
 	selection_ui.add_child(hud)
 	hud.setup(db, state)
 	# Turning AUTO on mid-draft should pick straight away, not next round.
-	hud.auto_pick_changed.connect(_on_auto_pick_changed)
+	hud.auto_pick_changed.connect(_on_auto_pressed)
 	# A locked speed says so on the big announcement, not in the corner.
 	hud.speed_locked.connect(func(words: String) -> void: announce(words, 1.6))
 	hud.scout_wanted.connect(show_enemy_team)
+	# ROUND AB: WHICH BUILD IS THIS? A small stamp bottom-left, from
+	# `build_stamp` in Tuning.csv - so "it feels like an older build" can be
+	# answered by looking. Blank hides it.
+	var stamp_text := db.tune_text("build_stamp", "")
+	if stamp_text != "":
+		var stamp := Label.new()
+		stamp.name = "BuildStamp"
+		stamp.text = stamp_text
+		stamp.add_theme_font_size_override("font_size", 12)
+		stamp.add_theme_color_override("font_color", Color(1, 1, 1, 0.55))
+		stamp.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT)
+		stamp.offset_left = 10.0
+		stamp.offset_top = -34.0
+		stamp.offset_bottom = -14.0
+		stamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		selection_ui.add_child(stamp)
+		print("[build] %s" % stamp_text)
 
 
 ## The hover window. It lives on the SelectionUI layer with the cards, so it
@@ -2692,7 +2709,13 @@ func spawn_card_stats() -> void:
 	if not db.tune_bool("card_hover_stats", true):
 		return
 	card_stats = CardStatsPanel.make(db)
-	selection_ui.add_child(card_stats)
+	# ROUND AB: ITS OWN LAYER, above the ATTACKING / DEFENDING banner (120)
+	# and the emblem tile, so nothing is ever drawn over the words.
+	var layer := CanvasLayer.new()
+	layer.name = "HoverLayer"
+	layer.layer = db.tune_int("hover_panel_layer", 130)
+	add_child(layer)
+	layer.add_child(card_stats)
 
 
 ## The pause overlay. It is added last so it sits above the HUD, and it
@@ -2702,6 +2725,7 @@ func spawn_pause_menu() -> void:
 	add_child(pause_menu)
 	pause_menu.quit_requested.connect(_on_quit_match)
 	pause_menu.auto_pick_changed.connect(_on_pause_menu_auto_changed)
+	pause_menu.auto_pick_changed.connect(_auto_menu_if_on)
 
 
 ## They pressed quit, twice, having been told what it costs.
@@ -4085,10 +4109,10 @@ func _on_card_hovered(data: PlayerData) -> void:
 		if not unit.is_enemy and unit.data == data:
 			unit.set_highlight(true)
 
-	# The stats window, above the card row, so you can see what you are
-	# choosing between before you commit to one.
+	# The stats window, BELOW the card row (round AB - above it, it sat under
+	# the banner and the emblem tile and could not be read).
 	if card_stats != null:
-		card_stats.show_card(data, _card_top_centre(data))
+		card_stats.show_card(data, _card_bottom_centre(data))
 
 	AudioDirector.fire(get_tree(), "card_hovered", _facts_for_card(data), state)
 
@@ -4105,6 +4129,19 @@ func _on_card_unhovered(data: PlayerData) -> void:
 ## The middle of the top edge of the card showing this card, in screen
 ## coordinates, so the window can sit directly above the one you are pointing
 ## at. Falls back to the middle of the card row if the card cannot be found.
+func _card_bottom_centre(data: PlayerData) -> Vector2:
+	for child in card_container.get_children():
+		var card := child as PlayerCardUI
+		if card != null and card.current_data == data:
+			# The card's own height (card_size), not the control's - the row
+			# can report a shorter box than the card that is drawn.
+			var tall := maxf(card.size.y, PlayerCardUI.card_size().y)
+			return Vector2(card.global_position.x + card.size.x * 0.5,
+				card.global_position.y + tall)
+	return Vector2(card_container.global_position.x + card_container.size.x * 0.5,
+		card_container.global_position.y + card_container.size.y)
+
+
 func _card_top_centre(data: PlayerData) -> Vector2:
 	for child in card_container.get_children():
 		var card := child as Control
@@ -4765,6 +4802,23 @@ func resolve_round() -> void:
 		face_up.append_array(enemy_revealed_by_tier.values())
 		abilities.resolve_duel_abilities(atk, attacker_is_enemy, def, "", face_up)
 
+		# ROUND AB (C4): A CARD SWITCHED TO BEING THE DEFENDER. The duel turns
+		# round - it defends, the other card attacks, and the ball goes to
+		# whoever wins, as always (Q047).
+		var flip := abilities.take_switch()
+		if not flip.is_empty():
+			var was_atk := atk
+			atk = def
+			def = was_atk
+			var was_before := atk_before
+			atk_before = def_before
+			def_before = was_before
+			attacker_is_enemy = not attacker_is_enemy
+			player_has_ball = not player_has_ball
+			was_mine = player_has_ball
+			announce("%s SWITCHES TO DEFENDER" % NamePlate.short_name(flip["card"]), 1.4)
+			print("  Tier %s: %s switches to being the defender." % [ALL_TIERS[i], (flip["card"] as PlayerData).player_name])
+
 		var atk_power := abilities.attack_power(atk, attacker_is_enemy)
 		var def_power := abilities.defense_power(def, not attacker_is_enemy)
 
@@ -4997,9 +5051,11 @@ func _settle_fouls(player_lineup: Array, enemy_lineup: Array) -> Dictionary:
 			var heads := randf() < 0.5
 			print("  COIN FLIP for the %s side's foul: %s" % ["away" if rolling_side else "home",
 				"it goes to the OTHER side" if heads else "it stays"])
+			# Round AB (Q034): the coin is SHOWN.
+			await CoinToss.show_it(self, heads, "HEADS - the foul goes to the other side!" if heads
+				else "TAILS - the foul stays")
 			if heads:
 				offender_is_enemy = not rolling_side
-				announce("COIN FLIP — the foul goes the other way!", 1.6)
 
 		var lineup: Array = enemy_lineup if offender_is_enemy else player_lineup
 		var culprit := _who_fouled(lineup, offender_is_enemy)
@@ -5825,14 +5881,21 @@ func _kick_it_out(seconds: float) -> void:
 	var edge := rect.position.y if _went_out_high else rect.end.y
 	var inset := db.tune_float("throw_in_inset", 26.0)
 
+	# ROUND AB: STRAIGHT OUT, FROM HIS OWN FEET. "The player who fouled
+	# kicked it across the entire field. Not believable." The ball is put at
+	# the feet of the man who loses it and goes over the touchline NEAREST to
+	# him, a short way along (`throw_in_drift`, pixels).
+	var drift := db.tune_float("throw_in_drift", 40.0)
 	_throw_spot = Vector2(
-		clampf(from.x + randf_range(-90.0, 90.0),
+		clampf(from.x + randf_range(-drift, drift),
 			rect.position.x + rect.size.x * 0.12,
 			rect.end.x - rect.size.x * 0.12),
 		edge)
 
 	if ball != null:
 		ball.scripted_possession = false
+		if _gave_it_away != null and is_instance_valid(_gave_it_away):
+			ball.global_position = from + Vector2(0.0, 10.0 if not _went_out_high else -10.0)
 		ball.shoot(_throw_spot + Vector2(0.0, -inset if _went_out_high else inset))
 	if _gave_it_away != null and is_instance_valid(_gave_it_away):
 		Juice.fire(self, "ball_kicked", {"node": _gave_it_away})
@@ -6133,6 +6196,7 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		"power_after": atk_after,
 		"ability": _shown_ability(atk.active_attack_ability(), atk_fired),
 		"fired": not atk_fired.is_empty(),
+		"token": abilities.token_used(atk, attacker_is_enemy) if abilities != null else null,
 		"printed": atk.get_attack_power(),
 		"wins": attacker_wins,
 	}
@@ -6144,6 +6208,7 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		"power_after": def_after,
 		"ability": _shown_ability(def.active_defend_ability(), def_fired),
 		"fired": not def_fired.is_empty(),
+		"token": abilities.token_used(def, not attacker_is_enemy) if abilities != null else null,
 		"printed": def.get_defense_power(),
 		"wins": not attacker_wins,
 	}
@@ -6285,8 +6350,16 @@ func _my_cards() -> Array[PlayerData]:
 	# star player leaves, it takes their emblem with them and the new star
 	# player brings their own." `emblem_follows_star` FALSE puts back all three.
 	if db == null or db.tune_bool("emblem_follows_star", true):
-		if active_player_star != null:
-			out.append(active_player_star)
+		var on_pitch := active_player_star
+		if on_pitch == null:
+			# Round AB: never an empty bar because a variable was not set -
+			# the Star standing on the pitch is the Star.
+			for unit in _all_units():
+				if not unit.is_enemy and unit.is_star_player and unit.data != null:
+					on_pitch = unit.data
+					break
+		if on_pitch != null:
+			out.append(on_pitch)
 		return out
 	for star in player_star_bundle:
 		if star != null and not out.has(star):
@@ -6301,13 +6374,18 @@ func _open_emblem_bar() -> void:
 	if emblem_bar != null and is_instance_valid(emblem_bar):
 		_refresh_emblems()
 		return
+	# ROUND AB: A NEW MATCH, A NEW RACE. Nothing reset the Emblems between
+	# matches before, so a count could carry over in the save.
+	EmblemBook.new_match(state)
 	emblem_bar = EmblemBar.open(self, _my_cards(), state)
+	_refresh_emblems()
 
 
 func _refresh_emblems() -> void:
 	if emblem_bar == null or not is_instance_valid(emblem_bar):
 		return
 	emblem_bar.squad = _my_cards()
+	emblem_bar.enemy_squad = _stars_of(true)
 	emblem_bar.state = state
 	emblem_bar.refresh()
 
@@ -6324,7 +6402,10 @@ func _settle_emblems() -> void:
 	var turned := EmblemBook.settle(_my_cards(), state)
 	_refresh_emblems()
 	if turned != null:
-		announce("%s  —  ULTIMATE" % turned.id.to_upper())
+		if EmblemBook.is_blocked(turned, state):
+			announce("%s turns over — BLOCKED (one Ultimate per game)" % turned.id.to_upper())
+		else:
+			announce("%s  —  ULTIMATE" % turned.id.to_upper())
 
 
 # =============================================================
@@ -6422,9 +6503,34 @@ func _arm_abilities() -> void:
 				continue
 			badges.append(badge)
 		abilities.set_emblems(side, badges)
-	# YOU ARE ASKED only when you are playing it yourself.
-	abilities.interactive = {false: not _auto_is_on(), true: false}
+	# YOU ARE ASKED only when you are playing it yourself (and, in AUTO, for
+	# whatever the AUTO menu leaves to you - see _auto_covers()).
+	abilities.interactive = {false: true, true: false}
 	abilities.sync_field(_cards_of_side(false), _cards_of_side(true))
+	# The bar follows the Star on the pitch, so read it every round.
+	_refresh_emblems()
+
+
+## ROUND AB (Q041): the other side's moves, in words, for the tracker.
+func _note_their_move(e: Dictionary) -> void:
+	if match_tracker == null or not is_instance_valid(match_tracker):
+		return
+	var f: Dictionary = e["facts"]
+	var who := String(f.get("card", "?"))
+	var line := ""
+	match String(e["event"]):
+		"ore_spent": line = "spent %s Ore (%s)" % [f.get("amount", "?"), who]
+		"ore_gained": line = "gained %s Ore (%s)" % [f.get("amount", "?"), who]
+		"token_made": line = "a Rose token replaced %s" % who
+		"swan_made": line = "%s became a Swan" % who
+		"counter_placed":
+			if String(f.get("on", "")) != "side" and String(f.get("on", "")) != who:
+				line = "%s put a %s counter on %s" % [who, f.get("kind", "?"), f.get("on", "?")]
+	if line == "":
+		return
+	match_tracker.their_news.append(line)
+	while match_tracker.their_news.size() > db.tune_int("tracker_their_lines", 3):
+		match_tracker.their_news.remove_at(0)
 
 
 ## Everything the engine has to tell the match since the last time it asked.
@@ -6436,6 +6542,8 @@ func _absorb_ability_news() -> void:
 	for line in abilities.log_lines:
 		print(line)
 	abilities.log_lines.clear()
+	if match_tracker == null or not is_instance_valid(match_tracker):
+		match_tracker = MatchTracker.open(self, abilities)
 	for swap in abilities.take_swaps():
 		var body := unit_for_card(swap["old"], bool(swap["side"]))
 		if body != null:
@@ -6445,6 +6553,7 @@ func _absorb_ability_news() -> void:
 	var mine := 0
 	for e in abilities.take_events():
 		if bool(e["enemy"]):
+			_note_their_move(e)
 			continue
 		_report(String(e["event"]), e["facts"])
 		mine += 1
@@ -6490,8 +6599,21 @@ func _ask_duel_questions(mine: PlayerData, theirs: PlayerData, i_attack: bool) -
 	var questions := abilities.duel_questions(mine, false, role, theirs, true)
 	if questions.is_empty():
 		return
+	if _auto_covers("ore"):
+		return      # no answer = yes
 	freeze_play(true)
 	for ability in questions:
+		# Round AB (Q003): WHICH TOKEN? Sven and Ignaz use one of yours.
+		if abilities.needs_token_pick(ability, false):
+			var tokens := abilities.tokens_of(false)
+			var names: Array[String] = []
+			for t in tokens:
+				names.append("%s   (power %d)" % [t.player_name, t.get_attack_power()])
+			var which := await ChoiceWindow.ask(self, "WHICH TOKEN?",
+				"%s: %s" % [mine.player_name, ability.plain()], names)
+			abilities.consent_token(mine, false, tokens[clampi(which, 0, tokens.size() - 1)])
+			if not abilities.needs_yes(ability, false):
+				continue
 		var title := "SPEND ORE?" if ability.cost_kind == "ore" else "USE IT?"
 		var yes_words := ("Spend %d Ore" % ability.cost_amount) if ability.cost_kind == "ore" else "Yes"
 		var body := "%s (%s)\n\n%s\n\nYour Ore: %d" % [mine.player_name, role,
@@ -6511,9 +6633,13 @@ func _answer_ability_asks(ask_you: bool = true) -> void:
 	if asks.is_empty():
 		return
 	var froze := false
+	var sides: Array = []
 	for ask in asks:
-		if not ask_you or bool(ask["side"]) or _auto_is_on():
+		if not ask_you or bool(ask["side"]) or _auto_covers(_ask_kind(ask)):
 			abilities.answer_default(ask)
+			continue
+		if String(ask["kind"]) == "side":
+			sides.append(ask)      # all in ONE window, below (Q037)
 			continue
 		if not froze:
 			freeze_play(true)
@@ -6548,6 +6674,75 @@ func _answer_ability_asks(ask_you: bool = true) -> void:
 				var picked := await ChoiceWindow.ask(self, "WHICH SIDE STAYS UP?",
 					String(ask["text"]) + "\nThe other side does nothing until the cycle ends.", options)
 				abilities.answer(ask, "attack" if picked == 0 else "defend")
+	if not sides.is_empty():
+		if not froze:
+			freeze_play(true)
+			froze = true
+		var rows: Array = []
+		for ask in sides:
+			var card: PlayerData = ask["card"]
+			rows.append({"label": "%s goes to the exhaust" % card.player_name,
+				"options": ["ATTACK side: " + card.attack_text, "DEFEND side: " + card.defend_text],
+				"default": 0 if String(ask["default"]) == "attack" else 1})
+		var picks := await ChoiceWindow.ask_rows(self, "WHICH SIDE STAYS UP?",
+			"Each card below has something to do in the exhaust on BOTH sides. The side you pick works this cycle; the other does nothing until the cycle ends.", rows)
+		for i in sides.size():
+			abilities.answer(sides[i], "attack" if picks[i] == 0 else "defend")
 	if froze:
 		freeze_play(false)
 	_absorb_ability_news()
+
+
+# =============================================================
+#  ROUND AB - THE AUTO MENU (your answer Q040)
+#
+#  "When the player turns on auto - bring up a menu with what should be auto,
+#   so they get to choose." So turning AUTO on asks once which of the game's
+#  questions AUTO should also answer for you. Remembered in the save
+#  (`auto_asks_<kind>` flags = still ask me).
+# =============================================================
+
+const AUTO_KINDS := [
+	["ore", "Spending Ore"],
+	["swan", "Becoming a Swan (and other yes / no)"],
+	["rose", "Which unit a Rose token replaces"],
+	["side", "Which side stays up in the exhaust"],
+]
+
+
+## Does AUTO answer this kind of question for you right now?
+func _auto_covers(kind: String) -> bool:
+	if not _auto_is_on():
+		return false
+	return state == null or not state.has_flag("auto_asks_" + kind)
+
+
+func _ask_kind(ask: Dictionary) -> String:
+	match String(ask["kind"]):
+		"pick": return "rose"
+		"side": return "side"
+	var a: AbilityData = ask.get("ability")
+	if a != null and a.cost_kind == "ore":
+		return "ore"
+	return "swan"
+
+
+## The HUD's AUTO button: the menu first when it goes ON, then AUTO.
+func _on_auto_pressed(is_on: bool) -> void:
+	_on_auto_pick_changed(is_on)
+	_auto_menu_if_on(is_on)
+
+
+func _auto_menu_if_on(is_on: bool) -> void:
+	if not is_on or state == null or db == null or not db.tune_bool("auto_menu", true):
+		return
+	var rows: Array = []
+	for k in AUTO_KINDS:
+		rows.append({"label": String(k[1]),
+			"options": ["AUTO answers it", "Ask me anyway"],
+			"default": 1 if state.has_flag("auto_asks_" + String(k[0])) else 0})
+	var picks := await ChoiceWindow.ask_rows(self, "AUTO",
+		"AUTO picks your cards. Which of these should it ALSO decide for you?", rows)
+	for i in AUTO_KINDS.size():
+		state.set_flag("auto_asks_" + String(AUTO_KINDS[i][0]), picks[i] == 1)
+	state.save_to_disk()

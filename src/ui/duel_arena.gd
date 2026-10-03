@@ -234,6 +234,11 @@ func _fire_ability(key: String, data: Dictionary) -> void:
 				or int(data.get("power_after", printed)) != printed):
 			ability_label.text += "\npriority %d" % int(data.get("priority", 0))
 		ability_label.add_theme_color_override("font_color", LIVE_TEXT)
+		# ROUND AB (Q004): THE TOKEN IT USED, shown beside it - its name and
+		# power in a box of its own (the card art comes with the UI pass).
+		var token = data.get("token")
+		if token != null:
+			ability_label.text += "\n[ TOKEN: %s, power %d ]" % [token.player_name, token.get_attack_power()]
 		# ROUND AA: did it actually go off? One whose If was not met, or
 		# whose Ore you kept, is shown dim with "not this time".
 		if data.has("fired") and not bool(data.get("fired", true)):

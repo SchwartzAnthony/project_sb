@@ -41,7 +41,9 @@ var _last_state := ""
 
 
 func _initialize() -> void:
-	seed(20260922)
+	# Round AB: SOAK_SEED changes the match (tools/balance_report.py plays many).
+	var seed_text := OS.get_environment("SOAK_SEED")
+	seed(int(seed_text) if seed_text.is_valid_int() else 20260922)
 	await process_frame
 	_pick_a_team()
 	MatchMode.choose(self, "friendly")
@@ -87,7 +89,8 @@ func _initialize() -> void:
 	MatchHUD.set_auto_pick(state, true)
 	if scene.has_method("_on_auto_pick_changed"):
 		scene.call("_on_auto_pick_changed", true)
-	GameSpeed.set_speed(4.0)
+	var speed_text := OS.get_environment("SOAK_SPEED")
+	GameSpeed.set_speed(float(speed_text) if speed_text.is_valid_float() else 4.0)
 
 	var started := Time.get_ticks_msec()
 	var goals := 0

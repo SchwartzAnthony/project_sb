@@ -124,6 +124,9 @@ func _prepare(engine: AbilityEngine, card: PlayerData, opp: PlayerData, ability:
 				engine.put_counter(opp, true, String(term["arg"]) if String(term["arg"]) != "" else "burn")
 			"orethisround":
 				engine.add_to_pool(false, "ore", 1)
+	# C4: victory counters to count.
+	if ability.effect == "powerfromcount" and ability.effect_arg == "victory":
+		engine.add_to_pool(false, "victory", 2)
 
 
 func _check(card: PlayerData, slot: String, ability: AbilityData, db: CardDatabase) -> void:
@@ -168,6 +171,9 @@ func _check(card: PlayerData, slot: String, ability: AbilityData, db: CardDataba
 			_prepare(engine, card, opp, ability)
 			ore_before = engine.pool(me, "ore")
 			engine.begin_duel(card, opp)
+			# C4: an enemy buff for negate_buff to take away.
+			if ability.effect == "negatebuff":
+				engine._set_power(opp, true, opp.get_attack_power() + 1, null)
 			before_atk = engine.attack_power(card, me)
 			before_def = engine.defense_power(card, me)
 			opp_before = engine.defense_power(opp, true) if role == "attack" else engine.attack_power(opp, true)
@@ -296,7 +302,13 @@ func _check(card: PlayerData, slot: String, ability: AbilityData, db: CardDataba
 					target_side = true
 					facing = mate
 				var waiting := engine.pending_count(target_side) > 0
-				if target_side:
+				if trig == "whileinexhaust":
+					# Round AB: from the exhaust it lands in the duel that just
+					# began - on the matching card in it (mate, or opp).
+					waiting = true
+					if target_side:
+						target_card = opp
+				elif target_side:
 					engine.begin_duel(facing, target_card)
 				else:
 					engine.begin_duel(target_card, opp)
@@ -347,6 +359,59 @@ func _check(card: PlayerData, slot: String, ability: AbilityData, db: CardDataba
 		"foulcoinflip":
 			landed = engine.coin_flips(me) == 1
 			why = "no coin flip banked"
+		# ---- round AB, C4: bending the duel ----
+		"switchtodefender":
+			var flip := engine.take_switch()
+			landed = not flip.is_empty() and flip["card"] == card
+			why = "no switch to defender happened"
+		"alwaysdefending":
+			landed = engine.is_always_defending(card, me)
+			why = "it does not count as defending"
+		"changepriority", "givepriority", "forceability", "negateability", "uncounterable", \
+		"removecondition", "swappower", "setpowerfromtoken", "negatebuff", "powerfromcount", "useenemypower":
+			var who: PlayerData = card
+			var who_side := me
+			var tflat := CardDatabase._normalise(ability.target)
+			if tflat == "opponent" or ability.target.to_lower().begins_with("enemytier"):
+				who = opp
+				who_side = true
+			if not next.is_empty() and not is_ally and trig == "whileinexhaust":
+				who = opp if String(next["kind"]) == "next_enemy" else mate
+				who_side = String(next["kind"]) == "next_enemy"
+			elif not next.is_empty() and not is_ally:
+				who = card if String(next["kind"]) == "next_self" else mate
+				who_side = me
+				if String(next["kind"]) == "next_enemy":
+					who = _matching("NextEnemy", filter, "Normal")
+					who_side = true
+					engine.begin_duel(mate, who)
+				else:
+					engine.begin_duel(who, opp)
+				# A duel buff from the landing is checked before it expires.
+			elif is_ally:
+				who = mate
+			match ability.effect:
+				"changepriority":
+					landed = engine.priority_mod(who, who_side) == ability.value
+				"givepriority":
+					landed = engine.priority_mod(who, who_side) <= -100
+				"forceability":
+					landed = engine.forced_side(who, who_side) != ""
+				"negateability":
+					landed = engine.negated_side(who, who_side) != ""
+				"uncounterable":
+					landed = engine.is_uncounterable(who, who_side)
+				"removecondition":
+					landed = engine.ignores_if(who, who_side)
+				"swappower", "setpowerfromtoken", "useenemypower", "powerfromcount":
+					var now := engine.attack_power(who, who_side) if (who == card and role == "attack") or who_side \
+						else engine.defense_power(who, who_side)
+					landed = now != who.get_attack_power() or ability.effect == "useenemypower" \
+						or (ability.effect == "powerfromcount" and now == engine._count_for(ability.effect_arg, who_side, ability.value))
+				"negatebuff":
+					landed = engine.attack_power(opp, true) == opp.get_attack_power() \
+						and engine.defense_power(opp, true) == opp.get_defense_power()
+			why = "%s did not happen to %s" % [ability.effect, who.player_name]
 		"createtoken":
 			engine.round_finished()
 			var swaps := engine.take_swaps()
@@ -452,6 +517,7 @@ func _events_named(engine: AbilityEngine, event: String) -> int:
 func _check_emblems(db: CardDatabase) -> void:
 	var opp := _dummy("Opponent", "I", 1, "Earth", "Normal")
 	_check_asks(db)
+	_check_c4(db)
 
 	# ---- ZEPAR: a water unit revealed becomes a Swan, and a Swan is +1 ----
 	var zepar := _badge("Zepar")
@@ -652,13 +718,15 @@ func _check_asks(db: CardDatabase) -> void:
 		_say(picked_ok and swaps.size() == 1 and swaps[0]["old"] == strong,
 			"Gremory: you choose which unit the Rose replaces",
 			"asks %d, swaps %d" % [asks.size(), swaps.size()])
-		# ---- and a goal sends it home ----
+		# ---- THEIR goal leaves it; YOUR goal sends it home (Q005) ----
 		e.after_shot(true, true)
+		var stays := e.take_swaps().is_empty() and e.token_count(false) == 1
+		e.after_shot(false, true)
 		var back := e.take_swaps()
-		_say(back.size() == 1 and back[0]["new"] == strong and e.token_count(false) == 0 \
+		_say(stays and back.size() == 1 and back[0]["new"] == strong and e.token_count(false) == 0 \
 				and e.zone_of(strong, 0) != "",
-			"A goal sends the Rose token home and the unit walks back on",
-			"%d swap(s) back, tokens left %d" % [back.size(), e.token_count(false)])
+			"Your Rose goes home when YOU score (not when they do), and the unit walks back on",
+			"stayed after their goal %s, %d swap(s) back, tokens left %d" % [stays, back.size(), e.token_count(false)])
 	# ---- F2: the side that stays up in the exhaust ----
 	var both: PlayerData = null
 	for card in db.players:
@@ -695,3 +763,98 @@ func _outside(cell: String, db: CardDatabase) -> bool:
 		if a != null and AbilityEngine.OUTSIDE_DUEL.has(a.trigger):
 			return true
 	return false
+
+
+# =============================================================
+#  BENDING THE DUEL (round AB, C4) - whole duels, not one row
+# =============================================================
+
+func _find(db: CardDatabase, name_text: String) -> PlayerData:
+	for card in db.players:
+		if card.player_name == name_text:
+			return card
+	return null
+
+
+## A row that, on that moment, gives ITSELF +power - for a test opponent.
+func _self_buff_row(db: CardDatabase, trigger: String) -> String:
+	for id_text in db.abilities.keys():
+		var a: AbilityData = db.abilities[id_text]
+		if a.trigger == trigger and a.effect == "addpower" and a.value > 0 \
+				and CardDatabase._normalise(a.target) == "self" and a.condition == "" and a.cost_kind == "":
+			return a.id
+	return ""
+
+
+func _check_c4(db: CardDatabase) -> void:
+	print("--- bending the duel (C4) ---")
+	# ---- Luis switches to being the defender ----
+	var luis := _find(db, "Luis")
+	if luis != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var opp := _dummy("Opp", luis.get_tier_clean(), 2, "Earth", "Normal")
+		e.sync_field([luis], [opp])
+		e.round_lineups([luis], [opp])
+		e.begin_round()
+		e.begin_duel(luis, opp)
+		e.resolve_duel_abilities(luis, false, opp)
+		var flip := e.take_switch()
+		_say(not flip.is_empty() and flip["card"] == luis and e.side_up(luis, false) == "defend",
+			"Luis attacks, then switches to being the DEFENDER (Q047)",
+			"switch %s, role now %s" % [not flip.is_empty(), e.side_up(luis, false)])
+	# ---- René negates an ability that went BEFORE him: its buff is taken back ----
+	var rene := _find(db, "René")
+	var buff_row := _self_buff_row(db, "ondefend")
+	if rene != null and buff_row != "":
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var opp := _dummy("Shield-bearer", rene.get_tier_clean(), 1, "Earth", "Normal")
+		opp.defend_ability_id = buff_row
+		e.sync_field([rene], [opp])
+		e.round_lineups([rene], [opp])
+		e.begin_round()
+		e.put_counter(rene, false, "burn")
+		e.begin_duel(rene, opp)
+		e.resolve_duel_abilities(rene, false, opp)
+		_say(e.defense_power(opp, true) == opp.get_defense_power() and e.negated_side(opp, true) == "defend",
+			"René negates the enemy ability - the buff it gave itself is taken back",
+			"enemy defends with %d (printed %d), negated %s" % [e.defense_power(opp, true), opp.get_defense_power(), e.negated_side(opp, true)])
+	# ---- Dominik forces the defender to use its ATTACK side ----
+	var dominik := _find(db, "Dominik")
+	var atk_row := _self_buff_row(db, "onattack")
+	if dominik != null and atk_row != "":
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var opp := _dummy("Forced", dominik.get_tier_clean(), 4, "Earth", "Normal")
+		opp.base_power_left = 3
+		opp.base_power_right = 3
+		opp.attack_ability_id = atk_row
+		e.sync_field([dominik], [opp])
+		e.round_lineups([dominik], [opp])
+		e.begin_round()
+		e.add_to_pool(false, "ore", 2)
+		e.begin_duel(dominik, opp)
+		e.resolve_duel_abilities(dominik, false, opp)
+		_say(e.forced_side(opp, true) == "attack" and e.defense_power(opp, true) > opp.get_defense_power(),
+			"Dominik forces the defender to use its ATTACK side - and it does",
+			"forced %s, enemy %d (printed %d)" % [e.forced_side(opp, true), e.defense_power(opp, true), opp.get_defense_power()])
+	# ---- give priority from the exhaust re-orders the stack ----
+	var leonhard := _find(db, "Leonhard")
+	if leonhard != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var water2 := _dummy("Brook", "II", 3, "Water", "Lorelei")
+		var opp := _dummy("Opp", "II", 1, "Earth", "Normal")
+		e.sync_field([leonhard, water2], [opp])
+		e.round_lineups([leonhard], [opp])
+		e.begin_round()
+		e.begin_duel(leonhard, opp)
+		e.resolve_duel_abilities(opp, true, leonhard)       # Leonhard defends -> plays his Defend side
+		e.round_finished()                                    # -> exhaust
+		e.begin_round()
+		e.round_lineups([water2], [opp])
+		e.begin_duel(water2, opp)                             # while in exhaust: next Tier II water first
+		_say(e.priority_mod(water2, false) <= -100,
+			"Leonhard in the exhaust: your Tier II water unit resolves FIRST",
+			"priority change %d" % e.priority_mod(water2, false))

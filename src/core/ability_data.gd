@@ -159,6 +159,21 @@ const EFFECTS: Array[String] = [
 	                  # Scope round or match
 	"foulcoinflip",   # the next foul YOUR side commits: a coin decides
 	                  # whether it is yours or theirs (Manfred)
+	# ---- ROUND AB, PHASE C4: bending the duel ----
+	"switchtodefender",   # after the abilities, this card DEFENDS instead (F1, Q047)
+	"alwaysdefending",    # counts as defending for every If, all match (Sallos)
+	"swappower",          # this card and its target swap PRINTED power (Q052);
+	                      # target `token` = this card takes a token's power
+	"setpowerfromtoken",  # the target fights with the power of a token you own (Sven, Q002)
+	"useenemypower",      # this card fights with the enemy's power (Nicole)
+	"forceability",       # force_ability:attack / :defend / :other - the side it must use
+	"negateability",      # the side the target is using does nothing more this duel
+	"negatebuff",         # the target loses its power buffs this duel
+	"changepriority",     # +/- value on its place in the order abilities resolve
+	"givepriority",       # it resolves FIRST this duel
+	"uncounterable",      # cannot be negated or forced this duel (Herbert)
+	"powerfromcount",     # power_from_count:victory - its power IS that number
+	"removecondition",    # its If is ignored this duel (Leon)
 ]
 
 const SCOPES: Array[String] = ["duel", "round", "cycle", "match"]
@@ -367,7 +382,7 @@ func validate() -> String:
 
 func _target_is_known() -> bool:
 	var flat := CardDatabase._normalise(target)
-	if TARGETS_SIMPLE.has(flat) or flat == "side":
+	if TARGETS_SIMPLE.has(flat) or flat == "side" or flat == "token":
 		return true
 	if target.begins_with("replace:") or target.begins_with("enemy_tier:"):
 		return true
@@ -490,6 +505,19 @@ func _what_words() -> String:
 		"foulheat": return "+%d on the referee's bar against them" % value
 		"foulchance": return "+%d%% that they commit a foul" % value
 		"foulcoinflip": return "your next foul is a coin toss"
+		"switchtodefender": return "%s switches to being the defender" % who
+		"alwaysdefending": return "%s always counts as defending" % who
+		"swappower": return "%s swaps power with it" % who
+		"setpowerfromtoken": return "%s fights with the power of a token you own" % who
+		"useenemypower": return "%s fights with the enemy's power" % who
+		"forceability": return "%s must use its %s side" % [who, effect_arg if effect_arg != "" else "other"]
+		"negateability": return "%s's ability is negated" % who
+		"negatebuff": return "%s loses its power buffs" % who
+		"changepriority": return "%+d priority to %s" % [value, who]
+		"givepriority": return "%s resolves first" % who
+		"uncounterable": return "%s cannot be countered" % who
+		"powerfromcount": return "%s's power = its %s count" % [who, effect_arg.replace("_", " ")]
+		"removecondition": return "%s ignores its If" % who
 	return "%s %+d to %s" % [effect, value, who]
 
 
@@ -502,6 +530,7 @@ func _who_words() -> String:
 	var flat := CardDatabase._normalise(target)
 	match flat:
 		"self": return "itself"
+		"token": return "a token you own"
 		"opponent": return "the player it is up against"
 		"allallies": return "its whole side"
 		"allenemies": return "the whole other side"
@@ -541,6 +570,14 @@ func _who_words() -> String:
 
 
 func _how_long_words() -> String:
+	# A keeper's stamina has no "for this duel" - it is simply taken.
+	if effect in ["drainstamina", "restorestamina"]:
+		return ""
+	# Round AB (Q027): what "for the round" really means for these two.
+	if scope == "round" and effect == "goaliechance":
+		return ", until the next shot"
+	if scope == "round" and effect == "foulchance":
+		return ", for the next fouls"
 	match scope:
 		"duel": return ", for this duel"
 		"round": return ", for the round"

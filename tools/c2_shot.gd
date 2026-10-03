@@ -115,6 +115,12 @@ func _initialize() -> void:
 	for i in 8:
 		await process_frame
 	_shoot("c2_01_draft")
+	# Round AB: the hover window, which now sits BELOW the card.
+	if offered.size() >= 1:
+		scene.call("_on_card_hovered", offered[0])
+		for i in 10:
+			await process_frame
+		_shoot("c2_02_hover")
 	var tracker = scene.get("match_tracker")
 	var lines: Array = engine.pending_lines(false)
 	print("[c2] tracker open: %s, waiting: %s, ore %d" % [tracker != null, lines, engine.pool(false, "ore")])
