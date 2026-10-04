@@ -1,0 +1,5 @@
+Item,Cost,Effect,Value,Words,Notes
+Pickaxe,2,power,1,+1 power this combat,"BELIAL'S ORE SHOP (round AF, his Ultimate). While Belial's Ultimate is up, a Bergmännlein about to duel may buy ONE thing here. Buying is its ability this duel - its own Attack / Defend text does not go off. Effect: power (+Value power this combat), shield (+Value shield on your keeper), keeper (your keeper Value% harder to beat until the next shot), stamina (+Value stamina to your keeper)"
+Miner's Lamp,3,keeper,5,your keeper 5% harder to beat,Until the next shot
+Rock Wall,3,shield,1,+1 shield on your keeper,
+Gold Vein,4,power,2,+2 power this combat,

@@ -62,6 +62,7 @@ var nuggets: Array = []
 var craters := {false: false, true: false}
 var _bench_done := false
 var _engine: AbilityEngine = null
+var _terrified_once := {false: false, true: false}
 var _cold := false
 
 
@@ -91,6 +92,7 @@ func tick(ball: Node, units: Array, open_play: bool) -> void:
 	if not open_play:
 		return
 	_pick_up_nuggets(units)
+	_ball_knocks_stones(ball)
 	if mine_spots.is_empty():
 		return
 	var reach := db.tune_float("mine_reach", 120.0)
@@ -157,6 +159,12 @@ func at_play_maker(abilities: AbilityEngine) -> void:
 				count += 1
 		abilities.set_mining(side, (_mined[side] as Dictionary).keys(), count)
 		var worked := (_worked[side] as Dictionary).size()
+		# C8 (Glasya-Labolas's Ultimate, the OTHER side's): one of the objects
+		# they used is possessed - they are terrified and get nothing from it,
+		# once per PLAY MAKER.
+		if worked > 0 and abilities.ultimate_up(not side, "Glasya-Labolas"):
+			worked -= 1
+			print("[glasya] a possessed mine terrifies the %s side - no Ore from it" % ("away" if side else "home"))
 		var per := db.tune_int("mine_ore_per_round", 1)
 		if worked > 0 and per > 0:
 			var miner: PlayerData = null
@@ -167,6 +175,7 @@ func at_play_maker(abilities: AbilityEngine) -> void:
 	_touched = {false: {}, true: {}}
 	_mined = {false: {}, true: {}}
 	_worked = {false: {}, true: {}}
+	_terrified_once = {false: false, true: false}
 	if _cold:
 		_cold = false
 		_tint_ball(false)
@@ -176,6 +185,7 @@ func at_play_maker(abilities: AbilityEngine) -> void:
 func absorb(abilities: AbilityEngine) -> void:
 	if abilities == null:
 		return
+	_engine = abilities
 	if abilities.take_cold_touch():
 		_cold = true
 		_tint_ball(true)
@@ -198,6 +208,47 @@ func _tint_ball(on: bool) -> void:
 
 
 # =============================================================
+#  CAIM'S ULTIMATE (round AF, C8)
+#
+#  "Spawn gravestones onto the soccer field; when the soccer ball knocks them
+#  over, spawn a ghost attaching it to the ball. The next Unkengeister gets +1
+#  power for each ghost counter on the ball." When Caim's Ultimate comes up,
+#  `caim_stones` gravestones appear; the ball rolling within `caim_knock_reach`
+#  of one knocks it over: +1 ghost on the ball for that side.
+# =============================================================
+
+func on_ultimate(side: bool, star_name: String) -> void:
+	if CardDatabase._normalise(star_name) != "caim":
+		return
+	var play: Rect2 = scene.call("get_play_rect")
+	var keep := clampf(db.tune_float("edge_keep", 0.10), 0.0, 0.4)
+	for i in db.tune_int("caim_stones", 3):
+		var at := Vector2(randf_range(play.position.x + play.size.x * 0.2, play.end.x - play.size.x * 0.2),
+			randf_range(play.position.y + play.size.y * (keep + 0.05), play.end.y - play.size.y * (keep + 0.05)))
+		stones.append({"pos": at, "side": side, "knock": true})
+	if scene.has_method("announce"):
+		scene.call("announce", "%sCAIM'S GRAVESTONES RISE" % ("THEIR " if side else ""), 1.4)
+	queue_redraw()
+
+
+func _ball_knocks_stones(ball: Node) -> void:
+	if _engine == null or stones.is_empty():
+		return
+	var reach := db.tune_float("caim_knock_reach", 40.0)
+	var at: Vector2 = (ball as Node2D).global_position
+	for i in range(stones.size() - 1, -1, -1):
+		var stone: Dictionary = stones[i]
+		if not bool(stone.get("knock", false)):
+			continue
+		if at.distance_to(stone["pos"]) <= reach:
+			stones.remove_at(i)
+			var side := bool(stone["side"])
+			_engine.ghosts[side] = int(_engine.ghosts[side]) + 1
+			print("[caim] the ball knocks a gravestone over - %d ghost(s) on the ball" % int(_engine.ghosts[side]))
+			queue_redraw()
+
+
+# =============================================================
 #  VALEFOR'S CRATER (round AE, C7)
 #
 #  "A crater hits the middle of the soccer field and drops mine counters in
@@ -209,6 +260,10 @@ func _tint_ball(on: bool) -> void:
 # =============================================================
 
 func _drop_ore(side: bool) -> void:
+	# YOUR Q103: once, when Valefor comes on (`valefor_refill` true tops them
+	# up at every PLAY MAKER instead).
+	if bool(craters[side]) and not db.tune_bool("valefor_refill", false):
+		return
 	var want := db.tune_int("valefor_nuggets", 4)
 	var have := 0
 	for n in nuggets:
@@ -246,6 +301,11 @@ func _pick_up_nuggets(units: Array) -> void:
 				continue
 			if unit.global_position.distance_to(n["pos"]) <= reach:
 				nuggets.remove_at(i)
+				if _engine.ultimate_up(not unit.is_enemy, "Glasya-Labolas") and not bool(_terrified_once[unit.is_enemy]):
+					_terrified_once[unit.is_enemy] = true
+					print("[glasya] %s is terrified by a possessed ore counter - nothing gained" % unit.data.player_name)
+					queue_redraw()
+					continue
 				_engine.nugget_picked(unit.data, unit.is_enemy)
 				print("[valefor] %s picks up an ore counter." % unit.data.player_name)
 				queue_redraw()

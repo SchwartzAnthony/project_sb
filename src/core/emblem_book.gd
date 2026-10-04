@@ -278,6 +278,31 @@ static func settle(squad: Array, state: GameState) -> ClassBook.Emblem:
 	return null
 
 
+## ROUND AF (C8, Belphegor): "after a goal ... activate Belphegor's Emblem
+## again" - back to its Basic side, its counter at zero, the race open again.
+static func unflip(badge: ClassBook.Emblem, state: GameState) -> void:
+	if badge == null or state == null:
+		return
+	state.set_flag(FLIPPED_PREFIX + _key(badge.id), false)
+	state.set_flag(BLOCKED_PREFIX + _key(badge.id), false)
+	if _key(ascended(state)) == _key(badge.id):
+		state.set_text(ASCENDED, "")
+	var found := _counter_in(badge.turns_on)
+	if not found.is_empty():
+		state.set_count(String(found["counter"]), 0)
+
+
+## The Stars whose Ultimates are UP on this side: turned over, not blocked.
+static func ultimate_stars(squad: Array, state: GameState) -> Array[String]:
+	var out: Array[String] = []
+	if state == null:
+		return out
+	for badge in on_the_field(squad):
+		if is_up(badge, state) and not is_blocked(badge, state):
+			out.append(badge.star)
+	return out
+
+
 ## Did this one turn over AFTER another had - so its Ultimate does nothing?
 static func is_blocked(badge: ClassBook.Emblem, state: GameState) -> bool:
 	if badge == null or state == null:

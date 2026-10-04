@@ -593,6 +593,24 @@ cells (_partner_is_stronger). Q098: PlayerCardUI glow (card_glow_words).
 Q100: six Ultimates written into the Emblem CSVs. emblem_check is ALL GOOD
 for the first time. **Next: C8 (Q108), Rauhnacht balance (Q107).**
 
+## 12i. Round AF — DONE (phase C8, combat complete)
+
+Q101: Star Players.csv Ultimate Side is the master (ClassBook reads it over
+the Emblem file's copy; tools/sync_ultimates.py syncs; my six AE proposals
+removed). Engine C8 block "THE STARS' ULTIMATES": set_ultimates (main_scene
+_push_ultimates from EmblemBook.ultimate_stars, each _arm_abilities and on
+turn-over), on_ultimate (Flauros weapon / fusion break, Buer mask),
+_ultimate_power (Belphegor, mask, counter_power_<kind> dial),
+_ultimate_duel_start (Sallos, Valefor, Vassago copy -> _copied/_pinned, Caim
+ghosts), _ultimate_round (Belial bonus, Valefor exhaust mining), _haures_armour
+(begin_round), shop_items/shop_buy (data/OreShop.csv; main_scene
+_offer_ore_shop after begin_duel; AUTO kind "shop"), Zepar at the top of
+resolve_duel_abilities, Gremory in createtoken + shot_bonus, Belphegor reset
+via take_emblem_resets -> main_scene _emblem_resets -> EmblemBook.unflip.
+PitchEngines: Caim stones (on_ultimate, _ball_knocks_stones), Glasya terrify
+(mines in at_play_maker, nuggets). Q103 valefor_refill, Q104 haures_rock_scale.
+Balance: counter_power_<kind> dial, experiment in README. **Next: Q117.**
+
 ## 13. Ideas worth offering him
 
 - An `Ultimate In Short` column so the emblem bar and hover can show one line

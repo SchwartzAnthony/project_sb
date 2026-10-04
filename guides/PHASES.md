@@ -301,7 +301,8 @@ question windows you asked for. **C4 — bending the duel — in round AB (156 w
 the choice screens — in round AC (168 work).** **C6 — the class engines:
 mines, fusing, the ball, gravestones — in round AD: all 228 work.** **C7 — the
 Emblems' Basic sides — in round AE: all twelve play.** **C8 — the Ultimates —
-is next** (Q108), with a balance pass on Rauhnacht if you want it (Q107). Every open question lives in
+in round AF: combat is complete.** Next: mass testing and the pinned list
+(Q117). Every open question lives in
 `data/Questions.csv`.
 
 On hold until the combat abilities are done, at your request:

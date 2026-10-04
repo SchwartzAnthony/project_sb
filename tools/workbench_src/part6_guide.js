@@ -500,6 +500,16 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("The Ultimates (round AF, phase C8) - combat is complete", `
+    <p style="margin:0 0 10px"><b>All 12 Ultimates play.</b> Write them in <b>Star Players.csv, Ultimate Side</b> - then <code>python3 tools/sync_ultimates.py</code> copies them onto the Emblems.</p>
+    ${rows([
+      ["Lorelei","Gremory: Roses replace any tier, add to the shot · Zepar: a Swan attack swans the enemy, -2 · Sallos: 2 songs -1, 3 songs = 3 off their keeper"],
+      ["Rauhnacht","Belphegor: +1 per victory, flips back after a goal · Flauros: a weapon, fusions break · Buer: the Teufel Mask"],
+      ["Bergmännlein","Belial: the ore shop (<b>OreShop.csv</b>) · Valefor: the exhaust mines · Haures: the keeper eats Ore for armour"],
+      ["Unkengeister","Vassago: copy their exhaust · Glasya-Labolas: possessed mines · Caim: ghosts on the ball"],
+      ["balance","<code>counter_power_burn</code> - a burn counter worth +1 in combat (default 0)"],
+    ])}`);
+
   card("The Emblems' Basic sides (round AE, phase C7)", `
     <p style="margin:0 0 10px"><b>All twelve Emblems' Basic sides play.</b> Next: the Ultimates (C8) - six of them I proposed, in the Ultimate Side column for you to edit.</p>
     ${rows([
@@ -579,7 +589,7 @@ function paintBook(){
       ["C5 · built","the zones in action and the ask-after-pick Reveal"],
       ["C6 · built","mines, fusing, the ball, gravestones. <b>All 228 work</b>"],
       ["C7 · built","the Emblems' Basic Sides - all twelve"],
-      ["C8","the Stars' Ultimates - next"],
+      ["C8 · built","the Stars' Ultimates - <b>combat is complete</b>"],
     ])}
     <p style="margin:10px 0 0;color:var(--dim)"><b>The three commands:</b> <code>python3 tools/ability_audit.py</code> (read the cards) · <code>python3 tools/ability_rows.py</code> (wire what is built) · <code>ability_coverage.gd</code> (the meter).</p>`);
 

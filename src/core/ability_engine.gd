@@ -327,6 +327,22 @@ var _fused_with: Dictionary = {}
 var _exhaust_peak := {false: {}, true: {}}
 ## Valefor: ore nuggets the match has picked up (it calls nugget_picked).
 var nuggets_picked := {false: 0, true: 0}
+## ---- ROUND AF, PHASE C8: the Stars' Ultimates ----
+## Which Stars' Ultimates are up, per side (normalised names). The match sets
+## it (set_ultimates) from the Emblems that have turned over and not been
+## blocked.
+var _ultimates := {false: [], true: []}
+var _weapon: Dictionary = {}          # Flauros: key -> weapon power (permanent)
+var _mask: Dictionary = {}            # Buer: key -> Teufel Mask counters
+var ghosts := {false: 0, true: 0}     # Caim: ghost counters on the ball
+var _ghost_used := {false: false, true: false}
+var _copied: Dictionary = {}          # Vassago: key -> the enemy card it copies this duel
+var _pinned: Dictionary = {}          # Vassago: copied cards stay in the exhaust this cycle
+var _shop_silenced: Dictionary = {}   # Belial: bought from the ore shop -> its own text sleeps
+var _haures_used := {false: 0, true: 0}
+var _mined_last := {false: {}, true: {}}   # Valefor: mining last round -> +1 next combat
+var _emblem_resets: Array = []        # Belphegor: [side, star] to flip back, read by the match
+var terrify_left := {false: 0, true: 0}    # Glasya-Labolas: objects possessed this PLAY MAKER
 ## Tuning: does the AI save its Ore for its most expensive card (Q018)?
 var ai_saves_ore := true
 ## Tuning: does a goal send every Rose token home (ruling, round AA)?
@@ -374,6 +390,8 @@ func begin_round() -> void:
 	log_lines.clear()
 	round_number += 1
 	_pool_round = {false: {}, true: {}}
+	for side in [false, true]:
+		_haures_armour(side)
 	_exhausted_round = {false: [], true: []}
 	# NOT the keeper and foul shifts: a "round" shift lasts until the next
 	# shot / the next fouls, so one made after them (a save, the exhaust)
@@ -399,6 +417,8 @@ func close_cycle() -> void:
 		if String(e["zone"]) == EXHAUST and not _held.has(key):
 			_move(e["card"], bool(e["enemy"]), FIELD)
 	cycle_number += 1
+	_haures_used = {false: 0, true: 0}
+	_pinned.clear()
 
 
 ## Full time. The last cycle has no STAR PLAYER SWITCH to close it.
@@ -412,6 +432,8 @@ func finish_match() -> void:
 func begin_duel(player_card: PlayerData = null, enemy_card: PlayerData = null) -> void:
 	_expire("duel")
 	_fired.clear()
+	_shop_silenced.clear()
+	_copied.clear()
 	_prio_mod.clear()
 	_force_slot.clear()
 	_negated.clear()
@@ -433,6 +455,11 @@ func begin_duel(player_card: PlayerData = null, enemy_card: PlayerData = null) -
 		_consume_pending(player_card, false)
 	if enemy_card != null:
 		_consume_pending(enemy_card, true)
+	# ROUND AF (C8): the Ultimates that act as a duel opens.
+	if player_card != null:
+		_ultimate_duel_start(player_card, false, enemy_card)
+	if enemy_card != null:
+		_ultimate_duel_start(enemy_card, true, player_card)
 	# ROUND AC (C5): a card that has just swapped in from the exhaust does
 	# what the rest of its `exhaust_swap` rows say - now, for this duel.
 	var swaps := _swaps_in.duplicate()
@@ -480,6 +507,7 @@ func round_lineups(player_lineup: Array, enemy_lineup: Array) -> void:
 				_move(card, pair[1], COMBAT)
 	for side in [false, true]:
 		_belial_mines(side)
+		_ultimate_round(side)
 
 
 ## The round is over. `round_end` for the cards that played it, then they go
@@ -565,6 +593,13 @@ func after_shot(shooter_is_enemy: bool, scored: bool) -> void:
 	# The shot used up this round's keeper shifts (round AA, C3).
 	_keeper_shift_round = {false: 0.0, true: 0.0}
 	if scored:
+		# C8 (Belphegor's Ultimate): after a goal, lose all counters and the
+		# Emblem goes back to its Basic side (the match flips it).
+		for side in [false, true]:
+			if ultimate_up(side, "Belphegor"):
+				(_pool[side] as Dictionary)["victory"] = 0
+				_emblem_resets.append([side, "Belphegor"])
+				log_lines.append("      Belphegor's Ultimate ends with the goal - counters gone, the Emblem flips back")
 		# RULING (round AA): Rose tokens last until a goal. Then every
 		# original walks back on in its token's place.
 		# Round AB (Q005 / Q021): only when THEIR OWNER scores - the scoring
@@ -610,7 +645,11 @@ func attack_power(card: PlayerData, is_enemy: bool) -> int:
 	var partner: PlayerData = _fused_with.get(_k(card, is_enemy), null)
 	if partner != null:
 		printed = maxi(printed, partner.get_attack_power())
-	var total := printed + int(side_bonus.get(is_enemy, 0)) + counter(card, is_enemy, "power")
+	# C8 (Flauros): a weapon is at least the weapon's power.
+	if _weapon.has(_k(card, is_enemy)):
+		printed = maxi(printed, int(_weapon[_k(card, is_enemy)]))
+	var total := printed + int(side_bonus.get(is_enemy, 0)) + counter(card, is_enemy, "power") \
+		+ _ultimate_power(card, is_enemy)
 	for b in _buffs:
 		if b.matches(card, is_enemy):
 			total += b.attack
@@ -625,7 +664,11 @@ func defense_power(card: PlayerData, is_enemy: bool) -> int:
 	var partner: PlayerData = _fused_with.get(_k(card, is_enemy), null)
 	if partner != null:
 		printed = maxi(printed, partner.get_defense_power())
-	var total := printed + int(side_bonus.get(is_enemy, 0)) + counter(card, is_enemy, "power")
+	# C8 (Flauros): a weapon is at least the weapon's power.
+	if _weapon.has(_k(card, is_enemy)):
+		printed = maxi(printed, int(_weapon[_k(card, is_enemy)]))
+	var total := printed + int(side_bonus.get(is_enemy, 0)) + counter(card, is_enemy, "power") \
+		+ _ultimate_power(card, is_enemy)
 	for b in _buffs:
 		if b.matches(card, is_enemy):
 			total += b.defense
@@ -635,8 +678,14 @@ func defense_power(card: PlayerData, is_enemy: bool) -> int:
 ## What to add to a shot: what abilities granted this round, plus the
 ## season's difficulty for the whole match.
 func shot_bonus(side_is_enemy: bool) -> int:
+	var roses := 0
+	# C8 (Gremory): every Rose Unit in your exhaust adds to the shot.
+	if ultimate_up(side_is_enemy, "Gremory"):
+		for c in cards_in(side_is_enemy, EXHAUST):
+			if c.is_token() and Array(c.extra_tags).has("rose"):
+				roses += 1
 	return int(_shot_bonus.get(side_is_enemy, 0)) \
-		+ int(side_shot_bonus.get(side_is_enemy, 0))
+		+ int(side_shot_bonus.get(side_is_enemy, 0)) + roses
 
 
 ## How many triggers this side has set off so far this round.
@@ -769,6 +818,11 @@ func marks_for(card: PlayerData, side_is_enemy: bool) -> String:
 		bits.append("MINING")
 	if card != null and _fused_with.has(_k(card, side_is_enemy)):
 		bits.append("FUSED")
+	# C8: what the Ultimates put on a card.
+	if card != null and _mask.has(_k(card, side_is_enemy)):
+		bits.append("MASK %d" % int(_mask[_k(card, side_is_enemy)]))
+	if card != null and _weapon.has(_k(card, side_is_enemy)):
+		bits.append("WEAPON %d" % int(_weapon[_k(card, side_is_enemy)]))
 	return "  ".join(bits)
 
 
@@ -1397,6 +1451,13 @@ func resolve_duel_abilities(attacker: PlayerData, attacker_is_enemy: bool,
 		defender: PlayerData, trigger_extra: String = "",
 		shown: Array = []) -> void:
 	var defender_is_enemy := not attacker_is_enemy
+	# C8 (Zepar's Ultimate): a Swan that attacks turns the enemy into a Swan
+	# too - it loses its other types for the combat - and gives it -2.
+	if attacker != null and defender != null and ultimate_up(attacker_is_enemy, "Zepar") \
+			and is_kind(attacker, attacker_is_enemy, "swan"):
+		make_kind(defender, defender_is_enemy, "swan")
+		_ult_buff(defender, defender_is_enemy, -2, "Zepar")
+		log_lines.append("      Zepar's Ultimate: %s becomes a Swan, -2" % defender.player_name)
 
 	var queue: Array = []
 	if attacker != null:
@@ -1538,6 +1599,19 @@ func resolve_duel_outcome(winner: PlayerData, winner_is_enemy: bool,
 	_last_result[loser_is_enemy] = "lost"
 	# This duel's yes / no answers are spent.
 	_consent.clear()
+	# C8 (Buer): after each combat the Teufel Mask loses a counter; at 0 it is gone.
+	for pair in [[winner, winner_is_enemy], [loser, loser_is_enemy]]:
+		var mk := _k(pair[0], pair[1]) if pair[0] != null else ""
+		if mk != "" and _mask.has(mk):
+			_mask[mk] = int(_mask[mk]) - 1
+			if int(_mask[mk]) <= 0:
+				_mask.erase(mk)
+				log_lines.append("      the Teufel Mask falls from %s" % (pair[0] as PlayerData).player_name)
+	# C8 (Caim): the ghosts on the ball are spent after the combat they helped.
+	for side in [false, true]:
+		if bool(_ghost_used[side]):
+			ghosts[side] = 0
+			_ghost_used[side] = false
 	# ROUND AC (C5): Lothar's token - its doubled duel is done, now it goes
 	# to the exhaust and one of the same tier comes back.
 	for pair in [[winner, winner_is_enemy], [loser, loser_is_enemy]]:
@@ -1608,7 +1682,16 @@ func _fire_for(card: PlayerData, is_enemy: bool, trigger: String,
 		# NEGATED (C4): that side of this card does nothing more this duel.
 		if String(_negated.get(key, "")) == slot:
 			continue
+		# C8 (Belial's ore shop): buying IS its ability this duel.
+		if _shop_silenced.has(key):
+			continue
 		var cell := card.active_attack_ability() if slot == "attack" else card.active_defend_ability()
+		# C8 (Vassago's Ultimate): the enemy ability it copied, as its own.
+		var copied: PlayerData = _copied.get(key, null)
+		if copied != null:
+			var more := copied.active_attack_ability() if slot == "attack" else copied.active_defend_ability()
+			if more.strip_edges() != "":
+				cell = cell + ";" + more
 		# C6 / YOUR Q096: a fused card plays with the abilities of whichever of
 		# the two is STRONGER (the one whose power it fights with).
 		var partner: PlayerData = _fused_with.get(key, null)
@@ -1765,12 +1848,16 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 				_make_token(kind, source, source_is_enemy, source)
 			return
 		if ability.target.begins_with("replace:"):
-			var victim := _pick_to_replace(source_is_enemy, ability.target.substr(8))
+			var filter := ability.target.substr(8)
+			# C8 (Gremory's Ultimate): every Tier can be replaced, not only Tier I.
+			if badge != null and CardDatabase._normalise(badge.star) == "gremory" and ultimate_up(source_is_enemy, "Gremory"):
+				filter = filter.split("+")[0]
+			var victim := _pick_to_replace(source_is_enemy, filter)
 			if victim == null:
 				return
 			# RULING (round AA): YOU choose which unit the token replaces.
 			if bool(interactive.get(source_is_enemy, false)):
-				var options := _candidates_to_replace(source_is_enemy, ability.target.substr(8))
+				var options := _candidates_to_replace(source_is_enemy, filter)
 				if options.size() > 1:
 					_queue_ask({"kind": "pick", "side": source_is_enemy, "card": source,
 						"token": kind, "options": options, "default": victim,
@@ -2117,6 +2204,234 @@ func matches(card: PlayerData, side_is_enemy: bool, filter: String) -> bool:
 		if not AbilityData.card_matches(card, want):
 			return false
 	return true
+
+
+# =============================================================
+#  THE STARS' ULTIMATES (round AF, phase C8)
+#
+#  An Ultimate is the Star's second side (Star Players.csv, your Q101). It
+#  is up while that Star's Emblem has turned over - and not been BLOCKED by
+#  an earlier one (one per game, Q009). The match tells the engine which are
+#  up (set_ultimates) and when one has just turned over (on_ultimate).
+# =============================================================
+
+func set_ultimates(side_is_enemy: bool, star_names: Array) -> void:
+	var out: Array = []
+	for n in star_names:
+		out.append(CardDatabase._normalise(String(n)))
+	_ultimates[side_is_enemy] = out
+
+
+func ultimate_up(side_is_enemy: bool, star_name: String) -> bool:
+	return (_ultimates[side_is_enemy] as Array).has(CardDatabase._normalise(star_name))
+
+
+func take_emblem_resets() -> Array:
+	var out := _emblem_resets.duplicate()
+	_emblem_resets.clear()
+	return out
+
+
+func mask_on(card: PlayerData, side_is_enemy: bool) -> int:
+	return int(_mask.get(_k(card, side_is_enemy), 0))
+
+
+## The moment an Ultimate turns on - for the ones that DO something once.
+func on_ultimate(side_is_enemy: bool, star_name: String) -> void:
+	var star := CardDatabase._normalise(star_name)
+	log_lines.append("      %s's ULTIMATE is up" % star_name)
+	_event("ultimate", null, side_is_enemy, {"star": star_name})
+	match star:
+		"flauros":
+			# "Create a permanent weapon token for one Star Unit. The weapon's
+			# attack is the strongest fused unit. Break up all fused units and
+			# send them to the exhaust zone."
+			var best := 0
+			var holder: PlayerData = null
+			for key in _fused_with.keys():
+				var e: Dictionary = _zone.get(key, {})
+				if e.is_empty() or bool(e["enemy"]) != side_is_enemy:
+					continue
+				best = maxi(best, attack_power(e["card"], side_is_enemy))
+			for c in cards_in(side_is_enemy):
+				if c.is_star() and CardDatabase._normalise(c.player_name) == "flauros":
+					holder = c
+			if holder != null and best > 0:
+				_weapon[_k(holder, side_is_enemy)] = best
+				log_lines.append("      Flauros takes a weapon of power %d" % best)
+			for key in _fused_with.keys():
+				var e2: Dictionary = _zone.get(key, {})
+				if e2.is_empty() or bool(e2["enemy"]) != side_is_enemy:
+					continue
+				_fused_with.erase(key)
+				if _kinds.has(key):
+					(_kinds[key] as Dictionary).erase("fused")
+				_c5_move(e2["card"], side_is_enemy, EXHAUST)
+		"buer":
+			# "Give the permanent Teufel Mask counter on a unit in the field zone":
+			# your strongest non-Star card still on the field.
+			var best_card: PlayerData = null
+			for c in cards_in(side_is_enemy, FIELD):
+				if c.is_star() or c.is_token():
+					continue
+				if best_card == null or c.get_attack_power() > best_card.get_attack_power():
+					best_card = c
+			if best_card != null:
+				_mask[_k(best_card, side_is_enemy)] = db.tune_int("buer_mask_counters", 3) if db != null else 3
+				log_lines.append("      Buer puts the Teufel Mask on %s" % best_card.player_name)
+
+
+## The +power an Ultimate gives a card right now.
+func _ultimate_power(card: PlayerData, side_is_enemy: bool) -> int:
+	var more := 0
+	# ROUND AF (balance, Q107): a DIAL per counter kind. `counter_power_burn`
+	# 1 in Tuning.csv = every burn counter on a card is +1 in its combat.
+	# 0 (the default for every kind) = counters do only what cards say.
+	if db != null:
+		var on := counters_on(card, side_is_enemy)
+		for kind in on.keys():
+			if String(kind) == "power":
+				continue
+			var per := db.tune_float("counter_power_" + String(kind), 0.0)
+			if per != 0.0:
+				more += int(round(per * float(on[kind])))
+	# Belphegor: Rauhnacht-Feuergeister +1 for each victory counter.
+	if ultimate_up(side_is_enemy, "Belphegor") \
+			and CardDatabase._normalise(card.active_unit_type()) == CardDatabase._normalise("Rauhnacht-Feuergeister"):
+		more += pool(side_is_enemy, "victory")
+	# Buer: +1 Base Power each counter on the Teufel Mask, in combat.
+	if _mask.has(_k(card, side_is_enemy)) and _zone_for(card, side_is_enemy) == COMBAT:
+		more += int(_mask[_k(card, side_is_enemy)])
+	return more
+
+
+func _ult_buff(card: PlayerData, side_is_enemy: bool, value: int, why: String) -> void:
+	var b := Buff.new()
+	b.scope = "duel"
+	b.card = card
+	b.side_is_enemy = side_is_enemy
+	b.attack = value
+	b.defense = value
+	b.source_key = "ultimate:" + why
+	_buffs.append(b)
+
+
+## The Ultimates that act as a card's duel opens.
+func _ultimate_duel_start(card: PlayerData, side_is_enemy: bool, opponent: PlayerData) -> void:
+	var foe := not side_is_enemy
+	# SALLOS (the other side's): two song counters = -1 in combat; three =
+	# 3 damage to its own keeper, then all its counters go.
+	if ultimate_up(foe, "Sallos"):
+		var songs := counter(card, side_is_enemy, "song")
+		if songs >= 3:
+			_stamina_pending.append({"enemy_side": side_is_enemy, "delta": -3})
+			_remove_counter(card, side_is_enemy, "song", songs)
+			log_lines.append("      Sallos's Ultimate: %s's three songs - 3 off its keeper" % card.player_name)
+		elif songs == 2:
+			_ult_buff(card, side_is_enemy, -1, "Sallos")
+			log_lines.append("      Sallos's Ultimate: %s has two songs, -1" % card.player_name)
+	# VALEFOR: a Bergmännlein that was mining last round is +1 this combat.
+	var key := _k(card, side_is_enemy)
+	if ultimate_up(side_is_enemy, "Valefor") and (_mined_last[side_is_enemy] as Dictionary).has(key):
+		(_mined_last[side_is_enemy] as Dictionary).erase(key)
+		_ult_buff(card, side_is_enemy, 1, "Valefor")
+		log_lines.append("      Valefor's Ultimate: %s mined last round, +1" % card.player_name)
+	var unken := CardDatabase._normalise(card.active_unit_type()) == "unkengeister"
+	# VASSAGO: an Unkengeister copies an enemy ability from the exhaust, of
+	# its tier; that card cannot leave the exhaust this cycle.
+	if unken and ultimate_up(side_is_enemy, "Vassago"):
+		for c in cards_in(foe, EXHAUST):
+			if c.get_tier_clean() != card.get_tier_clean():
+				continue
+			if c.active_attack_ability().strip_edges() == "" and c.active_defend_ability().strip_edges() == "":
+				continue
+			_copied[key] = c
+			_pinned[_k(c, foe)] = true
+			log_lines.append("      Vassago's Ultimate: %s copies %s's ability" % [card.player_name, c.player_name])
+			break
+	# CAIM: the next Unkengeister gets +1 for each ghost on the ball.
+	if unken and int(ghosts[side_is_enemy]) > 0:
+		_ult_buff(card, side_is_enemy, int(ghosts[side_is_enemy]), "Caim")
+		_ghost_used[side_is_enemy] = true
+		log_lines.append("      Caim's ghosts: %s is +%d" % [card.player_name, int(ghosts[side_is_enemy])])
+
+
+## Once a round, when the line-ups are in.
+func _ultimate_round(side_is_enemy: bool) -> void:
+	# BELIAL: "for each player mining during play, gain 1 bonus ore counter".
+	if ultimate_up(side_is_enemy, "Belial"):
+		var miners := mining_count(side_is_enemy)
+		if miners > 0:
+			_gain_ore(null, side_is_enemy, miners)
+			log_lines.append("      Belial's Ultimate: %d mining, +%d bonus Ore" % [miners, miners])
+	# VALEFOR: Bergmännlein in the exhaust mine too, +1 Ore each; whoever
+	# mined this round is +1 in its next combat.
+	if ultimate_up(side_is_enemy, "Valefor"):
+		var n := 0
+		for c in cards_in(side_is_enemy, EXHAUST):
+			if CardDatabase._normalise(c.active_unit_type()) == CardDatabase._normalise("Bergmännlein"):
+				(_mining[side_is_enemy] as Dictionary)[_k(c, side_is_enemy)] = true
+				n += 1
+		if n > 0:
+			_gain_ore(null, side_is_enemy, n)
+		_mined_last[side_is_enemy] = (_mining[side_is_enemy] as Dictionary).duplicate()
+
+
+## HAURES: "Your goalie can consume ore counters. Each adds armour - a
+## shield, and a lower chance of a goal. Only 3 ore per cycle." One Ore a
+## round, at the start of it.
+func _haures_armour(side_is_enemy: bool) -> void:
+	if not ultimate_up(side_is_enemy, "Haures"):
+		return
+	var cap := db.tune_int("haures_armour_per_cycle", 3) if db != null else 3
+	if int(_haures_used[side_is_enemy]) >= cap or pool(side_is_enemy, "ore") < 1:
+		return
+	_pool_add(side_is_enemy, "ore", -1)
+	_haures_used[side_is_enemy] = int(_haures_used[side_is_enemy]) + 1
+	_stamina_pending.append({"enemy_side": side_is_enemy, "delta": 0, "shield": 1})
+	var shift := db.tune_float("haures_armour_shift", -5.0) if db != null else -5.0
+	_keeper_shift_round[side_is_enemy] = float(_keeper_shift_round[side_is_enemy]) + shift
+	log_lines.append("      Haures's Ultimate: the keeper eats 1 Ore - +1 shield, %.0f%%" % shift)
+
+
+## BELIAL'S ORE SHOP (data/OreShop.csv). What this card could buy now.
+func shop_items(card: PlayerData, side_is_enemy: bool) -> Array:
+	var out: Array = []
+	if card == null or not ultimate_up(side_is_enemy, "Belial"):
+		return out
+	if CardDatabase._normalise(card.active_unit_type()) != CardDatabase._normalise("Bergmännlein"):
+		return out
+	for row in MenuSupport.read_csv("res://data/OreShop.csv"):
+		var cost := int(MenuSupport.field_float(row, "Cost", 0.0))
+		if cost <= 0 or pool(side_is_enemy, "ore") < cost:
+			continue
+		out.append({"item": MenuSupport.field(row, "Item"), "cost": cost,
+			"effect": MenuSupport.field(row, "Effect").strip_edges().to_lower(),
+			"value": int(MenuSupport.field_float(row, "Value", 1.0)),
+			"words": MenuSupport.field(row, "Words")})
+	return out
+
+
+## Buy it: the Ore goes, the item works, and the card's own abilities sleep
+## this duel ("accessing the ore shop counts as the ability trigger").
+func shop_buy(card: PlayerData, side_is_enemy: bool, item: Dictionary) -> void:
+	var cost := int(item.get("cost", 0))
+	if pool(side_is_enemy, "ore") < cost:
+		return
+	_pool_add(side_is_enemy, "ore", -cost)
+	_shop_silenced[_k(card, side_is_enemy)] = true
+	var v := int(item.get("value", 1))
+	match String(item.get("effect", "")):
+		"power":
+			_ult_buff(card, side_is_enemy, v, "Belial")
+		"shield":
+			_stamina_pending.append({"enemy_side": side_is_enemy, "delta": 0, "shield": v})
+		"keeper":
+			_keeper_shift_round[side_is_enemy] = float(_keeper_shift_round[side_is_enemy]) - float(v)
+		"stamina":
+			_stamina_pending.append({"enemy_side": side_is_enemy, "delta": v})
+	_event("ore_spent", card, side_is_enemy, {"amount": str(cost)})
+	log_lines.append("      %s buys %s at Belial's ore shop (-%d Ore)" % [card.player_name, item.get("item", "?"), cost])
 
 
 # =============================================================
@@ -2630,7 +2945,8 @@ func exhaust_swap_options(side_is_enemy: bool, current: PlayerData) -> Array[Pla
 	if current == null:
 		return out
 	for c in cards_in(side_is_enemy, EXHAUST):
-		if c.get_tier_clean() != current.get_tier_clean() or _held.has(_k(c, side_is_enemy)):
+		if c.get_tier_clean() != current.get_tier_clean() or _held.has(_k(c, side_is_enemy)) \
+				or _pinned.has(_k(c, side_is_enemy)):
 			continue
 		var marker := _swap_marker(c, side_is_enemy)
 		if marker == null:

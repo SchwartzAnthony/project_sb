@@ -1751,6 +1751,44 @@ does the same from the exhaust (same power and tier).
 
 **The tracker** shows Graves, Mining, Cold and Bench counts.
 
+### Round AF, phase C8: the Stars' Ultimates — combat is complete
+
+**Where an Ultimate is written: the `Ultimate Side` column of
+`data/Star Players.csv`** (your Q101 - it is the Star's second side). The
+game reads it from there. `python3 tools/sync_ultimates.py` copies it onto the
+Emblem files so both say the same; forgetting to run it breaks nothing.
+
+An Ultimate is **up** while its Star's Emblem has turned over and was not
+BLOCKED (one per game). Then:
+
+| Star | the Ultimate, as built | dials |
+|---|---|---|
+| **Gremory** | Rose tokens can replace a water unit of ANY tier; every Rose Unit in your exhaust adds 1 to your shot | — |
+| **Zepar** | a Swan that attacks turns the enemy into a Swan too, and it is -2 | — |
+| **Sallos** | an enemy with 2 song counters is -1 in combat; with 3, 3 damage to its own keeper and the songs are gone | — |
+| **Belphegor** | Rauhnacht-Feuergeister +1 per victory counter; after a goal the counters go and the Emblem flips back to its Basic side | — |
+| **Flauros** | a permanent weapon on Flauros as strong as your strongest fused unit (WEAPON on the card); all fusions break up into the exhaust | — |
+| **Buer** | the Teufel Mask on your strongest field card: +1 per counter in combat, -1 counter after each combat (MASK on the card) | `buer_mask_counters` |
+| **Belial** | +1 bonus Ore per unit mining; **the ore shop** before a Bergmännlein duels - buying is its ability that duel | **`data/OreShop.csv`** |
+| **Valefor** | Bergmännlein in the exhaust mine (+1 Ore each); last round's miners +1 in their next combat | — |
+| **Haures** | the keeper eats 1 Ore a round (max 3 a cycle): +1 shield, 5% harder to beat | `haures_armour_per_cycle`, `haures_armour_shift` |
+| **Vassago** | each Unkengeister copies an enemy ability of its tier from their exhaust; that card is held there for the cycle | — |
+| **Glasya-Labolas** | once per PLAY MAKER the enemy's first worked mine and first ore counter are possessed - they get nothing from them | — |
+| **Caim** | 3 gravestones rise; the ball knocking one over puts a ghost on the ball; the next Unkengeister +1 per ghost | `caim_stones`, `caim_knock_reach` |
+
+**`data/OreShop.csv`:** `Item`, `Cost` (Ore), `Effect` (`power` = +Value this
+combat, `shield` = +Value on your keeper, `keeper` = Value% harder to beat
+until the next shot, `stamina` = +Value to your keeper), `Value`, `Words`
+(what the window says).
+
+**Your round AE answers:** Valefor's crater drops its ore counters **once**,
+when Valefor comes on (Q103, `valefor_refill`). Haures's rock keeper is drawn
+**bigger** (Q104, `haures_rock_scale` 1.35).
+
+**The balance dial (Q107):** `counter_power_<kind>` in Tuning.csv - for
+example `counter_power_burn` 1 makes every burn counter on a card +1 in its
+combat. 0 (the default) = a counter does only what the cards say about it.
+
 ### Round AE, phase C7: the Emblems' Basic sides — all twelve play
 
 Every Emblem's Basic side now works while its Star is on the pitch. The five
@@ -3499,7 +3537,7 @@ palette colour and whether the game reads that name — and what is sitting in
 
 ---
 
-## 9. `data/Tuning.csv` — 417 numbers
+## 9. `data/Tuning.csv` — 425 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -5038,7 +5076,9 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | make mines give more or less Ore | `mine_ore_per_round`, `mine_reach` in Tuning.csv |
 | change how many cards sit on the bench | `bench_size` in Tuning.csv |
 | change what an Emblem's Basic side does | its `EMB_` row in Abilities.csv (Vassago, Glasya-Labolas, Caim, Gremory, Zepar, Sallos, Belphegor, Buer), or the Tuning rows `belial_`, `valefor_`, `haures_` |
-| write or change an Ultimate | the Ultimate Side column of the Emblem file - C8 builds it |
+| write or change an Ultimate | the **Ultimate Side column of Star Players.csv**, then `python3 tools/sync_ultimates.py` |
+| change what Belial's ore shop sells | `data/OreShop.csv` |
+| make a kind of counter worth power in combat | `counter_power_<kind>` in Tuning.csv (e.g. `counter_power_burn`) |
 | ask the player before an ability goes off | the `Ask` column of Abilities.csv: `yes` |
 | answer my questions | `data/Questions.csv`, the `Your Answer` column |
 | change what a Swan or a Rose token is | `EMB_ZEPAR_WINGS` / `EMB_GREMORY_ROSE` in Abilities.csv; `swans_count_as_tokens` in Tuning.csv |

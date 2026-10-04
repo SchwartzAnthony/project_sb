@@ -345,12 +345,19 @@ Valefor (the crater's ore counters), Haures (the rock keeper) and Flauros
 (fire buffs fire +1) as small systems in the engine / pitch_engines.gd. Every
 Turns On counter is wired to a real event. Six Ultimates proposed (Q100).
 
-### C8 — The Stars · 12 Front Sides + 15 Ultimates · NEXT
+### C8 — The Stars' Ultimates · all 12 · ✅ BUILT IN ROUND AF
 
-The Front Sides mostly ride on C1–C6 words. The Ultimates are systems like
-the Emblems. **Six Ultimates still need writing.**
+Written in Star Players.csv's Ultimate Side (Q101). Up while the Emblem has
+turned over and not been blocked. Engine: set_ultimates / ultimate_up /
+on_ultimate; Gremory (any tier, Roses add to the shot), Zepar (swan attack),
+Sallos (song thresholds), Belphegor (+victory, flips back after a goal),
+Flauros (weapon, fusions break), Buer (Teufel Mask), Belial (bonus Ore, the
+ore shop - data/OreShop.csv), Valefor (exhaust mining, +1 next), Haures (the
+keeper eats Ore), Vassago (copy from their exhaust), Glasya-Labolas
+(possession), Caim (gravestones, ghosts on the ball).
 
----
+**COMBAT IS COMPLETE**: 228 abilities, 12 Basic sides, 12 Ultimates. What
+comes next is mass testing (Questions Q117).
 
 ## What I need from you
 

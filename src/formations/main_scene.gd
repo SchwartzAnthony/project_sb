@@ -5225,6 +5225,8 @@ func resolve_round() -> void:
 		player_lineup[i] = mine
 		enemy_lineup[i] = theirs
 		abilities.begin_duel(mine, theirs)
+		# ROUND AF (C8): Belial's ore shop, if his Ultimate is up.
+		await _offer_ore_shop(mine, theirs)
 		# ROUND AA: anything of YOURS that would spend Ore or needs a yes in
 		# this duel is asked now, before it starts (your rulings Q5, R17).
 		await _ask_duel_questions(mine, theirs, player_has_ball)
@@ -7017,6 +7019,7 @@ func _settle_emblems() -> void:
 			announce("%s turns over — BLOCKED (one Ultimate per game)" % turned.id.to_upper())
 		else:
 			announce("%s  —  ULTIMATE" % turned.id.to_upper())
+			_ultimate_now(false, turned.star)
 
 
 ## THEIR RACE (round AC, Q063). The same rules as yours - one Ultimate per
@@ -7032,6 +7035,83 @@ func _settle_enemy_emblems() -> void:
 			announce("THEIR %s turns over — BLOCKED" % turned.id.to_upper())
 		else:
 			announce("THEIR %s  —  ULTIMATE" % turned.id.to_upper())
+			_ultimate_now(true, turned.star)
+
+
+## ============ C8: THE ULTIMATES (round AF) ============
+##
+## Which Stars' Ultimates are up goes to the engine every round; the moment
+## one turns over it does what it does once (Flauros's weapon, Buer's mask,
+## Caim's gravestones). Belphegor's flips back after a goal.
+func _push_ultimates() -> void:
+	if abilities == null:
+		return
+	abilities.set_ultimates(false, EmblemBook.ultimate_stars(_my_cards(), state))
+	if enemy_race != null:
+		abilities.set_ultimates(true, EmblemBook.ultimate_stars(_stars_of(true), enemy_race))
+
+
+func _ultimate_now(side_is_enemy: bool, star_name: String) -> void:
+	_push_ultimates()
+	if abilities == null:
+		return
+	abilities.on_ultimate(side_is_enemy, star_name)
+	if pitch_engines != null:
+		pitch_engines.on_ultimate(side_is_enemy, star_name)
+	_absorb_ability_news()
+
+
+func _emblem_resets() -> void:
+	if abilities == null:
+		return
+	for pair in abilities.take_emblem_resets():
+		var side: bool = pair[0]
+		var save: GameState = enemy_race if side else state
+		for badge in EmblemBook.on_the_field(_stars_of(side) if side else _my_cards()):
+			if CardDatabase._normalise(badge.star) == CardDatabase._normalise(String(pair[1])):
+				EmblemBook.unflip(badge, save)
+				announce("%s%s FLIPS BACK" % ["THEIR " if side else "", badge.id.to_upper()], 1.4)
+	_push_ultimates()
+	_refresh_emblems()
+
+
+## BELIAL'S ORE SHOP: before the duel, a Bergmännlein may buy one thing
+## (data/OreShop.csv). You are asked; the AI buys the best it can afford.
+func _offer_ore_shop(mine: PlayerData, theirs: PlayerData) -> void:
+	if abilities == null:
+		return
+	var items := abilities.shop_items(mine, false)
+	if not items.is_empty():
+		var pick: Dictionary = {}
+		if _auto_covers("shop"):
+			pick = _best_shop_item(items)
+		else:
+			freeze_play(true)
+			var labels: Array[String] = []
+			for it in items:
+				labels.append("%s  (%d Ore) - %s" % [it["item"], int(it["cost"]), it["words"]])
+			labels.append("Nothing - %s uses its own ability" % mine.player_name)
+			var chosen := await ChoiceWindow.ask(self, "BELIAL'S ORE SHOP",
+				"%s may buy one thing before this duel. Buying IS its ability - its own text does not go off this duel. You have %d Ore." % [mine.player_name, abilities.pool(false, "ore")],
+				labels)
+			freeze_play(false)
+			if chosen >= 0 and chosen < items.size():
+				pick = items[chosen]
+		if not pick.is_empty():
+			abilities.shop_buy(mine, false, pick)
+	var theirs_items := abilities.shop_items(theirs, true)
+	if not theirs_items.is_empty():
+		abilities.shop_buy(theirs, true, _best_shop_item(theirs_items))
+
+
+func _best_shop_item(items: Array) -> Dictionary:
+	var best: Dictionary = {}
+	for it in items:
+		if String(it["effect"]) == "power" and (best.is_empty() or int(it["value"]) > int(best["value"])):
+			best = it
+	if best.is_empty() and not items.is_empty():
+		best = items[0]
+	return best
 
 
 # =============================================================
@@ -7133,11 +7213,16 @@ func _arm_abilities() -> void:
 	# whatever the AUTO menu leaves to you - see _auto_covers()).
 	abilities.interactive = {false: true, true: false}
 	abilities.sync_field(_cards_of_side(false), _cards_of_side(true))
+	_push_ultimates()
 	# ROUND AE (C7): Haures's rock keeper - the keeper turns to stone.
 	for keeper_side in [false, true]:
 		var keeper: GoalieUnit = goalies.get(keeper_side)
 		if keeper != null:
-			keeper.modulate = Color(0.72, 0.6, 0.48) if abilities.has_emblem(keeper_side, "Haures") else Color(1, 1, 1)
+			# YOUR Q104: and MASSIVE - bigger than the other keeper (`haures_rock_scale`).
+			var rock := abilities.has_emblem(keeper_side, "Haures")
+			keeper.modulate = Color(0.72, 0.6, 0.48) if rock else Color(1, 1, 1)
+			var big := db.tune_float("haures_rock_scale", 1.35) if rock else 1.0
+			keeper.scale = Vector2(big, big)
 	# The bar follows the Star on the pitch, so read it every round.
 	_refresh_emblems()
 
@@ -7193,6 +7278,7 @@ func _absorb_ability_news() -> void:
 				round_player_picks[at_p] = swap["new"]
 	if pitch_engines != null:
 		pitch_engines.absorb(abilities)
+	_emblem_resets()
 	# ROUND AC (C5): cards an ability moved between the zones - the body on
 	# the pitch is dimmed (exhaust, combat) or brought back (field).
 	for move in abilities.take_zone_moves():
@@ -7380,6 +7466,7 @@ const AUTO_KINDS := [
 	["side", "Which side stays up in the exhaust"],
 	["exhaust", "Swapping a card in from the exhaust (round AC)"],
 	["bench", "Choosing your bench for fusing (round AD)"],
+	["shop", "Buying at Belial's ore shop (round AF)"],
 ]
 
 

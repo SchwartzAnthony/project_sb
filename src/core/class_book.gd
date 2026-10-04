@@ -273,6 +273,16 @@ static func _read_emblem_file(path: String) -> void:
 		badge.star = MenuSupport.field(row, "Star").strip_edges()
 		if badge.star == "":
 			badge.star = badge.id
+		# ROUND AF (your Q101): THE STAR'S CARD IS WHERE AN ULTIMATE IS WRITTEN.
+		# Its Ultimate Side (Star Players.csv) wins over this file's copy;
+		# tools/sync_ultimates.py keeps the copy up to date.
+		var db := CardDatabase.get_db()
+		if db != null:
+			for card in db.players:
+				if card.is_star() and CardDatabase._normalise(card.player_name) == CardDatabase._normalise(badge.star) \
+						and card.ultimate_text.strip_edges() != "":
+					badge.ultimate = card.ultimate_text.strip_edges()
+					break
 		badge.set_id = MenuSupport.field(row, "Set").strip_edges()
 		if badge.set_id == "":
 			badge.set_id = badge.id

@@ -536,6 +536,7 @@ func _check_emblems(db: CardDatabase) -> void:
 	_check_c5(db)
 	_check_c6(db)
 	_check_c7(db)
+	_check_c8(db)
 
 	# ---- ZEPAR: a water unit revealed becomes a Swan, and a Swan is +1 ----
 	var zepar := _badge("Zepar")
@@ -1185,3 +1186,164 @@ func _check_c7(db: CardDatabase) -> void:
 		if String(ev["event"]) == "exhaust_peak" and String((ev["facts"] as Dictionary).get("class", "")) == "Unkengeister":
 			peak += int(String((ev["facts"] as Dictionary).get("amount", "0")))
 	_say(peak == 3, "Vassago's Condition: three Unkengeister in the exhaust at once counts 3", "counted %d" % peak)
+
+
+## ROUND AF (C8): the Stars' Ultimates, one story each.
+func _check_c8(db: CardDatabase) -> void:
+	print("--- the Ultimates (C8) ---")
+	var opp := _dummy("Opp", "II", 3, "Earth", "Normal")
+	# Zepar: a Swan attacks -> the enemy is a Swan too, and -2
+	var e := AbilityEngine.new(db)
+	e.begin_match()
+	var swan := _dummy("Swanling", "II", 2, "Water", "Lorelei")
+	e.sync_field([swan], [opp])
+	e.make_kind(swan, false, "swan")
+	e.set_ultimates(false, ["Zepar"])
+	e.round_lineups([swan], [opp])
+	e.begin_round()
+	e.begin_duel(swan, opp)
+	e.resolve_duel_abilities(swan, false, opp)
+	_say(e.is_kind(opp, true, "swan") and e.defense_power(opp, true) == 1, "Zepar's Ultimate: a Swan attacks - the enemy becomes a Swan and is -2", "enemy %d" % e.defense_power(opp, true))
+	# Sallos: two songs -1, three songs = 3 off its keeper
+	e = AbilityEngine.new(db)
+	e.begin_match()
+	var a := _dummy("A", "II", 3, "Earth", "Normal")
+	var b := _dummy("B", "III", 3, "Earth", "Normal")
+	var me := _dummy("Me", "II", 1, "Water", "Lorelei")
+	e.sync_field([me], [a, b])
+	e.set_ultimates(false, ["Sallos"])
+	e.put_counter(a, true, "song", 2)
+	e.put_counter(b, true, "song", 3)
+	e.begin_round()
+	e.begin_duel(me, a)
+	var two := e.attack_power(a, true)
+	e.begin_duel(me, b)
+	var drained := false
+	for ch in e.take_pending_stamina():
+		if bool(ch["enemy_side"]) and int(ch["delta"]) == -3:
+			drained = true
+	_say(two == 2 and drained and e.counter(b, true, "song") == 0, "Sallos's Ultimate: two songs -1; three songs = 3 off their keeper, songs gone", "two %d, drained %s" % [two, drained])
+	# Belphegor: +1 per victory counter, and a goal resets it
+	e = AbilityEngine.new(db)
+	e.begin_match()
+	var fire := _dummy("Ember", "II", 2, "Fire", "Rauhnacht-Feuergeister")
+	e.sync_field([fire], [opp])
+	e.set_ultimates(false, ["Belphegor"])
+	e.add_to_pool(false, "victory", 2)
+	var with_two := e.attack_power(fire, false)
+	e.after_shot(false, true)
+	_say(with_two == 4 and e.pool(false, "victory") == 0 and not e.take_emblem_resets().is_empty(),
+		"Belphegor's Ultimate: +1 per victory counter; a goal clears them and flips the Emblem back", "power %d" % with_two)
+	# Flauros: a weapon = the strongest fused unit, fusions broken up
+	e = AbilityEngine.new(db)
+	e.begin_match()
+	var flauros := _find(db, "Flauros")
+	var jonas := _find(db, "Jonas")
+	if flauros != null and jonas != null:
+		var partner := _dummy("Bencher", "III", 4, "Fire", "Rauhnacht-Feuergeister")
+		e.sync_field([flauros, jonas], [opp])
+		e.set_bench(false, [partner])
+		e.round_lineups([jonas], [opp])
+		e.begin_round()
+		e.begin_duel(jonas, opp)
+		e.resolve_duel_abilities(jonas, false, opp)
+		e.on_ultimate(false, "Flauros")
+		_say(e.attack_power(flauros, false) >= 4 and e.fused_partner(jonas, false) == null and e.zone_of(jonas, 0) == "exhaust",
+			"Flauros's Ultimate: a weapon as strong as the strongest fused unit; the fusions break up into the exhaust",
+			"Flauros %d, Jonas %s" % [e.attack_power(flauros, false), e.zone_of(jonas, 0)])
+	# Buer: the Teufel Mask, +3 in combat, -1 counter per combat
+	e = AbilityEngine.new(db)
+	e.begin_match()
+	var masked := _dummy("Masked", "II", 2, "Fire", "Rauhnacht-Feuergeister")
+	e.sync_field([masked], [opp])
+	e.on_ultimate(false, "Buer")
+	e.round_lineups([masked], [opp])
+	e.begin_round()
+	e.begin_duel(masked, opp)
+	var masked_power := e.attack_power(masked, false)
+	e.resolve_duel_outcome(masked, false, opp, true)
+	_say(masked_power == 5 and e.mask_on(masked, false) == 2, "Buer's Ultimate: the Teufel Mask is +3 in combat and loses one per combat", "power %d, mask %d" % [masked_power, e.mask_on(masked, false)])
+	# Belial: the ore shop - buying is the ability
+	e = AbilityEngine.new(db)
+	e.begin_match()
+	var digger := _dummy("Digger", "II", 1, "Earth", "Bergmännlein")
+	e.sync_field([digger], [opp])
+	e.set_ultimates(false, ["Belial"])
+	e.add_to_pool(false, "ore", 4)
+	e.round_lineups([digger], [opp])
+	e.begin_round()
+	e.begin_duel(digger, opp)
+	var items := e.shop_items(digger, false)
+	var gold: Dictionary = {}
+	for it in items:
+		if String(it["item"]) == "Gold Vein":
+			gold = it
+	if not gold.is_empty():
+		e.shop_buy(digger, false, gold)
+	_say(not gold.is_empty() and e.attack_power(digger, false) == 3 and e.pool(false, "ore") == 0,
+		"Belial's Ultimate: the ore shop - Gold Vein, 4 Ore, +2 power", "power %d, Ore %d" % [e.attack_power(digger, false), e.pool(false, "ore")])
+	# Haures: the keeper eats Ore for armour
+	e = AbilityEngine.new(db)
+	e.begin_match()
+	e.set_ultimates(false, ["Haures"])
+	e.add_to_pool(false, "ore", 2)
+	e.begin_round()
+	var shield := false
+	for ch in e.take_pending_stamina():
+		if int(ch.get("shield", 0)) == 1 and not bool(ch["enemy_side"]):
+			shield = true
+	_say(shield and e.pool(false, "ore") == 1 and e.keeper_shift(false) <= -5.0, "Haures's Ultimate: the keeper eats 1 Ore - a shield and 5% harder to beat", "Ore %d" % e.pool(false, "ore"))
+	# Caim: ghosts on the ball for the next Unkengeister
+	e = AbilityEngine.new(db)
+	e.begin_match()
+	var ghostly := _dummy("Wisp", "II", 1, "Air", "Unkengeister")
+	e.sync_field([ghostly], [opp])
+	e.ghosts[false] = 2
+	e.round_lineups([ghostly], [opp])
+	e.begin_round()
+	e.begin_duel(ghostly, opp)
+	var with_ghosts := e.attack_power(ghostly, false)
+	e.resolve_duel_outcome(ghostly, false, opp, true)
+	_say(with_ghosts == 3 and int(e.ghosts[false]) == 0, "Caim's Ultimate: two ghosts on the ball - the next Unkengeister +2, then they are gone", "power %d" % with_ghosts)
+	# Gremory: every Rose in the exhaust adds to the shot
+	e = AbilityEngine.new(db)
+	e.begin_match()
+	var rose := _dummy("Rose Unit", "I", 1, "Water", "Lorelei")
+	rose.extra_tags = PackedStringArray(["rose", "token"])
+	e.sync_field([rose], [opp])
+	e._move(rose, false, "exhaust")
+	e.set_ultimates(false, ["Gremory"])
+	_say(e.shot_bonus(false) == 1, "Gremory's Ultimate: each Rose Unit in the exhaust adds 1 to the shot", "bonus %d" % e.shot_bonus(false))
+	# Vassago: copy an enemy ability from their exhaust
+	e = AbilityEngine.new(db)
+	e.begin_match()
+	var donor_row := _self_buff_row(db, "onattack")
+	if donor_row != "":
+		var donor := _dummy("Donor", "II", 1, "Earth", "Normal")
+		donor.attack_ability_id = donor_row
+		var thief := _dummy("Thief", "II", 1, "Air", "Unkengeister")
+		e.sync_field([thief], [donor, opp])
+		e._move(donor, true, "exhaust")
+		e.set_ultimates(false, ["Vassago"])
+		e.round_lineups([thief], [opp])
+		e.begin_round()
+		e.begin_duel(thief, opp)
+		e.resolve_duel_abilities(thief, false, opp)
+		_say(e.attack_power(thief, false) > 1, "Vassago's Ultimate: an Unkengeister copies an enemy ability from their exhaust", "power %d" % e.attack_power(thief, false))
+	# Valefor: Bergmännlein in the exhaust mine; last round's miners +1
+	e = AbilityEngine.new(db)
+	e.begin_match()
+	var rester := _dummy("Rester", "I", 1, "Earth", "Bergmännlein")
+	var player := _dummy("Player", "II", 1, "Earth", "Bergmännlein")
+	e.sync_field([rester, player], [opp])
+	e._move(rester, false, "exhaust")
+	e.set_ultimates(false, ["Valefor"])
+	e.begin_round()
+	e.round_lineups([player], [opp])
+	var ore_after := e.pool(false, "ore")
+	e.round_finished()
+	e.begin_cycle()
+	e.begin_round()
+	e.round_lineups([rester], [opp])
+	e.begin_duel(rester, opp)
+	_say(ore_after == 1 and e.attack_power(rester, false) == 2, "Valefor's Ultimate: a Bergmännlein in the exhaust mines (+1 Ore) and is +1 in its next combat", "Ore %d, power %d" % [ore_after, e.attack_power(rester, false)])

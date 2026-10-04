@@ -340,6 +340,9 @@ const S = {
   help:"<b>Written by <code>python3 tools/ability_audit.py</code>.</b> Each row is one sentence broken into <b>When / If / Cost / Do / Target / Value / Scope / Max</b> - the same answers an Abilities row gives - then <b>Words Needed</b> (what the engine does not know yet), <b>Phase</b> (which build phase brings them, guides/COMBAT_PHASES.md) and <b>Status</b>.<br><b>Your Ruling</b> is yours: write in it and re-running the script keeps it. The questions themselves are grouped, once each, in AbilityRulings.csv - answer there."},
 "AbilityRulings.csv":{key:"ID", what:"THE QUESTIONS THE CARD TEXT LEAVES OPEN - each asked once. Write in Your Ruling.",
   help:"<b>F1-F4 decide how every ability fires</b> (one side per duel, outside a duel, Reveal, priority). <b>R01-R17</b> are about wording: which keeper, what \u201cnext\u201d means, where Ore lives... <b>Cards</b> says how many cards each answer touches - R03 and R12 move the most.<br>Until you answer, the engine uses <b>My Reading</b>. Re-running <code>tools/ability_audit.py</code> keeps your answers."},
+"OreShop.csv":{key:null, what:"BELIAL'S ORE SHOP (round AF, his Ultimate). While Belial's Ultimate is up, a Bergmännlein about to duel may buy ONE thing here.",
+  cols:{"Item":"text","Cost":"number","Effect":["power","shield","keeper","stamina"],"Value":"number","Words":"text","Notes":"long"},
+  help:"<b>One row = one thing for sale.</b> <b>Cost</b> is Ore. <b>Effect</b>: <code>power</code> = +Value power this combat · <code>shield</code> = +Value shield on your keeper · <code>keeper</code> = your keeper Value% harder to beat until the next shot · <code>stamina</code> = +Value stamina to your keeper. <b>Words</b> is what the window says.<br><b>Buying IS that card's ability this duel</b> - its own Attack / Defend text does not go off (Belial's text: 'accessing the ore shop counts as the ability trigger'). You are asked; AUTO and the AI buy the best power item they can afford."},
 "Mines.csv":{key:null, what:"WHERE THE MINES ARE (round AD, phase C6, your Q091): one per zone at the side of the field. An earth unit that comes near one of its side's mines during waiting play is MINING.",
   cols:{"Mine":"text","Side":["you","them","both"],"Across":"number","Down":"number","Notes":"long"},
   help:"<b>One row = one mine.</b> <b>Across</b> runs from 0 (your goal line) to 1 (theirs); <b>Down</b> from 0 (the top touchline) to 1 (the bottom one). <b>Side</b>: <code>you</code> = your mine, <code>them</code> = theirs, <code>both</code> = each side gets one there.<br><b>A side only gets its mines if it has an earth unit</b> (<code>mines_need_earth</code>). An earth unit within <code>mine_reach</code> pixels of one of its mines during waiting play is MINING - its draft card says so and <i>If another unit is mining</i> is true. <b>Every mine worked since the last PLAY MAKER gives +1 Ore</b> (<code>mine_ore_per_round</code>, your Q055). Earth units with nothing to do drift to their mines (<code>mine_pull</code>).<br>Keep mines inside the dashed <code>edge_keep</code> lines (Down between 0.1 and 0.9) or nobody is sent to them."},
@@ -2186,6 +2189,16 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("The Ultimates (round AF, phase C8) - combat is complete", `
+    <p style="margin:0 0 10px"><b>All 12 Ultimates play.</b> Write them in <b>Star Players.csv, Ultimate Side</b> - then <code>python3 tools/sync_ultimates.py</code> copies them onto the Emblems.</p>
+    ${rows([
+      ["Lorelei","Gremory: Roses replace any tier, add to the shot · Zepar: a Swan attack swans the enemy, -2 · Sallos: 2 songs -1, 3 songs = 3 off their keeper"],
+      ["Rauhnacht","Belphegor: +1 per victory, flips back after a goal · Flauros: a weapon, fusions break · Buer: the Teufel Mask"],
+      ["Bergmännlein","Belial: the ore shop (<b>OreShop.csv</b>) · Valefor: the exhaust mines · Haures: the keeper eats Ore for armour"],
+      ["Unkengeister","Vassago: copy their exhaust · Glasya-Labolas: possessed mines · Caim: ghosts on the ball"],
+      ["balance","<code>counter_power_burn</code> - a burn counter worth +1 in combat (default 0)"],
+    ])}`);
+
   card("The Emblems' Basic sides (round AE, phase C7)", `
     <p style="margin:0 0 10px"><b>All twelve Emblems' Basic sides play.</b> Next: the Ultimates (C8) - six of them I proposed, in the Ultimate Side column for you to edit.</p>
     ${rows([
@@ -2265,7 +2278,7 @@ function paintBook(){
       ["C5 · built","the zones in action and the ask-after-pick Reveal"],
       ["C6 · built","mines, fusing, the ball, gravestones. <b>All 228 work</b>"],
       ["C7 · built","the Emblems' Basic Sides - all twelve"],
-      ["C8","the Stars' Ultimates - next"],
+      ["C8 · built","the Stars' Ultimates - <b>combat is complete</b>"],
     ])}
     <p style="margin:10px 0 0;color:var(--dim)"><b>The three commands:</b> <code>python3 tools/ability_audit.py</code> (read the cards) · <code>python3 tools/ability_rows.py</code> (wire what is built) · <code>ability_coverage.gd</code> (the meter).</p>`);
 
