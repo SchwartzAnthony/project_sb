@@ -579,6 +579,20 @@ corners / goal kicks, Q085 AI swaps only stronger (ai_exhaust_swap_any),
 Q086 Flauros asks (ask kind choose / reveal_from_exhaust + _reread).
 **Next: C7 (Q099).**
 
+## 12h. Round AE — DONE (phase C7, all 12 Emblem Basic sides)
+
+EMB_VASSAGO_WIN / EMB_GLASYA_TOUCH / EMB_CAIM_SWAP (trigger position_swap,
+fired for the card that came in from do_exhaust_swap and _swap_mid_duel).
+Engine: has_emblem(), _belial_mines (in round_lineups), _haures_save (in
+after_shot) + keeper_shift rock, _flauros (after a buff lands on another
+fire card), _exhaust_peaks (Vassago's counter, event exhaust_peak),
+nugget_picked. PitchEngines: Valefor crater + nuggets (_drop_ore at every
+PM, _pick_up_nuggets in tick, mine_for prefers nuggets). Keeper modulate
+for Haures in _arm_abilities. Q096: fused card uses the stronger card's
+cells (_partner_is_stronger). Q098: PlayerCardUI glow (card_glow_words).
+Q100: six Ultimates written into the Emblem CSVs. emblem_check is ALL GOOD
+for the first time. **Next: C8 (Q108), Rauhnacht balance (Q107).**
+
 ## 13. Ideas worth offering him
 
 - An `Ultimate In Short` column so the emblem bar and hover can show one line

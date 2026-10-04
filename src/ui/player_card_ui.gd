@@ -272,6 +272,41 @@ func set_marks(words: String) -> void:
 	strip.offset_bottom = 28.0
 	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(strip)
+	# ROUND AE (your Q098): a card that can use its pitch sentence this round
+	# (it TOUCHED the ball, it is MINING) glows as well. `card_glow_words`.
+	var db := CardDatabase.get_db()
+	var glow_words := db.tune_text("card_glow_words", "TOUCHED;MINING") if db != null else "TOUCHED;MINING"
+	for w in glow_words.split(";", false):
+		if words.contains(String(w).strip_edges()):
+			_add_glow()
+			break
+
+
+var _glow: Panel = null
+
+
+func _add_glow() -> void:
+	if _glow != null:
+		return
+	_glow = Panel.new()
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0, 0, 0, 0)
+	box.border_color = Color(0.55, 0.9, 1.0, 0.95)
+	box.set_border_width_all(4)
+	box.set_corner_radius_all(10)
+	box.shadow_color = Color(0.45, 0.85, 1.0, 0.55)
+	box.shadow_size = 14
+	_glow.add_theme_stylebox_override("panel", box)
+	_glow.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_glow.offset_left = -4.0
+	_glow.offset_top = -4.0
+	_glow.offset_right = 4.0
+	_glow.offset_bottom = 4.0
+	_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_glow)
+	var pulse := create_tween().set_loops()
+	pulse.tween_property(_glow, "modulate:a", 0.45, 0.7)
+	pulse.tween_property(_glow, "modulate:a", 1.0, 0.7)
 
 
 ## Called by main_scene whenever AUTO is switched on or off, and once when

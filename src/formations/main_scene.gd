@@ -7133,6 +7133,11 @@ func _arm_abilities() -> void:
 	# whatever the AUTO menu leaves to you - see _auto_covers()).
 	abilities.interactive = {false: true, true: false}
 	abilities.sync_field(_cards_of_side(false), _cards_of_side(true))
+	# ROUND AE (C7): Haures's rock keeper - the keeper turns to stone.
+	for keeper_side in [false, true]:
+		var keeper: GoalieUnit = goalies.get(keeper_side)
+		if keeper != null:
+			keeper.modulate = Color(0.72, 0.6, 0.48) if abilities.has_emblem(keeper_side, "Haures") else Color(1, 1, 1)
 	# The bar follows the Star on the pitch, so read it every round.
 	_refresh_emblems()
 

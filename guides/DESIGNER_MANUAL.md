@@ -1751,6 +1751,33 @@ does the same from the exhaust (same power and tier).
 
 **The tracker** shows Graves, Mining, Cold and Bench counts.
 
+### Round AE, phase C7: the Emblems' Basic sides — all twelve play
+
+Every Emblem's Basic side now works while its Star is on the pitch. The five
+from before (Gremory, Zepar, Sallos, Belphegor, Buer) plus seven new ones:
+
+| Emblem | its Basic side, as built | how |
+|---|---|---|
+| **Vassago** | an air unit wins its combat → your next air unit gets -1 priority (resolves earlier) | row `EMB_VASSAGO_WIN` in Abilities.csv |
+| **Glasya-Labolas** | an air unit that touched the ball (TOUCHED) is +1 in its combat | row `EMB_GLASYA_TOUCH` |
+| **Caim** | an air unit swaps places with another air unit of its tier during combat → the enemy it fights is -1 | row `EMB_CAIM_SWAP`, new trigger `position_swap` |
+| **Belial** | a mine in the FIELD zone and one in the EXHAUST zone (your Q054): every earth card of yours there that is not playing this round is MINING, +1 Ore per worked zone | `belial_ore_per_mine` |
+| **Valefor** | a crater in the middle of the pitch drops ore counters (gold diamonds) on your half at every PLAY MAKER; an earth unit that runs over one picks it up, +1 Ore | `valefor_nuggets`, `nugget_reach` |
+| **Haures** | your keeper becomes a rock (stone coloured, 5% harder to beat); every save gives 2 Ore to your Tier IV earth unit | `haures_rock_shift`, `haures_ore_per_save` |
+| **Flauros** | a fire unit's buff on ANOTHER fire unit of yours brings +1 more for that combat | — |
+
+**Their Conditions all count now.** Vassago's ("4 Unkengeister in the exhaust
+at once") counts the most Unkengeister ever in your exhaust at once (event
+`exhaust_peak` in Stats.csv).
+
+**Six Ultimates proposed** (your Q100), written in the Ultimate Side column of
+the Bergmännlein and Unkengeister Emblem files. Change them freely - C8 builds
+whatever the column says. Vassago's Token word is "exhaust swap" (Q106).
+
+**Your round AD answers:** a fused card plays with the **stronger** card's
+abilities (Q096). Cards that say TOUCHED or MINING **glow** in the draft
+(Q098, `card_glow_words`).
+
 ### Round AD: your answers
 
 | you said | now |
@@ -3472,7 +3499,7 @@ palette colour and whether the game reads that name — and what is sitting in
 
 ---
 
-## 9. `data/Tuning.csv` — 411 numbers
+## 9. `data/Tuning.csv` — 417 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -5010,6 +5037,8 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | move or add a mine | `data/Mines.csv` (Across / Down on the pitch, Side you / them / both) |
 | make mines give more or less Ore | `mine_ore_per_round`, `mine_reach` in Tuning.csv |
 | change how many cards sit on the bench | `bench_size` in Tuning.csv |
+| change what an Emblem's Basic side does | its `EMB_` row in Abilities.csv (Vassago, Glasya-Labolas, Caim, Gremory, Zepar, Sallos, Belphegor, Buer), or the Tuning rows `belial_`, `valefor_`, `haures_` |
+| write or change an Ultimate | the Ultimate Side column of the Emblem file - C8 builds it |
 | ask the player before an ability goes off | the `Ask` column of Abilities.csv: `yes` |
 | answer my questions | `data/Questions.csv`, the `Your Answer` column |
 | change what a Swan or a Rose token is | `EMB_ZEPAR_WINGS` / `EMB_GREMORY_ROSE` in Abilities.csv; `swans_count_as_tokens` in Tuning.csv |

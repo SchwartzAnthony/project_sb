@@ -57,7 +57,11 @@ var _worked := {false: {}, true: {}}
 var mine_spots: Array = []
 ## [{pos: Vector2, side: bool}]
 var stones: Array = []
+## ROUND AE (C7, Valefor): ore counters the crater dropped. [{pos, side}]
+var nuggets: Array = []
+var craters := {false: false, true: false}
 var _bench_done := false
+var _engine: AbilityEngine = null
 var _cold := false
 
 
@@ -84,7 +88,10 @@ func tick(ball: Node, units: Array, open_play: bool) -> void:
 			var u := carrier as PlayerUnit
 			if u != null and u.data != null:
 				(_touched[u.is_enemy] as Dictionary)[u.data] = true
-	if mine_spots.is_empty() or not open_play:
+	if not open_play:
+		return
+	_pick_up_nuggets(units)
+	if mine_spots.is_empty():
 		return
 	var reach := db.tune_float("mine_reach", 120.0)
 	for thing in units:
@@ -109,10 +116,18 @@ func _can_mine(card: PlayerData) -> bool:
 ## Where an earth unit with nothing to do would like to stand: its side's
 ## nearest mine, or INF.
 func mine_for(unit: PlayerUnit) -> Vector2:
-	if unit == null or unit.data == null or mine_spots.is_empty() or not _can_mine(unit.data):
+	if unit == null or unit.data == null or not _can_mine(unit.data):
 		return Vector2.INF
 	var best := Vector2.INF
 	var best_d := INF
+	# Valefor's ore counters first - they are worth walking for.
+	for n in nuggets:
+		if bool(n["side"]) != unit.is_enemy:
+			continue
+		var dn := unit.global_position.distance_to(n["pos"]) * 0.5
+		if dn < best_d:
+			best_d = dn
+			best = n["pos"]
 	for spot in mine_spots:
 		if bool(spot["side"]) != unit.is_enemy:
 			continue
@@ -130,6 +145,10 @@ func mine_for(unit: PlayerUnit) -> Vector2:
 func at_play_maker(abilities: AbilityEngine) -> void:
 	if abilities == null:
 		return
+	_engine = abilities
+	for side in [false, true]:
+		if abilities.has_emblem(side, "Valefor"):
+			_drop_ore(side)
 	for side in [false, true]:
 		abilities.set_touched(side, (_touched[side] as Dictionary).keys())
 		var count := 0
@@ -176,6 +195,60 @@ func _tint_ball(on: bool) -> void:
 	if ball == null or not is_instance_valid(ball):
 		return
 	(ball as CanvasItem).modulate = Color(0.55, 0.85, 1.0) if on else Color(1, 1, 1)
+
+
+# =============================================================
+#  VALEFOR'S CRATER (round AE, C7)
+#
+#  "A crater hits the middle of the soccer field and drops mine counters in
+#  different zones. Only your earth players are able to pick them up." At
+#  every PLAY MAKER while Valefor's Emblem is on your field the crater tops
+#  the ore counters up to `valefor_nuggets`, one in each quarter, on your
+#  side of the pitch. An earth unit of yours that runs over one picks it up:
+#  +1 Ore (`nugget_reach`). They count for Valefor's Condition.
+# =============================================================
+
+func _drop_ore(side: bool) -> void:
+	var want := db.tune_int("valefor_nuggets", 4)
+	var have := 0
+	for n in nuggets:
+		if bool(n["side"]) == side:
+			have += 1
+	if have >= want:
+		return
+	var play: Rect2 = scene.call("get_play_rect")
+	if not bool(craters[side]):
+		craters[side] = true
+		if scene.has_method("announce"):
+			scene.call("announce", "%sVALEFOR'S CRATER HITS THE PITCH" % ("THEIR " if side else ""), 1.4)
+	var keep := clampf(db.tune_float("edge_keep", 0.10), 0.0, 0.4)
+	for i in want - have:
+		var quarter := (have + i) % 4
+		var x := play.position.x + play.size.x * (0.125 + 0.25 * quarter) + randf_range(-60, 60)
+		var top := play.position.y + play.size.y * (keep + 0.05)
+		var bottom := play.end.y - play.size.y * (keep + 0.05)
+		var y := randf_range(lerpf(top, bottom, 0.5), bottom) if not side else randf_range(top, lerpf(top, bottom, 0.5))
+		nuggets.append({"pos": Vector2(x, y), "side": side})
+	queue_redraw()
+
+
+func _pick_up_nuggets(units: Array) -> void:
+	if nuggets.is_empty() or _engine == null:
+		return
+	var reach := db.tune_float("nugget_reach", 55.0)
+	for thing in units:
+		var unit := thing as PlayerUnit
+		if unit == null or unit.data == null or not _can_mine(unit.data):
+			continue
+		for i in range(nuggets.size() - 1, -1, -1):
+			var n: Dictionary = nuggets[i]
+			if bool(n["side"]) != unit.is_enemy:
+				continue
+			if unit.global_position.distance_to(n["pos"]) <= reach:
+				nuggets.remove_at(i)
+				_engine.nugget_picked(unit.data, unit.is_enemy)
+				print("[valefor] %s picks up an ore counter." % unit.data.player_name)
+				queue_redraw()
 
 
 # =============================================================
@@ -295,6 +368,17 @@ func _draw() -> void:
 		# a pick: two strokes
 		draw_line(p + Vector2(-mine_size * 0.5, mine_size * 0.5), p + Vector2(mine_size * 0.5, -mine_size * 0.5), Color(0.85, 0.85, 0.9), 4.0)
 		draw_line(p + Vector2(mine_size * 0.15, -mine_size * 0.65), p + Vector2(mine_size * 0.75, -mine_size * 0.05), Color(0.85, 0.85, 0.9), 4.0)
+	for side in [false, true]:
+		if bool(craters[side]):
+			var play: Rect2 = scene.call("get_play_rect")
+			var c := play.get_center() + Vector2(0, -40 if side else 40)
+			draw_circle(c, 44.0, Color(0.2, 0.14, 0.08, 0.55))
+			draw_arc(c, 44.0, 0.0, TAU, 32, Color(0.5, 0.35, 0.2, 0.8), 4.0)
+	for n in nuggets:
+		var q2: Vector2 = n["pos"]
+		var gold := Color(1.0, 0.82, 0.3)
+		draw_colored_polygon(PackedVector2Array([q2 + Vector2(0, -12), q2 + Vector2(10, 0), q2 + Vector2(0, 12), q2 + Vector2(-10, 0)]), gold)
+		draw_polyline(PackedVector2Array([q2 + Vector2(0, -12), q2 + Vector2(10, 0), q2 + Vector2(0, 12), q2 + Vector2(-10, 0), q2 + Vector2(0, -12)]), Color(0.45, 0.3, 0.05), 2.0)
 	for stone in stones:
 		var q: Vector2 = stone["pos"]
 		var w := 18.0

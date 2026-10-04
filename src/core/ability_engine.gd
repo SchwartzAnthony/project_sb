@@ -322,6 +322,11 @@ var mines := {false: 0, true: 0}
 ## with whom: key -> the partner card.
 var bench := {false: [], true: []}
 var _fused_with: Dictionary = {}
+## ---- ROUND AE, PHASE C7: the Emblems' Basic sides ----
+## Vassago: the most cards of each class in the exhaust at once, per side.
+var _exhaust_peak := {false: {}, true: {}}
+## Valefor: ore nuggets the match has picked up (it calls nugget_picked).
+var nuggets_picked := {false: 0, true: 0}
 ## Tuning: does the AI save its Ore for its most expensive card (Q018)?
 var ai_saves_ore := true
 ## Tuning: does a goal send every Rose token home (ruling, round AA)?
@@ -436,6 +441,8 @@ func begin_duel(player_card: PlayerData = null, enemy_card: PlayerData = null) -
 		var side := bool(sw["side"])
 		var facing: PlayerData = enemy_card if not side else player_card
 		_fire_for(sw["in"], side, "exhaustswap", facing, not side)
+		# C7 (Caim): it swapped places - the card that came in.
+		_fire_for(sw["in"], side, "positionswap", facing, not side)
 
 
 # =============================================================
@@ -471,6 +478,8 @@ func round_lineups(player_lineup: Array, enemy_lineup: Array) -> void:
 				_played_once[_k(card, pair[1])] = true
 				_event("card_played", card, pair[1], {"first": "yes" if first else "no"})
 				_move(card, pair[1], COMBAT)
+	for side in [false, true]:
+		_belial_mines(side)
 
 
 ## The round is over. `round_end` for the cards that played it, then they go
@@ -493,6 +502,7 @@ func round_finished() -> void:
 	# MANFRED: "send this unit to the exhaust and replace it with a Rose Unit
 	# Token". He plays his duel first; the token takes his place now, in the
 	# exhaust like him, and comes back with everyone at the end of the cycle.
+	_exhaust_peaks()
 	var asks := _replace_after_round.duplicate()
 	_replace_after_round.clear()
 	for ask in asks:
@@ -569,6 +579,7 @@ func after_shot(shooter_is_enemy: bool, scored: bool) -> void:
 	else:
 		for card in cards_in(not shooter_is_enemy):
 			_fire_for(card, not shooter_is_enemy, "goaliesave", null, shooter_is_enemy)
+		_haures_save(not shooter_is_enemy)
 
 
 func end_match() -> void:
@@ -996,8 +1007,12 @@ func consent_token(card: PlayerData, side_is_enemy: bool, token: PlayerData) -> 
 
 ## How much likelier that keeper is to be BEATEN, in percentage points, now.
 func keeper_shift(keeper_is_enemy: bool) -> float:
+	var rock := 0.0
+	# C7: Haures's rock keeper is harder to beat (`haures_rock_shift`, -5).
+	if has_emblem(keeper_is_enemy, "Haures") and db != null:
+		rock = db.tune_float("haures_rock_shift", -5.0)
 	return float(_keeper_shift_round.get(keeper_is_enemy, 0.0)) \
-		+ float(_keeper_shift_match.get(keeper_is_enemy, 0.0))
+		+ float(_keeper_shift_match.get(keeper_is_enemy, 0.0)) + rock
 
 
 ## The fouls have been rolled: this round's foul shifts are used up.
@@ -1340,6 +1355,15 @@ func set_emblems(side_is_enemy: bool, badges: Array) -> void:
 	_emblems[side_is_enemy] = badges.duplicate()
 
 
+## ROUND AE (C7): is this Star's Emblem on that side's field right now?
+func has_emblem(side_is_enemy: bool, star_name: String) -> bool:
+	for thing in (_emblems.get(side_is_enemy, []) as Array):
+		var badge := thing as ClassBook.Emblem
+		if badge != null and CardDatabase._normalise(badge.star) == CardDatabase._normalise(star_name):
+			return true
+	return false
+
+
 func _event(event: String, card: PlayerData, side_is_enemy: bool, extra: Dictionary = {}) -> void:
 	var facts := {}
 	if card != null:
@@ -1585,12 +1609,11 @@ func _fire_for(card: PlayerData, is_enemy: bool, trigger: String,
 		if String(_negated.get(key, "")) == slot:
 			continue
 		var cell := card.active_attack_ability() if slot == "attack" else card.active_defend_ability()
-		# C6: a fused card carries its partner's ability on the same side too.
+		# C6 / YOUR Q096: a fused card plays with the abilities of whichever of
+		# the two is STRONGER (the one whose power it fights with).
 		var partner: PlayerData = _fused_with.get(key, null)
-		if partner != null:
-			var more := partner.active_attack_ability() if slot == "attack" else partner.active_defend_ability()
-			if more.strip_edges() != "":
-				cell = cell + ";" + more
+		if partner != null and _partner_is_stronger(card, partner, slot):
+			cell = partner.active_attack_ability() if slot == "attack" else partner.active_defend_ability()
 		# A CELL MAY NAME SEVERAL ROWS, separated by semicolons, so one
 		# sentence with two halves ("+1 now. If this wins: ...") is two rows.
 		for piece in String(cell).split(";"):
@@ -1838,6 +1861,8 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 	buff.source_key = _k(source, source_is_enemy)
 
 	_buffs.append(buff)
+	if buff.card != null:
+		_flauros(source, buff.card, buff.side_is_enemy, buff)
 	log_lines.append("      %s: %s %+d (%s, %s)"
 		% [source.player_name, ability.effect, ability.value, ability.target, ability.scope])
 
@@ -2095,6 +2120,123 @@ func matches(card: PlayerData, side_is_enemy: bool, filter: String) -> bool:
 
 
 # =============================================================
+#  THE EMBLEMS' BASIC SIDES (round AE, phase C7)
+#
+#  Vassago, Glasya-Labolas and Caim are rows of Abilities.csv (EMB_...), like
+#  Gremory's. The four below are small systems of their own.
+# =============================================================
+
+## BELIAL: "A mine is created in each Zone (field, combat, exhaust - your
+## Q054). Each earth player that isn't in the PLAY MAKER sequence begins to
+## mine." Every earth card of yours on the FIELD or in the EXHAUST this round
+## is mining, and each of those two zones with a miner gives +1 Ore (Q055:
+## per mine). The combat zone's mine never has a miner - its cards are in the
+## sequence.
+func _belial_mines(side_is_enemy: bool) -> void:
+	if not has_emblem(side_is_enemy, "Belial"):
+		return
+	var worked := 0
+	var miner: PlayerData = null
+	for zone in [FIELD, EXHAUST]:
+		var any := false
+		for c in cards_in(side_is_enemy, zone):
+			if CardDatabase._normalise(c.active_element()) == "earth":
+				(_mining[side_is_enemy] as Dictionary)[_k(c, side_is_enemy)] = true
+				any = true
+				miner = c
+		if any:
+			worked += 1
+	if worked > 0:
+		var per := db.tune_int("belial_ore_per_mine", 1) if db != null else 1
+		_gain_ore(miner, side_is_enemy, worked * per)
+		_event("mine_worked", miner, side_is_enemy, {"amount": str(worked)})
+		log_lines.append("      Belial's mines: %d zone(s) worked, +%d Ore" % [worked, worked * per])
+
+
+## HAURES: "Replace your goalie with a massive rock unit. When your goalie
+## blocks a goal, drop ore counters and have a Tier IV earth player collect
+## them." A save gives `haures_ore_per_save` Ore, collected by your Tier IV
+## earth unit (so it counts for Haures's own Condition). The rock is also
+## harder to beat - see keeper_shift().
+func _haures_save(keeper_side: bool) -> void:
+	if not has_emblem(keeper_side, "Haures"):
+		return
+	var collector: PlayerData = null
+	for c in cards_in(keeper_side):
+		if c.get_tier_clean() == "IV" and CardDatabase._normalise(c.active_element()) == "earth":
+			collector = c
+			if _zone_for(c, keeper_side) == COMBAT:
+				break
+	var n := db.tune_int("haures_ore_per_save", 2) if db != null else 2
+	if collector == null or n <= 0:
+		return
+	_gain_ore(collector, keeper_side, n)
+	log_lines.append("      the rock keeper saves: %s collects %d Ore" % [collector.player_name, n])
+
+
+## FLAUROS: "When a fire unit alters the Attack or Defense of another fire
+## unit: give the unit with the changed stat +1 Attack during combat." A
+## fire card's buff landing on ANOTHER fire card of the same side brings +1
+## more with it, for that combat.
+func _flauros(source: PlayerData, card: PlayerData, card_is_enemy: bool, buff: Buff) -> void:
+	if source == null or card == null or source == card:
+		return
+	if buff.attack <= 0 and buff.defense <= 0:
+		return
+	var source_side := card_is_enemy
+	if not has_emblem(source_side, "Flauros"):
+		return
+	if CardDatabase._normalise(source.active_element()) != "fire" \
+			or CardDatabase._normalise(card.active_element()) != "fire":
+		return
+	var extra := Buff.new()
+	extra.scope = "duel"
+	extra.card = card
+	extra.side_is_enemy = card_is_enemy
+	extra.attack = 1
+	extra.defense = 1
+	extra.source_key = "flauros"
+	_buffs.append(extra)
+	_event("flauros_boost", card, card_is_enemy, {"by": source.player_name})
+	log_lines.append("      Flauros's Emblem: %s is +1 more" % card.player_name)
+
+
+## VASSAGO'S CONDITION: "4 Unkengeister in the exhaust zone at once". The
+## most of each class ever in a side's exhaust at once; a new high reports
+## how much it went up (event exhaust_peak, Stats.csv adds it up).
+func _exhaust_peaks() -> void:
+	for side in [false, true]:
+		var by_class: Dictionary = {}
+		for c in cards_in(side, EXHAUST):
+			var cls := c.active_unit_type()
+			by_class[cls] = int(by_class.get(cls, 0)) + 1
+		var peak: Dictionary = _exhaust_peak[side]
+		for cls in by_class:
+			var now := int(by_class[cls])
+			var was := int(peak.get(cls, 0))
+			if now > was:
+				peak[cls] = now
+				_event("exhaust_peak", null, side, {"class": cls, "amount": str(now - was)})
+
+
+## VALEFOR: the match tells the engine an earth unit picked up an ore counter
+## from the crater.
+func nugget_picked(card: PlayerData, side_is_enemy: bool) -> void:
+	nuggets_picked[side_is_enemy] = int(nuggets_picked[side_is_enemy]) + 1
+	_gain_ore(card, side_is_enemy, 1)
+
+
+## Who this card is up against in its tier this round (for a moment that has
+## no opponent of its own).
+func _facing(card: PlayerData, side_is_enemy: bool) -> PlayerData:
+	for thing in (_lineup.get(not side_is_enemy, []) as Array):
+		var c := thing as PlayerData
+		if c != null and c.get_tier_clean() == card.get_tier_clean():
+			return c
+	return null
+
+
+# =============================================================
 #  THE CLASS ENGINES (round AD, phase C6)
 #
 #  The things on the pitch the cards talk about: who TOUCHED the ball, the
@@ -2172,6 +2314,12 @@ func take_mid_swap() -> Dictionary:
 	return out
 
 
+func _partner_is_stronger(card: PlayerData, partner: PlayerData, slot: String) -> bool:
+	if slot == "defend":
+		return partner.get_defense_power() > card.get_defense_power()
+	return partner.get_attack_power() > card.get_attack_power()
+
+
 func fused_partner(card: PlayerData, side_is_enemy: bool) -> PlayerData:
 	return _fused_with.get(_k(card, side_is_enemy), null)
 
@@ -2246,6 +2394,7 @@ func _swap_mid_duel(card: PlayerData, side_is_enemy: bool, from_zone: String, sa
 	if at >= 0:
 		line[at] = best
 	_mid_swap = {"out": card, "in": best, "side": side_is_enemy}
+	_fire_for(best, side_is_enemy, "positionswap", _facing(best, side_is_enemy), not side_is_enemy)
 	_event("position_swap", best, side_is_enemy, {"out": card.player_name,
 		"same_element": "yes" if CardDatabase._normalise(best.active_element()) == CardDatabase._normalise(card.active_element()) else "no"})
 	log_lines.append("      %s swaps out - %s comes in from the %s" % [card.player_name, best.player_name,
@@ -2724,6 +2873,7 @@ func _land_buff(ability: AbilityData, card: PlayerData, card_is_enemy: bool, sou
 		_:
 			return
 	_buffs.append(buff)
+	_flauros(source, card, card_is_enemy, buff)
 	log_lines.append("      %s: %s %+d lands on %s" % [
 		source.player_name if source != null else "?", ability.effect, ability.value, card.player_name])
 

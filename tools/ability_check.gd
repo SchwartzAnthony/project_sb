@@ -535,6 +535,7 @@ func _check_emblems(db: CardDatabase) -> void:
 	_check_c4(db)
 	_check_c5(db)
 	_check_c6(db)
+	_check_c7(db)
 
 	# ---- ZEPAR: a water unit revealed becomes a Swan, and a Swan is +1 ----
 	var zepar := _badge("Zepar")
@@ -1066,3 +1067,121 @@ func _check_c6(db: CardDatabase) -> void:
 		_say(e.fused_partner(jonas, false) == partner and e.attack_power(jonas, false) >= 4 and (e.bench[false] as Array).is_empty(),
 			"Jonas FUSES with a Tier III fire unit from the bench: the higher power (Q056)",
 			"partner %s, power %d" % [e.fused_partner(jonas, false) != null, e.attack_power(jonas, false)])
+
+
+## ROUND AE (C7): the seven Emblem Basic sides built this round.
+func _check_c7(db: CardDatabase) -> void:
+	print("--- the Emblems' Basic sides (C7) ---")
+	var opp := _dummy("Opp", "I", 2, "Earth", "Normal")
+	# ---- Glasya-Labolas: an air unit that touched the ball is +1 ----
+	var glasya := _badge("Glasya-Labolas")
+	if glasya != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var air := _dummy("Breeze", "I", 1, "Air", "Unkengeister")
+		e.set_emblems(false, [glasya])
+		e.sync_field([air], [opp])
+		e.round_lineups([air], [opp])
+		e.begin_round()
+		e.set_touched(false, [air])
+		e.begin_duel(air, opp)
+		e.resolve_duel_abilities(air, false, opp)
+		_say(e.attack_power(air, false) == 2, "Glasya-Labolas's Emblem: an air unit that touched the ball is +1", "power %d" % e.attack_power(air, false))
+	# ---- Vassago: an air win makes the next air unit resolve earlier ----
+	var vassago := _badge("Vassago")
+	if vassago != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var a1 := _dummy("Gust", "I", 3, "Air", "Unkengeister")
+		var a2 := _dummy("Squall", "II", 1, "Air", "Unkengeister")
+		var o2 := _dummy("Opp2", "II", 1, "Earth", "Normal")
+		e.set_emblems(false, [vassago])
+		e.sync_field([a1, a2], [opp, o2])
+		e.round_lineups([a1, a2], [opp, o2])
+		e.begin_round()
+		e.begin_duel(a1, opp)
+		e.resolve_duel_abilities(a1, false, opp)
+		e.resolve_duel_outcome(a1, false, opp, true)
+		e.begin_duel(a2, o2)
+		_say(e.priority_mod(a2, false) == -1, "Vassago's Emblem: an air win gives the next air unit -1 priority", "mod %d" % e.priority_mod(a2, false))
+	# ---- Caim: an air unit swaps with an air unit -> the enemy is -1 ----
+	var caim := _badge("Caim")
+	var ralf := _find(db, "Ralf")
+	if caim != null and ralf != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var mate := _dummy("Mate", "I", 1, "Air", "Unkengeister")
+		var o := _dummy("OppI", "I", 3, "Earth", "Normal")
+		e.set_emblems(false, [caim])
+		e.sync_field([ralf, mate], [o])
+		e.round_lineups([ralf], [o])
+		e.begin_round()
+		e.begin_duel(ralf, o)
+		e.resolve_duel_abilities(ralf, false, o)
+		e.round_finished()
+		e.begin_round()
+		e.round_lineups([mate], [o])
+		e.do_exhaust_swap(ralf, mate, false)
+		e.begin_duel(ralf, o)
+		_say(e.defense_power(o, true) == 2, "Caim's Emblem: an air unit swaps in for an air unit - the enemy is -1", "enemy %d" % e.defense_power(o, true))
+	# ---- Belial: earth cards not playing mine; +1 Ore per worked zone ----
+	var belial := _badge("Belial")
+	if belial != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var digger := _dummy("Digger", "I", 1, "Earth", "Bergmännlein")
+		var resting := _dummy("Resting", "II", 1, "Earth", "Bergmännlein")
+		var player := _dummy("Player", "III", 2, "Earth", "Bergmännlein")
+		e.set_emblems(false, [belial])
+		e.sync_field([digger, resting, player], [opp])
+		e._move(resting, false, "exhaust")
+		e.begin_round()
+		e.round_lineups([player], [opp])
+		_say(e.pool(false, "ore") == 2 and e.mining_count(false) == 2,
+			"Belial's Emblem: a mine in the field zone and the exhaust zone - both worked, +2 Ore, 2 mining",
+			"Ore %d, mining %d" % [e.pool(false, "ore"), e.mining_count(false)])
+	# ---- Haures: a save gives Ore to the Tier IV earth unit; the rock is harder to beat ----
+	var haures := _badge("Haures")
+	if haures != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var four := _dummy("Boulder", "IV", 3, "Earth", "Bergmännlein")
+		e.set_emblems(false, [haures])
+		e.sync_field([four], [opp])
+		e.begin_round()
+		e.after_shot(true, false)
+		_say(e.pool(false, "ore") == 2 and e.keeper_shift(false) < 0.0,
+			"Haures's Emblem: the rock keeper saves - the Tier IV earth unit collects 2 Ore; he is harder to beat",
+			"Ore %d, shift %.0f" % [e.pool(false, "ore"), e.keeper_shift(false)])
+	# ---- Flauros: a fire unit buffing another fire unit gives +1 more ----
+	var flauros := _badge("Flauros")
+	if flauros != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var giver := _dummy("Giver", "I", 1, "Fire", "Rauhnacht-Feuergeister")
+		var taker := _dummy("Taker", "I", 2, "Fire", "Rauhnacht-Feuergeister")
+		var ab := AbilityData.new()
+		ab.id = "TEST_BUFF"
+		ab.effect = "addpower"
+		ab.value = 1
+		ab.scope = "duel"
+		e.set_emblems(false, [flauros])
+		e.sync_field([giver, taker], [opp])
+		e.begin_round()
+		e._land_buff(ab, taker, false, giver)
+		_say(e.attack_power(taker, false) == 4, "Flauros's Emblem: a fire unit's +1 on another fire unit brings +1 more", "power %d" % e.attack_power(taker, false))
+	# ---- Vassago's Condition: Unkengeister in the exhaust at once ----
+	var e5 := AbilityEngine.new(db)
+	e5.begin_match()
+	var ups: Array = []
+	for i in 3:
+		ups.append(_dummy("U%d" % i, "I", 1, "Air", "Unkengeister"))
+	e5.sync_field(ups, [opp])
+	e5.round_lineups(ups, [opp])
+	e5.begin_round()
+	e5.round_finished()
+	var peak := 0
+	for ev in e5.take_events():
+		if String(ev["event"]) == "exhaust_peak" and String((ev["facts"] as Dictionary).get("class", "")) == "Unkengeister":
+			peak += int(String((ev["facts"] as Dictionary).get("amount", "0")))
+	_say(peak == 3, "Vassago's Condition: three Unkengeister in the exhaust at once counts 3", "counted %d" % peak)

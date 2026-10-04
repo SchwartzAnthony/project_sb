@@ -500,6 +500,19 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("The Emblems' Basic sides (round AE, phase C7)", `
+    <p style="margin:0 0 10px"><b>All twelve Emblems' Basic sides play.</b> Next: the Ultimates (C8) - six of them I proposed, in the Ultimate Side column for you to edit.</p>
+    ${rows([
+      ["Vassago","an air win: your next air unit resolves earlier (EMB_VASSAGO_WIN)"],
+      ["Glasya-Labolas","an air unit that TOUCHED the ball is +1 (EMB_GLASYA_TOUCH)"],
+      ["Caim","an air unit swaps in for an air unit: the enemy is -1 (EMB_CAIM_SWAP, trigger position_swap)"],
+      ["Belial","mines in the field and exhaust zones: earth cards not playing mine, +1 Ore per zone"],
+      ["Valefor","a crater drops ore counters on your half; earth units pick them up"],
+      ["Haures","the rock keeper: 5% harder to beat, a save = 2 Ore for your Tier IV earth unit"],
+      ["Flauros","a fire unit's buff on another fire unit: +1 more"],
+      ["your answers","a fused card uses the STRONGER card's abilities · TOUCHED / MINING cards glow"],
+    ])}`);
+
   card("The class engines (round AD, phase C6)", `
     <p style="margin:0 0 10px"><b>All 228 class abilities work in a match.</b> Next: the Emblems' Basic sides (C7) and the Ultimates (C8).</p>
     ${rows([
@@ -565,7 +578,8 @@ function paintBook(){
       ["C4 · built","bending the duel"],
       ["C5 · built","the zones in action and the ask-after-pick Reveal"],
       ["C6 · built","mines, fusing, the ball, gravestones. <b>All 228 work</b>"],
-      ["C7 · C8","the Emblems' Basic Sides, then the Stars' Ultimates"],
+      ["C7 · built","the Emblems' Basic Sides - all twelve"],
+      ["C8","the Stars' Ultimates - next"],
     ])}
     <p style="margin:10px 0 0;color:var(--dim)"><b>The three commands:</b> <code>python3 tools/ability_audit.py</code> (read the cards) · <code>python3 tools/ability_rows.py</code> (wire what is built) · <code>ability_coverage.gd</code> (the meter).</p>`);
 

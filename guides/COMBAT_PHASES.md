@@ -337,15 +337,15 @@ unit" now WAITS for that card (it used to expire at the Tier I duel).
 - **The void (R07):** `swap_from_void` mid-duel; Nicole's swap from the
   exhaust mid-duel.
 
-### C7 — The Emblems' Basic Sides · 7 systems left · NEXT
+### C7 — The Emblems' Basic Sides · all 12 · ✅ BUILT IN ROUND AE
 
-Five were built early in C2 (Gremory, Zepar, Sallos, Belphegor, Buer). Left:
-Flauros (fused units - after C6), the Bergmännlein mines, crater and rock
-keeper (after C6), and the three Unkengeister rules. Plus the Turns On
-counters still on the placeholder (`rauhnacht_units_active` and the
-Bergmännlein / Unkengeister ones).
+Vassago, Glasya-Labolas, Caim as EMB_ rows (Caim needs the new
+`position_swap` trigger); Belial (mines in the field and exhaust zones),
+Valefor (the crater's ore counters), Haures (the rock keeper) and Flauros
+(fire buffs fire +1) as small systems in the engine / pitch_engines.gd. Every
+Turns On counter is wired to a real event. Six Ultimates proposed (Q100).
 
-### C8 — The Stars · 12 Front Sides + 15 Ultimates
+### C8 — The Stars · 12 Front Sides + 15 Ultimates · NEXT
 
 The Front Sides mostly ride on C1–C6 words. The Ultimates are systems like
 the Emblems. **Six Ultimates still need writing.**
