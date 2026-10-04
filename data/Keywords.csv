@@ -90,8 +90,8 @@ force_ability,ability effect,live,force_ability:attack / :defend / :other - the 
 negate_buff,ability effect,live,The target loses its power buffs this duel. LIVE since round AB (C4).,,Round AB (C4).
 give_priority,ability effect,live,The target resolves FIRST this duel. LIVE since round AB (C4).,,Round AB (C4).
 uncounterable,ability effect,live,"Cannot be negated or forced this duel (Herbert, Q053). LIVE since round AB (C4).",,Round AB (C4).
-send_to_exhaust,ability effect,planned,Moves the card to the exhaust zone outside its turn (ruling R14: Exile = Exhaust). PHASE C5.,,From the round Y audit - guides/COMBAT_PHASES.md.
-swap_from_exhaust,ability effect,planned,Swaps this card with one of the same tier and power from the exhaust (ruling R14). PHASE C5.,,From the round Y audit - guides/COMBAT_PHASES.md.
+send_to_exhaust,ability effect,live,Moves the card to the exhaust zone outside its turn (ruling R14: Exile = Exhaust). BUILT IN ROUND AC (C5).,,From the round Y audit - guides/COMBAT_PHASES.md.
+swap_from_exhaust,ability effect,live,"After the target's next duel it goes to the exhaust and a card of the same tier (the same power if there is one) comes back from it (Lothar). BUILT IN ROUND AC (C5). Nicole's ""if another unit is mining"" still waits for C6.",,From the round Y audit - guides/COMBAT_PHASES.md.
 fuse,ability effect,planned,Fuses this card with another. PHASE C6.,,From the round Y audit - guides/COMBAT_PHASES.md.
 gravestone,ability effect,planned,Puts a gravestone on the pitch. PHASE C6.,,From the round Y audit - guides/COMBAT_PHASES.md.
 cold_touch,ability effect,planned,Marks the ball with cold touch. PHASE C6.,,From the round Y audit - guides/COMBAT_PHASES.md.
@@ -112,3 +112,10 @@ set_power_from_token,ability effect,live,"The target fights with the power of a 
 power_from_count,ability effect,live,"power_from_count:victory / :enemy_exhaust_II / :field_objects - its power IS that number this duel. field_objects counts the different elements on the pitch (structures in C6), Value = the cap. LIVE since round AB (C4).",,Round AB (C4).
 remove_condition,ability effect,live,The target's If column is ignored this duel (Leon). LIVE since round AB (C4).,,Round AB (C4).
 token,ability target,live,"A token you own - you pick which when there are several (Sven, Ignaz). LIVE since round AB (C4).",,Round AB (C4).
+swap_in_tier,ability effect,live,The marker on an exhaust_swap row: this card can swap in from the exhaust for your card of its tier just before that duel (ruling R17). The game offers the swap; the other rows on the card say what it does once in.,"Ralf, Peter, Franz",ROUND AC (C5)
+exhaust_other_return,ability effect,live,"Another of your cards of its tier (still on the field) goes to the exhaust, and this one comes back to be played again this cycle. Nothing happens if there is no other card (""""if possible"""").","Jan, Silke",ROUND AC (C5)
+reveal_another,ability effect,live,"The next card you pick this round is revealed too, without asking.",Ingrid,ROUND AC (C5)
+reveal_from_exhaust,ability effect,live,Reveals a card from your exhaust (a fire one if there is one). An If of revealed_was:fire on the same card then asks what it was.,Flauros,ROUND AC (C5)
+double_attack,ability effect,live,The target fights its next duel with its PRINTED power doubled (max 5); buffs are added after (your Q051).,Lothar,ROUND AC (C5)
+swapped_was,ability condition,live,If column: the unit this card swapped with (from the exhaust) was this - swapped_was:air.,Franz,ROUND AC (C5)
+revealed_was,ability condition,live,If column: the card this one revealed from the exhaust was this - revealed_was:fire.,Flauros,ROUND AC (C5)

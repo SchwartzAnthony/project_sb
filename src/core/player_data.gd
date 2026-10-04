@@ -53,6 +53,9 @@ extends Resource
 @export var level: int = 0
 
 @export var artwork: Texture2D
+## ROUND AC: true when `artwork` is a borrowed stand-in (placeholder_art in
+## Tuning.csv) because this card has no drawing yet.
+var art_is_stand_in := false
 
 
 # =============================================================

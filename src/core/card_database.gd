@@ -115,7 +115,39 @@ func load_all() -> void:
 		if file_name.to_lower().ends_with(".csv"):
 			_load_csv(DATA_DIR + file_name, false)
 
+	_stand_in_art()
 	_report()
+
+
+## ROUND AC: A CARD WITH NO DRAWING YET STILL NEEDS A BODY ON THE PITCH.
+## Without one the unit was INVISIBLE in a match (only its line on the zone
+## map showed). Now a stand-in is borrowed until the real art arrives:
+##
+##   placeholder_art_<Unit Type>   e.g. placeholder_art_Lorelei
+##   placeholder_art               for every class without its own row
+##
+## Each is a list of files in assets/players/ separated by ";". A card always
+## gets the same one (picked from its name). The "artwork not found" note
+## stays in the list, so you still know which drawings are missing.
+func _stand_in_art() -> void:
+	var cache: Dictionary = {}
+	for card in players:
+		if card == null or card.artwork != null:
+			continue
+		var list := tune_text("placeholder_art_" + card.unit_type, "")
+		if list == "":
+			list = tune_text("placeholder_art", "")
+		if list == "":
+			continue
+		var files := list.split(";", false)
+		if files.is_empty():
+			continue
+		var pick := String(files[absi(card.player_name.hash()) % files.size()]).strip_edges()
+		if not cache.has(pick):
+			cache[pick] = _find_texture(pick, PLAYER_ART_DIRS)
+		if cache[pick] != null:
+			card.artwork = cache[pick]
+			card.art_is_stand_in = true
 
 
 func _load_csv(path: String, bands_only: bool = false) -> void:
@@ -742,9 +774,20 @@ func _report() -> void:
 		% [players.size(), goalie_data.size(), abilities.size(), anims.size(), tuning.size()])
 	if problems.is_empty():
 		return
+	# ROUND AC: a long list here flooded Godot's Output panel ("output
+	# overflow, print less text!"). Now: the first few lines, and the whole
+	# list in a text file you can open. `log_problem_lines` in Tuning.csv.
+	var show := int(tune_float("log_problem_lines", 6.0))
 	print("[CardDB] %d thing(s) need attention in your CSVs:" % problems.size())
-	for line in problems:
-		print("         - ", line)
+	for i in mini(show, problems.size()):
+		print("         - ", problems[i])
+	if problems.size() > show:
+		var path := "user://csv_problems.txt"
+		var f := FileAccess.open(path, FileAccess.WRITE)
+		if f != null:
+			f.store_string("\n".join(problems) + "\n")
+			f.close()
+		print("         ... and %d more - the full list is in %s" % [problems.size() - show, ProjectSettings.globalize_path(path)])
 
 
 # =============================================================

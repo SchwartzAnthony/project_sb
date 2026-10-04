@@ -488,6 +488,9 @@ func _add(state: GameState, kind: String, name_text: String, condition: String,
 		"key": lookup_key if lookup_key != "" else name_text,
 		"detail": detail,
 		"requires": condition,
+		# What "done" is tested against (round AC: the test environment
+		# satisfies this directly, so an achievement counts as earned).
+		"done_test": truth,
 		"done": done,
 		"fraction": 1.0 if done else bar,
 		"parts": parts,

@@ -42,7 +42,7 @@ OUT = os.path.join(DATA, "CardAbilities.csv")
 
 ## The phases the engine has finished. Each round adds the phase it built
 ## (C1 in round Y, C2 in round Z, C3 in round AA, C4 in round AB).
-BUILT_PHASES = ["C1", "C2", "C3", "C4"]
+BUILT_PHASES = ["C1", "C2", "C3", "C4", "C5"]
 
 COLUMNS = ["Ability ID", "Name", "Trigger", "Target", "Effect", "Value", "Scope", "Max", "If", "Cost", "Ask", "Notes"]
 SIDE_CODE = {"Attack": "A", "Defend": "D", "Star Front Side": "F"}

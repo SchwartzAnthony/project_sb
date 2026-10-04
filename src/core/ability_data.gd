@@ -174,6 +174,22 @@ const EFFECTS: Array[String] = [
 	"uncounterable",      # cannot be negated or forced this duel (Herbert)
 	"powerfromcount",     # power_from_count:victory - its power IS that number
 	"removecondition",    # its If is ignored this duel (Leon)
+	# ---- ROUND AC, PHASE C5: the zones in action ----
+	"swapintier",         # the marker on an `exhaust_swap` row: this card can be
+	                      # swapped in from the exhaust for your card of its tier,
+	                      # just before that duel (ruling R17). The swap itself is
+	                      # offered by the match; the other rows on the card are
+	                      # what it does once it is in.
+	"sendtoexhaust",      # the target goes to the exhaust zone now
+	"swapfromexhaust",    # after its next duel the target goes to the exhaust and a
+	                      # card of the same tier comes back from it (Lothar)
+	"exhaustotherreturn", # another of your cards of its tier goes to the exhaust and
+	                      # this one comes back to be played again (Jan, Silke)
+	"revealanother",      # your next card picked this round is revealed too (Ingrid)
+	"revealfromexhaust",  # reveal a card from your exhaust; `revealed_was:fire` in an
+	                      # If then asks what it was (Flauros)
+	"doubleattack",       # its PRINTED power doubled (capped) for that duel, buffs
+	                      # after (Lothar, Q051)
 ]
 
 const SCOPES: Array[String] = ["duel", "round", "cycle", "match"]
@@ -250,6 +266,8 @@ const CONDITIONS: Array[String] = [
 	"inexhaust", "infield", "incombat", "hastag",
 	"hascounter", "enemyhascounter", "hastoken", "tokensatleast", "isswan", "istoken",
 	"orethisround", "oreatleast", "element", "exhaustedthisround",
+	# ROUND AC (C5)
+	"swappedwas", "revealedwas",
 ]
 
 
@@ -449,6 +467,8 @@ func condition_words() -> String:
 			"oreatleast": said = "you have %s Ore" % arg
 			"element": said = "it is %s" % arg
 			"exhaustedthisround": said = "%s units went to the exhaust this round" % arg.replace(":", " ")
+			"swappedwas": said = "the unit it swapped with was %s" % arg
+			"revealedwas": said = "the card it revealed was %s" % arg
 			_: said = String(term["raw"])
 		if bool(term["not"]):
 			said = "NOT " + said
@@ -474,6 +494,7 @@ func _when_words() -> String:
 		"onloseduel": return "When it loses its duel"
 		"flip": return "When the cards are turned over"
 		"passive": return "Always"
+		"exhaustswap": return "From the exhaust, before a duel of its tier: it can swap in, and then"
 	# A trigger from AbilityTriggers.csv that has no sentence written for it
 	# yet reads as itself rather than as nothing.
 	return "On %s" % trigger
@@ -518,6 +539,13 @@ func _what_words() -> String:
 		"uncounterable": return "%s cannot be countered" % who
 		"powerfromcount": return "%s's power = its %s count" % [who, effect_arg.replace("_", " ")]
 		"removecondition": return "%s ignores its If" % who
+		"swapintier": return "it swaps places with your unit about to duel"
+		"sendtoexhaust": return "%s goes to the exhaust" % who
+		"swapfromexhaust": return "after %s's next duel it goes to the exhaust and a unit of its tier comes back" % who
+		"exhaustotherreturn": return "another of your units of its tier goes to the exhaust and this one comes back to be played"
+		"revealanother": return "the next card you pick this round is revealed too"
+		"revealfromexhaust": return "a card from your exhaust is revealed"
+		"doubleattack": return "%s's printed power is doubled (max 5) for that duel" % who
 	return "%s %+d to %s" % [effect, value, who]
 
 
@@ -573,11 +601,18 @@ func _how_long_words() -> String:
 	# A keeper's stamina has no "for this duel" - it is simply taken.
 	if effect in ["drainstamina", "restorestamina"]:
 		return ""
+	# C5: these say their own timing.
+	if effect in ["swapintier", "sendtoexhaust", "swapfromexhaust", "exhaustotherreturn",
+			"revealanother", "revealfromexhaust", "doubleattack"]:
+		return ""
 	# Round AB (Q027): what "for the round" really means for these two.
 	if scope == "round" and effect == "goaliechance":
 		return ", until the next shot"
 	if scope == "round" and effect == "foulchance":
 		return ", for the next fouls"
+	# "itself, in its next duel" already says when.
+	if scope in ["", "duel"] and not parse_next(target).is_empty():
+		return ""
 	match scope:
 		"duel": return ", for this duel"
 		"round": return ", for the round"

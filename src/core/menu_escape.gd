@@ -101,6 +101,10 @@ static func install(on: Node) -> MenuEscape:
 	# See controller_focus.gd.
 	ControllerFocus.install(on)
 
+	# ROUND AC: the orange TEST ENVIRONMENT strip, on every screen, while the
+	# test save is the one in use. See test_environment.gd.
+	TestEnvironment.put_banner(on)
+
 	# THE LANGUAGE. Loaded once per run from Language.csv; every screen then
 	# reads its words through Loc.text(). See localisation.gd.
 	Loc.install()

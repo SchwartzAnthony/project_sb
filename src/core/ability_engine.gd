@@ -283,6 +283,21 @@ var _last_switch := {}
 
 ## key -> true once that card has played a duel this match (card_played).
 var _played_once: Dictionary = {}
+## ---- ROUND AC, PHASE C5: the zones in action ----
+const C5_EFFECTS: Array[String] = ["swapintier", "sendtoexhaust", "swapfromexhaust",
+	"exhaustotherreturn", "revealanother", "revealfromexhaust", "doubleattack"]
+## Cards C5 moved between zones, for the match to show: [{card, side, zone}].
+var _zone_moves: Array = []
+## key(card that swapped in) -> the card it replaced (swapped_was).
+var _swapped_out: Dictionary = {}
+## key(card) -> the card it revealed from the exhaust (revealed_was).
+var _revealed_from: Dictionary = {}
+## Ingrid: the next card this side picks is revealed too.
+var _reveal_next := {false: false, true: false}
+## Lothar: key -> true, swap with the exhaust after its duel.
+var _swap_after_duel: Dictionary = {}
+## Exhaust swaps done for the coming duel, fired after begin_duel.
+var _swaps_in: Array = []
 ## Tuning: does the AI save its Ore for its most expensive card (Q018)?
 var ai_saves_ore := true
 ## Tuning: does a goal send every Rose token home (ruling, round AA)?
@@ -389,6 +404,14 @@ func begin_duel(player_card: PlayerData = null, enemy_card: PlayerData = null) -
 		_consume_pending(player_card, false)
 	if enemy_card != null:
 		_consume_pending(enemy_card, true)
+	# ROUND AC (C5): a card that has just swapped in from the exhaust does
+	# what the rest of its `exhaust_swap` rows say - now, for this duel.
+	var swaps := _swaps_in.duplicate()
+	_swaps_in.clear()
+	for sw in swaps:
+		var side := bool(sw["side"])
+		var facing: PlayerData = enemy_card if not side else player_card
+		_fire_for(sw["in"], side, "exhaustswap", facing, not side)
 
 
 # =============================================================
@@ -670,7 +693,12 @@ func _effect_words(ability: AbilityData) -> String:
 		"restorestamina": return "+%d to your keeper" % ability.value
 		"addcounter": return "%+d %s counter" % [ability.value, ability.effect_arg]
 		"makeswan": return "becomes a Swan"
-	return ability.effect
+		"doubleattack": return "printed power doubled"
+		"swapfromexhaust": return "then swaps with the exhaust"
+		"setpowerfromtoken": return "fights with a token's power"
+		"changepriority": return "%+d priority" % ability.value
+		"givepriority": return "resolves first"
+	return ability.effect.replace("_", " ")
 
 
 ## What a card carries this match, in a few words for the draft card:
@@ -1125,6 +1153,13 @@ func answer(ask: Dictionary, choice) -> void:
 			_make_token(String(ask["token"]), chosen, side, ask["card"])
 		"side":
 			set_side_up(ask["card"], side, String(choice))
+		"choose":
+			var picked := choice as PlayerData
+			if picked == null or not (ask["options"] as Array).has(picked):
+				picked = ask["default"]
+			match String(ask.get("action", "")):
+				"exhaust_other":
+					_do_exhaust_other(ask["card"], picked, side)
 
 
 ## What happens when nobody answers: yes, the engine's own pick, the side it
@@ -1133,7 +1168,7 @@ func answer_default(ask: Dictionary) -> void:
 	match String(ask["kind"]):
 		"confirm":
 			answer(ask, true)
-		"pick":
+		"pick", "choose":
 			answer(ask, ask["default"])
 		"side":
 			answer(ask, String(ask["default"]))
@@ -1435,6 +1470,13 @@ func resolve_duel_outcome(winner: PlayerData, winner_is_enemy: bool,
 	_last_result[loser_is_enemy] = "lost"
 	# This duel's yes / no answers are spent.
 	_consent.clear()
+	# ROUND AC (C5): Lothar's token - its doubled duel is done, now it goes
+	# to the exhaust and one of the same tier comes back.
+	for pair in [[winner, winner_is_enemy], [loser, loser_is_enemy]]:
+		var c := pair[0] as PlayerData
+		if c != null and _swap_after_duel.has(_k(c, pair[1])):
+			_swap_after_duel.erase(_k(c, pair[1]))
+			_swap_with_exhaust(c, pair[1])
 
 
 ## Moments where BOTH of a card's abilities are looked at: nothing about
@@ -1664,6 +1706,13 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 			_make_token(kind, victim, source_is_enemy, source)
 		return
 
+	# --- C5 (round AC): effects about the SOURCE itself happen now, whatever
+	# the Target column says (it is `next_self` for a reveal or a card going
+	# to the exhaust, which would otherwise make them wait for its duel).
+	if ability.effect in ["swapintier", "revealanother", "revealfromexhaust", "exhaustotherreturn"]:
+		_zone_effect(ability, source, source_is_enemy, source, source_is_enemy)
+		return
+
 	# --- "THE NEXT ONE" waits for its card (round Y) ---
 	var next := AbilityData.parse_next(ability.target)
 	if not next.is_empty():
@@ -1694,6 +1743,12 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 	if ability.effect == "addshotpower":
 		_shot_bonus[source_is_enemy] = int(_shot_bonus.get(source_is_enemy, 0)) + ability.value
 		log_lines.append("      %s: %+d shot power" % [source.player_name, ability.value])
+		return
+
+	# --- The zones in action (round AC, C5) ---
+	if C5_EFFECTS.has(ability.effect):
+		for pair in _cards_hit(ability.target, source, source_is_enemy, opponent, opponent_is_enemy):
+			_zone_effect(ability, pair[0], pair[1], source, source_is_enemy)
 		return
 
 	# --- Bending the duel (round AB, C4) ---
@@ -1844,13 +1899,20 @@ func _land_on(ability: AbilityData, card: PlayerData, card_is_enemy: bool,
 			(_kinds[key] as Dictionary)["swan"] = true
 			_event("swan_made", card, card_is_enemy)
 			log_lines.append("      %s becomes a Swan" % card.player_name)
+			# ROUND AC (C5): JAKOB. "Reveal: if this unit is a swan ..." - the
+			# Swan is made by the Emblem in the same reveal (often after you
+			# say yes), so his own reveal rows that ask `is_swan` are read
+			# again now that the answer has changed.
+			_reread_reveal_for_swan(card, card_is_enemy)
 		"drainstamina", "restorestamina", "addshotpower", "addcardchance", \
 		"goaliechance", "goalieshield", "removeshields", "foulheat", "foulchance", "foulcoinflip":
 			_land_side_effect(ability, source, source_is_enemy)
 		"gainore":
 			_gain_ore(source, source_is_enemy, ability.value)
 		_:
-			if C4_EFFECTS.has(ability.effect):
+			if C5_EFFECTS.has(ability.effect):
+				_zone_effect(ability, card, card_is_enemy, source, source_is_enemy)
+			elif C4_EFFECTS.has(ability.effect):
 				_bend(ability, card, card_is_enemy, source, source_is_enemy, null, not card_is_enemy)
 			else:
 				_land_buff(ability, card, card_is_enemy, source)
@@ -1977,6 +2039,244 @@ func matches(card: PlayerData, side_is_enemy: bool, filter: String) -> bool:
 
 
 # =============================================================
+#  THE ZONES IN ACTION (round AC, phase C5)
+#
+#  Cards moving between the field, combat and the exhaust because an ability
+#  says so - and the swap from the exhaust before a duel (ruling R17). Every
+#  move made here is also written to _zone_moves, which the match reads with
+#  take_zone_moves() to dim or light the bodies on the pitch.
+# =============================================================
+
+func _c5_move(card: PlayerData, side_is_enemy: bool, to: String) -> void:
+	if card == null:
+		return
+	_move(card, side_is_enemy, to)
+	_zone_moves.append({"card": card, "side": side_is_enemy, "zone": to})
+
+
+## What C5 moved since the last call, for the match.
+func take_zone_moves() -> Array:
+	var out := _zone_moves.duplicate()
+	_zone_moves.clear()
+	return out
+
+
+## Ingrid: is this side's next pick to be revealed too? Read (and spent) by
+## the match when the next card is picked.
+func take_reveal_next(side_is_enemy: bool) -> bool:
+	var yes := bool(_reveal_next.get(side_is_enemy, false))
+	_reveal_next[side_is_enemy] = false
+	return yes
+
+
+func _zone_effect(ability: AbilityData, card: PlayerData, card_is_enemy: bool,
+		source: PlayerData, source_is_enemy: bool) -> void:
+	match ability.effect:
+		"swapintier":
+			# The swap was offered and made by the match (exhaust_swap_options
+			# / do_exhaust_swap). This row is the marker - and its Max.
+			log_lines.append("      %s swaps in from the exhaust" % source.player_name)
+		"sendtoexhaust":
+			if card != null and _zone_for(card, card_is_enemy) != EXHAUST:
+				_c5_move(card, card_is_enemy, EXHAUST)
+				log_lines.append("      %s goes to the exhaust" % card.player_name)
+		"revealanother":
+			_reveal_next[source_is_enemy] = true
+			log_lines.append("      %s: the next card picked this round is revealed too" % source.player_name)
+		"revealfromexhaust":
+			var shown := _pick_from_exhaust(source_is_enemy, source)
+			if shown == null:
+				log_lines.append("      %s: nothing in the exhaust to reveal" % source.player_name)
+				return
+			_revealed_from[_k(source, source_is_enemy)] = shown
+			_event("revealed_from_exhaust", shown, source_is_enemy, {"by": source.player_name})
+			log_lines.append("      %s reveals %s from the exhaust (%s)" % [source.player_name,
+				shown.player_name, shown.active_element()])
+		"exhaustotherreturn":
+			_exhaust_other_return(source, source_is_enemy)
+		"doubleattack":
+			if card == null:
+				return
+			var cap := max_power
+			var buff := Buff.new()
+			buff.scope = "duel"
+			buff.card = card
+			buff.side_is_enemy = card_is_enemy
+			buff.source_key = _k(source, source_is_enemy) if source != null else ""
+			# PRINTED power doubled, capped; buffs are added after (Q051).
+			buff.attack = mini(card.get_attack_power() * 2, cap) - card.get_attack_power()
+			buff.defense = mini(card.get_defense_power() * 2, cap) - card.get_defense_power()
+			_buffs.append(buff)
+			log_lines.append("      %s: %s's printed power is doubled for this duel" % [
+				source.player_name if source != null else "?", card.player_name])
+		"swapfromexhaust":
+			if card == null:
+				return
+			_swap_after_duel[_k(card, card_is_enemy)] = true
+			log_lines.append("      %s will swap with the exhaust after this duel" % card.player_name)
+
+
+## Flauros: a fire card if there is one (that is the one worth showing),
+## else the strongest.
+func _pick_from_exhaust(side_is_enemy: bool, source: PlayerData) -> PlayerData:
+	var best: PlayerData = null
+	var best_score := -999
+	for c in cards_in(side_is_enemy, EXHAUST):
+		if c == source:
+			continue
+		var score := c.get_attack_power() + (10 if CardDatabase._normalise(c.active_element()) == "fire" else 0)
+		if score > best_score:
+			best_score = score
+			best = c
+	return best
+
+
+## Jan, Silke: "send a different Tier IV to the exhaust and return this to
+## the stack (if possible)". Another of your cards of its tier still on the
+## FIELD goes to the exhaust - the weakest, or the one you pick - and this
+## one comes back to be played again this cycle.
+func _exhaust_other_return(source: PlayerData, side_is_enemy: bool) -> void:
+	if source == null:
+		return
+	var options := _others_on_field(source, side_is_enemy)
+	if options.is_empty():
+		log_lines.append("      %s: no other Tier %s on the field - nothing happens" % [
+			source.player_name, source.get_tier_clean()])
+		return
+	if bool(interactive.get(side_is_enemy, false)) and options.size() > 1:
+		_queue_ask({"kind": "choose", "side": side_is_enemy, "card": source,
+			"action": "exhaust_other", "options": options, "default": options[0],
+			"title": "WHO GOES TO THE EXHAUST?",
+			"text": "%s comes back to be played again - one of your other Tier %s units goes to the exhaust in its place. Which one?" % [
+				source.player_name, source.get_tier_clean()]})
+		return
+	_do_exhaust_other(source, options[0], side_is_enemy)
+
+
+func _others_on_field(source: PlayerData, side_is_enemy: bool) -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	for c in cards_in(side_is_enemy, FIELD):
+		if c == source or c.is_star() or c.is_token() or c.get_tier_clean() != source.get_tier_clean():
+			continue
+		out.append(c)
+	out.sort_custom(func(a: PlayerData, b: PlayerData) -> bool:
+		return a.get_attack_power() < b.get_attack_power())
+	return out
+
+
+func _do_exhaust_other(source: PlayerData, other: PlayerData, side_is_enemy: bool) -> void:
+	_c5_move(other, side_is_enemy, EXHAUST)
+	_c5_move(source, side_is_enemy, FIELD)
+	log_lines.append("      %s goes to the exhaust; %s comes back to be played" % [
+		other.player_name, source.player_name])
+
+
+## Lothar's token after its duel: to the exhaust, and a card of the same tier
+## (the same power if there is one, else the strongest) back to the field.
+func _swap_with_exhaust(card: PlayerData, side_is_enemy: bool) -> void:
+	var best: PlayerData = null
+	var best_score := -999
+	for c in cards_in(side_is_enemy, EXHAUST):
+		if c == card or c.get_tier_clean() != card.get_tier_clean() or _held.has(_k(c, side_is_enemy)):
+			continue
+		var score := c.get_attack_power() + (20 if c.get_attack_power() == card.get_attack_power() else 0)
+		if score > best_score:
+			best_score = score
+			best = c
+	if best == null:
+		log_lines.append("      %s: nothing of its tier in the exhaust to swap with" % card.player_name)
+		return
+	_c5_move(card, side_is_enemy, EXHAUST)
+	_c5_move(best, side_is_enemy, FIELD)
+	log_lines.append("      %s goes to the exhaust; %s comes back from it" % [card.player_name, best.player_name])
+
+
+## ============ R17: THE SWAP FROM THE EXHAUST ============
+##
+## Which of this side's exhaust cards could swap in for `current` in the duel
+## about to start: one with an `exhaust_swap` row whose effect is
+## swap_in_tier, of the same tier, whose Max (once per cycle) is not spent.
+func exhaust_swap_options(side_is_enemy: bool, current: PlayerData) -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	if current == null:
+		return out
+	for c in cards_in(side_is_enemy, EXHAUST):
+		if c.get_tier_clean() != current.get_tier_clean() or _held.has(_k(c, side_is_enemy)):
+			continue
+		var marker := _swap_marker(c, side_is_enemy)
+		if marker == null:
+			continue
+		if not _has_uses_left(marker, c, side_is_enemy):
+			continue
+		out.append(c)
+	return out
+
+
+## The swap_in_tier row on the side of this card that is UP (F2: the chosen
+## side, else the side it played last).
+func _swap_marker(card: PlayerData, side_is_enemy: bool) -> AbilityData:
+	var key := _k(card, side_is_enemy)
+	var slot := String(_role.get(key, "attack"))
+	var up: Dictionary = _side_up.get(key, {})
+	if not up.is_empty() and int(up.get("cycle", -1)) == cycle_number:
+		slot = String(up["slot"])
+	var slots: Array[String] = ["attack", "defend"]
+	if role_side:
+		slots = [slot]
+	for one in slots:
+		var cell := card.active_attack_ability() if one == "attack" else card.active_defend_ability()
+		for piece in String(cell).split(";"):
+			var a := db.get_ability(String(piece).strip_edges())
+			if a != null and a.trigger == "exhaustswap" and a.effect == "swapintier":
+				return a
+	return null
+
+
+func _has_uses_left(ability: AbilityData, card: PlayerData, side_is_enemy: bool) -> bool:
+	if ability.max_uses <= 0:
+		return true
+	var use_key := (("side%d" % int(side_is_enemy)) if ability.max_shared else _k(card, side_is_enemy)) + "|" + ability.id
+	if ability.max_per == "cycle":
+		use_key += "|cycle%d" % cycle_number
+	elif ability.max_per == "round":
+		use_key += "|round%d" % round_number
+	return int(_uses.get(use_key, 0)) < ability.max_uses
+
+
+## Make the swap: `card_in` leaves the exhaust for this duel, `card_out` goes
+## to the exhaust in its place. Its `exhaust_swap` rows fire in begin_duel(),
+## so call this BEFORE begin_duel() for the duel.
+func do_exhaust_swap(card_in: PlayerData, card_out: PlayerData, side_is_enemy: bool) -> void:
+	if card_in == null or card_out == null:
+		return
+	var role := String(_role.get(_k(card_out, side_is_enemy), "attack"))
+	_c5_move(card_out, side_is_enemy, EXHAUST)
+	_c5_move(card_in, side_is_enemy, COMBAT)
+	_role[_k(card_in, side_is_enemy)] = role
+	_swapped_out[_k(card_in, side_is_enemy)] = card_out
+	var line: Array = _lineup.get(side_is_enemy, [])
+	var at := line.find(card_out)
+	if at >= 0:
+		line[at] = card_in
+	_swaps_in.append({"in": card_in, "out": card_out, "side": side_is_enemy})
+	_event("exhaust_swap", card_in, side_is_enemy, {"out": card_out.player_name})
+	log_lines.append("      %s swaps in from the exhaust for %s" % [card_in.player_name, card_out.player_name])
+
+
+## Jakob: read his own `is_swan` reveal rows again once he has become one.
+func _reread_reveal_for_swan(card: PlayerData, side_is_enemy: bool) -> void:
+	for cell in [card.active_attack_ability(), card.active_defend_ability()]:
+		for piece in String(cell).split(";"):
+			var a := db.get_ability(String(piece).strip_edges())
+			if a == null or a.trigger != "reveal" or not a.condition.contains("is_swan"):
+				continue
+			var fk := _k(card, side_is_enemy)
+			if _fired.has(fk) and (_fired[fk] as Array).has(a.id):
+				continue
+			_apply_one(a, card, side_is_enemy, null, not side_is_enemy)
+
+
+# =============================================================
 #  CONDITIONS AND "NEXT" (round Y, C1 - round Z, C2)
 # =============================================================
 
@@ -2044,6 +2344,10 @@ func _condition_ok(ability: AbilityData, source: PlayerData, source_is_enemy: bo
 				ok = pool(source_is_enemy, "ore") >= maxi(1, int(arg))
 			"element":
 				ok = CardDatabase._normalise(source.active_element()) == CardDatabase._normalise(arg)
+			"swappedwas":
+				ok = matches(_swapped_out.get(me, null) as PlayerData, source_is_enemy, arg)
+			"revealedwas":
+				ok = matches(_revealed_from.get(me, null) as PlayerData, source_is_enemy, arg)
 			"exhaustedthisround":
 				var bits := arg.split(":", true, 1)
 				var need := maxi(1, int(String(bits[0])))

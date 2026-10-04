@@ -186,6 +186,10 @@ func _add_show_button(box: Vector2, forced: bool = false) -> void:
 
 	_show = Button.new()
 	_show.text = db.tune_text("draft_reveal_words", "SHOW")
+	# ROUND AC (C5, Q043): with `reveal_after_pick` the question comes AFTER
+	# you pick, so this is only a tag saying "this card has a Reveal" - it
+	# does not catch the click, the card does.
+	var tag_only := db.tune_bool("reveal_after_pick", true)
 	_show.tooltip_text = "Play this card face up.\nThey see it before they answer it — and its reveal ability goes off.\nChoosing the card normally keeps it hidden and the ability asleep."
 	_show.focus_mode = Control.FOCUS_NONE
 	# ALONG THE BOTTOM, not in a corner: both corners are taken (the flask on
@@ -207,9 +211,13 @@ func _add_show_button(box: Vector2, forced: bool = false) -> void:
 		MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
 	_show.add_theme_stylebox_override("pressed", MenuSupport.panel_style(
 		MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
-	_show.pressed.connect(func() -> void:
-		if current_data != null and not locked:
-			reveal_wanted.emit(current_data))
+	if tag_only:
+		_show.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_show.tooltip_text = "This card has a Reveal. Pick it, and you will be asked whether to reveal it."
+	else:
+		_show.pressed.connect(func() -> void:
+			if current_data != null and not locked:
+				reveal_wanted.emit(current_data))
 	add_child(_show)
 
 
@@ -217,12 +225,17 @@ func _add_show_button(box: Vector2, forced: bool = false) -> void:
 ## actually live? A trigger still marked `planned` in AbilityTriggers.csv does
 ## not put a button on a card.
 func _has_reveal(db: CardDatabase) -> bool:
-	if current_data == null:
+	return card_can_reveal(current_data, db)
+
+
+## ROUND AC: the same question for any card (main_scene asks it after a pick).
+static func card_can_reveal(card: PlayerData, db: CardDatabase) -> bool:
+	if card == null or db == null:
 		return false
 	if not AbilityData.trigger_is_live("reveal"):
 		return false
-	for cell in [current_data.active_attack_ability(),
-			current_data.active_defend_ability()]:
+	for cell in [card.active_attack_ability(),
+			card.active_defend_ability()]:
 		# A cell may name several rows, semicolons between (round Y).
 		for ability_id in String(cell).split(";"):
 			var ability := db.get_ability(String(ability_id).strip_edges())

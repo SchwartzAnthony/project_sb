@@ -45,6 +45,13 @@ func _initialize() -> void:
 	var seed_text := OS.get_environment("SOAK_SEED")
 	seed(int(seed_text) if seed_text.is_valid_int() else 20260922)
 	await process_frame
+	# Round AC: SOAK_TEST_ENV=1 plays inside the TEST COMPLETE ENVIRONMENT
+	# (its own save, everything unlocked) instead of the plain save.
+	# SOAK_START=keeper_claim forces every PLAY MAKER start (PlayMakerStarts.csv).
+	PlayMakerStarts.force_start = OS.get_environment("SOAK_START")
+	if OS.get_environment("SOAK_TEST_ENV") == "1":
+		TestEnvironment.enter(self)
+		print("[soak] inside the TEST ENVIRONMENT")
 	_pick_a_team()
 	MatchMode.choose(self, "friendly")
 	change_scene_to_file("res://src/formations/main_scene.tscn")

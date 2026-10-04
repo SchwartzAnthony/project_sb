@@ -519,6 +519,33 @@ a pitch of twenty-two people shifting their weight reads as a game about to
 start. **The only things that stop the pitch are the ones the player chose:**
 picking a card, swapping a Star, the pause menu, and the START button.
 
+### How a PLAY MAKER starts — `data/PlayMakerStarts.csv` (round AC)
+
+Your Q060: **all five**, picked by where the ball is when play stops.
+
+| Start | when | who restarts | who decides the round |
+|---|---|---|---|
+| `throw_in` | near a touchline (also from the middle) | the other side, from outside the line | the thrower picks ATTACK / DEFEND (as before) |
+| `corner` | a defender near his own goal line gives it away | the attackers, from the corner flag | they attack (Q061) |
+| `goal_kick` | an attacker near the goal he attacks puts it over | the defenders, from the six-yard box | they attack |
+| `keeper_claim` | an attacker loses it near goal | the keeper, from his hands | his side attacks |
+| `drop_ball` | play stops in the middle | the referee drops it | the old clash: the winner attacks |
+| `storm_gust` | rare, anywhere | the wind blows the ball somewhere; a random side gets there | its player picks ATTACK / DEFEND |
+
+- **Zone** `wide` (within `play_maker_wide_band` of a touchline), `middle`
+  or `any`. **Chance** is a weight; every possible row's weights are added up
+  and one is drawn. 0 switches a row off.
+- **Restart**: `chooses`, `attacks`, `race`, `coin`.
+- **Call** is the big word ("CORNER"), **Caption** the window's line
+  (`{loser}`, `{thrower}`, `{keeper}`).
+- **The beats are still OutOfBounds.csv**: its `say` row shows `{call}` and
+  its `window` row `{caption}`.
+- Waiting play keeps the ball in quarters 2 and 3, so it is never near a goal
+  when play stops - which is why the corner, goal kick and keeper rows say
+  `any` and happen where that player is standing (Questions Q081).
+- To watch one: `SHOT_START=corner` on tools/combat_shot.gd (or
+  `SOAK_START=corner` on tools/match_soak.gd).
+
 ### Why they were shaking, and what fixed it
 
 A player is pulled by several things at once — the place they are going, the
@@ -1631,6 +1658,83 @@ unit +1" now waits for that card - before, it ran out at the Tier I duel.
 power"** (Q001); Sven: "Change the enemy's base power to the power of a token
 you own during combat" (Q002); Kerstin: "...by 50% this turn (once per round)"
 (Q030).
+
+### Combat abilities — round AC, phase C5: the zones in action
+
+**168 of 228 class abilities work in a match now** (74%).
+
+**The Reveal is asked AFTER you pick** (your Q043 and Q044). You pick a card,
+hidden, like every pick. If it has a Reveal (its own, or an Emblem's - Zepar's
+Swan) a window asks **REVEAL IT? / KEEP IT HIDDEN**. They pick blind. Then
+both reveals are shown and go off together, the lower power first (the
+attacker on a tie). The REVEAL on a card is only a tag now: it tells you the
+card has one. `reveal_after_pick` false puts the old SHOW button back.
+AUTO reveals (`auto_reveal`); tell it to ask you in the AUTO menu.
+
+**The exhaust lights up** (ruling R17). Before a duel, a card in your exhaust
+that says "While in Exhaust: Swap this Unit with another Tier I" lights up the
+**exhaust zone panel** (left of the screen) and you are asked: swap it in, or
+not. It fights the duel; the card it replaced goes to the exhaust. Once per
+cycle. Only asked when there is such a card (`exhaust_swaps`,
+`auto_exhaust_swap`, `ai_exhaust_swap`).
+
+| new in Abilities.csv | what it does |
+|---|---|
+| trigger `exhaust_swap` | the moment a card swaps in from the exhaust, just before its duel |
+| `swap_in_tier` | the marker on an `exhaust_swap` row: this card CAN swap in. Its Max (`1/cycle`) is what limits the swap. Every other row on that side with the same trigger is what it does once it is in (Ralf +1, Peter -1 to the enemy or 1 off their keeper) |
+| `send_to_exhaust` | the target goes to the exhaust now |
+| `swap_from_exhaust` | after the target's next duel it goes to the exhaust and a card of its tier comes back (Lothar's token) |
+| `exhaust_other_return` | another of your cards of its tier still on the field goes to the exhaust, and this one comes back to be played again (Jan, Silke) - you pick which if there are two |
+| `reveal_another` | the next card you pick this round is revealed too (Ingrid) |
+| `reveal_from_exhaust` | a card from your exhaust is revealed - a fire one if you have one (Flauros) |
+| `double_attack` | the target fights its next duel with its PRINTED power doubled (max 5), buffs after (Q051) |
+| If words | `swapped_was:air` (what it swapped with), `revealed_was:fire` (what it revealed) |
+
+Jakob ("Reveal: if this unit is a swan, send it to the exhaust and create a
+Swan unit token with this unit's power") works too: the Swan token plays his
+duel in his place.
+
+### Round AC: your testing notes
+
+| you said | now |
+|---|---|
+| "output overflow, print less text!" | the CSV check printed every missing drawing (132 lines) at once. Now the first `log_problem_lines` (6) and the full list in **csv_problems.txt** (the path is printed). The Emblem line prints only when it changes. The debugger allows more text per second (project.godot) |
+| hovering on the edge instead of getting open | a **"don't stand still" clock**: a unit with no job that stays near one spot for `linger_seconds` (2.5) picks a fresh spot in its own quarter - the one with the most space - for `linger_fresh_seconds`. Nobody is SENT closer than `edge_keep` (10% of the pitch height) to a touchline; they can still chase the ball there |
+| draw me the zones | press **Z** in a match (`zones` in Keys.csv): the four quarters named for both sides, the dashed `edge_keep` lines, a line from every unit to where it is heading, a yellow ring on a fresh spot and a white ring that fills up = its clock. The camera shows the whole pitch while it is on. `zone_map_on_start` true starts every match with it |
+| the Emblem missing was the plain enemy team | a team with no Star Emblem shows a grey **NO EMBLEM** tile (`emblem_show_none`) |
+| a Test Complete Environment | **Dev screen > TEST COMPLETE ENVIRONMENT** - see "The test environment" below |
+| more ways to start a PLAY MAKER | **data/PlayMakerStarts.csv** - see section 7, "How a PLAY MAKER starts" |
+
+**Invisible units, found while drawing the zones.** A card whose Artwork file
+does not exist was drawn with no body at all - only its name plate. Every
+class unit is like that until the art pass. They now **borrow a stand-in**
+(`placeholder_art`, `placeholder_art_Lorelei`,
+`placeholder_art_Rauhnacht-Feuergeister` in Tuning.csv: files in
+assets/players, separated by `;`). The "artwork not found" list still names
+every drawing that is missing.
+
+**Their Emblem race (Q063, Q064).** The enemy's Emblems now count, turn over
+and get one Ultimate per game, the same as yours (`emblem_ai_races`). Their
+THEIRS tile shows their pips, and "THEIR X - ULTIMATE" is announced.
+
+### The test environment (round AC)
+
+**Dev screen (the ⚙ Dev button on the base) > TEST COMPLETE ENVIRONMENT.**
+
+- **It is a different save.** `user://test_environment/` - your real save is
+  never opened or written. While you are in it an **orange strip** across the
+  top of every screen says TEST ENVIRONMENT.
+- **Every press builds it fresh:** every unlock, talent, building, brew and
+  achievement; every card signed; `test_env_coins` coins and as many talent
+  points; every Star Hall node filled with its own Star; **one ready team per
+  class**, called "TEST · Lorelei" and so on. The season is at match 1.
+- **Build your own teams on the fly** next to them - Team Build has every
+  class, locked or hidden ones too.
+- **Leave:** Dev screen > **Back to my real save**. Choosing a slot on the
+  title screen also leaves it.
+- **Claude tests in it too**: `SOAK_TEST_ENV=1` on tools/match_soak.gd, and
+  `tools/test_env_check.gd` checks that it builds and that the real save was
+  not touched.
 
 ### Round AB: your testing notes
 
@@ -3301,7 +3405,7 @@ palette colour and whether the game reads that name — and what is sitting in
 
 ---
 
-## 9. `data/Tuning.csv` — 381 numbers
+## 9. `data/Tuning.csv` — 402 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -4830,6 +4934,12 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | make a card's ability work from its text | change the text, run `python3 tools/ability_audit.py` and `python3 tools/ability_rows.py`, then `ability_coverage.gd` |
 | make a card switch to defender, force or negate | the C4 effects in Abilities.csv - or write the sentence on the card and run the two scripts |
 | run many matches and see the numbers | `python3 tools/balance_report.py` |
+| test with everything unlocked and every class ready | Dev screen > **TEST COMPLETE ENVIRONMENT** (a separate save) |
+| see the zones and where every unit is heading | **Z** in a match |
+| change how often a corner / drop ball / storm gust starts a round | `data/PlayMakerStarts.csv`, the `Chance` column |
+| make units stand still less (or more) | `linger_seconds`, `edge_keep` in Tuning.csv |
+| make a card swap in from the exhaust before a duel | an `exhaust_swap` row with Effect `swap_in_tier` (and a Max), plus what it does once in - or write "While in Exhaust: Swap this Unit with another Tier I ..." and run the two scripts |
+| turn the Reveal question off (back to the SHOW button) | `reveal_after_pick` false |
 | ask the player before an ability goes off | the `Ask` column of Abilities.csv: `yes` |
 | answer my questions | `data/Questions.csv`, the `Your Answer` column |
 | change what a Swan or a Rose token is | `EMB_ZEPAR_WINGS` / `EMB_GREMORY_ROSE` in Abilities.csv; `swans_count_as_tokens` in Tuning.csv |

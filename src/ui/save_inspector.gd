@@ -80,6 +80,7 @@ func _ready() -> void:
 	_wipe = _grab("WipeButton") as Button
 
 	_build_add_row()
+	_build_test_row()
 
 	if _home != null:
 		_home.pressed.connect(func() -> void:
@@ -302,6 +303,46 @@ func _build_add_row() -> void:
 			state.set_count(text, amount)
 			_after("%s = %d" % [text, amount]))
 		_add_row.add_child(count_it)
+
+
+## ROUND AC: THE TEST COMPLETE ENVIRONMENT. A row of its own at the very top
+## of this screen, coloured orange like the strip it switches on, so it is
+## never mistaken for the buttons that change your REAL save below it.
+func _build_test_row() -> void:
+	var anchor := _jump_heading if _jump_heading != null else _title
+	if anchor == null or anchor.get_parent() == null:
+		return
+	var holder := anchor.get_parent()
+	var row := HBoxContainer.new()
+	row.name = "TestRow"
+	row.add_theme_constant_override("separation", 12)
+	var inside := TestEnvironment.active(get_tree())
+	var go := _small_button("TEST COMPLETE ENVIRONMENT" if not inside else "REBUILD THE TEST ENVIRONMENT", 300.0)
+	go.add_theme_color_override("font_color", Color(0.98, 0.62, 0.2))
+	go.tooltip_text = "A separate save with everything unlocked, every card, and one ready team per class.\nYour real save is not touched."
+	go.pressed.connect(func() -> void:
+		var lines := TestEnvironment.enter(get_tree())
+		print("[inspector] test environment: %s" % "; ".join(lines))
+		ScenePaths.go_to(get_tree(), ScenePaths.BASE))
+	row.add_child(go)
+	if inside:
+		var back := _small_button("Back to my real save", 200.0)
+		back.pressed.connect(func() -> void:
+			TestEnvironment.leave(get_tree())
+			ScenePaths.go_to(get_tree(), ScenePaths.BASE))
+		row.add_child(back)
+	var note := _quiet("You are in the TEST save. Nothing here touches your real one." if inside
+		else "Opens a separate test save. Your real save is left exactly as it is.")
+	note.autowrap_mode = TextServer.AUTOWRAP_OFF
+	note.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(note)
+	row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	for b in row.get_children():
+		if b is Button:
+			(b as Button).custom_minimum_size.y = 40.0
+			(b as Button).size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	holder.add_child(row)
+	holder.move_child(row, anchor.get_index())
 
 
 func _typed() -> String:

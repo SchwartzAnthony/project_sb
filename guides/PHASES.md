@@ -298,7 +298,8 @@ to life. C1 shipped in round Y (33 abilities work, up from 1); **C2 — counters
 tokens, Ore, swans and five Emblem Basic sides — in round Z (103 work)**.
 **C3 — the keeper and the referee — in round AA (122 work)**, with the
 question windows you asked for. **C4 — bending the duel — in round AB (156 work).** **C5 — the zones and
-the choice screens — is next.** Every open question lives in
+the choice screens — in round AC (168 work).** **C6 — the class engines:
+mines, fusing, the ball, gravestones — is next** (Questions Q090, Q091). Every open question lives in
 `data/Questions.csv`.
 
 On hold until the combat abilities are done, at your request:

@@ -353,6 +353,12 @@ func clear_round_flags() -> void:
 #             standing on your post watching him run past you
 # =============================================================
 
+## ROUND AC: the "don't stand still" clock - see main_scene _keep_moving().
+var linger_anchor := Vector2.INF
+var linger_time := 0.0
+var fresh_spot := Vector2.INF
+var fresh_left := 0.0
+
 enum Role { HOLD, MARK, OPEN, PRESS, BALL, RECEIVE, DRIBBLE, SURGE, RECOVER }
 
 ## Set every frame by main_scene. Left at HOLD when nothing is coordinating

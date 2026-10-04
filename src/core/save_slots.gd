@@ -78,6 +78,8 @@ static func choose(tree: SceneTree, slot: int) -> void:
 		return
 	slot = clampi(slot, 1, count())
 	tree.set_meta(CHOSEN, slot)
+	# Choosing a real slot always leaves the test environment (round AC).
+	tree.set_meta(TestEnvironment.META, false)
 
 	if slot > 1:
 		DirAccess.make_dir_recursive_absolute(

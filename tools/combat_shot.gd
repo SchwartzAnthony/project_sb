@@ -11,9 +11,15 @@ extends SceneTree
 #          --resolution 1920x1080 --script res://tools/combat_shot.gd
 #
 #  Pictures: cs_000.png ... in the user:// folder. A tool; nothing loads it.
+#
+#  ROUND AC: SHOT_ZONES=1 turns the zone map on (zm_000.png ...), and every
+#  run prints how much of the time units spent hugging a touchline.
+#  SHOT_COUNT=20 takes fewer pictures.
 # =============================================================
 
-const SHOTS := 80
+var SHOTS := 80
+var _edge_samples := 0
+var _edge_hugging := 0
 const STUCK_SECONDS := 150.0
 const GIVE_UP_SECONDS := 900.0
 var _last_minute := 0.0
@@ -69,6 +75,20 @@ func _initialize() -> void:
 	if scene.has_method("_on_auto_pick_changed"):
 		scene.call("_on_auto_pick_changed", true)
 	GameSpeed.set_speed(1.0)
+	var zones_on := OS.get_environment("SHOT_ZONES") == "1"
+	# SHOT_START=corner (or goal_kick, keeper_claim, drop_ball, storm_gust)
+	# makes every PLAY MAKER start that way, to photograph it.
+	PlayMakerStarts.force_start = OS.get_environment("SHOT_START")
+	var prefix := "zm" if zones_on else "cs"
+	if PlayMakerStarts.force_start != "":
+		prefix = "pm_" + PlayMakerStarts.force_start
+	if OS.get_environment("SHOT_COUNT") != "":
+		SHOTS = int(OS.get_environment("SHOT_COUNT"))
+	if zones_on:
+		var overlay = scene.get("zone_overlay")
+		if overlay != null:
+			overlay.set("detail", true)
+			overlay.set("visible", true)
 	var shots := 0
 
 	var started := Time.get_ticks_msec()
@@ -80,10 +100,14 @@ func _initialize() -> void:
 		await create_timer(0.5, true, false, true).timeout
 		var ran := float(Time.get_ticks_msec() - started) / 1000.0
 		if shots < SHOTS and int(ran * 2.0) % 3 == 0 and is_instance_valid(scene):
-			root.get_texture().get_image().save_png("user://cs_%03d.png" % shots)
+			root.get_texture().get_image().save_png("user://%s_%03d.png" % [prefix, shots])
 			shots += 1
+		if is_instance_valid(scene) and int(scene.get("current_state")) == 1:
+			_count_edge(scene)
 		if shots >= SHOTS:
 			print("[combat shot] %d pictures in %s" % [shots, ProjectSettings.globalize_path("user://")])
+			print("[combat shot] units within 8%% of a touchline: %.1f%% of the time (%d samples)" % [
+				100.0 * float(_edge_hugging) / maxf(1.0, float(_edge_samples)), _edge_samples])
 			quit(0)
 			return
 
@@ -146,6 +170,19 @@ func _initialize() -> void:
 	else:
 		print("[soak] the match did NOT reach full time.")
 		quit(1)
+
+
+func _count_edge(scene: Node) -> void:
+	var play: Rect2 = scene.call("get_play_rect")
+	var units: Array = scene.call("_all_units")
+	for u in units:
+		var unit := u as Node2D
+		if unit == null:
+			continue
+		_edge_samples += 1
+		var y := unit.global_position.y
+		if y < play.position.y + play.size.y * 0.08 or y > play.end.y - play.size.y * 0.08:
+			_edge_hugging += 1
 
 
 func _find(node: Node, wanted: String):

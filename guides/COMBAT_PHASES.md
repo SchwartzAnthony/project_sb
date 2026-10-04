@@ -129,8 +129,8 @@ C8. "Not written" means the six Ultimates you haven't written yet.
 **Running total of class abilities that work in a match** (the meter,
 `ability_coverage.gd`, counts the 228 Attack/Defend sides of the set cards and
 Stars' Front Sides): 1 before C1 → 33 after C1 → 103 after C2 (round Z) →
-122 after C3 (round AA) → **156 after C4 (round AB, 68%)** → about 168 after
-C5 → 228 after C6. C7 and C8
+122 after C3 (round AA) → 156 after C4 (round AB) → **168 after C5 (round
+AC, 74%)** → 228 after C6. C7 and C8
 are the Emblems and Ultimates on top.
 
 ### Your rulings (answered in round Z) and what they changed
@@ -305,16 +305,25 @@ is printed power, buffs after (Q051, C5); swaps use printed power (Q052);
 before a card resolves moves it. And from the exhaust, "a Tier IV water
 unit" now WAITS for that card (it used to expire at the Tier I duel).
 
-### C5 — Zones in action, and the choices · +12 · NEXT
+### C5 — Zones in action, and the choices · 168 working · ✅ BUILT IN ROUND AC
 
-No exile zone any more (R14). What is left is the **interactive** part, and
-it is mostly screens: the exhaust zone **lighting up** when a card in it can
-act, with the swap before the duel (R17); the **ask-after-pick Reveal** flow
-(F3); **choosing which side** a card outside a duel uses (F2); swapping from
-the exhaust or the void (R07); "send a different Tier IV to the exhaust and
-return this to the stack"; revealing and copying from the exhaust (Vassago).
+- **The ask-after-pick Reveal (F3, Q043, Q044):** pick, then "Reveal it?";
+  both sides blind; both reveals shown together, lower power first.
+- **The exhaust lights up (R17):** before a duel, a card in the exhaust with
+  an `exhaust_swap` / `swap_in_tier` row can swap in for the card about to
+  duel - you are asked, the AI always swaps. Once per cycle. The card it
+  replaces goes to the exhaust. Ralf, Peter, Franz (`swapped_was:air`).
+- **Zone moves:** `send_to_exhaust`, `swap_from_exhaust` (Lothar's token,
+  after its doubled duel), `exhaust_other_return` (Jan, Silke: you pick which
+  other Tier IV goes), `reveal_another` (Ingrid: your next pick is revealed),
+  `reveal_from_exhaust` (Flauros, `revealed_was:fire`), `double_attack`
+  (printed power doubled, max 5, buffs after - Q051). Jakob's Swan token.
+- **F2 (which side counts outside a duel)** was already a choice since round
+  AA (one window per round, Q037).
+- Still for later: the void (R07, Marie - "if this touched the ball", C6) and
+  copying from the exhaust (Vassago's Emblem, C7).
 
-### C6 — The class engines · +60
+### C6 — The class engines · +60 · NEXT
 
 The things on the pitch: **mines and mining** (Bergmännlein), **fusing**
 (Feuergeister), **touching the ball, cold touch, gravestones** (Unkengeister).

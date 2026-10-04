@@ -40,6 +40,9 @@ extends CanvasLayer
 var squad: Array[PlayerData] = []
 ## ROUND AB (your answer Q011): the OTHER side's Star(s) on the pitch, so you
 ## can see the Emblem you are playing against. `emblem_show_enemy` in Tuning.
+var _last_said := ""
+## ROUND AC: the enemy's own race (main_scene.enemy_race).
+var enemy_state: GameState = null
 var enemy_squad: Array[PlayerData] = []
 var state: GameState = null
 
@@ -108,21 +111,32 @@ func refresh() -> void:
 
 	var db := CardDatabase.get_db()
 	if db == null or db.tune_bool("emblem_show_enemy", true):
-		for badge in EmblemBook.on_the_field(enemy_squad):
+		var theirs := EmblemBook.on_the_field(enemy_squad)
+		for badge in theirs:
 			_row.add_child(_enemy_tile(badge))
+		if theirs.is_empty() and (db == null or db.tune_bool("emblem_show_none", true)):
+			_row.add_child(_none_tile(true))
 	var shown := 0
 	for badge in EmblemBook.on_the_field(squad):
 		var tile := _tile(badge)
 		_row.add_child(tile)
 		_tiles[CardDatabase._normalise(badge.id)] = tile
 		shown += 1
+	# ROUND AC (Q062): a team with no Star (or a class with no Emblems) shows
+	# an empty tile that SAYS so, instead of nothing at all.
+	if shown == 0 and (db == null or db.tune_bool("emblem_show_none", true)):
+		_row.add_child(_none_tile(false))
 	# Said in the Output panel, so "I do not see the Emblem" can be checked
 	# against what the game thinks it is showing.
 	var names: PackedStringArray = PackedStringArray()
 	for card in squad:
 		if card != null:
 			names.append(card.player_name)
-	print("[emblems] the bar shows %d Emblem(s) for %s" % [shown, ", ".join(names) if not names.is_empty() else "NO STAR"])
+	# Only when it changes - every refresh flooded the Output panel.
+	var said := "[emblems] the bar shows %d Emblem(s) for %s" % [shown, ", ".join(names) if not names.is_empty() else "NO STAR"]
+	if said != _last_said:
+		_last_said = said
+		print(said)
 
 
 func _tile(badge: ClassBook.Emblem) -> Control:
@@ -250,7 +264,41 @@ func _enemy_tile(badge: ClassBook.Emblem) -> Control:
 	var heading := MenuSupport.heading("THEIRS · " + badge.id.to_upper(), 14, MenuSupport.COLOUR_DEFEND)
 	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	words.add_child(heading)
+	# ROUND AC (Q064): their progress pips, from their own race.
+	if enemy_state != null:
+		if EmblemBook.is_blocked(badge, enemy_state):
+			words.add_child(_small("X  ULTIMATE BLOCKED - one per game", Color(0.95, 0.35, 0.3)))
+		elif EmblemBook.is_up(badge, enemy_state):
+			words.add_child(_small("★ ULTIMATE - their Star has turned over", MenuSupport.COLOUR_ATTACK))
+		else:
+			var p := EmblemBook.progress(badge, enemy_state)
+			words.add_child(_pips(int(p["have"]), int(p["need"]), badge))
 	words.add_child(_small(badge.basic))
+	return frame
+
+
+## ROUND AC (Q062): "no Emblem" - a team with no Star on the pitch, like the
+## plain enemy team, says so instead of leaving a gap.
+func _none_tile(is_theirs: bool) -> Control:
+	var frame := PanelContainer.new()
+	var box := MenuSupport.styled("panel", "", MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_TEXT_DIM)
+	frame.add_theme_stylebox_override("panel", box)
+	frame.modulate = Color(1, 1, 1, 0.75)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var pad := MarginContainer.new()
+	for side in ["margin_left", "margin_right"]:
+		pad.add_theme_constant_override(side, 10)
+	for side in ["margin_top", "margin_bottom"]:
+		pad.add_theme_constant_override(side, 7)
+	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(pad)
+	var words := VBoxContainer.new()
+	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pad.add_child(words)
+	var heading := MenuSupport.heading(("THEIRS · " if is_theirs else "") + "NO EMBLEM", 14, MenuSupport.COLOUR_TEXT_DIM)
+	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	words.add_child(heading)
+	words.add_child(_small("this team has no Star with an Emblem"))
 	return frame
 
 

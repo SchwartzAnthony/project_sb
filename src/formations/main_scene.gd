@@ -88,6 +88,8 @@ var next_event_index: int = 0
 
 var units_container: Node2D
 var goalies: Dictionary = {}   # false -> player goalie, true -> enemy goalie
+## ROUND AC: the enemy's Emblem race (counters and flips), never saved.
+var enemy_race: GameState = null
 var ball: Ball = null
 var rps: Node = null
 var duel_arena: DuelArena = null
@@ -199,6 +201,12 @@ var open_spread: float = 230.0
 var open_break: float = 120.0
 ## And how far toward its own touchline. Using the width of the pitch.
 var open_width: float = 150.0
+## ROUND AC - "don't stand in one spot too long". See _keep_moving().
+var linger_seconds: float = 2.5
+var linger_radius: float = 60.0
+var linger_fresh_seconds: float = 2.2
+var linger_candidates: int = 8
+var edge_keep: float = 0.10
 
 # --- Moving about with nothing to do ---
 ## How far a waiting player wanders from its slot, in pixels.
@@ -675,6 +683,15 @@ func _physics_process(delta: float) -> void:
 	_assign_roles()
 
 
+## ROUND AC: Z (the `zones` row in Keys.csv) switches the zone map on and off.
+func _unhandled_key_input(event: InputEvent) -> void:
+	if GameKeys.pressed(event, "zones") and zone_overlay != null:
+		zone_overlay.detail = not zone_overlay.detail
+		zone_overlay.visible = zone_overlay.detail or zones_enabled
+		zone_overlay.queue_redraw()
+		get_viewport().set_input_as_handled()
+
+
 func _assign_roles() -> void:
 	if ball == null or zones == null:
 		return
@@ -715,7 +732,7 @@ func _assign_roles() -> void:
 					and unit.global_position.distance_to(unit.home_position) <= slack:
 				unit.restart_settled = true
 			if unit.restart_settled:
-				unit.set_role(PlayerUnit.Role.HOLD, _drift_point(unit), unit.walk_speed)
+				unit.set_role(PlayerUnit.Role.HOLD, _keep_moving(unit, _drift_point(unit)), unit.walk_speed)
 			else:
 				unit.set_role(PlayerUnit.Role.HOLD, unit.home_position,
 					unit.walk_speed * restart_walk_boost)
@@ -791,14 +808,14 @@ func _assign_roles() -> void:
 			continue
 
 		if side < 0:
-			unit.set_role(PlayerUnit.Role.HOLD, _drift_point(unit), unit.walk_speed)
+			unit.set_role(PlayerUnit.Role.HOLD, _keep_moving(unit, _drift_point(unit)), unit.walk_speed)
 		elif side != unit_side:
 			if pressing.has(unit):
 				unit.set_role(PlayerUnit.Role.PRESS, focus, press_speed)
 			else:
 				unit.set_role(PlayerUnit.Role.MARK, _mark_point(unit), unit.walk_speed * 1.5)
 		else:
-			unit.set_role(PlayerUnit.Role.OPEN, _open_point(unit), unit.walk_speed * 1.6)
+			unit.set_role(PlayerUnit.Role.OPEN, _keep_moving(unit, _open_point(unit)), unit.walk_speed * 1.6)
 
 
 ## Who charges the ball. Everyone defending whose own quarter the ball is in,
@@ -1016,6 +1033,107 @@ func _never_level(spot: Vector2, man: Vector2, side: float) -> Vector2:
 ## every target was clamped into a narrow band and the only offset here was 45
 ## pixels forward. A side that never uses the width of the pitch plays every
 ## move through the middle, which is exactly what it looked like.
+## ============ DON'T STAND IN ONE SPOT TOO LONG  (round AC) ============
+##
+## "They are hovering on the edge of the field even though they should be
+## trying to be open for a pass ... have a counter go down for how long a
+## unit stays around a certain spot (within their zone)."
+##
+## That is exactly this. Every unit with no job (showing for a pass, or
+## waiting) has a little clock:
+##
+##   - while it stays within `linger_radius` pixels of the same spot, the
+##     clock runs;
+##   - after `linger_seconds` it picks a FRESH SPOT inside its own zone (the
+##     roam band you can see with the Z key), away from the touchlines, away
+##     from opponents and team-mates, and goes there for
+##     `linger_fresh_seconds`; then the clock starts again.
+##
+## On top of that no spot it is sent to is ever closer than `edge_keep` (a
+## fraction of the pitch height) to a touchline - which is what kept wingers
+## parked on the line. 0 switches that off.
+func _keep_moving(unit: PlayerUnit, spot: Vector2) -> Vector2:
+	var play := get_play_rect()
+	var dt := get_physics_process_delta_time()
+	# The clock.
+	if unit.linger_anchor == Vector2.INF \
+			or unit.global_position.distance_to(unit.linger_anchor) > linger_radius:
+		unit.linger_anchor = unit.global_position
+		unit.linger_time = 0.0
+	else:
+		unit.linger_time += dt
+	if unit.fresh_left > 0.0:
+		unit.fresh_left -= dt
+	if linger_seconds > 0.0 and unit.linger_time >= linger_seconds:
+		unit.fresh_spot = _fresh_spot(unit)
+		unit.fresh_left = linger_fresh_seconds
+		unit.linger_time = 0.0
+		unit.linger_anchor = unit.global_position
+	if unit.fresh_left > 0.0 and unit.fresh_spot != Vector2.INF:
+		spot = unit.fresh_spot
+	return _off_the_line(spot, play, unit)
+
+
+## Keeps a point `edge_keep` of the pitch height away from both touchlines.
+## A point past the line is not just put ON it (that lined everybody up on
+## the dashed line instead of the touchline) - each unit lands its own little
+## way further in, so the wide men are spread out, not queued.
+func _off_the_line(spot: Vector2, play: Rect2, unit: PlayerUnit = null) -> Vector2:
+	if edge_keep <= 0.0 or play.size.y <= 0.0:
+		return spot
+	var keep := play.size.y * edge_keep
+	var extra := 0.0
+	if unit != null:
+		extra = keep * (0.3 + 0.9 * float(int(unit.get_instance_id()) % 97) / 97.0)
+	if spot.y < play.position.y + keep:
+		spot.y = play.position.y + keep + extra
+	elif spot.y > play.end.y - keep:
+		spot.y = play.end.y - keep - extra
+	return spot
+
+
+## A few random points inside the unit's own roam band; the one with the most
+## space around it (opponents count double) and that is not where it already
+## is. Deterministic per unit so two soaks with one seed play the same.
+func _fresh_spot(unit: PlayerUnit) -> Vector2:
+	var play := get_play_rect()
+	var tier := "I"
+	if unit.data != null:
+		tier = unit.data.get_tier_clean()
+	var band := zones.zone_for(tier, unit.is_enemy)
+	var keep := play.size.y * maxf(edge_keep, 0.0)
+	var top := maxf(band.position.y, play.position.y + keep)
+	var bottom := minf(band.end.y, play.end.y - keep)
+	if bottom <= top:
+		top = play.position.y
+		bottom = play.end.y
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(unit.get_instance_id()) + int(_anim_clock * 10.0)
+	var best := unit.home_position
+	var best_score := -INF
+	var others := _all_units()
+	for _i in maxi(1, linger_candidates):
+		var p := Vector2(rng.randf_range(band.position.x, band.end.x), rng.randf_range(top, bottom))
+		var score := 0.0
+		var nearest_foe := INF
+		var nearest_mate := INF
+		for o in others:
+			if o == unit:
+				continue
+			var d := o.global_position.distance_to(p)
+			if o.is_enemy == unit.is_enemy:
+				nearest_mate = minf(nearest_mate, d)
+			else:
+				nearest_foe = minf(nearest_foe, d)
+		score += minf(nearest_foe, 600.0) * 2.0 + minf(nearest_mate, 400.0)
+		# Somewhere NEW: points near where it is stuck score less.
+		score += minf(p.distance_to(unit.global_position), 300.0) * 0.5
+		if score > best_score:
+			best_score = score
+			best = p
+	return best
+
+
 func _open_point(unit: PlayerUnit) -> Vector2:
 	var nearest_foe: PlayerUnit = null
 	var best := INF
@@ -1475,6 +1593,11 @@ func _apply_match_tuning() -> void:
 	open_spread = db.tune_float("open_spread", open_spread)
 	open_break = db.tune_float("open_break", open_break)
 	open_width = db.tune_float("open_width", open_width)
+	linger_seconds = db.tune_float("linger_seconds", linger_seconds)
+	linger_radius = db.tune_float("linger_radius", linger_radius)
+	linger_fresh_seconds = db.tune_float("linger_fresh_seconds", linger_fresh_seconds)
+	linger_candidates = int(db.tune_float("linger_candidates", float(linger_candidates)))
+	edge_keep = db.tune_float("edge_keep", edge_keep)
 	drift_reach = db.tune_float("drift_reach", drift_reach)
 	drift_pace = db.tune_float("drift_pace", drift_pace)
 	drift_updown = db.tune_float("drift_updown", drift_updown)
@@ -1593,7 +1716,9 @@ func _drive_camera() -> void:
 
 	# Anything that is not live play gets the whole pitch: the draft, the
 	# whistle, full time. You need to see both teams to choose a card.
-	if current_state != MatchState.PLAYING or _freeze_depth > 0 or ball == null:
+	# ROUND AC: the zone map shows the whole pitch, or it shows nothing useful.
+	var map_on := zone_overlay != null and zone_overlay.detail
+	if map_on or current_state != MatchState.PLAYING or _freeze_depth > 0 or ball == null:
 		camera.look_wide()
 		return
 
@@ -3191,6 +3316,10 @@ func _lock_geometry() -> void:
 
 	if zone_overlay != null:
 		zone_overlay.visible = zones_enabled
+		zone_overlay.units_source = _all_units
+		zone_overlay.edge_keep = db.tune_float("edge_keep", edge_keep)
+		zone_overlay.linger_seconds = db.tune_float("linger_seconds", linger_seconds)
+		zone_overlay.detail = db.tune_bool("zone_map_on_start", false)
 		zone_overlay.setup(zones,
 			db.tune_float("zone_tint_alpha", 0.07),
 			db.tune_float("zone_tint_alpha_draft", 0.20))
@@ -3391,7 +3520,7 @@ func trigger_playmaker_event() -> void:
 	# WHOEVER TAKES THE THROW CHOOSES. That is the whole of what the coin
 	# used to do, moved onto a thing that happens in a football match.
 	player_attacks_this_round = await _ask_the_thrower()
-	print("  Throw-in: %s." % ("you attack" if player_attacks_this_round else "they attack"))
+	print("  %s: %s." % [String(_start.get("call", "Throw-in")), "you attack" if player_attacks_this_round else "they attack"])
 	await _say_which_way_round()
 
 	draft_phases.assign(ALL_TIERS)
@@ -4361,6 +4490,11 @@ func _clear_the_table() -> void:
 
 
 func _on_card_selected(selected_data: PlayerData) -> void:
+	# One pick at a time: the REVEAL question below waits for an answer, and a
+	# second click in that moment must not pick twice.
+	if _pick_in_progress:
+		return
+	_pick_in_progress = true
 	AudioDirector.fire(get_tree(), "card_picked", _facts_for_card(selected_data), state)
 	if card_stats != null:
 		card_stats.hide()
@@ -4373,10 +4507,215 @@ func _on_card_selected(selected_data: PlayerData) -> void:
 		"StarChoice":
 			_resolve_star_rotation(selected_data)
 		_:
+			# ROUND AC (C5, your Q043 + Q044): pick first, THEN "Reveal it?",
+			# both sides blind, then both reveals are shown together.
+			var reveal_mine := false
+			# Ingrid (C5): "reveal another unit card" - this one is revealed
+			# without asking.
+			if abilities != null and abilities.take_reveal_next(false):
+				reveal_mine = true
+				print("[reveal] %s is revealed too (Ingrid's Reveal)." % selected_data.player_name)
+			elif _reveal_after_pick() and _can_reveal(selected_data):
+				reveal_mine = await _ask_reveal(selected_data)
+			_their_pending_reveal = null
 			_resolve_tier_pick(phase, selected_data)
+			if _reveal_after_pick():
+				await _show_both_reveals(phase, selected_data if reveal_mine else null, _their_pending_reveal)
 
+	_pick_in_progress = false
 	current_phase_index += 1
 	start_next_draft_phase()
+
+
+## ============ C5: THE REVEAL IS ASKED AFTER YOU PICK ============
+##
+## "Show is reveal and reveal is the actual method I would like to use"
+## (Q043), and "both decide blind, then both shown" (Q044).
+##
+##   1. you pick a card - hidden, like every pick;
+##   2. if it has a Reveal (its own, or an Emblem's), you are asked:
+##      REVEAL IT? / KEEP IT HIDDEN;
+##   3. they pick, not knowing what you did;
+##   4. both reveals are shown and go off together - the lower power first
+##      (the ordinary priority rule), the attacker first on a tie;
+##   5. the next tier.
+##
+## `reveal_after_pick` FALSE in Tuning.csv puts the old SHOW button back.
+## AUTO answers the question unless you ticked "Ask me anyway" for it in the
+## AUTO menu; `auto_reveal` is what AUTO answers.
+var _pick_in_progress := false
+var _their_pending_reveal: PlayerData = null
+
+
+func _reveal_after_pick() -> bool:
+	return db.tune_bool("reveal_after_pick", true)
+
+
+func _can_reveal(data: PlayerData) -> bool:
+	if data == null:
+		return false
+	if PlayerCardUI.card_can_reveal(data, db):
+		return true
+	return abilities != null and abilities.emblem_reveal_for(data, false)
+
+
+func _ask_reveal(data: PlayerData) -> bool:
+	if _auto_covers("reveal"):
+		return db.tune_bool("auto_reveal", true)
+	var what := _reveal_words(data)
+	var picked := await ChoiceWindow.ask(self, "REVEAL IT?",
+		"%s has a Reveal:\n%s\n\nRevealing shows the card to them - but they have already picked, blind." % [data.player_name, what],
+		["Reveal it", "Keep it hidden"] as Array[String])
+	return picked == 0
+
+
+func _reveal_words(data: PlayerData) -> String:
+	var lines: Array[String] = []
+	for cell in [data.active_attack_ability(), data.active_defend_ability()]:
+		for id_text in String(cell).split(";"):
+			var a := db.get_ability(String(id_text).strip_edges())
+			if a != null and a.trigger == "reveal" and not lines.has(a.plain()):
+				lines.append(a.plain())
+	if lines.is_empty():
+		lines.append("an Emblem on the field gives it a Reveal.")
+	return "\n".join(lines)
+
+
+## ============ C5 / R17: THE SWAP FROM THE EXHAUST ============
+##
+## "During combat, the Exhaust Zone should light up (if cards can be used),
+##  and before the combat begins the player has the option to trigger the
+##  effect ... the active player is sent to the exhaust and the exhausted goes
+##  to the active combat ... only interrupt if a player has some action."
+##
+## Returns [mine, theirs] - the cards that will actually duel.
+func _offer_exhaust_swaps(mine: PlayerData, theirs: PlayerData) -> Array:
+	var out := [mine, theirs]
+	if abilities == null or not db.tune_bool("exhaust_swaps", true):
+		return out
+	# YOURS
+	var options := abilities.exhaust_swap_options(false, mine)
+	if not options.is_empty():
+		var pick: PlayerData = null
+		if _auto_covers("exhaust"):
+			if db.tune_bool("auto_exhaust_swap", true):
+				pick = options[0]
+		else:
+			freeze_play(true)
+			_light_exhaust(options)
+			var labels: Array[String] = []
+			var notes: Array[String] = []
+			for c in options:
+				labels.append("Swap %s in for %s" % [c.player_name, mine.player_name])
+				notes.append(_exhaust_swap_words(c))
+			labels.append("No - %s plays" % mine.player_name)
+			notes.append("")
+			var chosen := await ChoiceWindow.ask(self, "THE EXHAUST LIGHTS UP",
+				"Before the Tier %s duel: a card in your exhaust can swap in. The card it replaces goes to the exhaust." % mine.get_tier_clean(),
+				labels, notes)
+			_light_exhaust([])
+			freeze_play(false)
+			if chosen >= 0 and chosen < options.size():
+				pick = options[chosen]
+		if pick != null:
+			abilities.do_exhaust_swap(pick, mine, false)
+			announce("%s SWAPS IN FROM THE EXHAUST" % NamePlate.short_name(pick), 1.4)
+			out[0] = pick
+	# THEIRS - the AI swaps whenever it can (`ai_exhaust_swap`).
+	var theirs_options := abilities.exhaust_swap_options(true, theirs)
+	if not theirs_options.is_empty() and db.tune_bool("ai_exhaust_swap", true):
+		var their_pick: PlayerData = theirs_options[0]
+		abilities.do_exhaust_swap(their_pick, theirs, true)
+		announce("THEIR %s SWAPS IN FROM THE EXHAUST" % NamePlate.short_name(their_pick), 1.4)
+		out[1] = their_pick
+	_absorb_ability_news()
+	return out
+
+
+func _exhaust_swap_words(card: PlayerData) -> String:
+	var lines: Array[String] = []
+	for cell in [card.active_attack_ability(), card.active_defend_ability()]:
+		for id_text in String(cell).split(";"):
+			var a := db.get_ability(String(id_text).strip_edges())
+			if a != null and a.trigger == "exhaustswap" and a.effect != "swapintier":
+				lines.append(a.plain())
+	return " ".join(lines)
+
+
+## The lit exhaust zone: a strip naming your exhausted cards, the ones that
+## can act now in gold. [] puts it away.
+var _exhaust_strip: CanvasLayer = null
+
+
+func _light_exhaust(lit: Array) -> void:
+	if _exhaust_strip != null and is_instance_valid(_exhaust_strip):
+		_exhaust_strip.queue_free()
+		_exhaust_strip = null
+	if lit.is_empty() or abilities == null:
+		return
+	_exhaust_strip = CanvasLayer.new()
+	_exhaust_strip.layer = 170
+	add_child(_exhaust_strip)
+	var frame := PanelContainer.new()
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.03, 0.04, 0.06, 0.82)
+	box.border_color = Color(1.0, 0.8, 0.3)
+	box.set_border_width_all(3)
+	box.set_corner_radius_all(8)
+	box.set_content_margin_all(10)
+	frame.add_theme_stylebox_override("panel", box)
+	frame.position = Vector2(24, 300)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_exhaust_strip.add_child(frame)
+	var list := VBoxContainer.new()
+	frame.add_child(list)
+	var head := Label.new()
+	head.text = "YOUR EXHAUST ZONE"
+	head.add_theme_font_size_override("font_size", 18)
+	head.add_theme_color_override("font_color", Color(1.0, 0.8, 0.3))
+	list.add_child(head)
+	for c in abilities.cards_in(false, "exhaust"):
+		var line := Label.new()
+		var can := lit.has(c)
+		line.text = ("✦ " if can else "   ") + "%s  (Tier %s)" % [c.player_name, c.get_tier_clean()]
+		line.add_theme_font_size_override("font_size", 15)
+		line.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35) if can else Color(0.7, 0.7, 0.75))
+		list.add_child(line)
+
+
+## Both reveals, in priority order: lower power first, attacker on a tie.
+func _show_both_reveals(tier_key: String, mine: PlayerData, theirs: PlayerData) -> void:
+	var order: Array = []
+	if mine != null:
+		order.append([mine, false])
+	if theirs != null:
+		order.append([theirs, true])
+	if order.size() == 2:
+		var mine_first := _reveal_power(mine, false) < _reveal_power(theirs, true) \
+			or (_reveal_power(mine, false) == _reveal_power(theirs, true) and player_attacks_this_round)
+		if not mine_first:
+			order.reverse()
+	for pair in order:
+		var card: PlayerData = pair[0]
+		if bool(pair[1]):
+			_enemy_reveals(tier_key, card)
+		else:
+			revealed_by_tier[tier_key] = card
+			if abilities != null:
+				abilities.fire_reveal(card, false)
+				_absorb_ability_news()
+				await _answer_ability_asks()
+			_put_on_the_table(card, false)
+			announce("You reveal %s." % NamePlate.short_name(card), 1.4)
+			print("[reveal] you reveal %s in Tier %s." % [card.player_name, tier_key])
+		await get_tree().create_timer(db.tune_float("reveal_pause_seconds", 0.6), true, false, true).timeout
+
+
+func _reveal_power(card: PlayerData, is_enemy: bool) -> int:
+	if card == null:
+		return 0
+	var attacking := player_attacks_this_round != is_enemy
+	return card.get_attack_power() if attacking else card.get_defense_power()
 
 
 ## STAR PLAYER SWITCH: one of your other Stars comes on for the one that is playing.
@@ -4510,7 +4849,8 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 	var verdict: Dictionary = EnemyPlay.decide({
 		"tier": tier_key,
 		"style": _their_play_style(),
-		"you_revealed": revealed_by_tier.get(tier_key, null),
+		# C5 (Q044): blind - they pick before anybody's reveal is shown.
+		"you_revealed": null if _reveal_after_pick() else revealed_by_tier.get(tier_key, null),
 		"attacking": not player_attacks_this_round,
 		"their_goals": enemy_score,
 		"your_goals": player_score,
@@ -4540,8 +4880,14 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 	# to use it." So the reveal happens HERE, as they pick, while the tier is
 	# still open — not when the duel starts, by which time knowing is no use
 	# to anybody.
-	if bool(verdict.get("face_up", false)):
-		_enemy_reveals(tier_key, chosen_card)
+	var their_face_up := bool(verdict.get("face_up", false))
+	if abilities != null and abilities.take_reveal_next(true):
+		their_face_up = true
+	if their_face_up:
+		if _reveal_after_pick():
+			_their_pending_reveal = chosen_card     # shown with yours, after
+		else:
+			_enemy_reveals(tier_key, chosen_card)
 
 	# ---- AND WHATEVER ELSE THE RULE SAYS TO DO ----
 	#
@@ -4769,6 +5115,13 @@ func resolve_round() -> void:
 			var keeper_now: GoalieUnit = goalies.get(keeper_side)
 			if keeper_now != null:
 				abilities.keeper_stamina[keeper_side] = keeper_now.current_stamina
+		# ROUND AC (C5, ruling R17): THE EXHAUST LIGHTS UP. A card there that
+		# can swap in for this duel is offered now - only when there is one.
+		var swapped := await _offer_exhaust_swaps(mine, theirs)
+		mine = swapped[0]
+		theirs = swapped[1]
+		player_lineup[i] = mine
+		enemy_lineup[i] = theirs
 		abilities.begin_duel(mine, theirs)
 		# ROUND AA: anything of YOURS that would spend Ore or needs a yes in
 		# this duel is asked now, before it starts (your rulings Q5, R17).
@@ -5760,11 +6113,20 @@ var _throw_spot: Vector2 = Vector2.ZERO
 var _thrower: PlayerUnit = null
 ## true when the ball went out over the TOP touchline rather than the bottom.
 var _went_out_high := false
+## ROUND AC: which kind of start this is - a row of PlayMakerStarts.csv.
+var _start: Dictionary = {}
+## Where the restart is taken from when nobody walks to it (the keeper's
+## hands, a drop ball). INF = from the taker's feet.
+var _restart_from := Vector2.INF
+## Which side restarts (true = the enemy).
+var _restart_enemy := false
 
 
 func _put_it_out_of_play() -> void:
 	_gave_it_away = null
 	_thrower = null
+	_restart_from = Vector2.INF
+	_start = PlayMakerStarts.fallback()
 	if db == null or not db.tune_bool("out_of_bounds", true):
 		return
 	var beats := OutOfBoundsBook.steps()
@@ -5856,15 +6218,33 @@ func _blame_somebody() -> void:
 			pool.append(unit)
 	if pool.is_empty():
 		return
+	var rect := get_play_rect()
+	var here := ball.global_position if ball != null else rect.get_center()
+
+	# ROUND AC: WHICH KIND OF START (PlayMakerStarts.csv), by where the ball
+	# is when play stops.
+	_start = PlayMakerStarts.pick(PlayMakerStarts.zone_of(here, rect, db), randf())
+	var kind := String(_start["start"])
+
 	# THE ONE NEAREST THE BALL. Whoever was closest to it is the one who
 	# would have had it, and blaming a defender standing forty yards away
 	# for a ball he never touched is the kind of thing a player notices.
-	var here := ball.global_position if ball != null else get_play_rect().get_center()
+	# A corner is a defender nearest his OWN goal line; a goal kick or a
+	# keeper's ball is an attacker nearest the goal he is attacking.
+	var measure := func(u: PlayerUnit) -> float:
+		match kind:
+			"corner":
+				return absf(u.global_position.x - (rect.position.x if not u.is_enemy else rect.end.x))
+			"goal_kick", "keeper_claim":
+				return absf(u.global_position.x - (rect.end.x if not u.is_enemy else rect.position.x))
+		return u.global_position.distance_squared_to(here)
 	pool.sort_custom(func(a: PlayerUnit, b: PlayerUnit) -> bool:
-		return a.global_position.distance_squared_to(here) \
-			< b.global_position.distance_squared_to(here))
+		return float(measure.call(a)) < float(measure.call(b)))
 	_gave_it_away = pool[0]
-	print("  Out of bounds: %s put it out." % _who(_gave_it_away))
+	_restart_enemy = not _gave_it_away.is_enemy
+	if kind == "storm_gust":
+		_restart_enemy = randi() % 2 == 0
+	print("  %s: %s gave it away." % [String(_start["call"]), _who(_gave_it_away)])
 
 
 ## ============ HE PUTS IT OUT ============
@@ -5876,6 +6256,10 @@ func _kick_it_out(seconds: float) -> void:
 	var rect := get_play_rect()
 	var from := _gave_it_away.global_position if _gave_it_away != null \
 		and is_instance_valid(_gave_it_away) else rect.get_center()
+	var kind := String(_start.get("start", "throw_in"))
+	if kind != "throw_in":
+		_kick_for_start(kind, from, rect)
+		return
 
 	_went_out_high = from.y < rect.get_center().y
 	var edge := rect.position.y if _went_out_high else rect.end.y
@@ -5903,6 +6287,49 @@ func _kick_it_out(seconds: float) -> void:
 		return
 
 
+## ROUND AC: the ball's journey for every start that is not a throw-in.
+func _kick_for_start(kind: String, from: Vector2, rect: Rect2) -> void:
+	if ball == null:
+		return
+	ball.scripted_possession = false
+	_went_out_high = from.y < rect.get_center().y
+	var blamed_enemy := _gave_it_away != null and is_instance_valid(_gave_it_away) and _gave_it_away.is_enemy
+	match kind:
+		"corner":
+			# Behind his OWN goal line, toward the nearer corner flag.
+			var goal_x := rect.end.x if blamed_enemy else rect.position.x
+			var flag_y := rect.position.y if _went_out_high else rect.end.y
+			_throw_spot = Vector2(goal_x, flag_y)
+			ball.global_position = from
+			ball.shoot(Vector2(goal_x + (30.0 if blamed_enemy else -30.0), lerpf(from.y, flag_y, 0.6)))
+		"goal_kick":
+			# Over the goal line he was attacking, wide of the posts.
+			var goal_x2 := rect.position.x if blamed_enemy else rect.end.x
+			var y := clampf(from.y, rect.position.y + rect.size.y * 0.15, rect.end.y - rect.size.y * 0.15)
+			_throw_spot = Vector2(goal_x2, y)
+			ball.global_position = from
+			ball.shoot(Vector2(goal_x2 + (-30.0 if blamed_enemy else 30.0), y))
+		"keeper_claim":
+			# The keeper of the goal he was attacking catches it.
+			var keeper: GoalieUnit = goalies.get(not blamed_enemy)
+			var hands := keeper.global_position if keeper != null else _goal_mouth(not blamed_enemy)
+			_throw_spot = hands
+			_restart_from = hands
+			ball.global_position = from
+			ball.shoot(hands)
+		"drop_ball":
+			_throw_spot = ball.global_position
+			_restart_from = ball.global_position
+		"storm_gust":
+			var land := Vector2(
+				randf_range(rect.position.x + rect.size.x * 0.25, rect.end.x - rect.size.x * 0.25),
+				randf_range(rect.position.y + rect.size.y * 0.2, rect.end.y - rect.size.y * 0.2))
+			_throw_spot = land
+			ball.shoot(land)
+	if _gave_it_away != null and is_instance_valid(_gave_it_away) and kind != "drop_ball":
+		Juice.fire(self, "ball_kicked", {"node": _gave_it_away})
+
+
 ## ============ AND THE OTHER SIDE WALKS OVER ============
 ##
 ## The nearest player of the OTHER side, and he stands OUTSIDE the line —
@@ -5911,7 +6338,12 @@ func _kick_it_out(seconds: float) -> void:
 func _walk_up_to_it(seconds: float) -> void:
 	if _gave_it_away == null or not is_instance_valid(_gave_it_away):
 		return
-	var theirs := not _gave_it_away.is_enemy
+	var kind := String(_start.get("start", "throw_in"))
+	# A keeper's ball starts in his hands and a drop ball where it fell -
+	# nobody walks anywhere.
+	if kind == "keeper_claim" or kind == "drop_ball":
+		return
+	var theirs := _restart_enemy
 	var pool: Array[PlayerUnit] = []
 	for unit in _all_units():
 		if unit.is_enemy == theirs and unit.data != null:
@@ -5924,8 +6356,17 @@ func _walk_up_to_it(seconds: float) -> void:
 	_thrower = pool[0]
 
 	var stand := _standing_spot()
+	match kind:
+		"corner":
+			stand = _on_screen(_throw_spot)
+		"goal_kick":
+			var rect := get_play_rect()
+			var depth := rect.size.x * db.tune_float("play_maker_corner_depth", 0.06)
+			stand = Vector2(_throw_spot.x + (depth if _throw_spot.x < rect.get_center().x else -depth), _throw_spot.y)
+		"storm_gust":
+			stand = _throw_spot
 	_thrower.run_to(stand, maxf(0.2, seconds))
-	print("  %s walks over to take the throw." % _who(_thrower))
+	print("  %s walks over to take the %s." % [_who(_thrower), String(_start.get("call", "throw")).to_lower()])
 
 
 ## ============ THE THROWER CHOOSES ============
@@ -5934,6 +6375,16 @@ func _walk_up_to_it(seconds: float) -> void:
 func _ask_the_thrower() -> bool:
 	if db == null or not db.tune_bool("out_of_bounds", true):
 		return await run_rps_clash()      # the old coin, still there
+	# ROUND AC: who decides depends on the start (PlayMakerStarts.csv, Restart).
+	match String(_start.get("restart", "chooses")):
+		"attacks":
+			return not _restart_enemy
+		"coin":
+			return not _restart_enemy
+		"race":
+			var won := await run_rps_clash()
+			_restart_enemy = not won
+			return won
 	# No thrower — nobody was on the pitch to take it. Fall back rather than
 	# stopping the match over a flourish.
 	if _thrower == null or not is_instance_valid(_thrower):
@@ -5976,8 +6427,27 @@ func _standing_spot() -> Vector2:
 	return stand
 
 
+## ROUND AC: a point pulled back inside what the wide camera shows (the
+## corner flag is right at the edge of the picture).
+func _on_screen(point: Vector2) -> Vector2:
+	var seen := get_visible_world_rect()
+	var grass := get_pitch_rect()
+	if grass.size.y > 1.0:
+		var both := seen.intersection(grass)
+		if both.size.y > 1.0:
+			seen = both
+	var edge := db.tune_float("throw_in_screen_margin", 18.0) + 20.0
+	if seen.size.x > edge * 3.0 and seen.size.y > edge * 3.0:
+		point.x = clampf(point.x, seen.position.x + edge, seen.end.x - edge)
+		point.y = clampf(point.y, seen.position.y + edge, seen.end.y - edge)
+	return point
+
+
 ## "Bauer throws in from the left touchline, twenty yards out."
 func _throw_words() -> String:
+	var kind := String(_start.get("start", "throw_in"))
+	if kind != "throw_in":
+		return "%s takes the %s." % [_who(_thrower), String(_start.get("call", "restart")).to_lower()]
 	var rect := get_play_rect()
 	var side := Loc.text("touchline_top", "the top touchline") if _went_out_high \
 		else Loc.text("touchline_bottom", "the bottom touchline")
@@ -5993,7 +6463,15 @@ func _throw_words() -> String:
 
 
 func _throw_facts() -> Dictionary:
+	var facts := _throw_facts_plain()
+	facts["call"] = String(_start.get("call", "THROW-IN"))
+	facts["caption"] = OutOfBoundsBook.fill(String(_start.get("caption", "{loser} puts it out")), facts)
+	return facts
+
+
+func _throw_facts_plain() -> Dictionary:
 	return {
+		"keeper": Loc.text("the_keeper", "The keeper"),
 		"loser": _who(_gave_it_away),
 		"thrower": _who(_thrower),
 		"side": "you" if (_thrower != null and is_instance_valid(_thrower)
@@ -6020,12 +6498,19 @@ func _who(unit: PlayerUnit) -> String:
 func _take_the_throw() -> void:
 	if db == null or not db.tune_bool("out_of_bounds", true):
 		return
-	if _thrower == null or not is_instance_valid(_thrower) or ball == null:
+	if ball == null:
 		return
+	# ROUND AC: from the taker's feet - or, with nobody walking (the keeper's
+	# hands, a drop ball), from where it is taken.
+	var has_taker := _thrower != null and is_instance_valid(_thrower)
+	if not has_taker and _restart_from == Vector2.INF:
+		return
+	var from := _thrower.global_position if has_taker else _restart_from
+	var side_enemy := _thrower.is_enemy if has_taker else _restart_enemy
 
 	var mates: Array[PlayerUnit] = []
 	for unit in _all_units():
-		if unit != _thrower and unit.is_enemy == _thrower.is_enemy and unit.data != null:
+		if unit != _thrower and unit.is_enemy == side_enemy and unit.data != null:
 			mates.append(unit)
 	if mates.is_empty():
 		return
@@ -6033,16 +6518,17 @@ func _take_the_throw() -> void:
 	# NEAREST, because a throw-in is a short ball. A thrower picking out
 	# somebody forty yards away is a highlight, not a restart.
 	mates.sort_custom(func(a: PlayerUnit, b: PlayerUnit) -> bool:
-		return a.global_position.distance_squared_to(_thrower.global_position) \
-			< b.global_position.distance_squared_to(_thrower.global_position))
+		return a.global_position.distance_squared_to(from) \
+			< b.global_position.distance_squared_to(from))
 	var receiver := mates[0]
 
-	ball.global_position = _thrower.global_position
+	ball.global_position = from
 	ball.scripted_possession = true
-	Juice.fire(self, "ball_kicked", {"node": _thrower})
+	if has_taker:
+		Juice.fire(self, "ball_kicked", {"node": _thrower})
 	ball.deliver_to(receiver)
 	await ball.delivery_arrived
-	print("  Throw-in: %s to %s." % [_who(_thrower), _who(receiver)])
+	print("  %s: %s to %s." % [String(_start.get("call", "Throw-in")), _who(_thrower) if has_taker else "from the restart", _who(receiver)])
 
 	var beat := db.tune_float("throw_in_settle_seconds", 0.35)
 	if beat > 0.0:
@@ -6377,6 +6863,9 @@ func _open_emblem_bar() -> void:
 	# ROUND AB: A NEW MATCH, A NEW RACE. Nothing reset the Emblems between
 	# matches before, so a count could carry over in the save.
 	EmblemBook.new_match(state)
+	# ROUND AC (your Q063): THE AI RACES TOO. Its counters live in a save of
+	# their own that is never written to disk - a fresh one every match.
+	enemy_race = GameState.new()
 	emblem_bar = EmblemBar.open(self, _my_cards(), state)
 	_refresh_emblems()
 
@@ -6386,6 +6875,7 @@ func _refresh_emblems() -> void:
 		return
 	emblem_bar.squad = _my_cards()
 	emblem_bar.enemy_squad = _stars_of(true)
+	emblem_bar.enemy_state = enemy_race
 	emblem_bar.state = state
 	emblem_bar.refresh()
 
@@ -6406,6 +6896,21 @@ func _settle_emblems() -> void:
 			announce("%s turns over — BLOCKED (one Ultimate per game)" % turned.id.to_upper())
 		else:
 			announce("%s  —  ULTIMATE" % turned.id.to_upper())
+
+
+## THEIR RACE (round AC, Q063). The same rules as yours - one Ultimate per
+## game for them too - and it is announced, because their Star turning over
+## is something you need to know about.
+func _settle_enemy_emblems() -> void:
+	if enemy_race == null or not db.tune_bool("emblem_ai_races", true):
+		return
+	var turned := EmblemBook.settle(_stars_of(true), enemy_race)
+	_refresh_emblems()
+	if turned != null:
+		if EmblemBook.is_blocked(turned, enemy_race):
+			announce("THEIR %s turns over — BLOCKED" % turned.id.to_upper())
+		else:
+			announce("THEIR %s  —  ULTIMATE" % turned.id.to_upper())
 
 
 # =============================================================
@@ -6550,15 +7055,43 @@ func _absorb_ability_news() -> void:
 			body.update_unit_data(swap["new"])
 			print("[abilities] %s's place is taken by a %s." % [
 				(swap["old"] as PlayerData).player_name, (swap["new"] as PlayerData).player_name])
+		# ROUND AC (C5): a card already picked this round (Jakob, revealed and
+		# turned into a Swan token) - the token plays in its place.
+		if bool(swap["side"]):
+			var at_e := round_enemy_picks.find(swap["old"])
+			if at_e >= 0:
+				round_enemy_picks[at_e] = swap["new"]
+		else:
+			var at_p := round_player_picks.find(swap["old"])
+			if at_p >= 0:
+				round_player_picks[at_p] = swap["new"]
+	# ROUND AC (C5): cards an ability moved between the zones - the body on
+	# the pitch is dimmed (exhaust, combat) or brought back (field).
+	for move in abilities.take_zone_moves():
+		var mover := unit_for_card(move["card"], bool(move["side"]))
+		if mover == null:
+			continue
+		var back := String(move["zone"]) == "field"
+		mover.is_exhausted = not back
+		if back:
+			mover.set_highlight(false)
+		print("[zones] %s -> %s" % [(move["card"] as PlayerData).player_name, String(move["zone"]).to_upper()])
 	var mine := 0
+	var theirs := 0
 	for e in abilities.take_events():
 		if bool(e["enemy"]):
 			_note_their_move(e)
+			# Their Emblem race (Q063): the same Stats.csv rows, their counters.
+			if stats != null and enemy_race != null:
+				stats.record(String(e["event"]), e["facts"], enemy_race)
+				theirs += 1
 			continue
 		_report(String(e["event"]), e["facts"])
 		mine += 1
 	if mine > 0:
 		_settle_emblems()
+	if theirs > 0:
+		_settle_enemy_emblems()
 	if match_tracker == null or not is_instance_valid(match_tracker):
 		match_tracker = MatchTracker.open(self, abilities)
 	elif match_tracker != null:
@@ -6668,6 +7201,15 @@ func _answer_ability_asks(ask_you: bool = true) -> void:
 					String(ask["text"]) + "\nThe unit you pick waits in the exhaust, where its \"While in exhaust\" side works.",
 					options, notes)
 				abilities.answer(ask, cards[clampi(picked, 0, cards.size() - 1)])
+			"choose":
+				# ROUND AC (C5): pick one of your cards (Jan / Silke).
+				var labels: Array[String] = []
+				var cards2: Array = ask["options"]
+				for c in cards2:
+					var one := c as PlayerData
+					labels.append("%s   (Tier %s, power %d)" % [one.player_name, one.get_tier_clean(), one.get_attack_power()])
+				var chosen := await ChoiceWindow.ask(self, String(ask.get("title", "CHOOSE")), String(ask["text"]), labels)
+				abilities.answer(ask, cards2[clampi(chosen, 0, cards2.size() - 1)])
 			"side":
 				var card: PlayerData = ask["card"]
 				var options: Array[String] = ["ATTACK side: " + card.attack_text, "DEFEND side: " + card.defend_text]
@@ -6703,10 +7245,12 @@ func _answer_ability_asks(ask_you: bool = true) -> void:
 # =============================================================
 
 const AUTO_KINDS := [
+	["reveal", "Revealing a card you picked (round AC)"],
 	["ore", "Spending Ore"],
 	["swan", "Becoming a Swan (and other yes / no)"],
 	["rose", "Which unit a Rose token replaces"],
 	["side", "Which side stays up in the exhaust"],
+	["exhaust", "Swapping a card in from the exhaust (round AC)"],
 ]
 
 
@@ -6721,6 +7265,7 @@ func _ask_kind(ask: Dictionary) -> String:
 	match String(ask["kind"]):
 		"pick": return "rose"
 		"side": return "side"
+		"choose": return "exhaust"
 	var a: AbilityData = ask.get("ability")
 	if a != null and a.cost_kind == "ore":
 		return "ore"

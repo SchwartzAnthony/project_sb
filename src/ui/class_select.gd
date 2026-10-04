@@ -140,6 +140,9 @@ func _display_name(class_name_text: String) -> String:
 
 ## "" when the class may be picked, or a short reason when it may not.
 func _locked_reason(class_name_text: String) -> String:
+	# ROUND AC: the test environment offers EVERY class, locked or hidden.
+	if TestEnvironment.active(get_tree()):
+		return ""
 	var info := _info_row(class_name_text)
 	if info.is_empty():
 		return ""            # no row at all means no restrictions

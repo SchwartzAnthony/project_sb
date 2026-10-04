@@ -88,12 +88,12 @@ PHASE = {
     "switch_to_defender": "C4", "always_defending": "C4", "swap_power": "C4",
     "use_enemy_power": "C4", "force_ability": "C4", "negate_ability": "C4",
     "negate_buff": "C4", "change_priority": "C4", "give_priority": "C4",
-    "uncounterable": "C4", "double_attack": "C4", "power_from_count": "C4", "set_power_from_token": "C4",
+    "uncounterable": "C4", "double_attack": "C5", "power_from_count": "C4", "set_power_from_token": "C4",
     "reveal_another": "C5", "remove_condition": "C4",
     # C5 - zones in action
     "send_to_exhaust": "C5", "swap_from_exhaust": "C5", "swapped_was": "C5", "revealed_was": "C5",
     "swap_from_void": "C5", "swap_in_tier": "C5", "exhaust_other_return": "C5",
-    "reveal_from_exhaust": "C5", "copy_from_exhaust": "C5",
+    "reveal_from_exhaust": "C5", "copy_from_exhaust": "C5", "exhaust_swap": "C5",
     # C6 - the class engines
     "ore": "C2", "gain_ore": "C2", "mining": "C6", "ore_this_round": "C2",
     "mine": "C6", "fuse": "C6", "fused": "C6", "gravestone": "C6",
@@ -125,6 +125,10 @@ WHEN_RULES = [
     # cycle, if it is in the exhaust - not at every duel (round Z).
     (r"while in (exile|exhaust).*at the end of (the|a) cycle", {"When": "end_of_cycle", "If": "in_exhaust"}),
     (r"while in (exile|exhaust).*after tier (i|ii|iii|iv) combat", {"When": "after_combat", "If": "in_exhaust"}),
+    # ROUND AC (C5, ruling R17): "While in Exhaust: Swap this Unit with another
+    # Tier I during combat and ..." - the exhaust lights up before the duel,
+    # you may swap it in, and the rest happens once it has.
+    (r"while in (exile|exhaust):? ?swap this unit with another tier", {"When": "exhaust_swap"}),
     (r"while in (exile|exhaust)", {"When": "while_in_exhaust"}),
     (r"if sent to exhaust", {"When": "contemplation"}),
     (r"in exhaust & goaly successfully defends", {"When": "goalie_save", "If": "in_exhaust"}),
@@ -243,7 +247,8 @@ DO_RULES = [
     (r"give the next ally unit -(\d) priority", "change_priority", "next_tier_ally", r"-\1", "duel"),
     (r"give a tier (i|ii|iii|iv) water unit ability priority", "give_priority", r"ally:water+TIER\1", "1", "duel"),
     (r"cannot be countered", "uncounterable", "self", "1", "duel"),
-    (r"doulbe its attack|double its attack", "double_attack", "token", "1", "duel"),
+    # Lothar (C5): the token you control, in ITS next duel.
+    (r"doulbe its attack|double its attack", "double_attack", "next_ally:token", "1", "duel"),
     (r"reveal another unit card", "reveal_another", "self", "1", "duel"),
     (r"remove next ally condition", "remove_condition", "next_ally", "1", "duel"),
     (r"attack equal to the victory counters", "power_from_count:victory", "self", "1", "duel"),
@@ -260,7 +265,11 @@ DO_RULES = [
     (r"swap this card with one of same power and tier from the exhaust", "swap_from_exhaust", "self", "1", "duel"),
     (r"swap this unit with another of same tier from the void", "swap_from_void", "self", "1", "duel"),
     (r"swap this unit with another tier i during combat", "swap_in_tier", "self", "1", "duel"),
-    (r"swap a card from the exhaust of the same tier", "swap_from_exhaust", "token", "1", "duel"),
+    (r"swap a card from the exhaust of the same tier", "swap_from_exhaust", "next_ally:token", "1", "duel"),
+    # Franz (C5): the second half of his sentence.
+    (r"give the next air unit \+(\d) power", "add_power", "next_ally:air", r"\1", "duel"),
+    # Flauros (C5): "Give this unit +1 damage during combat if ...".
+    (r"give this unit \+(\d) damage during combat", "add_power", "self", r"\1", "duel"),
     (r"send a different tier iv to the exhaust zone and return this to the stack", "exhaust_other_return", "self", "1", "duel"),
     (r"reveal a unit from your exhaust zone", "reveal_from_exhaust", "self", "1", "duel"),
     # ---- the class engines ----
@@ -469,7 +478,15 @@ def from_text(base, text, side_kind):
         when, parsed, part_targets = _part_rows(part, side_kind, base)
         for i, do in enumerate(parsed["Do"]):
             whens.append(when)
-            ifs.append(parsed["If"])
+            # ROUND AC (C5): the swap itself, and the reveal itself, are not
+            # held back by the If that asks what they swapped / revealed -
+            # "if it was an air unit" is about what comes AFTER the swap.
+            if do in ("swap_in_tier", "reveal_from_exhaust") and \
+                    any(w in parsed["If"] for w in ("swapped_was", "revealed_was")):
+                ifs.append(";".join(t for t in parsed["If"].split(";")
+                                    if not t.startswith(("swapped_was", "revealed_was"))))
+            else:
+                ifs.append(parsed["If"])
             costs.append(parsed["Cost"])
             dos.append(do)
             targets.append(part_targets[i])
@@ -484,6 +501,16 @@ def from_text(base, text, side_kind):
         for q in parsed["Q"]:
             if q not in qs:
                 qs.append(q)
+
+    # ROUND AC (C5): the swap / the reveal happen FIRST, so an If that asks
+    # what was swapped or revealed has an answer when its half is read.
+    first = ("swap_in_tier", "reveal_from_exhaust")
+    if any(d in first for d in dos) and len(dos) > 1:
+        order = sorted(range(len(dos)), key=lambda i: 0 if dos[i] in first else 1)
+        def re(items):
+            return [items[i] for i in order] if len(items) == len(dos) else items
+        whens, ifs, costs, dos, targets, values, scopes = (re(whens), re(ifs), re(costs), re(dos),
+                                                           re(targets), re(values), re(scopes))
 
     def one_or_many(items):
         """All the same -> one value; different -> one per effect, '|' between."""

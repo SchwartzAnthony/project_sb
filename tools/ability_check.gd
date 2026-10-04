@@ -124,6 +124,11 @@ func _prepare(engine: AbilityEngine, card: PlayerData, opp: PlayerData, ability:
 				engine.put_counter(opp, true, String(term["arg"]) if String(term["arg"]) != "" else "burn")
 			"orethisround":
 				engine.add_to_pool(false, "ore", 1)
+			"revealedwas":
+				# C5 (Flauros): a card of that kind in the exhaust to reveal.
+				var shown := _matching("InExhaust", String(term["arg"]), card.unit_type)
+				engine.sync_field([shown], [])
+				engine._move(shown, false, "exhaust")
 	# C4: victory counters to count.
 	if ability.effect == "powerfromcount" and ability.effect_arg == "victory":
 		engine.add_to_pool(false, "victory", 2)
@@ -518,6 +523,7 @@ func _check_emblems(db: CardDatabase) -> void:
 	var opp := _dummy("Opponent", "I", 1, "Earth", "Normal")
 	_check_asks(db)
 	_check_c4(db)
+	_check_c5(db)
 
 	# ---- ZEPAR: a water unit revealed becomes a Swan, and a Swan is +1 ----
 	var zepar := _badge("Zepar")
@@ -858,3 +864,104 @@ func _check_c4(db: CardDatabase) -> void:
 		_say(e.priority_mod(water2, false) <= -100,
 			"Leonhard in the exhaust: your Tier II water unit resolves FIRST",
 			"priority change %d" % e.priority_mod(water2, false))
+
+
+## ROUND AC (C5): the zones in action, each played as a little story.
+func _check_c5(db: CardDatabase) -> void:
+	print("--- the zones in action (C5) ---")
+	# ---- Ralf swaps in from the exhaust (R17), +1, once per cycle ----
+	var ralf := _find(db, "Ralf")
+	if ralf != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var mate := _dummy("Mate", "I", 1, "Air", "Unkengeister")
+		var opp := _dummy("Opp", "I", 1, "Earth", "Normal")
+		e.sync_field([ralf, mate], [opp])
+		e.round_lineups([ralf], [opp])
+		e.begin_round()
+		e.begin_duel(ralf, opp)
+		e.resolve_duel_abilities(ralf, false, opp)
+		e.round_finished()                             # Ralf -> exhaust
+		e.begin_round()
+		e.round_lineups([mate], [opp])
+		var options := e.exhaust_swap_options(false, mate)
+		_say(options.has(ralf), "Ralf in the exhaust lights up before the Tier I duel", "options %d" % options.size())
+		if options.has(ralf):
+			e.do_exhaust_swap(ralf, mate, false)
+			e.begin_duel(ralf, opp)
+			_say(e.zone_of(mate, 0) == "exhaust" and e.zone_of(ralf, 0) == "combat"
+				and e.attack_power(ralf, false) == mini(ralf.get_attack_power() + 1, 5),
+				"Ralf swaps in: the Tier I he replaced goes to the exhaust, Ralf fights with +1",
+				"mate %s, Ralf %s, power %d (printed %d)" % [e.zone_of(mate, 0), e.zone_of(ralf, 0),
+					e.attack_power(ralf, false), ralf.get_attack_power()])
+			e.round_finished()
+			e.begin_round()
+			var again := e.exhaust_swap_options(false, _dummy("Other", "I", 1, "Air", "Unkengeister"))
+			_say(not again.has(ralf), "...and not again this cycle (once per cycle)", "options %d" % again.size())
+	# ---- Ingrid: the next card picked is revealed too ----
+	var ingrid := _find(db, "Ingrid")
+	if ingrid != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		e.sync_field([ingrid], [])
+		e.begin_round()
+		e.set_role(ingrid, false, "defend")
+		e.fire_reveal(ingrid, false)
+		_say(e.take_reveal_next(false), "Ingrid's Reveal: your next pick is revealed too", "")
+	# ---- Jan: to the exhaust -> another Tier IV goes instead, Jan comes back ----
+	var jan := _find(db, "Jan")
+	if jan != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var other := _dummy("OtherFour", jan.get_tier_clean(), 2, "Air", "Unkengeister")
+		var opp := _dummy("Opp", jan.get_tier_clean(), 1, "Earth", "Normal")
+		e.sync_field([jan, other], [opp])
+		e.round_lineups([jan], [opp])
+		e.begin_round()
+		e.begin_duel(jan, opp)
+		e.resolve_duel_abilities(jan, false, opp)
+		e.round_finished()
+		_say(e.zone_of(jan, 0) == "field" and e.zone_of(other, 0) == "exhaust",
+			"Jan goes to the exhaust - another Tier IV goes there instead and Jan comes back to be played",
+			"Jan %s, other %s" % [e.zone_of(jan, 0), e.zone_of(other, 0)])
+	# ---- Lothar: a token's next duel is doubled, then it swaps with the exhaust ----
+	var lothar := _find(db, "Lothar")
+	if lothar != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var token := _dummy("Rose Unit", "I", 2, "Water", "Lorelei")
+		token.extra_tags = PackedStringArray(["rose", "token"])
+		var resting := _dummy("Resting", "I", 2, "Water", "Lorelei")
+		var opp := _dummy("Opp", lothar.get_tier_clean(), 1, "Earth", "Normal")
+		e.sync_field([lothar, token, resting], [opp])
+		e._move(resting, false, "exhaust")
+		e.round_lineups([lothar], [opp])
+		e.begin_round()
+		e.begin_duel(lothar, opp)
+		e.resolve_duel_abilities(lothar, false, opp)
+		e.round_finished()
+		e.begin_round()
+		var opp1 := _dummy("Opp1", "I", 1, "Earth", "Normal")
+		e.round_lineups([token], [opp1])
+		e.begin_duel(token, opp1)
+		_say(e.attack_power(token, false) == 4, "Lothar: the token's next duel is fought with its printed power doubled (2 -> 4)",
+			"token power %d" % e.attack_power(token, false))
+		e.resolve_duel_abilities(token, false, opp1)
+		e.resolve_duel_outcome(token, false, opp1, true)
+		_say(e.zone_of(token, 0) == "exhaust" and e.zone_of(resting, 0) == "field",
+			"...and after it, the token goes to the exhaust and a Tier I comes back from it",
+			"token %s, resting %s" % [e.zone_of(token, 0), e.zone_of(resting, 0)])
+	# ---- Jakob: revealed as a Swan -> a Swan token takes his place ----
+	var jakob := _find(db, "Jakob")
+	if jakob != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		e.sync_field([jakob], [])
+		e.begin_round()
+		e.set_role(jakob, false, "defend")
+		e.make_kind(jakob, false, "swan")
+		e.fire_reveal(jakob, false)
+		var swaps := e.take_swaps()
+		_say(not swaps.is_empty() and String(swaps[0].get("kind", "")) == "swan" and e.zone_of(jakob, 0) == "exhaust",
+			"Jakob revealed as a Swan: he goes to the exhaust and a Swan Unit token takes his place",
+			"swaps %d, Jakob %s" % [swaps.size(), e.zone_of(jakob, 0)])

@@ -5,7 +5,7 @@ Lorelei,Sallos,Always counts as defending. Deal 1 damage to the enemy goalie,"Yo
 Rauhnacht-Feuergeister,Belphegor,If this has a burn counter + shooting at goal: Deal +2 damage to goalie,"Rauhnacht-Feuergeister get +1 Base Power during combat for each victory counter. 
 After a goal, lose all counters and activate Belphegor's Emblem again",FIRE,3,IV,10,Star,Star_Rauhnacht-Feuergeister.png,Star_Rauhnacht-Feuergeister_U.png,Star,C_Belphegor_F,C_Belphegor_F
 Rauhnacht-Feuergeister,Flauros,Reveal a unit from your exhaust zone. Give this unit +1 damage during combat if the revealed card was fire,"Create a permanent weapon token for one Star Unit. The weapons attack is the strongest fused unit.  
-Break up all fused units and send them to the exhaust zone. ",FIRE,4,IV,11,Star,Star_Rauhnacht-Feuergeister.png,Star_Rauhnacht-Feuergeister_U.png,Star,,
+Break up all fused units and send them to the exhaust zone. ",FIRE,4,IV,11,Star,Star_Rauhnacht-Feuergeister.png,Star_Rauhnacht-Feuergeister_U.png,Star,C_Flauros_F1;C_Flauros_F2,C_Flauros_F1;C_Flauros_F2
 Rauhnacht-Feuergeister,Buer,This unit has attack equal to the victory counters you have. Remove 1 victory counter. ,"Give the permanent Teufel Mask counter on a unit in the field zone and change its unit type to basic. 
 When the unit is in combat, it obtains the Rauhnacht-Feuergeister unit type, and +1 Base Power each counter on the Teufel Mask. 
 After each combat give the unit with Teufel Mask - 1 Base Power during combat. 

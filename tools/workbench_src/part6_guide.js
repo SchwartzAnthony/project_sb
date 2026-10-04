@@ -500,6 +500,18 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("The zones in action, and testing (round AC, phase C5)", `
+    <p style="margin:0 0 10px"><b>168 of your 228 class abilities work in a match</b> (74%).</p>
+    ${rows([
+      ["REVEAL","you pick, THEN you are asked 'Reveal it?' - both sides blind, both shown together (Q043, Q044). The REVEAL on a card is a tag now"],
+      ["the exhaust lights up","Ralf, Peter, Franz: before a duel of their tier you may swap them in from the exhaust (R17) - the card they replace goes there"],
+      ["zones","Jan / Silke come back when they go to the exhaust, Lothar's token doubles then swaps, Jakob becomes a Swan token, Ingrid reveals your next pick, Flauros reveals from the exhaust"],
+      ["PLAY MAKER starts","<b>PlayMakerStarts.csv</b>: throw-in, corner, goal kick, keeper's ball, drop ball, storm gust (Q060)"],
+      ["their Emblem","the AI races for its Ultimate too, and you see their pips (Q063, Q064). No Star = a grey NO EMBLEM tile"],
+      ["test environment","Dev screen > TEST COMPLETE ENVIRONMENT: a separate save, everything unlocked, one ready team per class, an orange strip on every screen"],
+      ["zone map","press Z in a match: the quarters, the edge lines, where everyone is heading and their 'don't stand still' clock"],
+    ])}`);
+
   card("Bending the duel (round AB, phase C4)", `
     <p style="margin:0 0 10px"><b>156 of your 228 class abilities work in a match</b> (68%).</p>
     ${rows([
@@ -539,8 +551,8 @@ function paintBook(){
       ["C1 · built","zones (field, combat, exhaust), the new moments, the <code>If</code> column, \u201cthe next one\u201d, one side per duel"],
       ["C2 · built","counters, tokens, Ore, swans, five Emblem Basic sides"],
       ["C3 · built","the keeper and the referee, and the question windows"],
-      ["C4 · built","bending the duel. <b>156 abilities work</b>"],
-      ["C5","exile and the other zones - +17"],
+      ["C4 · built","bending the duel"],
+      ["C5 · built","the zones in action and the ask-after-pick Reveal. <b>168 abilities work</b>"],
       ["C6","mines, fusing, the ball, gravestones - +60"],
       ["C7 · C8","the Emblems' Basic Sides, then the Stars' Ultimates"],
     ])}

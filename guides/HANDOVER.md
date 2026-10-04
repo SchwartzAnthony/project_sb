@@ -528,6 +528,38 @@ BEFORE pending effects land in begin_duel. Coverage 156/228.
 **New tools:** tools/balance_report.py (SOAK_SEED/SOAK_SPEED env on
 match_soak), tools/combat_shot.gd. **Next: C5.**
 
+## 12f. Round AC — DONE (phase C5 + his testing notes)
+
+**His notes:** Godot "output overflow" -> the 132-line CSV problem list is
+cut to `log_problem_lines` + csv_problems.txt; emblem log only on change;
+project.godot debugger limits raised. Units on the touchline -> linger clock
+(`_keep_moving` in main_scene, PlayerUnit.linger_*), `edge_keep`, zone map
+(ZoneOverlay.detail, Z key = `zones` in Keys.csv, camera goes wide). Emblem
+"missing" was the plain enemy team -> NO EMBLEM tile. Test Complete
+Environment -> src/core/test_environment.gd (own save folder, orange strip
+via MenuEscape.install, class_select ignores locks, SaveSlots.choose leaves
+it; tools/test_env_check.gd). FOUND: units with no Artwork were invisible
+-> CardDatabase._stand_in_art() + placeholder_art rows.
+
+**His answers built:** Q060 all five starts (PlayMakerStarts.csv +
+src/core/play_maker_starts.gd; OutOfBounds beats use {call}/{caption};
+_blame_somebody picks the start; _kick_for_start, _walk_up_to_it per kind;
+_ask_the_thrower by Restart; _take_the_throw from _restart_from), Q061
+restart side attacks, Q062 none tile, Q063/64 enemy race
+(main_scene.enemy_race GameState, stats.record on enemy events), Q043/44.
+
+**C5 built:** reveal_after_pick (_on_card_selected async, _pick_in_progress
+guard, _their_pending_reveal, _show_both_reveals); exhaust swap
+(engine exhaust_swap_options / do_exhaust_swap, trigger exhaust_swap fired in
+begin_duel, _offer_exhaust_swaps + _light_exhaust in main_scene); zone moves
+logged via _c5_move/take_zone_moves -> unit.is_exhausted; ask kind "choose";
+Jakob re-read on makeswan. Coverage 168/228. AUTO now reveals - which is why
+AB's test matches had no Swans.
+
+**New tools:** test_env_check.gd, test_env_shot.gd, c5_shot.gd;
+combat_shot SHOT_ZONES / SHOT_START / SHOT_COUNT; match_soak SOAK_START /
+SOAK_TEST_ENV. **Next: C6.**
+
 ## 13. Ideas worth offering him
 
 - An `Ultimate In Short` column so the emblem bar and hover can show one line
