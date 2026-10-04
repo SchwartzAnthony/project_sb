@@ -65,6 +65,11 @@ static func ask_rows(on_node: Node, title: String, body: String, rows: Array) ->
 	made.layer = 175
 	on_node.add_child(made)
 	var picks: Array[int] = made._build_rows(title, body, rows)
+	# The same safety as ask(): `choice_window_seconds` answers with what is
+	# selected (round AD - it never timed out before).
+	var db := CardDatabase.get_db()
+	if db != null and db.tune_float("choice_window_seconds", 0.0) > 0.0:
+		made._time_out(db.tune_float("choice_window_seconds", 0.0))
 	await made.chosen
 	made.queue_free()
 	return picks

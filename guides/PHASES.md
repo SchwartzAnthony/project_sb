@@ -299,7 +299,8 @@ tokens, Ore, swans and five Emblem Basic sides — in round Z (103 work)**.
 **C3 — the keeper and the referee — in round AA (122 work)**, with the
 question windows you asked for. **C4 — bending the duel — in round AB (156 work).** **C5 — the zones and
 the choice screens — in round AC (168 work).** **C6 — the class engines:
-mines, fusing, the ball, gravestones — is next** (Questions Q090, Q091). Every open question lives in
+mines, fusing, the ball, gravestones — in round AD: all 228 work.** **C7 — the
+Emblems' Basic sides — is next** (Q099), then C8, the Ultimates (Q100). Every open question lives in
 `data/Questions.csv`.
 
 On hold until the combat abilities are done, at your request:

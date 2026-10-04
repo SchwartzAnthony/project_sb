@@ -70,10 +70,10 @@ has_counter:<kind>,ability condition,live,"If column: this card carries a counte
 enemy_has_counter,ability condition,live,If column: the card it faces carries a counter (enemy_has_counter:burn for one kind). LIVE since round Z (C2).,,Round Z (C2).
 is_swan,ability condition,live,If column: this card is a Swan this match. LIVE since round Z (C2).,,Round Z (C2).
 ore_this_round,ability condition,live,If column: Ore came into your side's pool this round (any way at all). LIVE since round Z (C2).,,Round Z (C2).
-mining,ability condition,planned,If column: another unit of yours is mining. PHASE C6 - until then it is never true.,,From the round Y audit.
-touched_ball,ability condition,planned,If column: this card touched the ball since the last PLAY MAKER. PHASE C6 - until then it is never true.,,From the round Y audit.
-touched_before_playmaker,ability condition,planned,If column: this card touched the ball BEFORE the PLAY MAKER call. PHASE C6 - until then it is never true.,,From the round Y audit.
-fused,ability condition,planned,If column: this card is fused with another. PHASE C6 - until then it is never true.,,From the round Y audit.
+mining,ability condition,live,If column: another unit of yours is mining. BUILT IN ROUND AD (C6).,,From the round Y audit.
+touched_ball,ability condition,live,If column: this card touched the ball since the last PLAY MAKER. BUILT IN ROUND AD (C6).,,From the round Y audit.
+touched_before_playmaker,ability condition,live,If column: this card touched the ball BEFORE the PLAY MAKER call. BUILT IN ROUND AD (C6).,,From the round Y audit.
+fused,ability condition,live,"If column: this card is fused with another. ALSO the effect word for ""Can be fused."" on a card (it does nothing by itself). BUILT IN ROUND AD (C6).",,From the round Y audit.
 goalie_chance,ability effect,live,"Moves how likely a keeper is to be BEATEN by Value percentage points (ruling R02: the %, never the stamina). Target enemy_goalie (easier for you to score) or own_goalie (harder for them). -100 = he cannot be beaten. Scope round = until the next shot; match = for the match. Shown on the keeper's label and the shot window. LIVE since round AA (C3).",,Round AA (C3).
 goalie_shield,ability effect,live,Gives a keeper Value shields: a second bar that empties BEFORE his stamina (ruling R11) - a shot's bite and a drain both come off the shield first. Shown as 'shield 2' on the keeper. LIVE since round AA (C3).,,Round AA (C3).
 remove_shields,ability effect,live,Takes every shield off the target keeper. LIVE since round AA (C3).,,Round AA (C3).
@@ -92,9 +92,9 @@ give_priority,ability effect,live,The target resolves FIRST this duel. LIVE sinc
 uncounterable,ability effect,live,"Cannot be negated or forced this duel (Herbert, Q053). LIVE since round AB (C4).",,Round AB (C4).
 send_to_exhaust,ability effect,live,Moves the card to the exhaust zone outside its turn (ruling R14: Exile = Exhaust). BUILT IN ROUND AC (C5).,,From the round Y audit - guides/COMBAT_PHASES.md.
 swap_from_exhaust,ability effect,live,"After the target's next duel it goes to the exhaust and a card of the same tier (the same power if there is one) comes back from it (Lothar). BUILT IN ROUND AC (C5). Nicole's ""if another unit is mining"" still waits for C6.",,From the round Y audit - guides/COMBAT_PHASES.md.
-fuse,ability effect,planned,Fuses this card with another. PHASE C6.,,From the round Y audit - guides/COMBAT_PHASES.md.
-gravestone,ability effect,planned,Puts a gravestone on the pitch. PHASE C6.,,From the round Y audit - guides/COMBAT_PHASES.md.
-cold_touch,ability effect,planned,Marks the ball with cold touch. PHASE C6.,,From the round Y audit - guides/COMBAT_PHASES.md.
+fuse,ability effect,live,Fuses this card with another. BUILT IN ROUND AD (C6).,,From the round Y audit - guides/COMBAT_PHASES.md.
+gravestone,ability effect,live,Puts a gravestone on the pitch. BUILT IN ROUND AD (C6).,,From the round Y audit - guides/COMBAT_PHASES.md.
+cold_touch,ability effect,live,Marks the ball with cold touch. BUILT IN ROUND AD (C6).,,From the round Y audit - guides/COMBAT_PHASES.md.
 make_swan,ability effect,live,"The target becomes a Swan creature type for the rest of the match (Zepar's Emblem, on reveal).",Target self,Round Z (C2).
 is_token,ability condition,live,If column: this card is a token.,,Round Z (C2).
 ore_at_least:<n>,ability condition,live,If column: your side's Ore pool holds at least n.,ore_at_least:3,Round Z (C2).
@@ -119,3 +119,6 @@ reveal_from_exhaust,ability effect,live,Reveals a card from your exhaust (a fire
 double_attack,ability effect,live,The target fights its next duel with its PRINTED power doubled (max 5); buffs are added after (your Q051).,Lothar,ROUND AC (C5)
 swapped_was,ability condition,live,If column: the unit this card swapped with (from the exhaust) was this - swapped_was:air.,Franz,ROUND AC (C5)
 revealed_was,ability condition,live,If column: the card this one revealed from the exhaust was this - revealed_was:fire.,Flauros,ROUND AC (C5)
+mine,ability effect,live,Every unit of yours that is MINING (standing at one of your mines since the last PLAY MAKER) gives +1 Ore (Tobias).,Tobias,ROUND AD (C6)
+weapon,ability effect,live,A temporary weapon: +Value power for that combat (Belial).,Belial,ROUND AD (C6)
+swap_from_void,ability effect,live,"It swaps out of its duel for another card of its tier you have not played yet (the void, ruling R07); that card fights the duel.","Marie, Susanne, Sophie",ROUND AD (C6)

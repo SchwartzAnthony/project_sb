@@ -47,6 +47,9 @@ func _initialize() -> void:
 	await process_frame
 	# Round AC: SOAK_TEST_ENV=1 plays inside the TEST COMPLETE ENVIRONMENT
 	# (its own save, everything unlocked) instead of the plain save.
+	# Round AD: any window that opens answers itself, so a save that says
+	# "ask me" can never hang a soak.
+	CardDatabase.get_db().tuning[CardDatabase._normalise("choice_window_seconds")] = "1"
 	# SOAK_START=keeper_claim forces every PLAY MAKER start (PlayMakerStarts.csv).
 	PlayMakerStarts.force_start = OS.get_environment("SOAK_START")
 	if OS.get_environment("SOAK_TEST_ENV") == "1":

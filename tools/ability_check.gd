@@ -124,6 +124,12 @@ func _prepare(engine: AbilityEngine, card: PlayerData, opp: PlayerData, ability:
 				engine.put_counter(opp, true, String(term["arg"]) if String(term["arg"]) != "" else "burn")
 			"orethisround":
 				engine.add_to_pool(false, "ore", 1)
+			"touchedball", "touchedbeforeplaymaker":
+				engine.set_touched(false, [card])
+			"mining":
+				engine.set_mining(false, [_dummy("Miner", "I", 1, "Earth", "Bergmännlein")], 4)
+			"fused":
+				engine._fused_with[engine._k(card, false)] = _dummy("Partner", card.get_tier_clean(), 1, "Fire", card.unit_type)
 			"revealedwas":
 				# C5 (Flauros): a card of that kind in the exhaust to reveal.
 				var shown := _matching("InExhaust", String(term["arg"]), card.unit_type)
@@ -140,6 +146,10 @@ func _check(card: PlayerData, slot: String, ability: AbilityData, db: CardDataba
 	engine.begin_match()
 	var me := false
 	var opp := _dummy("Opponent", card.get_tier_clean(), 2, "Earth", "Normal")
+	# A swap between two equal powers changes nothing to see (round AD).
+	if ability.effect == "swappower" and card.get_attack_power() == 2:
+		opp.base_power_left = 1
+		opp.base_power_right = 1
 	# The "next" card of the right kind, on whichever side the target names.
 	var next := AbilityData.parse_next(ability.target)
 	var filter := String(next.get("filter", ""))
@@ -524,6 +534,7 @@ func _check_emblems(db: CardDatabase) -> void:
 	_check_asks(db)
 	_check_c4(db)
 	_check_c5(db)
+	_check_c6(db)
 
 	# ---- ZEPAR: a water unit revealed becomes a Swan, and a Swan is +1 ----
 	var zepar := _badge("Zepar")
@@ -965,3 +976,93 @@ func _check_c5(db: CardDatabase) -> void:
 		_say(not swaps.is_empty() and String(swaps[0].get("kind", "")) == "swan" and e.zone_of(jakob, 0) == "exhaust",
 			"Jakob revealed as a Swan: he goes to the exhaust and a Swan Unit token takes his place",
 			"swaps %d, Jakob %s" % [swaps.size(), e.zone_of(jakob, 0)])
+
+
+## ROUND AD (C6): the class engines, each as a little story.
+func _check_c6(db: CardDatabase) -> void:
+	print("--- the class engines (C6) ---")
+	# ---- Finn touched the ball: cold touch, enemy -2 ----
+	var finn := _find(db, "Finn")
+	if finn != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var opp := _dummy("Opp", finn.get_tier_clean(), 3, "Earth", "Normal")
+		e.sync_field([finn], [opp])
+		e.round_lineups([finn], [opp])
+		e.begin_round()
+		e.set_touched(false, [finn])
+		e.begin_duel(finn, opp)
+		e.resolve_duel_abilities(finn, false, opp)
+		_say(e.take_cold_touch() and int(e.cold_touches[false]) == 1 and e.defense_power(opp, true) == 1,
+			"Finn touched the ball: a COLD TOUCH, and the enemy is -2", "enemy %d" % e.defense_power(opp, true))
+		var e2 := AbilityEngine.new(db)
+		e2.begin_match()
+		e2.sync_field([finn], [opp])
+		e2.round_lineups([finn], [opp])
+		e2.begin_round()
+		e2.begin_duel(finn, opp)
+		e2.resolve_duel_abilities(finn, false, opp)
+		_say(int(e2.cold_touches[false]) == 0, "...and nothing when he did NOT touch it", "")
+	# ---- Ernst summons a gravestone ----
+	var ernst := _find(db, "Ernst")
+	if ernst != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var opp := _dummy("Opp", ernst.get_tier_clean(), 1, "Earth", "Normal")
+		e.sync_field([ernst], [opp])
+		e.round_lineups([ernst], [opp])
+		e.begin_round()
+		e.put_counter(ernst, false, "burn")
+		e.begin_duel(ernst, opp)
+		e.resolve_duel_abilities(ernst, false, opp)
+		_say((e.gravestones[false] as Array).size() == 1 and e.take_gravestones().size() == 1,
+			"Ernst has a counter: a GRAVESTONE goes on the field", "")
+	# ---- Marie swaps out for a card of her tier not played yet (the void) ----
+	var marie := _find(db, "Marie")
+	if marie != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var other := _dummy("Waiting", marie.get_tier_clean(), 2, "Air", "Unkengeister")
+		var opp := _dummy("Opp", marie.get_tier_clean(), 1, "Earth", "Normal")
+		e.sync_field([marie, other], [opp])
+		e.round_lineups([marie], [opp])
+		e.begin_round()
+		e.set_touched(false, [marie])
+		e.begin_duel(marie, opp)
+		e.resolve_duel_abilities(marie, false, opp)
+		var mid := e.take_mid_swap()
+		_say(not mid.is_empty() and mid["in"] == other and e.zone_of(marie, 0) == "field",
+			"Marie swaps out of her duel for a Tier %s still to be played (the void, R07)" % marie.get_tier_clean(),
+			"swap %s, Marie %s" % [not mid.is_empty(), e.zone_of(marie, 0)])
+	# ---- Tobias: units mining each give +1 Ore ----
+	var tobias := _find(db, "Tobias")
+	if tobias != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var opp := _dummy("Opp", tobias.get_tier_clean(), 1, "Air", "Normal")
+		e.sync_field([tobias], [opp])
+		e.round_lineups([tobias], [opp])
+		e.begin_round()
+		e.add_to_pool(false, "ore", 1)
+		e.set_mining(false, [_dummy("M1", "I", 1, "Earth", "Bergmännlein"), _dummy("M2", "II", 1, "Earth", "Bergmännlein")], 4)
+		e.begin_duel(tobias, opp)
+		e.resolve_duel_abilities(tobias, false, opp)
+		_say(e.pool(false, "ore") == 2, "Tobias: pay 1 Ore, two units mining give +1 each", "Ore %d" % e.pool(false, "ore"))
+		e.mine_ore(false, 3, 3, tobias)
+		_say(e.pool(false, "ore") == 5, "Mines worked since the last PLAY MAKER pay +1 Ore each (Q055)", "Ore %d" % e.pool(false, "ore"))
+	# ---- Jonas fuses with a Tier III fire unit from the bench ----
+	var jonas := _find(db, "Jonas")
+	if jonas != null:
+		var e := AbilityEngine.new(db)
+		e.begin_match()
+		var partner := _dummy("Bencher", "III", 4, "Fire", jonas.unit_type)
+		var opp := _dummy("Opp", jonas.get_tier_clean(), 1, "Earth", "Normal")
+		e.sync_field([jonas], [opp])
+		e.set_bench(false, [partner])
+		e.round_lineups([jonas], [opp])
+		e.begin_round()
+		e.begin_duel(jonas, opp)
+		e.resolve_duel_abilities(jonas, false, opp)
+		_say(e.fused_partner(jonas, false) == partner and e.attack_power(jonas, false) >= 4 and (e.bench[false] as Array).is_empty(),
+			"Jonas FUSES with a Tier III fire unit from the bench: the higher power (Q056)",
+			"partner %s, power %d" % [e.fused_partner(jonas, false) != null, e.attack_power(jonas, false)])

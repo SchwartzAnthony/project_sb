@@ -560,6 +560,25 @@ AB's test matches had no Swans.
 combat_shot SHOT_ZONES / SHOT_START / SHOT_COUNT; match_soak SOAK_START /
 SOAK_TEST_ENV. **Next: C6.**
 
+## 12g. Round AD — DONE (phase C6, 228/228)
+
+**C6:** src/formations/pitch_engines.gd (PitchEngines node, opened at the
+first PLAY MAKER by main_scene._c6_at_play_maker): touches + mining tracked
+every physics frame (tick), handed to the engine at every PLAY MAKER
+(set_touched / set_mining / mine_ore), mines from data/Mines.csv, drawn mines
+and gravestones, icy ball. Bench chosen in _choose_benches (ask_rows window,
+AUTO kind "bench"). Engine: C6_EFFECTS + _engine_effect (coldtouch,
+swapfromvoid, gravestone, mine, fuse, fused), weapon = addpower buff,
+_swap_mid_duel -> take_mid_swap (main_scene swaps atk/def after the stack),
+_fused_with (power = max of the two printed, partner's cell appended in
+_fire_for). Targets `ball` / `field` are known now. Stats rows for Flauros,
+Belial, Glasya, Caim rewired to real events.
+
+**His answers:** Q077 Dev zone-map switch (flag dev_zone_map), Q082 more
+corners / goal kicks, Q085 AI swaps only stronger (ai_exhaust_swap_any),
+Q086 Flauros asks (ask kind choose / reveal_from_exhaust + _reread).
+**Next: C7 (Q099).**
+
 ## 13. Ideas worth offering him
 
 - An `Ultimate In Short` column so the emblem bar and hover can show one line

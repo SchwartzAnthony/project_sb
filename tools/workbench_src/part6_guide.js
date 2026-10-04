@@ -500,6 +500,17 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("The class engines (round AD, phase C6)", `
+    <p style="margin:0 0 10px"><b>All 228 class abilities work in a match.</b> Next: the Emblems' Basic sides (C7) and the Ultimates (C8).</p>
+    ${rows([
+      ["touched","a unit that had the ball since the last PLAY MAKER - its card says TOUCHED. A cold touch turns the ball icy"],
+      ["gravestones","grey stones on the pitch for the match; counted for Caim"],
+      ["mines","<b>Mines.csv</b>: four per side at its touchline. Earth units near one are MINING; each worked mine = +1 Ore per PLAY MAKER"],
+      ["fusing","your <b>bench</b> of 3 (chosen at the first PLAY MAKER): a fire card of the right tier fuses - higher power, both abilities"],
+      ["the void","swap out of the duel for a card of the same tier not played yet"],
+      ["your answers","Dev: zone map at kick-off switch · more corners · the AI only swaps in a stronger card · you pick Flauros's card"],
+    ])}`);
+
   card("The zones in action, and testing (round AC, phase C5)", `
     <p style="margin:0 0 10px"><b>168 of your 228 class abilities work in a match</b> (74%).</p>
     ${rows([
@@ -552,8 +563,8 @@ function paintBook(){
       ["C2 · built","counters, tokens, Ore, swans, five Emblem Basic sides"],
       ["C3 · built","the keeper and the referee, and the question windows"],
       ["C4 · built","bending the duel"],
-      ["C5 · built","the zones in action and the ask-after-pick Reveal. <b>168 abilities work</b>"],
-      ["C6","mines, fusing, the ball, gravestones - +60"],
+      ["C5 · built","the zones in action and the ask-after-pick Reveal"],
+      ["C6 · built","mines, fusing, the ball, gravestones. <b>All 228 work</b>"],
       ["C7 · C8","the Emblems' Basic Sides, then the Stars' Ultimates"],
     ])}
     <p style="margin:10px 0 0;color:var(--dim)"><b>The three commands:</b> <code>python3 tools/ability_audit.py</code> (read the cards) · <code>python3 tools/ability_rows.py</code> (wire what is built) · <code>ability_coverage.gd</code> (the meter).</p>`);

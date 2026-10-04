@@ -331,6 +331,15 @@ func _build_test_row() -> void:
 			TestEnvironment.leave(get_tree())
 			ScenePaths.go_to(get_tree(), ScenePaths.BASE))
 		row.add_child(back)
+	# ROUND AD (your Q077): the zone map on at the start of every match.
+	var zones_on := state.has_flag("dev_zone_map")
+	var zone_button := _small_button("Zone map at kick-off: %s" % ("ON" if zones_on else "OFF"), 230.0)
+	zone_button.tooltip_text = "Every match in THIS save starts with the zone map (the Z key) switched on."
+	zone_button.pressed.connect(func() -> void:
+		state.set_flag("dev_zone_map", not state.has_flag("dev_zone_map"))
+		zone_button.text = "Zone map at kick-off: %s" % ("ON" if state.has_flag("dev_zone_map") else "OFF")
+		state.save_to_disk())
+	row.add_child(zone_button)
 	var note := _quiet("You are in the TEST save. Nothing here touches your real one." if inside
 		else "Opens a separate test save. Your real save is left exactly as it is.")
 	note.autowrap_mode = TextServer.AUTOWRAP_OFF

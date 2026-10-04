@@ -90,6 +90,8 @@ var units_container: Node2D
 var goalies: Dictionary = {}   # false -> player goalie, true -> enemy goalie
 ## ROUND AC: the enemy's Emblem race (counters and flips), never saved.
 var enemy_race: GameState = null
+## ROUND AD (C6): touches, mines, gravestones, the bench - see pitch_engines.gd.
+var pitch_engines: PitchEngines = null
 var ball: Ball = null
 var rps: Node = null
 var duel_arena: DuelArena = null
@@ -681,6 +683,9 @@ func _physics_process(delta: float) -> void:
 
 	_move_the_scenery()
 	_assign_roles()
+	# ROUND AD (C6): who touched the ball, who is at a mine.
+	if pitch_engines != null:
+		pitch_engines.tick(ball, _all_units(), current_state == MatchState.PLAYING)
 
 
 ## ROUND AC: Z (the `zones` row in Keys.csv) switches the zone map on and off.
@@ -1112,6 +1117,12 @@ func _fresh_spot(unit: PlayerUnit) -> Vector2:
 	var best := unit.home_position
 	var best_score := -INF
 	var others := _all_units()
+	# ROUND AD (C6): an earth unit's own mine is always one of the choices,
+	# and a good one (`mine_pull`) - that is how they come to be mining.
+	var mine := pitch_engines.mine_for(unit) if pitch_engines != null else Vector2.INF
+	if mine != Vector2.INF:
+		best = mine + Vector2(rng.randf_range(-40, 40), rng.randf_range(-30, 30))
+		best_score = db.tune_float("mine_pull", 900.0)
 	for _i in maxi(1, linger_candidates):
 		var p := Vector2(rng.randf_range(band.position.x, band.end.x), rng.randf_range(top, bottom))
 		var score := 0.0
@@ -3319,7 +3330,9 @@ func _lock_geometry() -> void:
 		zone_overlay.units_source = _all_units
 		zone_overlay.edge_keep = db.tune_float("edge_keep", edge_keep)
 		zone_overlay.linger_seconds = db.tune_float("linger_seconds", linger_seconds)
-		zone_overlay.detail = db.tune_bool("zone_map_on_start", false)
+		# Q077: also the Dev screen's switch (a flag in the save).
+		zone_overlay.detail = db.tune_bool("zone_map_on_start", false) \
+			or (state != null and state.has_flag("dev_zone_map"))
 		zone_overlay.setup(zones,
 			db.tune_float("zone_tint_alpha", 0.07),
 			db.tune_float("zone_tint_alpha_draft", 0.20))
@@ -3510,6 +3523,9 @@ func trigger_playmaker_event() -> void:
 	# It runs BEFORE the PLAY MAKER call on purpose. The whistle is for the
 	# restart, and the restart is the throw-in.
 	await _put_it_out_of_play()
+	# ROUND AD (C6): what happened on the grass since the last PLAY MAKER -
+	# touches, mines - goes to the engine before anybody picks.
+	await _c6_at_play_maker()
 
 	print("PLAY MAKER!  Cycle %d, Round %d" % [current_cycle, rounds_this_cycle])
 	AudioDirector.fire(get_tree(), "play_maker",
@@ -4581,6 +4597,81 @@ func _reveal_words(data: PlayerData) -> String:
 	return "\n".join(lines)
 
 
+## ============ C6: WHAT THE GRASS SAW (round AD) ============
+##
+## At every PLAY MAKER: the first time, the mines go down and the bench is
+## chosen; every time, the touches and the mining since the last one are
+## handed to the ability engine and the mines pay out. See pitch_engines.gd.
+func _c6_at_play_maker() -> void:
+	if abilities == null:
+		return
+	if pitch_engines == null:
+		pitch_engines = PitchEngines.open(self, db)
+		# Under the players, over the grass: straight after the zone tint.
+		if zone_overlay != null:
+			move_child(pitch_engines, zone_overlay.get_index() + 1)
+		pitch_engines.place_mines(_cards_of_side(false), _cards_of_side(true))
+		await _choose_benches()
+	pitch_engines.at_play_maker(abilities)
+	_absorb_ability_news()
+
+
+## R08: "outside of the game" = the bench, at most `bench_size`, chosen by
+## you - asked only if one of your cards can fuse. The AI takes its strongest.
+func _choose_benches() -> void:
+	var size := db.tune_int("bench_size", 3)
+	if size <= 0:
+		return
+	for side in [false, true]:
+		var team := _cards_of_side(side)
+		var stars := _stars_of(side)
+		var unit_type := ""
+		if not stars.is_empty():
+			unit_type = stars[0].unit_type
+		elif not team.is_empty() and team[0] != null:
+			unit_type = (team[0] as PlayerData).unit_type
+		if unit_type == "":
+			continue
+		# A bench is only for fusing - a team that cannot fuse has none.
+		if not pitch_engines.team_can_fuse(team):
+			continue
+		var options := pitch_engines.bench_candidates(unit_type, team)
+		if options.is_empty():
+			continue
+		var picked: Array = pitch_engines.auto_bench(unit_type, team, size)
+		if not side and pitch_engines.team_can_fuse(team) and not _auto_covers("bench") \
+				and options.size() > size:
+			# The suggested bench first, then the rest.
+			var shown: Array = picked.duplicate()
+			for c in options:
+				if shown.size() >= 9:
+					break
+				if not shown.has(c):
+					shown.append(c)
+			var rows: Array = []
+			for slot in size:
+				var labels: Array = []
+				for c in shown:
+					var card := c as PlayerData
+					labels.append("%s  (Tier %s, %s, power %d)" % [card.player_name, card.get_tier_clean(),
+						card.active_element(), card.get_attack_power()])
+				rows.append({"label": "Bench place %d" % (slot + 1), "options": labels, "default": mini(slot, shown.size() - 1)})
+			freeze_play(true)
+			var picks := await ChoiceWindow.ask_rows(self, "YOUR BENCH",
+				"Your cards can FUSE with a unit from \"outside of the game\" - your bench. Choose up to %d of your class's cards who are not in the team. The first ones shown are the ones your fusers want. (The same card twice counts once.)" % size, rows)
+			freeze_play(false)
+			picked = []
+			for p in picks:
+				var card: PlayerData = shown[clampi(p, 0, shown.size() - 1)]
+				if not picked.has(card):
+					picked.append(card)
+		abilities.set_bench(side, picked)
+		var names: PackedStringArray = PackedStringArray()
+		for c in picked:
+			names.append((c as PlayerData).player_name)
+		print("[bench] %s: %s" % ["them" if side else "you", ", ".join(names)])
+
+
 ## ============ C5 / R17: THE SWAP FROM THE EXHAUST ============
 ##
 ## "During combat, the Exhaust Zone should light up (if cards can be used),
@@ -4623,8 +4714,19 @@ func _offer_exhaust_swaps(mine: PlayerData, theirs: PlayerData) -> Array:
 			out[0] = pick
 	# THEIRS - the AI swaps whenever it can (`ai_exhaust_swap`).
 	var theirs_options := abilities.exhaust_swap_options(true, theirs)
+	# ROUND AD (your Q085): only for a STRONGER card (this round's side of it).
+	# `ai_exhaust_swap_any` true = whenever it can, as before.
+	if not db.tune_bool("ai_exhaust_swap_any", false):
+		var stronger: Array[PlayerData] = []
+		for c in theirs_options:
+			if _reveal_power(c, true) > _reveal_power(theirs, true):
+				stronger.append(c)
+		theirs_options = stronger
 	if not theirs_options.is_empty() and db.tune_bool("ai_exhaust_swap", true):
 		var their_pick: PlayerData = theirs_options[0]
+		for c in theirs_options:
+			if _reveal_power(c, true) > _reveal_power(their_pick, true):
+				their_pick = c
 		abilities.do_exhaust_swap(their_pick, theirs, true)
 		announce("THEIR %s SWAPS IN FROM THE EXHAUST" % NamePlate.short_name(their_pick), 1.4)
 		out[1] = their_pick
@@ -5158,6 +5260,25 @@ func resolve_round() -> void:
 		# ROUND AB (C4): A CARD SWITCHED TO BEING THE DEFENDER. The duel turns
 		# round - it defends, the other card attacks, and the ball goes to
 		# whoever wins, as always (Q047).
+		# ROUND AD (C6): A CARD SWAPPED OUT MID-DUEL ("swap this unit with
+		# another of same tier from the void", Nicole from the exhaust). The
+		# card that came in fights this duel.
+		var mid := abilities.take_mid_swap()
+		if not mid.is_empty():
+			var out_card: PlayerData = mid["out"]
+			var in_card: PlayerData = mid["in"]
+			if atk == out_card:
+				atk = in_card
+			elif def == out_card:
+				def = in_card
+			if bool(mid["side"]):
+				enemy_lineup[i] = in_card
+			else:
+				player_lineup[i] = in_card
+			announce("%s SWAPS IN FOR %s" % [NamePlate.short_name(in_card), NamePlate.short_name(out_card)], 1.4)
+			print("  Tier %s: %s swaps out, %s comes in." % [ALL_TIERS[i], out_card.player_name, in_card.player_name])
+			_absorb_ability_news()
+
 		var flip := abilities.take_switch()
 		if not flip.is_empty():
 			var was_atk := atk
@@ -7065,6 +7186,8 @@ func _absorb_ability_news() -> void:
 			var at_p := round_player_picks.find(swap["old"])
 			if at_p >= 0:
 				round_player_picks[at_p] = swap["new"]
+	if pitch_engines != null:
+		pitch_engines.absorb(abilities)
 	# ROUND AC (C5): cards an ability moved between the zones - the body on
 	# the pitch is dimmed (exhaust, combat) or brought back (field).
 	for move in abilities.take_zone_moves():
@@ -7251,6 +7374,7 @@ const AUTO_KINDS := [
 	["rose", "Which unit a Rose token replaces"],
 	["side", "Which side stays up in the exhaust"],
 	["exhaust", "Swapping a card in from the exhaust (round AC)"],
+	["bench", "Choosing your bench for fusing (round AD)"],
 ]
 
 

@@ -190,6 +190,17 @@ const EFFECTS: Array[String] = [
 	                      # If then asks what it was (Flauros)
 	"doubleattack",       # its PRINTED power doubled (capped) for that duel, buffs
 	                      # after (Lothar, Q051)
+	# ---- ROUND AD, PHASE C6: the class engines ----
+	"coldtouch",          # a COLD TOUCH on the ball: the ball turns icy until the
+	                      # next PLAY MAKER, and it counts (Glasya-Labolas)
+	"swapfromvoid",       # it swaps out of its duel for another of its tier you
+	                      # have not played yet (the void, ruling R07)
+	"gravestone",         # a gravestone on the field where it stands, for the match
+	"mine",               # Tobias: every unit of yours mining gives +1 Ore
+	"weapon",             # a temporary weapon: +value power for that combat
+	"fuse",               # fuse:fire+iii - a card of that kind from your BENCH
+	                      # fuses with it for the match (higher power, both abilities)
+	"fused",              # "Can be fused." - a word on the card, does nothing itself
 ]
 
 const SCOPES: Array[String] = ["duel", "round", "cycle", "match"]
@@ -268,6 +279,8 @@ const CONDITIONS: Array[String] = [
 	"orethisround", "oreatleast", "element", "exhaustedthisround",
 	# ROUND AC (C5)
 	"swappedwas", "revealedwas",
+	# ROUND AD (C6)
+	"touchedball", "touchedbeforeplaymaker", "mining", "fused",
 ]
 
 
@@ -402,6 +415,9 @@ func _target_is_known() -> bool:
 	var flat := CardDatabase._normalise(target)
 	if TARGETS_SIMPLE.has(flat) or flat == "side" or flat == "token":
 		return true
+	# ROUND AD (C6): the ball (cold touch) and the field (gravestones).
+	if flat == "ball" or flat == "field":
+		return true
 	if target.begins_with("replace:") or target.begins_with("enemy_tier:"):
 		return true
 	if not parse_next(target).is_empty():
@@ -467,6 +483,9 @@ func condition_words() -> String:
 			"oreatleast": said = "you have %s Ore" % arg
 			"element": said = "it is %s" % arg
 			"exhaustedthisround": said = "%s units went to the exhaust this round" % arg.replace(":", " ")
+			"touchedball", "touchedbeforeplaymaker": said = "it touched the ball before the PLAY MAKER"
+			"mining": said = "another of your units is mining"
+			"fused": said = "it is fused"
 			"swappedwas": said = "the unit it swapped with was %s" % arg
 			"revealedwas": said = "the card it revealed was %s" % arg
 			_: said = String(term["raw"])
@@ -546,6 +565,13 @@ func _what_words() -> String:
 		"revealanother": return "the next card you pick this round is revealed too"
 		"revealfromexhaust": return "a card from your exhaust is revealed"
 		"doubleattack": return "%s's printed power is doubled (max 5) for that duel" % who
+		"coldtouch": return "a cold touch on the ball"
+		"swapfromvoid": return "it swaps out for another of its tier you have not played yet"
+		"gravestone": return "a gravestone on the field"
+		"mine": return "every unit of yours that is mining gives +%d Ore" % maxi(1, value)
+		"weapon": return "%s gets a weapon: %+d power" % [who, value]
+		"fuse": return "it fuses with a %s unit from your bench" % effect_arg.replace("+", " Tier ").to_upper().replace("FIRE", "fire")
+		"fused": return "it can be fused"
 	return "%s %+d to %s" % [effect, value, who]
 
 
@@ -603,7 +629,8 @@ func _how_long_words() -> String:
 		return ""
 	# C5: these say their own timing.
 	if effect in ["swapintier", "sendtoexhaust", "swapfromexhaust", "exhaustotherreturn",
-			"revealanother", "revealfromexhaust", "doubleattack"]:
+			"revealanother", "revealfromexhaust", "doubleattack",
+			"coldtouch", "swapfromvoid", "gravestone", "mine", "fuse", "fused"]:
 		return ""
 	# Round AB (Q027): what "for the round" really means for these two.
 	if scope == "round" and effect == "goaliechance":

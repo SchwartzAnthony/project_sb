@@ -20,6 +20,10 @@ const MAX_SHOTS := 16
 func _initialize() -> void:
 	seed(20261003)
 	await process_frame
+	# In the TEST ENVIRONMENT, so the "ask me" flags set below never reach
+	# the real save (round AD: they did once, and every soak after it waited
+	# for an answer nobody gave).
+	TestEnvironment.enter(self)
 	var db := CardDatabase.get_db()
 	db.tuning[CardDatabase._normalise("choice_window_seconds")] = "2.5"
 	var wanted := OS.get_environment("SOAK_CLASS")

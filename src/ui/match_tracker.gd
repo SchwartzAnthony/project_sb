@@ -94,6 +94,19 @@ func refresh() -> void:
 		var wins := engine.pool(side, "victory")
 		if wins > 0:
 			bits.append("Victory %d" % wins)
+		# ROUND AD (C6): the class engines.
+		var graves := (engine.gravestones[side] as Array).size()
+		if graves > 0:
+			bits.append("Graves %d" % graves)
+		var miners := engine.mining_count(side)
+		if miners > 0:
+			bits.append("Mining %d" % miners)
+		var cold := int(engine.cold_touches[side])
+		if cold > 0:
+			bits.append("Cold %d" % cold)
+		var benched := (engine.bench[side] as Array).size()
+		if benched > 0 and not side:
+			bits.append("Bench %d" % benched)
 		var waiting := engine.pending_lines(side)
 		# ROUND AB (Q035): what THEIR cards are doing to this side.
 		var against: Array[String] = []

@@ -129,8 +129,8 @@ C8. "Not written" means the six Ultimates you haven't written yet.
 **Running total of class abilities that work in a match** (the meter,
 `ability_coverage.gd`, counts the 228 Attack/Defend sides of the set cards and
 Stars' Front Sides): 1 before C1 → 33 after C1 → 103 after C2 (round Z) →
-122 after C3 (round AA) → 156 after C4 (round AB) → **168 after C5 (round
-AC, 74%)** → 228 after C6. C7 and C8
+122 after C3 (round AA) → 156 after C4 (round AB) → 168 after C5 (round
+AC) → **228 after C6 (round AD, 100%)**. C7 and C8
 are the Emblems and Ultimates on top.
 
 ### Your rulings (answered in round Z) and what they changed
@@ -323,14 +323,21 @@ unit" now WAITS for that card (it used to expire at the Tier I duel).
 - Still for later: the void (R07, Marie - "if this touched the ball", C6) and
   copying from the exhaust (Vassago's Emblem, C7).
 
-### C6 — The class engines · +60 · NEXT
+### C6 — The class engines · 228 working · ✅ BUILT IN ROUND AD
 
-The things on the pitch: **mines and mining** (Bergmännlein), **fusing**
-(Feuergeister), **touching the ball, cold touch, gravestones** (Unkengeister).
-These are the ones that need the match to *watch the pitch* rather than the
-cards. **Needs R08, R13.**
+- **Touches (R13):** every unit that had the ball in open play since the last
+  PLAY MAKER (TOUCHED on its card). `touched_ball`, `touched_before_playmaker`.
+- **Cold touch:** the ball turns icy until the next PLAY MAKER; counted.
+- **Gravestones:** on the pitch for the match (Q058); counted.
+- **Mines (Q091, Q055):** data/Mines.csv, four per side at its touchline;
+  earth units near one are MINING; +1 Ore per worked mine per PLAY MAKER;
+  Tobias's `mine`; Belial's `weapon`.
+- **Fusing (R08, Q056):** a bench of 3 you choose; `fuse:fire+iii`; higher
+  power, both abilities, FUSED.
+- **The void (R07):** `swap_from_void` mid-duel; Nicole's swap from the
+  exhaust mid-duel.
 
-### C7 — The Emblems' Basic Sides · 7 systems left
+### C7 — The Emblems' Basic Sides · 7 systems left · NEXT
 
 Five were built early in C2 (Gremory, Zepar, Sallos, Belphegor, Buer). Left:
 Flauros (fused units - after C6), the Bergmännlein mines, crater and rock

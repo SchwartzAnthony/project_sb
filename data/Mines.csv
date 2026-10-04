@@ -1,0 +1,9 @@
+Mine,Side,Across,Down,Notes
+Mine 1,you,0.125,0.84,"YOUR mines (Q091: one per zone, at the side of the field). Across = 0 your goal line to 1 theirs; Down = 0 the top touchline to 1 the bottom one. Quarter 1 - your Tier I zone"
+Mine 2,you,0.375,0.84,Quarter 2
+Mine 3,you,0.625,0.84,Quarter 3
+Mine 4,you,0.875,0.84,Quarter 4
+Mine 1,them,0.875,0.22,"THEIR mines, along the TOP touchline so the two sides do not share a spot. Their quarter 1 is at your far end"
+Mine 2,them,0.625,0.22,Their quarter 2
+Mine 3,them,0.375,0.22,Their quarter 3
+Mine 4,them,0.125,0.22,Their quarter 4

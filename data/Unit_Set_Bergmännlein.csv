@@ -1,13 +1,13 @@
 Unit Type,Name,Attack,Defend,Element,Base Power ,Tier,Card Number,Set Name,Artwork,Player Type,Attack Ability,Defend Ability
-Bergmännlein,Tobias,Consume 1 Ore: Choose 1 mine. Units mining get +1 ore counter. (Max 1),Gain 3 Ore counters,EARTH,0,I,1,Belial,Belial_Bergmännlein.png,Normal,,C_Tobias_D
+Bergmännlein,Tobias,Consume 1 Ore: Choose 1 mine. Units mining get +1 ore counter. (Max 1),Gain 3 Ore counters,EARTH,0,I,1,Belial,Belial_Bergmännlein.png,Normal,C_Tobias_A,C_Tobias_D
 Bergmännlein,Erich,Consume 2 Ore: Increase enemy goalie % chance by 2% (Max 3) ,Consume 2 Ore: Give -1 to enemy during combat (Max 1),EARTH,1,I,2,Belial,Belial_Bergmännlein.png,Normal,C_Erich_A,C_Erich_D
 Bergmännlein,Karl,Consume 3 Ore: Add +1% to enemy Yellow Card chance (Max 5)  ,Consume 3 Ore: Negate power buff (Max 1) ,EARTH,2,I,3,Belial,Belial_Bergmännlein.png,Normal,BERG_ORE_WHISPER,C_Karl_D
-Bergmännlein,Nicole,If another Unit is mining: Use the base power of an enemy unit,If another Unit is mining: Swap this card with one of same power and tier from the exhaust,EARTH,1,II,4,Belial,Belial_Bergmännlein.png,Normal,,
-Bergmännlein,Oliver,If another Unit is mining: Player using Defend Ability,If another Unit is mining: Add +1 to goalie shield,EARTH,2,II,5,Belial,Belial_Bergmännlein.png,Normal,,
-Bergmännlein,Lennart,If another Unit is mining: Give the next ally unit -1 priority,If another Unit is mining: Deal 1 damage to enemy goalie,EARTH,3,II,6,Belial,Belial_Bergmännlein.png,Normal,,
-Bergmännlein,Volker,If another Unit is mining: Gain +1 power during combat,If another Unit is mining: Give -1 Stamina to goalie,EARTH,3,IV,10,Belial,Belial_Bergmännlein.png,Normal,,
-Bergmännlein,Kai,If another Unit is mining: Deal 1 damage to enemy goalie,If another Unit is mining: Give +1 Stamina to goalie,EARTH,4,IV,11,Belial,Belial_Bergmännlein.png,Normal,,
-Bergmännlein,Walter,If another Unit is mining: Give -1 to enemy during combat,If another Unit is mining: Gain +1 power during combat,EARTH,5,IV,12,Belial,Belial_Bergmännlein.png,Normal,,
+Bergmännlein,Nicole,If another Unit is mining: Use the base power of an enemy unit,If another Unit is mining: Swap this card with one of same power and tier from the exhaust,EARTH,1,II,4,Belial,Belial_Bergmännlein.png,Normal,C_Nicole_A,C_Nicole_D
+Bergmännlein,Oliver,If another Unit is mining: Player using Defend Ability,If another Unit is mining: Add +1 to goalie shield,EARTH,2,II,5,Belial,Belial_Bergmännlein.png,Normal,C_Oliver_A,C_Oliver_D
+Bergmännlein,Lennart,If another Unit is mining: Give the next ally unit -1 priority,If another Unit is mining: Deal 1 damage to enemy goalie,EARTH,3,II,6,Belial,Belial_Bergmännlein.png,Normal,C_Lennart_A,C_Lennart_D
+Bergmännlein,Volker,If another Unit is mining: Gain +1 power during combat,If another Unit is mining: Give -1 Stamina to goalie,EARTH,3,IV,10,Belial,Belial_Bergmännlein.png,Normal,C_Volker_A,C_Volker_D
+Bergmännlein,Kai,If another Unit is mining: Deal 1 damage to enemy goalie,If another Unit is mining: Give +1 Stamina to goalie,EARTH,4,IV,11,Belial,Belial_Bergmännlein.png,Normal,C_Kai_A,C_Kai_D
+Bergmännlein,Walter,If another Unit is mining: Give -1 to enemy during combat,If another Unit is mining: Gain +1 power during combat,EARTH,5,IV,12,Belial,Belial_Bergmännlein.png,Normal,C_Walter_A,C_Walter_D
 Bergmännlein,Kerstin,Consume 1 Ore: Reduce the ally goalie % chance by 50% this turn (once per round),Gain 3 Ore counters,EARTH,0,I,1,Valefor,Valefor_Bergmännlein.png,Normal,C_Kerstin_A,C_Kerstin_D
 Bergmännlein,Dominik,Consume 2 Ore:  Enemy has to use Attack Ability,Consume 2 Ore: Increase 5% on enemy chance (Max 1) ,EARTH,1,I,2,Valefor,Valefor_Bergmännlein.png,Normal,C_Dominik_A,C_Dominik_D
 Bergmännlein,Nils,Consume 3 Ore: Give the enemy +5% foul chance for the match (once per game),Consume 3 Ore: Gain +1 Power during combat (Max 2) ,EARTH,2,I,3,Valefor,Valefor_Bergmännlein.png,Normal,C_Nils_A,C_Nils_D

@@ -1694,6 +1694,73 @@ Jakob ("Reveal: if this unit is a swan, send it to the exhaust and create a
 Swan unit token with this unit's power") works too: the Swan token plays his
 duel in his place.
 
+### Combat abilities — round AD, phase C6: the class engines
+
+**All 228 class abilities work in a match now** (100%). What is left is the
+Emblems' Basic sides (C7) and the Stars' Ultimates (C8).
+
+**Who touched the ball (Unkengeister).** Every unit that had the ball in open
+play since the last PLAY MAKER (ruling R13) counts as having touched it - its
+draft card says **TOUCHED**, so you can pick it on purpose. "Apply cold touch
+on the ball" turns the ball **icy blue** until the next PLAY MAKER and counts
+for Glasya-Labolas.
+
+**Gravestones (Unkengeister).** A grey stone appears where the unit stands and
+stays for the match (Q058). They count for Caim and for "objects on the
+field". `gravestone_max`.
+
+**Mines (Bergmännlein) - `data/Mines.csv`.** Four mines per side along its own
+touchline, one per quarter (your Q091; yours along the bottom, theirs along
+the top). A side gets them only if it has an earth unit (`mines_need_earth`).
+An earth unit that comes within `mine_reach` of one of its mines during
+waiting play is **MINING** (its card says so, and "If another unit is
+mining" is true). At every PLAY MAKER each mine that was worked gives +1 Ore
+(`mine_ore_per_round`, your Q055). Earth units with nothing to do drift to
+their mines (`mine_pull`). Tobias: every unit mining gives +1 Ore.
+
+| Mines.csv | |
+|---|---|
+| `Mine` | a name for you |
+| `Side` | `you`, `them` or `both` |
+| `Across` | 0 = your goal line, 1 = theirs |
+| `Down` | 0 = the top touchline, 1 = the bottom one |
+
+**Fusing (Feuergeister) - the bench.** "From outside of the game" is your
+**bench**: up to `bench_size` (3) cards of your class that are not in the
+team. If one of your cards can fuse you choose them at the first PLAY MAKER
+(ruling R08); the AI takes its strongest. "This unit fuses itself with a Tier
+III fire unit": a matching bench card joins it for the match - it keeps its
+name, fights with the **higher** printed power (Q056), carries both cards'
+abilities, and its card says **FUSED**.
+
+**The void (Marie, Susanne, Sophie).** "Swap this unit with another of same
+tier from the void": it leaves its duel for one of your cards of that tier
+not played yet this cycle (ruling R07); that card fights the duel. Nicole
+does the same from the exhaust (same power and tier).
+
+| new in Abilities.csv | what it does |
+|---|---|
+| `cold_touch` (target `ball`) | a cold touch on the ball |
+| `gravestone` (target `field`) | a gravestone where it stands |
+| `mine` | every unit of yours that is mining gives +Value Ore |
+| `weapon` | a temporary weapon: +Value power for that combat (Belial) |
+| `fuse:fire+iii` | a card of that kind from your bench fuses with it |
+| `fused` | "Can be fused." - a word, does nothing itself |
+| `swap_from_void` | swap out for a card of its tier not played yet |
+| If words | `touched_ball`, `touched_before_playmaker` (the same thing, R13), `mining`, `fused` |
+
+**The tracker** shows Graves, Mining, Cold and Bench counts.
+
+### Round AD: your answers
+
+| you said | now |
+|---|---|
+| Q077 a Dev switch for the zone map | Dev screen: **Zone map at kick-off: ON/OFF** (in this save) |
+| Q082 a mix | corner 20, goal kick 20, keeper's ball 12 (were 12, 12, 10) in PlayMakerStarts.csv |
+| Q085 b | the enemy only swaps a STRONGER card in from its exhaust (`ai_exhaust_swap_any` false) |
+| Q086 b | Flauros: you pick which exhaust card he reveals, when there is a choice |
+| Q081, Q076 | kept as they are and pinned - tell me if they bother you again |
+
 ### Round AC: your testing notes
 
 | you said | now |
@@ -3405,7 +3472,7 @@ palette colour and whether the game reads that name — and what is sitting in
 
 ---
 
-## 9. `data/Tuning.csv` — 402 numbers
+## 9. `data/Tuning.csv` — 411 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -4940,6 +5007,9 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | make units stand still less (or more) | `linger_seconds`, `edge_keep` in Tuning.csv |
 | make a card swap in from the exhaust before a duel | an `exhaust_swap` row with Effect `swap_in_tier` (and a Max), plus what it does once in - or write "While in Exhaust: Swap this Unit with another Tier I ..." and run the two scripts |
 | turn the Reveal question off (back to the SHOW button) | `reveal_after_pick` false |
+| move or add a mine | `data/Mines.csv` (Across / Down on the pitch, Side you / them / both) |
+| make mines give more or less Ore | `mine_ore_per_round`, `mine_reach` in Tuning.csv |
+| change how many cards sit on the bench | `bench_size` in Tuning.csv |
 | ask the player before an ability goes off | the `Ask` column of Abilities.csv: `yes` |
 | answer my questions | `data/Questions.csv`, the `Your Answer` column |
 | change what a Swan or a Rose token is | `EMB_ZEPAR_WINGS` / `EMB_GREMORY_ROSE` in Abilities.csv; `swans_count_as_tokens` in Tuning.csv |

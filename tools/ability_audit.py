@@ -201,7 +201,7 @@ DO_RULES = [
     (r"next swan has \+(\d) power", "add_power", "next_ally:swan", r"\1", "duel"),
     (r"next two unkengeister units get \+(\d) power", "add_power", "next_ally*2:unkengeister", r"\1", "duel"),
     (r"give a token this sequence \+(\d) attack", "add_power", "ally:token", r"\1", "duel"),
-    (r"give another unit a temporary weapon", "weapon", "ally", "1", "duel"),
+    (r"give another unit a temporary weapon", "weapon", "next_ally", "1", "duel"),
     # ---- the keepers ----
     (r"deal (\d) damage to (the )?enemy goalie", "drain_stamina", "enemy_goalie", r"\1", "now"),
     (r"enemy goalie takes (\d) damage", "drain_stamina", "enemy_goalie", r"\1", "now"),
@@ -225,6 +225,8 @@ DO_RULES = [
     (r"\+(\d) to the enemy yellow card bar", "foul_heat", "all_enemies", r"\1", "match"),
     (r"\+(\d) yellow card progression", "foul_heat", "opponent", r"\1", "match"),
     (r"increase enemy % of committing a foul by (\d)%", "foul_chance", "all_enemies", r"\1", "round"),
+    # Sophie (C6): no number written - ruling R10 says start at 5%.
+    (r"increase enemy % of committing a foul$", "foul_chance", "all_enemies", "5", "round"),
     (r"give the enemy \+(\d)% foul chance for the match", "foul_chance", "all_enemies", r"\1", "match"),
     (r"if you cause a foul, instead flip a coin", "foul_coin_flip", "self", "1", "match"),
     # ---- bending the duel ----
@@ -275,7 +277,11 @@ DO_RULES = [
     # ---- the class engines ----
     (r"gain (\d) ore counters", "gain_ore", "side", r"\1", "match"),
     (r"choose 1 mine", "mine", "ally", "1", "round"),
-    (r"fuses itself with a tier (i|ii|iii|iv) fire unit", "fuse", "self", "1", "match"),
+    # C6 (round AD): the bench card it fuses with - element and tier.
+    (r"fuses itself with a tier iv fire unit", "fuse:fire+iv", "self", "1", "match"),
+    (r"fuses itself with a tier iii fire unit", "fuse:fire+iii", "self", "1", "match"),
+    (r"fuses itself with a tier ii fire unit", "fuse:fire+ii", "self", "1", "match"),
+    (r"fuses itself with a tier i fire unit", "fuse:fire+i", "self", "1", "match"),
     (r"can be fused", "fused", "self", "1", "match"),
     (r"summon a gravest\w+ ?on the field", "gravestone", "field", "1", "match"),
     (r"apply \"?cold touch\"? on the ball", "cold_touch", "ball", "1", "round"),

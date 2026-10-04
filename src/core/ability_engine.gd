@@ -298,6 +298,30 @@ var _reveal_next := {false: false, true: false}
 var _swap_after_duel: Dictionary = {}
 ## Exhaust swaps done for the coming duel, fired after begin_duel.
 var _swaps_in: Array = []
+## ---- ROUND AD, PHASE C6: the class engines ----
+const C6_EFFECTS: Array[String] = ["coldtouch", "swapfromvoid", "gravestone", "mine",
+	"weapon", "fuse", "fused"]
+## The cards that had the ball in open play since the last PLAY MAKER, per
+## side: key -> true. Set by the match with set_touched() (ruling R13).
+var _touched := {false: {}, true: {}}
+## Cold touches this side has put on the ball (Glasya-Labolas counts them).
+var cold_touches := {false: 0, true: 0}
+var _cold_now := false
+## A card that swapped OUT mid-duel and the one that came in: read once by the
+## match with take_mid_swap().
+var _mid_swap: Dictionary = {}
+## Gravestones on the field, per side (permanent for the match unless an
+## Emblem made them - Q058). [{by, at_tier}]
+var gravestones := {false: [], true: []}
+var _new_gravestones: Array = []
+## Mines (C6): which of this side's units are mining right now - set by the
+## match from where they stand (set_mining) - and how many mines it has.
+var _mining := {false: {}, true: {}}
+var mines := {false: 0, true: 0}
+## Fusing (C6): the bench ("outside of the game", R08, max 3) and who fused
+## with whom: key -> the partner card.
+var bench := {false: [], true: []}
+var _fused_with: Dictionary = {}
 ## Tuning: does the AI save its Ore for its most expensive card (Q018)?
 var ai_saves_ore := true
 ## Tuning: does a goal send every Rose token home (ruling, round AA)?
@@ -570,7 +594,12 @@ func _expire(scope: String) -> void:
 func attack_power(card: PlayerData, is_enemy: bool) -> int:
 	if card == null:
 		return 0
-	var total := card.get_attack_power() + int(side_bonus.get(is_enemy, 0)) + counter(card, is_enemy, "power")
+	var printed := card.get_attack_power()
+	# C6: a fused card fights with the HIGHER printed power of the two (Q056).
+	var partner: PlayerData = _fused_with.get(_k(card, is_enemy), null)
+	if partner != null:
+		printed = maxi(printed, partner.get_attack_power())
+	var total := printed + int(side_bonus.get(is_enemy, 0)) + counter(card, is_enemy, "power")
 	for b in _buffs:
 		if b.matches(card, is_enemy):
 			total += b.attack
@@ -580,7 +609,12 @@ func attack_power(card: PlayerData, is_enemy: bool) -> int:
 func defense_power(card: PlayerData, is_enemy: bool) -> int:
 	if card == null:
 		return 0
-	var total := card.get_defense_power() + int(side_bonus.get(is_enemy, 0)) + counter(card, is_enemy, "power")
+	var printed := card.get_defense_power()
+	# C6: a fused card fights with the HIGHER printed power of the two (Q056).
+	var partner: PlayerData = _fused_with.get(_k(card, is_enemy), null)
+	if partner != null:
+		printed = maxi(printed, partner.get_defense_power())
+	var total := printed + int(side_bonus.get(is_enemy, 0)) + counter(card, is_enemy, "power")
 	for b in _buffs:
 		if b.matches(card, is_enemy):
 			total += b.defense
@@ -717,6 +751,13 @@ func marks_for(card: PlayerData, side_is_enemy: bool) -> String:
 		bits.append("TOKEN")
 	elif is_kind(card, side_is_enemy, "swan"):
 		bits.append("SWAN")
+	# ROUND AD (C6): what the pitch did for this card - worth knowing when you pick.
+	if card != null and (_touched[side_is_enemy] as Dictionary).has(_k(card, side_is_enemy)):
+		bits.append("TOUCHED")
+	if card != null and (_mining[side_is_enemy] as Dictionary).has(_k(card, side_is_enemy)):
+		bits.append("MINING")
+	if card != null and _fused_with.has(_k(card, side_is_enemy)):
+		bits.append("FUSED")
 	return "  ".join(bits)
 
 
@@ -1160,6 +1201,9 @@ func answer(ask: Dictionary, choice) -> void:
 			match String(ask.get("action", "")):
 				"exhaust_other":
 					_do_exhaust_other(ask["card"], picked, side)
+				"reveal_from_exhaust":
+					_reveal_this(ask["card"], side, picked)
+					_reread(ask["card"], side, "reveal", "revealed_was")
 
 
 ## What happens when nobody answers: yes, the engine's own pick, the side it
@@ -1541,6 +1585,12 @@ func _fire_for(card: PlayerData, is_enemy: bool, trigger: String,
 		if String(_negated.get(key, "")) == slot:
 			continue
 		var cell := card.active_attack_ability() if slot == "attack" else card.active_defend_ability()
+		# C6: a fused card carries its partner's ability on the same side too.
+		var partner: PlayerData = _fused_with.get(key, null)
+		if partner != null:
+			var more := partner.active_attack_ability() if slot == "attack" else partner.active_defend_ability()
+			if more.strip_edges() != "":
+				cell = cell + ";" + more
 		# A CELL MAY NAME SEVERAL ROWS, separated by semicolons, so one
 		# sentence with two halves ("+1 now. If this wins: ...") is two rows.
 		for piece in String(cell).split(";"):
@@ -1706,6 +1756,11 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 			_make_token(kind, victim, source_is_enemy, source)
 		return
 
+	# --- C6 (round AD): the class engines ---
+	if C6_EFFECTS.has(ability.effect) and ability.effect != "weapon":
+		_engine_effect(ability, source, source_is_enemy, opponent, opponent_is_enemy)
+		return
+
 	# --- C5 (round AC): effects about the SOURCE itself happen now, whatever
 	# the Target column says (it is `next_self` for a reveal or a card going
 	# to the exhaust, which would otherwise make them wait for its duel).
@@ -1771,7 +1826,8 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 			buff.attack = ability.value
 		"adddefense":
 			buff.defense = ability.value
-		"addpower":
+		"addpower", "weapon":
+			# C6: Belial's "temporary weapon" is +power for that combat.
 			buff.attack = ability.value
 			buff.defense = ability.value
 		_:
@@ -2039,6 +2095,195 @@ func matches(card: PlayerData, side_is_enemy: bool, filter: String) -> bool:
 
 
 # =============================================================
+#  THE CLASS ENGINES (round AD, phase C6)
+#
+#  The things on the pitch the cards talk about: who TOUCHED the ball, the
+#  cold touch, gravestones, MINES and mining, and FUSING with the bench.
+#  The match tells the engine what happened on the grass (set_touched,
+#  set_mining, set_bench); the engine answers the If words and does the
+#  effects; the match reads back what it has to draw (take_cold_touch,
+#  take_gravestones, take_mid_swap).
+# =============================================================
+
+## Ruling R13: the cards that had the ball in open play since the last PLAY
+## MAKER. Called by the match at every PLAY MAKER.
+func set_touched(side_is_enemy: bool, cards: Array) -> void:
+	var d: Dictionary = {}
+	for c in cards:
+		if c != null:
+			d[_k(c as PlayerData, side_is_enemy)] = true
+	_touched[side_is_enemy] = d
+
+
+func touched(card: PlayerData, side_is_enemy: bool) -> bool:
+	return card != null and (_touched[side_is_enemy] as Dictionary).has(_k(card, side_is_enemy))
+
+
+## Which of this side's units are standing at one of its mines, and how many
+## mines it has. Called by the match at every PLAY MAKER.
+func set_mining(side_is_enemy: bool, cards: Array, mine_count: int) -> void:
+	var d: Dictionary = {}
+	for c in cards:
+		if c != null:
+			d[_k(c as PlayerData, side_is_enemy)] = true
+	_mining[side_is_enemy] = d
+	mines[side_is_enemy] = mine_count
+
+
+func mining_count(side_is_enemy: bool) -> int:
+	return (_mining[side_is_enemy] as Dictionary).size()
+
+
+## Ruling R08: "outside of the game" is the bench - at most 3, chosen.
+func set_bench(side_is_enemy: bool, cards: Array) -> void:
+	var out: Array = []
+	for c in cards:
+		if c != null:
+			out.append(c)
+	bench[side_is_enemy] = out
+
+
+## The mines worked since the last PLAY MAKER pay out (Q055: per mine).
+func mine_ore(side_is_enemy: bool, n: int, worked: int, miner: PlayerData) -> void:
+	if n <= 0:
+		return
+	_gain_ore(miner, side_is_enemy, n)
+	_event("mine_worked", miner, side_is_enemy, {"amount": str(worked)})
+	log_lines.append("      %d mine(s) worked: +%d Ore for the %s side" % [worked, n, "away" if side_is_enemy else "home"])
+
+
+func take_cold_touch() -> bool:
+	var yes := _cold_now
+	_cold_now = false
+	return yes
+
+
+## Gravestones made since the last call: [{side, by}].
+func take_gravestones() -> Array:
+	var out := _new_gravestones.duplicate()
+	_new_gravestones.clear()
+	return out
+
+
+## A card that swapped out of its duel and the one that came in, or {}.
+func take_mid_swap() -> Dictionary:
+	var out := _mid_swap
+	_mid_swap = {}
+	return out
+
+
+func fused_partner(card: PlayerData, side_is_enemy: bool) -> PlayerData:
+	return _fused_with.get(_k(card, side_is_enemy), null)
+
+
+func _engine_effect(ability: AbilityData, source: PlayerData, side_is_enemy: bool,
+		opponent: PlayerData, opponent_is_enemy: bool) -> void:
+	match ability.effect:
+		"coldtouch":
+			cold_touches[side_is_enemy] = int(cold_touches[side_is_enemy]) + 1
+			_cold_now = true
+			_event("cold_touch", source, side_is_enemy)
+			log_lines.append("      %s puts a COLD TOUCH on the ball" % source.player_name)
+		"swapfromvoid":
+			# R07: the void = its own tier zone, the cards not played yet.
+			_swap_mid_duel(source, side_is_enemy, FIELD, false)
+		"gravestone":
+			var cap := 12
+			if db != null:
+				cap = db.tune_int("gravestone_max", 12)
+			if (gravestones[side_is_enemy] as Array).size() >= cap:
+				log_lines.append("      %s: the field already has %d gravestones" % [source.player_name, cap])
+				return
+			var stone := {"side": side_is_enemy, "by": source, "tier": source.get_tier_clean()}
+			(gravestones[side_is_enemy] as Array).append(stone)
+			_new_gravestones.append(stone)
+			_event("gravestone", source, side_is_enemy)
+			log_lines.append("      %s summons a GRAVESTONE (%d on the field)" % [source.player_name,
+				(gravestones[side_is_enemy] as Array).size()])
+		"mine":
+			# Tobias: "choose 1 mine. Units mining get +1 ore counter" - the
+			# mine with your units at it: every unit mining there gains 1.
+			var miners := mining_count(side_is_enemy)
+			if miners <= 0:
+				log_lines.append("      %s: nobody is mining" % source.player_name)
+				return
+			_gain_ore(source, side_is_enemy, miners * maxi(1, ability.value))
+			_event("mine_worked", source, side_is_enemy, {"amount": str(miners)})
+		"fuse":
+			_fuse(source, side_is_enemy, ability)
+		"fused":
+			pass   # "Can be fused." - a word on the card, not an action
+
+
+## Take `card` out of its duel and put another of its tier in: from the FIELD
+## (the void, R07) or from the EXHAUST (Nicole: same power too). The card
+## that left goes where the other came from.
+func _swap_mid_duel(card: PlayerData, side_is_enemy: bool, from_zone: String, same_power: bool) -> void:
+	var best: PlayerData = null
+	var role := String(_role.get(_k(card, side_is_enemy), "attack"))
+	for c in cards_in(side_is_enemy, from_zone):
+		if c == card or c.get_tier_clean() != card.get_tier_clean() or c.is_star() \
+				or _held.has(_k(c, side_is_enemy)):
+			continue
+		if same_power and c.get_attack_power() != card.get_attack_power():
+			continue
+		var p := c.get_attack_power() if role == "attack" else c.get_defense_power()
+		var bp := -1
+		if best != null:
+			bp = best.get_attack_power() if role == "attack" else best.get_defense_power()
+		if best == null or p > bp:
+			best = c
+	if best == null:
+		log_lines.append("      %s: no other Tier %s %s to swap with" % [card.player_name,
+			card.get_tier_clean(), "in the exhaust" if from_zone == EXHAUST else "left to play"])
+		return
+	_c5_move(card, side_is_enemy, from_zone)
+	_c5_move(best, side_is_enemy, COMBAT)
+	_role[_k(best, side_is_enemy)] = role
+	_swapped_out[_k(best, side_is_enemy)] = card
+	var line: Array = _lineup.get(side_is_enemy, [])
+	var at := line.find(card)
+	if at >= 0:
+		line[at] = best
+	_mid_swap = {"out": card, "in": best, "side": side_is_enemy}
+	_event("position_swap", best, side_is_enemy, {"out": card.player_name,
+		"same_element": "yes" if CardDatabase._normalise(best.active_element()) == CardDatabase._normalise(card.active_element()) else "no"})
+	log_lines.append("      %s swaps out - %s comes in from the %s" % [card.player_name, best.player_name,
+		"exhaust" if from_zone == EXHAUST else "cards still to play"])
+
+
+## FUSING (Q056, R08). "This unit fuses itself with a Tier III fire unit from
+## outside of the game": a card of that tier and element from the BENCH joins
+## it for the rest of the match. It keeps its own name, fights with the
+## HIGHER printed power of the two, and carries both cards' abilities. The
+## bench card is used up. A card fuses once.
+func _fuse(source: PlayerData, side_is_enemy: bool, ability: AbilityData) -> void:
+	var me := _k(source, side_is_enemy)
+	if _fused_with.has(me):
+		return
+	var want := ability.effect_arg     # e.g. "fire+III"
+	var best: PlayerData = null
+	for c in (bench[side_is_enemy] as Array):
+		var card := c as PlayerData
+		if card == null or (want != "" and not AbilityData.card_matches(card, want)):
+			continue
+		if best == null or card.get_attack_power() > best.get_attack_power():
+			best = card
+	if best == null:
+		log_lines.append("      %s: nobody on the bench to fuse with (%s)" % [source.player_name,
+			want if want != "" else "any"])
+		return
+	(bench[side_is_enemy] as Array).erase(best)
+	_fused_with[me] = best
+	if not _kinds.has(me):
+		_kinds[me] = {}
+	(_kinds[me] as Dictionary)["fused"] = true
+	_event("fused", source, side_is_enemy, {"with": best.player_name})
+	log_lines.append("      %s FUSES with %s from the bench (power %d)" % [source.player_name,
+		best.player_name, maxi(source.get_attack_power(), best.get_attack_power())])
+
+
+# =============================================================
 #  THE ZONES IN ACTION (round AC, phase C5)
 #
 #  Cards moving between the field, combat and the exhaust because an ability
@@ -2088,10 +2333,18 @@ func _zone_effect(ability: AbilityData, card: PlayerData, card_is_enemy: bool,
 			if shown == null:
 				log_lines.append("      %s: nothing in the exhaust to reveal" % source.player_name)
 				return
-			_revealed_from[_k(source, source_is_enemy)] = shown
-			_event("revealed_from_exhaust", shown, source_is_enemy, {"by": source.player_name})
-			log_lines.append("      %s reveals %s from the exhaust (%s)" % [source.player_name,
-				shown.player_name, shown.active_element()])
+			# ROUND AD (your Q086): YOU pick which card, when there is a choice.
+			var in_exhaust: Array[PlayerData] = []
+			for c in cards_in(source_is_enemy, EXHAUST):
+				if c != source:
+					in_exhaust.append(c)
+			if bool(interactive.get(source_is_enemy, false)) and in_exhaust.size() > 1:
+				_queue_ask({"kind": "choose", "side": source_is_enemy, "card": source,
+					"action": "reveal_from_exhaust", "options": in_exhaust, "default": shown,
+					"title": "REVEAL FROM THE EXHAUST",
+					"text": "%s reveals one card from your exhaust. Which one?" % source.player_name})
+				return
+			_reveal_this(source, source_is_enemy, shown)
 		"exhaustotherreturn":
 			_exhaust_other_return(source, source_is_enemy)
 		"doubleattack":
@@ -2112,8 +2365,35 @@ func _zone_effect(ability: AbilityData, card: PlayerData, card_is_enemy: bool,
 		"swapfromexhaust":
 			if card == null:
 				return
+			# ROUND AD (C6, Nicole): "swap THIS card with one of same power and
+			# tier from the exhaust" - now, in this duel.
+			if card == source and _zone_for(card, card_is_enemy) == COMBAT:
+				_swap_mid_duel(card, card_is_enemy, EXHAUST, true)
+				return
 			_swap_after_duel[_k(card, card_is_enemy)] = true
 			log_lines.append("      %s will swap with the exhaust after this duel" % card.player_name)
+
+
+func _reveal_this(source: PlayerData, side_is_enemy: bool, shown: PlayerData) -> void:
+	_revealed_from[_k(source, side_is_enemy)] = shown
+	_event("revealed_from_exhaust", shown, side_is_enemy, {"by": source.player_name})
+	log_lines.append("      %s reveals %s from the exhaust (%s)" % [source.player_name,
+		shown.player_name, shown.active_element()])
+
+
+## Read this card's rows of one trigger again when an If word's answer has
+## just changed (Jakob's Swan, Flauros's chosen card). Rows that already went
+## off are skipped.
+func _reread(card: PlayerData, side_is_enemy: bool, trigger: String, word: String) -> void:
+	for cell in [card.active_attack_ability(), card.active_defend_ability()]:
+		for piece in String(cell).split(";"):
+			var a := db.get_ability(String(piece).strip_edges())
+			if a == null or a.trigger != trigger or not a.condition.contains(word):
+				continue
+			var fk := _k(card, side_is_enemy)
+			if _fired.has(fk) and (_fired[fk] as Array).has(a.id):
+				continue
+			_apply_one(a, card, side_is_enemy, null, not side_is_enemy)
 
 
 ## Flauros: a fire card if there is one (that is the one worth showing),
@@ -2344,6 +2624,17 @@ func _condition_ok(ability: AbilityData, source: PlayerData, source_is_enemy: bo
 				ok = pool(source_is_enemy, "ore") >= maxi(1, int(arg))
 			"element":
 				ok = CardDatabase._normalise(source.active_element()) == CardDatabase._normalise(arg)
+			"touchedball", "touchedbeforeplaymaker":
+				ok = (_touched[source_is_enemy] as Dictionary).has(me)
+			"mining":
+				# "If ANOTHER unit is mining".
+				var others := 0
+				for key in (_mining[source_is_enemy] as Dictionary).keys():
+					if String(key) != me:
+						others += 1
+				ok = others > 0
+			"fused":
+				ok = _fused_with.has(me)
 			"swappedwas":
 				ok = matches(_swapped_out.get(me, null) as PlayerData, source_is_enemy, arg)
 			"revealedwas":
@@ -2426,7 +2717,8 @@ func _land_buff(ability: AbilityData, card: PlayerData, card_is_enemy: bool, sou
 			buff.attack = ability.value
 		"adddefense":
 			buff.defense = ability.value
-		"addpower":
+		"addpower", "weapon":
+			# C6: Belial's "temporary weapon" is +power for that combat.
 			buff.attack = ability.value
 			buff.defense = ability.value
 		_:
