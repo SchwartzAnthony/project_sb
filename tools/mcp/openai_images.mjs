@@ -15,6 +15,9 @@
 //                   from the project (style / pose), where to save it.
 //                   Returns a job id straight away (pictures take ~1 min).
 //    check_image  - is the job done? When done, the PNG is already saved.
+//    download_file - fetch a finished file (Ludo music, PixelLab zips) from an
+//                   https link into the project. Claude's cloud computer can't
+//                   reach those storage sites; your Deck can.
 //
 //  Everything is saved inside the project folder only.
 // =============================================================
@@ -90,8 +93,20 @@ const TOOLS = [
     },
   },
   {
+    name: "download_file",
+    description: "Download an https file (e.g. a Ludo.ai music MP3 or a PixelLab result) into the Sturmball project at out_path. Max 100 MB. Returns a job id; poll check_image.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        url: { type: "string", description: "https link to the file" },
+        out_path: { type: "string", description: "Where to save, relative to the project, e.g. art_source/ludo/music/menu_A.mp3" },
+      },
+      required: ["url", "out_path"],
+    },
+  },
+  {
     name: "check_image",
-    description: "Check a job started by start_image. Status is running, done (with the saved path) or failed (with the reason).",
+    description: "Check a job started by start_image or download_file. Status is running, done (with the saved path) or failed (with the reason).",
     inputSchema: { type: "object", properties: { job_id: { type: "string" } }, required: ["job_id"] },
   },
 ];
@@ -105,6 +120,23 @@ function call(name, args) {
     const job = { status: "running", started: Date.now() };
     jobs.set(id, job);
     paint(args).then((r) => Object.assign(job, { status: "done" }, r)).catch((e) => Object.assign(job, { status: "failed", error: String(e.message || e) }));
+    return { job_id: id, status: "running" };
+  }
+  if (name === "download_file") {
+    if (!/^https:\/\//.test(args.url || "")) throw new Error("url must start with https://");
+    const out = inside(args.out_path || "");
+    const id = "dl" + nextId++;
+    const job = { status: "running", started: Date.now() };
+    jobs.set(id, job);
+    (async () => {
+      const res = await fetch(args.url);
+      if (!res.ok) throw new Error("download said " + res.status);
+      const data = Buffer.from(await res.arrayBuffer());
+      if (data.length > 100 * 1024 * 1024) throw new Error("file is over 100 MB");
+      fs.mkdirSync(path.dirname(out), { recursive: true });
+      fs.writeFileSync(out, data);
+      return { saved: path.relative(ROOT, out), bytes: data.length };
+    })().then((r) => Object.assign(job, { status: "done" }, r)).catch((e) => Object.assign(job, { status: "failed", error: String(e.message || e) }));
     return { job_id: id, status: "running" };
   }
   if (name === "check_image") {
