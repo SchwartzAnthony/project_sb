@@ -5464,18 +5464,30 @@ character.**
 | `Smooth` | **new in round AL.** `0` = off. `5`, `7` or `9` melt the fine hatching and paint texture **before** shrinking, so the result is clean, flat pixel art like your second image instead of noisy dots. 7 is about right for an OpenAI master |
 | `Fill Holes` | a colour for see-through holes inside the figure. Only for PixelLab masters: OpenAI's transparency is clean, and filling would close the gap between an arm and the body |
 
-**The menu hero (round AL)** was painted by OpenAI from your Midjourney kicker
-and your sketch. He comes in three versions, each 189 × 280 pixel art,
-drawn 2×:
+| `Aspect` | **new in round AL.** For example `16:9`: trim the picture to that shape first, from the middle. Use it for full-screen backgrounds. Blank = keep the shape |
+| `Flip` | **new in round AL.** `yes` = mirror it left to right, to turn a character round |
 
-- **A, the wild-haired kicker,** is on the title screen now (`hero_comic.png`).
-- **B, the stocky drinker** (bald dome, red nose, moustache), is
-  `hero_comic_b.png`.
-- **C, the lanky one in a Tyrolean hat,** is `hero_comic_c.png`.
+**The title screen (round AL)** has two parts.
 
-To switch, put the file name in the `picture` row of `MainMenu.csv`. The
-round AK PixelLab heroes are kept as `hero_comic_ak.png` and
-`hero_comic_ak_b.png`.
+- **The hero is C, your pick.** He's the lanky one in the Tyrolean hat,
+  repainted with much wilder hair, and `Flip` turns him to face right,
+  towards the brawl. He is `hero_comic.png`, 188 × 280, drawn 2×. He stands
+  at X 330, Y 720 in `MainMenu.csv`. The other versions are
+  `hero_comic_a.png`, `hero_comic_b.png` and `hero_comic_c.png` (C as first
+  painted). The round AK PixelLab heroes are `hero_comic_ak.png` and
+  `hero_comic_ak_b.png`.
+- **The wallpaper is the match turned into a brawl.** It uses the camera
+  angle of your pitch photo: a low side-on view, boards along the back, the
+  crowd, trees and beer tents. In the middle is a giant cartoon fight cloud,
+  with beer steins, bratwursts, pretzels, boots and a football flying out,
+  plus water, fire, earth and air.
+  - It was painted by OpenAI at 1536 × 1024, then turned into pixel art by
+    `Pixelate.csv` row `menu_bg` (Aspect 16:9, Smooth 5, 48 colours, 960 ×
+    540), and drawn 2× to fill the 1920 × 1080 screen.
+  - **Version B, in use** (`menu_brawl.png`), has the fight cloud on the
+    right and open grass on the left for the hero.
+  - **Version A** (`menu_brawl_a.png`) has the cloud in the middle.
+  - The masters and your photo are in `art_source/openai/menu_bg/`.
 
 ### The buttons' sounds — two columns of `data/MenuConfig.csv`
 

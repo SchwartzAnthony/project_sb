@@ -24,6 +24,9 @@
 #    Smooth     round AL: 0 = off; 5, 7, 9 = melt away the fine ink hatching
 #               and paint texture BEFORE shrinking, so the pixel art comes out
 #               clean and flat like hand-made pixel art (odd numbers only).
+#    Aspect     round AL: e.g. 16:9 = trim the picture to that shape first
+#               (from the middle) - for full-screen backgrounds. Blank = keep.
+#    Flip       round AL: yes = mirror it left-right (turn a character round)
 #    Fill Holes a colour (#f4f1ea) for see-through holes INSIDE the figure.
 #               PixelLab's background removal sometimes eats white areas
 #               that are enclosed - the white panels of a football. Blank = off.
@@ -64,8 +67,21 @@ def fill_holes(im, colour):
     return im
 
 
-def pixelate(src, height, colours, outline, ink, crop, holes="", smooth=0):
+def pixelate(src, height, colours, outline, ink, crop, holes="", smooth=0, aspect="", flip=False):
     im = Image.open(src).convert("RGBA")
+    if flip:
+        im = im.transpose(Image.FLIP_LEFT_RIGHT)
+    if aspect and ":" in aspect:
+        aw, ah = (float(x) for x in aspect.split(":"))
+        want = aw / ah
+        if im.width / im.height > want:
+            w = round(im.height * want)
+            x = (im.width - w) // 2
+            im = im.crop((x, 0, x + w, im.height))
+        else:
+            h = round(im.width / want)
+            y = (im.height - h) // 2
+            im = im.crop((0, y, im.width, y + h))
     if smooth and smooth > 1:
         a = im.getchannel("A")
         im = im.convert("RGB").filter(ImageFilter.MedianFilter(int(smooth) | 1)).convert("RGBA")
@@ -122,7 +138,8 @@ def main():
             out = pixelate(src, int(float(row.get("Height") or 160)), int(float(row.get("Colours") or 32)),
                            (row.get("Outline") or "yes").strip().lower() == "yes",
                            int(float(row.get("Ink") or 60)), (row.get("Crop") or "yes").strip().lower() == "yes",
-                           (row.get("Fill Holes") or "").strip(), int(float(row.get("Smooth") or 0)))
+                           (row.get("Fill Holes") or "").strip(), int(float(row.get("Smooth") or 0)),
+                           (row.get("Aspect") or "").strip(), (row.get("Flip") or "").strip().lower() == "yes")
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             out.save(dst)
             print("  %s: %s -> %s (%dx%d, %s colours)" % (rid, row["Source"], row["Output"], out.width, out.height, row.get("Colours")))

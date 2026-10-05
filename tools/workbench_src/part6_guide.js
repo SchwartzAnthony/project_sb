@@ -503,7 +503,8 @@ function paintBook(){
   card("The menu hero, painted by OpenAI (round AL)", `
     <p style="margin:0 0 10px"><b>Your Midjourney kicker is the style. OpenAI paints the comic, tools/pixelate.py makes the pixels.</b></p>
     ${rows([
-      ["the hero","A wild-haired kicker on the title screen; B stocky drinker, C Tyrolean hat ready - <code>assets/menu/hero_comic(_b/_c).png</code>, 189 x 280, drawn x2"],
+      ["the hero","your pick C (Tyrolean hat), wilder hair, facing right (Pixelate.csv Flip yes) - <code>hero_comic.png</code>; A, B as hero_comic_a / _b"],
+      ["wallpaper","the match turned into a cartoon brawl cloud, your pitch photo's angle - <code>menu_brawl.png</code> (B, cloud right) or menu_brawl_a.png; Pixelate.csv menu_bg, Aspect 16:9"],
       ["masters","art_source/openai/menu_hero/ - 1024 x 1536, transparent; style = ref_08.png, pose = your sketch"],
       ["prompt","<b>ArtStyle.csv</b> new row character_prompt - fill in the brackets for any new character"],
       ["pixelate","<b>Pixelate.csv</b> new column Smooth - melts the hatching first so the pixel art is clean"],
