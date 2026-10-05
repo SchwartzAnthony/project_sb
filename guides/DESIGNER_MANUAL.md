@@ -5252,7 +5252,8 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | change the art style every picture is drawn in | `data/ArtStyle.csv` and `guides/ART_STYLE.md` (your references: `art_source/style_refs/`) |
 | change a menu button's sound | `Hover Sound` / `Press Sound` in `data/MenuConfig.csv` |
 | make or change a sound effect | `data/SoundRecipes.csv`, then `python3 tools/make_sfx.py` |
-| change the menu tune | edit the notes in `data/songs/menu_blasmusik.csv`, the players in `data/SongParts.csv`, the speed in `data/Songs.csv`; run `python3 tools/make_song.py` (section 16d) |
+| loop a Suno or any other track | put the WAV in `art_source/suno/music/`, add a `MusicLoops.csv` row (Bars 8 or 16), run `python3 tools/make_loop.py`, name the `.ogg` in Audio.csv |
+| change the menu tune (hand-written) | edit the notes in `data/songs/menu_blasmusik.csv`, the players in `data/SongParts.csv`, the speed in `data/Songs.csv`; run `python3 tools/make_song.py` (section 16d) |
 | write a new tune for another screen | a new score in `data/songs/`, a row in `Songs.csv` and its players in `SongParts.csv`; run `python3 tools/make_song.py`, then name the `.ogg` in Audio.csv |
 | use the hand-written menu tune instead of Ludo's | put `menu_oktoberfest` in the `Sound` column of Audio.csv's `menu_theme` row |
 | change the base music | `base_ludo_1`, `base_ludo_2` or `base_ludo_3` in the `Sound` column of Audio.csv's `base_theme` (and `base_theme_brewing`) rows |
@@ -5467,27 +5468,29 @@ character.**
 | `Aspect` | **new in round AL.** For example `16:9`: trim the picture to that shape first, from the middle. Use it for full-screen backgrounds. Blank = keep the shape |
 | `Flip` | **new in round AL.** `yes` = mirror it left to right, to turn a character round |
 
-**The title screen (round AL)** has two parts.
+**The title screen (round AL, after your notes)** has four parts.
 
-- **The hero is C, your pick.** He's the lanky one in the Tyrolean hat,
-  repainted with much wilder hair, and `Flip` turns him to face right,
-  towards the brawl. He is `hero_comic.png`, 188 × 280, drawn 2×. He stands
-  at X 330, Y 720 in `MainMenu.csv`. The other versions are
-  `hero_comic_a.png`, `hero_comic_b.png` and `hero_comic_c.png` (C as first
-  painted). The round AK PixelLab heroes are `hero_comic_ak.png` and
-  `hero_comic_ak_b.png`.
-- **The wallpaper is the match turned into a brawl.** It uses the camera
-  angle of your pitch photo: a low side-on view, boards along the back, the
-  crowd, trees and beer tents. In the middle is a giant cartoon fight cloud,
-  with beer steins, bratwursts, pretzels, boots and a football flying out,
-  plus water, fire, earth and air.
-  - It was painted by OpenAI at 1536 × 1024, then turned into pixel art by
-    `Pixelate.csv` row `menu_bg` (Aspect 16:9, Smooth 5, 48 colours, 960 ×
-    540), and drawn 2× to fill the 1920 × 1080 screen.
-  - **Version B, in use** (`menu_brawl.png`), has the fight cloud on the
-    right and open grass on the left for the hero.
-  - **Version A** (`menu_brawl_a.png`) has the cloud in the middle.
-  - The masters and your photo are in `art_source/openai/menu_bg/`.
+- **The hero is close to the camera.** He's C, your pick (Tyrolean hat,
+  wilder hair, facing right). He's 350 × 520 pixel art drawn 2×, so he
+  stands 1040 of the screen's 1080 pixels tall and fills the left half. He
+  is the `picture` row with X 430, Y 560, in `MainMenu.csv`.
+- **The brawl is far away in the background.** It's a fight cloud in the
+  middle distance, with beer, bratwursts, shoes, stars, water, fire, earth
+  and air flying out. There's open grass on the left for the hero and calm
+  pitch on the right for the menu. This is `menu_brawl.png`, from
+  `Pixelate.csv` row `menu_bg`. The earlier close-up brawls are kept as
+  `menu_brawl_close.png` (cloud right) and `menu_brawl_a.png` (cloud
+  middle).
+- **The menu is on the right.** The four buttons are at X 1650 in
+  `MenuConfig.csv`.
+- **STURMBALL hangs on an Oktoberfest sign.** It's a carved wooden
+  beer-hall board with the blue-and-white Bavarian diamond border, a
+  pretzel, steins and chains. OpenAI painted it with a blank centre, and the
+  game writes the word on it. The sign is a `picture` row
+  (`title_sign.png`, X 1650, Y 230); pictures are always drawn behind the
+  title. **The `title` row now uses X too:** X 1650, Y 242, Width 400 (the
+  box it's centred in) and Height 50 (the font size). Without an X, the
+  title stays centred on screen as before.
 
 ### The buttons' sounds — two columns of `data/MenuConfig.csv`
 
@@ -5656,6 +5659,29 @@ As shipped, it has 32 bars in Bb major, 66 seconds:
 - **A2** (bars 9–16): the tune with a higher ending.
 - **B** (bars 17–24): the trio, in Eb, as Bavarian polkas do.
 - **A2** (bars 25–32): the tune again, and the last bar leads back into bar 1.
+
+### Your Suno tracks (round AL) — what plays now
+
+The three WAVs you sent are in `art_source/suno/music/`. `tools/make_loop.py`
+cut each one into a loop that is a **whole number of bars**, so the beat
+never stumbles at the join.
+
+| where | your track | the loop |
+|---|---|---|
+| main menu | Untitled | **only the aggressive tuba part in the middle**: 8 bars at 128 BPM, 14.9 s, starting right on the first heavy tuba hit |
+| base | Sonniger Nachmittag | 16 bars at 99 BPM, 38.6 s, from 26.3 s into the song |
+| matches | Fussball im Bierzelt | 16 bars at 110 BPM, 35.1 s, from 36.7 s into the song |
+
+**New columns in `MusicLoops.csv`:**
+
+| column | |
+|---|---|
+| `Bars` | loop exactly this many bars (4 beats each). 8 or 16 is usual. Blank = the old way, any length between Min and Max Length |
+| `Search From`, `Search To` | look for the loop only between these seconds of the song, for example the part you like best. Blank = the whole song |
+
+The menu's tuba part is about 8 bars long, so its loop is 15 s rather than
+30 s. A 16-bar loop would have to include the quiet part after it. If you'd
+rather have 30 s, set `Bars` to 16 and empty `Start` and `Length`.
 
 ### The Ludo.ai version (kept as a spare)
 

@@ -5,3 +5,6 @@
 # ROUND AL: the free GeneralUser GS soundfont (32 MB) used by tools/make_song.py.
 # Download: https://github.com/mrbumpy409/GeneralUser-GS (GeneralUser-GS.sf2)
 art_source/soundfonts/*.sf2
+
+# ROUND AL: your Suno originals (WAV, 10-18 MB each) stay out of git; they are in your project folder.
+art_source/suno/music/*.wav
