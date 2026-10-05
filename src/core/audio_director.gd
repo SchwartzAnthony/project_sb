@@ -268,6 +268,13 @@ func _start_loop(cue: Dictionary) -> void:
 	var fresh := AudioStreamPlayer.new()
 	fresh.name = "Loop_%s" % bus
 	fresh.stream = cue["stream"]
+	# ROUND AL: an .ogg or .mp3 told to loop itself joins end to start with no
+	# gap at all (tools/make_loop.py cuts them to join cleanly). The restart
+	# below stays as the fallback for .wav and anything else.
+	if fresh.stream is AudioStreamOggVorbis:
+		(fresh.stream as AudioStreamOggVorbis).loop = true
+	elif fresh.stream is AudioStreamMP3:
+		(fresh.stream as AudioStreamMP3).loop = true
 	fresh.bus = bus
 	fresh.volume_db = float(cue["volume"])
 	add_child(fresh)

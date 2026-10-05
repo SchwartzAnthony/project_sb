@@ -500,6 +500,47 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("The menu hero, painted by OpenAI (round AL)", `
+    <p style="margin:0 0 10px"><b>Your Midjourney kicker is the style. OpenAI paints the comic, tools/pixelate.py makes the pixels.</b></p>
+    ${rows([
+      ["the hero","your pick C (Tyrolean hat), wilder hair, facing right (Pixelate.csv Flip yes) - <code>hero_comic.png</code>; A, B as hero_comic_a / _b"],
+      ["layout","the hero close up, half the screen (left); the brawl far away in the background; the menu and the STURMBALL Oktoberfest sign on the right (MainMenu.csv / MenuConfig.csv X 1650)"],
+      ["wallpaper","<code>menu_brawl.png</code> - the brawl far off; the close-up ones are menu_brawl_close.png / menu_brawl_a.png"],
+      ["music","your Suno tracks, looped on whole bars: menu = the tuba part (8 bars), base and match 16 bars - <b>MusicLoops.csv</b> new columns Bars, Search From, Search To"],
+      ["masters","art_source/openai/menu_hero/ - 1024 x 1536, transparent; style = ref_08.png, pose = your sketch"],
+      ["prompt","<b>ArtStyle.csv</b> new row character_prompt - fill in the brackets for any new character"],
+      ["pixelate","<b>Pixelate.csv</b> new column Smooth - melts the hatching first so the pixel art is clean"],
+    ])}`);
+
+  card("Oktoberfest music, written note by note (round AL)", `
+    <p style="margin:0 0 10px"><b>The title screen plays a Bavarian Blasmusik polka written note by note - no AI - played by recorded brass.</b></p>
+    ${rows([
+      ["the tune","<b>data/songs/menu_blasmusik.csv</b>: 32 bars, one a row - chord + 8 eighth-notes. Players: <b>SongParts.csv</b>; tempo, echo, loudness: <b>Songs.csv</b>. Run <code>python3 tools/make_song.py</code>"],
+      ["menu","plays the Ludo.ai Blasmusik (<code>menu_oktoberfest_ludo</code>, your pick); the hand-written one is the spare <code>menu_oktoberfest</code>"],
+      ["base","three Ludo loops in the same style: <code>base_ludo_1</code> beer garden (base), <code>base_ludo_2</code> waltz, <code>base_ludo_3</code> livelier polka (after the Brewery opens) - Audio.csv's Sound column"],
+      ["loop it","<b>MusicLoops.csv</b> + <code>python3 tools/make_loop.py</code>: finds the cleanest join, blends it, evens the loudness"],
+      ["not AI-ish","short tracks, every instrument named, no build-up; brass band, NOT accordion (or it sounds like pirates)"],
+      ["downloads","the Deck helper <code>tools/mcp/openai_images.mjs</code> saves Ludo / PixelLab files into the project; it also paints with OpenAI"],
+    ])}`);
+
+  card("The art style, nailed down (round AK)", `
+    <p style="margin:0 0 10px"><b>PixelLab for art, Ludo for music. Marcinelle-school comic first, pixels second.</b></p>
+    ${rows([
+      ["the style","<b>ArtStyle.csv</b> + guides/ART_STYLE.md: ugly by exaggeration - potato noses, bulging eyes, buck teeth, gangly or pot-bellied; wobbly brush ink; flat colour"],
+      ["references","art_source/style_refs/ - Motomania, Clever &amp; Smart, the comic kicker; <code>style_sheet.png</code> is sent to PixelLab as the style image"],
+      ["menu hero","A (stocky drinker) on the title screen, B (lanky) ready - both from your sketch; comic masters in art_source/pixellab/menu_hero_comic/"],
+      ["pixelate","<b>Pixelate.csv</b> new column Fill Holes - PixelLab can make a football's white panels see-through"],
+    ])}`);
+
+  card("The menu hero, comic first (round AJ)", `
+    <p style="margin:0 0 10px"><b>Your rule: draw it as a Marcinelle-school comic, THEN pixelate it.</b></p>
+    ${rows([
+      ["the hero","your sketch, drawn by Ludo.ai as a comic (uglier each round), then pixelated: <code>assets/menu/hero_comic.png</code>, 135 x 172, drawn x3"],
+      ["pixelate","<b>Pixelate.csv</b> + <code>python3 tools/pixelate.py</code>: height, colours, ink outline"],
+      ["masters","art_source/ludo/menu_hero/ - the chosen comic, three other versions and your sketch"],
+      ["Ludo","working now - it is the comic-drawing step; PixelLab is kept for pixel-native work (animation)"],
+    ])}`);
+
   card("The title screen, sound and the testing tools (round AI)", `
     <p style="margin:0 0 10px"><b>New title screen, music and sounds; a simulator, an analyst and unit tests.</b></p>
     ${rows([

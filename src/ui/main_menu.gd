@@ -141,6 +141,13 @@ func _build_title() -> void:
 		top = float(row["y"]) - float(title_font_size) * 0.5
 	title.offset_top = top
 	title.offset_bottom = top + float(title_font_size) + 20.0
+	# ROUND AL: X places the title's centre (like a picture). Width is the
+	# box it is centred in; blank = 1200. With no X it stays centred on screen.
+	if not row.is_empty() and float(row["x"]) != 960.0:
+		var box := float(row["width"]) if float(row["width"]) > 0.0 else 1200.0
+		title.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		title.position = Vector2(float(row["x"]) - box * 0.5, top)
+		title.size = Vector2(box, float(title_font_size) + 20.0)
 	var gold := MenuSupport.COLOUR_ACCENT
 	if not row.is_empty():
 		title.add_theme_color_override("font_color", gold)

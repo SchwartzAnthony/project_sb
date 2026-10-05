@@ -1,0 +1,2 @@
+Song,Score,Output,Tempo,Soundfont,Reverb,Loudness,Humanize,Notes
+menu_blasmusik,data/songs/menu_blasmusik.csv,assets/audio/menu_oktoberfest.ogg,116,art_source/soundfonts/GeneralUser-GS.sf2,0.18,-16,8,"ROUND AL. The main menu: a Bavarian Blasmusik polka written note by note (no AI). Tempo = beats a minute (4 beats a bar). Reverb 0-1 = how much beer-tent room. Loudness = average level in dB. Humanize = how many milliseconds the players may be early or late, so it sounds played, not programmed (0 = robot-tight)."

@@ -412,7 +412,25 @@ const S = {
   help:"<b>X and Y are the button's centre</b> on a 1920 x 1080 screen. <b>Round AI:</b> <b>Hover Sound</b> and <b>Press Sound</b> name a row of Audio.csv or a file in assets/audio/ - blank = <code>menu_hover</code> / <code>menu_click</code>. Start plays <code>menu_start</code>, Quit <code>menu_back</code>. What the screen LOOKS like is MainMenu.csv."},
 "MainMenu.csv":{key:null, what:"WHAT THE TITLE SCREEN LOOKS LIKE (round AI): the wallpaper, the title, and pictures standing on it (the hero).",
   cols:{"Part":["background","title","picture"],"Image":"text","Text":"text","X":"number","Y":"number","Width":"number","Height":"number","Frames":"number","FPS":"number","Notes":"long"},
-  help:"<b>background</b>: the wallpaper (the first row wins). <b>title</b>: the big word - Text, and Height is the font size. <b>picture</b>: anything standing on the screen, as many rows as you like. X and Y are the CENTRE on a 1920 x 1080 screen. A picture can be a STRIP of <b>Frames</b> pictures side by side, played at <b>FPS</b> - the hero is 8 frames. Keep Width/Height a whole multiple of the picture's pixels (x2, x3) so the pixel art stays sharp.<br>The two PixelLab wallpapers: <code>menu_chaos_a.png</code> (the riot) and <code>menu_chaos_b.png</code> (the beer tents at sunset); the beer hall is <code>background.png</code>."},
+  help:"<b>background</b>: the wallpaper (the first row wins). <b>title</b>: the big word - Text, and Height is the font size. <b>picture</b>: anything standing on the screen, as many rows as you like. X and Y are the CENTRE on a 1920 x 1080 screen (round AL: the title uses X too, with Width = the box it is centred in; the Oktoberfest sign is a picture row behind it). A picture can be a STRIP of <b>Frames</b> pictures side by side, played at <b>FPS</b> - the hero is 8 frames. Keep Width/Height a whole multiple of the picture's pixels (x2, x3) so the pixel art stays sharp.<br>The two PixelLab wallpapers: <code>menu_chaos_a.png</code> (the riot) and <code>menu_chaos_b.png</code> (the beer tents at sunset); the beer hall is <code>background.png</code>."},
+"ArtStyle.csv":{key:"Key", what:"THE ART STYLE (round AK): the words every art prompt starts with, so every picture comes out Marcinelle school. Read with guides/ART_STYLE.md; your references are in art_source/style_refs/.",
+  cols:{"Key":["style","ugliness","line","colour","avoid","pipeline","style_sheet","character_prompt"],"Text":"long","Notes":"long"},
+  help:"<b>style</b> - which comics. <b>ugliness</b> - ugly by EXAGGERATION (noses, eyes, teeth, gangly or pot-bellied), never by animal parts. <b>line</b> - wobbly black brush ink. <b>colour</b> - flat, 2-3 tones. <b>avoid</b> - what went wrong before. <b>pipeline</b> - comic master in PixelLab first, then tools/pixelate.py. <b>style_sheet</b> - the small sheet of your references sent to PixelLab as the style image.<br>Change a row and every picture made from then on follows it."},
+"Pixelate.csv":{key:"ID", what:"COMIC FIRST, PIXELS SECOND (round AJ): turns a Marcinelle-school comic master into the pixel art the game uses. Run python3 tools/pixelate.py.",
+  cols:{"ID":"text","Source":"text","Output":"text","Height":"number","Colours":"number","Outline":["yes","no"],"Ink":"number","Crop":["yes","no"],"Smooth":"number","Aspect":"text","Flip":["yes",""],"Fill Holes":"text","Notes":"long"},
+  help:"<b>Source</b>: the comic drawing (from Ludo.ai, or your own) in art_source/. <b>Output</b>: where the pixel art goes. <b>Height</b>: pixels tall (the width follows) - the screen draws it 2x, 3x... so keep the size you show it at a whole multiple. <b>Colours</b>: fewer = more pixel-art. <b>Outline</b>: a 1-pixel black ink line round the outside. <b>Ink</b>: colours darker than this become pure black ink (0 = off). <b>Crop</b>: trim the empty space first. <b>Aspect</b> (round AL): e.g. 16:9 trims a full-screen background to shape first. <b>Flip</b>: yes mirrors it (turn a character round). <b>Smooth</b> (round AL): 0 off; 5/7/9 melt the hatching BEFORE shrinking, for clean flat pixel art (7 for an OpenAI master). <b>Fill Holes</b> (round AK, PixelLab masters only): a colour like <code>#f4f1ea</code> for see-through holes INSIDE the figure - PixelLab sometimes makes enclosed white see-through (a football's panels). About HALF the master's height keeps the ink lines.<br>Change a number, run <code>python3 tools/pixelate.py</code> (or <code>python3 tools/pixelate.py menu_hero</code> for one row), look in Godot."},
+"Songs.csv":{key:"Song", what:"MUSIC WRITTEN NOTE BY NOTE - NO AI (round AL): one row per song. Run python3 tools/make_song.py.",
+  cols:{"Song":"text","Score":"text","Output":"text","Tempo":"number","Soundfont":"text","Reverb":"number","Loudness":"number","Humanize":"number","Notes":"long"},
+  help:"<b>Score</b>: the notes, a CSV in data/songs/. <b>Output</b>: the looping .ogg - name it in Audio.csv. <b>Tempo</b>: beats a minute, 4 a bar. <b>Soundfont</b>: the recorded instruments (free GeneralUser GS). <b>Reverb</b>: 0-1 beer-tent room. <b>Loudness</b>: dB. <b>Humanize</b>: ms the players may drift (0 = robot).<br>Who plays is in <b>SongParts.csv</b>."},
+"SongParts.csv":{key:null, what:"WHO PLAYS IN EACH SONG (round AL). One row per player.",
+  cols:{"Song":"text","Part":"text","Plays":["melody","thirds","bass","chords","drum"],"Instrument":"number","Bank":"number","Volume":"number","Pan":"number","Octave":"number","Beats":"text","Length":"number","Notes":"long"},
+  help:"<b>Plays</b>: melody = the tune; thirds = the tune a third lower (the Bavarian sound); bass = root then fifth on the Beats; chords = the short pah; drum = one drum. <b>Instrument</b>: General MIDI - 56 trumpet, 57 trombone, 58 tuba, 60 French horns, 71 clarinet, 21 accordion; drums 36 bass drum, 38 snare, 42 hi-hat, 49/57 crash. <b>Volume</b> 0-127, 0 = off. <b>Pan</b> -100..100. <b>Octave</b> +1/-1. <b>Beats</b> \"1 3\", \"2 4\", \"1& 3&\". <b>Length</b> in eighth-notes."},
+"menu_blasmusik.csv":{key:"Bar", what:"THE MENU TUNE'S SCORE (round AL): one bar a row, written note by note.",
+  cols:{"Bar":"number","Section":"text","Chord":"text","Melody":"text","Notes":"long"},
+  help:"<b>Chord</b>: Bb, F7, Eb, Cm, Gm7 - the tuba and the pah follow it. <b>Melody</b>: 8 eighth-notes a bar - D5 is the D above middle C, Bb4 / Eb5 are flats, F#4 sharp; <code>-</code> holds the note before, <code>R</code> rests. The last bar should lead back into the first (it loops). Run <code>python3 tools/make_song.py</code>."},
+"MusicLoops.csv":{key:"ID", what:"SEAMLESS MUSIC LOOPS (round AL): turns a Ludo.ai (or any) track into a loop the game plays round and round with no bump. Run python3 tools/make_loop.py.",
+  cols:{"ID":"text","Source":"text","Output":"text","Start":"number","Length":"number","Bars":"number","Search From":"number","Search To":"number","Min Length":"number","Max Length":"number","Crossfade":"number","Loudness":"number","Notes":"long"},
+  help:"<b>Source</b>: the track as Ludo made it (art_source/ludo/music/). <b>Output</b>: the looping .ogg in assets/audio/ - name it in Audio.csv. <b>Start / Length</b>: leave BLANK and the script finds the cleanest loop and prints it; type seconds to force your own. <b>Bars</b> (round AL): loop exactly this many bars (8 or 16) so the beat never stumbles. <b>Search From / To</b>: only look between these seconds (the part you like). <b>Min / Max Length</b>: the old way, when Bars is blank. <b>Crossfade</b>: seconds blended at the join. <b>Loudness</b>: average level in dB (-16 for music).<br>Ludo tips (manual 16d): 40-second tracks, name every instrument, brass band not accordion (or it sounds like pirates)."},
 "SoundRecipes.csv":{key:"Name", what:"SOUND EFFECTS FROM A SPREADSHEET (round AI, pyfxr). Each row becomes assets/audio/<Name>.wav when you run python3 tools/make_sfx.py.",
   cols:{"Name":"text","Wave":["square","saw","sine","noise"],"Base Freq":"number","Freq Ramp":"number","Duty":"number","Attack":"number","Sustain":"number","Punch":"number","Decay":"number","Arp Mod":"number","Arp Speed":"number","LPF Freq":"number","LPF Ramp":"number","HPF Freq":"number","Phaser Offset":"number","Phaser Ramp":"number","Repeat Speed":"number","Notes":"long"},
   help:"The classic <b>sfxr</b> dials, 0 to 1 (ramps -1 to 1). <b>Wave</b>: square for blips, noise for explosions and hits. <b>Base Freq</b>: how high (0.05 deep, 0.8 shrill). <b>Freq Ramp</b>: slide down (-) or up (+). <b>Sustain / Punch / Decay</b>: how long it stays loud, the kick at the start, the fade - lengths come out SQUARED, so 0.3 is about 0.1 s. <b>Arp Mod / Arp Speed</b>: the jump to a second note (the coin). <b>LPF Freq</b>: lower = muffled, bassy. <b>HPF Freq</b>: higher = thin, clicky.<br>Change a number, run <code>python3 tools/make_sfx.py</code> (it needs <code>pip install pyfxr</code> once), listen in Godot. Name the sound in Audio.csv's Sound column, or in MenuConfig.csv."},
@@ -2203,6 +2221,47 @@ function paintBook(){
       ["Stars first","the Stars open the set cards a team is made of (<code>class_tree_gates_units</code> is on), so a new game lands on the Star Hall"],
       ["free Stars","the first three cost nothing - <code>team_build_free_stars</code>. Talent points come from matches, and matches now need Stars"],
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
+    ])}`);
+
+  card("The menu hero, painted by OpenAI (round AL)", `
+    <p style="margin:0 0 10px"><b>Your Midjourney kicker is the style. OpenAI paints the comic, tools/pixelate.py makes the pixels.</b></p>
+    ${rows([
+      ["the hero","your pick C (Tyrolean hat), wilder hair, facing right (Pixelate.csv Flip yes) - <code>hero_comic.png</code>; A, B as hero_comic_a / _b"],
+      ["layout","the hero close up, half the screen (left); the brawl far away in the background; the menu and the STURMBALL Oktoberfest sign on the right (MainMenu.csv / MenuConfig.csv X 1650)"],
+      ["wallpaper","<code>menu_brawl.png</code> - the brawl far off; the close-up ones are menu_brawl_close.png / menu_brawl_a.png"],
+      ["music","your Suno tracks, looped on whole bars: menu = the tuba part (8 bars), base and match 16 bars - <b>MusicLoops.csv</b> new columns Bars, Search From, Search To"],
+      ["masters","art_source/openai/menu_hero/ - 1024 x 1536, transparent; style = ref_08.png, pose = your sketch"],
+      ["prompt","<b>ArtStyle.csv</b> new row character_prompt - fill in the brackets for any new character"],
+      ["pixelate","<b>Pixelate.csv</b> new column Smooth - melts the hatching first so the pixel art is clean"],
+    ])}`);
+
+  card("Oktoberfest music, written note by note (round AL)", `
+    <p style="margin:0 0 10px"><b>The title screen plays a Bavarian Blasmusik polka written note by note - no AI - played by recorded brass.</b></p>
+    ${rows([
+      ["the tune","<b>data/songs/menu_blasmusik.csv</b>: 32 bars, one a row - chord + 8 eighth-notes. Players: <b>SongParts.csv</b>; tempo, echo, loudness: <b>Songs.csv</b>. Run <code>python3 tools/make_song.py</code>"],
+      ["menu","plays the Ludo.ai Blasmusik (<code>menu_oktoberfest_ludo</code>, your pick); the hand-written one is the spare <code>menu_oktoberfest</code>"],
+      ["base","three Ludo loops in the same style: <code>base_ludo_1</code> beer garden (base), <code>base_ludo_2</code> waltz, <code>base_ludo_3</code> livelier polka (after the Brewery opens) - Audio.csv's Sound column"],
+      ["loop it","<b>MusicLoops.csv</b> + <code>python3 tools/make_loop.py</code>: finds the cleanest join, blends it, evens the loudness"],
+      ["not AI-ish","short tracks, every instrument named, no build-up; brass band, NOT accordion (or it sounds like pirates)"],
+      ["downloads","the Deck helper <code>tools/mcp/openai_images.mjs</code> saves Ludo / PixelLab files into the project; it also paints with OpenAI"],
+    ])}`);
+
+  card("The art style, nailed down (round AK)", `
+    <p style="margin:0 0 10px"><b>PixelLab for art, Ludo for music. Marcinelle-school comic first, pixels second.</b></p>
+    ${rows([
+      ["the style","<b>ArtStyle.csv</b> + guides/ART_STYLE.md: ugly by exaggeration - potato noses, bulging eyes, buck teeth, gangly or pot-bellied; wobbly brush ink; flat colour"],
+      ["references","art_source/style_refs/ - Motomania, Clever &amp; Smart, the comic kicker; <code>style_sheet.png</code> is sent to PixelLab as the style image"],
+      ["menu hero","A (stocky drinker) on the title screen, B (lanky) ready - both from your sketch; comic masters in art_source/pixellab/menu_hero_comic/"],
+      ["pixelate","<b>Pixelate.csv</b> new column Fill Holes - PixelLab can make a football's white panels see-through"],
+    ])}`);
+
+  card("The menu hero, comic first (round AJ)", `
+    <p style="margin:0 0 10px"><b>Your rule: draw it as a Marcinelle-school comic, THEN pixelate it.</b></p>
+    ${rows([
+      ["the hero","your sketch, drawn by Ludo.ai as a comic (uglier each round), then pixelated: <code>assets/menu/hero_comic.png</code>, 135 x 172, drawn x3"],
+      ["pixelate","<b>Pixelate.csv</b> + <code>python3 tools/pixelate.py</code>: height, colours, ink outline"],
+      ["masters","art_source/ludo/menu_hero/ - the chosen comic, three other versions and your sketch"],
+      ["Ludo","working now - it is the comic-drawing step; PixelLab is kept for pixel-native work (animation)"],
     ])}`);
 
   card("The title screen, sound and the testing tools (round AI)", `

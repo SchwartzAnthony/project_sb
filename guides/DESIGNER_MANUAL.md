@@ -5248,9 +5248,16 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | change what a free kick is worth, by distance | `data/FreeKicks.csv` (round AG) |
 | change who is on the recruitment board, and what they cost | `data/RecruitBoard.csv` (round AH) |
 | change the title screen's wallpaper, title or hero | `data/MainMenu.csv` (round AI) |
+| turn a comic drawing into pixel art | `data/Pixelate.csv`, then `python3 tools/pixelate.py` |
+| change the art style every picture is drawn in | `data/ArtStyle.csv` and `guides/ART_STYLE.md` (your references: `art_source/style_refs/`) |
 | change a menu button's sound | `Hover Sound` / `Press Sound` in `data/MenuConfig.csv` |
 | make or change a sound effect | `data/SoundRecipes.csv`, then `python3 tools/make_sfx.py` |
-| change the menu tune | the top of `tools/make_music.py`, then run it |
+| loop a Suno or any other track | put the WAV in `art_source/suno/music/`, add a `MusicLoops.csv` row (Bars 8 or 16), run `python3 tools/make_loop.py`, name the `.ogg` in Audio.csv |
+| change the menu tune (hand-written) | edit the notes in `data/songs/menu_blasmusik.csv`, the players in `data/SongParts.csv`, the speed in `data/Songs.csv`; run `python3 tools/make_song.py` (section 16d) |
+| write a new tune for another screen | a new score in `data/songs/`, a row in `Songs.csv` and its players in `SongParts.csv`; run `python3 tools/make_song.py`, then name the `.ogg` in Audio.csv |
+| use the hand-written menu tune instead of Ludo's | put `menu_oktoberfest` in the `Sound` column of Audio.csv's `menu_theme` row |
+| change the base music | `base_ludo_1`, `base_ludo_2` or `base_ludo_3` in the `Sound` column of Audio.csv's `base_theme` (and `base_theme_brewing`) rows |
+| loop any music cleanly | a row in `data/MusicLoops.csv`, then `python3 tools/make_loop.py` |
 | simulate 1,000 matches | `godot --headless --path . --script res://tests/sim_runner.gd` (matchups: `data/SimMatchups.csv`) |
 | find over- and under-powered cards | `python3 tools/balance_analysis.py` -> `guides/BALANCE_ANALYSIS.md` |
 | run the unit tests | `godot --headless -s addons/gut/gut_cmdln.gd` |
@@ -5400,9 +5407,90 @@ As shipped:
 - **The wallpaper:** the Oktoberfest riot (`assets/menu/menu_chaos_a.png`).
   The other one, `menu_chaos_b.png`, has the beer-tent stands at sunset; the
   beer hall from round AH is `background.png`.
-- **The hero:** the lederhosen kicker with his backpack, cheering with his
-  beer (`hero_cheer.png`, 8 frames).
+- **The hero (round AK):** your sketch as a Marcinelle-school comic, foot
+  on the ball, stein up (`hero_comic.png`; version B is `hero_comic_b.png`). The round AI backpacker
+  (`hero_cheer.png`, 8 frames) is still there.
 - **The title:** **STURMBALL** in gold.
+
+### Comic first, pixels second — the art style (rounds AJ–AL)
+
+**Your rule:** every picture is drawn as a **Marcinelle-school comic
+first**, and is pixelated afterwards.
+
+**Since round AL, OpenAI paints the comic masters.** PixelLab's own drawings
+always came out half pixel-art, so they could never look like your
+Midjourney kicker. OpenAI's image model (gpt-image-1) can.
+
+- **Characters away from the pitch** use this: the menu, the bar,
+  conversations and portraits.
+- **Players on the pitch** stay simple pixel sprites.
+- **Ludo and Suno** make the music.
+
+**The style is written down in two places:**
+
+- **`guides/ART_STYLE.md`:** what makes it Marcinelle (ugly by
+  exaggeration: noses, eyes, teeth, gangly or pot-bellied) and what does not
+  (pig noses, ball heads, glossy shading).
+- **`data/ArtStyle.csv`:** the words every art prompt is built from (`style`,
+  `ugliness`, `line`, `colour`, `avoid`), the recipe (`pipeline`) and the
+  character prompt template (`character_prompt`). **Change a row and every
+  future picture changes with it.**
+
+Your references are in `art_source/style_refs/`. **`ref_08.png`, your
+Midjourney kicker, is the style reference sent to OpenAI with every
+character.**
+
+**How a picture is made:**
+
+1. **The comic master.** OpenAI paints it at 1024 × 1536 on a transparent
+   background. Two reference pictures go with it:
+   - `ref_08.png` for the **style**;
+   - your **sketch**, if there is one, for the **pose only**.
+
+   It is saved in `art_source/openai/<thing>/`. The painting is done by the
+   small helper on your Deck, `tools/mcp/openai_images.mjs`. Your key stays
+   in `claude_desktop_config.json`.
+2. **The pixel art.** A row of **`data/Pixelate.csv`**, then
+   `python3 tools/pixelate.py`.
+
+| column | |
+|---|---|
+| `Source` | the comic master |
+| `Output` | where the pixel art goes |
+| `Height` | pixels tall (the width follows). The screen draws it 2×, 3× … so keep the size you show it at a whole multiple |
+| `Colours` | how many colours (32 for clean pixel art) |
+| `Outline` | `yes` = a 1-pixel black ink line all round |
+| `Ink` | colours darker than this become pure black ink (0 = off; about 45) |
+| `Crop` | `yes` = cut away the empty space first |
+| `Smooth` | **new in round AL.** `0` = off. `5`, `7` or `9` melt the fine hatching and paint texture **before** shrinking, so the result is clean, flat pixel art like your second image instead of noisy dots. 7 is about right for an OpenAI master |
+| `Fill Holes` | a colour for see-through holes inside the figure. Only for PixelLab masters: OpenAI's transparency is clean, and filling would close the gap between an arm and the body |
+
+| `Aspect` | **new in round AL.** For example `16:9`: trim the picture to that shape first, from the middle. Use it for full-screen backgrounds. Blank = keep the shape |
+| `Flip` | **new in round AL.** `yes` = mirror it left to right, to turn a character round |
+
+**The title screen (round AL, after your notes)** has four parts.
+
+- **The hero is close to the camera.** He's C, your pick (Tyrolean hat,
+  wilder hair, facing right). He's 350 × 520 pixel art drawn 2×, so he
+  stands 1040 of the screen's 1080 pixels tall and fills the left half. He
+  is the `picture` row with X 430, Y 560, in `MainMenu.csv`.
+- **The brawl is far away in the background.** It's a fight cloud in the
+  middle distance, with beer, bratwursts, shoes, stars, water, fire, earth
+  and air flying out. There's open grass on the left for the hero and calm
+  pitch on the right for the menu. This is `menu_brawl.png`, from
+  `Pixelate.csv` row `menu_bg`. The earlier close-up brawls are kept as
+  `menu_brawl_close.png` (cloud right) and `menu_brawl_a.png` (cloud
+  middle).
+- **The menu is on the right.** The four buttons are at X 1650 in
+  `MenuConfig.csv`.
+- **STURMBALL hangs on an Oktoberfest sign.** It's a carved wooden
+  beer-hall board with the blue-and-white Bavarian diamond border, a
+  pretzel, steins and chains. OpenAI painted it with a blank centre, and the
+  game writes the word on it. The sign is a `picture` row
+  (`title_sign.png`, X 1650, Y 230); pictures are always drawn behind the
+  title. **The `title` row now uses X too:** X 1650, Y 242, Width 400 (the
+  box it's centred in) and Height 50 (the font size). Without an X, the
+  title stays centred on screen as before.
 
 ### The buttons' sounds — two columns of `data/MenuConfig.csv`
 
@@ -5433,7 +5521,7 @@ As shipped:
 - **Two sounds are ready but not used yet:** `coin_register` and
   `explosion_heavy`. Name them in any `Sound` column.
 
-### The menu music — `tools/make_music.py`
+### The menu music — `tools/make_music.py` (replaced in round AL, see 16d)
 
 - **What it is:** an Oktoberfest oom-pah polka on 1990s chiptune instruments
   (tuba, off-beat chords, an accordion-ish lead, kick, snare and claps).
@@ -5505,6 +5593,155 @@ The tests are in `tests/unit/`; 27 of them pass:
 
 **To add a test:** make `tests/unit/test_<thing>.gd` extending `GutTest`, and
 write `func test_...():` with `assert_eq` / `assert_true`. GUT finds it.
+
+## 16d. Music written note by note, and music from Ludo.ai (round AL)
+
+**As of the end of round AL, the main menu plays the Ludo.ai Blasmusik
+(`menu_oktoberfest_ludo`), your pick. The base plays Ludo option 1, and option 3
+once the Brewery opens.** The hand-written polka below is kept as a spare,
+`menu_oktoberfest`.
+
+**The base music** comes from three Ludo loops in the menu's style. Each was
+made with the menu prompt (augment prompt off, 40 seconds) with only the
+mood changed:
+
+- `base_ludo_1`, a beer garden: relaxed, F major, 104 BPM;
+- `base_ludo_2`, a swaying beer-tent waltz in 3/4;
+- `base_ludo_3`, a livelier polka in Eb with off-beat cymbals.
+
+Their rows are in `MusicLoops.csv`. Switch by changing the `Sound` column of
+`base_theme` or `base_theme_brewing` in Audio.csv.
+
+**A hand-written Bavarian Blasmusik polka, with no AI.** Real recorded brass instruments play it, from the free
+*GeneralUser GS* soundfont. Because every note is written down, nothing
+creeps in as the song goes on: it plays exactly what's in the spreadsheet.
+The Ludo.ai version is kept as a spare, `menu_oktoberfest_ludo`.
+
+### The hand-written song: three spreadsheets
+
+Run `python3 tools/make_song.py`. It writes `assets/audio/menu_oktoberfest.ogg`
+as a perfect loop: the echo of the last bar is folded onto the first.
+
+**`data/Songs.csv`** has one row per song.
+
+| column | |
+|---|---|
+| `Score` | the score's CSV (`data/songs/…`) |
+| `Output` | the `.ogg` the game plays. Name it in Audio.csv's `Sound` column |
+| `Tempo` | beats a minute, 4 beats a bar (116 = a relaxed beer-tent polka) |
+| `Soundfont` | the instruments (`art_source/soundfonts/GeneralUser-GS.sf2`, free: github.com/mrbumpy409/GeneralUser-GS) |
+| `Reverb` | 0–1, how much beer-tent room |
+| `Loudness` | the average level in dB |
+| `Humanize` | the milliseconds the players may drift, so it sounds played, not programmed (0 = robot-tight) |
+
+**`data/SongParts.csv`** has one row per player.
+
+| column | |
+|---|---|
+| `Plays` | `melody` (the tune), `thirds` (the tune a third lower — the Bavarian sound), `bass` (root then fifth), `chords` (the short "pah"), `drum` |
+| `Instrument` | a General MIDI number: 56 trumpet, 57 trombone, 58 tuba, 60 French horns, 71 clarinet, 21 accordion. For a drum: 36 bass drum, 38 snare, 42 hi-hat, 49 or 57 crash |
+| `Volume` | 0–127. **0 switches a player off** (the clarinet ships off) |
+| `Pan` | −100 left to 100 right |
+| `Octave` | +1 or −1 to move a part up or down an octave |
+| `Beats` | when bass, chords and drums play: `1 3`, `2 4`, `1& 3&`… |
+| `Length` | how long a bass or chord note lasts, in eighth-notes |
+
+**`data/songs/menu_blasmusik.csv`** is the score, one bar a row.
+
+| column | |
+|---|---|
+| `Chord` | `Bb`, `F7`, `Eb`, `Cm`, `Gm7`… The tuba and the pah follow it |
+| `Melody` | 8 eighth-notes: `D5` (the D above middle C), `Bb4`, `Eb5`, `F#4`; `-` holds the note before, `R` is a rest |
+
+As shipped, it has 32 bars in Bb major, 66 seconds:
+
+- **A** (bars 1–8): the tune.
+- **A2** (bars 9–16): the tune with a higher ending.
+- **B** (bars 17–24): the trio, in Eb, as Bavarian polkas do.
+- **A2** (bars 25–32): the tune again, and the last bar leads back into bar 1.
+
+### Your Suno tracks (round AL) — what plays now
+
+The three WAVs you sent are in `art_source/suno/music/`. `tools/make_loop.py`
+cut each one into a loop that is a **whole number of bars**, so the beat
+never stumbles at the join.
+
+| where | your track | the loop |
+|---|---|---|
+| main menu | Untitled | **only the aggressive tuba part in the middle**: 8 bars at 128 BPM, 14.9 s, starting right on the first heavy tuba hit |
+| base | Sonniger Nachmittag | 16 bars at 99 BPM, 38.6 s, from 26.3 s into the song |
+| matches | Fussball im Bierzelt | 16 bars at 110 BPM, 35.1 s, from 36.7 s into the song |
+
+**New columns in `MusicLoops.csv`:**
+
+| column | |
+|---|---|
+| `Bars` | loop exactly this many bars (4 beats each). 8 or 16 is usual. Blank = the old way, any length between Min and Max Length |
+| `Search From`, `Search To` | look for the loop only between these seconds of the song, for example the part you like best. Blank = the whole song |
+
+The menu's tuba part is about 8 bars long, so its loop is 15 s rather than
+30 s. A 16-bar loop would have to include the quiet part after it. If you'd
+rather have 30 s, set `Bars` to 16 and empty `Start` and `Length`.
+
+### The Ludo.ai version (kept as a spare)
+
+`menu_oktoberfest_ludo.ogg`: Bavarian Blasmusik made by Ludo.ai, a brass band
+in a beer tent, cut into a loop by `tools/make_loop.py`.
+
+### What we learned about AI music, so it doesn't sound like AI
+
+- **Keep it short: 40 seconds.** Given two minutes, Ludo keeps adding
+  instruments and build-ups, and that's the AI giveaway. The game loops a
+  short piece instead.
+- **Name every instrument and ban the rest.** For example: "the same
+  instruments, volume, tempo and key throughout, with no build-up".
+- **Oktoberfest means a brass band, not an accordion.** Tuba with accordion
+  or fiddle, a minor key, or a fast 2/4 polka all sound like **pirates or a
+  sea shanty** to the AI. What worked: flugelhorns and tenor horns playing
+  the tune in harmony, tuba, a baritone horn, a snare and a bass drum.
+- **The winning version had Ludo's "augment prompt" switched OFF.** Ludo
+  normally rewrites your description behind the scenes. With it off, it
+  followed the words more closely.
+
+**The exact prompt for the menu theme** (Ludo createMusic, 40 s, augment
+prompt off):
+
+> Bavarian Oktoberfest Blasmusik, a German brass band polka in a Munich
+> beer tent. Major key, 4/4, 116 BPM. Flugelhorns and tenor horns play the
+> melody in thirds; tuba oom on 1 and 3; baritone pah on 2 and 4; snare and
+> bass drum. Gemütlich, cheerful, traditional German. No accordion, no
+> fiddle, no pirate or sea shanty sound. The same arrangement for the whole
+> track, no build-up. Instrumental loop.
+
+### `data/MusicLoops.csv` — one row per looping track
+
+Run `python3 tools/make_loop.py`. It finds the two moments in the track
+that sound most alike, cuts between them, blends the join, evens out the
+loudness, and writes the `.ogg` the game plays.
+
+| column | |
+|---|---|
+| `Source` | the track as Ludo made it (`art_source/ludo/music/…`) |
+| `Output` | the looping `.ogg` (`assets/audio/…`). Name it in Audio.csv's `Sound` column |
+| `Start`, `Length` | leave **blank** and the script finds the cleanest loop and prints what it chose. Type seconds to force your own |
+| `Min Length`, `Max Length` | when it is finding: the shortest and longest loop allowed |
+| `Crossfade` | seconds of blending at the join (0.2–1) |
+| `Loudness` | the average level in dB (−16 is right for music). Audio.csv's `Volume` applies on top |
+
+The menu loop as shipped starts 1.94 s in and lasts 26.64 s. The join was
+checked: no click, and the same loudness either side.
+
+**The game now loops `.ogg` and `.mp3` music gaplessly.** Before round AL it
+restarted the track when it finished, which could leave a tiny gap. `.wav`
+music still restarts.
+
+### Getting files from Ludo or PixelLab into the project
+
+Claude's cloud computer can't reach Ludo's storage, but your Deck can. The
+small helper `tools/mcp/openai_images.mjs` runs on the Deck. It paints
+pictures with OpenAI, and its `download_file` tool saves any Ludo or PixelLab
+result straight into the project. It's set up in `claude_desktop_config.json`
+as `openai-images`, and your key lives only there.
 
 ## 17. A short glossary
 

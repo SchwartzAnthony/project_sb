@@ -1,0 +1,10 @@
+Song,Part,Plays,Instrument,Bank,Volume,Pan,Octave,Beats,Length,Notes
+menu_blasmusik,flugelhorn 1,melody,56,0,100,-10,0,,,"The tune. GM 56 = trumpet, played soft it stands in for a flugelhorn."
+menu_blasmusik,flugelhorn 2,thirds,60,0,78,10,0,,,"The second voice: the tune a third lower, like Egerland bands play it. GM 60 = French horns (a warm tenor-horn sound)."
+menu_blasmusik,tuba,bass,58,0,105,0,0,1 3,1.6,"Oom: the chord's root on beat 1, its fifth on beat 3. Length is in eighth-notes."
+menu_blasmusik,tenor horns,chords,60,0,58,-25,0,2 4,0.9,"Pah: short chords on beats 2 and 4."
+menu_blasmusik,trombone,chords,57,0,46,25,-1,2 4,0.9,"Pah, an octave lower, for weight."
+menu_blasmusik,clarinet,melody,71,0,0,0,1,,,"OFF (volume 0). Turn up for a clarinet an octave above the tune - but too much clarinet starts to sound like pirates."
+menu_blasmusik,bass drum,drum,36,0,92,0,0,1 3,,"Drum parts: Instrument is the drum (36 bass drum, 38 snare, 49 crash, 57 crash 2, 42 closed hi-hat). Beats = when it hits; 1& = the eighth after beat 1."
+menu_blasmusik,snare,drum,38,0,52,0,0,2 4,,
+menu_blasmusik,cymbals,drum,57,0,34,15,0,2 4,,"The marching-band clash cymbals on the off-beats - the 'tsching' of a Bavarian band."
