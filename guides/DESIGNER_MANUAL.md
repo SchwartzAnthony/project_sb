@@ -5255,6 +5255,7 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | loop a Suno or any other track | put the WAV in `art_source/suno/music/`, add a `MusicLoops.csv` row (Bars 8 or 16), run `python3 tools/make_loop.py`, name the `.ogg` in Audio.csv |
 | change the menu tune (hand-written) | edit the notes in `data/songs/menu_blasmusik.csv`, the players in `data/SongParts.csv`, the speed in `data/Songs.csv`; run `python3 tools/make_song.py` (section 16d) |
 | write a new tune for another screen | a new score in `data/songs/`, a row in `Songs.csv` and its players in `SongParts.csv`; run `python3 tools/make_song.py`, then name the `.ogg` in Audio.csv |
+| a title-screen layer is missing | click into the Godot editor so it imports the new PNGs (the FileSystem panel shows a progress bar). The menu reads un-imported PNGs directly meanwhile, and the Output panel names them |
 | use the hand-written menu tune instead of Ludo's | put `menu_oktoberfest` in the `Sound` column of Audio.csv's `menu_theme` row |
 | change the base music | `base_ludo_1`, `base_ludo_2` or `base_ludo_3` in the `Sound` column of Audio.csv's `base_theme` (and `base_theme_brewing`) rows |
 | loop any music cleanly | a row in `data/MusicLoops.csv`, then `python3 tools/make_loop.py` |
@@ -5511,6 +5512,14 @@ To move a layer, change its X and Y. To reorder layers, move its row.
 sign, so the hero covers both: his stein is in front of the sign. The sign
 sits slightly right of centre (X 1040) so the stein doesn't cover the "S".
 The name is 76 points, about a quarter of the screen wide.
+
+**If a layer is missing on screen,** check that Godot has imported it. Godot
+imports new pictures when the editor window gets focus, and the FileSystem
+panel shows a progress bar while it does. Since round AL the title screen
+reads the PNG straight from the folder if it isn't imported yet, so a layer
+no longer goes missing. The Output panel then says
+`[menu] '...' is not imported yet`. Click into the editor once and the
+message goes away.
 
 **The `Neutral` column in `Pixelate.csv`** (0–1) takes out the yellow
 "AI painting" tint. It makes the near-white parts (clouds, white walls,
