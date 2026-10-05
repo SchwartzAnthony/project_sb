@@ -53,7 +53,8 @@ func _ready() -> void:
 	_read_look()
 	_build_background()
 	_build_pictures()
-	_build_title()
+	if not _title_built:
+		_build_title()
 
 	_buttons = Control.new()
 	_buttons.name = "Buttons"
@@ -199,6 +200,7 @@ func _build_footer() -> void:
 
 var _look_rows: Dictionary = {}
 var _pictures: Array[Dictionary] = []
+var _title_built := false
 
 
 func _read_look() -> void:
@@ -217,11 +219,18 @@ func _read_look() -> void:
 			"height": MenuSupport.field_float(row, "Height", 0.0),
 			"frames": maxi(1, int(MenuSupport.field_float(row, "Frames", 1.0))),
 			"fps": MenuSupport.field_float(row, "FPS", 8.0),
+			"scale": MenuSupport.field_float(row, "Scale", 0.0),
+			"flip": MenuSupport.field(row, "Flip").strip_edges().to_lower() == "yes",
 		}
 		match part:
 			"background", "title":
 				if not _look_rows.has(part):
 					_look_rows[part] = entry
+					# ROUND AL: the title is drawn in its place among the
+					# pictures (layers), so a picture below it in the file
+					# - the hero - stands in front of it.
+					if part == "title":
+						_pictures.append({"is_title": true})
 			"picture":
 				_pictures.append(entry)
 			_:
@@ -230,6 +239,10 @@ func _read_look() -> void:
 
 func _build_pictures() -> void:
 	for entry in _pictures:
+		if entry.has("is_title"):
+			_build_title()
+			_title_built = true
+			continue
 		var path := String(entry["image"])
 		if path == "" or not ResourceLoader.exists(path):
 			print("[menu] MainMenu.csv: no picture at '%s' yet." % path)
@@ -248,8 +261,12 @@ func _build_pictures() -> void:
 		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var w := float(entry["width"]) if float(entry["width"]) > 0.0 else frame_w
-		var h := float(entry["height"]) if float(entry["height"]) > 0.0 else float(sheet.get_height())
+		# ROUND AL: Scale = draw the picture at a whole multiple of its own
+		# pixels (2 = every layer the same pixel size). Width/Height win if set.
+		var scale := float(entry["scale"]) if float(entry["scale"]) > 0.0 else 1.0
+		var w := float(entry["width"]) if float(entry["width"]) > 0.0 else frame_w * scale
+		var h := float(entry["height"]) if float(entry["height"]) > 0.0 else float(sheet.get_height()) * scale
+		art.flip_h = bool(entry["flip"])
 		art.size = Vector2(w, h)
 		art.position = Vector2(float(entry["x"]) - w * 0.5, float(entry["y"]) - h * 0.5)
 		add_child(art)
@@ -287,7 +304,8 @@ func _build_buttons() -> void:
 		var button := _make_button(
 			MenuSupport.field(row, "Label", "Button"),
 			MenuSupport.field(row, "Art Path"),
-			Vector2(width, height))
+			Vector2(width, height),
+			MenuSupport.field(row, "Label On Art").strip_edges().to_lower() == "yes")
 		button.position = Vector2(centre_x - width * 0.5, centre_y - height * 0.5)
 		# ROUND AI: each button's sounds are MenuConfig.csv columns - a row
 		# ID of Audio.csv or a file name in assets/audio/. Blank = the
@@ -319,13 +337,36 @@ func _default_rows() -> Array[Dictionary]:
 
 ## A button that wears a PNG when one is given and falls back to a plain
 ## labelled button when it is not — so the menu works before any art exists.
-func _make_button(label: String, art_path: String, box: Vector2) -> Button:
+func _make_button(label: String, art_path: String, box: Vector2, label_on_art: bool = false) -> Button:
 	var button := Button.new()
 	button.size = box
 	button.custom_minimum_size = box
 	button.text = label
 	button.add_theme_font_size_override("font_size", 22)
 
+	# ROUND AL: "Label On Art" yes = the picture is a blank plank and the
+	# Label is written on top of it, so one plank serves every button.
+	if label_on_art and art_path != "" and ResourceLoader.exists(art_path):
+		var plank := load(art_path) as Texture2D
+		if plank != null:
+			var states := {"normal": Color(1, 1, 1), "hover": Color(1.18, 1.12, 1.0),
+				"pressed": Color(0.82, 0.78, 0.72), "focus": Color(1.18, 1.12, 1.0)}
+			for state in states:
+				var box_style := StyleBoxTexture.new()
+				box_style.texture = plank
+				# The plank is made at the button's own shape (Pixelate.csv
+				# Widen), so it is simply drawn over the whole button.
+				box_style.modulate_color = states[state]
+				button.add_theme_stylebox_override(state, box_style)
+			button.add_theme_font_size_override("font_size", 26)
+			button.add_theme_color_override("font_color", Color("f6ead0"))
+			button.add_theme_color_override("font_hover_color", Color("ffd36a"))
+			button.add_theme_color_override("font_focus_color", Color("ffd36a"))
+			button.add_theme_color_override("font_pressed_color", Color("e8d7b0"))
+			button.add_theme_color_override("font_outline_color", Color("2a1608"))
+			button.add_theme_constant_override("outline_size", 7)
+			button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			return button
 	if art_path != "" and ResourceLoader.exists(art_path):
 		var texture := load(art_path)
 		if texture is Texture2D:

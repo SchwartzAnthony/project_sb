@@ -26,10 +26,17 @@
 #               clean and flat like hand-made pixel art (odd numbers only).
 #    Aspect     round AL: e.g. 16:9 = trim the picture to that shape first
 #               (from the middle) - for full-screen backgrounds. Blank = keep.
+#    Widen      round AL: 1.5 = make it 1.5x wider by stretching only the
+#               middle (the ends keep their shape) - for buttons and signs.
+#    Neutral    round AL: 0-1. Takes the yellow "AI painting" tint out by
+#               making the near-white parts truly white (1 = fully). Blank = off.
 #    Flip       round AL: yes = mirror it left-right (turn a character round)
 #    Fill Holes a colour (#f4f1ea) for see-through holes INSIDE the figure.
 #               PixelLab's background removal sometimes eats white areas
 #               that are enclosed - the white panels of a football. Blank = off.
+#    Max Hole   round AL: only fill holes smaller than this % of the picture
+#               (0.6 = ball panels yes, the gap between arm and body no).
+#               Blank = fill every enclosed hole.
 #    Notes      anything
 #
 #  Change a number, run it again, look in Godot.
@@ -46,29 +53,50 @@ SHEET = os.path.join(HERE, "data", "Pixelate.csv")
 INK = (20, 14, 10)
 
 
-def fill_holes(im, colour):
+def fill_holes(im, colour, max_percent=0.0):
     """Transparent pixels that cannot reach the edge of the picture are holes:
-    paint them `colour`, fully opaque."""
-    w, h = im.size
-    px = im.load()
-    outside = set()
-    stack = [(x, y) for x in range(w) for y in (0, h - 1)] + [(x, y) for y in range(h) for x in (0, w - 1)]
-    while stack:
-        x, y = stack.pop()
-        if (x, y) in outside or not (0 <= x < w and 0 <= y < h) or px[x, y][3] > 0:
-            continue
-        outside.add((x, y))
-        stack += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    paint them `colour`, fully opaque. With max_percent, only holes smaller
+    than that share of the picture are filled - the white panels of a ball,
+    not the gap between an arm and the body."""
+    import numpy as np
+    from scipy import ndimage
+    a = np.array(im.getchannel("A")) > 0
+    lab, n = ndimage.label(~a)
+    edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]])).tolist())
+    limit = (max_percent / 100.0) * a.size if max_percent else a.size
+    sizes = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1))
+    fill = np.zeros_like(a)
+    for i, size in enumerate(sizes, start=1):
+        if i not in edge and size < limit:
+            fill |= lab == i
     rgb = tuple(int(colour.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4))
-    for y in range(h):
-        for x in range(w):
-            if px[x, y][3] == 0 and (x, y) not in outside:
-                px[x, y] = rgb + (255,)
-    return im
+    arr = np.array(im)
+    arr[fill] = rgb + (255,)
+    return Image.fromarray(arr, "RGBA")
 
 
-def pixelate(src, height, colours, outline, ink, crop, holes="", smooth=0, aspect="", flip=False):
+def neutralise(im, strength):
+    """Take the yellow (or any) colour cast out: the near-white pixels -
+    clouds, white walls, foam - are made truly white, and every other colour
+    shifts by the same amount. strength 0 = off, 1 = full."""
+    import numpy as np
+    arr = np.array(im).astype(np.float32)
+    rgb, a = arr[..., :3], arr[..., 3]
+    lum = rgb.mean(-1)
+    spread = rgb.max(-1) - rgb.min(-1)
+    pick = (a > 200) & (lum > 175) & (spread < 70)
+    if pick.sum() < 200:
+        return im
+    white = rgb[pick].mean(0)
+    gains = (white.mean() / np.maximum(white, 1.0)) ** float(strength)
+    arr[..., :3] = np.clip(rgb * gains, 0, 255)
+    return Image.fromarray(arr.astype(np.uint8), "RGBA")
+
+
+def pixelate(src, height, colours, outline, ink, crop, holes="", smooth=0, max_hole=0.0, aspect="", flip=False, widen=1.0, neutral=0.0):
     im = Image.open(src).convert("RGBA")
+    if neutral:
+        im = neutralise(im, neutral)
     if flip:
         im = im.transpose(Image.FLIP_LEFT_RIGHT)
     if aspect and ":" in aspect:
@@ -87,9 +115,22 @@ def pixelate(src, height, colours, outline, ink, crop, holes="", smooth=0, aspec
         im = im.convert("RGB").filter(ImageFilter.MedianFilter(int(smooth) | 1)).convert("RGBA")
         im.putalpha(a)
     if holes:
-        im = fill_holes(im, holes)
-    if crop and im.getbbox():
-        im = im.crop(im.getbbox())
+        im = fill_holes(im, holes, max_hole)
+    if crop:
+        # Only count pixels that are really there (AI paintings leave faint haze).
+        box = im.getchannel("A").point(lambda v: 255 if v > 110 else 0).getbbox()
+        if box:
+            im = im.crop(box)
+    if widen and widen != 1.0:
+        # Stretch only the MIDDLE, so corners and end ornaments keep their shape.
+        w, h = im.size
+        a, b = int(w * 0.3), int(w * 0.7)
+        mid = im.crop((a, 0, b, h)).resize((max(1, int((b - a) + w * (widen - 1.0))), h), Image.LANCZOS)
+        out = Image.new("RGBA", (a + mid.width + (w - b), h))
+        out.paste(im.crop((0, 0, a, h)), (0, 0))
+        out.paste(mid, (a, 0))
+        out.paste(im.crop((b, 0, w, h)), (a + mid.width, 0))
+        im = out
     width = max(1, round(im.width * height / im.height))
     # Shrink in two steps (box, then lanczos) so thin ink lines survive.
     mid = im.resize((width * 2, height * 2), Image.BOX)
@@ -138,8 +179,9 @@ def main():
             out = pixelate(src, int(float(row.get("Height") or 160)), int(float(row.get("Colours") or 32)),
                            (row.get("Outline") or "yes").strip().lower() == "yes",
                            int(float(row.get("Ink") or 60)), (row.get("Crop") or "yes").strip().lower() == "yes",
-                           (row.get("Fill Holes") or "").strip(), int(float(row.get("Smooth") or 0)),
-                           (row.get("Aspect") or "").strip(), (row.get("Flip") or "").strip().lower() == "yes")
+                           (row.get("Fill Holes") or "").strip(), int(float(row.get("Smooth") or 0)), float(row.get("Max Hole") or 0),
+                           (row.get("Aspect") or "").strip(), (row.get("Flip") or "").strip().lower() == "yes",
+                           float(row.get("Widen") or 1.0), float(row.get("Neutral") or 0))
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             out.save(dst)
             print("  %s: %s -> %s (%dx%d, %s colours)" % (rid, row["Source"], row["Output"], out.width, out.height, row.get("Colours")))
