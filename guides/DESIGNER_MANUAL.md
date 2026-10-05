@@ -5468,29 +5468,44 @@ character.**
 | `Aspect` | **new in round AL.** For example `16:9`: trim the picture to that shape first, from the middle. Use it for full-screen backgrounds. Blank = keep the shape |
 | `Flip` | **new in round AL.** `yes` = mirror it left to right, to turn a character round |
 
-**The title screen (round AL, after your notes)** has four parts.
+**The title screen (round AL, final pass)** is drawn in clean comic style,
+with ink lines of even thickness and flat colours.
 
-- **The hero is close to the camera.** He's C, your pick (Tyrolean hat,
-  wilder hair, facing right). He's 350 × 520 pixel art drawn 2×, so he
-  stands 1040 of the screen's 1080 pixels tall and fills the left half. He
-  is the `picture` row with X 430, Y 560, in `MainMenu.csv`.
-- **The brawl is far away in the background.** It's a fight cloud in the
-  middle distance, with beer, bratwursts, shoes, stars, water, fire, earth
-  and air flying out. There's open grass on the left for the hero and calm
-  pitch on the right for the menu. This is `menu_brawl.png`, from
-  `Pixelate.csv` row `menu_bg`. The earlier close-up brawls are kept as
-  `menu_brawl_close.png` (cloud right) and `menu_brawl_a.png` (cloud
-  middle).
-- **The menu is on the right.** The four buttons are at X 1650 in
-  `MenuConfig.csv`.
-- **STURMBALL hangs on an Oktoberfest sign.** It's a carved wooden
-  beer-hall board with the blue-and-white Bavarian diamond border, a
-  pretzel, steins and chains. OpenAI painted it with a blank centre, and the
-  game writes the word on it. The sign is a `picture` row
-  (`title_sign.png`, X 1650, Y 230); pictures are always drawn behind the
-  title. **The `title` row now uses X too:** X 1650, Y 242, Width 400 (the
-  box it's centred in) and Height 50 (the font size). Without an X, the
-  title stays centred on screen as before.
+- **The hero** is C, your pick: wild hair, the Tyrolean hat, facing right.
+  He was repainted clean and stands close to the camera, filling the left
+  half of the screen: 349 × 520 pixel art drawn 2×. His painting left the
+  ball's white panels see-through, so `Fill Holes` and the new `Max Hole`
+  column (0.6) paint them back. They don't fill the gap between his arm and
+  his body.
+- **The wallpaper** (`menu_brawl.png`, `Pixelate.csv` row `menu_bg`) shows
+  a **traditional Bavarian brewery** in the centre behind the pitch:
+  whitewashed walls, timber beams, a red roof and an onion-dome tower. In the
+  middle of the pitch in front of it is the **brawl**, with beer, bratwursts,
+  pretzels, a ball, stars and water flying out of the cloud. The other
+  paintings are in `art_source/openai/menu_bg/`. Point the row's `Source` at
+  one to swap: `brewery_c.png` has a bigger brawl, `brewery_b.png` is very
+  close.
+- **The STURMBALL sign** hangs top-middle in front of the brewery
+  (`title_sign.png`, X 960, Y 132). The `title` row writes the word on it:
+  X 960, Y 146, Height 38 (the font size).
+- **The menu buttons** are oak planks matching the sign, with the Bavarian
+  diamond border (`button_plank.png`, `Pixelate.csv` row `menu_button`).
+  OpenAI painted the plank blank, and `Widen` 1.55 stretches only its middle
+  to button shape, so the corners keep their look. **`MenuConfig.csv` has a
+  new column, `Label On Art`.** `yes` means the button's `Label` is written
+  on its `Art Path` picture, so one plank serves every button. Hovering
+  brightens the plank and turns the word gold. `no` or blank keeps the old
+  behaviour: the picture *is* the button, words included.
+
+**New `Pixelate.csv` columns this pass:**
+
+| column | |
+|---|---|
+| `Widen` | `1.5` = make it 1.5× wider by stretching only the middle; the ends keep their shape. For buttons and signs |
+| `Max Hole` | with `Fill Holes`: only fill see-through holes smaller than this % of the picture (`0.6` fills a ball's panels but not an arm gap). Blank = fill every enclosed hole |
+
+`Crop` now ignores the faint haze AI paintings leave round a figure, so it
+cuts tight.
 
 ### The buttons' sounds — two columns of `data/MenuConfig.csv`
 

@@ -504,8 +504,9 @@ function paintBook(){
     <p style="margin:0 0 10px"><b>Your Midjourney kicker is the style. OpenAI paints the comic, tools/pixelate.py makes the pixels.</b></p>
     ${rows([
       ["the hero","your pick C (Tyrolean hat), wilder hair, facing right (Pixelate.csv Flip yes) - <code>hero_comic.png</code>; A, B as hero_comic_a / _b"],
-      ["layout","the hero close up, half the screen (left); the brawl far away in the background; the menu and the STURMBALL Oktoberfest sign on the right (MainMenu.csv / MenuConfig.csv X 1650)"],
-      ["wallpaper","<code>menu_brawl.png</code> - the brawl far off; the close-up ones are menu_brawl_close.png / menu_brawl_a.png"],
+      ["layout","clean lines; the hero close up on the left (half the screen); STURMBALL sign top-middle; a Bavarian brewery in the centre; the brawl in the middle; plank buttons on the right"],
+      ["wallpaper","<code>menu_brawl.png</code> from art_source/openai/menu_bg/brewery_d.png - swap Pixelate.csv menu_bg Source for brewery_c / _b / _a"],
+      ["buttons","oak planks matching the sign - <b>MenuConfig.csv</b> new column Label On Art; <b>Pixelate.csv</b> new columns Widen and Max Hole"],
       ["music","your Suno tracks, looped on whole bars: menu = the tuba part (8 bars), base and match 16 bars - <b>MusicLoops.csv</b> new columns Bars, Search From, Search To"],
       ["masters","art_source/openai/menu_hero/ - 1024 x 1536, transparent; style = ref_08.png, pose = your sketch"],
       ["prompt","<b>ArtStyle.csv</b> new row character_prompt - fill in the brackets for any new character"],
