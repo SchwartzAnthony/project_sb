@@ -263,6 +263,15 @@ func _start_loop(cue: Dictionary) -> void:
 		var player := current["player"] as AudioStreamPlayer
 		if String(current["cue_id"]) == cue_id and player != null and player.playing:
 			return
+		# ROUND AL: THE SAME TRACK FROM ANOTHER ROW keeps playing - no restart,
+		# no gap - and only glides to that row's Volume. This is how the menu
+		# music carries on into Settings and the save screen, just quieter:
+		# their rows name the same Sound with a lower Volume.
+		if player != null and player.playing and player.stream == cue["stream"]:
+			current["cue_id"] = cue_id
+			var glide := create_tween()
+			glide.tween_property(player, "volume_db", float(cue["volume"]), maxf(0.3, float(cue["fade"])))
+			return
 		_fade_out(player, float(cue["fade"]))
 
 	var fresh := AudioStreamPlayer.new()

@@ -1,6 +1,10 @@
 class_name SettingsScreen
 extends Control
 
+## ROUND AL: loaded by path, so it works even before Godot has registered
+## the new script (a fresh copy of the project).
+const Look := preload("res://src/ui/screen_look.gd")
+
 # =============================================================
 #  SETTINGS
 #
@@ -50,6 +54,8 @@ func _ready() -> void:
 	GameKeys.install(get_tree())
 	settings = GameSettings.load_all()
 	_build()
+	# ROUND AL: the Beer Keller behind it and plank buttons - data/ScreenLook.csv
+	Look.install(self, "settings")
 
 	var opening := "Keys"
 	if get_tree().has_meta(TAB_KEY):
@@ -178,6 +184,7 @@ func _repaint() -> void:
 	# underneath the new chrome for one frame.
 	await get_tree().process_frame
 	_build()
+	Look.install(self, "settings")
 	_show_tab(was_on)
 	_say("Palette changed. Every screen in the game uses these colours.")
 

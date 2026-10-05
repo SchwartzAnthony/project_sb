@@ -515,6 +515,16 @@ function paintBook(){
       ["pixelate","<b>Pixelate.csv</b> new column Smooth - melts the hatching first so the pixel art is clean"],
     ])}`);
 
+  card("Settings and the save screen dressed up (round AL)", `
+    <p style="margin:0 0 10px"><b>Settings is the Beer Keller, the save screen is the trophy room - layered like the title screen.</b></p>
+    ${rows([
+      ["the look","<b>ScreenLook.csv</b>: layers, a see-through shade, the content margin, and every button as the oak plank with the menu sounds"],
+      ["music","the title music carries on into both, quieter - Audio.csv settings_theme / slot_theme name the SAME Sound with a lower Volume, so it never restarts"],
+      ["loop","the menu loop is 16 bars now - the tuba part plus the lighter part that builds back into it (MusicLoops.csv suno_menu)"],
+      ["sounds","every button sound 6 dB quieter (Audio.csv menu_hover / click / start / back)"],
+      ["check","<code>tools/screens_shot.gd</code> photographs the three screens and prints the music on each"],
+    ])}`);
+
   card("Oktoberfest music, written note by note (round AL)", `
     <p style="margin:0 0 10px"><b>The title screen plays a Bavarian Blasmusik polka written note by note - no AI - played by recorded brass.</b></p>
     ${rows([
