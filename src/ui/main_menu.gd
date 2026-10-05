@@ -14,6 +14,9 @@ extends Control
 # =============================================================
 
 const MENU_CONFIG_PATH := "res://data/MenuConfig.csv"
+## ROUND AI: what the title screen LOOKS like - the wallpaper, the title and
+## any pictures standing on it (the hero) - one row each. See _look().
+const MAIN_MENU_PATH := "res://data/MainMenu.csv"
 
 ## Optional full-screen art. Set it here, or add a Background Art row to
 ## MenuConfig.csv with the path in the Art Path column.
@@ -47,7 +50,9 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	MenuEscape.install(self)
 
+	_read_look()
 	_build_background()
+	_build_pictures()
 	_build_title()
 
 	_buttons = Control.new()
@@ -97,9 +102,12 @@ func _build_background() -> void:
 	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(fill)
 
-	if background_art_path == "" or not ResourceLoader.exists(background_art_path):
+	var path := background_art_path
+	if not _look_rows.get("background", {}).is_empty():
+		path = String(_look_rows["background"].get("image", path))
+	if path == "" or not ResourceLoader.exists(path):
 		return
-	var texture := load(background_art_path)
+	var texture := load(path)
 	if not (texture is Texture2D):
 		return
 
@@ -116,14 +124,27 @@ func _build_background() -> void:
 func _build_title() -> void:
 	var title := Label.new()
 	title.text = title_text
+	var row: Dictionary = _look_rows.get("title", {})
+	if not row.is_empty():
+		if String(row["text"]) != "":
+			title.text = String(row["text"])
+		if float(row["height"]) > 0.0:
+			title_font_size = int(row["height"])
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", title_font_size)
 	title.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
 	title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	title.add_theme_constant_override("outline_size", 8)
 	title.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	title.offset_top = 70.0
-	title.offset_bottom = 70.0 + float(title_font_size) + 20.0
+	var top := 70.0
+	if not row.is_empty() and float(row["y"]) > 0.0:
+		top = float(row["y"]) - float(title_font_size) * 0.5
+	title.offset_top = top
+	title.offset_bottom = top + float(title_font_size) + 20.0
+	var gold := MenuSupport.COLOUR_ACCENT
+	if not row.is_empty():
+		title.add_theme_color_override("font_color", gold)
+		title.add_theme_constant_override("outline_size", 14)
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(title)
 
@@ -152,6 +173,91 @@ func _build_footer() -> void:
 
 
 # -------------------------------------------------------------
+#  THE LOOK, FROM data/MainMenu.csv  (round AI)
+#
+#  One row per thing on the title screen:
+#
+#    Part     background   the wallpaper (the first one wins)
+#             title        the big word at the top (Text; Height = font size)
+#             picture      anything standing on it - the hero. Any number.
+#    Image    the file. A picture may be a STRIP: Frames pictures side by
+#             side, all the same width, played at FPS frames a second.
+#    Text     for the title
+#    X, Y     the CENTRE, in a 1920 x 1080 screen
+#    Width, Height   how big to draw it (a picture keeps its pixels sharp)
+#    Frames, FPS     for an animated strip; blank = a still picture
+#
+#  No file, no row: the screen looks as it did before the file existed.
+# -------------------------------------------------------------
+
+var _look_rows: Dictionary = {}
+var _pictures: Array[Dictionary] = []
+
+
+func _read_look() -> void:
+	_look_rows = {}
+	_pictures = []
+	for row in MenuSupport.read_csv(MAIN_MENU_PATH):
+		var part := MenuSupport.field(row, "Part").strip_edges().to_lower()
+		if part == "":
+			continue
+		var entry := {
+			"image": MenuSupport.field(row, "Image").strip_edges(),
+			"text": MenuSupport.field(row, "Text").strip_edges(),
+			"x": MenuSupport.field_float(row, "X", 960.0),
+			"y": MenuSupport.field_float(row, "Y", 0.0),
+			"width": MenuSupport.field_float(row, "Width", 0.0),
+			"height": MenuSupport.field_float(row, "Height", 0.0),
+			"frames": maxi(1, int(MenuSupport.field_float(row, "Frames", 1.0))),
+			"fps": MenuSupport.field_float(row, "FPS", 8.0),
+		}
+		match part:
+			"background", "title":
+				if not _look_rows.has(part):
+					_look_rows[part] = entry
+			"picture":
+				_pictures.append(entry)
+			_:
+				print("[menu] MainMenu.csv: Part '%s' is not background, title or picture - skipping it." % part)
+
+
+func _build_pictures() -> void:
+	for entry in _pictures:
+		var path := String(entry["image"])
+		if path == "" or not ResourceLoader.exists(path):
+			print("[menu] MainMenu.csv: no picture at '%s' yet." % path)
+			continue
+		var sheet := load(path) as Texture2D
+		if sheet == null:
+			continue
+		var frames := int(entry["frames"])
+		var frame_w := float(sheet.get_width()) / float(frames)
+		var atlas := AtlasTexture.new()
+		atlas.atlas = sheet
+		atlas.region = Rect2(0, 0, frame_w, sheet.get_height())
+		var art := TextureRect.new()
+		art.texture = atlas
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var w := float(entry["width"]) if float(entry["width"]) > 0.0 else frame_w
+		var h := float(entry["height"]) if float(entry["height"]) > 0.0 else float(sheet.get_height())
+		art.size = Vector2(w, h)
+		art.position = Vector2(float(entry["x"]) - w * 0.5, float(entry["y"]) - h * 0.5)
+		add_child(art)
+		if frames > 1 and float(entry["fps"]) > 0.0:
+			var timer := Timer.new()
+			timer.wait_time = 1.0 / float(entry["fps"])
+			timer.autostart = true
+			var at := {"frame": 0}
+			timer.timeout.connect(func() -> void:
+				at["frame"] = (int(at["frame"]) + 1) % frames
+				atlas.region = Rect2(frame_w * int(at["frame"]), 0, frame_w, sheet.get_height()))
+			art.add_child(timer)
+
+
+# -------------------------------------------------------------
 #  BUTTONS FROM CSV
 # -------------------------------------------------------------
 
@@ -176,6 +282,14 @@ func _build_buttons() -> void:
 			MenuSupport.field(row, "Art Path"),
 			Vector2(width, height))
 		button.position = Vector2(centre_x - width * 0.5, centre_y - height * 0.5)
+		# ROUND AI: each button's sounds are MenuConfig.csv columns - a row
+		# ID of Audio.csv or a file name in assets/audio/. Blank = the
+		# usual tick and click.
+		var hover_sound := MenuSupport.field(row, "Hover Sound", "menu_hover").strip_edges()
+		var press_sound := MenuSupport.field(row, "Press Sound", "menu_click").strip_edges()
+		button.mouse_entered.connect(func() -> void: AudioDirector.play_cue(get_tree(), hover_sound))
+		button.focus_entered.connect(func() -> void: AudioDirector.play_cue(get_tree(), hover_sound))
+		button.pressed.connect(func() -> void: AudioDirector.play_cue(get_tree(), press_sound))
 		button.pressed.connect(_on_action.bind(action))
 		_buttons.add_child(button)
 

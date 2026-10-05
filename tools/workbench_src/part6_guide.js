@@ -500,6 +500,17 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("The title screen, sound and the testing tools (round AI)", `
+    <p style="margin:0 0 10px"><b>New title screen, music and sounds; a simulator, an analyst and unit tests.</b></p>
+    ${rows([
+      ["title screen","<b>MainMenu.csv</b>: the wallpaper, STURMBALL, the cheering lederhosen hero (PixelLab). Button sounds: <b>MenuConfig.csv</b> Hover / Press Sound"],
+      ["sounds","<b>SoundRecipes.csv</b> + <code>python3 tools/make_sfx.py</code> (pyfxr): menu hover, click, start, back, a coin, a bass explosion"],
+      ["music","<code>tools/make_music.py</code>: an Oktoberfest oom-pah polka in 90s chiptune - the tune is text at the top of the script"],
+      ["simulation","<code>tests/sim_runner.gd</code>: 1,000 matches in under a minute -> <code>data/combat_telemetry.json</code>. What it plays: <b>SimMatchups.csv</b>"],
+      ["analyst","<code>python3 tools/balance_analysis.py</code> -> guides/BALANCE_ANALYSIS.md; my reading: guides/BALANCE_REVIEW.md"],
+      ["unit tests","GUT in addons/gut, 27 tests in tests/unit: fouls, the recruitment board, the shops, clamping. <code>godot --headless -s addons/gut/gut_cmdln.gd</code>"],
+    ])}`);
+
   card("The recruitment board, the Pub, and the art phases (round AH)", `
     <p style="margin:0 0 10px"><b>P3 and P4 are built; P5 (the art) is five phases, A1-A5.</b></p>
     ${rows([

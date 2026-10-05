@@ -1,0 +1,50 @@
+{
+  "group_id": "56348a60-f4c3-4c85-8a01-f2e0936a6a40",
+  "states": [
+    {
+      "character": {
+        "id": "cecbfc7f-a2fd-4e24-a30e-a8333304856c",
+        "name": "Idle",
+        "prompt": "a cheerful Bavarian soccer player in traditional leather lederhosen with suspenders and a checked shirt, knee socks and black soccer cleats, wearing a large hiking backpack, holding a big beer mug raised high above his head cheering, moustache, 1990s European comic book style, Marcinelle school, flat bold colours",
+        "size": {
+          "width": 128,
+          "height": 128
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "side",
+        "created_at": "2026-10-05T13:56:01.263910+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {
+          "menu_cheer": {
+            "south-west": [
+              "Idle/animations/menu_cheer/south-west/frame_000.png",
+              "Idle/animations/menu_cheer/south-west/frame_001.png",
+              "Idle/animations/menu_cheer/south-west/frame_002.png",
+              "Idle/animations/menu_cheer/south-west/frame_003.png",
+              "Idle/animations/menu_cheer/south-west/frame_004.png",
+              "Idle/animations/menu_cheer/south-west/frame_005.png",
+              "Idle/animations/menu_cheer/south-west/frame_006.png",
+              "Idle/animations/menu_cheer/south-west/frame_007.png",
+              "Idle/animations/menu_cheer/south-west/frame_008.png"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-05T14:02:37.343374"
+}

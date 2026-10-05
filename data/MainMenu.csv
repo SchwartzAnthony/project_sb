@@ -1,0 +1,4 @@
+Part,Image,Text,X,Y,Width,Height,Frames,FPS,Notes
+background,res://assets/menu/menu_chaos_a.png,,,,,,,,"ROUND AI. The title-screen wallpaper (PixelLab create_image_pixflux, 384x216 blown up x5). The first background row wins. The other one PixelLab made is res://assets/menu/menu_chaos_b.png (the beer-tent stands at sunset) - swap the file name to try it. The beer hall from round AH is res://assets/menu/background.png."
+title,,STURMBALL,960,110,,96,,,"The big word at the top. Height is the font size, Y is where its middle sits."
+picture,res://assets/menu/hero_cheer.png,,1560,740,516,516,8,8,"ROUND AI. The menu hero: the lederhosen kicker with his backpack, cheering with his beer (PixelLab create_character + animate). The file is a STRIP of Frames pictures side by side, played at FPS. Add more picture rows for more things standing on the screen."

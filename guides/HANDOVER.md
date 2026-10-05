@@ -650,6 +650,23 @@ Q124: engine dial tier_power_<class lower, no spaces/hyphens>_<tier> in
 _ultimate_power; cause = Unkengeister Tier IV abilities never change combat
 power (exhaust / cold touch / gravestone / force).
 
+## 12l. Round AI — DONE (title screen, sound, testing tools)
+
+Ludo MCP present but key rejected (needs "Authorization: ApiKey <key>") - Q133;
+menu tune made by tools/make_music.py instead. SFX: data/SoundRecipes.csv +
+tools/make_sfx.py (pyfxr). Title: data/MainMenu.csv read by main_menu.gd
+(_read_look/_build_pictures; strip animation via AtlasTexture + Timer);
+MenuConfig Hover/Press Sound -> AudioDirector.play_cue. PixelLab: menu_chaos
+a/b (pixflux 384x216 x5), hero = create_character v3 + animate v3 south-west
+8 frames; download zip via https://api.pixellab.ai/mcp/characters/<id>/download
+(backblaze URLs are blocked from the sandbox). tests/sim_runner.gd engine-level
+sim (SimMatchups.csv, SIM_* env, SIM_TRACE), tools/balance_analysis.py,
+guides/BALANCE_REVIEW.md. Found: switch_to_defender + ties-to-defender =
+Kurt/Thomas ~97%; dial switch_loses_ties (main_scene + sim) shipped FALSE.
+GUT 9.6.1 in addons/gut (enabled in project.godot), .gutconfig.json,
+tests/unit/*.gd - 27 pass. He granted ~/Documents/GitHub/project_sb (device
+folder) this round; 3 pyfxr test wavs went to res://audio/ there.
+
 ## 13. Ideas worth offering him
 
 - An `Ultimate In Short` column so the emblem bar and hover can show one line

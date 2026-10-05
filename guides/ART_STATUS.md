@@ -21,6 +21,8 @@ Made by `python3 tools/art_status.py` - run it again after adding art.
 | A2 | 13 | emblems | to make |
 | A3 | 9 | menu_buttons | to make |
 | A3 | 14 | font | to make |
+| A3 | 22 | menu_chaos | done |
+| A3 | 23 | menu_hero | done |
 | A4 | 15 | units_lorelei | to make |
 | A4 | 16 | units_rauhnacht | to make |
 | A4 | 17 | units_bergmannlein | to make |

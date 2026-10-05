@@ -1,0 +1,3273 @@
+{
+  "abilities": [
+    {
+      "ability": "C_Vassago_F",
+      "fired": 1638,
+      "per_match": 1.638
+    },
+    {
+      "ability": "C_Glasya-Labolas_F",
+      "fired": 1638,
+      "per_match": 1.638
+    },
+    {
+      "ability": "C_Caim_F",
+      "fired": 1638,
+      "per_match": 1.638
+    },
+    {
+      "ability": "C_Sallos_F2",
+      "fired": 1503,
+      "per_match": 1.503
+    },
+    {
+      "ability": "C_Sallos_F1",
+      "fired": 1503,
+      "per_match": 1.503
+    },
+    {
+      "ability": "C_Buer_F2",
+      "fired": 1233,
+      "per_match": 1.233
+    },
+    {
+      "ability": "C_Buer_F1",
+      "fired": 1233,
+      "per_match": 1.233
+    },
+    {
+      "ability": "C_Thomas_D",
+      "fired": 773,
+      "per_match": 0.773
+    },
+    {
+      "ability": "C_Mario_D",
+      "fired": 725,
+      "per_match": 0.725
+    },
+    {
+      "ability": "C_Kurt_D",
+      "fired": 676,
+      "per_match": 0.676
+    },
+    {
+      "ability": "C_Haures_F",
+      "fired": 512,
+      "per_match": 0.512
+    },
+    {
+      "ability": "C_Petra_A",
+      "fired": 477,
+      "per_match": 0.477
+    },
+    {
+      "ability": "C_Walter_D",
+      "fired": 437,
+      "per_match": 0.437
+    },
+    {
+      "ability": "C_Johanna_D",
+      "fired": 429,
+      "per_match": 0.429
+    },
+    {
+      "ability": "C_Monika_D",
+      "fired": 418,
+      "per_match": 0.418
+    },
+    {
+      "ability": "C_Valefor_F",
+      "fired": 413,
+      "per_match": 0.413
+    },
+    {
+      "ability": "C_Sabine_D",
+      "fired": 398,
+      "per_match": 0.398
+    },
+    {
+      "ability": "C_Lennart_A",
+      "fired": 377,
+      "per_match": 0.377
+    },
+    {
+      "ability": "C_Thomas_A",
+      "fired": 370,
+      "per_match": 0.37
+    },
+    {
+      "ability": "C_Severin_D",
+      "fired": 368,
+      "per_match": 0.368
+    },
+    {
+      "ability": "EMB_BUER_MASK",
+      "fired": 360,
+      "per_match": 0.36
+    },
+    {
+      "ability": "C_Siegfried_D",
+      "fired": 358,
+      "per_match": 0.358
+    },
+    {
+      "ability": "C_Quirin_A1",
+      "fired": 357,
+      "per_match": 0.357
+    },
+    {
+      "ability": "C_Quirin_A2",
+      "fired": 357,
+      "per_match": 0.357
+    },
+    {
+      "ability": "C_Tim_D",
+      "fired": 356,
+      "per_match": 0.356
+    },
+    {
+      "ability": "C_Kurt_A",
+      "fired": 350,
+      "per_match": 0.35
+    },
+    {
+      "ability": "C_Quirin_D2",
+      "fired": 348,
+      "per_match": 0.348
+    },
+    {
+      "ability": "C_Quirin_D1",
+      "fired": 348,
+      "per_match": 0.348
+    },
+    {
+      "ability": "C_Mario_A",
+      "fired": 337,
+      "per_match": 0.337
+    },
+    {
+      "ability": "C_Birgit_A",
+      "fired": 335,
+      "per_match": 0.335
+    },
+    {
+      "ability": "C_Luis_D",
+      "fired": 334,
+      "per_match": 0.334
+    },
+    {
+      "ability": "C_Toni_A",
+      "fired": 331,
+      "per_match": 0.331
+    },
+    {
+      "ability": "C_Lennart_D",
+      "fired": 330,
+      "per_match": 0.33
+    },
+    {
+      "ability": "C_Niklas_D1",
+      "fired": 328,
+      "per_match": 0.328
+    },
+    {
+      "ability": "C_Philipp_D",
+      "fired": 318,
+      "per_match": 0.318
+    },
+    {
+      "ability": "C_Oskar_D",
+      "fired": 304,
+      "per_match": 0.304
+    },
+    {
+      "ability": "C_Tim_A",
+      "fired": 303,
+      "per_match": 0.303
+    },
+    {
+      "ability": "C_Belial_F",
+      "fired": 274,
+      "per_match": 0.274
+    },
+    {
+      "ability": "LORE_VEIL",
+      "fired": 272,
+      "per_match": 0.272
+    },
+    {
+      "ability": "C_Michael_D",
+      "fired": 236,
+      "per_match": 0.236
+    },
+    {
+      "ability": "C_Johanna_A",
+      "fired": 229,
+      "per_match": 0.229
+    },
+    {
+      "ability": "C_Manfred_A",
+      "fired": 226,
+      "per_match": 0.226
+    },
+    {
+      "ability": "C_Sabine_A",
+      "fired": 224,
+      "per_match": 0.224
+    },
+    {
+      "ability": "C_René_D",
+      "fired": 222,
+      "per_match": 0.222
+    },
+    {
+      "ability": "C_Leonhard_A",
+      "fired": 212,
+      "per_match": 0.212
+    },
+    {
+      "ability": "C_Kai_D",
+      "fired": 211,
+      "per_match": 0.211
+    },
+    {
+      "ability": "C_Stefan_A",
+      "fired": 200,
+      "per_match": 0.2
+    },
+    {
+      "ability": "C_Volker_D",
+      "fired": 194,
+      "per_match": 0.194
+    },
+    {
+      "ability": "C_Severin_A",
+      "fired": 187,
+      "per_match": 0.187
+    },
+    {
+      "ability": "C_Luis_A",
+      "fired": 185,
+      "per_match": 0.185
+    },
+    {
+      "ability": "C_Walter_A",
+      "fired": 183,
+      "per_match": 0.183
+    },
+    {
+      "ability": "C_Fritz_A1",
+      "fired": 181,
+      "per_match": 0.181
+    },
+    {
+      "ability": "C_Albert_A2",
+      "fired": 181,
+      "per_match": 0.181
+    },
+    {
+      "ability": "C_Albert_A1",
+      "fired": 181,
+      "per_match": 0.181
+    },
+    {
+      "ability": "C_Petra_D",
+      "fired": 178,
+      "per_match": 0.178
+    },
+    {
+      "ability": "C_Fritz_D1",
+      "fired": 176,
+      "per_match": 0.176
+    },
+    {
+      "ability": "C_Oliver_D",
+      "fired": 173,
+      "per_match": 0.173
+    },
+    {
+      "ability": "C_Nicole_D",
+      "fired": 173,
+      "per_match": 0.173
+    },
+    {
+      "ability": "C_Georg_D",
+      "fired": 168,
+      "per_match": 0.168
+    },
+    {
+      "ability": "C_Kerstin_D",
+      "fired": 166,
+      "per_match": 0.166
+    },
+    {
+      "ability": "C_Harald_D",
+      "fired": 165,
+      "per_match": 0.165
+    },
+    {
+      "ability": "C_Henrik_A1",
+      "fired": 165,
+      "per_match": 0.165
+    },
+    {
+      "ability": "C_Paul_D2",
+      "fired": 163,
+      "per_match": 0.163
+    },
+    {
+      "ability": "C_Paul_D1",
+      "fired": 163,
+      "per_match": 0.163
+    },
+    {
+      "ability": "C_Nicole_A",
+      "fired": 163,
+      "per_match": 0.163
+    },
+    {
+      "ability": "C_Carl_A",
+      "fired": 162,
+      "per_match": 0.162
+    },
+    {
+      "ability": "C_Jürgen_A",
+      "fired": 156,
+      "per_match": 0.156
+    },
+    {
+      "ability": "C_Oliver_A",
+      "fired": 156,
+      "per_match": 0.156
+    },
+    {
+      "ability": "C_Vitus_A1",
+      "fired": 156,
+      "per_match": 0.156
+    },
+    {
+      "ability": "C_Kilian_A1",
+      "fired": 154,
+      "per_match": 0.154
+    },
+    {
+      "ability": "C_Ignaz_A",
+      "fired": 151,
+      "per_match": 0.151
+    },
+    {
+      "ability": "C_Stefan_D",
+      "fired": 146,
+      "per_match": 0.146
+    },
+    {
+      "ability": "C_Harald_A",
+      "fired": 146,
+      "per_match": 0.146
+    },
+    {
+      "ability": "C_Monika_A",
+      "fired": 145,
+      "per_match": 0.145
+    },
+    {
+      "ability": "BERG_ORE_WHISPER",
+      "fired": 144,
+      "per_match": 0.144
+    },
+    {
+      "ability": "C_René_A",
+      "fired": 144,
+      "per_match": 0.144
+    },
+    {
+      "ability": "C_Jonas_D1",
+      "fired": 142,
+      "per_match": 0.142
+    },
+    {
+      "ability": "C_Jonas_D2",
+      "fired": 142,
+      "per_match": 0.142
+    },
+    {
+      "ability": "C_Julian_A",
+      "fired": 142,
+      "per_match": 0.142
+    },
+    {
+      "ability": "C_Korbinian_D",
+      "fired": 141,
+      "per_match": 0.141
+    },
+    {
+      "ability": "C_Paul_A1",
+      "fired": 140,
+      "per_match": 0.14
+    },
+    {
+      "ability": "C_Paul_A2",
+      "fired": 140,
+      "per_match": 0.14
+    },
+    {
+      "ability": "C_Tobias_D",
+      "fired": 140,
+      "per_match": 0.14
+    },
+    {
+      "ability": "C_Siegfried_A",
+      "fired": 140,
+      "per_match": 0.14
+    },
+    {
+      "ability": "C_Xaver_A",
+      "fired": 139,
+      "per_match": 0.139
+    },
+    {
+      "ability": "C_Claudia_A",
+      "fired": 133,
+      "per_match": 0.133
+    },
+    {
+      "ability": "C_Otto_A",
+      "fired": 131,
+      "per_match": 0.131
+    },
+    {
+      "ability": "C_Heinrich_D1",
+      "fired": 129,
+      "per_match": 0.129
+    },
+    {
+      "ability": "C_Albert_D2",
+      "fired": 126,
+      "per_match": 0.126
+    },
+    {
+      "ability": "C_Albert_D1",
+      "fired": 126,
+      "per_match": 0.126
+    },
+    {
+      "ability": "C_Julian_D",
+      "fired": 126,
+      "per_match": 0.126
+    },
+    {
+      "ability": "C_Balthasar_D",
+      "fired": 126,
+      "per_match": 0.126
+    },
+    {
+      "ability": "C_Magdalena_A",
+      "fired": 125,
+      "per_match": 0.125
+    },
+    {
+      "ability": "C_Kevin_A",
+      "fired": 123,
+      "per_match": 0.123
+    },
+    {
+      "ability": "C_Balthasar_A",
+      "fired": 123,
+      "per_match": 0.123
+    },
+    {
+      "ability": "C_Kai_A",
+      "fired": 122,
+      "per_match": 0.122
+    },
+    {
+      "ability": "C_Sven_A",
+      "fired": 122,
+      "per_match": 0.122
+    },
+    {
+      "ability": "C_Claudia_D",
+      "fired": 122,
+      "per_match": 0.122
+    },
+    {
+      "ability": "C_Elisabeth_D1",
+      "fired": 121,
+      "per_match": 0.121
+    },
+    {
+      "ability": "C_Volker_A",
+      "fired": 120,
+      "per_match": 0.12
+    },
+    {
+      "ability": "C_Sebastian_D",
+      "fired": 117,
+      "per_match": 0.117
+    },
+    {
+      "ability": "C_Nils_D",
+      "fired": 113,
+      "per_match": 0.113
+    },
+    {
+      "ability": "C_Jonas_A2",
+      "fired": 113,
+      "per_match": 0.113
+    },
+    {
+      "ability": "C_Jonas_A1",
+      "fired": 113,
+      "per_match": 0.113
+    },
+    {
+      "ability": "C_Lothar_A2",
+      "fired": 98,
+      "per_match": 0.098
+    },
+    {
+      "ability": "C_Lothar_A1",
+      "fired": 98,
+      "per_match": 0.098
+    },
+    {
+      "ability": "C_Reinhold_D",
+      "fired": 92,
+      "per_match": 0.092
+    },
+    {
+      "ability": "C_Toni_D",
+      "fired": 88,
+      "per_match": 0.088
+    },
+    {
+      "ability": "C_Xaver_D",
+      "fired": 88,
+      "per_match": 0.088
+    },
+    {
+      "ability": "C_Karl_D",
+      "fired": 86,
+      "per_match": 0.086
+    },
+    {
+      "ability": "C_Nils_A",
+      "fired": 86,
+      "per_match": 0.086
+    },
+    {
+      "ability": "C_Michael_A",
+      "fired": 85,
+      "per_match": 0.085
+    },
+    {
+      "ability": "C_Lea_D",
+      "fired": 81,
+      "per_match": 0.081
+    },
+    {
+      "ability": "C_Kevin_D",
+      "fired": 70,
+      "per_match": 0.07
+    },
+    {
+      "ability": "C_Kerstin_A",
+      "fired": 63,
+      "per_match": 0.063
+    },
+    {
+      "ability": "C_Georg_A",
+      "fired": 62,
+      "per_match": 0.062
+    },
+    {
+      "ability": "C_Erich_A",
+      "fired": 61,
+      "per_match": 0.061
+    },
+    {
+      "ability": "C_Sebastian_A",
+      "fired": 60,
+      "per_match": 0.06
+    },
+    {
+      "ability": "C_Dominik_A",
+      "fired": 59,
+      "per_match": 0.059
+    },
+    {
+      "ability": "C_Lea_A",
+      "fired": 54,
+      "per_match": 0.054
+    },
+    {
+      "ability": "C_Korbinian_A",
+      "fired": 51,
+      "per_match": 0.051
+    },
+    {
+      "ability": "C_Dominik_D",
+      "fired": 51,
+      "per_match": 0.051
+    },
+    {
+      "ability": "C_Tobias_A",
+      "fired": 47,
+      "per_match": 0.047
+    },
+    {
+      "ability": "C_Leon_D",
+      "fired": 46,
+      "per_match": 0.046
+    },
+    {
+      "ability": "C_Reinhold_A",
+      "fired": 45,
+      "per_match": 0.045
+    },
+    {
+      "ability": "C_Simon_A",
+      "fired": 42,
+      "per_match": 0.042
+    },
+    {
+      "ability": "C_Erich_D",
+      "fired": 39,
+      "per_match": 0.039
+    },
+    {
+      "ability": "C_Leon_A",
+      "fired": 34,
+      "per_match": 0.034
+    },
+    {
+      "ability": "C_Wolfgang_A",
+      "fired": 32,
+      "per_match": 0.032
+    },
+    {
+      "ability": "C_Simon_D",
+      "fired": 29,
+      "per_match": 0.029
+    },
+    {
+      "ability": "BRAND_MASK_ATK",
+      "fired": 28,
+      "per_match": 0.028
+    },
+    {
+      "ability": "C_Wolfgang_D",
+      "fired": 20,
+      "per_match": 0.02
+    },
+    {
+      "ability": "C_Ernst_A",
+      "fired": 16,
+      "per_match": 0.016
+    },
+    {
+      "ability": "C_Birgit_D",
+      "fired": 11,
+      "per_match": 0.011
+    },
+    {
+      "ability": "C_Ernst_D",
+      "fired": 11,
+      "per_match": 0.011
+    },
+    {
+      "ability": "C_Otto_D",
+      "fired": 9,
+      "per_match": 0.009
+    },
+    {
+      "ability": "C_Patrick_D",
+      "fired": 7,
+      "per_match": 0.007
+    },
+    {
+      "ability": "C_Hannes_A",
+      "fired": 3,
+      "per_match": 0.003
+    },
+    {
+      "ability": "C_Patrick_A",
+      "fired": 3,
+      "per_match": 0.003
+    },
+    {
+      "ability": "C_Hannes_D",
+      "fired": 2,
+      "per_match": 0.002
+    }
+  ],
+  "about": "Sturmball headless combat simulation (tests/sim_runner.gd). Engine-level: no pitch, no fouls, no Emblem race/Ultimates; questions answered with defaults. Power stands in for damage: there are no hit points.",
+  "cards": [
+    {
+      "abilities_fired": 1026,
+      "abilities_per_duel": 1.5,
+      "class": "Lorelei",
+      "duel_win_rate": 0.974,
+      "duels": 684,
+      "duels_won": 666,
+      "goals": 274,
+      "name": "Kurt",
+      "power_dealt": 3378,
+      "power_faced": 3121,
+      "power_faced_per_duel": 4.56,
+      "power_per_duel": 4.94,
+      "printed_power": 5,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 1143,
+      "abilities_per_duel": 1.47,
+      "class": "Lorelei",
+      "duel_win_rate": 0.956,
+      "duels": 775,
+      "duels_won": 741,
+      "goals": 0,
+      "name": "Thomas",
+      "power_dealt": 1559,
+      "power_faced": 1251,
+      "power_faced_per_duel": 1.61,
+      "power_per_duel": 2.01,
+      "printed_power": 2,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 620,
+      "abilities_per_duel": 0.99,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.854,
+      "duels": 625,
+      "duels_won": 534,
+      "goals": 188,
+      "name": "Walter",
+      "power_dealt": 3123,
+      "power_faced": 2664,
+      "power_faced_per_duel": 4.26,
+      "power_per_duel": 5.0,
+      "printed_power": 5,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 678,
+      "abilities_per_duel": 1.03,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.845,
+      "duels": 659,
+      "duels_won": 557,
+      "goals": 0,
+      "name": "Tim",
+      "power_dealt": 2296,
+      "power_faced": 1555,
+      "power_faced_per_duel": 2.36,
+      "power_per_duel": 3.48,
+      "printed_power": 3,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.83,
+      "duels": 945,
+      "duels_won": 784,
+      "goals": 0,
+      "name": "Susanne",
+      "power_dealt": 4099,
+      "power_faced": 3107,
+      "power_faced_per_duel": 3.29,
+      "power_per_duel": 4.34,
+      "printed_power": 4,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 300,
+      "abilities_per_duel": 1.0,
+      "class": "Normal",
+      "duel_win_rate": 0.827,
+      "duels": 300,
+      "duels_won": 248,
+      "goals": 63,
+      "name": "Koch",
+      "power_dealt": 1500,
+      "power_faced": 1500,
+      "power_faced_per_duel": 5.0,
+      "power_per_duel": 5.0,
+      "printed_power": 5,
+      "star": true,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Normal",
+      "duel_win_rate": 0.813,
+      "duels": 289,
+      "duels_won": 235,
+      "goals": 0,
+      "name": "Meyer",
+      "power_dealt": 866,
+      "power_faced": 776,
+      "power_faced_per_duel": 2.69,
+      "power_per_duel": 3.0,
+      "printed_power": 3,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 13,
+      "abilities_per_duel": 0.02,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.801,
+      "duels": 674,
+      "duels_won": 540,
+      "goals": 0,
+      "name": "Timo",
+      "power_dealt": 2285,
+      "power_faced": 1605,
+      "power_faced_per_duel": 2.38,
+      "power_per_duel": 3.39,
+      "printed_power": 3,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 1062,
+      "abilities_per_duel": 1.44,
+      "class": "Lorelei",
+      "duel_win_rate": 0.791,
+      "duels": 738,
+      "duels_won": 584,
+      "goals": 0,
+      "name": "Mario",
+      "power_dealt": 2940,
+      "power_faced": 2730,
+      "power_faced_per_duel": 3.7,
+      "power_per_duel": 3.98,
+      "printed_power": 4,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 346,
+      "abilities_per_duel": 0.34,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.779,
+      "duels": 1006,
+      "duels_won": 784,
+      "goals": 0,
+      "name": "Birgit",
+      "power_dealt": 4340,
+      "power_faced": 3358,
+      "power_faced_per_duel": 3.34,
+      "power_per_duel": 4.31,
+      "printed_power": 4,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 451,
+      "abilities_per_duel": 0.66,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.778,
+      "duels": 684,
+      "duels_won": 532,
+      "goals": 0,
+      "name": "Toni",
+      "power_dealt": 2324,
+      "power_faced": 1679,
+      "power_faced_per_duel": 2.45,
+      "power_per_duel": 3.4,
+      "printed_power": 3,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 15,
+      "abilities_per_duel": 0.02,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.776,
+      "duels": 637,
+      "duels_won": 494,
+      "goals": 0,
+      "name": "Frieda",
+      "power_dealt": 2851,
+      "power_faced": 2145,
+      "power_faced_per_duel": 3.37,
+      "power_per_duel": 4.48,
+      "printed_power": 4,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.757,
+      "duels": 1072,
+      "duels_won": 812,
+      "goals": 0,
+      "name": "Gertrud",
+      "power_dealt": 4632,
+      "power_faced": 3724,
+      "power_faced_per_duel": 3.47,
+      "power_per_duel": 4.32,
+      "printed_power": 4,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 382,
+      "abilities_per_duel": 0.54,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.747,
+      "duels": 704,
+      "duels_won": 526,
+      "goals": 0,
+      "name": "René",
+      "power_dealt": 3157,
+      "power_faced": 2479,
+      "power_faced_per_duel": 3.52,
+      "power_per_duel": 4.48,
+      "printed_power": 4,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.738,
+      "duels": 695,
+      "duels_won": 513,
+      "goals": 177,
+      "name": "Rudolf",
+      "power_dealt": 3435,
+      "power_faced": 3176,
+      "power_faced_per_duel": 4.57,
+      "power_per_duel": 4.94,
+      "printed_power": 5,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 321,
+      "abilities_per_duel": 0.45,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.737,
+      "duels": 707,
+      "duels_won": 521,
+      "goals": 175,
+      "name": "Michael",
+      "power_dealt": 3506,
+      "power_faced": 3145,
+      "power_faced_per_duel": 4.45,
+      "power_per_duel": 4.96,
+      "printed_power": 5,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 676,
+      "abilities_per_duel": 1.0,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.734,
+      "duels": 673,
+      "duels_won": 494,
+      "goals": 0,
+      "name": "Petra",
+      "power_dealt": 3053,
+      "power_faced": 2518,
+      "power_faced_per_duel": 3.74,
+      "power_per_duel": 4.54,
+      "printed_power": 4,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.732,
+      "duels": 600,
+      "duels_won": 439,
+      "goals": 0,
+      "name": "Hannah",
+      "power_dealt": 1798,
+      "power_faced": 1384,
+      "power_faced_per_duel": 2.31,
+      "power_per_duel": 3.0,
+      "printed_power": 3,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.728,
+      "duels": 356,
+      "duels_won": 259,
+      "goals": 69,
+      "name": "Sophie",
+      "power_dealt": 1750,
+      "power_faced": 1515,
+      "power_faced_per_duel": 4.26,
+      "power_per_duel": 4.92,
+      "printed_power": 4,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 311,
+      "abilities_per_duel": 0.39,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.71,
+      "duels": 789,
+      "duels_won": 560,
+      "goals": 0,
+      "name": "Harald",
+      "power_dealt": 2356,
+      "power_faced": 1664,
+      "power_faced_per_duel": 2.11,
+      "power_per_duel": 2.99,
+      "printed_power": 3,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 27,
+      "abilities_per_duel": 0.03,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.702,
+      "duels": 984,
+      "duels_won": 691,
+      "goals": 0,
+      "name": "Ernst",
+      "power_dealt": 1957,
+      "power_faced": 1326,
+      "power_faced_per_duel": 1.35,
+      "power_per_duel": 1.99,
+      "printed_power": 2,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 707,
+      "abilities_per_duel": 1.0,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.7,
+      "duels": 707,
+      "duels_won": 495,
+      "goals": 0,
+      "name": "Lennart",
+      "power_dealt": 2116,
+      "power_faced": 1640,
+      "power_faced_per_duel": 2.32,
+      "power_per_duel": 2.99,
+      "printed_power": 3,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 199,
+      "abilities_per_duel": 0.33,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.699,
+      "duels": 605,
+      "duels_won": 423,
+      "goals": 0,
+      "name": "Nils",
+      "power_dealt": 1314,
+      "power_faced": 808,
+      "power_faced_per_duel": 1.34,
+      "power_per_duel": 2.17,
+      "printed_power": 2,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 10,
+      "abilities_per_duel": 0.03,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.699,
+      "duels": 289,
+      "duels_won": 202,
+      "goals": 61,
+      "name": "Patrick",
+      "power_dealt": 1411,
+      "power_faced": 1226,
+      "power_faced_per_duel": 4.24,
+      "power_per_duel": 4.88,
+      "printed_power": 4,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.692,
+      "duels": 1007,
+      "duels_won": 697,
+      "goals": 0,
+      "name": "Franz",
+      "power_dealt": 1997,
+      "power_faced": 1330,
+      "power_faced_per_duel": 1.32,
+      "power_per_duel": 1.98,
+      "printed_power": 2,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.678,
+      "duels": 317,
+      "duels_won": 215,
+      "goals": 0,
+      "name": "Greta",
+      "power_dealt": 1157,
+      "power_faced": 1034,
+      "power_faced_per_duel": 3.26,
+      "power_per_duel": 3.65,
+      "printed_power": 3,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 249,
+      "abilities_per_duel": 0.33,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.676,
+      "duels": 744,
+      "duels_won": 503,
+      "goals": 0,
+      "name": "Balthasar",
+      "power_dealt": 1491,
+      "power_faced": 1055,
+      "power_faced_per_duel": 1.42,
+      "power_per_duel": 2.0,
+      "printed_power": 2,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.671,
+      "duels": 277,
+      "duels_won": 186,
+      "goals": 60,
+      "name": "Konstantin",
+      "power_dealt": 1376,
+      "power_faced": 1183,
+      "power_faced_per_duel": 4.27,
+      "power_per_duel": 4.97,
+      "printed_power": 4,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 318,
+      "abilities_per_duel": 0.52,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.67,
+      "duels": 616,
+      "duels_won": 413,
+      "goals": 0,
+      "name": "Philipp",
+      "power_dealt": 1243,
+      "power_faced": 927,
+      "power_faced_per_duel": 1.5,
+      "power_per_duel": 2.02,
+      "printed_power": 2,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.669,
+      "duels": 1020,
+      "duels_won": 682,
+      "goals": 0,
+      "name": "David",
+      "power_dealt": 2036,
+      "power_faced": 1389,
+      "power_faced_per_duel": 1.36,
+      "power_per_duel": 2.0,
+      "printed_power": 2,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 226,
+      "abilities_per_duel": 0.35,
+      "class": "Lorelei",
+      "duel_win_rate": 0.666,
+      "duels": 652,
+      "duels_won": 434,
+      "goals": 157,
+      "name": "Manfred",
+      "power_dealt": 3227,
+      "power_faced": 2991,
+      "power_faced_per_duel": 4.59,
+      "power_per_duel": 4.95,
+      "printed_power": 5,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 1410,
+      "abilities_per_duel": 2.0,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.661,
+      "duels": 705,
+      "duels_won": 466,
+      "goals": 0,
+      "name": "Quirin",
+      "power_dealt": 1421,
+      "power_faced": 996,
+      "power_faced_per_duel": 1.41,
+      "power_per_duel": 2.02,
+      "printed_power": 2,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 230,
+      "abilities_per_duel": 0.33,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.659,
+      "duels": 693,
+      "duels_won": 457,
+      "goals": 0,
+      "name": "Karl",
+      "power_dealt": 1388,
+      "power_faced": 941,
+      "power_faced_per_duel": 1.36,
+      "power_per_duel": 2.0,
+      "printed_power": 2,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 212,
+      "abilities_per_duel": 0.31,
+      "class": "Lorelei",
+      "duel_win_rate": 0.646,
+      "duels": 692,
+      "duels_won": 447,
+      "goals": 0,
+      "name": "Leonhard",
+      "power_dealt": 1404,
+      "power_faced": 1069,
+      "power_faced_per_duel": 1.54,
+      "power_per_duel": 2.03,
+      "printed_power": 2,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.643,
+      "duels": 272,
+      "duels_won": 175,
+      "goals": 0,
+      "name": "Daniel",
+      "power_dealt": 1003,
+      "power_faced": 897,
+      "power_faced_per_duel": 3.3,
+      "power_per_duel": 3.69,
+      "printed_power": 3,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Lorelei",
+      "duel_win_rate": 0.64,
+      "duels": 711,
+      "duels_won": 455,
+      "goals": 0,
+      "name": "Alexander",
+      "power_dealt": 1435,
+      "power_faced": 1044,
+      "power_faced_per_duel": 1.47,
+      "power_per_duel": 2.02,
+      "printed_power": 2,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 2551,
+      "abilities_per_duel": 2.04,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.634,
+      "duels": 1248,
+      "duels_won": 791,
+      "goals": 297,
+      "name": "Buer",
+      "power_dealt": 6240,
+      "power_faced": 5773,
+      "power_faced_per_duel": 4.63,
+      "power_per_duel": 5.0,
+      "printed_power": 5,
+      "star": true,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Lorelei",
+      "duel_win_rate": 0.631,
+      "duels": 826,
+      "duels_won": 521,
+      "goals": 185,
+      "name": "Gregor",
+      "power_dealt": 4117,
+      "power_faced": 3794,
+      "power_faced_per_duel": 4.59,
+      "power_per_duel": 4.98,
+      "printed_power": 5,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 286,
+      "abilities_per_duel": 1.07,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.608,
+      "duels": 268,
+      "duels_won": 163,
+      "goals": 0,
+      "name": "Julian",
+      "power_dealt": 722,
+      "power_faced": 602,
+      "power_faced_per_duel": 2.25,
+      "power_per_duel": 2.69,
+      "printed_power": 2,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.605,
+      "duels": 342,
+      "duels_won": 207,
+      "goals": 0,
+      "name": "Theresa",
+      "power_dealt": 1231,
+      "power_faced": 1146,
+      "power_faced_per_duel": 3.35,
+      "power_per_duel": 3.6,
+      "printed_power": 3,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Lorelei",
+      "duel_win_rate": 0.599,
+      "duels": 695,
+      "duels_won": 416,
+      "goals": 0,
+      "name": "Dennis",
+      "power_dealt": 2751,
+      "power_faced": 2414,
+      "power_faced_per_duel": 3.47,
+      "power_per_duel": 3.96,
+      "printed_power": 4,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.598,
+      "duels": 997,
+      "duels_won": 596,
+      "goals": 208,
+      "name": "Silke",
+      "power_dealt": 4954,
+      "power_faced": 4287,
+      "power_faced_per_duel": 4.3,
+      "power_per_duel": 4.97,
+      "printed_power": 5,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 3006,
+      "abilities_per_duel": 2.0,
+      "class": "Lorelei",
+      "duel_win_rate": 0.597,
+      "duels": 1503,
+      "duels_won": 897,
+      "goals": 0,
+      "name": "Sallos",
+      "power_dealt": 4694,
+      "power_faced": 4244,
+      "power_faced_per_duel": 2.82,
+      "power_per_duel": 3.12,
+      "printed_power": 3,
+      "star": true,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.582,
+      "duels": 1056,
+      "duels_won": 615,
+      "goals": 210,
+      "name": "Emma",
+      "power_dealt": 5246,
+      "power_faced": 4599,
+      "power_faced_per_duel": 4.36,
+      "power_per_duel": 4.97,
+      "printed_power": 5,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 304,
+      "abilities_per_duel": 0.31,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.574,
+      "duels": 983,
+      "duels_won": 564,
+      "goals": 188,
+      "name": "Oskar",
+      "power_dealt": 4892,
+      "power_faced": 4310,
+      "power_faced_per_duel": 4.38,
+      "power_per_duel": 4.98,
+      "printed_power": 5,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 189,
+      "abilities_per_duel": 0.59,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.564,
+      "duels": 319,
+      "duels_won": 180,
+      "goals": 0,
+      "name": "Henrik",
+      "power_dealt": 803,
+      "power_faced": 710,
+      "power_faced_per_duel": 2.23,
+      "power_per_duel": 2.52,
+      "printed_power": 2,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 129,
+      "abilities_per_duel": 0.48,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.55,
+      "duels": 269,
+      "duels_won": 148,
+      "goals": 0,
+      "name": "Elisabeth",
+      "power_dealt": 933,
+      "power_faced": 839,
+      "power_faced_per_duel": 3.12,
+      "power_per_duel": 3.47,
+      "printed_power": 3,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 156,
+      "abilities_per_duel": 0.54,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.547,
+      "duels": 289,
+      "duels_won": 158,
+      "goals": 0,
+      "name": "Vitus",
+      "power_dealt": 339,
+      "power_faced": 297,
+      "power_faced_per_duel": 1.03,
+      "power_per_duel": 1.17,
+      "printed_power": 1,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Lorelei",
+      "duel_win_rate": 0.546,
+      "duels": 764,
+      "duels_won": 417,
+      "goals": 0,
+      "name": "Edgar",
+      "power_dealt": 3046,
+      "power_faced": 2760,
+      "power_faced_per_duel": 3.61,
+      "power_per_duel": 3.99,
+      "printed_power": 4,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 209,
+      "abilities_per_duel": 0.7,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.545,
+      "duels": 299,
+      "duels_won": 163,
+      "goals": 0,
+      "name": "Korbinian",
+      "power_dealt": 743,
+      "power_faced": 660,
+      "power_faced_per_duel": 2.21,
+      "power_per_duel": 2.48,
+      "printed_power": 2,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 149,
+      "abilities_per_duel": 0.65,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.544,
+      "duels": 228,
+      "duels_won": 124,
+      "goals": 0,
+      "name": "Otto",
+      "power_dealt": 790,
+      "power_faced": 731,
+      "power_faced_per_duel": 3.21,
+      "power_per_duel": 3.46,
+      "printed_power": 3,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 355,
+      "abilities_per_duel": 1.03,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.543,
+      "duels": 346,
+      "duels_won": 188,
+      "goals": 0,
+      "name": "Stefan",
+      "power_dealt": 1174,
+      "power_faced": 1095,
+      "power_faced_per_duel": 3.16,
+      "power_per_duel": 3.39,
+      "printed_power": 3,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 137,
+      "abilities_per_duel": 0.51,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.542,
+      "duels": 271,
+      "duels_won": 147,
+      "goals": 41,
+      "name": "Reinhold",
+      "power_dealt": 1177,
+      "power_faced": 1153,
+      "power_faced_per_duel": 4.25,
+      "power_per_duel": 4.34,
+      "printed_power": 4,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 122,
+      "abilities_per_duel": 0.28,
+      "class": "Lorelei",
+      "duel_win_rate": 0.52,
+      "duels": 442,
+      "duels_won": 230,
+      "goals": 69,
+      "name": "Sven",
+      "power_dealt": 1771,
+      "power_faced": 1506,
+      "power_faced_per_duel": 3.41,
+      "power_per_duel": 4.01,
+      "printed_power": 4,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.511,
+      "duels": 315,
+      "duels_won": 161,
+      "goals": 0,
+      "name": "Valentin",
+      "power_dealt": 320,
+      "power_faced": 309,
+      "power_faced_per_duel": 0.98,
+      "power_per_duel": 1.02,
+      "printed_power": 1,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 1638,
+      "abilities_per_duel": 1.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.509,
+      "duels": 1638,
+      "duels_won": 833,
+      "goals": 0,
+      "name": "Caim",
+      "power_dealt": 4912,
+      "power_faced": 4710,
+      "power_faced_per_duel": 2.88,
+      "power_per_duel": 3.0,
+      "printed_power": 3,
+      "star": true,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 110,
+      "abilities_per_duel": 0.36,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.507,
+      "duels": 304,
+      "duels_won": 154,
+      "goals": 0,
+      "name": "Dominik",
+      "power_dealt": 298,
+      "power_faced": 295,
+      "power_faced_per_duel": 0.97,
+      "power_per_duel": 0.98,
+      "printed_power": 1,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.497,
+      "duels": 306,
+      "duels_won": 152,
+      "goals": 0,
+      "name": "Peter",
+      "power_dealt": 311,
+      "power_faced": 331,
+      "power_faced_per_duel": 1.08,
+      "power_per_duel": 1.02,
+      "printed_power": 1,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 512,
+      "abilities_per_duel": 0.39,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.494,
+      "duels": 1311,
+      "duels_won": 647,
+      "goals": 0,
+      "name": "Haures",
+      "power_dealt": 5223,
+      "power_faced": 5105,
+      "power_faced_per_duel": 3.89,
+      "power_per_duel": 3.98,
+      "printed_power": 4,
+      "star": true,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 606,
+      "abilities_per_duel": 2.0,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.492,
+      "duels": 303,
+      "duels_won": 149,
+      "goals": 0,
+      "name": "Paul",
+      "power_dealt": 307,
+      "power_faced": 317,
+      "power_faced_per_duel": 1.05,
+      "power_per_duel": 1.01,
+      "printed_power": 1,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 555,
+      "abilities_per_duel": 1.5,
+      "class": "Lorelei",
+      "duel_win_rate": 0.489,
+      "duels": 370,
+      "duels_won": 181,
+      "goals": 0,
+      "name": "Severin",
+      "power_dealt": 389,
+      "power_faced": 478,
+      "power_faced_per_duel": 1.29,
+      "power_per_duel": 1.05,
+      "printed_power": 1,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 100,
+      "abilities_per_duel": 0.32,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.486,
+      "duels": 313,
+      "duels_won": 152,
+      "goals": 0,
+      "name": "Erich",
+      "power_dealt": 317,
+      "power_faced": 304,
+      "power_faced_per_duel": 0.97,
+      "power_per_duel": 1.01,
+      "printed_power": 1,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Lorelei",
+      "duel_win_rate": 0.486,
+      "duels": 1503,
+      "duels_won": 730,
+      "goals": 0,
+      "name": "Zepar",
+      "power_dealt": 3250,
+      "power_faced": 3319,
+      "power_faced_per_duel": 2.21,
+      "power_per_duel": 2.16,
+      "printed_power": 2,
+      "star": true,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 156,
+      "abilities_per_duel": 0.54,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.485,
+      "duels": 291,
+      "duels_won": 141,
+      "goals": 0,
+      "name": "Jürgen",
+      "power_dealt": 293,
+      "power_faced": 298,
+      "power_faced_per_duel": 1.02,
+      "power_per_duel": 1.01,
+      "printed_power": 1,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 80,
+      "abilities_per_duel": 0.27,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.485,
+      "duels": 297,
+      "duels_won": 144,
+      "goals": 0,
+      "name": "Leon",
+      "power_dealt": 298,
+      "power_faced": 297,
+      "power_faced_per_duel": 1.0,
+      "power_per_duel": 1.0,
+      "printed_power": 1,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Normal",
+      "duel_win_rate": 0.478,
+      "duels": 324,
+      "duels_won": 155,
+      "goals": 0,
+      "name": "Schneider",
+      "power_dealt": 648,
+      "power_faced": 607,
+      "power_faced_per_duel": 1.87,
+      "power_per_duel": 2.0,
+      "printed_power": 2,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.478,
+      "duels": 301,
+      "duels_won": 144,
+      "goals": 0,
+      "name": "Ursula",
+      "power_dealt": 616,
+      "power_faced": 647,
+      "power_faced_per_duel": 2.15,
+      "power_per_duel": 2.05,
+      "printed_power": 2,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.471,
+      "duels": 340,
+      "duels_won": 160,
+      "goals": 0,
+      "name": "Veronika",
+      "power_dealt": 352,
+      "power_faced": 381,
+      "power_faced_per_duel": 1.12,
+      "power_per_duel": 1.04,
+      "printed_power": 1,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 125,
+      "abilities_per_duel": 0.3,
+      "class": "Lorelei",
+      "duel_win_rate": 0.455,
+      "duels": 413,
+      "duels_won": 188,
+      "goals": 0,
+      "name": "Magdalena",
+      "power_dealt": 437,
+      "power_faced": 434,
+      "power_faced_per_duel": 1.05,
+      "power_per_duel": 1.06,
+      "printed_power": 1,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 328,
+      "abilities_per_duel": 0.49,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.452,
+      "duels": 673,
+      "duels_won": 304,
+      "goals": 0,
+      "name": "Niklas",
+      "power_dealt": 1003,
+      "power_faced": 999,
+      "power_faced_per_duel": 1.48,
+      "power_per_duel": 1.49,
+      "printed_power": 2,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 329,
+      "abilities_per_duel": 1.0,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.45,
+      "duels": 329,
+      "duels_won": 148,
+      "goals": 0,
+      "name": "Oliver",
+      "power_dealt": 650,
+      "power_faced": 713,
+      "power_faced_per_duel": 2.17,
+      "power_per_duel": 1.98,
+      "printed_power": 2,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.43,
+      "duels": 356,
+      "duels_won": 153,
+      "goals": 45,
+      "name": "Günter",
+      "power_dealt": 1451,
+      "power_faced": 1509,
+      "power_faced_per_duel": 4.24,
+      "power_per_duel": 4.08,
+      "printed_power": 4,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 193,
+      "abilities_per_duel": 0.75,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.426,
+      "duels": 256,
+      "duels_won": 109,
+      "goals": 0,
+      "name": "Kevin",
+      "power_dealt": 509,
+      "power_faced": 556,
+      "power_faced_per_duel": 2.17,
+      "power_per_duel": 1.99,
+      "printed_power": 2,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.424,
+      "duels": 1248,
+      "duels_won": 529,
+      "goals": 177,
+      "name": "Flauros",
+      "power_dealt": 5527,
+      "power_faced": 5439,
+      "power_faced_per_duel": 4.36,
+      "power_per_duel": 4.43,
+      "printed_power": 4,
+      "star": true,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 498,
+      "abilities_per_duel": 1.37,
+      "class": "Lorelei",
+      "duel_win_rate": 0.412,
+      "duels": 364,
+      "duels_won": 150,
+      "goals": 46,
+      "name": "Siegfried",
+      "power_dealt": 1464,
+      "power_faced": 1611,
+      "power_faced_per_duel": 4.43,
+      "power_per_duel": 4.02,
+      "printed_power": 4,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 413,
+      "abilities_per_duel": 0.32,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.397,
+      "duels": 1311,
+      "duels_won": 520,
+      "goals": 0,
+      "name": "Valefor",
+      "power_dealt": 3902,
+      "power_faced": 4234,
+      "power_faced_per_duel": 3.23,
+      "power_per_duel": 2.98,
+      "printed_power": 3,
+      "star": true,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 333,
+      "abilities_per_duel": 0.99,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.394,
+      "duels": 335,
+      "duels_won": 132,
+      "goals": 31,
+      "name": "Kai",
+      "power_dealt": 1355,
+      "power_faced": 1474,
+      "power_faced_per_duel": 4.4,
+      "power_per_duel": 4.04,
+      "printed_power": 4,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Lorelei",
+      "duel_win_rate": 0.393,
+      "duels": 1503,
+      "duels_won": 590,
+      "goals": 0,
+      "name": "Gremory",
+      "power_dealt": 1661,
+      "power_faced": 2360,
+      "power_faced_per_duel": 1.57,
+      "power_per_duel": 1.11,
+      "printed_power": 1,
+      "star": true,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 519,
+      "abilities_per_duel": 1.5,
+      "class": "Lorelei",
+      "duel_win_rate": 0.382,
+      "duels": 346,
+      "duels_won": 132,
+      "goals": 0,
+      "name": "Luis",
+      "power_dealt": 1032,
+      "power_faced": 1238,
+      "power_faced_per_duel": 3.58,
+      "power_per_duel": 2.98,
+      "printed_power": 3,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 1638,
+      "abilities_per_duel": 1.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.376,
+      "duels": 1638,
+      "duels_won": 616,
+      "goals": 0,
+      "name": "Glasya-Labolas",
+      "power_dealt": 3272,
+      "power_faced": 3734,
+      "power_faced_per_duel": 2.28,
+      "power_per_duel": 2.0,
+      "printed_power": 2,
+      "star": true,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Lorelei",
+      "duel_win_rate": 0.375,
+      "duels": 373,
+      "duels_won": 140,
+      "goals": 0,
+      "name": "Bartholomäus",
+      "power_dealt": 395,
+      "power_faced": 492,
+      "power_faced_per_duel": 1.32,
+      "power_per_duel": 1.06,
+      "printed_power": 1,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Normal",
+      "duel_win_rate": 0.359,
+      "duels": 295,
+      "duels_won": 106,
+      "goals": 0,
+      "name": "Schulz",
+      "power_dealt": 1163,
+      "power_faced": 1168,
+      "power_faced_per_duel": 3.96,
+      "power_per_duel": 3.94,
+      "printed_power": 4,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 161,
+      "abilities_per_duel": 0.56,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.351,
+      "duels": 288,
+      "duels_won": 101,
+      "goals": 0,
+      "name": "Kilian",
+      "power_dealt": 789,
+      "power_faced": 928,
+      "power_faced_per_duel": 3.22,
+      "power_per_duel": 2.74,
+      "printed_power": 2,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 60,
+      "abilities_per_duel": 0.21,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.342,
+      "duels": 292,
+      "duels_won": 100,
+      "goals": 0,
+      "name": "Wolfgang",
+      "power_dealt": 726,
+      "power_faced": 891,
+      "power_faced_per_duel": 3.05,
+      "power_per_duel": 2.49,
+      "printed_power": 2,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 151,
+      "abilities_per_duel": 0.53,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.338,
+      "duels": 287,
+      "duels_won": 97,
+      "goals": 0,
+      "name": "Heinrich",
+      "power_dealt": 488,
+      "power_faced": 613,
+      "power_faced_per_duel": 2.14,
+      "power_per_duel": 1.7,
+      "printed_power": 1,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Normal",
+      "duel_win_rate": 0.332,
+      "duels": 304,
+      "duels_won": 101,
+      "goals": 0,
+      "name": "Weber",
+      "power_dealt": 605,
+      "power_faced": 780,
+      "power_faced_per_duel": 2.57,
+      "power_per_duel": 1.99,
+      "printed_power": 2,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 357,
+      "abilities_per_duel": 1.0,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.331,
+      "duels": 357,
+      "duels_won": 118,
+      "goals": 0,
+      "name": "Fritz",
+      "power_dealt": 211,
+      "power_faced": 372,
+      "power_faced_per_duel": 1.04,
+      "power_per_duel": 0.59,
+      "printed_power": 0,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 162,
+      "abilities_per_duel": 0.37,
+      "class": "Lorelei",
+      "duel_win_rate": 0.32,
+      "duels": 437,
+      "duels_won": 140,
+      "goals": 0,
+      "name": "Carl",
+      "power_dealt": 1299,
+      "power_faced": 1489,
+      "power_faced_per_duel": 3.41,
+      "power_per_duel": 2.97,
+      "printed_power": 3,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Lorelei",
+      "duel_win_rate": 0.319,
+      "duels": 373,
+      "duels_won": 119,
+      "goals": 0,
+      "name": "Jakob",
+      "power_dealt": 1111,
+      "power_faced": 1301,
+      "power_faced_per_duel": 3.49,
+      "power_per_duel": 2.98,
+      "printed_power": 3,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 10,
+      "abilities_per_duel": 0.03,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.314,
+      "duels": 309,
+      "duels_won": 97,
+      "goals": 0,
+      "name": "Katharina",
+      "power_dealt": 443,
+      "power_faced": 641,
+      "power_faced_per_duel": 2.07,
+      "power_per_duel": 1.43,
+      "printed_power": 1,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 227,
+      "abilities_per_duel": 0.73,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.307,
+      "duels": 313,
+      "duels_won": 96,
+      "goals": 22,
+      "name": "Xaver",
+      "power_dealt": 1225,
+      "power_faced": 1329,
+      "power_faced_per_duel": 4.25,
+      "power_per_duel": 3.91,
+      "printed_power": 3,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.305,
+      "duels": 305,
+      "duels_won": 93,
+      "goals": 27,
+      "name": "Noah",
+      "power_dealt": 1192,
+      "power_faced": 1317,
+      "power_faced_per_duel": 4.32,
+      "power_per_duel": 3.91,
+      "printed_power": 3,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 1638,
+      "abilities_per_duel": 1.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.296,
+      "duels": 1638,
+      "duels_won": 485,
+      "goals": 0,
+      "name": "Vassago",
+      "power_dealt": 1649,
+      "power_faced": 2756,
+      "power_faced_per_duel": 1.68,
+      "power_per_duel": 1.01,
+      "printed_power": 1,
+      "star": true,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.293,
+      "duels": 338,
+      "duels_won": 99,
+      "goals": 28,
+      "name": "Jan",
+      "power_dealt": 1313,
+      "power_faced": 1464,
+      "power_faced_per_duel": 4.33,
+      "power_per_duel": 3.88,
+      "printed_power": 3,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Lorelei",
+      "duel_win_rate": 0.287,
+      "duels": 363,
+      "duels_won": 104,
+      "goals": 29,
+      "name": "Herbert",
+      "power_dealt": 1435,
+      "power_faced": 1626,
+      "power_faced_per_duel": 4.48,
+      "power_per_duel": 3.95,
+      "printed_power": 4,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 624,
+      "abilities_per_duel": 2.03,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.277,
+      "duels": 307,
+      "duels_won": 85,
+      "goals": 0,
+      "name": "Albert",
+      "power_dealt": 759,
+      "power_faced": 954,
+      "power_faced_per_duel": 3.11,
+      "power_per_duel": 2.47,
+      "printed_power": 2,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 88,
+      "abilities_per_duel": 0.36,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.269,
+      "duels": 245,
+      "duels_won": 66,
+      "goals": 0,
+      "name": "Simon",
+      "power_dealt": 370,
+      "power_faced": 559,
+      "power_faced_per_duel": 2.28,
+      "power_per_duel": 1.51,
+      "printed_power": 1,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.268,
+      "duels": 1248,
+      "duels_won": 335,
+      "goals": 88,
+      "name": "Belphegor",
+      "power_dealt": 4340,
+      "power_faced": 5065,
+      "power_faced_per_duel": 4.06,
+      "power_per_duel": 3.48,
+      "printed_power": 3,
+      "star": true,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 314,
+      "abilities_per_duel": 1.0,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.258,
+      "duels": 314,
+      "duels_won": 81,
+      "goals": 21,
+      "name": "Volker",
+      "power_dealt": 1057,
+      "power_faced": 1328,
+      "power_faced_per_duel": 4.23,
+      "power_per_duel": 3.37,
+      "printed_power": 3,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 5,
+      "abilities_per_duel": 0.02,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.25,
+      "duels": 260,
+      "duels_won": 65,
+      "goals": 0,
+      "name": "Hannes",
+      "power_dealt": 666,
+      "power_faced": 840,
+      "power_faced_per_duel": 3.23,
+      "power_per_duel": 2.56,
+      "printed_power": 2,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.245,
+      "duels": 364,
+      "duels_won": 89,
+      "goals": 0,
+      "name": "Carsten",
+      "power_dealt": 970,
+      "power_faced": 1185,
+      "power_faced_per_duel": 3.26,
+      "power_per_duel": 2.66,
+      "printed_power": 2,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 658,
+      "abilities_per_duel": 1.53,
+      "class": "Lorelei",
+      "duel_win_rate": 0.233,
+      "duels": 429,
+      "duels_won": 100,
+      "goals": 0,
+      "name": "Johanna",
+      "power_dealt": 0,
+      "power_faced": 531,
+      "power_faced_per_duel": 1.24,
+      "power_per_duel": 0.0,
+      "printed_power": 0,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.226,
+      "duels": 336,
+      "duels_won": 76,
+      "goals": 0,
+      "name": "Marie",
+      "power_dealt": 856,
+      "power_faced": 1077,
+      "power_faced_per_duel": 3.21,
+      "power_per_duel": 2.55,
+      "printed_power": 2,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 135,
+      "abilities_per_duel": 0.48,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.214,
+      "duels": 281,
+      "duels_won": 60,
+      "goals": 0,
+      "name": "Lea",
+      "power_dealt": 361,
+      "power_faced": 634,
+      "power_faced_per_duel": 2.26,
+      "power_per_duel": 1.28,
+      "printed_power": 1,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 622,
+      "abilities_per_duel": 1.56,
+      "class": "Lorelei",
+      "duel_win_rate": 0.201,
+      "duels": 398,
+      "duels_won": 80,
+      "goals": 0,
+      "name": "Sabine",
+      "power_dealt": 786,
+      "power_faced": 1410,
+      "power_faced_per_duel": 3.54,
+      "power_per_duel": 1.97,
+      "printed_power": 2,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.195,
+      "duels": 334,
+      "duels_won": 65,
+      "goals": 0,
+      "name": "Sepp",
+      "power_dealt": 330,
+      "power_faced": 700,
+      "power_faced_per_duel": 2.1,
+      "power_per_duel": 0.99,
+      "printed_power": 1,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 510,
+      "abilities_per_duel": 2.0,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.18,
+      "duels": 255,
+      "duels_won": 46,
+      "goals": 0,
+      "name": "Jonas",
+      "power_dealt": 9,
+      "power_faced": 269,
+      "power_faced_per_duel": 1.05,
+      "power_per_duel": 0.04,
+      "printed_power": 0,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 336,
+      "abilities_per_duel": 1.0,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.179,
+      "duels": 336,
+      "duels_won": 60,
+      "goals": 0,
+      "name": "Nicole",
+      "power_dealt": 330,
+      "power_faced": 712,
+      "power_faced_per_duel": 2.12,
+      "power_per_duel": 0.98,
+      "printed_power": 1,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 274,
+      "abilities_per_duel": 0.21,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.166,
+      "duels": 1311,
+      "duels_won": 218,
+      "goals": 0,
+      "name": "Belial",
+      "power_dealt": 2588,
+      "power_faced": 3928,
+      "power_faced_per_duel": 3.0,
+      "power_per_duel": 1.97,
+      "printed_power": 2,
+      "star": true,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 187,
+      "abilities_per_duel": 0.58,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.164,
+      "duels": 323,
+      "duels_won": 53,
+      "goals": 0,
+      "name": "Tobias",
+      "power_dealt": 6,
+      "power_faced": 345,
+      "power_faced_per_duel": 1.07,
+      "power_per_duel": 0.02,
+      "printed_power": 0,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.158,
+      "duels": 316,
+      "duels_won": 50,
+      "goals": 0,
+      "name": "Ralf",
+      "power_dealt": 9,
+      "power_faced": 352,
+      "power_faced_per_duel": 1.11,
+      "power_per_duel": 0.03,
+      "printed_power": 0,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 255,
+      "abilities_per_duel": 1.0,
+      "class": "Rauhnacht-Feuergeister",
+      "duel_win_rate": 0.157,
+      "duels": 255,
+      "duels_won": 40,
+      "goals": 0,
+      "name": "Claudia",
+      "power_dealt": 23,
+      "power_faced": 267,
+      "power_faced_per_duel": 1.05,
+      "power_per_duel": 0.09,
+      "printed_power": 0,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Normal",
+      "duel_win_rate": 0.155,
+      "duels": 284,
+      "duels_won": 44,
+      "goals": 0,
+      "name": "Becker",
+      "power_dealt": 840,
+      "power_faced": 1124,
+      "power_faced_per_duel": 3.96,
+      "power_per_duel": 2.96,
+      "printed_power": 3,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 230,
+      "abilities_per_duel": 0.71,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.152,
+      "duels": 322,
+      "duels_won": 49,
+      "goals": 0,
+      "name": "Georg",
+      "power_dealt": 3,
+      "power_faced": 337,
+      "power_faced_per_duel": 1.05,
+      "power_per_duel": 0.01,
+      "printed_power": 0,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.139,
+      "duels": 317,
+      "duels_won": 44,
+      "goals": 14,
+      "name": "Frank",
+      "power_dealt": 952,
+      "power_faced": 1355,
+      "power_faced_per_duel": 4.27,
+      "power_per_duel": 3.0,
+      "printed_power": 3,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.139,
+      "duels": 303,
+      "duels_won": 42,
+      "goals": 0,
+      "name": "Finn",
+      "power_dealt": 15,
+      "power_faced": 354,
+      "power_faced_per_duel": 1.17,
+      "power_per_duel": 0.05,
+      "printed_power": 0,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 229,
+      "abilities_per_duel": 0.69,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.136,
+      "duels": 332,
+      "duels_won": 45,
+      "goals": 0,
+      "name": "Kerstin",
+      "power_dealt": 0,
+      "power_faced": 332,
+      "power_faced_per_duel": 1.0,
+      "power_per_duel": 0.0,
+      "printed_power": 0,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Unkengeister",
+      "duel_win_rate": 0.136,
+      "duels": 323,
+      "duels_won": 44,
+      "goals": 0,
+      "name": "Friedrich",
+      "power_dealt": 18,
+      "power_faced": 381,
+      "power_faced_per_duel": 1.18,
+      "power_per_duel": 0.06,
+      "printed_power": 0,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 151,
+      "abilities_per_duel": 0.4,
+      "class": "Lorelei",
+      "duel_win_rate": 0.126,
+      "duels": 374,
+      "duels_won": 47,
+      "goals": 0,
+      "name": "Ignaz",
+      "power_dealt": 459,
+      "power_faced": 1284,
+      "power_faced_per_duel": 3.43,
+      "power_per_duel": 1.23,
+      "printed_power": 2,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Normal",
+      "duel_win_rate": 0.124,
+      "duels": 307,
+      "duels_won": 38,
+      "goals": 0,
+      "name": "Fischer",
+      "power_dealt": 303,
+      "power_faced": 799,
+      "power_faced_per_duel": 2.6,
+      "power_per_duel": 0.99,
+      "printed_power": 1,
+      "star": false,
+      "tier": "II"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Lorelei",
+      "duel_win_rate": 0.115,
+      "duels": 384,
+      "duels_won": 44,
+      "goals": 0,
+      "name": "Gerhard",
+      "power_dealt": 758,
+      "power_faced": 1331,
+      "power_faced_per_duel": 3.47,
+      "power_per_duel": 1.97,
+      "printed_power": 2,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 563,
+      "abilities_per_duel": 1.35,
+      "class": "Lorelei",
+      "duel_win_rate": 0.108,
+      "duels": 418,
+      "duels_won": 45,
+      "goals": 12,
+      "name": "Monika",
+      "power_dealt": 1238,
+      "power_faced": 1900,
+      "power_faced_per_duel": 4.55,
+      "power_per_duel": 2.96,
+      "printed_power": 3,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Lorelei",
+      "duel_win_rate": 0.096,
+      "duels": 342,
+      "duels_won": 33,
+      "goals": 0,
+      "name": "Matthias",
+      "power_dealt": 15,
+      "power_faced": 436,
+      "power_faced_per_duel": 1.27,
+      "power_per_duel": 0.04,
+      "printed_power": 0,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Lorelei",
+      "duel_win_rate": 0.094,
+      "duels": 404,
+      "duels_won": 38,
+      "goals": 0,
+      "name": "Werner",
+      "power_dealt": 21,
+      "power_faced": 548,
+      "power_faced_per_duel": 1.36,
+      "power_per_duel": 0.05,
+      "printed_power": 0,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 177,
+      "abilities_per_duel": 0.57,
+      "class": "Bergmännlein",
+      "duel_win_rate": 0.089,
+      "duels": 313,
+      "duels_won": 28,
+      "goals": 5,
+      "name": "Sebastian",
+      "power_dealt": 950,
+      "power_faced": 1347,
+      "power_faced_per_duel": 4.3,
+      "power_per_duel": 3.04,
+      "printed_power": 3,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Normal",
+      "duel_win_rate": 0.083,
+      "duels": 300,
+      "duels_won": 25,
+      "goals": 4,
+      "name": "Schäfer",
+      "power_dealt": 1187,
+      "power_faced": 1470,
+      "power_faced_per_duel": 4.9,
+      "power_per_duel": 3.96,
+      "printed_power": 4,
+      "star": true,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Normal",
+      "duel_win_rate": 0.067,
+      "duels": 313,
+      "duels_won": 21,
+      "goals": 0,
+      "name": "Schmidt",
+      "power_dealt": 313,
+      "power_faced": 585,
+      "power_faced_per_duel": 1.87,
+      "power_per_duel": 1.0,
+      "printed_power": 1,
+      "star": false,
+      "tier": "I"
+    },
+    {
+      "abilities_fired": 196,
+      "abilities_per_duel": 0.5,
+      "class": "Lorelei",
+      "duel_win_rate": 0.064,
+      "duels": 389,
+      "duels_won": 25,
+      "goals": 4,
+      "name": "Lothar",
+      "power_dealt": 1152,
+      "power_faced": 1717,
+      "power_faced_per_duel": 4.41,
+      "power_per_duel": 2.96,
+      "printed_power": 3,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Normal",
+      "duel_win_rate": 0.063,
+      "duels": 300,
+      "duels_won": 19,
+      "goals": 1,
+      "name": "Hoffmann",
+      "power_dealt": 891,
+      "power_faced": 1412,
+      "power_faced_per_duel": 4.71,
+      "power_per_duel": 2.97,
+      "printed_power": 3,
+      "star": true,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Normal",
+      "duel_win_rate": 0.059,
+      "duels": 321,
+      "duels_won": 19,
+      "goals": 0,
+      "name": "Wagner",
+      "power_dealt": 631,
+      "power_faced": 1251,
+      "power_faced_per_duel": 3.9,
+      "power_per_duel": 1.97,
+      "printed_power": 2,
+      "star": false,
+      "tier": "III"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Lorelei",
+      "duel_win_rate": 0.04,
+      "duels": 371,
+      "duels_won": 15,
+      "goals": 5,
+      "name": "Ingrid",
+      "power_dealt": 1101,
+      "power_faced": 1627,
+      "power_faced_per_duel": 4.39,
+      "power_per_duel": 2.97,
+      "printed_power": 3,
+      "star": false,
+      "tier": "IV"
+    },
+    {
+      "abilities_fired": 0,
+      "abilities_per_duel": 0.0,
+      "class": "Normal",
+      "duel_win_rate": 0.027,
+      "duels": 263,
+      "duels_won": 7,
+      "goals": 0,
+      "name": "Müller",
+      "power_dealt": 0,
+      "power_faced": 511,
+      "power_faced_per_duel": 1.94,
+      "power_per_duel": 0.0,
+      "printed_power": 0,
+      "star": false,
+      "tier": "I"
+    }
+  ],
+  "classes": {
+    "Bergmännlein": {
+      "ability_triggers_per_match": 15.39,
+      "drawn": 103,
+      "duels_by_tier": {
+        "I": {
+          "total": 3933,
+          "win_rate": 0.503,
+          "won": 1980
+        },
+        "II": {
+          "total": 3933,
+          "win_rate": 0.529,
+          "won": 2080
+        },
+        "III": {
+          "total": 3933,
+          "win_rate": 0.352,
+          "won": 1385
+        },
+        "IV": {
+          "total": 3933,
+          "win_rate": 0.547,
+          "won": 2153
+        }
+      },
+      "goals_against_per_match": 1.35,
+      "goals_for_per_match": 1.59,
+      "keeper_damage_per_match": 35.69,
+      "lost": 155,
+      "played": 437,
+      "win_rate": 0.41,
+      "win_rate_draws_half": 0.527,
+      "won": 179
+    },
+    "Lorelei": {
+      "ability_triggers_per_match": 21.65,
+      "drawn": 116,
+      "duels_by_tier": {
+        "I": {
+          "total": 4509,
+          "win_rate": 0.515,
+          "won": 2323
+        },
+        "II": {
+          "total": 4509,
+          "win_rate": 0.492,
+          "won": 2217
+        },
+        "III": {
+          "total": 4509,
+          "win_rate": 0.439,
+          "won": 1979
+        },
+        "IV": {
+          "total": 4509,
+          "win_rate": 0.486,
+          "won": 2190
+        }
+      },
+      "goals_against_per_match": 1.57,
+      "goals_for_per_match": 1.56,
+      "keeper_damage_per_match": 33.89,
+      "lost": 204,
+      "played": 501,
+      "win_rate": 0.361,
+      "win_rate_draws_half": 0.477,
+      "won": 181
+    },
+    "Normal": {
+      "ability_triggers_per_match": 3.0,
+      "drawn": 11,
+      "duels_by_tier": {
+        "I": {
+          "total": 900,
+          "win_rate": 0.203,
+          "won": 183
+        },
+        "II": {
+          "total": 900,
+          "win_rate": 0.416,
+          "won": 374
+        },
+        "III": {
+          "total": 900,
+          "win_rate": 0.188,
+          "won": 169
+        },
+        "IV": {
+          "total": 900,
+          "win_rate": 0.324,
+          "won": 292
+        }
+      },
+      "goals_against_per_match": 2.44,
+      "goals_for_per_match": 0.68,
+      "keeper_damage_per_match": 19.92,
+      "lost": 85,
+      "played": 100,
+      "win_rate": 0.04,
+      "win_rate_draws_half": 0.095,
+      "won": 4
+    },
+    "Rauhnacht-Feuergeister": {
+      "ability_triggers_per_match": 27.1,
+      "drawn": 109,
+      "duels_by_tier": {
+        "I": {
+          "total": 3744,
+          "win_rate": 0.49,
+          "won": 1835
+        },
+        "II": {
+          "total": 3744,
+          "win_rate": 0.64,
+          "won": 2395
+        },
+        "III": {
+          "total": 3744,
+          "win_rate": 0.604,
+          "won": 2260
+        },
+        "IV": {
+          "total": 3744,
+          "win_rate": 0.442,
+          "won": 1655
+        }
+      },
+      "goals_against_per_match": 1.55,
+      "goals_for_per_match": 1.35,
+      "keeper_damage_per_match": 32.16,
+      "lost": 164,
+      "played": 416,
+      "win_rate": 0.344,
+      "win_rate_draws_half": 0.475,
+      "won": 143
+    },
+    "Unkengeister": {
+      "ability_triggers_per_match": 10.68,
+      "drawn": 145,
+      "duels_by_tier": {
+        "I": {
+          "total": 4914,
+          "win_rate": 0.545,
+          "won": 2679
+        },
+        "II": {
+          "total": 4914,
+          "win_rate": 0.394,
+          "won": 1934
+        },
+        "III": {
+          "total": 4914,
+          "win_rate": 0.653,
+          "won": 3207
+        },
+        "IV": {
+          "total": 4914,
+          "win_rate": 0.551,
+          "won": 2710
+        }
+      },
+      "goals_against_per_match": 1.32,
+      "goals_for_per_match": 1.6,
+      "keeper_damage_per_match": 38.54,
+      "lost": 150,
+      "played": 546,
+      "win_rate": 0.46,
+      "win_rate_draws_half": 0.592,
+      "won": 251
+    }
+  },
+  "classes_by_matchup": {
+    "Unkengeister strongest vs Lorelei random": {
+      "Lorelei": {
+        "drawn": 26,
+        "lost": 65,
+        "played": 100,
+        "won": 9
+      },
+      "Unkengeister": {
+        "drawn": 26,
+        "lost": 9,
+        "played": 100,
+        "won": 65
+      }
+    },
+    "best vs best": {
+      "Bergmännlein": {
+        "drawn": 1,
+        "lost": 21,
+        "played": 95,
+        "won": 73
+      },
+      "Lorelei": {
+        "drawn": 7,
+        "lost": 31,
+        "played": 89,
+        "won": 51
+      },
+      "Rauhnacht-Feuergeister": {
+        "drawn": 9,
+        "lost": 74,
+        "played": 105,
+        "won": 22
+      },
+      "Unkengeister": {
+        "drawn": 21,
+        "lost": 55,
+        "played": 111,
+        "won": 35
+      }
+    },
+    "class vs Basic Team": {
+      "Bergmännlein": {
+        "drawn": 2,
+        "lost": 0,
+        "played": 28,
+        "won": 26
+      },
+      "Lorelei": {
+        "drawn": 1,
+        "lost": 0,
+        "played": 27,
+        "won": 26
+      },
+      "Normal": {
+        "drawn": 11,
+        "lost": 85,
+        "played": 100,
+        "won": 4
+      },
+      "Rauhnacht-Feuergeister": {
+        "drawn": 6,
+        "lost": 4,
+        "played": 23,
+        "won": 13
+      },
+      "Unkengeister": {
+        "drawn": 2,
+        "lost": 0,
+        "played": 22,
+        "won": 20
+      }
+    },
+    "random classes": {
+      "Bergmännlein": {
+        "drawn": 100,
+        "lost": 134,
+        "played": 314,
+        "won": 80
+      },
+      "Lorelei": {
+        "drawn": 82,
+        "lost": 108,
+        "played": 285,
+        "won": 95
+      },
+      "Rauhnacht-Feuergeister": {
+        "drawn": 94,
+        "lost": 86,
+        "played": 288,
+        "won": 108
+      },
+      "Unkengeister": {
+        "drawn": 96,
+        "lost": 86,
+        "played": 313,
+        "won": 131
+      }
+    }
+  },
+  "made": "2026-10-05T16:09:23",
+  "match": {
+    "goals_per_match": 2.98,
+    "ticks_per_match": 36.0
+  },
+  "matches": 1000,
+  "matchups": {
+    "Unkengeister strongest vs Lorelei random": {
+      "away": "Lorelei",
+      "away_picks": "random",
+      "away_won": 9,
+      "drawn": 26,
+      "home": "Unkengeister",
+      "home_picks": "strongest",
+      "home_won": 65,
+      "played": 100
+    },
+    "best vs best": {
+      "away": "random",
+      "away_picks": "strongest",
+      "away_won": 85,
+      "drawn": 19,
+      "home": "random",
+      "home_picks": "strongest",
+      "home_won": 96,
+      "played": 200
+    },
+    "class vs Basic Team": {
+      "away": "Normal",
+      "away_picks": "random",
+      "away_won": 4,
+      "drawn": 11,
+      "home": "random",
+      "home_picks": "strongest",
+      "home_won": 85,
+      "played": 100
+    },
+    "random classes": {
+      "away": "random",
+      "away_picks": "random",
+      "away_won": 201,
+      "drawn": 186,
+      "home": "random",
+      "home_picks": "random",
+      "home_won": 213,
+      "played": 600
+    }
+  },
+  "seconds": 44.1,
+  "seed": 20261005
+}
