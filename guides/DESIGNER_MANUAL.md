@@ -1751,6 +1751,58 @@ does the same from the exhaust (same power and tier).
 
 **The tracker** shows Graves, Mining, Cold and Bench counts.
 
+### Round AG: the pinned phases, free kicks (P2) and balance (P1)
+
+Combat is complete, so the pinned list became five phases — **P1** mass
+testing and balance, **P2** free kicks, **P3** the recruitment board, **P4**
+hiding the Rivals' cards, **P5** art pass 2 (no PixelLab until you say so).
+They are in `guides/PHASES.md`.
+
+**P2, free kicks:** `data/FreeKicks.csv` — see section 7d, *What a foul
+is worth*.
+
+**Your round AF answers:**
+
+| question | what changed |
+|---|---|
+| Q112 b | Vassago's Ultimate: with two or more enemy abilities to copy, a window asks you which (AUTO menu: *vassago*) |
+| Q113 b | Glasya-Labolas possesses more: mines, ore counters, one touch on the ball, Caim's gravestones — once each per PLAY MAKER (`glasya_objects`) |
+| Q115 a | `counter_power_burn` **1** |
+| Q116 a | `haures_rock_shift` **0** |
+| Q118 | the balance dials below |
+
+**P1, the balance dials (Q118 — "try to balance based on what we have"):**
+
+| Tuning.csv | what it does | as shipped |
+|---|---|---|
+| `count_power_floor` | a card whose power is "equal to" a count (Buer, Vassago, Glasya-Labolas) never fights below its printed power | **1** |
+| `star_power_tier_<tier>` | a Star in that tier is this much stronger in every combat (`star_power_tier_IV` …) | 0 |
+| `counter_power_<kind>` | each counter of that kind on a card is worth this in combat (round AF) | burn 1 |
+
+Measured, 8 Rauhnacht matches each:
+
+| dials | won / drawn / lost | goals | Tier IV duels won |
+|---|---|---|---|
+| neither | 1 / 2 / 5 | 5–11 | 38% |
+| `star_power_tier_IV` 1 | 3 / 2 / 3 | 6–9 | 39% |
+| **`count_power_floor` 1** | **4 / 2 / 2** | **7–6** | **54%** |
+| both | 1 / 5 / 2 | 6–7 | 61% |
+
+Then the two that mattered, **16 matches each**:
+
+| `count_power_floor` | won / drawn / lost | goals | Tier IV duels won |
+|---|---|---|---|
+| 0 | 0 / 4 / 12 | 6–23 | 30% |
+| **1 (shipped)** | **8 / 2 / 6** | **19–16** | **54%** |
+
+**Eight matches is not enough to trust a small difference** — the same
+settings gave Rauhnacht 4 wins in one run of 8 and 0 in a run of 5. Use 16 or
+more before you change a card because of a number.
+
+**`tools/balance_report.py`** now also counts **duels won per tier** and
+**free kicks per range**, so a class that is losing in one tier shows up in
+the first report.
+
 ### Round AF, phase C8: the Stars' Ultimates — combat is complete
 
 **Where an Ultimate is written: the `Ultimate Side` column of
@@ -1772,8 +1824,8 @@ BLOCKED (one per game). Then:
 | **Belial** | +1 bonus Ore per unit mining; **the ore shop** before a Bergmännlein duels - buying is its ability that duel | **`data/OreShop.csv`** |
 | **Valefor** | Bergmännlein in the exhaust mine (+1 Ore each); last round's miners +1 in their next combat | — |
 | **Haures** | the keeper eats 1 Ore a round (max 3 a cycle): +1 shield, 5% harder to beat | `haures_armour_per_cycle`, `haures_armour_shift` |
-| **Vassago** | each Unkengeister copies an enemy ability of its tier from their exhaust; that card is held there for the cycle | — |
-| **Glasya-Labolas** | once per PLAY MAKER the enemy's first worked mine and first ore counter are possessed - they get nothing from them | — |
+| **Vassago** | each Unkengeister copies an enemy ability of its tier from their exhaust; that card is held there for the cycle. **Round AG (Q112 b): with more than one to copy, YOU pick** | AUTO menu: *vassago* |
+| **Glasya-Labolas** | once per PLAY MAKER the first of each kind of object the enemy uses is possessed - they get nothing from it. **Round AG (Q113 b): mines, ore counters, touches on the ball, Caim's gravestones** | `glasya_objects` |
 | **Caim** | 3 gravestones rise; the ball knocking one over puts a ghost on the ball; the next Unkengeister +1 per ghost | `caim_stones`, `caim_knock_reach` |
 
 **`data/OreShop.csv`:** `Item`, `Cost` (Ore), `Effect` (`power` = +Value this
@@ -2200,11 +2252,40 @@ rare — before touching a row of `Fouls.csv`.
 | `Tuning.csv` | |
 |---|---|
 | `fouls` | `false` turns the whole thing off. No card is ever shown and the game plays exactly as it did before |
-| `foul_free_kick_power` | added to the **fouled** side's shot. `3` out of the box |
+| `free_kicks` | **round AG.** `1` (default) = a free kick is a real set piece, worth what `data/FreeKicks.csv` says for where the foul was — see below. `0` = the old flat bonus |
+| `foul_free_kick_power` | only when `free_kicks` is `0`: added to the **fouled** side's shot. `3` out of the box |
 | `foul_card_gives_possession` | a yellow or a red also hands the ball over — a card stops the game, which is what makes it the moment a side gets the set piece |
 | `foul_two_yellows_is_red` | the ordinary rule of football. It is here rather than in code because it is a rule about football, not a rule about this program |
 | `foul_stand_ins` | see below |
 | `foul_window_seconds` | how long the card is held on screen. `0` shows no window and the match only reports it in the log |
+
+### `data/FreeKicks.csv` — the free kick as a set piece (round AG, phase P2)
+
+Your Q033 / Q075. A foul the referee **sees** happens where the culprit is
+standing. How far that spot is from the goal the **fouled** side attacks picks
+a row:
+
+| column | |
+|---|---|
+| `Range` | a name — `close`, `edge`, `far`, or any word you like |
+| `Up To` | how far from that goal, as a share of the pitch's length. `0.25` = the quarter nearest it. Rows are read from the smallest; the first the spot fits is used. **The last row should say `1.00`** |
+| `Shot Power` | added to the fouled side's shot this round |
+| `Takes Ball` | `yes` = the fouled side takes the ball and **shoots this round, from the foul spot**. `no` = only the Shot Power, and only if they were shooting anyway |
+| `Call` | the big word in the window (`DIRECT FREE KICK`) |
+| `Caption` | the line under it. `{metres}` (the pitch counts as 105 m), `{taker}` |
+
+**Who takes it.** When it is YOUR free kick and it takes the ball, a window
+asks which of this round's four takes it — the taker is the shooter, so his
+on-shot abilities fire. AUTO (or the AUTO menu's *free kick* line) and the
+enemy pick the strongest attacker.
+
+**Cards still work as before:** a yellow or red always gives the fouled side
+the ball (`foul_card_gives_possession`), whatever the row says.
+
+As shipped: `close` up to 26 m (+3, takes the ball), `edge` up to 42 m (+2,
+takes the ball), `far` (+1). `godot --headless --script
+res://tools/free_kick_check.gd` reads the file back in metres.
+`tools/balance_report.py` counts how many of each Range a class wins.
 
 ### And then the ladder has a hole in it
 
@@ -3537,7 +3618,7 @@ palette colour and whether the game reads that name — and what is sitting in
 
 ---
 
-## 9. `data/Tuning.csv` — 425 numbers
+## 9. `data/Tuning.csv` — 429 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -5078,6 +5159,12 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | change what an Emblem's Basic side does | its `EMB_` row in Abilities.csv (Vassago, Glasya-Labolas, Caim, Gremory, Zepar, Sallos, Belphegor, Buer), or the Tuning rows `belial_`, `valefor_`, `haures_` |
 | write or change an Ultimate | the **Ultimate Side column of Star Players.csv**, then `python3 tools/sync_ultimates.py` |
 | change what Belial's ore shop sells | `data/OreShop.csv` |
+| change what a free kick is worth, by distance | `data/FreeKicks.csv` (round AG) |
+| go back to the old flat free-kick bonus | `free_kicks` 0 in `Tuning.csv` |
+| make a weak class's Tier IV Star stronger | `star_power_tier_IV` in `Tuning.csv` (a row per tier) |
+| make Buer never fight below his printed power | `count_power_floor` 1 in `Tuning.csv` |
+| change what Glasya-Labolas's Ultimate possesses | `glasya_objects` in `Tuning.csv` |
+| see which tier a class is losing in | `python3 tools/balance_report.py 8 <Class>` - the "duels won, Tier" rows |
 | make a kind of counter worth power in combat | `counter_power_<kind>` in Tuning.csv (e.g. `counter_power_burn`) |
 | ask the player before an ability goes off | the `Ask` column of Abilities.csv: `yes` |
 | answer my questions | `data/Questions.csv`, the `Your Answer` column |

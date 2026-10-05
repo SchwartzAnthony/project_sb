@@ -422,7 +422,7 @@ func _check(card: PlayerData, slot: String, ability: AbilityData, db: CardDataba
 					var now := engine.attack_power(who, who_side) if (who == card and role == "attack") or who_side \
 						else engine.defense_power(who, who_side)
 					landed = now != who.get_attack_power() or ability.effect == "useenemypower" \
-						or (ability.effect == "powerfromcount" and now == engine._count_for(ability.effect_arg, who_side, ability.value))
+						or (ability.effect == "powerfromcount" and now == _count_power(engine, db, ability, who, who_side))
 				"negatebuff":
 					landed = engine.attack_power(opp, true) == opp.get_attack_power() \
 						and engine.defense_power(opp, true) == opp.get_defense_power()
@@ -537,6 +537,7 @@ func _check_emblems(db: CardDatabase) -> void:
 	_check_c6(db)
 	_check_c7(db)
 	_check_c8(db)
+	_check_ag(db)
 
 	# ---- ZEPAR: a water unit revealed becomes a Swan, and a Swan is +1 ----
 	var zepar := _badge("Zepar")
@@ -617,7 +618,9 @@ func _check_emblems(db: CardDatabase) -> void:
 		e.put_counter(fire, false, "burn")      # a second counter, same cycle
 		e.begin_duel(fire, opp)
 		var again := e.attack_power(fire, false)
-		_say(now == before + 1 and again == before,
+		# Round AG: a burn counter is also worth counter_power_burn by itself.
+		var burn := int(round(db.tune_float("counter_power_burn", 0.0)))
+		_say(now == before + 1 + burn and again == before + 2 * burn,
 			"Buer's Emblem: a counter received is +1 in combat, once per cycle",
 			"power %d -> %d, second time %d" % [before, now, again])
 
@@ -1151,9 +1154,12 @@ func _check_c7(db: CardDatabase) -> void:
 		e.sync_field([four], [opp])
 		e.begin_round()
 		e.after_shot(true, false)
-		_say(e.pool(false, "ore") == 2 and e.keeper_shift(false) < 0.0,
+		# Round AG (Q116): haures_rock_shift is 0 now, so "harder to beat" is
+		# whatever that row says.
+		var rock := db.tune_float("haures_rock_shift", -5.0)
+		_say(e.pool(false, "ore") == 2 and is_equal_approx(e.keeper_shift(false), rock),
 			"Haures's Emblem: the rock keeper saves - the Tier IV earth unit collects 2 Ore; he is harder to beat",
-			"Ore %d, shift %.0f" % [e.pool(false, "ore"), e.keeper_shift(false)])
+			"Ore %d, shift %.0f (haures_rock_shift %.0f)" % [e.pool(false, "ore"), e.keeper_shift(false), rock])
 	# ---- Flauros: a fire unit buffing another fire unit gives +1 more ----
 	var flauros := _badge("Flauros")
 	if flauros != null:
@@ -1189,6 +1195,52 @@ func _check_c7(db: CardDatabase) -> void:
 
 
 ## ROUND AF (C8): the Stars' Ultimates, one story each.
+## ROUND AG: your Q112 b (you pick Vassago's copy) and the Q118 dials.
+## What a power_from_count card should fight at: the count, or (round AG,
+## `count_power_floor` 1) never below its printed power.
+func _count_power(engine: AbilityEngine, db: CardDatabase, ability: AbilityData, who: PlayerData, side: bool) -> int:
+	var n := engine._count_for(ability.effect_arg, side, ability.value)
+	if db.tune_bool("count_power_floor", false):
+		n = maxi(n, who.get_attack_power())
+	return n
+
+
+func _check_ag(db: CardDatabase) -> void:
+	print("--- round AG ---")
+	var opp := _dummy("Opp", "II", 3, "Earth", "Normal")
+	var e := AbilityEngine.new(db)
+	e.begin_match()
+	var row := _self_buff_row(db, "onattack")
+	if row != "":
+		var d1 := _dummy("DonorOne", "II", 1, "Earth", "Normal")
+		var d2 := _dummy("DonorTwo", "II", 1, "Earth", "Normal")
+		d1.attack_ability_id = row
+		d2.attack_ability_id = row
+		var thief := _dummy("Thief", "II", 1, "Air", "Unkengeister")
+		e.sync_field([thief], [d1, d2, opp])
+		e._move(d1, true, "exhaust")
+		e._move(d2, true, "exhaust")
+		e.set_ultimates(false, ["Vassago"])
+		e.round_lineups([thief], [opp])
+		e.begin_round()
+		e.begin_duel(thief, opp)
+		var options := e.vassago_options(thief, false)
+		e.vassago_copy(thief, false, options[options.size() - 1])
+		var copied: PlayerData = e._copied.get(e._k(thief, false), null)
+		_say(options.size() == 2 and copied == d2 and e._pinned.has(e._k(d2, true)) and not e._pinned.has(e._k(d1, true)),
+			"Vassago's Ultimate (Q112 b): two to copy - you pick the second, only it is held in the exhaust",
+			"%d options, copied %s" % [options.size(), copied.player_name if copied != null else "nothing"])
+	# Q118: a Star in Tier IV gets star_power_tier_IV in combat
+	e = AbilityEngine.new(db)
+	e.begin_match()
+	var star := _dummy("StarFour", "IV", 3, "Fire", "Rauhnacht-Feuergeister")
+	star.player_type = "Star"
+	e.sync_field([star], [opp])
+	var dial := int(round(db.tune_float("star_power_tier_IV", 0.0)))
+	_say(not star.is_star() or e.attack_power(star, false) == 3 + dial,
+		"Balance dial star_power_tier_IV (Q118): a Tier IV Star is +%d" % dial, "power %d" % e.attack_power(star, false))
+
+
 func _check_c8(db: CardDatabase) -> void:
 	print("--- the Ultimates (C8) ---")
 	var opp := _dummy("Opp", "II", 3, "Earth", "Normal")

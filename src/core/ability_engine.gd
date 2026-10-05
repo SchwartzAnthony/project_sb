@@ -985,6 +985,11 @@ func _bend(ability: AbilityData, card: PlayerData, card_is_enemy: bool, source: 
 				_set_power(card, card_is_enemy, now, source)
 		"powerfromcount":
 			var n := _count_for(ability.effect_arg, card_is_enemy, ability.value)
+			# ROUND AG (balance, your Q118): `count_power_floor` 1 = a card whose
+			# power is "equal to the counters" (Buer) never fights below its
+			# printed power. 0 = exactly the count, as printed.
+			if db != null and db.tune_bool("count_power_floor", false):
+				n = maxi(n, card.get_attack_power())
 			_set_power(card, card_is_enemy, n, source)
 			log_lines.append("      %s: power = %d (%s)" % [who, n, ability.effect_arg])
 
@@ -2295,6 +2300,10 @@ func _ultimate_power(card: PlayerData, side_is_enemy: bool) -> int:
 			var per := db.tune_float("counter_power_" + String(kind), 0.0)
 			if per != 0.0:
 				more += int(round(per * float(on[kind])))
+	# ROUND AG (balance, your Q118): a DIAL per tier for Stars.
+	# `star_power_tier_IV` 1 = a Star in Tier IV is +1 in every combat.
+	if db != null and card.is_star():
+		more += int(round(db.tune_float("star_power_tier_" + card.get_tier_clean(), 0.0)))
 	# Belphegor: Rauhnacht-Feuergeister +1 for each victory counter.
 	if ultimate_up(side_is_enemy, "Belphegor") \
 			and CardDatabase._normalise(card.active_unit_type()) == CardDatabase._normalise("Rauhnacht-Feuergeister"):
@@ -2339,21 +2348,51 @@ func _ultimate_duel_start(card: PlayerData, side_is_enemy: bool, opponent: Playe
 	var unken := CardDatabase._normalise(card.active_unit_type()) == "unkengeister"
 	# VASSAGO: an Unkengeister copies an enemy ability from the exhaust, of
 	# its tier; that card cannot leave the exhaust this cycle.
+	# (Round AG, your Q112 b: the first one is taken here; when YOU have more
+	# than one to choose from, main_scene asks you and calls vassago_copy.)
 	if unken and ultimate_up(side_is_enemy, "Vassago"):
-		for c in cards_in(foe, EXHAUST):
-			if c.get_tier_clean() != card.get_tier_clean():
-				continue
-			if c.active_attack_ability().strip_edges() == "" and c.active_defend_ability().strip_edges() == "":
-				continue
-			_copied[key] = c
-			_pinned[_k(c, foe)] = true
-			log_lines.append("      Vassago's Ultimate: %s copies %s's ability" % [card.player_name, c.player_name])
-			break
+		var options := vassago_options(card, side_is_enemy)
+		if not options.is_empty():
+			vassago_copy(card, side_is_enemy, options[0])
 	# CAIM: the next Unkengeister gets +1 for each ghost on the ball.
 	if unken and int(ghosts[side_is_enemy]) > 0:
 		_ult_buff(card, side_is_enemy, int(ghosts[side_is_enemy]), "Caim")
 		_ghost_used[side_is_enemy] = true
 		log_lines.append("      Caim's ghosts: %s is +%d" % [card.player_name, int(ghosts[side_is_enemy])])
+
+
+## VASSAGO: the enemy cards in the exhaust this card could copy (same tier,
+## with an ability). Empty when Vassago's Ultimate is not up for it.
+func vassago_options(card: PlayerData, side_is_enemy: bool) -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	if card == null or not ultimate_up(side_is_enemy, "Vassago"):
+		return out
+	if CardDatabase._normalise(card.active_unit_type()) != "unkengeister":
+		return out
+	for c in cards_in(not side_is_enemy, EXHAUST):
+		if c.get_tier_clean() != card.get_tier_clean():
+			continue
+		if c.active_attack_ability().strip_edges() == "" and c.active_defend_ability().strip_edges() == "":
+			continue
+		out.append(c)
+	return out
+
+
+## VASSAGO: `card` copies `target`'s ability this duel; the target is pinned
+## in the exhaust this cycle. Choosing again replaces the earlier choice.
+func vassago_copy(card: PlayerData, side_is_enemy: bool, target: PlayerData) -> void:
+	if card == null or target == null:
+		return
+	var key := _k(card, side_is_enemy)
+	var before: PlayerData = _copied.get(key, null)
+	if before == target:
+		return
+	if before != null:
+		_pinned.erase(_k(before, not side_is_enemy))
+		log_lines.append("      Vassago's Ultimate: %s lets go of %s" % [card.player_name, before.player_name])
+	_copied[key] = target
+	_pinned[_k(target, not side_is_enemy)] = true
+	log_lines.append("      Vassago's Ultimate: %s copies %s's ability" % [card.player_name, target.player_name])
 
 
 ## Once a round, when the line-ups are in.

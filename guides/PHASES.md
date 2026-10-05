@@ -301,8 +301,8 @@ question windows you asked for. **C4 — bending the duel — in round AB (156 w
 the choice screens — in round AC (168 work).** **C6 — the class engines:
 mines, fusing, the ball, gravestones — in round AD: all 228 work.** **C7 — the
 Emblems' Basic sides — in round AE: all twelve play.** **C8 — the Ultimates —
-in round AF: combat is complete.** Next: mass testing and the pinned list
-(Q117). Every open question lives in
+in round AF: combat is complete.** Next: the pinned phases P1–P5 below
+(round AG on). Every open question lives in
 `data/Questions.csv`.
 
 On hold until the combat abilities are done, at your request:
@@ -320,6 +320,23 @@ Gremory's pace and the goal reset (Q007), Thomas filling the referee bar
 (Q032), the side choice (Q036, Q038), priority ties (Q046), mines (Q054,
 Q055), fusing balance (Q056), touching the ball (Q057), gravestones (Q058).
 `python3 tools/balance_report.py 20` is the tool for it.
+
+## After combat — the pinned phases (round AG onward)
+
+Combat finished in round AF. The pinned list is now five phases. You said
+"you pick" (Q117), so this is the order:
+
+| phase | what | state |
+|---|---|---|
+| **P1** | **Mass testing and balance.** `tools/balance_report.py`, the balance dials in Tuning.csv (`counter_power_*`, `star_power_tier_*`, `count_power_floor`), and every `pinned` "test this later" answer in Questions.csv | **started in round AG** (the Rauhnacht pass, your Q118) — it never really ends |
+| **P2** | **Free kicks as a set piece** (Q033 / Q075). A seen foul is a free kick from where the foul was; `data/FreeKicks.csv` says what it is worth by distance; close ones give the ball and the shot, and you pick the taker | **built in round AG** |
+| **P3** | **The recruitment board** in the Club House, so `named_recruits` can be turned on | next |
+| **P4** | **Hiding the Rivals' cards** in the Pub | after P3 |
+| **P5** | **Art pass 2** (title, base yard, the pitch) | **blocked: no PixelLab until you say so** |
+
+Not a phase: which tier a plain player can turn into when only Stars hold it —
+you chose option (a), leave it. **Rotate the PixelLab API key** that was pasted
+into a chat (round X).
 
 ## The crosswalk — where everything went
 

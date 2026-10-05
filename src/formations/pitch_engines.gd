@@ -62,7 +62,9 @@ var nuggets: Array = []
 var craters := {false: false, true: false}
 var _bench_done := false
 var _engine: AbilityEngine = null
-var _terrified_once := {false: false, true: false}
+## ROUND AG (your Q113 b): side -> {object kind: true}, what Glasya-Labolas
+## has already possessed of that side's since the last PLAY MAKER.
+var _possessed := {false: {}, true: {}}
 var _cold := false
 
 
@@ -109,6 +111,30 @@ func tick(ball: Node, units: Array, open_play: bool) -> void:
 				(_worked[unit.is_enemy] as Dictionary)[i] = true
 
 
+## GLASYA-LABOLAS'S ULTIMATE (round AF, more objects in round AG - your
+## Q113 b). "Possess any structure... the enemy is terrified and gets no
+## benefit from it once." While the OTHER side's Glasya Ultimate is up, the
+## first of each kind of object `victim` uses per PLAY MAKER gives nothing.
+## The kinds are the Tuning row `glasya_objects`:
+##   mine        a mine they worked gives no Ore
+##   ore         an ore counter (Valefor's crater) they pick up gives nothing
+##   touch       one unit's touch on the ball does not count
+##   gravestone  a Caim gravestone the ball knocks over gives no ghost
+## True = possessed now (and it is used up until the next PLAY MAKER).
+func _possess(victim: bool, kind: String) -> bool:
+	if _engine == null or not _engine.ultimate_up(not victim, "Glasya-Labolas"):
+		return false
+	var allowed := db.tune_text("glasya_objects", "mine,ore,touch,gravestone").to_lower().replace(" ", "").split(",")
+	if not allowed.has(kind):
+		return false
+	var done: Dictionary = _possessed[victim]
+	if done.has(kind):
+		return false
+	done[kind] = true
+	_engine.terrify_left[victim] = int(_engine.terrify_left[victim]) + 1
+	return true
+
+
 func _can_mine(card: PlayerData) -> bool:
 	if not db.tune_bool("mine_earth_only", true):
 		return true
@@ -152,7 +178,13 @@ func at_play_maker(abilities: AbilityEngine) -> void:
 		if abilities.has_emblem(side, "Valefor"):
 			_drop_ore(side)
 	for side in [false, true]:
-		abilities.set_touched(side, (_touched[side] as Dictionary).keys())
+		var touched: Array = (_touched[side] as Dictionary).keys()
+		# Glasya-Labolas (the OTHER side's Ultimate): one of their touches is
+		# possessed - that unit's "if this touched the ball" does not count.
+		if not touched.is_empty() and _possess(side, "touch"):
+			var lost := touched.pop_front() as PlayerData
+			print("[glasya] %s's touch is possessed - it does not count" % lost.player_name)
+		abilities.set_touched(side, touched)
 		var count := 0
 		for spot in mine_spots:
 			if bool(spot["side"]) == side:
@@ -162,7 +194,7 @@ func at_play_maker(abilities: AbilityEngine) -> void:
 		# C8 (Glasya-Labolas's Ultimate, the OTHER side's): one of the objects
 		# they used is possessed - they are terrified and get nothing from it,
 		# once per PLAY MAKER.
-		if worked > 0 and abilities.ultimate_up(not side, "Glasya-Labolas"):
+		if worked > 0 and _possess(side, "mine"):
 			worked -= 1
 			print("[glasya] a possessed mine terrifies the %s side - no Ore from it" % ("away" if side else "home"))
 		var per := db.tune_int("mine_ore_per_round", 1)
@@ -175,7 +207,7 @@ func at_play_maker(abilities: AbilityEngine) -> void:
 	_touched = {false: {}, true: {}}
 	_mined = {false: {}, true: {}}
 	_worked = {false: {}, true: {}}
-	_terrified_once = {false: false, true: false}
+	_possessed = {false: {}, true: {}}
 	if _cold:
 		_cold = false
 		_tint_ball(false)
@@ -243,6 +275,10 @@ func _ball_knocks_stones(ball: Node) -> void:
 		if at.distance_to(stone["pos"]) <= reach:
 			stones.remove_at(i)
 			var side := bool(stone["side"])
+			if _possess(side, "gravestone"):
+				print("[glasya] a possessed gravestone falls - no ghost")
+				queue_redraw()
+				continue
 			_engine.ghosts[side] = int(_engine.ghosts[side]) + 1
 			print("[caim] the ball knocks a gravestone over - %d ghost(s) on the ball" % int(_engine.ghosts[side]))
 			queue_redraw()
@@ -301,8 +337,7 @@ func _pick_up_nuggets(units: Array) -> void:
 				continue
 			if unit.global_position.distance_to(n["pos"]) <= reach:
 				nuggets.remove_at(i)
-				if _engine.ultimate_up(not unit.is_enemy, "Glasya-Labolas") and not bool(_terrified_once[unit.is_enemy]):
-					_terrified_once[unit.is_enemy] = true
+				if _possess(unit.is_enemy, "ore"):
 					print("[glasya] %s is terrified by a possessed ore counter - nothing gained" % unit.data.player_name)
 					queue_redraw()
 					continue

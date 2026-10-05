@@ -340,6 +340,9 @@ const S = {
   help:"<b>Written by <code>python3 tools/ability_audit.py</code>.</b> Each row is one sentence broken into <b>When / If / Cost / Do / Target / Value / Scope / Max</b> - the same answers an Abilities row gives - then <b>Words Needed</b> (what the engine does not know yet), <b>Phase</b> (which build phase brings them, guides/COMBAT_PHASES.md) and <b>Status</b>.<br><b>Your Ruling</b> is yours: write in it and re-running the script keeps it. The questions themselves are grouped, once each, in AbilityRulings.csv - answer there."},
 "AbilityRulings.csv":{key:"ID", what:"THE QUESTIONS THE CARD TEXT LEAVES OPEN - each asked once. Write in Your Ruling.",
   help:"<b>F1-F4 decide how every ability fires</b> (one side per duel, outside a duel, Reveal, priority). <b>R01-R17</b> are about wording: which keeper, what \u201cnext\u201d means, where Ore lives... <b>Cards</b> says how many cards each answer touches - R03 and R12 move the most.<br>Until you answer, the engine uses <b>My Reading</b>. Re-running <code>tools/ability_audit.py</code> keeps your answers."},
+"FreeKicks.csv":{key:null, what:"FREE KICKS AS A SET PIECE (round AG, phase P2, your Q075). A foul the referee sees gives the other side a free kick from WHERE THE FOUL WAS; this file says what it is worth by distance.",
+  cols:{"Range":"text","Up To":"number","Shot Power":"number","Takes Ball":["yes","no"],"Call":"text","Caption":"text"},
+  help:"<b>Up To</b> is how far from the goal the fouled side attacks, as a share of the pitch's length (0.25 = the quarter nearest that goal). Rows are read from the smallest; the first the spot fits is used, so the last row should say <code>1.00</code>.<br><b>Shot Power</b> is added to the fouled side's shot this round. <b>Takes Ball</b> <code>yes</code> = they take the ball and shoot this round, from the foul spot - when it is YOURS a window asks who takes it (AUTO: the strongest attacker). <code>no</code> = only the Shot Power, and only if they were shooting anyway.<br><b>Caption</b> words: <code>{metres}</code> (the pitch counts as 105 m) and <code>{taker}</code>.<br><b>Tuning.csv:</b> <code>free_kicks</code> 0 brings back the old flat <code>foul_free_kick_power</code>. A yellow or red still gives the ball (<code>foul_card_gives_possession</code>)."},
 "OreShop.csv":{key:null, what:"BELIAL'S ORE SHOP (round AF, his Ultimate). While Belial's Ultimate is up, a Bergmännlein about to duel may buy ONE thing here.",
   cols:{"Item":"text","Cost":"number","Effect":["power","shield","keeper","stamina"],"Value":"number","Words":"text","Notes":"long"},
   help:"<b>One row = one thing for sale.</b> <b>Cost</b> is Ore. <b>Effect</b>: <code>power</code> = +Value power this combat · <code>shield</code> = +Value shield on your keeper · <code>keeper</code> = your keeper Value% harder to beat until the next shot · <code>stamina</code> = +Value stamina to your keeper. <b>Words</b> is what the window says.<br><b>Buying IS that card's ability this duel</b> - its own Attack / Defend text does not go off (Belial's text: 'accessing the ore shop counts as the ability trigger'). You are asked; AUTO and the AI buy the best power item they can afford."},
@@ -394,7 +397,7 @@ const S = {
   key:"ID", enums:{Once:TF},
   help:"Terms in Requires are joined with a semicolon. <code>and</code> is NOT a word this understands. This is where achievements and unlocks are wired without code."},
 "Stats.csv":{what:"What the game counts. A new counter is a new row and nothing else.",
-  key:null, enums:{Event:["goal_scored","goal_conceded","shot_taken","save_made","duel_won","duel_lost","brew_drunk","match_ended","enemy_killed","wave_cleared","player_turned","player_recruited","foul_given"]},
+  key:null, enums:{Event:["goal_scored","goal_conceded","shot_taken","save_made","duel_won","duel_lost","brew_drunk","match_ended","enemy_killed","wave_cleared","player_turned","player_recruited","foul_given","free_kick_won"]},
   help:"<b>When</b> filters the event: <code>tier=I</code>, <code>star=yes</code>, <code>result=win</code>, <code>brew=fire</code>. Blank is always. A Counter containing <code>{card}</code> makes one counter per card."},
 
 /* ---------- words and numbers ---------- */
@@ -2187,6 +2190,17 @@ function paintBook(){
       ["Stars first","the Stars open the set cards a team is made of (<code>class_tree_gates_units</code> is on), so a new game lands on the Star Hall"],
       ["free Stars","the first three cost nothing - <code>team_build_free_stars</code>. Talent points come from matches, and matches now need Stars"],
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
+    ])}`);
+
+  card("Free kicks and the balance dials (round AG, phases P1 and P2)", `
+    <p style="margin:0 0 10px"><b>Combat is done; the pinned list is now phases P1-P5</b> (guides/PHASES.md). This round: P2 free kicks, and P1 balance.</p>
+    ${rows([
+      ["free kicks","<b>FreeKicks.csv</b>: a seen foul is a free kick from WHERE it was. Close ones (up to 26 m) and edge ones (up to 42 m) give the fouled side the ball and the shot; you pick the taker. <code>free_kicks</code> 0 = the old +3"],
+      ["Vassago","more than one enemy ability to copy? You pick (Q112 b). AUTO menu: vassago"],
+      ["Glasya-Labolas","possesses mines, ore counters, touches and Caim's gravestones - <code>glasya_objects</code> (Q113 b)"],
+      ["your dials","<code>counter_power_burn</code> 1 (Q115) · <code>haures_rock_shift</code> 0 (Q116)"],
+      ["new dials","<code>count_power_floor</code> <b>1</b> - Buer never below his printed power: Rauhnacht 1 win in 8 became 4 (Q118, Q122) · <code>star_power_tier_IV</code> - a Tier IV Star is stronger (0)"],
+      ["balance report","now counts duels won per tier and free kicks per range"],
     ])}`);
 
   card("The Ultimates (round AF, phase C8) - combat is complete", `

@@ -611,6 +611,23 @@ PitchEngines: Caim stones (on_ultimate, _ball_knocks_stones), Glasya terrify
 (mines in at_play_maker, nuggets). Q103 valefor_refill, Q104 haures_rock_scale.
 Balance: counter_power_<kind> dial, experiment in README. **Next: Q117.**
 
+## 12j. Round AG — DONE (pinned phases P1–P5 written; P2 built, P1 started)
+
+PHASES.md "After combat — the pinned phases": P1 mass testing/balance, P2 free
+kicks, P3 recruitment board, P4 hide Rivals' cards, P5 art pass 2 (blocked,
+no PixelLab). Answers: Q115 counter_power_burn 1, Q116 haures_rock_shift 0,
+Q112 b engine vassago_options/vassago_copy + main_scene _offer_vassago_copy
+after _offer_ore_shop (AUTO kind "vassago"), Q113 b PitchEngines._possess
+(victim, kind) with Tuning glasya_objects (mine, ore, touch, gravestone).
+P2: src/core/free_kicks.gd + data/FreeKicks.csv; main_scene _free_kick (in
+_settle_fouls; returns power/takes_ball/taker/spot), fouls["taker"] sets
+round_shooter_card, _free_kick_spot overrides _shooting_position once; AUTO
+kind "freekick"; Stats free_kick_won; Tuning free_kicks; tools/free_kick_check.gd.
+P1: "  DUEL <tier>: you|they win" log line; balance_report.py counts duels per
+tier and free kicks per range. Q118 dials: star_power_tier_<T> (in
+_ultimate_power), count_power_floor (in powerfromcount). Results in README.
+ability_check: _check_ag; Buer/Haures stories read the dials now.
+
 ## 13. Ideas worth offering him
 
 - An `Ultimate In Short` column so the emblem bar and hover can show one line

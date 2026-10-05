@@ -17,7 +17,7 @@ extends SceneTree
 #  A tool, not part of the game. Nothing loads it.
 # =============================================================
 
-const KNOWN_WORDS: Array[String] = ["loser", "thrower", "side", "tier"]
+const KNOWN_WORDS: Array[String] = ["loser", "thrower", "side", "tier", "keeper", "call", "caption"]
 const ROUNDS_A_MATCH := 9
 
 

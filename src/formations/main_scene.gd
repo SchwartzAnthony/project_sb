@@ -158,6 +158,8 @@ var offered_cards: Array[PlayerData] = []
 var player_attacks_this_round: bool = true
 ## The card holding the ball when the duel chain ended — it takes the shot.
 var round_shooter_card: PlayerData = null
+## ROUND AG (P2): where this round's free kick is taken from (INF = none).
+var _free_kick_spot := Vector2.INF
 ## Substitutions can nest (enemy rotates its Star at the same moment you do),
 ## so freezing is reference-counted rather than a plain bool.
 var _freeze_depth: int = 0
@@ -5227,6 +5229,8 @@ func resolve_round() -> void:
 		abilities.begin_duel(mine, theirs)
 		# ROUND AF (C8): Belial's ore shop, if his Ultimate is up.
 		await _offer_ore_shop(mine, theirs)
+		# ROUND AG (your Q112 b): Vassago's Ultimate - you pick what to copy.
+		await _offer_vassago_copy(mine)
 		# ROUND AA: anything of YOURS that would spend Ore or needs a yes in
 		# this duel is asked now, before it starts (your rulings Q5, R17).
 		await _ask_duel_questions(mine, theirs, player_has_ball)
@@ -5354,6 +5358,8 @@ func resolve_round() -> void:
 		# the answer no longer depends on what the duel did to possession.
 		var my_unit := unit_for_card(mine, false)
 		var i_won := attacker_wins == was_mine
+		# ROUND AG (P1): one plain line per duel for tools/balance_report.py.
+		print("  DUEL %s: %s" % [ALL_TIERS[i], "you win" if i_won else "they win"])
 		if i_won:
 			_report("duel_won", _facts_for(my_unit))
 		else:
@@ -5386,6 +5392,12 @@ func resolve_round() -> void:
 			if set_piece[i] != null:
 				round_shooter_card = set_piece[i]
 				break
+		# ROUND AG (P2): a free kick is taken by the one chosen to take it,
+		# from where the foul was.
+		var taker: PlayerData = fouls.get("taker", null)
+		if taker != null:
+			round_shooter_card = taker
+		_free_kick_spot = fouls.get("spot", Vector2.INF)
 
 	var bank := player_bank if player_has_ball else enemy_bank
 	bank += abilities.shot_bonus(not player_has_ball)
@@ -5612,16 +5624,86 @@ func _settle_fouls(player_lineup: Array, enemy_lineup: Array) -> Dictionary:
 		if not offender_is_enemy:
 			_report("foul_given", _facts_for(culprit))
 
-		# The other side gets the kick.
-		if offender_is_enemy:
-			out["player_bonus"] = int(out["player_bonus"]) + free_kick
-		else:
-			out["enemy_bonus"] = int(out["enemy_bonus"]) + free_kick
-		if card_gives_ball and verdict != "free kick":
-			out["possession_to"] = 0 if offender_is_enemy else 1
+		# The other side gets the kick. ROUND AG (phase P2): what it is worth
+		# depends on WHERE the foul was - data/FreeKicks.csv.
+		var fouled_is_enemy := not offender_is_enemy
+		var kick: Dictionary = await _free_kick(culprit, fouled_is_enemy,
+			enemy_lineup if fouled_is_enemy else player_lineup, free_kick)
+		var bonus_key := "enemy_bonus" if fouled_is_enemy else "player_bonus"
+		out[bonus_key] = int(out[bonus_key]) + int(kick["power"])
+		if bool(kick["takes_ball"]) or (card_gives_ball and verdict != "free kick"):
+			out["possession_to"] = 1 if fouled_is_enemy else 0
+			out["taker"] = kick["taker"]
+			out["spot"] = kick["spot"] if bool(kick["takes_ball"]) else Vector2.INF
 
 	# Round AA (C3): "for the round" foul shifts are spent on these rolls.
 	abilities.fouls_settled()
+	return out
+
+
+## ROUND AG (phase P2, your Q033 / Q075): THE FREE KICK, from where the foul
+## was. See src/core/free_kicks.gd and data/FreeKicks.csv. Returns
+## {power, takes_ball, taker (PlayerData or null), spot (Vector2)}.
+func _free_kick(culprit: PlayerUnit, fouled_is_enemy: bool, lineup: Array, flat_power: int) -> Dictionary:
+	var out: Dictionary = {"power": flat_power, "takes_ball": false, "taker": null, "spot": Vector2.INF}
+	if not db.tune_bool("free_kicks", true) or FreeKicks.rows().is_empty():
+		return out
+	var play := get_play_rect()
+	var spot := play.get_center()
+	if culprit != null and is_instance_valid(culprit):
+		spot = culprit.global_position
+	var goal := _goal_mouth(not fouled_is_enemy)   # the goal the FOULED side attacks
+	var share := FreeKicks.share_of(spot, goal.x, play)
+	var row := FreeKicks.pick(share)
+	out["power"] = int(row["power"])
+	out["takes_ball"] = bool(row["takes_ball"])
+	out["spot"] = spot
+
+	# Who takes it: this round's four, still on the pitch.
+	var takers: Array[PlayerData] = []
+	for card in lineup:
+		var c := card as PlayerData
+		if c == null or takers.has(c):
+			continue
+		var unit := unit_for_card(c, fouled_is_enemy)
+		if unit != null and not unit.is_sent_off:
+			takers.append(c)
+	var taker: PlayerData = null
+	for c in takers:
+		if taker == null or abilities.attack_power(c, fouled_is_enemy) > abilities.attack_power(taker, fouled_is_enemy):
+			taker = c
+	if out["takes_ball"] and not fouled_is_enemy and takers.size() > 1 and not _auto_covers("freekick"):
+		var labels: Array[String] = []
+		for c in takers:
+			labels.append("%s  (attack %d)" % [c.player_name, abilities.attack_power(c, false)])
+		freeze_play(true)
+		var chosen := await ChoiceWindow.ask(self, String(row["call"]),
+			"%s. Who takes it? He shoots this round, +%d on the shot." % [
+				FreeKicks.caption(row, share, "your side"), int(row["power"])], labels)
+		freeze_play(false)
+		if chosen >= 0 and chosen < takers.size():
+			taker = takers[chosen]
+	out["taker"] = taker
+	var taker_name := taker.player_name if taker != null else ("they" if fouled_is_enemy else "you")
+	var line := FreeKicks.caption(row, share, taker_name)
+	print("  FREE KICK (%s) for the %s side: %s, +%d%s" % [row["range"],
+		"away" if fouled_is_enemy else "home", line, int(row["power"]),
+		" - they take the ball and shoot" if out["takes_ball"] else ""])
+	if not fouled_is_enemy:
+		var facts: Dictionary = {"range": String(row["range"]), "power": str(row["power"])}
+		if taker != null:
+			facts["card"] = taker.player_name
+		_report("free_kick_won", facts)
+
+	var seconds := db.tune_float("foul_window_seconds", 1.6)
+	if seconds > 0.0:
+		var window := AnimWindow.open(self, db, 150)
+		if is_instance_valid(window):
+			window.show_panel("%s — %s" % [String(row["call"]), line], "",
+				"win", taker, ["win", "idle"])
+		await get_tree().create_timer(seconds, true, false, true).timeout
+		if is_instance_valid(window):
+			window.close()
 	return out
 
 
@@ -5797,6 +5879,7 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 	var keeper: GoalieUnit = goalies.get(target_key)
 
 	if keeper == null or shot_power <= 0:
+		_free_kick_spot = Vector2.INF
 		print("  No shot taken this round.")
 		abilities.round_finished()
 		_absorb_ability_news()
@@ -5833,6 +5916,10 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 		# they run to a fixed distance OFF THE GOAL LINE, so wherever the move
 		# started the shot is taken from somewhere believable.
 		var spot := _shooting_position(shooter, target_key)
+		# ROUND AG (P2): a free kick is shot from where the foul was.
+		if _free_kick_spot != Vector2.INF:
+			spot = _free_kick_spot
+		_free_kick_spot = Vector2.INF
 		var run := shooter.global_position.distance_to(spot) \
 			/ maxf(db.tune_float("shot_run_up_speed", 520.0), 1.0)
 		await shooter.run_to(spot, clampf(run,
@@ -7104,6 +7191,30 @@ func _offer_ore_shop(mine: PlayerData, theirs: PlayerData) -> void:
 		abilities.shop_buy(theirs, true, _best_shop_item(theirs_items))
 
 
+## VASSAGO'S ULTIMATE (your Q112 b). Your Unkengeister copies an enemy
+## ability from their exhaust; with more than one to choose from, you pick.
+## (AUTO, or "auto ask vassago", keeps the engine's pick: the first one.)
+func _offer_vassago_copy(mine: PlayerData) -> void:
+	if abilities == null:
+		return
+	var options := abilities.vassago_options(mine, false)
+	if options.size() < 2 or _auto_covers("vassago"):
+		return
+	var labels: Array[String] = []
+	for c in options:
+		var words := c.active_attack_ability().strip_edges()
+		if words == "":
+			words = c.active_defend_ability().strip_edges()
+		labels.append("%s - %s" % [c.player_name, words.left(90)])
+	freeze_play(true)
+	var chosen := await ChoiceWindow.ask(self, "VASSAGO'S ULTIMATE",
+		"%s copies one enemy ability from their exhaust for this duel. That card stays in their exhaust this cycle." % mine.player_name,
+		labels)
+	freeze_play(false)
+	if chosen >= 0 and chosen < options.size():
+		abilities.vassago_copy(mine, false, options[chosen])
+
+
 func _best_shop_item(items: Array) -> Dictionary:
 	var best: Dictionary = {}
 	for it in items:
@@ -7467,6 +7578,8 @@ const AUTO_KINDS := [
 	["exhaust", "Swapping a card in from the exhaust (round AC)"],
 	["bench", "Choosing your bench for fusing (round AD)"],
 	["shop", "Buying at Belial's ore shop (round AF)"],
+	["vassago", "Choosing what Vassago's Ultimate copies (round AG)"],
+	["freekick", "Choosing who takes your free kick (round AG)"],
 ]
 
 

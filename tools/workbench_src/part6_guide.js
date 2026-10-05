@@ -500,6 +500,17 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("Free kicks and the balance dials (round AG, phases P1 and P2)", `
+    <p style="margin:0 0 10px"><b>Combat is done; the pinned list is now phases P1-P5</b> (guides/PHASES.md). This round: P2 free kicks, and P1 balance.</p>
+    ${rows([
+      ["free kicks","<b>FreeKicks.csv</b>: a seen foul is a free kick from WHERE it was. Close ones (up to 26 m) and edge ones (up to 42 m) give the fouled side the ball and the shot; you pick the taker. <code>free_kicks</code> 0 = the old +3"],
+      ["Vassago","more than one enemy ability to copy? You pick (Q112 b). AUTO menu: vassago"],
+      ["Glasya-Labolas","possesses mines, ore counters, touches and Caim's gravestones - <code>glasya_objects</code> (Q113 b)"],
+      ["your dials","<code>counter_power_burn</code> 1 (Q115) · <code>haures_rock_shift</code> 0 (Q116)"],
+      ["new dials","<code>count_power_floor</code> <b>1</b> - Buer never below his printed power: Rauhnacht 1 win in 8 became 4 (Q118, Q122) · <code>star_power_tier_IV</code> - a Tier IV Star is stronger (0)"],
+      ["balance report","now counts duels won per tier and free kicks per range"],
+    ])}`);
+
   card("The Ultimates (round AF, phase C8) - combat is complete", `
     <p style="margin:0 0 10px"><b>All 12 Ultimates play.</b> Write them in <b>Star Players.csv, Ultimate Side</b> - then <code>python3 tools/sync_ultimates.py</code> copies them onto the Emblems.</p>
     ${rows([

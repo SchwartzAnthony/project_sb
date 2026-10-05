@@ -1,0 +1,4 @@
+Range,Up To,Shot Power,Takes Ball,Call,Caption
+close,0.25,3,yes,DIRECT FREE KICK,"{metres} m out - {taker} lines it up"
+edge,0.40,2,yes,FREE KICK,"{metres} m out - {taker} takes it"
+far,1.00,1,no,QUICK FREE KICK,"{metres} m out - {taker} plays it short"

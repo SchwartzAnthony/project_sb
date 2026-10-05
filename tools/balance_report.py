@@ -15,6 +15,9 @@
 #      the engines     Rose tokens, Swans, Ore gained and spent, counters
 #      bending         switches to defender, negates, forced sides
 #      the referee     fouls, cards, coin flips, bar segments from abilities
+#      free kicks      how many of each Range of data/FreeKicks.csv (round AG)
+#      duels by tier   how many duels each class wins in Tier I, II, III, IV
+#                      (round AG - a weak tier shows up here first)
 #
 #  Writes the table to the screen and to balance_report.md beside this file.
 #  It takes a while: about 4 minutes per match, four at a time.
@@ -53,8 +56,12 @@ COUNT = [
     ("fouls", r"  FOUL: "),
     ("yellows", r"-> yellow"),
     ("reds", r"-> red"),
+    ("free kicks: close", r"FREE KICK \(close\)"),
+    ("free kicks: edge", r"FREE KICK \(edge\)"),
+    ("free kicks: far", r"FREE KICK \(far\)"),
     ("SCRIPT ERRORS", r"SCRIPT ERROR"),
 ]
+TIERS = ["I", "II", "III", "IV"]
 
 
 def play(klass, seed):
@@ -84,6 +91,12 @@ def read(klass, out):
             row[name] += sum(int(h) for h in hits)
         else:
             row[name] += len(hits)
+    # ROUND AG (P1): duels won per tier - the number that found the Rauhnacht
+    # Tier IV problem, now counted for every class.
+    for tier, who in re.findall(r"  DUEL (I|II|III|IV): (you|they) win", out):
+        row["duels Tier %s" % tier] += 1
+        if who == "you":
+            row["won Tier %s" % tier] += 1
     for em in re.findall(r"\[emblems\] (.+?) ASCENDED", out):
         row["ascended: " + em] += 1
     for em in re.findall(r"\[emblems\] (.+?) turns over - BLOCKED", out):
@@ -108,6 +121,13 @@ def main():
     lines.append("|---|" + "---|" * len(classes))
     for k in keys:
         lines.append("| %s | %s |" % (k, " | ".join(str(totals[c][k]) for c in classes)))
+    for t in TIERS:
+        cells = []
+        for c in classes:
+            n = totals[c]["duels Tier %s" % t]
+            w = totals[c]["won Tier %s" % t]
+            cells.append("%d of %d (%d%%)" % (w, n, round(100 * w / n)) if n else "-")
+        lines.append("| duels won, Tier %s | %s |" % (t, " | ".join(cells)))
     extra = sorted({k for c in classes for k in totals[c] if k.startswith(("ascended", "blocked", "unfinished"))})
     for k in extra:
         lines.append("| %s | %s |" % (k, " | ".join(str(totals[c][k]) for c in classes)))

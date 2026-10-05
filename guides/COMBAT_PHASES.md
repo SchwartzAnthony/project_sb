@@ -359,6 +359,11 @@ keeper eats Ore), Vassago (copy from their exhaust), Glasya-Labolas
 **COMBAT IS COMPLETE**: 228 abilities, 12 Basic sides, 12 Ultimates. What
 comes next is mass testing (Questions Q117).
 
+Round AG, your answers: Vassago asks you which ability to copy when there is
+more than one (Q112 b); Glasya-Labolas possesses mines, ore counters, touches
+and Caim's gravestones (Q113 b, `glasya_objects`). What comes after combat is
+the pinned phases P1–P5 in `guides/PHASES.md`.
+
 ## What I need from you
 
 1. **`data/Questions.csv`** - 59 questions, each with the default that is
