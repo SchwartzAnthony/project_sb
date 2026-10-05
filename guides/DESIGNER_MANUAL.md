@@ -5252,7 +5252,9 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | change the art style every picture is drawn in | `data/ArtStyle.csv` and `guides/ART_STYLE.md` (your references: `art_source/style_refs/`) |
 | change a menu button's sound | `Hover Sound` / `Press Sound` in `data/MenuConfig.csv` |
 | make or change a sound effect | `data/SoundRecipes.csv`, then `python3 tools/make_sfx.py` |
-| change the menu tune | make a new 40 s track in Ludo (section 16d), put it in `art_source/ludo/music/`, point `data/MusicLoops.csv` at it, run `python3 tools/make_loop.py` |
+| change the menu tune | edit the notes in `data/songs/menu_blasmusik.csv`, the players in `data/SongParts.csv`, the speed in `data/Songs.csv`; run `python3 tools/make_song.py` (section 16d) |
+| write a new tune for another screen | a new score in `data/songs/`, a row in `Songs.csv` and its players in `SongParts.csv`; run `python3 tools/make_song.py`, then name the `.ogg` in Audio.csv |
+| use the Ludo version of the menu tune | put `menu_oktoberfest_ludo` in the `Sound` column of Audio.csv's `menu_theme` row |
 | loop any music cleanly | a row in `data/MusicLoops.csv`, then `python3 tools/make_loop.py` |
 | simulate 1,000 matches | `godot --headless --path . --script res://tests/sim_runner.gd` (matchups: `data/SimMatchups.csv`) |
 | find over- and under-powered cards | `python3 tools/balance_analysis.py` -> `guides/BALANCE_ANALYSIS.md` |
@@ -5553,10 +5555,61 @@ The tests are in `tests/unit/`; 27 of them pass:
 **To add a test:** make `tests/unit/test_<thing>.gd` extending `GutTest`, and
 write `func test_...():` with `assert_eq` / `assert_true`. GUT finds it.
 
-## 16d. Music from Ludo.ai, looped cleanly (round AL)
+## 16d. Music written note by note, and music from Ludo.ai (round AL)
 
-**The main menu now plays Bavarian Blasmusik made by Ludo.ai**, a brass
-band in a beer tent. The game plays it round and round.
+**The main menu plays a Bavarian Blasmusik polka written note by note, with
+no AI.** Real recorded brass instruments play it, from the free
+*GeneralUser GS* soundfont. Because every note is written down, nothing
+creeps in as the song goes on: it plays exactly what's in the spreadsheet.
+The Ludo.ai version is kept as a spare, `menu_oktoberfest_ludo`.
+
+### The hand-written song: three spreadsheets
+
+Run `python3 tools/make_song.py`. It writes `assets/audio/menu_oktoberfest.ogg`
+as a perfect loop: the echo of the last bar is folded onto the first.
+
+**`data/Songs.csv`** has one row per song.
+
+| column | |
+|---|---|
+| `Score` | the score's CSV (`data/songs/…`) |
+| `Output` | the `.ogg` the game plays. Name it in Audio.csv's `Sound` column |
+| `Tempo` | beats a minute, 4 beats a bar (116 = a relaxed beer-tent polka) |
+| `Soundfont` | the instruments (`art_source/soundfonts/GeneralUser-GS.sf2`, free: github.com/mrbumpy409/GeneralUser-GS) |
+| `Reverb` | 0–1, how much beer-tent room |
+| `Loudness` | the average level in dB |
+| `Humanize` | the milliseconds the players may drift, so it sounds played, not programmed (0 = robot-tight) |
+
+**`data/SongParts.csv`** has one row per player.
+
+| column | |
+|---|---|
+| `Plays` | `melody` (the tune), `thirds` (the tune a third lower — the Bavarian sound), `bass` (root then fifth), `chords` (the short "pah"), `drum` |
+| `Instrument` | a General MIDI number: 56 trumpet, 57 trombone, 58 tuba, 60 French horns, 71 clarinet, 21 accordion. For a drum: 36 bass drum, 38 snare, 42 hi-hat, 49 or 57 crash |
+| `Volume` | 0–127. **0 switches a player off** (the clarinet ships off) |
+| `Pan` | −100 left to 100 right |
+| `Octave` | +1 or −1 to move a part up or down an octave |
+| `Beats` | when bass, chords and drums play: `1 3`, `2 4`, `1& 3&`… |
+| `Length` | how long a bass or chord note lasts, in eighth-notes |
+
+**`data/songs/menu_blasmusik.csv`** is the score, one bar a row.
+
+| column | |
+|---|---|
+| `Chord` | `Bb`, `F7`, `Eb`, `Cm`, `Gm7`… The tuba and the pah follow it |
+| `Melody` | 8 eighth-notes: `D5` (the D above middle C), `Bb4`, `Eb5`, `F#4`; `-` holds the note before, `R` is a rest |
+
+As shipped, it has 32 bars in Bb major, 66 seconds:
+
+- **A** (bars 1–8): the tune.
+- **A2** (bars 9–16): the tune with a higher ending.
+- **B** (bars 17–24): the trio, in Eb, as Bavarian polkas do.
+- **A2** (bars 25–32): the tune again, and the last bar leads back into bar 1.
+
+### The Ludo.ai version (kept as a spare)
+
+`menu_oktoberfest_ludo.ogg`: Bavarian Blasmusik made by Ludo.ai, a brass band
+in a beer tent, cut into a loop by `tools/make_loop.py`.
 
 ### What we learned about AI music, so it doesn't sound like AI
 

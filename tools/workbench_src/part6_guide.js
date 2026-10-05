@@ -500,10 +500,11 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
-  card("Oktoberfest music from Ludo.ai (round AL)", `
-    <p style="margin:0 0 10px"><b>The title screen plays Bavarian Blasmusik now - a brass band in a beer tent, looped with no bump.</b></p>
+  card("Oktoberfest music, written note by note (round AL)", `
+    <p style="margin:0 0 10px"><b>The title screen plays a Bavarian Blasmusik polka written note by note - no AI - played by recorded brass.</b></p>
     ${rows([
-      ["the tune","Ludo.ai, 40 seconds, augment prompt off - the exact prompt is in the manual, section 16d"],
+      ["the tune","<b>data/songs/menu_blasmusik.csv</b>: 32 bars, one a row - chord + 8 eighth-notes. Players: <b>SongParts.csv</b>; tempo, echo, loudness: <b>Songs.csv</b>. Run <code>python3 tools/make_song.py</code>"],
+      ["Ludo spare","the Ludo.ai Blasmusik is kept as <code>menu_oktoberfest_ludo</code> - put it in Audio.csv's Sound column to switch"],
       ["loop it","<b>MusicLoops.csv</b> + <code>python3 tools/make_loop.py</code>: finds the cleanest join, blends it, evens the loudness"],
       ["not AI-ish","short tracks, every instrument named, no build-up; brass band, NOT accordion (or it sounds like pirates)"],
       ["downloads","the Deck helper <code>tools/mcp/openai_images.mjs</code> saves Ludo / PixelLab files into the project; it also paints with OpenAI"],

@@ -1,3 +1,7 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# ROUND AL: the free GeneralUser GS soundfont (32 MB) used by tools/make_song.py.
+# Download: https://github.com/mrbumpy409/GeneralUser-GS (GeneralUser-GS.sf2)
+art_source/soundfonts/*.sf2
