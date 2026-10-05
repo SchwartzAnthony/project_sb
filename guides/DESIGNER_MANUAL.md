@@ -5411,29 +5411,44 @@ As shipped:
   (`hero_cheer.png`, 8 frames) is still there.
 - **The title:** **STURMBALL** in gold.
 
-### Comic first, pixels second — the art style (rounds AJ–AK)
+### Comic first, pixels second — the art style (rounds AJ–AL)
 
 **Your rule:** every picture is drawn as a **Marcinelle-school comic
-first**, and is pixelated afterwards. **PixelLab makes the art; Ludo makes
-the music.**
+first**, and is pixelated afterwards.
+
+**Since round AL, OpenAI paints the comic masters.** PixelLab's own drawings
+always came out half pixel-art, so they could never look like your
+Midjourney kicker. OpenAI's image model (gpt-image-1) can.
+
+- **Characters away from the pitch** use this: the menu, the bar,
+  conversations and portraits.
+- **Players on the pitch** stay simple pixel sprites.
+- **Ludo and Suno** make the music.
 
 **The style is written down in two places:**
 
 - **`guides/ART_STYLE.md`:** what makes it Marcinelle (ugly by
   exaggeration: noses, eyes, teeth, gangly or pot-bellied) and what does not
   (pig noses, ball heads, glossy shading).
-- **`data/ArtStyle.csv`:** the words every art prompt starts with (`style`,
-  `ugliness`, `line`, `colour`, `avoid`) and the recipe (`pipeline`).
-  **Change a row there and every future picture changes with it.**
+- **`data/ArtStyle.csv`:** the words every art prompt is built from (`style`,
+  `ugliness`, `line`, `colour`, `avoid`), the recipe (`pipeline`) and the
+  character prompt template (`character_prompt`). **Change a row and every
+  future picture changes with it.**
 
-Your references are in `art_source/style_refs/`. A small sheet of them,
-`style_sheet.png`, is sent to PixelLab as the style image.
+Your references are in `art_source/style_refs/`. **`ref_08.png`, your
+Midjourney kicker, is the style reference sent to OpenAI with every
+character.**
 
 **How a picture is made:**
 
-1. **The comic master.** PixelLab `create_image_pro`, 384 px, with the style
-   sheet. Your sketch, if there is one, sets the pose. It goes in
-   `art_source/pixellab/<thing>/`.
+1. **The comic master.** OpenAI paints it at 1024 × 1536 on a transparent
+   background. Two reference pictures go with it:
+   - `ref_08.png` for the **style**;
+   - your **sketch**, if there is one, for the **pose only**.
+
+   It is saved in `art_source/openai/<thing>/`. The painting is done by the
+   small helper on your Deck, `tools/mcp/openai_images.mjs`. Your key stays
+   in `claude_desktop_config.json`.
 2. **The pixel art.** A row of **`data/Pixelate.csv`**, then
    `python3 tools/pixelate.py`.
 
@@ -5441,18 +5456,26 @@ Your references are in `art_source/style_refs/`. A small sheet of them,
 |---|---|
 | `Source` | the comic master |
 | `Output` | where the pixel art goes |
-| `Height` | pixels tall (the width follows). **About half the master** keeps the ink lines; the screen draws it 2×, 3× … |
-| `Colours` | how many colours (about 48) |
+| `Height` | pixels tall (the width follows). The screen draws it 2×, 3× … so keep the size you show it at a whole multiple |
+| `Colours` | how many colours (32 for clean pixel art) |
 | `Outline` | `yes` = a 1-pixel black ink line all round |
-| `Ink` | colours darker than this become pure black ink (0 = off; about 30) |
+| `Ink` | colours darker than this become pure black ink (0 = off; about 45) |
 | `Crop` | `yes` = cut away the empty space first |
-| `Fill Holes` | a colour for see-through holes inside the figure. PixelLab's background removal sometimes eats enclosed white, such as a football's white panels |
+| `Smooth` | **new in round AL.** `0` = off. `5`, `7` or `9` melt the fine hatching and paint texture **before** shrinking, so the result is clean, flat pixel art like your second image instead of noisy dots. 7 is about right for an OpenAI master |
+| `Fill Holes` | a colour for see-through holes inside the figure. Only for PixelLab masters: OpenAI's transparency is clean, and filling would close the gap between an arm and the body |
 
-**The menu hero (round AK)** comes in two versions, both from your sketch:
+**The menu hero (round AL)** was painted by OpenAI from your Midjourney kicker
+and your sketch. He comes in three versions, each 189 × 280 pixel art,
+drawn 2×:
 
-- **A, the stocky drinker,** is on the title screen now
-  (`hero_comic.png`, 150 × 186, drawn 3×).
-- **B, the lanky one,** is `hero_comic_b.png`. He faces left.
+- **A, the wild-haired kicker,** is on the title screen now (`hero_comic.png`).
+- **B, the stocky drinker** (bald dome, red nose, moustache), is
+  `hero_comic_b.png`.
+- **C, the lanky one in a Tyrolean hat,** is `hero_comic_c.png`.
+
+To switch, put the file name in the `picture` row of `MainMenu.csv`. The
+round AK PixelLab heroes are kept as `hero_comic_ak.png` and
+`hero_comic_ak_b.png`.
 
 ### The buttons' sounds — two columns of `data/MenuConfig.csv`
 

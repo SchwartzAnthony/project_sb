@@ -414,11 +414,11 @@ const S = {
   cols:{"Part":["background","title","picture"],"Image":"text","Text":"text","X":"number","Y":"number","Width":"number","Height":"number","Frames":"number","FPS":"number","Notes":"long"},
   help:"<b>background</b>: the wallpaper (the first row wins). <b>title</b>: the big word - Text, and Height is the font size. <b>picture</b>: anything standing on the screen, as many rows as you like. X and Y are the CENTRE on a 1920 x 1080 screen. A picture can be a STRIP of <b>Frames</b> pictures side by side, played at <b>FPS</b> - the hero is 8 frames. Keep Width/Height a whole multiple of the picture's pixels (x2, x3) so the pixel art stays sharp.<br>The two PixelLab wallpapers: <code>menu_chaos_a.png</code> (the riot) and <code>menu_chaos_b.png</code> (the beer tents at sunset); the beer hall is <code>background.png</code>."},
 "ArtStyle.csv":{key:"Key", what:"THE ART STYLE (round AK): the words every art prompt starts with, so every picture comes out Marcinelle school. Read with guides/ART_STYLE.md; your references are in art_source/style_refs/.",
-  cols:{"Key":["style","ugliness","line","colour","avoid","pipeline","style_sheet"],"Text":"long","Notes":"long"},
+  cols:{"Key":["style","ugliness","line","colour","avoid","pipeline","style_sheet","character_prompt"],"Text":"long","Notes":"long"},
   help:"<b>style</b> - which comics. <b>ugliness</b> - ugly by EXAGGERATION (noses, eyes, teeth, gangly or pot-bellied), never by animal parts. <b>line</b> - wobbly black brush ink. <b>colour</b> - flat, 2-3 tones. <b>avoid</b> - what went wrong before. <b>pipeline</b> - comic master in PixelLab first, then tools/pixelate.py. <b>style_sheet</b> - the small sheet of your references sent to PixelLab as the style image.<br>Change a row and every picture made from then on follows it."},
 "Pixelate.csv":{key:"ID", what:"COMIC FIRST, PIXELS SECOND (round AJ): turns a Marcinelle-school comic master into the pixel art the game uses. Run python3 tools/pixelate.py.",
-  cols:{"ID":"text","Source":"text","Output":"text","Height":"number","Colours":"number","Outline":["yes","no"],"Ink":"number","Crop":["yes","no"],"Fill Holes":"text","Notes":"long"},
-  help:"<b>Source</b>: the comic drawing (from Ludo.ai, or your own) in art_source/. <b>Output</b>: where the pixel art goes. <b>Height</b>: pixels tall (the width follows) - the screen draws it 2x, 3x... so keep the size you show it at a whole multiple. <b>Colours</b>: fewer = more pixel-art. <b>Outline</b>: a 1-pixel black ink line round the outside. <b>Ink</b>: colours darker than this become pure black ink (0 = off). <b>Crop</b>: trim the empty space first. <b>Fill Holes</b> (round AK): a colour like <code>#f4f1ea</code> for see-through holes INSIDE the figure - PixelLab sometimes makes enclosed white see-through (a football's panels). About HALF the master's height keeps the ink lines.<br>Change a number, run <code>python3 tools/pixelate.py</code> (or <code>python3 tools/pixelate.py menu_hero</code> for one row), look in Godot."},
+  cols:{"ID":"text","Source":"text","Output":"text","Height":"number","Colours":"number","Outline":["yes","no"],"Ink":"number","Crop":["yes","no"],"Smooth":"number","Fill Holes":"text","Notes":"long"},
+  help:"<b>Source</b>: the comic drawing (from Ludo.ai, or your own) in art_source/. <b>Output</b>: where the pixel art goes. <b>Height</b>: pixels tall (the width follows) - the screen draws it 2x, 3x... so keep the size you show it at a whole multiple. <b>Colours</b>: fewer = more pixel-art. <b>Outline</b>: a 1-pixel black ink line round the outside. <b>Ink</b>: colours darker than this become pure black ink (0 = off). <b>Crop</b>: trim the empty space first. <b>Smooth</b> (round AL): 0 off; 5/7/9 melt the hatching BEFORE shrinking, for clean flat pixel art (7 for an OpenAI master). <b>Fill Holes</b> (round AK, PixelLab masters only): a colour like <code>#f4f1ea</code> for see-through holes INSIDE the figure - PixelLab sometimes makes enclosed white see-through (a football's panels). About HALF the master's height keeps the ink lines.<br>Change a number, run <code>python3 tools/pixelate.py</code> (or <code>python3 tools/pixelate.py menu_hero</code> for one row), look in Godot."},
 "Songs.csv":{key:"Song", what:"MUSIC WRITTEN NOTE BY NOTE - NO AI (round AL): one row per song. Run python3 tools/make_song.py.",
   cols:{"Song":"text","Score":"text","Output":"text","Tempo":"number","Soundfont":"text","Reverb":"number","Loudness":"number","Humanize":"number","Notes":"long"},
   help:"<b>Score</b>: the notes, a CSV in data/songs/. <b>Output</b>: the looping .ogg - name it in Audio.csv. <b>Tempo</b>: beats a minute, 4 a bar. <b>Soundfont</b>: the recorded instruments (free GeneralUser GS). <b>Reverb</b>: 0-1 beer-tent room. <b>Loudness</b>: dB. <b>Humanize</b>: ms the players may drift (0 = robot).<br>Who plays is in <b>SongParts.csv</b>."},
@@ -2221,6 +2221,15 @@ function paintBook(){
       ["Stars first","the Stars open the set cards a team is made of (<code>class_tree_gates_units</code> is on), so a new game lands on the Star Hall"],
       ["free Stars","the first three cost nothing - <code>team_build_free_stars</code>. Talent points come from matches, and matches now need Stars"],
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
+    ])}`);
+
+  card("The menu hero, painted by OpenAI (round AL)", `
+    <p style="margin:0 0 10px"><b>Your Midjourney kicker is the style. OpenAI paints the comic, tools/pixelate.py makes the pixels.</b></p>
+    ${rows([
+      ["the hero","A wild-haired kicker on the title screen; B stocky drinker, C Tyrolean hat ready - <code>assets/menu/hero_comic(_b/_c).png</code>, 189 x 280, drawn x2"],
+      ["masters","art_source/openai/menu_hero/ - 1024 x 1536, transparent; style = ref_08.png, pose = your sketch"],
+      ["prompt","<b>ArtStyle.csv</b> new row character_prompt - fill in the brackets for any new character"],
+      ["pixelate","<b>Pixelate.csv</b> new column Smooth - melts the hatching first so the pixel art is clean"],
     ])}`);
 
   card("Oktoberfest music, written note by note (round AL)", `

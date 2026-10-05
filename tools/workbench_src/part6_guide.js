@@ -500,6 +500,15 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("The menu hero, painted by OpenAI (round AL)", `
+    <p style="margin:0 0 10px"><b>Your Midjourney kicker is the style. OpenAI paints the comic, tools/pixelate.py makes the pixels.</b></p>
+    ${rows([
+      ["the hero","A wild-haired kicker on the title screen; B stocky drinker, C Tyrolean hat ready - <code>assets/menu/hero_comic(_b/_c).png</code>, 189 x 280, drawn x2"],
+      ["masters","art_source/openai/menu_hero/ - 1024 x 1536, transparent; style = ref_08.png, pose = your sketch"],
+      ["prompt","<b>ArtStyle.csv</b> new row character_prompt - fill in the brackets for any new character"],
+      ["pixelate","<b>Pixelate.csv</b> new column Smooth - melts the hatching first so the pixel art is clean"],
+    ])}`);
+
   card("Oktoberfest music, written note by note (round AL)", `
     <p style="margin:0 0 10px"><b>The title screen plays a Bavarian Blasmusik polka written note by note - no AI - played by recorded brass.</b></p>
     ${rows([

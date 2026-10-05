@@ -17,19 +17,29 @@ style.** They are:
 | bold, wobbly black **brush ink**, thick and thin strokes, sweat drops, motion lines | clean vector lines, glossy 3D or airbrush shading, anime |
 | flat bright colours, 2–3 tones a shape | gradients |
 
-## How a picture is made: always these two steps
+## How a picture is made: always these two steps (round AL)
 
-1. **The comic master.** PixelLab `create_image_pro`, 384 px:
-   - **The prompt** is the rows of `data/ArtStyle.csv` (style, ugliness,
-     line, colour), then what the picture is.
-   - **The style image** is `art_source/style_refs/style_sheet.png`, with
-     outline, detail and shading copied from it.
-   - **A pose reference:** if you drew a sketch, it goes in as the pose.
-   - **Where it goes:** `art_source/pixellab/<thing>/`.
+1. **The comic master: OpenAI** (gpt-image-1, through the Deck helper
+   `tools/mcp/openai_images.mjs`).
+   - **The prompt** is the `character_prompt` row of `data/ArtStyle.csv`,
+     with the brackets filled in. It names the *school*, never a living
+     artist: OpenAI refuses those, and the reference picture carries the style.
+   - **The style reference** is `art_source/style_refs/ref_08.png`, your
+     Midjourney kicker.
+   - **A pose reference:** if you drew a sketch, it goes in second, for the
+     pose only.
+   - **Settings:** 1024 × 1536, transparent background, high quality, input
+     fidelity low (so it borrows the style, not the exact picture).
+   - **Where it goes:** `art_source/openai/<thing>/`.
 2. **The pixel art.** A row in `data/Pixelate.csv`, then
    `python3 tools/pixelate.py`.
-   - **Size:** half the master's size keeps the ink lines.
-   - **Colours:** about 48.
-   - **Fill Holes:** for white areas PixelLab made see-through.
+   - **Size:** about 280 px tall for a full figure, drawn 2× on screen.
+   - **Colours:** 32.
+   - **Ink:** 45.
+   - **Smooth:** 7. This melts the painted hatching first, so the pixels
+     come out clean and flat.
 
-**PixelLab is for art; Ludo is for music** (your round AK rule).
+**Who makes what:** OpenAI makes the comic masters, PixelLab makes the pitch
+sprites and animation, and Ludo and Suno make the music. Players on the
+pitch stay simple pixel art. The menu, the bar, conversations and portraits
+use this painted-then-pixelated look.
