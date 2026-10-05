@@ -500,6 +500,15 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("The menu hero, comic first (round AJ)", `
+    <p style="margin:0 0 10px"><b>Your rule: draw it as a Marcinelle-school comic, THEN pixelate it.</b></p>
+    ${rows([
+      ["the hero","your sketch, drawn by Ludo.ai as a comic (uglier each round), then pixelated: <code>assets/menu/hero_comic.png</code>, 135 x 172, drawn x3"],
+      ["pixelate","<b>Pixelate.csv</b> + <code>python3 tools/pixelate.py</code>: height, colours, ink outline"],
+      ["masters","art_source/ludo/menu_hero/ - the chosen comic, three other versions and your sketch"],
+      ["Ludo","working now - it is the comic-drawing step; PixelLab is kept for pixel-native work (animation)"],
+    ])}`);
+
   card("The title screen, sound and the testing tools (round AI)", `
     <p style="margin:0 0 10px"><b>New title screen, music and sounds; a simulator, an analyst and unit tests.</b></p>
     ${rows([

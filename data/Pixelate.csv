@@ -1,0 +1,2 @@
+ID,Source,Output,Height,Colours,Outline,Ink,Crop,Notes
+menu_hero,art_source/ludo/menu_hero/hero_comic_master.png,assets/menu/hero_comic.png,172,40,yes,55,yes,"ROUND AJ. The main-menu kicker: drawn as a Marcinelle-school comic by Ludo.ai from your sketch, then pixelated here. Height 172 is drawn x3 on the title screen (data/MainMenu.csv)."

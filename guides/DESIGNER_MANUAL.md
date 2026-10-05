@@ -5248,6 +5248,7 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | change what a free kick is worth, by distance | `data/FreeKicks.csv` (round AG) |
 | change who is on the recruitment board, and what they cost | `data/RecruitBoard.csv` (round AH) |
 | change the title screen's wallpaper, title or hero | `data/MainMenu.csv` (round AI) |
+| turn a comic drawing into pixel art | `data/Pixelate.csv`, then `python3 tools/pixelate.py` (round AJ) |
 | change a menu button's sound | `Hover Sound` / `Press Sound` in `data/MenuConfig.csv` |
 | make or change a sound effect | `data/SoundRecipes.csv`, then `python3 tools/make_sfx.py` |
 | change the menu tune | the top of `tools/make_music.py`, then run it |
@@ -5400,9 +5401,36 @@ As shipped:
 - **The wallpaper:** the Oktoberfest riot (`assets/menu/menu_chaos_a.png`).
   The other one, `menu_chaos_b.png`, has the beer-tent stands at sunset; the
   beer hall from round AH is `background.png`.
-- **The hero:** the lederhosen kicker with his backpack, cheering with his
-  beer (`hero_cheer.png`, 8 frames).
+- **The hero (round AJ):** your sketch, an ugly, sweaty Bavarian kicker with
+  his foot on the ball (`hero_comic.png`). The round AI backpacker
+  (`hero_cheer.png`, 8 frames) is still there.
 - **The title:** **STURMBALL** in gold.
+
+### Comic first, pixels second — `data/Pixelate.csv` (round AJ)
+
+**Your rule:** every picture is drawn as a **Marcinelle-school comic
+first**, and is pixelated afterwards. The steps:
+
+1. **Draw the comic.** Ludo.ai draws the master from a prompt, or from your
+   own sketch with `editImage`. You can also draw it yourself. It goes in
+   `art_source/ludo/<thing>/`.
+2. **Pixelate it.** `python3 tools/pixelate.py` turns every row of
+   `data/Pixelate.csv` into the pixel art the game uses.
+
+| column | |
+|---|---|
+| `Source` | the comic master |
+| `Output` | where the pixel art goes |
+| `Height` | how many pixels tall it becomes (the width follows). The screen then draws it 2×, 3× … |
+| `Colours` | how many colours it may use. Fewer = more "pixel" |
+| `Outline` | `yes` = a 1-pixel black ink line all round |
+| `Ink` | how dark a colour must be to turn into pure black ink (0 = off), so the comic's lines stay crisp |
+| `Crop` | `yes` = cut away the empty space round the figure first |
+
+**The menu hero** is the first picture made this way. Ludo drew him from
+your sketch in three rounds, each uglier than the last. He is 135 × 172
+pixels, drawn 3× on the title screen. The other comic versions are in
+`art_source/ludo/menu_hero/`.
 
 ### The buttons' sounds — two columns of `data/MenuConfig.csv`
 

@@ -667,6 +667,17 @@ GUT 9.6.1 in addons/gut (enabled in project.godot), .gutconfig.json,
 tests/unit/*.gd - 27 pass. He granted ~/Documents/GitHub/project_sb (device
 folder) this round; 3 pyfxr test wavs went to res://audio/ there.
 
+## 12m. Round AJ — the menu hero, comic first
+
+HIS ART RULE (round AJ): Marcinelle-school COMIC first (Franquin / Walter
+Moers ugliness), THEN pixelate. Ludo.ai for comics + full music, pyfxr for SFX,
+PixelLab for pixel-native work. Ludo works now (Pro, ~1000 credits). Ludo
+results live on storage.googleapis.com, which the sandbox cannot reach: fetch
+them by passing the URL to PixelLab reduce_colors (num_colors 256, keeps the
+size up to 512x512 px total) and downloading from api.pixellab.ai/mcp/images/
+<job>/download. Hero = 3 rounds of ludo editImage from his sketch
+(art_source/ludo/menu_hero/), pixelated by tools/pixelate.py + data/Pixelate.csv.
+
 ## 13. Ideas worth offering him
 
 - An `Ultimate In Short` column so the emblem bar and hover can show one line
