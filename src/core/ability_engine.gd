@@ -2304,6 +2304,12 @@ func _ultimate_power(card: PlayerData, side_is_enemy: bool) -> int:
 	# `star_power_tier_IV` 1 = a Star in Tier IV is +1 in every combat.
 	if db != null and card.is_star():
 		more += int(round(db.tune_float("star_power_tier_" + card.get_tier_clean(), 0.0)))
+	# ROUND AH (balance, your Q124): a DIAL per class and tier.
+	# `tier_power_unkengeister_IV` 1 = every Unkengeister card in Tier IV is
+	# +1 in every combat. No row = 0. Stars included.
+	if db != null:
+		var klass := card.active_unit_type().strip_edges().to_lower().replace("-", "").replace(" ", "")
+		more += int(round(db.tune_float("tier_power_%s_%s" % [klass, card.get_tier_clean()], 0.0)))
 	# Belphegor: Rauhnacht-Feuergeister +1 for each victory counter.
 	if ultimate_up(side_is_enemy, "Belphegor") \
 			and CardDatabase._normalise(card.active_unit_type()) == CardDatabase._normalise("Rauhnacht-Feuergeister"):

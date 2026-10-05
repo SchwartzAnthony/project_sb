@@ -301,9 +301,16 @@ func _rebuild_cards() -> void:
 	for child in _card_grid.get_children():
 		child.queue_free()
 
+	# ROUND AH (phase P4): classes listed in `pub_hidden_classes` (Tuning.csv)
+	# are never shown here - the Rivals are the other side's men, not yours.
+	var hidden: Array[String] = []
+	for piece in cards.tune_text("pub_hidden_classes", "Rivals").split(",", false):
+		hidden.append(CardDatabase._normalise(String(piece)))
 	for card in cards.players:
 		if card.is_star():
 			continue          # Stars keep their own printed abilities
+		if hidden.has(CardDatabase._normalise(card.unit_type)):
+			continue
 		_card_grid.add_child(_make_card(card))
 
 

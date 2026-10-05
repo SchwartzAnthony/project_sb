@@ -424,12 +424,41 @@ Those go in any `Effects` / `Do` / `Action` / `Reward` column. A recruit is
 
 ### It is behind a switch, like squad ownership
 
-`named_recruits` in Tuning.csv is **false**. While it is false a `recruit:`
-is still written into the save — you can write the rows today — but nobody
-new appears on any screen. **Turn it on together with `squad_ownership`**
-once there is a scene or a building that recruits anybody: then your card
-list is your recruits plus whoever you have signed, and the plain templates
-and set cards you have not signed disappear from your side.
+`named_recruits` in Tuning.csv is **true since round AH** — the recruitment
+board is the building that recruits. (False: a `recruit:` is still written
+into the save, but nobody new appears on any screen.) Recruits appear in
+the card list as plain players; the Pub brews them into a class.
+
+**`squad_ownership` stays false.** Turned on, your card list would be ONLY
+the players a `sign:` gave you — and nothing signs the set cards, because
+the Star Hall already decides which sets are yours. It is for a future
+opening where you start with nobody.
+
+### The recruitment board — `data/RecruitBoard.csv` (round AH, phase P3)
+
+In the **Club House**, above the resting list. Your Q123.
+
+| column | |
+|---|---|
+| `Slot` | a number, to keep the rows in order. One row = one place on the board |
+| `Tier` | I, II, III or IV |
+| `Powers` | the powers he may have, drawn at random: `0 1 2`. Each needs a plain card at that tier and power (BasicTeam.csv) |
+| `Cost` / `Currency` | what signing costs, from which purse (`data/Currencies.csv`) |
+| `Requires` | the condition language. Not met = the place shows LOCKED with what it needs |
+
+- **New faces after every match** (`matches_played` went up). A man you did
+  not sign leaves; his name is free again.
+- **Sign** = pay, and he joins under his own name. **Release** (under *Your
+  recruits*) = he leaves, his bed and name are free.
+- **Beds:** you may hold `beds − recruit_beds_kept` recruits (`9` kept for
+  your team's regulars; the Old Hut's 12 beds = 3 recruits). The Dorms sell
+  beds.
+- `recruit_board_reroll_cost` (10 coins) puts new men up now; `0` = no
+  button. `recruit_board` false hides the board.
+- As shipped: two Tier I places (30 coins), one Tier II place (60 coins)
+  from your third match.
+- `godot --headless --script res://tools/recruit_board_check.gd` tries it all
+  on a pretend save.
 
 `recruit_plain_class` (Tuning.csv, `Normal`) says which class a recruit is a
 plain copy *of*.
@@ -1750,6 +1779,28 @@ does the same from the exhaust (same power and tier).
 | If words | `touched_ball`, `touched_before_playmaker` (the same thing, R13), `mining`, `fused` |
 
 **The tracker** shows Graves, Mining, Cold and Bench counts.
+
+### Round AH: the recruitment board (P3), the Pub (P4), the art phases, Unkengeister
+
+- **P3, the recruitment board** in the Club House — see section 6b,
+  *The recruitment board*.
+- **P4:** the Pub no longer lists the Rivals' cards (`pub_hidden_classes`).
+- **P5, the art**, is now five phases A1–A5 — see section 8b2. PixelLab is
+  allowed again; it reaches this session through your computer.
+- **Your Q124, Unkengeister:** none of its nine Tier IV cards changes combat
+  power (exhaust, cold touch, gravestone and force abilities), while the
+  other classes' Tier IV cards give +1 / −1. A new dial,
+  **`tier_power_<class>_<tier>`** — every card of that class in that tier is
+  that much stronger in combat — shipped as `tier_power_unkengeister_IV` 1.
+  16 matches each:
+
+| `tier_power_unkengeister_IV` | won / drawn / lost | goals | Tier IV duels won |
+|---|---|---|---|
+| 0 | 0 / 3 / 13 | 9–30 | 27% |
+| **1 (shipped)** | **6 / 5 / 5** | **17–15** | **53%** |
+
+The class name in the key is in small letters with no spaces or hyphens:
+`tier_power_rauhnachtfeuergeister_IV`, `tier_power_bergmännlein_I`.
 
 ### Round AG: the pinned phases, free kicks (P2) and balance (P1)
 
@@ -3373,11 +3424,26 @@ box in the game is drawn from it, and the result is then passed as
 `style_image` to all thirteen below — that is what makes fourteen separate
 generations read as one game rather than fourteen.
 
-| phase | what |
-|---|---|
-| **1 · the chrome** | panel, window, button ×3, slot, bars. Seven files that dress every screen at once |
-| **2 · the screens you see first** | title wallpaper, menu plaques, the base yard, **the pitch** |
-| **3 · the characters** | the referee, twelve emblems, optionally a font |
+**Since round AH the file has a `Phase` column** and 21 orders — the art
+phases you asked for:
+
+| Phase | what | orders |
+|---|---|---|
+| **pass 1** | the chrome: panel, window, button ×3, slot, bars — **done** | 1–7 |
+| **A1** | **the pitch first**, then the title wallpaper and the base yard | 11, 8, 10 |
+| **A2** | the referee, the twelve emblems | 12, 13 |
+| **A3** | menu plaques, a display font | 9, 14 |
+| **A4** | the units: each class's three sets, the Basic Team (the recruits wear it), the twelve Stars | 15–20 |
+| **A5** | the icons in `data/ICONS_WANTED.csv` | 21 |
+
+**`python3 tools/art_status.py`** checks every file these name — and every
+`Artwork` the cards name — against `assets/`, and writes
+`guides/ART_STATUS.md`: done, missing, and the next order to make. As of
+round AH, 30 of the 31 unit Artwork files are missing (the units are
+stand-ins), which is why A4 exists.
+
+**PixelLab runs through your computer.** Its tools reach this session only
+while the chat is linked to your computer through the desktop app.
 
 ### Round X — orders 1 to 7 are done
 
@@ -3618,7 +3684,7 @@ palette colour and whether the game reads that name — and what is sitting in
 
 ---
 
-## 9. `data/Tuning.csv` — 429 numbers
+## 9. `data/Tuning.csv` — 434 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -5160,6 +5226,11 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | write or change an Ultimate | the **Ultimate Side column of Star Players.csv**, then `python3 tools/sync_ultimates.py` |
 | change what Belial's ore shop sells | `data/OreShop.csv` |
 | change what a free kick is worth, by distance | `data/FreeKicks.csv` (round AG) |
+| change who is on the recruitment board, and what they cost | `data/RecruitBoard.csv` (round AH) |
+| stop a class's cards being listed in the Pub | `pub_hidden_classes` in `Tuning.csv` (`Rivals`) |
+| let the player keep more recruits | buy a dorm, or lower `recruit_beds_kept` in `Tuning.csv` |
+| make one class stronger in one tier | `tier_power_<class>_<tier>` in `Tuning.csv`, e.g. `tier_power_unkengeister_IV` |
+| see what art is still missing, and what to make next | `python3 tools/art_status.py` -> `guides/ART_STATUS.md` |
 | go back to the old flat free-kick bonus | `free_kicks` 0 in `Tuning.csv` |
 | make a weak class's Tier IV Star stronger | `star_power_tier_IV` in `Tuning.csv` (a row per tier) |
 | make Buer never fight below his printed power | `count_power_floor` 1 in `Tuning.csv` |

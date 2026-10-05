@@ -1,0 +1,4 @@
+Slot,Tier,Powers,Cost,Currency,Requires,Notes
+1,I,0 1 2,30,coins,,"One row = one place on the board. A Tier I lad, power drawn from Powers. Always there."
+2,I,0 1 2,30,coins,,"A second Tier I place."
+3,II,1 2 3,60,coins,count:matches_played>=3,"A Tier II man once you have played three matches. Until then the place shows LOCKED with what it needs."

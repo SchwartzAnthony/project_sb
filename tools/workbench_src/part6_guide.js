@@ -500,6 +500,16 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("The recruitment board, the Pub, and the art phases (round AH)", `
+    <p style="margin:0 0 10px"><b>P3 and P4 are built; P5 (the art) is five phases, A1-A5.</b></p>
+    ${rows([
+      ["recruitment board","Club House: named plain players to sign for coins - <b>RecruitBoard.csv</b>. New faces after every match; a new board now for 10 coins; beds minus <code>recruit_beds_kept</code> (9) recruits"],
+      ["recruits","<code>named_recruits</code> is ON. They are plain players; the Pub brews them into a class and they keep the name. Release one to free his bed"],
+      ["the Pub","Rivals' cards are no longer listed - <code>pub_hidden_classes</code>"],
+      ["art phases","<b>ArtOrders.csv</b> Phase column: A1 the pitch (first), title, base yard · A2 referee, emblems · A3 menu, font · A4 the unit art · A5 icons. <code>python3 tools/art_status.py</code>"],
+      ["Unkengeister","<code>tier_power_unkengeister_IV</code> 1: its Tier IV cards had no combat power effects - 0 wins in 16 became 6 (Q124, Q128)"],
+    ])}`);
+
   card("Free kicks and the balance dials (round AG, phases P1 and P2)", `
     <p style="margin:0 0 10px"><b>Combat is done; the pinned list is now phases P1-P5</b> (guides/PHASES.md). This round: P2 free kicks, and P1 balance.</p>
     ${rows([
