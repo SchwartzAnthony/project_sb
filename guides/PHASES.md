@@ -349,7 +349,7 @@ what is missing, and the next order.
 | **A4** | the units: four classes' sets, the Basic Team (and so the recruits), the twelve Stars | 15–20 | 30 of the 31 Artwork files the cards name are missing — every class unit is a stand-in. Needs a step that assembles PixelLab's frames into the game's 12×39 sheet (`data/Animations.csv`) |
 | **A5** | the icons in `data/ICONS_WANTED.csv` | 21 | one at a time; a missing icon is a plaque with its name |
 
-**Round AJ, your rule: comic first, pixels second.** Every picture is drawn as a Marcinelle-school comic (Ludo.ai, or your sketch) and then pixelated with `tools/pixelate.py` (`data/Pixelate.csv`).
+**Your rule (rounds AJ–AK): comic first, pixels second, PixelLab for art.** Every picture is drawn by PixelLab as a Marcinelle-school comic master from `data/ArtStyle.csv` and your references (`art_source/style_refs/`), then pixelated with `tools/pixelate.py` (`data/Pixelate.csv`). See `guides/ART_STYLE.md`.
 
 **PixelLab runs through your computer** (the desktop app). This cloud session
 can only use it while the chat is linked to that computer.

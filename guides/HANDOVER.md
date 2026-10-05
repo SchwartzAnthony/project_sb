@@ -678,6 +678,20 @@ size up to 512x512 px total) and downloading from api.pixellab.ai/mcp/images/
 <job>/download. Hero = 3 rounds of ludo editImage from his sketch
 (art_source/ludo/menu_hero/), pixelated by tools/pixelate.py + data/Pixelate.csv.
 
+## 12n. Round AK — the art style nailed down
+
+HIS RULE NOW: PixelLab ONLY for art (Ludo = music). Marcinelle ugliness =
+exaggeration (Motomania / Clever & Smart / Franquin), NOT pig noses or ball
+heads. Refs in art_source/style_refs/ (keep!). data/ArtStyle.csv = prompt
+recipe; guides/ART_STYLE.md. To give PixelLab a local image as style/reference
+without huge base64 every call: upload it ONCE through reduce_colors
+(images_base64) and reuse https://api.pixellab.ai/mcp/images/<job>/download
+as style_image_url / reference url. Style sheet job 14f75ed2-...; sketch job
+e92d8fd3-... (those URLs may expire - re-upload if so). create_image_pro
+384x384 no_background, style_copy outline/detail/shading = good masters
+(40 gens each). PixelLab bg removal can eat enclosed white -> Pixelate.csv
+Fill Holes.
+
 ## 13. Ideas worth offering him
 
 - An `Ultimate In Short` column so the emblem bar and hover can show one line

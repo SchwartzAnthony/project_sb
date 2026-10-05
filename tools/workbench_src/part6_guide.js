@@ -500,6 +500,15 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("The art style, nailed down (round AK)", `
+    <p style="margin:0 0 10px"><b>PixelLab for art, Ludo for music. Marcinelle-school comic first, pixels second.</b></p>
+    ${rows([
+      ["the style","<b>ArtStyle.csv</b> + guides/ART_STYLE.md: ugly by exaggeration - potato noses, bulging eyes, buck teeth, gangly or pot-bellied; wobbly brush ink; flat colour"],
+      ["references","art_source/style_refs/ - Motomania, Clever &amp; Smart, the comic kicker; <code>style_sheet.png</code> is sent to PixelLab as the style image"],
+      ["menu hero","A (stocky drinker) on the title screen, B (lanky) ready - both from your sketch; comic masters in art_source/pixellab/menu_hero_comic/"],
+      ["pixelate","<b>Pixelate.csv</b> new column Fill Holes - PixelLab can make a football's white panels see-through"],
+    ])}`);
+
   card("The menu hero, comic first (round AJ)", `
     <p style="margin:0 0 10px"><b>Your rule: draw it as a Marcinelle-school comic, THEN pixelate it.</b></p>
     ${rows([
