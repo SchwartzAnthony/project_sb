@@ -5254,7 +5254,8 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | make or change a sound effect | `data/SoundRecipes.csv`, then `python3 tools/make_sfx.py` |
 | change the menu tune | edit the notes in `data/songs/menu_blasmusik.csv`, the players in `data/SongParts.csv`, the speed in `data/Songs.csv`; run `python3 tools/make_song.py` (section 16d) |
 | write a new tune for another screen | a new score in `data/songs/`, a row in `Songs.csv` and its players in `SongParts.csv`; run `python3 tools/make_song.py`, then name the `.ogg` in Audio.csv |
-| use the Ludo version of the menu tune | put `menu_oktoberfest_ludo` in the `Sound` column of Audio.csv's `menu_theme` row |
+| use the hand-written menu tune instead of Ludo's | put `menu_oktoberfest` in the `Sound` column of Audio.csv's `menu_theme` row |
+| change the base music | `base_ludo_1`, `base_ludo_2` or `base_ludo_3` in the `Sound` column of Audio.csv's `base_theme` (and `base_theme_brewing`) rows |
 | loop any music cleanly | a row in `data/MusicLoops.csv`, then `python3 tools/make_loop.py` |
 | simulate 1,000 matches | `godot --headless --path . --script res://tests/sim_runner.gd` (matchups: `data/SimMatchups.csv`) |
 | find over- and under-powered cards | `python3 tools/balance_analysis.py` -> `guides/BALANCE_ANALYSIS.md` |
@@ -5557,8 +5558,23 @@ write `func test_...():` with `assert_eq` / `assert_true`. GUT finds it.
 
 ## 16d. Music written note by note, and music from Ludo.ai (round AL)
 
-**The main menu plays a Bavarian Blasmusik polka written note by note, with
-no AI.** Real recorded brass instruments play it, from the free
+**As of the end of round AL, the main menu plays the Ludo.ai Blasmusik
+(`menu_oktoberfest_ludo`), your pick. The base plays Ludo option 1, and option 3
+once the Brewery opens.** The hand-written polka below is kept as a spare,
+`menu_oktoberfest`.
+
+**The base music** comes from three Ludo loops in the menu's style. Each was
+made with the menu prompt (augment prompt off, 40 seconds) with only the
+mood changed:
+
+- `base_ludo_1`, a beer garden: relaxed, F major, 104 BPM;
+- `base_ludo_2`, a swaying beer-tent waltz in 3/4;
+- `base_ludo_3`, a livelier polka in Eb with off-beat cymbals.
+
+Their rows are in `MusicLoops.csv`. Switch by changing the `Sound` column of
+`base_theme` or `base_theme_brewing` in Audio.csv.
+
+**A hand-written Bavarian Blasmusik polka, with no AI.** Real recorded brass instruments play it, from the free
 *GeneralUser GS* soundfont. Because every note is written down, nothing
 creeps in as the song goes on: it plays exactly what's in the spreadsheet.
 The Ludo.ai version is kept as a spare, `menu_oktoberfest_ludo`.
