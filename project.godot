@@ -21,6 +21,14 @@ window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[network]
+
+limits/debugger/max_chars_per_second=131072
+
 [physics]
 
 3d/physics_engine="Jolt Physics"
@@ -30,9 +38,3 @@ window/stretch/mode="canvas_items"
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-
-[network]
-
-limits/debugger/max_chars_per_second=131072
-limits/debugger/max_errors_per_second=400
-limits/debugger/max_warnings_per_second=400

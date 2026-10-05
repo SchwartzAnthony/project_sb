@@ -500,13 +500,24 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("The title screen, sound and the testing tools (round AI)", `
+    <p style="margin:0 0 10px"><b>New title screen, music and sounds; a simulator, an analyst and unit tests.</b></p>
+    ${rows([
+      ["title screen","<b>MainMenu.csv</b>: the wallpaper, STURMBALL, the cheering lederhosen hero (PixelLab). Button sounds: <b>MenuConfig.csv</b> Hover / Press Sound"],
+      ["sounds","<b>SoundRecipes.csv</b> + <code>python3 tools/make_sfx.py</code> (pyfxr): menu hover, click, start, back, a coin, a bass explosion"],
+      ["music","<code>tools/make_music.py</code>: an Oktoberfest oom-pah polka in 90s chiptune - the tune is text at the top of the script"],
+      ["simulation","<code>tests/sim_runner.gd</code>: 1,000 matches in under a minute -> <code>data/combat_telemetry.json</code>. What it plays: <b>SimMatchups.csv</b>"],
+      ["analyst","<code>python3 tools/balance_analysis.py</code> -> guides/BALANCE_ANALYSIS.md; my reading: guides/BALANCE_REVIEW.md"],
+      ["unit tests","GUT in addons/gut, 27 tests in tests/unit: fouls, the recruitment board, the shops, clamping. <code>godot --headless -s addons/gut/gut_cmdln.gd</code>"],
+    ])}`);
+
   card("The recruitment board, the Pub, and the art phases (round AH)", `
     <p style="margin:0 0 10px"><b>P3 and P4 are built; P5 (the art) is five phases, A1-A5.</b></p>
     ${rows([
       ["recruitment board","Club House: named plain players to sign for coins - <b>RecruitBoard.csv</b>. New faces after every match; a new board now for 10 coins; beds minus <code>recruit_beds_kept</code> (9) recruits"],
       ["recruits","<code>named_recruits</code> is ON. They are plain players; the Pub brews them into a class and they keep the name. Release one to free his bed"],
       ["the Pub","Rivals' cards are no longer listed - <code>pub_hidden_classes</code>"],
-      ["art phases","<b>ArtOrders.csv</b> Phase column: A1 the pitch (first), title, base yard · A2 referee, emblems · A3 menu, font · A4 the unit art · A5 icons. <code>python3 tools/art_status.py</code>"],
+      ["art phases","<b>ArtOrders.csv</b> Phase column: A1 the pitch (first), title, base yard · A2 referee, emblems · A3 menu, font · A4 the unit art · A5 icons. <code>python3 tools/art_status.py</code>. <b>A1 is done</b>: the pitch (grass by PixelLab, lines by <code>tools/make_pitch.py</code>), the title wallpaper, the base yard"],
       ["Unkengeister","<code>tier_power_unkengeister_IV</code> 1: its Tier IV cards had no combat power effects - 0 wins in 16 became 6 (Q124, Q128)"],
     ])}`);
 

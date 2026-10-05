@@ -629,9 +629,14 @@ ability_check: _check_ag; Buer/Haures stories read the dials now.
 
 ## 12k. Round AH — DONE (P3 recruitment board, P4 Pub, art phases A1–A5, Q124)
 
-PixelLab allowed again (Q125), but its tools come through the remote-devices
-bridge (his desktop app); the bridge was disconnected this round, so no art
-was generated. api.pixellab.ai is reachable from the sandbox (401 without a
+PixelLab allowed again (Q125); its tools come through the remote-devices
+bridge (his desktop app, a Steam Deck). His claude_desktop_config.json needed
+the stdio form: command npx, args -y mcp-remote https://api.pixellab.ai/mcp
+--header Authorization:${PIXELLAB_AUTH}, env PIXELLAB_AUTH "Bearer <key>"
+(the "url"/"transport" form is ignored by the desktop app). A1 DONE: pitch =
+pixflux grass + tools/make_pitch.py lines (1280 grid x2 - the 640 grid was
+too blocky in-match); title + base yard = create_image_pro 480x272 with the
+panel as style_image, crop + x4. tools/a1_shot.gd photographs them. api.pixellab.ai is reachable from the sandbox (401 without a
 key) - never ask him to paste the key. P3: src/core/recruit_board.gd +
 data/RecruitBoard.csv; room_screen _fill_recruit_board (Club House, above
 resting); board in save `recruit_board` / `recruit_board_at` vs
@@ -644,6 +649,23 @@ A5 icons), pitch row moved first; tools/art_status.py -> guides/ART_STATUS.md.
 Q124: engine dial tier_power_<class lower, no spaces/hyphens>_<tier> in
 _ultimate_power; cause = Unkengeister Tier IV abilities never change combat
 power (exhaust / cold touch / gravestone / force).
+
+## 12l. Round AI — DONE (title screen, sound, testing tools)
+
+Ludo MCP present but key rejected (needs "Authorization: ApiKey <key>") - Q133;
+menu tune made by tools/make_music.py instead. SFX: data/SoundRecipes.csv +
+tools/make_sfx.py (pyfxr). Title: data/MainMenu.csv read by main_menu.gd
+(_read_look/_build_pictures; strip animation via AtlasTexture + Timer);
+MenuConfig Hover/Press Sound -> AudioDirector.play_cue. PixelLab: menu_chaos
+a/b (pixflux 384x216 x5), hero = create_character v3 + animate v3 south-west
+8 frames; download zip via https://api.pixellab.ai/mcp/characters/<id>/download
+(backblaze URLs are blocked from the sandbox). tests/sim_runner.gd engine-level
+sim (SimMatchups.csv, SIM_* env, SIM_TRACE), tools/balance_analysis.py,
+guides/BALANCE_REVIEW.md. Found: switch_to_defender + ties-to-defender =
+Kurt/Thomas ~97%; dial switch_loses_ties (main_scene + sim) shipped FALSE.
+GUT 9.6.1 in addons/gut (enabled in project.godot), .gutconfig.json,
+tests/unit/*.gd - 27 pass. He granted ~/Documents/GitHub/project_sb (device
+folder) this round; 3 pyfxr test wavs went to res://audio/ there.
 
 ## 13. Ideas worth offering him
 

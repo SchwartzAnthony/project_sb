@@ -1,5 +1,5 @@
 ID,When,Match,Sound,Bus,Loop,Volume,Fade,Requires,Notes
-menu_theme,screen_opened,screen=main,menu_theme,Music,true,-9,1.5,,The main menu. Keeps playing until another looping row claims the Music bus.
+menu_theme,screen_opened,screen=main,menu_oktoberfest,Music,true,-9,1.5,,"The main menu. ROUND AI: the Oktoberfest oom-pah polka made by tools/make_music.py (change the tune there and run it again). The old menu_theme.ogg still plays on the season shelf, team shelf and builder rows below. Keeps playing until another looping row claims the Music bus."
 base_theme,screen_opened,screen=base,base_calm,Music,true,-10,2,,The base. Walking to the Pub and back does NOT restart it - the same track on the same bus is left alone.
 base_theme_brewing,screen_opened,screen=base,base_warm,Music,true,-10,2,unlocked:Brewery,"THE WHOLE IDEA IN ONE ROW: same moment, same bus, but only once the Brewery is open. The LAST matching row wins, so this one sits below the calm one."
 pub_theme,screen_opened,screen=pub,dialogue_theme,Music,true,-11,1.5,,"The Pub is where you talk to people, so it borrows the dialogue theme until it has one of its own."
@@ -43,3 +43,9 @@ talents_theme,screen_opened,screen=talent,menu_theme,Music,true,-12,1.0,,The tal
 foul_whistle,foul_shown,,kickoff_whistle,Effects,,-5,,,"THE REFEREE. Fires for BOTH sides - a foul is a moment on the pitch, not a thing that happens to you, so the sound is the same whoever gave it away. `card` is yellow card, red card or free kick; the rows below match on it."
 foul_yellow,foul_shown,card=yellow card,duel_lose,Effects,,-4,,,"STAND-IN sound. Below the general row so it wins on a booking. Put the real one in assets/audio/ under the name in SOUNDS_WANTED.csv and this row picks it up with no edit."
 foul_red,foul_shown,card=red card,crowd_goal,Effects,,-2,,,"STAND-IN sound, and the loudest of the three on purpose - a sending-off should be the biggest noise in the round after a goal."
+menu_hover,,,menu_hover,UI,,-14,,,"ROUND AI. The tick when the mouse crosses a main-menu button. Named by the Hover Sound column of MenuConfig.csv. Made by tools/make_sfx.py from data/SoundRecipes.csv"
+menu_click,,,menu_click,UI,,-6,,,"ROUND AI. A main-menu button pressed. Named by the Press Sound column of MenuConfig.csv (blank = this one)"
+menu_start,,,menu_start,UI,,-6,,,"ROUND AI. START pressed: a little two-note fanfare"
+menu_back,,,menu_back,UI,,-6,,,"ROUND AI. Quit pressed: a falling blip"
+coin_register,,,coin_register,UI,,-6,,,"ROUND AI. A cash-register coin, ready for buying and signing. Not used by a screen yet - name it in a Sound column"
+explosion_heavy,,,explosion_heavy,Effects,,-4,,,"ROUND AI. A heavy bass explosion, ready for a red card or a big goal. Not used yet"

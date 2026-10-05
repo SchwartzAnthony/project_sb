@@ -1780,13 +1780,33 @@ does the same from the exhaust (same power and tier).
 
 **The tracker** shows Graves, Mining, Cold and Bench counts.
 
+### Round AI: the title screen, sound, and the testing tools
+
+- **The title screen:** new wallpaper and hero (PixelLab), and the
+  Oktoberfest menu tune and button sounds. See section 16b.
+- **Testing:**
+  - 1,000 simulated matches go to `data/combat_telemetry.json`;
+  - the analyst writes `guides/BALANCE_ANALYSIS.md`;
+  - my review is in `guides/BALANCE_REVIEW.md`;
+  - the GUT unit tests live in `tests/unit/`.
+  See section 16c.
+- **The one mechanical flaw found:** a card that switches to defender wins
+  every tie. The new dial `switch_loses_ties` is off; Q131 is yours.
+
 ### Round AH: the recruitment board (P3), the Pub (P4), the art phases, Unkengeister
 
 - **P3, the recruitment board** in the Club House — see section 6b,
   *The recruitment board*.
 - **P4:** the Pub no longer lists the Rivals' cards (`pub_hidden_classes`).
-- **P5, the art**, is now five phases A1–A5 — see section 8b2. PixelLab is
-  allowed again; it reaches this session through your computer.
+- **P5, the art**, is now five phases A1–A5 — see section 8b2. **A1 is
+  done:** the pitch, the title wallpaper and the base yard.
+- **The pitch is two steps.** PixelLab draws only the grass
+  (`art_source/pixellab/11_pitch_grass.png`); `python3 tools/make_pitch.py`
+  rules the lines exactly at `pitch_inset_x` / `pitch_inset_y`, adds the
+  track, the wall and the goals, and writes `assets/field/soccerfield.png`.
+  Colours and sizes are at the top of that script. The old
+  `soccerfield.jpg` (a watermarked stock photo) is no longer used — a `.png`
+  of the same name wins — and can be deleted.
 - **Your Q124, Unkengeister:** none of its nine Tier IV cards changes combat
   power (exhaust, cold touch, gravestone and force abilities), while the
   other classes' Tier IV cards give +1 / −1. A new dial,
@@ -3684,7 +3704,7 @@ palette colour and whether the game reads that name — and what is sitting in
 
 ---
 
-## 9. `data/Tuning.csv` — 434 numbers
+## 9. `data/Tuning.csv` — 437 numbers
 
 Three columns: `Key`, `Value`, `What it does`. Every number the game uses that
 is not content lives here. Groups, by prefix:
@@ -5227,6 +5247,13 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | change what Belial's ore shop sells | `data/OreShop.csv` |
 | change what a free kick is worth, by distance | `data/FreeKicks.csv` (round AG) |
 | change who is on the recruitment board, and what they cost | `data/RecruitBoard.csv` (round AH) |
+| change the title screen's wallpaper, title or hero | `data/MainMenu.csv` (round AI) |
+| change a menu button's sound | `Hover Sound` / `Press Sound` in `data/MenuConfig.csv` |
+| make or change a sound effect | `data/SoundRecipes.csv`, then `python3 tools/make_sfx.py` |
+| change the menu tune | the top of `tools/make_music.py`, then run it |
+| simulate 1,000 matches | `godot --headless --path . --script res://tests/sim_runner.gd` (matchups: `data/SimMatchups.csv`) |
+| find over- and under-powered cards | `python3 tools/balance_analysis.py` -> `guides/BALANCE_ANALYSIS.md` |
+| run the unit tests | `godot --headless -s addons/gut/gut_cmdln.gd` |
 | stop a class's cards being listed in the Pub | `pub_hidden_classes` in `Tuning.csv` (`Rivals`) |
 | let the player keep more recruits | buy a dorm, or lower `recruit_beds_kept` in `Tuning.csv` |
 | make one class stronger in one tier | `tier_power_<class>_<tier>` in `Tuning.csv`, e.g. `tier_power_unkengeister_IV` |
@@ -5352,6 +5379,132 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | find out why something is not showing up | the Output panel. The loaders say |
 
 ---
+
+## 16b. The title screen, sounds and music (round AI)
+
+### `data/MainMenu.csv` — what the title screen looks like
+
+One row per thing on it. No file, no rows: it looks as it did before.
+
+| column | |
+|---|---|
+| `Part` | `background` (the wallpaper — the first row wins), `title` (the big word), `picture` (anything standing on it — any number of rows) |
+| `Image` | the file. A picture may be a **strip**: `Frames` pictures side by side, all the same width |
+| `Text` | the title's word (`STURMBALL`) |
+| `X`, `Y` | the **centre**, on a 1920 × 1080 screen |
+| `Width`, `Height` | how big to draw it (for the title, `Height` is the font size) |
+| `Frames`, `FPS` | an animated strip; blank = a still picture |
+
+As shipped:
+
+- **The wallpaper:** the Oktoberfest riot (`assets/menu/menu_chaos_a.png`).
+  The other one, `menu_chaos_b.png`, has the beer-tent stands at sunset; the
+  beer hall from round AH is `background.png`.
+- **The hero:** the lederhosen kicker with his backpack, cheering with his
+  beer (`hero_cheer.png`, 8 frames).
+- **The title:** **STURMBALL** in gold.
+
+### The buttons' sounds — two columns of `data/MenuConfig.csv`
+
+`Hover Sound` and `Press Sound` name an `Audio.csv` row or a file in
+`assets/audio/`. As shipped:
+
+- **Hover:** `menu_hover` on every button.
+- **Press:** `menu_start` on Start, `menu_back` on Quit, `menu_click` on the
+  others.
+
+### Sound effects from a spreadsheet — `data/SoundRecipes.csv`
+
+- Every row becomes `assets/audio/<Name>.wav` when you run
+  `python3 tools/make_sfx.py`. Install pyfxr first, once:
+  `pip install pyfxr`.
+- The columns are the classic sfxr dials, explained at the top of the script:
+  - `Wave`: square, saw, sine or noise;
+  - `Base Freq`;
+  - `Freq Ramp`;
+  - `Sustain`;
+  - `Punch`;
+  - `Decay`;
+  - `Arp Mod` (the coin's jump);
+  - `LPF Freq` (lower = bassier);
+  - and a few more.
+- **To change a sound:** change a number, run the script again, and listen
+  in Godot.
+- **Two sounds are ready but not used yet:** `coin_register` and
+  `explosion_heavy`. Name them in any `Sound` column.
+
+### The menu music — `tools/make_music.py`
+
+- **What it is:** an Oktoberfest oom-pah polka on 1990s chiptune instruments
+  (tuba, off-beat chords, an accordion-ish lead, kick, snare and claps).
+  It's 32 bars, about 30 seconds, and it loops.
+- **To change it:** the tempo, the chords (one per bar) and the melody (four
+  notes a bar, `-` holds, `R` rests) are at the top of the script. Run it
+  again and it writes `assets/audio/menu_oktoberfest.ogg`. The `menu_theme`
+  row of `Audio.csv` plays it.
+- **Ludo.ai** can make a richer version once its key works (see the README).
+
+## 16c. Testing: the simulation, the analyst and the unit tests (round AI)
+
+### `tests/sim_runner.gd` — 1,000 matches in under a minute
+
+```
+godot --headless --path . --script res://tests/sim_runner.gd
+```
+
+- **What it is:** the real AbilityEngine, cards, Emblem Basic sides, bank,
+  keeper and `ShotOdds.csv`, played with no pitch. Its results go to
+  `data/combat_telemetry.json`.
+- **What it leaves out:** touches, mines, gravestones, fouls, and the Emblem
+  race (so no Ultimates). So it under-rates Bergmännlein and the cards that
+  need the pitch.
+- **What it plays:** `data/SimMatchups.csv`, one row per matchup.
+  - `Home` and `Away`: a class, `Normal`, or `random`.
+  - `Home Picks` and `Away Picks`: `strongest`, `random` or `weakest`.
+  - `Share`: how much of the run this row gets.
+- **Settings:** `SIM_MATCHES`, `SIM_SEED`, `SIM_OUT`. `SIM_TRACE=Kurt`
+  prints every duel that card plays, with the reason.
+- **Tuning rows:**
+  - `sim_classes`: which classes `random` draws from;
+  - `sim_cycles`: the match length.
+- **There are no hit points, so the numbers are:**
+  - power per duel, standing in for DPS;
+  - power faced per duel, standing in for damage taken;
+  - keeper stamina taken;
+  - duels a match;
+  - abilities fired.
+
+### `tools/balance_analysis.py` — the analyst
+
+`python3 tools/balance_analysis.py` writes `guides/BALANCE_ANALYSIS.md`:
+
+- **Classes** outside 45%–55%, from the fair "random classes" row.
+- **Cards** against their **peers**: the other cards of the same tier and the
+  same printed power, because a P5 should beat a P3. A card more than 15
+  points better or worse than its peers is flagged.
+
+`guides/BALANCE_REVIEW.md` is my reading of it as a designer.
+
+### GUT — the unit tests
+
+The GUT plugin is in `addons/gut/`. It's switched on in `project.godot`, and
+its panel is at the bottom of the editor. To run every test from a terminal:
+
+```
+godot --headless -s addons/gut/gut_cmdln.gd
+```
+
+The tests are in `tests/unit/`; 27 of them pass:
+
+| file | checks |
+|---|---|
+| `test_fouls.gd` | more triggers never lower the foul chance; a missed foul fills the bar; the bar fills and caps; a whistle empties it; a man's fouls are remembered; bookings only add to red; verdicts are always one of four words |
+| `test_recruit_board.gd` | the board's whole lifecycle: names unique; signing costs and empties the place; can't sign twice; a match refreshes the board and frees names; releasing frees the bed |
+| `test_shops.gd` | the cart: buying takes one off the stock; sold out = no sale and no charge; no money = refused, never negative. The ore shop never takes Ore below 0 |
+| `test_clamping.gd` | keeper stamina stays between 0 and max; ShotOdds is always 0–100%; coins never underflow; bad indexes are refused; every book is safe when handed nothing |
+
+**To add a test:** make `tests/unit/test_<thing>.gd` extending `GutTest`, and
+write `func test_...():` with `assert_eq` / `assert_true`. GUT finds it.
 
 ## 17. A short glossary
 

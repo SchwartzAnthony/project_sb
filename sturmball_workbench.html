@@ -408,7 +408,17 @@ const S = {
   help:"A line with no choices runs on to <b>Next</b>. A line with choices stops and asks. A choice whose <b>Requires</b> fails is greyed out rather than hidden, so the player can see what they missed."},
 "Language.csv":{what:"Every word the game shows, by key. Add a column for a new language and the game finds it.", key:"Key"},
 "Keys.csv":{what:"Keyboard and controller bindings, rebindable in Settings.", key:"Action"},
-"MenuConfig.csv":{what:"The main menu. Buttons, where they sit, and what they do.", key:"Button ID"},
+"MenuConfig.csv":{what:"The main menu. Buttons, where they sit, and what they do.", key:"Button ID",
+  help:"<b>X and Y are the button's centre</b> on a 1920 x 1080 screen. <b>Round AI:</b> <b>Hover Sound</b> and <b>Press Sound</b> name a row of Audio.csv or a file in assets/audio/ - blank = <code>menu_hover</code> / <code>menu_click</code>. Start plays <code>menu_start</code>, Quit <code>menu_back</code>. What the screen LOOKS like is MainMenu.csv."},
+"MainMenu.csv":{key:null, what:"WHAT THE TITLE SCREEN LOOKS LIKE (round AI): the wallpaper, the title, and pictures standing on it (the hero).",
+  cols:{"Part":["background","title","picture"],"Image":"text","Text":"text","X":"number","Y":"number","Width":"number","Height":"number","Frames":"number","FPS":"number","Notes":"long"},
+  help:"<b>background</b>: the wallpaper (the first row wins). <b>title</b>: the big word - Text, and Height is the font size. <b>picture</b>: anything standing on the screen, as many rows as you like. X and Y are the CENTRE on a 1920 x 1080 screen. A picture can be a STRIP of <b>Frames</b> pictures side by side, played at <b>FPS</b> - the hero is 8 frames. Keep Width/Height a whole multiple of the picture's pixels (x2, x3) so the pixel art stays sharp.<br>The two PixelLab wallpapers: <code>menu_chaos_a.png</code> (the riot) and <code>menu_chaos_b.png</code> (the beer tents at sunset); the beer hall is <code>background.png</code>."},
+"SoundRecipes.csv":{key:"Name", what:"SOUND EFFECTS FROM A SPREADSHEET (round AI, pyfxr). Each row becomes assets/audio/<Name>.wav when you run python3 tools/make_sfx.py.",
+  cols:{"Name":"text","Wave":["square","saw","sine","noise"],"Base Freq":"number","Freq Ramp":"number","Duty":"number","Attack":"number","Sustain":"number","Punch":"number","Decay":"number","Arp Mod":"number","Arp Speed":"number","LPF Freq":"number","LPF Ramp":"number","HPF Freq":"number","Phaser Offset":"number","Phaser Ramp":"number","Repeat Speed":"number","Notes":"long"},
+  help:"The classic <b>sfxr</b> dials, 0 to 1 (ramps -1 to 1). <b>Wave</b>: square for blips, noise for explosions and hits. <b>Base Freq</b>: how high (0.05 deep, 0.8 shrill). <b>Freq Ramp</b>: slide down (-) or up (+). <b>Sustain / Punch / Decay</b>: how long it stays loud, the kick at the start, the fade - lengths come out SQUARED, so 0.3 is about 0.1 s. <b>Arp Mod / Arp Speed</b>: the jump to a second note (the coin). <b>LPF Freq</b>: lower = muffled, bassy. <b>HPF Freq</b>: higher = thin, clicky.<br>Change a number, run <code>python3 tools/make_sfx.py</code> (it needs <code>pip install pyfxr</code> once), listen in Godot. Name the sound in Audio.csv's Sound column, or in MenuConfig.csv."},
+"SimMatchups.csv":{key:null, what:"WHAT THE SIMULATION PLAYS (round AI): tests/sim_runner.gd plays 1,000 matches split between these rows.",
+  cols:{"Matchup":"text","Home":"text","Away":"text","Home Picks":["random","strongest","weakest"],"Away Picks":["random","strongest","weakest"],"Share":"number","Notes":"long"},
+  help:"<b>Home / Away</b>: a class, <code>Normal</code> for the Basic Team, or <code>random</code> (drawn from <code>sim_classes</code> in Tuning.csv). <b>Picks</b>: how a side chooses its card in each tier each round. <b>Share</b>: how much of the run this row gets (0 = off).<br>Run: <code>godot --headless --path . --script res://tests/sim_runner.gd</code> -> <code>data/combat_telemetry.json</code>, then <code>python3 tools/balance_analysis.py</code> -> <code>guides/BALANCE_ANALYSIS.md</code>. The simulation is the real combat without the pitch: no touches, mines, gravestones, fouls or Ultimates."},
 "Tuning.csv":{what:"EVERY NUMBER IN THE GAME, in one place. A talent can edit any of these at runtime.", key:"Key",
   help:"Rows worth knowing: <code>juice_scale</code> 0 kills every shake and flash · <code>juice_slowmo_depth</code> 1.0 means no slow-motion at all · <code>adventure_trait_bar</code> false hides the row of icons · <code>adventure_enemy_combos</code> false and the enemies get no combos."},
 "Achievements.csv":{what:"THE ROOT OF THE GAME. Nothing exists until an achievement hands it over - every room, Brewery section, brew, emblem and Stadium layer below is unlocked here first.",
@@ -2195,13 +2205,24 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("The title screen, sound and the testing tools (round AI)", `
+    <p style="margin:0 0 10px"><b>New title screen, music and sounds; a simulator, an analyst and unit tests.</b></p>
+    ${rows([
+      ["title screen","<b>MainMenu.csv</b>: the wallpaper, STURMBALL, the cheering lederhosen hero (PixelLab). Button sounds: <b>MenuConfig.csv</b> Hover / Press Sound"],
+      ["sounds","<b>SoundRecipes.csv</b> + <code>python3 tools/make_sfx.py</code> (pyfxr): menu hover, click, start, back, a coin, a bass explosion"],
+      ["music","<code>tools/make_music.py</code>: an Oktoberfest oom-pah polka in 90s chiptune - the tune is text at the top of the script"],
+      ["simulation","<code>tests/sim_runner.gd</code>: 1,000 matches in under a minute -> <code>data/combat_telemetry.json</code>. What it plays: <b>SimMatchups.csv</b>"],
+      ["analyst","<code>python3 tools/balance_analysis.py</code> -> guides/BALANCE_ANALYSIS.md; my reading: guides/BALANCE_REVIEW.md"],
+      ["unit tests","GUT in addons/gut, 27 tests in tests/unit: fouls, the recruitment board, the shops, clamping. <code>godot --headless -s addons/gut/gut_cmdln.gd</code>"],
+    ])}`);
+
   card("The recruitment board, the Pub, and the art phases (round AH)", `
     <p style="margin:0 0 10px"><b>P3 and P4 are built; P5 (the art) is five phases, A1-A5.</b></p>
     ${rows([
       ["recruitment board","Club House: named plain players to sign for coins - <b>RecruitBoard.csv</b>. New faces after every match; a new board now for 10 coins; beds minus <code>recruit_beds_kept</code> (9) recruits"],
       ["recruits","<code>named_recruits</code> is ON. They are plain players; the Pub brews them into a class and they keep the name. Release one to free his bed"],
       ["the Pub","Rivals' cards are no longer listed - <code>pub_hidden_classes</code>"],
-      ["art phases","<b>ArtOrders.csv</b> Phase column: A1 the pitch (first), title, base yard · A2 referee, emblems · A3 menu, font · A4 the unit art · A5 icons. <code>python3 tools/art_status.py</code>"],
+      ["art phases","<b>ArtOrders.csv</b> Phase column: A1 the pitch (first), title, base yard · A2 referee, emblems · A3 menu, font · A4 the unit art · A5 icons. <code>python3 tools/art_status.py</code>. <b>A1 is done</b>: the pitch (grass by PixelLab, lines by <code>tools/make_pitch.py</code>), the title wallpaper, the base yard"],
       ["Unkengeister","<code>tier_power_unkengeister_IV</code> 1: its Tier IV cards had no combat power effects - 0 wins in 16 became 6 (Q124, Q128)"],
     ])}`);
 

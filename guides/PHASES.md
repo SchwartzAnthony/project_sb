@@ -331,7 +331,8 @@ Combat finished in round AF. The pinned list is now five phases. You said
 | **P2** | **Free kicks as a set piece** (Q033 / Q075). A seen foul is a free kick from where the foul was; `data/FreeKicks.csv` says what it is worth by distance; close ones give the ball and the shot, and you pick the taker | **built in round AG** |
 | **P3** | **The recruitment board** in the Club House (`data/RecruitBoard.csv`); `named_recruits` is on | **built in round AH** |
 | **P4** | **Hiding the Rivals' cards** in the Pub (`pub_hidden_classes` in Tuning.csv) | **built in round AH** |
-| **P5** | **The art**, in its own five phases A1–A5 below | **PixelLab allowed since round AH** — waiting for the PixelLab link |
+| **P5** | **The art**, in its own five phases A1–A5 below | **A1 done in round AH** (PixelLab linked); A2 next |
+| **P6** | **Testing tools** (round AI): `tests/sim_runner.gd` (1,000 simulated matches -> `data/combat_telemetry.json`), `tools/balance_analysis.py`, GUT unit tests in `tests/unit/` | **built in round AI** — run them after every balance change |
 
 ### P5, the art phases (round AH)
 
@@ -342,9 +343,9 @@ what is missing, and the next order.
 | phase | what | orders | why this order |
 |---|---|---|---|
 | (pass 1) | the nine-slice chrome: panel, window, buttons, slot, bars | 1–7 | **done in round X** |
-| **A1** | **the pitch**, then the title wallpaper and the base yard | 11, 8, 10 | the pitch is on screen for the whole match and is the weakest picture in the game today (1000×667 stretched into 16:9) |
+| **A1** ✅ | **the pitch**, then the title wallpaper and the base yard — **done in round AH** | 11, 8, 10 | the pitch is on screen for the whole match and is the weakest picture in the game today (1000×667 stretched into 16:9) |
 | **A2** | the referee, the twelve Emblem medallions | 12, 13 | seen every round (the ref's window, the Emblem bar) |
-| **A3** | the menu plaques, a display font | 9, 14 | the first screen |
+| **A3** | the menu plaques, a display font — **round AI: the title wallpaper (22) and the menu hero (23) done** | 9, 14, 22, 23 | the first screen |
 | **A4** | the units: four classes' sets, the Basic Team (and so the recruits), the twelve Stars | 15–20 | 30 of the 31 Artwork files the cards name are missing — every class unit is a stand-in. Needs a step that assembles PixelLab's frames into the game's 12×39 sheet (`data/Animations.csv`) |
 | **A5** | the icons in `data/ICONS_WANTED.csv` | 21 | one at a time; a missing icon is a plaque with its name |
 

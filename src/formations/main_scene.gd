@@ -5305,6 +5305,11 @@ func resolve_round() -> void:
 		var attacker_wins := atk_power > def_power
 		if atk_power == def_power:
 			attacker_wins = ties_go_to_attacker
+			# ROUND AI (balance, from the simulation): a card that SWITCHED to
+			# being the defender does not also get the defender's tie.
+			# `switch_loses_ties` in Tuning.csv.
+			if not flip.is_empty() and db.tune_bool("switch_loses_ties", true):
+				attacker_wins = true
 
 		# --- The cut-away, before the outcome is applied ---
 		await show_duel_arena(ALL_TIERS[i], atk, def, attacker_is_enemy,
