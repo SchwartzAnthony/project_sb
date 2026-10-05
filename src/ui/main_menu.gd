@@ -106,10 +106,8 @@ func _build_background() -> void:
 	var path := background_art_path
 	if not _look_rows.get("background", {}).is_empty():
 		path = String(_look_rows["background"].get("image", path))
-	if path == "" or not ResourceLoader.exists(path):
-		return
-	var texture := load(path)
-	if not (texture is Texture2D):
+	var texture := _picture(path)
+	if texture == null:
 		return
 
 	var art := TextureRect.new()
@@ -120,6 +118,25 @@ func _build_background() -> void:
 	art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(art)
+
+
+## ROUND AL: load a picture for the title screen. Normally Godot has
+## imported it already. If you copied new pictures in and Godot has not
+## imported them yet (the editor does that when its window gets focus), the
+## PNG is read straight from the folder instead, so nothing goes missing.
+func _picture(path: String) -> Texture2D:
+	if path == "":
+		return null
+	if ResourceLoader.exists(path):
+		var imported := load(path) as Texture2D
+		if imported != null:
+			return imported
+	if FileAccess.file_exists(path):
+		var image := Image.load_from_file(path)
+		if image != null and not image.is_empty():
+			print("[menu] '%s' is not imported yet - reading the PNG directly. Click into the Godot editor once so it imports it." % path)
+			return ImageTexture.create_from_image(image)
+	return null
 
 
 func _build_title() -> void:
@@ -244,11 +261,9 @@ func _build_pictures() -> void:
 			_title_built = true
 			continue
 		var path := String(entry["image"])
-		if path == "" or not ResourceLoader.exists(path):
-			print("[menu] MainMenu.csv: no picture at '%s' yet." % path)
-			continue
-		var sheet := load(path) as Texture2D
+		var sheet := _picture(path)
 		if sheet == null:
+			print("[menu] MainMenu.csv: no picture at '%s' yet." % path)
 			continue
 		var frames := int(entry["frames"])
 		var frame_w := float(sheet.get_width()) / float(frames)
@@ -346,8 +361,8 @@ func _make_button(label: String, art_path: String, box: Vector2, label_on_art: b
 
 	# ROUND AL: "Label On Art" yes = the picture is a blank plank and the
 	# Label is written on top of it, so one plank serves every button.
-	if label_on_art and art_path != "" and ResourceLoader.exists(art_path):
-		var plank := load(art_path) as Texture2D
+	if label_on_art and art_path != "":
+		var plank := _picture(art_path)
 		if plank != null:
 			var states := {"normal": Color(1, 1, 1), "hover": Color(1.18, 1.12, 1.0),
 				"pressed": Color(0.82, 0.78, 0.72), "focus": Color(1.18, 1.12, 1.0)}
