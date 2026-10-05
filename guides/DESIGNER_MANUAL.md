@@ -5255,6 +5255,8 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | loop a Suno or any other track | put the WAV in `art_source/suno/music/`, add a `MusicLoops.csv` row (Bars 8 or 16), run `python3 tools/make_loop.py`, name the `.ogg` in Audio.csv |
 | change the menu tune (hand-written) | edit the notes in `data/songs/menu_blasmusik.csv`, the players in `data/SongParts.csv`, the speed in `data/Songs.csv`; run `python3 tools/make_song.py` (section 16d) |
 | write a new tune for another screen | a new score in `data/songs/`, a row in `Songs.csv` and its players in `SongParts.csv`; run `python3 tools/make_song.py`, then name the `.ogg` in Audio.csv |
+| dress another menu screen (layers, plank buttons, sounds) | rows for it in `data/ScreenLook.csv`, and one line in its `_ready()`: `Look.install(self, "<word>")` (section 16e) |
+| carry music into another screen, quieter | an `Audio.csv` row for that screen with the **same Sound** and a lower Volume (section 16e) |
 | a title-screen layer is missing | click into the Godot editor so it imports the new PNGs (the FileSystem panel shows a progress bar). The menu reads un-imported PNGs directly meanwhile, and the Output panel names them |
 | use the hand-written menu tune instead of Ludo's | put `menu_oktoberfest` in the `Sound` column of Audio.csv's `menu_theme` row |
 | change the base music | `base_ludo_1`, `base_ludo_2` or `base_ludo_3` in the `Sound` column of Audio.csv's `base_theme` (and `base_theme_brewing`) rows |
@@ -5790,6 +5792,65 @@ small helper `tools/mcp/openai_images.mjs` runs on the Deck. It paints
 pictures with OpenAI, and its `download_file` tool saves any Ludo or PixelLab
 result straight into the project. It's set up in `claude_desktop_config.json`
 as `openai-images`, and your key lives only there.
+
+## 16e. Settings and the save screen: the Beer Keller and the trophy room (round AL)
+
+Both screens now have painted backgrounds in the title screen's style, made
+of layers like the title screen. Every button on them is the oak plank,
+with the same sounds as the title screen. **One spreadsheet runs all of it:
+`data/ScreenLook.csv`.**
+
+| screen | the room | its layers, back to front (`assets/ui/...`) |
+|---|---|---|
+| **Settings** (`settings`) | the **Beer Keller**, a vaulted brick beer cellar | `settings/01_keller_room.png`; the ceiling beam with lanterns, hops, bratwursts and pretzels (three pieces across the top); the barrel rack (left); the big barrel with a sleeping Bergmännlein (right) |
+| **The save screen** (`slot`) | the **trophy room**, a panelled hunting-lodge hall | `save/01_trophy_hall.png`; pennants and scarves with the class symbols (four pieces); the trophy cabinet with cups, the golden stein and the creature emblems (left); one mounted trophy per class (right): the Unkengeist toad king, a Rauhnacht fire spirit in a lantern, the Lorelei swan with her harp, the Bergmännlein hood and pickaxe, and a bog lurker |
+
+**`data/ScreenLook.csv`**, one row per thing, drawn top to bottom (back to
+front), all **behind** the screen's own buttons and text:
+
+| column | |
+|---|---|
+| `Screen` | `settings` or `slot` (any screen that calls `Look.install(self, "<word>")` in its `_ready`) |
+| `Part` | `background` (fills the screen); `picture` (a layer); `shade` (a see-through dark box so the text stays readable); `margin` (`Width` = how far the content sits in from the left and right, `Height` = from the top and bottom); `button` (how every button looks and sounds) |
+| `Image` | the picture |
+| `X`, `Y` | the centre, on 1920 × 1080 |
+| `Width`, `Height` | blank = the picture's pixels × `Scale` |
+| `Scale`, `Flip` | as in `MainMenu.csv`: 2 for every layer; `yes` mirrors it |
+| `Colour` | shade: `#RRGGBBAA`, where the last two digits are how solid it is (00–ff). Button: the text colour |
+| `Hover Sound`, `Press Sound`, `Back Sound` | `Audio.csv` rows. Buttons that say Back, Close, Quit or Cancel play the Back Sound |
+
+Plain buttons become planks. Tick boxes, sliders and drop-downs keep their
+own look so they still read as what they are. The plank keeps its corners
+at any button size; only its middle stretches.
+
+The paintings are in `art_source/openai/settings_layers/` and
+`art_source/openai/save_layers/`; their `Pixelate.csv` rows are
+`keller_...` and `trophy_...`.
+
+### The menu music now carries on
+
+**The title music keeps playing in Settings and on the save screen, without
+restarting, and is quieter there.** Their `Audio.csv` rows
+(`settings_theme`, `slot_theme`) name the **same Sound** as `menu_theme`
+with a lower Volume (−17 instead of −9). When a screen asks for the track
+that's already playing, the game no longer restarts it; it only glides to
+the new Volume. Use the same trick to carry any music across screens: same
+Sound, different Volume.
+
+**The menu loop is longer:** 16 bars (29.9 s) instead of 8. It still opens
+right on the heavy tuba hit and plays the whole tuba part, then the lighter
+part after it, which builds back up into the tuba again. To go back to only
+the tuba part, set `Bars` 8 and `Length` 14.932 in the `suno_menu` row of
+`MusicLoops.csv`.
+
+**Button sounds are 6 dB quieter:** `menu_hover` is −20, and `menu_click`,
+`menu_start` and `menu_back` are −12. The same four sounds play on every
+button of the title screen, Settings and the save screen.
+
+**To check it all:** `xvfb-run godot --path . --script res://tools/screens_shot.gd`
+photographs the three screens into `user://` and prints the music on each.
+It shows the same player at −9, −17, −17 and −9 dB, which means the track
+never restarted.
 
 ## 17. A short glossary
 

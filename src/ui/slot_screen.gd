@@ -1,6 +1,10 @@
 class_name SlotScreen
 extends Control
 
+## ROUND AL: loaded by path, so it works even before Godot has registered
+## the new script (a fresh copy of the project).
+const Look := preload("res://src/ui/screen_look.gd")
+
 # =============================================================
 #  WHICH SAVE ARE YOU PLAYING?
 #
@@ -25,6 +29,8 @@ func _ready() -> void:
 	MenuEscape.install(self)
 	_build()
 	_fill()
+	# ROUND AL: the trophy room behind it and plank buttons - data/ScreenLook.csv
+	Look.install(self, "slot")
 
 
 func _build() -> void:
