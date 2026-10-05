@@ -307,12 +307,11 @@ in round AF: combat is complete.** Next: the pinned phases P1–P5 below
 
 On hold until the combat abilities are done, at your request:
 
-- **Pass 2 of the art** (title, base yard, the pitch) — no PixelLab until then.
+- **Pass 2 of the art** (title, base yard, the pitch) — now phases A1–A5 under P5 below.
 - A **recruitment board** in the Club House, so `named_recruits` can be turned on.
 - Hiding the **Rivals'** cards from the Pub.
 - Which **tier** a plain player can turn into when only Stars hold it (you chose
   option (a): leave it).
-- **Rotate the PixelLab API key** that was pasted into a chat (round X).
 - **Free kicks as a real set piece** (Questions Q033 / Q075).
 
 **Pinned for the MASS-TESTING phase** (Status `pinned` in Questions.csv):
@@ -330,13 +329,30 @@ Combat finished in round AF. The pinned list is now five phases. You said
 |---|---|---|
 | **P1** | **Mass testing and balance.** `tools/balance_report.py`, the balance dials in Tuning.csv (`counter_power_*`, `star_power_tier_*`, `count_power_floor`), and every `pinned` "test this later" answer in Questions.csv | **started in round AG** (the Rauhnacht pass, your Q118) — it never really ends |
 | **P2** | **Free kicks as a set piece** (Q033 / Q075). A seen foul is a free kick from where the foul was; `data/FreeKicks.csv` says what it is worth by distance; close ones give the ball and the shot, and you pick the taker | **built in round AG** |
-| **P3** | **The recruitment board** in the Club House, so `named_recruits` can be turned on | next |
-| **P4** | **Hiding the Rivals' cards** in the Pub | after P3 |
-| **P5** | **Art pass 2** (title, base yard, the pitch) | **blocked: no PixelLab until you say so** |
+| **P3** | **The recruitment board** in the Club House (`data/RecruitBoard.csv`); `named_recruits` is on | **built in round AH** |
+| **P4** | **Hiding the Rivals' cards** in the Pub (`pub_hidden_classes` in Tuning.csv) | **built in round AH** |
+| **P5** | **The art**, in its own five phases A1–A5 below | **PixelLab allowed since round AH** — waiting for the PixelLab link |
+
+### P5, the art phases (round AH)
+
+Every order is a row of `data/ArtOrders.csv` (the `Phase` column).
+`python3 tools/art_status.py` writes `guides/ART_STATUS.md`: what is done,
+what is missing, and the next order.
+
+| phase | what | orders | why this order |
+|---|---|---|---|
+| (pass 1) | the nine-slice chrome: panel, window, buttons, slot, bars | 1–7 | **done in round X** |
+| **A1** | **the pitch**, then the title wallpaper and the base yard | 11, 8, 10 | the pitch is on screen for the whole match and is the weakest picture in the game today (1000×667 stretched into 16:9) |
+| **A2** | the referee, the twelve Emblem medallions | 12, 13 | seen every round (the ref's window, the Emblem bar) |
+| **A3** | the menu plaques, a display font | 9, 14 | the first screen |
+| **A4** | the units: four classes' sets, the Basic Team (and so the recruits), the twelve Stars | 15–20 | 30 of the 31 Artwork files the cards name are missing — every class unit is a stand-in. Needs a step that assembles PixelLab's frames into the game's 12×39 sheet (`data/Animations.csv`) |
+| **A5** | the icons in `data/ICONS_WANTED.csv` | 21 | one at a time; a missing icon is a plaque with its name |
+
+**PixelLab runs through your computer** (the desktop app). This cloud session
+can only use it while the chat is linked to that computer.
 
 Not a phase: which tier a plain player can turn into when only Stars hold it —
-you chose option (a), leave it. **Rotate the PixelLab API key** that was pasted
-into a chat (round X).
+you chose option (a), leave it. The PixelLab API key was rotated (round AH).
 
 ## The crosswalk — where everything went
 

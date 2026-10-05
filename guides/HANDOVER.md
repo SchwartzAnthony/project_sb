@@ -301,8 +301,7 @@ file.
 
 **This session couldn't reach PixelLab.** The cloud sandbox blocks
 `api.pixellab.ai`. The new Desktop session has it working (Tier 2, 5,000
-generations, resets 1 Nov 2026). **He pasted his API key into the old chat —
-remind him to rotate it.**
+generations, resets 1 Nov 2026). He pasted his API key into an old chat and **rotated it in round AH**.
 
 ---
 
@@ -345,8 +344,8 @@ Fonts fail offline, which is fine.
 
 **PixelLab works in the Desktop session** (tools appear as
 `mcp__remote-devices__pixellab__*`). Tier 2, 5,000 generations, resets 1 Nov.
-About 185 were spent on Pass 1. **He has still not rotated the key** that is
-in the old chat - remind him.
+About 185 were spent on Pass 1. (The key from the old chat was rotated in
+round AH.)
 
 **Built:**
 
@@ -627,6 +626,24 @@ P1: "  DUEL <tier>: you|they win" log line; balance_report.py counts duels per
 tier and free kicks per range. Q118 dials: star_power_tier_<T> (in
 _ultimate_power), count_power_floor (in powerfromcount). Results in README.
 ability_check: _check_ag; Buer/Haures stories read the dials now.
+
+## 12k. Round AH — DONE (P3 recruitment board, P4 Pub, art phases A1–A5, Q124)
+
+PixelLab allowed again (Q125), but its tools come through the remote-devices
+bridge (his desktop app); the bridge was disconnected this round, so no art
+was generated. api.pixellab.ai is reachable from the sandbox (401 without a
+key) - never ask him to paste the key. P3: src/core/recruit_board.gd +
+data/RecruitBoard.csv; room_screen _fill_recruit_board (Club House, above
+resting); board in save `recruit_board` / `recruit_board_at` vs
+`matches_played`; names held by NameBook while on the board; beds_free =
+BaseRooms.beds - recruit_beds_kept - recruits; named_recruits now TRUE,
+squad_ownership stays FALSE (Q126). tools/recruit_board_check.gd,
+tools/recruit_shot.gd. P4: pub_screen _rebuild_cards skips
+pub_hidden_classes. Art: ArtOrders.csv Phase column + orders 15–21 (A4 units,
+A5 icons), pitch row moved first; tools/art_status.py -> guides/ART_STATUS.md.
+Q124: engine dial tier_power_<class lower, no spaces/hyphens>_<tier> in
+_ultimate_power; cause = Unkengeister Tier IV abilities never change combat
+power (exhaust / cold touch / gravestone / force).
 
 ## 13. Ideas worth offering him
 

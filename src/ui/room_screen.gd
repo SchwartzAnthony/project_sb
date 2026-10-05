@@ -193,7 +193,10 @@ func _buy_dorm(id_text: String) -> void:
 # ---- THE CLUB HOUSE -----------------------------------------
 
 func _fill_clubhouse() -> void:
-	# THE CLUB HOUSE HAS NO SPREADSHEET OF ITS OWN. It is a view onto
+	# ROUND AH (phase P3): THE RECRUITMENT BOARD comes first - see
+	# recruit_board.gd and data/RecruitBoard.csv.
+	_fill_recruit_board()
+	# THE RESTING LIST HAS NO SPREADSHEET OF ITS OWN. It is a view onto
 	# recovery_book.gd, which already knows who is tired and for how long.
 	var on := db != null and db.tune_bool("recovery", false)
 	var tail := "That is why you want a deep squad — the Dorms say how deep it may be."
@@ -221,6 +224,70 @@ func _fill_clubhouse() -> void:
 
 	if on and resting == 0:
 		_list.add_child(_small("Nobody is resting. The whole squad is fit."))
+
+
+# ---- THE RECRUITMENT BOARD (round AH, phase P3) -------------
+
+func _fill_recruit_board() -> void:
+	if not RecruitBoard.on(db):
+		return
+	var coins := ShopBook.purse("coins", state)
+	var free := RecruitBoard.beds_free(state, db)
+	_list.add_child(MenuSupport.heading("THE RECRUITMENT BOARD", 17, MenuSupport.COLOUR_ACCENT))
+	_list.add_child(_small("Plain players looking for a club. Sign one and he joins under his own name; at the Pub a brew turns him into a class. New faces after every match.  You have %d coins · beds for %d more recruit(s)." % [coins, maxi(free, 0)]))
+	var list := RecruitBoard.offers(state, db)
+	for i in list.size():
+		var entry: Dictionary = list[i]
+		var row: Dictionary = entry["row"]
+		var kind := String(entry["state"])
+		var line := _row_frame(kind == "open")
+		var words := _row_words(line)
+		match kind:
+			"open":
+				words.add_child(_name_label("%s  ·  Tier %s  ·  P:%d" % [entry["name"], entry["tier"], int(entry["power"])], true))
+				words.add_child(_small("A plain player. Brew him at the Pub to give him a class."))
+				var cur := ShopBook.currency(String(row["currency"]))
+				var price := "%d %s" % [int(row["cost"]), cur.get("name", row["currency"])] if int(row["cost"]) > 0 else "Free"
+				line.add_child(_buy_button("Sign · " + price,
+					_can_pay(int(row["cost"]), String(row["currency"])) and free > 0,
+					_sign_recruit.bind(i)))
+			"signed":
+				words.add_child(_name_label("Tier %s  ·  signed" % entry["tier"], false))
+				words.add_child(_small("Somebody new is up after the next match."))
+			_:
+				words.add_child(_name_label("Tier %s  ·  LOCKED" % entry["tier"], false))
+				words.add_child(_small(DialogueGrammar.describe(String(row["requires"]))))
+	var reroll := db.tune_int("recruit_board_reroll_cost", 10)
+	if reroll > 0:
+		var line := _row_frame(false)
+		var words := _row_words(line)
+		words.add_child(_small("Nobody you like? Put new men up now."))
+		line.add_child(_buy_button("New board · %d coins" % reroll, coins >= reroll, _reroll_board))
+
+	var mine := RecruitBook.names(state)
+	if not mine.is_empty():
+		_list.add_child(MenuSupport.heading("YOUR RECRUITS", 17, MenuSupport.COLOUR_ACCENT))
+		for who in mine:
+			var line := _row_frame(true)
+			var words := _row_words(line)
+			var turned := state.text(TransformBook.BECAME_PREFIX + CardDatabase._normalise(who))
+			words.add_child(_name_label(who, true))
+			words.add_child(_small(("Brewed at the Pub - he plays as %s's double now." % turned) if turned != ""
+				else "Still a plain player - the Pub can brew him into a class."))
+			line.add_child(_buy_button("Release", true, _release_recruit.bind(who)))
+	_list.add_child(MenuSupport.heading("RESTING", 17, MenuSupport.COLOUR_ACCENT))
+
+
+func _sign_recruit(index: int) -> void:
+	_say(RecruitBoard.sign(index, state, db))
+
+
+func _reroll_board() -> void:
+	_say(RecruitBoard.reroll(state, db))
+
+
+func _release_recruit(who: String) -> void:
+	_say(RecruitBoard.release(who, state))
 
 
 # ---- THE TROPHY ROOM ----------------------------------------
