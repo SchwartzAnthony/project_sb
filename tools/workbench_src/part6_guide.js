@@ -500,6 +500,15 @@ function paintBook(){
       ["switch","<code>team_build_gate</code> in Tuning.csv. Adventure is not gated"],
     ])}`);
 
+  card("Oktoberfest music from Ludo.ai (round AL)", `
+    <p style="margin:0 0 10px"><b>The title screen plays Bavarian Blasmusik now - a brass band in a beer tent, looped with no bump.</b></p>
+    ${rows([
+      ["the tune","Ludo.ai, 40 seconds, augment prompt off - the exact prompt is in the manual, section 16d"],
+      ["loop it","<b>MusicLoops.csv</b> + <code>python3 tools/make_loop.py</code>: finds the cleanest join, blends it, evens the loudness"],
+      ["not AI-ish","short tracks, every instrument named, no build-up; brass band, NOT accordion (or it sounds like pirates)"],
+      ["downloads","the Deck helper <code>tools/mcp/openai_images.mjs</code> saves Ludo / PixelLab files into the project; it also paints with OpenAI"],
+    ])}`);
+
   card("The art style, nailed down (round AK)", `
     <p style="margin:0 0 10px"><b>PixelLab for art, Ludo for music. Marcinelle-school comic first, pixels second.</b></p>
     ${rows([

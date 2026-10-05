@@ -1,0 +1,2 @@
+ID,Source,Output,Start,Length,Min Length,Max Length,Crossfade,Loudness,Notes
+menu_blasmusik,art_source/ludo/music/menu_blasmusik.mp3,assets/audio/menu_oktoberfest.ogg,,,20,30,0.4,-16,"ROUND AL. The main menu theme: Bavarian Blasmusik from Ludo.ai (the exact Ludo prompt is in DESIGNER_MANUAL section 16d). Start and Length blank = the script finds the cleanest loop itself and prints what it chose; type numbers there to force your own."

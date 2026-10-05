@@ -5252,7 +5252,8 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | change the art style every picture is drawn in | `data/ArtStyle.csv` and `guides/ART_STYLE.md` (your references: `art_source/style_refs/`) |
 | change a menu button's sound | `Hover Sound` / `Press Sound` in `data/MenuConfig.csv` |
 | make or change a sound effect | `data/SoundRecipes.csv`, then `python3 tools/make_sfx.py` |
-| change the menu tune | the top of `tools/make_music.py`, then run it |
+| change the menu tune | make a new 40 s track in Ludo (section 16d), put it in `art_source/ludo/music/`, point `data/MusicLoops.csv` at it, run `python3 tools/make_loop.py` |
+| loop any music cleanly | a row in `data/MusicLoops.csv`, then `python3 tools/make_loop.py` |
 | simulate 1,000 matches | `godot --headless --path . --script res://tests/sim_runner.gd` (matchups: `data/SimMatchups.csv`) |
 | find over- and under-powered cards | `python3 tools/balance_analysis.py` -> `guides/BALANCE_ANALYSIS.md` |
 | run the unit tests | `godot --headless -s addons/gut/gut_cmdln.gd` |
@@ -5479,7 +5480,7 @@ Your references are in `art_source/style_refs/`. A small sheet of them,
 - **Two sounds are ready but not used yet:** `coin_register` and
   `explosion_heavy`. Name them in any `Sound` column.
 
-### The menu music — `tools/make_music.py`
+### The menu music — `tools/make_music.py` (replaced in round AL, see 16d)
 
 - **What it is:** an Oktoberfest oom-pah polka on 1990s chiptune instruments
   (tuba, off-beat chords, an accordion-ish lead, kick, snare and claps).
@@ -5551,6 +5552,66 @@ The tests are in `tests/unit/`; 27 of them pass:
 
 **To add a test:** make `tests/unit/test_<thing>.gd` extending `GutTest`, and
 write `func test_...():` with `assert_eq` / `assert_true`. GUT finds it.
+
+## 16d. Music from Ludo.ai, looped cleanly (round AL)
+
+**The main menu now plays Bavarian Blasmusik made by Ludo.ai**, a brass
+band in a beer tent. The game plays it round and round.
+
+### What we learned about AI music, so it doesn't sound like AI
+
+- **Keep it short: 40 seconds.** Given two minutes, Ludo keeps adding
+  instruments and build-ups, and that's the AI giveaway. The game loops a
+  short piece instead.
+- **Name every instrument and ban the rest.** For example: "the same
+  instruments, volume, tempo and key throughout, with no build-up".
+- **Oktoberfest means a brass band, not an accordion.** Tuba with accordion
+  or fiddle, a minor key, or a fast 2/4 polka all sound like **pirates or a
+  sea shanty** to the AI. What worked: flugelhorns and tenor horns playing
+  the tune in harmony, tuba, a baritone horn, a snare and a bass drum.
+- **The winning version had Ludo's "augment prompt" switched OFF.** Ludo
+  normally rewrites your description behind the scenes. With it off, it
+  followed the words more closely.
+
+**The exact prompt for the menu theme** (Ludo createMusic, 40 s, augment
+prompt off):
+
+> Bavarian Oktoberfest Blasmusik, a German brass band polka in a Munich
+> beer tent. Major key, 4/4, 116 BPM. Flugelhorns and tenor horns play the
+> melody in thirds; tuba oom on 1 and 3; baritone pah on 2 and 4; snare and
+> bass drum. Gemütlich, cheerful, traditional German. No accordion, no
+> fiddle, no pirate or sea shanty sound. The same arrangement for the whole
+> track, no build-up. Instrumental loop.
+
+### `data/MusicLoops.csv` — one row per looping track
+
+Run `python3 tools/make_loop.py`. It finds the two moments in the track
+that sound most alike, cuts between them, blends the join, evens out the
+loudness, and writes the `.ogg` the game plays.
+
+| column | |
+|---|---|
+| `Source` | the track as Ludo made it (`art_source/ludo/music/…`) |
+| `Output` | the looping `.ogg` (`assets/audio/…`). Name it in Audio.csv's `Sound` column |
+| `Start`, `Length` | leave **blank** and the script finds the cleanest loop and prints what it chose. Type seconds to force your own |
+| `Min Length`, `Max Length` | when it is finding: the shortest and longest loop allowed |
+| `Crossfade` | seconds of blending at the join (0.2–1) |
+| `Loudness` | the average level in dB (−16 is right for music). Audio.csv's `Volume` applies on top |
+
+The menu loop as shipped starts 1.94 s in and lasts 26.64 s. The join was
+checked: no click, and the same loudness either side.
+
+**The game now loops `.ogg` and `.mp3` music gaplessly.** Before round AL it
+restarted the track when it finished, which could leave a tiny gap. `.wav`
+music still restarts.
+
+### Getting files from Ludo or PixelLab into the project
+
+Claude's cloud computer can't reach Ludo's storage, but your Deck can. The
+small helper `tools/mcp/openai_images.mjs` runs on the Deck. It paints
+pictures with OpenAI, and its `download_file` tool saves any Ludo or PixelLab
+result straight into the project. It's set up in `claude_desktop_config.json`
+as `openai-images`, and your key lives only there.
 
 ## 17. A short glossary
 
