@@ -28,6 +28,8 @@
 #               (from the middle) - for full-screen backgrounds. Blank = keep.
 #    Widen      round AL: 1.5 = make it 1.5x wider by stretching only the
 #               middle (the ends keep their shape) - for buttons and signs.
+#    Neutral    round AL: 0-1. Takes the yellow "AI painting" tint out by
+#               making the near-white parts truly white (1 = fully). Blank = off.
 #    Flip       round AL: yes = mirror it left-right (turn a character round)
 #    Fill Holes a colour (#f4f1ea) for see-through holes INSIDE the figure.
 #               PixelLab's background removal sometimes eats white areas
@@ -73,8 +75,28 @@ def fill_holes(im, colour, max_percent=0.0):
     return Image.fromarray(arr, "RGBA")
 
 
-def pixelate(src, height, colours, outline, ink, crop, holes="", smooth=0, max_hole=0.0, aspect="", flip=False, widen=1.0):
+def neutralise(im, strength):
+    """Take the yellow (or any) colour cast out: the near-white pixels -
+    clouds, white walls, foam - are made truly white, and every other colour
+    shifts by the same amount. strength 0 = off, 1 = full."""
+    import numpy as np
+    arr = np.array(im).astype(np.float32)
+    rgb, a = arr[..., :3], arr[..., 3]
+    lum = rgb.mean(-1)
+    spread = rgb.max(-1) - rgb.min(-1)
+    pick = (a > 200) & (lum > 175) & (spread < 70)
+    if pick.sum() < 200:
+        return im
+    white = rgb[pick].mean(0)
+    gains = (white.mean() / np.maximum(white, 1.0)) ** float(strength)
+    arr[..., :3] = np.clip(rgb * gains, 0, 255)
+    return Image.fromarray(arr.astype(np.uint8), "RGBA")
+
+
+def pixelate(src, height, colours, outline, ink, crop, holes="", smooth=0, max_hole=0.0, aspect="", flip=False, widen=1.0, neutral=0.0):
     im = Image.open(src).convert("RGBA")
+    if neutral:
+        im = neutralise(im, neutral)
     if flip:
         im = im.transpose(Image.FLIP_LEFT_RIGHT)
     if aspect and ":" in aspect:
@@ -159,7 +181,7 @@ def main():
                            int(float(row.get("Ink") or 60)), (row.get("Crop") or "yes").strip().lower() == "yes",
                            (row.get("Fill Holes") or "").strip(), int(float(row.get("Smooth") or 0)), float(row.get("Max Hole") or 0),
                            (row.get("Aspect") or "").strip(), (row.get("Flip") or "").strip().lower() == "yes",
-                           float(row.get("Widen") or 1.0))
+                           float(row.get("Widen") or 1.0), float(row.get("Neutral") or 0))
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             out.save(dst)
             print("  %s: %s -> %s (%dx%d, %s colours)" % (rid, row["Source"], row["Output"], out.width, out.height, row.get("Colours")))

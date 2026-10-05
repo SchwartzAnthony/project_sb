@@ -5468,34 +5468,58 @@ character.**
 | `Aspect` | **new in round AL.** For example `16:9`: trim the picture to that shape first, from the middle. Use it for full-screen backgrounds. Blank = keep the shape |
 | `Flip` | **new in round AL.** `yes` = mirror it left to right, to turn a character round |
 
-**The title screen (round AL, final pass)** is drawn in clean comic style,
-with ink lines of even thickness and flat colours.
+**The title screen is built from layers (round AL).** Every part of the
+picture is its own painting, so each can be repainted, moved or swapped
+without touching the others. OpenAI painted all of them in the **front
+guy's style**: his clean picture was the style reference for every layer.
+The prompts also ask for crisp neutral colours, and the new `Neutral`
+column takes out any yellow tint that's left. All layers are pixel art
+drawn at **Scale 2**, so every layer has the same pixel size.
 
-- **The hero** is C, your pick: wild hair, the Tyrolean hat, facing right.
-  He was repainted clean and stands close to the camera, filling the left
-  half of the screen: 349 × 520 pixel art drawn 2×. His painting left the
-  ball's white panels see-through, so `Fill Holes` and the new `Max Hole`
-  column (0.6) paint them back. They don't fill the gap between his arm and
-  his body.
-- **The wallpaper** (`menu_brawl.png`, `Pixelate.csv` row `menu_bg`) shows
-  a **traditional Bavarian brewery** in the centre behind the pitch:
-  whitewashed walls, timber beams, a red roof and an onion-dome tower. In the
-  middle of the pitch in front of it is the **brawl**, with beer, bratwursts,
-  pretzels, a ball, stars and water flying out of the cloud. The other
-  paintings are in `art_source/openai/menu_bg/`. Point the row's `Source` at
-  one to swap: `brewery_c.png` has a bigger brawl, `brewery_b.png` is very
-  close.
-- **The STURMBALL sign** hangs top-middle in front of the brewery
-  (`title_sign.png`, X 960, Y 132). The `title` row writes the word on it:
-  X 960, Y 146, Height 38 (the font size).
-- **The menu buttons** are oak planks matching the sign, with the Bavarian
-  diamond border (`button_plank.png`, `Pixelate.csv` row `menu_button`).
-  OpenAI painted the plank blank, and `Widen` 1.55 stretches only its middle
-  to button shape, so the corners keep their look. **`MenuConfig.csv` has a
-  new column, `Label On Art`.** `yes` means the button's `Label` is written
-  on its `Art Path` picture, so one plank serves every button. Hovering
-  brightens the plank and turns the word gold. `no` or blank keeps the old
-  behaviour: the picture *is* the button, words included.
+They're drawn **back to front, in the order of the rows in
+`MainMenu.csv`:**
+
+| # | layer | file (`assets/menu/layers/`) | Pixelate.csv row |
+|---|---|---|---|
+| 1 | the empty pitch, sky and tree line, seen low from the touchline | `01_field.png` (the `background` row) | `layer_1_field` |
+| 2 | the traditional Bavarian brewery, centre | `02_brewery.png` | `layer_2_brewery` |
+| 3 | the Oktoberfest beer tent, right | `03_beer_tent.png` | `layer_3_tent` |
+| 4 | the crowd behind the boards: three groups (A, B, C) side by side, then the same three flipped | `04_crowd_a/b/c.png` | `layer_4_crowd_a/b/c` |
+| 5 | the brawl in the middle of the pitch | `05_brawl.png` | `layer_5_brawl` |
+| 6 | the wide STURMBALL sign, then the `title` row that writes the name on it | `07_sign.png` | `layer_7_sign` |
+| 7 | **the hero, in front** | `assets/menu/hero_comic.png` | `menu_hero` |
+
+The menu buttons are drawn over everything.
+
+The paintings themselves are in `art_source/openai/menu_layers/`.
+
+**To change one layer:**
+1. Repaint it, using the `character_prompt` recipe in `ArtStyle.csv`.
+2. Save it over the file in `art_source/openai/menu_layers/`.
+3. Run `python3 tools/pixelate.py`.
+
+To move a layer, change its X and Y. To reorder layers, move its row.
+
+**New `MainMenu.csv` columns:**
+
+| column | |
+|---|---|
+| `Scale` | draw the picture at this many times its own pixels. **2 for every layer** keeps one pixel size across the screen. Width and Height still win if you type them |
+| `Flip` | `yes` = mirrored left to right (the crowd uses it, so six pieces look like more people) |
+
+**The title is drawn in its place in the list.** It comes right after the
+sign, so the hero covers both: his stein is in front of the sign. The sign
+sits slightly right of centre (X 1040) so the stein doesn't cover the "S".
+The name is 76 points, about a quarter of the screen wide.
+
+**The `Neutral` column in `Pixelate.csv`** (0–1) takes out the yellow
+"AI painting" tint. It makes the near-white parts (clouds, white walls,
+foam) truly white and shifts every other colour by the same amount. The
+layers use 0.5; the hero is left as he is.
+
+**The white parts problem:** OpenAI's transparent background sometimes
+removes white areas inside an object, like the brewery's walls, the tent's
+stripes and the sign's diamonds. `Fill Holes #f7f5ef` paints them back.
 
 **New `Pixelate.csv` columns this pass:**
 

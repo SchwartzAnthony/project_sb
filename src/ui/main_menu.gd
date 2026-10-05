@@ -53,7 +53,8 @@ func _ready() -> void:
 	_read_look()
 	_build_background()
 	_build_pictures()
-	_build_title()
+	if not _title_built:
+		_build_title()
 
 	_buttons = Control.new()
 	_buttons.name = "Buttons"
@@ -199,6 +200,7 @@ func _build_footer() -> void:
 
 var _look_rows: Dictionary = {}
 var _pictures: Array[Dictionary] = []
+var _title_built := false
 
 
 func _read_look() -> void:
@@ -217,11 +219,18 @@ func _read_look() -> void:
 			"height": MenuSupport.field_float(row, "Height", 0.0),
 			"frames": maxi(1, int(MenuSupport.field_float(row, "Frames", 1.0))),
 			"fps": MenuSupport.field_float(row, "FPS", 8.0),
+			"scale": MenuSupport.field_float(row, "Scale", 0.0),
+			"flip": MenuSupport.field(row, "Flip").strip_edges().to_lower() == "yes",
 		}
 		match part:
 			"background", "title":
 				if not _look_rows.has(part):
 					_look_rows[part] = entry
+					# ROUND AL: the title is drawn in its place among the
+					# pictures (layers), so a picture below it in the file
+					# - the hero - stands in front of it.
+					if part == "title":
+						_pictures.append({"is_title": true})
 			"picture":
 				_pictures.append(entry)
 			_:
@@ -230,6 +239,10 @@ func _read_look() -> void:
 
 func _build_pictures() -> void:
 	for entry in _pictures:
+		if entry.has("is_title"):
+			_build_title()
+			_title_built = true
+			continue
 		var path := String(entry["image"])
 		if path == "" or not ResourceLoader.exists(path):
 			print("[menu] MainMenu.csv: no picture at '%s' yet." % path)
@@ -248,8 +261,12 @@ func _build_pictures() -> void:
 		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var w := float(entry["width"]) if float(entry["width"]) > 0.0 else frame_w
-		var h := float(entry["height"]) if float(entry["height"]) > 0.0 else float(sheet.get_height())
+		# ROUND AL: Scale = draw the picture at a whole multiple of its own
+		# pixels (2 = every layer the same pixel size). Width/Height win if set.
+		var scale := float(entry["scale"]) if float(entry["scale"]) > 0.0 else 1.0
+		var w := float(entry["width"]) if float(entry["width"]) > 0.0 else frame_w * scale
+		var h := float(entry["height"]) if float(entry["height"]) > 0.0 else float(sheet.get_height()) * scale
+		art.flip_h = bool(entry["flip"])
 		art.size = Vector2(w, h)
 		art.position = Vector2(float(entry["x"]) - w * 0.5, float(entry["y"]) - h * 0.5)
 		add_child(art)

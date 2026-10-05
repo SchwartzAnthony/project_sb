@@ -504,8 +504,9 @@ function paintBook(){
     <p style="margin:0 0 10px"><b>Your Midjourney kicker is the style. OpenAI paints the comic, tools/pixelate.py makes the pixels.</b></p>
     ${rows([
       ["the hero","your pick C (Tyrolean hat), wilder hair, facing right (Pixelate.csv Flip yes) - <code>hero_comic.png</code>; A, B as hero_comic_a / _b"],
-      ["layout","clean lines; the hero close up on the left (half the screen); STURMBALL sign top-middle; a Bavarian brewery in the centre; the brawl in the middle; plank buttons on the right"],
-      ["wallpaper","<code>menu_brawl.png</code> from art_source/openai/menu_bg/brewery_d.png - swap Pixelate.csv menu_bg Source for brewery_c / _b / _a"],
+      ["layers","the title screen is 7 layers, back to front in <b>MainMenu.csv</b>: field, brewery, beer tent, crowd (x6), brawl, sign + name, hero - all in the front guy's style, all at Scale 2 (assets/menu/layers/)"],
+      ["repaint one","ArtStyle.csv <b>layer_prompt</b> with the front guy as the style picture, save in art_source/openai/menu_layers/, run tools/pixelate.py"],
+      ["no yellow","<b>Pixelate.csv</b> new column Neutral takes the yellow AI tint out"],
       ["buttons","oak planks matching the sign - <b>MenuConfig.csv</b> new column Label On Art; <b>Pixelate.csv</b> new columns Widen and Max Hole"],
       ["music","your Suno tracks, looped on whole bars: menu = the tuba part (8 bars), base and match 16 bars - <b>MusicLoops.csv</b> new columns Bars, Search From, Search To"],
       ["masters","art_source/openai/menu_hero/ - 1024 x 1536, transparent; style = ref_08.png, pose = your sketch"],
