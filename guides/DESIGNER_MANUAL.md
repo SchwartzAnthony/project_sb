@@ -1785,8 +1785,15 @@ does the same from the exhaust (same power and tier).
 - **P3, the recruitment board** in the Club House — see section 6b,
   *The recruitment board*.
 - **P4:** the Pub no longer lists the Rivals' cards (`pub_hidden_classes`).
-- **P5, the art**, is now five phases A1–A5 — see section 8b2. PixelLab is
-  allowed again; it reaches this session through your computer.
+- **P5, the art**, is now five phases A1–A5 — see section 8b2. **A1 is
+  done:** the pitch, the title wallpaper and the base yard.
+- **The pitch is two steps.** PixelLab draws only the grass
+  (`art_source/pixellab/11_pitch_grass.png`); `python3 tools/make_pitch.py`
+  rules the lines exactly at `pitch_inset_x` / `pitch_inset_y`, adds the
+  track, the wall and the goals, and writes `assets/field/soccerfield.png`.
+  Colours and sizes are at the top of that script. The old
+  `soccerfield.jpg` (a watermarked stock photo) is no longer used — a `.png`
+  of the same name wins — and can be deleted.
 - **Your Q124, Unkengeister:** none of its nine Tier IV cards changes combat
   power (exhaust, cold touch, gravestone and force abilities), while the
   other classes' Tier IV cards give +1 / −1. A new dial,

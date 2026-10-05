@@ -14,9 +14,9 @@ Made by `python3 tools/art_status.py` - run it again after adding art.
 | pass 1 | 6 | slot | done |
 | pass 1 | 7 | bars | done |
 | pass 1 | 7 | bars_fill | done |
-| A1 | 11 | pitch | to make |
-| A1 | 8 | title | to make |
-| A1 | 10 | base_bg | to make |
+| A1 | 11 | pitch | done |
+| A1 | 8 | title | done |
+| A1 | 10 | base_bg | done |
 | A2 | 12 | referee | to make |
 | A2 | 13 | emblems | to make |
 | A3 | 9 | menu_buttons | to make |
@@ -29,7 +29,7 @@ Made by `python3 tools/art_status.py` - run it again after adding art.
 | A4 | 20 | units_stars | to make |
 | A5 | 21 | icons | to make |
 
-**Next to make:** order 11, `pitch` (create_image_pixflux), phase A1 -> `assets/field/soccerfield.png`
+**Next to make:** order 12, `referee` (create_character), phase A2 -> `assets/portraits/ref_default.png`
 
 ## Unit art (phase A4): 1 of 31 files there
 
@@ -64,7 +64,7 @@ Made by `python3 tools/art_status.py` - run it again after adding art.
 - missing `assets/players/wagner_basic.png` (named in BasicTeam.csv)
 - missing `assets/players/weber_basic.png` (named in BasicTeam.csv)
 
-## Icons (phase A5): 6 of 71 there
+## Icons (phase A5): 7 of 71 there
 
 - `assets/icons/back.png` - A left arrow
 - `assets/icons/play.png` - A play triangle or a boot striking a ball
@@ -94,7 +94,6 @@ Made by `python3 tools/art_status.py` - run it again after adding art.
 - `assets/menu/button_settings.png` - The Settings button
 - `assets/menu/button_tutorial.png` - The Tutorial button
 - `assets/menu/button_quit.png` - The Quit button
-- `assets/base/background.png` - The base's backdrop
 - `assets/ui/star_badge.png` - The Star Player marker
 - `assets/team_icons/disc.png` - A team emblem
 - `assets/icons/res_wheat.png` - A sheaf of barley or wheat

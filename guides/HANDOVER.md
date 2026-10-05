@@ -629,9 +629,14 @@ ability_check: _check_ag; Buer/Haures stories read the dials now.
 
 ## 12k. Round AH — DONE (P3 recruitment board, P4 Pub, art phases A1–A5, Q124)
 
-PixelLab allowed again (Q125), but its tools come through the remote-devices
-bridge (his desktop app); the bridge was disconnected this round, so no art
-was generated. api.pixellab.ai is reachable from the sandbox (401 without a
+PixelLab allowed again (Q125); its tools come through the remote-devices
+bridge (his desktop app, a Steam Deck). His claude_desktop_config.json needed
+the stdio form: command npx, args -y mcp-remote https://api.pixellab.ai/mcp
+--header Authorization:${PIXELLAB_AUTH}, env PIXELLAB_AUTH "Bearer <key>"
+(the "url"/"transport" form is ignored by the desktop app). A1 DONE: pitch =
+pixflux grass + tools/make_pitch.py lines (1280 grid x2 - the 640 grid was
+too blocky in-match); title + base yard = create_image_pro 480x272 with the
+panel as style_image, crop + x4. tools/a1_shot.gd photographs them. api.pixellab.ai is reachable from the sandbox (401 without a
 key) - never ask him to paste the key. P3: src/core/recruit_board.gd +
 data/RecruitBoard.csv; room_screen _fill_recruit_board (Club House, above
 resting); board in save `recruit_board` / `recruit_board_at` vs

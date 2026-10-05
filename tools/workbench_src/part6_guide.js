@@ -506,7 +506,7 @@ function paintBook(){
       ["recruitment board","Club House: named plain players to sign for coins - <b>RecruitBoard.csv</b>. New faces after every match; a new board now for 10 coins; beds minus <code>recruit_beds_kept</code> (9) recruits"],
       ["recruits","<code>named_recruits</code> is ON. They are plain players; the Pub brews them into a class and they keep the name. Release one to free his bed"],
       ["the Pub","Rivals' cards are no longer listed - <code>pub_hidden_classes</code>"],
-      ["art phases","<b>ArtOrders.csv</b> Phase column: A1 the pitch (first), title, base yard · A2 referee, emblems · A3 menu, font · A4 the unit art · A5 icons. <code>python3 tools/art_status.py</code>"],
+      ["art phases","<b>ArtOrders.csv</b> Phase column: A1 the pitch (first), title, base yard · A2 referee, emblems · A3 menu, font · A4 the unit art · A5 icons. <code>python3 tools/art_status.py</code>. <b>A1 is done</b>: the pitch (grass by PixelLab, lines by <code>tools/make_pitch.py</code>), the title wallpaper, the base yard"],
       ["Unkengeister","<code>tier_power_unkengeister_IV</code> 1: its Tier IV cards had no combat power effects - 0 wins in 16 became 6 (Q124, Q128)"],
     ])}`);
 
