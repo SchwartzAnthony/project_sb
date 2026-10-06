@@ -141,6 +141,22 @@ static func recruit(what: String, state: GameState, db: CardDatabase) -> String:
 	return given
 
 
+## ROUND AN: sign a player who already HAS a name, tier, power and gender -
+## the random first team of a new game (squad_sheet.gd). No template card is
+## needed: a Tier IV plain player has none in BasicTeam.csv.
+static func enlist(name_text: String, tier: String, power: int, gender: String,
+		state: GameState) -> void:
+	if state == null or name_text == "" or is_recruit(name_text, state):
+		return
+	var have := names(state)
+	have.append(name_text)
+	state.set_text(KEY, "|".join(have))
+	state.set_text(PREFIX + CardDatabase._normalise(name_text), "%s|%d|%s" % [tier, power, gender])
+	NameBook.hold(name_text, state)
+	SquadBook.sign(name_text, state)
+	print("[recruits] %s joins the base: Tier %s, Power %d." % [name_text, tier, power])
+
+
 ## He leaves the base for good. Everything about him goes, and his name is
 ## free for the next man. Called by `release:` - so releasing a card that is
 ## NOT a recruit is exactly what it always was.
@@ -173,10 +189,25 @@ static func cards(state: GameState, db: CardDatabase) -> Array[PlayerData]:
 		if slot.size() < 2 or not String(slot[1]).is_valid_int():
 			continue
 		var template := template_for(String(slot[0]), int(String(slot[1])), db)
-		if template == null:
-			continue
-		var card: PlayerData = template.duplicate(true)
+		var card: PlayerData = null
+		if template != null:
+			card = template.duplicate(true)
+		else:
+			# ROUND AN: no plain card at this rung (Tier IV), so make one.
+			card = PlayerData.new()
+			card.unit_type = db.tune_text("recruit_plain_class", "Normal")
+			card.tier = String(slot[0])
+			card.base_power_left = int(String(slot[1]))
+			card.base_power_right = card.base_power_left
+			card.element = "None"
 		card.player_name = name_text
+		# ROUND AN: a recruit with a gender wears that gender's sprite.
+		if slot.size() >= 3 and String(slot[2]) != "":
+			var art := db.tune_text("squad_art_" + String(slot[2]), "")
+			if art != "":
+				var found := db._find_texture(art, CardDatabase.PLAYER_ART_DIRS)
+				if found != null:
+					card.artwork = found
 		out.append(card)
 	return out
 

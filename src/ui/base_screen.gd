@@ -304,10 +304,13 @@ func _build_exits() -> void:
 	var to_match := _exit("play|▶", "Play a match", EXIT_SIZE)
 	to_match.tooltip_text = "A friendly against a side at your own level. Nothing goes in the table, but you still come away with something."
 	to_match.pressed.connect(func() -> void:
-		if _turned_away():
+		# ROUND AN: choose first. The first match of a new game plays with a
+		# squad of its own (MatchModes.csv `intro`), so it needs no team of
+		# yours and Team Build must not turn you away from it.
+		MatchMode.choose(get_tree(), "friendly")
+		if MatchMode.squad_file(get_tree()) == "" and _turned_away():
 			return
 		state.save_to_disk()
-		MatchMode.choose(get_tree(), "friendly")
 		# THE TEAM SHELF, not the class picker. You pick a side you already
 		# own; making a new one is a button on that screen.
 		ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT))
@@ -863,6 +866,16 @@ func _carry_out(actions: Array[Dictionary]) -> void:
 			"goto":
 				state.save_to_disk()
 				ScenePaths.go_to(get_tree(), ScenePaths.for_name(value))
+				return
+			"match":
+				# ROUND AN: `match:intro` starts that MatchModes.csv row. A
+				# mode with a Squad needs no team of yours; any other mode
+				# still has to get past Team Build.
+				MatchMode.choose(get_tree(), value)
+				if MatchMode.squad_file(get_tree()) == "" and _turned_away():
+					return
+				state.save_to_disk()
+				ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT)
 				return
 			"window":
 				# ============ THE PUB WAITS FOR TEAM BUILD (round Y) ============

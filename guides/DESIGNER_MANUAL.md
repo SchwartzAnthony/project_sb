@@ -3022,6 +3022,65 @@ the game already has it**.
 
 ---
 
+## 7j. A new game: the first two matches (round AN)
+
+What a brand-new save does, in order. Every step is a row you can edit.
+
+1. **The prologue** plays the first time the base opens (`Progression.csv`
+   `welcome_at_base`). `new_game` sets `flag:tutorial_match`.
+2. **The first match starts by itself** when the prologue comes back to the
+   base (`kick_off_first_match`, Do `match:intro`). `match:<mode>` is a new
+   action: it starts that `MatchModes.csv` row from the base.
+3. **Your side is `data/IntroSquad.csv`**, not your team. Koch is a
+   Bergmännlein at Tier III Power 3, and eleven plain players have random
+   names. There are no Stars.
+4. **At full time** (`first_match_is_over`) you go back to the bar for
+   `star-intro`, and `flag:tutorial_match_2` is set.
+5. **The second match starts by itself** when star-intro ends
+   (`kick_off_second_match`, `match:intro2`). Your side is
+   `data/IntroSquad2.csv`: the same players, Koch, and Belial, Valefor and
+   Haures.
+6. **At full time** `second_match_is_over` clears the flag, and Play a
+   match is an ordinary friendly again.
+
+### `MatchModes.csv`: two new columns
+
+| column | what it does |
+|---|---|
+| **Replaces** | Other modes, such as `friendly;season;quick;cup`. While this row's **Requires** is true, a button that asks for one of them plays this mode instead. That is how the intro happens from the ordinary Play a match button. |
+| **Squad** | A CSV in `data/` whose players take the field **instead of your team**. Team Build does not turn you away from such a match. |
+
+### `data/IntroSquad.csv` / `IntroSquad2.csv`, a side written row by row
+
+| column | what it does |
+|---|---|
+| **ID** | A name for this place in the team. **The same ID is the same player.** A random player is made once per save for each ID and kept, and joins your base as a named player. `release:Name` lets one go. |
+| **Tier, Power** | Three per Tier, one of each power on the ladder. |
+| **Name** | Blank gives a random first name from `Names.csv` of that Gender. A Name with **Class** blank is that real card, such as the Star Belial. |
+| **Class** | Whose plain card it is. `Normal` is the club's own players. |
+| **Gender** | `m` or `f`. Blank picks either at random. Women wear `Tuning.csv squad_art_f` (`class_Normal_female.png`). |
+| **Lead** | `yes` on one row. That Tier stands where the Stars usually do, and that player kicks off. With no Star in the sheet, nobody wears a Star badge or carries an Emblem. |
+
+`Names.csv` has a new **Gender** column for its first names (m / f).
+
+### `data/MatchTalk.csv`: the Head Coach stops the match
+
+One row is one interruption. **Mode** is `intro`, `intro2`, or blank for any
+match. **When** is the moment: kick_off, duel_won, duel_lost, shot_taken,
+goal_scored, goal_conceded, save_made, keeper_emptied, foul_given,
+card_yellow, card_red, free_kick_won, star_switch or play_maker. **Requires**
+is the usual condition language. **Scene** is a `Dialogue.csv` scene. Its
+lines play in a box along the bottom of the screen, with the speaker's face,
+while the game waits. **Once** `true` plays it only the first time ever. The
+size of the words is `Tuning.csv match_talk_text_size`.
+
+### Checking it
+
+`godot --headless --path . --script res://tools/intro_check.gd` plays all of
+this through the real screens, in its own save (`user://intro_check/`), and
+prints PASS or FAIL for each step. Run it without `--headless` and it also
+saves screenshots there.
+
 ## 8. Adventure mode
 
 `src/adventure/` — eleven scripts. The run is a scrolling pitch; the fight is
@@ -3773,8 +3832,21 @@ anything. It changes nothing on disk.
 
 ### Fonts
 
-Drop a `.ttf` or `.otf` into `assets/fonts/` and name it in the `Font` column
+Drop a `.ttf`, `.otf` or `.fnt` into `assets/fonts/` and name it in the `Font` column
 of the `heading`, `body` or `small` row. Nothing else to do.
+
+**Round AN: one font for all text, `SturmballComic`.** A PixelLab comic pixel
+font (`create_font`), with Ä Ö Ü ä ö ü ß added by `tools/make_font.py`, because
+PixelLab's sheet has no umlauts. It is on `heading`, `body` and `small`, and
+also on the words painted straight onto the pitch.
+
+- It is drawn 16 pixels high, so **16, 32 and 48 are the crispest sizes**.
+  Any other size still works and is a little softer.
+- Letters it does not have (& # @) come from the **`fallback`** row's font
+  (Schola). Symbols such as ★ and ▶ come from the computer's own fonts.
+- To change a letter: open `art_source/pixellab/font/sturmball_comic_atlas.png`,
+  redraw it, then run `~/.venvs/sturmball/bin/python tools/make_font.py`.
+- The fonts below are still here, and are spares now.
 
 **Three ship with the game**, and they are the single biggest step away from
 "you can tell it is an AI game" — the default Godot font is the most

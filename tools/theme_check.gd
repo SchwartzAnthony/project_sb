@@ -32,7 +32,7 @@ const PALETTE_KEYS: Array[String] = [
 ## evening drawing art for it.
 const KNOWN_ELEMENTS: Array[String] = [
 	"panel", "window", "button", "button_primary", "slot", "tab",
-	"bar_back", "bar_fill", "tooltip", "divider", "heading", "body", "small",
+	"bar_back", "bar_fill", "tooltip", "divider", "heading", "body", "small", "fallback",
 ]
 
 

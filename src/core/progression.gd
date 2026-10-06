@@ -37,6 +37,7 @@ extends RefCounted
 #    ...plus three that need the game itself:
 #      story:prologue    play that dialogue scene
 #      goto:base         change screen (menu, classes, builder, match, base)
+#      match:intro       start that MatchModes.csv row (from the base)
 #      announce:Text     put a line on screen and in the Output panel
 #
 #  A WORKED ROW
@@ -66,7 +67,9 @@ const DATA_DIR := "res://data/"
 ## showed the building's description and did nothing else — no error, no
 ## warning, nothing in the Output panel. An action nobody handles should be
 ## loud, not silent; see the check in _validate() below, which now says so.
-const DEFERRED: Array[String] = ["story", "goto", "announce", "window"]
+## ROUND AN: `match:<mode>` starts a match of that MatchModes.csv row, from
+## the base. `match:intro` is how the prologue walks you onto the pitch.
+const DEFERRED: Array[String] = ["story", "goto", "announce", "window", "match"]
 ## Flag prefix used to remember that a once-only row has fired.
 const DONE_PREFIX := "progression_done_"
 

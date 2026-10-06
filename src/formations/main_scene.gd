@@ -61,6 +61,9 @@ var LAST_EVENT_MINUTE := 82.0
 ## The row from MatchModes.csv this match is running as. Never empty —
 ## MatchMode.current() falls back to the season match.
 var match_mode: Dictionary = {}
+## ROUND AN: true when your side has no Stars (a squad from a CSV, such as
+## the first match - see squad_sheet.gd).
+var _plain_side := false
 
 ## True in a mode whose Timer is 0. There is no final whistle on the clock;
 ## the match ends when the last round has been played.
@@ -609,6 +612,22 @@ func _report(event: String, facts: Dictionary) -> void:
 	# one line gives Audio.csv every match moment at once, including any you
 	# add later.
 	AudioDirector.fire(get_tree(), event, facts, state)
+	_match_talk(event)
+
+
+## ============ THE COACH STOPS THE MATCH (round AN) ============
+##
+## data/MatchTalk.csv: at this moment of a match in this mode, play a
+## Dialogue.csv scene in a box over the pitch while everything waits.
+var _talk_box: MatchTalkBox = null
+
+func _match_talk(event: String) -> void:
+	if _talk_box != null and is_instance_valid(_talk_box):
+		return
+	var scene := MatchTalk.scene_for(event, String(match_mode.get("id", "")), state)
+	if scene != "":
+		print("[match talk] %s: playing '%s'." % [event, scene])
+		_talk_box = MatchTalkBox.play(self, scene, state)
 
 
 ## Run the Progression rows listening for this moment, then carry out
@@ -1986,7 +2005,10 @@ func _full_time() -> void:
 	# A story or a goto in a Progression row takes the screen over. When it is
 	# a story, it now comes back to the season screen rather than restarting
 	# the match.
-	var took_over := await _advance_progression("match_ended", ScenePaths.SEASON)
+	# ROUND AN: a match that is not a league fixture (the first match, a
+	# friendly) sends its story back to the base, not to the season table.
+	var story_home := ScenePaths.SEASON if bool(match_mode.get("records", true)) else ScenePaths.BASE
+	var took_over := await _advance_progression("match_ended", story_home)
 
 	# The second photograph, taken last, so unlocks handed out by the fixture
 	# AND by the Progression rows both land on the panel.
@@ -2102,6 +2124,7 @@ func _resolve_kickoff_star(chosen: PlayerData) -> void:
 ## work _resolve_kickoff_star() does, minus the drafting: the Star, the Star
 ## bundle and the 9 regulars all arrive already decided.
 func _apply_team_selection(picked: TeamSelection) -> void:
+	_plain_side = picked.plain
 	chosen_regulars = picked.regulars
 	active_player_star = picked.active_star
 	player_star_tier = picked.star_tier
@@ -2310,7 +2333,9 @@ func spawn_team(star_player: PlayerData, is_enemy: bool) -> void:
 			layout["star"].y)
 	var star_unit := create_unit_instance(star_player, star_pos, is_enemy)
 	if star_unit:
-		star_unit.is_star_player = true
+		# ROUND AN: a plain side (the first match) has no Stars - the player
+		# in the Star's place is an ordinary one, with no badge or Emblem.
+		star_unit.is_star_player = is_enemy or not _plain_side
 		_place_in_zone(star_unit, this_star_tier)
 
 	# --- 2. The 9 regulars ---
@@ -3539,6 +3564,7 @@ func trigger_playmaker_event() -> void:
 	AudioDirector.fire(get_tree(), "play_maker",
 		{"cycle": str(current_cycle), "round": str(rounds_this_cycle)}, state)
 	Juice.fire(self, "play_maker", {})
+	_match_talk("play_maker")
 	await announce("PLAY MAKER!")
 
 	# WHOEVER TAKES THE THROW CHOOSES. That is the whole of what the coin
@@ -3599,6 +3625,7 @@ func trigger_hold_up_event() -> void:
 	# whistle. The name in a spreadsheet is a label, not a sentence.
 	print("STAR PLAYER SWITCH.  Starting cycle %d" % current_cycle)
 	AudioDirector.fire(get_tree(), "hold_up", {"cycle": str(current_cycle)}, state)
+	_match_talk("star_switch")
 	Juice.fire(self, "star_switch", {})
 	await announce("STAR PLAYER SWITCH")
 

@@ -28,7 +28,7 @@ extends RefCounted
 #      Border Width  how thick the edge is, in pixels
 #      Corner        how round the corners are, in pixels
 #      Pad X / Pad Y how much space there is between the edge and the words
-#      Font          a .ttf in assets/fonts/
+#      Font          a .fnt / .ttf / .otf in assets/fonts/ (no extension needed)
 #      Size          the font size
 #      Text Colour   the colour of the words
 #
@@ -86,7 +86,7 @@ const FILE := "res://data/Theme.csv"
 const IMAGE_DIRS: Array[String] = ["res://assets/ui/", "res://assets/menu/", "res://assets/"]
 const FONT_DIRS: Array[String] = ["res://assets/fonts/", "res://assets/"]
 const IMAGE_EXTENSIONS: Array[String] = [".png", ".jpg", ".jpeg", ".webp"]
-const FONT_EXTENSIONS: Array[String] = [".ttf", ".otf", ".woff2", ".woff"]
+const FONT_EXTENSIONS: Array[String] = [".fnt", ".ttf", ".otf", ".woff2", ".woff"]
 
 ## Element -> State -> row. State "" is the ordinary one.
 static var _rows: Dictionary = {}
@@ -374,6 +374,47 @@ static func font(file_name: String) -> Font:
 	return found
 
 
+## ============ A LETTER THE FONT DOES NOT HAVE (round AN) ============
+##
+## The PixelLab font has A-Z, a-z, digits, umlauts and the usual marks, and
+## nothing else. Any other letter (& # @ ★ ...) is drawn in the `fallback`
+## row's font of Theme.csv instead of turning into an empty box.
+static var _godot_own: Font = null
+
+
+## Godot's built-in font, remembered before dress() swaps ours in.
+static func _godot_font() -> Font:
+	if _godot_own == null:
+		var builtin := ThemeDB.get_default_theme()
+		if builtin != null and builtin.default_font != null:
+			_godot_own = builtin.default_font
+		else:
+			_godot_own = ThemeDB.fallback_font
+	return _godot_own
+
+
+static func _give_fallback(face: Font, clean: String) -> void:
+	if face == null or not face.fallbacks.is_empty():
+		return
+	# The odd symbol (★ ▶ ▦) comes from the computer's own fonts, as it
+	# always did with Godot's font. A pixel font has that switched off.
+	if face is FontFile:
+		(face as FontFile).allow_system_fallback = true
+	var spare_name := String(row_for("fallback").get("font", "")).strip_edges()
+	if spare_name == "" or spare_name == clean:
+		return
+	var spare: Font = _look_for(spare_name, FONT_DIRS, FONT_EXTENSIONS) as Font
+	if spare != null and spare != face:
+		# THE TYPED-ARRAY RULE: a bare [spare] is untyped and would not stick.
+		var spares: Array[Font] = [spare]
+		# ...and Godot's own font last, which has the odd symbol (★ ▶) the
+		# others lack. Read before dress() replaces it with ours.
+		var godots := _godot_font()
+		if godots != null and godots != face and godots != spare:
+			spares.append(godots)
+		face.fallbacks = spares
+
+
 static func _look_for(clean: String, folders: Array[String],
 		extensions: Array[String]) -> Resource:
 	if clean.begins_with("res://"):
@@ -446,6 +487,11 @@ static func godot_theme() -> Theme:
 
 	var made := Theme.new()
 	var body_font := font(String(row_for("body").get("font", "")))
+	# Every font row gets the `fallback` row's font for letters it lacks.
+	# Done here, once the whole file is read, and not while it is being read.
+	for element in ["heading", "body", "small"]:
+		var face_name := String(row_for(element).get("font", "")).strip_edges()
+		_give_fallback(font(face_name), face_name)
 	var body_size := font_size("body", 16)
 	if body_font != null:
 		made.default_font = body_font
@@ -499,6 +545,21 @@ static func dress(tree: SceneTree) -> void:
 	var wanted := godot_theme()
 	if tree.root.theme != wanted:
 		tree.root.theme = wanted
+	# ============ EVERY WORD, NOT ONLY THE ONES IN A CONTROL (round AN) ============
+	#
+	# Names painted straight onto the pitch, the season table's numbers and
+	# the class wheel draw with ThemeDB.fallback_font, which is Godot's own
+	# font unless it is told otherwise. Telling it here puts the body font of
+	# Theme.csv on those too, so "ALL text" really is all of it.
+	if wanted.default_font != null and ThemeDB.fallback_font != wanted.default_font:
+		ThemeDB.fallback_font = wanted.default_font
+		# A screen that never reaches the root's theme (a pop-up window, a
+		# layer of the match) falls to Godot's built-in theme, whose own font
+		# is not ours. Give it ours too.
+		var builtin := ThemeDB.get_default_theme()
+		if builtin != null:
+			_godot_font()
+			builtin.default_font = wanted.default_font
 	_dev_strip(tree)
 
 

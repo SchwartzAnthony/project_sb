@@ -42,6 +42,20 @@ func _ready() -> void:
 	book = TeamRoster.load_all()
 	MenuEscape.install(self)
 
+	# ============ A MATCH WITH A SQUAD OF ITS OWN (round AN) ============
+	#
+	# The first match of a new game is not played by your team: the mode
+	# names a squad CSV (MatchModes.csv, Squad column) and that side walks
+	# straight out. There is nothing to pick, so this screen steps aside.
+	var squad := MatchMode.squad_file(get_tree())
+	if squad != "":
+		var picked := SquadSheet.selection_from(squad, db, state)
+		if picked != null:
+			TeamSelection.store(get_tree(), picked)
+			var scene := String(MatchMode.current(get_tree()).get("scene", "match"))
+			ScenePaths.go_to(get_tree(), ScenePaths.for_name(scene))
+			return
+
 	_build()
 	_fill()
 

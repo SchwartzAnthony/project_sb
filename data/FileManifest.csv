@@ -325,3 +325,14 @@ AbilityRulings.csv.import,data/,Godot bookkeeping,Keeps the CSV as a CSV.
 CardAbilities.csv,data/,Data the tools write,"ROUND Y. Your cards' abilities made from their text by ability_rows.py. Rebuilt every run - edit the card, not this."
 CardAbilities.csv.import,data/,Godot bookkeeping,Keeps the CSV as a CSV.
 COMBAT_PHASES.md,guides/,A guide,"ROUND Y. The plan for making every ability work: the timing chart, the zones, the audit, phases C1-C8."
+SturmballComic.fnt,assets/fonts/,Art you drew,"ROUND AN. THE GAME FONT, used for all text (Theme.csv heading/body/small). A PixelLab comic pixel font with umlauts added. Made by tools/make_font.py from art_source/pixellab/font/sturmball_comic_atlas.png"
+SturmballComic.png,assets/fonts/,Art you drew,"ROUND AN. The letters of SturmballComic.fnt. Made by tools/make_font.py - edit the atlas, not this"
+class_Normal_female.png,assets/players/,Art you drew,ROUND AN. The club's women players: the same kit and animations as class_Normal.png (PixelLab edit of his frames). Tuning.csv squad_art_f. Layered: art_source/aseprite/players/class_Normal_female.aseprite
+IntroSquad.csv,data/,A spreadsheet you edit,"ROUND AN. Your side in the FIRST MATCH of a new game: Koch and eleven random players, no Stars"
+IntroSquad2.csv,data/,A spreadsheet you edit,"ROUND AN. Your side in the SECOND MATCH: the same players, Koch and the three Bergmännlein Stars"
+MatchTalk.csv,data/,A spreadsheet you edit,ROUND AN. When the Head Coach stops a match to explain - a Dialogue.csv scene in a box over the pitch
+squad_sheet.gd,src/core/,"Engine. Rules, loaders and shared helpers",ROUND AN. Reads a squad CSV (IntroSquad.csv) into the team that takes the field; keeps each random player per save
+match_talk.gd,src/core/,"Engine. Rules, loaders and shared helpers",ROUND AN. Reads MatchTalk.csv and says which scene plays at which moment of a match
+match_talk_box.gd,src/ui/,A screen or a piece of one,ROUND AN. The Head Coach's box over the pitch: plays one Dialogue.csv scene while the match waits
+intro_check.gd,tools/,A measuring tool,"ROUND AN. Plays the opening of a new game through the real screens - prologue, first match, star-intro, second match - in its own save, and says PASS or FAIL per step. Without --headless it also takes screenshots"
+make_font.py,tools/,A tool you run from the command line,"ROUND AN. Turns the PixelLab font sheet into assets/fonts/SturmballComic.fnt, adding the umlauts and ß"

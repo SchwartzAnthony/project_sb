@@ -171,6 +171,16 @@ func _load_csv(path: String) -> void:
 			"rewards": _cell(row, columns, "rewards"),
 			"rewards_win": _cell(row, columns, "rewardsonwin"),
 			"description": _cell(row, columns, "description"),
+			# ============ A MODE THAT STANDS IN FOR ANOTHER (round AN) ============
+			#
+			# `Replaces` lists other modes (friendly;season). While this row's
+			# Requires is true, a button that asks for one of them gets this
+			# one instead. That is how the first match of a new game happens
+			# from the ordinary "Play a match" button with no special button.
+			"replaces": _cell(row, columns, "replaces"),
+			# `Squad` names a CSV in data/ that plays INSTEAD of your team -
+			# see squad_sheet.gd. Blank = you pick your own team as usual.
+			"squad": _cell(row, columns, "squad"),
 			"where": "%s row %d" % [short_name, i + 1],
 		}
 
@@ -216,7 +226,36 @@ func available(state: GameState) -> Array[Dictionary]:
 ## Say which mode the next match is. Called by whatever button starts it.
 static func choose(tree: SceneTree, mode_id: String) -> void:
 	if tree != null:
-		tree.set_meta(META_KEY, mode_id)
+		tree.set_meta(META_KEY, stand_in_for(mode_id, GameState.fetch(tree)))
+
+
+## The mode that actually plays when `mode_id` is asked for: a row whose
+## Replaces column names it and whose Requires is true right now, or
+## `mode_id` itself. The first such row in the file wins.
+static func stand_in_for(mode_id: String, state: GameState) -> String:
+	if state == null:
+		return mode_id
+	var wanted := CardDatabase._normalise(mode_id)
+	var db := get_db()
+	for key in db.modes.keys():
+		var entry: Dictionary = db.modes[key]
+		var replaces := String(entry.get("replaces", ""))
+		if replaces.strip_edges() == "":
+			continue
+		var names: Array[String] = []
+		for part in replaces.split(";", false):
+			names.append(CardDatabase._normalise(part))
+		if not names.has(wanted):
+			continue
+		if DialogueGrammar.test(String(entry["requires"]), state):
+			print("[mode] %s stands in for %s (%s)." % [entry["id"], mode_id, entry["where"]])
+			return String(entry["id"])
+	return mode_id
+
+
+## The squad file the current mode plays with, or "" for your own team.
+static func squad_file(tree: SceneTree) -> String:
+	return String(current(tree).get("squad", "")).strip_edges()
 
 
 ## The mode the match should run as. Never empty — falls back to the season
