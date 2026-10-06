@@ -40,3 +40,4 @@ Round AN, part 3: Koch for the new prologue (side, Koch's side face as reference
   koch_sad_side bdefce67, koch_drunk_side 5ab7a8f9, koch_bergmaennlein_side 8e36ca78
   koch_silhouette_side: made from koch_bergmaennlein_side, every pixel dark
   except the orange lamp and eye glow (no PixelLab call)
+  koch_happy_side 8595f71c, koch_mad_side 5fa4434a (the star intro)

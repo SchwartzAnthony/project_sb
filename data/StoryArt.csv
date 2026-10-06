@@ -9,6 +9,8 @@ schaefer,portrait,Schäfer,,front,res://assets/story/portraits/schaefer_front.pn
 schaefer,portrait,,,side,res://assets/story/portraits/schaefer.png,right,,ROUND AN.
 koch,portrait,Koch,,front,res://assets/story/portraits/koch_front.png,,,ROUND AN. One of the three you start with.
 koch,portrait,,,side,res://assets/story/portraits/koch.png,right,,ROUND AN.
+koch,portrait,,happy,side,res://assets/story/portraits/koch_happy_side.png,right,,ROUND AN. The star intro.
+koch,portrait,,mad,side,res://assets/story/portraits/koch_mad_side.png,right,,ROUND AN. The star intro.
 koch,portrait,,sad,side,res://assets/story/portraits/koch_sad_side.png,right,,ROUND AN. The new prologue.
 koch,portrait,,drunk,side,res://assets/story/portraits/koch_drunk_side.png,right,,ROUND AN. The new prologue.
 koch,portrait,,silhouette,side,res://assets/story/portraits/koch_silhouette_side.png,right,,"ROUND AN. The new prologue: Koch mid-transformation, a black shape with a glowing lamp and eye. Made from the Bergmännlein face (all dark pixels, the glow kept), not a PixelLab call."
