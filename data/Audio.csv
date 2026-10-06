@@ -60,3 +60,6 @@ bld_training,,,bld_training,Effects,,-12,,,"ROUND AN. Clicking the Training Grou
 bld_trophy,,,bld_trophy,Effects,,-10,,,"ROUND AN. Clicking the Trophy Room: a cup set down with a ring and a sparkle (Ludo)"
 bld_tavern,,,bld_tavern,Effects,,-12,,,"ROUND AN. Clicking the Traveling Tavern: the horse, the creaking wagon, a mug on the counter (Ludo)"
 door_open,,,door_open,Effects,,-8,,,"ROUND AN. An old wooden door opening, played after a building's own sound when you click it (Buildings.csv Door Sound; the gap is base_door_sound_delay in Tuning.csv). Ludo, art_source/ludo/base_sounds/"
+visitor_brewer,,,visitor_brewer,Effects,,-6,,,"ROUND AN. The Brewer's grunting hello when you click him on the base (Visitors.csv Sound). Ludo, art_source/ludo/base_sounds/"
+visitor_heatwave,,,visitor_heatwave,Effects,,-6,,,"ROUND AN. Heatwave's cocky 'Hah!' and a crackle of fire when you click him on the base (Visitors.csv Sound). Ludo"
+wagon_creak,,,wagon_creak,Effects,,-8,,,"ROUND AN. The Traveling Tavern's door sound: old timber creaking as the wagon's hatch swings open (Buildings.csv Door Sound). Ludo"

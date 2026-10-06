@@ -188,6 +188,8 @@ func _load_csv(path: String) -> void:
 			# ROUND AN: the building this person belongs to. They stand at one
 			# of its doors (BaseSpots.csv). Blank = any door.
 			entry["building"] = _cell(row, columns, "building")
+			# Their own grunt or hello when you click them (an Audio.csv row).
+			entry["sound"] = _cell(row, columns, "sound")
 			visitors.append(entry)
 
 

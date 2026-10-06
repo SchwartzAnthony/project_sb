@@ -299,10 +299,13 @@ static func icon_button(icon: String, label: String,
 
 const BANNER_THREAD := Color("f3e8d4")
 const BANNER_STITCH := Color("19110a")
+## Where the name is stitched, as fractions of the banner: inside the
+## border, between the emblem and the swallowtail.
+const BANNER_TEXT_BOX := Rect2(0.2, 0.47, 0.6, 0.25)
 
 
 static func banner_button(art: Texture2D, label: String,
-		size: Vector2 = Vector2(96, 128)) -> Button:
+		size: Vector2 = Vector2(129, 168)) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = size
 	MotionBook.press_feel(button)
@@ -325,17 +328,19 @@ static func banner_button(art: Texture2D, label: String,
 	button.mouse_exited.connect(func() -> void:
 		cloth.modulate = Color.WHITE)
 
-	# The title, sewn into the plain lower half of the cloth.
+	# The title, sewn into the plain cloth under the emblem. Every banner is
+	# the same cloth (tools/make_banners.py), so the box is the same on all
+	# of them; the thread shrinks until the longest word fits inside the
+	# stitched border, so nothing ever hangs over the edge.
 	var words := Label.new()
 	words.text = label
-	words.anchor_left = 0.1
-	words.anchor_right = 0.9
-	words.anchor_top = 0.54
-	words.anchor_bottom = 0.8
+	words.anchor_left = BANNER_TEXT_BOX.position.x
+	words.anchor_right = BANNER_TEXT_BOX.end.x
+	words.anchor_top = BANNER_TEXT_BOX.position.y
+	words.anchor_bottom = BANNER_TEXT_BOX.end.y
 	words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	words.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	words.add_theme_font_size_override("font_size", 12)
 	words.add_theme_constant_override("line_spacing", -3)
 	words.add_theme_color_override("font_color", BANNER_THREAD)
 	words.add_theme_color_override("font_outline_color", BANNER_STITCH)
@@ -343,6 +348,18 @@ static func banner_button(art: Texture2D, label: String,
 	var face := ThemeBook.font(String(ThemeBook.row_for("heading").get("font", "")))
 	if face != null:
 		words.add_theme_font_override("font", face)
+	var font: Font = face if face != null else ThemeDB.fallback_font
+	var room := size.x * BANNER_TEXT_BOX.size.x - 4.0
+	var font_size := 15
+	while font_size > 9:
+		var widest := 0.0
+		for word in label.split(" ", false):
+			widest = maxf(widest, font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT,
+				-1, font_size).x + 4.0)
+		if widest <= room:
+			break
+		font_size -= 1
+	words.add_theme_font_size_override("font_size", font_size)
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(words)
 	return button

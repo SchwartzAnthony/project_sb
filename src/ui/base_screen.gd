@@ -42,12 +42,12 @@ const EXIT_SIZE := Vector2(196.0, 52.0)
 ## The flag banners that replace the exit buttons once drawn (round AN):
 ## a PixelLab cloth on the one shared rod, hanging from the top of the screen.
 const BANNER_DIR := "res://assets/ui/banners/"
-const BANNERS_LEFT := 580.0
+const BANNERS_LEFT := 556.0
 const BANNER_SOUND := "banner_flutter"
-const BANNERS_RIGHT := 530.0
-## A 48 x 64 banner (tools/make_banners.py) drawn x2.25; seven fit between
+const BANNERS_RIGHT := 490.0
+## A banner from tools/make_banners.py, drawn 1:1; seven fit between
 ## the Pub's roof and the Club House's (Dev is not one of them).
-const BANNER_SIZE := Vector2(108.0, 144.0)
+const BANNER_SIZE := Vector2(129.0, 168.0)
 
 var db: CardDatabase
 var base: BaseDB
@@ -208,7 +208,7 @@ func _build_chrome() -> void:
 ## the base does not need a door back to the title screen.
 func _build_exits() -> void:
 	var row := HFlowContainer.new()
-	row.add_theme_constant_override("h_separation", 8)
+	row.add_theme_constant_override("h_separation", -6)
 	row.add_theme_constant_override("v_separation", 8)
 	row.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	# Clear of the title on the left, a margin in from the right, and centred
@@ -354,6 +354,23 @@ func _build_exits() -> void:
 		leave.pressed.connect(func() -> void:
 			TutorialBase.leave(get_tree()))
 		row.add_child(leave)
+
+	_same_thread_size(row)
+
+
+## Every banner's name in the same size of thread (Anthony: the banners look
+## the same, only the emblem and the name differ). Each banner shrinks its own
+## name until it fits; this then gives all of them the smallest of those.
+func _same_thread_size(row: Control) -> void:
+	var names: Array[Label] = []
+	var smallest := 999
+	for door in row.get_children():
+		for child in door.get_children():
+			if child is Label and child.has_theme_font_size_override("font_size"):
+				names.append(child)
+				smallest = mini(smallest, child.get_theme_font_size("font_size"))
+	for words in names:
+		words.add_theme_font_size_override("font_size", smallest)
 
 
 ## One door on the top row. ROUND AN: a FLAG BANNER (MenuSupport.banner_button)
@@ -812,6 +829,8 @@ func _window_title(screen_word: String) -> String:
 
 
 func _on_visitor(entry: Dictionary) -> void:
+	# Their own grunt or hello (Visitors.csv `Sound`, round AN).
+	AudioDirector.play_cue(get_tree(), String(entry.get("sound", "")))
 	var scene := String(entry["story"]).strip_edges()
 	if bool(entry["once"]):
 		BaseDB.mark_talked(String(entry["id"]), state)

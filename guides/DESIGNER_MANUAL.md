@@ -3459,18 +3459,20 @@ Training Ground, the Dorms and the Club House; the `path_trophy` and
 a stone footbridge over the river to the road with the Brewery and the
 Traveling Tavern.
 
-**The top-row doors are flag banners** (round AN): one PixelLab banner per
-door in `assets/ui/banners/<name>.png` (dev, achievements, stadium, season,
-play, adventure, inventory, teams), each with its emblem embroidered on, and
-the title stitched into the cloth by the game (`MenuSupport.banner_button`).
-A door whose banner is missing falls back to the old button. **Every banner
-hangs from the same rod** (`art_source/pixellab/banners/rod.png`):
-`tools/make_banners.py` cuts each PixelLab cloth off its own rod, hangs it on
-the shared one, and writes `assets/ui/banners/<name>.png` plus an `.aseprite`
-with cloth and rod as two layers in `art_source/aseprite/banners/`. The seven
-banners are laid out as the released game shows them; **Dev is not a
-banner** - it is a small button in the bottom-left corner while we test, and
-`show_dev_tools` in Tuning.csv hides it.
+**The top-row doors are flag banners, and every banner is the same banner**
+(round AN): one blank PixelLab cloth (`art_source/pixellab/banners/cloth.png`)
+on one wooden rod (`rod.png`); only the emblem
+(`art_source/pixellab/banners/emblems/<name>.png`) and the name differ.
+`tools/make_banners.py` puts them together into `assets/ui/banners/<name>.png`
+(drawn 1:1) and an `.aseprite` with cloth, emblem and rod as three layers in
+`art_source/aseprite/banners/`. The name is stitched on by the game
+(`MenuSupport.banner_button`) in cream thread inside the border; the thread
+shrinks until the longest word fits, and every banner then uses the smallest
+size, so all seven names are the same size. A door whose banner is missing
+falls back to the old button. The seven banners are laid out as the released
+game shows them; **Dev is not a banner** - it is a small button in the
+bottom-left corner while we test, and `show_dev_tools` in Tuning.csv hides it.
+The first banners (each its own cloth) are in `art_source/legacy/banners_first/`.
 
 **Sounds** (round AN): pointing at a banner plays `banner_flutter` (a flag
 folding in the wind). **Clicking** a building plays its Buildings.csv `Sound`
@@ -3482,6 +3484,10 @@ and then its `Door Sound` (`door_open`, a wooden door creaking open)
 **Name Offset** in Buildings.csv (`x,y` in screen pixels) moves a building's
 name off the bottom middle of its picture, e.g. the Club House's, so the
 Trophy Room hut in front of it keeps its own name.
+
+**Visitors greet you**: Visitors.csv `Sound` is played when you click them -
+the Brewer's grunting "Servus" (`visitor_brewer`), Heatwave's cocky "Hah!"
+(`visitor_heatwave`). The Traveling Tavern's door sound is `wagon_creak`.
 
 **Visitors stand at a door** — `data/BaseSpots.csv`, one row per door: `X`,
 `Y` are the centre of the visitor's card, `Building` the Buildings.csv ID
