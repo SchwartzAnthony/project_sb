@@ -1,0 +1,45 @@
+HYBRID SET: OpenAI paintings converted to pixel art by PixelLab (round AN comparison)
+
+Tool: PixelLab MCP image_to_pixelart, faithful=true, init_image_strength=200,
+no text prompt (it is a conversion, so the art bible lives in the OpenAI source).
+Sources: art_source/compare/openai/<layer>.png
+
+Source prep (src/make_src.py): cut-outs cropped to their visible area, scaled
+to the OUTPUT size, quantized to 48 colours (PNG, transparency kept). Sent as
+a data: URL. Note: much smaller than the planned 768 px. Bigger data URLs got
+corrupted when copied into the tool call (PixelLab: "base64 did not decode"),
+so the sources had to be small.
+
+Layer     source          output     job id
+tent      256x218 PNG     256x218    f711561c-6937-419b-b4b4-d6b65d9f0625
+hero      234x340 PNG     234x340    c79439f2-8bda-4af5-a0bb-dcea8c53598a
+sign      384x263 PNG     384x263    5d856442-3514-426f-afa3-4036766b392b
+brewery   256x263 PNG     256x263    d2a0a1c5-c540-4cbd-abee-1ba1bc044c48
+crowd     384x230 PNG     384x230    b1ba2a0f-7f32-4a61-9eb5-773d3b68a26c
+brawl     384x305 PNG     384x305    31d1a1d7-6b5e-4f94-bc36-669999f113b1
+bg        FAILED, see below
+
+Cost: 6 generations (subscription; $0 credits). Balance after: 4311 of 5000 left.
+
+Problems
+1. Transparency: PixelLab gave every cut-out back on a flat mid-grey
+   background (about RGB 129,129,129), although the sources were transparent.
+   The raw results are kept as <layer>_raw.png. src/fix_alpha.py put the
+   alpha back by using the OpenAI cut-out's mask, scaled to the pixel size
+   with hard edges.
+2. bg: the painted sky/meadow does not compress well. Every data URL was
+   >17k characters, and each copy into the tool call came out corrupted (3
+   attempts, all rejected before generating, so no credits were used). So
+   hybrid/bg.png is a STAND-IN and NOT PixelLab: the OpenAI bg run through
+   tools/pixelate.py with compose.py's "paint" settings (960x540). To do it
+   properly, PixelLab's upload endpoint (POST /v2/uploads -> upload:<id>) or
+   an https URL to the image is needed.
+3. The sign comes with the two people at the sides, because the OpenAI
+   sign.png had them (faithful mode keeps what is there).
+
+Compose
+  compose.py hybrid pixel  -> title.png (= title_pixel.png)   KEPT
+  compose.py hybrid paint  -> title_paint.png (for comparison; it smears the
+                              black outlines and faces, much worse)
+Pixel mode scales each layer by a whole number: hero x3, bg x2, the rest x1,
+so the hero's pixels are 3x bigger than the crowd's.

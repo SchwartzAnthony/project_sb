@@ -5471,6 +5471,58 @@ character.**
 | `Aspect` | **new in round AL.** For example `16:9`: trim the picture to that shape first, from the middle. Use it for full-screen backgrounds. Blank = keep the shape |
 | `Flip` | **new in round AL.** `yes` = mirror it left to right, to turn a character round |
 
+**ROUND AN: the art bible and a new title background.**
+- **The art bible:** one sentence of style words, the `art_bible` row of
+  `data/ArtStyle.csv`. It ends every PixelLab prompt. See
+  `guides/ART_STYLE.md`.
+- **The prompt builder,** `tools/art_prompt.gd`, writes a full prompt from
+  `ArtStyle.csv`, so the style words never drift:
+  `godot --headless --path . --script res://tools/art_prompt.gd -- pixellab "Lorelei siren"`
+  (or `-- openai "..."`).
+- **New title background:** `01_title_bg_b.png` (Pixelate.csv `title_bg_b`):
+  the bumpy pitch, the Oktoberfest meadow, the beer town, a spooky bog and a
+  sunset over the Alps. The other one is `01_title_bg_a.png` (the beer town by
+  day). The old `01_field.png` stays in the folder. To swap, change the
+  `background` row of `MainMenu.csv`.
+- **PixelLab only, in layers (your decision):** all art is made with PixelLab
+  from now on. The title screen is the PixelLab set now
+  (`assets/menu/layers/pixellab/`, masters in `art_source/pixellab/title/`).
+  The whole screen is also one layered Aseprite file:
+  `art_source/aseprite/title_screen.aseprite`, made by `tools/make_aseprite.py`.
+  See `guides/ART_STYLE.md` for how to edit it and bring a layer back.
+- **Settings, the save screen and the menu button are PixelLab too:**
+  `assets/ui/settings/pixellab/`, `assets/ui/save/pixellab/` (masters in
+  `art_source/pixellab/menus/`), named in `ScreenLook.csv`. Layered files:
+  `art_source/aseprite/settings.aseprite` and `save_screen.aseprite`
+  (`tools/make_aseprite.py data/ScreenLook.csv <file> settings` or `slot`).
+  Buttons and frames come from PixelLab's UI tool (`create_ui_asset`):
+  the picture tool drew steins and sausages instead of a plank.
+- **Everything else redone with PixelLab:** the UI skin (`Theme.csv`
+  images, flat calm middles so text reads), all 39 icons (64 x 64), the team
+  crest and formation picture, the match background (`Stadium.csv`:
+  `stadium_back` + the unlockable `stadium_crowd`), and **one animated
+  sprite sheet per class** (`assets/players/class_<Class>.png`, picked by
+  `Tuning.csv` `placeholder_art_<Class>` for every card without its own
+  Artwork). Originals are kept in `art_source/legacy/`. Not touched yet:
+  the base screen and its buildings, Adventure Mode and the soccer field.
+- **The tool comparison** (OpenAI, PixelLab, Ludo.ai, Claude by hand, a hybrid)
+  is in `art_source/compare/`, with `comparison.png` side by side.
+- **Pixelating on your Deck:** use `~/.venvs/sturmball/bin/python tools/pixelate.py`.
+  That Python has Pillow installed; the system one can't install it.
+
+**ROUND AM: every layer of the title screen, Settings and the save screen
+was repainted in THE art style, Stammtisch-Comic.** That's the chaotic
+German comic look of your Midjourney pictures; see `guides/ART_STYLE.md`
+and the `stammtisch_` rows of `data/ArtStyle.csv`.
+- **Same files, new pictures:** the file names didn't change, only the
+  paintings behind them. The new masters are in
+  `art_source/openai/stammtisch/`.
+- **The hero comes in two iterations:** `hero_a_skinny.png` (on screen) and
+  `hero_b_round.png`. Same face, opposite body.
+- **New `Pixelate.csv` column, `Key Colour`:** a painting that came back
+  with a filled background instead of a transparent one has that background
+  cut away, but only where it touches the edge. The crowd uses `#fdf3d0`.
+
 **The title screen is built from layers (round AL).** Every part of the
 picture is its own painting, so each can be repainted, moved or swapped
 without touching the others. OpenAI painted all of them in the **front

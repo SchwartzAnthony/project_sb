@@ -28,6 +28,9 @@
 #               (from the middle) - for full-screen backgrounds. Blank = keep.
 #    Widen      round AL: 1.5 = make it 1.5x wider by stretching only the
 #               middle (the ends keep their shape) - for buttons and signs.
+#    Key Colour round AM: a colour like #fdf3d0 - a painting that came back
+#               with a FILLED background instead of a transparent one has that
+#               background cut away (only where it touches the edge).
 #    Neutral    round AL: 0-1. Takes the yellow "AI painting" tint out by
 #               making the near-white parts truly white (1 = fully). Blank = off.
 #    Flip       round AL: yes = mirror it left-right (turn a character round)
@@ -75,6 +78,23 @@ def fill_holes(im, colour, max_percent=0.0):
     return Image.fromarray(arr, "RGBA")
 
 
+def key_out(im, colour, tolerance=40):
+    """Make the plain background see-through: every pixel close to `colour`
+    that is connected to the edge of the picture becomes transparent (for
+    a painting that came back with a filled background instead of a
+    transparent one). Colours inside the figure are left alone."""
+    import numpy as np
+    from scipy import ndimage
+    arr = np.array(im).astype(np.int32)
+    rgb = tuple(int(colour.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4))
+    close = (np.abs(arr[..., :3] - np.array(rgb)).max(-1) <= tolerance)
+    lab, n = ndimage.label(close)
+    edge = set(np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]])).tolist()) - {0}
+    out = np.array(im)
+    out[np.isin(lab, list(edge)), 3] = 0
+    return Image.fromarray(out, "RGBA")
+
+
 def neutralise(im, strength):
     """Take the yellow (or any) colour cast out: the near-white pixels -
     clouds, white walls, foam - are made truly white, and every other colour
@@ -93,8 +113,10 @@ def neutralise(im, strength):
     return Image.fromarray(arr.astype(np.uint8), "RGBA")
 
 
-def pixelate(src, height, colours, outline, ink, crop, holes="", smooth=0, max_hole=0.0, aspect="", flip=False, widen=1.0, neutral=0.0):
+def pixelate(src, height, colours, outline, ink, crop, holes="", smooth=0, max_hole=0.0, aspect="", flip=False, widen=1.0, neutral=0.0, key=""):
     im = Image.open(src).convert("RGBA")
+    if key:
+        im = key_out(im, key)
     if neutral:
         im = neutralise(im, neutral)
     if flip:
@@ -181,7 +203,8 @@ def main():
                            int(float(row.get("Ink") or 60)), (row.get("Crop") or "yes").strip().lower() == "yes",
                            (row.get("Fill Holes") or "").strip(), int(float(row.get("Smooth") or 0)), float(row.get("Max Hole") or 0),
                            (row.get("Aspect") or "").strip(), (row.get("Flip") or "").strip().lower() == "yes",
-                           float(row.get("Widen") or 1.0), float(row.get("Neutral") or 0))
+                           float(row.get("Widen") or 1.0), float(row.get("Neutral") or 0),
+                           (row.get("Key Colour") or "").strip())
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             out.save(dst)
             print("  %s: %s -> %s (%dx%d, %s colours)" % (rid, row["Source"], row["Output"], out.width, out.height, row.get("Colours")))

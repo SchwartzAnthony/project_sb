@@ -515,6 +515,29 @@ function paintBook(){
       ["pixelate","<b>Pixelate.csv</b> new column Smooth - melts the hatching first so the pixel art is clean"],
     ])}`);
 
+  card("The art bible and a new title background (round AN)", `
+    <p style="margin:0 0 10px"><b>One sentence of style words ends every PixelLab prompt, and a tool writes the prompts so they never drift.</b></p>
+    ${rows([
+      ["the bible","<b>ArtStyle.csv</b> art_bible - change the style only there; art_bible_openai is the same without the artist names"],
+      ["the tool","<code>tools/art_prompt.gd -- pixellab \"Lorelei siren\"</code> (or openai) prints the full prompt from ArtStyle.csv recipe_pixellab / recipe_openai"],
+      ["PixelLab only","your decision: ALL art is made with PixelLab - masters in art_source/pixellab/, a Pixelate.csv row shrinks each to its screen size"],
+      ["layers","every picture stays in parts; tools/make_aseprite.py writes one layered .aseprite file per screen (art_source/aseprite/title_screen.aseprite)"],
+      ["menus","Settings (Beer Keller), the save screen (trophy room) and the menu button repainted by PixelLab - ScreenLook.csv, art_source/aseprite/settings.aseprite + save_screen.aseprite"],
+      ["players","one animated PixelLab sheet per class: assets/players/class_<Class>.png, chosen by Tuning.csv placeholder_art_<Class>"],
+      ["UI + icons","Theme.csv skin, 39 icons, team crest, match background (Stadium.csv) - all PixelLab; originals in art_source/legacy/"],
+      ["title screen","the PixelLab set (assets/menu/layers/pixellab/); the tool comparison is in art_source/compare/comparison.png"],
+    ])}`);
+
+  card("THE art style: Stammtisch-Comic (round AM)", `
+    <p style="margin:0 0 10px"><b>Your Midjourney pictures are the style. Every picture is made from them now.</b></p>
+    ${rows([
+      ["references","assets/references/ (yours) and art_source/style_refs/stammtisch/ (short names + board_characters.png, board_places.png)"],
+      ["the words","<b>ArtStyle.csv</b> stammtisch_prompt starts every prompt; stammtisch_eyes / nose / mouth / body / world / avoid = the bible"],
+      ["the rule","same face on everybody - huge potato nose, big oval eyes, blocky teeth - bodies pushed to extremes (skinny, fat, tiny, huge)"],
+      ["done","title screen, Settings and the save screen repainted; hero iterations A (skinny, on screen) and B (round)"],
+      ["Pixelate.csv","new column Key Colour cuts away a filled background"],
+    ])}`);
+
   card("Settings and the save screen dressed up (round AL)", `
     <p style="margin:0 0 10px"><b>Settings is the Beer Keller, the save screen is the trophy room - layered like the title screen.</b></p>
     ${rows([
