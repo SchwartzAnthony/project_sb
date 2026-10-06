@@ -3466,6 +3466,12 @@ the title stitched into the cloth by the game (`MenuSupport.banner_button`).
 A door whose banner is missing falls back to the old button. Each banner is
 also an `.aseprite` in `art_source/aseprite/banners/`.
 
+**Sounds** (round AN): pointing at a banner plays `banner_flutter` (a flag
+folding in the wind), and pointing at a building plays its Buildings.csv
+`Sound`, an Audio.csv row: `bld_brewery` bubbling, `bld_pub` cheering,
+`bld_club_house`, `bld_dorms` snoring, `bld_training`, `bld_trophy`,
+`bld_tavern`. Made with Ludo; the originals are in `art_source/ludo/base_sounds/`.
+
 **Name Offset** in Buildings.csv (`x,y` in screen pixels) moves a building's
 name off the bottom middle of its picture, e.g. the Club House's, so the
 Trophy Room hut in front of it keeps its own name.

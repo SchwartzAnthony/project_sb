@@ -178,6 +178,7 @@ func _load_csv(path: String) -> void:
 			entry["map_art"] = _cell(row, columns, "mapart")
 			entry["map_size"] = _cell(row, columns, "mapsize")
 			entry["name_offset"] = _cell(row, columns, "nameoffset")
+			entry["sound"] = _cell(row, columns, "sound")
 			buildings.append(entry)
 		else:
 			entry["portrait"] = _cell(row, columns, "portrait")

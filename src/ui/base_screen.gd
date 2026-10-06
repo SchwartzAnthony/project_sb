@@ -43,6 +43,7 @@ const EXIT_SIZE := Vector2(196.0, 52.0)
 ## a 40 x 64 PixelLab banner drawn x2, hanging from the top of the screen.
 const BANNER_DIR := "res://assets/ui/banners/"
 const BANNERS_LEFT := 596.0
+const BANNER_SOUND := "banner_flutter"
 const BANNERS_RIGHT := 560.0
 ## 88 wide fits eight between the Pub's roof and the Club House's.
 const BANNER_SIZE := Vector2(88.0, 141.0)
@@ -353,7 +354,13 @@ func _exit(icon: String, label: String, box: Vector2 = EXIT_SIZE) -> Button:
 	var art_name := icon.split("|")[0].strip_edges()
 	var path := BANNER_DIR + art_name + ".png"
 	if ResourceLoader.exists(path):
-		return MenuSupport.banner_button(load(path) as Texture2D, label, BANNER_SIZE)
+		var banner := MenuSupport.banner_button(load(path) as Texture2D, label, BANNER_SIZE)
+		# The cloth folds in the wind when you point at it (Audio.csv).
+		banner.mouse_entered.connect(func() -> void:
+			AudioDirector.play_cue(get_tree(), BANNER_SOUND))
+		banner.focus_entered.connect(func() -> void:
+			AudioDirector.play_cue(get_tree(), BANNER_SOUND))
+		return banner
 	return MenuSupport.icon_button(icon, label, box)
 
 
@@ -640,8 +647,12 @@ func _make_map_building(entry: Dictionary, art: Texture2D) -> Control:
 	var resting := Color.WHITE if unlocked else Color(0.35, 0.35, 0.40, 1.0)
 	picture.modulate = resting
 	button.add_child(picture)
+	# Its own sound when you point at it (Buildings.csv `Sound`, an Audio.csv
+	# row): the Brewery bubbles, the Pub cheers.
+	var sound := String(entry.get("sound", ""))
 	button.mouse_entered.connect(func() -> void:
-		picture.modulate = resting * Color(1.25, 1.25, 1.25, 1.0))
+		picture.modulate = resting * Color(1.25, 1.25, 1.25, 1.0)
+		AudioDirector.play_cue(get_tree(), sound))
 	button.mouse_exited.connect(func() -> void:
 		picture.modulate = resting)
 
