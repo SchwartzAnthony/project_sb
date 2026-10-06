@@ -1,0 +1,8 @@
+ID,Kind,Speaker,Image,Faces,Front,Notes
+heatwave,portrait,Heatwave Brandteufel,res://assets/story/portraits/heatwave.png,right,,"ROUND AN. PixelLab create_image_pro 512x512, style image board_characters.png. Layered file: art_source/aseprite/story/cast.aseprite. Swap the Image to change his face in every conversation at once."
+brewer,portrait,The Brewer,res://assets/story/portraits/brewer.png,right,,ROUND AN. PixelLab. The base visitor still uses the old picture in assets/portraits/ (that screen belongs to the base work).
+hoffmann,portrait,Hoffmann,res://assets/story/portraits/hoffmann.png,right,,"ROUND AN. PixelLab. One of the three you start with (Progression.csv new_game)."
+schaefer,portrait,Schäfer,res://assets/story/portraits/schaefer.png,right,,ROUND AN. PixelLab. One of the three you start with.
+koch,portrait,Koch,res://assets/story/portraits/koch.png,right,,ROUND AN. PixelLab. One of the three you start with.
+bar,background,,res://assets/story/backgrounds/bar_room.png,,,"ROUND AN. THE BAR, layer 1 (back): the inside of the Wirtshaus. Rows with the same ID are stacked, first row at the back. Layered file: art_source/aseprite/story/bar.aseprite"
+bar,background,,res://assets/story/backgrounds/bar_regulars.png,,,ROUND AN. The bar layer 2: the regulars at the Stammtisch. Delete this row for an empty pub.

@@ -1,0 +1,21 @@
+Conversation faces and the bar (round AN)
+=========================================
+Tool:  PixelLab create_image_pro. Portraits 512x512, transparent, style image
+       art_source/style_refs/stammtisch/board_characters.png (downscaled to
+       128x64, 16 colours, sent inline). Rooms 688x384, opaque, no style image.
+Cost:  8 calls x 40 = 320 generations (2439 left before).
+Prompts: tools/art_prompt.gd -- pixellab "<SUBJECT>", passed verbatim. The
+       subjects are below; the clean rules and the art bible were added by the tool.
+
+heatwave   50cb9c8b  a waist-up visual-novel dialogue portrait of one character, facing right, on a transparent background, the head and upper body large in frame: HEATWAVE BRANDTEUFEL, a Bavarian fire devil and star footballer - bright red devil skin, two big curved cream horns, a pointed black goatee, a gold earring, an enormous cocky grin full of big blocky white teeth, big white oval eyes with small pupils, a huge red potato nose, little orange flames licking off his shoulders and a curl of smoke, black and orange striped football shirt, one big four-fingered hand holding a steaming beer mug
+brewer     d04b3fe0  ... THE BREWER, an old Bavarian master brewer - barrel-round and pot-bellied, a green cap, round brown glasses, a huge bushy grey-brown moustache and stubble, a big pink potato nose, big floppy ears, a red shirt with rolled sleeves under blue dungarees, hairy forearms, a leather apron, one hand pulling a brass beer tap
+hoffmann   c9f46901  ... HOFFMANN, a village football player - barrel-round and broad, a thick black walrus moustache, short spiky black hair, ruddy cheeks and stubble, a huge pink potato nose, a gap-tooth grin, red and white striped football shirt stretched over his belly, arms crossed
+schaefer   7dd814da  ... SCHÄFER, a village football player - beanpole-skinny and gangly with a long neck, wild scruffy straw-blond hair, buck teeth, a long droopy pink nose, big floppy ears, freckles, a nervous grin, red and white striped football shirt far too big for him, one hand scratching his head
+koch       92051147  ... KOCH, a village football player - tiny and squat, bald dome with a few hairs, huge ginger sideburns, a grumpy frown with big blocky teeth, a huge red potato nose, big ears, red and white striped football shirt, a sweatband on his wrist, a fist raised
+bar_room   40108ab9  the back layer of a visual-novel scene, one full-frame wide picture seen straight on at eye level: the inside of an old Bavarian Wirtshaus pub at evening - dark wooden panelled walls, a low beamed ceiling with a wagon-wheel lamp, a long wooden bar counter across the back with brass beer taps and big wooden barrels behind it, shelves of grey stone beer mugs, antlers, old football pennants and a framed team photo on the walls, a green tiled stove in the corner, small windows with blue-and-white checked curtains, a wooden floor, the middle of the room empty. No people
+bar_regulars b2fb0e63 (style image) one cut-out layer for a pub scene, on a transparent background: a round wooden Stammtisch table with four drunk old Bavarian regulars in lederhosen and felt hats sitting round it, laughing, raising beer mugs, one asleep with his head on the table, a brass Stammtisch sign on a pole in the middle of the table, the whole group in frame
+bar_table  1cd62116  one cut-out foreground layer for a pub scene: the near edge of a heavy wooden pub table ... beer mugs, a pretzel ...
+           NOT USED: it came out as a whole table, and the bottom of the screen is under the text box anyway. Kept as bar_table_raw.png.
+
+Placement: bar_regulars_raw.png scaled 0.55 (nearest), centred, feet at y=345
+of the 688x384 room -> assets/story/backgrounds/bar_regulars.png.

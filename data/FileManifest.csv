@@ -32,6 +32,7 @@ Celebration.csv,data/,A spreadsheet you edit,"THE GOAL CELEBRATION, one row per 
 ClassInfo.csv,data/,A spreadsheet you edit,
 Combos.csv,data/,A spreadsheet you edit,
 Dialogue.csv,data/,A spreadsheet you edit,
+StoryArt.csv,data/,A spreadsheet you edit,"Round AN. The faces and rooms of the conversations"
 Drops.csv,data/,A spreadsheet you edit,
 EnemyPlay.csv,data/,A spreadsheet you edit,"HOW THE OTHER SIDE PLAYS. Rules read top to bottom, the first whose When is true decides what they take and whether they play it face up. The opposition instead of an AI"
 example_unit_csv_with_ability_columns.csv,data/,A spreadsheet you edit,
@@ -95,6 +96,7 @@ content_report.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 controller_focus.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 dialogue_choice.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 dialogue_db.gd,src/core/,"Engine. Rules, loaders and shared helpers",
+story_art.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 dialogue_grammar.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 dialogue_line.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 enemy_play.gd,src/core/,"Engine. Rules, loaders and shared helpers","HOW THE OTHER SIDE PLAYS. A list of rules out of EnemyPlay.csv read top to bottom, first match wins. Not an AI - nothing learns or searches, and you write the rules"

@@ -14,6 +14,8 @@ extends Control
 #      DialogueView.play(get_tree(), "chapter1")
 #  or set `scene_name` in the Inspector and run dialogue_view.tscn directly.
 #
+#  PICTURES: data/StoryArt.csv names every face and room (see story_art.gd).
+#  A Portrait or Background that is not a row there is a file name in
 #  ART FOLDERS (all optional — missing art degrades to a coloured panel)
 #      res://assets/backgrounds/   the Background column
 #      res://assets/portraits/     the Portrait column
@@ -52,6 +54,9 @@ var _shown_chars: float = 0.0
 
 # --- Nodes, all built in code ---
 var _background: TextureRect
+var _background_layers: Control      # StoryArt.csv rows behind the people
+var _front_layers: Control           # StoryArt.csv rows with Front = yes
+var _art: StoryArt
 var _backdrop_fill: ColorRect
 var _portrait_slots: Dictionary = {}     # "left"/"right"/"centre" -> Control
 var _name_plate: Label
@@ -89,6 +94,7 @@ func _ready() -> void:
 
 	db = CardDatabase.get_db()
 	story = DialogueDB.get_db()
+	_art = StoryArt.get_db()
 	state = GameState.fetch(get_tree())
 
 	var tree := get_tree()
@@ -124,6 +130,8 @@ func _build_ui() -> void:
 	_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_background)
 
+	_background_layers = _layer_box("BackgroundLayers")
+
 	# Keeps white text readable over a bright backdrop.
 	var shade := ColorRect.new()
 	shade.color = Color(0.0, 0.0, 0.0, 0.28)
@@ -132,11 +140,21 @@ func _build_ui() -> void:
 	add_child(shade)
 
 	_build_portrait_slots()
+	_front_layers = _layer_box("FrontLayers")
 	_build_text_box()
 
 	_music = AudioStreamPlayer.new()
 	_music.name = "Music"
 	add_child(_music)
+
+
+func _layer_box(box_name: String) -> Control:
+	var box := Control.new()
+	box.name = box_name
+	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(box)
+	return box
 
 
 func _build_portrait_slots() -> void:
@@ -370,6 +388,19 @@ func _go_next() -> void:
 func _apply_background(line: DialogueLine) -> void:
 	if line.background.strip_edges() == "":
 		return          # blank means "keep the one already up"
+	for box in [_background_layers, _front_layers]:
+		for child in box.get_children():
+			child.queue_free()
+	var layers := _art.background_layers(line.background)
+	if not layers.is_empty():
+		_background.texture = null
+		for layer in layers:
+			var picture := _cover_rect(_find_texture(String(layer["image"]), BACKGROUND_DIRS))
+			if picture.texture == null:
+				print("[Story] %s: StoryArt.csv '%s' has no picture at %s."
+					% [line.where(), line.background, layer["image"]])
+			(_front_layers if layer["front"] else _background_layers).add_child(picture)
+		return
 	var art := _find_texture(line.background, BACKGROUND_DIRS)
 	_background.texture = art
 	if art == null:
@@ -382,15 +413,23 @@ func _apply_portrait(line: DialogueLine) -> void:
 		for child in slot.get_children():
 			child.queue_free()
 
-	if line.portrait.strip_edges() == "":
+	# StoryArt.csv first: the Portrait cell, or the Speaker when it is blank.
+	var row := _art.portrait_for(line.portrait, line.speaker)
+	var file_name: String = row.get("image", line.portrait)
+	if file_name.strip_edges() == "":
 		return
 
-	var sheet := _find_texture(line.portrait, PORTRAIT_DIRS)
+	var sheet := _find_texture(file_name, PORTRAIT_DIRS)
 	if sheet == null:
-		print("[Story] %s: no portrait art called '%s'." % [line.where(), line.portrait])
+		print("[Story] %s: no portrait art called '%s'." % [line.where(), file_name])
 		return
 
 	var slot: Control = _portrait_slots.get(line.side, _portrait_slots["left"])
+	# Everybody looks into the room: a face drawn looking right is mirrored
+	# on the right-hand side, and the other way round.
+	var faces: String = row.get("faces", "")
+	var mirror := (faces == "right" and line.side == "right") \
+		or (faces == "left" and line.side == "left")
 
 	# An Animation column turns the portrait into a spritesheet playing that
 	# animation — the same Animations.csv rows the units on the pitch use.
@@ -418,7 +457,19 @@ func _apply_portrait(line: DialogueLine) -> void:
 	still.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	still.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	still.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	still.flip_h = mirror
 	slot.add_child(still)
+
+
+func _cover_rect(art: Texture2D) -> TextureRect:
+	var rect := TextureRect.new()
+	rect.texture = art
+	rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return rect
 
 
 func _apply_music(line: DialogueLine) -> void:
@@ -441,8 +492,12 @@ func _apply_music(line: DialogueLine) -> void:
 func _find_texture(file_name: String, dirs: Array[String]) -> Texture2D:
 	var clean := file_name.strip_edges()
 	for folder in dirs:
-		# Both "portrait.png" and a bare "portrait" work.
-		for candidate in [folder + clean, folder + clean + ".png"]:
+		# Both "portrait.png" and a bare "portrait" work, and so does a
+		# whole res:// path (what StoryArt.csv writes).
+		var tries: Array = [folder + clean, folder + clean + ".png"]
+		if clean.begins_with("res://"):
+			tries = [clean]
+		for candidate in tries:
 			if ResourceLoader.exists(candidate):
 				var res := load(candidate)
 				if res is Texture2D:

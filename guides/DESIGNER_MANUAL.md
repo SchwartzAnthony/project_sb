@@ -117,6 +117,7 @@ fallbacks.
 | `assets/goalies/` | keeper art | `.png` | Goalies `Artwork` |
 | `assets/base/` | the base and its buildings. A file called `background` here is the backdrop (the town map, made by `tools/make_base_town.py`) | `.png` / `.jpg`. Buildings are placed by X and Y (0–1 across the screen), so draw them to stand alone | Buildings `Art` |
 | `assets/portraits/` | faces for dialogue and base visitors | `.png` with transparency | Visitors `Portrait`, Dialogue `Portrait` |
+| `assets/story/` | **round AN:** the conversation faces (`portraits/`, 512×512) and rooms (`backgrounds/`, 688×384, in layers) | `.png` with transparency | StoryArt.csv `Image` |
 | `assets/backgrounds/` | full-screen scenery | `.jpg` / `.png` at 1920×1080. A biome background **tiles and scrolls**, so match its left and right edges | Biomes `Background`, Dialogue `Background` |
 | `assets/menu/` | menu and class banners | `.png` / `.jpg`. A class banner is roughly 3:1 | ClassInfo `Banner Art`, Seasons `Art`, Bounties `Art` |
 | `assets/talents/` | talent tree icons | `.png`, square, 64×64 | Talents `Art` |
@@ -4643,6 +4644,44 @@ sets of `Choice N Text / Next / Requires / Effects`.
 A line with no choices runs on to `Next`. A line with choices stops and asks.
 A choice whose `Requires` fails is greyed out rather than hidden, so the
 player can see what they missed.
+
+### The faces and the rooms — `data/StoryArt.csv` (round AN)
+
+Every picture a conversation shows, one row each. Dialogue.csv only names a
+row by its **ID**, so changing a face or a room everywhere is one cell.
+
+| Column | |
+|---|---|
+| `ID` | the name Dialogue.csv writes in `Portrait` or `Background` |
+| `Kind` | `portrait` (a face beside the text box) or `background` (the room) |
+| `Speaker` | portraits only. A line with this Speaker and an **empty** Portrait cell gets this face, so you never type it on every line |
+| `Image` | the PNG, as a `res://` path. The new art is in `assets/story/portraits/` and `assets/story/backgrounds/` |
+| `Faces` | which way the drawing looks (`right` / `left`). The game mirrors it on the other side, so everybody looks into the room |
+| `Front` | backgrounds only. `yes` draws that layer in front of the people |
+
+**A room in layers.** Give several `background` rows the same ID: they are
+stacked in file order, the first row at the back. The bar is two rows: the
+empty Wirtshaus, then the regulars at the Stammtisch. Delete the second row
+for an empty pub.
+
+**The intro now plays in the bar.** The prologue and the first-team scene
+open with `Background` = `bar`; a line with a blank Background keeps the room
+that is already up. Faces: `heatwave`, `brewer`, `hoffmann`, `schaefer`,
+`koch`.
+
+**Making more.** PixelLab `create_image_pro`, 512×512 with a transparent
+background and `art_source/style_refs/stammtisch/board_characters.png` as the
+style image, prompt from `tools/art_prompt.gd -- pixellab "a waist-up
+visual-novel dialogue portrait of one character, facing right ..."`. A room
+is 688×384, one call per layer. The PixelLab originals are in
+`art_source/pixellab/story/`, the layered files in
+`art_source/aseprite/story/` (`bar.aseprite`, `cast.aseprite`: one layer per
+face). To look at the result without playing:
+`godot --path . --resolution 1920x1080 --script res://tools/story_shot.gd`.
+
+A Portrait or Background that is not an ID in StoryArt.csv still works the old
+way: a file name looked for in `assets/portraits/` or `assets/backgrounds/`.
+The base visitors (Visitors.csv) still use `assets/portraits/`.
 
 **`data/Language.csv`** — `Key`, `English`, `Deutsch`, `Notes`. Add a column
 for a new language; the game finds it. Any text the game shows goes through a
