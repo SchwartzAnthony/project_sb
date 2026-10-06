@@ -1,0 +1,6 @@
+Bus,Slider,Setting,Default,Notes
+Master,Everything,volume_master,0.9,"ROUND AN. Every sound channel (Godot calls it a bus) the game has, one row each, top to bottom = the sliders in Settings > Sound. Master is the one everything ends up in. Bus = the name Audio.csv uses in its Bus column. Slider = the words beside the slider. Setting = where settings.json keeps it. Default = 0 to 1 on a fresh install. Add a row and a new bus and slider appear - no code."
+Music,Music,volume_music,0.7,"Every row in Audio.csv with Bus = Music: the menu theme, the match songs."
+Effects,Effects,volume_sfx,0.9,"Bus = Effects in Audio.csv: kicks, whistles, goals, duel hits, and every Juice.csv sound. Setting keeps the old name volume_sfx so older settings files still load."
+UI,Menu clicks,volume_ui,0.9,"Bus = UI in Audio.csv: the plank buttons' hover and click sounds."
+Voice,Voices,volume_voice,0.9,"Spoken lines. Nothing uses it yet; it is ready for when Audio.csv has a row with Bus = Voice."

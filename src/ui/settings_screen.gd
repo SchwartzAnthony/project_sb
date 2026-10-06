@@ -24,14 +24,30 @@ const Look := preload("res://src/ui/screen_look.gd")
 #  under whatever heading its Group column names — no code. The rest is
 #  game_settings.gd, which is also where a new setting would go.
 #
-#  Everything is saved the moment you change it, into user://settings.json.
-#  There is no Apply button because there is nothing to apply: if it looks
-#  wrong, change it back and it changes back.
+#  ============ ROUND AN: YOU HEAR IT AT ONCE, AND SAVE TO KEEP IT ============
+#
+#  Every change happens the moment you make it (drag Music and the music gets
+#  quieter while you drag), but it is only written to user://settings.json
+#  when you press SAVE. Leaving with changes you have not saved asks first:
+#  Save, Don't save, or Stay. Tuning.csv `settings_unsaved_on_leave` can make
+#  it save or throw them away without asking instead.
+#
+#  The key bindings and the language are the exception: they save themselves
+#  the moment you change them, as they always have.
 # =============================================================
 
 const TABS: Array[String] = ["Keys", "Screen", "Sound", "Colour", "Controller", "Language"]
 
+## What the screen shows, and what is in effect right now.
 var settings: Dictionary = {}
+## What is in settings.json. The difference between the two is "unsaved".
+var _saved: Dictionary = {}
+## setting key -> the words beside it, for the "unsaved: Music, Window" line.
+var _names: Dictionary = {}
+var _save_button: Button
+## Set once a Save / Don't save has been decided, so the screen closing does
+## not undo it.
+var _settled: bool = false
 
 var _tab: String = "Keys"
 var _tab_buttons: Dictionary = {}
@@ -52,7 +68,11 @@ const TAB_KEY := "cw_settings_tab"
 func _ready() -> void:
 	MenuEscape.install(self)
 	GameKeys.install(get_tree())
-	settings = GameSettings.load_all()
+	_saved = GameSettings.load_all()
+	settings = _saved.duplicate(true)
+	# LEAVING ANY OTHER WAY (Escape > main menu, a crash out of a dialog)
+	# puts the saved settings back, so what you hear always matches the file.
+	tree_exiting.connect(_undo_unsaved)
 	_build()
 	# ROUND AL: the Beer Keller behind it and plank buttons - data/ScreenLook.csv
 	Look.install(self, "settings")
@@ -63,6 +83,7 @@ func _ready() -> void:
 		if TABS.has(remembered):
 			opening = remembered
 	_show_tab(opening)
+	_refresh_save()
 
 
 # =============================================================
@@ -117,9 +138,12 @@ func _build() -> void:
 	page.add_child(footer)
 
 	var back := MenuSupport.icon_button("back|←", "Back", Vector2(170, 54))
-	back.pressed.connect(func() -> void:
-		ScenePaths.go_back(get_tree(), ScenePaths.MAIN_MENU))
+	back.pressed.connect(_leave)
 	footer.add_child(back)
+
+	_save_button = MenuSupport.icon_button("save|✓", "Save", Vector2(170, 54))
+	_save_button.pressed.connect(_save)
+	footer.add_child(_save_button)
 
 	_note = Label.new()
 	_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -178,6 +202,7 @@ func _repaint() -> void:
 	_tab_buttons.clear()
 	_body = null
 	_note = null
+	_save_button = null
 
 	# The freed nodes are gone at the end of the frame, so the new ones are
 	# built after that — otherwise the old chrome is still on screen
@@ -186,6 +211,7 @@ func _repaint() -> void:
 	_build()
 	Look.install(self, "settings")
 	_show_tab(was_on)
+	_refresh_save()
 	_say("Palette changed. Every screen in the game uses these colours.")
 
 
@@ -208,7 +234,7 @@ func _rebuild() -> void:
 
 func _build_keys() -> void:
 	_body.add_child(_hint(
-		"Click a key and press the one you want instead. A key that is already doing another job is refused, and it tells you which."))
+		"Click a key and press the one you want instead. A key that is already doing another job is refused, and it tells you which. Keys are kept the moment you change them."))
 
 	for group in GameKeys.groups():
 		_body.add_child(MenuSupport.heading(group.to_upper(), 16, MenuSupport.COLOUR_ACCENT))
@@ -286,7 +312,7 @@ func _input(event: InputEvent) -> void:
 
 func _build_screen() -> void:
 	_body.add_child(_hint(
-		"A change happens as you click it. If the window ends up somewhere you cannot see, press Escape twice to quit and delete settings.json."))
+		"A change happens as you click it; press Save to keep it. If the window ends up somewhere you cannot see, press Escape twice to quit and nothing is kept."))
 
 	_body.add_child(_choice_row("Window", "screen_mode",
 		GameSettings.SCREEN_MODES))
@@ -304,12 +330,11 @@ func _build_screen() -> void:
 
 func _build_sound() -> void:
 	_body.add_child(_hint(
-		"Every sound in the game is a row in Audio.csv and plays on one of these four buses. Sliding one to nothing mutes that bus."))
+		"Every sound in the game is a row in Audio.csv and plays on one of these buses, which are the rows of SoundBuses.csv. You hear a change as you drag; press Save to keep it. Sliding one to nothing mutes that bus."))
 
-	_body.add_child(_slider_row("Everything", "volume_master"))
-	_body.add_child(_slider_row("Music", "volume_music"))
-	_body.add_child(_slider_row("Effects", "volume_sfx"))
-	_body.add_child(_slider_row("Voices", "volume_voice"))
+	for row in GameSettings.bus_rows():
+		_body.add_child(_slider_row(String(row["slider"]), String(row["setting"]),
+			float(row["default"])))
 
 
 # =============================================================
@@ -372,7 +397,8 @@ func _build_controller() -> void:
 		"Off ignores every pad, which is what you want if a stick is drifting."))
 	_body.add_child(_choice_row("Stick deadzone", "pad_deadzone",
 		[0.1, 0.15, 0.2, 0.3, 0.4]))
-	_body.add_child(_switch_row("Vibration", "pad_vibration", ""))
+	_body.add_child(_switch_row("Vibration", "pad_vibration",
+		"Goals, cards, big hits and saves shake the pad. Which ones, and how hard, is data/Rumble.csv."))
 
 	_body.add_child(MenuSupport.heading("WHAT EACH BUTTON DOES", 16,
 		MenuSupport.COLOUR_ACCENT))
@@ -479,6 +505,7 @@ func _hint(text: String) -> Label:
 ## numbers, which is why `choices` is an untyped Array.
 func _choice_row(label_text: String, key: String, choices: Array,
 		zero_word: String = "") -> Control:
+	_names[key] = label_text
 	var row := _row()
 
 	var label := Label.new()
@@ -505,7 +532,7 @@ func _choice_row(label_text: String, key: String, choices: Array,
 		button.add_theme_stylebox_override("hover",
 			MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
 		button.pressed.connect(func() -> void:
-			settings = GameSettings.put(get_tree(), key, choice)
+			_change(key, choice)
 			_say("%s: %s" % [label_text, shown])
 			# A NEW PALETTE REPAINTS THIS SCREEN IN PLACE.
 			#
@@ -524,6 +551,7 @@ func _choice_row(label_text: String, key: String, choices: Array,
 
 
 func _switch_row(label_text: String, key: String, note: String) -> Control:
+	_names[key] = label_text
 	var row := _row()
 
 	var label := Label.new()
@@ -537,7 +565,7 @@ func _switch_row(label_text: String, key: String, note: String) -> Control:
 	var button := MenuSupport.icon_button("✓" if on else "✕",
 		"On" if on else "Off", Vector2(180, 44))
 	button.pressed.connect(func() -> void:
-		settings = GameSettings.put(get_tree(), key, not on)
+		_change(key, not on)
 		_say("%s: %s" % [label_text, "on" if not on else "off"])
 		_rebuild())
 	row.add_child(button)
@@ -554,7 +582,8 @@ func _switch_row(label_text: String, key: String, note: String) -> Control:
 	return row
 
 
-func _slider_row(label_text: String, key: String) -> Control:
+func _slider_row(label_text: String, key: String, fallback: float = 0.8) -> Control:
+	_names[key] = label_text
 	var row := _row()
 
 	var label := Label.new()
@@ -574,7 +603,7 @@ func _slider_row(label_text: String, key: String) -> Control:
 	slider.min_value = 0.0
 	slider.max_value = 1.0
 	slider.step = 0.05
-	slider.value = float(settings.get(key, 0.8))
+	slider.value = float(settings.get(key, fallback))
 	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	slider.custom_minimum_size = Vector2(0, 30)
@@ -582,7 +611,7 @@ func _slider_row(label_text: String, key: String) -> Control:
 	# Applied as you drag, so you hear it rather than guess at it.
 	slider.value_changed.connect(func(value: float) -> void:
 		readout.text = "%d%%" % roundi(value * 100.0)
-		settings = GameSettings.put(get_tree(), key, value))
+		_change(key, value))
 	row.add_child(slider)
 	row.add_child(readout)
 
@@ -592,3 +621,120 @@ func _slider_row(label_text: String, key: String) -> Control:
 func _say(text: String) -> void:
 	if _note != null:
 		_note.text = text
+
+
+# =============================================================
+#  SAVING  (round AN)
+# =============================================================
+
+## Put one change into effect without saving it.
+func _change(key: String, value: Variant) -> void:
+	settings[key] = value
+	GameSettings.preview(get_tree(), settings, key)
+	_refresh_save()
+
+
+## The settings that differ from settings.json. Keys and the language are
+## never in it: they save themselves.
+func unsaved() -> Array[String]:
+	var out: Array[String] = []
+	for key in GameSettings.defaults().keys():
+		if key == "keys":
+			continue
+		if not _same(settings.get(key), _saved.get(key)):
+			out.append(String(key))
+	return out
+
+
+## 60 from a button and 60.0 back from the JSON file are the same setting.
+static func _same(a: Variant, b: Variant) -> bool:
+	var a_number := a is int or a is float
+	var b_number := b is int or b is float
+	if a_number and b_number:
+		return is_equal_approx(float(a), float(b))
+	if typeof(a) != typeof(b):
+		return false
+	return a == b
+
+
+func _unsaved_words() -> String:
+	var words: Array[String] = []
+	for key in unsaved():
+		words.append(String(_names.get(key, GameSettings.pretty(key))))
+	return ", ".join(words)
+
+
+## The Save button is lit while there is something to save.
+func _refresh_save() -> void:
+	if _save_button == null:
+		return
+	var waiting := not unsaved().is_empty()
+	_save_button.disabled = not waiting
+	_save_button.tooltip_text = ("Not saved yet: " + _unsaved_words()) if waiting else "Nothing to save."
+
+
+func _save() -> void:
+	var keys := unsaved()
+	if keys.is_empty():
+		_say("Nothing to save.")
+		return
+	_saved = GameSettings.save_some(settings, keys)
+	_refresh_save()
+	_say("Saved.")
+
+
+## Put back what settings.json says, for every setting not saved.
+func _undo_unsaved() -> void:
+	if _settled:
+		return
+	_settled = true
+	var keys := unsaved()
+	for key in keys:
+		settings[key] = _saved.get(key)
+	for key in keys:
+		GameSettings.preview(get_tree(), settings, key)
+
+
+## Back (and the controller's B, which presses Back).
+func _leave() -> void:
+	var keys := unsaved()
+	if keys.is_empty():
+		_go()
+		return
+
+	var rule := "ask"
+	var book := CardDatabase.get_db()
+	if book != null:
+		rule = book.tune_text("settings_unsaved_on_leave", "ask").to_lower()
+	match rule:
+		"save":
+			_save()
+			_go()
+			return
+		"discard":
+			_undo_unsaved()
+			_go()
+			return
+
+	var window := MenuSupport.dialog(self, "UNSAVED CHANGES",
+		"You changed %s. Keep them?" % _unsaved_words())
+	var column: VBoxContainer = window.get_meta("column")
+	var keep := MenuSupport.icon_button("save|✓", "Save", Vector2(300, 50))
+	keep.pressed.connect(func() -> void:
+		_save()
+		_go())
+	column.add_child(keep)
+	var drop := MenuSupport.icon_button("✕", "Don't save", Vector2(300, 50))
+	drop.pressed.connect(func() -> void:
+		_undo_unsaved()
+		_go())
+	column.add_child(drop)
+	var stay := MenuSupport.icon_button("←", "Stay here", Vector2(300, 50))
+	stay.pressed.connect(func() -> void:
+		window.queue_free())
+	column.add_child(stay)
+
+
+func _go() -> void:
+	_settled = true
+	ScenePaths.go_back(get_tree(), ScenePaths.MAIN_MENU)

@@ -16,7 +16,7 @@ extends RefCounted
 #      resolution       "1920x1080". Ignored in fullscreen
 #      vsync            true / false
 #      max_fps          0 means uncapped
-#      volume_master    0.0 to 1.0. Same for music, sfx and voice
+#      volume_master    0.0 to 1.0. One per row of data/SoundBuses.csv
 #      palette          "default", "deuteranopia", "protanopia",
 #                       "tritanopia" or "high_contrast"
 #      text_scale       1.0 is normal. 1.25 for bigger writing everywhere
@@ -47,19 +47,80 @@ const RESOLUTIONS: Array[String] = [
 const PALETTES: Array[String] = [
 	"default", "deuteranopia", "protanopia", "tritanopia", "high_contrast",
 ]
-const BUSES: Array[String] = ["Master", "Music", "SFX", "Voice"]
+
+## ROUND AN: the sound channels (buses) and their sliders are rows in this
+## file. See bus_rows().
+const BUS_SHEET := "res://data/SoundBuses.csv"
+
+
+## ============ THE SOUND CHANNELS ============
+##
+## THE BUG THIS FIXES: "the volume sliders do nothing."
+##
+## Two faults at once. The project only ever had ONE bus, Master, so every
+## sound in Audio.csv that named Music, Effects or UI quietly played on
+## Master instead, and the Music slider turned down a bus that did not exist.
+## And the sliders were named SFX and Voice while Audio.csv says Effects and
+## UI, so even a real bus would have missed.
+##
+## Now data/SoundBuses.csv is the one list: one row per bus, the slider that
+## goes with it, and its default. The buses are made from it when the game
+## starts (ensure_buses), the Sound tab draws one slider per row, and
+## Audio.csv is checked against the same list.
+static func bus_rows() -> Array[Dictionary]:
+	var rows: Array[Dictionary] = []
+	for row in MenuSupport.read_csv(BUS_SHEET):
+		var bus := MenuSupport.field(row, "Bus").strip_edges()
+		var key := MenuSupport.field(row, "Setting").strip_edges()
+		if bus == "" or key == "":
+			continue
+		rows.append({
+			"bus": bus,
+			"slider": MenuSupport.field(row, "Slider", bus),
+			"setting": key,
+			"default": clampf(MenuSupport.field_float(row, "Default", 0.8), 0.0, 1.0),
+		})
+	if rows.is_empty():
+		# No spreadsheet: the buses this game shipped with.
+		rows = [
+			{"bus": "Master", "slider": "Everything", "setting": "volume_master", "default": 0.9},
+			{"bus": "Music", "slider": "Music", "setting": "volume_music", "default": 0.7},
+			{"bus": "Effects", "slider": "Effects", "setting": "volume_sfx", "default": 0.9},
+			{"bus": "UI", "slider": "Menu clicks", "setting": "volume_ui", "default": 0.9},
+		]
+	return rows
+
+
+## The bus names, for Audio.csv's check.
+static func bus_names() -> Array[String]:
+	var names: Array[String] = []
+	for row in bus_rows():
+		names.append(String(row["bus"]))
+	if not names.has("Master"):
+		names.push_front("Master")
+	return names
+
+
+## Make every bus in SoundBuses.csv that the project does not have yet. Each
+## new one feeds Master, so the Everything slider still turns down the lot.
+## Safe to call as often as you like.
+static func ensure_buses() -> void:
+	for row in bus_rows():
+		var bus := String(row["bus"])
+		if AudioServer.get_bus_index(bus) >= 0:
+			continue
+		AudioServer.add_bus()
+		var index := AudioServer.bus_count - 1
+		AudioServer.set_bus_name(index, bus)
+		AudioServer.set_bus_send(index, "Master")
 
 
 static func defaults() -> Dictionary:
-	return {
+	var made := {
 		"screen_mode": "windowed",
 		"resolution": "1920x1080",
 		"vsync": true,
 		"max_fps": 0,
-		"volume_master": 0.9,
-		"volume_music": 0.7,
-		"volume_sfx": 0.9,
-		"volume_voice": 0.9,
 		"palette": "default",
 		"text_scale": 1.0,
 		"pad_enabled": true,
@@ -67,6 +128,10 @@ static func defaults() -> Dictionary:
 		"pad_vibration": true,
 		"keys": {},
 	}
+	# One volume per row of SoundBuses.csv.
+	for row in bus_rows():
+		made[String(row["setting"])] = float(row["default"])
+	return made
 
 
 # =============================================================
@@ -112,28 +177,47 @@ const SCREEN_KEYS: Array[String] = [
 ]
 
 
-## Change one value and put it into effect straight away.
+## Change one value, save it, and put it into effect straight away.
+static func put(tree: SceneTree, key: String, value: Variant) -> Dictionary:
+	var settings := load_all()
+	settings[key] = value
+	save_all(settings)
+	preview(tree, settings, key)
+	return settings
+
+
+## ROUND AN: PUT ONE VALUE INTO EFFECT WITHOUT SAVING IT. The Settings screen
+## calls this as you click and drag, so you hear and see the change at once;
+## its Save button is what writes settings.json.
 ##
 ## ONLY THE PART THAT CHANGED IS RE-APPLIED. Changing a volume touches the
 ## audio buses and nothing else; changing a palette repaints and nothing
 ## else. That is the fix for the window resizing itself when you picked a
 ## colour.
-static func put(tree: SceneTree, key: String, value: Variant) -> Dictionary:
-	var settings := load_all()
-	settings[key] = value
-	save_all(settings)
-
+static func preview(tree: SceneTree, settings: Dictionary, key: String) -> void:
 	if SCREEN_KEYS.has(key):
 		_apply_screen(settings)
 	elif key.begins_with("volume_"):
 		_apply_sound(settings)
 	elif key == "palette":
-		_apply_palette(String(value))
+		_apply_palette(String(settings.get(key, "default")))
 	elif key.begins_with("pad_"):
 		_apply_pad(settings)
+	elif key == "text_scale":
+		TextScale.apply(tree, float(settings.get(key, 1.0)))
 	# Anything else is read where it is used and needs nothing doing here.
 
-	return settings
+
+## ROUND AN: write only `keys` from `settings` into settings.json, on top of
+## what is already there. The key bindings and the language save themselves
+## the moment they change, so the Settings screen's Save must not write an
+## older copy of them back over the file.
+static func save_some(settings: Dictionary, keys: Array) -> Dictionary:
+	var on_disk := load_all()
+	for key in keys:
+		on_disk[key] = settings.get(key)
+	save_all(on_disk)
+	return on_disk
 
 
 # =============================================================
@@ -153,6 +237,7 @@ static func apply(tree: SceneTree, force: bool = false) -> void:
 	_apply_sound(settings)
 	_apply_palette(String(settings.get("palette", "default")))
 	_apply_pad(settings)
+	TextScale.apply(tree, float(settings.get("text_scale", 1.0)))
 
 
 # =============================================================
@@ -225,10 +310,10 @@ static func _apply_screen(settings: Dictionary) -> void:
 
 
 static func _apply_sound(settings: Dictionary) -> void:
-	_set_bus("Master", float(settings.get("volume_master", 0.9)))
-	_set_bus("Music", float(settings.get("volume_music", 0.7)))
-	_set_bus("SFX", float(settings.get("volume_sfx", 0.9)))
-	_set_bus("Voice", float(settings.get("volume_voice", 0.9)))
+	ensure_buses()
+	for row in bus_rows():
+		_set_bus(String(row["bus"]),
+			float(settings.get(String(row["setting"]), float(row["default"]))))
 
 
 ## A slider from 0 to 1 is not decibels. This is the conversion, and it also
@@ -236,8 +321,6 @@ static func _apply_sound(settings: Dictionary) -> void:
 static func _set_bus(bus_name: String, level: float) -> void:
 	var index := AudioServer.get_bus_index(bus_name)
 	if index < 0:
-		# A project without a Music or Voice bus is fine; the row is skipped
-		# and the Master bus still works.
 		return
 	var quiet := level <= 0.001
 	AudioServer.set_bus_mute(index, quiet)
@@ -246,6 +329,9 @@ static func _set_bus(bus_name: String, level: float) -> void:
 
 
 static func _apply_pad(settings: Dictionary) -> void:
+	# ROUND AN: data/Rumble.csv shakes the pad only while both are on.
+	Rumble.on = bool(settings.get("pad_enabled", true)) \
+		and bool(settings.get("pad_vibration", true))
 	var dead := clampf(float(settings.get("pad_deadzone", 0.2)), 0.0, 0.9)
 	for action in InputMap.get_actions():
 		InputMap.action_set_deadzone(action, dead)

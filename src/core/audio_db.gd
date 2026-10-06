@@ -62,9 +62,9 @@ const AUDIO_DIRS: Array[String] = ["res://assets/audio/", "res://assets/sound/",
 	"res://assets/music/", "res://assets/"]
 const EXTENSIONS: Array[String] = ["", ".ogg", ".wav", ".mp3"]
 
-## The buses a row may name. Anything else falls back to Master with a note,
-## so a typo is loud in the report rather than silent in the game.
-const BUSES: Array[String] = ["Master", "Music", "Effects", "UI"]
+## The buses a row may name are the rows of data/SoundBuses.csv (round AN).
+## Anything else falls back to Master with a note, so a typo is loud in the
+## report rather than silent in the game.
 
 static var _instance: AudioDB
 
@@ -157,6 +157,7 @@ func _load_csv(path: String) -> void:
 		return
 
 	var short_name := path.get_file()
+	var buses := GameSettings.bus_names()
 
 	for i in range(1, rows.size()):
 		var row: PackedStringArray = rows[i]
@@ -201,9 +202,9 @@ func _load_csv(path: String) -> void:
 		var bus := _cell(row, columns, "bus")
 		if bus == "":
 			bus = "Master"
-		elif not BUSES.has(bus):
-			problems.append("%s: bus '%s' is not one of %s — using Master"
-				% [where, bus, ", ".join(BUSES)])
+		elif not buses.has(bus):
+			problems.append("%s: bus '%s' is not one of %s (data/SoundBuses.csv) — using Master"
+				% [where, bus, ", ".join(buses)])
 			bus = "Master"
 
 		var volume_text := _cell(row, columns, "volume")

@@ -528,6 +528,18 @@ function paintBook(){
       ["title screen","the PixelLab set (assets/menu/layers/pixellab/); the tool comparison is in art_source/compare/comparison.png"],
     ])}`);
 
+  card("Settings that work, and a Save button (round AN)", `
+    <p style="margin:0 0 10px"><b>The volume sliders now change the sound, as you drag. Nothing is kept until you press Save.</b></p>
+    ${rows([
+      ["the bug","the game had one sound channel (Master) only, and the sliders were named SFX and Voice while Audio.csv says Effects and UI - so only Everything did anything"],
+      ["the channels","<b>SoundBuses.csv</b>: one row per bus and its slider. Add a row, get a new bus and slider"],
+      ["Save","changes happen at once; Save writes settings.json. Back with unsaved changes asks Save / Don't save / Stay"],
+      ["the rule","Tuning.csv <b>settings_unsaved_on_leave</b>: ask, save or discard"],
+      ["text size","Colour > Text size now makes every bit of writing bigger"],
+      ["kept at once","key bindings and the language still save the moment you change them"],
+      ["rumble","<b>Rumble.csv</b>: goals, cards, big hits and saves shake the controller - the same moments as Audio.csv"],
+    ])}`);
+
   card("THE art style: Stammtisch-Comic (round AM)", `
     <p style="margin:0 0 10px"><b>Your Midjourney pictures are the style. Every picture is made from them now.</b></p>
     ${rows([

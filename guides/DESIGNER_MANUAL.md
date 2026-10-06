@@ -5879,6 +5879,56 @@ The paintings are in `art_source/openai/settings_layers/` and
 `art_source/openai/save_layers/`; their `Pixelate.csv` rows are
 `keller_...` and `trophy_...`.
 
+### Settings now work, and there is a Save button (round AN)
+
+**The bug:** moving the volume sliders changed nothing. The game had only
+one sound channel (Godot calls it a *bus*), Master, so every sound that
+asked for Music, Effects or UI played on Master, and the Music slider turned
+down a channel that did not exist. The sliders were also named SFX and
+Voice while `Audio.csv` says Effects and UI. Text size did nothing either.
+
+**Now:**
+- **Every change happens at once** (drag Music and the music gets quieter
+  while you drag) but is **only kept when you press Save**.
+- **Back with unsaved changes asks:** Save, Don't save, or Stay. Leaving any
+  other way puts the saved settings back.
+- **Key bindings and the language** still save the moment you change them.
+- **Text size** makes every bit of writing in the game bigger or smaller.
+- **Vibration** turns controller rumble on and off (see below).
+
+**`data/SoundBuses.csv`** is the list of sound channels, one row each, top
+to bottom = the sliders on the Sound tab:
+
+| column | |
+|---|---|
+| `Bus` | the name `Audio.csv` uses in its Bus column: Master, Music, Effects, UI, Voice |
+| `Slider` | the words beside the slider |
+| `Setting` | where `settings.json` keeps it. Don't rename an old one, or players lose their volume |
+| `Default` | 0 to 1 on a fresh install |
+
+Add a row and the game makes a new channel with its own slider; then point
+`Audio.csv` rows at it. An `Audio.csv` row naming a channel that isn't in
+this list plays on Master and is named in the startup report.
+
+**`settings_unsaved_on_leave`** in `Tuning.csv`: `ask` (the window),
+`save` (save without asking) or `discard` (throw them away without asking).
+
+**Controller rumble: `data/Rumble.csv`.** One row per moment the pad
+shakes. `When` and `Match` are the same moments `Audio.csv` uses
+(`goal_scored`, `foul_shown` with `card=red card`, `save_made` with
+`power>=4` ...), so anything that makes a sound can shake the pad too.
+
+| column | |
+|---|---|
+| `When`, `Match` | the moment, exactly as in `Audio.csv` |
+| `Weak` | the small, fast motor, 0 to 1 |
+| `Strong` | the big, slow motor, 0 to 1 |
+| `Seconds` | how long it shakes |
+
+If two rows fit (a goal, and a star's goal), the stronger one wins. It ships
+with goals, conceded goals, cards, Tier IV duels won, big saves and a tiny
+tap on every shot. Delete a row to stop that shake.
+
 ### The menu music now carries on
 
 **The title music keeps playing in Settings and on the save screen, without
@@ -5909,6 +5959,22 @@ button of the title screen, Settings and the save screen.
 photographs the three screens into `user://` and prints the music on each.
 It shows the same player at −9, −17, −17 and −9 dB, which means the track
 never restarted.
+
+**Crowd cheers over the menu song (round AN).** The cheering now sits on
+top of your Untitled track at irregular moments, so it is clear and never
+locked to the beat. The song itself is untouched. Each cheer is one row of
+`data/MusicCheers.csv`:
+
+| column | |
+|---|---|
+| `At` | seconds into the song where the cheer starts |
+| `Volume` | dB: 0 = as loud as the cheer file, −6 = half as loud |
+| `Pan` | −1 left, 0 middle, 1 right |
+| `Cheer` | the sound: five Ludo.ai crowd bursts in `art_source/suno/cheers/` |
+
+After a change, run `~/.venvs/sturmball/bin/python tools/mix_cheers.py`,
+then rebuild the loop. To go back to the plain song, set the `suno_menu`
+Source in `MusicLoops.csv` to `menu_untitled.wav`.
 
 ## 17. A short glossary
 
