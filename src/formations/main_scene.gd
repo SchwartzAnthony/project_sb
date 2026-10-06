@@ -398,6 +398,10 @@ func _ready() -> void:
 	# kind of gap that left the pitch looking like a different game from the
 	# menus in front of it. One line.
 	ThemeBook.dress(get_tree())
+	# ROUND AN: a see-through black plate behind every word in the match, so
+	# nothing has to be read straight off the grass or the village
+	# (text_backdrop_alpha in Tuning.csv; see text_backdrop.gd).
+	TextBackdrop.watch(self)
 
 	db = CardDatabase.get_db()
 	abilities = AbilityEngine.new(db)

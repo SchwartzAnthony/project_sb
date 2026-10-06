@@ -125,6 +125,11 @@ func _draw_detail() -> void:
 		var at := zone.position + Vector2(12, 34)
 		if i == TIERS.size() - 1:
 			at = Vector2(zone.position.x + 12, zone.end.y - 44)
+		# A see-through plate behind the words (TextBackdrop), or they vanish
+		# into the grass stripes and the village.
+		TextBackdrop.draw_behind(self, font, at, words, zone.size.x - 24.0, 24)
+		TextBackdrop.draw_behind(self, font, at + Vector2(0, 28), "quarter %d" % (i + 1),
+			zone.size.x - 24.0, 18)
 		draw_string(font, at, words,
 			HORIZONTAL_ALIGNMENT_LEFT, zone.size.x - 24.0, 24, Color(1, 1, 1, 0.95))
 		draw_string(font, at + Vector2(0, 28), "quarter %d" % (i + 1),
@@ -135,6 +140,8 @@ func _draw_detail() -> void:
 		var line := Color(1.0, 0.85, 0.3, 0.8)
 		_dashed(Vector2(play.position.x, play.position.y + keep), Vector2(play.end.x, play.position.y + keep), line)
 		_dashed(Vector2(play.position.x, play.end.y - keep), Vector2(play.end.x, play.end.y - keep), line)
+		TextBackdrop.draw_behind(self, font, Vector2(play.position.x + 16, play.position.y + keep - 8),
+			"edge_keep - nobody is SENT past this line (they may still chase the ball over it)", -1, 18)
 		draw_string(font, Vector2(play.position.x + 16, play.position.y + keep - 8),
 			"edge_keep - nobody is SENT past this line (they may still chase the ball over it)",
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 18, line)

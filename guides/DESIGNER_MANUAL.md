@@ -3398,6 +3398,17 @@ wide shot — the draft, the whistle, full time — shows the whole village at
 `camera_wide_ground` 1; 0 is the old framing. During play the camera is as
 close as before, so the players are the same size.
 
+### Words over the village — a see-through black plate
+
+With the village round the pitch, words straight on the art could not be
+read. **Every word in the match now sits on a see-through black plate**: the
+score, the clock, the keeper's name and odds, the build stamp, the
+announcements and the zone map (Z). Words already on a panel or a button,
+and the players' name plates, keep their own backdrop. Two rows in
+Tuning.csv: `text_backdrop_alpha` (how dark, 0 = off) and
+`text_backdrop_pad` (how far it reaches past the words). The code is one
+rule, `src/ui/text_backdrop.gd`, so a label added later gets it too.
+
 ### The layers
 
 | Layer | | |

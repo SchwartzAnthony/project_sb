@@ -198,6 +198,8 @@ camera_zoom_speed,2.2,How quickly it changes zoom between live play and the whis
 camera_lead,0.30,"How far ahead of the ball it looks during a pass. 0 = stare at the ball, 1 = stare at where it will land"
 camera_deadzone,36,How far the ball may drift from the middle before the camera bothers to move. Stops a permanent jitter
 camera_wide_ground,1.0,"ROUND AN (village ground). HOW MUCH OF THE VILLAGE ROUND THE PITCH THE WIDE SHOT SHOWS (the draft, the whistle, full time). 1 = the whole ground picture in Stadium.csv, so you see the fans, the beer tent and the houses. 0 = the old framing, just the pitch. It only changes the framing: where the players stand and how close the camera is during play are the same either way"
+text_backdrop_alpha,0.55,"ROUND AN. HOW DARK THE SEE-THROUGH BLACK PLATE BEHIND EVERY WORD IN THE MATCH IS - the score, the clock, the keeper's odds, the zone map, the announcements. 0 = no plate, 1 = solid black. Words already on a panel or a button, and the players' name plates, keep their own backdrop"
+text_backdrop_pad,6,"ROUND AN. How many pixels the plate reaches past the words on each side"
 full_time_seconds,2.6,How long FULL TIME stays on screen before the season screen opens
 gains_max_rows,8,"How many lines the ""what you gained"" panel shows before it says ""and N more"""
 season_difficulty_scale,1.0,"Multiplies the Difficulty column of Season.csv. 0 makes every fixture a fair fight, 2 doubles the handicap. Difficulty is added to the OPPOSITION SHOT, never to their cards"
