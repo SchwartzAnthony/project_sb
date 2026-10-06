@@ -4637,7 +4637,7 @@ checks they open Team Build — then that they open the Pub once you're ready.
 ## 12. Words — dialogue, localisation, keys
 
 **`data/Dialogue.csv`** (and `data/tutorial/Dialogue.csv`) — a node graph in
-a spreadsheet. `Scene`, `Node ID`, `Speaker`, `Portrait`, `Side`, `Animation`,
+a spreadsheet. `Scene`, `Node ID`, `Speaker`, `Portrait`, `Side`, `Mood`, `View`, `Animation`,
 `Background`, `Music`, `Text`, `Next`, `Requires`, `Effects`, and then three
 sets of `Choice N Text / Next / Requires / Effects`.
 
@@ -4656,8 +4656,22 @@ row by its **ID**, so changing a face or a room everywhere is one cell.
 | `Kind` | `portrait` (a face beside the text box) or `background` (the room) |
 | `Speaker` | portraits only. A line with this Speaker and an **empty** Portrait cell gets this face, so you never type it on every line |
 | `Image` | the PNG, as a `res://` path. The new art is in `assets/story/portraits/` and `assets/story/backgrounds/` |
-| `Faces` | which way the drawing looks (`right` / `left`). The game mirrors it on the other side, so everybody looks into the room |
+| `Mood` | portraits only: `happy`, `sad`, `drunk`, `mad` ... any word. Blank = the everyday face |
+| `View` | portraits only: `front` (looking at the player) or `side` (talking to someone in the scene) |
+| `Faces` | side views: which way the drawing looks (`right` / `left`). The game mirrors it on the other side, so everybody looks into the room. A front view is never mirrored |
 | `Front` | backgrounds only. `yes` draws that layer in front of the people |
+
+**Every character has a front and a side face** (Anthony, round AN): front
+for talking to the player, side for talking to someone else in the scene.
+One character is several rows with the same ID, one per Mood and View. A
+line in Dialogue.csv picks one with its own **`Mood`** and **`View`** columns
+(blank View = front). When the exact face is missing, the game takes the
+nearest: the same mood from the other side, then the everyday face, then any
+face of that character.
+
+**The Head Coach** (`coach`, Speaker `The Head Coach`): a 1990s German village
+coach, perm mullet, moustache, purple-and-teal shell-suit, whistle and
+clipboard. Eight faces: happy, sad, drunk and mad, each front and side.
 
 **A room in layers.** Give several `background` rows the same ID: they are
 stacked in file order, the first row at the back. The bar is two rows: the
@@ -4681,7 +4695,13 @@ face). To look at the result without playing:
 
 A Portrait or Background that is not an ID in StoryArt.csv still works the old
 way: a file name looked for in `assets/portraits/` or `assets/backgrounds/`.
-The base visitors (Visitors.csv) still use `assets/portraits/`.
+The base visitors (Visitors.csv) still read `assets/portraits/`; since round
+AN, Heatwave and the Brewer there are the same PixelLab front faces (the old
+pictures are in `art_source/legacy/portraits/`).
+
+**Music under the conversations:** Audio.csv row `story_theme`. Put your Suno
+track in `assets/audio/` and write its file name (no ending) in `Sound`. A
+line's own `Music` cell still wins for that line.
 
 **`data/Language.csv`** — `Key`, `English`, `Deutsch`, `Notes`. Add a column
 for a new language; the game finds it. Any text the game shows goes through a

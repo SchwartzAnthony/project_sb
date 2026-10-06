@@ -414,7 +414,7 @@ func _apply_portrait(line: DialogueLine) -> void:
 			child.queue_free()
 
 	# StoryArt.csv first: the Portrait cell, or the Speaker when it is blank.
-	var row := _art.portrait_for(line.portrait, line.speaker)
+	var row := _art.portrait_for(line.portrait, line.speaker, line.mood, line.view)
 	var file_name: String = row.get("image", line.portrait)
 	if file_name.strip_edges() == "":
 		return
@@ -428,6 +428,8 @@ func _apply_portrait(line: DialogueLine) -> void:
 	# Everybody looks into the room: a face drawn looking right is mirrored
 	# on the right-hand side, and the other way round.
 	var faces: String = row.get("faces", "")
+	if row.get("view", "") == "front":
+		faces = ""
 	var mirror := (faces == "right" and line.side == "right") \
 		or (faces == "left" and line.side == "left")
 

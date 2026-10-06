@@ -1,4 +1,4 @@
 ID,Name,Portrait,Requires,Story,X,Y,Once,Building,Sound,Notes
-heatwave_visit,Heatwave,heatwave,,prologue,0.13,0.78,true,,visitor_heatwave,"Here from the start. Talks once, then leaves for good because Once is true."
-brewer,The Brewer,brewer,unlocked:Brewery,prologue,0.50,0.78,,brewery,visitor_brewer,Only turns up once the Brewery is unlocked. Once is blank so you can talk again and again.
+heatwave_visit,Heatwave,heatwave,,prologue,0.13,0.78,true,,visitor_heatwave,"Here from the start. Talks once, then leaves for good because Once is true. ROUND AN: the face is now the PixelLab front face (assets/portraits/), the same as in conversations; the old picture is in art_source/legacy/portraits/."
+brewer,The Brewer,brewer,unlocked:Brewery,prologue,0.50,0.78,,brewery,visitor_brewer,"Only turns up once the Brewery is unlocked. Once is blank so you can talk again and again. ROUND AN: the face is now the PixelLab front face (assets/portraits/), the same as in conversations; the old picture is in art_source/legacy/portraits/."
 scout,A Scout,scout,count:matches_won>=2,prologue,0.86,0.78,true,,,Turns up after two wins. Swap Story for your own scene when you write one.

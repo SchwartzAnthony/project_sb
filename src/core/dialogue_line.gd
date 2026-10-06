@@ -18,6 +18,8 @@ var speaker: String = ""      # blank = narration, no name plate
 var portrait: String = ""     # PNG name, found in assets/portraits/
 var side: String = "left"     # left / right / centre
 var animation: String = ""    # a row in Animations.csv, played on the portrait
+var mood: String = ""         # happy / sad / drunk / mad ... a StoryArt.csv Mood
+var view: String = ""         # front (to the player) / side (to someone else)
 var background: String = ""   # PNG name, found in assets/backgrounds/
 var music: String = ""        # OGG or WAV name, found in assets/music/
 var text: String = ""

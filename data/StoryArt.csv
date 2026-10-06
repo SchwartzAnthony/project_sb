@@ -1,8 +1,20 @@
-ID,Kind,Speaker,Image,Faces,Front,Notes
-heatwave,portrait,Heatwave Brandteufel,res://assets/story/portraits/heatwave.png,right,,"ROUND AN. PixelLab create_image_pro 512x512, style image board_characters.png. Layered file: art_source/aseprite/story/cast.aseprite. Swap the Image to change his face in every conversation at once."
-brewer,portrait,The Brewer,res://assets/story/portraits/brewer.png,right,,ROUND AN. PixelLab. The base visitor still uses the old picture in assets/portraits/ (that screen belongs to the base work).
-hoffmann,portrait,Hoffmann,res://assets/story/portraits/hoffmann.png,right,,"ROUND AN. PixelLab. One of the three you start with (Progression.csv new_game)."
-schaefer,portrait,Schäfer,res://assets/story/portraits/schaefer.png,right,,ROUND AN. PixelLab. One of the three you start with.
-koch,portrait,Koch,res://assets/story/portraits/koch.png,right,,ROUND AN. PixelLab. One of the three you start with.
-bar,background,,res://assets/story/backgrounds/bar_room.png,,,"ROUND AN. THE BAR, layer 1 (back): the inside of the Wirtshaus. Rows with the same ID are stacked, first row at the back. Layered file: art_source/aseprite/story/bar.aseprite"
-bar,background,,res://assets/story/backgrounds/bar_regulars.png,,,ROUND AN. The bar layer 2: the regulars at the Stammtisch. Delete this row for an empty pub.
+ID,Kind,Speaker,Mood,View,Image,Faces,Front,Notes
+heatwave,portrait,Heatwave Brandteufel,,front,res://assets/story/portraits/heatwave_front.png,,,"ROUND AN. Looking at the player. Every face here is PixelLab create_image_pro; the originals are in art_source/pixellab/story/portraits/, the layered file is art_source/aseprite/story/cast.aseprite."
+heatwave,portrait,,,side,res://assets/story/portraits/heatwave.png,right,,ROUND AN. Talking to someone else in the scene (a Dialogue line with View = side).
+brewer,portrait,The Brewer,,front,res://assets/story/portraits/brewer_front.png,,,ROUND AN. Also his face on the base (assets/portraits/brewer.png).
+brewer,portrait,,,side,res://assets/story/portraits/brewer.png,right,,ROUND AN.
+hoffmann,portrait,Hoffmann,,front,res://assets/story/portraits/hoffmann_front.png,,,"ROUND AN. One of the three you start with (Progression.csv new_game). The front shirt came out mostly white; say if you want it redone with the stripes."
+hoffmann,portrait,,,side,res://assets/story/portraits/hoffmann.png,right,,ROUND AN.
+schaefer,portrait,Schäfer,,front,res://assets/story/portraits/schaefer_front.png,,,ROUND AN. One of the three you start with.
+schaefer,portrait,,,side,res://assets/story/portraits/schaefer.png,right,,ROUND AN.
+koch,portrait,Koch,,front,res://assets/story/portraits/koch_front.png,,,ROUND AN. One of the three you start with.
+koch,portrait,,,side,res://assets/story/portraits/koch.png,right,,ROUND AN.
+coach,portrait,The Head Coach,happy,front,res://assets/story/portraits/coach_happy_front.png,,,"ROUND AN. THE HEAD COACH, a 1990s German village coach: perm mullet, moustache, shell-suit, whistle, clipboard. Eight faces: happy / sad / drunk / mad, each front and side. A Dialogue line picks one with its Mood and View columns. The first row is the face he uses when a line asks for a mood he does not have."
+coach,portrait,,happy,side,res://assets/story/portraits/coach_happy_side.png,right,,ROUND AN.
+coach,portrait,,sad,front,res://assets/story/portraits/coach_sad_front.png,,,ROUND AN.
+coach,portrait,,sad,side,res://assets/story/portraits/coach_sad_side.png,right,,ROUND AN.
+coach,portrait,,drunk,front,res://assets/story/portraits/coach_drunk_front.png,,,ROUND AN.
+coach,portrait,,mad,front,res://assets/story/portraits/coach_mad_front.png,,,ROUND AN.
+coach,portrait,,mad,side,res://assets/story/portraits/coach_mad_side.png,right,,ROUND AN.
+bar,background,,,,res://assets/story/backgrounds/bar_room.png,,,"ROUND AN. THE BAR, layer 1 (back): the inside of the Wirtshaus. Rows with the same ID are stacked, first row at the back. Layered file: art_source/aseprite/story/bar.aseprite"
+bar,background,,,,res://assets/story/backgrounds/bar_regulars.png,,,ROUND AN. The bar layer 2: the regulars at the Stammtisch. Delete this row for an empty pub.

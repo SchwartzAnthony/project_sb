@@ -35,7 +35,8 @@ def main():
         if (row.get("Kind") or "").strip().lower() == "background":
             rooms.setdefault(row["ID"].strip(), []).append(im)
         else:
-            cast.append((row["ID"].strip(), im))
+            name = " ".join(x for x in (row["ID"].strip(), (row.get("Mood") or "").strip(), (row.get("View") or "").strip()) if x)
+            cast.append((name, im))
     for room, images in rooms.items():
         w = max(im.width for im in images)
         h = max(im.height for im in images)

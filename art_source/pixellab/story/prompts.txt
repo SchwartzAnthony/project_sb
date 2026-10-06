@@ -19,3 +19,19 @@ bar_table  1cd62116  one cut-out foreground layer for a pub scene: the near edge
 
 Placement: bar_regulars_raw.png scaled 0.55 (nearest), centred, feet at y=345
 of the 688x384 room -> assets/story/backgrounds/bar_regulars.png.
+
+Round AN, part 2: front faces and the Head Coach
+------------------------------------------------
+Front faces: create_image_pro 512x512 with the side face as reference_images
+(url = the PixelLab download link of the side job, usage "the character ...
+turned to face the viewer"), subject starting "a waist-up visual-novel dialogue
+portrait of one character seen FROM THE FRONT, facing the viewer straight on".
+  heatwave_front 2f7aaae3, brewer_front 3fcf57b2, hoffmann_front ccd87e33,
+  schaefer_front cf120281, koch_front 05bb7cf2
+The Head Coach: coach_happy_side 6c3659c0 (Koch as the style reference), then
+every other face from it (side) or from coach_happy_front 5ba07470 (front):
+  coach_sad_side 43c54fea, coach_mad_side e754c43a, coach_drunk_side 51297003,
+  coach_sad_front 02d69075, coach_drunk_front 42a428c7, coach_mad_front 74013967
+  (a first drunk-side job, 4a02a32e, hung at 57% and was cancelled)
+assets/story/portraits/ copies are cropped to the drawing and padded to the
+portrait slot's 8:9 shape, feet at the bottom, so every face fills its slot.

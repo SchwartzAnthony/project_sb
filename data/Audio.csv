@@ -40,7 +40,7 @@ crowd_goal,,,crowd_goal,Effects,,-5,,,"JUICE. A goal in a league match. The crow
 teamselect_theme,screen_opened,screen=teamselect,menu_theme,Music,true,-12,1.0,,"THE TEAM SHELF. It had no row, so it inherited whatever was playing - usually the base theme, for the rest of the session."
 builder_theme,screen_opened,screen=teambuilder,menu_theme,Music,true,-12,1.0,,"The team builder, same as the shelf it is reached from."
 bounty_theme,screen_opened,screen=bounty,marsh_theme,Music,true,-12,1.5,,"The bounty board looks out at the marshes, so it plays them."
-story_theme,screen_opened,screen=dialogue,dialogue_theme,Music,true,-11,1.5,,Any conversation scene.
+story_theme,screen_opened,screen=dialogue,dialogue_theme,Music,true,-11,1.5,,"Any conversation scene. ROUND AN, THE DIALOGUE MUSIC SLOT: put your Suno Schlager in assets/audio/ (mp3, ogg or wav) and write its file name, without the ending, in Sound. pub_theme (row 7) borrows the same track; change it there too if you want the Pub to follow. A line's own Music column in Dialogue.csv still wins for that line."
 talents_theme,screen_opened,screen=talent,menu_theme,Music,true,-12,1.0,,The talent tree.
 foul_whistle,foul_shown,,kickoff_whistle,Effects,,-5,,,"THE REFEREE. Fires for BOTH sides - a foul is a moment on the pitch, not a thing that happens to you, so the sound is the same whoever gave it away. `card` is yellow card, red card or free kick; the rows below match on it."
 foul_yellow,foul_shown,card=yellow card,duel_lose,Effects,,-4,,,STAND-IN sound. Below the general row so it wins on a booking. Put the real one in assets/audio/ under the name in SOUNDS_WANTED.csv and this row picks it up with no edit.
@@ -53,13 +53,13 @@ coin_register,,,coin_register,UI,,-6,,,"ROUND AI. A cash-register coin, ready fo
 explosion_heavy,,,explosion_heavy,Effects,,-4,,,"ROUND AI. A heavy bass explosion, ready for a red card or a big goal. Not used yet"
 banner_flutter,,,banner_flutter,UI,,-12,,,"ROUND AN. A flag banner folding in the wind, when you point at one of the base's top-row banners (Ludo, art_source/ludo/base_sounds/)"
 bld_brewery,,,bld_brewery,Effects,,-10,,,"ROUND AN. Clicking the Brewery on the base: the copper kettle bubbling, then the door. Every building's sound is its Sound column in Buildings.csv (Ludo)"
-bld_pub,,,bld_pub,Effects,,-12,,,"ROUND AN. Clicking the Pub: a beer hall cheering and mugs clinking (Ludo)"
+bld_pub,,,bld_pub,Effects,,-12,,,ROUND AN. Clicking the Pub: a beer hall cheering and mugs clinking (Ludo)
 bld_club_house,,,bld_club_house,Effects,,-12,,,"ROUND AN. Clicking the Club House: the door, studs on floorboards, a whistle (Ludo)"
-bld_dorms,,,bld_dorms,Effects,,-10,,,"ROUND AN. Clicking the Dorms: someone snoring (Ludo)"
+bld_dorms,,,bld_dorms,Effects,,-10,,,ROUND AN. Clicking the Dorms: someone snoring (Ludo)
 bld_training,,,bld_training,Effects,,-12,,,"ROUND AN. Clicking the Training Ground: ball against a board, the coach's whistle (Ludo)"
-bld_trophy,,,bld_trophy,Effects,,-10,,,"ROUND AN. Clicking the Trophy Room: a cup set down with a ring and a sparkle (Ludo)"
+bld_trophy,,,bld_trophy,Effects,,-10,,,ROUND AN. Clicking the Trophy Room: a cup set down with a ring and a sparkle (Ludo)
 bld_tavern,,,bld_tavern,Effects,,-12,,,"ROUND AN. Clicking the Traveling Tavern: the horse, the creaking wagon, a mug on the counter (Ludo)"
 door_open,,,door_open,Effects,,-8,,,"ROUND AN. An old wooden door opening, played after a building's own sound when you click it (Buildings.csv Door Sound; the gap is base_door_sound_delay in Tuning.csv). Ludo, art_source/ludo/base_sounds/"
 visitor_brewer,,,visitor_brewer,Effects,,-6,,,"ROUND AN. The Brewer's grunting hello when you click him on the base (Visitors.csv Sound). Ludo, art_source/ludo/base_sounds/"
-visitor_heatwave,,,visitor_heatwave,Effects,,-6,,,"ROUND AN. Heatwave's cocky 'Hah!' and a crackle of fire when you click him on the base (Visitors.csv Sound). Ludo"
-wagon_creak,,,wagon_creak,Effects,,-8,,,"ROUND AN. The Traveling Tavern's door sound: old timber creaking as the wagon's hatch swings open (Buildings.csv Door Sound). Ludo"
+visitor_heatwave,,,visitor_heatwave,Effects,,-6,,,ROUND AN. Heatwave's cocky 'Hah!' and a crackle of fire when you click him on the base (Visitors.csv Sound). Ludo
+wagon_creak,,,wagon_creak,Effects,,-8,,,ROUND AN. The Traveling Tavern's door sound: old timber creaking as the wagon's hatch swings open (Buildings.csv Door Sound). Ludo
