@@ -4668,7 +4668,10 @@ to.
 It plays the first time the base opens on a new save (Progression.csv
 `welcome_at_base`). Koch's `silhouette` and `bergmaennlein` faces are Mood
 words waiting for their StoryArt.csv rows; until then he shows his everyday
-face. The old Heatwave conversation is now the scene `heatwave_talk`, and the
+face. **`star-intro`** (round AN) is Anthony's scene back at the bar after the
+first match: the Head Coach explains what a Star is. Progression.csv
+`first_match_is_over` plays it; it ends on "Another game!", which leads into
+the second match with three Bergmännlein Stars. The old Heatwave conversation is now the scene `heatwave_talk`, and the
 base visitors (Visitors.csv `Story`) point at it.
 
 A line with no choices runs on to `Next`. A line with choices stops and asks.
