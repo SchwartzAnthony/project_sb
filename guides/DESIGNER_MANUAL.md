@@ -3440,8 +3440,8 @@ same bird's-eye view as the map); `Map Size` is how big it is drawn,
 `WIDTHxHEIGHT` (blank = its own size x2). Hovering brightens it, a locked
 building is drawn dark, and its name sits under it on a see-through plate.
 `X`, `Y` are still the centre. A building with no `Map Art` keeps the old
-plaque until its picture is made. The Brewery and the Pub are the first two
-(round AN, 160 x 128 PixelLab pictures drawn at 640 x 512). A building with
+plaque until its picture is made. The Brewery, the Pub and the Club House
+are the first three (round AN, 160 x 128 PixelLab pictures drawn at 640 x 512). A building with
 its own picture may reach the very edges of the screen; the plaques still
 keep clear of the top buttons and the bottom line. Each building's source is in `art_source/pixellab/base_town/buildings/`. `base_map_shade` in
 Tuning.csv darkens the map (0 = full colour). The first, top-down try is in
