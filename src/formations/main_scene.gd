@@ -433,6 +433,14 @@ func _ready() -> void:
 	_apply_match_mode()
 	_apply_fixture()
 
+	# ============ NO OLD FIELD WHILE THE MATCH LOADS (round AN) ============
+	# Anthony: "it shows the old field and then loads". main_scene.tscn's
+	# sprite still holds the old soccerfield.jpg, and the Stadium.csv pitch
+	# and village only replaced it when the geometry was locked, a few frames
+	# (and a lot of loading) later. Built here, the very first frame drawn is
+	# already the new ground. _lock_geometry() builds it again, as before.
+	_build_the_stadium()
+
 	# Added BEFORE units_container on purpose. Everything here sits at z_index
 	# 0, so it is tree order that puts the tint over the grass and under the
 	# players.
@@ -3261,6 +3269,12 @@ func _build_the_stadium() -> void:
 	field_sprite.z_index = -10
 
 	# ---- AND WHAT IS BEHIND AND OVER IT ----
+	# ROUND AN: this now runs twice - once in _ready() and again when the
+	# geometry is locked - so the layers from the first run go first.
+	for entry in _scenery:
+		var old := entry["node"] as Node
+		if old != null and is_instance_valid(old):
+			old.queue_free()
 	_scenery.clear()
 	var order := {"background": -40, "crowd": -30, "lights": 60}
 	for row in StadiumBook.layers():
