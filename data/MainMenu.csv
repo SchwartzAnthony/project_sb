@@ -1,5 +1,5 @@
 Part,Image,Text,X,Y,Width,Height,Frames,FPS,Scale,Flip,Notes
-background,res://assets/menu/layers/01_field.png,,,,,,,,,,"ROUND AL LAYERS - drawn back to front, top row first. Layer 1: the empty pitch and sky (Pixelate.csv layer_1_field). The first background row wins; it always fills the screen."
+background,res://assets/menu/layers/01_title_bg_b.png,,,,,,,,,,"ROUND AN - the NEW title background (Pixelate.csv title_bg_b): the bumpy pitch, the Oktoberfest meadow, the beer town, a spooky bog and a sunset over the Alps. Other choices: 01_title_bg_a.png (the beer town by day) or 01_field.png (round AM, the empty pitch and tree line). Layers are drawn back to front, top row first; the first background row wins and always fills the screen."
 picture,res://assets/menu/layers/02_brewery.png,,960,350,,,1,0,2,,"Layer 2: the traditional Bavarian brewery, centre. Scale 2 = drawn at twice its pixels, like every layer, so all layers share one pixel size."
 picture,res://assets/menu/layers/03_beer_tent.png,,1640,420,,,1,0,2,,"Layer 3: the Oktoberfest beer tent, right."
 picture,res://assets/menu/layers/04_crowd_a.png,,160,610,,,1,0,2,,"Layer 4: the crowd behind the boards - six pieces side by side (groups A, B, C, then the same flipped), 360 pixels apart."

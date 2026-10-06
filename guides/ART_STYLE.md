@@ -8,6 +8,27 @@ are in `art_source/style_refs/stammtisch/`:
 - `board_places.png`: the beer-town maps, the Rhine, the bog, the fire beer
   and the stone.
 
+## The art bible (round AN)
+
+These exact words end every PixelLab prompt:
+
+> 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.
+
+- **Where it lives:** `data/ArtStyle.csv`, row `art_bible`. Change the style
+  only there. `CLAUDE.md` in the project folder repeats it so Claude reads
+  it on every turn.
+- **Never type a prompt by hand.** The prompt builder puts the same words in
+  every time:
+  `godot --headless --path . --script res://tools/art_prompt.gd -- pixellab "Lorelei siren"`.
+  It prints the prompt and saves it in `art_source/prompts/last_pixellab.txt`.
+- **For OpenAI,** use `-- openai "..."`. It starts with `stammtisch_prompt`,
+  then `art_bible_openai`: the same bible without the artist and comic names
+  and without "pixel art". OpenAI refuses living artists, and its pictures
+  get pixelated afterwards anyway.
+- **The recipes** are the `recipe_pixellab` and `recipe_openai` rows:
+  `{subject}` is what you asked for, and any other `{name}` is the text of
+  that row. Add a `recipe_<tool>` row for another tool.
+
 **What it is:** a chaotic, crazy 1980s–90s German humour comic.
 - **Ink:** thick, wobbly, energetic black ink, with scratchy hatching and
   cross-hatching in the shadows.

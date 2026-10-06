@@ -5471,6 +5471,22 @@ character.**
 | `Aspect` | **new in round AL.** For example `16:9`: trim the picture to that shape first, from the middle. Use it for full-screen backgrounds. Blank = keep the shape |
 | `Flip` | **new in round AL.** `yes` = mirror it left to right, to turn a character round |
 
+**ROUND AN: the art bible and a new title background.**
+- **The art bible:** one sentence of style words, the `art_bible` row of
+  `data/ArtStyle.csv`. It ends every PixelLab prompt. See
+  `guides/ART_STYLE.md`.
+- **The prompt builder,** `tools/art_prompt.gd`, writes a full prompt from
+  `ArtStyle.csv`, so the style words never drift:
+  `godot --headless --path . --script res://tools/art_prompt.gd -- pixellab "Lorelei siren"`
+  (or `-- openai "..."`).
+- **New title background:** `01_title_bg_b.png` (Pixelate.csv `title_bg_b`):
+  the bumpy pitch, the Oktoberfest meadow, the beer town, a spooky bog and a
+  sunset over the Alps. The other one is `01_title_bg_a.png` (the beer town by
+  day). The old `01_field.png` stays in the folder. To swap, change the
+  `background` row of `MainMenu.csv`.
+- **Pixelating on your Deck:** use `~/.venvs/sturmball/bin/python tools/pixelate.py`.
+  That Python has Pillow installed; the system one can't install it.
+
 **ROUND AM: every layer of the title screen, Settings and the save screen
 was repainted in THE art style, Stammtisch-Comic.** That's the chaotic
 German comic look of your Midjourney pictures; see `guides/ART_STYLE.md`

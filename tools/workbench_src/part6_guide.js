@@ -515,6 +515,14 @@ function paintBook(){
       ["pixelate","<b>Pixelate.csv</b> new column Smooth - melts the hatching first so the pixel art is clean"],
     ])}`);
 
+  card("The art bible and a new title background (round AN)", `
+    <p style="margin:0 0 10px"><b>One sentence of style words ends every PixelLab prompt, and a tool writes the prompts so they never drift.</b></p>
+    ${rows([
+      ["the bible","<b>ArtStyle.csv</b> art_bible - change the style only there; art_bible_openai is the same without the artist names"],
+      ["the tool","<code>tools/art_prompt.gd -- pixellab \"Lorelei siren\"</code> (or openai) prints the full prompt from ArtStyle.csv recipe_pixellab / recipe_openai"],
+      ["background","new title background 01_title_bg_b.png (meadow, bog, sunset); 01_title_bg_a.png (beer town by day) is the other - MainMenu.csv background row"],
+    ])}`);
+
   card("THE art style: Stammtisch-Comic (round AM)", `
     <p style="margin:0 0 10px"><b>Your Midjourney pictures are the style. Every picture is made from them now.</b></p>
     ${rows([
