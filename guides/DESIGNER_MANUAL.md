@@ -3432,8 +3432,16 @@ layer. Then:
 
 fuses the layers into `assets/base/background.png` and writes
 `art_source/aseprite/base_town.aseprite` with **every part on its own layer**,
-for editing in Aseprite. The building plaques (Buildings.csv `X`, `Y`) sit on
-open ground until the building pictures exist. `base_map_shade` in
+for editing in Aseprite.
+
+**The buildings are pictures on the map, and the picture is the button.**
+Buildings.csv `Map Art` names a picture in `assets/base/map/` (PixelLab, the
+same bird's-eye view as the map); `Map Size` is how big it is drawn,
+`WIDTHxHEIGHT` (blank = its own size x2). Hovering brightens it, a locked
+building is drawn dark, and its name sits under it on a see-through plate.
+`X`, `Y` are still the centre. A building with no `Map Art` keeps the old
+plaque until its picture is made. The first one is the Brewery (round AN,
+320 x 256). Each building's source is in `art_source/pixellab/base_town/buildings/`. `base_map_shade` in
 Tuning.csv darkens the map (0 = full colour). The first, top-down try is in
 `art_source/legacy/base/round_an_try1/`; the old yard in `art_source/legacy/base/`.
 

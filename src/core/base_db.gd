@@ -173,6 +173,10 @@ func _load_csv(path: String) -> void:
 			entry["description"] = _cell(row, columns, "description")
 			entry["art"] = _cell(row, columns, "art")
 			entry["action"] = _cell(row, columns, "action")
+			# The building as a picture on the town map, which is then the
+			# button itself (no plaque). Blank = the old plaque.
+			entry["map_art"] = _cell(row, columns, "mapart")
+			entry["map_size"] = _cell(row, columns, "mapsize")
 			buildings.append(entry)
 		else:
 			entry["portrait"] = _cell(row, columns, "portrait")

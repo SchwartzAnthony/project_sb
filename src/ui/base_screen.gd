@@ -24,6 +24,7 @@ extends Control
 
 const BACKGROUND_DIRS: Array[String] = ["res://assets/base/", "res://assets/backgrounds/"]
 const BUILDING_DIRS: Array[String] = ["res://assets/base/", "res://assets/buildings/", "res://assets/"]
+const MAP_ART_DIRS: Array[String] = ["res://assets/base/map/"]
 const PORTRAIT_DIRS: Array[String] = ["res://assets/portraits/", "res://assets/players/", "res://assets/"]
 
 const BUILDING_SIZE := Vector2(190.0, 132.0)
@@ -343,7 +344,7 @@ func _rebuild() -> void:
 	for entry in base.buildings_for(state):
 		var plaque := _make_building(entry)
 		_world.add_child(plaque)
-		_taken.append(Rect2(plaque.position, BUILDING_SIZE))
+		_taken.append(Rect2(plaque.position, plaque.size))
 
 	# ============ AND THEN THE VISITORS, INTO WHATEVER IS LEFT ============
 	#
@@ -443,6 +444,11 @@ func _make_building(entry: Dictionary) -> Control:
 	var unlocked := bool(entry["unlocked"])
 	var name_text := String(entry["name"])
 
+	# A building that has its town-map picture IS that picture: no plaque.
+	var map_art := _find_texture(String(entry.get("map_art", "")), MAP_ART_DIRS)
+	if map_art != null:
+		return _make_map_building(entry, map_art)
+
 	var button := Button.new()
 	button.tooltip_text = String(entry["description"])
 	_place(button, entry, BUILDING_SIZE)
@@ -485,6 +491,58 @@ func _make_building(entry: Dictionary) -> Control:
 	label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(label)
+
+	button.pressed.connect(_on_building.bind(entry))
+	return button
+
+
+## THE BUILDING AS ITS OWN PICTURE (round AN). Buildings.csv `Map Art` names
+## a picture in assets/base/map/; `Map Size` is how big it is drawn on the
+## screen, WIDTHxHEIGHT (blank = the picture's own size x2, the town map's
+## pixel size). The picture is the button: hover brightens it, a locked
+## building is drawn dark, and its name sits under it on a see-through plate.
+func _make_map_building(entry: Dictionary, art: Texture2D) -> Control:
+	var unlocked := bool(entry["unlocked"])
+	var name_text := String(entry["name"])
+	var box := Vector2(art.get_size()) * 2.0
+	var wanted := String(entry.get("map_size", "")).to_lower().split("x")
+	if wanted.size() == 2 and wanted[0].is_valid_float() and wanted[1].is_valid_float():
+		box = Vector2(float(wanted[0]), float(wanted[1]))
+
+	var button := Button.new()
+	button.tooltip_text = String(entry["description"])
+	var flat := StyleBoxEmpty.new()
+	for look in ["normal", "hover", "pressed", "focus", "disabled"]:
+		button.add_theme_stylebox_override(look, flat)
+	_place(button, entry, box)
+
+	var picture := TextureRect.new()
+	picture.texture = art
+	picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var resting := Color.WHITE if unlocked else Color(0.35, 0.35, 0.40, 1.0)
+	picture.modulate = resting
+	button.add_child(picture)
+	button.mouse_entered.connect(func() -> void:
+		picture.modulate = resting * Color(1.25, 1.25, 1.25, 1.0))
+	button.mouse_exited.connect(func() -> void:
+		picture.modulate = resting)
+
+	var label := Label.new()
+	label.text = name_text if unlocked else name_text + "  (locked)"
+	label.add_theme_font_size_override("font_size", 15)
+	label.add_theme_color_override("font_color",
+		MenuSupport.COLOUR_TEXT if unlocked else MenuSupport.COLOUR_TEXT_DIM)
+	label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(label)
+	# Set here, not by TextBackdrop.give(): that skips words inside a Button,
+	# and this button has no panel of its own to read them on.
+	label.add_theme_stylebox_override("normal", TextBackdrop.plate())
 
 	button.pressed.connect(_on_building.bind(entry))
 	return button
