@@ -237,11 +237,44 @@ func _find_sound(file_name: String) -> AudioStream:
 	for folder in AUDIO_DIRS:
 		for extension in EXTENSIONS:
 			var candidate := folder + clean + extension
+			# ROUND AL: READ THE FILE ITSELF WHEN IT IS THERE. Godot only
+			# re-imports a changed file when its editor notices, and until
+			# then it keeps playing the OLD copy - the "I do not hear the
+			# difference" problem. Reading the .ogg / .wav straight from the
+			# folder always plays what is in it now. (In an exported game the
+			# raw file is not there, and the imported copy below is used.)
+			var fresh := _read_raw(candidate)
+			if fresh != null:
+				return fresh
 			if ResourceLoader.exists(candidate):
 				var res := load(candidate)
 				if res is AudioStream:
 					return res as AudioStream
 	return null
+
+
+## One copy per file, shared by every row that names it - so two rows with
+## the same Sound really are the same track, and music can carry across
+## screens without restarting.
+var _raw_cache: Dictionary = {}
+
+
+func _read_raw(path: String) -> AudioStream:
+	if _raw_cache.has(path):
+		return _raw_cache[path]
+	if not FileAccess.file_exists(path):
+		return null
+	var stream: AudioStream = null
+	match path.get_extension().to_lower():
+		"ogg":
+			stream = AudioStreamOggVorbis.load_from_file(path)
+		"wav":
+			stream = AudioStreamWAV.load_from_file(path)
+		"mp3":
+			stream = AudioStreamMP3.load_from_file(path)
+	if stream != null:
+		_raw_cache[path] = stream
+	return stream
 
 
 ## ============ ONE SOUND, BY NAME ============

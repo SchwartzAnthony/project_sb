@@ -5257,7 +5257,7 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | write a new tune for another screen | a new score in `data/songs/`, a row in `Songs.csv` and its players in `SongParts.csv`; run `python3 tools/make_song.py`, then name the `.ogg` in Audio.csv |
 | dress another menu screen (layers, plank buttons, sounds) | rows for it in `data/ScreenLook.csv`, and one line in its `_ready()`: `Look.install(self, "<word>")` (section 16e) |
 | carry music into another screen, quieter | an `Audio.csv` row for that screen with the **same Sound** and a lower Volume (section 16e) |
-| a title-screen layer is missing | click into the Godot editor so it imports the new PNGs (the FileSystem panel shows a progress bar). The menu reads un-imported PNGs directly meanwhile, and the Output panel names them |
+| a new or changed picture or song does not show up / sound different | since round AL the game reads music (.ogg/.wav/.mp3) and the menu pictures **straight from the folder**, so a changed file plays at once, even if Godot has not re-imported it. If something still looks old, restart the game. To refresh Godot's own copies: click into the editor (FileSystem progress bar), or Project > Reload Current Project |
 | use the hand-written menu tune instead of Ludo's | put `menu_oktoberfest` in the `Sound` column of Audio.csv's `menu_theme` row |
 | change the base music | `base_ludo_1`, `base_ludo_2` or `base_ludo_3` in the `Sound` column of Audio.csv's `base_theme` (and `base_theme_brewing`) rows |
 | loop any music cleanly | a row in `data/MusicLoops.csv`, then `python3 tools/make_loop.py` |
