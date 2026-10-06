@@ -1,0 +1,9 @@
+When,Match,Weak,Strong,Seconds,Notes
+goal_scored,,0.6,1.0,0.6,"ROUND AN. CONTROLLER RUMBLE: one row per moment the pad shakes. When and Match work exactly like Audio.csv (the same moments). Weak = the small fast motor, Strong = the big slow one, both 0 to 1. Seconds = how long. If two rows fit, the strongest wins. Settings > Controller > Vibration turns it all off. Your goal: a big long shake."
+goal_scored,star=yes,0.8,1.0,0.9,"A star player's goal: longer."
+goal_conceded,,0.2,0.5,0.4,"Their goal: a short dull thud."
+foul_shown,,0.4,0.3,0.25,"The referee shows a card."
+foul_shown,card=red card,0.7,0.8,0.5,"A red card: harder."
+duel_won,tier=IV,0.5,0.7,0.3,"A Tier IV duel won: a big hit."
+save_made,power>=4,0.4,0.6,0.3,"A big save."
+shot_taken,,0.3,0.0,0.12,"Every shot: a tiny tap on the small motor."

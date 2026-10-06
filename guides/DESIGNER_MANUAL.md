@@ -5894,7 +5894,7 @@ Voice while `Audio.csv` says Effects and UI. Text size did nothing either.
   other way puts the saved settings back.
 - **Key bindings and the language** still save the moment you change them.
 - **Text size** makes every bit of writing in the game bigger or smaller.
-- **Vibration** is a switch only: nothing in the game shakes the pad yet.
+- **Vibration** turns controller rumble on and off (see below).
 
 **`data/SoundBuses.csv`** is the list of sound channels, one row each, top
 to bottom = the sliders on the Sound tab:
@@ -5912,6 +5912,22 @@ this list plays on Master and is named in the startup report.
 
 **`settings_unsaved_on_leave`** in `Tuning.csv`: `ask` (the window),
 `save` (save without asking) or `discard` (throw them away without asking).
+
+**Controller rumble: `data/Rumble.csv`.** One row per moment the pad
+shakes. `When` and `Match` are the same moments `Audio.csv` uses
+(`goal_scored`, `foul_shown` with `card=red card`, `save_made` with
+`power>=4` ...), so anything that makes a sound can shake the pad too.
+
+| column | |
+|---|---|
+| `When`, `Match` | the moment, exactly as in `Audio.csv` |
+| `Weak` | the small, fast motor, 0 to 1 |
+| `Strong` | the big, slow motor, 0 to 1 |
+| `Seconds` | how long it shakes |
+
+If two rows fit (a goal, and a star's goal), the stronger one wins. It ships
+with goals, conceded goals, cards, Tier IV duels won, big saves and a tiny
+tap on every shot. Delete a row to stop that shake.
 
 ### The menu music now carries on
 

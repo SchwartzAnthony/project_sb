@@ -329,6 +329,9 @@ static func _set_bus(bus_name: String, level: float) -> void:
 
 
 static func _apply_pad(settings: Dictionary) -> void:
+	# ROUND AN: data/Rumble.csv shakes the pad only while both are on.
+	Rumble.on = bool(settings.get("pad_enabled", true)) \
+		and bool(settings.get("pad_vibration", true))
 	var dead := clampf(float(settings.get("pad_deadzone", 0.2)), 0.0, 0.9)
 	for action in InputMap.get_actions():
 		InputMap.action_set_deadzone(action, dead)

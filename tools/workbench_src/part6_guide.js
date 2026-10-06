@@ -537,6 +537,7 @@ function paintBook(){
       ["the rule","Tuning.csv <b>settings_unsaved_on_leave</b>: ask, save or discard"],
       ["text size","Colour > Text size now makes every bit of writing bigger"],
       ["kept at once","key bindings and the language still save the moment you change them"],
+      ["rumble","<b>Rumble.csv</b>: goals, cards, big hits and saves shake the controller - the same moments as Audio.csv"],
     ])}`);
 
   card("THE art style: Stammtisch-Comic (round AM)", `

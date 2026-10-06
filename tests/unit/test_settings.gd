@@ -95,3 +95,21 @@ func test_text_size_scales_and_comes_back() -> void:
 	assert_eq(label.get_theme_font_size("font_size"), 30)
 	TextScale.apply(get_tree(), 1.0)
 	assert_eq(label.get_theme_font_size("font_size"), 20)
+
+
+func test_rumble_picks_the_strongest_row_that_fits() -> void:
+	var plain := Rumble.pick("goal_scored", {})
+	var star := Rumble.pick("goal_scored", {"star": "yes"})
+	assert_false(plain.is_empty(), "Rumble.csv has a goal_scored row")
+	assert_gt(float(star["seconds"]), float(plain["seconds"]), "a star's goal shakes longer")
+	assert_true(Rumble.pick("no_such_moment", {}).is_empty())
+
+
+func test_vibration_switch_turns_rumble_off() -> void:
+	var settings := GameSettings.load_all()
+	settings["pad_vibration"] = false
+	GameSettings.preview(get_tree(), settings, "pad_vibration")
+	assert_false(Rumble.on)
+	settings["pad_vibration"] = true
+	GameSettings.preview(get_tree(), settings, "pad_vibration")
+	assert_true(Rumble.on)

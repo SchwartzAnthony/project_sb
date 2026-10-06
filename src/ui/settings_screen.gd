@@ -398,7 +398,7 @@ func _build_controller() -> void:
 	_body.add_child(_choice_row("Stick deadzone", "pad_deadzone",
 		[0.1, 0.15, 0.2, 0.3, 0.4]))
 	_body.add_child(_switch_row("Vibration", "pad_vibration",
-		"Nothing in the game shakes the pad yet; this is ready for when it does."))
+		"Goals, cards, big hits and saves shake the pad. Which ones, and how hard, is data/Rumble.csv."))
 
 	_body.add_child(MenuSupport.heading("WHAT EACH BUTTON DOES", 16,
 		MenuSupport.COLOUR_ACCENT))
