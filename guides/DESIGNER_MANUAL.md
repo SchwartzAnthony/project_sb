@@ -5490,6 +5490,13 @@ character.**
   The whole screen is also one layered Aseprite file:
   `art_source/aseprite/title_screen.aseprite`, made by `tools/make_aseprite.py`.
   See `guides/ART_STYLE.md` for how to edit it and bring a layer back.
+- **Settings, the save screen and the menu button are PixelLab too:**
+  `assets/ui/settings/pixellab/`, `assets/ui/save/pixellab/` (masters in
+  `art_source/pixellab/menus/`), named in `ScreenLook.csv`. Layered files:
+  `art_source/aseprite/settings.aseprite` and `save_screen.aseprite`
+  (`tools/make_aseprite.py data/ScreenLook.csv <file> settings` or `slot`).
+  Buttons and frames come from PixelLab's UI tool (`create_ui_asset`):
+  the picture tool drew steins and sausages instead of a plank.
 - **The tool comparison** (OpenAI, PixelLab, Ludo.ai, Claude by hand, a hybrid)
   is in `art_source/compare/`, with `comparison.png` side by side.
 - **Pixelating on your Deck:** use `~/.venvs/sturmball/bin/python tools/pixelate.py`.

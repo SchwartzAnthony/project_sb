@@ -522,6 +522,7 @@ function paintBook(){
       ["the tool","<code>tools/art_prompt.gd -- pixellab \"Lorelei siren\"</code> (or openai) prints the full prompt from ArtStyle.csv recipe_pixellab / recipe_openai"],
       ["PixelLab only","your decision: ALL art is made with PixelLab - masters in art_source/pixellab/, a Pixelate.csv row shrinks each to its screen size"],
       ["layers","every picture stays in parts; tools/make_aseprite.py writes one layered .aseprite file per screen (art_source/aseprite/title_screen.aseprite)"],
+      ["menus","Settings (Beer Keller), the save screen (trophy room) and the menu button repainted by PixelLab - ScreenLook.csv, art_source/aseprite/settings.aseprite + save_screen.aseprite"],
       ["title screen","the PixelLab set (assets/menu/layers/pixellab/); the tool comparison is in art_source/compare/comparison.png"],
     ])}`);
 

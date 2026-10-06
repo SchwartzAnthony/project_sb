@@ -24,6 +24,11 @@ and picked PixelLab.
   Resize 100%). The background layer was enlarged to fill the canvas, so
   export it at the size of `assets/menu/layers/pixellab/01_bg.png`, or just
   redraw the background in the PNG itself.
+- **Buttons, frames and panels:** PixelLab's UI tool, `create_ui_asset`. At small
+  sizes the picture tool draws props instead of a plank.
+- **Paint at screen size:** ask PixelLab for each prop at the size it has on
+  screen (game pixels), so the Pixelate.csv row only crops it and the pixels
+  stay 1:1.
 - **PixelLab quirk:** removing the background also removes big white areas
   inside a picture (a blank sign's middle). Ask for a coloured fill, or use
   `Fill Holes` in `Pixelate.csv`.

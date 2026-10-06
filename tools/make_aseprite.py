@@ -3,7 +3,9 @@
 #  LAYERED ASEPRITE FILES  (round AN)
 #
 #      ~/.venvs/sturmball/bin/python tools/make_aseprite.py data/MainMenu.csv art_source/aseprite/title_screen.aseprite
+#      ~/.venvs/sturmball/bin/python tools/make_aseprite.py data/ScreenLook.csv art_source/aseprite/settings.aseprite settings
 #
+#  For a CSV with a Screen column (ScreenLook.csv), name the screen last.
 #  Turns a layered screen (a CSV like MainMenu.csv: Part, Image, X, Y,
 #  Width, Height, Scale, Flip) into ONE .aseprite file with one layer per
 #  picture, in the same order (top row = bottom layer), so you can open the
@@ -41,12 +43,14 @@ def number(row, key, default=0.0):
         return default
 
 
-def layers_from_csv(csv_path, pixel):
+def layers_from_csv(csv_path, pixel, screen=""):
     """[(name, RGBA image at canvas pixels, x, y)] bottom layer first."""
     cw, ch = SCREEN_W // pixel, SCREEN_H // pixel
     out = []
     with open(csv_path, encoding="utf-8") as f:
         for i, row in enumerate(csv.DictReader(f), start=2):
+            if screen and (row.get("Screen") or "").strip().lower() != screen:
+                continue
             part = (row.get("Part") or "").strip().lower()
             image = (row.get("Image") or "").strip()
             if part not in ("background", "picture") or not image:
@@ -112,10 +116,10 @@ def write_aseprite(path, width, height, layers):
 
 def main():
     if len(sys.argv) < 3:
-        print(__doc__ or "usage: make_aseprite.py <screen.csv> <out.aseprite> [pixel size]")
+        print("usage: make_aseprite.py <screen.csv> <out.aseprite> [screen]")
         sys.exit(1)
-    pixel = int(sys.argv[3]) if len(sys.argv) > 3 else 2
-    width, height, layers = layers_from_csv(sys.argv[1], pixel)
+    screen = sys.argv[3].lower() if len(sys.argv) > 3 else ""
+    width, height, layers = layers_from_csv(sys.argv[1], 2, screen)
     write_aseprite(sys.argv[2], width, height, layers)
     print("  wrote %s: %dx%d, %d layers" % (sys.argv[2], width, height, len(layers)))
 
