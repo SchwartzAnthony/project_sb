@@ -235,6 +235,16 @@ func _build_exits() -> void:
 	# The screen itself is still in the project and still works: `goto:board`
 	# opens it, and tools/unlock_progress.gd still reports through it.
 
+	# ACHIEVEMENTS, up here since round AN: Anthony took its building off the
+	# town map, and it is the root of every unlock, so it still needs a door.
+	# It runs the same `window:achievements` the building's Action did.
+	var to_achievements := MenuSupport.icon_button("achievements|★",
+		Loc.text("achievements_button", "Achievements"), EXIT_SIZE)
+	to_achievements.tooltip_text = "Everything in this game is unlocked here first."
+	to_achievements.pressed.connect(func() -> void:
+		_carry_out(Progression.run_actions("window:achievements", state)))
+	row.add_child(to_achievements)
+
 	# THE STADIUM, which is not a building either.
 	#
 	# It is what your ground looks like rather than a room you walk into, and
