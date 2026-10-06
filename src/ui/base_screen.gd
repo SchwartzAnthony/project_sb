@@ -266,21 +266,23 @@ func _build_exits() -> void:
 		_carry_out(Progression.run_actions("window:achievements", state)))
 	row.add_child(to_achievements)
 
-	# THE STADIUM, which is not a building either.
-	#
-	# It is what your ground looks like rather than a room you walk into, and
-	# you said the base is those nine buildings and no others — so it lives
-	# up here beside the season instead. Say the word and it is a tenth
-	# building: one row of Buildings.csv with `window:stadium`.
-	var to_stadium := _exit("stadium|▲",
-		Loc.text("the_stadium", "The stadium"), EXIT_SIZE)
-	to_stadium.tooltip_text = "Your ground: the background, the crowd, the floodlights. Every layer is unlocked by an achievement."
-	to_stadium.pressed.connect(func() -> void:
-		state.save_to_disk()
-		var opened := BaseWindow.open(self, "The Stadium", ScenePaths.STADIUM)
-		if opened != null:
-			opened.closed.connect(_rebuild))
-	row.add_child(to_stadium)
+	# THE BAG, WHERE YOU ARE STANDING. Everything you have carried home is in
+	# it, and the base is where you are when you want to know what that is.
+	# It opens the same window the Bounty Board, an Adventure fight and the
+	# match draft open — see inventory_screen.gd — and it is built with the
+	# same icon_button() as everything else in this row, so it looks like a
+	# door rather than a new kind of control.
+	var to_bag := _exit("inventory|⚒",
+		Loc.text("inventory", "Inventory"), EXIT_SIZE)
+	to_bag.tooltip_text = "Everything you are carrying: what you can use, what you can spend, and what you are holding on to."
+	to_bag.pressed.connect(func() -> void:
+		InventoryScreen.open(self, state, InventoryScreen.Use.NOTHING))
+	row.add_child(to_bag)
+
+	# THE STADIUM FLAG IS GONE (round AN, Anthony: "remove the soccer field
+	# flag"). The Stadium screen itself still works - ScenePaths.STADIUM, or a
+	# `window:stadium` Action in Buildings.csv brings a door back.
+	# Inventory hangs in its place, second from the left.
 
 	# THE SEASONS SHELF, not the table. There is more than one competition
 	# now — Seasons.csv — and the table is what opens when you pick one.
@@ -321,19 +323,6 @@ func _build_exits() -> void:
 		state.save_to_disk()
 		ScenePaths.go_to(get_tree(), ScenePaths.BOUNTY_BOARD))
 	row.add_child(to_adventure)
-
-	# THE BAG, WHERE YOU ARE STANDING. Everything you have carried home is in
-	# it, and the base is where you are when you want to know what that is.
-	# It opens the same window the Bounty Board, an Adventure fight and the
-	# match draft open — see inventory_screen.gd — and it is built with the
-	# same icon_button() as everything else in this row, so it looks like a
-	# door rather than a new kind of control.
-	var to_bag := _exit("inventory|⚒",
-		Loc.text("inventory", "Inventory"), EXIT_SIZE)
-	to_bag.tooltip_text = "Everything you are carrying: what you can use, what you can spend, and what you are holding on to."
-	to_bag.pressed.connect(func() -> void:
-		InventoryScreen.open(self, state, InventoryScreen.Use.NOTHING))
-	row.add_child(to_bag)
 
 	var to_teams := _exit("teams|⚑", "Your teams", EXIT_SIZE)
 	to_teams.tooltip_text = "Team Build: your Stars, your sides and your talents."

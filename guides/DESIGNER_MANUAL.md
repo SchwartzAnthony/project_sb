@@ -5721,6 +5721,12 @@ character.**
   and `pl_title_boards`. Take 1 (the whole valley with all the small
   buildings) and the old title background, brewery and tent are in
   `art_source/legacy/menu_round_an/`.
+  **Take 3:** the Pub drawn x3 and further left, the Dorms flipped, no goal,
+  the crowd and the boards half size (Scale 1) and further back, and the
+  white lines painted out of the pitch for now (`goal_end_nolines.png`; the
+  master with lines is `goal_end.png`).
+- **The Stadium flag is off the base's top row (round AN).** Inventory hangs
+  in its place, second from the left. The Stadium screen still exists.
 - **Pitch boards, menu and base (round AN).** Like a German village club
   ground, low advertising boards now stop the ball: pictures of a stein, a
   pretzel, a sausage, a ball, a hop and a cow (no letters). On the menu

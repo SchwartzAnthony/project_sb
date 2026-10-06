@@ -1,14 +1,19 @@
 Part,Image,Text,X,Y,Width,Height,Frames,FPS,Scale,Flip,Notes
-background,res://assets/menu/layers/pixellab/01_goal_end.png,,,,,,,,,,"ROUND AN - BASE TOWN TITLE, TAKE 2 (Anthony: a much bigger pitch, only the right goal's half; the camera at that end looking at the Pub and the Dorms, both massive and cut off by the screen; the boards round the pitch). Layer 1: the right goal's half of the pitch, huge, the sandy path behind it, fields, hills with firs and the sky (art_source/pixellab/title_valley/goal_end.png, PixelLab create_image_pro 688 x 384 with the base's ground.png as the style picture, stretched to cover the screen). Take 1 (the whole valley with small buildings) is in art_source/legacy/menu_round_an/take1/. The first background row wins."
-picture,res://assets/menu/layers/pixellab/03_dorms.png,,1500,300,,,1,0,2,,"The base's Dorms, drawn again from the ground (Pixelate.csv pl_title_dorms). Massive, cut off by the right edge; the sign and the buttons stand in front of it."
-picture,res://assets/menu/layers/pixellab/02_pub.png,,520,250,,,1,0,2,,"The base's Pub, drawn again from the ground (pl_title_pub). Nearest building, cut off at the top; the hero stands in front of it."
-picture,res://assets/menu/layers/pixellab/04_goal.png,,1116,430,,,1,0,2,,"The right goal with its tall ball-stop net (pl_title_goal), on the goal line of the big penalty box. Behind the crowd, so the net pokes up over their heads."
-picture,res://assets/menu/layers/pixellab/04_crowd.png,,376,610,,,1,0,2,,"ROUND AN - PIXELLAB. Layer 4: the crowd behind the boards - one PixelLab strip (376 game pixels wide, drawn x2 = 752), three times side by side, the middle one flipped."
-picture,res://assets/menu/layers/pixellab/04_crowd.png,,1128,610,,,1,0,2,yes,Layer 4: the crowd again.
-picture,res://assets/menu/layers/pixellab/04_crowd.png,,1880,610,,,1,0,2,,Layer 4: the crowd again.
-picture,res://assets/menu/layers/pixellab/06_boards.png,,330,730,,,1,0,2,,"The pitch-side advertising boards in front of the crowd (pl_title_boards), three side by side, the middle one flipped. Same boards as round the base's pitch (BaseTown.csv pitch_boards)."
-picture,res://assets/menu/layers/pixellab/06_boards.png,,990,730,,,1,0,2,yes,The boards again.
-picture,res://assets/menu/layers/pixellab/06_boards.png,,1650,730,,,1,0,2,,The boards again.
+background,res://assets/menu/layers/pixellab/01_goal_end.png,,,,,,,,,,"ROUND AN - BASE TOWN TITLE, TAKE 2 (Anthony: a much bigger pitch, only the right goal's half; the camera at that end looking at the Pub and the Dorms, both massive and cut off by the screen; the boards round the pitch). Layer 1 (take 3: the white lines painted out for now - Anthony will draw them; the master with lines is goal_end.png, without is goal_end_nolines.png): the right goal's half of the pitch, huge, the sandy path behind it, fields, hills with firs and the sky (art_source/pixellab/title_valley/goal_end.png, PixelLab create_image_pro 688 x 384 with the base's ground.png as the style picture, stretched to cover the screen). Take 1 (the whole valley with small buildings) is in art_source/legacy/menu_round_an/take1/. The first background row wins."
+picture,res://assets/menu/layers/pixellab/03_dorms.png,,1450,265,,,1,0,2,yes,"ROUND AN TAKE 3 (Anthony): the Dorms flipped, so the near (left) end is the big one. Massive, cut off by the right edge; its foot hides behind the crowd."
+picture,res://assets/menu/layers/pixellab/02_pub.png,,330,30,,,1,0,3,,"ROUND AN TAKE 3 (Anthony): the Pub much wider and further left: drawn x3, cut off at the top and the left edge, the hero in front of it. Its foot hides behind the crowd."
+picture,res://assets/menu/layers/pixellab/04_crowd.png,,188,505,,,1,0,1,,"ROUND AN TAKE 3 (Anthony): the crowd half size (Scale 1) and further back (higher). Strips side by side, every other one flipped."
+picture,res://assets/menu/layers/pixellab/04_crowd.png,,564,505,,,1,0,1,yes,The crowd again.
+picture,res://assets/menu/layers/pixellab/04_crowd.png,,940,505,,,1,0,1,,The crowd again.
+picture,res://assets/menu/layers/pixellab/04_crowd.png,,1316,505,,,1,0,1,yes,The crowd again.
+picture,res://assets/menu/layers/pixellab/04_crowd.png,,1692,505,,,1,0,1,,The crowd again.
+picture,res://assets/menu/layers/pixellab/04_crowd.png,,2068,505,,,1,0,1,yes,The crowd again.
+picture,res://assets/menu/layers/pixellab/06_boards.png,,165,580,,,1,0,1,,"ROUND AN TAKE 3 (Anthony): the boards half size too (Scale 1), at the crowd's feet."
+picture,res://assets/menu/layers/pixellab/06_boards.png,,495,580,,,1,0,1,yes,The boards again.
+picture,res://assets/menu/layers/pixellab/06_boards.png,,825,580,,,1,0,1,,The boards again.
+picture,res://assets/menu/layers/pixellab/06_boards.png,,1155,580,,,1,0,1,yes,The boards again.
+picture,res://assets/menu/layers/pixellab/06_boards.png,,1485,580,,,1,0,1,,The boards again.
+picture,res://assets/menu/layers/pixellab/06_boards.png,,1815,580,,,1,0,1,yes,The boards again.
 picture,res://assets/menu/layers/pixellab/05_brawl.png,,990,860,,,1,0,2,,"ROUND AN - PIXELLAB. Layer 5: the brawl, middle of the pitch."
 picture,res://assets/menu/layers/pixellab/06_sign.png,,1040,150,,,1,0,2,,"ROUND AN - PIXELLAB. Layer 6: the sign, top-middle, behind the hero. Its wooden middle was painted back by Pixelate.csv Fill Holes. The title row writes the name on it."
 title,,STURMBALL,1040,150,520,60,,,,,"The big word, written on the sign. It is drawn in its place in this list - here right after the sign, so the hero below covers both. X / Y = its centre, Width = the box it is centred in, Height = the font size (76 = about a quarter of the screen wide)."
