@@ -40,13 +40,14 @@ const EXITS_LEFT_MARGIN := 270.0
 const EXIT_SIZE := Vector2(196.0, 52.0)
 
 ## The flag banners that replace the exit buttons once drawn (round AN):
-## a 40 x 64 PixelLab banner drawn x2, hanging from the top of the screen.
+## a PixelLab cloth on the one shared rod, hanging from the top of the screen.
 const BANNER_DIR := "res://assets/ui/banners/"
-const BANNERS_LEFT := 596.0
+const BANNERS_LEFT := 580.0
 const BANNER_SOUND := "banner_flutter"
-const BANNERS_RIGHT := 560.0
-## 88 wide fits eight between the Pub's roof and the Club House's.
-const BANNER_SIZE := Vector2(88.0, 141.0)
+const BANNERS_RIGHT := 530.0
+## A 48 x 64 banner (tools/make_banners.py) drawn x2.25; seven fit between
+## the Pub's roof and the Club House's (Dev is not one of them).
+const BANNER_SIZE := Vector2(108.0, 144.0)
 
 var db: CardDatabase
 var base: BaseDB
@@ -229,13 +230,21 @@ func _build_exits() -> void:
 
 	# The developer tools. `show_dev_tools` in Tuning.csv hides this button
 	# before you show the game to anyone; the screen itself stays put.
+	# ROUND AN: it is NOT one of the banners. The banner row is laid out the
+	# way the released game shows it, and Dev sits on its own, small, in the
+	# bottom-left corner while we test.
 	if db.tune_bool("show_dev_tools", true):
-		var to_dev := _exit("dev|⚙", "Dev", Vector2(130, EXIT_SIZE.y))
-		to_dev.tooltip_text = "The save inspector. Jump straight to any unlock."
+		var to_dev := MenuSupport.icon_button("dev|⚙", "Dev", Vector2(110, 40))
+		to_dev.tooltip_text = "The save inspector. Jump straight to any unlock. Testing only."
 		to_dev.pressed.connect(func() -> void:
 			state.save_to_disk()
 			ScenePaths.go_to(get_tree(), ScenePaths.INSPECTOR))
-		row.add_child(to_dev)
+		to_dev.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+		to_dev.offset_left = 12.0
+		to_dev.offset_top = -52.0
+		to_dev.offset_right = 122.0
+		to_dev.offset_bottom = -12.0
+		add_child(to_dev)
 
 	# ============ THE UNLOCKS BUTTON IS GONE ============
 	#
@@ -647,12 +656,8 @@ func _make_map_building(entry: Dictionary, art: Texture2D) -> Control:
 	var resting := Color.WHITE if unlocked else Color(0.35, 0.35, 0.40, 1.0)
 	picture.modulate = resting
 	button.add_child(picture)
-	# Its own sound when you point at it (Buildings.csv `Sound`, an Audio.csv
-	# row): the Brewery bubbles, the Pub cheers.
-	var sound := String(entry.get("sound", ""))
 	button.mouse_entered.connect(func() -> void:
-		picture.modulate = resting * Color(1.25, 1.25, 1.25, 1.0)
-		AudioDirector.play_cue(get_tree(), sound))
+		picture.modulate = resting * Color(1.25, 1.25, 1.25, 1.0))
 	button.mouse_exited.connect(func() -> void:
 		picture.modulate = resting)
 
@@ -750,11 +755,31 @@ func _on_building(entry: Dictionary) -> void:
 
 	var description := String(entry["description"])
 	_detail.text = description if description != "" else name_text
+	_play_building_sounds(entry)
 
 	var action := String(entry["action"])
 	if action.strip_edges() == "":
 		return
 	_carry_out(Progression.run_actions(action, state))
+
+
+## CLICKING A BUILDING (round AN): its own sound (Buildings.csv `Sound` - the
+## Brewery bubbles, the Pub cheers), then its door opening (`Door Sound`),
+## `base_door_sound_delay` seconds later. Both are Audio.csv rows.
+func _play_building_sounds(entry: Dictionary) -> void:
+	var tree := get_tree()
+	AudioDirector.play_cue(tree, String(entry.get("sound", "")))
+	var door := String(entry.get("door_sound", ""))
+	if door.strip_edges() == "":
+		return
+	var gap := maxf(db.tune_float("base_door_sound_delay", 1.0), 0.0)
+	if gap <= 0.0:
+		AudioDirector.play_cue(tree, door)
+		return
+	# A scene-tree timer, so the door still sounds after the window has
+	# opened over the base.
+	tree.create_timer(gap).timeout.connect(func() -> void:
+		AudioDirector.play_cue(tree, door))
 
 
 ## The words over a window. The building's own Name if we can find it, so

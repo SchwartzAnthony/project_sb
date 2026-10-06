@@ -3463,12 +3463,19 @@ Traveling Tavern.
 door in `assets/ui/banners/<name>.png` (dev, achievements, stadium, season,
 play, adventure, inventory, teams), each with its emblem embroidered on, and
 the title stitched into the cloth by the game (`MenuSupport.banner_button`).
-A door whose banner is missing falls back to the old button. Each banner is
-also an `.aseprite` in `art_source/aseprite/banners/`.
+A door whose banner is missing falls back to the old button. **Every banner
+hangs from the same rod** (`art_source/pixellab/banners/rod.png`):
+`tools/make_banners.py` cuts each PixelLab cloth off its own rod, hangs it on
+the shared one, and writes `assets/ui/banners/<name>.png` plus an `.aseprite`
+with cloth and rod as two layers in `art_source/aseprite/banners/`. The seven
+banners are laid out as the released game shows them; **Dev is not a
+banner** - it is a small button in the bottom-left corner while we test, and
+`show_dev_tools` in Tuning.csv hides it.
 
 **Sounds** (round AN): pointing at a banner plays `banner_flutter` (a flag
-folding in the wind), and pointing at a building plays its Buildings.csv
-`Sound`, an Audio.csv row: `bld_brewery` bubbling, `bld_pub` cheering,
+folding in the wind). **Clicking** a building plays its Buildings.csv `Sound`
+and then its `Door Sound` (`door_open`, a wooden door creaking open)
+`base_door_sound_delay` seconds later (Tuning.csv). The building sounds: `bld_brewery` bubbling, `bld_pub` cheering,
 `bld_club_house`, `bld_dorms` snoring, `bld_training`, `bld_trophy`,
 `bld_tavern`. Made with Ludo; the originals are in `art_source/ludo/base_sounds/`.
 

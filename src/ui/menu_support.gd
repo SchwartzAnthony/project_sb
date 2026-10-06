@@ -290,7 +290,8 @@ static func icon_button(icon: String, label: String,
 #
 #  "Flag banners with the emblem on them and the title sewn into the flag."
 #  The banner and its embroidered emblem are one PixelLab picture
-#  (assets/ui/banners/<name>.png); the title is stitched into the plain
+#  (assets/ui/banners/<name>.png, built by tools/make_banners.py so every
+#  banner hangs from the same rod); the title is stitched into the plain
 #  lower half here, in cream thread with a dark outline, because a picture
 #  generator cannot write words. Hover brightens the cloth, a press pushes
 #  it down like every other button (Motion.csv).
@@ -301,7 +302,7 @@ const BANNER_STITCH := Color("19110a")
 
 
 static func banner_button(art: Texture2D, label: String,
-		size: Vector2 = Vector2(88, 141)) -> Button:
+		size: Vector2 = Vector2(96, 128)) -> Button:
 	var button := Button.new()
 	button.custom_minimum_size = size
 	MotionBook.press_feel(button)
@@ -327,10 +328,10 @@ static func banner_button(art: Texture2D, label: String,
 	# The title, sewn into the plain lower half of the cloth.
 	var words := Label.new()
 	words.text = label
-	words.anchor_left = 0.04
-	words.anchor_right = 0.96
-	words.anchor_top = 0.52
-	words.anchor_bottom = 0.82
+	words.anchor_left = 0.1
+	words.anchor_right = 0.9
+	words.anchor_top = 0.54
+	words.anchor_bottom = 0.8
 	words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	words.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
