@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://dfbcb4eieoyir"
+
+[deps]
+
+files=["res://data/MusicCheers.Song.translation", "res://data/MusicCheers.Cheer.translation", "res://data/MusicCheers.At.translation", "res://data/MusicCheers.Volume.translation", "res://data/MusicCheers.Pan.translation", "res://data/MusicCheers.Notes.translation"]
+
+source_file="res://data/MusicCheers.csv"
+dest_files=["res://data/MusicCheers.Song.translation", "res://data/MusicCheers.Cheer.translation", "res://data/MusicCheers.At.translation", "res://data/MusicCheers.Volume.translation", "res://data/MusicCheers.Pan.translation", "res://data/MusicCheers.Notes.translation"]
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

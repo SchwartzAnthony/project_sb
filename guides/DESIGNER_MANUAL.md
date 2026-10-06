@@ -5960,6 +5960,22 @@ photographs the three screens into `user://` and prints the music on each.
 It shows the same player at −9, −17, −17 and −9 dB, which means the track
 never restarted.
 
+**Crowd cheers over the menu song (round AN).** The cheering now sits on
+top of your Untitled track at irregular moments, so it is clear and never
+locked to the beat. The song itself is untouched. Each cheer is one row of
+`data/MusicCheers.csv`:
+
+| column | |
+|---|---|
+| `At` | seconds into the song where the cheer starts |
+| `Volume` | dB: 0 = as loud as the cheer file, −6 = half as loud |
+| `Pan` | −1 left, 0 middle, 1 right |
+| `Cheer` | the sound: five Ludo.ai crowd bursts in `art_source/suno/cheers/` |
+
+After a change, run `~/.venvs/sturmball/bin/python tools/mix_cheers.py`,
+then rebuild the loop. To go back to the plain song, set the `suno_menu`
+Source in `MusicLoops.csv` to `menu_untitled.wav`.
+
 ## 17. A short glossary
 
 **Tier** — one of four slots your squad is built in. See section 2.
