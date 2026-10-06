@@ -5709,6 +5709,17 @@ character.**
   The whole screen is also one layered Aseprite file:
   `art_source/aseprite/title_screen.aseprite`, made by `tools/make_aseprite.py`.
   See `guides/ART_STYLE.md` for how to edit it and bring a layer back.
+- **The title screen now shows your base town (round AN).** The crowd, the
+  brawl, the sign and the hero are the same. Behind them is the base's
+  valley, seen from the touchline: a new PixelLab background
+  (`01_valley.png`, drawn with the base's `ground.png` as its style picture)
+  with the river, the stone bridge and the firs, and on the far hillside
+  the base's own buildings: Brewery, Pub, Club House, Training Ground,
+  Dorms, Trophy Room hut, Traveling Tavern and the maypole. Those rows in
+  `MainMenu.csv` point straight at `assets/base/map/`, so a building you
+  redraw for the base shows up on the menu too. They're drawn x1 because
+  they're far away; the Brewery is x2, nearest, under the sign. The old
+  background, brewery and beer tent are in `art_source/legacy/menu_round_an/`.
 - **Settings, the save screen and the menu button are PixelLab too:**
   `assets/ui/settings/pixellab/`, `assets/ui/save/pixellab/` (masters in
   `art_source/pixellab/menus/`), named in `ScreenLook.csv`. Layered files:

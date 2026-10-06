@@ -504,7 +504,7 @@ function paintBook(){
     <p style="margin:0 0 10px"><b>Your Midjourney kicker is the style. OpenAI paints the comic, tools/pixelate.py makes the pixels.</b></p>
     ${rows([
       ["the hero","your pick C (Tyrolean hat), wilder hair, facing right (Pixelate.csv Flip yes) - <code>hero_comic.png</code>; A, B as hero_comic_a / _b"],
-      ["layers","the title screen is 7 layers, back to front in <b>MainMenu.csv</b>: field, brewery, beer tent, crowd (x6), brawl, sign + name, hero - all in the front guy's style, all at Scale 2 (assets/menu/layers/)"],
+      ["layers","the title screen is layers, back to front in <b>MainMenu.csv</b>: the base valley, the base's own buildings (assets/base/map/, x1 because far away; the Brewery x2), the maypole, crowd (x3), brawl, sign + name, hero (round AN)"],
       ["repaint one","ArtStyle.csv <b>layer_prompt</b> with the front guy as the style picture, save in art_source/openai/menu_layers/, run tools/pixelate.py"],
       ["no yellow","<b>Pixelate.csv</b> new column Neutral takes the yellow AI tint out"],
       ["changed file?","music and menu pictures are read straight from the folder, so a changed file plays / shows at once - no re-import needed"],

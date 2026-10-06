@@ -18,11 +18,13 @@ and picked PixelLab.
 - **Every picture stays in layers.** Each part (background, buildings,
   crowd, action, sign, hero) is its own PNG. One layered Aseprite file holds
   the whole screen:
-  `~/.venvs/sturmball/bin/python tools/make_aseprite.py data/MainMenu.csv art_source/aseprite/title_screen.aseprite`
+  `~/.venvs/sturmball/bin/python tools/make_aseprite.py data/MainMenu.csv art_source/aseprite/title_screen.aseprite --pixel 1`
+  (`--pixel 1` because the far base buildings are drawn x1; the canvas is
+  then the full 1920 x 1080 screen and every x2 layer shows doubled)
 - **Editing in Aseprite:** open the `.aseprite` file, change any layer, then
   export that layer back over its PNG (File > Export As, Layers = that layer,
   Resize 100%). The background layer was enlarged to fill the canvas, so
-  export it at the size of `assets/menu/layers/pixellab/01_bg.png`, or just
+  export it at the size of `assets/menu/layers/pixellab/01_valley.png`, or just
   redraw the background in the PNG itself.
 - **Buttons, frames and panels:** PixelLab's UI tool, `create_ui_asset`. At small
   sizes the picture tool draws props instead of a plank.

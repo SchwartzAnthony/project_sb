@@ -1,7 +1,13 @@
 Part,Image,Text,X,Y,Width,Height,Frames,FPS,Scale,Flip,Notes
-background,res://assets/menu/layers/pixellab/01_bg.png,,,,,,,,,,"ROUND AN - PIXELLAB (your pick: PixelLab only for all art). Layer 1: sky, Alps, trees and the empty pitch (art_source/pixellab/title/bg.png, 688 x 384, stretched to cover the screen). Earlier backgrounds: assets/menu/layers/01_title_bg_b.png, 01_title_bg_a.png, 01_field.png. The first background row wins."
-picture,res://assets/menu/layers/pixellab/02_brewery.png,,960,350,,,1,0,2,,"ROUND AN - PIXELLAB. Layer 2: the brewery, centre. Scale 2 like every layer, so all share one pixel size."
-picture,res://assets/menu/layers/pixellab/03_tent.png,,1640,420,,,1,0,2,,"ROUND AN - PIXELLAB. Layer 3: the beer tent, right."
+background,res://assets/menu/layers/pixellab/01_valley.png,,,,,,,,,,"ROUND AN - THE BASE TOWN ON THE MENU (Anthony). Layer 1: the town valley seen from the touchline - sky, hills and firs, the river with the stone bridge, and the pitch in front (art_source/pixellab/title_valley/valley.png, PixelLab create_image_pro 688 x 384 with the base's ground.png as the style image, stretched to cover the screen). The buildings are the rows below it. The old menu (sky, Alps, brewery, beer tent) is in art_source/legacy/menu_round_an/. The first background row wins."
+picture,res://assets/base/map/dorms.png,,1370,265,,,1,0,1,,"ROUND AN - THE BASE TOWN ON THE MENU (Anthony). The base's own building art (assets/base/map/, Buildings.csv Map Art), no copies: redraw a building for the base and the menu follows. These stand on the far hillside, so they are drawn x1 (far away, like the base's clouds) and seen a little from above, which is how the base draws them. Dorms, top right on the hill."
+picture,res://assets/base/map/clubhouse.png,,1500,330,,,1,0,1,yes,"The Club House, right, above the buttons. Flip yes so it faces the pitch."
+picture,res://assets/base/map/pub.png,,720,300,,,1,0,1,,"The Pub, left of the river bend."
+picture,res://assets/base/map/training.png,,700,425,,,1,0,1,,"The Training Ground, on the near bank left."
+picture,res://assets/menu/layers/pixellab/08_maypole.png,,935,395,,,1,0,1,,"The base's maypole (copied from art_source/pixellab/base_town/maypole.png, because art_source is hidden from the game)."
+picture,res://assets/base/map/tavern.png,,860,455,,,1,0,1,,The Traveling Tavern wagon on the riverside road.
+picture,res://assets/base/map/trophy.png,,1390,440,,,1,0,1,,The Trophy Room hay hut by the stone bridge.
+picture,res://assets/base/map/brewery.png,,1120,385,,,1,0,2,,"The Brewery, centre under the sign like the old title brewery. x2: it stands nearest, on our side of the river."
 picture,res://assets/menu/layers/pixellab/04_crowd.png,,376,610,,,1,0,2,,"ROUND AN - PIXELLAB. Layer 4: the crowd behind the boards - one PixelLab strip (376 game pixels wide, drawn x2 = 752), three times side by side, the middle one flipped."
 picture,res://assets/menu/layers/pixellab/04_crowd.png,,1128,610,,,1,0,2,yes,Layer 4: the crowd again.
 picture,res://assets/menu/layers/pixellab/04_crowd.png,,1880,610,,,1,0,2,,Layer 4: the crowd again.
