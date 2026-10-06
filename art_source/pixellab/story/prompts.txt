@@ -35,3 +35,8 @@ every other face from it (side) or from coach_happy_front 5ba07470 (front):
   (a first drunk-side job, 4a02a32e, hung at 57% and was cancelled)
 assets/story/portraits/ copies are cropped to the drawing and padded to the
 portrait slot's 8:9 shape, feet at the bottom, so every face fills its slot.
+
+Round AN, part 3: Koch for the new prologue (side, Koch's side face as reference)
+  koch_sad_side bdefce67, koch_drunk_side 5ab7a8f9, koch_bergmaennlein_side 8e36ca78
+  koch_silhouette_side: made from koch_bergmaennlein_side, every pixel dark
+  except the orange lamp and eye glow (no PixelLab call)
