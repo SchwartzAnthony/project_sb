@@ -5497,6 +5497,14 @@ character.**
   (`tools/make_aseprite.py data/ScreenLook.csv <file> settings` or `slot`).
   Buttons and frames come from PixelLab's UI tool (`create_ui_asset`):
   the picture tool drew steins and sausages instead of a plank.
+- **Everything else redone with PixelLab:** the UI skin (`Theme.csv`
+  images, flat calm middles so text reads), all 39 icons (64 x 64), the team
+  crest and formation picture, the match background (`Stadium.csv`:
+  `stadium_back` + the unlockable `stadium_crowd`), and **one animated
+  sprite sheet per class** (`assets/players/class_<Class>.png`, picked by
+  `Tuning.csv` `placeholder_art_<Class>` for every card without its own
+  Artwork). Originals are kept in `art_source/legacy/`. Not touched yet:
+  the base screen and its buildings, Adventure Mode and the soccer field.
 - **The tool comparison** (OpenAI, PixelLab, Ludo.ai, Claude by hand, a hybrid)
   is in `art_source/compare/`, with `comparison.png` side by side.
 - **Pixelating on your Deck:** use `~/.venvs/sturmball/bin/python tools/pixelate.py`.

@@ -1,0 +1,111 @@
+{
+  "group_id": "ed2b74c6-33b0-4a25-aa45-3ede70ede73e",
+  "states": [
+    {
+      "character": {
+        "id": "a06fc980-300b-4383-8f5c-ff495543b574",
+        "name": "Idle",
+        "prompt": "an Unkengeister toad spirit footballer, a squat green-brown warty toad with big yellow eyes and a wide grin, standing upright, ghostly pale marsh-mist glow, murky green and black football kit, webbed feet in football boots. Clean comic line art: bold, smooth black outlines of even weight, flat bold colours with at most one shadow tone per shape, NO hatching, NO cross-hatching, NO scratchy texture lines, no paper texture, no grain. Crisp, bright, natural colours with a neutral white balance: NOT yellow, NOT warm-tinted, NOT sepia. No text, no letters, no logos. 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.",
+        "size": {
+          "width": 32,
+          "height": 32
+        },
+        "template_id": "mannequin",
+        "directions": 8,
+        "view": "low top-down",
+        "created_at": "2026-10-06T11:31:41.792954+00:00"
+      },
+      "folder": "Idle",
+      "frames": {
+        "rotations": {
+          "south": "Idle/rotations/south.png",
+          "south-east": "Idle/rotations/south-east.png",
+          "east": "Idle/rotations/east.png",
+          "north-east": "Idle/rotations/north-east.png",
+          "north": "Idle/rotations/north.png",
+          "north-west": "Idle/rotations/north-west.png",
+          "west": "Idle/rotations/west.png",
+          "south-west": "Idle/rotations/south-west.png"
+        },
+        "animations": {
+          "win": {
+            "south-east": [
+              "Idle/animations/win/south-east/frame_000.png",
+              "Idle/animations/win/south-east/frame_001.png",
+              "Idle/animations/win/south-east/frame_002.png",
+              "Idle/animations/win/south-east/frame_003.png",
+              "Idle/animations/win/south-east/frame_004.png",
+              "Idle/animations/win/south-east/frame_005.png",
+              "Idle/animations/win/south-east/frame_006.png",
+              "Idle/animations/win/south-east/frame_007.png",
+              "Idle/animations/win/south-east/frame_008.png"
+            ]
+          },
+          "kick": {
+            "south-east": [
+              "Idle/animations/kick/south-east/frame_000.png",
+              "Idle/animations/kick/south-east/frame_001.png",
+              "Idle/animations/kick/south-east/frame_002.png",
+              "Idle/animations/kick/south-east/frame_003.png",
+              "Idle/animations/kick/south-east/frame_004.png",
+              "Idle/animations/kick/south-east/frame_005.png",
+              "Idle/animations/kick/south-east/frame_006.png",
+              "Idle/animations/kick/south-east/frame_007.png",
+              "Idle/animations/kick/south-east/frame_008.png",
+              "Idle/animations/kick/south-east/frame_009.png",
+              "Idle/animations/kick/south-east/frame_010.png",
+              "Idle/animations/kick/south-east/frame_011.png"
+            ]
+          },
+          "run": {
+            "south-east": [
+              "Idle/animations/run/south-east/frame_000.png",
+              "Idle/animations/run/south-east/frame_001.png",
+              "Idle/animations/run/south-east/frame_002.png",
+              "Idle/animations/run/south-east/frame_003.png",
+              "Idle/animations/run/south-east/frame_004.png",
+              "Idle/animations/run/south-east/frame_005.png",
+              "Idle/animations/run/south-east/frame_006.png",
+              "Idle/animations/run/south-east/frame_007.png",
+              "Idle/animations/run/south-east/frame_008.png",
+              "Idle/animations/run/south-east/frame_009.png",
+              "Idle/animations/run/south-east/frame_010.png",
+              "Idle/animations/run/south-east/frame_011.png"
+            ]
+          },
+          "idle": {
+            "south-east": [
+              "Idle/animations/idle/south-east/frame_000.png",
+              "Idle/animations/idle/south-east/frame_001.png",
+              "Idle/animations/idle/south-east/frame_002.png",
+              "Idle/animations/idle/south-east/frame_003.png",
+              "Idle/animations/idle/south-east/frame_004.png"
+            ]
+          },
+          "ability": {
+            "south-east": [
+              "Idle/animations/ability/south-east/frame_000.png",
+              "Idle/animations/ability/south-east/frame_001.png",
+              "Idle/animations/ability/south-east/frame_002.png",
+              "Idle/animations/ability/south-east/frame_003.png",
+              "Idle/animations/ability/south-east/frame_004.png",
+              "Idle/animations/ability/south-east/frame_005.png"
+            ]
+          },
+          "lose": {
+            "south-east": [
+              "Idle/animations/lose/south-east/frame_000.png",
+              "Idle/animations/lose/south-east/frame_001.png",
+              "Idle/animations/lose/south-east/frame_002.png",
+              "Idle/animations/lose/south-east/frame_003.png",
+              "Idle/animations/lose/south-east/frame_004.png",
+              "Idle/animations/lose/south-east/frame_005.png"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "export_version": "3.1",
+  "export_date": "2026-10-06T11:45:15.598407"
+}
