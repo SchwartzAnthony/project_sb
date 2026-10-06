@@ -3443,14 +3443,27 @@ building is drawn dark, and its name sits under it on a see-through plate.
 (`src/ui/map_building.gd`): the see-through corners of a picture let the
 click through, so two buildings side by side never open each other. A building with no `Map Art` keeps the old
 plaque until its picture is made. The Brewery, the Pub, the Club House and
-the Training Ground are the large ones; the Dorms is a small one-storey
-building at the top, 320 x 192, clear of the top buttons (round AN, 160 x 128 PixelLab pictures drawn at 640 x 512). A building with
+the Training Ground are the large ones; the Dorms (320 x 192), the Trophy
+Room (a Garmisch hut, 192 x 160) and the Traveling Tavern (a wagon pub,
+256 x 192, renamed from the Traveling Brewer) are small (round AN, 160 x 128 PixelLab pictures drawn at 640 x 512). A building with
 its own picture may reach the very edges of the screen; the plaques still
 keep clear of the top buttons and the bottom line. Each building's source is in `art_source/pixellab/base_town/buildings/`. `base_map_shade` in
 Tuning.csv darkens the map (0 = full colour). Team Build and Achievements are
 not on the map (Anthony, round AN): Team Build opens from **Your teams**, and
 Achievements is a button in the top row. The first, top-down try is in
 `art_source/legacy/base/round_an_try1/`; the old yard in `art_source/legacy/base/`.
+
+**Every building is on a path.** The ground's own roads reach the Pub, the
+Training Ground, the Dorms and the Club House; the `path_trophy` and
+`footbridge` rows of BaseTown.csv add a cobbled path past the Trophy Room and
+a stone footbridge over the river to the road with the Brewery and the
+Traveling Tavern.
+
+**Visitors stand at a door** — `data/BaseSpots.csv`, one row per door: `X`,
+`Y` are the centre of the visitor's card, `Building` the Buildings.csv ID
+(the door is skipped while that building is not on the map). Each time the
+base opens every visitor picks a free door at random. No rows = they stand at
+their own `X`, `Y` in Visitors.csv as before.
 
 ### The layers
 
@@ -5404,6 +5417,7 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | **find out why a sound is silent** | `tools/audio_check.gd`. It is nearly always a missing file |
 | **change how big the pitch is** | the `pitch` row of `Stadium.csv`. It has to stay 16:9 |
 | **change the village round the pitch** | `data/VillageGround.csv`, then `tools/make_village.py` (section 8b) |
+| **move where visitors stand at the base** | `data/BaseSpots.csv`, one row per door |
 | **change the base town map** | `data/BaseTown.csv`, then `tools/make_base_town.py` (one layer per part in `base_town.aseprite`) |
 | **move the white lines in or out** | `pitch_inset_x` and `pitch_inset_y` in `Tuning.csv` - this moves the zones too - then `tools/make_pitch.py` |
 | **see more or less of the village** | `camera_wide_ground` in `Tuning.csv` |

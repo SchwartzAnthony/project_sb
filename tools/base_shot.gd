@@ -34,7 +34,7 @@ extends SceneTree
 ## which is a button on the top bar rather than a building.
 const DOORS: Array[String] = [
 	"Club House", "Dorms", "Trophy Room",
-	"Training Ground", "Pub", "Brewery", "The Traveling Brewer",
+	"Training Ground", "Pub", "Brewery", "The Traveling Tavern",
 ]
 
 ## Doors on the top bar, by their words. `a|b` = either (the Achievements

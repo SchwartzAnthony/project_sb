@@ -366,9 +366,18 @@ func _rebuild() -> void:
 	# they are moved to the nearest place that is free — and if the yard is
 	# genuinely full they are not drawn at all, because a visitor you cannot
 	# read is worse than a visitor who is not there.
+	var spots := _visitor_spots()
 	for entry in base.visitors_for(state):
+		# ROUND AN: a visitor stands at a building's door, on its path
+		# (data/BaseSpots.csv), a different one each time the base opens.
+		var at_door := _door_for(entry, spots)
+		if not at_door.is_empty():
+			entry = entry.duplicate()
+			entry["x"] = at_door["x"]
+			entry["y"] = at_door["y"]
 		var who := _make_visitor(entry)
-		var found: Variant = _free_spot_near(who.position, VISITOR_SIZE)
+		var found: Variant = who.position if not at_door.is_empty() \
+			else _free_spot_near(who.position, VISITOR_SIZE)
 		if found == null:
 			who.queue_free()
 			print("[base] No free space for %s — they wait outside." % entry["name"])
@@ -381,6 +390,63 @@ func _rebuild() -> void:
 
 ## Every rectangle already standing in the yard this rebuild.
 var _taken: Array[Rect2] = []
+
+const SPOTS_FILE := "res://data/BaseSpots.csv"
+
+## Which door each visitor picked, by visitor ID. Picked once per visit to
+## the base, so closing a window (which rebuilds the yard) does not move them.
+var _door_of: Dictionary = {}
+
+
+## The doors visitors may stand at: every BaseSpots.csv row whose Building
+## is on the map now (blank Building = always). Each is {spot, x, y}.
+func _visitor_spots() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if not FileAccess.file_exists(SPOTS_FILE):
+		return out
+	var here: Dictionary = {}
+	for entry in base.buildings_for(state):
+		here[String(entry["id"])] = true
+	var file := FileAccess.open(SPOTS_FILE, FileAccess.READ)
+	var header := file.get_csv_line()
+	var col: Dictionary = {}
+	for i in header.size():
+		col[CardDatabase._normalise(header[i])] = i
+	while not file.eof_reached():
+		var row := file.get_csv_line()
+		if row.size() < header.size() or row[0].strip_edges() == "":
+			continue
+		var building := row[col.get("building", 1)].strip_edges()
+		if building != "" and not here.has(building):
+			continue
+		out.append({"spot": row[0].strip_edges(),
+			"x": float(row[col.get("x", 2)]), "y": float(row[col.get("y", 3)])})
+	return out
+
+
+## The door this visitor stands at this visit, or {} for the old behaviour
+## (their own X and Y, moved to free space). Two visitors never share one.
+func _door_for(entry: Dictionary, spots: Array[Dictionary]) -> Dictionary:
+	if spots.is_empty():
+		return {}
+	var who := String(entry["id"])
+	var used: Dictionary = {}
+	for other in _door_of:
+		if other != who:
+			used[_door_of[other]] = true
+	if not _door_of.has(who) or used.has(_door_of[who]):
+		var free: Array[String] = []
+		for spot in spots:
+			if not used.has(spot["spot"]):
+				free.append(String(spot["spot"]))
+		if free.is_empty():
+			return {}
+		_door_of[who] = free.pick_random()
+	for spot in spots:
+		if spot["spot"] == _door_of[who]:
+			return spot
+	_door_of.erase(who)
+	return {}
 
 
 ## The nearest free place to `wanted` that a `box` fits in, or null.
