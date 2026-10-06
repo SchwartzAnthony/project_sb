@@ -12,10 +12,10 @@ extends SceneTree
 
 const SHOTS := [
 	["prologue", "open"],
-	["prologue", "meet"],
-	["first_team", "hoffmann"],
-	["first_team", "schaefer"],
-	["first_team", "koch"],
+	["prologue", "servus"],
+	["prologue", "still_cold"],
+	["prologue", "koch_changed"],
+	["prologue", "auf"],
 	["after_first_match", "base"],
 ]
 

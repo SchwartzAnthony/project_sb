@@ -38,7 +38,7 @@ func test_the_bar_has_layers() -> void:
 
 
 func test_every_intro_line_has_a_face_or_is_narration() -> void:
-	for scene in ["prologue", "first_team"]:
+	for scene in ["prologue", "heatwave_talk"]:
 		for line in story.scenes.get(scene, []):
 			if line.speaker == "":
 				continue

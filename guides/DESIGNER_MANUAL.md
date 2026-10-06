@@ -2208,8 +2208,10 @@ these are the hooks, with skeletons in the spreadsheets to copy:
 | **Then the base, and learning to brew** | the ordinary Progression chain — `unlock:Brewery`, then buildings, ingredients and money gate what comes next |
 | **A season opens with the head coach** | the `Story` column of Seasons.csv names a Dialogue.csv scene, played **once**, the first time you open that competition. Write the side at the top of the pyramid into it and the last fixture has a face on it from the first |
 
-The three scene skeletons are in Dialogue.csv: `first_team`, `after_first_match`
-and `season_opening`. They say what belongs in them and nothing else.
+The scene skeletons are in Dialogue.csv: `after_first_match` and
+`season_opening`. (`first_team`, the first draft of the opening, was deleted
+in round AN: the Head Coach prologue replaces it, and the new game no longer
+names a scene.) They say what belongs in them and nothing else.
 
 ## 7c. A class, an emblem, and the Team Spirit
 
