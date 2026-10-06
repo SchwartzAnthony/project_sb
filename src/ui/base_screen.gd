@@ -525,7 +525,10 @@ func _make_map_building(entry: Dictionary, art: Texture2D) -> Control:
 	if wanted.size() == 2 and wanted[0].is_valid_float() and wanted[1].is_valid_float():
 		box = Vector2(float(wanted[0]), float(wanted[1]))
 
-	var button := Button.new()
+	# Only its drawn pixels take the click (map_building.gd), so two
+	# buildings whose empty corners overlap never open each other.
+	var button := MapBuilding.new()
+	button.use_picture(art)
 	button.tooltip_text = String(entry["description"])
 	var flat := StyleBoxEmpty.new()
 	for look in ["normal", "hover", "pressed", "focus", "disabled"]:
