@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bxo3f6a2c1wp6"
-path="res://.godot/imported/03_tent.png-918ae9b4df5d6d516d685017700fde1b.ctex"
+uid="uid://bs5adi4xvxoqa"
+path="res://.godot/imported/belial_front.png-803e109cf6da07f11878113728195026.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/menu/layers/pixellab/03_tent.png"
-dest_files=["res://.godot/imported/03_tent.png-918ae9b4df5d6d516d685017700fde1b.ctex"]
+source_file="res://assets/story/portraits/belial_front.png"
+dest_files=["res://.godot/imported/belial_front.png-803e109cf6da07f11878113728195026.ctex"]
 
 [params]
 

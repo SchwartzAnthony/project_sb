@@ -41,3 +41,10 @@ Round AN, part 3: Koch for the new prologue (side, Koch's side face as reference
   koch_silhouette_side: made from koch_bergmaennlein_side, every pixel dark
   except the orange lamp and eye glow (no PixelLab call)
   koch_happy_side 8595f71c, koch_mad_side 5fa4434a (the star intro)
+
+Round AN, part 4: the Bergmännlein stars (names from IntroSquad2.csv)
+  Side faces with Koch's Bergmännlein face (8e36ca78) as the style reference,
+  front faces with each star's own side face as the reference.
+  belial_side 784a086c, belial_front 4b80dcb4
+  valefor_side 5cf103dd, valefor_front ca363fbf
+  haures_side 37bc2ae4, haures_front 2fbe3380

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d381uu8j4oh6m"
-path="res://.godot/imported/01_bg.png-0e8a02a43bc559eb3e0cf31721d76245.ctex"
+uid="uid://dtk0b25ejhnc"
+path="res://.godot/imported/valefor_front.png-16b7f7dd3951480a6960dd6343b23394.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/menu/layers/pixellab/01_bg.png"
-dest_files=["res://.godot/imported/01_bg.png-0e8a02a43bc559eb3e0cf31721d76245.ctex"]
+source_file="res://assets/story/portraits/valefor_front.png"
+dest_files=["res://.godot/imported/valefor_front.png-16b7f7dd3951480a6960dd6343b23394.ctex"]
 
 [params]
 

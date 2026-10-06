@@ -23,5 +23,11 @@ coach,portrait,,drunk,front,res://assets/story/portraits/coach_drunk_front.png,,
 coach,portrait,,drunk,side,res://assets/story/portraits/coach_drunk_side.png,right,,ROUND AN.
 coach,portrait,,mad,front,res://assets/story/portraits/coach_mad_front.png,,,ROUND AN.
 coach,portrait,,mad,side,res://assets/story/portraits/coach_mad_side.png,right,,ROUND AN.
+belial,portrait,Belial,,front,res://assets/story/portraits/belial_front.png,,,"ROUND AN. BERGMÄNNLEIN STAR (IntroSquad2.csv, Star Players.csv): the blacksmith - braided black beard with brass rings, miner's helmet, smith's apron over a brown and gold kit, forging hammer (his Ultimate hands out weapons). Made from his side face."
+belial,portrait,,,side,res://assets/story/portraits/belial_side.png,right,,ROUND AN.
+valefor,portrait,Valefor,,front,res://assets/story/portraits/valefor_front.png,,,"ROUND AN. BERGMÄNNLEIN STAR: the sly ore thief - grey goat beard, goggles on a red miner's cap, gold tooth, pockets full of ore, pickaxe (he mines ore counters). Made from his side face."
+valefor,portrait,,,side,res://assets/story/portraits/valefor_side.png,right,,ROUND AN.
+haures,portrait,Haures,,front,res://assets/story/portraits/haures_front.png,,,"ROUND AN. BERGMÄNNLEIN STAR: half rock - stone skin with moss, fiery eyes, white beard, lamp on his forehead, goalkeeper gloves (his abilities armour the goalie). Made from his side face."
+haures,portrait,,,side,res://assets/story/portraits/haures_side.png,right,,ROUND AN.
 bar,background,,,,res://assets/story/backgrounds/bar_room.png,,,"ROUND AN. THE BAR, layer 1 (back): the inside of the Wirtshaus. Rows with the same ID are stacked, first row at the back. Layered file: art_source/aseprite/story/bar.aseprite"
 bar,background,,,,res://assets/story/backgrounds/bar_regulars.png,,,ROUND AN. The bar layer 2: the regulars at the Stammtisch. Delete this row for an empty pub.

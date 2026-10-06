@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://jxchogjqt47k"
-path="res://.godot/imported/02_brewery.png-a628fda44ff2720bf3ddc4271f3076bf.ctex"
+uid="uid://03bew4n476rj"
+path="res://.godot/imported/haures_front.png-12d5fc1601807395cb37361ff50d2b2e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/menu/layers/pixellab/02_brewery.png"
-dest_files=["res://.godot/imported/02_brewery.png-a628fda44ff2720bf3ddc4271f3076bf.ctex"]
+source_file="res://assets/story/portraits/haures_front.png"
+dest_files=["res://.godot/imported/haures_front.png-12d5fc1601807395cb37361ff50d2b2e.ctex"]
 
 [params]
 
