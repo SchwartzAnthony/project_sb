@@ -520,7 +520,7 @@ function paintBook(){
     ${rows([
       ["the look","<b>ScreenLook.csv</b>: layers, a see-through shade, the content margin, and every button as the oak plank with the menu sounds"],
       ["music","the title music carries on into both, quieter - Audio.csv settings_theme / slot_theme name the SAME Sound with a lower Volume, so it never restarts"],
-      ["loop","the menu song plays all the way through, then the last 3.3 s fade into the start on the beat (MusicLoops.csv suno_menu, Crossfade 3.3)"],
+      ["loop","the menu song plays unedited, all 60 s, fades out over its last 6 s and starts again (MusicLoops.csv suno_menu: Fade Out 6, Loudness keep)"],
       ["sounds","every button sound 6 dB quieter (Audio.csv menu_hover / click / start / back)"],
       ["check","<code>tools/screens_shot.gd</code> photographs the three screens and prints the music on each"],
     ])}`);

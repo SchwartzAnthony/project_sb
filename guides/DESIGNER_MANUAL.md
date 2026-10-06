@@ -5837,11 +5837,17 @@ that's already playing, the game no longer restarts it; it only glides to
 the new Volume. Use the same trick to carry any music across screens: same
 Sound, different Volume.
 
-**The menu song now plays all the way through,** then starts again
-smoothly. Its last 3.3 seconds fade out while the start of the song fades in
-over them, and the join is on the beat: the loop is exactly 30 bars from the
-first beat. That's the `suno_menu` row of `MusicLoops.csv`: Start 0.221,
-Length 56.436, Crossfade 3.3. A longer Crossfade makes the join softer.
+**The menu song is the normal, unedited song.** All 60 seconds play
+exactly as Suno made it, at its own loudness. The last 6 seconds slowly fade
+to silence, then it starts again from the top. That's the `suno_menu` row of
+`MusicLoops.csv`: Start 0, Length 60, Crossfade 0, **Fade Out** 6,
+**Loudness** `keep`.
+
+**Two `MusicLoops.csv` columns for this:**
+- **`Fade Out`:** the seconds at the end that fade to silence before the
+  loop restarts. Blank = no fade.
+- **`Loudness` `keep`:** leave the song exactly as loud as the file.
+  Otherwise it's evened out to the dB you type.
 
 **Button sounds are 6 dB quieter:** `menu_hover` is −20, and `menu_click`,
 `menu_start` and `menu_back` are −12. The same four sounds play on every
