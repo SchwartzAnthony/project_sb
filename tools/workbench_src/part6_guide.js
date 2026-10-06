@@ -515,6 +515,16 @@ function paintBook(){
       ["pixelate","<b>Pixelate.csv</b> new column Smooth - melts the hatching first so the pixel art is clean"],
     ])}`);
 
+  card("THE art style: Stammtisch-Comic (round AM)", `
+    <p style="margin:0 0 10px"><b>Your Midjourney pictures are the style. Every picture is made from them now.</b></p>
+    ${rows([
+      ["references","assets/references/ (yours) and art_source/style_refs/stammtisch/ (short names + board_characters.png, board_places.png)"],
+      ["the words","<b>ArtStyle.csv</b> stammtisch_prompt starts every prompt; stammtisch_eyes / nose / mouth / body / world / avoid = the bible"],
+      ["the rule","same face on everybody - huge potato nose, big oval eyes, blocky teeth - bodies pushed to extremes (skinny, fat, tiny, huge)"],
+      ["done","title screen, Settings and the save screen repainted; hero iterations A (skinny, on screen) and B (round)"],
+      ["Pixelate.csv","new column Key Colour cuts away a filled background"],
+    ])}`);
+
   card("Settings and the save screen dressed up (round AL)", `
     <p style="margin:0 0 10px"><b>Settings is the Beer Keller, the save screen is the trophy room - layered like the title screen.</b></p>
     ${rows([

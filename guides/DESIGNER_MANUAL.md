@@ -5471,6 +5471,19 @@ character.**
 | `Aspect` | **new in round AL.** For example `16:9`: trim the picture to that shape first, from the middle. Use it for full-screen backgrounds. Blank = keep the shape |
 | `Flip` | **new in round AL.** `yes` = mirror it left to right, to turn a character round |
 
+**ROUND AM: every layer of the title screen, Settings and the save screen
+was repainted in THE art style, Stammtisch-Comic.** That's the chaotic
+German comic look of your Midjourney pictures; see `guides/ART_STYLE.md`
+and the `stammtisch_` rows of `data/ArtStyle.csv`.
+- **Same files, new pictures:** the file names didn't change, only the
+  paintings behind them. The new masters are in
+  `art_source/openai/stammtisch/`.
+- **The hero comes in two iterations:** `hero_a_skinny.png` (on screen) and
+  `hero_b_round.png`. Same face, opposite body.
+- **New `Pixelate.csv` column, `Key Colour`:** a painting that came back
+  with a filled background instead of a transparent one has that background
+  cut away, but only where it touches the edge. The crowd uses `#fdf3d0`.
+
 **The title screen is built from layers (round AL).** Every part of the
 picture is its own painting, so each can be repainted, moved or swapped
 without touching the others. OpenAI painted all of them in the **front

@@ -1,14 +1,14 @@
 Part,Image,Text,X,Y,Width,Height,Frames,FPS,Scale,Flip,Notes
 background,res://assets/menu/layers/01_field.png,,,,,,,,,,"ROUND AL LAYERS - drawn back to front, top row first. Layer 1: the empty pitch and sky (Pixelate.csv layer_1_field). The first background row wins; it always fills the screen."
-picture,res://assets/menu/layers/02_brewery.png,,960,370,,,1,0,2,,"Layer 2: the traditional Bavarian brewery, centre. Scale 2 = drawn at twice its pixels, like every layer, so all layers share one pixel size."
-picture,res://assets/menu/layers/03_beer_tent.png,,1640,400,,,1,0,2,,"Layer 3: the Oktoberfest beer tent, right."
-picture,res://assets/menu/layers/04_crowd_a.png,,160,560,,,1,0,2,,"Layer 4: the crowd behind the boards - six pieces side by side (groups A, B, C, then the same flipped), 360 pixels apart."
-picture,res://assets/menu/layers/04_crowd_b.png,,520,560,,,1,0,2,,Layer 4: crowd B.
-picture,res://assets/menu/layers/04_crowd_c.png,,880,560,,,1,0,2,,Layer 4: crowd C.
-picture,res://assets/menu/layers/04_crowd_a.png,,1240,560,,,1,0,2,yes,"Layer 4: crowd A, flipped."
-picture,res://assets/menu/layers/04_crowd_b.png,,1600,560,,,1,0,2,yes,"Layer 4: crowd B, flipped."
-picture,res://assets/menu/layers/04_crowd_c.png,,1960,560,,,1,0,2,yes,"Layer 4: crowd C, flipped."
-picture,res://assets/menu/layers/05_brawl.png,,990,820,,,1,0,2,,"Layer 5: the brawl, middle of the pitch."
+picture,res://assets/menu/layers/02_brewery.png,,960,350,,,1,0,2,,"Layer 2: the traditional Bavarian brewery, centre. Scale 2 = drawn at twice its pixels, like every layer, so all layers share one pixel size."
+picture,res://assets/menu/layers/03_beer_tent.png,,1640,420,,,1,0,2,,"Layer 3: the Oktoberfest beer tent, right."
+picture,res://assets/menu/layers/04_crowd_a.png,,160,610,,,1,0,2,,"Layer 4: the crowd behind the boards - six pieces side by side (groups A, B, C, then the same flipped), 360 pixels apart."
+picture,res://assets/menu/layers/04_crowd_b.png,,520,610,,,1,0,2,,Layer 4: crowd B.
+picture,res://assets/menu/layers/04_crowd_c.png,,880,610,,,1,0,2,,Layer 4: crowd C.
+picture,res://assets/menu/layers/04_crowd_a.png,,1240,610,,,1,0,2,yes,"Layer 4: crowd A, flipped."
+picture,res://assets/menu/layers/04_crowd_b.png,,1600,610,,,1,0,2,yes,"Layer 4: crowd B, flipped."
+picture,res://assets/menu/layers/04_crowd_c.png,,1960,610,,,1,0,2,yes,"Layer 4: crowd C, flipped."
+picture,res://assets/menu/layers/05_brawl.png,,990,860,,,1,0,2,,"Layer 5: the brawl, middle of the pitch."
 picture,res://assets/menu/layers/07_sign.png,,1040,150,,,1,0,2,,"Layer 6: the wide STURMBALL sign, top-middle, hanging BEHIND the hero so his beer stein comes in front of it. The title row writes the name on it."
 title,,STURMBALL,1040,170,600,76,,,,,"The big word, written on the sign. It is drawn in its place in this list - here right after the sign, so the hero below covers both. X / Y = its centre, Width = the box it is centred in, Height = the font size (76 = about a quarter of the screen wide)."
-picture,res://assets/menu/hero_comic.png,,420,560,698,1040,1,0,,,"Layer 7 (front): the hero, your pick C, clean lines, facing right (Pixelate.csv menu_hero). 349 x 520 drawn x2 (Width/Height typed in)."
+picture,res://assets/menu/hero_comic.png,,420,560,662,1040,1,0,,,"Layer 7 (front): the hero in the Stammtisch-Comic style (round AM) - beanpole-skinny, wild hair, Tyrolean hat, facing right (Pixelate.csv menu_hero). 331 x 520 drawn x2. The round, pot-bellied iteration is art_source/openai/stammtisch/hero_b_round.png - point menu_hero Source at it to swap."
