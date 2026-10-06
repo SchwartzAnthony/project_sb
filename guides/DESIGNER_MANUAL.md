@@ -115,7 +115,7 @@ fallbacks.
 | `assets/icons/` | small square pictures — trait icons, item icons, menu glyphs | `.png` with transparency, 64×64 or 128×128, the same size across a set | AdventureTraits `Icon`, AdventureCombos `Icon`, Items `Art`, MenuConfig `Art Path`, AdventureSpawns `Art` |
 | `assets/players/` | card spritesheets, one per card | `.png`. Default grid is **12 × 39** — write an Animations.csv row for anything else or the card shows as a sliver | any unit CSV's `Artwork`, Brews `Artwork` |
 | `assets/goalies/` | keeper art | `.png` | Goalies `Artwork` |
-| `assets/base/` | the base and its buildings. A file called `background` here is the backdrop | `.png` / `.jpg`. Buildings are placed by X and Y (0–1 across the screen), so draw them to stand alone | Buildings `Art` |
+| `assets/base/` | the base and its buildings. A file called `background` here is the backdrop (the town map, made by `tools/make_base_town.py`) | `.png` / `.jpg`. Buildings are placed by X and Y (0–1 across the screen), so draw them to stand alone | Buildings `Art` |
 | `assets/portraits/` | faces for dialogue and base visitors | `.png` with transparency | Visitors `Portrait`, Dialogue `Portrait` |
 | `assets/backgrounds/` | full-screen scenery | `.jpg` / `.png` at 1920×1080. A biome background **tiles and scrolls**, so match its left and right edges | Biomes `Background`, Dialogue `Background` |
 | `assets/menu/` | menu and class banners | `.png` / `.jpg`. A class banner is roughly 3:1 | ClassInfo `Banner Art`, Seasons `Art`, Bounties `Art` |
@@ -3409,6 +3409,28 @@ Tuning.csv: `text_backdrop_alpha` (how dark, 0 = off) and
 `text_backdrop_pad` (how far it reaches past the words). The code is one
 rule, `src/ui/text_backdrop.gd`, so a label added later gets it too.
 
+### The base town map — `data/BaseTown.csv`
+
+The base is a small town seen from above (round AN): cobbled streets, a ring
+road round the **pitch in the middle**, a stream, trees and **nine empty
+fenced plots** where the buildings will stand. No buildings are drawn yet.
+
+One row per PixelLab part (`art_source/pixellab/base_town/`). `X`, `Y` are the
+top-left corner in screen pixels (1920 x 1080); `Scale` is a whole number (the
+ground is 640 x 360 drawn x3, the trees x2 like the match village); `Crop`
+(`x,y,width,height`) cuts a piece out of a bigger picture onto its own layer
+(the pitch is cut from the ground that way). Then:
+
+```
+~/.venvs/sturmball/bin/python tools/make_base_town.py
+```
+
+writes `assets/base/background.png` and `art_source/aseprite/base_town.aseprite`
+with every part on its own layer. **Each building's `X`, `Y` in Buildings.csv
+is the centre of a plot**; the nine plot centres are in the ground row's
+Notes. `base_map_shade` in Tuning.csv darkens the map so the plaques read
+(0 = full colour). The old yard picture is in `art_source/legacy/base/`.
+
 ### The layers
 
 | Layer | | |
@@ -5361,6 +5383,7 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | **find out why a sound is silent** | `tools/audio_check.gd`. It is nearly always a missing file |
 | **change how big the pitch is** | the `pitch` row of `Stadium.csv`. It has to stay 16:9 |
 | **change the village round the pitch** | `data/VillageGround.csv`, then `tools/make_village.py` (section 8b) |
+| **change the base town map** | `data/BaseTown.csv`, then `tools/make_base_town.py`. Buildings stand on its plots (Buildings.csv X, Y) |
 | **move the white lines in or out** | `pitch_inset_x` and `pitch_inset_y` in `Tuning.csv` - this moves the zones too - then `tools/make_pitch.py` |
 | **see more or less of the village** | `camera_wide_ground` in `Tuning.csv` |
 | **make the item icons bigger** | `icon_tile_size` in `Tuning.csv` |

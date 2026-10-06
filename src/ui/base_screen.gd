@@ -12,7 +12,8 @@ extends Control
 #  press F5, it is on the screen.
 #
 #  ART (all optional — it works with none of it)
-#    res://assets/base/background.png    behind everything
+#    res://assets/base/background.png    behind everything: the town map,
+#        built from data/BaseTown.csv by tools/make_base_town.py
 #    res://assets/base/<Art>.png         a building, named in Buildings.csv
 #    res://assets/portraits/<Portrait>.png   a visitor
 #
@@ -88,6 +89,12 @@ func _ready() -> void:
 	_flash_new_unlocks()
 
 
+## The bottom line only shows its plate while it has something to say.
+func _process(_delta: float) -> void:
+	if _detail != null:
+		_detail.visible = _detail.text != ""
+
+
 # =============================================================
 #  LAYOUT
 # =============================================================
@@ -110,8 +117,10 @@ func _build_chrome() -> void:
 		backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(backdrop)
 
+	# A see-through black sheet over the town map so the plaques read on it.
+	# `base_map_shade` in Tuning.csv: 0 shows the map at full colour.
 	var shade := ColorRect.new()
-	shade.color = Color(0.0, 0.0, 0.0, 0.30)
+	shade.color = Color(0.0, 0.0, 0.0, clampf(db.tune_float("base_map_shade", 0.30), 0.0, 1.0))
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
@@ -128,26 +137,28 @@ func _build_chrome() -> void:
 	var title := MenuSupport.heading(
 		"TUTORIAL BASE" if in_tutorial else "THE BASE",
 		34, MenuSupport.COLOUR_ACCENT)
-	title.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	title.offset_left = 40.0
-	title.offset_top = 26.0
-	title.offset_bottom = 74.0
+	# Only as wide as its words, so its see-through plate (TextBackdrop)
+	# hugs the title instead of running across the town map.
+	title.position = Vector2(40.0, 26.0)
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(title)
+	TextBackdrop.give(title)
 
 	# The line that explains whatever you last clicked.
+	# Centred at the bottom and only as wide as its words, on a see-through
+	# black plate so it reads on the town map. Hidden while it says nothing.
 	_detail = Label.new()
-	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_detail.add_theme_font_size_override("font_size", 17)
 	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
-	_detail.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	_detail.offset_left = 60.0
-	_detail.offset_right = -60.0
-	_detail.offset_top = -118.0
-	_detail.offset_bottom = -74.0
+	_detail.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	_detail.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_detail.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_detail.offset_bottom = -80.0
 	_detail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_detail.visible = false
 	add_child(_detail)
+	TextBackdrop.give(_detail)
 
 	# ============ NO FOOTER ============
 	#

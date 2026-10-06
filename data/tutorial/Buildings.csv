@@ -1,6 +1,6 @@
 ID,Name,Description,Requires,Art,X,Y,Action,Notes
-tut_clubhouse,Clubhouse,"This is the tutorial base. It is a real base with real buildings - it just has its own save, so nothing you do here reaches your own game.",,clubhouse,0.20,0.34,,"No Action means clicking it only prints the Description. Good for a sign."
-tut_pitch,Training Pitch,"A match against nobody in particular. Pick a team, then play it exactly as you would a league game.",,pitch,0.50,0.34,goto:teams,"goto:teams opens Choose Your Team. Every word ScenePaths.for_name understands works here"
-tut_board,What you can earn,"Everything the game can unlock and exactly what is still missing. Worth a look before your first season.",,board,0.78,0.34,goto:unlocks,
-tut_adventure,The Bounty Board,"Adventure runs. Pick a biome and a boss, take nine players out and bring materials back.",,board,0.36,0.66,goto:bounty,
-tut_teams,Team Shelf,"Where a side is built. You pick a class once, choose one card of every power in every tier, name it and give it a badge.",,clubhouse,0.64,0.66,goto:teams,
+tut_clubhouse,Clubhouse,"This is the tutorial base. It is a real base with real buildings - it just has its own save, so nothing you do here reaches your own game.",,clubhouse,0.37,0.15,,"No Action means clicking it only prints the Description. Good for a sign."
+tut_pitch,Training Pitch,"A match against nobody in particular. Pick a team, then play it exactly as you would a league game.",,pitch,0.50,0.50,goto:teams,"goto:teams opens Choose Your Team. Every word ScenePaths.for_name understands works here"
+tut_board,What you can earn,"Everything the game can unlock and exactly what is still missing. Worth a look before your first season.",,board,0.63,0.15,goto:unlocks,
+tut_adventure,The Bounty Board,"Adventure runs. Pick a biome and a boss, take nine players out and bring materials back.",,board,0.23,0.86,goto:bounty,
+tut_teams,Team Shelf,"Where a side is built. You pick a class once, choose one card of every power in every tier, name it and give it a badge.",,clubhouse,0.77,0.86,goto:teams,
