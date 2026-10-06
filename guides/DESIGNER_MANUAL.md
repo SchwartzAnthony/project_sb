@@ -3459,11 +3459,24 @@ Training Ground, the Dorms and the Club House; the `path_trophy` and
 a stone footbridge over the river to the road with the Brewery and the
 Traveling Tavern.
 
+**The top-row doors are flag banners** (round AN): one PixelLab banner per
+door in `assets/ui/banners/<name>.png` (dev, achievements, stadium, season,
+play, adventure, inventory, teams), each with its emblem embroidered on, and
+the title stitched into the cloth by the game (`MenuSupport.banner_button`).
+A door whose banner is missing falls back to the old button. Each banner is
+also an `.aseprite` in `art_source/aseprite/banners/`.
+
+**Name Offset** in Buildings.csv (`x,y` in screen pixels) moves a building's
+name off the bottom middle of its picture, e.g. the Club House's, so the
+Trophy Room hut in front of it keeps its own name.
+
 **Visitors stand at a door** — `data/BaseSpots.csv`, one row per door: `X`,
 `Y` are the centre of the visitor's card, `Building` the Buildings.csv ID
 (the door is skipped while that building is not on the map). Each time the
-base opens every visitor picks a free door at random. No rows = they stand at
-their own `X`, `Y` in Visitors.csv as before.
+base opens every visitor picks a free door at random. A visitor with a
+`Building` in Visitors.csv only uses that building's doors (the Brewer stands
+at the Brewery); blank = any door. No rows = they stand at their own `X`, `Y`
+in Visitors.csv as before.
 
 ### The layers
 

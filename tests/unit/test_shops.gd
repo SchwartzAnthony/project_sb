@@ -20,7 +20,7 @@ func before_each() -> void:
 
 
 ## A limited-stock row, and a pretend save that is allowed to buy it (its
-## Requires - "unlocked:Traveling Brewer" - is unlocked first).
+## Requires - "unlocked:Traveling Tavern" - is unlocked first).
 func _limited_row() -> Dictionary:
 	for entry in ShopBook.shelf():
 		if int(entry["stock"]) > 0 and not ShopBook.currency(String(entry["currency"])).is_empty() \

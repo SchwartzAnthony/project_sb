@@ -90,6 +90,12 @@ func text(text_name: String, fallback: String = "") -> String:
 	return raw if raw != "" else fallback
 
 
+## Unlocks that were renamed, old spelling -> new. A save written before the
+## rename still has the old one, and is given the new one when it loads.
+## ROUND AN: the Traveling Brewer became the Traveling Tavern (Anthony).
+const RENAMED_UNLOCKS := {"Traveling Brewer": "Traveling Tavern"}
+
+
 func is_unlocked(thing: String) -> bool:
 	return unlocks.has(_key(thing))
 
@@ -233,7 +239,8 @@ func load_from_disk() -> void:
 			names[_key(String(key))] = String((saved_names as Dictionary)[key])
 
 	for entry in _as_array(data.get("unlocks", [])):
-		unlock(String(entry))
+		var saved := String(entry)
+		unlock(String(RENAMED_UNLOCKS.get(saved, saved)))
 
 	history.clear()   # loading is not a choice you made
 

@@ -39,6 +39,14 @@ const EXITS_LEFT_MARGIN := 270.0
 ## little more room than a plain label did.
 const EXIT_SIZE := Vector2(196.0, 52.0)
 
+## The flag banners that replace the exit buttons once drawn (round AN):
+## a 40 x 64 PixelLab banner drawn x2, hanging from the top of the screen.
+const BANNER_DIR := "res://assets/ui/banners/"
+const BANNERS_LEFT := 596.0
+const BANNERS_RIGHT := 560.0
+## 88 wide fits eight between the Pub's roof and the Club House's.
+const BANNER_SIZE := Vector2(88.0, 141.0)
+
 var db: CardDatabase
 var base: BaseDB
 var state: GameState
@@ -198,17 +206,20 @@ func _build_chrome() -> void:
 ## the base does not need a door back to the title screen.
 func _build_exits() -> void:
 	var row := HFlowContainer.new()
-	row.add_theme_constant_override("h_separation", 12)
+	row.add_theme_constant_override("h_separation", 8)
 	row.add_theme_constant_override("v_separation", 8)
 	row.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	# Clear of the title on the left, a margin in from the right, and centred
 	# in what is left — which on any ordinary window is the middle of the top.
-	row.offset_left = EXITS_LEFT_MARGIN
-	row.offset_top = 22.0
-	row.offset_right = -30.0
+	# The banners hang in the sky between the Pub's roof and the Club
+	# House's (BANNERS_LEFT / BANNERS_RIGHT); the old buttons used the width.
+	var banners := ResourceLoader.exists(BANNER_DIR + "play.png")
+	row.offset_left = BANNERS_LEFT if banners else EXITS_LEFT_MARGIN
+	row.offset_top = 0.0
+	row.offset_right = -BANNERS_RIGHT if banners else -30.0
 	# Tall enough for two wrapped lines. It is only a ceiling — one line of
 	# buttons still draws as one line.
-	row.offset_bottom = 22.0 + EXIT_SIZE.y * 2.0 + 8.0
+	row.offset_bottom = BANNER_SIZE.y * 2.0 + 8.0
 	row.alignment = FlowContainer.ALIGNMENT_CENTER
 	# The buttons are the only thing here that should catch a click; the gaps
 	# between them belong to the base underneath.
@@ -218,7 +229,7 @@ func _build_exits() -> void:
 	# The developer tools. `show_dev_tools` in Tuning.csv hides this button
 	# before you show the game to anyone; the screen itself stays put.
 	if db.tune_bool("show_dev_tools", true):
-		var to_dev := MenuSupport.icon_button("dev|⚙", "Dev", Vector2(130, EXIT_SIZE.y))
+		var to_dev := _exit("dev|⚙", "Dev", Vector2(130, EXIT_SIZE.y))
 		to_dev.tooltip_text = "The save inspector. Jump straight to any unlock."
 		to_dev.pressed.connect(func() -> void:
 			state.save_to_disk()
@@ -238,7 +249,7 @@ func _build_exits() -> void:
 	# ACHIEVEMENTS, up here since round AN: Anthony took its building off the
 	# town map, and it is the root of every unlock, so it still needs a door.
 	# It runs the same `window:achievements` the building's Action did.
-	var to_achievements := MenuSupport.icon_button("achievements|★",
+	var to_achievements := _exit("achievements|★",
 		Loc.text("achievements_button", "Achievements"), EXIT_SIZE)
 	to_achievements.tooltip_text = "Everything in this game is unlocked here first."
 	to_achievements.pressed.connect(func() -> void:
@@ -251,7 +262,7 @@ func _build_exits() -> void:
 	# you said the base is those nine buildings and no others — so it lives
 	# up here beside the season instead. Say the word and it is a tenth
 	# building: one row of Buildings.csv with `window:stadium`.
-	var to_stadium := MenuSupport.icon_button("stadium|▲",
+	var to_stadium := _exit("stadium|▲",
 		Loc.text("the_stadium", "The stadium"), EXIT_SIZE)
 	to_stadium.tooltip_text = "Your ground: the background, the crowd, the floodlights. Every layer is unlocked by an achievement."
 	to_stadium.pressed.connect(func() -> void:
@@ -263,7 +274,7 @@ func _build_exits() -> void:
 
 	# THE SEASONS SHELF, not the table. There is more than one competition
 	# now — Seasons.csv — and the table is what opens when you pick one.
-	var to_season := MenuSupport.icon_button("season|▦",
+	var to_season := _exit("season|▦",
 		Loc.text("the_season", "The season"), EXIT_SIZE)
 	to_season.tooltip_text = "Every competition you can enter. Pick one and its table opens."
 	to_season.pressed.connect(func() -> void:
@@ -278,7 +289,7 @@ func _build_exits() -> void:
 	# for playing it — the `friendly` row of MatchModes.csv says both, through
 	# its Opponent column and its two Rewards columns. The league is behind
 	# "The season" next door.
-	var to_match := MenuSupport.icon_button("play|▶", "Play a match", EXIT_SIZE)
+	var to_match := _exit("play|▶", "Play a match", EXIT_SIZE)
 	to_match.tooltip_text = "A friendly against a side at your own level. Nothing goes in the table, but you still come away with something."
 	to_match.pressed.connect(func() -> void:
 		if _turned_away():
@@ -294,7 +305,7 @@ func _build_exits() -> void:
 	# you need materials and the buildings that would make them are not built
 	# yet, so the button belongs beside the buildings rather than only on the
 	# title screen. It opens the Bounty Board, not a match.
-	var to_adventure := MenuSupport.icon_button("adventure|⛰", "Adventure", EXIT_SIZE)
+	var to_adventure := _exit("adventure|⛰", "Adventure", EXIT_SIZE)
 	to_adventure.tooltip_text = "The Bounty Board. Pick a biome and a boss, then set off for materials and recipes."
 	to_adventure.pressed.connect(func() -> void:
 		state.save_to_disk()
@@ -307,14 +318,14 @@ func _build_exits() -> void:
 	# match draft open — see inventory_screen.gd — and it is built with the
 	# same icon_button() as everything else in this row, so it looks like a
 	# door rather than a new kind of control.
-	var to_bag := MenuSupport.icon_button("inventory|⚒",
+	var to_bag := _exit("inventory|⚒",
 		Loc.text("inventory", "Inventory"), EXIT_SIZE)
 	to_bag.tooltip_text = "Everything you are carrying: what you can use, what you can spend, and what you are holding on to."
 	to_bag.pressed.connect(func() -> void:
 		InventoryScreen.open(self, state, InventoryScreen.Use.NOTHING))
 	row.add_child(to_bag)
 
-	var to_teams := MenuSupport.icon_button("teams|⚑", "Your teams", EXIT_SIZE)
+	var to_teams := _exit("teams|⚑", "Your teams", EXIT_SIZE)
 	to_teams.tooltip_text = "Team Build: your Stars, your sides and your talents."
 	to_teams.pressed.connect(func() -> void:
 		# ROUND Y: the same hub as the building, opened on the teams tab.
@@ -328,11 +339,22 @@ func _build_exits() -> void:
 	# THE WAY OUT OF THE TUTORIAL, and only there. In the real base there is
 	# nothing to leave — Escape ends the game.
 	if TutorialBase.active(get_tree()):
-		var leave := MenuSupport.icon_button("exit|⏏", "Leave tutorial", EXIT_SIZE)
+		var leave := _exit("exit|⏏", "Leave tutorial", EXIT_SIZE)
 		leave.tooltip_text = "Back to the title screen. Your real save is untouched by anything in here."
 		leave.pressed.connect(func() -> void:
 			TutorialBase.leave(get_tree()))
 		row.add_child(leave)
+
+
+## One door on the top row. ROUND AN: a FLAG BANNER (MenuSupport.banner_button)
+## when its banner is drawn - assets/ui/banners/<name>.png, the name being
+## the part of `icon` before the | - and the old icon button until then.
+func _exit(icon: String, label: String, box: Vector2 = EXIT_SIZE) -> Button:
+	var art_name := icon.split("|")[0].strip_edges()
+	var path := BANNER_DIR + art_name + ".png"
+	if ResourceLoader.exists(path):
+		return MenuSupport.banner_button(load(path) as Texture2D, label, BANNER_SIZE)
+	return MenuSupport.icon_button(icon, label, box)
 
 
 # =============================================================
@@ -419,14 +441,21 @@ func _visitor_spots() -> Array[Dictionary]:
 		var building := row[col.get("building", 1)].strip_edges()
 		if building != "" and not here.has(building):
 			continue
-		out.append({"spot": row[0].strip_edges(),
+		out.append({"spot": row[0].strip_edges(), "building": building,
 			"x": float(row[col.get("x", 2)]), "y": float(row[col.get("y", 3)])})
 	return out
 
 
 ## The door this visitor stands at this visit, or {} for the old behaviour
 ## (their own X and Y, moved to free space). Two visitors never share one.
-func _door_for(entry: Dictionary, spots: Array[Dictionary]) -> Dictionary:
+## A visitor with a Building in Visitors.csv only uses that building's doors
+## (the Brewer stands at the Brewery); blank = any door.
+func _door_for(entry: Dictionary, all_spots: Array[Dictionary]) -> Dictionary:
+	var home := String(entry.get("building", "")).strip_edges()
+	var spots: Array[Dictionary] = []
+	for spot in all_spots:
+		if home == "" or String(spot["building"]) == home:
+			spots.append(spot)
 	if spots.is_empty():
 		return {}
 	var who := String(entry["id"])
@@ -626,6 +655,16 @@ func _make_map_building(entry: Dictionary, art: Texture2D) -> Control:
 	label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	label.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	label.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	# Buildings.csv `Name Offset` (x,y in screen pixels) moves the name off
+	# the bottom middle, e.g. when a smaller building stands in front.
+	var nudge := String(entry.get("name_offset", "")).split(",")
+	if nudge.size() == 2 and nudge[0].strip_edges().is_valid_float() \
+			and nudge[1].strip_edges().is_valid_float():
+		var by := Vector2(float(nudge[0]), float(nudge[1]))
+		label.offset_left += by.x
+		label.offset_right += by.x
+		label.offset_top += by.y
+		label.offset_bottom += by.y
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(label)
 	# Set here, not by TextBackdrop.give(): that skips words inside a Button,

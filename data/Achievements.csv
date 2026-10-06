@@ -5,7 +5,7 @@ three_wins,Treble,Win three matches.,count:matches_won>=3,Trophy Room,count:coin
 goal_machine,Goal Machine,Score ten goals.,count:goals>=10,Training Ground,,,,
 sharp_shooter,Sharp Shooter,Score five goals with a Star Player.,count:goals_by_star>=5,Pub,,,,"goals_by_star is a row of Stats.csv. If you point a Needs at a counter nothing counts, tools/achievement_check.gd says so and names it."
 brewer,The First Brew,Score three times with a fire-brewed player.,count:goals_with_brew_fire>=3,Brewery;Malthouse,announce:The Brewery is open,,,Two unlocks from one achievement. The Brewery is the map; the Malthouse is its first section - a section has to be unlocked before you can work in it.
-keeper_killer,Wall Breaker,Empty an opposing keeper's stamina five times.,count:keeper_emptied>=5,Traveling Brewer,,,,
+keeper_killer,Wall Breaker,Empty an opposing keeper's stamina five times.,count:keeper_emptied>=5,Traveling Tavern,,,,
 clean_sheet,Clean Sheet,Win a match without conceding.,count:clean_sheets>=1,Mill,,,,The Brewery's second section.
 ten_matches,Regular,Play ten matches.,count:matches_played>=10,Lautering,,,,The third section.
 star_collector,Star Collector,Own three Star Players of the same class.,flag:three_of_a_kind,Emblems,,,,"THE GATE ON THE TALENT TREE. Three Stars of one class opens the Emblem section - but the Emblems have to be unlocked HERE first, which is what this row does. It waits on a FLAG rather than a counter because owning three of a kind is a fact about your squad, not a thing that happens; the team builder sets that flag when the tree lands. Until then this one is unearnable on purpose."

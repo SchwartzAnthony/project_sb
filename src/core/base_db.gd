@@ -177,11 +177,15 @@ func _load_csv(path: String) -> void:
 			# button itself (no plaque). Blank = the old plaque.
 			entry["map_art"] = _cell(row, columns, "mapart")
 			entry["map_size"] = _cell(row, columns, "mapsize")
+			entry["name_offset"] = _cell(row, columns, "nameoffset")
 			buildings.append(entry)
 		else:
 			entry["portrait"] = _cell(row, columns, "portrait")
 			entry["story"] = _cell(row, columns, "story")
 			entry["once"] = _cell(row, columns, "once").to_lower() in ["true", "yes", "1", "on"]
+			# ROUND AN: the building this person belongs to. They stand at one
+			# of its doors (BaseSpots.csv). Blank = any door.
+			entry["building"] = _cell(row, columns, "building")
 			visitors.append(entry)
 
 

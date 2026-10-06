@@ -286,6 +286,68 @@ static func icon_button(icon: String, label: String,
 
 
 # -------------------------------------------------------------
+#  A FLAG BANNER — the base's top-row doors (round AN)
+#
+#  "Flag banners with the emblem on them and the title sewn into the flag."
+#  The banner and its embroidered emblem are one PixelLab picture
+#  (assets/ui/banners/<name>.png); the title is stitched into the plain
+#  lower half here, in cream thread with a dark outline, because a picture
+#  generator cannot write words. Hover brightens the cloth, a press pushes
+#  it down like every other button (Motion.csv).
+# -------------------------------------------------------------
+
+const BANNER_THREAD := Color("f3e8d4")
+const BANNER_STITCH := Color("19110a")
+
+
+static func banner_button(art: Texture2D, label: String,
+		size: Vector2 = Vector2(88, 141)) -> Button:
+	var button := Button.new()
+	button.custom_minimum_size = size
+	MotionBook.press_feel(button)
+	button.focus_mode = Control.FOCUS_ALL
+	var flat := StyleBoxEmpty.new()
+	for look in ["normal", "hover", "pressed", "disabled"]:
+		button.add_theme_stylebox_override(look, flat)
+	button.add_theme_stylebox_override("focus", focus_style())
+
+	var cloth := TextureRect.new()
+	cloth.texture = art
+	cloth.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	cloth.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	cloth.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	cloth.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	cloth.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(cloth)
+	button.mouse_entered.connect(func() -> void:
+		cloth.modulate = Color(1.2, 1.2, 1.2, 1.0))
+	button.mouse_exited.connect(func() -> void:
+		cloth.modulate = Color.WHITE)
+
+	# The title, sewn into the plain lower half of the cloth.
+	var words := Label.new()
+	words.text = label
+	words.anchor_left = 0.04
+	words.anchor_right = 0.96
+	words.anchor_top = 0.52
+	words.anchor_bottom = 0.82
+	words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	words.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	words.add_theme_font_size_override("font_size", 12)
+	words.add_theme_constant_override("line_spacing", -3)
+	words.add_theme_color_override("font_color", BANNER_THREAD)
+	words.add_theme_color_override("font_outline_color", BANNER_STITCH)
+	words.add_theme_constant_override("outline_size", 4)
+	var face := ThemeBook.font(String(ThemeBook.row_for("heading").get("font", "")))
+	if face != null:
+		words.add_theme_font_override("font", face)
+	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(words)
+	return button
+
+
+# -------------------------------------------------------------
 #  A BAG SLOT — the square button the Inventory is made of
 #
 #  icon_button() above puts the picture on the LEFT and the words beside it,
