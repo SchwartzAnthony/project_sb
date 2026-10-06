@@ -127,15 +127,17 @@ func _build_background() -> void:
 func _picture(path: String) -> Texture2D:
 	if path == "":
 		return null
+	# ROUND AL: the file itself first, so a picture you have just changed shows
+	# at once even if Godot has not re-imported it yet (exported games have no
+	# raw files, and fall through to the imported copy).
+	if FileAccess.file_exists(path):
+		var image := Image.load_from_file(path)
+		if image != null and not image.is_empty():
+			return ImageTexture.create_from_image(image)
 	if ResourceLoader.exists(path):
 		var imported := load(path) as Texture2D
 		if imported != null:
 			return imported
-	if FileAccess.file_exists(path):
-		var image := Image.load_from_file(path)
-		if image != null and not image.is_empty():
-			print("[menu] '%s' is not imported yet - reading the PNG directly. Click into the Godot editor once so it imports it." % path)
-			return ImageTexture.create_from_image(image)
 	return null
 
 

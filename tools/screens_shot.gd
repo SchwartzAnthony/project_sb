@@ -26,7 +26,7 @@ func _initialize() -> void:
 		root.get_texture().get_image().save_png("user://shot_%s.png" % pair[1])
 		var music := _music()
 		print("[shots] %s  music: %s at %s dB%s" % [pair[1],
-			music.stream.resource_path.get_file() if music != null and music.stream != null else "none",
+			(music.stream.resource_path.get_file() if music.stream.resource_path != "" else "the file, read fresh") if music != null and music.stream != null else "none",
 			"%.1f" % music.volume_db if music != null else "-",
 			"  (same player as before - no restart)" if music != null and music == player_before else ""])
 		player_before = music
@@ -39,6 +39,6 @@ func _music() -> AudioStreamPlayer:
 	if director == null:
 		return null
 	for child in director.get_children():
-		if child is AudioStreamPlayer and child.name.begins_with("Loop_Music") and (child as AudioStreamPlayer).playing:
+		if child is AudioStreamPlayer and String(child.name).contains("Loop_Music") and (child as AudioStreamPlayer).playing:
 			return child
 	return null
