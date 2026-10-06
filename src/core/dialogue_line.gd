@@ -22,6 +22,7 @@ var mood: String = ""         # happy / sad / drunk / mad ... a StoryArt.csv Moo
 var view: String = ""         # front (to the player) / side (to someone else)
 var background: String = ""   # PNG name, found in assets/backgrounds/
 var music: String = ""        # OGG or WAV name, found in assets/music/
+var sound: String = ""        # one-off sound: an Audio.csv ID, played as the line shows
 var text: String = ""
 
 # --- Flow ---

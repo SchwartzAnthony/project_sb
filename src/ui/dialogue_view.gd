@@ -248,6 +248,8 @@ func _show(line: DialogueLine) -> void:
 	_apply_background(line)
 	_apply_portrait(line)
 	_apply_music(line)
+	# The Sound column: a one-off cue (a cheer, a door) as the line shows.
+	AudioDirector.play_cue(get_tree(), line.sound)
 
 	_name_plate.text = line.speaker
 	_name_plate.visible = line.speaker.strip_edges() != ""

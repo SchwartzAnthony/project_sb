@@ -209,7 +209,7 @@ const S = {
 
 /* ---------- words and numbers ---------- */
 "Dialogue.csv":{what:"The story. A node graph in a spreadsheet: scenes, lines, and choices that carry effects.", key:null,
-  help:"A line with no choices runs on to <b>Next</b>. A line with choices stops and asks. A choice whose <b>Requires</b> fails is greyed out rather than hidden, so the player can see what they missed.<br><b>Mood</b> and <b>View</b> (round AN) pick which face the speaker shows: Mood = happy, sad, drunk, mad (whatever StoryArt.csv has); View = front (talking to the player, the default) or side (talking to someone in the scene)."},
+  help:"A line with no choices runs on to <b>Next</b>. A line with choices stops and asks. A choice whose <b>Requires</b> fails is greyed out rather than hidden, so the player can see what they missed.<br><b>Mood</b> and <b>View</b> (round AN) pick which face the speaker shows: Mood = happy, sad, drunk, mad (whatever StoryArt.csv has); View = front (talking to the player, the default) or side (talking to someone in the scene).<br><b>Sound</b> (round AN) plays a one-off sound as the line shows: an Audio.csv ID such as <code>bld_pub</code> (a beer hall cheering)."},
 "Language.csv":{what:"Every word the game shows, by key. Add a column for a new language and the game finds it.", key:"Key"},
 "Keys.csv":{what:"Keyboard and controller bindings, rebindable in Settings.", key:"Action"},
 "MenuConfig.csv":{what:"The main menu. Buttons, where they sit, and what they do.", key:"Button ID", enums:{"Label On Art":["yes","no"]},
@@ -378,7 +378,7 @@ const FOLDERS = [
   what:"<b>Every sound and every piece of music.</b> Named by the Sound column of Audio.csv and Juice.csv.",
   formats:".ogg, .wav, .mp3 — <b>.ogg for music</b> (it loops properly and it is a tenth of the size), .wav for short effects",
   also:"Also searched: assets/sound/, assets/music/, assets/",
-  from:[["Audio.csv","Sound"],["Juice.csv","Sound"],["Biomes.csv","Music"],["Dialogue.csv","Music"]]},
+  from:[["Audio.csv","Sound"],["Juice.csv","Sound"],["Biomes.csv","Music"],["Dialogue.csv","Music"],["Dialogue.csv","Sound"]]},
 
  {dir:"assets/icons/", kind:"image",
   what:"<b>Small square pictures.</b> The Adventure trait icons, item icons, menu button glyphs, anything that sits in a 34-pixel box.",

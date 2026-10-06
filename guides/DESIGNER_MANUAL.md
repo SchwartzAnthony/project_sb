@@ -4638,8 +4638,36 @@ checks they open Team Build — then that they open the Pub once you're ready.
 
 **`data/Dialogue.csv`** (and `data/tutorial/Dialogue.csv`) — a node graph in
 a spreadsheet. `Scene`, `Node ID`, `Speaker`, `Portrait`, `Side`, `Mood`, `View`, `Animation`,
-`Background`, `Music`, `Text`, `Next`, `Requires`, `Effects`, and then three
+`Background`, `Music`, `Sound`, `Text`, `Next`, `Requires`, `Effects`, and then three
 sets of `Choice N Text / Next / Requires / Effects`.
+
+**`Sound`** (round AN) plays one sound the moment the line shows: an Audio.csv
+ID or a file name in `assets/audio/`. The prologue's "Cheering!" uses
+`bld_pub`, the beer hall cheering.
+
+**Writing dialogue in the chat (round AN).** Post a script like this in the
+dialogue thread and Claude puts it in Dialogue.csv word for word:
+
+```
+## Scene: prologue
+Narrator: Three players wait at the Stammtisch.
+Head Coach (happy): Servus, Trainer! Sit down.
+Head Coach (mad, side): Koch! Put that down.
+> Shake his hand -> handshake
+# handshake
+Head Coach (drunk): Good grip.
+```
+
+`Name:` is the Speaker, `Narrator:` a blank Speaker. `(mood, side)` fills
+Mood and View. `> text -> label` is a choice, `# label` the Node ID it jumps
+to.
+
+**The prologue (round AN)** is Anthony's Head Coach scene at the Stammtisch.
+It plays the first time the base opens on a new save (Progression.csv
+`welcome_at_base`). Koch's `silhouette` and `bergmaennlein` faces are Mood
+words waiting for their StoryArt.csv rows; until then he shows his everyday
+face. The old Heatwave conversation is now the scene `heatwave_talk`, and the
+base visitors (Visitors.csv `Story`) point at it.
 
 A line with no choices runs on to `Next`. A line with choices stops and asks.
 A choice whose `Requires` fails is greyed out rather than hidden, so the
