@@ -1718,7 +1718,9 @@ func _spawn_camera(pitch: Rect2) -> void:
 	camera = MatchCamera.new()
 	camera.name = "MatchCamera"
 	add_child(camera)
-	camera.setup(pitch, db)
+	# The whole ground picture, so the wide shot can show the village round
+	# the pitch (camera_wide_ground in Tuning.csv).
+	camera.setup(pitch, db, get_pitch_rect())
 	camera.make_current()
 	print("[camera] Following the ball. Set camera_enabled to false in Tuning.csv to switch it off.")
 

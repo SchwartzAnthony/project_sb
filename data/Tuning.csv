@@ -99,8 +99,8 @@ shootout_windup_seconds,0.8,The striker's kick animation
 shootout_close_seconds,0.4,Window closes
 verdict_seconds,1.4,How long GOAL / MISS stays on screen
 field_width,1280,Play area width in pixels. Art scales to fit this.
-pitch_inset_x,0.06,"HOW FAR IN FROM THE LEFT AND RIGHT EDGES OF THE PITCH IMAGE THE WHITE LINES ARE, as a fraction. The image is 16:9 so the camera can show all of it; a real pitch is not 16:9, so the lines sit inside a margin and the rest is grass and surround. AT 2560 x 1440 THIS MEANS THE LINES START 154 PIXELS IN. Everything in the match - the Tier quarters, both goal mouths, where a throw-in stands - is measured against the rectangle these two rows describe, so they have to match your drawing"
-pitch_inset_y,0.10,"THE SAME FROM THE TOP AND BOTTOM. At 2560 x 1440 the lines start 144 pixels down, so THE LINES OCCUPY THE MIDDLE 2253 x 1152 PIXELS. Draw a bigger surround and raise this; draw the lines to the edge and set both rows to 0"
+pitch_inset_x,0.06,"HOW FAR IN THE PLAYER ZONES (AND THE WHITE LINES) SIT, left and right, as a fraction of the first camera view (the 1920 x 1080 window centred on the pitch picture) - NOT of the whole picture. ROUND AN: at 2560 x 1440 the lines run x 436-2124. Everything in the match - the Tier quarters, both goal mouths, where a throw-in stands - is measured against this rectangle. Change it and run tools/make_pitch.py so the lines follow"
+pitch_inset_y,0.10,"THE SAME, top and bottom. ROUND AN: at 2560 x 1440 the lines run y 288-1152, so the zones and lines are 1688 x 864. Change it and run tools/make_pitch.py"
 field_height,720,Play area height in pixels. Art scales to fit this.
 field_position_x,0,Play area X position in world space
 field_position_y,0,Play area Y position in world space
@@ -197,6 +197,7 @@ camera_follow_speed,3.2,"How quickly the view catches up with the ball. Higher =
 camera_zoom_speed,2.2,How quickly it changes zoom between live play and the whistle
 camera_lead,0.30,"How far ahead of the ball it looks during a pass. 0 = stare at the ball, 1 = stare at where it will land"
 camera_deadzone,36,How far the ball may drift from the middle before the camera bothers to move. Stops a permanent jitter
+camera_wide_ground,1.0,"ROUND AN (village ground). HOW MUCH OF THE VILLAGE ROUND THE PITCH THE WIDE SHOT SHOWS (the draft, the whistle, full time). 1 = the whole ground picture in Stadium.csv, so you see the fans, the beer tent and the houses. 0 = the old framing, just the pitch. It only changes the framing: where the players stand and how close the camera is during play are the same either way"
 full_time_seconds,2.6,How long FULL TIME stays on screen before the season screen opens
 gains_max_rows,8,"How many lines the ""what you gained"" panel shows before it says ""and N more"""
 season_difficulty_scale,1.0,"Multiplies the Difficulty column of Season.csv. 0 makes every fixture a fair fight, 2 doubles the handicap. Difficulty is added to the OPPOSITION SHOT, never to their cards"
@@ -368,7 +369,7 @@ emblem_follows_star,true,"ROUND AA (your note). TRUE: only the Emblem of the Sta
 emblem_locked_is_inactive,false,"ROUND AB (your answer Q009): FALSE - every Emblem keeps its BASIC side whenever its Star brings it on; only the Ultimate is limited to one per game. A second Emblem that meets its Condition still turns over, but greyed out with a red X: its Ultimate does nothing. TRUE: once one has turned over, the others do nothing at all (round AA)."
 emblem_bar_layer,18,"ROUND AA. Which screen layer the emblem bar and the match tracker sit on. 18 is UNDER the duel window (20) and the shot window (21), so a duel is never read through them. Raise it above 21 to put them back on top."
 emblem_bar_align,right,"ROUND AA. Where the emblem tile sits: right (under the clock - the default, clear of the ATTACKING / DEFENDING banner), centre or left."
-build_stamp,Sturmball - round AN (settings),"ROUND AB. The small words bottom-left of every match, and the first [build] line in the Output panel. If they do not say the round you just copied in, Godot is running older files. Blank hides it. Change it to anything you like."
+build_stamp,Sturmball - round AN (village ground),"ROUND AB. The small words bottom-left of every match, and the first [build] line in the Output panel. If they do not say the round you just copied in, Godot is running older files. Blank hides it. Change it to anything you like."
 ref_bar_glass,0.62,"ROUND AB (your note: the foul text was unreadable). How dark the see-through backing behind each side of the referee's bar is: 0 = none, 1 = solid black. No border."
 ref_bar_text_size,15,"ROUND AB. The size of the words under the referee's bar (it was 11)."
 hover_panel_layer,130,"ROUND AB. The layer of the card window you see when you point at a card - above the ATTACKING / DEFENDING banner (120)."
