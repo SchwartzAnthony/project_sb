@@ -53,7 +53,8 @@ Season.csv,data/,A spreadsheet you edit,
 Seasons.csv,data/,A spreadsheet you edit,
 ShotOdds.csv,data/,A spreadsheet you edit,"THE SCORING CURVE. Stamina Left against Chance and Per Power. The 0 row says 100, which is why an empty keeper is a certain goal"
 SOUNDS_WANTED.csv,data/,A spreadsheet you edit,
-Stadium.csv,data/,A spreadsheet you edit,"HOW BIG TO DRAW THE PITCH AND THE STADIUM, and the layers behind and over the grass. The pitch is 2560 x 1440 and has to stay 16:9"
+Stadium.csv,data/,A spreadsheet you edit,"THE PITCH AND THE VILLAGE ROUND IT, and the layers behind and over the grass. All 2560 x 1440; the white lines are the edge of the player zones (round AN)"
+VillageGround.csv,data/,A spreadsheet you edit,"ROUND AN. The village round the pitch, one row per PixelLab part (houses, church, farm, beer tent, clubhouse, trees, locals, Full House fans). tools/make_village.py builds stadium_back.png, stadium_crowd.png and art_source/aseprite/stadium.aseprite from it"
 Stats.csv,data/,A spreadsheet you edit,
 Talents.csv,data/,A spreadsheet you edit,
 Teams.csv,data/,A spreadsheet you edit,

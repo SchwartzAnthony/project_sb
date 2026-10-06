@@ -1802,8 +1802,8 @@ does the same from the exhaust (same power and tier).
   done:** the pitch, the title wallpaper and the base yard.
 - **The pitch is two steps.** PixelLab draws only the grass
   (`art_source/pixellab/11_pitch_grass.png`); `python3 tools/make_pitch.py`
-  rules the lines exactly at `pitch_inset_x` / `pitch_inset_y`, adds the
-  track, the wall and the goals, and writes `assets/field/soccerfield.png`.
+  rules the lines on the player zones (round AN: see section 8b), adds the
+  goals, and writes `assets/field/soccerfield.png`.
   Colours and sizes are at the top of that script. The old
   `soccerfield.jpg` (a watermarked stock photo) is no longer used — a `.png`
   of the same name wins — and can be deleted.
@@ -3330,60 +3330,85 @@ the same line that has always cleared them.
 
 ---
 
-## 8b. `data/Stadium.csv` — how big to draw the pitch
+## 8b. `data/Stadium.csv` — the pitch and the village round it
 
-**The two numbers you asked for:**
+**Round AN (your ask, 6 Oct): the white lines are the edge of the player
+zones, and outside them is the village.**
 
 ```
-the pitch        2560 x 1440      assets/field/soccerfield.png
-the background   3840 x 2160      assets/field/stadium_back.png
+the pitch        2560 x 1440      assets/field/soccerfield.png   (see-through outside the grass)
+the village      2560 x 1440      assets/field/stadium_back.png
+the Full House   2560 x 1440      assets/field/stadium_crowd.png
 ```
 
-### Why the pitch has to be 16:9
+All three are the same size and sit exactly on top of each other, so a house
+at X 300 in the village is always 136 pixels left of the goal line.
 
-The camera's widest shot **covers** the pitch rather than fitting inside it —
-it is never allowed to show anything past the grass, so a pitch taller than
-the window is cropped top and bottom and a wider one is cropped at the sides.
-2560 × 1440 is the window's own shape, and sharp at 1080p and at 1440p.
-
-### The white lines do not go to the edge
-
-A real pitch is 1.54:1 and a window is 1.78:1. So draw the **lines** inside a
-margin and fill the rest with grass, a running track, a advertising hoarding —
-whatever the stadium has.
+### Where the white lines are, and why
 
 ```
      2560 wide
   +--------------------------------------------------+
-  |                     144 px                       |
-  |     +--------------------------------------+     |   1440
-  | 154 |        THE LINES  2253 x 1152        | 154 |   tall
-  |     +--------------------------------------+     |
-  |                     144 px                       |
+  |   houses, church, fans          288 px           |
+  |       +------------------------------------+     |   1440
+  | farm  |  THE LINES = THE ZONES  1688 x 864 | tent|   tall
+  |  436  |   x 436-2124, y 288-1152           |  436|
+  |       +------------------------------------+     |
+  |   fans, clubhouse, locals       288 px           |
   +--------------------------------------------------+
 ```
 
-**Everything in the match is measured against that inner rectangle** — the
-four Tier quarters, both goal mouths, where a throw-in stands. The margins
-are `pitch_inset_x` (0.06) and `pitch_inset_y` (0.10) in Tuning.csv, so if
-you draw the lines closer to the edge you lower them and the game follows.
+The four Tier zones, both goal mouths and the throw-in spots are measured
+against one rectangle: the **first camera view** (the 1920 × 1080 window,
+centred on the picture) pulled in by `pitch_inset_x` (6%) and
+`pitch_inset_y` (10%) in Tuning.csv. Until round AN the lines were drawn 6%
+and 10% in from the edge of the **whole picture** instead, which put them
+far outside the zones — the goals were nowhere near the goal mouths. Now:
 
-**The file is stretched to exactly Width × Height whatever size you draw it**,
-so you can work at 5120 × 2880 and halve it later without touching a row.
+- `tools/make_pitch.py` works the rectangle out the same way the game does
+  and rules the lines on it. **Change either inset row, run it again**, and
+  the lines follow the zones.
+- `tools/field_shot.gd` opens a match, prints where the zones land in the
+  picture, and saves a picture with the zone map on so you can see the two
+  agree (`-- full-house` adds the fans).
+
+### The village — `data/VillageGround.csv`
+
+One row per PixelLab part (`art_source/pixellab/village/`): the meadow, the
+houses and church, the farm, the beer tent, trees, the clubhouse, the
+locals, the fans. `X`, `Y` are the top-left corner in pitch pixels; `Scale`
+is a whole number (2 for buildings, 1 for people — the players' size);
+`Flip h` mirrors a part; `Layer` is `background` (always there) or `crowd`
+(only with **Full House** unlocked). Then:
+
+```
+~/.venvs/sturmball/bin/python tools/make_village.py
+```
+
+writes both pictures and `art_source/aseprite/stadium.aseprite`, with every
+part (and the pitch, on top) on its own layer. The round AN top-down stadium
+and the old pitch are kept in `art_source/legacy/field/`.
+
+### How much of it you see — `camera_wide_ground`
+
+The camera used to be fenced to the old play area, so nothing outside the
+zones but a thin strip ever showed. It now has two rectangles: the zones
+(where players stand, unchanged) and the ground (what it may show). The
+wide shot — the draft, the whistle, full time — shows the whole village at
+`camera_wide_ground` 1; 0 is the old framing. During play the camera is as
+close as before, so the players are the same size.
 
 ### The layers
 
 | Layer | | |
 |---|---|---|
-| `background` | behind the grass | 3840 × 2160. **Parallax `0.25`** — it drifts a quarter as fast as the camera, which is what reads as distance |
-| `crowd` | between the background and the grass | for a later unlock: a crowd, banners, a stand that fills as you win |
-| `pitch` | **the playing surface** | everything is measured against it |
+| `background` | behind the grass | the village. Parallax `0` so it stays next to the grass |
+| `crowd` | between the village and the grass | the Full House fans |
+| `pitch` | **the playing surface** | grass and lines; see-through round the outside |
 | `lights` | over the top of everything | `Tint` is multiplied over it, so a warm colour is floodlights and a cold one is a night game |
 
-A row with no `Image` draws nothing, which is how three of the four start. A
-row whose `Requires` fails is not drawn either — the same condition language
-as everywhere else, so the Stadium screen will be able to unlock a layer
-without a line of code.
+A row with no `Image` draws nothing. A row whose `Requires` fails is not
+drawn either — the same condition language as everywhere else.
 
 ## 8b2. The look — Marcinelle, in pixels
 
@@ -5324,8 +5349,9 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | **stop the music cutting between screens** | `music_follows_screen` in `Tuning.csv` |
 | **find out why a sound is silent** | `tools/audio_check.gd`. It is nearly always a missing file |
 | **change how big the pitch is** | the `pitch` row of `Stadium.csv`. It has to stay 16:9 |
-| **put a stadium behind the pitch** | the `background` row of `Stadium.csv`, and a 3840x2160 file in `assets/field/` |
-| **move the white lines in or out** | `pitch_inset_x` and `pitch_inset_y` in `Tuning.csv` |
+| **change the village round the pitch** | `data/VillageGround.csv`, then `tools/make_village.py` (section 8b) |
+| **move the white lines in or out** | `pitch_inset_x` and `pitch_inset_y` in `Tuning.csv` - this moves the zones too - then `tools/make_pitch.py` |
+| **see more or less of the village** | `camera_wide_ground` in `Tuning.csv` |
 | **make the item icons bigger** | `icon_tile_size` in `Tuning.csv` |
 | **add a spreadsheet without Godot mangling it** | run `tools/csv_import_fix.gd`, then delete `.godot` |
 | **check a class's files line up before drawing its cards** | `tools/class_check.gd` |

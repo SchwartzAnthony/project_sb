@@ -17,8 +17,8 @@ extends Camera2D
 #       area, zooming in would squash the formations toward the ball, which
 #       is exactly the bug you would spend an evening on.
 #
-#    2. It never zooms OUT past the opening framing, so you can never see
-#       past the edge of the grass.
+#    2. It never zooms OUT past the ground picture, so you can never see
+#       past the edge of the village (frame_rect, camera_wide_ground).
 #
 #  EVERY NUMBER COMES FROM Tuning.csv. Set camera_enabled to false and the
 #  match plays exactly as it did before, with no camera at all.
@@ -29,6 +29,12 @@ enum Mode { WIDE, PLAY, CLOSE }
 ## The whole pitch as it was framed at kickoff. The view is never allowed
 ## outside this. Set once by main_scene before the camera goes live.
 var home_rect: Rect2 = Rect2()
+## ROUND AN (the village ground): what the camera may SHOW, which can be
+## bigger than home_rect so the wide shot takes in the village round the
+## pitch. home_rect still decides where the players stand; this only decides
+## the framing. Tuning.csv camera_wide_ground: 0 = the old framing, 1 = the
+## whole ground picture.
+var frame_rect: Rect2 = Rect2()
 
 var wide_zoom: float = 1.0
 var play_zoom: float = 1.55
@@ -57,8 +63,14 @@ func _ready() -> void:
 
 ## Called once, with the pitch rectangle as it looked before any camera
 ## existed. Everything else is read straight out of Tuning.csv.
-func setup(pitch: Rect2, db: CardDatabase) -> void:
+func setup(pitch: Rect2, db: CardDatabase, ground: Rect2 = Rect2()) -> void:
 	home_rect = pitch
+	frame_rect = pitch
+	if db != null and ground.size.x > 1.0 and ground.size.y > 1.0:
+		var reach := clampf(db.tune_float("camera_wide_ground", 1.0), 0.0, 1.0)
+		var wide := ground.merge(pitch)
+		frame_rect = Rect2(pitch.position.lerp(wide.position, reach),
+			pitch.size.lerp(wide.size, reach))
 	if db != null:
 		play_zoom = maxf(1.0, db.tune_float("camera_zoom", 1.55))
 		close_zoom = maxf(play_zoom, db.tune_float("camera_zoom_close", 2.10))
@@ -82,12 +94,17 @@ func setup(pitch: Rect2, db: CardDatabase) -> void:
 	#
 	# As multiples they mean what the sheet says at every window size, and
 	# anything below 1 is still refused, so you can never see past the grass.
-	wide_zoom = _zoom_that_shows_all()
-	play_zoom = wide_zoom * maxf(1.0, play_zoom)
-	close_zoom = maxf(wide_zoom * maxf(1.0, close_zoom), play_zoom)
+	#
+	# The pushes are multiples of the PITCH shot, not of the village shot, so
+	# showing more of the ground in the wide shot does not make the players
+	# any smaller during play.
+	var pitch_zoom := _zoom_to_fit(home_rect)
+	wide_zoom = minf(_zoom_to_fit(frame_rect), pitch_zoom)
+	play_zoom = pitch_zoom * maxf(1.0, play_zoom)
+	close_zoom = maxf(pitch_zoom * maxf(1.0, close_zoom), play_zoom)
 
 	_want_zoom = wide_zoom
-	_want_point = home_rect.get_center()
+	_want_point = frame_rect.get_center()
 	_held_point = _want_point
 	global_position = _want_point
 	zoom = Vector2(wide_zoom, wide_zoom)
@@ -115,7 +132,7 @@ func look_wide() -> void:
 	if _locked:
 		return
 	_mode = Mode.WIDE
-	_want_point = home_rect.get_center()
+	_want_point = frame_rect.get_center()
 	_want_zoom = wide_zoom
 
 
@@ -170,32 +187,34 @@ func _process(delta: float) -> void:
 	global_position = _clamp_centre(global_position, next_zoom)
 
 
-## The zoom at which the whole pitch just fits on screen. Anything less would
-## show the void beyond the grass.
-func _zoom_that_shows_all() -> float:
+## The zoom at which this rectangle just fits on screen. Anything less would
+## show the void beyond it.
+func _zoom_to_fit(area: Rect2) -> float:
 	var view := _view_size()
-	if home_rect.size.x < 1.0 or home_rect.size.y < 1.0 or view.x < 1.0 or view.y < 1.0:
+	if area.size.x < 1.0 or area.size.y < 1.0 or view.x < 1.0 or view.y < 1.0:
 		return 1.0
-	return maxf(view.x / home_rect.size.x, view.y / home_rect.size.y)
+	return maxf(view.x / area.size.x, view.y / area.size.y)
 
 
-## Keep the visible rectangle inside the pitch. If the pitch is smaller than
-## the screen on an axis, centre on it instead — clamping would be impossible.
+## Keep the visible rectangle inside the ground. If the ground is smaller
+## than the screen on an axis, centre on it instead — clamping would be
+## impossible.
 func _clamp_centre(point: Vector2, at_zoom: float) -> Vector2:
 	if at_zoom <= 0.0:
 		return point
 	var half := (_view_size() / at_zoom) * 0.5
 	var out := point
+	var area := frame_rect if frame_rect.size.x > 1.0 else home_rect
 
-	if home_rect.size.x <= half.x * 2.0:
-		out.x = home_rect.get_center().x
+	if area.size.x <= half.x * 2.0:
+		out.x = area.get_center().x
 	else:
-		out.x = clampf(point.x, home_rect.position.x + half.x, home_rect.end.x - half.x)
+		out.x = clampf(point.x, area.position.x + half.x, area.end.x - half.x)
 
-	if home_rect.size.y <= half.y * 2.0:
-		out.y = home_rect.get_center().y
+	if area.size.y <= half.y * 2.0:
+		out.y = area.get_center().y
 	else:
-		out.y = clampf(point.y, home_rect.position.y + half.y, home_rect.end.y - half.y)
+		out.y = clampf(point.y, area.position.y + half.y, area.end.y - half.y)
 
 	return out
 

@@ -10,9 +10,17 @@
 #
 #      pitch_inset_x / pitch_inset_y in data/Tuning.csv
 #
-#  A generated picture never puts its lines at 6% and 10%; a ruler does.
-#  Then it adds the cinder track and the wall round the edge, and the goals,
-#  and writes assets/field/soccerfield.png at 2560 x 1440 (Stadium.csv).
+#  A generated picture never puts its lines where the game measures; a ruler
+#  does. Then it adds the goals and writes assets/field/soccerfield.png at
+#  2560 x 1440 (Stadium.csv).
+#
+#  ROUND AN (village ground): THE LINES ARE THE EDGE OF THE PLAYER ZONES.
+#  The zones are the first camera view (the window, 1920 x 1080, centred on
+#  the picture) shrunk by pitch_inset_x / pitch_inset_y - NOT the whole
+#  picture shrunk by them, which is where the old lines were drawn (far
+#  outside the zones). Only a strip of run-off grass (RUNOFF) goes round the
+#  lines; everything else is see-through, so the village behind it
+#  (tools/make_village.py, Stadium.csv background and crowd) shows.
 #
 #  Everything is drawn on a 1280 x 720 grid and blown up x2 with no
 #  smoothing, so it stays crisp pixel art like the rest of the game.
@@ -36,9 +44,6 @@ W, H, SCALE = 1280, 720, 2
 
 LINE = (243, 232, 212, 255)        # Theme.csv cream, never pure white
 LINE_SHADOW = (40, 70, 20, 255)    # a dark-green ink edge under each line
-TRACK = (178, 84, 52, 255)         # cinder
-TRACK_DARK = (138, 60, 38, 255)
-WALL = (243, 232, 212, 255)
 INK = (25, 17, 10, 255)            # Theme.csv background - the outline
 NET = (243, 232, 212, 160)
 
@@ -49,9 +54,9 @@ TIDY_SPECKS = True
 LIGHT_SPECK = (140, 180, 30, 255)
 DARK_SPECK = (78, 128, 18, 255)
 
-TRACK_W = 24                       # pixels of cinder at the edge (on the 1280 grid)
-WALL_W = 8
 LINE_W = 2
+RUNOFF = 22                        # grass beyond the lines, on the 1280 grid
+                                   # (the goals sit in it)
 
 
 def tune(key, fallback):
@@ -63,6 +68,41 @@ def tune(key, fallback):
                 except ValueError:
                     return fallback
     return fallback
+
+
+def setting(path, key, fallback):
+    """One value out of project.godot (the window size)."""
+    with open(os.path.join(HERE, path), encoding="utf-8") as f:
+        for raw in f:
+            if raw.strip().startswith(key + "="):
+                return float(raw.split("=", 1)[1])
+    return fallback
+
+
+def pitch_size():
+    """Width and Height of the pitch row in data/Stadium.csv."""
+    with open(os.path.join(HERE, "data", "Stadium.csv"), encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            if row.get("Layer", "").strip() == "pitch":
+                return float(row["Width"]), float(row["Height"])
+    return 2560.0, 1440.0
+
+
+def zone_rect(w, h):
+    """Where the game puts the player zones, in pixels of a w x h picture.
+    Mirrors get_play_rect() in main_scene.gd: the window centred on the
+    pitch, clipped to it, then pulled in by the two inset rows."""
+    pw, ph = pitch_size()
+    vw = setting("project.godot", "window/size/viewport_width", 1920)
+    vh = setting("project.godot", "window/size/viewport_height", 1080)
+    aw, ah = min(vw, pw), min(vh, ph)
+    ix, iy = tune("pitch_inset_x", 0.06), tune("pitch_inset_y", 0.10)
+    x0 = (pw - aw) / 2 + aw * ix
+    y0 = (ph - ah) / 2 + ah * iy
+    x1 = (pw + aw) / 2 - aw * ix
+    y1 = (ph + ah) / 2 - ah * iy
+    sx, sy = w / pw, h / ph
+    return x0 * sx, y0 * sy, x1 * sx, y1 * sy
 
 
 def line(d, a, b):
@@ -102,28 +142,23 @@ def tidy(img):
 
 
 def main():
-    ix, iy = tune("pitch_inset_x", 0.06), tune("pitch_inset_y", 0.10)
     grass = Image.open(GRASS).convert("RGBA")
     if TIDY_SPECKS:
         grass = tidy(grass)
     grass = grass.resize((W, H), Image.NEAREST)
-    img = grass.copy()
+
+    # The lines, measured exactly as the game measures the zones.
+    zx0, zy0, zx1, zy1 = zone_rect(W, H)
+    L, R = round(zx0), round(zx1) - 1
+    T, B = round(zy0), round(zy1) - 1
+
+    # Grass only inside the lines and a strip of run-off; the rest is
+    # see-through, so the village shows round it.
+    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    box = (L - RUNOFF, T - RUNOFF, R + RUNOFF + 1, B + RUNOFF + 1)
+    img.paste(grass.crop(box), box[:2])
     d = ImageDraw.Draw(img)
-
-    # The track and the wall, all the way round the outside.
-    d.rectangle([0, 0, W - 1, H - 1], outline=INK, width=1)
-    for i in range(1, WALL_W + 1):
-        d.rectangle([i, i, W - 1 - i, H - 1 - i], outline=WALL)
-    t0 = WALL_W + 1
-    for i in range(t0, t0 + TRACK_W):
-        d.rectangle([i, i, W - 1 - i, H - 1 - i], outline=TRACK if (i - t0) % 8 else TRACK_DARK)
-    d.rectangle([t0 - 1, t0 - 1, W - t0, H - t0], outline=INK, width=1)
-    inner = t0 + TRACK_W
-    d.rectangle([inner, inner, W - 1 - inner, H - 1 - inner], outline=INK, width=1)
-
-    # The lines, measured exactly as the game measures them.
-    L, R = round(W * ix), round(W * (1 - ix)) - 1
-    T, B = round(H * iy), round(H * (1 - iy)) - 1
+    d.rectangle([box[0], box[1], box[2] - 1, box[3] - 1], outline=INK, width=1)
     pw, ph = R - L, B - T                      # pitch in pixels
     mx, my = pw / 105.0, ph / 68.0             # pixels per metre
     cx, cy = (L + R) // 2, (T + B) // 2
@@ -167,8 +202,9 @@ def main():
         arc(d, x, y, 9, a0, a0 + 90)
 
     img.resize((W * SCALE, H * SCALE), Image.NEAREST).save(OUT)
-    print("wrote %s (%dx%d) - lines at %.0f%% / %.0f%%, the pitch %dx%d on the 1280 grid"
-          % (os.path.relpath(OUT, HERE), W * SCALE, H * SCALE, ix * 100, iy * 100, pw, ph))
+    print("wrote %s (%dx%d) - lines on the zone edge, x %d..%d y %d..%d of %dx%d"
+          % (os.path.relpath(OUT, HERE), W * SCALE, H * SCALE,
+             L * SCALE, (R + 1) * SCALE, T * SCALE, (B + 1) * SCALE, W * SCALE, H * SCALE))
 
 
 if __name__ == "__main__":
