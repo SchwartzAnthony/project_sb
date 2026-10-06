@@ -1,0 +1,10 @@
+# Only the results and the recipe are kept in git; the raw layers stay on the Deck.
+*
+!.gitignore
+!BRIEF.md
+!layout.csv
+!compose.py
+!comparison.png
+!*/
+!*/title.png
+!*/prompts.txt

@@ -1,0 +1,42 @@
+Set: claude. Tool: Claude alone, hand-drawn SVG, rendered with rsvg-convert. Art direction per layer from tools/art_prompt.gd -- claude:
+
+== bg ==
+
+the back layer of a game title screen, one full-frame wide landscape: a bright blue sky with a few puffy clouds, distant snowy Alps, a line of round green trees, and an empty grass football pitch with white lines filling the lower third, seen low from the touchline. No buildings, no people. Clean comic line art: bold, smooth black outlines of even weight, flat bold colours with at most one shadow tone per shape, NO hatching, NO cross-hatching, NO scratchy texture lines, no paper texture, no grain. Crisp, bright, natural colours with a neutral white balance: NOT yellow, NOT warm-tinted, NOT sepia. No text, no letters, no logos. 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.
+
+== brewery ==
+
+a traditional Bavarian brewery building: white walls, half-timbering, a red tiled roof, a copper chimney, flower boxes, a big wooden barrel by the door. One object, whole building in frame, on a transparent background. Clean comic line art: bold, smooth black outlines of even weight, flat bold colours with at most one shadow tone per shape, NO hatching, NO cross-hatching, NO scratchy texture lines, no paper texture, no grain. Crisp, bright, natural colours with a neutral white balance: NOT yellow, NOT warm-tinted, NOT sepia. No text, no letters, no logos. 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.
+
+== tent ==
+
+an Oktoberfest beer tent with blue-and-white stripes, pennant flags on the poles, pretzel decorations over the entrance. One object, whole tent in frame, on a transparent background. Clean comic line art: bold, smooth black outlines of even weight, flat bold colours with at most one shadow tone per shape, NO hatching, NO cross-hatching, NO scratchy texture lines, no paper texture, no grain. Crisp, bright, natural colours with a neutral white balance: NOT yellow, NOT warm-tinted, NOT sepia. No text, no letters, no logos. 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.
+
+== crowd ==
+
+a wide row of cheering Bavarian football fans, waist up, behind a low advertising board: lederhosen, Tyrolean hats, raised beer steins, scarves, comic faces with big potato noses and gap-tooth grins. A wide strip, on a transparent background. Clean comic line art: bold, smooth black outlines of even weight, flat bold colours with at most one shadow tone per shape, NO hatching, NO cross-hatching, NO scratchy texture lines, no paper texture, no grain. Crisp, bright, natural colours with a neutral white balance: NOT yellow, NOT warm-tinted, NOT sepia. No text, no letters, no logos. 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.
+
+== brawl ==
+
+a comic dust-cloud brawl: two or three caricature footballers fighting inside a round cloud of dust, with a beer stein, a pretzel, a bratwurst, a football, stars and a boot flying out. On a transparent background. Clean comic line art: bold, smooth black outlines of even weight, flat bold colours with at most one shadow tone per shape, NO hatching, NO cross-hatching, NO scratchy texture lines, no paper texture, no grain. Crisp, bright, natural colours with a neutral white balance: NOT yellow, NOT warm-tinted, NOT sepia. No text, no letters, no logos. 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.
+
+== sign ==
+
+a blank, wide wooden Oktoberfest sign board with a blue-and-white diamond border, hanging from two short chains, the middle EMPTY for a title. No letters. On a transparent background. Clean comic line art: bold, smooth black outlines of even weight, flat bold colours with at most one shadow tone per shape, NO hatching, NO cross-hatching, NO scratchy texture lines, no paper texture, no grain. Crisp, bright, natural colours with a neutral white balance: NOT yellow, NOT warm-tinted, NOT sepia. No text, no letters, no logos. 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.
+
+== hero ==
+
+the front guy: a gangly, skinny Bavarian football fan in lederhosen and a green Tyrolean hat with a feather, wild hair, a huge potato nose, a gap-tooth grin, holding a foaming beer stein high in one hand, one boot on a football, full body, facing right. On a transparent background. Clean comic line art: bold, smooth black outlines of even weight, flat bold colours with at most one shadow tone per shape, NO hatching, NO cross-hatching, NO scratchy texture lines, no paper texture, no grain. Crisp, bright, natural colours with a neutral white balance: NOT yellow, NOT warm-tinted, NOT sepia. No text, no letters, no logos. 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.
+
+
+== How it was made ==
+Every layer is a hand-written SVG (bg, brewery, tent, hero by hand; sign,
+crowd, brawl generated by small Python scripts in this folder that write the
+SVG paths: crowd_build.py, brawl_build.py, people.py = shared comic face/fist/
+stein parts). Rendered with: rsvg-convert -w <width> <name>.svg -o <name>.png
+Outlines: #141414, 10-20 px so they survive the half-size pixelation.
+One shadow tone per shape, no hatching, neutral palette.
+Fix rounds: bg (mountains/trees redrawn, mowing bands), brewery (crooked walls,
+bent roof, grass base), tent (flags), sign (back edge), hero (limb colours,
+arm/stein raised, feather), crowd (one row, faces in front of arms),
+brawl (bodies under heads, hair behind faces, flying items spread).

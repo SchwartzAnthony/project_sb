@@ -1,14 +1,11 @@
 Part,Image,Text,X,Y,Width,Height,Frames,FPS,Scale,Flip,Notes
-background,res://assets/menu/layers/01_title_bg_b.png,,,,,,,,,,"ROUND AN - the NEW title background (Pixelate.csv title_bg_b): the bumpy pitch, the Oktoberfest meadow, the beer town, a spooky bog and a sunset over the Alps. Other choices: 01_title_bg_a.png (the beer town by day) or 01_field.png (round AM, the empty pitch and tree line). Layers are drawn back to front, top row first; the first background row wins and always fills the screen."
-picture,res://assets/menu/layers/02_brewery.png,,960,350,,,1,0,2,,"Layer 2: the traditional Bavarian brewery, centre. Scale 2 = drawn at twice its pixels, like every layer, so all layers share one pixel size."
-picture,res://assets/menu/layers/03_beer_tent.png,,1640,420,,,1,0,2,,"Layer 3: the Oktoberfest beer tent, right."
-picture,res://assets/menu/layers/04_crowd_a.png,,160,610,,,1,0,2,,"Layer 4: the crowd behind the boards - six pieces side by side (groups A, B, C, then the same flipped), 360 pixels apart."
-picture,res://assets/menu/layers/04_crowd_b.png,,520,610,,,1,0,2,,Layer 4: crowd B.
-picture,res://assets/menu/layers/04_crowd_c.png,,880,610,,,1,0,2,,Layer 4: crowd C.
-picture,res://assets/menu/layers/04_crowd_a.png,,1240,610,,,1,0,2,yes,"Layer 4: crowd A, flipped."
-picture,res://assets/menu/layers/04_crowd_b.png,,1600,610,,,1,0,2,yes,"Layer 4: crowd B, flipped."
-picture,res://assets/menu/layers/04_crowd_c.png,,1960,610,,,1,0,2,yes,"Layer 4: crowd C, flipped."
-picture,res://assets/menu/layers/05_brawl.png,,990,860,,,1,0,2,,"Layer 5: the brawl, middle of the pitch."
-picture,res://assets/menu/layers/07_sign.png,,1040,150,,,1,0,2,,"Layer 6: the wide STURMBALL sign, top-middle, hanging BEHIND the hero so his beer stein comes in front of it. The title row writes the name on it."
-title,,STURMBALL,1040,170,600,76,,,,,"The big word, written on the sign. It is drawn in its place in this list - here right after the sign, so the hero below covers both. X / Y = its centre, Width = the box it is centred in, Height = the font size (76 = about a quarter of the screen wide)."
-picture,res://assets/menu/hero_comic.png,,420,560,662,1040,1,0,,,"Layer 7 (front): the hero in the Stammtisch-Comic style (round AM) - beanpole-skinny, wild hair, Tyrolean hat, facing right (Pixelate.csv menu_hero). 331 x 520 drawn x2. The round, pot-bellied iteration is art_source/openai/stammtisch/hero_b_round.png - point menu_hero Source at it to swap."
+background,res://assets/menu/layers/pixellab/01_bg.png,,,,,,,,,,"ROUND AN - PIXELLAB (your pick: PixelLab only for all art). Layer 1: sky, Alps, trees and the empty pitch (art_source/pixellab/title/bg.png, 688 x 384, stretched to cover the screen). Earlier backgrounds: assets/menu/layers/01_title_bg_b.png, 01_title_bg_a.png, 01_field.png. The first background row wins."
+picture,res://assets/menu/layers/pixellab/02_brewery.png,,960,350,,,1,0,2,,"ROUND AN - PIXELLAB. Layer 2: the brewery, centre. Scale 2 like every layer, so all share one pixel size."
+picture,res://assets/menu/layers/pixellab/03_tent.png,,1640,420,,,1,0,2,,"ROUND AN - PIXELLAB. Layer 3: the beer tent, right."
+picture,res://assets/menu/layers/pixellab/04_crowd.png,,376,610,,,1,0,2,,"ROUND AN - PIXELLAB. Layer 4: the crowd behind the boards - one PixelLab strip (376 game pixels wide, drawn x2 = 752), three times side by side, the middle one flipped."
+picture,res://assets/menu/layers/pixellab/04_crowd.png,,1128,610,,,1,0,2,yes,Layer 4: the crowd again.
+picture,res://assets/menu/layers/pixellab/04_crowd.png,,1880,610,,,1,0,2,,Layer 4: the crowd again.
+picture,res://assets/menu/layers/pixellab/05_brawl.png,,990,860,,,1,0,2,,"ROUND AN - PIXELLAB. Layer 5: the brawl, middle of the pitch."
+picture,res://assets/menu/layers/pixellab/06_sign.png,,1040,150,,,1,0,2,,"ROUND AN - PIXELLAB. Layer 6: the sign, top-middle, behind the hero. Its wooden middle was painted back by Pixelate.csv Fill Holes. The title row writes the name on it."
+title,,STURMBALL,1040,150,520,60,,,,,"The big word, written on the sign. It is drawn in its place in this list - here right after the sign, so the hero below covers both. X / Y = its centre, Width = the box it is centred in, Height = the font size (76 = about a quarter of the screen wide)."
+picture,res://assets/menu/layers/pixellab/07_hero.png,,420,560,,,1,0,2,,"ROUND AN - PIXELLAB. Layer 7 (front): the hero with his stein, one boot on the ball (art_source/pixellab/title/hero.png, 291 x 520 game pixels, drawn x2)."

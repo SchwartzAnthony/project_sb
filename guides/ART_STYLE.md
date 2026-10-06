@@ -1,5 +1,34 @@
 # THE ART STYLE: Stammtisch-Comic (round AM)
 
+## PixelLab only, always in layers (round AN, your decision)
+
+**All art in the game is made with PixelLab:** characters, buttons, frames,
+backgrounds, everything. You compared the same title screen made by
+OpenAI, PixelLab, Ludo.ai, Claude by hand and a mix (`art_source/compare/`)
+and picked PixelLab.
+
+- **The tool:** PixelLab `create_image_pro`. It goes up to 688 x 384 (wide),
+  384 x 688 (tall) or 512 x 512. People get
+  `art_source/style_refs/stammtisch/board_characters.png` as the style image.
+- **The prompt:** `tools/art_prompt.gd -- pixellab "..."`. It adds the clean
+  rules and the art bible.
+- **Masters** are saved in `art_source/pixellab/<screen>/`. A
+  `data/Pixelate.csv` row only shrinks them to their size on screen (Smooth
+  0, Ink 0, no Outline), so every layer shares one pixel size at Scale 2.
+- **Every picture stays in layers.** Each part (background, buildings,
+  crowd, action, sign, hero) is its own PNG. One layered Aseprite file holds
+  the whole screen:
+  `~/.venvs/sturmball/bin/python tools/make_aseprite.py data/MainMenu.csv art_source/aseprite/title_screen.aseprite`
+- **Editing in Aseprite:** open the `.aseprite` file, change any layer, then
+  export that layer back over its PNG (File > Export As, Layers = that layer,
+  Resize 100%). The background layer was enlarged to fill the canvas, so
+  export it at the size of `assets/menu/layers/pixellab/01_bg.png`, or just
+  redraw the background in the PNG itself.
+- **PixelLab quirk:** removing the background also removes big white areas
+  inside a picture (a blank sign's middle). Ask for a coloured fill, or use
+  `Fill Holes` in `Pixelate.csv`.
+
+
 **This is Sturmball's art style from now on.** It comes from your Midjourney
 pictures in `assets/references/`. Short-named copies and two style boards
 are in `art_source/style_refs/stammtisch/`:

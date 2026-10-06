@@ -5484,6 +5484,14 @@ character.**
   sunset over the Alps. The other one is `01_title_bg_a.png` (the beer town by
   day). The old `01_field.png` stays in the folder. To swap, change the
   `background` row of `MainMenu.csv`.
+- **PixelLab only, in layers (your decision):** all art is made with PixelLab
+  from now on. The title screen is the PixelLab set now
+  (`assets/menu/layers/pixellab/`, masters in `art_source/pixellab/title/`).
+  The whole screen is also one layered Aseprite file:
+  `art_source/aseprite/title_screen.aseprite`, made by `tools/make_aseprite.py`.
+  See `guides/ART_STYLE.md` for how to edit it and bring a layer back.
+- **The tool comparison** (OpenAI, PixelLab, Ludo.ai, Claude by hand, a hybrid)
+  is in `art_source/compare/`, with `comparison.png` side by side.
 - **Pixelating on your Deck:** use `~/.venvs/sturmball/bin/python tools/pixelate.py`.
   That Python has Pillow installed; the system one can't install it.
 

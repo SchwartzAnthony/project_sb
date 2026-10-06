@@ -520,7 +520,9 @@ function paintBook(){
     ${rows([
       ["the bible","<b>ArtStyle.csv</b> art_bible - change the style only there; art_bible_openai is the same without the artist names"],
       ["the tool","<code>tools/art_prompt.gd -- pixellab \"Lorelei siren\"</code> (or openai) prints the full prompt from ArtStyle.csv recipe_pixellab / recipe_openai"],
-      ["background","new title background 01_title_bg_b.png (meadow, bog, sunset); 01_title_bg_a.png (beer town by day) is the other - MainMenu.csv background row"],
+      ["PixelLab only","your decision: ALL art is made with PixelLab - masters in art_source/pixellab/, a Pixelate.csv row shrinks each to its screen size"],
+      ["layers","every picture stays in parts; tools/make_aseprite.py writes one layered .aseprite file per screen (art_source/aseprite/title_screen.aseprite)"],
+      ["title screen","the PixelLab set (assets/menu/layers/pixellab/); the tool comparison is in art_source/compare/comparison.png"],
     ])}`);
 
   card("THE art style: Stammtisch-Comic (round AM)", `

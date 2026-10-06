@@ -1,0 +1,46 @@
+Ludo.ai set (round AN title comparison). Tool: Ludo.ai MCP only. One generation per layer, no retries.
+Prompts built with: godot --headless --path . --script res://tools/art_prompt.gd -- ludo "<SUBJECT>" and passed verbatim.
+augment_prompt left at default (true). Raw generations (.webp + _gen.png) are kept in raw/.
+
+Cut-outs: every cut-out was then run through removeBackground {creative_edit: false, crop: true}
+(the "sprite" generations already came back RGBA-transparent; removeBackground just cleaned/cropped them).
+Downloads: mcp__openai-images__download_file; .webp converted to PNG with Pillow.
+
+Style reference (crowd, brawl, hero): Ludo takes style_image as URL or base64 only (no local file / upload).
+Passed art_source/style_refs/stammtisch/board_characters.png as base64, downscaled to a 256x128 JPEG q45
+(12 KB of base64) so it fits in a tool call. Ludo accepted it.
+
+Layers:
+- bg.png      createImage {image_type: fixed_background, art_style: "Comic Book", aspect_ratio: ar_16_9, n: 1} -> 2032x1168 RGB
+- brewery.png createImage {image_type: sprite, art_style: "Comic Book", aspect_ratio: ar_4_3, n: 1} + removeBackground -> 708x560
+- tent.png    createImage {image_type: sprite, art_style: "Comic Book", aspect_ratio: ar_4_3, n: 1} + removeBackground -> 771x381
+- sign.png    createImage {image_type: sprite, art_style: "Comic Book", aspect_ratio: ar_16_9, n: 1} + removeBackground -> 917x439
+- crowd.png   generateWithStyle {image_type: sprite, n: 1, style_image: <ref base64>} + removeBackground -> 698x126 (gen was only 784x256)
+- brawl.png   generateWithStyle {image_type: sprite, n: 1, style_image: <ref base64>} + removeBackground -> 688x651
+- hero.png    generateWithStyle {image_type: sprite, n: 1, style_image: <ref base64>} + removeBackground -> 454x682
+  (generateWithStyle has no aspect_ratio or art_style parameter.)
+
+Credits: 7 generations x 0.5 + 6 removeBackground x 0.5 = 6.5 credits.
+
+Exact prompts:
+
+[bg]
+the back layer of a game title screen, one full-frame wide landscape: a bright blue sky with a few puffy clouds, distant snowy Alps, a line of round green trees, and an empty grass football pitch with white lines filling the lower third, seen low from the touchline. No buildings, no people. Clean comic line art: bold, smooth black outlines of even weight, flat bold colours with at most one shadow tone per shape, NO hatching, NO cross-hatching, NO scratchy texture lines, no paper texture, no grain. Crisp, bright, natural colours with a neutral white balance: NOT yellow, NOT warm-tinted, NOT sepia. No text, no letters, no logos. 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.
+
+[brewery]
+a traditional Bavarian brewery building: white walls, half-timbering, a red tiled roof, a copper chimney, flower boxes, a big wooden barrel by the door. One object, whole building in frame, on a transparent background. Clean comic line art: bold, smooth black outlines of even weight, flat bold colours with at most one shadow tone per shape, NO hatching, NO cross-hatching, NO scratchy texture lines, no paper texture, no grain. Crisp, bright, natural colours with a neutral white balance: NOT yellow, NOT warm-tinted, NOT sepia. No text, no letters, no logos. 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.
+
+[tent]
+an Oktoberfest beer tent with blue-and-white stripes, pennant flags on the poles, pretzel decorations over the entrance. One object, whole tent in frame, on a transparent background. Clean comic line art: bold, smooth black outlines of even weight, flat bold colours with at most one shadow tone per shape, NO hatching, NO cross-hatching, NO scratchy texture lines, no paper texture, no grain. Crisp, bright, natural colours with a neutral white balance: NOT yellow, NOT warm-tinted, NOT sepia. No text, no letters, no logos. 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.
+
+[crowd]
+a wide row of cheering Bavarian football fans, waist up, behind a low advertising board: lederhosen, Tyrolean hats, raised beer steins, scarves, comic faces with big potato noses and gap-tooth grins. A wide strip, on a transparent background. Clean comic line art: bold, smooth black outlines of even weight, flat bold colours with at most one shadow tone per shape, NO hatching, NO cross-hatching, NO scratchy texture lines, no paper texture, no grain. Crisp, bright, natural colours with a neutral white balance: NOT yellow, NOT warm-tinted, NOT sepia. No text, no letters, no logos. 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.
+
+[brawl]
+a comic dust-cloud brawl: two or three caricature footballers fighting inside a round cloud of dust, with a beer stein, a pretzel, a bratwurst, a football, stars and a boot flying out. On a transparent background. Clean comic line art: bold, smooth black outlines of even weight, flat bold colours with at most one shadow tone per shape, NO hatching, NO cross-hatching, NO scratchy texture lines, no paper texture, no grain. Crisp, bright, natural colours with a neutral white balance: NOT yellow, NOT warm-tinted, NOT sepia. No text, no letters, no logos. 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.
+
+[sign]
+a blank, wide wooden Oktoberfest sign board with a blue-and-white diamond border, hanging from two short chains, the middle EMPTY for a title. No letters. On a transparent background. Clean comic line art: bold, smooth black outlines of even weight, flat bold colours with at most one shadow tone per shape, NO hatching, NO cross-hatching, NO scratchy texture lines, no paper texture, no grain. Crisp, bright, natural colours with a neutral white balance: NOT yellow, NOT warm-tinted, NOT sepia. No text, no letters, no logos. 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.
+
+[hero]
+the front guy: a gangly, skinny Bavarian football fan in lederhosen and a green Tyrolean hat with a feather, wild hair, a huge potato nose, a gap-tooth grin, holding a foaming beer stein high in one hand, one boot on a football, full body, facing right. On a transparent background. Clean comic line art: bold, smooth black outlines of even weight, flat bold colours with at most one shadow tone per shape, NO hatching, NO cross-hatching, NO scratchy texture lines, no paper texture, no grain. Crisp, bright, natural colours with a neutral white balance: NOT yellow, NOT warm-tinted, NOT sepia. No text, no letters, no logos. 1990s European comic book art style, Marcinelle school, Walter Moers / Kleines Arschloch style, flat bold colors, dark humor pixel art, Oktoberfest theme.

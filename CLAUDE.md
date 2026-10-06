@@ -20,12 +20,20 @@ built in Godot 4.7 by Anthony, a designer who doesn't code.
 - Style references: `art_source/style_refs/stammtisch/board_characters.png`
   (people and creatures) and `board_places.png` (places and objects).
   The full style guide is `guides/ART_STYLE.md`.
-- Pipeline: OpenAI paints the comic master in `art_source/openai/stammtisch/`,
-  `tools/pixelate.py` turns it into pixels (one row in `data/Pixelate.csv`),
-  and every layer is shown at Scale 2. On the Deck, run it with
-  `~/.venvs/sturmball/bin/python tools/pixelate.py` (Pillow lives in that
-  venv; SteamOS's own Python has no pip). Players on the pitch stay simple
-  PixelLab sprites.
+- **PixelLab ONLY for all game art** (Anthony, 6 Oct 2026): characters,
+  buttons, frames, backgrounds, everything. Not OpenAI, Ludo.ai or
+  hand-drawn. Use `create_image_pro` (largest sizes: 688x384, 384x688,
+  512x512), with `board_characters.png` as the style image for people.
+- **Every image stays in layers.** Generate each part separately (background,
+  buildings, crowd, action, sign, hero ...), save one PNG per part, and write
+  a layered `.aseprite` file with `tools/make_aseprite.py` so Anthony can edit
+  it in Aseprite. Never hand over only a flattened picture.
+- PixelLab quirk: background removal punches holes in white areas (e.g. a
+  blank sign's middle). Ask for a coloured fill there.
+- Python tools on the Deck run with `~/.venvs/sturmball/bin/python` (Pillow and
+  numpy live there; SteamOS's own Python has no pip).
+- Older pipeline, kept for history: OpenAI masters in `art_source/openai/`
+  plus `tools/pixelate.py`.
 
 ## Standing rules
 

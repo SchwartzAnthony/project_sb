@@ -1,0 +1,14 @@
+Layer,File,X,Y,Height,Cutout,Flip,Notes
+bg,bg.png,960,540,1080,no,,"Full-screen back layer: sky, Alps, tree line, the empty pitch"
+brewery,brewery.png,960,350,340,yes,,"Traditional Bavarian brewery, centre behind the pitch"
+tent,tent.png,1640,420,280,yes,,"Oktoberfest beer tent, right"
+crowd,crowd.png,160,610,300,yes,,"Crowd behind the boards, repeated across the screen"
+crowd,crowd.png,520,610,300,yes,yes,"Crowd behind the boards, repeated across the screen"
+crowd,crowd.png,880,610,300,yes,,"Crowd behind the boards, repeated across the screen"
+crowd,crowd.png,1240,610,300,yes,yes,"Crowd behind the boards, repeated across the screen"
+crowd,crowd.png,1600,610,300,yes,,"Crowd behind the boards, repeated across the screen"
+crowd,crowd.png,1960,610,300,yes,yes,"Crowd behind the boards, repeated across the screen"
+brawl,brawl.png,990,860,420,yes,,The scuffle in the middle of the pitch
+sign,sign.png,1040,150,280,yes,,Blank wooden Oktoberfest sign; the title is written on it
+title,,1040,170,76,,,"STURMBALL, font size 76"
+hero,hero.png,420,560,1040,yes,,The front guy with the beer stein and the ball
