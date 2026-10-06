@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://deh248leq0ry5"
-path="res://.godot/imported/01_valley.png-2515a668e5934da34695b30a558eaf48.ctex"
+uid="uid://cdvrs1tpblxkl"
+path="res://.godot/imported/04_goal.png-dba9886d71d2ef5b177a44f280108254.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/menu/layers/pixellab/01_valley.png"
-dest_files=["res://.godot/imported/01_valley.png-2515a668e5934da34695b30a558eaf48.ctex"]
+source_file="res://assets/menu/layers/pixellab/04_goal.png"
+dest_files=["res://.godot/imported/04_goal.png-dba9886d71d2ef5b177a44f280108254.ctex"]
 
 [params]
 

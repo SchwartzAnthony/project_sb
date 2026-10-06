@@ -5709,17 +5709,25 @@ character.**
   The whole screen is also one layered Aseprite file:
   `art_source/aseprite/title_screen.aseprite`, made by `tools/make_aseprite.py`.
   See `guides/ART_STYLE.md` for how to edit it and bring a layer back.
-- **The title screen now shows your base town (round AN).** The crowd, the
-  brawl, the sign and the hero are the same. Behind them is the base's
-  valley, seen from the touchline: a new PixelLab background
-  (`01_valley.png`, drawn with the base's `ground.png` as its style picture)
-  with the river, the stone bridge and the firs, and on the far hillside
-  the base's own buildings: Brewery, Pub, Club House, Training Ground,
-  Dorms, Trophy Room hut, Traveling Tavern and the maypole. Those rows in
-  `MainMenu.csv` point straight at `assets/base/map/`, so a building you
-  redraw for the base shows up on the menu too. They're drawn x1 because
-  they're far away; the Brewery is x2, nearest, under the sign. The old
-  background, brewery and beer tent are in `art_source/legacy/menu_round_an/`.
+- **The title screen now shows your base town (round AN, take 2).** The
+  crowd, the brawl, the sign and the hero are the same. Behind them the
+  camera stands at the right goal's end of a much bigger pitch: the big
+  penalty box, the goal with its tall ball-stop net, the sandy path, the
+  fields and the sky (`01_goal_end.png`, drawn with the base's `ground.png`
+  as its style picture). The **Pub** (left) and the **Dorms** (right) are
+  drawn again from the ground, massive and cut off by the screen edge.
+  Their masters are in `art_source/pixellab/title_valley/` and their
+  `Pixelate.csv` rows are `pl_title_pub`, `pl_title_dorms`, `pl_title_goal`
+  and `pl_title_boards`. Take 1 (the whole valley with all the small
+  buildings) and the old title background, brewery and tent are in
+  `art_source/legacy/menu_round_an/`.
+- **Pitch boards, menu and base (round AN).** Like a German village club
+  ground, low advertising boards now stop the ball: pictures of a stein, a
+  pretzel, a sausage, a ball, a hop and a cow (no letters). On the menu
+  they stand in front of the crowd (`06_boards.png`, three rows in
+  `MainMenu.csv`). On the base they run all round the pitch:
+  `BaseTown.csv` row `pitch_boards`, its own layer in `base_town.aseprite`
+  (run `tools/make_base_town.py` after changing it).
 - **Settings, the save screen and the menu button are PixelLab too:**
   `assets/ui/settings/pixellab/`, `assets/ui/save/pixellab/` (masters in
   `art_source/pixellab/menus/`), named in `ScreenLook.csv`. Layered files:

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cik4wsrvg2u8i"
-path="res://.godot/imported/08_maypole.png-25224c2e8f83591f8b42fc9838bc1015.ctex"
+uid="uid://bejdjun2evmls"
+path="res://.godot/imported/03_dorms.png-3b1aac1ca41ec974d9c1fa3e7c717e28.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/menu/layers/pixellab/08_maypole.png"
-dest_files=["res://.godot/imported/08_maypole.png-25224c2e8f83591f8b42fc9838bc1015.ctex"]
+source_file="res://assets/menu/layers/pixellab/03_dorms.png"
+dest_files=["res://.godot/imported/03_dorms.png-3b1aac1ca41ec974d9c1fa3e7c717e28.ctex"]
 
 [params]
 
