@@ -428,16 +428,23 @@ func _is_clear(box: Rect2) -> bool:
 
 ## Where a 0..1 fraction lands on the actual screen, with the plaque centred
 ## on that point so a row of 0.5 really is the middle.
-func _place(node: Control, entry: Dictionary, box: Vector2) -> void:
+##
+## `scenery` is for a building drawn as its own picture on the town map: it
+## may reach the very edges of the screen (it is part of the landscape), so
+## only the plaques keep clear of the top buttons and the bottom line.
+func _place(node: Control, entry: Dictionary, box: Vector2, scenery: bool = false) -> void:
 	var area := _world.size
 	if area.x < 2.0 or area.y < 2.0:
 		area = get_viewport_rect().size
 
+	var low := Vector2(0.0, 0.0) if scenery else Vector2(8.0, 78.0)
+	var high := area - box if scenery else area - box - Vector2(8.0, 130.0)
+	high = Vector2(maxf(high.x, low.x), maxf(high.y, low.y))
 	node.custom_minimum_size = box
 	node.size = box
 	node.position = Vector2(
-		clampf(area.x * float(entry["x"]) - box.x * 0.5, 8.0, maxf(area.x - box.x - 8.0, 8.0)),
-		clampf(area.y * float(entry["y"]) - box.y * 0.5, 78.0, maxf(area.y - box.y - 130.0, 78.0)))
+		clampf(area.x * float(entry["x"]) - box.x * 0.5, low.x, high.x),
+		clampf(area.y * float(entry["y"]) - box.y * 0.5, low.y, high.y))
 
 
 func _make_building(entry: Dictionary) -> Control:
@@ -498,8 +505,7 @@ func _make_building(entry: Dictionary) -> Control:
 
 ## THE BUILDING AS ITS OWN PICTURE (round AN). Buildings.csv `Map Art` names
 ## a picture in assets/base/map/; `Map Size` is how big it is drawn on the
-## screen, WIDTHxHEIGHT (blank = the picture's own size x2, the town map's
-## pixel size). The picture is the button: hover brightens it, a locked
+## screen, WIDTHxHEIGHT (blank = the picture's own size x2). The picture is the button: hover brightens it, a locked
 ## building is drawn dark, and its name sits under it on a see-through plate.
 func _make_map_building(entry: Dictionary, art: Texture2D) -> Control:
 	var unlocked := bool(entry["unlocked"])
@@ -514,7 +520,7 @@ func _make_map_building(entry: Dictionary, art: Texture2D) -> Control:
 	var flat := StyleBoxEmpty.new()
 	for look in ["normal", "hover", "pressed", "focus", "disabled"]:
 		button.add_theme_stylebox_override(look, flat)
-	_place(button, entry, box)
+	_place(button, entry, box, true)
 
 	var picture := TextureRect.new()
 	picture.texture = art
@@ -536,8 +542,11 @@ func _make_map_building(entry: Dictionary, art: Texture2D) -> Control:
 	label.add_theme_font_size_override("font_size", 15)
 	label.add_theme_color_override("font_color",
 		MenuSupport.COLOUR_TEXT if unlocked else MenuSupport.COLOUR_TEXT_DIM)
+	# On the picture's bottom edge rather than under it, so a building at
+	# the bottom of the screen keeps its name on screen.
 	label.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	label.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(label)
 	# Set here, not by TextBackdrop.give(): that skips words inside a Button,
