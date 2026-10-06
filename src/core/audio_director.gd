@@ -125,6 +125,10 @@ var _queued: Array[Dictionary] = []
 
 func _ready() -> void:
 	db = AudioDB.get_db()
+	# ROUND AN: the Music, Effects and UI buses exist before the first sound
+	# is played on one. Without them everything played on Master and only the
+	# Everything slider did anything. See GameSettings.ensure_buses().
+	GameSettings.ensure_buses()
 	for i in VOICES:
 		var voice := AudioStreamPlayer.new()
 		voice.name = "Voice%d" % i

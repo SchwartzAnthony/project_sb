@@ -5879,6 +5879,40 @@ The paintings are in `art_source/openai/settings_layers/` and
 `art_source/openai/save_layers/`; their `Pixelate.csv` rows are
 `keller_...` and `trophy_...`.
 
+### Settings now work, and there is a Save button (round AN)
+
+**The bug:** moving the volume sliders changed nothing. The game had only
+one sound channel (Godot calls it a *bus*), Master, so every sound that
+asked for Music, Effects or UI played on Master, and the Music slider turned
+down a channel that did not exist. The sliders were also named SFX and
+Voice while `Audio.csv` says Effects and UI. Text size did nothing either.
+
+**Now:**
+- **Every change happens at once** (drag Music and the music gets quieter
+  while you drag) but is **only kept when you press Save**.
+- **Back with unsaved changes asks:** Save, Don't save, or Stay. Leaving any
+  other way puts the saved settings back.
+- **Key bindings and the language** still save the moment you change them.
+- **Text size** makes every bit of writing in the game bigger or smaller.
+- **Vibration** is a switch only: nothing in the game shakes the pad yet.
+
+**`data/SoundBuses.csv`** is the list of sound channels, one row each, top
+to bottom = the sliders on the Sound tab:
+
+| column | |
+|---|---|
+| `Bus` | the name `Audio.csv` uses in its Bus column: Master, Music, Effects, UI, Voice |
+| `Slider` | the words beside the slider |
+| `Setting` | where `settings.json` keeps it. Don't rename an old one, or players lose their volume |
+| `Default` | 0 to 1 on a fresh install |
+
+Add a row and the game makes a new channel with its own slider; then point
+`Audio.csv` rows at it. An `Audio.csv` row naming a channel that isn't in
+this list plays on Master and is named in the startup report.
+
+**`settings_unsaved_on_leave`** in `Tuning.csv`: `ask` (the window),
+`save` (save without asking) or `discard` (throw them away without asking).
+
 ### The menu music now carries on
 
 **The title music keeps playing in Settings and on the save screen, without
