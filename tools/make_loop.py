@@ -26,7 +26,10 @@
 #                these seconds of the track (e.g. the part you like best).
 #                Blank = the whole track.
 #    Crossfade   seconds the end is blended into the start (0.2-1 is good)
-#    Loudness    average loudness in dB (-16 is a sensible music level;
+#    Fade Out    round AL: seconds at the end that slowly fade to silence
+#                before the loop starts again (0 / blank = no fade)
+#    Loudness    "keep" = exactly as loud as the file; otherwise the
+#                average loudness in dB (-16 is a sensible music level;
 #                the volume in Audio.csv is applied on top of this)
 #    Notes       anything
 #
@@ -147,11 +150,19 @@ def make(row):
         ramp = np.linspace(0.0, 1.0, x)
         # Equal-power blend: the tail after the loop end fades out over the start.
         loop[:, :x] = loop[:, :x] * np.sin(ramp * np.pi / 2) + y[:, b:b + x] * np.cos(ramp * np.pi / 2)
+    # Fade Out: the last seconds of the loop slowly go quiet, so the song
+    # ends gently before it starts again from the top.
+    fade = num(row, "Fade Out", 0.0) or 0.0
+    if fade > 0:
+        n = min(loop.shape[1], int(fade * SR))
+        loop[:, -n:] *= np.cos(np.linspace(0.0, 1.0, n) * np.pi / 2) ** 2
     # Loudness: scale the average (RMS) to the Loudness row, never clip.
-    target = num(row, "Loudness", -16.0)
-    rms = float(np.sqrt(np.mean(loop ** 2))) or 1e-9
-    gain = min(10 ** (target / 20) / rms, 0.92 / float(np.max(np.abs(loop))))
-    loop *= gain
+    # "keep" = leave the song exactly as loud as it is.
+    if (row.get("Loudness") or "").strip().lower() != "keep":
+        target = num(row, "Loudness", -16.0)
+        rms = float(np.sqrt(np.mean(loop ** 2))) or 1e-9
+        gain = min(10 ** (target / 20) / rms, 0.92 / float(np.max(np.abs(loop))))
+        loop *= gain
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         wav = os.path.join(tmp, "loop.wav")
