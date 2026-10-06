@@ -4,8 +4,8 @@
 #
 #      ~/.venvs/sturmball/bin/python tools/make_base_town.py
 #
-#  Reads data/BaseTown.csv - one row per PixelLab part (the town floor with
-#  its streets and empty plots, the pitch, the trees) - and builds:
+#  Reads data/BaseTown.csv - one row per PixelLab part (the valley ground,
+#  the pitch, clouds, boats, the maypole, trees) - and builds:
 #
 #      assets/base/background.png               the base screen's backdrop
 #      art_source/aseprite/base_town.aseprite   every part on its own layer
@@ -15,8 +15,8 @@
 #  cuts a piece out of a bigger picture; the piece keeps its place, so the
 #  pitch cut from the ground lands exactly on the ground.
 #
-#  The buildings stand on the empty plots: their X and Y in Buildings.csv are
-#  the plot centres listed in the ground row's Notes.
+#  Every row is its own layer in the Aseprite file, so a part can be
+#  repainted alone; this script then fuses them into the one picture.
 #
 #  Scale is a whole number with no smoothing, so pixels stay square.
 #  New part: make it in PixelLab, save it in art_source/pixellab/base_town/,

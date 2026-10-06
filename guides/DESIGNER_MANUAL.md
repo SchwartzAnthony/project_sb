@@ -3411,25 +3411,31 @@ rule, `src/ui/text_backdrop.gd`, so a label added later gets it too.
 
 ### The base town map — `data/BaseTown.csv`
 
-The base is a small town seen from above (round AN): cobbled streets, a ring
-road round the **pitch in the middle**, a stream, trees and **nine empty
-fenced plots** where the buildings will stand. No buildings are drawn yet.
+The base is the valley the town stands in, seen from a hill like a 1990s
+comic album panorama (round AN, take 2, after Anthony's two example maps):
+sky and far fields, the river with its stone bridge and jetty, cobbled lanes,
+open meadow and **the football pitch in the middle**. There are **no
+buildings and no plots**: the buildings come later, large, and each building
+picture will itself be the button.
 
-One row per PixelLab part (`art_source/pixellab/base_town/`). `X`, `Y` are the
-top-left corner in screen pixels (1920 x 1080); `Scale` is a whole number (the
-ground is 640 x 360 drawn x3, the trees x2 like the match village); `Crop`
-(`x,y,width,height`) cuts a piece out of a bigger picture onto its own layer
-(the pitch is cut from the ground that way). Then:
+One row per PixelLab part (`art_source/pixellab/base_town/`): the ground,
+the pitch (cut from the ground with `Crop`), two clouds, two boats, the
+maypole, firs and two big front trees. `X`, `Y` are the top-left corner in
+screen pixels (1920 x 1080); `Scale` is a whole number (the ground is
+640 x 360 drawn x3; far things x1, near things x2 or x3); `Flip h` mirrors;
+`Crop` (`x,y,width,height`) cuts a piece out of a bigger picture onto its own
+layer. Then:
 
 ```
 ~/.venvs/sturmball/bin/python tools/make_base_town.py
 ```
 
-writes `assets/base/background.png` and `art_source/aseprite/base_town.aseprite`
-with every part on its own layer. **Each building's `X`, `Y` in Buildings.csv
-is the centre of a plot**; the nine plot centres are in the ground row's
-Notes. `base_map_shade` in Tuning.csv darkens the map so the plaques read
-(0 = full colour). The old yard picture is in `art_source/legacy/base/`.
+fuses the layers into `assets/base/background.png` and writes
+`art_source/aseprite/base_town.aseprite` with **every part on its own layer**,
+for editing in Aseprite. The building plaques (Buildings.csv `X`, `Y`) sit on
+open ground until the building pictures exist. `base_map_shade` in
+Tuning.csv darkens the map (0 = full colour). The first, top-down try is in
+`art_source/legacy/base/round_an_try1/`; the old yard in `art_source/legacy/base/`.
 
 ### The layers
 
@@ -5383,7 +5389,7 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | **find out why a sound is silent** | `tools/audio_check.gd`. It is nearly always a missing file |
 | **change how big the pitch is** | the `pitch` row of `Stadium.csv`. It has to stay 16:9 |
 | **change the village round the pitch** | `data/VillageGround.csv`, then `tools/make_village.py` (section 8b) |
-| **change the base town map** | `data/BaseTown.csv`, then `tools/make_base_town.py`. Buildings stand on its plots (Buildings.csv X, Y) |
+| **change the base town map** | `data/BaseTown.csv`, then `tools/make_base_town.py` (one layer per part in `base_town.aseprite`) |
 | **move the white lines in or out** | `pitch_inset_x` and `pitch_inset_y` in `Tuning.csv` - this moves the zones too - then `tools/make_pitch.py` |
 | **see more or less of the village** | `camera_wide_ground` in `Tuning.csv` |
 | **make the item icons bigger** | `icon_tile_size` in `Tuning.csv` |
