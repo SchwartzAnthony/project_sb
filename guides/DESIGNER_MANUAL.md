@@ -5837,11 +5837,11 @@ that's already playing, the game no longer restarts it; it only glides to
 the new Volume. Use the same trick to carry any music across screens: same
 Sound, different Volume.
 
-**The menu loop is longer:** 16 bars (29.9 s) instead of 8. It still opens
-right on the heavy tuba hit and plays the whole tuba part, then the lighter
-part after it, which builds back up into the tuba again. To go back to only
-the tuba part, set `Bars` 8 and `Length` 14.932 in the `suno_menu` row of
-`MusicLoops.csv`.
+**The menu song now plays all the way through,** then starts again
+smoothly. Its last 3.3 seconds fade out while the start of the song fades in
+over them, and the join is on the beat: the loop is exactly 30 bars from the
+first beat. That's the `suno_menu` row of `MusicLoops.csv`: Start 0.221,
+Length 56.436, Crossfade 3.3. A longer Crossfade makes the join softer.
 
 **Button sounds are 6 dB quieter:** `menu_hover` is −20, and `menu_click`,
 `menu_start` and `menu_back` are −12. The same four sounds play on every
