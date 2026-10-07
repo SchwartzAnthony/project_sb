@@ -416,11 +416,14 @@ func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: boo
 	# The name, and what it needs, on a see-through black plate.
 	var plate := PanelContainer.new()
 	plate.add_theme_stylebox_override("panel", TextBackdrop.plate())
-	plate.anchor_left = 0.0
-	plate.anchor_right = 1.0
+	plate.anchor_left = 0.5
+	plate.anchor_right = 0.5
 	plate.anchor_top = 1.0
 	plate.anchor_bottom = 1.0
+	plate.offset_left = -130.0
+	plate.offset_right = 130.0
 	plate.offset_top = -44.0
+	plate.z_index = 2      # names always on top of a neighbouring machine
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var words := VBoxContainer.new()
 	words.add_theme_constant_override("separation", 0)

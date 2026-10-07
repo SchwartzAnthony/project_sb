@@ -416,7 +416,7 @@ squad_art_f,class_Normal_female.png|class_Normal_female_blonde.png|class_Normal_
 match_talk_text_size,32,"ROUND AN. How big the words are in the Head Coach's box over the pitch (data/MatchTalk.csv). The font is a pixel font drawn 16 high, so 16, 32 and 48 are the crispest."
 brewery_background,brewery,"ROUND AN (your note). The picture behind the Brewery screen: a StoryArt.csv ID, the SAME one the Brewer's scene (Dialogue.csv brewery-intro) uses, so both look alike. Blank = no picture. Until the art exists the screen looks as before."
 brewery_background_shade,0.45,"ROUND AN. How dark the see-through black sheet over the Brewery's picture is, so its windows stay readable. 0 = the picture at full colour."
-brewery_machine_size,200,"ROUND AN (your note: the machines are the buttons). How big each Brewery machine is drawn, in pixels. Where it stands is X / Y in BrewerySections.csv; its picture is the Art column."
+brewery_machine_size,384,"ROUND AN (your note: double the size). How big each Brewery machine is drawn, in pixels: 384 = the 128-pixel PixelLab picture at exactly 3x, so the pixels stay crisp (it was 200). Where it stands is X / Y in BrewerySections.csv; its picture is the Art column."
 shop_background,merchant_shop,"ROUND AN (your note). The picture behind the Traveling Merchant's shop: a StoryArt.csv background ID (the art thread is drawing it). Blank or not there yet = the shop looks as before."
 shop_background_shade,0.45,"ROUND AN. How dark the see-through black sheet over the shop's picture is."
 shop_keeper,merchant,"ROUND AN. The Traveling Merchant behind his counter, bottom right of his shop: a StoryArt.csv portrait ID. Blank or not there yet = no face."
