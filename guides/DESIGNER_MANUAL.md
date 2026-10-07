@@ -6380,7 +6380,23 @@ tackle animation.
   **Loop** as in `Animations.csv`. **PixelLab** is the animation's name in
   the PixelLab export.
 
-**Four Tuning.csv dials:** `pitch_sheet_cell` (frame size, 72),
+**Six looks for The Club** (Anthony: no red nose, and people of different
+skin colours and backgrounds in the same comic style). Men: light skin and
+brown hair (`club_m1`), dark brown skin and curly hair (`club_m2`), olive
+skin and a beard (`club_m3`); every man gets one of the three by name.
+Women follow their off-pitch look: ponytail = light skin, blonde ponytail
+(`club_f1`); plaits = brown skin, dark plaits (`club_f2`); bob = East Asian,
+black bob (`club_f3`). All six were drawn with PixelLab's style copy of the
+approved player, so they match. Add a look: draw it, build its sheet, add
+its file to the right row of `PitchSprites.csv` with `|`.
+
+**Grey when not in play** (Anthony: the grey shows who is not in the Play
+Maker session, so you can follow the play). A player in the session is in
+full colour; everyone else is drained of colour, and a spent player is also
+dark. `pitch_sprite_rest_saturation` (0 = fully grey, 1 = full colour) and
+`pitch_sprite_rest_brightness` set how strong it is.
+
+**More Tuning.csv dials:** `pitch_sheet_cell` (frame size, 72),
 `pitch_sprite_scale` (how big they are drawn), `pitch_sprite_lift` (moves
 the figure up so the feet sit on the spot), `pitch_ground_squash` (how flat
 the tilted ground is; it decides when a run counts as north-east rather

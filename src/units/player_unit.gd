@@ -305,9 +305,11 @@ func _apply_artwork() -> void:
 		_anim_name = ""
 		_last_spot = global_position
 		_show_anim("idle")
+		_tint_pitch_figure(is_playmaker)
 		return
 	artwork.scale = Vector2.ONE
 	artwork.position = Vector2.ZERO
+	artwork.material = null
 	artwork.texture = data.active_artwork()
 	artwork.hframes = SHEET_HFRAMES
 	artwork.vframes = SHEET_VFRAMES
@@ -327,19 +329,43 @@ func update_unit_data(new_data: PlayerData) -> void:
 func set_highlight(is_highlighted: bool) -> void:
 	if artwork == null:
 		return
+	if pitch_sheet:
+		_tint_pitch_figure(is_highlighted or is_playmaker)
+		return
 	# Stay bright while locked in as this round's playmaker.
 	if is_highlighted or is_playmaker:
 		artwork.modulate = Color(1.2, 1.2, 1.2, 1.0)
 	elif is_exhausted:
 		artwork.modulate = Color(0.25, 0.25, 0.3, 1.0)  # spent this cycle
-	elif pitch_sheet:
-		# ROUND AN: the isometric figures are drawn with their own shading,
-		# and at 0.4 they read as black shapes. Tuning.csv says how bright.
-		var db := CardDatabase.get_db()
-		var rest := db.tune_float("pitch_sprite_rest_brightness", 0.85) if db != null else 0.85
-		artwork.modulate = Color(rest, rest, rest, 1.0)
 	else:
 		artwork.modulate = Color(0.4, 0.4, 0.4, 1.0)
+
+
+const PITCH_COLOUR_SHADER := preload("res://assets/shaders/pitch_colour.gdshader")
+
+
+## ROUND AN (Anthony: grey shows who is not in the Play Maker session, so
+## the player can follow the play). An isometric figure in the session is in
+## full colour; everybody else is drained of colour, and a spent one is dark
+## as well. All three from Tuning.csv.
+func _tint_pitch_figure(in_play: bool) -> void:
+	var mat := artwork.material as ShaderMaterial
+	if mat == null:
+		mat = ShaderMaterial.new()
+		mat.shader = PITCH_COLOUR_SHADER
+		artwork.material = mat
+	var db := CardDatabase.get_db()
+	var rest := db.tune_float("pitch_sprite_rest_brightness", 1.0) if db != null else 1.0
+	var grey := db.tune_float("pitch_sprite_rest_saturation", 0.0) if db != null else 0.0
+	if in_play:
+		mat.set_shader_parameter("saturation", 1.0)
+		artwork.modulate = Color(1.15, 1.15, 1.15, 1.0)
+	elif is_exhausted:
+		mat.set_shader_parameter("saturation", grey)
+		artwork.modulate = Color(0.45, 0.45, 0.45, 1.0)
+	else:
+		mat.set_shader_parameter("saturation", grey)
+		artwork.modulate = Color(rest, rest, rest, 1.0)
 
 
 func reset_for_new_cycle() -> void:

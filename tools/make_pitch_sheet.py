@@ -40,6 +40,31 @@ def tuning(key, default):
     return default
 
 
+def drop_specks(im, smallest=6):
+    """PixelLab sometimes leaves loose dots round a figure (a dotted halo,
+    a stray pixel). Any separate patch smaller than `smallest` pixels goes."""
+    px = im.load()
+    w, h = im.size
+    seen = set()
+    for y in range(h):
+        for x in range(w):
+            if (x, y) in seen or px[x, y][3] == 0:
+                continue
+            patch, todo = [], [(x, y)]
+            seen.add((x, y))
+            while todo:
+                cx, cy = todo.pop()
+                patch.append((cx, cy))
+                for nx, ny in ((cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)):
+                    if 0 <= nx < w and 0 <= ny < h and (nx, ny) not in seen and px[nx, ny][3] > 0:
+                        seen.add((nx, ny))
+                        todo.append((nx, ny))
+            if len(patch) < smallest:
+                for cx, cy in patch:
+                    px[cx, cy] = (0, 0, 0, 0)
+    return im
+
+
 def anims():
     with open(os.path.join(HERE, "data/PitchAnims.csv"), newline="", encoding="utf-8") as f:
         return [r for r in csv.DictReader(f) if r.get("Animation", "").strip()]
@@ -66,7 +91,7 @@ def main():
     layers = []
 
     def paste(target, path, col, row):
-        im = Image.open(os.path.join(src, path)).convert("RGBA")
+        im = drop_specks(Image.open(os.path.join(src, path)).convert("RGBA"))
         x = col * cell + (cell - im.width) // 2
         y = row * cell + (cell - im.height) // 2
         target.alpha_composite(im, (max(0, x), max(0, y)))
@@ -80,9 +105,10 @@ def main():
         for d, direction in enumerate(DIRECTIONS):
             frames = got.get(direction)
             if not frames:
-                # Missing direction: the standing drawing, so nobody vanishes.
+                # Missing direction: the standing drawing in every frame, so
+                # nobody vanishes.
                 print(f"  {anim}: no {direction} in the export, using the standing pose")
-                frames = [rotations[direction]]
+                frames = [rotations[direction]] * int(r["Frames"])
             counts.add(len(frames))
             for i, path in enumerate(frames[:cols]):
                 paste(layer, path, i, first + d)

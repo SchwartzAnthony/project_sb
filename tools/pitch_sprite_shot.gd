@@ -11,6 +11,7 @@ extends SceneTree
 #      godot --path . --resolution 1920x1080 --script res://tools/pitch_sprite_shot.gd
 #
 #  Frames land in user://pitch_shot/. A tool, not part of the game.
+#  PITCH_SHOT_SECONDS, PITCH_SHOT_WAIT and PITCH_SHOT_SHEET change what it does.
 # =============================================================
 
 var _scene: Node
@@ -19,6 +20,14 @@ var _shot := 0
 
 func _initialize() -> void:
 	await process_frame
+	# PITCH_SHOT_SHEET=some_sheet.png dresses every Club player in that one
+	# sheet, to compare two drawings in the same match.
+	seed(7)
+	var only := OS.get_environment("PITCH_SHOT_SHEET")
+	if only != "":
+		PitchSprite.reload()
+		for key in PitchSprite._wears.keys():
+			PitchSprite._wears[key] = only
 	_pick_the_club()
 	MatchMode.choose(self, "friendly")
 	change_scene_to_file("res://src/formations/main_scene.tscn")

@@ -1,6 +1,6 @@
 Wears,Pitch Sheet,Notes
-class_Normal.png,club_m.png,"ROUND AN (isometric players). Who plays in which isometric pitch sheet. Wears = the card's own sheet file name, its card name, or its class. The file name is tried first, then the name, then the class. Pitch Sheet = a sheet in assets/players/pitch/ (tools/make_pitch_sheet.py). Several separated by | : each player gets one and keeps it. A card with no row here plays on its old sheet, as before."
-class_Normal_female.png,club_f.png,The club's women (Tuning.csv squad_art_f).
-class_Normal_female_blonde.png,club_f.png,
-class_Normal_female_bob.png,club_f.png,
-Normal,club_m.png,"Every other card of The Club. Cards, duels and portraits still use the card's own sheet: this is for the pitch only."
+class_Normal.png,club_m1.png|club_m2.png|club_m3.png,"ROUND AN (isometric players). Who plays in which isometric pitch sheet. Wears = the card's own sheet file name, its card name, or its class. The file name is tried first, then the name, then the class. Pitch Sheet = a sheet in assets/players/pitch/ (tools/make_pitch_sheet.py). Several separated by | : each player gets one by name and keeps it. A card with no row here plays on its old sheet, as before. The Club's men: light skin and brown hair | dark brown skin and curly hair | olive skin and a beard."
+class_Normal_female.png,club_f1.png,The club's women (Tuning.csv squad_art_f). Ponytail: light skin and a blonde ponytail.
+class_Normal_female_blonde.png,club_f2.png,Plaits: brown skin and dark brown plaits.
+class_Normal_female_bob.png,club_f3.png,Bob: East Asian with a black bob.
+Normal,club_m1.png|club_m2.png|club_m3.png,"Every other card of The Club. Cards, duels and portraits still use the card's own sheet: this is for the pitch only."
