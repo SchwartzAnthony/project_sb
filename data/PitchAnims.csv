@@ -1,0 +1,7 @@
+Animation,First Row,Frames,FPS,Loop,PixelLab,Notes
+idle,0,4,6,true,idle,"ROUND AN (isometric players). Standing still, facing the ball. Each animation takes 8 rows, one per direction, in this order: east, south-east, south, south-west, west, north-west, north, north-east. First Row is the east row."
+run,8,8,14,true,run,"Running, toward wherever the player is going. Also used while being walked into the goal huddle."
+kick,16,9,16,false,kick_noball,"A pass or a shot, facing the ball's way. No ball in the drawing: the game draws its own."
+tackle,24,6,12,false,tackle,"A sliding tackle when this player wins the ball, and the scorer's knee slide in a goal celebration."
+fall,32,7,12,false,fall,"Knocked over when this player loses the ball to a tackle."
+cheer,40,9,10,true,cheer,"After a goal, the scoring side cheers whenever they stand still."

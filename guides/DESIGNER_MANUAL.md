@@ -6354,6 +6354,50 @@ After a change, run `~/.venvs/sturmball/bin/python tools/mix_cheers.py`,
 then rebuild the loop. To go back to the plain song, set the `suno_menu`
 Source in `MusicLoops.csv` to `menu_untitled.wav`.
 
+## 16f. The isometric players on the pitch (round AN)
+
+On the tilted pitch every player is a small isometric figure that turns to
+face one of **8 directions** and plays its own **idle, run, kick, tackle,
+fall and cheer**. These pitch sheets are for the pitch only: cards, duels,
+portraits and the story keep each card's own 12 × 39 sheet.
+
+**What plays when:** run while a player moves (facing where they go); idle,
+facing the ball, while they stand; kick on every pass and shot (the game
+draws its own ball, so the drawing has none); tackle when they win the ball,
+and fall for the player who lost it; cheer for the scoring side whenever
+they stand still during a goal celebration. The scorer's knee slide is the
+tackle animation.
+
+**Two spreadsheets:**
+- `data/PitchSprites.csv` — who wears which sheet. **Wears** is the card's
+  own sheet file name (`class_Normal_female_bob.png`), its card name, or its
+  class (`Normal`); the file name is tried first. **Pitch Sheet** is a file
+  in `assets/players/pitch/`. List several with `|` and each player gets one
+  and keeps it. A card with no row plays on its old sheet, as before.
+- `data/PitchAnims.csv` — where each animation sits on a sheet. Each takes 8
+  rows from **First Row**, one per direction: east, south-east, south,
+  south-west, west, north-west, north, north-east. **Frames**, **FPS** and
+  **Loop** as in `Animations.csv`. **PixelLab** is the animation's name in
+  the PixelLab export.
+
+**Four Tuning.csv dials:** `pitch_sheet_cell` (frame size, 72),
+`pitch_sprite_scale` (how big they are drawn), `pitch_sprite_lift` (moves
+the figure up so the feet sit on the spot), `pitch_ground_squash` (how flat
+the tilted ground is; it decides when a run counts as north-east rather
+than east).
+
+**Making a sheet:** animate the character in PixelLab, download it (the
+character's Download button), unzip it into
+`art_source/pixellab/iso_players/<name>/`, then run
+`~/.venvs/sturmball/bin/python tools/make_pitch_sheet.py art_source/pixellab/iso_players/<name> <name>`.
+It writes the sheet, a layered Aseprite file (one layer per animation) in
+`art_source/aseprite/players/pitch/`, and a preview GIF next to the export:
+one row per animation, one column per direction. A missing direction is
+filled with the standing pose and the script says so.
+
+**To watch it in a match:** `godot --path . --script res://tools/pitch_sprite_shot.gd`
+plays a Club match and saves frames round the ball into `user://pitch_shot/`.
+
 ## 17. A short glossary
 
 **Tier** — one of four slots your squad is built in. See section 2.

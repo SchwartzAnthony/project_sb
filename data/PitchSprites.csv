@@ -1,0 +1,6 @@
+Wears,Pitch Sheet,Notes
+class_Normal.png,club_m.png,"ROUND AN (isometric players). Who plays in which isometric pitch sheet. Wears = the card's own sheet file name, its card name, or its class. The file name is tried first, then the name, then the class. Pitch Sheet = a sheet in assets/players/pitch/ (tools/make_pitch_sheet.py). Several separated by | : each player gets one and keeps it. A card with no row here plays on its old sheet, as before."
+class_Normal_female.png,club_f.png,The club's women (Tuning.csv squad_art_f).
+class_Normal_female_blonde.png,club_f.png,
+class_Normal_female_bob.png,club_f.png,
+Normal,club_m.png,"Every other card of The Club. Cards, duels and portraits still use the card's own sheet: this is for the pitch only."

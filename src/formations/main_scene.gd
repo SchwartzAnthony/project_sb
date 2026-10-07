@@ -6339,6 +6339,12 @@ func _celebrate_goal(scorer: PlayerUnit, scored_by_player: bool) -> void:
 		for unit in _all_units():
 			unit.plate_hidden = unit != scorer
 
+	# ROUND AN: the scoring side cheers whenever it stands still (the
+	# isometric pitch figures, src/core/pitch_sprite.gd).
+	for unit in _all_units():
+		unit.celebrating = scorer != null and is_instance_valid(scorer) \
+			and unit.is_enemy == scorer.is_enemy
+
 	for i in beats.size():
 		if not is_instance_valid(show) or show.was_cut():
 			break
@@ -6389,6 +6395,7 @@ func _celebrate_goal(scorer: PlayerUnit, scored_by_player: bool) -> void:
 	for unit in _all_units():
 		unit.stand_up()
 		unit.plate_hidden = false
+		unit.celebrating = false
 	freeze_play(false)
 
 

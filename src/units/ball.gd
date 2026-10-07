@@ -339,6 +339,9 @@ func is_delivering() -> bool:
 ## Strike the ball at a point — the keeper, or the goal mouth behind them.
 ## Nobody can intercept or tackle a shot; `shot_arrived` fires on impact.
 func shoot(target: Vector2) -> void:
+	# ROUND AN: the shooter's isometric figure kicks (src/core/pitch_sprite.gd).
+	if is_instance_valid(carrier):
+		carrier.play_once("kick", target - carrier.global_position)
 	carrier = null
 	_in_flight = false
 	_intended = null
@@ -538,6 +541,8 @@ func _try_tackle() -> bool:
 		if unit.global_position.distance_to(global_position) <= tackle_radius:
 			var victim := carrier
 			victim.steal_cooldown = tackle_recovery
+			unit.play_once("tackle", victim.global_position - unit.global_position)
+			victim.play_once("fall", victim.global_position - unit.global_position)
 			_take(unit, false)
 			tackled.emit(unit, victim)
 			return true
@@ -644,6 +649,7 @@ func make_pass(hurried: bool = false) -> void:
 	_distance = maxf(_from.distance_to(_to), 1.0)
 	_travelled = 0.0
 	_intended = target
+	carrier.play_once("kick", _to - _from)
 	carrier = null
 	_in_flight = true
 
