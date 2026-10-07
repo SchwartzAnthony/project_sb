@@ -40,8 +40,41 @@ func _ready() -> void:
 		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	db = CardDatabase.get_db()
 	state = GameState.fetch(get_tree())
+	# ROUND AN: his shop behind it and him in it - StoryArt.csv IDs named in
+	# Tuning.csv shop_background / shop_keeper. Nothing there yet = as before.
+	StoryArt.add_backdrop(self, db.tune_text("shop_background", "merchant_shop"),
+		db.tune_float("shop_background_shade", 0.45))
 	_build_chrome()
+	_add_keeper()
 	_rebuild()
+	(func() -> void: Guide.check(self, "shop", state)).call_deferred()
+
+
+## The Traveling Merchant behind his counter, bottom right: his StoryArt.csv
+## face (the Portrait ID in Tuning.csv shop_keeper).
+func _add_keeper() -> void:
+	var face_id := db.tune_text("shop_keeper", "merchant").strip_edges()
+	if face_id == "":
+		return
+	var row := StoryArt.get_db().portrait_for(face_id, "", "", "front")
+	var path := String(row.get("image", ""))
+	if path == "" or not ResourceLoader.exists(path):
+		return
+	var face := TextureRect.new()
+	face.texture = load(path) as Texture2D
+	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	face.anchor_left = 1.0
+	face.anchor_right = 1.0
+	face.anchor_top = 1.0
+	face.anchor_bottom = 1.0
+	face.offset_left = -300
+	face.offset_right = -20
+	face.offset_top = -320
+	face.offset_bottom = -20
+	add_child(face)
 
 
 func _build_chrome() -> void:

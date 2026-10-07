@@ -78,6 +78,8 @@ func _ready() -> void:
 
 	_build_chrome()
 	_rebuild()
+	# ROUND AN: the Head Coach's Guide.csv rows for the Brewery.
+	(func() -> void: Guide.check(self, "brewery", state)).call_deferred()
 
 
 # =============================================================
@@ -92,31 +94,8 @@ func _ready() -> void:
 ## sheet so the windows read on it. No rows, or no picture yet = the screen
 ## looks exactly as it did before.
 func _build_backdrop() -> void:
-	var art_id := db.tune_text("brewery_background", "brewery").strip_edges()
-	if art_id == "":
-		return
-	var shown := 0
-	for layer in StoryArt.get_db().background_layers(art_id):
-		var path := String(layer["image"])
-		if not ResourceLoader.exists(path):
-			print("[brewery] StoryArt.csv '%s' has no picture at %s yet." % [art_id, path])
-			continue
-		var picture := TextureRect.new()
-		picture.texture = load(path) as Texture2D
-		picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(picture)
-		shown += 1
-	if shown == 0:
-		return
-	var shade := ColorRect.new()
-	shade.color = Color(0, 0, 0, clampf(db.tune_float("brewery_background_shade", 0.45), 0.0, 1.0))
-	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(shade)
+	StoryArt.add_backdrop(self, db.tune_text("brewery_background", "brewery"),
+		db.tune_float("brewery_background_shade", 0.45))
 
 
 func _build_chrome() -> void:
@@ -469,6 +448,7 @@ func _work(section_id: String) -> void:
 
 	state.save_to_disk()
 	_rebuild()
+	(func() -> void: Guide.check(self, "brewery", state)).call_deferred()
 
 
 func _say(words: String, good: bool) -> void:

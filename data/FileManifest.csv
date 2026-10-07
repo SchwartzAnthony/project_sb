@@ -342,3 +342,5 @@ class_Normal_female_blonde.png,assets/players/,Art you drew,"ROUND AN. A second 
 class_Normal_female_bob.png,assets/players/,Art you drew,"ROUND AN. A third women's look: short black bob, club kit (PixelLab). Tuning.csv squad_art_f"
 EnemyIntroSquad.csv,data/,A spreadsheet you edit,"ROUND AN. The opposition in your FIRST MATCH: twelve plain Rivals players, no Stars, no brew"
 EnemyIntroSquad2.csv,data/,A spreadsheet you edit,"ROUND AN. The opposition in your SECOND MATCH: plain players and the plain Stars Bauer, Richter and Klein (+1 to the next normal player)"
+Guide.csv,data/,A spreadsheet you edit,"ROUND AN. The Head Coach explains a screen: a Dialogue scene in a box over the base, the Brewery, the Adventure board or the shop, and a button that lights up"
+guide.gd,src/core/,"Engine. Rules, loaders and shared helpers","ROUND AN. Reads Guide.csv, shows its boxes over a screen and lights up the named button"

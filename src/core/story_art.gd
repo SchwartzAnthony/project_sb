@@ -141,6 +141,38 @@ func background_layers(id: String) -> Array:
 	return backgrounds.get(CardDatabase._normalise(id), [])
 
 
+## ROUND AN: put the background `id` behind a screen (the Brewery, the
+## Traveling Merchant's shop), with a see-through black sheet of `shade` over
+## it so the windows read. Returns false - and adds nothing - when the ID has
+## no rows or no picture exists yet, so the screen looks as it always did.
+static func add_backdrop(host: Control, id: String, shade: float) -> bool:
+	if host == null or id.strip_edges() == "":
+		return false
+	var shown := 0
+	for layer in get_db().background_layers(id):
+		var path := String(layer["image"])
+		if not ResourceLoader.exists(path):
+			print("[story art] '%s' has no picture at %s yet." % [id, path])
+			continue
+		var picture := TextureRect.new()
+		picture.texture = load(path) as Texture2D
+		picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		host.add_child(picture)
+		shown += 1
+	if shown == 0:
+		return false
+	var sheet := ColorRect.new()
+	sheet.color = Color(0, 0, 0, clampf(shade, 0.0, 1.0))
+	sheet.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sheet.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(sheet)
+	return true
+
+
 func _cell(row: PackedStringArray, columns: Dictionary, key: String) -> String:
 	if not columns.has(key):
 		return ""

@@ -14,7 +14,11 @@ extends SceneTree
 #    3. the first match: IntroSquad.csv - Koch (Tier IV Power 3) and random players, no Stars
 #    4. full time -> star-intro in the bar -> back at the base -> the
 #       SECOND MATCH starts (intro2): the same players, Koch and the Stars
-#    5. full time -> back to normal
+#    5. full time -> the Brewery opens, the Brewer's scene
+#    6. the Brewery window, the Head Coach's boxes, WORK IT lit up
+#    7. back at the base: the Adventure banner lit up, the board, the first
+#       team only, the run carried home
+#    8. straight to the Traveling Merchant, his intro, his beer
 #
 #  It answers every story line and plays both matches on AUTO, fast. At the
 #  end it prints PASS or FAIL for each step, and "NO TROUBLE" if all passed.
@@ -139,6 +143,78 @@ func _initialize() -> void:
 	_check(scene_now == "brewery-intro", "the Brewer's scene plays as the Brewery opens (%s)" % scene_now)
 	await _read_story(60.0)
 	_check(await _wait_for_scene("base", 20.0) != "", "brewery-intro comes back to the base")
+
+	# ---- 6. the Brewery tour (Guide.csv) ----
+	var brewery := await _wait_for_node(BreweryScreen, 10.0)
+	_check(brewery != null, "the Brewery window opens by itself after the Brewer's scene")
+	var box := await _wait_for_node(MatchTalkBox, 10.0)
+	_check(box != null, "the Head Coach's box is over the Brewery")
+	await _shot("5_brewery_box")
+	await _read_box(box)
+	var lit := await _wait_for_highlight(5.0)
+	_check(lit != null and lit is Button and (lit as Button).text == "WORK IT",
+		"the first WORK IT button is lit up")
+	await _shot("6_brewery_lit")
+	if lit != null:
+		(lit as Button).pressed.emit()
+	_check(state.count("res_malt") >= 1, "pressing it brews the first malt (%d)" % state.count("res_malt"))
+	box = await _wait_for_node(MatchTalkBox, 10.0)
+	_check(box != null, "the Head Coach says you are short and sends you out")
+	await _read_box(box)
+	await create_timer(1.0, true, false, true).timeout
+	_check(state.has_flag("intro_adventure") and _find(current_scene, "BreweryScreen") == null
+		and _scene_name().contains("base"), "the Brewery closes and you are at the base")
+
+	# ---- 7. the Adventure, with the first team only ----
+	# The "New at the base" list from the Brewer's scene is still up: Continue.
+	var news := await _wait_for_node(NewUnlocksPanel, 3.0)
+	if news != null:
+		news.call("_close")
+	box = await _wait_for_node(MatchTalkBox, 10.0)
+	_check(box != null, "at the base the Head Coach says: go on an Adventure")
+	await _read_box(box)
+	lit = await _wait_for_highlight(5.0)
+	_check(lit != null, "the Adventure banner is lit up")
+	await _shot("7_base_adventure_lit")
+	if lit != null:
+		(lit as BaseButton).pressed.emit()
+	_check(await _wait_for_scene("bounty", 10.0) != "", "it opens the Adventure board")
+	var board := current_scene
+	var jobs: Array = AdventureDB.get_db().bounties_in(String(board.get("_chosen_biome").get("id", "")), state)
+	if not jobs.is_empty():
+		board.call("_choose_bounty", jobs[0])
+	board.call("_on_start")
+	_check(String(MatchMode.current(self).get("id", "")) == "intro_adventure", "it is the first-Adventure mode")
+	var run_scene := ""
+	for i in 50:
+		await create_timer(0.2, true, false, true).timeout
+		if _scene_name().contains("adventure"):
+			run_scene = _scene_name()
+			break
+	_check(run_scene != "", "no team to pick: the Adventure starts at once (%s)" % _scene_name())
+	var picked_adv := TeamSelection.fetch(self)
+	_check(picked_adv != null and _names_of(picked_adv).has("Koch") and _names_of(picked_adv).has("Belial"),
+		"the party is your first team")
+	if run_scene != "":
+		await create_timer(2.0, true, false, true).timeout
+		current_scene.call("_go_home", false)   # carry the run home
+	_check(state.count("adventures_home") >= 1, "the run is carried home (count:adventures_home)")
+
+	# ---- 8. straight to the Traveling Merchant ----
+	var shop := await _wait_for_node(ShopScreen, 20.0)
+	_check(shop != null and state.is_unlocked("Traveling Tavern"), "home from the Adventure: the Traveling Merchant's shop opens")
+	box = await _wait_for_node(MatchTalkBox, 10.0)
+	_check(box != null, "the Traveling Merchant introduces himself")
+	await _shot("8_shop_intro")
+	await _read_box(box)
+	var offers := ShopBook.on_offer(state)
+	var beer := 0
+	for entry in offers:
+		if String(entry.get("sells", "")).contains("brew_"):
+			beer += 1
+	_check(beer >= 2, "he trades beer for what you carried home (%d beer rows)" % beer)
+	await create_timer(1.0, true, false, true).timeout
+	_check(_scene_name().contains("base"), "nothing more to do: you are at the base")
 	_check(String(MatchMode.stand_in_for("friendly", state)) == "friendly",
 		"after the intro, Play a match is an ordinary friendly again")
 	_finish()
@@ -302,6 +378,46 @@ func _enemy_of(scene: Node) -> Dictionary:
 		if card.attack_ability_id != "PLAIN_STAR_PUSH":
 			out["plain_push"] = false
 	return out
+
+
+func _wait_for_node(kind: Variant, seconds: float) -> Node:
+	var waited := 0.0
+	while waited < seconds:
+		var hit := _find_kind(root, kind)
+		if hit != null:
+			return hit
+		await create_timer(0.2, true, false, true).timeout
+		waited += 0.2
+	return null
+
+
+func _find_kind(node: Node, kind: Variant) -> Node:
+	if is_instance_of(node, kind):
+		return node
+	for child in node.get_children():
+		var hit := _find_kind(child, kind)
+		if hit != null:
+			return hit
+	return null
+
+
+func _read_box(box: Node) -> void:
+	for i in 40:
+		if box == null or not is_instance_valid(box):
+			return
+		box.call("_next")
+		await create_timer(0.1, true, false, true).timeout
+
+
+func _wait_for_highlight(seconds: float) -> Node:
+	var waited := 0.0
+	while waited < seconds:
+		var ring: Node = _find(root, "GuideHighlight")
+		if ring != null:
+			return ring.get_parent()
+		await create_timer(0.2, true, false, true).timeout
+		waited += 0.2
+	return null
 
 
 func _names_of(picked: TeamSelection) -> Array[String]:

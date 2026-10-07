@@ -3067,6 +3067,47 @@ What a brand-new save does, in order. Every step is a row you can edit.
 6. **At full time** `second_match_is_over` clears the flag, and Play a
    match is an ordinary friendly again.
 
+### After match two: the Brewery, an Adventure, the Traveling Merchant
+
+7. **At full time of match two**, `learn_to_brew` opens the Brewery and the
+   Malthouse, sets `flag:brewery_tour`, and plays `brewery-intro`.
+8. **Back at the base, the Brewery window opens by itself**
+   (`open_the_brewery`). The Head Coach's boxes and the lit-up WORK IT
+   button come from `data/Guide.csv` (below).
+9. **After the first malt**, he says you are short of ingredients.
+   `flag:intro_adventure` is set, and the window closes back to the base.
+10. **At the base**, he says go on an Adventure, and the Adventure banner
+    lights up. Nothing is forced.
+11. **The Adventure board** works as usual. While `intro_adventure` is on,
+    the only team is your first team (`MatchModes.csv intro_adventure`,
+    squad `IntroSquad2.csv`), so the run starts as soon as you press start.
+12. **Carry a run home** (`count:adventures_home` goes up by one) and the base
+    sends you straight to **the Traveling Merchant** (`meet_the_merchant`).
+    His intro is `Guide.csv shop_intro`, and he trades beer for Reed and Bog
+    Iron (`Shop.csv trade_fire_brew` / `trade_water_brew`; Reed and Bog Iron
+    are currencies in `Currencies.csv`). **The intro stops here for now.**
+
+A story scene that is missing never strands you. The screen says so for a
+moment, then carries on to wherever the scene was returning to: the base.
+
+### `data/Guide.csv`: the Head Coach explains a screen
+
+| column | what it does |
+|---|---|
+| **ID** | A name for the row. A row that has played sets `flag:guide_done_<ID>`, so the next row can wait for it. |
+| **Screen** | `base`, `brewery`, `shop` or `bounty` (the Adventure board). The screen asks when it opens, and again when it redraws. |
+| **Requires** | The usual condition language. |
+| **Scene** | A `Dialogue.csv` scene, shown in the box over the screen. The lines are placeholders for now. |
+| **Highlight** | The words on a button to light up after the box, such as `WORK IT` or `Adventure`. It pulses until it is pressed. |
+| **Then** | Progression Do actions after the box. `goto:base` closes a window that is open over the base. |
+| **Once** | `true` plays it only once. |
+
+The pictures come from `StoryArt.csv` IDs named in `Tuning.csv`.
+`brewery_background` (`brewery`) sits behind the Brewery screen, the same
+picture as the Brewer's scene. `shop_background` (`merchant_shop`) and
+`shop_keeper` (`merchant`) are the shop and his face. Until a picture exists,
+the screen looks as it always did.
+
 ### `MatchModes.csv`: two new columns
 
 | column | what it does |

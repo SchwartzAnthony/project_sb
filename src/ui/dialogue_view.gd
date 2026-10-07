@@ -640,3 +640,8 @@ func _show_missing_scene() -> void:
 		+ "[b]Node ID[/b] column and a [b]Text[/b] column. The Output panel lists "\
 		+ "every scene that did load.\n\nEsc to go back."
 	_typing = false
+	# ROUND AN (your note): never leave the player stuck on a missing scene.
+	# Say so in the Output panel and carry on to wherever the scene was
+	# going to return to - the base, from anywhere in the intro.
+	push_warning("[Story] No scene called '%s' - carrying on without it." % scene_name)
+	get_tree().create_timer(1.5).timeout.connect(_finish)

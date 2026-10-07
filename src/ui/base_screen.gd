@@ -389,6 +389,9 @@ func _exit(icon: String, label: String, box: Vector2 = EXIT_SIZE) -> Button:
 func _rebuild() -> void:
 	if _world == null:
 		return
+	# ROUND AN: the Head Coach's Guide.csv rows for the base, once the yard
+	# is drawn (and again after any window over it closes).
+	(func() -> void: Guide.check(self, "base", state)).call_deferred()
 	for child in _world.get_children():
 		child.queue_free()
 

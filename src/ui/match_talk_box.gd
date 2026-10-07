@@ -23,11 +23,14 @@ var _portrait: TextureRect
 var _name: Label
 var _text: Label
 var _was_paused := false
+## ROUND AN: false over a menu (Guide.csv) - nothing there needs to stop.
+var _pause := true
 
 
 ## Open the box with `scene` over whatever is on screen. Returns the box, or
 ## null when the scene has no line to show.
-static func play(host: Node, scene: String, state: GameState) -> MatchTalkBox:
+static func play(host: Node, scene: String, state: GameState,
+		pause: bool = true) -> MatchTalkBox:
 	var dialogue := DialogueDB.get_db()
 	var first := dialogue.opening_line(scene, state)
 	if first == null or host == null:
@@ -35,17 +38,19 @@ static func play(host: Node, scene: String, state: GameState) -> MatchTalkBox:
 	var box := MatchTalkBox.new()
 	box._db = dialogue
 	box._state = state
+	box._pause = pause
 	host.add_child(box)
 	box._show(first)
 	return box
 
 
 func _ready() -> void:
-	layer = 90
+	layer = 150   # above a window over the base (BaseWindow is 120)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_art = StoryArt.get_db()
 	_was_paused = get_tree().paused
-	get_tree().paused = true
+	if _pause:
+		get_tree().paused = true
 
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -177,6 +182,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _close() -> void:
 	if _state != null:
 		_state.save_to_disk()
-	get_tree().paused = _was_paused
+	if _pause:
+		get_tree().paused = _was_paused
 	finished.emit()
 	queue_free()

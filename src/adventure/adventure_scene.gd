@@ -1339,6 +1339,9 @@ func _go_home(claimed_bounty: bool) -> void:
 			DialogueGrammar.apply(reward, state)
 			print("[adventure] Bounty claimed: %s" % reward)
 
+	# ROUND AN: a run carried home is counted - count:adventures_home is what
+	# sends you to the Traveling Merchant after your first one (Progression.csv).
+	DialogueGrammar.apply("count:adventures_home+1", state)
 	state.save_to_disk()
 	AdventureRun.clear(get_tree())
 	print("[adventure] Home with: %s" % (", ".join(words) if not words.is_empty() else "nothing"))
