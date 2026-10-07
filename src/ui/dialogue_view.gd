@@ -4,7 +4,7 @@ extends Control
 # =============================================================
 #  THE STORY SCREEN
 #
-#  Full-screen: a backdrop, a character on the left or right, a name plate,
+#  Full-screen: a backdrop, the people in the scene (see THE STAGE), a name plate,
 #  a text box that types itself out, and up to four choices.
 #
 #  Everything on it comes from a row of Dialogue.csv. This file contains no
@@ -43,6 +43,9 @@ const MUSIC_DIRS: Array[String] = ["res://assets/music/", "res://assets/"]
 @export var type_speed: float = 45.0
 ## Where to go when the scene ends, if nobody said otherwise.
 @export var return_to_menu: bool = true
+## Seconds a character takes to walk on, walk off or change places.
+## 0 = jump straight there (the screenshot tools use that).
+@export var transition_time: float = 0.35
 
 var db: CardDatabase
 var story: DialogueDB
@@ -58,7 +61,10 @@ var _background_layers: Control      # StoryArt.csv rows behind the people
 var _front_layers: Control           # StoryArt.csv rows with Front = yes
 var _art: StoryArt
 var _backdrop_fill: ColorRect
-var _portrait_slots: Dictionary = {}     # "left"/"right"/"centre" -> Control
+var _stage: Control                  # the people stand on this layer
+## Everybody on screen: key (portrait ID or speaker) -> Dictionary with
+## "node", "portrait", "speaker", "side", "mood", "image", "mirror".
+var _cast: Dictionary = {}
 var _name_plate: Label
 var _text_label: RichTextLabel
 var _text_panel: PanelContainer
@@ -139,7 +145,7 @@ func _build_ui() -> void:
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(shade)
 
-	_build_portrait_slots()
+	_stage = _layer_box("Stage")
 	_front_layers = _layer_box("FrontLayers")
 	_build_text_box()
 
@@ -155,32 +161,6 @@ func _layer_box(box_name: String) -> Control:
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(box)
 	return box
-
-
-func _build_portrait_slots() -> void:
-	# Three fixed standing spots. A line names one in its Side column, and the
-	# other two are emptied, so only the speaker is ever on screen.
-	var layout := {
-		"left": Vector2(0.04, 0.0),
-		"centre": Vector2(0.34, 0.0),
-		"right": Vector2(0.64, 0.0),
-	}
-	for key in ["left", "centre", "right"]:
-		var slot := Control.new()
-		slot.name = "Portrait_" + String(key)
-		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		slot.set_anchors_preset(Control.PRESET_FULL_RECT)
-		var frac: Vector2 = layout[key]
-		slot.anchor_left = frac.x
-		slot.anchor_right = frac.x + 0.32
-		slot.anchor_top = 0.06
-		slot.anchor_bottom = 0.70
-		slot.offset_left = 0.0
-		slot.offset_right = 0.0
-		slot.offset_top = 0.0
-		slot.offset_bottom = 0.0
-		add_child(slot)
-		_portrait_slots[key] = slot
 
 
 func _build_text_box() -> void:
@@ -409,50 +389,162 @@ func _apply_background(line: DialogueLine) -> void:
 		print("[Story] %s: no background art called '%s'." % [line.where(), line.background])
 
 
-func _apply_portrait(line: DialogueLine) -> void:
-	for key in _portrait_slots.keys():
-		var slot: Control = _portrait_slots[key]
-		for child in slot.get_children():
-			child.queue_free()
+# =============================================================
+#  THE STAGE (round AN, Anthony's note)
+#
+#  Everybody who has spoken in the scene STAYS on screen until somebody
+#  takes their place or a line's Leaves column sends them off:
+#    - one person on stage stands in the MIDDLE and looks at the player
+#      (their front face), whatever the line's Side and View say
+#    - two or more stand at their own Side (left / centre / right). The
+#      speaker shows the line's Mood and View; the others turn to the room
+#      (their side face) and are dimmed, so you can see who is talking
+#    - a newcomer on a Side that is taken pushes the old one off
+#  Nobody pops: they slide in from their edge, slide over when the stage
+#  fills or empties, and slide out again (transition_time).
+# =============================================================
 
-	# StoryArt.csv first: the Portrait cell, or the Speaker when it is blank.
+const STAGE_X := {"left": 0.04, "centre": 0.34, "right": 0.64}
+const OFFSTAGE_X := {"left": -0.36, "centre": 0.34, "right": 1.04}
+const STAGE_WIDTH := 0.32
+const DIMMED := Color(0.55, 0.55, 0.6, 1.0)
+
+
+func _apply_portrait(line: DialogueLine) -> void:
+	# Leaves: names (Speaker or Portrait ID) separated by ;  or "all".
+	for who in line.leaves.split(";", false):
+		var name_key := CardDatabase._normalise(who)
+		for key in _cast.keys():
+			var actor: Dictionary = _cast[key]
+			if name_key == "all" or name_key == key \
+					or name_key == CardDatabase._normalise(String(actor["speaker"])):
+				_exit(key)
+
+	var speaker_key := ""
 	var row := _art.portrait_for(line.portrait, line.speaker, line.mood, line.view)
 	var file_name: String = row.get("image", line.portrait)
-	if file_name.strip_edges() == "":
-		return
+	if file_name.strip_edges() != "":
+		speaker_key = CardDatabase._normalise(
+			line.portrait if line.portrait.strip_edges() != "" else line.speaker)
+		if not _cast.has(speaker_key):
+			# Somebody else on that spot walks off to make room.
+			for key in _cast.keys():
+				if String(_cast[key]["side"]) == line.side:
+					_exit(key)
+			_enter(speaker_key, line)
+		var actor: Dictionary = _cast[speaker_key]
+		actor["side"] = line.side
+		actor["mood"] = line.mood
+		actor["portrait"] = line.portrait
+		actor["speaker"] = line.speaker
 
+	_arrange(line, speaker_key)
+
+
+## Put everybody in their place and give them the right face.
+func _arrange(line: DialogueLine, speaker_key: String) -> void:
+	var alone := _cast.size() == 1
+	for key in _cast.keys():
+		var actor: Dictionary = _cast[key]
+		var speaking: bool = key == speaker_key
+		var view := "front"
+		if not alone:
+			view = line.view if speaking else "side"
+		var row := _art.portrait_for(String(actor["portrait"]), String(actor["speaker"]),
+			String(actor["mood"]), view)
+		var file_name: String = row.get("image", actor["portrait"])
+		var side := "centre" if alone else String(actor["side"])
+		# Everybody looks into the room: a face drawn looking right is
+		# mirrored on the right-hand side, and the other way round.
+		var faces: String = row.get("faces", "")
+		if row.get("view", "") == "front":
+			faces = ""
+		var mirror := (faces == "right" and side == "right") \
+			or (faces == "left" and side == "left")
+		var animated := speaking and line.animation.strip_edges() != ""
+		if file_name != actor.get("image", "") or mirror != actor.get("mirror", false) \
+				or animated or actor.get("animated", false):
+			_dress(actor, file_name, mirror, line if animated else null)
+		actor["animated"] = animated
+
+		var tint := Color.WHITE
+		if not alone and speaker_key != "" and not speaking:
+			tint = DIMMED
+		_move(actor["node"], STAGE_X[side], tint)
+
+
+func _enter(key: String, line: DialogueLine) -> void:
+	var node := Control.new()
+	node.name = "Actor_" + key
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	node.anchor_top = 0.06
+	node.anchor_bottom = 0.70
+	var start: float = OFFSTAGE_X.get(line.side, OFFSTAGE_X["left"])
+	node.anchor_left = start
+	node.anchor_right = start + STAGE_WIDTH
+	node.modulate = Color(1, 1, 1, 0)
+	_stage.add_child(node)
+	_cast[key] = {"node": node, "portrait": line.portrait, "speaker": line.speaker,
+		"side": line.side, "mood": line.mood, "image": "", "mirror": false}
+
+
+func _exit(key: String) -> void:
+	var actor: Dictionary = _cast[key]
+	_cast.erase(key)
+	var node: Control = actor["node"]
+	var gone := Color(node.modulate.r, node.modulate.g, node.modulate.b, 0.0)
+	var tween := _move(node, OFFSTAGE_X.get(String(actor["side"]), OFFSTAGE_X["left"]), gone)
+	if tween == null:
+		node.queue_free()
+	else:
+		tween.finished.connect(node.queue_free)
+
+
+## Slide a person to `x` and tint them. Returns the tween, or null when
+## transition_time is 0 and it simply jumped there.
+func _move(node: Control, x: float, tint: Color) -> Tween:
+	if transition_time <= 0.0 or not is_inside_tree():
+		node.anchor_left = x
+		node.anchor_right = x + STAGE_WIDTH
+		node.modulate = tint
+		return null
+	var tween := node.create_tween().set_parallel(true) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(node, "anchor_left", x, transition_time)
+	tween.tween_property(node, "anchor_right", x + STAGE_WIDTH, transition_time)
+	tween.tween_property(node, "modulate", tint, transition_time)
+	return tween
+
+
+## Swap a person's picture. `line` set = play its Animation column.
+func _dress(actor: Dictionary, file_name: String, mirror: bool, line: DialogueLine) -> void:
+	var node: Control = actor["node"]
+	for child in node.get_children():
+		child.queue_free()
+	actor["image"] = file_name
+	actor["mirror"] = mirror
 	var sheet := _find_texture(file_name, PORTRAIT_DIRS)
 	if sheet == null:
-		print("[Story] %s: no portrait art called '%s'." % [line.where(), file_name])
+		print("[Story] %s: no portrait art called '%s'."
+			% [_line.where() if _line != null else "?", file_name])
 		return
-
-	var slot: Control = _portrait_slots.get(line.side, _portrait_slots["left"])
-	# Everybody looks into the room: a face drawn looking right is mirrored
-	# on the right-hand side, and the other way round.
-	var faces: String = row.get("faces", "")
-	if row.get("view", "") == "front":
-		faces = ""
-	var mirror := (faces == "right" and line.side == "right") \
-		or (faces == "left" and line.side == "left")
 
 	# An Animation column turns the portrait into a spritesheet playing that
 	# animation — the same Animations.csv rows the units on the pitch use.
-	var spec: AnimSpec = null
-	if line.animation.strip_edges() != "":
-		spec = db.get_anim(line.animation, line.speaker)
+	if line != null:
+		var spec: AnimSpec = db.get_anim(line.animation, line.speaker)
 		if spec == null:
 			print("[Story] %s: no animation called '%s' in Animations.csv."
 				% [line.where(), line.animation])
-
-	if spec != null:
-		var animator := SpriteAnimator.new()
-		animator.name = "Animator"
-		animator.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		animator.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		slot.add_child(animator)
-		animator.play(sheet, spec)
-		animator.fit_into(slot.size if slot.size.y > 1.0 else Vector2(420, 540))
-		return
+		else:
+			var animator := SpriteAnimator.new()
+			animator.name = "Animator"
+			animator.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			animator.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			node.add_child(animator)
+			animator.play(sheet, spec)
+			animator.fit_into(node.size if node.size.y > 1.0 else Vector2(420, 540))
+			return
 
 	var still := TextureRect.new()
 	still.texture = sheet
@@ -462,7 +554,7 @@ func _apply_portrait(line: DialogueLine) -> void:
 	still.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	still.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	still.flip_h = mirror
-	slot.add_child(still)
+	node.add_child(still)
 
 
 func _cover_rect(art: Texture2D) -> TextureRect:

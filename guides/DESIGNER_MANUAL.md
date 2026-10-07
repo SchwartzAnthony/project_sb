@@ -4719,6 +4719,15 @@ sets of `Choice N Text / Next / Requires / Effects`.
 ID or a file name in `assets/audio/`. The prologue's "Cheering!" uses
 `bld_pub`, the beer hall cheering.
 
+**Who is on screen (round AN, the stage).** Everybody who has spoken in a
+scene stays on screen. One person alone stands in the middle and looks at
+you (front face). Two or more stand at their own `Side`; the speaker shows
+the line's Mood and View, the others turn to the room and are dimmed.
+Somebody new on a taken Side pushes the old one off. They slide in, across
+and out rather than popping. To send someone off, write their Speaker name
+or Portrait ID in an optional **`Leaves`** column (several separated by `;`,
+or `all`); add the column anywhere in the header when you need it.
+
 **Writing dialogue in the chat (round AN).** Post a script like this in the
 dialogue thread and Claude puts it in Dialogue.csv word for word:
 

@@ -25,6 +25,8 @@ extends RefCounted
 #    Animation      a row in Animations.csv, played on the portrait
 #    Mood           which face: happy, sad, drunk, mad ... (StoryArt.csv Mood)
 #    View           front = talking to the player (blank), side = to someone
+#    Leaves         who walks off as this line shows: Speaker names or Portrait
+#                   IDs separated by ; or "all". Everybody else stays on stage
 #    Background     PNG name, found in assets/backgrounds/
 #    Music          OGG or WAV name, found in assets/music/
 #    Sound          a one-off sound as the line shows: an Audio.csv ID
@@ -152,6 +154,7 @@ func _load_csv(path: String) -> void:
 		line.animation = _cell(row, columns, "animation")
 		line.mood = _cell(row, columns, "mood").to_lower()
 		line.view = _cell(row, columns, "view").to_lower()
+		line.leaves = _cell(row, columns, "leaves")
 		line.background = _cell(row, columns, "background")
 		line.music = _cell(row, columns, "music")
 		line.sound = _cell(row, columns, "sound")

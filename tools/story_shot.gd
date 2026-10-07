@@ -32,6 +32,7 @@ func _initialize() -> void:
 	await process_frame
 	var view: DialogueView = load(ScenePaths.STORY).instantiate()
 	view.type_speed = 0.0
+	view.transition_time = 0.0
 	view.return_to_menu = false
 	view.scene_name = "prologue"
 	root.add_child(view)
