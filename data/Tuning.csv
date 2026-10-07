@@ -100,6 +100,8 @@ duel_hl_box_art,res://assets/ui/duel/duel_box.png,"ROUND AN. The pretzel corners
 duel_hl_art_scale,3,"ROUND AN. How many screen pixels one pixel of the ring and box art becomes"
 duel_hl_box_margin,17,"ROUND AN. How many art pixels in from each edge of duel_box.png the corners reach (the part that never stretches)"
 duel_hl_ring_hole,44 30,"ROUND AN. Half the width and half the height of the hole in duel_ring.png, in art pixels. The ring is grown evenly until the number fits inside it. Change it if you redraw the ring with a different hole"
+duel_hl_bonus_seconds,0.9,"ROUND AN. POWER CHECK: how long a change like +1 sits beside the gold circle before it slides in and the number becomes the total (3 and +1 becomes 4). The circle is one size for any number up to two digits"
+duel_hl_bonus_merge_seconds,0.45,"ROUND AN. How long the +1 takes to slide into the circle and fade, before the total pops in"
 arena_reveal_seconds,0.5,Power numbers appear
 arena_ability_seconds,0.9,Each ability lights up and plays
 arena_compare_seconds,0.8,Final numbers settle before the verdict

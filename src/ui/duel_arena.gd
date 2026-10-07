@@ -73,6 +73,8 @@ var hl_box_art: Texture2D
 var hl_art_scale: float = 3.0
 var hl_box_margin: int = 17
 var hl_ring_hole := Vector2(44.0, 30.0)
+var hl_bonus_seconds: float = 0.9
+var hl_bonus_merge_seconds: float = 0.45
 var _banner: Label
 
 var _dim: ColorRect
@@ -150,6 +152,8 @@ func apply_tuning(database: CardDatabase) -> void:
 	hl_box_art = _art(db.tune_text("duel_hl_box_art", ""))
 	hl_art_scale = maxf(1.0, db.tune_float("duel_hl_art_scale", hl_art_scale))
 	hl_box_margin = db.tune_int("duel_hl_box_margin", hl_box_margin)
+	hl_bonus_seconds = db.tune_float("duel_hl_bonus_seconds", hl_bonus_seconds)
+	hl_bonus_merge_seconds = maxf(0.05, db.tune_float("duel_hl_bonus_merge_seconds", hl_bonus_merge_seconds))
 	var hole := db.tune_text("duel_hl_ring_hole", "").split(" ", false)
 	if hole.size() == 2 and hole[0].is_valid_float() and hole[1].is_valid_float():
 		hl_ring_hole = Vector2(maxf(1.0, float(hole[0])), maxf(1.0, float(hole[1])))
@@ -236,15 +240,32 @@ func play_duel(info: Dictionary) -> void:
 	# RULING F4: when the number it fights with is not the number printed on
 	# the card, the difference is shown beside it - "3  (+1)".
 	# ROUND AN: "POWER CHECK" and both numbers ringed in gold.
+	var left_change := int(left.get("power_after", 0)) - int(left.get("printed", left.get("power_after", 0)))
+	var right_change := int(right.get("power_after", 0)) - int(right.get("printed", right.get("power_after", 0)))
 	if highlight:
+		# ROUND AN (Anthony, 7 Oct): the number in the ring is always just the
+		# number. A change is shown as "+1" beside the ring, then slides into
+		# it and the number becomes the total - 3 (+1) turns into 4 - so the
+		# ring never changes size.
 		_show_banner(Loc.text("duel_power_check", "POWER CHECK"))
+		_set_power(_side["left"], int(left.get("power_after", 0)) - left_change, LIVE_TEXT)
+		_set_power(_side["right"], int(right.get("power_after", 0)) - right_change, LIVE_TEXT)
 		_ring("left", true)
 		_ring("right", true)
-	_set_power(_side["left"], int(left.get("power_after", 0)), LIVE_TEXT,
-		int(left.get("power_after", 0)) - int(left.get("printed", left.get("power_after", 0))))
-	_set_power(_side["right"], int(right.get("power_after", 0)), LIVE_TEXT,
-		int(right.get("power_after", 0)) - int(right.get("printed", right.get("power_after", 0))))
-	await _beat(hl_power_seconds if highlight else compare_seconds)
+		var bonus_shown := _show_bonus("left", left_change)
+		bonus_shown = _show_bonus("right", right_change) or bonus_shown
+		if bonus_shown:
+			await _beat(hl_bonus_seconds)
+			_merge_bonus("left", int(left.get("power_after", 0)))
+			_merge_bonus("right", int(right.get("power_after", 0)))
+			await _beat(hl_bonus_merge_seconds)
+		_set_power(_side["left"], int(left.get("power_after", 0)), LIVE_TEXT)
+		_set_power(_side["right"], int(right.get("power_after", 0)), LIVE_TEXT)
+		await _beat(hl_power_seconds)
+	else:
+		_set_power(_side["left"], int(left.get("power_after", 0)), LIVE_TEXT, left_change)
+		_set_power(_side["right"], int(right.get("power_after", 0)), LIVE_TEXT, right_change)
+		await _beat(compare_seconds)
 
 	# --- 5. Result ---
 	# The ring stays on the winner only. LEFT is always you, so the victory or
@@ -558,6 +579,9 @@ func _dress(key: String, data: Dictionary) -> void:
 	if nodes["power"]:
 		var label: Label = nodes["power"]
 		label.text = "?"
+		var bonus := label.get_node_or_null("Bonus") as Label
+		if bonus != null:
+			bonus.visible = false
 		label.add_theme_color_override("font_color", DIM_TEXT)
 	if nodes["ability"]:
 		var label2: Label = nodes["ability"]
@@ -685,6 +709,62 @@ func _ring(key: String, on: bool) -> void:
 	ring.queue_redraw()
 
 
+## "+1" / "-2" beside one side's ring. False when there is no change to show.
+func _show_bonus(key: String, change: int) -> bool:
+	var label: Label = _side.get(key, {}).get("power")
+	if label == null or change == 0:
+		return false
+	var bonus := label.get_node_or_null("Bonus") as Label
+	if bonus == null:
+		bonus = Label.new()
+		bonus.name = "Bonus"
+		bonus.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bonus.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		bonus.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.add_child(bonus)
+	bonus.text = "%+d" % change
+	bonus.add_theme_font_size_override("font_size", int(label.get_theme_font_size("font_size") * 0.65))
+	bonus.add_theme_color_override("font_color", WIN_TEXT if change > 0 else LOSE_TEXT)
+	bonus.add_theme_stylebox_override("normal", TextBackdrop.plate())
+	bonus.reset_size()
+	bonus.modulate.a = 1.0
+	bonus.position = _bonus_spot(label, bonus)
+	bonus.visible = true
+	return true
+
+
+## Just right of the ring, level with the number.
+func _bonus_spot(label: Label, bonus: Label) -> Vector2:
+	var radius := GoldRing.radius_for(label)
+	var centre := label.size * 0.5
+	return Vector2(centre.x + radius + 12.0, centre.y - bonus.size.y * 0.5)
+
+
+## The "+1" slides into the ring and fades; the number becomes the total.
+func _merge_bonus(key: String, total: int) -> void:
+	var label: Label = _side.get(key, {}).get("power")
+	if label == null:
+		return
+	var bonus := label.get_node_or_null("Bonus") as Label
+	if bonus == null or not bonus.visible:
+		return
+	var into := label.size * 0.5 - bonus.size * 0.5
+	var seconds := hl_bonus_merge_seconds / _rate()
+	var slide := create_tween().set_parallel(true)
+	slide.tween_property(bonus, "position", into, seconds) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	slide.tween_property(bonus, "modulate:a", 0.0, seconds)
+	slide.chain().tween_callback(func() -> void:
+		bonus.visible = false
+		label.text = str(total))
+	# A small pop as the total lands, so the change is felt.
+	label.pivot_offset = label.size * 0.5
+	var pop := create_tween()
+	pop.tween_interval(seconds)
+	pop.tween_property(label, "scale", Vector2.ONE * 1.18, 0.08)
+	pop.tween_property(label, "scale", Vector2.ONE, 0.12)
+
+
 ## A gold box round one side's ability plate.
 func _box(key: String, on: bool) -> void:
 	var label: Label = _side.get(key, {}).get("ability")
@@ -742,13 +822,26 @@ func _sound(event: String, info: Dictionary) -> void:
 ## Draws an oval round the number it is attached to, sized to the digits.
 class GoldRing extends Control:
 	var colour := Color(0.98, 0.78, 0.16)
-	## The PixelLab ring; null draws a plain oval in `colour`.
+	## The PixelLab ring; null draws a plain circle in `colour`.
 	var art: Texture2D
 	var hole := Vector2(44.0, 30.0)
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+	## ONE SIZE FOR ANY NUMBER UP TO TWO DIGITS: it is measured on "88", the
+	## widest pair, not on what the label says, so 2 and 14 get the same
+	## circle. Only a three-digit number would make it grow.
+	static func radius_for(label: Label) -> float:
+		var font := label.get_theme_font("font")
+		var font_size := label.get_theme_font_size("font_size")
+		var widest := font.get_string_size("88", HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		var now := font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		# The circle has to clear the CORNERS of the digits, not just their
+		# sides: half the width and half the digit height, as a diagonal.
+		var half := Vector2(maxf(widest, now) * 0.5, font_size * 0.36)
+		return half.length() + 6.0
 
 	func _draw() -> void:
 		var label := get_parent() as Label
@@ -757,30 +850,16 @@ class GoldRing extends Control:
 		# Drawn in the label's own space: a container lays the label out but
 		# not this child, so its own size cannot be trusted.
 		position = Vector2.ZERO
-		var font := label.get_theme_font("font")
-		var font_size := label.get_theme_font_size("font_size")
-		var text_size := font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
-		# A circle round one digit, a flatter oval round "3  (+1)", never so
-		# tall that it cuts through the name above or the ability below.
-		var half := Vector2(text_size.x * 0.5 + 22.0, text_size.y * 0.5)
-		half.x = maxf(half.x, half.y)
+		var radius := GoldRing.radius_for(label)
+		var centre := label.size * 0.5
 		if art != null:
-			# Just big enough that the digits sit inside the oval hole. The
-			# height is fixed by the digits, so the ring never covers the name
-			# above or the ability below; a wide number like "3  (+1)" makes it
-			# longer, not taller. The hole's half-width and half-height, in art
-			# pixels, are Tuning.csv duel_hl_ring_hole.
-			var digits := Vector2(text_size.x * 0.5 + 4.0, font_size * 0.36) * sqrt(2.0)
-			var tall := digits.y / hole.y
-			var grow := Vector2(maxf(digits.x / hole.x, tall), tall)
+			# Scaled evenly until the circle above fits inside the art's
+			# oval hole (Tuning.csv duel_hl_ring_hole, in art pixels).
+			var grow := radius / minf(hole.x, hole.y)
 			var outer := art.get_size() * grow
-			draw_texture_rect(art, Rect2(label.size * 0.5 - outer * 0.5, outer), false)
+			draw_texture_rect(art, Rect2(centre - outer * 0.5, outer), false)
 			return
-		var points := PackedVector2Array()
-		for i in 65:
-			var turn := TAU * float(i) / 64.0
-			points.append(label.size * 0.5 + Vector2(cos(turn) * half.x, sin(turn) * half.y))
-		draw_polyline(points, colour, 5.0, true)
+		draw_arc(centre, radius, 0.0, TAU, 72, colour, 5.0, true)
 
 
 # =============================================================

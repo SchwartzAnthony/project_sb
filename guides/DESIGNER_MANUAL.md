@@ -2057,13 +2057,15 @@ each check, slowly enough to follow:
 2. A gold box lights that card's ability, then a **success** sound if it
    went off or an **error** sound if it did not.
 3. The same for the other card.
-4. **POWER CHECK**: both numbers ringed in gold, then WIN / LOSE with a
-   **victory** or **fail** sound for your side.
+4. **POWER CHECK**: both numbers ringed in gold. A change shows as "+1"
+   beside the circle, slides in, and the number becomes the total (3 and +1
+   becomes 4), so the circle stays one size for any one- or two-digit
+   number. Then WIN / LOSE with a **victory** or **fail** sound for your side.
 
 | Where | What you change |
 |---|---|
 | `Tuning.csv` `duel_hl` | false turns the highlights off |
-| `Tuning.csv` `duel_hl_*_seconds` | how long each step is held |
+| `Tuning.csv` `duel_hl_*_seconds` | how long each step is held, including the +1 sliding in (`duel_hl_bonus_*`) |
 | `Tuning.csv` `duel_hl_colour` | the gold |
 | `Language.csv` `duel_ability_priority`, `duel_power_check` | the words |
 | `Tuning.csv` `duel_hl_ring_art`, `duel_hl_box_art` | the ring art (blank for now: a plain gold circle) and the PixelLab pretzel-corner box |

@@ -78,6 +78,13 @@ func _initialize() -> void:
 		"wins": false,
 	}
 
+	# ROUND AN: `-- tens` adds 10 to every number, to see two-digit powers
+	# sit in the same gold circle as one-digit ones.
+	if OS.get_cmdline_user_args().has("tens"):
+		for side in [left, right]:
+			for field in ["power_before", "power_after", "printed"]:
+				side[field] = int(side[field]) + 10
+
 	arena.play_duel({"tier": "III", "left": left, "right": right})
 
 	for i in SHOTS:
