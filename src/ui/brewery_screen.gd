@@ -393,30 +393,50 @@ func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: boo
 	holder.size = box
 	holder.custom_minimum_size = box
 
-	# ROUND AN (your note): every machine stands on its round wooden pallet,
-	# Tuning.csv brewery_pallet, drawn under its feet.
+	# ============ STANDING ON ITS PALLET (round AN, your note) ============
+	#
+	# The FOOT is the spot on the ground the machine stands on. The pallet is
+	# centred on it, and the machine's DRAWING - not its square canvas, which
+	# has more empty space on one side than the other - is centred on it too,
+	# with its bottom edge a little in front of the pallet's middle.
+	var foot := Vector2(box.x * 0.5, big * db.tune_float("brewery_foot_height", 0.86))
 	var pallet_art := _find_texture(db.tune_text("brewery_pallet", ""))
+	var pallet_h := 0.0
 	if pallet_art != null:
+		var pallet_cut := _content_of(pallet_art)
 		var pallet := TextureRect.new()
-		pallet.texture = pallet_art
+		pallet.texture = pallet_cut["texture"]
 		pallet.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		pallet.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pallet.stretch_mode = TextureRect.STRETCH_SCALE
 		pallet.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		pallet.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var used: Rect2 = pallet_cut["rect"]
 		var wide := big * db.tune_float("brewery_pallet_width", 1.1)
-		pallet.size = Vector2(wide, wide * 0.5)
-		pallet.position = Vector2(box.x * 0.5 - wide * 0.5, big - wide * 0.32)
+		pallet_h = wide * used.size.y / maxf(used.size.x, 1.0)
+		pallet.size = Vector2(wide, pallet_h)
+		pallet.position = foot - pallet.size * 0.5
 		holder.add_child(pallet)
 
 	var ready := open and not full and short.is_empty()
+	var cut := _content_of(art)
+	var drawn: Rect2 = cut["rect"]
+	var scale_by := big / maxf(float(art.get_width()), 1.0)
+	var machine_size := drawn.size * scale_by
 	var button := Button.new()
 	button.flat = true
-	button.icon = art
-	button.expand_icon = true
-	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	button.offset_bottom = -44.0
+	# The picture fills the button exactly (a Button's own icon is shrunk by
+	# the skin's margins, which is what pushed machines off their pallets).
+	var picture := TextureRect.new()
+	picture.texture = cut["texture"]
+	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	picture.stretch_mode = TextureRect.STRETCH_SCALE
+	picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	button.add_child(picture)
+	button.size = machine_size
+	button.position = Vector2(foot.x - machine_size.x * 0.5,
+		foot.y + pallet_h * db.tune_float("brewery_foot_forward", 0.15) - machine_size.y)
 	button.focus_mode = Control.FOCUS_ALL
 	# The tooltip STARTS WITH THE NAME, which is how Guide.csv's Highlight
 	# column finds this machine ("Steeping Tank").
@@ -473,6 +493,30 @@ func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: boo
 	words.add_child(under)
 	holder.add_child(plate)
 	return holder
+
+
+## The part of a picture that is actually drawn: {"texture", "rect"}. A
+## PixelLab object sits on a square canvas with uneven empty space round it;
+## centring the canvas puts the drawing off-centre, so we centre this.
+var _cuts: Dictionary = {}
+
+func _content_of(art: Texture2D) -> Dictionary:
+	if _cuts.has(art):
+		return _cuts[art]
+	var rect := Rect2(Vector2.ZERO, art.get_size())
+	var image := art.get_image()
+	if image != null:
+		if image.is_compressed():
+			image.decompress()
+		var used := image.get_used_rect()
+		if used.size.x > 0 and used.size.y > 0:
+			rect = Rect2(used)
+	var piece := AtlasTexture.new()
+	piece.atlas = art
+	piece.region = rect
+	var out := {"texture": piece, "rect": rect}
+	_cuts[art] = out
+	return out
 
 
 ## "Wheat, Water, Germs -> Malt", in the resources' display names.
