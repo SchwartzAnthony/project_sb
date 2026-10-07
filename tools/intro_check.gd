@@ -132,6 +132,13 @@ func _initialize() -> void:
 	_check(_talks > 0, "MatchTalk.csv put the coach's box over the pitch and the match carried on (%d box)" % _talks)
 	_check(not state.has_flag("tutorial_match_2"), "second_match_is_over cleared flag:tutorial_match_2")
 	_check(state.is_unlocked("Brewery"), "after both intro matches the Brewery is open (learn_to_brew)")
+	var brewer := await _wait_for_scene("dialogue", 30.0)
+	var scene_now := ""
+	if brewer != "" and current_scene != null:
+		scene_now = String(current_scene.get("scene_name"))
+	_check(scene_now == "brewery-intro", "the Brewer's scene plays as the Brewery opens (%s)" % scene_now)
+	await _read_story(60.0)
+	_check(await _wait_for_scene("base", 20.0) != "", "brewery-intro comes back to the base")
 	_check(String(MatchMode.stand_in_for("friendly", state)) == "friendly",
 		"after the intro, Play a match is an ordinary friendly again")
 	_finish()
