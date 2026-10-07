@@ -775,9 +775,13 @@ whole thing frame by frame.
 
 A match no longer begins the instant the screen changes. There is a beat:
 
-1. **The team sheet.** A full screen with both sides on it — your crest, your
-   name and your three Star Players on the left, theirs on the right, a big
-   **VS** between them, and a bar filling along the bottom.
+1. **The team sheet (the VS screen).** Since round AN it is two **beer menus
+   in a beer tent**: your side on the left, theirs on the right, two steins
+   clinking under a big **VS** between them. Each board has the crest and team
+   name over it, and the three Stars written on the chalk like beers on a
+   menu: the figure the Star plays as **on the pitch** (same look, standing in
+   idle), its name, its tier and power where a price would be, and its two
+   abilities.
 2. **The gate.** The sheet lifts, the pitch is there with both teams already
    in position, the two crests stay at the top and a **START** button sits
    between them. Nothing runs until it is pressed: the pitch is frozen and the
@@ -853,31 +857,57 @@ files in `assets/team/`.
 | `kickoff_needs_button` | `false` and the countdown starts by itself — for a demo or a stream |
 | `team_crest_fallback` | the crest for a class with no Banner Art. `banner_normal_team` |
 
-### The line-ups walk out
+**The beer menus** (round AN). The board picture is blown up by a whole number
+so its pixels stay sharp. The wooden top (crest, bunting) and bottom stay as
+drawn; the rows of chalk in between repeat downward when a side's abilities
+need more room, and if the board would grow past `vs_board_max` the ability
+sentences shrink a size at a time instead. Layered file:
+`art_source/aseprite/vs_screen.aseprite` (layout in
+`art_source/aseprite/vs_screen_layers.csv`); PixelLab drafts and the other
+options in `art_source/pixellab/vs_menu_draft/`.
 
-Between the team sheet and the countdown, both sides are introduced one
-player at a time — yours first, then theirs. A row per card: the portrait,
-the tier, the name with a star beside it if it is a Star, and its two numbers.
-The rows fill downward and stay, so by the end of a side you are looking at
-the whole eleven rather than at the last one of them.
+| Tuning row | |
+|---|---|
+| `vs_menu_board` | the board picture. `assets/team/vs/vs_menu_board.png` |
+| `vs_board_patch` | the wooden frame round the chalk, in the picture's own pixels: left top right bottom. Measure again if you redraw the board |
+| `vs_board_width` | the widest a board may be, share of the screen. `0.44` |
+| `vs_board_height` | how tall a board is, share of the screen. `0.62` |
+| `vs_board_max` | the tallest it may grow for long abilities. `0.74` |
+| `vs_ability_size_min` | the smallest the ability sentences shrink to. `9` |
+| `vs_star_size` | how tall a Star's figure is, in pixels. `120` |
+| `vs_versus` | the picture under VS. `assets/team/vs/vs_steins.png` |
+| `vs_background` | the tent. `assets/team/vs/vs_tent.png` |
+| `vs_background_dim` | how much darker the tent is. `0.55` |
 
-The team sheet tells you the two crests and the six Stars. It does not
-introduce the twenty other people about to play — and those twenty are
-precisely the cards you will be choosing between for the next ninety minutes.
-**A player you have been shown once is a player you recognise in the draft.**
+### The line-ups on the grass
 
-They are sorted **by tier, in ladder order**, because that is the order they
-are drafted in and therefore the order you will meet them.
+After START on the VS screen, both sides are introduced **standing on the
+pitch** (round AN, Anthony). It is the real pitch, frozen, with everyone on
+their own spot, standing in idle and facing the camera. The camera pushes in
+and pans along **your side from right to left**, then along **theirs from
+left to right**. The side not being shown is faded back, and a sign at the
+bottom names whoever is in the middle of the screen: ★ for a Star, the name,
+tier, power and defence. The keepers are included.
+
+It uses the same figures and name plates as the match, so nobody can look
+different here from how they look in play. The camera follows the best
+straight line through the side, because the tilted pitch runs corner to
+corner. The HUD and the keepers' save odds are hidden while it runs.
 
 **It can always be skipped.** A click, space, enter or escape ends the whole
-thing — not one player, the lot. A flourish you cannot get out of is an
-obstacle.
+thing.
 
 | Tuning row | |
 |---|---|
 | `line_up_parade` | `false` turns it off for good |
-| `line_up_gap` | seconds between one player and the next. `0.18` |
-| `line_up_between_sides` | the pause between your side and theirs, and after theirs before the countdown. `0.9` |
+| `line_up_pan_seconds` | how long the pan along one side takes. `5` |
+| `line_up_hold` | the pause at each end of a pan. `0.6` |
+| `line_up_zoom` | how close, as a multiple of the whole-pitch shot. `2.2` |
+| `line_up_fade_other` | how see-through the side not being shown is. `0.3` |
+| `line_up_facing` | `south` = everyone faces the camera; any of the 8 directions; `ball` = they keep looking at the ball |
+| `line_up_between_sides` | the pause between your side and theirs. `0.9` |
+
+`tools/line_up_shot.gd` films it frame by frame for a GIF.
 
 > If every row on one side reads **"Unit Name"**, that is not the parade — it
 > is the `Name` column of that class's unit CSV, which still has the template
