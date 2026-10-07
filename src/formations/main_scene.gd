@@ -731,7 +731,8 @@ func _physics_process(delta: float) -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if GameKeys.pressed(event, "zones") and zone_overlay != null:
 		zone_overlay.detail = not zone_overlay.detail
-		zone_overlay.visible = zone_overlay.detail or zones_enabled
+		zone_overlay.visible = zone_overlay.detail or zones_enabled \
+			or zone_overlay.intent_lines_alpha > 0.0
 		zone_overlay.queue_redraw()
 		get_viewport().set_input_as_handled()
 
@@ -1762,6 +1763,8 @@ func _spawn_camera(pitch: Rect2) -> void:
 		# rectangle; this is the map between the two.
 		camera.view_xform = pitch_view
 		camera.ground_view = _ground_rect
+		camera.pitch_box_view = PitchView.box_of(pitch_view,
+			PitchView.line_rect(get_pitch_rect()).grow(PitchView.number("boards_gap", 34.0)))
 	camera.setup(pitch, db, get_pitch_rect())
 	camera.make_current()
 	print("[camera] Following the ball. Set camera_enabled to false in Tuning.csv to switch it off.")
@@ -3546,7 +3549,9 @@ func _lock_geometry() -> void:
 		db.tune_float("zone_claim", 0.34))
 
 	if zone_overlay != null:
-		zone_overlay.visible = zones_enabled
+		zone_overlay.intent_lines_alpha = maxf(0.0, db.tune_float("intent_lines_alpha", 0.55))
+		zone_overlay.tint = zones_enabled
+		zone_overlay.visible = zones_enabled or zone_overlay.intent_lines_alpha > 0.0
 		zone_overlay.units_source = _all_units
 		zone_overlay.edge_keep = db.tune_float("edge_keep", edge_keep)
 		zone_overlay.linger_seconds = db.tune_float("linger_seconds", linger_seconds)

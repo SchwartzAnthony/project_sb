@@ -39,6 +39,12 @@ var detail := false
 ## Who to draw lines for. main_scene hands its _all_units here.
 var units_source: Callable = Callable()
 var edge_keep := 0.10
+## ROUND AN (Anthony: "add the red and blue lines to the game"): outside the
+## zone map too, every unit gets its line to where it is heading - blue for
+## yours, red for theirs. Tuning.csv intent_lines_alpha; 0 = off.
+var intent_lines_alpha := 0.0
+## The quarter tint itself (Tuning.csv zones off = false, lines only).
+var tint := true
 var linger_seconds := 2.5
 
 var _target: float = 0.07
@@ -66,8 +72,9 @@ func set_focused(focused: bool) -> void:
 
 
 func _process(delta: float) -> void:
-	if detail:
+	if detail or intent_lines_alpha > 0.0:
 		queue_redraw()
+	if detail:
 		return
 	if is_equal_approx(_current, _target):
 		return
@@ -81,7 +88,9 @@ func _draw() -> void:
 	if detail:
 		_draw_detail()
 		return
-	if _current <= 0.001:
+	if intent_lines_alpha > 0.0:
+		_draw_intent(intent_lines_alpha)
+	if _current <= 0.001 or not tint:
 		return
 
 	for tier in TIERS:
@@ -153,18 +162,31 @@ func _draw_detail() -> void:
 		if unit == null or not is_instance_valid(unit):
 			continue
 		var at := unit.global_position
-		var colour := Color(0.45, 0.75, 1.0) if not unit.is_enemy else Color(1.0, 0.45, 0.45)
-		if unit.has_role_target:
-			var to := unit.role_target
-			var c := colour
-			c.a = 0.75
-			draw_line(at, to, c, 2.0)
-			draw_circle(to, 6.0, c)
+		_intent_line(unit, 0.75)
 		if unit.fresh_left > 0.0 and unit.fresh_spot != Vector2.INF:
 			draw_arc(unit.fresh_spot, 14.0, 0.0, TAU, 20, Color(1, 1, 0.4, 0.9), 3.0)
 		if linger_seconds > 0.0:
 			var full := clampf(unit.linger_time / linger_seconds, 0.0, 1.0)
 			draw_arc(at, 30.0, -PI * 0.5, -PI * 0.5 + TAU * full, 24, Color(1, 1, 1, 0.9), 4.0)
+
+
+func _draw_intent(strength: float) -> void:
+	if not units_source.is_valid():
+		return
+	for u in units_source.call():
+		var unit := u as PlayerUnit
+		if unit != null and is_instance_valid(unit):
+			_intent_line(unit, strength)
+
+
+## One unit's line to where it is heading: blue for yours, red for theirs.
+func _intent_line(unit: PlayerUnit, strength: float) -> void:
+	if not unit.has_role_target:
+		return
+	var c := Color(0.45, 0.75, 1.0) if not unit.is_enemy else Color(1.0, 0.45, 0.45)
+	c.a = strength
+	draw_line(unit.global_position, unit.role_target, c, 2.0)
+	draw_circle(unit.role_target, 6.0, c)
 
 
 func _dashed(a: Vector2, b: Vector2, colour: Color) -> void:

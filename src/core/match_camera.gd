@@ -54,6 +54,10 @@ var deadzone: float = 36.0
 var view_xform := Transform2D.IDENTITY
 ## The whole ground picture, in picture coordinates, when the pitch is tilted.
 var ground_view := Rect2()
+## The tilted pitch's white lines (plus the boards), as a box in the picture.
+## When set, the wide shot is framed on this: corner to corner across the
+## screen (Anthony: the left and right corner almost touching the edges).
+var pitch_box_view := Rect2()
 ## home_rect and frame_rect as boxes in the picture - what zoom and clamping
 ## actually use.
 var _home_v := Rect2()
@@ -110,6 +114,8 @@ func setup(pitch: Rect2, db: CardDatabase, ground: Rect2 = Rect2()) -> void:
 	# showing more of the ground in the wide shot does not make the players
 	# any smaller during play.
 	_home_v = PitchView.box_of(view_xform, home_rect)
+	if pitch_box_view.size.x > 1.0:
+		_home_v = pitch_box_view
 	_frame_v = PitchView.box_of(view_xform, frame_rect)
 	if ground_view.size.x > 1.0:
 		# The wide shot is the tilted pitch plus a margin of the town round it

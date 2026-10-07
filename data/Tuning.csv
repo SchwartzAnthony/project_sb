@@ -181,6 +181,7 @@ ball_pressure_radius,82,An opponent this close makes the carrier release the bal
 ball_min_hold_seconds,0.9,"But never before holding it this long, or possession becomes a hot potato"
 zone_tint_alpha,0.07,How strongly the four Tier quarters are tinted on the grass. 0 = off
 zone_tint_alpha_draft,0.20,Tint strength while you are choosing cards. Fades back afterwards
+intent_lines_alpha,0.55,"ROUND AN (Anthony: add the red and blue lines to the game). Every player's line to where he is heading - blue for yours, red for theirs - drawn during the match, not only on the zone map (Z). How strong: 0 = off, 1 = solid."
 ball_trail_seconds,0.55,Length of the fading trail behind the ball. 0 = off
 ball_ring_radius,17,Ring drawn at the feet of whoever has the ball. 0 = off
 ball_roam_quarter_first,2,First quarter the ball may enter during normal waiting play. Quarters are numbered 1-4 from your goal
