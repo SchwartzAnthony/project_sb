@@ -30,6 +30,7 @@ const COACH := [
 
 func _initialize() -> void:
 	await process_frame
+	ThemeBook.dress(self)
 	var view: DialogueView = load(ScenePaths.STORY).instantiate()
 	view.type_speed = 0.0
 	view.transition_time = 0.0

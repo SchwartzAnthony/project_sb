@@ -182,7 +182,7 @@ func _build_text_box() -> void:
 	_text_panel.add_child(column)
 
 	_name_plate = Label.new()
-	_name_plate.add_theme_font_size_override("font_size", 26)
+	_name_plate.add_theme_font_size_override("font_size", int(MenuSupport.tuned("story_name_size", 32.0)))
 	_name_plate.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
 	_name_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(_name_plate)
@@ -191,9 +191,13 @@ func _build_text_box() -> void:
 	_text_label.bbcode_enabled = true
 	_text_label.fit_content = false
 	_text_label.scroll_active = false
-	_text_label.custom_minimum_size = Vector2(0, 132)
+	_text_label.custom_minimum_size = Vector2(0, 150)
 	_text_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_text_label.add_theme_font_size_override("normal_font_size", 21)
+	# ROUND AN: "the writing for the intro is too small and pixelated". The
+	# font is drawn 16 pixels high (64 in its smooth HD copy), so 16, 32 and
+	# 48 shrink it by a whole step and come out clean; 21 did not, and its
+	# letters came out ragged. story_text_size in Tuning.csv.
+	_text_label.add_theme_font_size_override("normal_font_size", int(MenuSupport.tuned("story_text_size", 32.0)))
 	_text_label.add_theme_color_override("default_color", MenuSupport.COLOUR_TEXT)
 	_text_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(_text_label)
@@ -205,7 +209,7 @@ func _build_text_box() -> void:
 	_prompt = Label.new()
 	_prompt.text = "click, space or enter to continue    ·    esc to leave"
 	_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_prompt.add_theme_font_size_override("font_size", 12)
+	_prompt.add_theme_font_size_override("font_size", int(MenuSupport.tuned("story_hint_size", 16.0)))
 	_prompt.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(_prompt)
@@ -287,7 +291,7 @@ func _rebuild_choices() -> void:
 	for choice in options:
 		var button := Button.new()
 		button.text = choice.text
-		button.add_theme_font_size_override("font_size", 19)
+		button.add_theme_font_size_override("font_size", int(MenuSupport.tuned("story_choice_size", 32.0)))
 		button.add_theme_stylebox_override("normal",
 			MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
 		button.add_theme_stylebox_override("hover",
@@ -462,9 +466,10 @@ func _arrange(line: DialogueLine, speaker_key: String) -> void:
 		var mirror := (faces == "right" and side == "right") \
 			or (faces == "left" and side == "left")
 		var animated := speaking and line.animation.strip_edges() != ""
+		var scale: float = row.get("scale", 1.0)
 		if file_name != actor.get("image", "") or mirror != actor.get("mirror", false) \
 				or animated or actor.get("animated", false):
-			_dress(actor, file_name, mirror, line if animated else null)
+			_dress(actor, file_name, mirror, line if animated else null, scale)
 		actor["animated"] = animated
 
 		var tint := Color.WHITE
@@ -517,7 +522,10 @@ func _move(node: Control, x: float, tint: Color) -> Tween:
 
 
 ## Swap a person's picture. `line` set = play its Animation column.
-func _dress(actor: Dictionary, file_name: String, mirror: bool, line: DialogueLine) -> void:
+## `scale` is the face's Scale in StoryArt.csv: under 1 it is drawn smaller,
+## standing on the same bottom edge.
+func _dress(actor: Dictionary, file_name: String, mirror: bool, line: DialogueLine,
+		scale: float = 1.0) -> void:
 	var node: Control = actor["node"]
 	for child in node.get_children():
 		child.queue_free()
@@ -540,21 +548,34 @@ func _dress(actor: Dictionary, file_name: String, mirror: bool, line: DialogueLi
 			var animator := SpriteAnimator.new()
 			animator.name = "Animator"
 			animator.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			_shrink(animator, scale)
 			animator.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			node.add_child(animator)
 			animator.play(sheet, spec)
-			animator.fit_into(node.size if node.size.y > 1.0 else Vector2(420, 540))
+			animator.fit_into((node.size if node.size.y > 1.0 else Vector2(420, 540)) * scale)
 			return
 
 	var still := TextureRect.new()
 	still.texture = sheet
 	still.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_shrink(still, scale)
 	still.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	still.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	still.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	still.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	still.flip_h = mirror
 	node.add_child(still)
+
+
+## Draw a face at `scale` of its spot, centred, standing on the bottom edge.
+func _shrink(control: Control, scale: float) -> void:
+	if is_equal_approx(scale, 1.0):
+		return
+	var side := (1.0 - scale) * 0.5
+	control.anchor_left = side
+	control.anchor_right = 1.0 - side
+	control.anchor_top = 1.0 - scale
+	control.anchor_bottom = 1.0
 
 
 func _cover_rect(art: Texture2D) -> TextureRect:

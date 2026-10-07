@@ -76,6 +76,9 @@ func _ready() -> void:
 	_build()
 	# ROUND AL: the Beer Keller behind it and plank buttons - data/ScreenLook.csv
 	Look.install(self, "settings")
+	# ROUND AN: a see-through black plate behind words that sit straight on
+	# the cellar painting (text_backdrop_alpha in Tuning.csv).
+	TextBackdrop.watch(self)
 
 	var opening := "Keys"
 	if get_tree().has_meta(TAB_KEY):
@@ -149,15 +152,21 @@ func _build() -> void:
 	_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_note.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_note.add_theme_font_size_override("font_size", 14)
+	_note.add_theme_font_size_override("font_size", _fs(14))
 	_note.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	footer.add_child(_note)
 
 	var where := Label.new()
 	where.text = "Saved in %s" % ProjectSettings.globalize_path(GameSettings.SAVE_PATH)
-	where.add_theme_font_size_override("font_size", 11)
+	where.add_theme_font_size_override("font_size", _fs(11))
 	where.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	footer.add_child(where)
+
+
+## ROUND AN: every word on this screen is `settings_text_scale` (Tuning.csv)
+## times the size it was written at - "hard to read" was the note.
+func _fs(written: int) -> int:
+	return int(round(written * MenuSupport.tuned("settings_text_scale", 1.25)))
 
 
 func _tab_icon(name_text: String) -> String:
@@ -237,7 +246,7 @@ func _build_keys() -> void:
 		"Click a key and press the one you want instead. A key that is already doing another job is refused, and it tells you which. Keys are kept the moment you change them."))
 
 	for group in GameKeys.groups():
-		_body.add_child(MenuSupport.heading(group.to_upper(), 16, MenuSupport.COLOUR_ACCENT))
+		_body.add_child(MenuSupport.heading(group.to_upper(), _fs(16), MenuSupport.COLOUR_ACCENT))
 		for action in GameKeys.in_group(group):
 			_body.add_child(_key_row(action))
 
@@ -256,7 +265,7 @@ func _key_row(action: String) -> Control:
 	label.text = GameKeys.describe(action)
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 16)
+	label.add_theme_font_size_override("font_size", _fs(16))
 	row.add_child(label)
 
 	var entry: Dictionary = GameKeys.actions.get(action, {})
@@ -266,7 +275,7 @@ func _key_row(action: String) -> Control:
 		pad.text = "controller: %s" % pad_text
 		pad.custom_minimum_size = Vector2(200, 0)
 		pad.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		pad.add_theme_font_size_override("font_size", 13)
+		pad.add_theme_font_size_override("font_size", _fs(13))
 		pad.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 		row.add_child(pad)
 
@@ -360,7 +369,7 @@ func _swatches() -> Control:
 	label.text = "The four tiers"
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 16)
+	label.add_theme_font_size_override("font_size", _fs(16))
 	row.add_child(label)
 
 	for i in 4:
@@ -371,7 +380,7 @@ func _swatches() -> Control:
 		chip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		chip.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		chip.add_theme_color_override("font_color", Color(0.06, 0.06, 0.08))
-		chip.add_theme_font_size_override("font_size", 15)
+		chip.add_theme_font_size_override("font_size", _fs(15))
 		var style := MenuSupport.panel_style(MenuSupport.TIER_COLOURS[i])
 		chip.add_theme_stylebox_override("normal", style)
 		var holder := PanelContainer.new()
@@ -400,7 +409,7 @@ func _build_controller() -> void:
 	_body.add_child(_switch_row("Vibration", "pad_vibration",
 		"Goals, cards, big hits and saves shake the pad. Which ones, and how hard, is data/Rumble.csv."))
 
-	_body.add_child(MenuSupport.heading("WHAT EACH BUTTON DOES", 16,
+	_body.add_child(MenuSupport.heading("WHAT EACH BUTTON DOES", _fs(16),
 		MenuSupport.COLOUR_ACCENT))
 	for action in GameKeys.order:
 		var entry: Dictionary = GameKeys.actions[action]
@@ -412,7 +421,7 @@ func _build_controller() -> void:
 		name_label.text = pad_text
 		name_label.custom_minimum_size = Vector2(200, 0)
 		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		name_label.add_theme_font_size_override("font_size", 16)
+		name_label.add_theme_font_size_override("font_size", _fs(16))
 		name_label.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
 		row.add_child(name_label)
 
@@ -420,7 +429,7 @@ func _build_controller() -> void:
 		does.text = GameKeys.describe(action)
 		does.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		does.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		does.add_theme_font_size_override("font_size", 15)
+		does.add_theme_font_size_override("font_size", _fs(15))
 		does.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 		row.add_child(does)
 		_body.add_child(row)
@@ -443,7 +452,7 @@ func _build_language() -> void:
 	label.text = "Show the game in"
 	label.custom_minimum_size = Vector2(220, 0)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 16)
+	label.add_theme_font_size_override("font_size", _fs(16))
 	row.add_child(label)
 
 	for language in Loc.languages():
@@ -465,7 +474,7 @@ func _build_language() -> void:
 
 	_body.add_child(row)
 
-	_body.add_child(MenuSupport.heading("WHAT IS STILL TO TRANSLATE", 16,
+	_body.add_child(MenuSupport.heading("WHAT IS STILL TO TRANSLATE", _fs(16),
 		MenuSupport.COLOUR_ACCENT))
 	_body.add_child(_hint(
 		"Play through a screen, then press the button below. Every word the game asked for that has no row yet is printed to the Output panel, already formatted to paste into the spreadsheet."))
@@ -496,7 +505,7 @@ func _hint(text: String) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_font_size_override("font_size", _fs(14))
 	label.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	return label
 
@@ -512,7 +521,7 @@ func _choice_row(label_text: String, key: String, choices: Array,
 	label.text = label_text
 	label.custom_minimum_size = Vector2(220, 0)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 16)
+	label.add_theme_font_size_override("font_size", _fs(16))
 	row.add_child(label)
 
 	var now: Variant = settings.get(key, choices[0])
@@ -558,7 +567,7 @@ func _switch_row(label_text: String, key: String, note: String) -> Control:
 	label.text = label_text
 	label.custom_minimum_size = Vector2(220, 0)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 16)
+	label.add_theme_font_size_override("font_size", _fs(16))
 	row.add_child(label)
 
 	var on := bool(settings.get(key, true))
@@ -575,7 +584,7 @@ func _switch_row(label_text: String, key: String, note: String) -> Control:
 	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint.add_theme_font_size_override("font_size", 13)
+	hint.add_theme_font_size_override("font_size", _fs(13))
 	hint.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	row.add_child(hint)
 
@@ -590,13 +599,13 @@ func _slider_row(label_text: String, key: String, fallback: float = 0.8) -> Cont
 	label.text = label_text
 	label.custom_minimum_size = Vector2(220, 0)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 16)
+	label.add_theme_font_size_override("font_size", _fs(16))
 	row.add_child(label)
 
 	var readout := Label.new()
 	readout.custom_minimum_size = Vector2(90, 0)
 	readout.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	readout.add_theme_font_size_override("font_size", 16)
+	readout.add_theme_font_size_override("font_size", _fs(16))
 	readout.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
 
 	var slider := HSlider.new()

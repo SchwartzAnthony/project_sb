@@ -225,18 +225,41 @@ static func icon_button(icon: String, label: String,
 	button.add_theme_stylebox_override("disabled", panel_style(COLOUR_LOCKED, COLOUR_TEXT_DIM))
 	button.add_theme_stylebox_override("focus", focus_style())
 
+	# ============ EVERYTHING STAYS INSIDE THE BUTTON (round AN) ============
+	#
+	# "The icons and writing are not properly in the middle and are hard to
+	# read." The icon used to be a Label in a container, and a big glyph (a
+	# keyboard, a 文) made that container TALLER than the button: the row
+	# grew downwards, the icon hung out of the bottom and the words, centred
+	# in the taller row, sat low. Now the icon lives in a plain box that
+	# cannot grow, the glyph and the words shrink until they fit, and the
+	# whole face sits `button_inset` pixels inside the frame.
+	var inset := tuned("button_inset", 6.0)
+	var inner := Vector2(maxf(size.x - inset * 2.0, 1.0), maxf(size.y - inset * 2.0, 1.0))
 	var row := HBoxContainer.new()
 	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	row.offset_left = inset
+	row.offset_top = inset
+	row.offset_right = -inset
+	row.offset_bottom = -inset
 	row.add_theme_constant_override("separation", 0)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(row)
 
 	# --- the icon half ---
 	var box := PanelContainer.new()
-	box.custom_minimum_size = Vector2(size.y - 6.0, 0)
+	box.custom_minimum_size = Vector2(inner.y, 0)
+	box.clip_contents = true
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_theme_stylebox_override("panel", _half_style())
 	row.add_child(box)
+	# A plain Control between the panel and the picture: its size never
+	# depends on what is in it, so the picture can never stretch the button.
+	var holder := Control.new()
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(holder)
+	var fill := clampf(tuned("button_icon_fill", 0.8), 0.2, 1.0)
+	var icon_room := inner.y * fill
 
 	# `icon` may be written as   art_name|glyph
 	#
@@ -256,34 +279,88 @@ static func icon_button(icon: String, label: String,
 	if art != null:
 		var rect := TextureRect.new()
 		rect.texture = art
+		rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		var edge := (inner.y - icon_room) * 0.5
+		rect.offset_left = edge
+		rect.offset_top = edge
+		rect.offset_right = -edge
+		rect.offset_bottom = -edge
 		rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		box.add_child(rect)
+		holder.add_child(rect)
 	else:
 		var glyph := Label.new()
 		glyph.text = glyph_text
+		glyph.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		glyph.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		glyph.add_theme_font_size_override("font_size", int(size.y * 0.42))
+		glyph.add_theme_font_size_override("font_size",
+			_fit_font_size(glyph_text, int(inner.y * 0.6), Vector2(icon_room, icon_room)))
 		glyph.add_theme_color_override("font_color", COLOUR_ACCENT)
 		glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		box.add_child(glyph)
+		holder.add_child(glyph)
+		# A symbol the comic font lacks (a keyboard, 文) is drawn by a
+		# fallback font that runs bigger than ours, so it is measured again
+		# once it is on screen, in the font that really draws it.
+		holder.resized.connect(_shrink_glyph.bind(glyph, holder, fill))
 
 	# --- the words half ---
+	# `button_text_size` in Tuning.csv; a label too long for its button
+	# steps down a size at a time until it fits, instead of being cut off.
 	var text := Label.new()
 	text.text = label
 	text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	text.clip_text = true
-	text.add_theme_font_size_override("font_size", 15)
+	var words_room := Vector2(inner.x - inner.y - 8.0, inner.y)
+	text.add_theme_font_size_override("font_size", _fit_font_size(label,
+		int(tuned("button_text_size", 18.0)), words_room))
 	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(text)
 
 	return button
 
+
+## Fit a glyph inside `fill` of its square. A fallback symbol does not
+## always get smaller with the font size, so it is scaled down instead.
+static func _shrink_glyph(glyph: Label, holder: Control, fill: float) -> void:
+	if not is_instance_valid(glyph) or holder.size.y < 2.0:
+		return
+	var font := glyph.get_theme_font("font")
+	if font == null:
+		return
+	var drawn := font.get_string_size(glyph.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+		glyph.get_theme_font_size("font_size"))
+	if drawn.x < 1.0 or drawn.y < 1.0:
+		return
+	var room := holder.size * fill
+	var shrink := minf(1.0, minf(room.x / drawn.x, room.y / drawn.y))
+	glyph.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	glyph.size = drawn
+	glyph.scale = Vector2(shrink, shrink)
+	glyph.position = (holder.size - drawn * shrink) * 0.5
+
+
+## The biggest font size, at most `wanted` and at least 9, at which `words`
+## fit inside `room`. Measured in the font every word in the game uses.
+static func _fit_font_size(words: String, wanted: int, room: Vector2) -> int:
+	var font: Font = ThemeDB.fallback_font
+	var row := ThemeBook.row_for("body")
+	var face := ThemeBook.font(String(row.get("font", ""))) if not row.is_empty() else null
+	if face != null:
+		font = face
+	var font_size := maxi(wanted, 9)
+	if font == null or words == "" or room.x <= 0.0:
+		return font_size
+	while font_size > 9:
+		var drawn := font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+		if drawn.x <= room.x and font.get_height(font_size) <= room.y * 1.15:
+			break
+		font_size -= 1
+	return font_size
 
 # -------------------------------------------------------------
 #  A FLAG BANNER — the base's top-row doors (round AN)

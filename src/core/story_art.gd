@@ -25,6 +25,10 @@ extends RefCounted
 #              The game mirrors it when the character stands on the other
 #              side, so everybody looks into the room. A front view is never
 #              mirrored.
+#    Scale     portraits only: how big this face is drawn, 1 = the normal
+#              size. A picture drawn closer in than the others (a big head)
+#              gets 0.8 or so to match them. It shrinks towards the bottom
+#              edge, so the shoulders stay on the text box. Blank = 1.
 #    Front     backgrounds only: yes = drawn IN FRONT of the characters
 #              (a table edge, a beer mug at the bottom of the screen)
 #    Notes     for you
@@ -45,7 +49,7 @@ const PATH := "res://data/StoryArt.csv"
 
 static var _instance: StoryArt
 
-## id (normalised) -> Array of {"image", "faces", "mood", "view"}
+## id (normalised) -> Array of {"image", "faces", "mood", "view", "scale"}
 var portraits: Dictionary = {}
 ## speaker (normalised) -> portrait id
 var by_speaker: Dictionary = {}
@@ -105,10 +109,17 @@ func load_file(path: String) -> void:
 				"faces": "left" if faces == "left" else "right",
 				"mood": _cell(row, columns, "mood").to_lower(),
 				"view": "front" if view == "front" else "side",
+				"scale": _scale(_cell(row, columns, "scale")),
 			})
 			var speaker := _cell(row, columns, "speaker")
 			if speaker != "":
 				by_speaker[CardDatabase._normalise(speaker)] = key
+
+
+static func _scale(text: String) -> float:
+	if text.strip_edges() == "" or not text.strip_edges().is_valid_float():
+		return 1.0
+	return clampf(text.strip_edges().to_float(), 0.1, 3.0)
 
 
 ## The portrait row for a line: its Portrait cell, or else its Speaker, in

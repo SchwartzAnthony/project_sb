@@ -81,11 +81,27 @@ static func give(node: Variant) -> void:
 	if not (node is Label or node is RichTextLabel):
 		return
 	var control := node as Control
-	if control.has_theme_stylebox_override("normal"):
+	if control.has_theme_stylebox_override("normal") or control.has_meta("text_backdrop"):
 		return
 	if _has_own_backdrop(control):
 		return
-	control.add_theme_stylebox_override("normal", plate())
+	var box := plate()
+	control.set_meta("text_backdrop", box)
+	_sync(control)
+	# A label with no words yet (a note that fills in later) shows no empty
+	# plate: the plate comes and goes with the words.
+	control.draw.connect(_sync.bind(control))
+
+
+static func _sync(control: Control) -> void:
+	if not is_instance_valid(control) or not control.has_meta("text_backdrop"):
+		return
+	var words := String(control.get("text")).strip_edges()
+	var showing := control.has_theme_stylebox_override("normal")
+	if words == "" and showing:
+		control.remove_theme_stylebox_override("normal")
+	elif words != "" and not showing:
+		control.add_theme_stylebox_override("normal", control.get_meta("text_backdrop"))
 
 
 static func _has_own_backdrop(control: Control) -> bool:

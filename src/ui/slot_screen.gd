@@ -18,7 +18,7 @@ const Look := preload("res://src/ui/screen_look.gd")
 #  see the header of save_slots.gd for why.
 # =============================================================
 
-const TILE := Vector2(300.0, 200.0)
+const TILE := Vector2(320.0, 210.0)
 
 var state: GameState
 var _list: HBoxContainer
@@ -31,6 +31,9 @@ func _ready() -> void:
 	_fill()
 	# ROUND AL: the trophy room behind it and plank buttons - data/ScreenLook.csv
 	Look.install(self, "slot")
+	# ROUND AN: a see-through black plate behind words that sit straight on
+	# the painting (text_backdrop_alpha in Tuning.csv).
+	TextBackdrop.watch(self)
 
 
 func _build() -> void:
@@ -56,7 +59,7 @@ func _build() -> void:
 	page.add_child(MenuSupport.heading("CHOOSE A SAVE", 34, MenuSupport.COLOUR_ACCENT))
 	page.add_child(MenuSupport.heading(
 		"Each one is its own game — its own progress, its own teams. Your settings are shared between them.",
-		14, MenuSupport.COLOUR_TEXT_DIM))
+		18, MenuSupport.COLOUR_TEXT_DIM))
 
 	var centre := CenterContainer.new()
 	centre.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -94,9 +97,17 @@ func _tile(about: Dictionary) -> Control:
 	for child in button.get_children():
 		child.queue_free()
 
+	# ROUND AN: the words sit inside the frame, not on it. They used to fill
+	# the whole tile, so "last played" was printed over the bottom border.
 	var column := VBoxContainer.new()
 	column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	column.add_theme_constant_override("separation", 6)
+	var pad := MenuSupport.tuned("save_tile_padding", 18.0)
+	column.offset_left = pad
+	column.offset_top = pad
+	column.offset_right = -pad
+	column.offset_bottom = -pad
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.add_theme_constant_override("separation", 10)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(column)
 
@@ -109,10 +120,11 @@ func _tile(about: Dictionary) -> Control:
 	var line := Label.new()
 	line.text = String(about["line"])
 	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	line.add_theme_font_size_override("font_size", 15)
+	# One line, stepping down a size if it would not fit the tile.
+	line.add_theme_font_size_override("font_size", MenuSupport._fit_font_size(line.text,
+		int(MenuSupport.tuned("save_tile_text_size", 20.0)), Vector2(TILE.x - pad * 2.0 - 8.0, 999.0)))
 	line.add_theme_color_override("font_color",
 		MenuSupport.COLOUR_ACCENT if used else MenuSupport.COLOUR_TEXT_DIM)
-	line.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(line)
 
@@ -122,7 +134,7 @@ func _tile(about: Dictionary) -> Control:
 		var stamp := Label.new()
 		stamp.text = "last played  " + String(about["played_at"])
 		stamp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		stamp.add_theme_font_size_override("font_size", 11)
+		stamp.add_theme_font_size_override("font_size", int(MenuSupport.tuned("save_tile_small_size", 15.0)))
 		stamp.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 		stamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		column.add_child(stamp)
@@ -142,7 +154,7 @@ func _tile(about: Dictionary) -> Control:
 	# deliberate steps, and Close gets you out at any point.
 	if used:
 		var cog := MenuSupport.icon_button("settings|⚙",
-			Loc.text("settings", "Settings"), Vector2(TILE.x, 40))
+			Loc.text("settings", "Settings"), Vector2(TILE.x, 56))
 		cog.tooltip_text = "What to do with this save, including deleting it."
 		cog.pressed.connect(_open_slot_settings.bind(slot, about))
 		frame.add_child(cog)

@@ -4880,6 +4880,7 @@ row by its **ID**, so changing a face or a room everywhere is one cell.
 | `View` | portraits only: `front` (looking at the player) or `side` (talking to someone in the scene) |
 | `Faces` | side views: which way the drawing looks (`right` / `left`). The game mirrors it on the other side, so everybody looks into the room. A front view is never mirrored |
 | `Front` | backgrounds only. `yes` draws that layer in front of the people |
+| `Scale` | portraits only, **round AN**. How big this face is drawn, 1 = normal (blank = 1). A picture drawn closer in than the character's other faces (a bigger head) gets 0.8 or so; it shrinks towards the bottom edge so the shoulders stay on the text box. Koch's sad face is 0.8 and his happy face 0.85 |
 
 **Every character has a front and a side face** (Anthony, round AN): front
 for talking to the player, side for talking to someone else in the scene.
@@ -6538,3 +6539,25 @@ theirs.
 **Juice** — shake, flash, pop, slow-motion and sound. All of it in Juice.csv.
 **Haul** — what you are carrying in an Adventure run, lost if everybody goes
 down.
+
+## Readable menus (round AN)
+
+Anthony's note: the Settings and Choose a Save screens had icons and words
+off-centre and hard to read, and the intro text was small and ragged.
+
+- **Icon-and-words buttons** (every Settings tab, Back, Save, the key
+  buttons, the save tiles' Settings button) keep the icon and the words
+  inside the frame, centred. A word too long for its button shrinks instead
+  of being cut off. Tuning.csv: `button_text_size` (18), `button_icon_fill`
+  (0.8), `button_inset` (6).
+- **Settings**: every word is `settings_text_scale` (1.25) times its old
+  size, and words on the cellar painting sit on the see-through black plate
+  (`text_backdrop_alpha`, the same rule as the match).
+- **Choose a Save**: the words sit inside each tile instead of on its
+  border. `save_tile_text_size` (20), `save_tile_small_size` (15),
+  `save_tile_padding` (18).
+- **Conversations** (the intro, the bar, every story scene):
+  `story_text_size` 32, `story_name_size` 32, `story_hint_size` 16,
+  `story_choice_size` 32. The pixel font is drawn 16 high, so 16, 32 and 48
+  stay crisp; the old 21 was what made it look ragged.
+- **Faces of different sizes**: StoryArt.csv `Scale` (see above).
