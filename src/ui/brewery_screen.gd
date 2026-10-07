@@ -266,6 +266,16 @@ func _make_section(section: Dictionary) -> Control:
 	var full := BreweryBook.is_full(id_text, state)
 	var short := BreweryBook.missing(id_text, state)
 
+	# ============ THE MACHINE IS THE BUTTON (round AN, your note) ============
+	#
+	# With its picture in assets/brewery/ (the Art column), a section is
+	# drawn the way a building is on the base: the machine itself, clickable,
+	# with its name on a see-through black plate underneath. No picture yet
+	# = the old panel below, so nothing breaks while the art is drawn.
+	var machine_art := _find_texture(String(section["art"]))
+	if machine_art != null:
+		return _make_machine(section, machine_art, open, waiting, full, short)
+
 	var edge := MenuSupport.COLOUR_SLOT_EMPTY
 	if open:
 		edge = MenuSupport.COLOUR_DEFEND if full \
@@ -359,6 +369,79 @@ func _make_section(section: Dictionary) -> Control:
 	button.pressed.connect(_work.bind(id_text))
 	column.add_child(button)
 	return frame
+
+
+func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: bool,
+		full: bool, short: Array) -> Control:
+	var id_text := String(section["id"])
+	var box := SECTION_SIZE
+	var holder := Control.new()
+	holder.position = _spot(section)
+	holder.size = box
+	holder.custom_minimum_size = box
+
+	var ready := open and not full and short.is_empty()
+	var button := Button.new()
+	button.flat = true
+	button.icon = art
+	button.expand_icon = true
+	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	button.offset_bottom = -44.0
+	button.focus_mode = Control.FOCUS_ALL
+	# The tooltip STARTS WITH THE NAME, which is how Guide.csv's Highlight
+	# column finds this machine ("Steeping Tank").
+	button.tooltip_text = "%s: %s" % [section["name"], _recipe_words(section)]
+	if not open:
+		button.modulate = Color(0.35, 0.35, 0.40, 1.0)
+	elif not ready:
+		button.modulate = Color(0.75, 0.75, 0.75, 1.0)
+	button.pressed.connect(func() -> void:
+		if ready:
+			_work(id_text)
+		elif not open:
+			var door := BreweryBook.opened_by(id_text)
+			_say("%s is locked. %s" % [section["name"], String(door.get("description", DialogueGrammar.describe(String(section["needs"]))))], false)
+		elif full:
+			_say("%s is full - wait for the cellar." % section["name"], false)
+		else:
+			_say("%s is short of: %s" % [section["name"], ", ".join(short)], false))
+	holder.add_child(button)
+
+	# The name, and what it needs, on a see-through black plate.
+	var plate := PanelContainer.new()
+	plate.add_theme_stylebox_override("panel", TextBackdrop.plate())
+	plate.anchor_left = 0.0
+	plate.anchor_right = 1.0
+	plate.anchor_top = 1.0
+	plate.anchor_bottom = 1.0
+	plate.offset_top = -44.0
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var words := VBoxContainer.new()
+	words.add_theme_constant_override("separation", 0)
+	plate.add_child(words)
+	var title := MenuSupport.heading(String(section["name"]), 15,
+		MenuSupport.COLOUR_TEXT if open else MenuSupport.COLOUR_TEXT_DIM)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	words.add_child(title)
+	var line := ""
+	if not open:
+		var door := BreweryBook.opened_by(id_text)
+		line = "LOCKED - " + String(door.get("name", "")) if not door.is_empty() else "LOCKED"
+	elif waiting:
+		line = "Working - %d turn(s)" % BreweryBook.turns_left(id_text, state)
+	elif full:
+		line = "Full"
+	elif not short.is_empty():
+		line = "Short of: " + ", ".join(short)
+	else:
+		line = "Click to work it"
+	var under := _small(line)
+	under.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	words.add_child(under)
+	holder.add_child(plate)
+	return holder
 
 
 ## "Wheat, Water, Germs -> Malt", in the resources' display names.
