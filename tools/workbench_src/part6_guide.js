@@ -555,7 +555,7 @@ function paintBook(){
     ${rows([
       ["the look","<b>ScreenLook.csv</b>: layers, a see-through shade, the content margin, and every button as the oak plank with the menu sounds"],
       ["music","the title music carries on into both, quieter - Audio.csv settings_theme / slot_theme name the SAME Sound with a lower Volume, so it never restarts"],
-      ["loop","the menu song plays unedited, all 60 s, fades out over its last 6 s and starts again (MusicLoops.csv suno_menu: Fade Out 6, Loudness keep)"],
+      ["loop","the menu song is now <b>Sturm Ball</b> (round AN, 7 Oct): the whole 29.4 s song, which ends by itself and starts again (MusicLoops.csv suno_menu: Start 0, Length 29.4, Fade Out 0.6, Loudness keep). Four cheers sit between the shouts (MusicCheers.csv s01-s04). The old Untitled song is the spare menu_suno_untitled"],
       ["sounds","every button sound 6 dB quieter (Audio.csv menu_hover / click / start / back)"],
       ["check","<code>tools/screens_shot.gd</code> photographs the three screens and prints the music on each"],
     ])}`);

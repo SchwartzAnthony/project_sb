@@ -6204,7 +6204,7 @@ never stumbles at the join.
 
 | where | your track | the loop |
 |---|---|---|
-| main menu | Untitled | **only the aggressive tuba part in the middle**: 8 bars at 128 BPM, 14.9 s, starting right on the first heavy tuba hit |
+| main menu | **Sturm Ball** (round AN, 7 Oct) | the whole song, 29.4 s, with four crowd cheers between the shouts (see *The menu song: Sturm Ball* below) |
 | base | Sonniger Nachmittag | 16 bars at 99 BPM, 38.6 s, from 26.3 s into the song |
 | matches | Fussball im Bierzelt | 16 bars at 110 BPM, 35.1 s, from 36.7 s into the song |
 
@@ -6407,8 +6407,45 @@ locked to the beat. The song itself is untouched. Each cheer is one row of
 | `Cheer` | the sound: five Ludo.ai crowd bursts in `art_source/suno/cheers/` |
 
 After a change, run `~/.venvs/sturmball/bin/python tools/mix_cheers.py`,
-then rebuild the loop. To go back to the plain song, set the `suno_menu`
-Source in `MusicLoops.csv` to `menu_untitled.wav`.
+then rebuild the loop. The cheers belong to a song through the `Song`
+column (a `MusicLoops.csv` ID).
+
+### The menu song: Sturm Ball (round AN, 7 Oct)
+
+The main menu now plays your Suno song **Sturm Ball** (prompt: 128 BPM
+B-flat oompah brass anthem, zither and alphorn intro, group shouts
+"Sturm! Ball!", dry mix, no crowd noise). Suno played it at about
+123 BPM, not 128. The WAV is `art_source/suno/music/sturm_ball.wav`.
+
+**The loop.** The song has a real ending: the last brass hit is at
+28.0 s and it rings out to silence by 29.4 s. So it is not cut into
+bars. The loop is the whole song: `Start 0`, `Length 29.4`, `Crossfade 0`,
+`Fade Out 0.6` (only tidies the silent tail), `Loudness keep`. You hear
+the ending, a short breath, then the zither intro again, like a stadium
+song played on repeat.
+
+**The cheers.** The ten old cheers were timed for the 60 s Untitled song,
+so they would have landed on the new shouts. There are now four, in the
+gaps (rows `s01`–`s04`, Song `suno_menu`):
+
+| at | cheer | why there |
+|---|---|---|
+| 2.1 s | crowd swell (cheer_4) | the band starts after the intro; gone by 8 s |
+| 9.6 s | short "hey!", right | finished before the first "Sturm! Ball!" (about 12.3 s) |
+| 14.6 s | whistles, left | between the first shouts and the chant (18.3–20.5 s) |
+| 21.0 s | big roar (cheer_1) | after the chant, gone before the last shouts (about 26.3 s) |
+
+**Switching back:**
+
+| you want | change |
+|---|---|
+| Sturm Ball without cheers | `MusicLoops.csv` `suno_menu` Source = `art_source/suno/music/sturm_ball.wav`, rebuild the loop |
+| the old Untitled song (with its ten cheers) | `Audio.csv` `menu_theme` Sound = `menu_suno_untitled` (already built; its cheers are the `Song suno_menu_untitled` rows) |
+| Untitled without cheers | the `suno_menu_untitled` Source = `art_source/suno/music/menu_untitled.wav`, rebuild |
+
+Rebuild: `~/.venvs/sturmball/bin/python tools/mix_cheers.py`, then
+`~/.venvs/sturmball/bin/python tools/make_loop.py suno_menu` (librosa now
+lives in that venv too).
 
 ## 16f. The isometric players on the pitch (round AN)
 
