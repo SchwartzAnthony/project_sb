@@ -442,7 +442,8 @@ func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: boo
 	var weight_x: float = cut["weight_x"]
 	var shift := (weight_x - drawn.size.x * 0.5 - float(section.get("shift_x", 0.0))) * scale_by
 	button.position = Vector2(foot.x - machine_size.x * 0.5 - shift,
-		foot.y + pallet_h * db.tune_float("brewery_foot_forward", 0.15) - machine_size.y)
+		foot.y + pallet_h * db.tune_float("brewery_foot_forward", 0.15) - machine_size.y
+		+ float(section.get("shift_y", 0.0)) * scale_by)
 	button.focus_mode = Control.FOCUS_ALL
 	# The tooltip STARTS WITH THE NAME, which is how Guide.csv's Highlight
 	# column finds this machine ("Steeping Tank").

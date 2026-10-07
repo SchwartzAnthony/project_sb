@@ -153,6 +153,8 @@ static func _load() -> void:
 			# ROUND AN: nudge the machine sideways on its platform, in picture
 			# pixels (+ = right). Blank = centred on its weight.
 			"shift_x": MenuSupport.field_float(row, "Shift X", 0.0),
+			# ...and up or down (+ = down, toward you).
+			"shift_y": MenuSupport.field_float(row, "Shift Y", 0.0),
 		})
 
 	_sections.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
