@@ -2066,7 +2066,7 @@ each check, slowly enough to follow:
 | `Tuning.csv` `duel_hl_*_seconds` | how long each step is held |
 | `Tuning.csv` `duel_hl_colour` | the gold |
 | `Language.csv` `duel_ability_priority`, `duel_power_check` | the words |
-| `Tuning.csv` `duel_hl_ring_art`, `duel_hl_box_art` | the PixelLab ring and pretzel-corner box (blank = drawn in code) |
+| `Tuning.csv` `duel_hl_ring_art`, `duel_hl_box_art` | the ring art (blank for now: a plain gold circle) and the PixelLab pretzel-corner box |
 | `Tuning.csv` `duel_hl_art_scale`, `duel_hl_box_margin` | how big their pixels are; where the box corners end |
 | `Audio.csv` `duel_ability_success` / `_fail`, `duel_power_victory` / `_fail` | the four sounds, made with Ludo.ai |
 

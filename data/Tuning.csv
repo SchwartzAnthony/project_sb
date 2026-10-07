@@ -95,7 +95,7 @@ duel_hl_ability_seconds,1,"ROUND AN. How long the gold box sits round an ability
 duel_hl_ability_result_seconds,0.7,"ROUND AN. How long the box stays after the sound, before the next card"
 duel_hl_power_seconds,1.2,"ROUND AN. How long POWER CHECK and the two gold rings stay up before WIN / LOSE (replaces arena_compare_seconds while duel_hl is true)"
 duel_hl_colour,#FAC729,"ROUND AN. The gold of the box, the rings and the words, as a colour code (#RRGGBB)"
-duel_hl_ring_art,res://assets/ui/duel/duel_ring.png,"ROUND AN. The gold ring round the power numbers (PixelLab, ring A - Aseprite file art_source/aseprite/ui/duel_ring.aseprite). Blank = a plain oval drawn in duel_hl_colour"
+duel_hl_ring_art,,"ROUND AN. BLANK FOR NOW (Anthony, 7 Oct: the stretched PixelLab ring was too much) - a plain gold circle is drawn in duel_hl_colour instead, an oval only round a wide number like 3 (+1). To try the PixelLab ring A again put res://assets/ui/duel/duel_ring.png here (Aseprite file art_source/aseprite/ui/duel_ring.aseprite)"
 duel_hl_box_art,res://assets/ui/duel/duel_box.png,"ROUND AN. The pretzel corners of the box round an ability (PixelLab, box 2 - art_source/aseprite/ui/duel_box.aseprite). It is stretched as a nine-patch: the corners stay, the middle grows. Blank = a plain gold border"
 duel_hl_art_scale,3,"ROUND AN. How many screen pixels one pixel of the ring and box art becomes"
 duel_hl_box_margin,17,"ROUND AN. How many art pixels in from each edge of duel_box.png the corners reach (the part that never stretches)"
