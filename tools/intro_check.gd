@@ -131,6 +131,7 @@ func _initialize() -> void:
 	await _play_to_full_time(scene)
 	_check(_talks > 0, "MatchTalk.csv put the coach's box over the pitch and the match carried on (%d box)" % _talks)
 	_check(not state.has_flag("tutorial_match_2"), "second_match_is_over cleared flag:tutorial_match_2")
+	_check(state.is_unlocked("Brewery"), "after both intro matches the Brewery is open (learn_to_brew)")
 	_check(String(MatchMode.stand_in_for("friendly", state)) == "friendly",
 		"after the intro, Play a match is an ordinary friendly again")
 	_finish()
