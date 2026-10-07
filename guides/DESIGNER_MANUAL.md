@@ -741,6 +741,36 @@ A real side breaking has two jobs going at once:
 > both: the numbers say whether it got better, the pictures say whether it
 > looks right.
 
+### The way into a match — black, then the ball rolls into the goal
+
+Starting a match used to freeze the screen while the match loaded, flash the
+pitch and its village, and only then show the team sheet. Now:
+
+1. **The screen goes black at once** (`match_loader_fade_in`).
+2. **The Alps come up**, with a goal on the right. A ball rolls along the
+   bottom of the screen towards it while the match loads in the background.
+3. **The ball goes in** only when the match is really ready (the team sheet
+   is up behind it), and the picture fades away onto the team sheet.
+
+The ball takes at least `match_loader_seconds`, and longer on a slow machine,
+so it never scores before the match is there.
+
+| Tuning row | |
+|---|---|
+| `match_loader` | `false` puts back the old way: the screen freezes while the match loads |
+| `match_loader_fade_in` | seconds to go black. `0.12` |
+| `match_loader_seconds` | the shortest roll into the goal. `1.6` |
+| `match_loader_fade_out` | seconds for the picture to fade onto the team sheet. `0.35` |
+| `match_loader_background` / `_goal` / `_ball` | the three pictures, in `assets/loading/` |
+| `match_loader_ground` | how far down the ball rolls and the goal stands. `0.93` |
+| `match_loader_ball_size` / `_goal_size` | sizes, as a share of the screen height |
+
+**The art** was made in PixelLab with the Stammtisch places board as the style
+image. Its layers are in `art_source/aseprite/match_loading.aseprite`
+(rebuild it with `tools/make_loading_aseprite.py`) and the PixelLab originals
+in `art_source/pixellab/match_loader/`. `tools/loading_shot.gd` records the
+whole thing frame by frame.
+
 ### Before the whistle — the team sheet and START
 
 A match no longer begins the instant the screen changes. There is a beat:

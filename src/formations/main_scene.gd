@@ -3873,6 +3873,9 @@ func trigger_hold_up_event() -> void:
 # =============================================================
 
 func _open_the_team_sheet() -> void:
+	# The loading screen in front of us can go now: everything is built and
+	# whatever comes next (the sheet, or the countdown) is about to be drawn.
+	MatchLoader.match_ready(get_tree())
 	if db == null or not db.tune_bool("team_sheet", true):
 		_kickoff_sequence()
 		return

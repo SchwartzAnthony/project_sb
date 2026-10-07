@@ -878,6 +878,10 @@ func _carry_out(actions: Array[Dictionary]) -> void:
 				if MatchMode.squad_file(get_tree()) == "" and _turned_away():
 					return
 				state.save_to_disk()
+				# A squad match walks straight through Team Select, so the
+				# screen goes black from this click, not from the next one.
+				if MatchMode.squad_file(get_tree()) != "" and MatchLoader.enabled():
+					MatchLoader.cover(get_tree())
 				ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT)
 				return
 			"window":
