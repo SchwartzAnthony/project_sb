@@ -454,6 +454,9 @@ func _ready() -> void:
 	units_container = Node2D.new()
 	units_container.name = "UnitsContainer"
 	add_child(units_container)
+	# ROUND AN: the tilted pitch (PitchView.csv) - the zones and everybody on
+	# the pitch move into the tilted layer now that they exist.
+	_tilt_the_pitch()
 
 	spawn_goalies()
 	spawn_ball()
@@ -1754,6 +1757,11 @@ func _spawn_camera(pitch: Rect2) -> void:
 	add_child(camera)
 	# The whole ground picture, so the wide shot can show the village round
 	# the pitch (camera_wide_ground in Tuning.csv).
+	if pitch_tilted():
+		# ROUND AN: the camera works in the picture, the match in the flat
+		# rectangle; this is the map between the two.
+		camera.view_xform = pitch_view
+		camera.ground_view = _ground_rect
 	camera.setup(pitch, db, get_pitch_rect())
 	camera.make_current()
 	print("[camera] Following the ball. Set camera_enabled to false in Tuning.csv to switch it off.")
@@ -3302,6 +3310,9 @@ func _build_the_stadium() -> void:
 		if old != null and is_instance_valid(old):
 			old.queue_free()
 	_scenery.clear()
+	if PitchView.enabled():
+		_tilt_the_pitch()
+		return
 	var order := {"background": -40, "crowd": -30, "lights": 60}
 	for row in StadiumBook.layers():
 		var layer_name := String(row["layer"])
@@ -3338,6 +3349,142 @@ func _build_the_stadium() -> void:
 		})
 	if not _scenery.is_empty():
 		print("[stadium] %d scenery layer(s) built." % _scenery.size())
+
+
+# =============================================================
+#  THE TILTED PITCH — data/PitchView.csv  (round AN)
+#
+#  Anthony: the match on the base's own pitch, seen diagonally like a drone
+#  shot. The rules still run on the flat rectangle; only the drawing is
+#  tilted. The pitch, the zones and everybody on it are moved into one
+#  CanvasLayer whose transform lays that rectangle onto the pitch in
+#  match_ground.png. A node keeps its global_position when it moves in, so
+#  nothing that reads or sets positions notices. See pitch_view.gd.
+# =============================================================
+
+var _pitch_layer: CanvasLayer = null
+var _ground_layer: CanvasLayer = null
+## Flat match coordinates -> the picture. Identity while the pitch is flat.
+var pitch_view := Transform2D.IDENTITY
+var _ground_rect := Rect2()
+
+
+func pitch_tilted() -> bool:
+	return _pitch_layer != null
+
+
+func _tilt_the_pitch() -> void:
+	if field_sprite == null or not PitchView.enabled():
+		return
+	if _ground_layer == null:
+		# Under the pitch, following the camera like the world does.
+		_ground_layer = CanvasLayer.new()
+		_ground_layer.name = "GroundLayer"
+		_ground_layer.layer = -2
+		_ground_layer.follow_viewport_enabled = true
+		add_child(_ground_layer)
+		var ground := Sprite2D.new()
+		ground.name = "MatchGround"
+		ground.texture = load(PitchView.value("background")) as Texture2D
+		ground.centered = false
+		ground.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_ground_layer.add_child(ground)
+		_ground_rect = Rect2(Vector2.ZERO, ground.texture.get_size())
+	if _pitch_layer == null:
+		_pitch_layer = CanvasLayer.new()
+		_pitch_layer.name = "PitchLayer"
+		_pitch_layer.layer = -1
+		_pitch_layer.follow_viewport_enabled = true
+		add_child(_pitch_layer)
+
+	pitch_view = PitchView.transform_for(PitchView.line_rect(get_pitch_rect()))
+	_pitch_layer.transform = pitch_view
+
+	for node in [field_sprite, zone_overlay, units_container]:
+		if node != null and (node as Node).get_parent() != _pitch_layer:
+			(node as Node).reparent(_pitch_layer, true)
+	_stand_the_boards()
+	if units_container != null:
+		if not units_container.child_entered_tree.is_connected(_stand_upright):
+			units_container.child_entered_tree.connect(_stand_upright)
+		for unit in units_container.get_children():
+			_stand_upright(unit)
+
+
+var _boards_far: Node2D = null
+var _boards_near: CanvasLayer = null
+
+
+## THE BOARDS ROUND THE PITCH (Anthony: like a German village club ground),
+## standing up along the tilted touchlines. Each board strip is the menu's
+## front-view boards picture, slanted so its bottom runs along the edge and
+## its sides stay upright. The two far edges are drawn under the players,
+## the two near edges over them, so somebody by the near touchline is hidden
+## behind the boards the way he would be.
+func _stand_the_boards() -> void:
+	var art := PitchView.value("boards_image")
+	if art == "" or not ResourceLoader.exists(art) or _ground_layer == null:
+		return
+	if _boards_far != null:
+		_boards_far.queue_free()
+	if _boards_near != null:
+		_boards_near.queue_free()
+	_boards_far = Node2D.new()
+	_boards_far.name = "BoardsFar"
+	_ground_layer.add_child(_boards_far)
+	_boards_near = CanvasLayer.new()
+	_boards_near.name = "BoardsNear"
+	_boards_near.layer = 0
+	_boards_near.follow_viewport_enabled = true
+	add_child(_boards_near)
+
+	var tex := load(art) as Texture2D
+	var tall := PitchView.number("boards_height", 24.0)
+	var gap := PitchView.number("boards_gap", 30.0)
+	var lines := PitchView.line_rect(get_pitch_rect()).grow(gap)
+	var tl := pitch_view * lines.position
+	var tr := pitch_view * Vector2(lines.end.x, lines.position.y)
+	var bl := pitch_view * Vector2(lines.position.x, lines.end.y)
+	var br := pitch_view * lines.end
+	# Far: the top touchline and the right goal line. Near: the left goal
+	# line and the bottom touchline.
+	for edge in [[tl, tr, _boards_far], [tr, br, _boards_far],
+			[tl, bl, _boards_near], [bl, br, _boards_near]]:
+		_board_row(tex, edge[0], edge[1], tall, edge[2])
+
+
+func _board_row(tex: Texture2D, from: Vector2, to: Vector2, tall: float, into: Node) -> void:
+	var length := from.distance_to(to)
+	if length < 1.0:
+		return
+	var along := (to - from) / length
+	var size := tex.get_size()
+	var piece := size.x * tall / size.y   # one strip's length at this height
+	var at := 0.0
+	while at < length - 0.5:
+		var run := minf(piece, length - at)
+		var strip := Sprite2D.new()
+		strip.texture = tex
+		strip.centered = false
+		strip.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		strip.region_enabled = true
+		strip.region_rect = Rect2(Vector2.ZERO, Vector2(size.x * run / piece, size.y))
+		var foot := from + along * at
+		# x runs along the edge, y straight down; the strip's bottom sits on it.
+		strip.transform = Transform2D(along * (tall / size.y), Vector2(0.0, tall / size.y),
+			foot - Vector2(0.0, tall))
+		into.add_child(strip)
+		at += run
+
+
+## A player, a keeper or the ball: where it stands goes through the tilt, but
+## its picture is turned back so it is never skewed.
+func _stand_upright(node: Node) -> void:
+	var body := node as Node2D
+	if body == null or _pitch_layer == null:
+		return
+	var turn := PitchView.upright(pitch_view)
+	body.transform = Transform2D(turn.x, turn.y, body.position)
 
 
 ## Drift the background against the camera, so it reads as distance rather
