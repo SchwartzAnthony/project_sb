@@ -58,3 +58,11 @@ Round AN, part 5: Hanna and the brewery (drafts first, Anthony's rule from 7 Oct
   (equipment of draft 4; scaled 0.72, standing on the floor at y=300),
   brewery_barrels c24b9dfe (moved up 50 px so they show above the text box)
   hanna_side: the hole background removal cut between barrel and apron filled with brown (#5c3a24)
+
+Round AN, part 6: the Traveling Merchant and his shop (drafts c617c298, 987ff391)
+  Anthony picked merchant B and shop 1, "fitting 100% to the Traveling Merchant
+  on the base". merchant_side 8f6650de (from draft B), merchant_front 04f6d929.
+  merchant_meadow a3d6f518 - an "OKTOBERFEST" sign, a hat and a paper that are
+  not on the base were painted out with patches of firs and cobbles.
+  merchant_wagon 1467b142 - reference: assets/base/map/tavern.png itself (24
+  colours, inline). Horse left out. The hatch's see-through pixels filled dark brown.
