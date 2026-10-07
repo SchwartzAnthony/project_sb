@@ -3974,24 +3974,21 @@ func _on_kick_off_wanted() -> void:
 	_kickoff_sequence()
 
 
-## Both line-ups, in order, skippable. Returns when it is done or skipped.
+## Both line-ups, on the grass, skippable. Returns when done or skipped.
+## See src/ui/line_up_parade.gd: the camera pans along your side right to
+## left, then along theirs left to right, everyone standing in idle.
 func _walk_them_out() -> void:
 	if db == null or not db.tune_bool("line_up_parade", true):
 		return
-	var yours: Array = []
-	var others: Array = []
-	for unit in _all_units():
-		if unit.data == null:
-			continue
-		var into: Array = others if unit.is_enemy else yours
-		if not into.has(unit.data):
-			into.append(unit.data)
-	if yours.is_empty() and others.is_empty():
+	if camera == null:
+		return
+	var units := _all_units()
+	if units.is_empty():
 		return
 
 	var mine_facts := _team_facts(false)
 	var their_facts := _team_facts(true)
-	var parade := LineUpParade.open(self, db, yours, others,
+	var parade := LineUpParade.on_field(self, db, camera, units, goalies,
 		String(mine_facts.get("name", "YOUR SIDE")).to_upper(),
 		String(their_facts.get("name", "THEM")).to_upper())
 	await parade.finished

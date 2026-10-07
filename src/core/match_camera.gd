@@ -124,7 +124,7 @@ func setup(pitch: Rect2, db: CardDatabase, ground: Rect2 = Rect2()) -> void:
 		var margin := maxf(0.0, PitchView.number("wide_shot_margin", 0.1))
 		_frame_v = _home_v.grow_individual(_home_v.size.x * margin, _home_v.size.y * margin,
 			_home_v.size.x * margin, _home_v.size.y * margin).intersection(ground_view)
-	var pitch_zoom := _zoom_to_fit(_home_v)
+	pitch_zoom = _zoom_to_fit(_home_v)
 	wide_zoom = minf(_zoom_to_fit(_frame_v), pitch_zoom)
 	if ground_view.size.x > 1.0:
 		# Tilted, the pitch is a long diamond: fit all of it in the frame
@@ -195,11 +195,42 @@ func mode() -> int:
 
 
 # =============================================================
+#  A SCRIPTED SHOT  (round AN, the line-up on the grass)
+#
+#  The line-up before kick-off pans along each team. While a shot is
+#  scripted, the camera stops easing on its own and sits exactly where it is
+#  put — still never past the edge of the ground picture.
+# =============================================================
+
+var _scripted := false
+## The zoom at which the whole tilted pitch fits; the line-up zoom is a
+## multiple of it, like camera_zoom.
+var pitch_zoom: float = 1.0
+
+
+func script_shot(on: bool) -> void:
+	_scripted = on
+	if not on:
+		# Hand back from wherever the pan ended, not with a jump.
+		_held_point = global_position
+		_want_point = global_position
+		_want_zoom = zoom.x
+
+
+## Put the view on `point` (a point in the PICTURE, see view_xform) at
+## `at_zoom`. Clamped to the ground like every other shot.
+func place_shot(point: Vector2, at_zoom: float) -> void:
+	var z := maxf(at_zoom, wide_zoom)
+	zoom = Vector2(z, z)
+	global_position = _clamp_centre(point, z)
+
+
+# =============================================================
 #  MOVING
 # =============================================================
 
 func _process(delta: float) -> void:
-	if home_rect.size.x < 1.0 or home_rect.size.y < 1.0:
+	if home_rect.size.x < 1.0 or home_rect.size.y < 1.0 or _scripted:
 		return
 
 	# exp() keeps the ease identical whatever the frame rate, which lerp()

@@ -44,6 +44,10 @@ signal kick_off_wanted
 
 var db: CardDatabase
 
+## Chalk on the beer menu, and the board itself when there is no picture.
+const CHALK := Color(0.95, 0.95, 0.90)
+const CHALK_BOARD := Color(0.16, 0.27, 0.21)
+
 var _bar: ColorRect
 var _bar_room: Control
 var _sheet: Control
@@ -236,30 +240,41 @@ func _build(mine: Dictionary, theirs: Dictionary) -> void:
 	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_sheet.add_child(back)
 
+	# THE BEER TENT behind the two menus (round AN). vs_background in
+	# Tuning.csv; vs_background_dim darkens it so the menus stand out.
+	var tent := _picture("vs_background", "res://assets/team/vs/vs_tent.png")
+	if tent != null:
+		var hall := TextureRect.new()
+		hall.texture = tent
+		hall.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		hall.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		hall.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		hall.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		hall.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var dim := clampf(_tune_f("vs_background_dim", 0.55), 0.0, 1.0)
+		hall.modulate = Color(1.0 - dim, 1.0 - dim, 1.0 - dim, 1.0)
+		_sheet.add_child(hall)
+
 	var column := VBoxContainer.new()
 	column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	column.add_theme_constant_override("separation", 24)
+	column.add_theme_constant_override("separation", 12)
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	_sheet.add_child(column)
 
-	var kind := MenuSupport.heading(_match_words(), 18, MenuSupport.COLOUR_TEXT_DIM)
+	var kind := MenuSupport.heading(_match_words(), 30, MenuSupport.COLOUR_ACCENT)
 	kind.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	kind.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	_outline(kind, 8)
 	column.add_child(kind)
 
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 40)
+	row.add_theme_constant_override("separation", 12)
 	column.add_child(row)
 
-	row.add_child(_side(mine, stars, false))
-
-	var versus := MenuSupport.heading("VS", 54, MenuSupport.COLOUR_ACCENT)
-	versus.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	versus.custom_minimum_size = Vector2(140, 0)
-	versus.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(versus)
-
-	row.add_child(_side(theirs, stars, true))
+	row.add_child(_menu_board(mine, stars, false))
+	row.add_child(_versus())
+	row.add_child(_menu_board(theirs, stars, true))
 
 	# ---- the loading bar ----
 	var bar_line := CenterContainer.new()
@@ -294,8 +309,10 @@ func _build(mine: Dictionary, theirs: Dictionary) -> void:
 	_waiting = Label.new()
 	_waiting.text = "Walking out…"
 	_waiting.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_waiting.add_theme_font_size_override("font_size", 14)
+	_waiting.add_theme_font_size_override("font_size", 16)
 	_waiting.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+	_waiting.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	_outline(_waiting, 6)
 	column.add_child(_waiting)
 
 	# The START button that lives ON the sheet, for when the sheet waits.
@@ -338,29 +355,88 @@ func _build(mine: Dictionary, theirs: Dictionary) -> void:
 	top.add_child(_crest_and_name(theirs, 96))
 
 
-## One side of the sheet: crest, name, and the Stars who are playing.
-func _side(team: Dictionary, stars: int, theirs: bool) -> Control:
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(520, 0)
-	panel.add_theme_stylebox_override("panel", MenuSupport.panel_style(
-		MenuSupport.COLOUR_PANEL,
-		MenuSupport.COLOUR_TEXT_DIM if theirs else MenuSupport.COLOUR_ACCENT))
+# =============================================================
+#  THE BEER MENUS  (round AN)
+#
+#  Anthony: "the VS loading screen should have each team be in a beer menu,
+#  and the star player sprites that are correct are here too."
+#
+#  Each side is a chalkboard Bierkarte. At the top the crest and the team
+#  name, then the Stars like the beers on a menu: the figure the Star plays
+#  as on the pitch (standing in idle), the name, the tier and power where a
+#  price would be, and what they do in two tagged lines.
+#
+#  Tuning.csv
+#      vs_menu_board       the board picture (res:// path)
+#      vs_board_width      how wide a board may be, share of the screen
+#      vs_board_height     how tall a board is, as a share of the screen
+#      vs_board_patch      the wooden frame round the chalk, in the
+#                          picture's pixels: left top right bottom
+#      vs_versus           the picture between the two boards
+#      vs_background       the beer tent behind it all
+#      vs_background_dim   0 = the tent at full colour, 1 = black
+#      vs_star_size        how tall a Star's figure is, in screen pixels
+# =============================================================
 
-	var pad := MarginContainer.new()
-	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
-		pad.add_theme_constant_override(side, 18)
-	panel.add_child(pad)
+func _menu_board(team: Dictionary, stars: int, theirs: bool) -> Control:
+	var screen := get_viewport().get_visible_rect().size if get_viewport() != null \
+		else Vector2(1920, 1080)
+	var art := _picture("vs_menu_board", "res://assets/team/vs/vs_menu_board.png")
+	var patch := _patch()
+	var wide := screen.x * clampf(_tune_f("vs_board_width", 0.44), 0.1, 0.5)
+	var tall := screen.y * clampf(_tune_f("vs_board_height", 0.62), 0.2, 1.0)
 
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 12)
-	pad.add_child(column)
+	# A Panel with no box of its own: the match puts a dark plate behind every
+	# word (TextBackdrop), and words written in chalk on a board need none.
+	var board := Panel.new()
+	board.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	board.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	column.add_child(_crest_and_name(team, 120))
+	# ============ THE BOARD GROWS DOWNWARD, IT NEVER SMEARS ============
+	#
+	# The picture is blown up by a WHOLE number (hard pixels), as wide as it
+	# fits in vs_board_width. The frame top (crest, bunting) and bottom stay
+	# as drawn; the rows of chalk and side posts in between repeat to make the
+	# board as tall as vs_board_height asks, so there is room for the Stars'
+	# abilities however long they are.
+	var zoom := 1
+	if art != null:
+		zoom = maxi(1, int(floor(wide / float(art.get_width()))))
+		var big := art.get_image()
+		big.resize(art.get_width() * zoom, art.get_height() * zoom, Image.INTERPOLATE_NEAREST)
+		var picture := NinePatchRect.new()
+		picture.texture = ImageTexture.create_from_image(big)
+		picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		picture.patch_margin_left = patch[0] * zoom
+		picture.patch_margin_top = patch[1] * zoom
+		picture.patch_margin_right = patch[2] * zoom
+		picture.patch_margin_bottom = patch[3] * zoom
+		picture.axis_stretch_vertical = NinePatchRect.AXIS_STRETCH_MODE_TILE_FIT
+		picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		board.add_child(picture)
+		wide = float(art.get_width() * zoom)
+		tall = maxf(tall, float((patch[1] + patch[3]) * zoom) + 120.0)
+	else:
+		var plain := Panel.new()
+		plain.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		plain.add_theme_stylebox_override("panel", MenuSupport.panel_style(
+			CHALK_BOARD, MenuSupport.COLOUR_ACCENT))
+		board.add_child(plain)
+	board.custom_minimum_size = Vector2(wide, tall)
 
-	var line := HBoxContainer.new()
-	line.alignment = BoxContainer.ALIGNMENT_CENTER
-	line.add_theme_constant_override("separation", 10)
-	column.add_child(line)
+	# The chalk: the part of the picture that is the green board. The Stars
+	# stand side by side on it, like three beers on the menu.
+	var pad := 6.0
+	var chalk := HBoxContainer.new()
+	chalk.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	chalk.offset_left = patch[0] * zoom + pad
+	chalk.offset_top = patch[1] * zoom + pad
+	chalk.offset_right = -(patch[2] * zoom + pad)
+	chalk.offset_bottom = -(patch[3] * zoom + pad)
+	chalk.add_theme_constant_override("separation", 6)
+	chalk.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	board.add_child(chalk)
 
 	var shown := 0
 	for entry in (team.get("stars", []) as Array):
@@ -369,12 +445,195 @@ func _side(team: Dictionary, stars: int, theirs: bool) -> Control:
 		var card := entry as PlayerData
 		if card == null:
 			continue
-		line.add_child(_star_face(card))
+		if shown > 0:
+			chalk.add_child(_chalk_rule())
+		chalk.add_child(_menu_line(card, theirs))
 		shown += 1
 	if shown == 0:
-		column.add_child(_quiet("No Star Players named for this side."))
+		chalk.add_child(_quiet("No Star Players named for this side."))
+	# LONG ABILITIES MAKE THE BOARD TALLER rather than spill off the chalk.
+	# Measured once the words are laid out; the extra rows repeat like the rest.
+	var frame_rows := float(patch[1] + patch[3]) * zoom + pad * 2.0
+	_grow_to_fit.call_deferred(board, chalk, frame_rows, screen.y)
 
-	return panel
+	# ---- crest and name over the board, like the name of the house ----
+	var side := VBoxContainer.new()
+	side.add_theme_constant_override("separation", 4)
+	side.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var head := HBoxContainer.new()
+	head.alignment = BoxContainer.ALIGNMENT_CENTER
+	head.add_theme_constant_override("separation", 10)
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	side.add_child(head)
+	var crest := MenuSupport.icon_texture(String(team.get("crest", "")))
+	if crest != null:
+		var badge := TextureRect.new()
+		badge.texture = crest
+		badge.custom_minimum_size = Vector2(64, 64)
+		badge.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		badge.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		head.add_child(badge)
+	var title := MenuSupport.heading(String(team.get("name", "?")), 38,
+		Color(0.92, 0.55, 0.45) if theirs else MenuSupport.COLOUR_ACCENT)
+	title.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_outline(title, 10)
+	head.add_child(title)
+	side.add_child(board)
+	return side
+
+
+## One Star, written up like a beer on the menu: the figure, the name, the
+## tier and power where the price would be, and what they do.
+func _menu_line(card: PlayerData, theirs: bool) -> Control:
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 1)
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.size_flags_stretch_ratio = 1.0
+	column.custom_minimum_size = Vector2(60, 0)
+	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# THE FIGURE FROM THE PITCH, standing in idle facing us: the same look
+	# the Star wears in the match (PitchSprite.window_sheet). A card with no
+	# pitch sheet yet falls back to its portrait.
+	var tall := maxf(40.0, _tune_f("vs_star_size", 120.0))
+	var figure_box := CenterContainer.new()
+	figure_box.custom_minimum_size = Vector2(0, tall)
+	figure_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(figure_box)
+	var pitch := PitchSprite.window_sheet(card)
+	var spec := PitchSprite.window_spec(pitch, "idle", 2) if pitch != null else null
+	if spec != null:
+		var figure := SpriteAnimator.new()
+		figure_box.add_child(figure)
+		figure.play(pitch, spec)
+		figure.fit_into(Vector2(tall, tall))
+		if theirs:
+			figure.flip_h = true
+	else:
+		figure_box.add_child(MenuSupport.portrait_rect(card, db, Vector2(tall * 0.8, tall)))
+
+	var named := MenuSupport.heading(NamePlate.short_name(card), 20, CHALK)
+	named.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	named.clip_text = true
+	column.add_child(named)
+
+	# Where a beer has its price, a Star has its tier and power.
+	var price := Label.new()
+	price.text = "Tier %s  ·  P %d  ·  D %d" % [card.get_tier_clean(),
+		card.get_attack_power(), card.get_defense_power()]
+	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	price.add_theme_font_size_override("font_size", 13)
+	price.add_theme_color_override("font_color",
+		MenuSupport.colour_for_tier(card.get_tier_clean()).lightened(0.45))
+	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(price)
+
+	for pair in [[true, card.active_attack_ability()],
+			[false, card.active_defend_ability()]]:
+		var line := _ability_line(bool(pair[0]), String(pair[1]))
+		if line != null:
+			column.add_child(line)
+	return column
+
+
+## Make `board` tall enough for everything written on `chalk`, but never
+## taller than vs_board_max of the screen. If it still does not fit there,
+## the ability sentences get smaller, a size at a time, down to
+## vs_ability_size_min.
+func _grow_to_fit(board: Control, chalk: Control, frame_rows: float, screen_tall: float) -> void:
+	if not is_instance_valid(board) or not is_instance_valid(chalk):
+		return
+	var cap := screen_tall * clampf(_tune_f("vs_board_max", 0.74), 0.2, 1.0)
+	var smallest := int(_tune_f("vs_ability_size_min", 9.0))
+	for attempt in 8:
+		var needed := chalk.get_combined_minimum_size().y + frame_rows
+		if needed > board.custom_minimum_size.y:
+			board.custom_minimum_size.y = minf(needed, cap)
+		if needed <= cap:
+			return
+		var shrank := false
+		for said in chalk.find_children("*", "Label", true, false):
+			var words := said as Label
+			if words == null or words.autowrap_mode == TextServer.AUTOWRAP_OFF:
+				continue
+			var now := words.get_theme_font_size("font_size")
+			if now > smallest:
+				words.add_theme_font_size_override("font_size", now - 1)
+				shrank = true
+		if not shrank:
+			return
+		# Let the words wrap again at the new size before measuring.
+		await get_tree().process_frame
+		if not is_instance_valid(board) or not is_instance_valid(chalk):
+			return
+
+
+## A thin chalk line between the menu's entries.
+func _chalk_rule() -> Control:
+	var rule := ColorRect.new()
+	rule.color = Color(CHALK.r, CHALK.g, CHALK.b, 0.35)
+	rule.custom_minimum_size = Vector2(2, 0)
+	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return rule
+
+
+## The two steins clinking between the boards, with VS over them.
+func _versus() -> Control:
+	var holder := PanelContainer.new()
+	holder.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var middle := VBoxContainer.new()
+	middle.alignment = BoxContainer.ALIGNMENT_CENTER
+	middle.custom_minimum_size = Vector2(160, 0)
+	middle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(middle)
+	var art := _picture("vs_versus", "res://assets/team/vs/vs_steins.png")
+	if art != null:
+		var steins := TextureRect.new()
+		steins.texture = art
+		steins.custom_minimum_size = Vector2(160, 160)
+		steins.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		steins.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		steins.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		steins.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		middle.add_child(steins)
+	var versus := MenuSupport.heading("VS", 64, MenuSupport.COLOUR_ACCENT)
+	versus.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_outline(versus, 10)
+	middle.add_child(versus)
+	return holder
+
+
+## A black comic outline round big words over the tent.
+func _outline(label: Label, size: int) -> void:
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	label.add_theme_constant_override("outline_size", size)
+
+
+## vs_board_patch: the frame round the chalk on the board picture, in the
+## picture's own pixels: left top right bottom. Everything inside is chalk.
+func _patch() -> Array[int]:
+	var said := db.tune_text("vs_board_patch", "16 46 17 16") if db != null else "16 46 17 16"
+	var parts := said.replace(",", " ").split(" ", false)
+	var out: Array[int] = [16, 46, 17, 16]
+	for i in mini(4, parts.size()):
+		out[i] = maxi(0, int(parts[i]))
+	return out
+
+
+## A picture named in Tuning.csv, or the fallback, or null.
+func _picture(key: String, fallback: String) -> Texture2D:
+	var path := db.tune_text(key, fallback).strip_edges() if db != null else fallback
+	for each in [path, fallback]:
+		if each != "" and ResourceLoader.exists(each):
+			return load(each) as Texture2D
+	return null
+
+
+func _tune_f(key: String, otherwise: float) -> float:
+	return db.tune_float(key, otherwise) if db != null else otherwise
 
 
 func _crest_and_name(team: Dictionary, crest_size: float) -> Control:
@@ -410,59 +669,6 @@ func _crest_and_name(team: Dictionary, crest_size: float) -> Control:
 	title.add_theme_font_size_override("font_size", 20)
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(title)
-	return column
-
-
-## A Star's face, drawn with the same helper every other screen uses so the
-## player you see here is the player you see on the pitch.
-func _star_face(card: PlayerData) -> Control:
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 2)
-	column.custom_minimum_size = Vector2(150, 0)
-
-	# ============ NO HOVER. IT IS PRINTED ============
-	#
-	# There used to be a hover panel over this portrait that opened with both
-	# abilities in full — and underneath it, the same two abilities printed on
-	# the sheet. Two copies of the same sentence, one of which you had to go
-	# looking for with a mouse.
-	#
-	# "The star players abilities are listed twice, remove the hovering over
-	#  the star player."
-	#
-	# So the hover is gone and the printed lines are the only copy. They are
-	# what needed the work anyway — see _ability_line().
-	var portrait := MenuSupport.portrait_rect(card, db, Vector2(150, 150))
-	column.add_child(portrait)
-
-	var title := Label.new()
-	title.text = NamePlate.short_name(card)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 13)
-	title.clip_text = true
-	column.add_child(title)
-
-	var under := Label.new()
-	under.text = "Tier %s  ·  P: %d" % [card.get_tier_clean(), card.get_attack_power()]
-	under.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	under.add_theme_font_size_override("font_size", 11)
-	under.add_theme_color_override("font_color",
-		MenuSupport.colour_for_tier(card.get_tier_clean()).lightened(0.35))
-	column.add_child(under)
-
-	# ============ WHAT THEY DO, ON THE TEAM SHEET ============
-	#
-	# Three Stars a side with nothing written under them is three pictures.
-	# The whole reason you are being shown the opposition before kick-off is
-	# so that you know what is coming, and that is the abilities.
-	# BOTH SIDES, ALWAYS, IN THEIR OWN COLOURS — and the word None where there
-	# is nothing, because a blank where an ability should be reads as a bug
-	# while "None" reads as information you can plan around.
-	for pair in [[true, card.active_attack_ability()],
-			[false, card.active_defend_ability()]]:
-		var line := _ability_line(bool(pair[0]), String(pair[1]))
-		if line != null:
-			column.add_child(line)
 	return column
 
 
@@ -511,7 +717,7 @@ func _ability_line(attacking: bool, ability_id: String) -> Control:
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 5)
-	row.custom_minimum_size = Vector2(150, 0)
+	row.custom_minimum_size = Vector2(60, 0)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	# THE TAG IS A FIXED WIDTH so that the sentences beside it all start on
@@ -520,7 +726,7 @@ func _ability_line(attacking: bool, ability_id: String) -> Control:
 	var tag := Label.new()
 	tag.text = Loc.text("atk_tag", "ATK") if attacking else Loc.text("def_tag", "DEF")
 	tag.custom_minimum_size = Vector2(30, 0)
-	tag.add_theme_font_size_override("font_size", 10)
+	tag.add_theme_font_size_override("font_size", 12)
 	tag.add_theme_color_override("font_color", tint)
 	tag.add_theme_stylebox_override("normal", MenuSupport.panel_style(
 		Color(tint.r, tint.g, tint.b, 0.16), tint))
@@ -534,7 +740,7 @@ func _ability_line(attacking: bool, ability_id: String) -> Control:
 	var said := Label.new()
 	said.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	said.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	said.add_theme_font_size_override("font_size", 10)
+	said.add_theme_font_size_override("font_size", 12)
 
 	var clean := ability_id.strip_edges()
 	var ability: AbilityData = db.abilities.get(clean.to_lower()) if clean != "" else null

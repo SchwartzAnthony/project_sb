@@ -854,6 +854,9 @@ func stand_up(seconds: float = 0.3) -> void:
 var pitch_sheet := false
 ## While true, standing still means cheering. Set by the goal celebration.
 var celebrating := false
+## 0-7 (PitchSprite.DIRECTIONS) to stand facing that way instead of the ball.
+## The line-up before kick-off sets it so everyone faces the camera. -1 = off.
+var pose_facing := -1
 
 var _anim_name := ""
 var _anim_time := 0.0
@@ -894,7 +897,9 @@ func _process(delta: float) -> void:
 			_anim_time += delta
 			_draw_frame("run")
 			return
-		if not celebrating:
+		if pose_facing >= 0:
+			_dir = posmod(pose_facing, 8)
+		elif not celebrating:
 			_look_at_ball()
 		_show_anim("cheer" if celebrating and PitchSprite.has_anim("cheer") else "idle")
 	_anim_time += delta
