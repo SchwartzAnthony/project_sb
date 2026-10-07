@@ -4406,6 +4406,16 @@ first version only filled a resource whose count was zero, which reads as
 "once" and is not: spend your last germ, walk out, walk back in, and it hands
 you five more.
 
+### The machines are the buttons (round AN)
+
+Each section is drawn as its machine, which you click to work it, like a
+building on the base, with its name on a see-through plate underneath. The
+machines are the Steeping Tank, Grain Mill, Lauter Tun, Brew Kettle,
+Fermenting Vat and Bottling Machine. Each picture is the **Art** column
+(`assets/brewery/brewery_<id>.png`, PixelLab, layered in
+`art_source/aseprite/brewery/`). Their size is `Tuning.csv
+brewery_machine_size`. A section with no picture falls back to the old panel.
+
 ### `data/BrewerySections.csv`
 
 | column | |
@@ -6423,15 +6433,25 @@ tackle animation.
   **Loop** as in `Animations.csv`. **PixelLab** is the animation's name in
   the PixelLab export.
 
-**Six looks for The Club** (Anthony: no red nose, and people of different
-skin colours and backgrounds in the same comic style). Men: light skin and
-brown hair (`club_m1`), dark brown skin and curly hair (`club_m2`), olive
-skin and a beard (`club_m3`); every man gets one of the three by name.
-Women follow their off-pitch look: ponytail = light skin, blonde ponytail
-(`club_f1`); plaits = brown skin, dark plaits (`club_f2`); bob = East Asian,
-black bob (`club_f3`). All six were drawn with PixelLab's style copy of the
+**Ten looks for The Club** (Anthony: no red nose, and people of different
+skin colours and backgrounds in the same comic style). Five men (`club_m1`-`m5`: light with brown hair,
+dark brown and curly, olive with a beard, East Asian, ginger with freckles)
+and five women (`club_f1`-`f5`: blonde ponytail, brown with plaits, East Asian
+bob, afro puffs, short ginger). Every new player gets a random one (picked by
+their random name) and keeps it, so skin colour, hair colour and style vary. All six were drawn with PixelLab's style copy of the
 approved player, so they match. Add a look: draw it, build its sheet, add
 its file to the right row of `PitchSprites.csv` with `|`.
+
+**The other classes** (two looks each, same style): Rivals (stubbly man,
+woman with a ponytail; grey and blue), Lorelei (water spirits: a woman of living
+water, a river nymph with scales; teal), Rauhnacht-Feuergeister (flame figure, charcoal with a Perchten
+mask), Bergmännlein (bearded dwarf in a red cap, dwarf woman with braids
+and a helmet), Unkengeister (warty toad, fire-bellied toad), Brandteufel
+(fire-devil man and woman with horns). Their rows in `PitchSprites.csv`
+are by class, so every card of the class gets one of its two looks.
+
+**Size:** `pitch_sprite_scale` is 0.8 (Anthony's pick A, so the pitch is not
+crowded).
 
 **Grey when not in play** (Anthony: the grey shows who is not in the Play
 Maker session, so you can follow the play). A player in the session is in

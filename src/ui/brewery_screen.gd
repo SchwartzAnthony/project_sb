@@ -374,9 +374,13 @@ func _make_section(section: Dictionary) -> Control:
 func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: bool,
 		full: bool, short: Array) -> Control:
 	var id_text := String(section["id"])
-	var box := SECTION_SIZE
+	# How big a machine is drawn: Tuning.csv brewery_machine_size (pixels).
+	var big := db.tune_float("brewery_machine_size", 200.0)
+	var box := Vector2(maxf(SECTION_SIZE.x, big), big + 44.0)
 	var holder := Control.new()
-	holder.position = _spot(section)
+	# Centred where the panel's centre would be, so the X / Y columns and
+	# the chain lines between sections still meet the machine.
+	holder.position = _spot(section) + SECTION_SIZE * 0.5 - box * 0.5
 	holder.size = box
 	holder.custom_minimum_size = box
 

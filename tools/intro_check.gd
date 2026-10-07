@@ -152,8 +152,8 @@ func _initialize() -> void:
 	await _shot("5_brewery_box")
 	await _read_box(box)
 	var lit := await _wait_for_highlight(5.0)
-	_check(lit != null and lit is Button and (lit as Button).text == "WORK IT",
-		"the first WORK IT button is lit up")
+	_check(lit != null and lit is Button and (lit as Button).tooltip_text.begins_with("Steeping Tank"),
+		"the Steeping Tank (the first machine) is lit up")
 	await _shot("6_brewery_lit")
 	if lit != null:
 		(lit as Button).pressed.emit()
