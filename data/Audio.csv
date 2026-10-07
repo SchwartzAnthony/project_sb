@@ -19,6 +19,10 @@ keeper_big_save,save_made,power>=4,glove_catch_big,Effects,,-3,,,A save against 
 duel_win,duel_won,,duel_win,Effects,,-6,,,
 duel_win_tier4,duel_won,tier=IV,duel_win_heavy,Effects,,-4,,,
 duel_lose,duel_lost,,duel_lose,Effects,,-7,,,
+duel_ability_success,duel_ability_success,,ui_confirm,Effects,,-6,,,"ROUND AN. STAND-IN: an older sound you already have, so the moment is audible. When the real one is in assets/audio/ put its name (duel_ability_success) in the Sound column. The duel window: the gold box is round an ability and it WENT OFF."
+duel_ability_fail,duel_ability_fail,,menu_back,Effects,,-6,,,"ROUND AN. STAND-IN: an older sound you already have, so the moment is audible. When the real one is in assets/audio/ put its name (duel_ability_fail) in the Sound column. The duel window: the gold box is round an ability and it did NOT go off (its If was not met, or you kept the Ore)."
+duel_power_victory,duel_power_victory,,duel_win,Effects,,-5,,,"ROUND AN. STAND-IN: an older sound you already have, so the moment is audible. When the real one is in assets/audio/ put its name (duel_power_victory) in the Sound column. The duel window: the power check, and YOUR card has the higher number. Add a row below with Match tier=IV for a bigger one in Tier IV."
+duel_power_fail,duel_power_fail,,duel_lose,Effects,,-6,,,"ROUND AN. STAND-IN: an older sound you already have, so the moment is audible. When the real one is in assets/audio/ put its name (duel_power_fail) in the Sound column. The duel window: the power check, and YOUR card lost."
 brew_pour,brew_drunk,,pour,Effects,,-5,,,
 card_hover,card_hovered,,ui_tick,UI,,-16,,,Quiet on purpose - it fires every time the mouse crosses a card.
 card_lock,card_picked,,ui_confirm,UI,,-8,,,

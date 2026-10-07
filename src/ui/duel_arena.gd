@@ -17,6 +17,15 @@ extends CanvasLayer
 #
 #  Priority ties go to the ATTACKER, same as the rules.
 #
+#  ROUND AN - THE HIGHLIGHTS (Anthony, 7 Oct): every check is shown and
+#  slowed down so you can follow it. "ABILITY PRIORITY" comes up and a gold
+#  ring circles the lower number; a gold box lights each ability in turn,
+#  with a success sound if it went off and an error sound if it did not;
+#  then "POWER CHECK" and gold rings round both numbers, and a victory or a
+#  fail sound for YOUR side. Timings and the gold are `duel_hl_*` rows in
+#  Tuning.csv, the words are Language.csv, the sounds Audio.csv
+#  (duel_ability_success / _fail, duel_power_victory / _fail).
+#
 #  PACING is entirely from Tuning.csv (`arena_*` rows). Holding SPACE, or
 #  clicking, fast-forwards the current duel; nothing is skipped silently,
 #  it just runs at `arena_skip_speed`.
@@ -49,6 +58,15 @@ var result_seconds: float = 1.0
 
 var _running := false
 var _skipping := false
+
+## ROUND AN highlights - all from Tuning.csv `duel_hl_*`.
+var highlight := true
+var hl_priority_seconds: float = 1.0
+var hl_ability_seconds: float = 1.0
+var hl_ability_result_seconds: float = 0.7
+var hl_power_seconds: float = 1.2
+var hl_colour := Color(0.98, 0.78, 0.16)
+var _banner: Label
 
 var _dim: ColorRect
 var _tier_label: Label
@@ -113,6 +131,14 @@ func apply_tuning(database: CardDatabase) -> void:
 	ability_seconds = db.tune_float("arena_ability_seconds", ability_seconds)
 	compare_seconds = db.tune_float("arena_compare_seconds", compare_seconds)
 	result_seconds = db.tune_float("arena_result_seconds", result_seconds)
+	highlight = db.tune_bool("duel_hl", highlight)
+	hl_priority_seconds = db.tune_float("duel_hl_priority_seconds", hl_priority_seconds)
+	hl_ability_seconds = db.tune_float("duel_hl_ability_seconds", hl_ability_seconds)
+	hl_ability_result_seconds = db.tune_float("duel_hl_ability_result_seconds", hl_ability_result_seconds)
+	hl_power_seconds = db.tune_float("duel_hl_power_seconds", hl_power_seconds)
+	var gold := db.tune_text("duel_hl_colour", "")
+	if Color.html_is_valid(gold):
+		hl_colour = Color.html(gold)
 
 
 func is_running() -> bool:
@@ -172,24 +198,49 @@ func play_duel(info: Dictionary) -> void:
 	await _beat(reveal_seconds)
 
 	# --- 3. Abilities, lower priority first, attacker breaking the tie ---
-	for key in _priority_order(left, right):
+	# ROUND AN: "ABILITY PRIORITY" goes up and the lower number is ringed in
+	# gold before anything fires, so you see WHO goes first and why.
+	var order := _priority_order(left, right)
+	if highlight:
+		_show_banner(Loc.text("duel_ability_priority", "ABILITY PRIORITY"))
+		_ring(order[0], true)
+		await _beat(hl_priority_seconds)
+	for key in order:
 		var data: Dictionary = left if key == "left" else right
 		await _fire_ability(key, data)
+	_ring("left", false)
+	_ring("right", false)
+	_show_banner("")
 
 	# --- 4. Final numbers ---
 	# RULING F4: when the number it fights with is not the number printed on
 	# the card, the difference is shown beside it - "3  (+1)".
+	# ROUND AN: "POWER CHECK" and both numbers ringed in gold.
+	if highlight:
+		_show_banner(Loc.text("duel_power_check", "POWER CHECK"))
+		_ring("left", true)
+		_ring("right", true)
 	_set_power(_side["left"], int(left.get("power_after", 0)), LIVE_TEXT,
 		int(left.get("power_after", 0)) - int(left.get("printed", left.get("power_after", 0))))
 	_set_power(_side["right"], int(right.get("power_after", 0)), LIVE_TEXT,
 		int(right.get("power_after", 0)) - int(right.get("printed", right.get("power_after", 0))))
-	await _beat(compare_seconds)
+	await _beat(hl_power_seconds if highlight else compare_seconds)
 
 	# --- 5. Result ---
-	_stamp("left", bool(left.get("wins", false)))
+	# The ring stays on the winner only. LEFT is always you, so the victory or
+	# fail sound is yours.
+	var left_wins := bool(left.get("wins", false))
+	_stamp("left", left_wins)
 	_stamp("right", bool(right.get("wins", false)))
+	if highlight:
+		_ring("left", left_wins)
+		_ring("right", bool(right.get("wins", false)))
+		_sound("duel_power_victory" if left_wins else "duel_power_fail", info)
 	await _beat(result_seconds)
 
+	_ring("left", false)
+	_ring("right", false)
+	_show_banner("")
 	_dim.visible = false
 	_running = false
 	duel_finished.emit()
@@ -213,6 +264,9 @@ func _fire_ability(key: String, data: Dictionary) -> void:
 	var power_label: Label = nodes["power"]
 	if power_label:
 		power_label.add_theme_color_override("font_color", LIVE_TEXT)
+	if highlight:
+		_ring("left", key == "left")
+		_ring("right", key == "right")
 	await _beat(reveal_seconds * 0.6)
 
 	var ability = data.get("ability")
@@ -221,7 +275,11 @@ func _fire_ability(key: String, data: Dictionary) -> void:
 		if ability_label:
 			ability_label.text = "no ability"
 			ability_label.add_theme_color_override("font_color", DIM_TEXT)
-		await _beat(reveal_seconds * 0.5)
+		# ROUND AN: the box still visits it, briefly and silently, so you see
+		# the turn pass rather than wonder whether it was skipped.
+		_box(key, highlight)
+		await _beat(reveal_seconds * 0.5 + (hl_ability_seconds * 0.5 if highlight else 0.0))
+		_box(key, false)
 		return
 
 	if ability_label:
@@ -246,7 +304,18 @@ func _fire_ability(key: String, data: Dictionary) -> void:
 			ability_label.add_theme_color_override("font_color", DIM_TEXT)
 
 	_play_anim(key, data.get("card"), "ability")
-	await _beat(ability_seconds)
+	if not highlight:
+		await _beat(ability_seconds)
+		return
+
+	# ROUND AN: the gold box round the ability, held long enough to read,
+	# then the verdict as a sound - success if it went off, error if not.
+	_box(key, true)
+	await _beat(hl_ability_seconds)
+	var went_off := bool(data.get("fired", true))
+	_sound("duel_ability_success" if went_off else "duel_ability_fail", data)
+	await _beat(hl_ability_result_seconds)
+	_box(key, false)
 
 
 func _ability_text(ability) -> String:
@@ -530,6 +599,9 @@ func _set_power(nodes: Dictionary, value: int, colour: Color, change: int = 0) -
 		return
 	label.text = str(value) if change == 0 else "%d  (%+d)" % [value, change]
 	label.add_theme_color_override("font_color", colour)
+	var ring := label.get_node_or_null("GoldRing") as Control
+	if ring != null:
+		ring.queue_redraw()
 
 
 func _stamp(key: String, won: bool) -> void:
@@ -540,6 +612,118 @@ func _stamp(key: String, won: bool) -> void:
 	label.text = "WIN" if won else "LOSE"
 	label.add_theme_color_override("font_color", WIN_TEXT if won else LOSE_TEXT)
 	_play_anim(key, _cards.get(key), "win" if won else "lose")
+
+
+# =============================================================
+#  ROUND AN - THE GOLD HIGHLIGHTS
+#
+#  STAND-IN ART: the box and the ring are drawn in code in duel_hl_colour
+#  until Anthony approves the PixelLab draft.
+# =============================================================
+
+## The words over the window ("ABILITY PRIORITY", "POWER CHECK"), on the
+## see-through black plate. Blank text hides it.
+func _show_banner(text: String) -> void:
+	if _banner == null:
+		_banner = Label.new()
+		_banner.name = "HighlightBanner"
+		_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_banner.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		_banner.add_theme_font_size_override("font_size", 34)
+		_banner.add_theme_stylebox_override("normal", TextBackdrop.plate())
+		# Under the two panels, above the skip hint, so it covers nothing.
+		_banner.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+		_banner.offset_left = -330.0
+		_banner.offset_right = 330.0
+		_banner.offset_top = -108.0
+		_banner.offset_bottom = -62.0
+		_banner.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		_banner.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		_dim.add_child(_banner)
+	_banner.add_theme_color_override("font_color", hl_colour)
+	_banner.text = text
+	_banner.visible = text != ""
+
+
+## A gold ring round one side's power number.
+func _ring(key: String, on: bool) -> void:
+	var label: Label = _side.get(key, {}).get("power")
+	if label == null:
+		return
+	var ring := label.get_node_or_null("GoldRing") as GoldRing
+	if ring == null:
+		if not on:
+			return
+		ring = GoldRing.new()
+		ring.name = "GoldRing"
+		label.add_child(ring)
+	ring.colour = hl_colour
+	ring.visible = on
+	ring.queue_redraw()
+
+
+## A gold box round one side's ability plate.
+func _box(key: String, on: bool) -> void:
+	var label: Label = _side.get(key, {}).get("ability")
+	if label == null:
+		return
+	var box := label.get_node_or_null("GoldBox") as Panel
+	if box == null:
+		if not on:
+			return
+		box = Panel.new()
+		box.name = "GoldBox"
+		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.show_behind_parent = true
+		label.add_child(box)
+		box.set_anchors_preset(Control.PRESET_FULL_RECT)
+		box.offset_left = -10.0
+		box.offset_top = -8.0
+		box.offset_right = 10.0
+		box.offset_bottom = 8.0
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(hl_colour.r, hl_colour.g, hl_colour.b, 0.12)
+	style.border_color = hl_colour
+	style.set_border_width_all(4)
+	style.set_corner_radius_all(6)
+	box.add_theme_stylebox_override("panel", style)
+	box.visible = on
+
+
+## One of the highlight sounds. The rows are in Audio.csv, so which file
+## plays (and how loud) is Anthony's; `tier` lets a row single out Tier IV.
+func _sound(event: String, info: Dictionary) -> void:
+	var facts := {"tier": String(info.get("tier", ""))}
+	AudioDirector.fire(get_tree(), event, facts, GameState.fetch(get_tree()))
+
+
+## Draws an oval round the number it is attached to, sized to the digits.
+class GoldRing extends Control:
+	var colour := Color(0.98, 0.78, 0.16)
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		var label := get_parent() as Label
+		if label == null:
+			return
+		# Drawn in the label's own space: a container lays the label out but
+		# not this child, so its own size cannot be trusted.
+		position = Vector2.ZERO
+		var font := label.get_theme_font("font")
+		var font_size := label.get_theme_font_size("font_size")
+		var text_size := font.get_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+		# A circle round one digit, a flatter oval round "3  (+1)", never so
+		# tall that it cuts through the name above or the ability below.
+		var half := Vector2(text_size.x * 0.5 + 22.0, text_size.y * 0.5)
+		half.x = maxf(half.x, half.y)
+		var points := PackedVector2Array()
+		for i in 65:
+			var turn := TAU * float(i) / 64.0
+			points.append(label.size * 0.5 + Vector2(cos(turn) * half.x, sin(turn) * half.y))
+		draw_polyline(points, colour, 5.0, true)
 
 
 # =============================================================

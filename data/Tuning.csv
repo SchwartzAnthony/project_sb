@@ -89,6 +89,12 @@ arena_run_in_seconds,0.9,Both units run at each other
 duel_flip,true,"DO THE TWO DUEL CARDS TURN OVER? They arrive face down and flip together, which is the moment the duel begins - before it, neither side knows what the other has. It is also a hook: anything in Abilities.csv written against the flip trigger goes off as they land. FALSE and the cards are simply there, as before"
 duel_flip_seconds,0.42,"How long the flip takes, both halves of the turn together. A card turns over by being squashed to no width and back, and what it shows is swapped at the moment it has none"
 duel_back_seconds,0.5,HOW LONG THE CARD BACK IS HELD before the window turns over. The back is the tier and the two crests; a back that is gone before you have read it may as well not be there. 0 turns it straight away
+duel_hl,true,"ROUND AN. THE GOLD HIGHLIGHTS IN THE DUEL WINDOW. TRUE: ABILITY PRIORITY comes up and the lower number is ringed in gold; each ability gets a gold box and a success or error sound; then POWER CHECK, both numbers ringed, and a victory or fail sound for your side. FALSE: the duel runs as before. The sounds are Audio.csv rows duel_ability_success / duel_ability_fail / duel_power_victory / duel_power_fail; the words are Language.csv duel_ability_priority / duel_power_check"
+duel_hl_priority_seconds,1,"ROUND AN. How long ABILITY PRIORITY and the gold ring on the lower number stay up before the first ability fires"
+duel_hl_ability_seconds,1,"ROUND AN. How long the gold box sits round an ability before its success or error sound"
+duel_hl_ability_result_seconds,0.7,"ROUND AN. How long the box stays after the sound, before the next card"
+duel_hl_power_seconds,1.2,"ROUND AN. How long POWER CHECK and the two gold rings stay up before WIN / LOSE (replaces arena_compare_seconds while duel_hl is true)"
+duel_hl_colour,#FAC729,"ROUND AN. The gold of the box, the rings and the words, as a colour code (#RRGGBB)"
 arena_reveal_seconds,0.5,Power numbers appear
 arena_ability_seconds,0.9,Each ability lights up and plays
 arena_compare_seconds,0.8,Final numbers settle before the verdict

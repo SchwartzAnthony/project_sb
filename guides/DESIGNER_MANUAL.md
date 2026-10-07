@@ -2050,6 +2050,26 @@ last played).
 time)" when its If was not met (or you kept your Ore), the If in words, and
 "priority N" whenever the power it fights with moved.
 
+**The gold highlights (round AN).** The duel window now walks you through
+each check, slowly enough to follow:
+
+1. **ABILITY PRIORITY** comes up and a gold ring circles the lower number.
+2. A gold box lights that card's ability, then a **success** sound if it
+   went off or an **error** sound if it did not.
+3. The same for the other card.
+4. **POWER CHECK**: both numbers ringed in gold, then WIN / LOSE with a
+   **victory** or **fail** sound for your side.
+
+| Where | What you change |
+|---|---|
+| `Tuning.csv` `duel_hl` | false turns the highlights off |
+| `Tuning.csv` `duel_hl_*_seconds` | how long each step is held |
+| `Tuning.csv` `duel_hl_colour` | the gold |
+| `Language.csv` `duel_ability_priority`, `duel_power_check` | the words |
+| `Audio.csv` `duel_ability_success` / `_fail`, `duel_power_victory` / `_fail` | the sounds (stand-ins for now, see `SOUNDS_WANTED.csv`) |
+
+The box and ring are drawn in code until the PixelLab art is approved.
+
 **Rose tokens go home at a goal** (`rose_tokens_end_on_goal`), and the units
 they replaced walk back on.
 
