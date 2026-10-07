@@ -435,7 +435,13 @@ func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: boo
 	picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	button.add_child(picture)
 	button.size = machine_size
-	button.position = Vector2(foot.x - machine_size.x * 0.5,
+	# Centred on the MACHINE'S WEIGHT, not its outline: a crank handle or a
+	# hop pole sticking out to one side would otherwise drag it off its
+	# platform. BrewerySections.csv `Shift X` (picture pixels, + = right)
+	# nudges it further by hand.
+	var weight_x: float = cut["weight_x"]
+	var shift := (weight_x - drawn.size.x * 0.5 - float(section.get("shift_x", 0.0))) * scale_by
+	button.position = Vector2(foot.x - machine_size.x * 0.5 - shift,
 		foot.y + pallet_h * db.tune_float("brewery_foot_forward", 0.15) - machine_size.y)
 	button.focus_mode = Control.FOCUS_ALL
 	# The tooltip STARTS WITH THE NAME, which is how Guide.csv's Highlight
@@ -514,7 +520,20 @@ func _content_of(art: Texture2D) -> Dictionary:
 	var piece := AtlasTexture.new()
 	piece.atlas = art
 	piece.region = rect
-	var out := {"texture": piece, "rect": rect}
+	# Where its weight sits across: the average x of every drawn pixel,
+	# measured from the left of the drawn part.
+	var weight_x := rect.size.x * 0.5
+	if image != null:
+		var total := 0.0
+		var count := 0
+		for y in range(int(rect.position.y), int(rect.end.y)):
+			for x in range(int(rect.position.x), int(rect.end.x)):
+				if image.get_pixel(x, y).a > 0.5:
+					total += x - rect.position.x
+					count += 1
+		if count > 0:
+			weight_x = total / count
+	var out := {"texture": piece, "rect": rect, "weight_x": weight_x}
 	_cuts[art] = out
 	return out
 
