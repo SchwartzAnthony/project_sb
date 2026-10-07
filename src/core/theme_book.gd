@@ -363,6 +363,11 @@ static func image(file_name: String) -> Texture2D:
 
 static var _font_cache: Dictionary = {}
 
+static func _smooth_text() -> bool:
+	var db := CardDatabase.get_db()
+	return db == null or db.tune_bool("text_smooth", true)
+
+
 static func font(file_name: String) -> Font:
 	var clean := file_name.strip_edges()
 	if clean == "":
@@ -370,6 +375,10 @@ static func font(file_name: String) -> Font:
 	if _font_cache.has(clean):
 		return _font_cache[clean]
 	var found: Font = _look_for(clean, FONT_DIRS, FONT_EXTENSIONS) as Font
+	# ROUND AN: smaller copies of every letter, so words drawn at any size
+	# (not only 16, 32, 48) come out smooth instead of ragged.
+	if found is FontFile and _smooth_text():
+		(found as FontFile).generate_mipmaps = true
 	_font_cache[clean] = found
 	return found
 
@@ -548,6 +557,20 @@ static func dress(tree: SceneTree) -> void:
 	var wanted := godot_theme()
 	if tree.root.theme != wanted:
 		tree.root.theme = wanted
+	# ============ READABLE WORDS EVERYWHERE (round AN) ============
+	#
+	# Anthony: "make sure this is the case for Adventure, the match, the base,
+	# every menu and building". Three rules for every word in the game, put
+	# on here because every screen and the match pass through this:
+	#   1. smooth shrinking (text_smooth), so no size looks ragged
+	#   2. a smallest size (text_min_size), see text_scale.gd
+	#   3. the see-through black plate behind words that sit straight on a
+	#      picture (text_backdrop_alpha), see text_backdrop.gd
+	if _smooth_text():
+		tree.root.canvas_item_default_texture_filter = \
+			Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	TextScale.watch(tree)
+	TextBackdrop.watch_everything(tree)
 	# ============ EVERY WORD, NOT ONLY THE ONES IN A CONTROL (round AN) ============
 	#
 	# Names painted straight onto the pitch, the season table's numbers and

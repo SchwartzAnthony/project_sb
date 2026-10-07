@@ -6632,3 +6632,20 @@ off-centre and hard to read, and the intro text was small and ragged.
   `story_choice_size` 32. The pixel font is drawn 16 high, so 16, 32 and 48
   stay crisp; the old 21 was what made it look ragged.
 - **Faces of different sizes**: StoryArt.csv `Scale` (see above).
+
+**Every screen, not only these** (Anthony: the base, the buildings,
+Adventure, the match). Three game-wide rules, put on by `ThemeBook.dress()`,
+which every screen and the match pass through:
+
+1. **Smooth words** (`text_smooth`, true): the font keeps smaller copies of
+   every letter, so any size is clean, not only 16, 32 and 48.
+2. **A smallest size** (`text_min_size`, 14): a screen that asks for
+   smaller gets 14. Left alone: words that wrap inside a designed box (a
+   longer size would run over), words that shrink themselves to fit (banner
+   titles, button words) and the players' name plates. A label that cuts
+   off at the edge of its box only grows as far as the box allows.
+   Settings > Text size multiplies on top. 16 is easier to read but some
+   tight boxes (Adventure's combo tiles) start to cut off.
+3. **The see-through black plate** (`text_backdrop_alpha`) behind any word
+   that sits straight on a picture. Words on a panel or a button keep
+   theirs. An empty label shows no plate.

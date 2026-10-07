@@ -72,6 +72,18 @@ static func watch(root: Node) -> void:
 			tree.node_added.disconnect(on_added), CONNECT_ONE_SHOT)
 
 
+## ROUND AN: every screen, not only the match. Called by ThemeBook.dress().
+static func watch_everything(tree: SceneTree) -> void:
+	if tree == null or tree.root == null or alpha() <= 0.0:
+		return
+	if tree.has_meta("text_backdrop_everywhere"):
+		return
+	tree.set_meta("text_backdrop_everywhere", true)
+	for node in tree.root.find_children("*", "", true, false):
+		give(node)
+	tree.node_added.connect(func(node: Node) -> void: give.call_deferred(node))
+
+
 ## One label. Safe to call on anything; it ignores what is not a label or
 ## already has a backdrop. Takes a Variant on purpose: it is called a frame
 ## late, and a node freed in between must be skipped, not crash the call.

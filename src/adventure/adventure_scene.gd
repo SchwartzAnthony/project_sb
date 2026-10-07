@@ -103,6 +103,9 @@ var _popup: CanvasLayer
 
 func _ready() -> void:
 	GameSpeed.reset()
+	# ROUND AN: the game's font, the smallest text size and the see-through
+	# plate behind words, even when this scene is opened on its own.
+	ThemeBook.dress(get_tree())
 	db = CardDatabase.get_db()
 	adventure = AdventureDB.get_db()
 	state = GameState.fetch(get_tree())

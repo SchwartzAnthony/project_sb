@@ -159,6 +159,9 @@ func _label(size: int) -> Label:
 	var made := Label.new()
 	made.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	made.add_theme_font_size_override("font_size", size)
+	# ROUND AN: a plate sits over a player on a crowded pitch and has its own
+	# sizes (above), so the game-wide smallest text size leaves it alone.
+	made.set_meta(TextScale.FITTED_META, true)
 	# The dark edge that keeps a name readable over grass, over a white shirt
 	# and over a background you have not drawn yet. It was four draw_string
 	# calls before; it is one theme override now.

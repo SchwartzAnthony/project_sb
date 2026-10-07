@@ -123,6 +123,7 @@ func _tile(about: Dictionary) -> Control:
 	# One line, stepping down a size if it would not fit the tile.
 	line.add_theme_font_size_override("font_size", MenuSupport._fit_font_size(line.text,
 		int(MenuSupport.tuned("save_tile_text_size", 20.0)), Vector2(TILE.x - pad * 2.0 - 8.0, 999.0)))
+	line.set_meta(TextScale.FITTED_META, true)
 	line.add_theme_color_override("font_color",
 		MenuSupport.COLOUR_ACCENT if used else MenuSupport.COLOUR_TEXT_DIM)
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE

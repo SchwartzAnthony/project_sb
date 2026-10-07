@@ -19,8 +19,30 @@ extends RefCounted
 ## The size a node was built with, so changing the setting twice scales from
 ## the original rather than compounding.
 const BASE_META := "text_scale_base"
+## A label that already sized itself to fit its box (a banner title, a
+## button's words) sets this meta, and the smallest size leaves it alone.
+const FITTED_META := "text_fitted"
 
 static var _scale: float = 1.0
+
+
+## ROUND AN: no word in the game is drawn smaller than this
+## (Tuning.csv text_min_size). Anthony: "hard to read" on every screen.
+static func min_size() -> int:
+	var db := CardDatabase.get_db()
+	if db == null:
+		return 14
+	return int(db.tune_float("text_min_size", 14.0))
+
+
+## Start watching every new bit of text, so the smallest size holds on every
+## screen. Called by ThemeBook.dress(); safe to call again.
+static func watch(tree: SceneTree) -> void:
+	if tree == null or tree.root == null:
+		return
+	if not tree.node_added.is_connected(_on_added):
+		tree.node_added.connect(_on_added)
+		_walk(tree.root)
 
 
 static func current() -> float:
@@ -33,8 +55,6 @@ static func apply(tree: SceneTree, scale: float) -> void:
 	if tree == null or tree.root == null:
 		return
 	# Nothing to watch for until someone actually asks for a different size.
-	if is_equal_approx(_scale, 1.0) and not tree.node_added.is_connected(_on_added):
-		return
 	if not tree.node_added.is_connected(_on_added):
 		tree.node_added.connect(_on_added)
 	_walk(tree.root)
@@ -65,11 +85,43 @@ static func _fit(node: Node) -> void:
 	if not control.is_inside_tree():
 		return
 
+	# Words that wrap inside a designed box (an ability text in a narrow
+	# column) keep their size: forcing them bigger makes the box run over.
+	# They still get the smooth font and Settings > Text size.
+	var wraps := (control is Label and (control as Label).autowrap_mode != TextServer.AUTOWRAP_OFF) \
+		or control is RichTextLabel
+	var floor_size := 1 if control.has_meta(FITTED_META) or wraps else min_size()
 	if not control.has_meta(BASE_META):
-		# Nothing to remember for a node that has never been scaled and is
+		# Nothing to remember for a node that is already big enough and is
 		# meant to stay at its normal size.
-		if is_equal_approx(_scale, 1.0):
+		var built := control.get_theme_font_size(prop)
+		if is_equal_approx(_scale, 1.0) and built >= floor_size:
 			return
-		control.set_meta(BASE_META, control.get_theme_font_size(prop))
+		control.set_meta(BASE_META, built)
 	var base := int(control.get_meta(BASE_META))
-	control.add_theme_font_size_override(prop, maxi(1, roundi(base * _scale)))
+	control.add_theme_font_size_override(prop, maxi(floor_size, roundi(base * _scale)))
+	# A label that cuts its words off at the edge of a fixed box (a name
+	# plate, a combo tile) only grows as far as the box allows, so making
+	# it bigger never hides more of it. Never smaller than it was built.
+	if control is Label and ((control as Label).clip_text \
+			or (control as Label).text_overrun_behavior != TextServer.OVERRUN_NO_TRIMMING):
+		if not control.resized.is_connected(_keep_inside.bind(control)):
+			control.resized.connect(_keep_inside.bind(control))
+		_keep_inside(control)
+
+
+static func _keep_inside(label: Label) -> void:
+	if not is_instance_valid(label) or label.size.x < 2.0 or not label.has_meta(BASE_META):
+		return
+	var font := label.get_theme_font("font")
+	if font == null:
+		return
+	var base := int(label.get_meta(BASE_META))
+	var want := maxi(min_size(), roundi(base * _scale))
+	var lowest := mini(want, roundi(base * _scale))
+	var font_size := want
+	while font_size > lowest and font.get_string_size(label.text,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > label.size.x:
+		font_size -= 1
+	if label.get_theme_font_size("font_size") != font_size:
+		label.add_theme_font_size_override("font_size", font_size)

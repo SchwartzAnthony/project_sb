@@ -440,6 +440,8 @@ story_text_size,32,"ROUND AN. HOW BIG THE WORDS IN A CONVERSATION ARE (the intro
 story_name_size,32,"ROUND AN. The speaker's name above the words in a conversation. It was 26"
 story_hint_size,16,"ROUND AN. The small click to continue line in a conversation. It was 12"
 story_choice_size,32,"ROUND AN. The words on the answer buttons in a conversation. It was 19"
+text_min_size,14,"ROUND AN. THE SMALLEST ANY WORD IN THE GAME IS DRAWN - every menu, building, the base, Adventure and the match. A screen that asks for smaller gets this; words that shrink themselves to fit a box (banner titles, button words) are left alone. 16 is easier to read but some tight boxes start to wrap. Settings > Text size still multiplies on top"
+text_smooth,true,"ROUND AN. TRUE: words drawn at any size come out smooth (the font gets smaller copies of every letter). FALSE: the old way, where only 16, 32 and 48 look clean and other sizes look ragged"
 brewery_background,brewery_yard,"ROUND AN (your pick: the courtyard, draft 5). The picture behind the Brewery screen: a StoryArt.csv ID. brewery_yard = the courtyard the machines stand in; brewery = the brewhouse the Brewer's scene uses. Blank = no picture."
 brewery_background_shade,0.45,"ROUND AN. How dark the see-through black sheet over the Brewery's picture is, so its windows stay readable. 0 = the picture at full colour."
 brewery_machine_size,384,"ROUND AN (your note: double the size). How big each Brewery machine is drawn, in pixels: 384 = the 128-pixel PixelLab picture at exactly 3x, so the pixels stay crisp (it was 200). Where it stands is X / Y in BrewerySections.csv; its picture is the Art column."

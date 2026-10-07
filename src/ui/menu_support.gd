@@ -299,6 +299,7 @@ static func icon_button(icon: String, label: String,
 		glyph.add_theme_font_size_override("font_size",
 			_fit_font_size(glyph_text, int(inner.y * 0.6), Vector2(icon_room, icon_room)))
 		glyph.add_theme_color_override("font_color", COLOUR_ACCENT)
+		glyph.set_meta(TextScale.FITTED_META, true)
 		glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		holder.add_child(glyph)
 		# A symbol the comic font lacks (a keyboard, 文) is drawn by a
@@ -318,6 +319,7 @@ static func icon_button(icon: String, label: String,
 	var words_room := Vector2(inner.x - inner.y - 8.0, inner.y)
 	text.add_theme_font_size_override("font_size", _fit_font_size(label,
 		int(tuned("button_text_size", 18.0)), words_room))
+	text.set_meta(TextScale.FITTED_META, true)
 	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(text)
 
@@ -437,6 +439,7 @@ static func banner_button(art: Texture2D, label: String,
 			break
 		font_size -= 1
 	words.add_theme_font_size_override("font_size", font_size)
+	words.set_meta(TextScale.FITTED_META, true)
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.add_child(words)
 	return button
