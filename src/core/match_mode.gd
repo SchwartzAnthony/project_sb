@@ -181,6 +181,8 @@ func _load_csv(path: String) -> void:
 			# `Squad` names a CSV in data/ that plays INSTEAD of your team -
 			# see squad_sheet.gd. Blank = you pick your own team as usual.
 			"squad": _cell(row, columns, "squad"),
+			# `Enemy Squad`: the same for the OPPOSITION. Opponent `squad`.
+			"enemy_squad": _cell(row, columns, "enemysquad"),
 			"where": "%s row %d" % [short_name, i + 1],
 		}
 

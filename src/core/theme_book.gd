@@ -400,6 +400,9 @@ static func _give_fallback(face: Font, clean: String) -> void:
 	# always did with Godot's font. A pixel font has that switched off.
 	if face is FontFile:
 		(face as FontFile).allow_system_fallback = true
+		# SturmballComicHD is drawn 64 high and shrunk for small words;
+		# mipmaps keep the shrunk letters clean instead of grainy.
+		(face as FontFile).generate_mipmaps = true
 	var spare_name := String(row_for("fallback").get("font", "")).strip_edges()
 	if spare_name == "" or spare_name == clean:
 		return

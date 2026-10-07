@@ -145,13 +145,13 @@ static func recruit(what: String, state: GameState, db: CardDatabase) -> String:
 ## the random first team of a new game (squad_sheet.gd). No template card is
 ## needed: a Tier IV plain player has none in BasicTeam.csv.
 static func enlist(name_text: String, tier: String, power: int, gender: String,
-		state: GameState) -> void:
+		state: GameState, look: String = "") -> void:
 	if state == null or name_text == "" or is_recruit(name_text, state):
 		return
 	var have := names(state)
 	have.append(name_text)
 	state.set_text(KEY, "|".join(have))
-	state.set_text(PREFIX + CardDatabase._normalise(name_text), "%s|%d|%s" % [tier, power, gender])
+	state.set_text(PREFIX + CardDatabase._normalise(name_text), "%s|%d|%s|%s" % [tier, power, gender, look])
 	NameBook.hold(name_text, state)
 	SquadBook.sign(name_text, state)
 	print("[recruits] %s joins the base: Tier %s, Power %d." % [name_text, tier, power])
@@ -203,7 +203,10 @@ static func cards(state: GameState, db: CardDatabase) -> Array[PlayerData]:
 		card.player_name = name_text
 		# ROUND AN: a recruit with a gender wears that gender's sprite.
 		if slot.size() >= 3 and String(slot[2]) != "":
-			var art := db.tune_text("squad_art_" + String(slot[2]), "")
+			# The look saved with the player, else the first of that gender.
+			var art := String(slot[3]) if slot.size() >= 4 else ""
+			if art == "":
+				art = db.tune_text("squad_art_" + String(slot[2]), "").get_slice("|", 0).strip_edges()
 			if art != "":
 				var found := db._find_texture(art, CardDatabase.PLAYER_ART_DIRS)
 				if found != null:

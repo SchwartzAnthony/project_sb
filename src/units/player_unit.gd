@@ -90,6 +90,10 @@ var is_star_player: bool = false:
 		is_star_player = value
 		_refresh_star_badge()
 
+## ROUND AN: true for whoever stands in the Stars' place - a Star, or the
+## plain player who takes it in a side with no Stars (the first match). The
+## STAR PLAYER SWITCH swaps this unit.
+var stands_in_star_slot: bool = false
 var is_playmaker: bool = false     # picked during the current round
 var is_exhausted: bool = false     # already used this cycle
 

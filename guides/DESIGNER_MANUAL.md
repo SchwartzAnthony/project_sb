@@ -3058,10 +3058,32 @@ What a brand-new save does, in order. Every step is a row you can edit.
 | **Tier, Power** | Three per Tier, one of each power on the ladder. |
 | **Name** | Blank gives a random first name from `Names.csv` of that Gender. A Name with **Class** blank is that real card, such as the Star Belial. |
 | **Class** | Whose plain card it is. `Normal` is the club's own players. |
-| **Gender** | `m` or `f`. Blank picks either at random. Women wear `Tuning.csv squad_art_f` (`class_Normal_female.png`). |
+| **Gender** | `m` or `f`. Blank picks either at random. The sprite comes from `Tuning.csv squad_art_m` / `squad_art_f`, which can list several sheets separated by `\|`. Women have three looks (brown ponytail, blonde plaits, short black bob). Each new player gets one at random and keeps it. |
 | **Lead** | `yes` on one row. That Tier stands where the Stars usually do, and that player kicks off. With no Star in the sheet, nobody wears a Star badge or carries an Emblem. |
 
 `Names.csv` has a new **Gender** column for its first names (m / f).
+
+### The opposition in the first two matches
+
+Your answer: early in a new game the other side is all plain players, with no
+brew and nobody special.
+
+- **Match one, `data/EnemyIntroSquad.csv`:** twelve plain Rivals players, no
+  Stars.
+- **Match two, `data/EnemyIntroSquad2.csv`:** plain players, plus the plain
+  Stars Bauer, Richter and Klein. Their only ability is `PLAIN_STAR_PUSH` in
+  `Abilities.csv`, which gives +1 to the next normal, non-elemental player on
+  their side.
+- `MatchModes.csv` has an **Enemy Squad** column. When it names a squad CSV,
+  set **Opponent** to `squad`.
+- Squad sheets have two more columns: **Star** (`yes` makes a player a Star)
+  and **Ability** (an `Abilities.csv` ID, used on both sides of the card).
+  An opposition is made fresh every match. It is not saved and does not join
+  your base.
+- **The scripted brew is switched off.** `EnemyPlay.csv tutorial_brew` now
+  waits on `flag:enemy_brews_in_intro`, which nothing sets.
+- In a side with no Stars, the plain player standing in the Stars' place is
+  swapped at the STAR PLAYER SWITCH just as a Star would be.
 
 ### `data/MatchTalk.csv`: the Head Coach stops the match
 
@@ -3835,7 +3857,14 @@ anything. It changes nothing on disk.
 Drop a `.ttf`, `.otf` or `.fnt` into `assets/fonts/` and name it in the `Font` column
 of the `heading`, `body` or `small` row. Nothing else to do.
 
-**Round AN: one font for all text, `SturmballComic`.** A PixelLab comic pixel
+**Round AN, take 2 (your answer: less pixelated when large, clean and crisp):
+the font is now `SturmballComicHD`.** It has the same PixelLab letters, smoothed to
+four times the detail by `tools/make_font.py`. The steps on curves and slopes are
+rounded off, so big words are clean and small words stay sharp. It is on every
+text row of `Theme.csv`. The plain pixel version, `SturmballComic`, is
+still there, and you can put it in a Font cell to compare.
+
+**Round AN, first take: one font for all text, `SturmballComic`.** A PixelLab comic pixel
 font (`create_font`), with Ä Ö Ü ä ö ü ß added by `tools/make_font.py`, because
 PixelLab's sheet has no umlauts. It is on `heading`, `body` and `small`, and
 also on the words painted straight onto the pitch.

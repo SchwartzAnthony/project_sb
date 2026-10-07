@@ -24,6 +24,9 @@ extends RefCounted
 #    Gender    m or f. Blank = either, at random.
 #    Artwork   blank = Tuning.csv squad_art_m / squad_art_f for Normal, or
 #              the class's own sprite (placeholder_art_<Class>) otherwise
+#    Star      yes = this player is a Star (a plain one, unless Ability says
+#              otherwise). Blank = an ordinary player.
+#    Ability   an Abilities.csv ID, used on both sides of the card.
 #    Lead      yes on ONE row: that Tier stands where the Stars usually do,
 #              and that player kicks off. Blank everywhere = the first row.
 #
@@ -40,7 +43,7 @@ static var problems: Array[String] = []
 ## The squad in `file_name` as a TeamSelection, or null if it cannot field a
 ## side. `file_name` is a name in data/ ("IntroSquad.csv") or a res:// path.
 static func selection_from(file_name: String, db: CardDatabase,
-		state: GameState = null) -> TeamSelection:
+		state: GameState = null, keep: bool = true) -> TeamSelection:
 	problems = []
 	var path := file_name if file_name.begins_with("res://") else DATA_DIR + file_name
 	if not FileAccess.file_exists(path):
@@ -85,24 +88,41 @@ static func selection_from(file_name: String, db: CardDatabase,
 		var slot_id := MenuSupport.field(row, "ID").strip_edges()
 
 		# THE SAME ID IS THE SAME PLAYER. Made once per save, then kept.
-		var kept := _kept(slot_id, state)
+		# An opposition (keep = false) is made fresh every match: it is not
+		# remembered and it does not join your base.
+		var kept := _kept(slot_id, state) if keep else []
+		var look := ""
 		if name_text == "" and not kept.is_empty():
 			name_text = String(kept[0])
 			gender = String(kept[1])
+			look = String(kept[2])
 		if gender != "m" and gender != "f":
 			gender = "f" if randf() < 0.5 else "m"
 		if name_text == "":
 			name_text = _random_name(gender, used_names, db, state)
-			if slot_id != "" and state != null:
+			look = pick_look(gender, db)
+			if keep and slot_id != "" and state != null:
 				state.set_text(KEEP_PREFIX + CardDatabase._normalise(slot_id),
-					"%s|%s" % [name_text, gender])
+					"%s|%s|%s" % [name_text, gender, look])
 				# ...and they join your base, until you let them go.
 				if card.unit_type.to_lower() == db.tune_text("recruit_plain_class", "Normal").to_lower():
-					RecruitBook.enlist(name_text, tier, card.base_power_left, gender, state)
+					RecruitBook.enlist(name_text, tier, card.base_power_left, gender, state, look)
 		used_names.append(name_text)
 		card.player_name = name_text
 
-		card.artwork = _art_for(MenuSupport.field(row, "Artwork"), card.unit_type, gender, db)
+		if _yes(MenuSupport.field(row, "Star")):
+			card.player_type = "Star"
+		var ability := MenuSupport.field(row, "Ability").strip_edges()
+		if ability != "":
+			card.attack_ability_id = ability
+			card.defend_ability_id = ability
+			if db.get_ability(ability) == null:
+				problems.append("[squad] %s: %s has ability '%s', which is not in Abilities.csv." % [path.get_file(), name_text, ability])
+
+		var wanted_art := MenuSupport.field(row, "Artwork").strip_edges()
+		if wanted_art == "" and card.unit_type.to_lower() == "normal":
+			wanted_art = look if look != "" else pick_look(gender, db)
+		card.artwork = _art_for(wanted_art, card.unit_type, gender, db)
 		if card.artwork == null:
 			problems.append("[squad] %s: no sprite found for %s." % [path.get_file(), name_text])
 
@@ -147,7 +167,7 @@ static func selection_from(file_name: String, db: CardDatabase,
 const KEEP_PREFIX := "squad_player_"
 
 
-## [name, gender] of the player already made for this ID, or [].
+## [name, gender, look] of the player already made for this ID, or [].
 static func _kept(slot_id: String, state: GameState) -> Array:
 	if slot_id == "" or state == null:
 		return []
@@ -155,7 +175,22 @@ static func _kept(slot_id: String, state: GameState) -> Array:
 	var parts := text.split("|")
 	if parts.size() < 2 or String(parts[0]) == "":
 		return []
-	return [String(parts[0]), String(parts[1])]
+	return [String(parts[0]), String(parts[1]), String(parts[2]) if parts.size() > 2 else ""]
+
+
+## ============ MORE THAN ONE LOOK (round AN, your answer) ============
+##
+## Tuning.csv squad_art_f (and squad_art_m) may list several sprite sheets
+## separated by | . Each new player gets one of them at random, and keeps it:
+## the choice is saved with the player.
+static func pick_look(gender: String, db: CardDatabase) -> String:
+	var looks: Array[String] = []
+	for part in db.tune_text("squad_art_" + gender, "").split("|", false):
+		if String(part).strip_edges() != "":
+			looks.append(String(part).strip_edges())
+	if looks.is_empty():
+		return ""
+	return looks[randi() % looks.size()]
 
 
 static func _card_called(name_text: String, db: CardDatabase) -> PlayerData:

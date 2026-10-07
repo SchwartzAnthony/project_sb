@@ -64,6 +64,9 @@ var match_mode: Dictionary = {}
 ## ROUND AN: true when your side has no Stars (a squad from a CSV, such as
 ## the first match - see squad_sheet.gd).
 var _plain_side := false
+## ROUND AN: the opposition written in a CSV (MatchModes.csv Enemy Squad),
+## or null for the usual opponents.
+var _enemy_squad: TeamSelection = null
 
 ## True in a mode whose Timer is 0. There is no final whistle on the clock;
 ## the match ends when the last round has been played.
@@ -2246,6 +2249,25 @@ func _build_scratch_opponent() -> void:
 
 
 func _choose_enemy_team(player_type_to_avoid: String) -> void:
+	# ROUND AN: an opposition written out in a squad CSV takes the field as
+	# it is - the first two matches of a new game.
+	var enemy_file := String(match_mode.get("enemy_squad", "")).strip_edges()
+	if enemy_file != "":
+		_enemy_squad = SquadSheet.selection_from(enemy_file, db, state, false)
+		if _enemy_squad != null:
+			enemy_star_bundle = _enemy_squad.star_bundle.duplicate()
+			active_enemy_star = _enemy_squad.active_star
+			enemy_star_tier = active_enemy_star.get_tier_clean()
+			available_enemy_stars = enemy_star_bundle.duplicate()
+			available_enemy_stars.erase(active_enemy_star)
+			spawn_team(active_enemy_star, true)
+			for unit in _all_units():
+				if unit.is_enemy:
+					unit.set_highlight(false)
+			print("Enemy: %s | lead %s (Tier %s)%s" % [enemy_file,
+				active_enemy_star.player_name, enemy_star_tier,
+				" - no Stars" if _enemy_squad.plain else ""])
+			return
 	var by_class := _stars_grouped_by_class()
 
 	# THE SEASON GETS FIRST SAY. If today's fixture names a class, that is who
@@ -2343,7 +2365,11 @@ func spawn_team(star_player: PlayerData, is_enemy: bool) -> void:
 	if star_unit:
 		# ROUND AN: a plain side (the first match) has no Stars - the player
 		# in the Star's place is an ordinary one, with no badge or Emblem.
-		star_unit.is_star_player = is_enemy or not _plain_side
+		star_unit.stands_in_star_slot = true
+		if is_enemy:
+			star_unit.is_star_player = _enemy_squad == null or not _enemy_squad.plain
+		else:
+			star_unit.is_star_player = not _plain_side
 		_place_in_zone(star_unit, this_star_tier)
 
 	# --- 2. The 9 regulars ---
@@ -3420,6 +3446,14 @@ func load_roster_by_type(unit_type: String, for_enemy: bool = false) -> Array[Pl
 	# than filtered down to one class. They are already ladder-legal — see
 	# scratch_team.gd — and spawn_team() only ever asks "who is Tier II",
 	# which is why a mixed side drops straight in here.
+	# ROUND AN: an opposition from a squad CSV fields exactly its own players.
+	if for_enemy and _enemy_squad != null:
+		var squad_cards: Array[PlayerData] = []
+		for tier_key in _enemy_squad.regulars.keys():
+			for card in _enemy_squad.regulars[tier_key]:
+				squad_cards.append(card)
+		return squad_cards
+
 	if for_enemy and scratch_opponent != null:
 		if not scratch_opponent.cards.is_empty():
 			return scratch_opponent.cards
@@ -4897,7 +4931,7 @@ func _resolve_star_rotation(chosen: PlayerData) -> void:
 func _swap_star_on_pitch(new_star: PlayerData, is_enemy: bool) -> void:
 	var star_unit: PlayerUnit = null
 	for unit in _all_units():
-		if unit.is_enemy == is_enemy and unit.is_star_player:
+		if unit.is_enemy == is_enemy and (unit.is_star_player or unit.stands_in_star_slot):
 			star_unit = unit
 			break
 

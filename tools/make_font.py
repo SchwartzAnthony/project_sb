@@ -23,10 +23,19 @@
 #
 #  To use a different font, put its name in the Font column of the heading,
 #  body and small rows of data/Theme.csv. Nothing else.
+#
+#  TWO FONTS COME OUT (round AN, your answer: "less pixelated when very large,
+#  more clean and crisp"):
+#      SturmballComic     the pixel letters exactly as drawn, 16 high
+#      SturmballComicHD   the SAME letters smoothed, 4 times the detail (64
+#                         high): the steps on curves and slopes are rounded
+#                         off (Scale2x three times, then a soft edge), so big
+#                         words are clean instead of blocky.
 # =============================================================
 
 from pathlib import Path
-from PIL import Image
+import numpy as np
+from PIL import Image, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 SHEET = ROOT / "art_source/pixellab/font/sturmball_comic_atlas.png"
@@ -88,6 +97,67 @@ def add_dots(glyph: Image.Image) -> Image.Image:
 	return out
 
 
+def scale2x(mask: np.ndarray) -> np.ndarray:
+	"""EPX / Scale2x: doubles a 1-bit picture and fills in the diagonal steps."""
+	p = np.pad(mask, 1, mode="constant")
+	a, b, c, d = p[:-2, 1:-1], p[1:-1, 2:], p[1:-1, :-2], p[2:, 1:-1]   # up, right, left, down
+	e = mask
+	out = np.zeros((mask.shape[0] * 2, mask.shape[1] * 2), dtype=bool)
+	out[0::2, 0::2] = np.where((c == a) & (c != d) & (a != b), a, e)
+	out[0::2, 1::2] = np.where((a == b) & (a != c) & (b != d), b, e)
+	out[1::2, 0::2] = np.where((d == c) & (d != b) & (c != a), c, e)
+	out[1::2, 1::2] = np.where((b == d) & (b != a) & (d != c), d, e)
+	return out
+
+
+def smooth(glyph: Image.Image, scale: int) -> Image.Image:
+	"""The same letter at `scale` times the size, with clean round edges."""
+	mask = np.array(glyph.getchannel("A")) > 127
+	mask = np.pad(mask, 1, mode="constant")      # room for the soft edge
+	big = mask
+	for _ in range(3):                           # x8
+		big = scale2x(big)
+	soft = Image.fromarray((big * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(2))
+	soft = soft.resize((mask.shape[1] * scale, mask.shape[0] * scale), Image.LANCZOS)
+	v = np.array(soft).astype(np.float32) / 255.0
+	edge = np.clip((v - 0.42) / 0.24, 0.0, 1.0)
+	edge = edge * edge * (3 - 2 * edge)          # smoothstep
+	out = Image.new("RGBA", soft.size, (255, 255, 255, 0))
+	out.putalpha(Image.fromarray((edge * 255).astype(np.uint8)))
+	return out
+
+
+def write_font(name: str, glyphs: dict, scale: int, pad: int) -> None:
+	"""One BMFont: name.fnt + name.png in assets/fonts/. pad = blank source
+	pixels round each letter (the smoothed one needs room for its edge)."""
+	chars = list(glyphs.keys())
+	per_row = 16
+	cell_w = max(g.width for g in glyphs.values()) + 2
+	cell_h = max(g.height for g in glyphs.values()) + 2
+	rows = (len(chars) + per_row - 1) // per_row
+	page = Image.new("RGBA", (per_row * cell_w, rows * cell_h), (255, 255, 255, 0))
+	lines = [
+		f'info face="{name}" size={CELL * scale} bold=0 italic=0 charset="" unicode=1 stretchH=100 smooth={1 if scale > 1 else 0} aa=1 padding=0,0,0,0 spacing=1,1',
+		f"common lineHeight={LINE_HEIGHT * scale} base={BASELINE * scale} scaleW={page.width} scaleH={page.height} pages=1 packed=0",
+		f'page id=0 file="{name}.png"',
+		f"chars count={len(chars) + 1}",
+		f"char id=32 x=0 y=0 width=0 height=0 xoffset=0 yoffset=0 xadvance={SPACE_WIDTH * scale} page=0 chnl=15",
+	]
+	for i, ch in enumerate(chars):
+		g = glyphs[ch]
+		x = (i % per_row) * cell_w
+		y = (i // per_row) * cell_h
+		page.paste(g, (x, y))
+		inner = g.width - 2 * pad * scale
+		lines.append(
+			f"char id={ord(ch)} x={x} y={y} width={g.width} height={g.height} "
+			f"xoffset={-pad * scale} yoffset={-pad * scale} xadvance={inner + SPACING * scale} page=0 chnl=15")
+	OUT_DIR.mkdir(parents=True, exist_ok=True)
+	page.save(OUT_DIR / f"{name}.png")
+	(OUT_DIR / f"{name}.fnt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+	print(f"{len(chars)} letters -> assets/fonts/{name}.fnt + {name}.png")
+
+
 def main() -> None:
 	sheet = Image.open(SHEET).convert("RGBA")
 	glyphs: dict[str, Image.Image] = {}
@@ -97,35 +167,8 @@ def main() -> None:
 		made = glyphs[base].copy()
 		glyphs[ch] = add_dots(made) if dots else made
 	trimmed = {ch: trim_sides(g) for ch, g in glyphs.items()}
-
-	# Pack in one row-major page, 1 pixel apart.
-	per_row = 16
-	cell_w = CELL + 1
-	cell_h = CELL + TOP_ROOM + 1
-	chars = list(trimmed.keys())
-	rows = (len(chars) + per_row - 1) // per_row
-	page = Image.new("RGBA", (per_row * cell_w, rows * cell_h), (255, 255, 255, 0))
-
-	lines = [
-		f'info face="{NAME}" size={CELL} bold=0 italic=0 charset="" unicode=1 stretchH=100 smooth=0 aa=1 padding=0,0,0,0 spacing=1,1',
-		f"common lineHeight={LINE_HEIGHT} base={BASELINE} scaleW={page.width} scaleH={page.height} pages=1 packed=0",
-		f'page id=0 file="{NAME}.png"',
-		f"chars count={len(chars) + 1}",
-		f"char id=32 x=0 y=0 width=0 height=0 xoffset=0 yoffset=0 xadvance={SPACE_WIDTH} page=0 chnl=15",
-	]
-	for i, ch in enumerate(chars):
-		g = trimmed[ch]
-		x = (i % per_row) * cell_w
-		y = (i // per_row) * cell_h
-		page.paste(g, (x, y))
-		lines.append(
-			f"char id={ord(ch)} x={x} y={y} width={g.width} height={g.height} "
-			f"xoffset=0 yoffset=0 xadvance={g.width + SPACING} page=0 chnl=15")
-
-	OUT_DIR.mkdir(parents=True, exist_ok=True)
-	page.save(OUT_DIR / f"{NAME}.png")
-	(OUT_DIR / f"{NAME}.fnt").write_text("\n".join(lines) + "\n", encoding="utf-8")
-	print(f"{len(chars)} letters -> assets/fonts/{NAME}.fnt + {NAME}.png")
+	write_font(NAME, trimmed, 1, 0)
+	write_font(NAME + "HD", {ch: smooth(g, 4) for ch, g in trimmed.items()}, 4, 1)
 
 
 if __name__ == "__main__":

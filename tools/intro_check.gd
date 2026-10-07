@@ -64,6 +64,9 @@ func _initialize() -> void:
 		_finish()
 		return
 	_check(String(MatchMode.current(self).get("id", "")) == "intro", "it is the intro mode")
+	var enemy := await _enemy_of(scene)
+	_check(enemy["count"] > 0 and enemy["stars"] == 0 and enemy["brewed"] == 0,
+		"the opposition is all plain players, no Stars, no brew (%s)" % ", ".join(enemy["names"]))
 
 	# ---- 3. who is on the pitch ----
 	var picked := TeamSelection.fetch(self)
@@ -104,6 +107,9 @@ func _initialize() -> void:
 		_finish()
 		return
 	_check(String(MatchMode.current(self).get("id", "")) == "intro2", "it is the intro2 mode")
+	var enemy2 := await _enemy_of(scene)
+	_check(enemy2["star_names"].has("Bauer") and enemy2["plain_push"],
+		"the opposition has its plain Stars, each giving +1 to the next normal player (%s)" % ", ".join(enemy2["star_names"]))
 	picked = TeamSelection.fetch(self)
 	if picked != null:
 		var names := _names_of(picked)
@@ -260,6 +266,34 @@ func _play_to_full_time(scene: Node) -> void:
 			_check(false, "the match reached full time")
 			break
 	GameSpeed.reset()
+
+
+## Who the opposition put on the pitch.
+func _enemy_of(scene: Node) -> Dictionary:
+	var out := {"count": 0, "stars": 0, "brewed": 0, "names": [], "star_names": [], "plain_push": true}
+	for i in 50:
+		await create_timer(0.2, true, false, true).timeout
+		if is_instance_valid(scene) and not (scene.call("_all_units") as Array).is_empty():
+			break
+	if not is_instance_valid(scene):
+		return out
+	var stars: Array = []
+	if scene.get("enemy_star_bundle") != null:
+		stars = scene.get("enemy_star_bundle")
+	for unit in scene.call("_all_units"):
+		if not unit.is_enemy or unit.data == null:
+			continue
+		out["count"] += 1
+		(out["names"] as Array).append(unit.data.player_name)
+		if unit.is_star_player:
+			out["stars"] += 1
+		if unit.data.is_brewed():
+			out["brewed"] += 1
+	for card in stars:
+		(out["star_names"] as Array).append(card.player_name)
+		if card.attack_ability_id != "PLAIN_STAR_PUSH":
+			out["plain_push"] = false
+	return out
 
 
 func _names_of(picked: TeamSelection) -> Array[String]:
