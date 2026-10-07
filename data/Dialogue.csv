@@ -46,3 +46,5 @@ star-intro,tolerance,Head Coach,coach,left,happy,,,,,,"You will understand. Some
 star-intro,worn_out,Head Coach,coach,left,happy,,,,,,"They get worn out fast, so they need to switch frequently, but their power is undeniable.",,,,,,,,,,,,,,,
 star-intro,another_game,Head Coach,coach,left,happy,side,,,,,Koch! Drink another! Another game!,,,,,,,,,,,,,,,
 star-intro,jawohl_again,Koch,koch,right,drunk,side,,,,,Jawohl!,,,,,,,,,,,,,,,
+brewery-intro,servus,Head Coach,coach,left,happy,,,brewery,,,Servus! Hanna!,,,,,,,,,,,,,,,
+brewery-intro,doing_well,Hanna,hanna,right,happy,,,,,,Servus! I see the trainee has been doing well so far.,,,,,,,,,,,,,,,
