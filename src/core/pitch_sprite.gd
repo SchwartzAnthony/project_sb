@@ -91,13 +91,18 @@ static func sheet_for(card: PlayerData, pick: int = 0) -> Texture2D:
 	for key in keys:
 		if not _wears.has(key):
 			continue
-		var looks := String(_wears[key]).split("|", false)
-		if looks.is_empty():
+		# Only the looks whose sheet actually exists, so a look that has not
+		# been drawn yet is skipped rather than sending the player back to
+		# the old sheet.
+		var paths: Array[String] = []
+		for look in String(_wears[key]).split("|", false):
+			var file_name := String(look).strip_edges()
+			var path := file_name if file_name.begins_with("res://") else SHEET_DIR + file_name
+			if file_name != "" and ResourceLoader.exists(path):
+				paths.append(path)
+		if paths.is_empty():
 			continue
-		var file_name := String(looks[absi(pick) % looks.size()]).strip_edges()
-		var path := file_name if file_name.begins_with("res://") else SHEET_DIR + file_name
-		if ResourceLoader.exists(path):
-			return load(path) as Texture2D
+		return load(paths[absi(pick) % paths.size()]) as Texture2D
 	return null
 
 
