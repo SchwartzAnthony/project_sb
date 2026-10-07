@@ -4341,11 +4341,54 @@ which is the foundation the played game will sit on top of later. Nothing on
 that screen changes when the game itself arrives; it slots in between
 pressing the button and the work being done.
 
-### The Club House has no spreadsheet
+### The Dorms are where everybody rests (round AN)
 
-It is a view onto `recovery_book.gd`, which already knows who is tired and
-for how long. Writing a second file for it would have been inventing a
-disagreement. `recovery` in `Tuning.csv` turns the whole thing on.
+Every tired player sleeps in the Dorms, whatever tired them out. The Dorms
+window lists **who is in bed, why, and how many fixtures to go**, then the
+beds you can buy. `data/Resting.csv` says what sends a player there:
+
+| ID | when | out of the box |
+|---|---|---|
+| `match` | everybody who played a match | by power (`Recovery.csv`) |
+| `adventure` | everybody who set off on an Adventure, however it ended | by power |
+| `adventure_down` | **on top of** `adventure`, for a player knocked out on the run | +1 fixture |
+| `brew` | **on top of** `match`, for a player who played on a one-match brew from the Pub | +1 fixture |
+
+| column | |
+|---|---|
+| `On` | `false` and that row never sends anybody to bed |
+| `Turns` | blank = by power from `Recovery.csv`; a number sets it outright |
+| `Extra` | added on top |
+| `Wakes Others` | `true` = this counts as a fixture, so everybody already in bed is one fixture nearer fit. A match and an Adventure both do |
+
+`rest_less` in `Tuning.csv` takes fixtures off every rest (never below one);
+the **Feather Beds** upgrade raises it. **`recovery` in `Tuning.csv` is still
+the master switch** and it is still `false`, so out of the box nobody is ever
+in bed. `tools/dorms_shot.gd` takes a picture of both rooms with a few
+players in bed.
+
+### The Club House sells upgrades (round AN)
+
+**An achievement only grants the right to buy an upgrade.** Earning it puts
+the upgrade on sale; the money is still yours to find. `data/Upgrades.csv`,
+one row per upgrade:
+
+| column | |
+|---|---|
+| `Achievement` | an ID from `Achievements.csv`. Blank = on sale from the start |
+| `Needs` | any extra condition, in the usual language |
+| `Cost` · `Currency` | from `Currencies.csv` |
+| `Effect` | the ordinary effects language. `count:batches_cooling+1` is a vat, `count:tune_<any Tuning row>+n` raises a number, `unlock:x` opens a thing |
+
+Each upgrade is bought **once**. The window shows what is on sale first, then
+what is still locked (and which achievement opens it), then what you own.
+The Achievements board says, under each achievement, which upgrade it puts
+on sale. The recruitment board is still in the Club House, under the
+upgrades.
+
+**`second_vat` and `third_vat` changed.** Those two achievements used to hand
+the vat over free in their `Reward`; now they put it on sale. To make an
+upgrade free again, put its Effect back into the achievement's `Reward`.
 
 ### Price everything in seasons
 
@@ -4439,7 +4482,9 @@ Nothing new had to be invented to say that: it is the counter language the
 whole game already speaks, and it works for **any** section, not just the
 cellar. `batches_boiling`, `batches_malthouse` — all of them.
 
-There are two worked rows in `Achievements.csv` (`second_vat`, `third_vat`).
+There are two worked rows in `Upgrades.csv` (`second_vat`, `third_vat`): the
+achievements of the same name put the vats on sale at the Club House (round
+AN), rather than handing them over free.
 And the measurement that says whether a vat was worth an achievement:
 
 ```

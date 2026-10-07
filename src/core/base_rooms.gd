@@ -13,9 +13,12 @@ extends RefCounted
 #      data/Trophies.csv   what is on the shelf
 #      data/Training.csv   Ausbildung, and the five brewing mini-games
 #
-#  The CLUB HOUSE has no spreadsheet of its own. It is a view onto
-#  recovery_book.gd, which already knows who is tired and for how long —
-#  writing a second file for it would have been inventing a disagreement.
+#      data/Upgrades.csv   what the Club House sells (round AN)
+#
+#  ROUND AN (Anthony): the DORMS are where every player rests — a view onto
+#  recovery_book.gd and data/Resting.csv — and the CLUB HOUSE is the shop
+#  for upgrades. An achievement only grants the RIGHT to buy an upgrade;
+#  the buying is done here, with money.
 #
 #  ============ THE ONE RULE THEY SHARE ============
 #
@@ -30,15 +33,19 @@ extends RefCounted
 const DORMS_FILE := "res://data/Dorms.csv"
 const TROPHY_FILE := "res://data/Trophies.csv"
 const TRAINING_FILE := "res://data/Training.csv"
+const UPGRADES_FILE := "res://data/Upgrades.csv"
 
 ## The dorm you have bought, by id. `bought_dorm_lean_to`.
 const DORM_PREFIX := "bought_dorm_"
 ## And a training you have taken.
 const TRAINED_PREFIX := "trained_"
+## And an upgrade bought at the Club House. `upgrade_feather_beds`.
+const UPGRADE_PREFIX := "upgrade_"
 
 static var _dorms: Array[Dictionary] = []
 static var _trophies: Array[Dictionary] = []
 static var _training: Array[Dictionary] = []
+static var _upgrades: Array[Dictionary] = []
 static var _problems: Array[String] = []
 static var _loaded := false
 
@@ -47,6 +54,7 @@ static func forget() -> void:
 	_dorms = []
 	_trophies = []
 	_training = []
+	_upgrades = []
 	_problems = []
 	_loaded = false
 
@@ -58,6 +66,7 @@ static func _load() -> void:
 	_dorms = []
 	_trophies = []
 	_training = []
+	_upgrades = []
 	_problems = []
 
 	for row in MenuSupport.read_csv(DORMS_FILE):
@@ -118,8 +127,34 @@ static func _load() -> void:
 		for complaint in DialogueGrammar.complaints(effect, true):
 			_problems.append("Training '%s': %s" % [id_text, complaint])
 
-	print("[rooms] %d dorm(s), %d trophy(ies), %d training(s)."
-		% [_dorms.size(), _trophies.size(), _training.size()])
+	var achievement_ids: Dictionary = {}
+	for one in AchievementBook.rows():
+		achievement_ids[String(one["id"]).to_lower()] = true
+	for row in MenuSupport.read_csv(UPGRADES_FILE):
+		var id_text := MenuSupport.field(row, "ID").strip_edges()
+		if id_text == "":
+			continue
+		var effect := MenuSupport.field(row, "Effect").strip_edges()
+		var earned_by := MenuSupport.field(row, "Achievement").strip_edges()
+		_upgrades.append({
+			"id": id_text,
+			"name": MenuSupport.field(row, "Name", id_text).strip_edges(),
+			"description": MenuSupport.field(row, "Description").strip_edges(),
+			"achievement": earned_by,
+			"needs": MenuSupport.field(row, "Needs").strip_edges(),
+			"cost": maxi(0, MenuSupport.field_int(row, "Cost", 0)),
+			"currency": MenuSupport.field(row, "Currency").strip_edges(),
+			"effect": effect,
+		})
+		if effect == "":
+			_problems.append("Upgrade '%s' has an empty Effect — it can be bought and then does nothing." % id_text)
+		for complaint in DialogueGrammar.complaints(effect, true):
+			_problems.append("Upgrade '%s': %s" % [id_text, complaint])
+		if earned_by != "" and not achievement_ids.has(earned_by.to_lower()):
+			_problems.append("Upgrade '%s' waits on achievement '%s', which is not an ID in Achievements.csv — it can never go on sale." % [id_text, earned_by])
+
+	print("[rooms] %d dorm(s), %d trophy(ies), %d training(s), %d upgrade(s)."
+		% [_dorms.size(), _trophies.size(), _training.size(), _upgrades.size()])
 	for problem in _problems:
 		print("[rooms] %s" % problem)
 
@@ -253,6 +288,85 @@ static func train(id_text: String, state: GameState) -> Dictionary:
 	Progression.run_actions(String(entry["effect"]), state)
 	return {"ok": true, "why": "%s. %s" % [entry["name"],
 		DialogueGrammar.describe(String(entry["effect"]))]}
+
+
+# =============================================================
+#  THE CLUB HOUSE — data/Upgrades.csv (round AN)
+#
+#  Three states, and the screen draws all three:
+#      locked     the achievement is not earned yet
+#      for_sale   earned (and Needs holds) — a price and a Buy button
+#      bought     yours; the Effect has run once
+# =============================================================
+
+static func upgrades() -> Array[Dictionary]:
+	_load()
+	return _upgrades
+
+
+static func find_upgrade(id_text: String) -> Dictionary:
+	for one in upgrades():
+		if String(one["id"]).to_lower() == id_text.to_lower():
+			return one
+	return {}
+
+
+static func owns_upgrade(id_text: String, state: GameState) -> bool:
+	if state == null:
+		return false
+	return state.has_flag(UPGRADE_PREFIX + id_text.to_lower())
+
+
+## "locked", "for_sale" or "bought".
+static func upgrade_state(entry: Dictionary, state: GameState) -> String:
+	if owns_upgrade(String(entry["id"]), state):
+		return "bought"
+	var by := String(entry["achievement"])
+	if by != "" and not AchievementBook.earned(by, state):
+		return "locked"
+	if not DialogueGrammar.test(String(entry["needs"]), state):
+		return "locked"
+	return "for_sale"
+
+
+## What still stands between you and the right to buy it, in words.
+static func upgrade_lock_words(entry: Dictionary, state: GameState) -> String:
+	var by := String(entry["achievement"])
+	if by != "" and not AchievementBook.earned(by, state):
+		for one in AchievementBook.rows():
+			if String(one["id"]).to_lower() == by.to_lower():
+				return "Earn the achievement %s: %s" % [one["name"], one["description"]]
+		return "Earn the achievement '%s'." % by
+	return DialogueGrammar.describe(String(entry["needs"]))
+
+
+## The upgrades an achievement puts on sale — for the achievement board.
+static func upgrades_from(achievement_id: String) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for one in upgrades():
+		if String(one["achievement"]).to_lower() == achievement_id.to_lower():
+			out.append(one)
+	return out
+
+
+## Buy one. Spends, sets the flag, and runs the Effect. Returns {"ok", "why"}.
+static func buy_upgrade(id_text: String, state: GameState) -> Dictionary:
+	if state == null:
+		return {"ok": false, "why": "no save"}
+	var entry := find_upgrade(id_text)
+	if entry.is_empty():
+		return {"ok": false, "why": "there is no such upgrade"}
+	match upgrade_state(entry, state):
+		"bought":
+			return {"ok": false, "why": "you already have it"}
+		"locked":
+			return {"ok": false, "why": upgrade_lock_words(entry, state)}
+	var spent := _spend(int(entry["cost"]), String(entry["currency"]), state)
+	if spent != "":
+		return {"ok": false, "why": spent}
+	state.set_flag(UPGRADE_PREFIX + String(entry["id"]).to_lower(), true)
+	Progression.run_actions(String(entry["effect"]), state)
+	return {"ok": true, "why": "%s. %s" % [entry["name"], entry["description"]]}
 
 
 # =============================================================

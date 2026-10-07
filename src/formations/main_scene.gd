@@ -1942,8 +1942,10 @@ func _full_time() -> void:
 	# `recovery` in Tuning.csv turns the whole thing off and the squad is
 	# available every week, as it was.
 	if state != null and db.tune_bool("recovery", false):
-		RecoveryBook.advance_turn(state, db)
-		RecoveryBook.played(_squad_that_played(), state, db)
+		RecoveryBook.after_match(_squad_that_played(), state, db)
+	#
+	# ROUND AN: they go to the DORMS, and a player on a one-match brew sleeps
+	# it off for longer — data/Resting.csv, rows `match` and `brew`.
 
 	# ============ AND THE MATCH PAYS ============
 	#

@@ -49,14 +49,22 @@ extends RefCounted
 
 const FILE := "res://data/Recovery.csv"
 const PREFIX := "rest_"
+## WHAT SENT THEM TO THE DORMS. A row ID of data/Resting.csv — `match`,
+## `adventure`, `brew` — stored as a text so the Dorms can say it.
+const WHY_PREFIX := "restwhy_"
+const RESTING_FILE := "res://data/Resting.csv"
 
 static var _turns: Dictionary = {}
 static var _loaded := false
+static var _causes: Dictionary = {}
+static var _causes_loaded := false
 
 
 static func forget() -> void:
 	_turns = {}
 	_loaded = false
+	_causes = {}
+	_causes_loaded = false
 
 
 ## Power -> fixtures out, out of Recovery.csv.
@@ -212,3 +220,146 @@ static func can_field(db: CardDatabase, state: GameState, unit_type: String,
 		"short": short,
 		"words": "Not enough fit players: %s. Rest them by playing a bounty in Adventure, or sign more." % ", ".join(pieces),
 	}
+
+
+# =============================================================
+#  THE DORMS — data/Resting.csv (round AN)
+#
+#  "The Dorms become the resting area for all players: Adventure, Match and
+#   Brew players." So EVERY way a player can come home tired goes through
+#  here, and the Dorms screen is the one list of who is in bed and why.
+#
+#  One row per activity. A player who played a match on a brew gets the
+#  `match` row AND the `brew` row on top; a player knocked out on an
+#  Adventure gets `adventure` AND `adventure_down`. Turns blank = by power
+#  (Recovery.csv above), Extra is added, `rest_less` in Tuning.csv (the
+#  Feather Beds upgrade) is taken off, never below one fixture.
+#
+#  The master switch is still `recovery` in Tuning.csv. While it is false
+#  nobody is ever sent to bed, exactly as before.
+# =============================================================
+
+static func causes() -> Dictionary:
+	if _causes_loaded:
+		return _causes
+	_causes_loaded = true
+	_causes = {}
+	for row in MenuSupport.read_csv(RESTING_FILE):
+		var id_text := MenuSupport.field(row, "ID").strip_edges().to_lower()
+		if id_text == "":
+			continue
+		var turns_text := MenuSupport.field(row, "Turns").strip_edges()
+		_causes[id_text] = {
+			"id": id_text,
+			"name": MenuSupport.field(row, "Name", id_text).strip_edges(),
+			"on": not (MenuSupport.field(row, "On", "true").strip_edges().to_lower() in ["false", "no", "0", "off"]),
+			"turns": int(turns_text) if turns_text.is_valid_int() else -1,
+			"extra": MenuSupport.field_int(row, "Extra", 0),
+			"wakes": MenuSupport.field(row, "Wakes Others", "false").strip_edges().to_lower() in ["true", "yes", "1", "on"],
+		}
+	return _causes
+
+
+static func cause(id_text: String) -> Dictionary:
+	return causes().get(id_text.to_lower(), {})
+
+
+## Why this card is in bed, in words: "Back from an Adventure". "" when fit.
+static func why_words(card: PlayerData, state: GameState) -> String:
+	if card == null or state == null or turns_left(card, state) <= 0:
+		return ""
+	var why := state.text(WHY_PREFIX + CardDatabase._normalise(card.player_name))
+	var row := cause(why)
+	return String(row.get("name", "Resting"))
+
+
+## How long this card is in bed after `main`, with any `extras` on top.
+## A missing or switched-off main row means no rest at all.
+static func rest_for(card: PlayerData, main: String, extras: Array,
+		db: CardDatabase, state: GameState = null) -> int:
+	var row := cause(main)
+	if row.is_empty() or not bool(row["on"]):
+		return 0
+	var turns := int(row["turns"]) if int(row["turns"]) >= 0 else turns_for(card, db)
+	turns += int(row["extra"])
+	for extra in extras:
+		var more := cause(String(extra))
+		if not more.is_empty() and bool(more["on"]):
+			turns += int(more["extra"])
+	if turns <= 0:
+		return 0
+	if db != null:
+		if state != null:
+			db.apply_bonuses_from(state)
+		turns -= maxi(0, db.tune_int("rest_less", 0))
+	return maxi(1, turns)
+
+
+## SEND ONE CARD TO BED. SET, not add — see played().
+static func send_to_dorms(card: PlayerData, main: String, extras: Array,
+		state: GameState, db: CardDatabase) -> int:
+	if card == null or state == null:
+		return 0
+	var turns := rest_for(card, main, extras, db, state)
+	if turns <= 0:
+		return 0
+	state.set_count(key_for(card), turns)
+	var why := main
+	if not extras.is_empty():
+		# The extra is the more interesting reason: "Sleeping off a brew".
+		why = String(extras[-1])
+	state.set_text(WHY_PREFIX + CardDatabase._normalise(card.player_name), why)
+	return turns
+
+
+## THE FINAL WHISTLE. Everybody else is a fixture nearer to fit, then the
+## eleven who played go to the Dorms — the ones on a one-match brew for a
+## little longer. Call BEFORE BrewDB.clear_temporary(), or the brew is gone.
+static func after_match(cards: Array, state: GameState, db: CardDatabase) -> void:
+	_after("match", cards, {}, state, db)
+
+
+## HOME FROM AN ADVENTURE, by any door: walked, fled or fell. `party` is
+## every card that set off; `down` the ones knocked out on the way.
+static func after_adventure(party: Array, down: Array, state: GameState,
+		db: CardDatabase) -> void:
+	var extras := {}
+	for card in down:
+		extras[card] = ["adventure_down"]
+	_after("adventure", party, extras, state, db)
+
+
+static func _after(main: String, cards: Array, extras: Dictionary,
+		state: GameState, db: CardDatabase) -> void:
+	if state == null or db == null or not db.tune_bool("recovery", false):
+		return
+	var row := cause(main)
+	if row.is_empty() or bool(row["wakes"]):
+		advance_turn(state, db)
+	var said: Array[String] = []
+	for card in cards:
+		if card == null or not (card is PlayerData):
+			continue
+		var more: Array = extras.get(card, [])
+		# A ONE-MATCH BREW, still on them: the whistle has not cleared it yet.
+		if main == "match" and state.text(BrewDB.TEMP_PREFIX + BrewDB.card_key(card)) != "":
+			more = ["brew"]
+		var turns := send_to_dorms(card, main, more, state, db)
+		if turns > 0:
+			said.append("%s %d" % [card.player_name, turns])
+	if not said.is_empty():
+		print("[dorms] To bed after %s: %s" % [main, ", ".join(said)])
+	state.save_to_disk()
+
+
+## Everybody in the Dorms right now, longest rest first.
+static func in_the_dorms(db: CardDatabase, state: GameState) -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	if db == null or state == null:
+		return out
+	for card in db.players:
+		if turns_left(card, state) > 0:
+			out.append(card)
+	out.sort_custom(func(a: PlayerData, b: PlayerData) -> bool:
+		return turns_left(a, state) > turns_left(b, state))
+	return out
