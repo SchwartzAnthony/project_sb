@@ -5839,12 +5839,13 @@ One row per thing on it. No file, no rows: it looks as it did before.
 
 | column | |
 |---|---|
-| `Part` | `background` (the wallpaper — the first row wins), `title` (the big word), `picture` (anything standing on it — any number of rows) |
+| `Part` | `background` (the wallpaper — the first row wins), `layer` (a whole-screen picture drawn like the wallpaper, stacked in row order — round AN), `title` (the big word), `picture` (anything standing on it — any number of rows) |
 | `Image` | the file. A picture may be a **strip**: `Frames` pictures side by side, all the same width |
 | `Text` | the title's word (`STURMBALL`) |
 | `X`, `Y` | the **centre**, on a 1920 × 1080 screen |
 | `Width`, `Height` | how big to draw it (for the title, `Height` is the font size) |
 | `Frames`, `FPS` | an animated strip; blank = a still picture |
+| `Motion`, `Motion Settings` | round AN: makes the row move — see *The moving title screen* below |
 
 As shipped:
 
@@ -5855,6 +5856,45 @@ As shipped:
   on the ball, stein up (`hero_comic.png`; version B is `hero_comic_b.png`). The round AI backpacker
   (`hero_cheer.png`, 8 frames) is still there.
 - **The title:** **STURMBALL** in gold.
+
+### The moving title screen (round AN)
+
+**Your sketch, built in.** The maypole view (at twice the resolution) is cut
+into layers that move:
+
+- **The sign** hangs on long ropes from the top of the screen and swings
+  gently. **STURMBALL** is written on it and swings with it.
+- **The clouds** drift slowly across the sky and wrap round seamlessly.
+- **The maypole ribbons** sway like cloth: top right (tied at the top) and
+  bottom left (tied at the bottom edge).
+- **The menu buttons** hang on a Bavarian notice board in the middle.
+- **An Alpendohle** with a Bavarian scarf flies in 3 seconds after the
+  screen opens, sits on the notice board's roof for 5 seconds and flies off
+  to the right. Once.
+
+**Everything is two columns of `MainMenu.csv`:** `Motion` says how a row
+moves, and `Motion Settings` holds its numbers as `name=value; name=value`.
+Leave a number out and it keeps its default.
+
+| Motion | for | numbers |
+|---|---|---|
+| `drift` | a layer — slides sideways for ever (clouds) | `speed` pixels a second (minus = the other way) |
+| `sway` | a layer — waves like hanging cloth (ribbons) | `amount` pixels at the loose end, `speed` waves a second, `from` top / bottom (the tied edge), `reach` how far the ribbons hang, `wave` how stretched the ripple is (bigger = calmer), `phase`, `curve` |
+| `swing` | a picture — swings round its top-middle (the sign) | `amount` degrees each way, `speed` swings a second |
+| `bird` | a picture strip of 3 poses: wings up, wings down, sitting | `delay`, `fly`, `stay`, `leave` (seconds), `from` and `to` (x,y where it starts and flies off to), `flap` wing beats a second, `arc` how high it swoops. X / Y = where it sits |
+| `follow` | the title row — written on the picture above it, moves with it | — |
+
+- **The buttons** are placed in `MenuConfig.csv` (X, Y, Width, Height) inside
+  the board's light panel: x 772–1183, y 689–1001.
+- **The pictures** are in `assets/menu/layers/animated/`. Their sources, and
+  the scripts that cut the layers, are in `art_source/pixellab/title_animated/`.
+  The whole screen as one layered file is
+  `art_source/aseprite/title_screen_animated.aseprite`.
+- **To check it without watching:** `godot --path . --script
+  res://tools/menu_motion_shot.gd` saves a picture a second for 13 seconds
+  into `user://menu_motion/`.
+- **The still screen it replaced** is
+  `art_source/legacy/menu_round_an/MainMenu_maypole_still.csv`.
 
 ### Comic first, pixels second — the art style (rounds AJ–AL)
 
