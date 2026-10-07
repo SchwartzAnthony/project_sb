@@ -3109,26 +3109,81 @@ the game already has it**.
 
 ---
 
-## 7j. A new game: the first two matches (round AN)
+## 7j. A new game: the Tutorial (round AN, 7 Oct)
 
-What a brand-new save does, in order. Every step is a row you can edit.
+The old introduction is now **the Tutorial**. It is the Tutorial button on
+the title screen, and a brand-new save offers it.
 
-1. **The prologue** plays the first time the base opens (`Progression.csv`
-   `welcome_at_base`). `new_game` sets `flag:tutorial_match`.
-2. **The first match starts by itself** when the prologue comes back to the
-   base (`kick_off_first_match`, Do `match:intro`). `match:<mode>` is a new
-   action: it starts that `MatchModes.csv` row from the base.
-3. **Your side is `data/IntroSquad.csv`**, not your team. Koch is a
-   Bergmännlein at Tier IV Power 3, the same place as in match two, and
-   eleven plain players have random names. There are no Stars.
-4. **At full time** (`first_match_is_over`) you go back to the bar for
-   `star-intro`, and `flag:tutorial_match_2` is set.
-5. **The second match starts by itself** when star-intro ends
-   (`kick_off_second_match`, `match:intro2`). Your side is
-   `data/IntroSquad2.csv`: the same players, Koch, and Belial, Valefor and
-   Haures.
-6. **At full time** `second_match_is_over` clears the flag, and Play a
-   match is an ordinary friendly again.
+### A brand-new save asks
+
+The first time the base opens on a new save, a window asks: *Would you like
+to do the Tutorial? If not, you can find it later on the main menu.*
+
+- **Yes** plays the Tutorial in that save (below).
+- **No** leaves you at the base with **the starting team** and nothing else.
+
+The words are `Language.csv` `tutorial_offer_title`, `_text`, `_yes` and
+`_no`. `Tuning.csv tutorial_offer` false turns the question off.
+
+### What the Tutorial is
+
+1. **Pub Dialogue 1**: the `Dialogue.csv` scene named in `Tuning.csv
+   tutorial_first_scene` (`prologue`). Rewrite it there.
+2. **The tutorial match** starts by itself. It is `MatchModes.csv`
+   `tutorial` (`Tuning.csv tutorial_match_mode`). Your side is
+   `IntroSquad.csv` (Koch in the Star's place at Tier IV, eleven plain
+   players) and theirs is all plain players. The Head Coach stops it again
+   and again: every stop is a `MatchTalk.csv` row with Mode `tutorial`.
+3. **Full time** ends the Tutorial at the base, locked, with the starting
+   team. Started from the title screen, it plays in a save of its own
+   (`user://tutorial_story.json`, wiped each time) and comes back to the
+   title screen, so your real game is never touched.
+
+### The Head Coach's stops (all in `MatchTalk.csv`, lines in `Dialogue.csv`)
+
+All lines are **drafts** for you to rewrite. Every scene starts with `tut-`.
+
+| Play Maker | moment | scene | gold on |
+|---|---|---|---|
+| | the whistle | tut-kickoff | |
+| 1 | Tier I cards | tut-tier1 | the first card (P:0) |
+| 1 | Tier II cards | tut-tier2 | all three cards |
+| 1 | Tier IV card | tut-tier4 | the card |
+| 1 | the Tier I duel: turned over, ABILITY PRIORITY, first box, second box, POWER CHECK, WIN/LOSE | tut-duel-start ... tut-duel-result | the duel's own gold ring and boxes |
+| 1 | the shot window | tut-shot | a gold circle on the %, a box on the keeper's stamina |
+| 2 | Tier I cards (two left) | tut-exhaust | the cards and the EXHAUST ZONE button |
+| 2 | after the shot | tut-timeout-call, then **TIME OUT**: tut-timeout-pub in the bar | |
+| 3 | Tier IV: Koch, now a Star | tut-koch-star | Koch's card |
+| 3 | STAR PLAYER SWITCH: who comes on for Koch | tut-star-swap | the cards |
+
+After the star swap the match plays out normally (your notes stop there).
+
+**The TIME OUT.** The match freezes where it is, and the whole screen becomes
+the `tut-timeout-pub` scene. When it ends, the match carries on from the
+same moment, with the same score, clock and exhaust. Then Koch is a **Star**
+with **Beer Courage** (`Abilities.csv TUT_KOCH_BEER`, on both his sides):
++1 power for each of your normal players who played before him that round.
+
+**The EXHAUST ZONE button** (bottom right of every match, `Tuning.csv
+exhaust_button`) says how many of your cards are spent this cycle. Press it
+to see them.
+
+### The starting team
+
+`data/StartingTeam.csv` (`Tuning.csv starting_team`): twelve plain players,
+three per Tier, with random names. The base gets it at the end of the
+Tutorial, or when you say No. **The same ID is the same player**, so the
+eleven who played the tutorial match are the ones at your base, and p10
+takes Koch's place. Nothing else is unlocked.
+
+### The old introduction (retired)
+
+The `Progression.csv` rows `welcome_at_base`, `sign_your_first_three`,
+`kick_off_first_match`, `first_match_is_over`, `kick_off_second_match` and
+`second_match_is_over` now wait on `flag:old_introduction`, which nothing
+sets. Delete that word from a row's Requires to bring it back. The intro
+and intro2 match modes, the star-intro scene and the steps below are kept
+for when you continue the Tutorial.
 
 ### After match two: the Brewery, an Adventure, the Traveling Merchant
 
@@ -3215,8 +3270,8 @@ brew and nobody special.
 
 ### `data/MatchTalk.csv`: the Head Coach stops the match
 
-One row is one interruption. **Mode** is `intro`, `intro2`, or blank for any
-match. **When** is the moment: kick_off, duel_won, duel_lost, shot_taken,
+One row is one interruption. **Mode** is a `MatchModes.csv` row (`tutorial`),
+or blank for any match. **When** is the moment: kick_off, duel_won, duel_lost, shot_taken,
 goal_scored, goal_conceded, save_made, keeper_emptied, foul_given,
 card_yellow, card_red, free_kick_won, star_switch or play_maker. **Requires**
 is the usual condition language. **Scene** is a `Dialogue.csv` scene. Its
@@ -3224,9 +3279,30 @@ lines play in a box along the bottom of the screen, with the speaker's face,
 while the game waits. **Once** `true` plays it only the first time ever. The
 size of the words is `Tuning.csv match_talk_text_size`.
 
+Four more columns (round AN, the Tutorial), all optional:
+
+| column | what it does |
+|---|---|
+| **Round** | Only at this Play Maker of the match. 1 is the first; the 4th is the first of cycle 2. |
+| **Tier** | Only for this Tier: `I`, `II`, `III`, `IV`, or `STAR` for the star swap cards. |
+| **Highlight** | What he points at with a gold box: `card:first`, `card:last`, `card:Koch`, `cards`, `exhaust`, `keeper_chance`, `keeper_stamina`, `shot_power`. `ring:` in front draws a gold circle instead. Several with `;`. |
+| **Do** | After his lines: `pub:<scene>` (TIME OUT), `star:<name>`, `ability:<name>=<Abilities ID>`, `announce:<words>`. |
+
+More moments for **When**: `cards_shown` (a Tier's cards are on the table),
+`duel_start`, `duel_priority`, `duel_ability_1`, `duel_ability_2`,
+`duel_power_check`, `duel_result`, `shot_odds` (the shot window shows the %)
+and `shot_done` (after the goal or the miss).
+
 ### Checking it
 
-`godot --headless --path . --script res://tools/intro_check.gd` plays all of
+`godot --headless --path . --script res://tools/tutorial_check.gd` plays the
+Tutorial through the real screens: No on one new save, Yes on another, every
+Head Coach stop, the TIME OUT and Koch the Star, and the base at the end.
+Without `--headless` it saves frames of every stop in
+`user://tutorial_check/frames/`.
+
+`tools/intro_check.gd` checks the old introduction, so it fails now that it
+is retired. It plays all of
 this through the real screens, in its own save (`user://intro_check/`), and
 prints PASS or FAIL for each step. Run it without `--headless` and it also
 saves screenshots there.

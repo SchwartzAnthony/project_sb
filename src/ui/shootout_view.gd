@@ -23,6 +23,10 @@ extends CanvasLayer
 signal shot_taken          # the striker's foot has hit the ball
 signal view_closed
 
+## ROUND AN - THE TUTORIAL: the Head Coach can stop here once the numbers are
+## up (MatchTalk.csv shot_odds). Set by main_scene's MatchCoach.
+var coach: Callable = Callable()
+
 const BASE := "Dim/Center/Frame/Margin/VBox"
 
 var db: CardDatabase
@@ -88,6 +92,18 @@ func _wire() -> void:
 	if _striker_stage:
 		_striker_stage.add_child(_striker_placeholder)
 		_striker_stage.add_child(_striker_anim)
+
+
+## ROUND AN: a part of the window by name, for the coach to point at.
+func spot(word: String) -> Control:
+	match word:
+		"keeper_chance":
+			return _chance_value.get_parent() as Control if _chance_value else null
+		"keeper_stamina":
+			return _stamina_value.get_parent() as Control if _stamina_value else null
+		"shot_power":
+			return _shot_value.get_parent() as Control if _shot_value else null
+	return null
 
 
 func _make_placeholder(colour: Color, box: Vector2) -> ColorRect:
@@ -188,6 +204,8 @@ func play_shot(info: Dictionary) -> void:
 	_dress_striker(card, "idle")
 
 	await _beat(open_seconds)
+	if coach.is_valid():
+		await coach.call("shot_odds")
 	await _beat(read_seconds)
 
 	# The strike.

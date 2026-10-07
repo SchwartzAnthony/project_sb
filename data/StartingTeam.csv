@@ -1,0 +1,13 @@
+ID,Tier,Power,Name,Class,Gender,Artwork,Lead,Notes
+p1,I,0,,Normal,,,,"THE STARTING TEAM (round AN, Anthony 7 Oct): the base after the tutorial, or after saying No to it - a full team of random plain players and nothing else. Twelve rows, three per Tier, one of each Power on the ladder. A random name is made ONCE per save for each ID and kept, so the IDs that also appear in IntroSquad.csv (the tutorial match) are the same people. p10 stands where Koch stood in the tutorial match; Koch himself is not a plain player. Tuning.csv starting_team names this file."
+p2,I,1,,Normal,,,,
+p3,I,2,,Normal,,,,
+p4,II,1,,Normal,,,,
+p5,II,2,,Normal,,,,
+p6,II,3,,Normal,,,,
+p7,III,2,,Normal,,,,
+p8,III,3,,Normal,,,,
+p9,III,4,,Normal,,,,
+p10,IV,3,,Normal,,,,
+p11,IV,4,,Normal,,,,
+p12,IV,5,,Normal,,,,

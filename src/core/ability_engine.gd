@@ -781,6 +781,7 @@ func pending_lines(side_is_enemy: bool) -> Array[String]:
 func _effect_words(ability: AbilityData) -> String:
 	match ability.effect:
 		"addpower": return "%+d power in combat" % ability.value
+		"addpowerperplayed": return "%+d power for each normal player before him" % ability.value
 		"addattack": return "%+d power in combat" % ability.value
 		"adddefense": return "%+d defence in combat" % ability.value
 		"drainstamina": return "%d off their keeper" % ability.value
@@ -1945,6 +1946,15 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 			# C6: Belial's "temporary weapon" is +power for that combat.
 			buff.attack = ability.value
 			buff.defense = ability.value
+		"addpowerperplayed":
+			# ROUND AN (the tutorial, Koch's beer): +value for each plain
+			# player of this side who played before him this round.
+			var before := _plain_played_before(source, source_is_enemy)
+			if before <= 0:
+				log_lines.append("      %s: nobody played before him - no bonus" % source.player_name)
+				return
+			buff.attack = ability.value * before
+			buff.defense = ability.value * before
 		_:
 			return
 
@@ -1957,6 +1967,21 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 		_flauros(source, buff.card, buff.side_is_enemy, buff)
 	log_lines.append("      %s: %s %+d (%s, %s)"
 		% [source.player_name, ability.effect, ability.value, ability.target, ability.scope])
+
+
+## ROUND AN: how many of this side's plain (not Star) players are in this
+## round's line-up in a LOWER Tier than `card` - the ones who played before it.
+func _plain_played_before(card: PlayerData, side_is_enemy: bool) -> int:
+	var order := ["I", "II", "III", "IV"]
+	var mine := order.find(card.get_tier_clean())
+	var count := 0
+	for thing in (_lineup.get(side_is_enemy, []) as Array):
+		var other := thing as PlayerData
+		if other == null or other == card or other.is_star():
+			continue
+		if order.find(other.get_tier_clean()) < mine:
+			count += 1
+	return count
 
 
 ## Point a buff at whoever the CSV said. Returns false if it hits nothing.

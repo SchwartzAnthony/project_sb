@@ -469,6 +469,7 @@ func _ready() -> void:
 	spawn_card_stats()
 	spawn_pause_menu()
 	_place_card_row()
+	coach = MatchCoach.attach(self)
 
 	# A match is not somewhere Back should ever return you to, so the trail
 	# of screens is wiped at kick-off. Without this, Back on the season table
@@ -634,14 +635,15 @@ func _report(event: String, facts: Dictionary) -> void:
 ## data/MatchTalk.csv: at this moment of a match in this mode, play a
 ## Dialogue.csv scene in a box over the pitch while everything waits.
 var _talk_box: MatchTalkBox = null
+## ROUND AN - the tutorial: the coach's stops, gold highlights, TIME OUT and
+## the EXHAUST ZONE button. See match_coach.gd.
+var coach: MatchCoach = null
 
 func _match_talk(event: String) -> void:
 	if _talk_box != null and is_instance_valid(_talk_box):
 		return
-	var scene := MatchTalk.scene_for(event, String(match_mode.get("id", "")), state)
-	if scene != "":
-		print("[match talk] %s: playing '%s'." % [event, scene])
-		_talk_box = MatchTalkBox.play(self, scene, state)
+	if coach != null:
+		coach.talk(event)
 
 
 ## Run the Progression rows listening for this moment, then carry out
@@ -1898,6 +1900,15 @@ func _full_time() -> void:
 	print("FULL TIME — %d : %d" % [player_score, enemy_score])
 	match_ended.emit(player_score, enemy_score)
 
+	# ROUND AN: THE TUTORIAL MATCH COUNTS FOR NOTHING. No stats, no
+	# achievements, no Progression rows, no tired players - after the
+	# full-time card it ends at the base (or the title screen). tutorial.gd.
+	if Tutorial.active(get_tree()):
+		GameSpeed.reset()
+		await get_tree().create_timer(db.tune_float("full_time_seconds", 2.6)).timeout
+		Tutorial.finish(get_tree())
+		return
+
 	var outcome := "draw"
 	if player_score > enemy_score:
 		outcome = "win"
@@ -1941,11 +1952,11 @@ func _full_time() -> void:
 	#
 	# `recovery` in Tuning.csv turns the whole thing off and the squad is
 	# available every week, as it was.
-	if state != null and db.tune_bool("recovery", false):
-		RecoveryBook.after_match(_squad_that_played(), state, db)
 	#
 	# ROUND AN: they go to the DORMS, and a player on a one-match brew sleeps
 	# it off for longer — data/Resting.csv, rows `match` and `brew`.
+	if state != null and db.tune_bool("recovery", false):
+		RecoveryBook.after_match(_squad_that_played(), state, db)
 
 	# ============ AND THE MATCH PAYS ============
 	#
@@ -4267,6 +4278,8 @@ func start_next_draft_phase() -> void:
 		for star_data in _weakest_first(swappable):
 			create_card_for_unit(star_data)
 		_offer_auto_pick()
+		if coach != null:
+			coach.talk("cards_shown", {"tier": "star"})
 		return
 
 	# --- Regular tier phase ---
@@ -4320,6 +4333,8 @@ func start_next_draft_phase() -> void:
 		return
 
 	_offer_auto_pick()
+	if coach != null:
+		coach.talk("cards_shown", {"tier": phase})
 
 
 ## WEAKEST ON THE LEFT, STRONGEST ON THE RIGHT — always.
@@ -4571,6 +4586,10 @@ func _auto_pick_soon() -> void:
 	var wait := db.tune_float("auto_pick_seconds", 0.9)
 	if wait > 0.0:
 		await get_tree().create_timer(wait).timeout
+	# ROUND AN: never behind the Head Coach's back. The timer runs while the
+	# game is paused, so AUTO used to pick while his box was still up.
+	while get_tree().paused:
+		await get_tree().process_frame
 
 	# Things move on while we wait — you may have picked yourself, or turned
 	# AUTO back off, or the whistle may have gone.
@@ -6251,6 +6270,10 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 			await _celebrate_goal(shooter, shooter_is_player)
 		else:
 			await announce("MISS", db.tune_float("verdict_seconds", 1.4))
+		# ROUND AN: the coach may stop the match here (MatchTalk.csv shot_done)
+		# - the TIME OUT to the pub in the tutorial.
+		if coach != null:
+			await coach.talk("shot_done")
 
 		if scored:
 			# Restart from the centre. The side that CONCEDED kicks off, and

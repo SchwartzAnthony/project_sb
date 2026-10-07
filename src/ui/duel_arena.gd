@@ -76,6 +76,12 @@ var hl_ring_hole := Vector2(44.0, 30.0)
 var hl_bonus_seconds: float = 0.9
 var hl_bonus_merge_seconds: float = 0.45
 var _banner: Label
+## ROUND AN - THE TUTORIAL: the Head Coach can stop the duel at each gold
+## moment (MatchTalk.csv duel_start, duel_priority, duel_ability_1/_2,
+## duel_power_check, duel_result). main_scene's MatchCoach sets this; it is
+## awaited with (moment, tier). Unset = the duel never stops.
+var coach: Callable = Callable()
+var _coach_tier := ""
 
 var _dim: ColorRect
 var _tier_label: Label
@@ -201,6 +207,7 @@ func play_duel(info: Dictionary) -> void:
 
 	_dress("left", left)
 	_dress("right", right)
+	_coach_tier = String(info.get("tier", ""))
 
 	# --- 0. THE FLIP ---
 	#
@@ -212,6 +219,7 @@ func play_duel(info: Dictionary) -> void:
 	# `duel_flip` in Tuning.csv turns the animation off and the window is
 	# simply there, which is how it was.
 	await _flip_them_over(String(info.get("tier", "")))
+	await _coach("duel_start")
 
 	# --- 1. Both run at each other ---
 	await _beat(run_in_seconds)
@@ -229,9 +237,12 @@ func play_duel(info: Dictionary) -> void:
 		_show_banner(Loc.text("duel_ability_priority", "ABILITY PRIORITY"))
 		_ring(order[0], true)
 		await _beat(hl_priority_seconds)
+		await _coach("duel_priority")
+	var turn := 0
 	for key in order:
 		var data: Dictionary = left if key == "left" else right
-		await _fire_ability(key, data)
+		turn += 1
+		await _fire_ability(key, data, "duel_ability_%d" % turn)
 	_ring("left", false)
 	_ring("right", false)
 	_show_banner("")
@@ -262,6 +273,7 @@ func play_duel(info: Dictionary) -> void:
 		_set_power(_side["left"], int(left.get("power_after", 0)), LIVE_TEXT)
 		_set_power(_side["right"], int(right.get("power_after", 0)), LIVE_TEXT)
 		await _beat(hl_power_seconds)
+		await _coach("duel_power_check")
 	else:
 		_set_power(_side["left"], int(left.get("power_after", 0)), LIVE_TEXT, left_change)
 		_set_power(_side["right"], int(right.get("power_after", 0)), LIVE_TEXT, right_change)
@@ -278,6 +290,7 @@ func play_duel(info: Dictionary) -> void:
 		_ring("right", bool(right.get("wins", false)))
 		_sound("duel_power_victory" if left_wins else "duel_power_fail", info)
 	await _beat(result_seconds)
+	await _coach("duel_result")
 
 	_ring("left", false)
 	_ring("right", false)
@@ -298,7 +311,7 @@ func _priority_order(left: Dictionary, right: Dictionary) -> Array:
 	return ["left", "right"] if bool(left.get("is_attacker", false)) else ["right", "left"]
 
 
-func _fire_ability(key: String, data: Dictionary) -> void:
+func _fire_ability(key: String, data: Dictionary, moment: String = "") -> void:
 	var nodes: Dictionary = _side[key]
 
 	# The number lights first — that is what "having priority" looks like.
@@ -320,6 +333,7 @@ func _fire_ability(key: String, data: Dictionary) -> void:
 		# the turn pass rather than wonder whether it was skipped.
 		_box(key, highlight)
 		await _beat(reveal_seconds * 0.5 + (hl_ability_seconds * 0.5 if highlight else 0.0))
+		await _coach(moment)
 		_box(key, false)
 		return
 
@@ -353,6 +367,7 @@ func _fire_ability(key: String, data: Dictionary) -> void:
 	# then the verdict as a sound - success if it went off, error if not.
 	_box(key, true)
 	await _beat(hl_ability_seconds)
+	await _coach(moment)
 	var went_off := bool(data.get("fired", true))
 	_sound("duel_ability_success" if went_off else "duel_ability_fail", data)
 	await _beat(hl_ability_result_seconds)
@@ -697,6 +712,21 @@ func _show_banner(text: String) -> void:
 	_banner.add_theme_color_override("font_color", hl_colour)
 	_banner.text = text
 	_banner.visible = text != ""
+
+
+## ROUND AN: let the Head Coach talk at this moment, if he wants to.
+func _coach(moment: String) -> void:
+	if moment != "" and coach.is_valid():
+		await coach.call(moment, _coach_tier)
+
+
+## ROUND AN: a part of the window by name, for the coach to point at:
+## left_power, right_power, left_ability, right_ability (left = yours).
+func spot(word: String) -> Control:
+	var parts := word.split("_", false)
+	if parts.size() != 2:
+		return null
+	return _side.get(parts[0], {}).get(parts[1]) as Control
 
 
 ## A gold ring round one side's power number.

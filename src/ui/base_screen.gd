@@ -88,6 +88,17 @@ func _ready() -> void:
 		state.set_flag("game_begun")
 		state.save_to_disk()
 		_advance_progression("new_game")
+		# ROUND AN (Anthony, 7 Oct): "would you like to do the Tutorial? If
+		# not, you can find it later on the main menu." Yes plays it in this
+		# save; no gives the base its starting team and nothing else.
+		if Tutorial.offer_on_new_game() and not TutorialBase.active(get_tree()) \
+				and not Tutorial.active(get_tree()):
+			await get_tree().process_frame
+			if await Tutorial.ask(self):
+				Tutorial.start(get_tree(), false)
+				return
+			Tutorial.give_starting_team(state)
+			_rebuild()
 
 	# Anything Progression.csv wants to happen when the base is opened. This
 	# is where the prologue now lives, rather than firing at launch.

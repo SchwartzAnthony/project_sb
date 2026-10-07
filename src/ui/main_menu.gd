@@ -487,9 +487,17 @@ func _on_action(action: String) -> void:
 			MatchMode.choose(get_tree(), argument if argument != "" else "season")
 			ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT)
 		"tutorial_game", "tutorial":
-			# THE TUTORIAL BASE. A small enclosed base of its own, with its own
-			# buildings, its own visitors and its own save — nothing you do in
-			# there touches the real game. See tutorial_base.gd.
+			# ROUND AN (Anthony, 7 Oct): THE TUTORIAL - the old introduction,
+			# moved here. Pub Dialogue 1, then the tutorial match with the
+			# Head Coach's stops, in a save of its own so your real game is
+			# never touched. See tutorial.gd.
+			state.save_to_disk()
+			Tutorial.start(get_tree(), true)
+		"tutorial_base":
+			# THE TUTORIAL BASE (round W). A small enclosed base of its own,
+			# with its own buildings, its own visitors and its own save. No
+			# button uses it since round AN; MenuConfig.csv tutorial_base
+			# brings it back. See tutorial_base.gd.
 			state.save_to_disk()
 			TutorialBase.enter(get_tree(), argument)
 		"story":
