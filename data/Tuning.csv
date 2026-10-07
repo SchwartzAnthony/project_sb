@@ -95,6 +95,11 @@ duel_hl_ability_seconds,1,"ROUND AN. How long the gold box sits round an ability
 duel_hl_ability_result_seconds,0.7,"ROUND AN. How long the box stays after the sound, before the next card"
 duel_hl_power_seconds,1.2,"ROUND AN. How long POWER CHECK and the two gold rings stay up before WIN / LOSE (replaces arena_compare_seconds while duel_hl is true)"
 duel_hl_colour,#FAC729,"ROUND AN. The gold of the box, the rings and the words, as a colour code (#RRGGBB)"
+duel_hl_ring_art,res://assets/ui/duel/duel_ring.png,"ROUND AN. The gold ring round the power numbers (PixelLab, ring A - Aseprite file art_source/aseprite/ui/duel_ring.aseprite). Blank = a plain oval drawn in duel_hl_colour"
+duel_hl_box_art,res://assets/ui/duel/duel_box.png,"ROUND AN. The pretzel corners of the box round an ability (PixelLab, box 2 - art_source/aseprite/ui/duel_box.aseprite). It is stretched as a nine-patch: the corners stay, the middle grows. Blank = a plain gold border"
+duel_hl_art_scale,3,"ROUND AN. How many screen pixels one pixel of the ring and box art becomes"
+duel_hl_box_margin,17,"ROUND AN. How many art pixels in from each edge of duel_box.png the corners reach (the part that never stretches)"
+duel_hl_ring_hole,44 30,"ROUND AN. Half the width and half the height of the hole in duel_ring.png, in art pixels. The ring is grown evenly until the number fits inside it. Change it if you redraw the ring with a different hole"
 arena_reveal_seconds,0.5,Power numbers appear
 arena_ability_seconds,0.9,Each ability lights up and plays
 arena_compare_seconds,0.8,Final numbers settle before the verdict

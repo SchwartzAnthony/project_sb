@@ -66,6 +66,13 @@ var hl_ability_seconds: float = 1.0
 var hl_ability_result_seconds: float = 0.7
 var hl_power_seconds: float = 1.2
 var hl_colour := Color(0.98, 0.78, 0.16)
+## The PixelLab art for the ring and the box (blank row = drawn in code),
+## and how many screen pixels one art pixel becomes.
+var hl_ring_art: Texture2D
+var hl_box_art: Texture2D
+var hl_art_scale: float = 3.0
+var hl_box_margin: int = 17
+var hl_ring_hole := Vector2(44.0, 30.0)
 var _banner: Label
 
 var _dim: ColorRect
@@ -139,6 +146,19 @@ func apply_tuning(database: CardDatabase) -> void:
 	var gold := db.tune_text("duel_hl_colour", "")
 	if Color.html_is_valid(gold):
 		hl_colour = Color.html(gold)
+	hl_ring_art = _art(db.tune_text("duel_hl_ring_art", ""))
+	hl_box_art = _art(db.tune_text("duel_hl_box_art", ""))
+	hl_art_scale = maxf(1.0, db.tune_float("duel_hl_art_scale", hl_art_scale))
+	hl_box_margin = db.tune_int("duel_hl_box_margin", hl_box_margin)
+	var hole := db.tune_text("duel_hl_ring_hole", "").split(" ", false)
+	if hole.size() == 2 and hole[0].is_valid_float() and hole[1].is_valid_float():
+		hl_ring_hole = Vector2(maxf(1.0, float(hole[0])), maxf(1.0, float(hole[1])))
+
+
+func _art(path: String) -> Texture2D:
+	if path == "" or not ResourceLoader.exists(path):
+		return null
+	return load(path) as Texture2D
 
 
 func is_running() -> bool:
@@ -659,6 +679,8 @@ func _ring(key: String, on: bool) -> void:
 		ring.name = "GoldRing"
 		label.add_child(ring)
 	ring.colour = hl_colour
+	ring.art = hl_ring_art
+	ring.hole = hl_ring_hole
 	ring.visible = on
 	ring.queue_redraw()
 
@@ -685,10 +707,29 @@ func _box(key: String, on: bool) -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(hl_colour.r, hl_colour.g, hl_colour.b, 0.12)
 	style.border_color = hl_colour
-	style.set_border_width_all(4)
+	style.set_border_width_all(0 if hl_box_art != null else 4)
 	style.set_corner_radius_all(6)
 	box.add_theme_stylebox_override("panel", style)
 	box.visible = on
+	if hl_box_art == null or not on:
+		return
+
+	# THE ART: the four pretzel corners, stretched round the plate as a
+	# nine-patch at duel_hl_art_scale so the pixels stay big and square.
+	var art := box.get_node_or_null("Art") as NinePatchRect
+	if art == null:
+		art = NinePatchRect.new()
+		art.name = "Art"
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		box.add_child(art)
+	art.texture = hl_box_art
+	art.patch_margin_left = hl_box_margin
+	art.patch_margin_right = hl_box_margin
+	art.patch_margin_top = hl_box_margin
+	art.patch_margin_bottom = hl_box_margin
+	art.scale = Vector2.ONE * hl_art_scale
+	art.size = box.size / hl_art_scale
 
 
 ## One of the highlight sounds. The rows are in Audio.csv, so which file
@@ -701,9 +742,13 @@ func _sound(event: String, info: Dictionary) -> void:
 ## Draws an oval round the number it is attached to, sized to the digits.
 class GoldRing extends Control:
 	var colour := Color(0.98, 0.78, 0.16)
+	## The PixelLab ring; null draws a plain oval in `colour`.
+	var art: Texture2D
+	var hole := Vector2(44.0, 30.0)
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 	func _draw() -> void:
 		var label := get_parent() as Label
@@ -719,6 +764,18 @@ class GoldRing extends Control:
 		# tall that it cuts through the name above or the ability below.
 		var half := Vector2(text_size.x * 0.5 + 22.0, text_size.y * 0.5)
 		half.x = maxf(half.x, half.y)
+		if art != null:
+			# Just big enough that the digits sit inside the oval hole. The
+			# height is fixed by the digits, so the ring never covers the name
+			# above or the ability below; a wide number like "3  (+1)" makes it
+			# longer, not taller. The hole's half-width and half-height, in art
+			# pixels, are Tuning.csv duel_hl_ring_hole.
+			var digits := Vector2(text_size.x * 0.5 + 4.0, font_size * 0.36) * sqrt(2.0)
+			var tall := digits.y / hole.y
+			var grow := Vector2(maxf(digits.x / hole.x, tall), tall)
+			var outer := art.get_size() * grow
+			draw_texture_rect(art, Rect2(label.size * 0.5 - outer * 0.5, outer), false)
+			return
 		var points := PackedVector2Array()
 		for i in 65:
 			var turn := TAU * float(i) / 64.0

@@ -2066,9 +2066,13 @@ each check, slowly enough to follow:
 | `Tuning.csv` `duel_hl_*_seconds` | how long each step is held |
 | `Tuning.csv` `duel_hl_colour` | the gold |
 | `Language.csv` `duel_ability_priority`, `duel_power_check` | the words |
-| `Audio.csv` `duel_ability_success` / `_fail`, `duel_power_victory` / `_fail` | the sounds (stand-ins for now, see `SOUNDS_WANTED.csv`) |
+| `Tuning.csv` `duel_hl_ring_art`, `duel_hl_box_art` | the PixelLab ring and pretzel-corner box (blank = drawn in code) |
+| `Tuning.csv` `duel_hl_art_scale`, `duel_hl_box_margin` | how big their pixels are; where the box corners end |
+| `Audio.csv` `duel_ability_success` / `_fail`, `duel_power_victory` / `_fail` | the four sounds, made with Ludo.ai |
 
-The box and ring are drawn in code until the PixelLab art is approved.
+The old `duel_win` / `duel_lose` rows are gone from Audio.csv, so a duel
+makes only these sounds. Edit the art in `art_source/aseprite/ui/duel_ring.aseprite`
+and `duel_box.aseprite`, then export to `assets/ui/duel/`.
 
 **Rose tokens go home at a goal** (`rose_tokens_end_on_goal`), and the units
 they replaced walk back on.
