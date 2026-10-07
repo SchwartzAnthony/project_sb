@@ -4919,7 +4919,10 @@ The base visitors (Visitors.csv) still read `assets/portraits/`; since round
 AN, Heatwave and the Brewer there are the same PixelLab front faces (the old
 pictures are in `art_source/legacy/portraits/`).
 
-**Music under the conversations:** Audio.csv row `story_theme`. Put your Suno
+**Music under the conversations:** Audio.csv row `story_theme` plays
+`dialogue_suno` - your Suno Schlager *Leiser Oom-Pah* (round AN), the whole
+song with a 4-second fade before it starts again (MusicLoops.csv row
+`suno_dialogue`). The Pub (`pub_theme`) plays it too. To swap it: put the new
 track in `assets/audio/` and write its file name (no ending) in `Sound`. A
 line's own `Music` cell still wins for that line.
 
