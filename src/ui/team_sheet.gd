@@ -105,6 +105,10 @@ func _process(delta: float) -> void:
 	# clock. So it never stalls on a fast machine and never lies on a slow one.
 	var by_clock := _progress + delta / held
 	var by_work := float(_steps_done) / float(_steps_total)
+	# NO BAR (round AN): the loading screen before the match already did the
+	# waiting, so a sheet that waits for START shows it at once.
+	if not _shows_bar() and _sheet_waits():
+		by_work = 1.0
 	_progress = clampf(maxf(by_clock, by_work), 0.0, 1.0)
 	_paint_bar()
 	if _progress >= 1.0:
@@ -120,6 +124,13 @@ func _process(delta: float) -> void:
 func _sheet_waits() -> bool:
 	return db != null and db.tune_bool("team_sheet_hold", true) \
 		and db.tune_bool("kickoff_needs_button", true)
+
+
+## `team_sheet_bar` in Tuning.csv. Off since round AN: the ball rolling into
+## the goal on the loading screen is the loading bar now, and two in a row
+## was one too many (Anthony).
+func _shows_bar() -> bool:
+	return db != null and db.tune_bool("team_sheet_bar", false)
 
 
 func _paint_bar() -> void:
@@ -252,6 +263,7 @@ func _build(mine: Dictionary, theirs: Dictionary) -> void:
 
 	# ---- the loading bar ----
 	var bar_line := CenterContainer.new()
+	bar_line.visible = _shows_bar()
 	column.add_child(bar_line)
 
 	# ============ A PLAIN CONTROL, NOT A CONTAINER ============

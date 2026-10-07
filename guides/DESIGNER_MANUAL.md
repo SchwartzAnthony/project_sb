@@ -846,6 +846,7 @@ files in `assets/team/`.
 |---|---|
 | `team_sheet` | `false` skips all of it and a match opens straight into the countdown |
 | `team_sheet_seconds` | how long the bar takes to fill. `2.6`. It is the bar, not the wait |
+| `team_sheet_bar` | `false` out of the box: no bar on the sheet and START shows at once, because the loading screen's ball already did the waiting. `true` brings the bar back |
 | `team_sheet_hold` | `true` and the sheet waits for START instead of running on when the bar is full. **`true` out of the box** |
 | `team_sheet_stars` | how many Stars a side. `3`. The one actually playing is always first |
 | `team_sheet_abilities` | `false` prints the Stars' names without what they do |
