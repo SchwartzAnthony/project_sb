@@ -25,6 +25,11 @@ extends Node
 #            stay = seconds it sits   leave = seconds to fly off
 #            from = x,y where it starts   to = x,y where it flies off to
 #            flap = wing beats a second   arc = how high it swoops
+#            sync = music: ROUND AN (Anthony) - no timer. The bird follows
+#            the menu song instead, and comes back every time the song
+#            loops, landing at `land` = seconds into the song, at the same
+#            beat each time. Delay is ignored then. With the sound off (or
+#            no song playing) it falls back to the timer and flies once.
 #    follow  (title row only) the title is written on the picture just
 #            above it in the list and moves with it.
 # =============================================================
@@ -164,22 +169,38 @@ func _bird() -> void:
 	var finish := point(settings, "to", Vector2(2100, 80))
 	var half := art.size * 0.5
 	var beat := int(t * flap) % 2
-	if t < delay:
+	# THE SONG IS THE CLOCK (sync=music). The bird's own clock is worked out
+	# from where the song is, so it takes off `fly` seconds before `land`
+	# and the whole visit repeats with every loop of the song. Coming back
+	# from Settings mid-song, it is simply wherever the song says it is.
+	var clock := t
+	var synced := String(settings.get("sync", "")).to_lower() == "music"
+	if synced:
+		var song := AudioDirector.song_time(get_tree())
+		if song.y > 0.0:
+			var land := number(settings, "land", delay + fly)
+			clock = fposmod(song.x - (land - fly), song.y)
+			delay = 0.0
+	if clock < delay:
 		art.visible = false
-	elif t < delay + fly:
-		var u := (t - delay) / fly
+	elif clock < delay + fly:
+		var u := (clock - delay) / fly
 		u = 1.0 - (1.0 - u) * (1.0 - u)
 		var at := (start + half).lerp(home + half, u) - Vector2(0, arc * sin(PI * u))
 		art.visible = true
 		art.position = at - half
 		_pose(2 if u > 0.92 else beat)
-	elif t < delay + fly + stay:
+	elif clock < delay + fly + stay:
+		art.visible = true
 		art.position = home
 		_pose(2)
-	elif t < delay + fly + stay + leave:
-		var u := pow((t - delay - fly - stay) / leave, 1.4)
+	elif clock < delay + fly + stay + leave:
+		var u := pow((clock - delay - fly - stay) / leave, 1.4)
+		art.visible = true
 		art.position = (home + half).lerp(finish + half, u) - half
 		_pose(beat)
 	else:
 		art.visible = false
-		set_process(false)
+		# A synced bird waits for the song to come round again.
+		if not synced:
+			set_process(false)

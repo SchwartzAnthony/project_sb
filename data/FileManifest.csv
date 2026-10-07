@@ -45,6 +45,7 @@ Keys.csv,data/,A spreadsheet you edit,
 Keywords.csv,data/,A spreadsheet you edit,"EVERY WORD THE GAME UNDERSTANDS. Effects, targets, scopes, conditions and tags, each marked live or planned. Add a row with Status planned to ask for a new one - the sentence you write is the specification"
 Language.csv,data/,A spreadsheet you edit,
 MatchModes.csv,data/,A spreadsheet you edit,
+MatchMaker.csv,data/,A spreadsheet you edit,"ROUND AN. The Match Maker's buttons (Half, Full, 1 Cycle): each names a MatchModes.csv row"
 MenuConfig.csv,data/,A spreadsheet you edit,
 OutOfBounds.csv,data/,A spreadsheet you edit,"HOW A ROUND BEGINS, one row per beat. Same shape as Celebration.csv. It happens NINE TIMES A MATCH, so watch the total"
 Progression.csv,data/,A spreadsheet you edit,
@@ -113,6 +114,7 @@ juice_db.gd,src/core/,Engine. Loads Juice.csv,"The list of moments, and the math
 localisation.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 match_camera.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 match_mode.gd,src/core/,"Engine. Rules, loaders and shared helpers",
+match_maker.gd,src/ui/,A screen or a piece of one,"ROUND AN. THE MATCH MAKER - the window the base's Play a match flag opens, one button per MatchMaker.csv row"
 match_report.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 menu_escape.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 out_of_bounds_book.gd,src/core/,"Engine. Rules, loaders and shared helpers","HOW A ROUND BEGINS. Reads OutOfBounds.csv - the hidden roll, the kick out, the walk to the line, the throw. Replaces the 1-10 coin"
@@ -163,7 +165,7 @@ duel_arena.gd,src/ui/,A screen or a piece of one,
 duel_arena.tscn,src/ui/,A screen or a piece of one,
 enemy_team_window.gd,src/ui/,A screen or a piece of one,"ENEMY TEAM DATA. Their whole squad by tier - power, defence and what every ability actually does, in plain words. Opens from the team shelf, from the match HUD and from the team sheet"
 goal_celebration.gd,src/ui/,Engine. A screen or a piece of one,The confetti and the celebration window. The confetti is DRAWN IN ONE CALL - see the measurement in the file
-inventory_screen.gd,src/ui/,A screen or a piece of one,"THE BAG. Three tabs - Items, Resources, Keys - opened from the base, the Bounty Board, an Adventure fight and the match draft. One window, four callers"
+inventory_screen.gd,src/ui/,A screen or a piece of one,"THE BAG. Items and Resources tabs (Keys hidden by Tuning.csv inventory_tabs) - opened from the base, the Bounty Board, an Adventure fight and the match draft. One window, four callers"
 line_up_parade.gd,src/ui/,Engine. A screen or a piece of one,"BOTH SIDES WALK OUT, one player at a time, between the team sheet and the countdown. Click, space or escape skips it"
 main_menu.gd,src/ui/,A screen or a piece of one,
 main_menu.tscn,src/ui/,A screen or a piece of one,

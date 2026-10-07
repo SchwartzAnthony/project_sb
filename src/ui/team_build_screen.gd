@@ -4,7 +4,9 @@ extends Control
 # =============================================================
 #  TEAM BUILD — the hub (round Y)
 #
-#  The building that used to be the Talent Tree. Three tabs:
+#  The building that used to be the Talent Tree. Up to three tabs - which
+#  ones show is Tuning.csv `team_build_tabs` (round AN: "Star Hall;Your
+#  Teams", Anthony took the Talents tab out; add `Talents` to bring it back):
 #
 #      STAR HALL    place your three Stars. Nothing is played without them,
 #                   and the Stars you place decide which set cards you may
@@ -120,11 +122,29 @@ func _tick(good: bool, words: String) -> Label:
 #  THE TABS
 # =============================================================
 
+## The tabs that show, in order: Tuning.csv `team_build_tabs`, names from
+## TABS split by `;`. A blank or misspelt row shows them all.
+static func shown_tabs() -> Array[String]:
+	var out: Array[String] = []
+	var said := ";".join(TABS)
+	var book := CardDatabase.get_db()
+	if book != null:
+		said = book.tune_text("team_build_tabs", said)
+	for part in said.split(";", false):
+		for name_text in TABS:
+			if name_text.to_lower() == part.strip_edges().to_lower() and not out.has(name_text):
+				out.append(name_text)
+	if out.is_empty():
+		out.assign(TABS)
+	return out
+
+
 func _show(which: String) -> void:
-	_tab = which if TABS.has(which) else TABS[0]
+	var shown := shown_tabs()
+	_tab = which if shown.has(which) else shown[0]
 	for child in _tabs.get_children():
 		child.queue_free()
-	for name_text in TABS:
+	for name_text in shown:
 		var button := Button.new()
 		button.text = name_text.to_upper()
 		button.custom_minimum_size = Vector2(170, 38)

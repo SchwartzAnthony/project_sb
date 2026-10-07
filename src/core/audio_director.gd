@@ -313,6 +313,26 @@ func _start_loop(cue: Dictionary) -> void:
 	_loops[bus] = {"player": fresh, "cue_id": cue_id}
 
 
+## WHERE THE SONG IS (round AN). x = seconds into the looping track on `bus`,
+## y = how long that track is. (-1, 0) when nothing loops there. The title
+## screen's bird reads this, so it lands at the same beat every time the
+## menu song comes round again (MainMenu.csv `sync=music`).
+static func song_time(tree: SceneTree, bus: String = "Music") -> Vector2:
+	if tree == null or tree.root == null:
+		return Vector2(-1.0, 0.0)
+	var director := tree.root.get_node_or_null(NODE_NAME) as AudioDirector
+	if director == null or not director._loops.has(bus):
+		return Vector2(-1.0, 0.0)
+	var player := (director._loops[bus] as Dictionary)["player"] as AudioStreamPlayer
+	if player == null or not is_instance_valid(player) or not player.playing or player.stream == null:
+		return Vector2(-1.0, 0.0)
+	var length := player.stream.get_length()
+	if length <= 0.0:
+		return Vector2(-1.0, 0.0)
+	var at := player.get_playback_position() + AudioServer.get_time_since_last_mix()
+	return Vector2(fposmod(at, length), length)
+
+
 func _fade_out(player: AudioStreamPlayer, seconds: float) -> void:
 	if player == null or not is_instance_valid(player):
 		return

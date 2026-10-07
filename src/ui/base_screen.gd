@@ -304,16 +304,14 @@ func _build_exits() -> void:
 	var to_match := _exit("play|▶", "Play a match", EXIT_SIZE)
 	to_match.tooltip_text = "A friendly against a side at your own level. Nothing goes in the table, but you still come away with something."
 	to_match.pressed.connect(func() -> void:
-		# ROUND AN: choose first. The first match of a new game plays with a
-		# squad of its own (MatchModes.csv `intro`), so it needs no team of
-		# yours and Team Build must not turn you away from it.
-		MatchMode.choose(get_tree(), "friendly")
-		if MatchMode.squad_file(get_tree()) == "" and _turned_away():
+		# ROUND AN (Anthony): the flag opens THE MATCH MAKER first - half,
+		# full or one cycle, data/MatchMaker.csv. Not while a story match
+		# stands in for the friendly (the first match of a new game): that
+		# one has its own length, so it starts straight away as before.
+		if MatchMode.stand_in_for("friendly", state) != "friendly":
+			_play_match("friendly")
 			return
-		state.save_to_disk()
-		# THE TEAM SHELF, not the class picker. You pick a side you already
-		# own; making a new one is a button on that screen.
-		ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT))
+		MatchMaker.open(self, state, _play_match))
 	row.add_child(to_match)
 
 	# ADVENTURE FROM THE BASE. This is where you are standing when you realise
@@ -328,7 +326,7 @@ func _build_exits() -> void:
 	row.add_child(to_adventure)
 
 	var to_teams := _exit("teams|⚑", "Your teams", EXIT_SIZE)
-	to_teams.tooltip_text = "Team Build: your Stars, your sides and your talents."
+	to_teams.tooltip_text = "Team Build: your Stars and your sides."
 	to_teams.pressed.connect(func() -> void:
 		# ROUND Y: the same hub as the building, opened on the teams tab.
 		state.save_to_disk()
@@ -800,6 +798,21 @@ func _play_building_sounds(entry: Dictionary) -> void:
 ## case Team Build has been opened for them, on the tab they are missing,
 ## with the reason on the base's detail line. See src/core/team_build.gd.
 ## The tutorial walks its own path and is never turned away.
+## Start a friendly of one MatchModes.csv mode - what the Match Maker's
+## buttons (and, in the first match of a new game, the flag itself) do.
+func _play_match(mode_id: String) -> void:
+	# ROUND AN: choose first. The first match of a new game plays with a
+	# squad of its own (MatchModes.csv `intro`), so it needs no team of
+	# yours and Team Build must not turn you away from it.
+	MatchMode.choose(get_tree(), mode_id)
+	if MatchMode.squad_file(get_tree()) == "" and _turned_away():
+		return
+	state.save_to_disk()
+	# THE TEAM SHELF, not the class picker. You pick a side you already
+	# own; making a new one is a button on that screen.
+	ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT)
+
+
 func _turned_away() -> bool:
 	if TutorialBase.active(get_tree()):
 		return false

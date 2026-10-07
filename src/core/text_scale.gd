@@ -62,7 +62,16 @@ static func apply(tree: SceneTree, scale: float) -> void:
 
 static func _on_added(node: Node) -> void:
 	# Deferred: a screen usually sets a label's size just after adding it.
-	_fit.call_deferred(node)
+	# By its id, because a node freed in that same frame (a window rebuilt,
+	# a dialog closed) cannot even be handed to a typed _fit(): the check
+	# has to happen before the call.
+	_fit_id.call_deferred(node.get_instance_id())
+
+
+static func _fit_id(id: int) -> void:
+	var node := instance_from_id(id) as Node
+	if node != null:
+		_fit(node)
 
 
 static func _walk(node: Node) -> void:

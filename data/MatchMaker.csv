@@ -1,0 +1,4 @@
+ID,Words,Icon,Mode,Under,Requires,Notes
+half,Half Match,half|½,friendly_half,"45 minutes, two Play Maker cycles, one Star swap.",,"ROUND AN (Anthony). THE MATCH MAKER: the window the base's Play Match flag opens. One row = one button, top to bottom. WORDS is the button. ICON is art|glyph: an icon file name (assets/icons/) and the one or two characters shown until that file exists. MODE is a MatchModes.csv ID - that row says how long the match is and what it pays. UNDER is the line under the button. REQUIRES hides the button until it is true (same words as everywhere). Add a row to add a length"
+full,Full Match,play|▶,friendly,"90 minutes, three cycles, three Stars - the whole thing.",,"The friendly row of MatchModes.csv, the same match Play a match always started"
+cycle,1 Cycle Match,cycle|1,friendly_cycle,"One Play Maker cycle: three rounds, one Star.",,One Play Maker cycle. MatchModes.csv friendly_cycle

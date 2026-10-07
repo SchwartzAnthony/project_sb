@@ -5898,9 +5898,10 @@ into layers that move:
 - **The maypole ribbons** sway like cloth: top right (tied at the top) and
   bottom left (tied at the bottom edge).
 - **The menu buttons** hang on a Bavarian notice board in the middle.
-- **An Alpendohle** with a Bavarian scarf flies in 3 seconds after the
-  screen opens, sits on the notice board's roof for 5 seconds and flies off
-  to the right. Once.
+- **An Alpendohle** with a Bavarian scarf flies in, sits on the notice
+  board's roof for 5 seconds and flies off to the right. It follows **the
+  song, not a timer**: it lands 5 seconds into the menu song every time the
+  song loops, on the same beat (`sync=music; land=5`).
 
 **Everything is two columns of `MainMenu.csv`:** `Motion` says how a row
 moves, and `Motion Settings` holds its numbers as `name=value; name=value`.
@@ -5911,7 +5912,7 @@ Leave a number out and it keeps its default.
 | `drift` | a layer — slides sideways for ever (clouds) | `speed` pixels a second (minus = the other way) |
 | `sway` | a layer — waves like hanging cloth (ribbons) | `amount` pixels at the loose end, `speed` waves a second, `from` top / bottom (the tied edge), `reach` how far the ribbons hang, `wave` how stretched the ripple is (bigger = calmer), `phase`, `curve` |
 | `swing` | a picture — swings round its top-middle (the sign) | `amount` degrees each way, `speed` swings a second |
-| `bird` | a picture strip of 3 poses: wings up, wings down, sitting | `delay`, `fly`, `stay`, `leave` (seconds), `from` and `to` (x,y where it starts and flies off to), `flap` wing beats a second, `arc` how high it swoops. X / Y = where it sits |
+| `bird` | a picture strip of 3 poses: wings up, wings down, sitting | `delay`, `fly`, `stay`, `leave` (seconds), `from` and `to` (x,y where it starts and flies off to), `flap` wing beats a second, `arc` how high it swoops. X / Y = where it sits. `sync=music` ties it to the menu song: it lands `land` seconds into the song, every loop (`delay` is then ignored; with the sound off it uses `delay` and flies once) |
 | `follow` | the title row — written on the picture above it, moves with it | — |
 
 - **The buttons** are placed in `MenuConfig.csv` (X, Y, Width, Height) inside
@@ -6679,3 +6680,39 @@ which every screen and the match pass through:
 3. **The see-through black plate** (`text_backdrop_alpha`) behind any word
    that sits straight on a picture. Words on a panel or a button keep
    theirs. An empty label shows no plate.
+
+
+## The Match Maker, and two tabs gone (round AN)
+
+**Play a match** (the flag on the base) opens **the Match Maker**: a small
+window in the same frame as every other box, with one button per row of
+`data/MatchMaker.csv`.
+
+| Button | Plays | Length |
+|---|---|---|
+| **Half Match** | `friendly_half` | 45 minutes, 2 Play Maker cycles, one Star swap |
+| **Full Match** | `friendly` | 90 minutes, 3 cycles, three Stars (what the flag always played) |
+| **1 Cycle Match** | `friendly_cycle` | 30 minutes, 1 cycle of 3 rounds, one Star |
+
+`MatchMaker.csv` columns: **Words** (the button), **Icon** (`art|glyph`: an
+icon file in `assets/icons/`, and the characters shown until it exists),
+**Mode** (a `MatchModes.csv` ID: that row sets the clock, cycles, rounds,
+Star swaps and what it pays), **Under** (the line under the button),
+**Requires** (hides it until true). **A new length is two rows**: one in
+`MatchModes.csv`, one here.
+
+- A shorter clock squeezes the Play Makers in by itself: the last one comes
+  as long before the final whistle as in a full match (8 minutes).
+- Half and 1 Cycle pay a little less than a Full Match (`Rewards` columns).
+- While a story match stands in for the friendly (the first match of a new
+  game), the flag skips the Match Maker and starts that match, as before.
+- To check it: `godot --path . --resolution 1920x1080 --script
+  res://tools/match_maker_shot.gd` presses the real flag and saves the
+  window, the bag, Team Build and two bird landings to `user://match_maker/`.
+
+**The bag has no Keys tab** and **Team Build has no Talents tab**. Both are
+one row of `Tuning.csv`:
+
+- `inventory_tabs` = `items;resources` (add `;keys` to bring it back). Keys
+  are still carried and still open their gates; they are only not listed.
+- `team_build_tabs` = `Star Hall;Your Teams` (add `;Talents` to bring it back).

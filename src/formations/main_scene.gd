@@ -1611,6 +1611,14 @@ func _apply_match_mode() -> void:
 			+ db.tune_float("no_clock_event_spacing", 6.0) \
 			* float(TOTAL_CYCLES * ROUNDS_PER_CYCLE)
 	else:
+		# ROUND AN: A SHORTER CLOCK (the Match Maker's half and one-cycle
+		# matches) squeezes the Play Makers in: the last one comes just as
+		# long before the final whistle as in a full match, so its round
+		# still has time to play out.
+		var full := MATCH_LENGTH_MINUTES
+		if minutes < full:
+			LAST_EVENT_MINUTE = maxf(FIRST_EVENT_MINUTE + 1.0,
+				LAST_EVENT_MINUTE - (full - minutes))
 		MATCH_LENGTH_MINUTES = minutes
 
 	print("[mode] %s — %d cycle(s) of %d, %s, %s." % [
