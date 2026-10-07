@@ -11,7 +11,7 @@ extends SceneTree
 #    1. the base opens on a brand-new save -> the prologue plays
 #    2. the prologue ends -> back at the base -> the FIRST MATCH starts by
 #       itself (Progression.csv kick_off_first_match, MatchModes.csv intro)
-#    3. the first match: IntroSquad.csv - Koch and random players, no Stars
+#    3. the first match: IntroSquad.csv - Koch (Tier IV Power 3) and random players, no Stars
 #    4. full time -> star-intro in the bar -> back at the base -> the
 #       SECOND MATCH starts (intro2): the same players, Koch and the Stars
 #    5. full time -> back to normal
@@ -78,8 +78,8 @@ func _initialize() -> void:
 		_check(names.has("Koch"), "Koch plays")
 		_check(picked.active_star != null and picked.active_star.player_name == "Koch"
 			and picked.active_star.unit_type == "Bergmännlein"
-			and picked.active_star.tier == "III" and picked.active_star.base_power_left == 3,
-			"Koch is a Bergmännlein, Tier III Power 3, and kicks off")
+			and picked.active_star.tier == "IV" and picked.active_star.base_power_left == 3,
+			"Koch is a Bergmännlein, Tier IV Power 3, and kicks off")
 		_check(names.size() == 12, "twelve players in the squad (%d)" % names.size())
 		var women := 0
 		for card in _cards_of(picked):

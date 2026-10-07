@@ -3056,8 +3056,8 @@ What a brand-new save does, in order. Every step is a row you can edit.
    base (`kick_off_first_match`, Do `match:intro`). `match:<mode>` is a new
    action: it starts that `MatchModes.csv` row from the base.
 3. **Your side is `data/IntroSquad.csv`**, not your team. Koch is a
-   Bergmännlein at Tier III Power 3, and eleven plain players have random
-   names. There are no Stars.
+   Bergmännlein at Tier IV Power 3, the same place as in match two, and
+   eleven plain players have random names. There are no Stars.
 4. **At full time** (`first_match_is_over`) you go back to the bar for
    `star-intro`, and `flag:tutorial_match_2` is set.
 5. **The second match starts by itself** when star-intro ends
