@@ -28,6 +28,11 @@ func _initialize() -> void:
 		PitchSprite.reload()
 		for key in PitchSprite._wears.keys():
 			PitchSprite._wears[key] = only
+	# PITCH_SHOT_SCALE=0.7 draws the isometric players at that size.
+	var scale_text := OS.get_environment("PITCH_SHOT_SCALE")
+	if scale_text.is_valid_float():
+		var db := CardDatabase.get_db()
+		db.tuning[CardDatabase._normalise("pitch_sprite_scale")] = scale_text
 	_pick_the_club()
 	MatchMode.choose(self, "friendly")
 	change_scene_to_file("res://src/formations/main_scene.tscn")
@@ -116,6 +121,8 @@ func _snap_ball() -> void:
 	if b != null and is_instance_valid(b):
 		at = (b as Node2D).get_global_transform_with_canvas().origin
 	var size := Vector2i(960, 540)
+	if OS.get_environment("PITCH_SHOT_WHOLE") != "":
+		size = Vector2i(picture.get_width(), picture.get_height())
 	var corner := Vector2i(
 		clampi(int(at.x) - size.x / 2, 0, picture.get_width() - size.x),
 		clampi(int(at.y) - size.y / 2, 0, picture.get_height() - size.y))

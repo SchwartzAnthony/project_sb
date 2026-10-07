@@ -301,7 +301,7 @@ func _apply_artwork() -> void:
 		artwork.vframes = maxi(1, int(pitch.get_height() / cell))
 		artwork.flip_h = false
 		artwork.scale = Vector2.ONE * scale_by
-		artwork.position = Vector2(0.0, -lift)
+		artwork.position = Vector2(0.0, -lift * scale_by)
 		_anim_name = ""
 		_last_spot = global_position
 		_show_anim("idle")
