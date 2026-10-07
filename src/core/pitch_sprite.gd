@@ -125,3 +125,56 @@ static func direction_of(screen: Vector2, squash: float = 1.0) -> int:
 	var ground := Vector2(screen.x, screen.y * maxf(0.1, squash))
 	var step := int(roundf(ground.angle() / (PI / 4.0)))
 	return posmod(step, 8)
+
+
+# =============================================================
+#  THE SAME FIGURE IN THE WINDOWS  (round AN)
+#
+#  Anthony: when a player shoots or kicks, the window must show the sprite
+#  that player has on the pitch. The duel, the shootout and every caption
+#  window (fouls, free kicks, goals, the ball going out) ask here first, and
+#  only use the card's old sheet when the card has no pitch sheet.
+#
+#  Those windows name their animations the old way; this is what each one
+#  becomes on a pitch sheet. Anything not listed plays idle.
+# =============================================================
+
+const WINDOW_ANIMS := {
+	"kick": "kick", "kick_back": "kick", "ability": "kick", "shot": "kick",
+	"win": "cheer", "celebrate": "cheer", "cheer": "cheer",
+	"lose": "fall", "death": "fall", "fall": "fall",
+	"run": "run", "idle": "idle", "tackle": "tackle",
+}
+
+
+## The pitch sheet for `card`, or null. The same look the card wears on the
+## pitch (PlayerUnit picks it by the same name).
+static func window_sheet(card: PlayerData) -> Texture2D:
+	if card == null:
+		return null
+	return sheet_for(card, hash(card.player_name))
+
+
+## An AnimSpec that plays `anim_name` from a pitch sheet, facing `direction`
+## (an index into DIRECTIONS: 0 east, 1 south-east, 2 south ... 7 north-east).
+static func window_spec(sheet: Texture2D, anim_name: String, direction: int = 1) -> AnimSpec:
+	if sheet == null:
+		return null
+	var wanted := String(WINDOW_ANIMS.get(anim_name.to_lower(), "idle"))
+	var row := anim(wanted)
+	if row.is_empty():
+		row = anim("idle")
+		if row.is_empty():
+			return null
+	var db := CardDatabase.get_db()
+	var cell := db.tune_float("pitch_sheet_cell", 72.0) if db != null else 72.0
+	var spec := AnimSpec.new()
+	spec.name = wanted
+	spec.sheet_columns = maxi(1, int(sheet.get_width() / cell))
+	spec.sheet_rows = maxi(1, int(sheet.get_height() / cell))
+	spec.row = int(row["row"]) + posmod(direction, 8)
+	spec.first_frame = 0
+	spec.frames = int(row["frames"])
+	spec.fps = float(row["fps"])
+	spec.loop = bool(row["loop"])
+	return spec

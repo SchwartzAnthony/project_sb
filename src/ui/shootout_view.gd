@@ -229,7 +229,13 @@ func _play_keeper(keeper_data, anim_name: String) -> void:
 
 func _dress_striker(card, anim_name: String) -> void:
 	var spec: AnimSpec = null
-	if db != null and card != null:
+	var sheet: Texture2D = card.artwork if card != null else null
+	# ROUND AN: the striker's own pitch figure, seen from behind.
+	var pitch := PitchSprite.window_sheet(card as PlayerData) if card != null else null
+	if pitch != null:
+		sheet = pitch
+		spec = PitchSprite.window_spec(pitch, anim_name, 6)
+	elif db != null and card != null:
 		# A dedicated from-behind animation if you have drawn one, else the
 		# normal kick, else idle.
 		for candidate in [anim_name, "kick", "idle"]:
@@ -237,14 +243,14 @@ func _dress_striker(card, anim_name: String) -> void:
 			if spec != null:
 				break
 
-	var have_art := card != null and card.artwork != null and spec != null
+	var have_art := card != null and sheet != null and spec != null
 	if _striker_placeholder:
 		_striker_placeholder.visible = not have_art
 	if _striker_anim:
 		_striker_anim.visible = have_art
 		if have_art:
 			_striker_anim.speed_scale = _rate()
-			_striker_anim.play(card.artwork, spec)
+			_striker_anim.play(sheet, spec)
 			_striker_anim.fit_into(Vector2(300.0, 220.0))
 
 

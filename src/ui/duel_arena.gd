@@ -628,11 +628,20 @@ func _play_anim(key: String, card, anim_name: String) -> void:
 	var animator: SpriteAnimator = _anim.get(key)
 	if animator == null or card == null or db == null:
 		return
-	var spec := db.get_anim(anim_name, card.unit_type)
-	if spec == null:
-		spec = db.get_anim("idle", card.unit_type)
+	# ROUND AN: the figure this player has on the pitch, facing the other
+	# side of the duel. The card's old sheet only if it has none.
+	var sheet: Texture2D = card.artwork
+	var spec: AnimSpec = null
+	var pitch := PitchSprite.window_sheet(card as PlayerData)
+	if pitch != null:
+		sheet = pitch
+		spec = PitchSprite.window_spec(pitch, anim_name, 0 if key == "left" else 4)
+	else:
+		spec = db.get_anim(anim_name, card.unit_type)
+		if spec == null:
+			spec = db.get_anim("idle", card.unit_type)
 	animator.speed_scale = _rate()
-	animator.play(card.artwork, spec)
+	animator.play(sheet, spec)
 	var stage: Control = _side[key]["stage"]
 	animator.fit_into(Vector2(stage.size.x if stage != null and stage.size.x > 1.0 else 600.0, 360.0))
 
