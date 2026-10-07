@@ -57,3 +57,4 @@ Round AN, part 5: Hanna and the brewery (drafts first, Anthony's rule from 7 Oct
   brewery_room 3417f614 (layout of draft 3, empty), brewery_equipment b87be3e8
   (equipment of draft 4; scaled 0.72, standing on the floor at y=300),
   brewery_barrels c24b9dfe (moved up 50 px so they show above the text box)
+  hanna_side: the hole background removal cut between barrel and apron filled with brown (#5c3a24)
