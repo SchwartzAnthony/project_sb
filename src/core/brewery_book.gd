@@ -147,6 +147,9 @@ static func _load() -> void:
 			"x": clampf(MenuSupport.field_float(row, "X", 0.5), 0.0, 1.0),
 			"y": clampf(MenuSupport.field_float(row, "Y", 0.5), 0.0, 1.0),
 			"art": MenuSupport.field(row, "Art").strip_edges(),
+			# ROUND AN: how big the machine is drawn, in pixels. 0 = Tuning.csv
+			# brewery_machine_size. Lets the back row be smaller than the front.
+			"size": MenuSupport.field_float(row, "Size", 0.0),
 		})
 
 	_sections.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:

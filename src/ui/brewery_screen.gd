@@ -375,7 +375,16 @@ func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: boo
 		full: bool, short: Array) -> Control:
 	var id_text := String(section["id"])
 	# How big a machine is drawn: Tuning.csv brewery_machine_size (pixels).
-	var big := db.tune_float("brewery_machine_size", 200.0)
+	var big := float(section.get("size", 0.0))
+	if big <= 0.0:
+		big = db.tune_float("brewery_machine_size", 200.0)
+	# THE SAME PICTURE IN A SMALLER ROOM. Sizes are written for the yard of
+	# the full-screen Brewery; opened as a window over the base the yard is
+	# smaller, so every machine shrinks by the same share and the pyramid
+	# keeps its shape.
+	var reference := db.tune_float("brewery_yard_height", 776.0)
+	var area := _world.size.y if _world != null and _world.size.y > 2.0 else reference
+	big *= clampf(area / maxf(reference, 1.0), 0.3, 1.0)
 	var box := Vector2(maxf(SECTION_SIZE.x, big), big + 44.0)
 	var holder := Control.new()
 	# Centred where the panel's centre would be, so the X / Y columns and
@@ -383,6 +392,21 @@ func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: boo
 	holder.position = _spot(section) + SECTION_SIZE * 0.5 - box * 0.5
 	holder.size = box
 	holder.custom_minimum_size = box
+
+	# ROUND AN (your note): every machine stands on its round wooden pallet,
+	# Tuning.csv brewery_pallet, drawn under its feet.
+	var pallet_art := _find_texture(db.tune_text("brewery_pallet", ""))
+	if pallet_art != null:
+		var pallet := TextureRect.new()
+		pallet.texture = pallet_art
+		pallet.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pallet.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pallet.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		pallet.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var wide := big * db.tune_float("brewery_pallet_width", 1.1)
+		pallet.size = Vector2(wide, wide * 0.5)
+		pallet.position = Vector2(box.x * 0.5 - wide * 0.5, big - wide * 0.32)
+		holder.add_child(pallet)
 
 	var ready := open and not full and short.is_empty()
 	var button := Button.new()
