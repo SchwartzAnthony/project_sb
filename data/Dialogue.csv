@@ -95,7 +95,7 @@ tut-fass,hold,Head Coach,coach,left,mad,,,,,,"Hold it, Trainer! Before you pick.
 tut-fass,worthless,Head Coach,coach,left,happy,,,,,,"Look at our Tier I, 0 Power. Without an ability that player is worthless.",,,,,,,,,,,,,,,
 tut-fass,starters,Head Coach,coach,left,happy,,,,,,But 0 Power players are the best early combo starters. So we make sure they get a booze boost.,,,,,,,,,,,,,,,
 tut-fass,open_bag,Head Coach,coach,left,happy,,,,,,Open the bag on that card and give the Kleiner Faß.,,,,,,,,,,,,,,,
-tut-fass-after,ability,Head Coach,coach,left,happy,,,,,,There! Fass Courage: +1 Power in combat for each other Tier I player not in the Exhaust Zone. When he attacks and when he defends.,,,,,,,,,,,,,,,
+tut-fass-after,ability,Head Coach,coach,left,happy,,,,,,There! Fass Courage: +1 Power in combat for each other Tier I player not in the Exhaust Zone, on attack and on defend.,,,,,,,,,,,,,,,
 tut-fass-after,cycle,Head Coach,coach,left,happy,,,,,,"A drink used in a match only counts for this cycle. It takes less to get the ability, but nobody gets very drunk on it either.",,,,,,,,,,,,,,,
 tut-fass-after,pick,Head Coach,coach,left,happy,,,,,,Now pick that player.,,,,,,,,,,,,,,,
 tut-missing-beer,open_bag,Head Coach,coach,left,happy,,,,,,"Now open the bag on the Tier I, Power 1, and...",,,,,,,,,,,,,,,
