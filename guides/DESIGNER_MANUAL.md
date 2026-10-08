@@ -2249,7 +2249,7 @@ rounds, then he goes to the Dorms for `Turns` fixtures and comes back fresh.
 Out of the box **both are his power** (Q206): power 5 plays five rounds and
 rests five; power 0 plays one round at a time and never needs rest. A player
 knocked out on an Adventure goes to bed at once. **Fleeing an Adventure counts
-for nothing** (Q208), the same as a Quit. **A player who is not used** in a
+as a round** (Q208), like walking home; only a Quit counts for nothing. **A player who is not used** in a
 match, an Adventure or the Brewery needs no rest and loses nothing (Q207). The count lives in the save
 as `plays_<card>`.
 
