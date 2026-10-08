@@ -302,6 +302,8 @@ func brewery_time_out(flag: String) -> void:
 	if not ResourceLoader.exists(BREWERY_SCENE):
 		return
 	var state := GameState.fetch(tree)
+	# tut-brewery and tut_brewery are the same flag.
+	flag = flag.strip_edges().replace("-", "_")
 	if state != null and flag != "":
 		state.set_flag(flag, true)
 	print("[match talk] TIME OUT at the Brewery - '%s'." % flag)
