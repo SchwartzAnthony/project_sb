@@ -88,11 +88,27 @@ static func key_for(card: PlayerData) -> String:
 	return PREFIX + CardDatabase._normalise(card.player_name)
 
 
+## The same key by NAME, for somebody who is not a card in the list right
+## now — a brewer, or a recruit while the recruits are not laid in.
+static func key_for_name(name_text: String) -> String:
+	return PREFIX + CardDatabase._normalise(name_text)
+
+
+static func turns_left_name(name_text: String, state: GameState) -> int:
+	if state == null or name_text == "":
+		return 0
+	return maxi(0, state.count(key_for_name(name_text)))
+
+
 ## How many fixtures this card sits out after playing one.
 static func turns_for(card: PlayerData, db: CardDatabase) -> int:
 	if card == null:
 		return 0
-	var power := maxi(card.get_attack_power(), card.get_defense_power())
+	return turns_for_power(maxi(card.get_attack_power(), card.get_defense_power()), db)
+
+
+## How many fixtures a power sits out — Recovery.csv, else the fallback.
+static func turns_for_power(power: int, db: CardDatabase) -> int:
 	var book := table()
 	if book.has(power):
 		return int(book[power])
@@ -153,14 +169,17 @@ static func advance_turn(state: GameState, db: CardDatabase) -> void:
 	if state == null or db == null:
 		return
 	var woke: Array[String] = []
-	for card in db.players:
-		var key := key_for(card)
+	# EVERYBODY WHO CAN BE IN BED, BY NAME: the cards in the list, your
+	# recruits (who are only in the list while a team screen has laid them
+	# in) and your brewers (who never are). Once each.
+	for name_text in _everybody(db, state):
+		var key := key_for_name(name_text)
 		var left := state.count(key)
 		if left <= 0:
 			continue
 		state.set_count(key, left - 1)
 		if left - 1 <= 0:
-			woke.append(card.player_name)
+			woke.append(name_text)
 	if not woke.is_empty():
 		print("[rest] Fit again: %s" % ", ".join(woke))
 
@@ -169,8 +188,8 @@ static func advance_turn(state: GameState, db: CardDatabase) -> void:
 static func rest_everybody(state: GameState, db: CardDatabase) -> void:
 	if state == null or db == null:
 		return
-	for card in db.players:
-		state.set_count(key_for(card), 0)
+	for name_text in _everybody(db, state):
+		state.set_count(key_for_name(name_text), 0)
 	state.save_to_disk()
 
 
@@ -266,21 +285,62 @@ static func cause(id_text: String) -> Dictionary:
 
 ## Why this card is in bed, in words: "Back from an Adventure". "" when fit.
 static func why_words(card: PlayerData, state: GameState) -> String:
-	if card == null or state == null or turns_left(card, state) <= 0:
+	if card == null:
 		return ""
-	var why := state.text(WHY_PREFIX + CardDatabase._normalise(card.player_name))
+	return why_words_name(card.player_name, state)
+
+
+static func why_words_name(name_text: String, state: GameState) -> String:
+	if state == null or turns_left_name(name_text, state) <= 0:
+		return ""
+	var why := state.text(WHY_PREFIX + CardDatabase._normalise(name_text))
 	var row := cause(why)
 	return String(row.get("name", "Resting"))
+
+
+## THE REST DAY (round AN): a fixture passes for the Dorms only — everybody
+## in bed is one nearer fit. The Dorms' button, priced by `rest_day_cost`.
+## Returns {"ok", "why"}.
+static func rest_day(state: GameState, db: CardDatabase) -> Dictionary:
+	if state == null or db == null:
+		return {"ok": false, "why": "no save"}
+	var price := db.tune_int("rest_day_cost", 0)
+	if price < 0:
+		return {"ok": false, "why": "there is no rest day (rest_day_cost is below 0)"}
+	if price > 0:
+		if state.count("coins") < price:
+			return {"ok": false, "why": "a rest day costs %d coins, and you have %d" % [price, state.count("coins")]}
+		state.add_count("coins", -price)
+	var before := in_the_dorms(db, state).size()
+	advance_turn(state, db)
+	var after := in_the_dorms(db, state).size()
+	return {"ok": true, "why": "A rest day. %d out of bed, %d still in it." % [before - after, after]}
+
+
+## Out of bed now, whatever the save says. The Dev screen's Wake button.
+static func wake(name_text: String, state: GameState) -> void:
+	if state == null:
+		return
+	state.set_count(key_for_name(name_text), 0)
 
 
 ## How long this card is in bed after `main`, with any `extras` on top.
 ## A missing or switched-off main row means no rest at all.
 static func rest_for(card: PlayerData, main: String, extras: Array,
 		db: CardDatabase, state: GameState = null) -> int:
+	if card == null:
+		return 0
+	return rest_for_power(maxi(card.get_attack_power(), card.get_defense_power()),
+		main, extras, db, state)
+
+
+## The same, for somebody known only by a power — a brewer's efficiency.
+static func rest_for_power(power: int, main: String, extras: Array,
+		db: CardDatabase, state: GameState = null) -> int:
 	var row := cause(main)
 	if row.is_empty() or not bool(row["on"]):
 		return 0
-	var turns := int(row["turns"]) if int(row["turns"]) >= 0 else turns_for(card, db)
+	var turns := int(row["turns"]) if int(row["turns"]) >= 0 else turns_for_power(power, db)
 	turns += int(row["extra"])
 	for extra in extras:
 		var more := cause(String(extra))
@@ -300,15 +360,24 @@ static func send_to_dorms(card: PlayerData, main: String, extras: Array,
 		state: GameState, db: CardDatabase) -> int:
 	if card == null or state == null:
 		return 0
-	var turns := rest_for(card, main, extras, db, state)
+	return send_name_to_dorms(card.player_name,
+		maxi(card.get_attack_power(), card.get_defense_power()), main, extras, state, db)
+
+
+## Send somebody to bed by NAME — how a brewer goes after his shift.
+static func send_name_to_dorms(name_text: String, power: int, main: String,
+		extras: Array, state: GameState, db: CardDatabase) -> int:
+	if name_text == "" or state == null:
+		return 0
+	var turns := rest_for_power(power, main, extras, db, state)
 	if turns <= 0:
 		return 0
-	state.set_count(key_for(card), turns)
+	state.set_count(key_for_name(name_text), turns)
 	var why := main
 	if not extras.is_empty():
-		# The extra is the more interesting reason: "Sleeping off a brew".
+		# The extra is the more interesting reason: "Carried home".
 		why = String(extras[-1])
-	state.set_text(WHY_PREFIX + CardDatabase._normalise(card.player_name), why)
+	state.set_text(WHY_PREFIX + CardDatabase._normalise(name_text), why)
 	return turns
 
 
@@ -352,14 +421,60 @@ static func _after(main: String, cards: Array, extras: Dictionary,
 	state.save_to_disk()
 
 
-## Everybody in the Dorms right now, longest rest first.
-static func in_the_dorms(db: CardDatabase, state: GameState) -> Array[PlayerData]:
-	var out: Array[PlayerData] = []
+## Everybody in the Dorms right now, longest rest first. One entry each:
+##     {"name", "tier", "power", "left", "why", "brewer"}
+## By NAME, so a brewer and a recruit who is not laid into the card list are
+## in bed too.
+static func in_the_dorms(db: CardDatabase, state: GameState) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
 	if db == null or state == null:
 		return out
-	for card in db.players:
-		if turns_left(card, state) > 0:
-			out.append(card)
-	out.sort_custom(func(a: PlayerData, b: PlayerData) -> bool:
-		return turns_left(a, state) > turns_left(b, state))
+	var seen: Dictionary = {}
+	# THE BREWERS FIRST, so a card that shares a brewer's name never hides him.
+	for name_text in BrewerBook.names(state):
+		var key := CardDatabase._normalise(name_text)
+		if seen.has(key):
+			continue
+		seen[key] = true
+		var left := turns_left_name(name_text, state)
+		if left > 0:
+			out.append({"name": name_text, "tier": BrewerBook.tier(name_text, state),
+				"power": BrewerBook.efficiency(name_text, state), "left": left,
+				"why": why_words_name(name_text, state), "brewer": true})
+	var cards: Array = db.players.duplicate()
+	cards.append_array(RecruitBook.cards(state, db))
+	for card in cards:
+		if card == null:
+			continue
+		var key := CardDatabase._normalise(card.player_name)
+		if seen.has(key):
+			continue
+		seen[key] = true
+		var left := turns_left(card, state)
+		if left > 0:
+			out.append({"name": card.player_name, "tier": card.get_tier_clean(),
+				"power": card.base_power_left, "left": left,
+				"why": why_words(card, state), "brewer": false})
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return int(a["left"]) > int(b["left"]))
+	return out
+
+
+## Every name that can be in bed: the cards, the recruits, the brewers.
+static func _everybody(db: CardDatabase, state: GameState) -> Array[String]:
+	var out: Array[String] = []
+	var seen: Dictionary = {}
+	var names: Array[String] = []
+	if db != null:
+		for card in db.players:
+			if card != null:
+				names.append(card.player_name)
+	names.append_array(RecruitBook.names(state))
+	names.append_array(BrewerBook.names(state))
+	for name_text in names:
+		var key := CardDatabase._normalise(name_text)
+		if key == "" or seen.has(key):
+			continue
+		seen[key] = true
+		out.append(name_text)
 	return out

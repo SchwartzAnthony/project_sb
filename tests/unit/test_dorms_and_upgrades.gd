@@ -45,21 +45,20 @@ func test_the_three_activities_are_in_the_spreadsheet() -> void:
 func test_a_match_sends_the_players_to_the_dorms() -> void:
 	var cards := _two_cards()
 	RecoveryBook.after_match(cards, state, db)
+	assert_eq(RecoveryBook.in_the_dorms(db, state).size(), 2)
 	for card in cards:
 		assert_true(RecoveryBook.is_tired(card, state), "%s should be in bed" % card.player_name)
 		assert_eq(RecoveryBook.why_words(card, state), "Back from a match")
-	assert_eq(RecoveryBook.in_the_dorms(db, state).size(), 2)
 
 
-func test_a_brew_means_a_longer_sleep() -> void:
-	var sober: PlayerData = db.players[0]
+func test_a_pub_brew_no_longer_costs_extra_rest() -> void:
+	# Anthony, 8 Oct: Brew Players are the BREWERS. The Pub row is switched off.
 	var brewed: PlayerData = db.players[1]
 	state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(brewed), "fire_brew")
-	RecoveryBook.after_match([sober, brewed], state, db)
-	var extra := int(RecoveryBook.cause("brew")["extra"])
+	RecoveryBook.after_match([brewed], state, db)
+	assert_false(bool(RecoveryBook.cause("brew")["on"]))
 	assert_eq(RecoveryBook.turns_left(brewed, state),
-		RecoveryBook.rest_for(brewed, "match", [], db, state) + extra)
-	assert_eq(RecoveryBook.why_words(brewed, state), "Sleeping off a brew")
+		RecoveryBook.rest_for(brewed, "match", [], db, state))
 
 
 func test_an_adventure_sends_the_party_and_the_fallen_stay_longer() -> void:
@@ -132,3 +131,103 @@ func test_the_second_vat_achievement_no_longer_gives_the_vat_away() -> void:
 		if String(row["id"]) == "second_vat":
 			assert_false(String(row["reward"]).contains("batches_cooling"))
 	assert_false(BaseRooms.find_upgrade("second_vat").is_empty())
+
+
+# ---- THE BREWERS (round AN) ---------------------------------
+
+func _a_recruit(power: int) -> String:
+	var name_text := "Brauer%d" % power
+	RecruitBook.enlist(name_text, "I", power, "m", state)
+	return name_text
+
+
+func test_a_recruit_trained_as_a_brewer_is_no_card_any_more() -> void:
+	state.unlock("Training Ground")
+	var who := _a_recruit(2)
+	var r := BaseRooms.train_brewer(who, state)
+	assert_true(bool(r["ok"]), String(r["why"]))
+	assert_true(BrewerBook.is_brewer(who, state))
+	for card in RecruitBook.cards(state, db):
+		assert_ne(card.player_name, who, "a brewer must never be a card")
+	assert_eq(BrewerBook.efficiency(who, state), 2)
+
+
+func test_efficiency_is_the_chance_from_brewers_csv() -> void:
+	assert_gt(BrewerBook.success_for(5), BrewerBook.success_for(0))
+	assert_gt(BrewerBook.success_for(0), BrewerBook.success_alone())
+
+
+func test_a_shift_sends_the_brewer_to_the_dorms_and_a_bad_roll_spoils_it() -> void:
+	state.unlock("Training Ground")
+	var who := _a_recruit(1)
+	BaseRooms.train_brewer(who, state)
+	var section := String(BreweryBook.sections()[0]["id"])
+	UnlockProgress.satisfy({"parts": UnlockProgress.progress_of(
+		String(BreweryBook.section(section)["needs"]), state)["parts"], "kind": "", "name": "", "key": ""}, state)
+	for id_text in (BreweryBook.section(section)["takes"] as Dictionary).keys():
+		BreweryBook.add_stock(String(id_text), 10, state)
+	var made := String(BreweryBook.section(section)["makes"])
+	var before := BreweryBook.stock(made, state)
+	var r := BrewerBook.work(section, state, db, 100)     # 100 = always fails below 100%
+	assert_true(bool(r["ok"]), String(r["why"]))
+	assert_eq(String(r["brewer"]), who)
+	assert_true(bool(r["spoiled"]))
+	assert_eq(BreweryBook.stock(made, state), before, "a spoiled batch makes nothing")
+	assert_gt(RecoveryBook.turns_left_name(who, state), 0, "he rests after his shift")
+	var sleepers := RecoveryBook.in_the_dorms(db, state)
+	assert_true(sleepers.any(func(e: Dictionary) -> bool: return String(e["name"]) == who and bool(e["brewer"])))
+	# Resting, so the next batch is worked by nobody.
+	var again := BrewerBook.work(section, state, db, 1)
+	assert_eq(String(again["brewer"]), "")
+
+
+# ---- THE KEYS (round AN) ------------------------------------
+
+func test_every_building_but_the_club_house_needs_its_key() -> void:
+	for entry in BaseDB.get_db().buildings:
+		var needs := String(entry["requires"])
+		if String(entry["id"]) == "club_house":
+			assert_false(needs.contains("_key"), "the Club House is where keys are bought")
+		else:
+			assert_true(needs.contains("_key"), "%s has no key" % entry["name"])
+
+
+func test_a_key_is_for_sale_once_its_building_is_unlocked_and_opens_it() -> void:
+	var dorms: Dictionary = {}
+	for entry in BaseDB.get_db().buildings:
+		if String(entry["id"]) == "dorms":
+			dorms = entry
+	assert_eq(BaseRooms.upgrade_state(BaseRooms.find_upgrade("dorms_key"), state), "locked")
+	state.unlock("Dorms")
+	assert_false(DialogueGrammar.test(String(dorms["requires"]), state), "no key, no door")
+	var r := BaseRooms.buy_upgrade("dorms_key", state)
+	assert_true(bool(r["ok"]), String(r["why"]))
+	assert_eq(state.count("dorms_key"), 1)
+	assert_true(DialogueGrammar.test(String(dorms["requires"]), state))
+
+
+func test_every_key_is_an_item_in_the_keys_tab() -> void:
+	var items := {}
+	for row in MenuSupport.read_csv("res://data/Items.csv"):
+		items[MenuSupport.field(row, "ID")] = MenuSupport.field(row, "Tab")
+	for entry in BaseRooms.upgrades():
+		if String(entry["kind"]) == "key":
+			assert_eq(String(items.get(String(entry["id"]), "")), "keys", "%s is not an item in the Keys tab" % entry["id"])
+
+
+# ---- THE DEV SCREEN'S WAKE BUTTON ---------------------------
+
+func test_wake_gets_one_player_out_of_bed() -> void:
+	var cards := _two_cards()
+	RecoveryBook.after_match(cards, state, db)
+	RecoveryBook.wake(cards[0].player_name, state)
+	assert_false(RecoveryBook.is_tired(cards[0], state))
+	assert_true(RecoveryBook.is_tired(cards[1], state))
+
+
+func test_a_rest_day_gets_everybody_one_fixture_nearer_fit() -> void:
+	var card: PlayerData = db.players[0]
+	state.set_count(RecoveryBook.key_for(card), 2)
+	var r := RecoveryBook.rest_day(state, db)
+	assert_true(bool(r["ok"]), String(r["why"]))
+	assert_eq(RecoveryBook.turns_left(card, state), 1)

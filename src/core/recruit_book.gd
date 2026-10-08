@@ -185,6 +185,9 @@ static func cards(state: GameState, db: CardDatabase) -> Array[PlayerData]:
 	if state == null or db == null:
 		return out
 	for name_text in names(state):
+		# ROUND AN: a BREWER is a recruit who only brews. He is never a card.
+		if BrewerBook.is_brewer(name_text, state):
+			continue
 		var slot := String(state.text(PREFIX + CardDatabase._normalise(name_text))).split("|")
 		if slot.size() < 2 or not String(slot[1]).is_valid_int():
 			continue

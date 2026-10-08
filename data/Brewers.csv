@@ -1,0 +1,8 @@
+Efficiency,Success,Notes
+none,40,"ROUND AN (Anthony: a brewer's number is his EFFICIENCY - his % of success when he works a machine). HOW OFTEN A MACHINE'S BATCH COMES OUT RIGHT. Efficiency is the brewer's power (0 to 5). The machine always takes the fittest brewer with the highest efficiency who is not resting in the Dorms. `none` is the chance when no brewer is free - the machine can still be worked, badly. A batch that fails uses up what it took and makes nothing. `brewery_brewers` in Tuning.csv false = every batch works, as before"
+0,55,A Tier I P:0 brewer. Better than nobody
+1,65,
+2,75,
+3,85,
+4,92,
+5,100,"Your best brewer never spoils a batch"

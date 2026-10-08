@@ -13,9 +13,9 @@ extends CanvasLayer
 #      RESOURCES  things you SPEND — reed, bog iron, coins
 #      KEYS       things you HOLD — a key, a token, a letter
 #
-#  WHICH TABS SHOW is Tuning.csv `inventory_tabs` (round AN: "items;resources",
-#  Anthony took the Keys tab out). A key is still carried and still opens its
-#  gate; it is only not listed. Put `keys` back in that row to list them again.
+#  WHICH TABS SHOW is Tuning.csv `inventory_tabs`. Round AN took the Keys tab
+#  out on 7 Oct and put it back on 8 Oct: the keys to the buildings and the
+#  Brewery machines are bought at the Club House and are listed there.
 #
 #  Which tab a row lands in is decided by Items.csv: the `Tab` column if you
 #  filled it in, worked out from `Kind` if you did not. See

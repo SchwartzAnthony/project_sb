@@ -320,7 +320,7 @@ func _make_section(section: Dictionary) -> Control:
 		# THE SIGN ON THE DOOR NAMES THE ACHIEVEMENT, not the unlock. "Needs
 		# Mill" tells you nothing you can act on; "Clean Sheet — win a match
 		# without conceding" is a thing to go and do. See opened_by().
-		var door := BreweryBook.opened_by(id_text)
+		var door := BreweryBook.opened_by(id_text, state)
 		if door.is_empty():
 			column.add_child(_small("LOCKED — " + DialogueGrammar.describe(String(section["needs"]))))
 		else:
@@ -456,7 +456,7 @@ func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: boo
 		if ready:
 			_work(id_text)
 		elif not open:
-			var door := BreweryBook.opened_by(id_text)
+			var door := BreweryBook.opened_by(id_text, state)
 			_say("%s is locked. %s" % [section["name"], String(door.get("description", DialogueGrammar.describe(String(section["needs"]))))], false)
 		elif full:
 			_say("%s is full - wait for the cellar." % section["name"], false)
@@ -485,7 +485,7 @@ func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: boo
 	words.add_child(title)
 	var line := ""
 	if not open:
-		var door := BreweryBook.opened_by(id_text)
+		var door := BreweryBook.opened_by(id_text, state)
 		line = "LOCKED - " + String(door.get("name", "")) if not door.is_empty() else "LOCKED"
 	elif waiting:
 		line = "Working - %d turn(s)" % BreweryBook.turns_left(id_text, state)
@@ -610,7 +610,8 @@ func _stock_tile(res: Dictionary) -> Control:
 # =============================================================
 
 func _work(section_id: String) -> void:
-	var result := BreweryBook.work(section_id, state)
+	# ROUND AN: a BREWER works it — see brewer_book.gd and data/Brewers.csv.
+	var result := BrewerBook.work(section_id, state, CardDatabase.get_db())
 	if not bool(result["ok"]):
 		_say(String(result["why"]), false)
 		_rebuild()
@@ -618,11 +619,18 @@ func _work(section_id: String) -> void:
 
 	var made := BreweryBook.resource(String(result["made"]))
 	var made_text := String(made["name"]) if not made.is_empty() else String(result["made"])
-	if bool(result["waiting"]):
-		_say("Into the cellar. %d %s in %d turn(s) — a turn is a fixture."
-			% [int(result["many"]), made_text, int(result["turns"])], true)
+	var who := String(result.get("brewer", ""))
+	var crew := ("%s (%d%%)" % [who, int(result["chance"])]) if who != "" \
+		else "Nobody free to brew it (%d%%)" % int(result.get("chance", 100))
+	var bed := ("  %s rests %d fixture(s) in the Dorms." % [who, int(result["rest"])]) \
+		if int(result.get("rest", 0)) > 0 else ""
+	if bool(result.get("spoiled", false)):
+		_say("SPOILED. %s - the batch went wrong and the ingredients are gone.%s" % [crew, bed], false)
+	elif bool(result["waiting"]):
+		_say("%s: into the cellar. %d %s in %d turn(s) — a turn is a fixture.%s"
+			% [crew, int(result["many"]), made_text, int(result["turns"]), bed], true)
 	else:
-		_say("%d %s." % [int(result["many"]), made_text], true)
+		_say("%s: %d %s.%s" % [crew, int(result["many"]), made_text, bed], true)
 
 	state.save_to_disk()
 	_rebuild()

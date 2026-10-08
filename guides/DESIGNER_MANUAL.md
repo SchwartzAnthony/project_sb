@@ -4433,7 +4433,8 @@ beds you can buy. `data/Resting.csv` says what sends a player there:
 | `match` | everybody who played a match | by power (`Recovery.csv`) |
 | `adventure` | everybody who set off on an Adventure, however it ended | by power |
 | `adventure_down` | **on top of** `adventure`, for a player knocked out on the run | +1 fixture |
-| `brew` | **on top of** `match`, for a player who played on a one-match brew from the Pub | +1 fixture |
+| `brewer` | a **brewer** after a shift at a Brewery machine (see below) | 1 fixture |
+| `brew` | **on top of** `match`, for a player who played on a one-match Pub brew. **Switched off** (`On` = false) since Anthony said Brew Players are the brewers | +1 fixture |
 
 | column | |
 |---|---|
@@ -4443,10 +4444,63 @@ beds you can buy. `data/Resting.csv` says what sends a player there:
 | `Wakes Others` | `true` = this counts as a fixture, so everybody already in bed is one fixture nearer fit. A match and an Adventure both do |
 
 `rest_less` in `Tuning.csv` takes fixtures off every rest (never below one);
-the **Feather Beds** upgrade raises it. **`recovery` in `Tuning.csv` is still
-the master switch** and it is still `false`, so out of the box nobody is ever
-in bed. `tools/dorms_shot.gd` takes a picture of both rooms with a few
-players in bed.
+the **Feather Beds** upgrade raises it. **`recovery` in `Tuning.csv` is the
+master switch, and it is ON** (Anthony, 8 Oct).
+
+**The rest day.** `tools/recovery_check.gd` still says the classes are too
+thin: with three players a tier, one match can put so many in bed that you
+can field neither a match nor an Adventure, and then nothing passes a
+fixture. So the Dorms have a **Rest day** button: everybody in bed is one
+fixture nearer fit. `rest_day_cost` in `Tuning.csv` is its price in coins
+(0 = free, below 0 hides it).
+
+**The Dev screen** (the Dev button, bottom left of the base) has a PLAYERS
+row: a **Wake** button for everybody in the Dorms, **Wake everybody**, and
+**Sign a new player** (pick a Tier and a power; free, random name and look).
+
+`tools/dorms_shot.gd` takes a picture of the Dorms, the Club House, the
+Training Ground, the Brewery and the Dev screen with a few players in bed.
+
+### The brewers (round AN)
+
+> *"Brew Players are trained at the training hall to be only brewers. They
+> have the same number given to them as a power but that is their efficiency
+> and % of success when they work the machines."*
+
+- **Training them.** `Training.csv` has a row with `Kind` = `brewer` (The
+  Brewer's Apprenticeship, 40 coins). The Training Ground lists your players
+  under BREWERS with a Train button. A brewer **never plays again**: no
+  match, no Adventure, no Pub.
+- **Efficiency.** His power is his efficiency. `data/Brewers.csv` turns it
+  into his % of success at a machine (0 = 55%, 5 = 100%). The `none` row is
+  the chance when nobody is free (40%).
+- **Working.** When you work a Brewery machine, the fittest brewer with the
+  highest efficiency does it. A batch that fails uses up what it took and
+  makes nothing. Then he rests in the Dorms (`Resting.csv` row `brewer`).
+- `brewery_brewers` in `Tuning.csv` = false turns all of it off: every batch
+  works, as before.
+
+### Keys (round AN)
+
+> *"For the machines and to get into the buildings, you need to buy the
+> keys."*
+
+Every building except the Club House, and every Brewery machine, needs its
+**key**. An achievement still unlocks the building, but that only puts its
+key on sale at the Club House:
+
+```
+Achievements.csv   first_win  ->  Unlocks: Dorms
+Upgrades.csv       dorms_key  ->  Kind key, Needs unlocked:Dorms, 30 coins, Effect count:dorms_key+1
+Buildings.csv      dorms      ->  Requires unlocked:Dorms;count:dorms_key>=1
+Items.csv          dorms_key  ->  Kind key, Tab keys (it shows in the bag)
+```
+
+The Club House lists KEYS first, then UPGRADES. A key you already carry
+(from an Adventure, a story, the test save) is never sold twice. A locked
+building or machine says "the dorms key (buy it at the Club House)" or
+"Needs its key". The **Keys tab is back in the bag** (`inventory_tabs`).
+The test environment hands you every key.
 
 ### The Club House sells upgrades (round AN)
 
@@ -4456,6 +4510,7 @@ one row per upgrade:
 
 | column | |
 |---|---|
+| `Kind` | `upgrade`, or `key` (see Keys below) |
 | `Achievement` | an ID from `Achievements.csv`. Blank = on sale from the start |
 | `Needs` | any extra condition, in the usual language |
 | `Cost` · `Currency` | from `Currencies.csv` |

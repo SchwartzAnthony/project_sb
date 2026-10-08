@@ -37,8 +37,9 @@ func test_each_length_is_the_right_match() -> void:
 		assert_eq(String(row["opponent"]), "scratch")
 
 
-func test_the_bag_has_no_keys_tab() -> void:
-	assert_eq(InventoryScreen.shown_tabs(), ["items", "resources"] as Array[String])
+func test_the_bag_has_its_keys_tab_back() -> void:
+	# Anthony, 8 Oct: the keys to the buildings are bought, so the tab is back.
+	assert_eq(InventoryScreen.shown_tabs(), ["items", "resources", "keys"] as Array[String])
 
 
 func test_team_build_has_no_talents_tab() -> void:

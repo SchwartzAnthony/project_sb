@@ -122,7 +122,8 @@ static func _load() -> void:
 			"currency": MenuSupport.field(row, "Currency").strip_edges(),
 			"effect": effect,
 		})
-		if effect == "":
+		# A BREWER training has no Effect: making the brewer IS the effect.
+		if effect == "" and _training[-1]["kind"] != "brewer":
 			_problems.append("Training '%s' has an empty Effect — it can be bought and then does nothing." % id_text)
 		for complaint in DialogueGrammar.complaints(effect, true):
 			_problems.append("Training '%s': %s" % [id_text, complaint])
@@ -140,6 +141,7 @@ static func _load() -> void:
 			"id": id_text,
 			"name": MenuSupport.field(row, "Name", id_text).strip_edges(),
 			"description": MenuSupport.field(row, "Description").strip_edges(),
+			"kind": MenuSupport.field(row, "Kind", "upgrade").strip_edges().to_lower(),
 			"achievement": earned_by,
 			"needs": MenuSupport.field(row, "Needs").strip_edges(),
 			"cost": maxi(0, MenuSupport.field_int(row, "Cost", 0)),
@@ -321,6 +323,10 @@ static func owns_upgrade(id_text: String, state: GameState) -> bool:
 static func upgrade_state(entry: Dictionary, state: GameState) -> String:
 	if owns_upgrade(String(entry["id"]), state):
 		return "bought"
+	# A KEY YOU ALREADY CARRY — from an Adventure, a story, the Dev screen —
+	# is not for sale twice.
+	if String(entry.get("kind", "")) == "key" and state != null and state.count(String(entry["id"])) > 0:
+		return "bought"
 	var by := String(entry["achievement"])
 	if by != "" and not AchievementBook.earned(by, state):
 		return "locked"
@@ -337,6 +343,19 @@ static func upgrade_lock_words(entry: Dictionary, state: GameState) -> String:
 			if String(one["id"]).to_lower() == by.to_lower():
 				return "Earn the achievement %s: %s" % [one["name"], one["description"]]
 		return "Earn the achievement '%s'." % by
+	# A KEY waits on an unlock name; say which ACHIEVEMENT hands it out,
+	# because "Needs Dorms" is not a thing you can go and do.
+	for part in String(entry["needs"]).split(";", false):
+		var clean := String(part).strip_edges()
+		if not clean.to_lower().begins_with("unlocked:"):
+			continue
+		var wanted := MenuSupport.normalise(clean.substr(clean.find(":") + 1))
+		if state != null and state.is_unlocked(clean.substr(clean.find(":") + 1).strip_edges()):
+			continue
+		for one in AchievementBook.rows():
+			for handed in one["unlocks"]:
+				if MenuSupport.normalise(String(handed)) == wanted:
+					return "Earn the achievement %s: %s" % [one["name"], one["description"]]
 	return DialogueGrammar.describe(String(entry["needs"]))
 
 
@@ -367,6 +386,40 @@ static func buy_upgrade(id_text: String, state: GameState) -> Dictionary:
 	state.set_flag(UPGRADE_PREFIX + String(entry["id"]).to_lower(), true)
 	Progression.run_actions(String(entry["effect"]), state)
 	return {"ok": true, "why": "%s. %s" % [entry["name"], entry["description"]]}
+
+
+# =============================================================
+#  THE BREWERS (round AN) — a Training.csv row with Kind = brewer
+# =============================================================
+
+## The brewer training row, or {} if Training.csv has none.
+static func brewer_training() -> Dictionary:
+	for one in training():
+		if String(one["kind"]) == "brewer":
+			return one
+	return {}
+
+
+## Train one of your recruits as a brewer. Returns {"ok", "why"}.
+static func train_brewer(name_text: String, state: GameState) -> Dictionary:
+	if state == null:
+		return {"ok": false, "why": "no save"}
+	var entry := brewer_training()
+	if entry.is_empty():
+		return {"ok": false, "why": "Training.csv has no row with Kind = brewer"}
+	if not RecruitBook.is_recruit(name_text, state):
+		return {"ok": false, "why": "%s is not one of your players" % name_text}
+	if BrewerBook.is_brewer(name_text, state):
+		return {"ok": false, "why": "%s is a brewer already" % name_text}
+	if not DialogueGrammar.test(String(entry["needs"]), state):
+		return {"ok": false, "why": DialogueGrammar.describe(String(entry["needs"]))}
+	var spent := _spend(int(entry["cost"]), String(entry["currency"]), state)
+	if spent != "":
+		return {"ok": false, "why": spent}
+	BrewerBook.make(name_text, state)
+	var eff := BrewerBook.efficiency(name_text, state)
+	return {"ok": true, "why": "%s is a brewer now: efficiency %d, %d%% at a machine. He will not play again." % [
+		name_text, eff, BrewerBook.success_for(eff)]}
 
 
 # =============================================================

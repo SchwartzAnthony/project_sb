@@ -55,6 +55,8 @@ var _wipe: Button
 
 var _note: String = ""
 var _wipe_armed: bool = false
+## ROUND AN: the PLAYERS row — wake somebody, sign somebody.
+var _players_list: HFlowContainer
 
 
 func _ready() -> void:
@@ -81,6 +83,7 @@ func _ready() -> void:
 
 	_build_add_row()
 	_build_test_row()
+	_build_players_row()
 
 	if _home != null:
 		_home.pressed.connect(func() -> void:
@@ -105,6 +108,7 @@ func _grab(node_name: String) -> Node:
 # =============================================================
 
 func _rebuild() -> void:
+	_fill_players()
 	_fill_jumps()
 	_fill_counters()
 	_fill_switches()
@@ -352,6 +356,88 @@ func _build_test_row() -> void:
 			(b as Button).size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	holder.add_child(row)
 	holder.move_child(row, anchor.get_index())
+
+
+## ROUND AN (Anthony, 8 Oct: "allow me as a dev to wake specific players or
+## to purchase new players directly"). Under the test row: a button per
+## player in the Dorms, Wake everybody, and Sign a new player for free.
+func _build_players_row() -> void:
+	var anchor := _jump_heading if _jump_heading != null else _title
+	if anchor == null or anchor.get_parent() == null:
+		return
+	var holder := anchor.get_parent()
+	var box := VBoxContainer.new()
+	box.name = "PlayersRow"
+	box.add_theme_constant_override("separation", 6)
+	box.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var heading := MenuSupport.heading("PLAYERS  ·  wake them, or sign one for nothing", 15,
+		MenuSupport.COLOUR_ACCENT)
+	box.add_child(heading)
+
+	var sign_row := HBoxContainer.new()
+	sign_row.add_theme_constant_override("separation", 8)
+	var tier_pick := OptionButton.new()
+	for tier in ["I", "II", "III", "IV"]:
+		tier_pick.add_item("Tier %s" % tier)
+	tier_pick.focus_mode = Control.FOCUS_NONE
+	sign_row.add_child(tier_pick)
+	var power_pick := SpinBox.new()
+	power_pick.min_value = 0
+	power_pick.max_value = 5
+	power_pick.prefix = "P:"
+	power_pick.custom_minimum_size = Vector2(90, 28)
+	sign_row.add_child(power_pick)
+	var sign_it := _small_button("Sign a new player", 150.0)
+	sign_it.tooltip_text = "A plain player joins your base with a random name. Free - no coins, no bed check."
+	sign_it.pressed.connect(func() -> void:
+		var tier := ["I", "II", "III", "IV"][tier_pick.selected] as String
+		_after(_dev_sign(tier, int(power_pick.value))))
+	sign_row.add_child(sign_it)
+	var wake_all := _small_button("Wake everybody", 130.0)
+	wake_all.pressed.connect(func() -> void:
+		RecoveryBook.rest_everybody(state, db)
+		_after("Everybody is out of the Dorms."))
+	sign_row.add_child(wake_all)
+	box.add_child(sign_row)
+
+	_players_list = HFlowContainer.new()
+	_players_list.add_theme_constant_override("h_separation", 6)
+	_players_list.add_theme_constant_override("v_separation", 6)
+	box.add_child(_players_list)
+
+	holder.add_child(box)
+	holder.move_child(box, anchor.get_index())
+
+
+func _fill_players() -> void:
+	if _players_list == null:
+		return
+	for child in _players_list.get_children():
+		child.queue_free()
+	var sleepers := RecoveryBook.in_the_dorms(db, state)
+	if sleepers.is_empty():
+		_players_list.add_child(_quiet("Nobody is in the Dorms." if db.tune_bool("recovery", false)
+			else "Nobody is in the Dorms (recovery is off in Tuning.csv)."))
+		return
+	for sleeper in sleepers:
+		var who := String(sleeper["name"])
+		var button := _small_button("Wake %s (%d)" % [who, int(sleeper["left"])])
+		button.tooltip_text = String(sleeper["why"])
+		button.pressed.connect(func() -> void:
+			RecoveryBook.wake(who, state)
+			_after("%s is awake." % who))
+		_players_list.add_child(button)
+
+
+## A free plain player at this tier and power, a random name and look.
+func _dev_sign(tier: String, power: int) -> String:
+	var gender := "f" if randf() < 0.5 else "m"
+	# A first name that fits, the same way the starting team is named.
+	var no_names: Array[String] = []
+	var name_text := SquadSheet._random_name(gender, no_names, db, state)
+	RecruitBook.enlist(name_text, tier, power, gender, state, SquadSheet.pick_look(gender, db))
+	TransformBook.apply_all(db, state)
+	return "%s signed: Tier %s, P:%d." % [name_text, tier, power]
 
 
 func _typed() -> String:
