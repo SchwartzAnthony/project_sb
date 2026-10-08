@@ -411,6 +411,10 @@ func _ready() -> void:
 
 	db = CardDatabase.get_db()
 	abilities = AbilityEngine.new(db)
+	# A static switch outlives the last match; every match starts in colour.
+	set_play_maker_live(false)
+	round_resolved.connect(func(_mine: int, _theirs: int) -> void:
+		set_play_maker_live(false))
 	state = GameState.fetch(get_tree())
 	stats = StatsRules.get_rules()
 	steps = Progression.get_rules()
@@ -1585,6 +1589,11 @@ func _apply_fixture() -> void:
 ## from MatchModes.csv overrides them for this match only. See match_mode.gd.
 func _apply_match_mode() -> void:
 	match_mode = MatchMode.current(get_tree())
+	# ROUND AN (Anthony, 8 Oct): the Match Maker's "No Extra Abilities" -
+	# base power only, for both sides, for this match.
+	abilities.abilities_off = MatchMode.no_abilities(get_tree())
+	if abilities.abilities_off:
+		print("[mode] No Extra Abilities: every player plays on base power.")
 
 	# ============ AND THE COMPETITION'S OWN RULES ============
 	#
@@ -3753,6 +3762,19 @@ func _everyone_ever() -> Array[PlayerUnit]:
 	return out
 
 
+## ROUND AN (Anthony, 8 Oct): "players are only greyed out during a Play
+## Maker and them not being a part of it. Once the Play Maker ends, everyone
+## regains their color." On at the PLAY MAKER! call, off when the round's
+## shot is over (round_resolved) and at every Star swap. Every figure on the
+## pitch repaints at once.
+func set_play_maker_live(on: bool) -> void:
+	PlayerUnit.play_maker_live = on
+	if units_container == null:
+		return
+	for unit in _all_units():
+		unit.set_highlight(false)   # a playmaker stays bright
+
+
 # =============================================================
 #  EVENT TRIGGERS
 # =============================================================
@@ -3788,6 +3810,13 @@ func trigger_playmaker_event() -> void:
 	# touches, mines - goes to the engine before anybody picks.
 	await _c6_at_play_maker()
 
+	# THE GREY GOES ON NOW (Anthony, 8 Oct): from here to the end of the
+	# round's shot, whoever is not in this Play Maker is greyed.
+	if db.tune_bool("star_holds_its_tier", false):
+		for unit in _all_units():
+			if unit.is_star_player:
+				unit.is_playmaker = true
+	set_play_maker_live(true)
 	print("PLAY MAKER!  Cycle %d, Round %d" % [current_cycle, rounds_this_cycle])
 	AudioDirector.fire(get_tree(), "play_maker",
 		{"cycle": str(current_cycle), "round": str(rounds_this_cycle)}, state)
@@ -3831,6 +3860,7 @@ func trigger_hold_up_event() -> void:
 	abilities.begin_cycle()
 	_absorb_ability_news()
 	_answer_ability_asks(false)
+	set_play_maker_live(false)
 	for unit in _all_units():
 		unit.reset_for_new_cycle()
 
@@ -4138,6 +4168,8 @@ func _kickoff_sequence() -> void:
 	# the teams were on the pitch, which meant the clock ran through the
 	# countdown — two minutes gone before anybody had touched the ball.
 	current_state = MatchState.PLAYING
+	if abilities.abilities_off:
+		announce(Loc.text("no_abilities_banner", "NO EXTRA ABILITIES"), 1.6)
 
 	# ============ AND THE WHISTLE GOES HERE ============
 	#
@@ -4422,6 +4454,10 @@ func _on_brew_wanted(card: PlayerData) -> void:
 	if card == null or state == null:
 		return
 	if _auto_is_on():
+		return
+	# No Extra Abilities: a brew would do nothing, so the bottle stays shut.
+	if abilities.abilities_off:
+		announce(Loc.text("no_abilities_no_brews", "NO EXTRA ABILITIES - NO BREWS THIS MATCH"), 1.4)
 		return
 
 	var bag := InventoryScreen.open(self, state, InventoryScreen.Use.ON_CARD,
@@ -5181,12 +5217,16 @@ func _resolve_tier_pick(tier_key: String, selected_data: PlayerData) -> void:
 	# who agreed to play out of position, not the card that was drawn for him.
 	var picked := unit_for_card(selected_data, false)
 	for unit in _all_units():
-		if unit.is_enemy or unit.is_star_player:
+		if unit.is_enemy:
 			continue
+		# A Star picked in its tier is in this Play Maker like anyone else,
+		# so it keeps its colour (8 Oct).
 		if unit == picked:
 			unit.is_exhausted = true
 			unit.is_playmaker = true
 			unit.set_highlight(true)
+		elif unit.is_star_player:
+			continue
 		elif unit.data != null and unit.data.get_tier_clean() == tier_key:
 			unit.set_highlight(false)
 	round_player_picks.append(selected_data)
@@ -7234,6 +7274,9 @@ func _dress_card(card: PlayerCardUI, data: PlayerData) -> void:
 ## The row the duel window shows: one that WENT OFF in this duel if any did,
 ## otherwise the first the cell names (and the window says it waited).
 func _shown_ability(cell: String, fired: Array) -> AbilityData:
+	# No Extra Abilities: the duel window says "no ability" for everyone.
+	if abilities.abilities_off:
+		return null
 	for id_text in fired:
 		var hit := db.get_ability(String(id_text))
 		if hit != null:

@@ -6854,6 +6854,14 @@ full colour; everyone else is drained of colour, and a spent player is also
 dark. `pitch_sprite_rest_saturation` (0 = fully grey, 1 = full colour) and
 `pitch_sprite_rest_brightness` set how strong it is.
 
+**Only during a Play Maker** (Anthony, 8 Oct). The grey goes on at the
+**PLAY MAKER!** call and comes off when that round's shot is over (and at
+every Star swap). The rest of the time **everyone is in full colour**, spent
+players too. A Star picked in its tier counts as in the Play Maker. To film
+it: `godot --rendering-driver opengl3 --resolution 1280x720 --path .
+--script res://tools/play_maker_film.gd`, then
+`~/.venvs/sturmball/bin/python tools/make_film_gif.py out.gif`.
+
 **More Tuning.csv dials:** `pitch_sheet_cell` (frame size, 72),
 `pitch_sprite_scale` (how big they are drawn), `pitch_sprite_lift` (moves
 the figure up so the feet sit on the spot), `pitch_ground_squash` (how flat
@@ -6954,6 +6962,16 @@ icon file in `assets/icons/`, and the characters shown until it exists),
 Star swaps and what it pays), **Under** (the line under the button),
 **Requires** (hides it until true). **A new length is two rows**: one in
 `MatchModes.csv`, one here.
+
+**No Extra Abilities** (Anthony, 8 Oct) is a switch at the top of the
+window, OFF unless you turn it on. ON, the match you pick plays on **base
+power only, for both sides**: no ability fires (attack, defend, Star,
+Emblem), no ability asks you anything, a brew already on a card does
+nothing and the bag will not pour one mid-match, and the season's
+difficulty bonus is not added. The duel window says "no ability" for every
+card and the kick-off says **NO EXTRA ABILITIES**. Every other way into a
+match (the season, Adventure, the Tutorial) leaves it off. Film one with
+`FILM_PLAIN=1` in front of the `play_maker_film.gd` line above.
 
 - A shorter clock squeezes the Play Makers in by itself: the last one comes
   as long before the final whistle as in a full match (8 minutes).

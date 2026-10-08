@@ -40,6 +40,8 @@ extends RefCounted
 
 const DATA_DIR := "res://data/"
 const META_KEY := "cw_match_mode"
+## ROUND AN (Anthony, 8 Oct): the Match Maker's "No Extra Abilities" switch.
+const PLAIN_KEY := "cw_match_no_abilities"
 
 ## The mode a match falls back to when nothing was chosen — running
 ## main_scene.tscn straight from the editor, for instance.
@@ -226,9 +228,19 @@ func available(state: GameState) -> Array[Dictionary]:
 # =============================================================
 
 ## Say which mode the next match is. Called by whatever button starts it.
-static func choose(tree: SceneTree, mode_id: String) -> void:
+##
+## `no_abilities` is the Match Maker's "No Extra Abilities" switch: every
+## player plays on base power, no abilities, no Emblems, no brews. Every
+## other way into a match leaves it off, so it never follows you anywhere.
+static func choose(tree: SceneTree, mode_id: String, no_abilities: bool = false) -> void:
 	if tree != null:
 		tree.set_meta(META_KEY, stand_in_for(mode_id, GameState.fetch(tree)))
+		tree.set_meta(PLAIN_KEY, no_abilities)
+
+
+## True when the next match plays with No Extra Abilities.
+static func no_abilities(tree: SceneTree) -> bool:
+	return tree != null and tree.has_meta(PLAIN_KEY) and bool(tree.get_meta(PLAIN_KEY))
 
 
 ## The mode that actually plays when `mode_id` is asked for: a row whose
@@ -280,6 +292,8 @@ static func current(tree: SceneTree) -> Dictionary:
 static func clear(tree: SceneTree) -> void:
 	if tree != null and tree.has_meta(META_KEY):
 		tree.remove_meta(META_KEY)
+	if tree != null and tree.has_meta(PLAIN_KEY):
+		tree.remove_meta(PLAIN_KEY)
 
 
 # =============================================================

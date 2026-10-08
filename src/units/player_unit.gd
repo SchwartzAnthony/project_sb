@@ -95,6 +95,11 @@ var is_star_player: bool = false:
 ## STAR PLAYER SWITCH swaps this unit.
 var stands_in_star_slot: bool = false
 var is_playmaker: bool = false     # picked during the current round
+## ROUND AN (Anthony, 8 Oct): true only while a PLAY MAKER is running, from
+## the "PLAY MAKER!" call until the round's shot is over. Only then is anyone
+## greyed - the ones not in it. Outside a Play Maker everybody is in colour.
+## One switch for the whole pitch, set by main_scene.set_play_maker_live().
+static var play_maker_live: bool = false
 var is_exhausted: bool = false     # already used this cycle
 
 # =============================================================
@@ -335,6 +340,8 @@ func set_highlight(is_highlighted: bool) -> void:
 	# Stay bright while locked in as this round's playmaker.
 	if is_highlighted or is_playmaker:
 		artwork.modulate = Color(1.2, 1.2, 1.2, 1.0)
+	elif not play_maker_live:
+		artwork.modulate = Color.WHITE   # no Play Maker on: everyone in colour
 	elif is_exhausted:
 		artwork.modulate = Color(0.25, 0.25, 0.3, 1.0)  # spent this cycle
 	else:
@@ -348,6 +355,8 @@ const PITCH_COLOUR_SHADER := preload("res://assets/shaders/pitch_colour.gdshader
 ## the player can follow the play). An isometric figure in the session is in
 ## full colour; everybody else is drained of colour, and a spent one is dark
 ## as well. All three from Tuning.csv.
+## 8 Oct: ONLY DURING A PLAY MAKER. When none is running (play_maker_live
+## false) every figure is in its own colour, spent or not.
 func _tint_pitch_figure(in_play: bool) -> void:
 	var mat := artwork.material as ShaderMaterial
 	if mat == null:
@@ -360,6 +369,9 @@ func _tint_pitch_figure(in_play: bool) -> void:
 	if in_play:
 		mat.set_shader_parameter("saturation", 1.0)
 		artwork.modulate = Color(1.15, 1.15, 1.15, 1.0)
+	elif not play_maker_live:
+		mat.set_shader_parameter("saturation", 1.0)
+		artwork.modulate = Color.WHITE
 	elif is_exhausted:
 		mat.set_shader_parameter("saturation", grey)
 		artwork.modulate = Color(0.45, 0.45, 0.45, 1.0)

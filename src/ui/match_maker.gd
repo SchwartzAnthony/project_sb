@@ -25,6 +25,10 @@ extends RefCounted
 #
 #  Picking one hands the mode to `on_pick`; the base does the rest exactly as
 #  Play a match always did (Team Build gate, save, the team shelf).
+#
+#  NO EXTRA ABILITIES (Anthony, 8 Oct): a switch above the buttons. On, the
+#  match plays on base power only - no abilities, no Emblems, no brews, for
+#  both sides. `on_pick` is called with (mode, no_abilities).
 # =============================================================
 
 const DATA_PATH := "res://data/MatchMaker.csv"
@@ -61,7 +65,8 @@ static func options(state: GameState) -> Array[Dictionary]:
 
 
 ## Put the window up over `on`. `on_pick` is called with the chosen
-## MatchModes.csv ID after the window has closed itself.
+## MatchModes.csv ID and the No Extra Abilities switch after the window has
+## closed itself.
 static func open(on: Node, state: GameState, on_pick: Callable) -> CanvasLayer:
 	var window := MenuSupport.dialog(on,
 		Loc.text("match_maker", "Match Maker").to_upper(),
@@ -69,6 +74,24 @@ static func open(on: Node, state: GameState, on_pick: Callable) -> CanvasLayer:
 		480.0)
 	window.name = "MatchMaker"
 	var column: VBoxContainer = window.get_meta("column")
+
+	var plain_words := Loc.text("match_no_abilities", "No Extra Abilities")
+	var plain := MenuSupport.icon_button("plain|0", "%s: %s" % [plain_words,
+		Loc.text("off", "Off").to_upper()], Vector2(0, 46))
+	plain.name = "NoExtraAbilities"
+	plain.toggle_mode = true
+	plain.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	plain.tooltip_text = Loc.text("match_no_abilities_under",
+		"Every player plays on base power only: no abilities, no Emblems, no brews. Both sides.")
+	# The words live on a Label inside the button (icon_button), not on
+	# Button.text, so the switch rewrites that Label.
+	var labels := plain.find_children("*", "Label", true, false)
+	var words := labels[labels.size() - 1] as Label if not labels.is_empty() else null
+	plain.toggled.connect(func(on: bool) -> void:
+		if words != null:
+			words.text = "%s: %s" % [plain_words,
+				(Loc.text("on", "On") if on else Loc.text("off", "Off")).to_upper()])
+	column.add_child(plain)
 
 	for option in options(state):
 		var button := MenuSupport.icon_button(String(option["icon"]),
@@ -79,7 +102,7 @@ static func open(on: Node, state: GameState, on_pick: Callable) -> CanvasLayer:
 		button.pressed.connect(func() -> void:
 			if is_instance_valid(window):
 				window.queue_free()
-			on_pick.call(mode_id))
+			on_pick.call(mode_id, plain.button_pressed))
 		column.add_child(button)
 		if String(option["under"]) != "":
 			var under := Label.new()
@@ -100,7 +123,7 @@ static func open(on: Node, state: GameState, on_pick: Callable) -> CanvasLayer:
 
 	var first := column.get_child(column.get_child_count() - 1) as Control
 	for child in column.get_children():
-		if child is Button:
+		if child is Button and child != plain:
 			first = child
 			break
 	first.call_deferred("grab_focus")

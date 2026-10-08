@@ -811,11 +811,11 @@ func _play_building_sounds(entry: Dictionary) -> void:
 ## The tutorial walks its own path and is never turned away.
 ## Start a friendly of one MatchModes.csv mode - what the Match Maker's
 ## buttons (and, in the first match of a new game, the flag itself) do.
-func _play_match(mode_id: String) -> void:
+func _play_match(mode_id: String, no_abilities: bool = false) -> void:
 	# ROUND AN: choose first. The first match of a new game plays with a
 	# squad of its own (MatchModes.csv `intro`), so it needs no team of
 	# yours and Team Build must not turn you away from it.
-	MatchMode.choose(get_tree(), mode_id)
+	MatchMode.choose(get_tree(), mode_id, no_abilities)
 	if MatchMode.squad_file(get_tree()) == "" and _turned_away():
 		return
 	state.save_to_disk()
