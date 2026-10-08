@@ -641,6 +641,23 @@ func _work(section_id: String) -> void:
 	# Win it and the batch is made, lose it and it is spoiled. The brewer's
 	# % sizes the gold. In a Guide.csv Only step (the tutorial) the game
 	# cannot be lost and the Brewer's own hand is on it.
+	# ============ WHICH SIZE (round AN, BottleSizes.csv) ============
+	# Small bottles, large bottles or a keg. One size offered = no question.
+	var output := {}
+	var sizes := BreweryBook.sizes_for(section_id, state)
+	if sizes.size() == 1:
+		output = {"counter": sizes[0]["item"], "many": sizes[0]["many"]}
+	elif sizes.size() > 1:
+		var options: Array[String] = []
+		for size in sizes:
+			options.append("%d x %s" % [int(size["many"]), size["name"]])
+		_playing = true
+		var picked: int = await ChoiceWindow.ask(self, "FILL WHAT?",
+			"One barrel fills one of these.", options)
+		_playing = false
+		if picked < 0 or not is_inside_tree():
+			return
+		output = {"counter": sizes[picked]["item"], "many": sizes[picked]["many"]}
 	var roll := -1
 	var game := BreweryMinigame.game_for(section_id)
 	var guided := has_meta(Guide.ONLY_META)
@@ -668,7 +685,7 @@ func _work(section_id: String) -> void:
 	if guided:
 		remove_meta(Guide.ONLY_META)
 	# ROUND AN: a BREWER works it — see brewer_book.gd and data/Brewers.csv.
-	var result := BrewerBook.work(section_id, state, cards, roll)
+	var result := BrewerBook.work(section_id, state, cards, roll, output)
 	if not bool(result["ok"]):
 		_say(String(result["why"]), false)
 		_rebuild()
@@ -676,6 +693,9 @@ func _work(section_id: String) -> void:
 
 	var made := BreweryBook.resource(String(result["made"]))
 	var made_text := String(made["name"]) if not made.is_empty() else String(result["made"])
+	if bool(result.get("item", false)):
+		# A bottle size: an Items.csv item, straight into the bag.
+		made_text = String(AdventureDB.get_db().item(String(result["made"])).get("name", made_text))
 	var who := String(result.get("brewer", ""))
 	var crew := ("%s (%d%%)" % [who, int(result["chance"])]) if who != "" \
 		else "Nobody free to brew it (%d%%)" % int(result.get("chance", 100))

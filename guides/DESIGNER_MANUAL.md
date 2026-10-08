@@ -4807,10 +4807,25 @@ sound events `brew_game_hit`, `brew_game_won` and `brew_game_lost` for
 > *"Plain beer gives random abilities that have one positive and then the
 > opposite being negative."*
 
-- **The Bottling Machine fills Plain Beer.** `BreweryResources.csv` has a new
-  `Counter` column: the bottle's is `plain_beer`, so the number in the
-  Brewery's window and the bag are the same thing (`Items.csv plain_beer`).
-- **It's a lucky dip.** Its Use is `brew:pool:plain`: every bottle picks one
+- **The basic three beers** (Anthony, 8 Oct: "small bottle, large bottle and
+  a keg"). Before its game the Bottling Machine asks which size to fill, from
+  `data/BottleSizes.csv`: one barrel is **6 Small Bottles, 3 Large Bottles or
+  1 Kleiner Faß**, straight into the bag (`Items.csv small_bottle`,
+  `large_bottle`, `keg`). Bigger fills more of the drunk meter: 10%, 20%, 35%.
+
+| BottleSizes.csv column | |
+|---|---|
+| `Section` | the machine (`bottling`) |
+| `Item` | the Items.csv ID that goes in the bag |
+| `Many` | how many one batch fills |
+| `Requires` | the condition language. Blank = always offered |
+
+  One size offered = no question. In the tutorial Brewery only the Small
+  Bottle is offered (the others need `!flag:tut_brewery`). A machine with
+  sizes must have no lagering wait.
+- `BreweryResources.csv` has a new `Counter` column (blank = `res_<ID>`).
+  The bottle's is `small_bottle`, used only if BottleSizes.csv has no rows.
+- **It's a lucky dip.** All three are plain beer, Use `brew:pool:plain`: every bottle picks one
   `Brews.csv` row whose new **Pool** column is `plain` (and whose Requires
   passes). Each row is a good **attack** side and its bad opposite on the
   **defend** side:
@@ -4841,7 +4856,7 @@ Three `Guide.csv` rows lead the way, all `Only`:
    Bottling Machine with their keys, and the Steeping Tank lights up.
 2. `tut_brewery_2`: after the malt, Hanna skips the middle four machines and
    hands over a barrel. The Bottling Machine lights up.
-3. `tut_brewery_3`: six plain beers in the bag. `goto:back` closes the
+3. `tut_brewery_3`: six Small Bottles in the bag. `goto:back` closes the
    Brewery and the match carries on.
 
 In those steps the game is played with Hanna's hand on it
@@ -4851,6 +4866,27 @@ is in the tutorial's own save, so nothing is kept.
 
 **Checked by:** `tests/unit/test_brewery_games.gd`, and
 `tools/brewery_tour_shot.gd` presses the real buttons and plays both games.
+`tools/minigames_shot.gd` plays all six games and takes the pictures.
+
+### Tutorial jumps: the Dev screen goes straight to one part (round AN)
+
+> *"Are you able to create a dev menu for me to jump between the different
+> important aspects of the tutorial?"*
+
+The Dev screen (the Dev button on the base) has a **TUTORIAL JUMPS** row, one
+button per row of `data/TutorialJumps.csv`:
+
+| column | |
+|---|---|
+| `ID` · `Label` | a name, and the words on the button |
+| `Kind` | `brewery`: the tutorial Brewery TIME OUT on its own, Hanna and all (Value = its flag, `tut_brewery`). `minigame`: one machine's game on its own (Value = the BrewerySections.csv ID), played at `brewery_tour_chance` % and losable |
+| `Value` | see Kind |
+
+**Your save is never touched.** The Brewery jump plays in a throwaway save
+(`user://tutorial_jump.json`) with `flag:in_tutorial`, and when Hanna is done
+you are back on the Dev screen with your own save. Jumps into the match
+itself (a cycle and a round) are with the Tutorial thread.
+`tools/tutorial_jumps_shot.gd` presses the buttons and checks the save.
 
 ### `data/BrewerySections.csv`
 

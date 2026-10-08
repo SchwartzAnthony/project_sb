@@ -1,65 +1,60 @@
 extends SceneTree
 
 # =============================================================
-#  THE TUTORIAL BREWERY, PRESSED FOR REAL (round AN)
+#  TUTORIAL JUMPS, PRESSED FOR REAL (round AN)
 #
-#  Opens the Brewery the way the tutorial's TIME OUT does (the tree paused,
-#  flag:tut_brewery set, in_match), clicks through Hanna's lines, tries a
-#  machine that is not lit (refused), plays the Steeping Tank and Bottling
-#  mini-games through their real input (missing once on purpose), and checks
-#  the bag holds plain beer and the screen leaves on its own.
+#  Opens the Dev screen, presses "Mini-game: Brew Kettle" (plays it) and
+#  "The Brewery TIME OUT" (plays Hanna's whole tour), and checks the real
+#  save is the one in use afterwards and was never touched.
 #
-#      godot --path . --resolution 1600x900 --script res://tools/brewery_tour_shot.gd
-#
-#  Pictures: user://brewery_tour/frame_NNN.png
+#      godot --path . --resolution 1600x900 --script res://tools/tutorial_jumps_shot.gd
 # =============================================================
 
 var _frame := 0
 var _trouble := 0
-var _left := false
+var _done_line := ""
 
 
 func _initialize() -> void:
 	await process_frame
-	GameState.SAVE_PATH = "user://brewery_tour_throwaway.json"
-	var state := GameState.fetch(self)
-	state.reset()
-	state.set_flag("in_tutorial", true)
-	state.set_flag("tut_brewery", true)
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://brewery_tour"))
+	GameState.SAVE_PATH = "user://tutorial_jumps_real.json"
+	var real := GameState.fetch(self)
+	real.reset()
+	real.set_count("coins", 123)
+	real.save_to_disk()
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://tutorial_jumps"))
+	change_scene_to_file("res://src/ui/save_inspector.tscn")
+	for i in 20:
+		await process_frame
+	var screen := current_scene
 
-	var layer := CanvasLayer.new()
-	layer.layer = 140
-	layer.process_mode = Node.PROCESS_MODE_ALWAYS
-	root.add_child(layer)
-	paused = true
-	var screen := (load("res://src/ui/brewery_screen.tscn") as PackedScene).instantiate() as BreweryScreen
-	screen.in_match = true
-	screen.left.connect(func() -> void: _left = true)
-	layer.add_child(screen)
-	await _hold(0.3, 3)
-
-	await _talk()                                   # Hanna, step 1
-	_check(state.count("malthouse_key") == 1, "step 1 hands over the Steeping Tank key")
-	_press(_machine(screen, "Grain Mill"))          # not lit: refused
+	_press(_button(screen, "Mini-game: Brew Kettle"))
+	await _play_game(false)
 	await _hold(0.3, 2)
-	_check(screen._status.text.begins_with("Not yet"), "an unlit machine is refused: " + screen._status.text)
+	_check(screen._summary.text.contains("Brew Kettle"), "the Dev screen says how the game went: " + screen._summary.text.get_slice("\n", 0))
 
+	_press(_button(screen, "The Brewery TIME OUT"))
+	await _talk()
 	_press(_machine(screen, "Steeping Tank"))
 	await _play_game(true)
-	_check(BreweryBook.stock("malt", state) == 1, "one malt")
-
-	await _talk()                                   # Hanna skips the middle
-	_check(BreweryBook.stock("barrel", state) == 1, "Hanna's barrel")
+	await _talk()
 	_press(_machine(screen, "Bottling Machine"))
 	await _play_game(false)
-	_check(state.count("small_bottle") == 6, "six small bottles in the bag (%d)" % state.count("small_bottle"))
-
-	await _talk()                                   # back to the pitch
-	await _hold(0.2, 2)
-	_check(_left, "the Brewery left on its own (goto:back)")
-	print("[tour] %s" % ("THE TUTORIAL BREWERY WORKS WHEN PRESSED." if _trouble == 0 else "%d PROBLEM(S)." % _trouble))
+	await _talk()
+	await _hold(0.3, 3)
+	_check(GameState.SAVE_PATH == "user://tutorial_jumps_real.json", "back on the real save")
+	var after := GameState.fetch(self)
+	_check(after.count("coins") == 123 and not after.has_flag("in_tutorial") and after.count("small_bottle") == 0,
+		"the real save was not touched")
+	print("[jumps] %s" % ("TUTORIAL JUMPS WORK WHEN PRESSED." if _trouble == 0 else "%d PROBLEM(S)." % _trouble))
 	quit(0 if _trouble == 0 else 1)
+
+
+func _button(screen: Node, words: String) -> Button:
+	for node in screen.find_children("*", "Button", true, false):
+		if (node as Button).text == words:
+			return node as Button
+	return null
 
 
 ## Click through the box on screen until it is gone.
@@ -78,7 +73,7 @@ func _talk() -> void:
 			box._next()
 		guard += 1
 		shots += 1
-	print("[tour] %d line(s) clicked through." % shots)
+	print("[jumps] %d line(s) clicked through." % shots)
 	await _hold(0.3, 2)
 
 
@@ -98,7 +93,7 @@ func _play_game(miss_first: bool) -> void:
 		_check(false, "a mini-game opened")
 		return
 	var game := games[0] as BreweryMinigame
-	print("[tour] %s: %s, gold %.0f%%." % [game.title, game.kind(), game._zone_size * 100.0])
+	print("[jumps] %s: %s, gold %.0f%%." % [game.title, game.kind(), game._zone_size * 100.0])
 	await _hold(0.4, 2)
 	if miss_first and game.kind() == "hold":
 		game.press()
@@ -145,7 +140,7 @@ func _press(button: Button) -> void:
 
 
 func _check(ok: bool, what: String) -> void:
-	print("[tour] %s %s" % ["ok " if ok else "! ", what])
+	print("[jumps] %s %s" % ["ok " if ok else "! ", what])
 	if not ok:
 		_trouble += 1
 
@@ -163,5 +158,5 @@ func _hold(gap: float, shots: int) -> void:
 func _shoot() -> void:
 	if DisplayServer.get_name() == "headless":
 		return
-	root.get_texture().get_image().save_png("user://brewery_tour/frame_%03d.png" % _frame)
+	root.get_texture().get_image().save_png("user://tutorial_jumps/frame_%03d.png" % _frame)
 	_frame += 1

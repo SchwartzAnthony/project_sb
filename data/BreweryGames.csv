@@ -4,4 +4,4 @@ mill,mash,6,,0.12,18,Crank the mill! Click as fast as you can.,"Mash: 18 clicks 
 lautering,bar,10,0.2,0.8,1,Open the tap when the wort runs clear - click in the gold.,
 boiling,bar,12,0.14,1.1,2,Hit the right temperature twice to bring it to the boil.,"Anthony's example: the bar that goes back and forth, hit the right spot to heat up."
 cooling,hold,10,0.14,0.5,1,Hold to cool the vat. Let go in the cold gold.,
-bottling,bar,12,0.18,1.0,3,Stop three bottles under the tap - click in the gold.,"Every Bottling batch is plain beer (BreweryResources.csv bottle Counter = plain_beer)."
+bottling,bar,12,0.18,1.0,3,Stop three bottles under the tap - click in the gold.,"Before the game the Bottling Machine asks which size to fill: BottleSizes.csv."
