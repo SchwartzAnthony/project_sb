@@ -1,0 +1,810 @@
+<title>Sturmball Lab</title>
+<!-- Files next to this page: lab.js (Godot's loader), lab.engine.wasm (the engine, gzipped), lab.rules.wasm (the .pck: rules code + CSVs). -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a workbench sheet. One bar on top, tabs, then each bench works top to bottom:
+   set-up strip, then the record of what the rules did. Same tokens as sturmball_workbench.html. */
+:root{
+  --paper:#f4f1e8; --card:#fffdf7; --raise:#faf7ee;
+  --ink:#1b2027; --dim:#6d7684; --faint:#9aa2ae;
+  --line:#ddd5c4; --hair:#e8e2d5;
+  --accent:#a95c14; --accent-soft:#f0e2cf;
+  --home:#2f5f9e; --home-soft:#dfe8f4; --away:#a33a23; --away-soft:#f4ddd6;
+  --pitch:#3d6a45; --pitch-soft:#e0eade;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --disp:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#12151a; --card:#191d24; --raise:#1f242d;
+  --ink:#e4e8ef; --dim:#8a93a2; --faint:#646d7b;
+  --line:#2b323d; --hair:#232932;
+  --accent:#e0a04a; --accent-soft:#3a2d18;
+  --home:#7fa8e0; --home-soft:#1b2636; --away:#e0765c; --away-soft:#331d17;
+  --pitch:#6aa374; --pitch-soft:#1d2c21; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#12151a; --card:#191d24; --raise:#1f242d;
+  --ink:#e4e8ef; --dim:#8a93a2; --faint:#646d7b;
+  --line:#2b323d; --hair:#232932;
+  --accent:#e0a04a; --accent-soft:#3a2d18;
+  --home:#7fa8e0; --home-soft:#1b2636; --away:#e0765c; --away-soft:#331d17;
+  --pitch:#6aa374; --pitch-soft:#1d2c21; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45}
+button,input,select{font:inherit;color:inherit}
+.lbl{font-family:var(--disp);text-transform:uppercase;letter-spacing:.09em;font-weight:600;font-size:12px;color:var(--dim)}
+.num{font-variant-numeric:tabular-nums;font-family:var(--mono)}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px}
+
+#bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--card);border-bottom:1px solid var(--line)}
+#bar .wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-block:10px}
+#bar h1{font-family:var(--disp);font-size:24px;font-weight:700;letter-spacing:.03em;margin:0;text-transform:uppercase}
+#bar h1 span{color:var(--accent)}
+#stamp{font-family:var(--mono);font-size:11px;color:var(--dim)}
+.grow{flex:1 1 auto}
+#status{font-size:12px;color:var(--dim)}
+#status.ok{color:var(--pitch)} #status.bad{color:var(--away)}
+nav{display:flex;gap:2px;flex-wrap:wrap}
+nav button{font-family:var(--disp);text-transform:uppercase;letter-spacing:.08em;font-weight:600;font-size:14px;
+  background:none;border:none;border-bottom:3px solid transparent;padding:6px 10px;cursor:pointer;color:var(--dim)}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav button:focus-visible,.btn:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+main{padding-block:18px 60px}
+section.tab{display:grid;gap:16px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:14px 16px;min-width:0}
+.panel h2{font-family:var(--disp);font-size:18px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 10px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.field{display:grid;gap:3px}
+select,input[type=number],input[type=text]{background:var(--raise);border:1px solid var(--line);border-radius:3px;padding:5px 7px;min-width:0}
+label.chk{display:flex;gap:6px;align-items:center;font-size:13px}
+.btn{font-family:var(--disp);text-transform:uppercase;letter-spacing:.07em;font-weight:600;font-size:14px;
+  background:var(--raise);border:1px solid var(--line);border-radius:3px;padding:7px 14px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.key{background:var(--accent);border-color:var(--accent);color:var(--card)}
+.btn.key:hover{filter:brightness(1.08);color:var(--card)}
+.btn.sm{padding:4px 9px;font-size:12px}
+.btn[disabled]{opacity:.4;cursor:default}
+.hint{font-size:12.5px;color:var(--dim);max-width:75ch}
+.home{color:var(--home)} .away{color:var(--away)}
+.chip{display:inline-block;font-family:var(--mono);font-size:11px;padding:1px 6px;border-radius:9px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.chip.fire{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.chip.ex{opacity:.6}
+.chip.tok{border-style:dashed}
+
+/* scoreboard */
+#board{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}
+#board .side{display:grid;gap:2px;min-width:0}
+#board .side.r{text-align:right}
+#board .cls{font-family:var(--disp);font-size:22px;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+#board .score{font-family:var(--disp);font-size:44px;font-weight:700;line-height:1}
+.bar{height:6px;background:var(--hair);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--pitch)}
+
+/* line-up picker */
+.lineup{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.tierbox{border:1px solid var(--hair);border-radius:3px;padding:8px;display:grid;gap:5px;min-width:0}
+.tierbox .t{font-family:var(--disp);font-weight:700;font-size:16px}
+.tierbox select{width:100%}
+@media (max-width:720px){.lineup{grid-template-columns:repeat(2,minmax(0,1fr))}#board .cls{font-size:17px}#board .score{font-size:34px}}
+
+/* duel record */
+.duel{display:grid;grid-template-columns:56px minmax(0,1fr) 70px minmax(0,1fr);gap:10px;align-items:start;
+  border-top:1px solid var(--hair);padding:10px 0}
+.duel .tier{font-family:var(--disp);font-size:24px;font-weight:700;color:var(--faint)}
+.duel .who{min-width:0}
+.duel .nm{font-weight:600}
+.duel .pw{font-family:var(--disp);font-size:28px;font-weight:700;line-height:1}
+.duel .pw small{font-size:14px;color:var(--dim);font-weight:500}
+.duel .vs{text-align:center;font-family:var(--disp);font-size:13px;text-transform:uppercase;letter-spacing:.06em;padding-top:6px}
+.duel .won .pw{color:var(--pitch)}
+.duel .lines{grid-column:2 / -1;font-family:var(--mono);font-size:12px;color:var(--dim);white-space:pre-wrap;overflow-wrap:anywhere}
+.duel .lines b{color:var(--ink);font-weight:500}
+@media (max-width:560px){.duel{grid-template-columns:40px minmax(0,1fr) 44px minmax(0,1fr)}.duel .pw{font-size:22px}}
+.shot{border-top:2px solid var(--line);padding-top:10px;display:grid;gap:6px}
+.shot .verdict{font-family:var(--disp);font-size:30px;font-weight:700;text-transform:uppercase}
+.sum{font-family:var(--mono);font-size:12.5px;overflow-wrap:anywhere}
+.extra{font-family:var(--mono);font-size:12px;color:var(--dim);white-space:pre-wrap;overflow-wrap:anywhere}
+details>summary{cursor:pointer;font-family:var(--disp);text-transform:uppercase;letter-spacing:.06em;font-weight:600;font-size:13px;color:var(--dim)}
+.roundhead{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.roundhead h3{font-family:var(--disp);font-size:20px;margin:0;text-transform:uppercase}
+
+/* tables */
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font-family:var(--disp);text-transform:uppercase;letter-spacing:.06em;font-weight:600;font-size:12px;color:var(--dim);text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:5px 8px;border-bottom:1px solid var(--hair);vertical-align:top}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono)}
+.meter{display:inline-block;width:70px;height:6px;background:var(--hair);border-radius:3px;vertical-align:middle;margin-left:6px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent)}
+.wdl{display:flex;height:22px;border-radius:3px;overflow:hidden;font-family:var(--mono);font-size:11px}
+.wdl div{display:flex;align-items:center;justify-content:center;color:var(--card);min-width:0;overflow:hidden}
+.wdl .h{background:var(--home)} .wdl .d{background:var(--faint)} .wdl .a{background:var(--away)}
+.kpis{display:flex;gap:28px;flex-wrap:wrap}
+.kpi .v{font-family:var(--disp);font-size:30px;font-weight:700;line-height:1.1}
+
+/* cards */
+.ladder{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.ladder{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.ladder{grid-template-columns:minmax(0,1fr)}}
+.col{display:grid;gap:8px;align-content:start;min-width:0}
+.col h3{font-family:var(--disp);font-size:20px;margin:0;display:flex;justify-content:space-between;align-items:baseline}
+.cardx{border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:var(--raise);display:grid;gap:4px;min-width:0}
+.cardx.star{border-color:var(--accent)}
+.cardx .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.cardx .pw{font-family:var(--disp);font-size:26px;font-weight:700;line-height:1}
+.cardx p{margin:0;font-size:12.5px}
+.cardx .ab{font-family:var(--mono);font-size:11px;color:var(--dim);overflow-wrap:anywhere}
+#boot{display:grid;gap:8px;max-width:520px}
+#gdbox{position:fixed;width:1px;height:1px;left:0;top:0;overflow:hidden;opacity:0;pointer-events:none}
+#gd{width:1px!important;height:1px!important;pointer-events:none!important}
+.notice{border-left:3px solid var(--accent);padding:6px 10px;background:var(--accent-soft);font-size:13px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<header id="bar">
+  <div class="wrap">
+    <h1>Sturmball <span>Lab</span></h1>
+    <div id="stamp">rules from __BUILD__ · __STAMP__ · built __DATE__</div>
+    <div class="grow"></div>
+    <div id="status">Loading the rules engine…</div>
+  </div>
+  <div class="wrap"><nav role="tablist" id="tabs">
+    <button role="tab" data-tab="match" aria-selected="true">Match</button>
+    <button role="tab" data-tab="sim" aria-selected="false">1,000 matches</button>
+    <button role="tab" data-tab="cards" aria-selected="false">Cards &amp; tiers</button>
+    <button role="tab" data-tab="adventure" aria-selected="false">Adventure</button>
+    <button role="tab" data-tab="tuning" aria-selected="false">Tuning</button>
+    <button role="tab" data-tab="about" aria-selected="false">What it runs</button>
+  </nav></div>
+</header>
+<div id="gdbox" aria-hidden="true"><canvas id="gd" width="1" height="1"></canvas></div>
+
+<main class="wrap">
+  <div id="boot" class="panel">
+    <h2>Starting the game's rules</h2>
+    <div class="hint" id="bootmsg">Downloading the engine (about 13 MB, once).</div>
+    <div class="bar"><i id="bootbar" style="width:3%"></i></div>
+  </div>
+
+  <!-- ================= MATCH ================= -->
+  <section class="tab" id="tab-match" hidden>
+    <div class="panel">
+      <h2>Set up a match</h2>
+      <div class="row">
+        <div class="field"><span class="lbl home">Home (you)</span><select id="m-home"></select></div>
+        <div class="field"><span class="lbl away">Away</span><select id="m-away"></select></div>
+        <div class="field"><span class="lbl">First ball</span><select id="m-kick"><option value="random">coin toss</option><option value="home">home</option><option value="away">away</option></select></div>
+        <div class="field"><span class="lbl">Seed (0 = new)</span><input id="m-seed" type="number" value="0" style="width:110px"></div>
+        <label class="chk"><input type="checkbox" id="m-noab"> No Extra Abilities</label>
+        <label class="chk"><input type="checkbox" id="m-combos"> Add Combos.csv to the shot</label>
+        <button class="btn key" id="m-start">Kick off</button>
+      </div>
+      <details style="margin-top:10px"><summary>Choose the squads (which card stands on each rung)</summary>
+        <div class="hint" style="margin:6px 0">A tier holds one card per power. Pick who stands on each rung; anything left on "any" is filled by the tier ladder exactly as the game fills it.</div>
+        <div id="m-squads" style="display:grid;gap:12px"></div>
+      </details>
+    </div>
+
+    <div class="panel" id="m-live" hidden>
+      <div id="board"></div>
+      <div id="m-plan" style="margin-top:14px"></div>
+    </div>
+
+    <div id="m-log" style="display:grid;gap:16px"></div>
+  </section>
+
+  <!-- ================= SIM ================= -->
+  <section class="tab" id="tab-sim" hidden>
+    <div class="panel">
+      <h2>Play many matches</h2>
+      <div class="row">
+        <div class="field"><span class="lbl home">Home</span><select id="s-home"></select></div>
+        <div class="field"><span class="lbl">Home picks</span><select id="s-hp"><option>random</option><option>strongest</option><option>weakest</option></select></div>
+        <div class="field"><span class="lbl away">Away</span><select id="s-away"></select></div>
+        <div class="field"><span class="lbl">Away picks</span><select id="s-ap"><option>random</option><option>strongest</option><option>weakest</option></select></div>
+        <div class="field"><span class="lbl">Matches</span><select id="s-n"><option>100</option><option>500</option><option selected>1000</option><option>3000</option></select></div>
+        <div class="field"><span class="lbl">Seed (0 = new)</span><input id="s-seed" type="number" value="0" style="width:110px"></div>
+        <label class="chk"><input type="checkbox" id="s-noab"> No Extra Abilities</label>
+        <label class="chk"><input type="checkbox" id="s-combos"> Add Combos.csv</label>
+        <button class="btn key" id="s-run">Run</button>
+      </div>
+      <div class="hint" style="margin-top:8px">Stars rotate one per cycle in ladder order, like tests/sim_runner.gd. "Strongest" fields the highest card still on the field in each tier.</div>
+      <div class="bar" style="margin-top:10px" hidden id="s-prog"><i style="width:0"></i></div>
+    </div>
+    <div id="s-out" style="display:grid;gap:16px"></div>
+  </section>
+
+  <!-- ================= CARDS ================= -->
+  <section class="tab" id="tab-cards" hidden>
+    <div class="panel">
+      <div class="row"><div class="field"><span class="lbl">Class</span><select id="c-class"></select></div>
+        <div class="hint" id="c-keeper"></div></div>
+    </div>
+    <div id="c-out"></div>
+  </section>
+
+  <!-- ================= ADVENTURE ================= -->
+  <section class="tab" id="tab-adventure" hidden>
+    <div class="panel">
+      <h2>Set up a run</h2>
+      <div class="row">
+        <div class="field"><span class="lbl">Biome</span><select id="a-biome"></select></div>
+        <div class="field"><span class="lbl">Bounty (sets the boss)</span><select id="a-bounty"></select></div>
+        <div class="field"><span class="lbl">Party from class</span><select id="a-class"></select></div>
+        <div class="field"><span class="lbl">Seed (0 = new)</span><input id="a-seed" type="number" value="0" style="width:110px"></div>
+        <button class="btn key" id="a-start">Start the run</button>
+      </div>
+      <details style="margin-top:10px"><summary>Party: one card per rung, any class</summary>
+        <div class="hint" style="margin:6px 0">The class fills these in (one Star in the Star tier, as in the game). Change any rung to any card of that tier and power to test mixed parties.</div>
+        <div class="lineup" id="a-party"></div>
+      </details>
+      <details style="margin-top:8px"><summary>Icons in play (the loadout)</summary>
+        <div class="hint" style="margin:6px 0" id="a-slots"></div>
+        <div id="a-loadout" style="display:flex;gap:6px 14px;flex-wrap:wrap"></div>
+      </details>
+      <details style="margin-top:8px"><summary>Fixed wave (optional)</summary>
+        <div class="hint" style="margin:6px 0">Tick enemies to fight exactly these in every wave, instead of drawing from the biome's pool.</div>
+        <div id="a-wave" style="display:flex;gap:6px 14px;flex-wrap:wrap"></div>
+      </details>
+    </div>
+
+    <div class="panel" id="a-live" hidden>
+      <div class="roundhead"><h3 id="a-title"></h3><span class="lbl" id="a-step"></span></div>
+      <div class="row" style="margin-top:8px">
+        <div class="field"><span class="lbl">Auto: target</span><select id="a-af"><option>first</option><option>weakest</option><option>strongest</option></select></div>
+        <div class="field"><span class="lbl">Auto: pick</span><select id="a-ap"><option>random</option><option>strongest</option><option>weakest</option><option>healthiest</option></select></div>
+        <button class="btn" id="a-auto">Play on automatically</button>
+      </div>
+      <div id="a-foes" class="ladder" style="margin-top:12px"></div>
+      <div id="a-draft" style="margin-top:12px"></div>
+      <div id="a-pile" style="margin-top:12px"></div>
+      <div class="lbl" style="margin-top:12px">Party</div>
+      <div id="a-partylive" class="lineup" style="margin-top:4px"></div>
+    </div>
+    <div class="panel" id="a-logp" hidden><h2>What happened</h2><div class="extra" id="a-log" style="max-height:420px;overflow:auto"></div></div>
+
+    <div class="panel">
+      <h2>Many runs with this set-up</h2>
+      <div class="row">
+        <div class="field"><span class="lbl">Runs</span><select id="as-n"><option>20</option><option selected>50</option><option>200</option></select></div>
+        <div class="field"><span class="lbl">Target</span><select id="as-f"><option>first</option><option selected>weakest</option><option>strongest</option></select></div>
+        <div class="field"><span class="lbl">Pick</span><select id="as-p"><option>random</option><option selected>strongest</option><option>weakest</option><option>healthiest</option></select></div>
+        <button class="btn key" id="as-run">Run</button>
+        <span class="hint" id="as-prog"></span>
+      </div>
+      <div id="as-out" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- ================= TUNING ================= -->
+  <section class="tab" id="tab-tuning" hidden>
+    <div class="panel">
+      <h2>Tuning.csv, for this tab only</h2>
+      <p class="hint">Change any value and the next match or run uses it. Nothing is saved: reloading the page, or Reset, puts the spreadsheet's values back. Changed rows are marked.</p>
+      <div class="row" style="margin-bottom:10px">
+        <div class="field"><span class="lbl">Filter</span><input id="t-filter" type="text" placeholder="shot, tie, emblem…" style="width:220px"></div>
+        <button class="btn" id="t-reset">Reset to the spreadsheet</button>
+      </div>
+      <div class="tbl"><table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody id="t-body"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ================= ABOUT ================= -->
+  <section class="tab" id="tab-about" hidden>
+    <div class="panel">
+      <h2>What this runs</h2>
+      <div class="hint" style="display:grid;gap:8px;max-width:75ch">
+        <p style="margin:0">This page runs the game's own rules code (AbilityEngine, the tier ladder, Emblems, ShotOdds) compiled for the browser, reading the same <code>data/*.csv</code> files. It is built by <code>tools/lab/build.sh</code> from the branch and commit shown at the top.</p>
+        <p style="margin:0">A round is played the way <code>tests/sim_runner.gd</code> plays it: passives, four duels with abilities resolved on the stack, the bank, then the shot against the keeper. Left out, because they only exist on the pitch: touches, mines being worked, gravestones, fouls and free kicks, and the Emblem race (so no Ultimates turn on). Questions a card would ask are answered with their default and listed in the log.</p>
+        <p style="margin:0"><b>Adventure</b> opens the real AdventureEncounter with no pitch, the way tools/adventure_soak.gd does, with the clock run fast. Stamina, knock-outs and the tier rotation carry from wave to wave, and stand-ins go home after each fight. Items and fleeing are left out. The one-off breakpoints in "Many runs" are counted from the fight log.</p>
+        <p style="margin:0">In the match, two things differ from the simulator, to match the real match: a token that takes a card's place is offered in the draft instead of the card, and the keeper's stamina is handed to the engine before each round.</p>
+      </div>
+      <div id="a-problems" style="margin-top:12px"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = t => String(t ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const TIERS = ["I","II","III","IV"];
+let META = null;
+
+function lab(cmd){
+  window.sbLabCall(JSON.stringify(cmd));
+  const out = JSON.parse(window.sbLabOut || "{}");
+  if (out && out.ok === false) throw new Error(out.error || "the engine said no");
+  return out;
+}
+
+/* ---------------- boot ---------------- */
+function setStatus(t, cls){ const s=$("#status"); s.textContent=t; s.className=cls||""; }
+function loadScript(src){ return new Promise((ok,bad)=>{ const s=document.createElement("script"); s.src=src; s.onload=ok; s.onerror=()=>bad(new Error("could not load "+src)); document.head.appendChild(s); }); }
+async function fetchWithProgress(url, onp){
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(url+" answered "+r.status);
+  const total = +r.headers.get("content-length") || 0;
+  const reader = r.body.getReader(); const parts=[]; let got=0;
+  for(;;){ const {done,value}=await reader.read(); if(done)break; parts.push(value); got+=value.length; if(total) onp(got/total); }
+  return new Blob(parts);
+}
+async function boot(){
+  try{
+    if (typeof WebAssembly !== "object") throw new Error("This browser has WebAssembly turned off, which the engine needs.");
+    if (typeof DecompressionStream !== "function") throw new Error("This browser is too old to unpack the engine (no DecompressionStream). Try a current Chrome, Edge or Firefox.");
+    await loadScript("lab.js");
+    const gz = await fetchWithProgress("lab.engine.wasm", p => { $("#bootbar").style.width = (5+p*80)+"%"; });
+    $("#bootmsg").textContent = "Unpacking…";
+    const head = new Uint8Array(await gz.slice(0,2).arrayBuffer());
+    const zipped = head[0]===0x1f && head[1]===0x8b;   // the host may already have unzipped it
+    const wasm = zipped ? await new Response(gz.stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer() : await gz.arrayBuffer();
+    const realFetch = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const u = typeof input === "string" ? input : (input && input.url) || "";
+      if (/lab\.wasm(\?|$)/.test(u)) return Promise.resolve(new Response(wasm.slice(0), {headers:{"Content-Type":"application/wasm"}}));
+      // The rules pack is published under a .wasm name, because the host only serves known file types.
+      if (/lab\.pck(\?|$)/.test(u)) return realFetch("lab.rules.wasm", init);
+      return realFetch(input, init);
+    };
+    $("#bootmsg").textContent = "Reading the spreadsheets…"; $("#bootbar").style.width="90%";
+    const engine = new Engine({executable:"lab", mainPack:"lab.pck", canvas:$("#gd"), args:["--headless"],
+      unloadAfterInit:false, onPrint:()=>{}, onPrintError:(...a)=>console.warn("[godot]", ...a)});
+    await engine.startGame();
+    const t0 = Date.now();
+    while (typeof window.sbLabCall !== "function"){
+      if (Date.now()-t0 > 20000) throw new Error("The engine started but the lab never answered.");
+      await new Promise(r=>setTimeout(r,50));
+    }
+    META = lab({cmd:"meta"});
+    $("#boot").hidden = true;
+    setStatus("Rules engine ready · "+Object.keys(META.classes).length+" classes", "ok");
+    initAll();
+  }catch(err){
+    console.error(err);
+    let msg = "The engine could not start: " + err.message;
+    if (/WebAssembly|wasm|Content Security/i.test(String(err.message))) msg += " This page needs WebAssembly, which this browser or its network policy blocked.";
+    $("#bootmsg").textContent = msg;
+    setStatus("Engine failed to start", "bad");
+  }
+}
+
+/* ---------------- tabs ---------------- */
+function showTab(name){
+  document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===name));
+  document.querySelectorAll("section.tab").forEach(s=>s.hidden = !META || s.id!=="tab-"+name);
+  try{ localStorage.setItem("sblab-tab", name); }catch(e){}
+}
+document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+
+function classOptions(sel, pick){
+  sel.innerHTML = Object.keys(META.classes).map(c=>`<option ${c===pick?"selected":""}>${esc(c)}</option>`).join("");
+}
+function initAll(){
+  const names = Object.keys(META.classes);
+  const a = names[0], b = names.find(n=>n!==a) || a;
+  classOptions($("#m-home"), a); classOptions($("#m-away"), b);
+  classOptions($("#s-home"), a); classOptions($("#s-away"), b);
+  classOptions($("#c-class"), a);
+  ["#m-home","#m-away"].forEach(s=>$(s).addEventListener("change", drawSquadPickers));
+  drawSquadPickers();
+  $("#c-class").addEventListener("change", drawCards); drawCards();
+  drawTuning(); drawProblems();
+  try{ initAdventure(); }catch(e){ console.error(e); setStatus("Adventure failed to load: "+e.message,"bad"); }
+  let t="match"; try{ t = localStorage.getItem("sblab-tab") || "match"; }catch(e){}
+  showTab(t);
+  startMatch();
+}
+
+/* ---------------- squads ---------------- */
+function drawSquadPickers(){
+  const box = $("#m-squads"); box.innerHTML = "";
+  for (const side of ["home","away"]){
+    const cls = META.classes[$("#m-"+side).value];
+    const div = document.createElement("div");
+    let h = `<div class="lbl ${side}">${side} · ${esc($("#m-"+side).value)}</div><div class="lineup">`;
+    for (const t of TIERS){
+      h += `<div class="tierbox"><div class="t">Tier ${t}</div>`;
+      if (t === cls.star_tier){ h += `<div class="hint">Stars: ${cls.stars.map(s=>esc(s.name)+" "+s.atk).join(", ")}</div>`; }
+      else {
+        for (const r of META.rungs[t]){
+          const opts = cls.tiers[t].filter(c=>c.atk===r);
+          h += `<select data-side="${side}" data-tier="${t}" aria-label="Tier ${t} power ${r}"><option value="">power ${r}: any</option>${opts.map(c=>`<option>${esc(c.name)}</option>`).join("")}</select>`;
+        }
+      }
+      h += `</div>`;
+    }
+    div.innerHTML = h + "</div>"; box.appendChild(div);
+  }
+}
+function squadsChosen(){
+  const out = {home:{}, away:{}};
+  document.querySelectorAll("#m-squads select").forEach(s=>{
+    if (!s.value) return; (out[s.dataset.side][s.dataset.tier] ||= []).push(s.value);
+  });
+  return out;
+}
+
+/* ---------------- match ---------------- */
+let MS = null;   // last state
+let MINFO = null;
+function startMatch(){
+  try{
+    const r = lab({cmd:"match_new", home:$("#m-home").value, away:$("#m-away").value, kickoff:$("#m-kick").value,
+      seed:+$("#m-seed").value||0, no_abilities:$("#m-noab").checked, combos:$("#m-combos").checked, squads:squadsChosen()});
+    MINFO = r; MS = r.state;
+    $("#m-log").innerHTML = "";
+    $("#m-live").hidden = false;
+    drawBoard(); drawPlan();
+  }catch(e){ setStatus(e.message,"bad"); }
+}
+$("#m-start").addEventListener("click", startMatch);
+
+function drawBoard(){
+  const s = MS, H = MINFO.home, A = MINFO.away;
+  const keeper = (side, info) => {
+    const st = s.stamina[side], mx = s.max_stamina[side], sh = s.shield[side];
+    return `<div class="hint">Keeper ${esc(info.keeper)} · stamina <span class="num">${st}/${mx}</span>${sh?` · shield ${sh}`:""} · Ore <span class="num">${s.ore[side]}</span></div>
+      <div class="bar"><i style="width:${100*st/mx}%"></i></div>`;
+  };
+  $("#board").innerHTML = `
+    <div class="side"><div class="lbl home">Home</div><div class="cls">${esc(H.class)}</div>${keeper("home",H)}</div>
+    <div style="text-align:center"><div class="score num">${s.score.home} – ${s.score.away}</div>
+      <div class="lbl">${s.done?"Full time":`Cycle ${s.cycle} of ${s.cycles} · round ${s.round} of ${s.per_cycle}`}</div>
+      <div class="hint">seed ${MINFO.seed}</div></div>
+    <div class="side r"><div class="lbl away">Away</div><div class="cls">${esc(A.class)}</div>${keeper("away",A)}</div>`;
+}
+
+function cardLabel(c){
+  return `${c.name}${c.token?" (token)":""} · ${c.atk}${c.zone!=="field"?" · "+c.zone:""}`;
+}
+function drawPlan(){
+  const s = MS, box = $("#m-plan");
+  if (s.done){ box.innerHTML = `<div class="row"><b>Full time.</b><button class="btn key" id="m-again">New match, same set-up</button></div>`; $("#m-again").onclick=startMatch; return; }
+  const ball = s.home_attacks_next ? "home" : "away";
+  let h = `<div class="roundhead"><h3>Round ${s.round} · cycle ${s.cycle}</h3><span class="lbl ${ball}">${ball} has the ball first</span></div>`;
+  for (const side of ["home","away"]){
+    const z = s.squads[side];
+    h += `<div style="margin-top:10px"><div class="lbl ${side}">${side} line-up</div><div class="lineup">`;
+    for (const t of TIERS){
+      h += `<div class="tierbox"><div class="t">Tier ${t}</div>`;
+      if (t === z.star_tier){
+        if (s.round === 1){
+          h += `<select id="pick-${side}-star" aria-label="${side} star">${z.stars.map((c,i)=>`<option value="${esc(c.name)}" ${c.name===defaultStar(z,i)?"selected":""}>${esc(c.name)} · ${c.atk} (Star)</option>`).join("")}</select><div class="hint">Star switch: pick the Star for this cycle</div>`;
+        } else h += `<div>${esc(z.star_now)} <span class="chip">Star</span></div>`;
+      } else {
+        const firstFresh = z[t].findIndex(c=>c.zone==="field");
+        const opts = z[t].map((c,i)=>`<option value="#${i}" ${side==="home"&&i===firstFresh?"selected":""}>${esc(cardLabel(c))}</option>`).join("");
+        h += `<select id="pick-${side}-${t}" aria-label="${side} tier ${t}">
+          ${side==="away"?`<option value="random" selected>random</option><option value="strongest">strongest</option><option value="weakest">weakest</option>`:""}${opts}</select>`;
+      }
+      h += `</div>`;
+    }
+    h += `</div></div>`;
+  }
+  h += `<div class="row" style="margin-top:12px"><button class="btn key" id="m-play">Play round</button>
+    <button class="btn" id="m-auto">Play the rest at random</button>
+    <span class="hint">Cards marked "exhaust" already played this cycle; the game would not offer them.</span></div>`;
+  box.innerHTML = h;
+  $("#m-play").onclick = () => playRound(false);
+  $("#m-auto").onclick = () => { while(!MS.done) playRound(true); };
+}
+function defaultStar(z, i){
+  const idx = (MS.cycle-1) % Math.max(1, z.stars.length);
+  return z.stars[idx] ? z.stars[idx].name : "";
+}
+function planFromUI(randomAll){
+  const plan = {home:[], away:[], stars:{}};
+  for (const side of ["home","away"]){
+    for (const t of TIERS){
+      const el = $(`#pick-${side}-${t}`);
+      plan[side].push(randomAll ? "random" : (el ? el.value : "random"));
+    }
+    const st = $(`#pick-${side}-star`);
+    if (st && !randomAll) plan.stars[side] = st.value;
+  }
+  return plan;
+}
+function playRound(randomAll){
+  try{
+    const r = lab(Object.assign({cmd:"match_round"}, planFromUI(randomAll)));
+    MS = r.state;
+    drawBoard(); drawPlan();
+    $("#m-log").prepend(roundView(r.round));
+  }catch(e){ setStatus(e.message,"bad"); }
+}
+
+function firedChips(list){ return (list||[]).map(id=>`<span class="chip fire">${esc(id)}</span>`).join(" "); }
+function who(p, won){
+  const changed = p.before!==p.power || p.printed!==p.before;
+  return `<div class="who ${won?"won":""}"><div class="lbl ${p.side}">${p.side}${won?" · wins":""}</div>
+    <div class="nm">${esc(p.name)}</div>
+    <div class="pw num">${p.power}${changed?` <small>printed ${p.printed}${p.before!==p.printed?", "+p.before+" at the start":""}</small>`:""}</div>
+    <div>${firedChips(p.fired)}</div></div>`;
+}
+function roundView(r){
+  const el = document.createElement("div"); el.className = "panel";
+  let h = `<div class="roundhead"><h3>Cycle ${r.cycle} · round ${r.round}</h3>
+    <span class="lbl ${r.has_ball_first}">${r.has_ball_first} attacked first</span>
+    ${r.stars?`<span class="hint">Stars: <span class="home">${esc(r.stars.home)}</span> / <span class="away">${esc(r.stars.away)}</span></span>`:""}</div>`;
+  if (r.before && r.before.length) h += `<div class="extra" style="margin:6px 0">${esc(r.before.join("\n"))}</div>`;
+  for (const d of r.duels){
+    if (d.skipped){ h += `<div class="duel"><div class="tier">${d.tier}</div><div class="hint" style="grid-column:2/-1">Nobody in this tier on one side; no duel.</div></div>`; continue; }
+    const aw = d.winner===d.atk.side;
+    const lines = [];
+    if (d.notes.length) lines.push(...d.notes.map(n=>"» "+n));
+    if (d.lines.length) lines.push(...d.lines);
+    if (d.asks.length) lines.push(...d.asks.map(a=>"asked, default answer used: "+a));
+    if (d.tie) lines.push("tie: "+d.tie_rule);
+    lines.push(`${d.turnover?"TURNOVER: "+d.winner+" takes the ball":"attacker holds the ball"} · banked ${d.banked} · bank home ${d.bank.home} / away ${d.bank.away}`);
+    h += `<div class="duel"><div class="tier">${d.tier}</div>${who(d.atk, aw)}
+      <div class="vs lbl">attacks<br><span class="num" style="font-size:18px;color:var(--ink)">${d.atk.power} v ${d.def.power}</span></div>
+      ${who(d.def, !aw)}<div class="lines">${esc(lines.join("\n"))}</div></div>`;
+  }
+  const s = r.shot;
+  const parts = [`bank ${s.bank}`];
+  if (s.ability_bonus) parts.push(`abilities +${s.ability_bonus}`);
+  if (s.on_shot) parts.push(`on-shot +${s.on_shot}`);
+  const cb = (s.combos||[]).reduce((a,c)=>a+(+c.bonus),0);
+  if (s.combos_applied && cb) parts.push(`combos +${cb}`);
+  h += `<div class="shot"><div class="row" style="align-items:baseline">
+      <span class="verdict ${s.scored?s.side:""}" style="${s.scored?"":"color:var(--dim)"}">${s.scored?"Goal":"Saved"}</span>
+      <span><b class="${s.side}">${esc(s.side)}</b>: ${esc(s.shooter)} shoots with power <b class="num">${s.power}</b> (${parts.join(" + ")})</span></div>
+    <div class="sum">${s.note?esc(s.note):`keeper stamina ${s.stamina_before}/${s.max_stamina}${s.shield_before?`, shield ${s.shield_before}`:""} → chance ${s.base_chance}%${s.keeper_shift?` ${s.keeper_shift>0?"+":""}${s.keeper_shift} keeper shift = ${s.chance}%`:""} · rolled ${s.roll} (${s.scored?"under":"over"} ${s.chance}) · bite ${s.bite}${s.soaked?` (${s.soaked} soaked by the shield)`:""} → stamina ${s.stamina_after}${s.scored?" (refilled after the goal)":""}`}</div>
+    ${(s.combos||[]).length?`<div class="hint">Combos.csv on this move: ${s.combos.map(c=>esc(c.name)+" +"+c.bonus).join(", ")} ${s.combos_applied?"(added)":"(not added: the match does not read Combos.csv yet)"}</div>`:""}
+    ${(s.keeper_lines||[]).length?`<div class="extra">${esc(s.keeper_lines.join("\n"))}</div>`:""}
+  </div>`;
+  if (r.after && r.after.length) h += `<details style="margin-top:8px"><summary>After the round (${r.after.length})</summary><div class="extra">${esc(r.after.join("\n"))}</div></details>`;
+  el.innerHTML = h; return el;
+}
+
+/* ---------------- sim ---------------- */
+function merge(acc, r){
+  if (!acc) return JSON.parse(JSON.stringify(r));
+  for (const k of ["home","away","draw"]) acc.results[k]+=r.results[k];
+  for (const k of ["home","away"]){ acc.goals[k]+=r.goals[k]; acc.shots[k]+=r.shots[k]; acc.shot_goals[k]+=r.shot_goals[k]; acc.shot_power[k]+=r.shot_power[k]; }
+  acc.n += r.n; acc.ms += r.ms;
+  const sc = Object.fromEntries(acc.scores.map(x=>[x.score,x.n])); r.scores.forEach(x=>sc[x.score]=(sc[x.score]||0)+x.n);
+  acc.scores = Object.entries(sc).map(([score,n])=>({score,n})).sort((a,b)=>b.n-a.n);
+  for (const [k,v] of Object.entries(r.tiers)){ acc.tiers[k] ||= {won:0,total:0}; acc.tiers[k].won+=v.won; acc.tiers[k].total+=v.total; }
+  const ck = c=>c.side+"|"+c.class+"|"+c.name;
+  const cm = new Map(acc.cards.map(c=>[ck(c),c]));
+  for (const c of r.cards){ const o=cm.get(ck(c)); if(!o){ cm.set(ck(c), {...c}); continue; } for (const f of ["duels","won","power","faced","fired","goals"]) o[f]+=c[f]; }
+  acc.cards = [...cm.values()];
+  const am = new Map(acc.abilities.map(a=>[a.side+"|"+a.ability,a]));
+  for (const a of r.abilities){ const o=am.get(a.side+"|"+a.ability); if(o) o.fired+=a.fired; else am.set(a.side+"|"+a.ability,{...a}); }
+  acc.abilities = [...am.values()];
+  return acc;
+}
+async function runSim(){
+  const N = +$("#s-n").value, chunk = 50; let seed = +$("#s-seed").value || Math.floor(Math.random()*900000)+1;
+  const base = {cmd:"sim", home:$("#s-home").value, away:$("#s-away").value, home_picks:$("#s-hp").value, away_picks:$("#s-ap").value,
+    no_abilities:$("#s-noab").checked, combos:$("#s-combos").checked};
+  const prog = $("#s-prog"); prog.hidden=false; $("#s-run").disabled = true;
+  let acc = null;
+  try{
+    for (let done=0, i=0; done<N; i++){
+      const n = Math.min(chunk, N-done);
+      acc = merge(acc, lab(Object.assign({}, base, {n, seed: seed + i*7919})));
+      done += n; prog.firstElementChild.style.width = (100*done/N)+"%";
+      await new Promise(r=>setTimeout(r,0));
+    }
+    acc.seed = seed; drawSim(acc, base);
+  }catch(e){ setStatus(e.message,"bad"); }
+  $("#s-run").disabled = false; prog.hidden = true;
+}
+$("#s-run").addEventListener("click", runSim);
+const pct = (a,b)=> b? (100*a/b).toFixed(1)+"%" : "–";
+function drawSim(d, base){
+  const n = d.n, R = d.results;
+  let h = `<div class="panel"><h2><span class="home">${esc(base.home)}</span> v <span class="away">${esc(base.away)}</span> · ${n} matches</h2>
+    <div class="wdl" role="img" aria-label="home wins ${R.home}, draws ${R.draw}, away wins ${R.away}">
+      <div class="h" style="width:${100*R.home/n}%">${R.home/n>.08?"home "+pct(R.home,n):""}</div>
+      <div class="d" style="width:${100*R.draw/n}%">${R.draw/n>.08?"draw "+pct(R.draw,n):""}</div>
+      <div class="a" style="width:${100*R.away/n}%">${R.away/n>.08?"away "+pct(R.away,n):""}</div></div>
+    <div class="kpis" style="margin-top:12px">
+      <div class="kpi"><div class="lbl">Home wins</div><div class="v home num">${pct(R.home,n)}</div></div>
+      <div class="kpi"><div class="lbl">Draws</div><div class="v num">${pct(R.draw,n)}</div></div>
+      <div class="kpi"><div class="lbl">Away wins</div><div class="v away num">${pct(R.away,n)}</div></div>
+      <div class="kpi"><div class="lbl">Goals a match</div><div class="v num">${((d.goals.home+d.goals.away)/n).toFixed(2)}</div></div>
+      <div class="kpi"><div class="lbl">Shots that go in</div><div class="v num"><span class="home">${pct(d.shot_goals.home,d.shots.home)}</span> / <span class="away">${pct(d.shot_goals.away,d.shots.away)}</span></div></div>
+      <div class="kpi"><div class="lbl">Avg shot power</div><div class="v num"><span class="home">${(d.shot_power.home/Math.max(1,d.shots.home)).toFixed(1)}</span> / <span class="away">${(d.shot_power.away/Math.max(1,d.shots.away)).toFixed(1)}</span></div></div>
+    </div>
+    <div class="hint" style="margin-top:8px">seed ${d.seed} · ${(d.ms/1000).toFixed(1)} s in the engine · most common scores: ${d.scores.slice(0,6).map(s=>s.score+" ("+pct(s.n,n)+")").join(", ")}</div></div>`;
+  h += `<div class="panel"><h2>Duels won, by tier</h2><div class="tbl"><table><thead><tr><th>Tier</th><th class="n">Home</th><th class="n">Away</th></tr></thead><tbody>
+    ${TIERS.map(t=>{const a=d.tiers["home|"+t]||{won:0,total:0}, b=d.tiers["away|"+t]||{won:0,total:0};
+      return `<tr><td>${t}</td><td class="n">${pct(a.won,a.total)}<span class="meter"><i style="width:${a.total?100*a.won/a.total:0}%"></i></span></td><td class="n">${pct(b.won,b.total)}<span class="meter"><i style="width:${b.total?100*b.won/b.total:0}%"></i></span></td></tr>`;}).join("")}
+    </tbody></table></div></div>`;
+  const cards = d.cards.slice().sort((a,b)=> (a.side+TIERS.indexOf(a.tier)+String(a.printed)).localeCompare(b.side+TIERS.indexOf(b.tier)+String(b.printed)));
+  h += `<div class="panel"><h2>Every card</h2><div class="tbl"><table><thead><tr><th>Side</th><th>Card</th><th>Tier</th><th class="n">Printed</th><th class="n">Duels</th><th class="n">Won</th><th class="n">Power / duel</th><th class="n">Faced / duel</th><th class="n">Abilities / duel</th><th class="n">Goals</th></tr></thead><tbody>
+    ${cards.map(c=>`<tr><td class="${c.side}">${c.side}</td><td>${esc(c.name)}${c.star?' <span class="chip">Star</span>':""}</td><td>${c.tier}</td><td class="n">${c.printed}</td><td class="n">${c.duels}</td><td class="n">${pct(c.won,c.duels)}</td><td class="n">${(c.power/Math.max(1,c.duels)).toFixed(2)}</td><td class="n">${(c.faced/Math.max(1,c.duels)).toFixed(2)}</td><td class="n">${(c.fired/Math.max(1,c.duels)).toFixed(2)}</td><td class="n">${c.goals}</td></tr>`).join("")}
+    </tbody></table></div><div class="hint" style="margin-top:6px">Power / duel above the printed number means abilities are lifting the card; "Faced" is what it fought against.</div></div>`;
+  const ab = d.abilities.slice().sort((a,b)=>b.fired-a.fired);
+  h += `<div class="panel"><h2>Abilities that changed a number</h2><div class="tbl"><table><thead><tr><th>Side</th><th>Ability</th><th class="n">Fired</th><th class="n">A match</th></tr></thead><tbody>
+    ${ab.map(a=>`<tr><td class="${a.side}">${a.side}</td><td class="num">${esc(a.ability)}</td><td class="n">${a.fired}</td><td class="n">${(a.fired/n).toFixed(2)}</td></tr>`).join("") || `<tr><td colspan="4" class="hint">None fired.</td></tr>`}
+    </tbody></table></div></div>`;
+  $("#s-out").innerHTML = h;
+}
+
+/* ---------------- cards ---------------- */
+function abilityLine(a){
+  if (!a || !a.id) return "";
+  const bits = [a.trigger && "when "+a.trigger, a.condition && "if "+a.condition, a.effect && a.effect+(a.value?" "+a.value:"")+(a.arg?" "+a.arg:""), a.target && "on "+a.target, a.scope && "for the "+a.scope, a.cost && "costs "+a.cost, a.max ? "max "+a.max+"/"+a.max_per : ""].filter(Boolean);
+  return `<div class="ab">${esc(a.id)}: ${esc(bits.join(" · "))}</div>`;
+}
+function cardBox(c, star){
+  return `<div class="cardx ${star?"star":""}"><div class="top"><div><b>${esc(c.name)}</b> ${star?'<span class="chip fire">Star</span>':""} <span class="chip">${esc(c.element||"no element")}</span></div><div class="pw num">${c.atk}</div></div>
+    ${c.attack_text?`<p><span class="lbl">Attack</span> ${esc(c.attack_text)}</p>${abilityLine(c.attack_ability)}`:""}
+    ${c.defend_text?`<p><span class="lbl">Defend</span> ${esc(c.defend_text)}</p>${abilityLine(c.defend_ability)}`:""}
+    ${c.emblem?`<p><span class="lbl">Emblem ${esc(c.emblem.id)}</span> ${esc(c.emblem.basic)}</p><p><span class="lbl">Turns over when</span> ${esc(c.emblem.condition)} <span class="ab">${esc(c.emblem.turns_on)}</span></p>`:""}
+    ${c.ultimate_text?`<p><span class="lbl">Ultimate</span> ${esc(c.ultimate_text)}</p>`:""}</div>`;
+}
+function drawCards(){
+  const name = $("#c-class").value, cls = META.classes[name];
+  $("#c-keeper").textContent = `Keeper: ${cls.keeper.name}, ${cls.keeper.stamina} stamina${cls.keeper.ability?" · "+cls.keeper.ability:""}`;
+  let h = `<div class="ladder">`;
+  for (const t of TIERS){
+    const r = META.rungs[t];
+    const list = t===cls.star_tier ? cls.stars : cls.tiers[t];
+    h += `<div class="col"><h3>Tier ${t} <span class="lbl">powers ${r.join(", ")}${t===cls.star_tier?" · Stars":""}</span></h3>${list.map(c=>cardBox(c, t===cls.star_tier)).join("") || '<div class="hint">No cards.</div>'}</div>`;
+  }
+  $("#c-out").innerHTML = h + `</div>`;
+}
+
+/* ---------------- tuning ---------------- */
+let TUNE_BASE = null; const TUNE_CHANGED = new Set();
+function drawTuning(){
+  TUNE_BASE ||= Object.assign({}, META.all_tuning);
+  const f = ($("#t-filter").value||"").toLowerCase();
+  const keys = Object.keys(META.all_tuning).sort().filter(k=>!f || k.includes(f.replace(/[_ ]/g,"")));
+  $("#t-body").innerHTML = keys.slice(0,400).map(k=>`<tr><td class="num">${esc(k)}${TUNE_CHANGED.has(k)?' <span class="chip fire">changed</span>':""}</td>
+    <td><input type="text" data-key="${esc(k)}" value="${esc(META.all_tuning[k])}" aria-label="${esc(k)}" style="width:100%;max-width:340px"></td></tr>`).join("");
+}
+$("#t-filter").addEventListener("input", drawTuning);
+$("#t-body").addEventListener("change", e=>{
+  const k = e.target.dataset.key; if(!k) return;
+  try{ lab({cmd:"tune", set:{[k]: e.target.value}}); META.all_tuning[k]=e.target.value;
+    if (TUNE_BASE[k]===e.target.value) TUNE_CHANGED.delete(k); else TUNE_CHANGED.add(k);
+    drawTuning(); setStatus("Tuning changed: "+k+" = "+e.target.value, "ok"); }catch(err){ setStatus(err.message,"bad"); }
+});
+$("#t-reset").addEventListener("click", ()=>{
+  try{ lab({cmd:"tune", reset:true}); META = lab({cmd:"meta"}); TUNE_CHANGED.clear(); drawTuning(); setStatus("Tuning back to the spreadsheet","ok"); }catch(e){ setStatus(e.message,"bad"); }
+});
+
+function drawProblems(){
+  const p = META.problems || [];
+  $("#a-problems").innerHTML = p.length ? `<details><summary>Spreadsheet notes from the loader (${p.length})</summary><div class="extra">${esc(p.join("\n"))}</div></details>` : "";
+}
+
+/* ---------------- adventure ---------------- */
+let AMETA = null, APOLL = null, ASTATE = null;
+function initAdventure(){
+  AMETA = lab({cmd:"adv_meta"});
+  $("#a-biome").innerHTML = AMETA.biomes.map(b=>`<option value="${esc(b.id)}">${esc(b.name)} · ${b.waves} waves</option>`).join("");
+  const fillBounty = () => {
+    const b = AMETA.biomes.find(x=>x.id===$("#a-biome").value);
+    $("#a-bounty").innerHTML = `<option value="">none (no boss)</option>` + (b?b.bounties:[]).map(x=>`<option value="${esc(x.id)}">${esc(x.name)} · boss ${esc(x.boss)}${x.waves?" · "+x.waves+" waves":""}</option>`).join("");
+  };
+  $("#a-biome").addEventListener("change", fillBounty); fillBounty();
+  classOptions($("#a-class"), Object.keys(META.classes).find(c=>c==="Lorelei") || Object.keys(META.classes)[0]);
+  $("#a-class").addEventListener("change", fillParty); fillParty();
+  $("#a-slots").textContent = `${AMETA.slots} icons can be in play at once. Only these count on the pile. Hover one to see its breakpoints.`;
+  $("#a-loadout").innerHTML = AMETA.traits.map((t,i)=>`<label class="chk" title="${esc(t.steps.map(s=>s.at+": "+s.name+" ("+s.effect+" "+s.value+")").join("\n"))}"><input type="checkbox" value="${esc(t.id)}" ${i<AMETA.slots?"checked":""}> ${esc(t.name)} <span class="chip">${esc(t.from)}</span></label>`).join("");
+  $("#a-wave").innerHTML = AMETA.enemies.slice().sort((a,b)=>(a.pool+a.name).localeCompare(b.pool+b.name)).map(e=>`<label class="chk"><input type="checkbox" value="${esc(e.id)}"> ${esc(e.name)} <span class="chip">${esc(e.pool)}${e.boss?" boss":""}</span></label>`).join("");
+  $("#a-start").addEventListener("click", startRun);
+  $("#a-auto").addEventListener("click", ()=>{ const on = !(ASTATE && ASTATE.auto); advCall({cmd:"adv_auto", on, auto:{focus:$("#a-af").value, pick:$("#a-ap").value}}); });
+  $("#as-run").addEventListener("click", runAdvSim);
+  $("#a-foes").addEventListener("click", e=>{ const b=e.target.closest("[data-focus]"); if(b) advCall({cmd:"adv_focus", i:+b.dataset.focus}); });
+  $("#a-draft").addEventListener("click", e=>{ const b=e.target.closest("[data-pick]"); if(b) advCall({cmd:"adv_pick", card:b.dataset.pick}); });
+}
+function fillParty(){
+  const cls = META.classes[$("#a-class").value];
+  let h = "";
+  for (const t of TIERS){
+    const starTier = t===cls.star_tier;
+    h += `<div class="tierbox"><div class="t">Tier ${t}${starTier?" · Star":""}</div>`;
+    const rungs = starTier ? [null] : META.rungs[t];
+    for (const r of rungs){
+      const pool = AMETA.players.filter(p=>p.tier===t && (r===null ? p.star : p.atk===r && !p.star));
+      const pick = starTier ? (cls.stars[0]||{}).name : (cls.tiers[t].find(c=>c.atk===r)||{}).name;
+      h += `<select data-tier="${t}" aria-label="Tier ${t} ${r===null?"star":"power "+r}"><option value="">(empty)</option>${pool.map(p=>`<option ${p.name===pick?"selected":""} value="${esc(p.name)}">${esc(p.name)} · ${p.atk} · ${esc(p.class)}${p.star?" ★":""}</option>`).join("")}</select>`;
+    }
+    h += `</div>`;
+  }
+  $("#a-party").innerHTML = h;
+}
+function advSetup(){
+  const party = {};
+  document.querySelectorAll("#a-party select").forEach(s=>{ if(s.value) (party[s.dataset.tier] ||= []).push(s.value); });
+  const loadout = [...document.querySelectorAll("#a-loadout input:checked")].map(i=>i.value);
+  const wave = [...document.querySelectorAll("#a-wave input:checked")].map(i=>i.value);
+  return {biome:$("#a-biome").value, bounty:$("#a-bounty").value, party, loadout, wave};
+}
+function advCall(cmd){
+  try{ const st = lab(cmd); drawRun(st); pollRun(); return st; }catch(e){ setStatus(e.message,"bad"); }
+}
+function startRun(){
+  $("#a-log").textContent = "";
+  const st = advCall(Object.assign({cmd:"adv_new", seed:+$("#a-seed").value||0}, advSetup()));
+  if (st) $("#a-log").textContent = "seed "+st.seed+"\n" + $("#a-log").textContent;
+}
+function pollRun(){
+  if (APOLL) return;
+  APOLL = setInterval(()=>{
+    try{
+      const st = lab({cmd:"adv_state"}); drawRun(st);
+      const waiting = (st.step==="focus"||st.step==="draft") && !st.auto;
+      if (st.result || waiting || st.none){ clearInterval(APOLL); APOLL=null; }
+    }catch(e){ clearInterval(APOLL); APOLL=null; setStatus(e.message,"bad"); }
+  }, 60);
+}
+function layerBar(f){
+  return f.layers.map((l,i)=>`<div class="hint">${esc(l.name)} ${f.left[i]}/${l.amount}${l.soak?` · soaks ${l.soak}`:""}</div><div class="bar"><i style="width:${100*f.left[i]/Math.max(1,l.amount)}%;background:var(--away)"></i></div>`).join("");
+}
+function drawRun(st){
+  if (!st || st.none) return;
+  ASTATE = st;
+  $("#a-live").hidden = false; $("#a-logp").hidden = false;
+  $("#a-title").textContent = `${st.biome} · wave ${st.wave} of ${st.waves}`;
+  const stepWords = {focus:"choose an enemy", draft:"Tier "+st.tier+": choose who goes", resolving:"the move is going in", done:"wave over", over: st.result==="cleared"?"run cleared":"party down", between:"next wave"};
+  $("#a-step").textContent = (st.result ? (st.result==="cleared"?"CLEARED · ":"LOST · ") : "") + (stepWords[st.step]||st.step) + ` · ${st.rounds} rounds so far`;
+  $("#a-auto").textContent = st.auto ? "Stop playing automatically" : "Play on automatically";
+  if (st.foes){
+    $("#a-foes").innerHTML = st.foes.map((f,i)=>`<div class="cardx ${i===st.focus&&f.alive?"star":""}" style="${f.alive?"":"opacity:.45"}">
+      <div class="top"><div><b>${esc(f.name)}</b>${f.boss?' <span class="chip fire">boss</span>':""}${i===st.focus&&f.alive?' <span class="chip fire">target</span>':""}</div><div class="pw num" title="attack">${f.attack}</div></div>
+      <p class="hint">hits ${esc(f.targeting)}${f.buff?` · +${f.buff} per pass while you build`:""} ${f.icons.map(x=>`<span class="chip">${esc(x)}</span>`).join(" ")}</p>
+      ${layerBar(f)}
+      ${st.step==="focus"&&f.alive&&!st.auto?`<button class="btn sm" data-focus="${i}" style="margin-top:6px;justify-self:start">Go after it</button>`:""}</div>`).join("");
+  }
+  let d = "";
+  if (st.step==="draft" && !st.auto){
+    d = `<div class="lbl">Tier ${esc(st.tier)}: send one</div><div class="row" style="margin-top:4px">` +
+      st.available.map((c,i)=>`<button class="btn" data-pick="#${i}">${esc(c.name)} · ${c.atk} · ${c.stamina} sta ${c.icons.map(x=>"["+esc(x)+"]").join("")}</button>`).join("") + `</div>`;
+  }
+  const picked = Object.entries(st.picked||{}).map(([t,n])=>`${t}: ${n?esc(n):"nobody"}`).join(" · ");
+  if (picked) d += `<div class="hint" style="margin-top:6px">This move: ${picked}</div>`;
+  $("#a-draft").innerHTML = d;
+  if (st.stack){
+    const live = st.live_icons || [];
+    $("#a-pile").innerHTML = `<div class="lbl">The pile · +${st.stack.attack} to the hit · ${st.stack.shield} soaked off each enemy hit</div>
+      <div class="row" style="margin-top:4px;gap:8px">${live.map(id=>{ const n = st.stack.counts[id]||0; const t = AMETA.traits.find(x=>x.id===id); const next = t ? t.steps.find(s=>s.at>n) : null;
+        return `<span class="chip ${n?"fire":""}" title="${esc(t?t.steps.map(s=>s.at+": "+s.name+" ("+s.effect+" "+s.value+", "+s.lasts+")").join("\n"):"")}">${esc(id)} ${n}${next?` → at ${next.at}: ${esc(next.name)}`:""}</span>`; }).join("")}</div>
+      ${st.stack.active.length?`<div class="hint" style="margin-top:4px">Active now: ${st.stack.active.map(a=>esc(a.name)+" ("+esc(a.effect)+" "+a.value+")").join(", ")}</div>`:""}`;
+  }
+  $("#a-partylive").innerHTML = TIERS.map(t=>`<div class="tierbox"><div class="t">Tier ${t}</div>${(st.party[t]||[]).map(c=>`<div style="${c.out?"opacity:.45":""}"><div class="row" style="justify-content:space-between;gap:6px"><span>${esc(c.name)}${c.star?" ★":""}${c.stand_in?" (stand-in)":""}</span><span class="num">${c.atk}</span></div>
+     <div class="hint">${c.out?"knocked out":c.spent?"rested this cycle":"ready"} · ${c.stamina}/${c.max} · ${esc(c.icons.join(", "))}</div><div class="bar"><i style="width:${100*c.stamina/Math.max(1,c.max)}%"></i></div></div>`).join("") || '<div class="hint">nobody</div>'}</div>`).join("");
+  if (st.notes && st.notes.length){ const L=$("#a-log"); L.textContent += st.notes.join("\n")+"\n"; L.scrollTop = L.scrollHeight; }
+}
+
+function runAdvSim(){
+  try{
+    lab(Object.assign({cmd:"adv_sim", n:+$("#as-n").value, focus:$("#as-f").value, pick:$("#as-p").value, seed:+$("#a-seed").value||0}, advSetup()));
+    $("#as-run").disabled = true; $("#a-live").hidden = true; $("#a-logp").hidden = true;
+    if (APOLL){ clearInterval(APOLL); APOLL=null; }
+    const t = setInterval(()=>{
+      try{
+        const s = lab({cmd:"adv_sim_state"});
+        $("#as-prog").textContent = `${s.done} of ${s.n} runs…`;
+        if (s.done >= s.n){ clearInterval(t); $("#as-run").disabled=false; $("#as-prog").textContent=""; drawAdvSim(s); }
+      }catch(e){ clearInterval(t); $("#as-run").disabled=false; setStatus(e.message,"bad"); }
+    }, 250);
+  }catch(e){ setStatus(e.message,"bad"); }
+}
+function drawAdvSim(s){
+  const n = s.done, ko = Object.entries(s.ko).sort((a,b)=>b[1]-a[1]), fired = Object.entries(s.fired).sort((a,b)=>b[1]-a[1]);
+  const waves = Object.entries(s.waves).sort((a,b)=>+a[0]-+b[0]);
+  $("#as-out").innerHTML = `<div class="kpis"><div class="kpi"><div class="lbl">Runs cleared</div><div class="v num">${pct(s.cleared,n)}</div></div>
+    <div class="kpi"><div class="lbl">Rounds a run</div><div class="v num">${s.rounds_per_run}</div></div>
+    <div class="kpi"><div class="lbl">Waves in the run</div><div class="v num">${s.waves_total}</div></div></div>
+    <div class="hint" style="margin-top:6px">seed ${s.seed} · ${(s.ms/1000).toFixed(1)} s · waves cleared before the end: ${waves.map(([w,c])=>w+" ("+pct(c,n)+")").join(", ")}</div>
+    <div style="display:grid;gap:12px;margin-top:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+      <div class="tbl"><table><thead><tr><th>Knocked out</th><th class="n">Of runs</th></tr></thead><tbody>${ko.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${pct(v,n)}</td></tr>`).join("")||'<tr><td colspan="2" class="hint">Nobody.</td></tr>'}</tbody></table></div>
+      <div class="tbl"><table><thead><tr><th>One-off breakpoint</th><th class="n">Times</th><th class="n">A run</th></tr></thead><tbody>${fired.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${v}</td><td class="n">${(v/n).toFixed(2)}</td></tr>`).join("")||'<tr><td colspan="3" class="hint">None.</td></tr>'}</tbody></table></div></div>`;
+}
+
+boot();
+</script>

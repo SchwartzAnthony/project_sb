@@ -2105,6 +2105,35 @@ THEIRS tile shows their pips, and "THEIR X - ULTIMATE" is announced.
   `tools/test_env_check.gd` checks that it builds and that the real save was
   not touched.
 
+### Sturmball Lab: the rules in a browser (round AN, 8 Oct)
+
+**`tools/lab/`** builds a web page that runs the game's own rules code (no
+pitch, no art) so you can playtest combat on any computer with a browser.
+Nothing is installed: the page downloads about 13 MB once.
+
+- **Match:** two classes, their squads, the Star and the line-up each round.
+  Every duel shows the powers before and after abilities, which abilities
+  fired, the engine's log lines, the tie rule, the bank and the shot roll.
+- **1,000 matches:** win/draw/loss, goals, duels won per tier, every card and
+  every ability that fired.
+- **Adventure:** a party of any cards, a biome and bounty, the icon loadout,
+  an optional fixed wave. Pick the target and draft by hand, or play on
+  automatically. "Many runs" plays the set-up many times.
+- **Tuning:** change any Tuning.csv value for that tab only.
+
+**It cannot drift from the game:** it is the same AbilityEngine,
+AdventureEncounter, TierLadder, ShotOdds and CSVs, exported with Godot's
+Web template. A match round is played the way `tests/sim_runner.gd` plays it
+(no fouls, mines, touches or Emblem race). Adventure uses
+`tools/lab/lab_encounter.gd`, which is AdventureEncounter with only its
+drawing and its pauses taken out.
+
+**Rebuild it every round:** `sh tools/lab/build.sh` (needs Godot 4.7 and the
+Web export templates) writes `tools/lab/dist/`, which Claude publishes. The
+page header names the branch and commit it was built from. To check it on
+the command line: `godot --headless --path . --script
+res://tools/lab/lab_cli.gd -- '{"cmd":"meta"}'`.
+
 ### Round AB: your testing notes
 
 | you said | now |
