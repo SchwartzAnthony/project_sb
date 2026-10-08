@@ -32,7 +32,7 @@ Celebration.csv,data/,A spreadsheet you edit,"THE GOAL CELEBRATION, one row per 
 ClassInfo.csv,data/,A spreadsheet you edit,
 Combos.csv,data/,A spreadsheet you edit,
 Dialogue.csv,data/,A spreadsheet you edit,
-StoryArt.csv,data/,A spreadsheet you edit,"Round AN. The faces and rooms of the conversations"
+StoryArt.csv,data/,A spreadsheet you edit,Round AN. The faces and rooms of the conversations
 Drops.csv,data/,A spreadsheet you edit,
 EnemyPlay.csv,data/,A spreadsheet you edit,"HOW THE OTHER SIDE PLAYS. Rules read top to bottom, the first whose When is true decides what they take and whether they play it face up. The opposition instead of an AI"
 example_unit_csv_with_ability_columns.csv,data/,A spreadsheet you edit,
@@ -346,3 +346,5 @@ EnemyIntroSquad.csv,data/,A spreadsheet you edit,"ROUND AN. The opposition in yo
 EnemyIntroSquad2.csv,data/,A spreadsheet you edit,"ROUND AN. The opposition in your SECOND MATCH: plain players and the plain Stars Bauer, Richter and Klein (+1 to the next normal player)"
 Guide.csv,data/,A spreadsheet you edit,"ROUND AN. The Head Coach explains a screen: a Dialogue scene in a box over the base, the Brewery, the Adventure board or the shop, and a button that lights up"
 guide.gd,src/core/,"Engine. Rules, loaders and shared helpers","ROUND AN. Reads Guide.csv, shows its boxes over a screen and lights up the named button"
+make_bavarian_sfx.py,tools/,A tool you run from the command line,ROUND AN. Builds every sound effect (assets/audio/bav_*.ogg) from scratch in Bavarian style and rewrites SoundCredits.csv. Run: python3 tools/make_bavarian_sfx.py
+SoundCredits.csv,data/,Data the tools write,"ROUND AN. Every sound effect: what you hear, which Audio.csv rows play it, where it came from. Rewritten by make_bavarian_sfx.py"

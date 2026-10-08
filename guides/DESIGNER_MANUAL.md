@@ -7065,3 +7065,35 @@ one row of `Tuning.csv`:
 - `inventory_tabs` = `items;resources` (add `;keys` to bring it back). Keys
   are still carried and still open their gates; they are only not listed.
 - `team_build_tabs` = `Star Hall;Your Teams` (add `;Talents` to bring it back).
+
+## Bavarian sound effects (round AN, 8 Oct)
+
+**Every sound effect in the game is new** (your note: "some older sound
+effects are really hurting the ears ... replace ALL sound effects with
+bavarian sounds"). The music is untouched.
+
+- **What you hear:** a tuba and a little brass band, Alpine cow bells,
+  wood blocks and beer tables, Maß glasses clinking, beer pouring and
+  gulping, a zither, a glockenspiel, a Böller salute, blackbirds and
+  chaffinches, a beer-tent crowd. Winning sounds like a polka flourish;
+  losing is a soft tuba sinking down ("wah ... wahhh"). The whole list,
+  one line per file, is `data/SoundCredits.csv`.
+- **Where they live:** `assets/audio/bav_*.ogg`. Audio.csv's `Sound` column
+  names them; every row's ID stayed the same, so Juice.csv, Buildings.csv,
+  Visitors.csv, MenuConfig.csv, ScreenLook.csv, Dialogue.csv and
+  OutOfBounds.csv needed no change.
+- **Kind to ears:** every file is low-passed (nothing shrill), faded in
+  and out, brought to the same loudness and kept under -1 dB so nothing
+  clips. The referee's whistle is lower and rounder than a real one.
+  How loud each plays is Audio.csv's `Volume`, as before.
+- **Undo one:** each Audio.csv note names the old file (still in
+  `assets/audio/`). Put that name back in `Sound`.
+- **Remake or change one:** the sounds are not recordings - they are
+  built from sine waves and noise by `tools/make_bavarian_sfx.py`, one
+  short recipe per file. `python3 tools/make_bavarian_sfx.py bav_goal`
+  remakes one; no name remakes them all and rewrites SoundCredits.csv.
+  Needs numpy, scipy and ffmpeg.
+- **Two spares, ready to use:** `drink_big` (a barrel glugging and three
+  gulps - for the tutorial's drinking window) and `woods_birds` (three
+  birds, for the woods or the base). Name either in a `Sound` column.
+- **Licence:** all our own; nothing to credit.
