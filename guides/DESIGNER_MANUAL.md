@@ -646,6 +646,19 @@ OPEN, RECOVER).
 | `unit_stand_below_speed` | px/s under which a watcher is drawn standing. `16` |
 | `unit_walk_anim_floor` | slowest the legs go for a watcher, share of the run rate. `0.4` |
 
+**Only a few go for it.** Anthony: *"a few people piling up is great but
+when it is player units not protecting their zone it is also a little too
+much."* Every rule that sends a player at the ball (a loose ball in his claim
+band, the press, the run to a goal kick) now sends at most
+`ball_chasers_per_side` of each side, the nearest to where the ball is going.
+Everyone else marks or holds in his own quarter. Before: about **7** players
+went for the ball on average and **19** at a goal kick. After: about **2**, and
+**4** at most.
+
+| Tuning row | |
+|---|---|
+| `ball_chasers_per_side` | how many of a side may go for the ball at once. `2`. `0` = no limit |
+
 **See it in the game:** press **Z** in a match. On top of the zone map you get
 the gold **ball range** circle, a gold cross where the ball will land, every
 player's **job word** (gold = the ball is in his range, `sprint` = going
