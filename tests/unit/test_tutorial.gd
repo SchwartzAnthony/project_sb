@@ -50,12 +50,26 @@ func test_time_outs_after_cycle_one_and_two() -> void:
 	var second := String(MatchTalk.row_for("star_switch", "tutorial", null, {"round": "6"}).get("do", ""))
 	assert_string_contains(second, "pub:tut-timeout-cursed")
 	assert_string_contains(second, "class:Koch=Bergmännlein")
-	assert_string_contains(second, "ability:Koch=TUT_KOCH_EARTH")
+	assert_string_contains(second, "ability:Koch=TUT_KOCH_EARTH/TUT_KOCH_EARTH_DEF")
 	assert_string_contains(second, "keep_star")
 	# After cycle 3 he is swapped as usual.
 	assert_true(MatchTalk.row_for("star_switch", "tutorial", null, {"round": "9"}).is_empty())
-	for id in ["TUT_KOCH_BEER", "TUT_KOCH_EARTH"]:
+	for id in ["TUT_KOCH_BEER", "TUT_KOCH_EARTH", "TUT_KOCH_EARTH_DEF"]:
 		assert_not_null(CardDatabase.get_db().get_ability(id), id)
+
+
+func test_earth_courage_drains_the_enemy_keeper() -> void:
+	# Anthony, 8 Oct: 5 stamina off their keeper when Koch attacks, 3 when he defends.
+	var db := CardDatabase.get_db()
+	var atk := db.get_ability("TUT_KOCH_EARTH")
+	var def := db.get_ability("TUT_KOCH_EARTH_DEF")
+	assert_eq(CardDatabase._normalise(atk.trigger), "onattack")
+	assert_eq(CardDatabase._normalise(atk.effect), "drainstamina")
+	assert_eq(atk.value, 5)
+	assert_eq(CardDatabase._normalise(def.trigger), "ondefend")
+	assert_eq(CardDatabase._normalise(def.effect), "drainstamina")
+	assert_eq(def.value, 3)
+	assert_true(atk.hits_goalie() and def.hits_goalie())
 
 
 func test_the_opening_pub_has_no_transformation() -> void:

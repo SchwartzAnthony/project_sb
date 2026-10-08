@@ -342,14 +342,18 @@ func inspire(name_text: String, percent: float) -> void:
 
 
 ## `ability:Koch=TUT_KOCH_BEER` - that Abilities.csv row on both his sides.
+## `ability:Koch=TUT_KOCH_EARTH/TUT_KOCH_EARTH_DEF` - attack side / defend side.
 func give_ability(name_text: String, ability_id: String) -> void:
 	var unit := _my_unit_called(name_text)
 	var db := CardDatabase.get_db()
-	if unit == null or db.get_ability(ability_id) == null:
+	var sides := ability_id.split("/")
+	var attack_id := sides[0].strip_edges()
+	var defend_id := sides[1].strip_edges() if sides.size() > 1 else attack_id
+	if unit == null or db.get_ability(attack_id) == null or db.get_ability(defend_id) == null:
 		push_warning("[match talk] ability:%s=%s - no such player or no such Abilities.csv row." % [name_text, ability_id])
 		return
-	unit.data.attack_ability_id = ability_id
-	unit.data.defend_ability_id = ability_id
+	unit.data.attack_ability_id = attack_id
+	unit.data.defend_ability_id = defend_id
 	print("[match talk] %s now has %s." % [unit.data.player_name, ability_id])
 
 

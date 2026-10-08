@@ -288,6 +288,7 @@ func _read_time_out(scene: Node, layer: Node) -> void:
 	else:
 		_check(koch != null and koch.is_star_player
 			and koch.data.attack_ability_id == "TUT_KOCH_EARTH"
+			and koch.data.defend_ability_id == "TUT_KOCH_EARTH_DEF"
 			and koch.data.unit_type == "Bergmännlein",
 			"after the second TIME OUT Koch is a Bergmännlein with Earth Courage")
 	await _shot_one("after_time_out_%d" % _time_outs)
