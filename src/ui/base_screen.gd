@@ -355,6 +355,14 @@ func _build_exits() -> void:
 		leave.pressed.connect(func() -> void:
 			TutorialBase.leave(get_tree()))
 		row.add_child(leave)
+	# ROUND AN: the Tutorial's "morning after" happens at this base, in the
+	# tutorial's own save. This ends it early, exactly as its last box does.
+	elif Tutorial.active(get_tree()):
+		var skip := _exit("exit|⏏", "End tutorial", EXIT_SIZE)
+		skip.tooltip_text = "Finish the Tutorial now. Nothing from it is kept."
+		skip.pressed.connect(func() -> void:
+			Tutorial.finish(get_tree()))
+		row.add_child(skip)
 
 	_same_thread_size(row)
 

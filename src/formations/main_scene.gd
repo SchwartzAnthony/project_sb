@@ -1915,7 +1915,7 @@ func _full_time() -> void:
 	if Tutorial.active(get_tree()):
 		GameSpeed.reset()
 		await get_tree().create_timer(db.tune_float("full_time_seconds", 2.6)).timeout
-		Tutorial.finish(get_tree())
+		Tutorial.full_time(get_tree(), _squad_that_played())
 		return
 
 	var outcome := "draw"

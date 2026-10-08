@@ -10,7 +10,7 @@ extends RefCounted
 #               a row that has played sets flag:guide_done_<ID>, which the
 #               next row can wait on.
 #    Screen     where it plays: base, brewery, shop, bounty (the Adventure
-#               board). The screen asks when it opens, and again whenever it
+#               board), dorms. The screen asks when it opens, and again whenever it
 #               redraws (the base after a window closes, the Brewery after
 #               WORK IT).
 #    Requires   the condition language. Blank = always.
@@ -22,6 +22,7 @@ extends RefCounted
 #    Then       what happens after the box, in the Progression.csv Do
 #               language: flag:x ; count:x+1 ; unlock:Name ; and goto:base,
 #               which on a screen opened over the base just closes it.
+#               goto:dorms opens the Dorms. tutorial:end ends the Tutorial.
 #    Once       true = only ever once (the usual for a tutorial).
 #    Only       true = nothing but the lit button can be used until it has
 #               been (round AN, so the tutorial cannot be clicked through).
@@ -133,15 +134,22 @@ static func _then(host: Control, actions: String, state: GameState) -> bool:
 		return false
 	var rest: Array[String] = []
 	var go_to := ""
+	var finish_tutorial := false
 	for part in actions.split(";", false):
 		var term := String(part).strip_edges()
 		if term.to_lower().begins_with("goto:"):
 			go_to = term.substr(5).strip_edges()
+		elif term.to_lower() == "tutorial:end":
+			finish_tutorial = true
 		else:
 			rest.append(term)
 	if not rest.is_empty():
 		Progression.run_actions(";".join(rest), state)
 		state.save_to_disk()
+	if finish_tutorial:
+		# ROUND AN: the last box of "the morning after" ends the Tutorial.
+		Tutorial.finish(host.get_tree())
+		return true
 	if go_to == "":
 		return false
 	var tree := host.get_tree()
