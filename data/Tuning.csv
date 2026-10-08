@@ -530,6 +530,8 @@ tutorial_offer,true,"ROUND AN (Anthony, 7 Oct). A BRAND-NEW SAVE ASKS: would you
 tutorial_first_scene,prologue,ROUND AN. The Dialogue.csv scene the Tutorial opens with - Pub Dialogue 1. Then the match in tutorial_match_mode starts by itself.
 tutorial_match_mode,tutorial,ROUND AN. The MatchModes.csv row the tutorial match is. Its Head Coach stops are the MatchTalk.csv rows with that Mode.
 tutorial_star_never_spent,true,"ROUND AN (Anthony, 8 Oct). In the tutorial match your man in the Star's place (Koch) is never spent by a Play Maker: he is offered at every Play Maker and plays every round of his cycle, Star badge or not. false = he goes to the exhaust like any other card."
+show_card_scale,1.8,"ROUND AN. MatchTalk.csv Do show_card: how much bigger his field card is when it comes up over the pub."
+show_card_backdrop,bar,"ROUND AN. MatchTalk.csv Do show_card: the Backgrounds row behind his card (the pub)."
 starting_team,StartingTeam.csv,"ROUND AN. The full team of random plain players the base gets at the end of the tutorial, or when a new save says No to it. A squad CSV in data/ (the same columns as IntroSquad.csv). Random new people: nothing from the tutorial is kept."
 exhaust_button,true,ROUND AN (the tutorial). THE EXHAUST ZONE button bottom right of a match: how many of your cards are spent this cycle; press it to see them. The Head Coach points at it in the tutorial. false hides it.
 exhaust_button_font_size,24,ROUND AN. The size of the words on the EXHAUST ZONE button.

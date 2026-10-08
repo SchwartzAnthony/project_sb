@@ -1,6 +1,8 @@
 class_name MatchCoach
 extends Node
 
+const PLAYER_CARD: PackedScene = preload("res://src/ui/player_card_ui.tscn")
+
 # =============================================================
 #  THE HEAD COACH IN THE MATCH  (round AN - the tutorial, Anthony 7 Oct)
 #
@@ -231,6 +233,15 @@ func _do(text: String) -> void:
 				var eq := value.find("=")
 				if eq > 0:
 					change_class(value.substr(0, eq).strip_edges(), value.substr(eq + 1).strip_edges())
+			"show_card":
+				var at_card := value.find("=")
+				if at_card > 0:
+					var scene_words := value.substr(at_card + 1).strip_edges()
+					var gold := ""
+					if scene_words.contains("@"):
+						gold = scene_words.get_slice("@", 1).strip_edges()
+						scene_words = scene_words.get_slice("@", 0).strip_edges()
+					await show_card(value.substr(0, at_card).strip_edges(), scene_words, gold)
 			"inspire":
 				var at := value.find("=")
 				if at > 0:
@@ -272,6 +283,137 @@ func time_out(scene: String) -> void:
 	if parked != null:
 		tree.set_meta(DialogueView.META_RETURN, parked)
 	print("[match talk] Back from the TIME OUT - the match carries on.")
+
+
+## ============ HIS NEW CARD ============
+##
+## `show_card:Koch=tut-koch-new-card` (Anthony, 8 Oct) - the match stays
+## frozen and his card, the same one you pick on the field, comes up big
+## over the pub, with his attack and defend abilities spelled out beside it.
+## Then the scene's lines play. After an @ comes the gold, one group per
+## line with | between them, the way MatchTalk.csv Highlight works:
+## card, abilities, attack, defend, or - for nothing.
+##   show_card:Koch=tut-koch-new-card@abilities|-|-
+func show_card(name_text: String, scene: String, gold: String = "card") -> void:
+	var unit := _my_unit_called(name_text)
+	if unit == null or unit.data == null:
+		push_warning("[match talk] show_card:%s - nobody of that name is playing for you." % name_text)
+		return
+	var tree := get_tree()
+	var db := CardDatabase.get_db()
+	var data := unit.data
+	var layer := CanvasLayer.new()
+	layer.name = "NewCard"
+	layer.layer = 145
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	main.add_child(layer)
+	var was_paused := tree.paused
+	tree.paused = true
+
+	var root := Control.new()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.add_child(root)
+	if not StoryArt.add_backdrop(root, db.tune_text("show_card_backdrop", "bar"), 0.6):
+		var black := ColorRect.new()
+		black.color = Color(0, 0, 0, 0.8)
+		black.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		root.add_child(black)
+
+	var screen := root.get_viewport_rect().size
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 70)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(row)
+
+	# The field card, bigger.
+	var grow := db.tune_float("show_card_scale", 1.8)
+	var holder := Control.new()
+	holder.custom_minimum_size = PlayerCardUI.card_size() * grow
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(holder)
+	var card := PLAYER_CARD.instantiate() as PlayerCardUI
+	holder.add_child(card)
+	card.setup_card(data)
+	card.scale = Vector2(grow, grow)
+
+	# Beside it, the two abilities.
+	var side := VBoxContainer.new()
+	side.add_theme_constant_override("separation", 18)
+	side.alignment = BoxContainer.ALIGNMENT_CENTER
+	side.custom_minimum_size = Vector2(520, 0)
+	side.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(side)
+	side.add_child(MenuSupport.heading("%s %s" % [data.unit_type.to_upper(), data.player_name.to_upper()], 30, MenuSupport.COLOUR_ACCENT))
+	var attack_box := _ability_box(side, "WHEN HE ATTACKS", data.active_attack_ability())
+	var defend_box := _ability_box(side, "WHEN HE DEFENDS", data.active_defend_ability())
+
+	# Middle of the screen, above the coach's box along the bottom.
+	await tree.process_frame
+	var used := row.get_combined_minimum_size()
+	row.position = Vector2((screen.x - used.x) * 0.5, maxf(20.0, (screen.y - 260.0 - used.y) * 0.5))
+	await tree.process_frame
+
+	var groups: Array = []
+	for part in gold.split("|"):
+		var group: Array = []
+		for word in String(part).split(";", false):
+			var spots: Array = []
+			match String(word).strip_edges().to_lower():
+				"card": spots = [holder]
+				"abilities": spots = [attack_box, defend_box]
+				"attack": spots = [attack_box]
+				"defend": spots = [defend_box]
+			for control in spots:
+				group.append({"rect": (control as Control).get_global_rect(), "ring": false})
+		groups.append(group)
+	print("[match talk] %s's new card is up: '%s'." % [data.player_name, scene])
+	var box := MatchTalkBox.play(main, scene, main.get("state"), true, groups)
+	if box != null:
+		main.set("_talk_box", box)
+		await box.finished
+	tree.paused = was_paused
+	layer.queue_free()
+
+
+func _ability_box(host: Control, title: String, ability_id: String) -> Control:
+	var panel := PanelContainer.new()
+	panel.add_theme_stylebox_override("panel",
+		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(panel)
+	var inner := VBoxContainer.new()
+	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(inner)
+	inner.add_child(MenuSupport.heading(title, 16, MenuSupport.COLOUR_TEXT_DIM))
+	var db := CardDatabase.get_db()
+	var ability := db.get_ability(ability_id) if ability_id.strip_edges() != "" else null
+	if ability == null:
+		inner.add_child(MenuSupport.heading("No ability", 22))
+		return panel
+	inner.add_child(MenuSupport.heading(ability.display_name, 24, MenuSupport.COLOUR_ACCENT))
+	var line := Label.new()
+	line.text = _ability_words(ability, db)
+	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	line.custom_minimum_size = Vector2(480, 0)
+	line.add_theme_font_size_override("font_size", 20)
+	inner.add_child(line)
+	return panel
+
+
+## His ability in a sentence for the new card. The keeper ones read the way
+## the Head Coach says them; anything else falls back to the card popup's words.
+func _ability_words(ability: AbilityData, db: CardDatabase) -> String:
+	match CardDatabase._normalise(ability.effect):
+		"drainstamina":
+			return "Their keeper loses %d stamina." % ability.value
+		"restorestamina":
+			return "Your keeper gets %d stamina back." % ability.value
+	var words := CardPopup.new()
+	words.db = db
+	var text := words._plain_english(ability)
+	words.free()
+	return text
 
 
 func _my_unit_called(name_text: String) -> PlayerUnit:

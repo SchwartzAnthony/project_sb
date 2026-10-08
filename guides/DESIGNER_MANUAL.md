@@ -3207,6 +3207,7 @@ moment, with the same score, clock and exhaust. Then the row's **Do** runs:
 | `ability:Koch=TUT_KOCH_BEER` | Beer Courage: +1 power for each normal player of yours who played before him that round |
 | `class:Koch=Bergmännlein` | he becomes that class: element, sprite and card |
 | `ability:Koch=TUT_KOCH_EARTH/TUT_KOCH_EARTH_DEF` | Earth Courage, attack side / defend side: 5 stamina off the enemy keeper when he attacks, 3 when he defends (Anthony, 8 Oct) |
+| `show_card:Koch=tut-koch-new-card@abilities\|-\|-` | the match stays frozen and his field card comes up big over the pub, his attack and defend abilities beside it; then that Dialogue.csv scene plays. After `@`, the gold per line (`card`, `abilities`, `attack`, `defend`, `-`), `\|` between lines. `Tuning.csv show_card_scale` (1.8) and `show_card_backdrop` (bar) |
 | `inspire:Koch=75` | his inspiration in % on the drunk meter (`DrunkLevels.csv`): 75 after cycle 1 (past Inspired, so his star ability wakes up), 90 after cycle 2 |
 
 **The EXHAUST ZONE button** (bottom right of every match, `Tuning.csv

@@ -51,6 +51,9 @@ func test_time_outs_after_cycle_one_and_two() -> void:
 	assert_string_contains(second, "pub:tut-timeout-cursed")
 	assert_string_contains(second, "class:Koch=Bergmännlein")
 	assert_string_contains(second, "ability:Koch=TUT_KOCH_EARTH/TUT_KOCH_EARTH_DEF")
+	# Then his new card comes up with its abilities lit (Anthony, 8 Oct).
+	assert_string_contains(second, "show_card:Koch=tut-koch-new-card")
+	assert_not_null(DialogueDB.get_db().opening_line("tut-koch-new-card", null))
 	assert_string_contains(second, "keep_star")
 	# After cycle 3 he is swapped as usual.
 	assert_true(MatchTalk.row_for("star_switch", "tutorial", null, {"round": "9"}).is_empty())
