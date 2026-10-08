@@ -1,34 +1,31 @@
 extends SceneTree
 
 # =============================================================
-#  PICTURES OF MATCH PLAYERS, ADVENTURE PLAYERS AND BREWERS  (round AN)
+#  PICTURES OF A LOCKED ROLE AND QUEREINSTEIGER  (round AN)
 #
 #      godot --rendering-driver opengl3 --resolution 1920x1080 \
-#          --script res://tools/roles_shot.gd
+#          --script res://tools/quereinsteiger_shot.gd
 #
 #  Runs inside the TEST ENVIRONMENT, so your real save is never touched.
-#  Signs two untrained players, an Adventure Player and a Brewer, then:
-#      roles_training_1..3.png   the Training Ground before and after two
-#                                players are trained (the frames of the GIF)
-#      roles_builder.png         the team builder on an Adventure Team
-#      roles_pick_adventure.png  the team shelf before an Adventure run
+#  Signs an untrained player, a Match Player, an Adventure Player and a
+#  Brewer, then:
+#      quereinsteiger_1.png   the Training Ground, roles locked
+#      quereinsteiger_2.png   Quereinsteiger unlocked: Retrain buttons
+#      quereinsteiger_3.png   Wastl retrained from Adventure to Match
 #  into the user:// folder.
 # =============================================================
-
-var _n := 0
 
 
 func _initialize() -> void:
 	await process_frame
 	TestEnvironment.enter(self)
-	var db := CardDatabase.get_db()
 	var state := GameState.fetch(self)
 	state.set_count("coins", 500)
+	# The test environment grants everything; take Quereinsteiger back for the first picture.
+	state.unlocks.erase(state._key("Quereinsteiger"))
 
-	for who in [["Loisl", "I", 1, "m", "new"], ["Resi", "II", 2, "f", "new"],
-			["Wastl", "III", 3, "m", "adventure"], ["Kathi", "I", 0, "f", "adventure"],
-			["Girgl", "II", 1, "m", "adventure"], ["Vevi", "IV", 2, "f", "adventure"],
-			["Hias", "II", 3, "m", "new"]]:
+	for who in [["Loisl", "I", 1, "m", "new"], ["Wastl", "III", 3, "m", "adventure"],
+			["Kathi", "II", 2, "f", "match"], ["Hias", "II", 3, "m", "new"]]:
 		RecruitBook.enlist(String(who[0]), String(who[1]), int(who[2]), String(who[3]), state,
 			"", String(who[4]))
 	BaseRooms.train_brewer("Hias", state)
@@ -50,48 +47,24 @@ func _initialize() -> void:
 		if child is NewUnlocksPanel:
 			child.queue_free()
 
-	# ---- the Training Ground: before, Loisl to Adventure, Resi to Match ----
 	var window := BaseWindow.open(base, base._window_title("training"), ScenePaths.for_name("training"))
 	await _settle(window)
-	await _shot("roles_training_1")
-	for step in [["Loisl", "Adventure"], ["Resi", "Match"]]:
-		var button := _button_in_row(window, String(step[0]), String(step[1]))
-		if button != null:
-			button.pressed.emit()
-		await _settle(window)
-		_n += 1
-		await _shot("roles_training_%d" % (_n + 1))
+	await _shot("quereinsteiger_1")
 	window.close()
 	await create_timer(0.3, true, false, true).timeout
 
-	# ---- an Adventure Team in the builder ----
-	var book := TeamRoster.load_all()
-	var klass := db.tune_text("recruit_plain_class", "Normal")
-	var stars := db.stars_for_class(klass)
-	var entry := TeamRoster.blank(klass, stars[0].get_tier_clean() if not stars.is_empty() else "IV", "adventure")
-	entry["name"] = "Die Wanderer"
-	book.put(entry)
-	book.save()
-	TeamBuilderHandoff.edit(self, String(entry["id"]))
-	change_scene_to_file(ScenePaths.TEAM_BUILDER)
-	for i in 30:
-		await process_frame
-	await create_timer(0.8, true, false, true).timeout
-	# Save it, so the shelf has it.
-	current_scene._save_team()
-	await _shot("roles_builder")
-
-	# ---- the shelf before an Adventure run ----
-	for mode in [["adventure", "roles_pick_adventure"]]:
-		MatchMode.choose(self, String(mode[0]))
-		change_scene_to_file(ScenePaths.TEAM_SELECT)
-		for i in 30:
-			await process_frame
-		await create_timer(0.6, true, false, true).timeout
-		await _shot(String(mode[1]))
+	state.unlock("Quereinsteiger")
+	window = BaseWindow.open(base, base._window_title("training"), ScenePaths.for_name("training"))
+	await _settle(window)
+	await _shot("quereinsteiger_2")
+	var button := _button_in_row(window, "Wastl", "Retrain: Match")
+	if button != null:
+		button.pressed.emit()
+	await _settle(window)
+	await _shot("quereinsteiger_3")
+	window.close()
 
 	print("[shot] pictures in %s" % ProjectSettings.globalize_path("user://"))
-	MatchMode.clear(self)
 	TestEnvironment.leave(self)
 	quit(0)
 

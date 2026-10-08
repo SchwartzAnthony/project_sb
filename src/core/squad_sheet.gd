@@ -106,7 +106,10 @@ static func selection_from(file_name: String, db: CardDatabase,
 					"%s|%s|%s" % [name_text, gender, look])
 				# ...and they join your base, until you let them go.
 				if card.unit_type.to_lower() == db.tune_text("recruit_plain_class", "Normal").to_lower():
-					RecruitBook.enlist(name_text, tier, card.base_power_left, gender, state, look)
+					# ROUND AN: the Role column (StartingTeam.csv) says whether he
+					# arrives as a Match or an Adventure Player. Blank = starting_team_role.
+					RecruitBook.enlist(name_text, tier, card.base_power_left, gender, state, look,
+						MenuSupport.field(row, "Role").strip_edges().to_lower())
 		used_names.append(name_text)
 		card.player_name = name_text
 

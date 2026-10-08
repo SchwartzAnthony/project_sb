@@ -122,8 +122,9 @@ static func _load() -> void:
 			"currency": MenuSupport.field(row, "Currency").strip_edges(),
 			"effect": effect,
 		})
-		# A BREWER training has no Effect: making the brewer IS the effect.
-		if effect == "" and _training[-1]["kind"] != "brewer":
+		# A ROLE training (brewer, match_player, adventure_player, retrain) has
+		# no Effect: giving the player his role IS the effect.
+		if effect == "" and not _training[-1]["kind"] in ["brewer", "match_player", "adventure_player", "retrain"]:
 			_problems.append("Training '%s' has an empty Effect — it can be bought and then does nothing." % id_text)
 		for complaint in DialogueGrammar.complaints(effect, true):
 			_problems.append("Training '%s': %s" % [id_text, complaint])
@@ -411,6 +412,9 @@ static func train_brewer(name_text: String, state: GameState) -> Dictionary:
 		return {"ok": false, "why": "%s is not one of your players" % name_text}
 	if BrewerBook.is_brewer(name_text, state):
 		return {"ok": false, "why": "%s is a brewer already" % name_text}
+	# A Match or Adventure Player is locked in his role: only retraining moves him.
+	if PlayerRoles.locked(name_text, state, CardDatabase.get_db()):
+		return train_role(name_text, PlayerRoles.BREWER, state)
 	if not DialogueGrammar.test(String(entry["needs"]), state):
 		return {"ok": false, "why": DialogueGrammar.describe(String(entry["needs"]))}
 	var spent := _spend(int(entry["cost"]), String(entry["currency"]), state)
@@ -424,25 +428,48 @@ static func train_brewer(name_text: String, state: GameState) -> Dictionary:
 
 ## Train one of your players for a role: match, adventure or brewer
 ## (player_roles.gd). Returns {"ok", "why"}.
+##
+## An untrained player pays the role's own price. A player who already has a
+## role is locked in it (role_lock) until Quereinsteiger opens, and then pays
+## the retrain row's fee instead (Training.csv Kind = retrain).
 static func train_role(name_text: String, role_text: String, state: GameState) -> Dictionary:
 	if state == null:
 		return {"ok": false, "why": "no save"}
-	if role_text == PlayerRoles.BREWER:
-		return train_brewer(name_text, state)
+	var db := CardDatabase.get_db()
+	if not RecruitBook.is_recruit(name_text, state):
+		return {"ok": false, "why": "%s is not one of your players" % name_text}
+	var mine := PlayerRoles.role(name_text, state, db)
+	if not PlayerRoles.locked(name_text, state, db):
+		if role_text == PlayerRoles.BREWER:
+			return train_brewer(name_text, state)
+		if mine == PlayerRoles.BREWER:
+			return {"ok": false, "why": "%s is a brewer and will not play again" % name_text}
+	if mine == role_text:
+		return {"ok": false, "why": "%s is a %s already" % [name_text, PlayerRoles.label(role_text)]}
 	var entry := PlayerRoles.training_row(role_text)
 	if entry.is_empty():
 		return {"ok": false, "why": "Training.csv has no row with Kind = %s" % PlayerRoles.KIND_OF.get(role_text, role_text)}
-	if not RecruitBook.is_recruit(name_text, state):
-		return {"ok": false, "why": "%s is not one of your players" % name_text}
-	if BrewerBook.is_brewer(name_text, state):
-		return {"ok": false, "why": "%s is a brewer and will not play again" % name_text}
-	if PlayerRoles.role(name_text, state, CardDatabase.get_db()) == role_text:
-		return {"ok": false, "why": "%s is a %s already" % [name_text, PlayerRoles.label(role_text)]}
 	if not DialogueGrammar.test(String(entry["needs"]), state):
 		return {"ok": false, "why": DialogueGrammar.describe(String(entry["needs"]))}
-	var spent := _spend(int(entry["cost"]), String(entry["currency"]), state)
+	var price := entry
+	if PlayerRoles.locked(name_text, state, db):
+		price = PlayerRoles.retrain_row()
+		if price.is_empty():
+			return {"ok": false, "why": "%s is a %s for good" % [name_text, PlayerRoles.label(mine)]}
+		if not DialogueGrammar.test(String(price["needs"]), state):
+			return {"ok": false, "why": "%s is a %s until you unlock %s" % [
+				name_text, PlayerRoles.label(mine), price["name"]]}
+	var spent := _spend(int(price["cost"]), String(price["currency"]), state)
 	if spent != "":
 		return {"ok": false, "why": spent}
+	if mine == PlayerRoles.BREWER:
+		BrewerBook.unmake(name_text, state)
+	if role_text == PlayerRoles.BREWER:
+		BrewerBook.make(name_text, state)
+		PlayerRoles.set_role(name_text, PlayerRoles.NEW, state)
+		var eff := BrewerBook.efficiency(name_text, state)
+		return {"ok": true, "why": "%s is a brewer now: efficiency %d, %d%% at a machine." % [
+			name_text, eff, BrewerBook.success_for(eff)]}
 	PlayerRoles.set_role(name_text, role_text, state)
 	print("[roles] %s is a %s now." % [name_text, PlayerRoles.label(role_text)])
 	return {"ok": true, "why": "%s is a %s now: only %ss take him." % [

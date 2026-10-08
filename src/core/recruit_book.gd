@@ -156,7 +156,7 @@ static func enlist(name_text: String, tier: String, power: int, gender: String,
 	state.set_text(PREFIX + CardDatabase._normalise(name_text), "%s|%d|%s|%s" % [tier, power, gender, look])
 	NameBook.hold(name_text, state)
 	SquadBook.sign(name_text, state)
-	# ROUND AN: the starting team are Match Players (starting_team_role).
+	# ROUND AN: the starting team's Role column, else starting_team_role.
 	if role != "":
 		PlayerRoles.set_role(name_text, role, state)
 	else:

@@ -31,7 +31,7 @@ func _initialize() -> void:
 
 	# ---- two brewers and a recruit who could be one ----
 	for who in [["Johanna", "I", 0, "f"], ["Sepp", "III", 3, "m"], ["Vroni", "II", 2, "f"]]:
-		RecruitBook.enlist(String(who[0]), String(who[1]), int(who[2]), String(who[3]), state)
+		RecruitBook.enlist(String(who[0]), String(who[1]), int(who[2]), String(who[3]), state, "", "new")
 	BaseRooms.train_brewer("Johanna", state)
 	BaseRooms.train_brewer("Sepp", state)
 	for id_text in (BreweryBook.section("malthouse")["takes"] as Dictionary).keys():

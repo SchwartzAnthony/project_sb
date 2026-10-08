@@ -1,13 +1,13 @@
-ID,Tier,Power,Name,Class,Gender,Artwork,Lead,Notes
-p1,I,0,,Normal,,,,"THE STARTING TEAM (round AN, Anthony 7 Oct): the base after the tutorial, or after saying No to it - a full team of random plain players and nothing else. Twelve rows, three per Tier, one of each Power on the ladder. Random names, made once per save. They are new people: nothing from the tutorial is kept (Anthony, 8 Oct). Tuning.csv starting_team names this file."
-p2,I,1,,Normal,,,,
-p3,I,2,,Normal,,,,
-p4,II,1,,Normal,,,,
-p5,II,2,,Normal,,,,
-p6,II,3,,Normal,,,,
-p7,III,2,,Normal,,,,
-p8,III,3,,Normal,,,,
-p9,III,4,,Normal,,,,
-p10,IV,3,,Normal,,,,
-p11,IV,4,,Normal,,,,
-p12,IV,5,,Normal,,,,
+ID,Tier,Power,Name,Class,Gender,Artwork,Lead,Role,Notes
+p1,I,0,,Normal,,,,match,"THE STARTING TEAM (round AN, Anthony 7 Oct): the base after the tutorial, or after saying No to it - a full team of random plain players and nothing else. Twelve rows, three per Tier, one of each Power on the ladder. Random names, made once per save. They are new people: nothing from the tutorial is kept (Anthony, 8 Oct). Tuning.csv starting_team names this file. ROLE (Anthony, 8 Oct: the starting team of a fresh game includes some Adventure players): match or adventure, what he arrives as. Blank = starting_team_role in Tuning.csv. Four Adventure Players, one per Tier, so the first Adventure Team can be built straight away."
+p2,I,1,,Normal,,,,adventure,
+p3,I,2,,Normal,,,,match,
+p4,II,1,,Normal,,,,match,
+p5,II,2,,Normal,,,,adventure,
+p6,II,3,,Normal,,,,match,
+p7,III,2,,Normal,,,,match,
+p8,III,3,,Normal,,,,adventure,
+p9,III,4,,Normal,,,,match,
+p10,IV,3,,Normal,,,,match,
+p11,IV,4,,Normal,,,,adventure,
+p12,IV,5,,Normal,,,,match,

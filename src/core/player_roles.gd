@@ -38,6 +38,18 @@ extends RefCounted
 #      starting_team_role   what the starting team arrives as (match)
 #      player_role_default  what a player from an older save, with no role
 #                           written down, counts as (match)
+#      role_lock            true = a role is for good until Quereinsteiger
+#
+#  ============ A ROLE IS FOR GOOD (Anthony, 8 Oct) ============
+#
+#  "Once you pick someone for a role that is stuck, until the player unlocks
+#   Quereinsteiger, which then will allow a player to put in a player unit
+#   and then retrain them for a high fee."
+#
+#  An untrained player is trained once, at the role's own price. After that
+#  his role is locked. The Training.csv row with Kind = retrain (Quereinsteiger)
+#  opens when its Needs are met (the Quereinsteiger achievement) and then
+#  retrains anybody, a Brewer too, into any other role for ITS Cost.
 #
 #  ============ WHERE IT LIVES ============
 #
@@ -191,3 +203,26 @@ static func offered() -> Array[String]:
 		if not training_row(r).is_empty():
 			out.append(r)
 	return out
+
+
+## The Training.csv row with Kind = retrain (Quereinsteiger), or {}.
+static func retrain_row() -> Dictionary:
+	for one in BaseRooms.training():
+		if String(one["kind"]) == "retrain":
+			return one
+	return {}
+
+
+## Is his role locked? True for anyone already trained (Match, Adventure or
+## Brewer) while role_lock is on. An untrained player is never locked.
+static func locked(name_text: String, state: GameState, db: CardDatabase) -> bool:
+	if db != null and not db.tune_bool("role_lock", true):
+		return false
+	var mine := role(name_text, state, db)
+	return mine != "" and mine != NEW
+
+
+## Is retraining open - the retrain row exists and its Needs are met?
+static func retrain_open(state: GameState) -> bool:
+	var entry := retrain_row()
+	return not entry.is_empty() and DialogueGrammar.test(String(entry["needs"]), state)

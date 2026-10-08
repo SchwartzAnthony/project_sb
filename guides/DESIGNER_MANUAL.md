@@ -4522,6 +4522,7 @@ could switch to.
 | Adventure Player | `adventure_player` | your **Adventure Teams** | 20 coins |
 | Brewer | `brewer` | no team, works the Brewery machines | 40 coins |
 | Not trained yet | | no team | |
+| *Retraining* | `retrain` (Quereinsteiger) | the new role | 200 coins |
 
 - **Two kinds of team.** A team is a Match Team or an Adventure Team. The
   button next to the team's name in the builder switches it. A Match Team
@@ -4531,11 +4532,28 @@ could switch to.
   run (MatchModes.csv `Scene` = adventure) shows only your Adventure Teams.
   CREATE TEAM from there makes the right kind.
 - **New players.** A player signed at the Club House arrives **untrained**
-  (`new_player_role`). The starting team and players signed on the Dev
-  screen arrive as Match Players (`starting_team_role`). A save made before
-  roles existed counts everybody as a Match Player (`player_role_default`).
-- A Brewer stays a Brewer. Switching between Match and Adventure costs the
-  row's price each time.
+  (`new_player_role`). The starting team's **Role** column in
+  `StartingTeam.csv` says what each starter arrives as: four Adventure
+  Players (the middle Power of each Tier) and eight Match Players, so a
+  fresh game can go on an Adventure straight away. A blank Role, and players
+  signed on the Dev screen, use `starting_team_role` (match). A save made
+  before roles existed counts everybody as a Match Player
+  (`player_role_default`).
+- **A role is for good** (`role_lock`). An untrained player is trained once,
+  at the role's price. After that his row says *Role locked* and has no
+  buttons.
+- **Quereinsteiger.** The Quereinsteiger achievement (`Achievements.csv`,
+  placeholder: play twenty matches) unlocks *Quereinsteiger*, which the
+  Training.csv row with `Kind` = `retrain` needs. Then the Training Ground
+  shows a QUEREINSTEIGER heading and every trained player gets *Retrain*
+  buttons into any other role, for that row's Cost (200 coins) instead of
+  the role's own price. A Brewer can take his apron off this way too.
+  `role_lock` = false switches freely at the role's price, as before.
+
+```
+Achievements.csv  quereinsteiger  ->  Unlocks: Quereinsteiger
+Training.csv      quereinsteiger  ->  Kind retrain, Needs unlocked:Quereinsteiger, 200 coins
+```
 - `player_roles` in `Tuning.csv` = false turns roles off: every team takes
   everybody, as before.
 

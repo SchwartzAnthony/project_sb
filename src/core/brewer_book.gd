@@ -150,6 +150,20 @@ static func make(name_text: String, state: GameState) -> bool:
 	return true
 
 
+## He takes the apron off again (Quereinsteiger retraining, round AN).
+## Called by BaseRooms.train_role(), which takes the money.
+static func unmake(name_text: String, state: GameState) -> void:
+	if state == null:
+		return
+	var wanted := CardDatabase._normalise(name_text)
+	var kept: Array[String] = []
+	for held in names(state):
+		if CardDatabase._normalise(held) != wanted:
+			kept.append(held)
+	state.set_text(KEY, "|".join(kept))
+	print("[brewers] %s takes the apron off." % name_text)
+
+
 ## The fittest brewer with the highest efficiency, or "" if nobody is free.
 static func pick(state: GameState) -> String:
 	var best := ""

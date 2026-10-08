@@ -484,7 +484,17 @@ func _fill_brewers() -> void:
 	var bits: PackedStringArray = []
 	for r in roles:
 		bits.append("%s %s" % [PlayerRoles.label(r), _role_price(r)])
-	_list.add_child(_small("Choose what each player works on: %s. A Match Player plays in your Match Teams, an Adventure Player in your Adventure Teams. A Brewer works the Brewery machines and never plays again - his power is his efficiency, his chance at a machine (Brewers.csv). New players arrive untrained." % ", ".join(bits)))
+	_list.add_child(_small("Choose what each player works on: %s. A Match Player plays in your Match Teams, an Adventure Player in your Adventure Teams. A Brewer works the Brewery machines - his power is his efficiency, his chance at a machine (Brewers.csv). New players arrive untrained." % ", ".join(bits)))
+	# ROUND AN: a role is for good, until Quereinsteiger retrains him.
+	var retrain := PlayerRoles.retrain_row()
+	var lock_on := db.tune_bool("role_lock", true)
+	if lock_on and not retrain.is_empty():
+		if PlayerRoles.retrain_open(state):
+			_list.add_child(MenuSupport.heading(String(retrain["name"]).to_upper(), 15, MenuSupport.COLOUR_ACCENT))
+			_list.add_child(_small("Put any trained player in and retrain him for a new role: %s each." % _price_of(retrain)))
+		else:
+			_list.add_child(_small("A role is for good. Once %s is unlocked, a trained player can be retrained for %s." % [
+				retrain["name"], _price_of(retrain)]))
 
 	# Untrained first: they are the ones waiting for you.
 	var order: Array[String] = []
@@ -511,22 +521,31 @@ func _fill_brewers() -> void:
 			note = "Plays in your %ss." % PlayerRoles.team_label(mine)
 		if left > 0:
 			note += "  Resting in the Dorms - %d fixture(s) to go." % left
+		var locked := PlayerRoles.locked(name_text, state, db)
+		if locked and not PlayerRoles.retrain_open(state):
+			note += "  Role locked."
 		words.add_child(_small(note))
-		if mine == PlayerRoles.BREWER:
+		if locked and not PlayerRoles.retrain_open(state):
 			continue
+		if mine == PlayerRoles.BREWER and not locked:
+			continue
+		var short := {"match": "Match", "adventure": "Adventure", "brewer": "Brewer"}
 		for r in roles:
 			if r == mine:
 				continue
 			var entry := PlayerRoles.training_row(r)
-			var short := {"match": "Match", "adventure": "Adventure", "brewer": "Brewer"}
-			line.add_child(_buy_button("%s · %s" % [short.get(r, r), _role_price(r)],
-				_can_pay(int(entry["cost"]), String(entry["currency"]))
+			var pay := retrain if locked else entry
+			line.add_child(_buy_button("%s%s · %s" % ["Retrain: " if locked else "", short.get(r, r), _price_of(pay)],
+				_can_pay(int(pay["cost"]), String(pay["currency"]))
 					and DialogueGrammar.test(String(entry["needs"]), state),
 				_train_role.bind(name_text, r)))
 
 
 func _role_price(role_text: String) -> String:
-	var entry := PlayerRoles.training_row(role_text)
+	return _price_of(PlayerRoles.training_row(role_text))
+
+
+func _price_of(entry: Dictionary) -> String:
 	if entry.is_empty() or int(entry["cost"]) <= 0:
 		return "free"
 	return "%d %s" % [int(entry["cost"]), entry["currency"]]

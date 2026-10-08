@@ -137,7 +137,7 @@ func test_the_second_vat_achievement_no_longer_gives_the_vat_away() -> void:
 
 func _a_recruit(power: int) -> String:
 	var name_text := "Brauer%d" % power
-	RecruitBook.enlist(name_text, "I", power, "m", state)
+	RecruitBook.enlist(name_text, "I", power, "m", state, "", "new")
 	return name_text
 
 
