@@ -6869,13 +6869,13 @@ which every screen and the match pass through:
 window in the same frame as every other box, with one button per row of
 `data/MatchMaker.csv`.
 
+A match is counted in **Play Maker cycles**, 30 minutes of clock each.
+
 | Button | Plays | Length |
 |---|---|---|
 | **Normal Match** | `friendly` | 3 cycles, 90 minutes, three Stars (what the flag always played) |
 | **Test Match** | `friendly_test` | 2 cycles, 60 minutes, one Star swap |
 | **Quick Match** | `friendly_cycle` | 1 cycle of 3 rounds, 30 minutes, one Star |
-A match is counted in **Play Maker cycles**, 30 minutes of clock each.
-
 
 `MatchMaker.csv` columns: **Words** (the button), **Icon** (`art|glyph`: an
 icon file in `assets/icons/`, and the characters shown until it exists),
