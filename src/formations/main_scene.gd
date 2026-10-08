@@ -4499,7 +4499,7 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 	if item_id == "" or state.count(item_id) <= 0:
 		return
 
-	var brew_id := AdventureDB.brew_in_use(entry)
+	var brew_id := AdventureDB.brew_in_use(entry, state)
 	if brew_id == "":
 		announce("%s cannot be used on a player." % entry.get("name", "That"), 1.5)
 		return
@@ -4537,8 +4537,15 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 	state.save_to_disk()
 
 	_redraw_offered_cards()
-	announce("%s drinks %s." % [NamePlate.short_name(card),
-		brew.get("name", "it")], 1.6)
+	# ROUND AN - PLAIN BEER: the lucky dip says what came out of the bottle.
+	var luck := ""
+	if String(brew.get("pool", "")) != "":
+		var good := db.get_ability(String(brew.get("attack", "")))
+		var bad := db.get_ability(String(brew.get("defend", "")))
+		if good != null and bad != null:
+			luck = "  ATTACK: %s.  DEFEND: %s." % [good.describe(), bad.describe()]
+	announce("%s drinks %s.%s" % [NamePlate.short_name(card),
+		brew.get("name", "it"), luck], 1.6 if luck == "" else 3.0)
 	print("[brew] %s used on %s mid-draft. %d left." % [
 		entry.get("name", item_id), card.player_name, state.count(item_id)])
 

@@ -3215,6 +3215,7 @@ moment, with the same score, clock and exhaust. Then the row's **Do** runs:
 | `ability:Koch=TUT_KOCH_EARTH/TUT_KOCH_EARTH_DEF` | Earth Courage, attack side / defend side: 5 stamina off the enemy keeper when he attacks, 3 when he defends (Anthony, 8 Oct) |
 | `show_card:Koch=tut-koch-new-card@abilities\|-\|-` | the match stays frozen and his field card comes up big over the pub, his attack and defend abilities beside it; then that Dialogue.csv scene plays. After `@`, the gold per line (`card`, `abilities`, `attack`, `defend`, `-`), `\|` between lines. `Tuning.csv show_card_scale` (1.8) and `show_card_backdrop` (bar) |
 | `inspire:Koch=75` | his inspiration in % on the drunk meter (`DrunkLevels.csv`): 75 after cycle 1 (past Inspired, so his star ability wakes up), 90 after cycle 2 |
+| `brewery:tut_brewery` | a TIME OUT at the Brewery (round AN): the match freezes, that flag is set and the Brewery opens over it; `Guide.csv` rows that need the flag lead the way, and one whose Then is `goto:back` ends it. See "The tutorial Brewery" |
 
 **The EXHAUST ZONE button** (bottom right of every match, `Tuning.csv
 exhaust_button`) says how many of your cards are spent this cycle. Press it
@@ -3272,8 +3273,9 @@ moment, then carries on to wherever the scene was returning to: the base.
 | **Requires** | The usual condition language. |
 | **Scene** | A `Dialogue.csv` scene, shown in the box over the screen. The lines are placeholders for now. |
 | **Highlight** | The words on a button to light up after the box, such as `WORK IT` or `Adventure`. It pulses until it is pressed. |
-| **Then** | Progression Do actions after the box. `goto:base` closes a window that is open over the base. |
+| **Then** | Progression Do actions after the box. They run **before** the button lights up (round AN), so a key or stock handed over here makes the machine ready to work. `goto:base` closes a window that is open over the base. `goto:back` closes the screen itself, including the Brewery over a match TIME OUT. |
 | **Once** | `true` plays it only once. |
+| **Only** | `true` (round AN): nothing but the lit button can be used until it is pressed, so the tutorial can't be clicked through. In the Brewery only the lit machine works, and its mini-game can't be lost. |
 
 The pictures come from `StoryArt.csv` IDs named in `Tuning.csv`.
 `brewery_background` (`brewery`) sits behind the Brewery screen, the same
@@ -4655,7 +4657,7 @@ which is the order I would take anything of this shape:
 > pictures. If six bottles from a barrel is the wrong number, no amount of
 > drawing the Bottler fixes it, and you will have drawn him twice.
 
-The five brewing mini-games are still to come, and they change nothing here:
+The brewing mini-games arrived in round AN (below, "The brewing mini-games"), and they change nothing here:
 a mini-game decides how **well** a section runs; this decides what it costs
 and what it gives.
 
@@ -4758,6 +4760,97 @@ Fermenting Vat and Bottling Machine. Each picture is the **Art** column
 (`assets/brewery/brewery_<id>.png`, PixelLab, layered in
 `art_source/aseprite/brewery/`). Their size is `Tuning.csv
 brewery_machine_size`. A section with no picture falls back to the old panel.
+
+### The brewing mini-games (round AN)
+
+> *"They are extremely simple, just 1-2 actions, like hitting the right
+> temperature is a bar that goes back and forth having to hit the right spot
+> to heat up, think of very simple flash games that take 5-15 seconds to
+> complete."*
+
+Clicking a machine opens its game. **Win it and the batch is made; lose it
+and the batch is spoiled** (what it took is gone, nothing is made).
+
+| Machine | Game | What you do |
+|---|---|---|
+| Steeping Tank | hold | hold to let the water in, let go in the gold |
+| Grain Mill | mash | click as fast as you can to turn the crank |
+| Lauter Tun | bar | click when the marker is in the gold |
+| Brew Kettle | bar | hit the right temperature twice |
+| Fermenting Vat | hold | hold to cool, let go in the cold gold |
+| Bottling Machine | bar | stop three bottles under the tap |
+
+**The brewer's training is the gold.** His success % (`Brewers.csv`) shrinks
+it: a 100% brewer gets the whole Zone, a 55% one a little over half, nobody at
+all (40%) a sliver. A mash game needs more clicks the less trained he is. So
+an untrained hand fails more, which is your rule.
+
+`data/BreweryGames.csv`, one row per machine:
+
+| column | |
+|---|---|
+| `Section` | the BrewerySections.csv ID |
+| `Kind` | `bar`, `hold` or `mash` |
+| `Seconds` | the time limit |
+| `Zone` | how wide the gold is for a 100% brewer (0.15 = 15% of the bar) |
+| `Speed` | bar: sweeps a second. hold: bar filled per second held. mash: meter lost per second |
+| `Hits` | bar: gold hits in a row. mash: clicks to fill the meter |
+| `Prompt` | the one line telling you what to do |
+
+No row = no game (the batch is rolled on the brewer's % as before).
+`Tuning.csv brewery_minigames` false turns them all off. The game fires the
+sound events `brew_game_hit`, `brew_game_won` and `brew_game_lost` for
+`Audio.csv`.
+
+### Plain beer (round AN)
+
+> *"Plain beer gives random abilities that have one positive and then the
+> opposite being negative."*
+
+- **The Bottling Machine fills Plain Beer.** `BreweryResources.csv` has a new
+  `Counter` column: the bottle's is `plain_beer`, so the number in the
+  Brewery's window and the bag are the same thing (`Items.csv plain_beer`).
+- **It's a lucky dip.** Its Use is `brew:pool:plain`: every bottle picks one
+  `Brews.csv` row whose new **Pool** column is `plain` (and whose Requires
+  passes). Each row is a good **attack** side and its bad opposite on the
+  **defend** side:
+
+| Brews.csv row | Attack | Defend |
+|---|---|---|
+| `plain_goalie` | 1 stamina off the enemy keeper | 1 stamina off your own keeper |
+| `plain_power` | +1 power | -1 power |
+| `plain_keeper` | 1 stamina back to your keeper | 1 stamina back to theirs |
+
+- **Pool rows are never poured at the Pub**, only drunk from the bag.
+- **A plain beer takes hold however sober he is** (it takes less to get the
+  ability, and it fills the meter only 10%).
+- **In the tutorial only `plain_goalie` comes up**: the others need
+  `!flag:in_tutorial`.
+- Add a pair: an attack and a defend row in `Abilities.csv`, and a
+  `Brews.csv` row with Pool `plain`.
+
+### The tutorial Brewery (round AN)
+
+In cycle 2 round 2 of the tutorial match the beer is gone and the Head Coach
+calls a TIME OUT at the Brewery. **`MatchTalk.csv` Do `brewery:tut_brewery`**
+freezes the match, sets `flag:tut_brewery` and opens the Brewery over it.
+Three `Guide.csv` rows lead the way, all `Only`:
+
+1. `tut_brewery_1`: Hanna explains brewers (a trained one rarely fails, an
+   untrained hand spoils batches). Then hands over the Steeping Tank and the
+   Bottling Machine with their keys, and the Steeping Tank lights up.
+2. `tut_brewery_2`: after the malt, Hanna skips the middle four machines and
+   hands over a barrel. The Bottling Machine lights up.
+3. `tut_brewery_3`: six plain beers in the bag. `goto:back` closes the
+   Brewery and the match carries on.
+
+In those steps the game is played with Hanna's hand on it
+(`Tuning.csv brewery_tour_chance` 85, `brewery_tour_worker` Hanna) and **a
+miss starts it again**: the tutorial can't be lost. Everything it hands over
+is in the tutorial's own save, so nothing is kept.
+
+**Checked by:** `tests/unit/test_brewery_games.gd`, and
+`tools/brewery_tour_shot.gd` presses the real buttons and plays both games.
 
 ### `data/BrewerySections.csv`
 

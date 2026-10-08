@@ -25,6 +25,7 @@ const PLAYER_CARD: PackedScene = preload("res://src/ui/player_card_ui.tscn")
 # =============================================================
 
 const DIALOGUE_SCENE := "res://src/ui/dialogue_view.tscn"
+const BREWERY_SCENE := "res://src/ui/brewery_screen.tscn"
 
 var main: Node
 var _busy := false
@@ -221,6 +222,8 @@ func _do(text: String) -> void:
 		match verb:
 			"pub":
 				await time_out(value)
+			"brewery":
+				await brewery_time_out(value)
 			"star":
 				make_star(value)
 			"ability":
@@ -285,6 +288,39 @@ func time_out(scene: String) -> void:
 	if parked != null:
 		tree.set_meta(DialogueView.META_RETURN, parked)
 	print("[match talk] Back from the TIME OUT - the match carries on.")
+
+
+## ============ TIME OUT AT THE BREWERY (round AN) ============
+##
+## `brewery:tut-brewery` - the match freezes and the whole screen becomes
+## the Brewery, with the flag in the value set so Guide.csv rows (Screen
+## brewery, Requires flag:tut-brewery) lead the way: the Brewer, the
+## machines, the mini-games. A Guide.csv row whose Then says goto:back ends
+## it; the flag is cleared and the match carries on from the same frame.
+func brewery_time_out(flag: String) -> void:
+	var tree := get_tree()
+	if not ResourceLoader.exists(BREWERY_SCENE):
+		return
+	var state := GameState.fetch(tree)
+	if state != null and flag != "":
+		state.set_flag(flag, true)
+	print("[match talk] TIME OUT at the Brewery - '%s'." % flag)
+	var layer := CanvasLayer.new()
+	layer.name = "BreweryTimeOut"
+	layer.layer = 140
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	main.add_child(layer)
+	var was_paused := tree.paused
+	tree.paused = true
+	var screen := (load(BREWERY_SCENE) as PackedScene).instantiate() as BreweryScreen
+	screen.in_match = true
+	layer.add_child(screen)
+	await screen.left
+	if state != null and flag != "":
+		state.set_flag(flag, false)
+	tree.paused = was_paused
+	layer.queue_free()
+	print("[match talk] Back from the Brewery - the match carries on.")
 
 
 ## ============ HIS NEW CARD ============

@@ -117,6 +117,10 @@ static func _load() -> void:
 			"kept": MenuSupport.field(row, "Kept").strip_edges().to_lower().begins_with("y"),
 			"start": maxi(0, MenuSupport.field_int(row, "Start", 0)),
 			"icon": MenuSupport.field(row, "Icon").strip_edges(),
+			# ROUND AN: the GameState counter it is kept in. Blank = res_<id>.
+			# A bag item's ID here makes the resource THAT item: the bottles
+			# the Bottling Machine fills are plain_beer in the bag.
+			"counter": MenuSupport.field(row, "Counter").strip_edges().to_lower(),
 		})
 
 	var section_ids: Dictionary = {}
@@ -287,7 +291,14 @@ static func section(id_text: String) -> Dictionary:
 ## The GameState counter a resource is kept in. `count:res_malt>=3` works as
 ## a condition anywhere in the game because of this one line.
 static func counter_for(id_text: String) -> String:
-	return COUNTER_PREFIX + id_text.to_lower()
+	# ROUND AN: BreweryResources.csv `Counter` names a different one - the
+	# bottle is the bag's plain_beer.
+	_load()
+	var key := id_text.to_lower()
+	for res in _resources:
+		if String(res["id"]) == key and String(res.get("counter", "")) != "":
+			return String(res["counter"])
+	return COUNTER_PREFIX + key
 
 
 static func stock(id_text: String, state: GameState) -> int:

@@ -38,24 +38,40 @@ extends Control
 #      SHORT       what you are missing, in words: "Germs 0/1"
 #      WORKING     the cellar. How many turns until the barrel comes out
 #
-#  ============ WHAT IT DOES NOT DO ============
+#  ============ THE MINI-GAMES (round AN) ============
 #
-#  The five brewing mini-games. A mini-game decides how WELL a section runs;
-#  BreweryBook decides what it costs and what it gives. Neither needs the
-#  other, and this screen will not change when they arrive — a mini-game will
-#  sit between pressing the button and the work being done.
+#  A mini-game sits between pressing a machine and the work being done
+#  (brewery_minigame.gd, data/BreweryGames.csv). Win it and the batch is
+#  made; lose it and it is spoiled. BreweryBook still decides what it costs
+#  and what it gives.
+#
+#  ============ IN THE MIDDLE OF A MATCH (round AN, the tutorial) ============
+#
+#  MatchTalk.csv Do `brewery:<flag>` opens this screen over the frozen match
+#  (match_coach.gd). Guide.csv rows lead the way; one whose `Only` is true
+#  lets nothing but the lit machine be worked, and its game cannot be lost
+#  (a miss starts it again). A Guide row's Then `goto:back` closes it, and
+#  `left` tells the match to carry on.
 # =============================================================
+
+## The screen is done (Guide.csv Then goto:back). Over a match, the match
+## carries on.
+signal left
 
 const SECTION_SIZE := Vector2(250.0, 172.0)
 const ART_DIRS: Array[String] = ["res://assets/brewery/", "res://assets/base/", "res://assets/"]
 
 var db: CardDatabase
 var state: GameState
+## true = opened over a frozen match: no Escape back to another screen.
+var in_match := false
 
 var _world: Control
 var _resource_row: HBoxContainer
 var _material_row: HBoxContainer
 var _status: Label
+## A mini-game is open: a second click on a machine waits.
+var _playing := false
 
 
 func _ready() -> void:
@@ -65,7 +81,9 @@ func _ready() -> void:
 	# the background, the Back button and Escape. See base_window.gd.
 	var windowed := MenuSupport.in_a_window(self)
 	if not windowed:
-		MenuEscape.install(self)
+		# Over a match there is nowhere for Escape to go back to.
+		if not in_match:
+			MenuEscape.install(self)
 		# A WINDOW SIZES THIS SCREEN ITSELF. Pinning it to the whole viewport
 		# from in here would fight the container it has been put in.
 		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -172,7 +190,8 @@ func _build_chrome() -> void:
 	back.offset_right = -30.0
 	back.offset_bottom = -22.0
 	# THE WINDOW HAS A ✕. Two ways out of one screen is one too many.
-	back.visible = not MenuSupport.in_a_window(self)
+	# Over a match TIME OUT there is no base to go back to: Hanna ends it.
+	back.visible = not MenuSupport.in_a_window(self) and not in_match
 	back.pressed.connect(func() -> void:
 		state.save_to_disk()
 		ScenePaths.go_back(get_tree(), ScenePaths.BASE))
@@ -453,6 +472,11 @@ func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: boo
 	elif not ready:
 		button.modulate = Color(0.75, 0.75, 0.75, 1.0)
 	button.pressed.connect(func() -> void:
+		# A Guide.csv row with Only = true: nothing but the lit machine.
+		var only := String(get_meta(Guide.ONLY_META, "")) if has_meta(Guide.ONLY_META) else ""
+		if only != "" and not String(section["name"]).to_lower().begins_with(only.to_lower()):
+			_say("Not yet - the %s first." % only, false)
+			return
 		if ready:
 			_work(id_text)
 		elif not open:
@@ -610,8 +634,41 @@ func _stock_tile(res: Dictionary) -> Control:
 # =============================================================
 
 func _work(section_id: String) -> void:
+	if _playing:
+		return
+	var cards := CardDatabase.get_db()
+	# ============ THE MINI-GAME (round AN) ============
+	# Win it and the batch is made, lose it and it is spoiled. The brewer's
+	# % sizes the gold. In a Guide.csv Only step (the tutorial) the game
+	# cannot be lost and the Brewer's own hand is on it.
+	var roll := -1
+	var game := BreweryMinigame.game_for(section_id)
+	var guided := has_meta(Guide.ONLY_META)
+	if not game.is_empty():
+		var crew := BrewerBook.chance_now(state, cards)
+		var chance := int(crew["chance"])
+		if guided:
+			chance = int(cards.tune_float("brewery_tour_chance", 85.0))
+		var section := BreweryBook.section(section_id)
+		_playing = true
+		var view := BreweryMinigame.open(self, game, chance,
+			String(section.get("name", section_id)), guided)
+		var won: bool = await view.finished
+		_playing = false
+		if not is_inside_tree():
+			return
+		roll = 0 if won else 101
+		if not won and not BrewerBook.on(cards):
+			# No brewers in this game: the mini-game alone spoils it.
+			BreweryBook.work(section_id, state, true)
+			_say("SPOILED. The batch went wrong and the ingredients are gone.", false)
+			state.save_to_disk()
+			_rebuild()
+			return
+	if guided:
+		remove_meta(Guide.ONLY_META)
 	# ROUND AN: a BREWER works it — see brewer_book.gd and data/Brewers.csv.
-	var result := BrewerBook.work(section_id, state, CardDatabase.get_db())
+	var result := BrewerBook.work(section_id, state, cards, roll)
 	if not bool(result["ok"]):
 		_say(String(result["why"]), false)
 		_rebuild()
@@ -622,6 +679,9 @@ func _work(section_id: String) -> void:
 	var who := String(result.get("brewer", ""))
 	var crew := ("%s (%d%%)" % [who, int(result["chance"])]) if who != "" \
 		else "Nobody free to brew it (%d%%)" % int(result.get("chance", 100))
+	if guided:
+		# The tutorial: the Brewer's own hand was on it.
+		crew = cards.tune_text("brewery_tour_worker", "Hanna")
 	var bed := ("  %s rests %d fixture(s) in the Dorms." % [who, int(result["rest"])]) \
 		if int(result.get("rest", 0)) > 0 else ""
 	if bool(result.get("spoiled", false)):
@@ -635,6 +695,16 @@ func _work(section_id: String) -> void:
 	state.save_to_disk()
 	_rebuild()
 	(func() -> void: Guide.check(self, "brewery", state)).call_deferred()
+
+
+## Redraw after something outside changed the stock (a Guide.csv Then).
+func refresh() -> void:
+	_rebuild()
+
+
+## Guide.csv Then `goto:back`: over a match, back to the match.
+func leave() -> void:
+	left.emit()
 
 
 func _say(words: String, good: bool) -> void:

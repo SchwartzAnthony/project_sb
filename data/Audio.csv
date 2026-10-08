@@ -66,3 +66,6 @@ visitor_heatwave,,,bav_visitor_heatwave,Effects,,-9,,,"BAVARIAN (Round AN, 8 Oct
 wagon_creak,,,bav_wagon,Effects,,-12,,,"BAVARIAN (Round AN, 8 Oct): bav_wagon.ogg, made by tools/make_bavarian_sfx.py - see data/SoundCredits.csv for what you hear. The old sound was 'wagon_creak' (still in assets/audio/; put it back in Sound to undo). ROUND AN. The Traveling Tavern's door sound: old timber creaking as the wagon's hatch swings open (Buildings.csv Door Sound). Ludo"
 drink_big,,,bav_drink,Effects,,-8,,,"BAVARIAN (Round AN). Not used by a screen yet - ready for the tutorial barrel-drinking window: beer glugging from a barrel, three gulps. Name drink_big in a Sound column."
 woods_birds,,,bav_birds,Effects,,-14,,,"BAVARIAN (Round AN). Not used by a screen yet - a blackbird, a great tit and a chaffinch, for the woods or the base. Name woods_birds in a Sound column."
+brew_game_hit,brew_game_hit,,bav_card_pick,Effects,,-10,,,"ROUND AN - THE BREWING MINI-GAMES (brewery_minigame.gd): a hit in the gold, or a click on the Mill. Reuses a Bavarian sound; swap Sound for your own."
+brew_game_won,brew_game_won,,bav_ability_success,Effects,,-6,,,"ROUND AN: a mini-game won, the batch is made."
+brew_game_lost,brew_game_lost,,bav_ability_fail,Effects,,-6,,,"ROUND AN: a mini-game missed (spoiled, or Again! in the tutorial)."

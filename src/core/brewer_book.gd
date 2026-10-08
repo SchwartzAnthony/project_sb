@@ -178,6 +178,17 @@ static func pick(state: GameState) -> String:
 	return best
 
 
+## Who would work a machine right now, and his % - before anything is spent.
+## The mini-game (brewery_minigame.gd) sizes its gold on this.
+##     {"brewer": name or "", "chance": %}
+static func chance_now(state: GameState, db: CardDatabase) -> Dictionary:
+	if not on(db):
+		return {"brewer": "", "chance": 100}
+	var who := pick(state)
+	return {"brewer": who,
+		"chance": success_for(efficiency(who, state)) if who != "" else success_alone()}
+
+
 # =============================================================
 #  A SHIFT AT A MACHINE
 # =============================================================

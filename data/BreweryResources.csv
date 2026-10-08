@@ -1,16 +1,16 @@
-ID,Name,Kind,Kept,Start,Icon,Notes
-wheat,Wheat,raw,no,10,res_wheat.png,"KIND says where it comes from. `raw` arrives from outside the brewery - a match reward, the Traveling Brewer, an adventure. `made` is produced by one of the six sections. `tool` is a piece of equipment."
-water,Water,raw,no,20,res_water.png,The one thing three different sections all want. Keep the Start high.
-germs,Germs,raw,no,5,res_germs.png,
-hops,Hops,raw,no,6,res_hops.png,
-yeast,Yeast,raw,no,4,res_yeast.png,
-hammer,Hammer,tool,yes,1,res_hammer.png,"KEPT = yes means it is NOT used up. You need to own one to work the Mill, and you still own it afterwards. That is the difference between equipment and an ingredient, and it is one cell."
-filter,Filter,tool,yes,1,res_filter.png,
-boiler,Boiler,tool,yes,1,res_boiler.png,
-element,Element,tool,yes,1,res_element.png,"The heat source. Kept, like the boiler - the Talent Tree is where a better one comes from."
-malt,Malt,made,no,0,res_malt.png,Made by the Malthouse.
-mash,Mash,made,no,0,res_mash.png,Made by the Mill.
-wort,Wort,made,no,0,res_wort.png,Made by Lautering.
-brew,Brew,made,no,0,res_brew.png,Made by Boiling & Hopping. This is the point of the whole map - everything before it is preparation and everything after it is storage.
-barrel,Barrel,made,no,0,res_barrel.png,Made by Cooling & Fermenting - and only after it has lagered.
-bottle,Bottle,made,no,0,res_bottle.png,"Made by Bottling & Filling, several from one barrel. A bottle is what the Pub pours."
+ID,Name,Kind,Kept,Start,Icon,Counter,Notes
+wheat,Wheat,raw,no,10,res_wheat.png,,"KIND says where it comes from. `raw` arrives from outside the brewery - a match reward, the Traveling Brewer, an adventure. `made` is produced by one of the six sections. `tool` is a piece of equipment."
+water,Water,raw,no,20,res_water.png,,The one thing three different sections all want. Keep the Start high.
+germs,Germs,raw,no,5,res_germs.png,,
+hops,Hops,raw,no,6,res_hops.png,,
+yeast,Yeast,raw,no,4,res_yeast.png,,
+hammer,Hammer,tool,yes,1,res_hammer.png,,"KEPT = yes means it is NOT used up. You need to own one to work the Mill, and you still own it afterwards. That is the difference between equipment and an ingredient, and it is one cell."
+filter,Filter,tool,yes,1,res_filter.png,,
+boiler,Boiler,tool,yes,1,res_boiler.png,,
+element,Element,tool,yes,1,res_element.png,,"The heat source. Kept, like the boiler - the Talent Tree is where a better one comes from."
+malt,Malt,made,no,0,res_malt.png,,Made by the Malthouse.
+mash,Mash,made,no,0,res_mash.png,,Made by the Mill.
+wort,Wort,made,no,0,res_wort.png,,Made by Lautering.
+brew,Brew,made,no,0,res_brew.png,,Made by Boiling & Hopping. This is the point of the whole map - everything before it is preparation and everything after it is storage.
+barrel,Barrel,made,no,0,res_barrel.png,,Made by Cooling & Fermenting - and only after it has lagered.
+bottle,Bottle,made,no,0,res_bottle.png,plain_beer,"ROUND AN: COUNTER = plain_beer, so every bottle the Bottling Machine fills is a Plain Beer in the bag (Items.csv plain_beer) - the same number in the Brewery's window and the bag. Plain beer gives a random good-and-bad ability pair (Brews.csv Pool plain). COUNTER blank = the resource is kept in res_<ID>, as before. Made by Bottling & Filling, several from one barrel. A bottle is what the Pub pours."

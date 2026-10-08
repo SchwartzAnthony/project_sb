@@ -165,6 +165,11 @@ func _load_csv(path: String) -> void:
 			# ============ THE DRUNK METER (round AN) ============
 			# How much of the meter one pour fills, in %. See drunk_book.gd.
 			"inspiration": maxi(0, int(_cell(row, columns, "inspiration"))) if _cell(row, columns, "inspiration").is_valid_int() else 0,
+			# ============ A POOL (round AN, plain beer) ============
+			# A word here puts the row in a lucky dip instead of on the Pub's
+			# list: an item whose Use is brew:pool:<word> picks one of them
+			# at random when it is drunk. See pick_from_pool().
+			"pool": _cell(row, columns, "pool").to_lower(),
 			"where": "%s row %d" % [short_name, i + 1],
 		})
 
@@ -195,9 +200,27 @@ func available_for(state: GameState) -> Array[Dictionary]:
 	if cards != null and not cards.tune_bool("brews_allowed", true):
 		return out
 	for entry in brews:
+		# A pool row is only ever drunk from a bottle, never poured.
+		if String(entry.get("pool", "")) != "":
+			continue
 		if DialogueGrammar.test(String(entry["requires"]), state):
 			out.append(entry)
 	return out
+
+
+## ROUND AN - PLAIN BEER. One row of the pool, at random, among those whose
+## Requires pass. "" when the pool is empty.
+func pick_from_pool(pool: String, state: GameState) -> String:
+	var key := pool.strip_edges().to_lower()
+	var choices: Array[String] = []
+	for entry in brews:
+		if String(entry.get("pool", "")) != key:
+			continue
+		if DialogueGrammar.test(String(entry["requires"]), state):
+			choices.append(String(entry["id"]))
+	if choices.is_empty():
+		return ""
+	return choices[randi() % choices.size()]
 
 
 ## May this card drink this brew? Only the For Class column decides.

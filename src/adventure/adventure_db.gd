@@ -557,11 +557,16 @@ static func has_tag(entry: Dictionary, tag: String) -> bool:
 
 ## WHAT A BREW ITEM POURS. `Use` of `brew:fire` names a row of Brews.csv;
 ## anything else is not a brew and this returns "".
-static func brew_in_use(entry: Dictionary) -> String:
+static func brew_in_use(entry: Dictionary, state: GameState = null) -> String:
 	var use := String(entry.get("use", "")).strip_edges().to_lower()
 	if not use.begins_with("brew:"):
 		return ""
-	return use.substr(5).strip_edges()
+	var brew_id := use.substr(5).strip_edges()
+	# ROUND AN - PLAIN BEER: brew:pool:plain picks one Brews.csv row whose
+	# Pool is plain, at random, every time a bottle is opened.
+	if brew_id.begins_with("pool:"):
+		return BrewDB.get_db().pick_from_pool(brew_id.substr(5), state)
+	return brew_id
 
 
 ## THE THINGS YOU MAY USE IN A FIGHT. A `Use` is not enough on its own — it

@@ -223,8 +223,11 @@ static func is_plain(entry: Dictionary) -> bool:
 
 ## Elemental (an Element, a Becomes) or inspirational (an ability) - the
 ## brews a sober player shrugs off.
+## ROUND AN - PLAIN BEER (Anthony, 8 Oct): a lucky-dip brew (Brews.csv Pool)
+## takes less to get the ability, so it takes hold however sober he is.
 static func needs_drunk(entry: Dictionary) -> bool:
-	return not entry.is_empty() and not is_plain(entry)
+	return not entry.is_empty() and not is_plain(entry) \
+		and String(entry.get("pool", "")).strip_edges() == ""
 
 
 ## Is he drunk enough for this one to take hold?
