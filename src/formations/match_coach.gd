@@ -556,8 +556,8 @@ func show_card(name_text: String, scene: String, gold: String = "card") -> void:
 	side.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(side)
 	side.add_child(MenuSupport.heading("%s %s" % [data.unit_type.to_upper(), data.player_name.to_upper()], 30, MenuSupport.COLOUR_ACCENT))
-	var attack_box := _ability_box(side, "WHEN HE ATTACKS", data.active_attack_ability())
-	var defend_box := _ability_box(side, "WHEN HE DEFENDS", data.active_defend_ability())
+	var attack_box := _ability_box(side, "ON ATTACK", data.active_attack_ability(), data)
+	var defend_box := _ability_box(side, "ON DEFEND", data.active_defend_ability(), data)
 
 	# Middle of the screen, above the coach's box along the bottom.
 	await tree.process_frame
@@ -587,7 +587,7 @@ func show_card(name_text: String, scene: String, gold: String = "card") -> void:
 	layer.queue_free()
 
 
-func _ability_box(host: Control, title: String, ability_id: String) -> Control:
+func _ability_box(host: Control, title: String, ability_id: String, card: PlayerData = null) -> Control:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel",
 		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
@@ -604,7 +604,7 @@ func _ability_box(host: Control, title: String, ability_id: String) -> Control:
 		return panel
 	inner.add_child(MenuSupport.heading(ability.display_name, 24, MenuSupport.COLOUR_ACCENT))
 	var line := Label.new()
-	line.text = _ability_words(ability, db)
+	line.text = _ability_words(ability, db, card)
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	line.custom_minimum_size = Vector2(480, 0)
 	line.add_theme_font_size_override("font_size", 20)
@@ -614,8 +614,14 @@ func _ability_box(host: Control, title: String, ability_id: String) -> Control:
 
 ## His ability in a sentence for the new card. The keeper ones read the way
 ## the Head Coach says them; anything else falls back to the card popup's words.
-func _ability_words(ability: AbilityData, db: CardDatabase) -> String:
+func _ability_words(ability: AbilityData, db: CardDatabase, card: PlayerData = null) -> String:
 	match CardDatabase._normalise(ability.effect):
+		"addpowerpertiermate":
+			# Anthony's words for the Kleiner Faß, 8 Oct.
+			var who := ("Tier %s player" % card.get_tier_clean()) if card != null else "player of the same Tier"
+			return "For each other %s not in the Exhaust Zone, give this %+d Power during combat." % [who, ability.value]
+		"addpowerperplayed":
+			return ability.plain()
 		"drainstamina":
 			return "Their keeper loses %d stamina." % ability.value
 		"restorestamina":

@@ -45,6 +45,9 @@ func _initialize() -> void:
 	_windowed = DisplayServer.get_name() != "headless"
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(DIR + "/frames"))
 	CardDatabase.get_db().tuning[CardDatabase._normalise("choice_window_seconds")] = "0"
+	# The match only: "the morning after" (the Dorms and the first Adventure)
+	# has its own check, tools/morning_after_check.gd.
+	CardDatabase.get_db().tuning[CardDatabase._normalise("tutorial_morning_after")] = "false"
 	await process_frame
 
 	# ---- 1. NO ----

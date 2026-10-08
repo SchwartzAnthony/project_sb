@@ -10,4 +10,4 @@ log,Show the combat log,Adventure,L,Back,Opens and closes the rolling text windo
 item,Use an item,Adventure,I,Left Trigger,Opens the item pouch in an Adventure fight
 flee,Flee the run,Adventure,H,,Leaves an Adventure run early. You keep part of the haul - see adventure_flee_keep in Tuning.csv
 screenshot,Screenshot,General,F12,,Writes a PNG beside your save. Handy for a presentation
-zones,Show the zone map,Match,Z,,"ROUND AC. Switches the zone map on and off in a match: the four quarters named for both sides, the edge_keep lines, where every unit is heading and its ""don't stand still"" clock"
+zones,Show the zone map,Match,Z,,"ROUND AC. Switches the zone map on and off in a match: the four quarters named for both sides, the edge_keep lines, where every unit is heading and its ""don't stand still"" clock. ROUND AN: also what every player reads - the ball's range (gold circle: sprint inside, jog outside), where the ball lands, each player's job word, which way he faces and the man he marks"

@@ -47,14 +47,28 @@ var intent_lines_alpha := 0.0
 var tint := true
 var linger_seconds := 2.5
 
+## ROUND AN (Anthony, 8 Oct: "show me all indicators that read the ball /
+## players on the field"). main_scene hands over the ball and its range (the
+## press reach) so the zone map can draw what every player is reading.
+var ball: Ball = null
+var ball_reach := 0.0
+
 var _target: float = 0.07
 var _current: float = 0.07
+## The read-outs sit ABOVE the players (the quarter tint stays under them),
+## so they are a child with its own z_index rather than drawn here.
+var _readouts: PitchReadouts = null
 
 
 func _ready() -> void:
 	z_index = 0
 	_current = alpha
 	_target = alpha
+	_readouts = PitchReadouts.new()
+	_readouts.name = "PitchReadouts"
+	_readouts.overlay = self
+	_readouts.z_index = 60
+	add_child(_readouts)
 
 
 func setup(pitch_zones: PitchZones, rest: float, focus: float) -> void:
@@ -74,6 +88,10 @@ func set_focused(focused: bool) -> void:
 func _process(delta: float) -> void:
 	if detail or intent_lines_alpha > 0.0:
 		queue_redraw()
+	if _readouts != null:
+		_readouts.visible = detail
+		if detail:
+			_readouts.queue_redraw()
 	if detail:
 		return
 	if is_equal_approx(_current, _target):

@@ -4,3 +4,4 @@ reed_clearing,Clear the Reeds,marshlands,reed_warden,count:coins+40;count:reed+2
 ash_tyrant,The Ash Tyrant,cinderwastes,ash_tyrant,unlock:Ash Tyrant;count:coins+220,unlocked:Marsh King,no,,4,bounty_tyrant,It sits at the centre of the burn and it has been there a long time.
 slag_run,The Slag Run,cinderwastes,slag_walker,count:coins+90;count:bog_iron+15,unlocked:Marsh King,yes,3,3,bounty_slag,"Iron for the taking, if you can get past what is guarding it."
 the_hollow_mother,The Hollow Mother,hollowdeep,hollow_mother,unlock:Hollow Mother;count:coins+400,unlocked:Ash Tyrant,no,,5,bounty_mother,Nobody who has gone this deep has come back with a straight story.
+tut_brewers_errand,The Brewer's Errand,marshlands,reed_warden,count:reed+10,flag:tut_morning,yes,2,1,bounty_reed,"ROUND AN - THE TUTORIAL'S BOUNTY. Koch drank the Brewery dry, so the Brewer needs reed. One wave, then the Reed Warden. Only on the board in the Tutorial (flag:tut_morning)."

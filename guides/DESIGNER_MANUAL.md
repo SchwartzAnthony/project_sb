@@ -619,6 +619,44 @@ and:
 > purpose: the second number calls a wandering player a shaking one, and the
 > wandering is wanted.
 
+### Eyes on the ball, and only sprint when it is in range (round AN)
+
+Anthony: *"All players should be facing towards the ball, but they shouldn't
+be sprinting towards it unless they are within the ball's range."*
+
+Every player has a **job** each frame. Five jobs are *going for the ball*
+(BALL, PRESS, RECEIVE, DRIBBLE, SURGE) and four are *watching it* (HOLD, MARK,
+OPEN, RECOVER).
+
+- **Watching it**: he faces the ball the whole time, even while he shuffles
+  across or drops back, and his legs go at a jog (his speed ÷ his sprint speed
+  of the run animation). Slower than `unit_stand_below_speed` he just stands.
+- **Going for it**: he faces where he runs, at full animation speed.
+- **The ball's range** is the press reach (`press_radius_fraction` of the
+  pitch height). Outside it nobody goes faster than `far_from_ball_pace` × his
+  walk. That is what had the back rows (Tier I and the far Tier IV) tearing
+  about at the far end of the pitch.
+- After turning, a player keeps his facing for `unit_face_turn_hold` seconds,
+  unless the ball goes round behind him.
+
+| Tuning row | |
+|---|---|
+| `far_from_ball_pace` | top speed outside the ball's range, × walk. `1.2`. `0` = off |
+| `unit_face_turn_hold` | seconds a facing is held before the next turn. `0.3` |
+| `unit_stand_below_speed` | px/s under which a watcher is drawn standing. `16` |
+| `unit_walk_anim_floor` | slowest the legs go for a watcher, share of the run rate. `0.4` |
+
+**See it in the game:** press **Z** in a match. On top of the zone map you get
+the gold **ball range** circle, a gold cross where the ball will land, every
+player's **job word** (gold = the ball is in his range, `sprint` = going
+faster than a jog), a short **arrow for where he looks**, and a thin line to
+the man he marks.
+
+> `tools/movement_probe.gd` measures it per Tier and side. Before: players
+> off the ball had it behind them **55-96%** of the time, and the Tier I and
+> Tier IV back rows sprinted with the ball out of range **55-71%** of the time.
+> After: **0-1%** and **0%**.
+
 ### The shape — why they were standing in pairs
 
 **A zone is a centre of gravity. It is not a fence.** That sentence is the
@@ -3150,9 +3188,13 @@ The words are `Language.csv` `tutorial_offer_title`, `_text`, `_yes` and
    `IntroSquad.csv` (Koch in the Star's place at Tier IV, eleven plain
    players) and theirs is all plain players. The Head Coach stops it again
    and again: every stop is a `MatchTalk.csv` row with Mode `tutorial`.
-3. **Full time** (or Quit in the match) ends the Tutorial. From a new save
-   you land at that save's base, locked, with the starting team. From the
-   title screen you go back to the title screen.
+3. **Full time** starts **the morning after** (below): the Dorms, the Head
+   Coach's goodbye and a first Adventure with Koch, still in the Tutorial's
+   own save. `Tuning.csv tutorial_morning_after` false skips it.
+4. **The end** (the morning's last box, the End tutorial banner, or Quit in
+   the match) ends the Tutorial. From a new save you land at that save's
+   base, locked, with the starting team. From the title screen you go back
+   to the title screen.
 
 **Nothing the Tutorial does reaches your game** (your note, 8 Oct). It always
 plays in a save of its own (`user://tutorial_story.json`), which is wiped
@@ -3284,11 +3326,11 @@ moment, then carries on to wherever the scene was returning to: the base.
 | column | what it does |
 |---|---|
 | **ID** | A name for the row. A row that has played sets `flag:guide_done_<ID>`, so the next row can wait for it. |
-| **Screen** | `base`, `brewery`, `shop` or `bounty` (the Adventure board). The screen asks when it opens, and again when it redraws. |
+| **Screen** | `base`, `brewery`, `shop`, `bounty` (the Adventure board) or `dorms`. The screen asks when it opens, and again when it redraws. |
 | **Requires** | The usual condition language. |
 | **Scene** | A `Dialogue.csv` scene, shown in the box over the screen. The lines are placeholders for now. |
 | **Highlight** | The words on a button to light up after the box, such as `WORK IT` or `Adventure`. It pulses until it is pressed. |
-| **Then** | Progression Do actions after the box. They run **before** the button lights up (round AN), so a key or stock handed over here makes the machine ready to work. `goto:base` closes a window that is open over the base. `goto:back` closes the screen itself, including the Brewery over a match TIME OUT. |
+| **Then** | Progression Do actions after the box. They run **before** the button lights up (round AN), so a key or stock handed over here makes the machine ready to work. `goto:base` closes a window that is open over the base. `goto:back` closes the screen itself, including the Brewery over a match TIME OUT. `goto:dorms` opens the Dorms. `tutorial:end` ends the Tutorial. |
 | **Once** | `true` plays it only once. |
 | **Only** | `true` (round AN): nothing but the lit button can be used until it is pressed, so the tutorial can't be clicked through. In the Brewery only the lit machine works, and its mini-game can't be lost. |
 
@@ -3365,9 +3407,53 @@ More moments for **When**: `cards_shown` (a Tier's cards are on the table),
 `duel_power_check`, `duel_result`, `shot_odds` (the shot window shows the %)
 and `shot_done` (after the goal or the miss).
 
+### The morning after: rest and the first Adventure (round AN, 8 Oct)
+
+Your pick from the plan: after the final whistle the story carries on, in
+the Tutorial's own save, so nothing here is kept either.
+
+| step | where | what happens | rows |
+|---|---|---|---|
+| 1 | full time | The side's round counts like any match (`Recovery.csv`, `Resting.csv`), their drunk meters drop, and the Dorms are unlocked with their key (`Tuning.csv tutorial_morning_effects`). Then the full-time scene in the bar | `tutorial_morning_scene` |
+| 2 | the base | The Head Coach: this is our town. Then straight to the Dorms | Guide.csv `tut_morning_base` |
+| 3 | the Dorms | Rounds = power, rest = power, power 0 never needs a bed, a fixture wakes everybody a step, the drunk meter wears off. Back to the base | `tut_morning_beds` |
+| 4 | the base | The Brewery is dry, the Adventure Team, and the Head Coach leaves for Beuterdorf. The Adventure banner lights up | `tut_morning_handover` |
+| 5 | the Bounty Board | Koch: the Marshlands, the Brewer's Errand (`Bounties.csv tut_brewers_errand`, two waves, the Reed Warden; only on the board in the Tutorial) | `tut_morning_board` |
+| 6 | the run | `MatchModes.csv tutorial_adventure` stands in for the Adventure: the party is `data/TutorialAdventureSquad.csv` (four Adventure Players, one per Tier). Koch stops it at each first | MatchTalk.csv, Mode `tutorial_adventure` |
+| 7 | the base | However the run ended (home, fled or fallen), Koch takes you back to the Dorms | `tut_morning_home` |
+| 8 | the Dorms | The party in bed, the match side a fixture nearer fit. Its Then is `tutorial:end` | `tut_morning_beds_2` |
+
+**All the lines are drafts** in `data/TutorialMorningDialogue.csv` (any CSV
+in `data/` with Node ID and Text columns is a dialogue file). Rewrite them
+there. From step 4 on Koch is the guide, with his Bergmännlein face.
+
+**Koch's Adventure stops** are ordinary `MatchTalk.csv` rows whose Mode is
+an Adventure mode. The moments (**When**) are `adv_start`, `adv_pickup`,
+`adv_wave`, `adv_boss`, `adv_focus`, `adv_draft` (Tier column I to IV),
+`adv_hit`, `adv_down` (one of yours out of stamina) and `adv_loot`.
+**Round** is the wave. **Highlight** is the words on a button to light up
+after the box, such as `Continue forward`. **Once** true plays a row only the
+first time. The game is paused under the box and nothing can be clicked
+until it closes. Any Adventure mode can have rows like these.
+
+**Two new Guide.csv words.** Screen `dorms` plays over the Dorms, and Then
+`goto:dorms` opens them. Then `tutorial:end` ends the Tutorial.
+
+**Every run that ends** (home, fled or fallen) now adds one to
+`count:adventures_played`. `count:adventures_home` still counts only the ones
+carried home.
+
+**A way out.** While the Tutorial is on, the base has an **End tutorial**
+banner. It ends the Tutorial straight away, exactly as the last box does.
+
+`godot --headless --path . --script res://tools/morning_after_check.gd`
+plays the morning through the real screens and checks every step. Without
+`--headless` it saves a picture of every box in `user://morning_check/frames/`.
+
 ### Checking it
 
-`godot --headless --path . --script res://tools/tutorial_check.gd` plays the
+`tools/tutorial_check.gd` checks the match part only (it turns the morning
+off). `godot --headless --path . --script res://tools/tutorial_check.gd` plays the
 Tutorial through the real screens: No on one new save, Yes on another, every
 Head Coach stop, the TIME OUT and Koch the Star, and the base at the end.
 Without `--headless` it saves frames of every stop in
@@ -4786,18 +4872,21 @@ brewery_machine_size`. A section with no picture falls back to the old panel.
 Clicking a machine opens its game. **Win it and the batch is made; lose it
 and the batch is spoiled** (what it took is gone, nothing is made).
 
-| Machine | Game | What you do |
-|---|---|---|
-| Steeping Tank | hold | hold to let the water in, let go in the gold |
-| Grain Mill | mash | click as fast as you can to turn the crank |
-| Lauter Tun | bar | click when the marker is in the gold |
-| Brew Kettle | bar | hit the right temperature twice |
-| Fermenting Vat | hold | hold to cool, let go in the cold gold |
-| Bottling Machine | bar | stop three bottles under the tap |
+Anthony picked them from the playable mock-ups (8 Oct): "keep the others",
+with Keep the fire for the Brew Kettle and the Fermenting Vat as it was.
 
-**The brewer's training is the gold.** His success % (`Brewers.csv`) shrinks
-it: a 100% brewer gets the whole Zone, a 55% one a little over half, nobody at
-all (40%) a sliver. A mash game needs more clicks the less trained he is. So
+| Machine | Kind | What you do |
+|---|---|---|
+| Steeping Tank | `stir` | **Stir the mash**: move the mouse round and round over the tank. Stop and it clumps |
+| Grain Mill | `rhythm` | **Crank rhythm**: left, right, left, right (arrows, A/D, or click each half). The same side twice jams it |
+| Lauter Tun | `colour` | **Watch the colour**: hold the tap open while the wort runs clear, let go when it clouds |
+| Brew Kettle | `fire` | **Keep the fire**: the heat drops, click to pump the bellows and keep the needle in the gold |
+| Fermenting Vat | `hold` | hold to cool, let go in the cold gold |
+| Bottling Machine | `conveyor` | **Conveyor**: hold to pour, let go at each bottle's line, three bottles |
+
+**The brewer's training makes it easier.** His success % (`Brewers.csv`)
+sets how hard each game is: an untrained hand gets a narrower gold, a mash
+that clumps faster, a mill that jams longer, less room at the fill line. So
 an untrained hand fails more, which is your rule.
 
 `data/BreweryGames.csv`, one row per machine:
@@ -4805,12 +4894,26 @@ an untrained hand fails more, which is your rule.
 | column | |
 |---|---|
 | `Section` | the BrewerySections.csv ID |
-| `Kind` | `bar`, `hold` or `mash` |
+| `Kind` | `stir`, `rhythm`, `colour`, `fire`, `hold`, `conveyor` (the old `bar` and `mash` still work) |
 | `Seconds` | the time limit |
-| `Zone` | how wide the gold is for a 100% brewer (0.15 = 15% of the bar) |
-| `Speed` | bar: sweeps a second. hold: bar filled per second held. mash: meter lost per second |
-| `Hits` | bar: gold hits in a row. mash: clicks to fill the meter |
+| `Zone` | colour: share of the time it runs clear. fire and hold: the gold's width. conveyor: how close to the line counts |
+| `Speed` | stir: soak per full turn. colour, hold, conveyor: fill a second |
+| `Hits` | rhythm: turns to grind it. fire: seconds in the gold. conveyor: bottles |
 | `Prompt` | the one line telling you what to do |
+| `Art` | a folder of pictures, `assets/brewery/games/<machine>/` |
+
+**The pictures.** Each game looks for these PNGs in its Art folder; one that
+is missing is drawn as a plain shape, so the game always works.
+
+| Kind | Pictures |
+|---|---|
+| stir | `tank.png`, `paddle.png` |
+| rhythm | `mill.png`, `crank.png` |
+| colour | `tun.png`, `bucket.png` |
+| fire | `kettle.png`, `bellows.png` |
+| hold | `vat.png` |
+| conveyor | `tap.png`, `bottle.png`, `belt.png` |
+| any | `background.png` behind it all (640x320 stage) |
 
 No row = no game (the batch is rolled on the brewer's % as before).
 `Tuning.csv brewery_minigames` false turns them all off. The game fires the

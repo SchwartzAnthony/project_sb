@@ -50,6 +50,21 @@ var movement_frozen: bool = false     # HOLD UP! substitution pauses everyone
 ## How far past a unit the ball has to be before they turn round to look at
 ## it. Stops a flicker when the two are level.
 @export var face_deadzone: float = 18.0
+## ROUND AN (Anthony, 8 Oct: "all players should be facing towards the
+## ball"). After turning, how long a player keeps that facing before he may
+## turn again. Stops the figure flicking between two directions.
+@export var face_turn_hold: float = 0.3
+## Below this speed (px/s) a player off the ball is drawn STANDING, not
+## running on the spot. Separation nudges and the last pixels of an arrival
+## used to play a full sprint for a step of one pixel.
+@export var stand_below_speed: float = 16.0
+## A player off the ball moves his legs at speed / chase_speed of the run
+## animation's rate, never slower than this share. So a jog looks like a jog
+## and only a man going for the ball is drawn sprinting.
+@export var walk_anim_floor: float = 0.4
+## Set by main_scene each frame: is the ball within this player's range (the
+## press reach)? Only then may he sprint. Read by the Z overlay as well.
+var ball_in_range := false
 ## How hard the shove is, relative to the pull of wherever they are heading.
 @export var separation_strength: float = 0.9
 ## Inside this distance of the ball the shove fades out, so a loose ball is
@@ -876,6 +891,8 @@ var _one_shot := ""
 var _dir := 2            # south, facing the camera
 var _last_spot := Vector2.ZERO
 var _still_for := 0.0
+var _turn_wait := 0.0
+var _anim_rate := 1.0
 
 
 func _process(delta: float) -> void:
@@ -897,7 +914,34 @@ func _process(delta: float) -> void:
 
 	# A few px/s of shuffle is not running. A short grace stops a player who
 	# pauses for one frame flickering between run and idle.
-	if speed > 6.0:
+	_turn_wait = maxf(0.0, _turn_wait - delta)
+	_anim_rate = 1.0
+	# ============ WATCHING THE BALL (round AN, 8 Oct) ============
+	#
+	# "All players should be facing towards the ball, but they shouldn't be
+	# sprinting towards it unless they are within the ball's range."
+	#
+	# A player whose job is NOT the ball - holding, marking, showing for a
+	# pass, dropping back - used to turn to wherever his feet were taking him,
+	# so a back line shuffling across had its back to the game most of the
+	# time. Now he keeps his eyes on the ball while he moves, his legs go at a
+	# jog, and below a few px/s he simply stands.
+	if watching_ball():
+		if speed < stand_below_speed:
+			_still_for += delta
+			# The same short grace as below: one slow frame is not a stop.
+			if _still_for < 0.2 and _anim_name == "run":
+				_look_at_ball()
+				_anim_time += delta * walk_anim_floor
+				_draw_frame("run")
+				return
+			_stand(delta)
+			return
+		_still_for = 0.0
+		_look_at_ball()
+		_anim_rate = clampf(speed / maxf(chase_speed, 1.0), walk_anim_floor, 1.0)
+		_show_anim("run")
+	elif speed > 6.0:
 		_still_for = 0.0
 		var turned := PitchSprite.direction_of(screen, _squash())
 		if turned >= 0:
@@ -914,8 +958,28 @@ func _process(delta: float) -> void:
 		elif not celebrating:
 			_look_at_ball()
 		_show_anim("cheer" if celebrating and PitchSprite.has_anim("cheer") else "idle")
+	_anim_time += delta * _anim_rate
+	_draw_frame(_anim_name)
+
+
+## Standing still: facing the ball (or the pose / cheering), idle animation.
+func _stand(delta: float) -> void:
+	if pose_facing >= 0:
+		_dir = posmod(pose_facing, 8)
+	elif not celebrating:
+		_look_at_ball()
+	_show_anim("cheer" if celebrating and PitchSprite.has_anim("cheer") else "idle")
 	_anim_time += delta
 	_draw_frame(_anim_name)
+
+
+## True while this player is steering under the match's orders and his job is
+## not the ball itself. Scripted moves (substitutions, the walk into the goal
+## huddle, slides) and poses keep their own facing.
+func watching_ball() -> bool:
+	return is_roaming and has_role_target and not _is_chasing() \
+		and not celebrating and pose_facing < 0 \
+		and ball != null and is_instance_valid(ball)
 
 
 ## Play `anim_name` once, facing `toward` (a pitch direction) if given.
@@ -961,8 +1025,15 @@ func _look_at_ball() -> void:
 	if gap.length() < face_deadzone:
 		return
 	var turned := PitchSprite.direction_of(get_canvas_transform().basis_xform(gap), _squash())
-	if turned >= 0:
-		_dir = turned
+	if turned < 0 or turned == _dir:
+		return
+	# Hold a facing for a moment before the next turn, unless the ball has
+	# gone round behind him - then he turns at once.
+	var off := absi(posmod(turned - _dir + 4, 8) - 4)
+	if _turn_wait > 0.0 and off < 3:
+		return
+	_dir = turned
+	_turn_wait = face_turn_hold
 
 
 func _squash() -> float:

@@ -136,6 +136,8 @@ func _ready() -> void:
 	_say("%s — %s" % [run.biome_name(), run.bounty_name()])
 	print("[adventure] Setting off into %s. %d wave(s) to the boss."
 		% [run.biome_name(), run.waves()])
+	# ROUND AN: somebody may stop the run to explain it (adventure_talk.gd).
+	AdventureTalk.talk(self, "adv_start", {"round": str(run.wave)})
 
 
 ## Read the four scale rows and hand two of them to the walker and the ball,
@@ -593,6 +595,7 @@ func _drop_a_pickup() -> void:
 	pickup.draw.connect(_draw_pickup.bind(pickup))
 	_world.add_child(pickup)
 	_pickups.append(pickup)
+	AdventureTalk.talk(self, "adv_pickup", {"round": str(run.wave)})
 
 
 func _draw_pickup(on: Node2D) -> void:
@@ -717,6 +720,8 @@ func _begin_meeting() -> void:
 	_spawn_wave()
 	_say("COMBAT")
 	AudioDirector.fire(get_tree(), "hold_up", {"biome": run.biome_name()}, state)
+	AdventureTalk.talk(self, "adv_boss" if run.is_boss_wave() else "adv_wave",
+		{"round": str(run.wave)})
 
 
 func _spawn_wave() -> void:
@@ -1307,6 +1312,7 @@ func _show_loot(loot: Dictionary, was_boss: bool) -> void:
 		home.tooltip_text = "Walk away with everything you are carrying."
 		home.pressed.connect(_go_home.bind(false))
 		buttons.add_child(home)
+	AdventureTalk.talk(self, "adv_loot", {"round": str(run.wave)})
 
 
 func _continue_forward() -> void:
@@ -1338,6 +1344,9 @@ func _party_to_dorms() -> void:
 		if card != null and not run.stand_ins.has(card):
 			down.append(card)
 	RecoveryBook.after_adventure(party, down, state, db)
+	# ROUND AN: every run that ends, however it ends (count:adventures_home
+	# only counts the ones carried home). The tutorial waits on this one.
+	DialogueGrammar.apply("count:adventures_played+1", state)
 	# An Adventure is a round too: the party's drunk meters drop, and anybody
 	# now resting is sober (drunk_book.gd).
 	DrunkBook.after_round(party, state, db)

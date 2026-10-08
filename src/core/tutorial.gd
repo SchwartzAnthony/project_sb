@@ -25,7 +25,11 @@ extends RefCounted
 #    1. Pub Dialogue 1 - the Dialogue.csv scene in Tuning.csv tutorial_first_scene
 #    2. the tutorial match - MatchModes.csv row tutorial_match_mode, with the
 #       Head Coach's stops in MatchTalk.csv (Mode = tutorial)
-#    3. full time - the base, locked, with the starting team
+#    3. full time - "the morning after" (tutorial_morning.gd): the Dorms,
+#       the Head Coach's goodbye and a first Adventure with Koch, still in
+#       the tutorial's own save. Tuning.csv tutorial_morning_after false
+#       skips it.
+#    4. the end - the base, locked, with the starting team
 #
 #  ============ THE STARTING TEAM ============
 #
@@ -101,6 +105,19 @@ static func start(tree: SceneTree, from_menu: bool) -> void:
 	# A squad match walks straight through Team Select, so the screen goes
 	# black from the end of the story, not after it.
 	DialogueView.play(tree, first, ScenePaths.TEAM_SELECT)
+
+
+## FULL TIME in the tutorial match. ROUND AN: "The morning after"
+## (tutorial_morning.gd) carries the story on into the Dorms and a first
+## Adventure when Tuning.csv tutorial_morning_after is true; otherwise the
+## tutorial ends here. `played` = the side that was on the pitch.
+static func full_time(tree: SceneTree, played: Array) -> void:
+	if tree == null or not tree.has_meta(META):
+		return
+	if TutorialMorning.on():
+		TutorialMorning.begin(tree, played)
+		return
+	finish(tree)
 
 
 ## The tutorial is over (full time, or Quit in the match). Its save is thrown

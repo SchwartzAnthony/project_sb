@@ -129,7 +129,10 @@ func _rebuild() -> void:
 	for child in _list.get_children():
 		child.queue_free()
 	match room:
-		"dorms": _fill_dorms()
+		"dorms":
+			_fill_dorms()
+			# ROUND AN: the Tutorial's "morning after" explains the beds here.
+			(func() -> void: Guide.check(self, "dorms", state)).call_deferred()
 		"clubhouse": _fill_clubhouse()
 		"trophies": _fill_trophies()
 		"training": _fill_training()

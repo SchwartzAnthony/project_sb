@@ -17,35 +17,83 @@ func before_each() -> void:
 
 
 func test_every_machine_has_a_game() -> void:
+	var picks := {"malthouse": "stir", "mill": "rhythm", "lautering": "colour",
+		"boiling": "fire", "cooling": "hold", "bottling": "conveyor"}
 	for section in BreweryBook.sections():
 		var game := BreweryMinigame.game_for(String(section["id"]))
 		assert_false(game.is_empty(), "%s has a BreweryGames.csv row" % section["id"])
-		assert_true(String(game["kind"]) in ["bar", "hold", "mash"], "%s kind" % section["id"])
+		assert_eq(String(game["kind"]), String(picks.get(section["id"], "")), "%s is Anthony's pick" % section["id"])
 		assert_true(float(game["seconds"]) >= 5.0 and float(game["seconds"]) <= 15.0,
 			"%s takes 5-15 seconds" % section["id"])
 
 
-func test_a_trained_brewer_gets_more_gold() -> void:
-	var row := BreweryMinigame.game_for("boiling")
-	assert_gt(BreweryMinigame.zone_for(row, 100), BreweryMinigame.zone_for(row, 55))
-	assert_gt(BreweryMinigame.zone_for(row, 55), BreweryMinigame.zone_for(row, 40))
-	var mash := BreweryMinigame.game_for("mill")
-	assert_lt(BreweryMinigame.clicks_for(mash, 100), BreweryMinigame.clicks_for(mash, 40))
-
-
-func _game(section: String, forgiving: bool) -> BreweryMinigame:
+func _game(section: String, forgiving: bool, success := 100) -> BreweryMinigame:
 	var view := BreweryMinigame.new()
 	view.game = BreweryMinigame.game_for(section)
-	view.chance = 100
+	view.chance = success
 	view.forgiving = forgiving
 	add_child_autofree(view)
 	view.set_process(false)
 	return view
 
 
-func test_hold_wins_in_the_gold_and_spills_over_the_top() -> void:
+## Play it with the good hand until it is over, as fast as the frames go.
+func _bot(view: BreweryMinigame) -> void:
+	var guard := 0
+	while not view._over and guard < 3000:
+		view.bot_step(1.0 / 60.0)
+		guard += 1
+
+
+func test_a_good_hand_wins_every_game_in_time() -> void:
+	for section in BreweryBook.sections():
+		for success in [100, 85]:
+			var view := _game(String(section["id"]), false, success)
+			_bot(view)
+			assert_true(view._won, "%s at %d%%: %s" % [section["id"], success, view._status.text if view._status else ""])
+
+
+func test_a_trained_brewer_has_it_easier() -> void:
+	var fire := _game("boiling", false, 100)
+	var fire_green := _game("boiling", false, 40)
+	assert_gt(fire.fire_half(), fire_green.fire_half(), "a wider gold at the kettle")
+	var bottles := _game("bottling", false, 100)
+	var bottles_green := _game("bottling", false, 40)
+	assert_gt(bottles.pour_tolerance(), bottles_green.pour_tolerance(), "more room at the fill line")
+	var row := BreweryMinigame.game_for("cooling")
+	assert_gt(BreweryMinigame.zone_for(row, 100), BreweryMinigame.zone_for(row, 40))
+
+
+func test_stop_stirring_and_it_clumps() -> void:
 	var view := _game("malthouse", false)
-	watch_signals(view)
+	for i in 600:
+		view.tick(1.0 / 60.0)
+	assert_true(view._over and not view._won, "standing still clumps the mash")
+
+
+func test_the_same_side_twice_jams_the_mill() -> void:
+	var view := _game("mill", false)
+	view.side("L")
+	var ground := float(view.s["ground"])
+	view.side("L")
+	assert_gt(float(view.s["jam"]), 0.0, "jammed")
+	assert_lt(float(view.s["ground"]), ground, "a jam loses a little")
+	view.side("R")
+	assert_lt(float(view.s["ground"]), ground, "no grinding while jammed")
+
+
+func test_cloudy_wort_spoils_the_lauter() -> void:
+	var view := _game("lautering", false)
+	view.press()
+	for i in 1200:
+		view.tick(1.0 / 60.0)
+		if view._over:
+			break
+	assert_true(view._over and not view._won, "holding the tap open through the cloud")
+
+
+func test_hold_wins_in_the_gold_and_spills_over_the_top() -> void:
+	var view := _game("cooling", false)
 	view.press()
 	var guard := 0
 	while not view.in_zone() and guard < 2000:
@@ -54,29 +102,28 @@ func test_hold_wins_in_the_gold_and_spills_over_the_top() -> void:
 	view.release()
 	assert_true(view._won, "let go in the gold")
 
-	var spill := _game("malthouse", false)
+	var spill := _game("cooling", false)
 	spill.press()
 	for i in 400:
 		spill.tick(0.01)
 	assert_true(spill._over and not spill._won, "held past the top")
 
 
+func test_an_overflowing_bottle_spoils_it() -> void:
+	var view := _game("bottling", false)
+	view.press()
+	for i in 400:
+		view.tick(0.01)
+	assert_true(view._over and not view._won)
+
+
 func test_the_tutorial_game_cannot_be_lost() -> void:
 	var view := _game("bottling", true)
-	view._pos = 0.0
-	view._zone_start = 0.5
-	view.press()          # a miss
+	view.press()
+	for i in 400:
+		view.tick(0.01)      # overflows
 	assert_false(view._over, "a miss starts it again")
-	for i in 3:
-		view._pos = view._zone_start + 0.01
-		view.press()
-	assert_true(view._won)
-
-
-func test_mash_fills_with_clicks() -> void:
-	var view := _game("mill", false)
-	for i in BreweryMinigame.clicks_for(view.game, 100):
-		view.press()
+	_bot(view)
 	assert_true(view._won)
 
 

@@ -1,0 +1,5 @@
+ID,Tier,Power,Name,Class,Gender,Artwork,Star,Lead,Notes
+a1,I,1,,Normal,,,,,"THE TUTORIAL'S ADVENTURE TEAM (round AN, ""the morning after""). MatchModes.csv tutorial_adventure: four Adventure Players, one per Tier, the middle power of each (like the Adventure Players in StartingTeam.csv). New IDs, so they are not the match side. Made fresh in the tutorial save and thrown away with it."
+a2,II,2,,Normal,,,,,
+a3,III,3,,Normal,,,,,
+a4,IV,4,,Normal,,,,yes,

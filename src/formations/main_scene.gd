@@ -190,6 +190,9 @@ var zones_enabled: bool = true
 ## Press radius as a fraction of pitch HEIGHT. A defender inside this of where
 ## the ball is going will charge it.
 var press_radius_fraction: float = 0.55
+## ROUND AN: outside the ball's range nobody goes faster than this many times
+## his walk. Tuning.csv far_from_ball_pace; 0 = off.
+var far_from_ball_pace: float = 1.2
 ## Extra defenders from OTHER quarters allowed to join the press.
 var press_helpers: int = 2
 var press_speed: float = 92.0
@@ -720,6 +723,9 @@ func _physics_process(delta: float) -> void:
 	# restarts — loud exactly when they are useful.
 	if zone_overlay != null:
 		zone_overlay.set_focused(current_state == MatchState.DRAFTING)
+		zone_overlay.ball = ball
+		if zones != null:
+			zone_overlay.ball_reach = zones.play.size.y * press_radius_fraction
 
 	# The ball is fenced into midfield for all of the waiting play and freed
 	# the moment a PLAY MAKER starts resolving. See _ball_corridor().
@@ -867,6 +873,37 @@ func _assign_roles() -> void:
 				unit.set_role(PlayerUnit.Role.MARK, _mark_point(unit), unit.walk_speed * 1.5)
 		else:
 			unit.set_role(PlayerUnit.Role.OPEN, _keep_moving(unit, _open_point(unit)), unit.walk_speed * 1.6)
+
+	_pace_by_range(units, reach)
+
+
+## ============ ONLY SPRINT WHEN THE BALL IS IN RANGE  (round AN, 8 Oct) ============
+##
+## "They shouldn't be sprinting towards it unless they are within the ball's
+## range." The range is the press reach (press_radius_fraction of the pitch
+## height) - the same circle that decides who may charge the carrier, and the
+## one the Z map draws round the ball.
+##
+## Outside it a player still does his job - marks, shows, drops back, pushes
+## up with the break - but at `far_from_ball_pace` times his walk, so the back
+## rows at the far end jog with the play instead of tearing about. The man on
+## the ball, the man a pass is meant for, the surge's runners into the box and
+## the defenders sent to close a break down keep their full pace.
+func _pace_by_range(units: Array[PlayerUnit], reach: float) -> void:
+	for unit in units:
+		unit.ball_in_range = unit.global_position.distance_to(ball.global_position) <= reach
+		if unit.ball_in_range or far_from_ball_pace <= 0.0:
+			continue
+		match unit.role:
+			PlayerUnit.Role.DRIBBLE, PlayerUnit.Role.RECEIVE:
+				continue
+			PlayerUnit.Role.SURGE:
+				if _surge_station(unit) >= 0:
+					continue
+			PlayerUnit.Role.RECOVER:
+				if _is_closest_to_ball(unit, recover_closers):
+					continue
+		unit.role_speed = minf(unit.role_speed, unit.walk_speed * far_from_ball_pace)
 
 
 ## Who charges the ball. Everyone defending whose own quarter the ball is in,
@@ -1649,6 +1686,7 @@ func _apply_match_tuning() -> void:
 
 	zones_enabled = db.tune_bool("zones_enabled", zones_enabled)
 	press_radius_fraction = db.tune_float("press_radius_fraction", press_radius_fraction)
+	far_from_ball_pace = db.tune_float("far_from_ball_pace", far_from_ball_pace)
 	ball_roam_quarter_first = db.tune_int("ball_roam_quarter_first", ball_roam_quarter_first)
 	ball_roam_quarter_last = db.tune_int("ball_roam_quarter_last", ball_roam_quarter_last)
 	surge_advance = db.tune_float("surge_advance", surge_advance)
@@ -1746,6 +1784,9 @@ func _tune_unit(unit: PlayerUnit) -> void:
 	unit.arrive_radius = db.tune_float("unit_arrive_radius", unit.arrive_radius)
 	unit.still_threshold = db.tune_float("unit_still_threshold", unit.still_threshold)
 	unit.face_deadzone = db.tune_float("unit_face_deadzone", unit.face_deadzone)
+	unit.face_turn_hold = db.tune_float("unit_face_turn_hold", unit.face_turn_hold)
+	unit.stand_below_speed = db.tune_float("unit_stand_below_speed", unit.stand_below_speed)
+	unit.walk_anim_floor = db.tune_float("unit_walk_anim_floor", unit.walk_anim_floor)
 
 
 func _tune_goalie(keeper: GoalieUnit) -> void:
@@ -1915,7 +1956,7 @@ func _full_time() -> void:
 	if Tutorial.active(get_tree()):
 		GameSpeed.reset()
 		await get_tree().create_timer(db.tune_float("full_time_seconds", 2.6)).timeout
-		Tutorial.finish(get_tree())
+		Tutorial.full_time(get_tree(), _squad_that_played())
 		return
 
 	var outcome := "draw"
