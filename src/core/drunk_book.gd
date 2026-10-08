@@ -34,8 +34,11 @@ extends RefCounted
 #  ============ WHERE IT LIVES ============
 #
 #  In the save, one number per player: the counter  drunk_<name> , 0 to 100.
-#  At the final whistle every meter drops by `drunk_sober_per_match`
-#  (Tuning.csv) - 100 out of the box, so it wears off like a one-match brew.
+#  After every ROUND he played (a match or an Adventure played to the end)
+#  he loses `drunk_lost_per_round` % of what he has (Tuning.csv, 50 = half),
+#  so a player who can still play is topped up with more beers. Once he has
+#  played his rounds (Recovery.csv Plays) he is exhausted and rests in the
+#  Dorms - and a resting player's meter is EMPTY (Anthony, 8 Oct).
 # =============================================================
 
 const PREFIX := "drunk_"
@@ -255,21 +258,39 @@ static func drink(card: PlayerData, entry: Dictionary, state: GameState,
 		"new_level": String(before.get("id", "")) != String(after.get("id", ""))}
 
 
-## The final whistle. Every meter drops by `drunk_sober_per_match`.
-static func sober_up(state: GameState, db: CardDatabase) -> int:
+## ROUND AN (Anthony, 8 Oct): A ROUND IS OVER - a match or an Adventure
+## played to the end (a Quit puts the save back, so it never gets here).
+## Everybody who played loses `drunk_lost_per_round` % OF WHAT HE HAS (50 =
+## half), so a fit player can be topped up with more beers. Anybody in the
+## Dorms is resting, and a resting player's meter is empty. Call it AFTER
+## RecoveryBook has sent the exhausted ones to bed. Returns how many changed.
+static func after_round(cards: Array, state: GameState, db: CardDatabase) -> int:
 	if state == null:
 		return 0
-	var drop := db.tune_int("drunk_sober_per_match", 100) if db != null else 100
+	var lost := clampi(db.tune_int("drunk_lost_per_round", 50) if db != null else 50, 0, 100)
 	var many := 0
-	for key in state.counters.keys():
-		var name_key := String(key)
-		if not name_key.begins_with("drunk"):
+	for card in cards:
+		if card == null or not (card is PlayerData):
 			continue
-		var was := int(state.counters[key])
+		var was := meter(card, state)
 		if was <= 0:
 			continue
-		state.counters[key] = maxi(0, was - drop)
+		set_meter(card, was - int(round(float(was) * float(lost) / 100.0)), state)
 		many += 1
+	many += empty_the_resting(state, db)
+	return many
+
+
+## Everybody in bed is sober. Returns how many meters were emptied.
+static func empty_the_resting(state: GameState, db: CardDatabase) -> int:
+	if state == null or db == null:
+		return 0
+	var many := 0
+	for row in RecoveryBook.in_the_dorms(db, state):
+		var key := PREFIX + CardDatabase._normalise(String(row["name"]))
+		if state.count(key) > 0:
+			state.set_count(key, 0)
+			many += 1
 	return many
 
 

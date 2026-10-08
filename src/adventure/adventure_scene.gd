@@ -1336,6 +1336,9 @@ func _party_to_dorms() -> void:
 		if card != null and not run.stand_ins.has(card):
 			down.append(card)
 	RecoveryBook.after_adventure(party, down, state, db)
+	# An Adventure is a round too: the party's drunk meters drop, and anybody
+	# now resting is sober (drunk_book.gd).
+	DrunkBook.after_round(party, state, db)
 
 
 ## HOME WITH THE HAUL. This is the only place a run's pickings become real:

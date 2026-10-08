@@ -2239,7 +2239,16 @@ which is the `Squad Per Tier` column of MatchModes.csv.
 | Column of Recovery.csv | |
 |---|---|
 | `Power` | 0 to 5 |
-| `Turns` | fixtures out after playing one |
+| `Plays` | **rounds he plays before he is exhausted** (round AN). Blank = 1 |
+| `Turns` | fixtures he then rests in the Dorms |
+
+**Rounds before rest (round AN, Anthony 8 Oct):** a **round** is a match or
+an Adventure played to the end. A Quit or exit counts for nothing: no round
+used, no rest gained. A player keeps playing until he has played his `Plays`
+rounds (out of the box his power: power 5 plays five, power 0 and 1 play one),
+then he goes to the Dorms for `Turns` fixtures and comes back fresh. A player
+knocked out on an Adventure goes to bed at once. The count lives in the save
+as `plays_<card>`.
 
 Out of the box: powers 0 and 1 are back next week, 2 and 3 need one off, 4
 needs two, and **a power-5 Star is out for four fixtures**. A power with no row
@@ -4456,7 +4465,7 @@ beds you can buy. `data/Resting.csv` says what sends a player there:
 
 | ID | when | out of the box |
 |---|---|---|
-| `match` | everybody who played a match | by power (`Recovery.csv`) |
+| `match` | everybody who has played his last round (`Plays` in `Recovery.csv`) | by power (`Recovery.csv`) |
 | `adventure` | everybody who set off on an Adventure, however it ended | by power |
 | `adventure_down` | **on top of** `adventure`, for a player knocked out on the run | +1 fixture |
 | `brewer` | a **brewer** after a shift at a Brewery machine (see below) | 1 fixture |
@@ -4905,7 +4914,7 @@ and the levels it reaches give him something.
 | `data/Items.csv` | **Inspiration** | The same for a bottle in the bag. Blank = the brew's own number. A bought bottle can be weaker than the one your Brewery makes (bottled Fire Brew 15%, poured 25%). |
 | `data/DrunkLevels.csv` | **From**, **Effect** | Where each level starts and what it gives. |
 | `data/StarAbilities.csv` | **Tier**, **Power**, **Ability** | The star ability a drunk Star plays with. Today every row is Koch's Beer Courage. |
-| `data/Tuning.csv` | `drunk_meter`, `drunk_sober_per_match` | Off switch, and how much drains at the final whistle (100 = sober after every match). |
+| `data/Tuning.csv` | `drunk_meter`, `drunk_lost_per_round` | Off switch, and how much of his meter a player loses after every round he played, as a % of what he has (50 = half). |
 
 **The levels out of the box:**
 
@@ -4917,6 +4926,13 @@ and the levels it reaches give him something.
   card and name plate, and the star ability from StarAbilities.csv on both
   sides. A brew's own ability still wins on its side. He also needs two
   fewer turning beers (three becomes one).
+
+**How it wears off (Anthony, 8 Oct):** after every round he played (a match
+or an Adventure played to the end) he loses `drunk_lost_per_round` % of what
+he has, 50 out of the box, so 80% becomes 40%. While he can still play
+(`Plays` in Recovery.csv) you top him up with more beers. Once he is
+exhausted and resting in the Dorms, **his meter is empty**. A player who sat
+the round out keeps his meter. A Quit changes nothing.
 
 **Plain beers** are Brews.csv rows with no Becomes and no abilities, only
 Inspiration: the Helles (+20%, free) and the Festbier (+35%, 1 Reed). They

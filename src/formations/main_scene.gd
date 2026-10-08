@@ -2011,8 +2011,9 @@ func _full_time() -> void:
 
 	# One-match brews wear off at the whistle. Permanent ones stay on.
 	var brews_off := BrewDB.clear_temporary(state)
-	# THE DRUNK METER drops too (Tuning.csv drunk_sober_per_match).
-	DrunkBook.sober_up(state, db)
+	# THE DRUNK METER: everybody who played loses drunk_lost_per_round % of
+	# it, and anybody now resting in the Dorms is sober (drunk_book.gd).
+	DrunkBook.after_round(_squad_that_played(), state, db)
 	if brews_off > 0 and gains != null:
 		gains.note("%d one-match brew%s wore off" % [
 			brews_off, "" if brews_off == 1 else "s"], "pour another at the Pub")

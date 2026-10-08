@@ -105,7 +105,23 @@ func test_a_star_needs_fewer_turning_beers() -> void:
 	assert_eq(TransformBook.drinks_needed_for(plain, earth, state), 1)
 
 
-func test_the_whistle_sobers_everyone_up() -> void:
+func test_a_round_halves_the_meter_of_those_who_played() -> void:
+	# Anthony, 8 Oct: they lose about half of what they have after a game,
+	# and a player who can still play is topped up with more beers.
 	DrunkBook.set_meter(plain, 80, state)
-	DrunkBook.sober_up(state, db)
-	assert_eq(DrunkBook.meter(plain, state), maxi(0, 80 - db.tune_int("drunk_sober_per_match", 100)))
+	var lost := db.tune_int("drunk_lost_per_round", 50)
+	DrunkBook.after_round([plain], state, db)
+	assert_eq(DrunkBook.meter(plain, state), 80 - int(round(80.0 * lost / 100.0)))
+
+
+func test_a_player_who_sat_out_keeps_his_meter() -> void:
+	DrunkBook.set_meter(plain, 60, state)
+	DrunkBook.after_round([], state, db)
+	assert_eq(DrunkBook.meter(plain, state), 60)
+
+
+func test_a_resting_player_is_sober() -> void:
+	DrunkBook.set_meter(plain, 90, state)
+	state.set_count(RecoveryBook.key_for(plain), 2)
+	DrunkBook.after_round([], state, db)
+	assert_eq(DrunkBook.meter(plain, state), 0)

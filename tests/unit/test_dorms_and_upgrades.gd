@@ -32,7 +32,24 @@ func after_each() -> void:
 
 
 func _two_cards() -> Array:
-	return [db.players[0], db.players[1]]
+	return _on_last_round([db.players[0], db.players[1]])
+
+
+## Round AN: a player only goes to bed once he has played his Plays
+## (Recovery.csv). Puts these on their last round, so the next one sends them.
+func _on_last_round(cards: Array) -> Array:
+	for card in cards:
+		state.set_count(RecoveryBook.plays_key(card),
+			RecoveryBook.plays_for(card) - 1)
+	return cards
+
+
+func _strongest() -> PlayerData:
+	var best: PlayerData = null
+	for card in db.players:
+		if card != null and (best == null or RecoveryBook.plays_for(card) > RecoveryBook.plays_for(best)):
+			best = card
+	return best
 
 
 # ---- THE DORMS ----------------------------------------------
@@ -54,6 +71,7 @@ func test_a_match_sends_the_players_to_the_dorms() -> void:
 func test_a_pub_brew_no_longer_costs_extra_rest() -> void:
 	# Anthony, 8 Oct: Brew Players are the BREWERS. The Pub row is switched off.
 	var brewed: PlayerData = db.players[1]
+	_on_last_round([brewed])
 	state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(brewed), "fire_brew")
 	RecoveryBook.after_match([brewed], state, db)
 	assert_false(bool(RecoveryBook.cause("brew")["on"]))
@@ -64,6 +82,7 @@ func test_a_pub_brew_no_longer_costs_extra_rest() -> void:
 func test_an_adventure_sends_the_party_and_the_fallen_stay_longer() -> void:
 	var walker: PlayerData = db.players[0]
 	var fallen: PlayerData = db.players[1]
+	_on_last_round([walker])
 	RecoveryBook.after_adventure([walker, fallen], [fallen], state, db)
 	assert_true(RecoveryBook.is_tired(walker, state))
 	assert_eq(RecoveryBook.why_words(walker, state), "Back from an Adventure")
@@ -75,6 +94,26 @@ func test_an_adventure_wakes_the_players_who_stayed_home() -> void:
 	state.set_count(RecoveryBook.key_for(sleeper), 2)
 	RecoveryBook.after_adventure([db.players[0]], [], state, db)
 	assert_eq(RecoveryBook.turns_left(sleeper, state), 1)
+
+
+func test_a_player_plays_his_rounds_before_he_rests() -> void:
+	# Anthony, 8 Oct: the power number is the rounds they can play.
+	var card := _strongest()
+	var plays := RecoveryBook.plays_for(card)
+	assert_true(plays > 1, "the strongest player should play more than one round")
+	for i in plays - 1:
+		RecoveryBook.after_match([card], state, db)
+		assert_false(RecoveryBook.is_tired(card, state), "round %d of %d" % [i + 1, plays])
+	assert_eq(RecoveryBook.plays_left(card, state), 1)
+	RecoveryBook.after_match([card], state, db)
+	assert_true(RecoveryBook.is_tired(card, state))
+	assert_eq(RecoveryBook.plays_used(card, state), 0, "fresh again after his rest")
+
+
+func test_a_knocked_out_player_goes_to_bed_at_once() -> void:
+	var card := _strongest()
+	RecoveryBook.after_adventure([card], [card], state, db)
+	assert_true(RecoveryBook.is_tired(card, state))
 
 
 func test_nobody_goes_to_bed_while_recovery_is_off() -> void:

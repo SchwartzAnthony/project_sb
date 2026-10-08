@@ -42,8 +42,8 @@ func _initialize() -> void:
 		stand_in.player_name = "power %d" % power
 		stand_in.base_power_left = power
 		stand_in.base_power_right = power
-		print("[rest] power %d -> %d fixture(s) out" % [
-			power, RecoveryBook.turns_for(stand_in, db)])
+		print("[rest] power %d -> plays %d round(s), then %d fixture(s) out" % [
+			power, RecoveryBook.plays_for(stand_in), RecoveryBook.turns_for(stand_in, db)])
 	print("")
 
 	# ---- a real class, played over and over ----
@@ -80,8 +80,9 @@ func _initialize() -> void:
 			"yes" if bool(report["ok"]) else "NO",
 			"" if bool(report["ok"]) else "  (%s)" % report["words"]])
 
-		RecoveryBook.advance_turn(state, db)
-		RecoveryBook.played(named, state, db)
+		# ROUND AN: the real whistle - a player only goes to bed once he has
+		# played his rounds (Recovery.csv Plays).
+		RecoveryBook.after_match(named, state, db)
 
 	# ---- AND THE VERDICT, which is the line to read ----
 	#

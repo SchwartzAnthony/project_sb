@@ -54,7 +54,12 @@ const PREFIX := "rest_"
 const WHY_PREFIX := "restwhy_"
 const RESTING_FILE := "res://data/Resting.csv"
 
+## ROUNDS PLAYED SINCE HE LAST RESTED: `plays_<card>`. When it reaches his
+## Plays (Recovery.csv, by power) he is exhausted and goes to the Dorms.
+const PLAYS_PREFIX := "plays_"
+
 static var _turns: Dictionary = {}
+static var _plays: Dictionary = {}
 static var _loaded := false
 static var _causes: Dictionary = {}
 static var _causes_loaded := false
@@ -62,6 +67,7 @@ static var _causes_loaded := false
 
 static func forget() -> void:
 	_turns = {}
+	_plays = {}
 	_loaded = false
 	_causes = {}
 	_causes_loaded = false
@@ -73,11 +79,15 @@ static func table() -> Dictionary:
 		return _turns
 	_loaded = true
 	_turns = {}
+	_plays = {}
 	for row in MenuSupport.read_csv(FILE):
 		var power_text := MenuSupport.field(row, "Power").strip_edges()
 		if not power_text.is_valid_int():
 			continue
 		_turns[int(power_text)] = maxi(0, int(MenuSupport.field(row, "Turns")))
+		var plays_text := MenuSupport.field(row, "Plays").strip_edges()
+		if plays_text.is_valid_int():
+			_plays[int(power_text)] = maxi(1, int(plays_text))
 	if _turns.is_empty():
 		print("[rest] No Recovery.csv — falling back to recovery_turns_per_power.")
 	return _turns
@@ -116,6 +126,39 @@ static func turns_for_power(power: int, db: CardDatabase) -> int:
 	if db != null:
 		per = db.tune_float("recovery_turns_per_power", 0.8)
 	return maxi(1, int(ceil(float(power) * per)))
+
+
+## ROUND AN (Anthony, 8 Oct): HOW MANY ROUNDS he plays before he is
+## exhausted. A round is a match or an Adventure played to the end. Recovery.csv
+## Plays by power; a blank Plays is 1, which is the old "to bed after every
+## round".
+static func plays_for(card: PlayerData) -> int:
+	if card == null:
+		return 1
+	return plays_for_power(maxi(card.get_attack_power(), card.get_defense_power()))
+
+
+static func plays_for_power(power: int) -> int:
+	table()
+	return int(_plays.get(power, 1))
+
+
+static func plays_key(card: PlayerData) -> String:
+	return PLAYS_PREFIX + CardDatabase._normalise(card.player_name)
+
+
+## Rounds he has played since he last rested.
+static func plays_used(card: PlayerData, state: GameState) -> int:
+	if card == null or state == null:
+		return 0
+	return maxi(0, state.count(plays_key(card)))
+
+
+## Rounds he can still play before he has to rest. 0 while he is in bed.
+static func plays_left(card: PlayerData, state: GameState) -> int:
+	if card == null or is_tired(card, state):
+		return 0
+	return maxi(0, plays_for(card) - plays_used(card, state))
 
 
 ## Is this card resting right now?
@@ -190,6 +233,7 @@ static func rest_everybody(state: GameState, db: CardDatabase) -> void:
 		return
 	for name_text in _everybody(db, state):
 		state.set_count(key_for_name(name_text), 0)
+		state.set_count(PLAYS_PREFIX + CardDatabase._normalise(name_text), 0)
 	state.save_to_disk()
 
 
@@ -322,6 +366,7 @@ static func wake(name_text: String, state: GameState) -> void:
 	if state == null:
 		return
 	state.set_count(key_for_name(name_text), 0)
+	state.set_count(PLAYS_PREFIX + CardDatabase._normalise(name_text), 0)
 
 
 ## How long this card is in bed after `main`, with any `extras` on top.
@@ -406,6 +451,7 @@ static func _after(main: String, cards: Array, extras: Dictionary,
 	if row.is_empty() or bool(row["wakes"]):
 		advance_turn(state, db)
 	var said: Array[String] = []
+	var still: Array[String] = []
 	for card in cards:
 		if card == null or not (card is PlayerData):
 			continue
@@ -413,9 +459,25 @@ static func _after(main: String, cards: Array, extras: Dictionary,
 		# A ONE-MATCH BREW, still on them: the whistle has not cleared it yet.
 		if main == "match" and state.text(BrewDB.TEMP_PREFIX + BrewDB.card_key(card)) != "":
 			more = ["brew"]
+		# ROUND AN: ONE MORE ROUND PLAYED. He only goes to bed once he has
+		# played his Plays (Recovery.csv), or when an extra row sends him
+		# (knocked out on an Adventure, a one-match brew).
+		var used := plays_used(card, state) + 1
+		var sent_by_extra := false
+		for extra in more:
+			var extra_row := cause(String(extra))
+			if not extra_row.is_empty() and bool(extra_row["on"]):
+				sent_by_extra = true
+		if used < plays_for(card) and not sent_by_extra:
+			state.set_count(plays_key(card), used)
+			still.append("%s %d/%d" % [card.player_name, used, plays_for(card)])
+			continue
+		state.set_count(plays_key(card), 0)
 		var turns := send_to_dorms(card, main, more, state, db)
 		if turns > 0:
 			said.append("%s %d" % [card.player_name, turns])
+	if not still.is_empty():
+		print("[dorms] Still fit after %s (rounds played): %s" % [main, ", ".join(still)])
 	if not said.is_empty():
 		print("[dorms] To bed after %s: %s" % [main, ", ".join(said)])
 	state.save_to_disk()
