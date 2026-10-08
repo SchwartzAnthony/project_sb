@@ -28,3 +28,5 @@ tut_adv_hit,tutorial_adventure,adv_hit,,,,tut-adv-hit,,,true,
 tut_adv_down,tutorial_adventure,adv_down,,,,tut-adv-down,,,true,
 tut_adv_claim,tutorial_adventure,adv_loot,,2,,tut-adv-claim,CLAIM THE BOUNTY,,true,The boss is down (wave 2).
 tut_adv_loot,tutorial_adventure,adv_loot,,,,tut-adv-loot,Continue forward,,true,
+tut_combo,tutorial,cards_shown,,6,I,tut-combo,-|-|-|-|-|flask:first,give:anstoss_helles+doppelpass_weisse+abstauber_dunkel;drink_lesson:first=anstoss_helles+doppelpass_weisse+abstauber_dunkel@bottle@tut-combo-after@abilities|card,false,"ROUND AN - THE COMBO LESSON (Anthony, 8 Oct: three small beers, one good and one bad side each). Cycle 2 round 3, Tier I. give: puts them in the bag; the drinking lesson lets the player choose any of them (+ between items)."
+tut_combo_2,tutorial,cards_shown,,6,II,tut-combo-2,flask:first|flask:first,drink_lesson:first=anstoss_helles+doppelpass_weisse+abstauber_dunkel@bottle@tut-combo-2-after@abilities|abilities|-,false,"ROUND AN - the combo lesson, Tier II: a second beer, so Tier I's push lands on it. The third beer stays in the bag."

@@ -134,7 +134,7 @@ func _add_brew_corner(_box: Vector2) -> void:
 
 	_flask = Button.new()
 	_flask.text = "⚗"
-	_flask.tooltip_text = "Use something on this player before you choose them.\nOnly items tagged match_consume in Items.csv — a bottled brew, say.\nIt wears off at the final whistle."
+	_flask.tooltip_text = "Use something on this player before you choose them.\nOnly items tagged match_consume in Items.csv — a bottled brew, say.\nIt wears off at the next STAR PLAYER SWITCH."
 	_flask.focus_mode = Control.FOCUS_NONE
 	_flask.custom_minimum_size = Vector2(30, 30)
 	# TOP LEFT, because the Star badge is top right. Two things in one corner

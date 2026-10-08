@@ -31,6 +31,7 @@ const STOPS: Array[String] = ["tut-kickoff", "tut-tier1", "tut-tier2", "tut-tier
 	"tut-duel-start", "tut-duel-priority", "tut-duel-ability-1", "tut-duel-ability-2",
 	"tut-duel-power", "tut-duel-result", "tut-shot", "tut-exhaust",
 	"tut-timeout-call", "tut-timeout-inspiration", "tut-koch-ability",
+	"tut-combo", "tut-combo-2",
 	"tut-timeout2-call", "tut-timeout-cursed", "tut-koch-earth"]
 
 var _results: Array[String] = []
@@ -467,8 +468,12 @@ func _drink_lesson(scene: Node) -> void:
 			first = card
 		elif not card.locked:
 			locked_others = false
-	_check(first != null and first.current_data.get_attack_power() == _lessons,
-		"drinking lesson %d is on the Tier I Power %d" % [_lessons + 1, _lessons])
+	if _lessons < 2:
+		_check(first != null and first.current_data.get_attack_power() == _lessons,
+			"drinking lesson %d is on the Tier I Power %d" % [_lessons + 1, _lessons])
+	else:
+		_check(first != null and first.current_data.get_tier_clean() == ("I" if _lessons == 2 else "II"),
+			"combo lesson %d is on the Tier %s" % [_lessons - 1, "I" if _lessons == 2 else "II"])
 	_check(locked_others, "during the lesson only his bag button can be clicked")
 	await create_timer(0.8, true, false, true).timeout
 	scene.call("_on_brew_wanted", first.current_data)
@@ -479,11 +484,12 @@ func _drink_lesson(scene: Node) -> void:
 		for tile in bag.get("_grid").get_children():
 			if not tile.is_queued_for_deletion():
 				shown += 1
-	var wanted := "keg" if _lessons == 0 else "small_bottle"
-	_check(bag != null and shown == 1 and bag.tile_for(wanted) != null,
-		"the bag shows only the %s" % wanted)
+	var wanted: String = ["keg", "small_bottle", "anstoss_helles", "doppelpass_weisse"][mini(_lessons, 3)]
+	var should_show: int = [1, 1, 3, 2][mini(_lessons, 3)]
+	_check(bag != null and shown == should_show and bag.tile_for(wanted) != null,
+		"the bag shows %d item(s), the %s among them" % [should_show, wanted])
 	await _shot_one("drink_lesson_bag_%d" % _lessons)
-	var item_id := "keg" if _lessons == 0 else "small_bottle"
+	var item_id := wanted
 	_lessons += 1
 	scene.call("_use_on_card", first.current_data, AdventureDB.get_db().item(item_id))
 	if bag != null and is_instance_valid(bag):
@@ -496,6 +502,14 @@ func _drink_lesson(scene: Node) -> void:
 		_check(first.current_data.active_attack_ability() == "TUT_FASS_COURAGE"
 			and first.current_data.active_defend_ability() == "TUT_FASS_COURAGE",
 			"after the Kleiner Faß the 0 Power has Fass Courage on both sides")
+	elif _lessons == 3:
+		_check(first.current_data.active_attack_ability() == "COMBO_HELLES_ATK"
+			and first.current_data.active_defend_ability() == "COMBO_HELLES_DEF",
+			"after the Anstoß Helles the Tier I has Pass It On and Heavy Legs")
+	elif _lessons == 4:
+		_check(first.current_data.active_attack_ability() == "COMBO_WEISSE_ATK"
+			and first.current_data.active_defend_ability() == "COMBO_WEISSE_DEF",
+			"after the Doppelpass Weiße the Tier II has Fumbled Pass and One-Two")
 	else:
 		_check(first.current_data.active_attack_ability() == "PLAIN_GOALIE_ATK"
 			and first.current_data.active_defend_ability() == "PLAIN_GOALIE_DEF",

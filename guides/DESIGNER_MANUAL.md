@@ -3242,6 +3242,8 @@ false spends him like any other card.
 | 4 | Tier IV: Koch's card with Beer Courage | tut-koch-ability | Koch's card |
 | 5 | Tier I: **the missing beer**. "Where is the rest of the beer?!" TIME OUT at the Brewery; back on the pitch the P:1 drinks a Small Bottle (bottle window) and gets the plain beer's goalie pair: 1 off their keeper when he attacks, 1 off yours when he defends | tut-missing-beer, tut-after-brewery, tut-bottle-after | his bag button, then the bottle |
 | end of cycle 2 | **TIME OUT**: the cursed brews; an Earth Brew turns Koch into a Bergmännlein with Earth Courage | tut-timeout2-call, tut-timeout-cursed | |
+| 6 | Tier I: **the combo beers**. Koch hid three small beers; each has one good side and one bad side. The player reads the ATTACKING / DEFENDING banner and gives any of the three to the Tier I card | tut-combo, tut-combo-after | his bag button, then the three beers |
+| 6 | Tier II: a second beer, so a Pass It On from Tier I lands on it. The third stays in the bag | tut-combo-2, tut-combo-2-after | his bag button, then the beers |
 | 7 | Tier IV: Bergmännlein Koch's new ability | tut-koch-earth | Koch's card |
 
 The rest of cycle 3 plays out to the final whistle.
@@ -3273,6 +3275,7 @@ moment, with the same score, clock and exhaust. Then the row's **Do** runs:
 | `show_card:Koch=tut-koch-new-card@abilities\|-\|-` | the match stays frozen and his field card comes up big over the pub, his attack and defend abilities beside it; then that Dialogue.csv scene plays. After `@`, the gold per line (`card`, `abilities`, `attack`, `defend`, `-`), `\|` between lines. `Tuning.csv show_card_scale` (1.8) and `show_card_backdrop` (bar) |
 | `inspire:Koch=75` | his inspiration in % on the drunk meter (`DrunkLevels.csv`): 75 after cycle 1 (past Inspired, so his star ability wakes up), 90 after cycle 2 |
 | `drink_lesson:first=keg@barrel@tut-fass-after@abilities\|-\|card` | the drinking lesson. `<card>=<item>@<barrel or bottle>@<scene>@<gold>`. The item goes in the bag if it is missing; only that card's bag button works and his bag shows only that item; gold on the button, then on the item. When he drinks: the drinking window (his own sprite, the barrel or bottle, gulps, spills, arm wipe, burp; `Tuning.csv drink_window_seconds`), then his card comes up big as with show_card and the scene plays. Only he can be picked after |
+| `give:anstoss_helles+doppelpass_weisse+abstauber_dunkel` | puts one of each into the bag (`item=3` for more). A drink_lesson can then name several items with `+`: the bag shows those, gold on each, and any one will do |
 | `say:tut-after-brewery@-\|-\|flask:first` | plays that Dialogue.csv scene, gold per line after `@` (the Highlight words) |
 | `brewery:tut_brewery` | a TIME OUT at the Brewery (round AN): the match freezes, that flag is set and the Brewery opens over it; `Guide.csv` rows that need the flag lead the way, and one whose Then is `goto:back` ends it. See "The tutorial Brewery" |
 
@@ -3286,6 +3289,19 @@ kleiner_fass` row, because that is the only keg row whose Requires
 gamble. The barrel and bottle in the drinking window are drawn in code for
 now, until PixelLab art exists. The burp is `Audio.csv drink_burp`, silent
 until `bav_burp.ogg` is made (`SOUNDS_WANTED.csv`).
+
+**The combo beers** (Anthony, 8 Oct). Three small beers, `Items.csv`
+`anstoss_helles`, `doppelpass_weisse`, `abstauber_dunkel`, each with its own
+`Brews.csv` row (Pool = its own ID, so it is never poured at the Pub):
+
+| beer | good side | bad side |
+|---|---|---|
+| Anstoß Helles | attacking: Pass It On, +1 power to your next player who duels | defending: Heavy Legs, -1 power |
+| Doppelpass Weiße | defending: One-Two, +1 power to your next player who duels | attacking: Fumbled Pass, -1 power |
+| Abstauber Dunkel | attacking: Tap-In, +1 power | defending: Sleepy Keeper, 1 stamina off your own keeper |
+
+The abilities are the `COMBO_` rows of `Abilities.csv`. Tier I duels before
+Tier II, so a Pass It On on Tier I pushes Tier II: that is the combo.
 
 **The EXHAUST ZONE button** (bottom right of every match, `Tuning.csv
 exhaust_button`) says how many of your cards are spent this cycle. Press it
@@ -6165,6 +6181,13 @@ title screen and names anything missing, misplaced or duplicated.
 ---
 
 ## 15. Things that will bite you
+
+**After a pull, a screen fails and drops you at the base** (8 Oct, the
+Deck). A pull that adds a new script with a `class_name` can leave an open
+Godot editor not knowing that name yet, and every script that uses it fails
+to load. Close the editor and reopen the project (or run `godot --headless
+--path . --import`). New code loads such scripts by path (`preload`) where a
+failure would stop a match.
 
 **Two copies of a script.** Godot registers a `class_name` once. A second copy
 anywhere gives you `Class "X" hides a global script class` and then loads

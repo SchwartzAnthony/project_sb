@@ -1,6 +1,10 @@
 class_name MatchCoach
 extends Node
 
+## Loaded by path, not by its class name: a Godot editor that has not
+## re-scanned since a pull would not know the name yet, and the whole match
+## would fail to load (the Deck, 8 Oct).
+const DRINK_WINDOW := preload("res://src/ui/drink_window.gd")
 const PLAYER_CARD: PackedScene = preload("res://src/ui/player_card_ui.tscn")
 
 # =============================================================
@@ -256,6 +260,8 @@ func _do(text: String) -> void:
 					await show_card(value.substr(0, at_card).strip_edges(), scene_words, gold)
 			"drink_lesson":
 				await drink_lesson(value)
+			"give":
+				give_items(value)
 			"say":
 				await say(value)
 			"inspire":
@@ -369,6 +375,9 @@ func say(value: String) -> void:
 ## the Highlight column without "card:" - first, last or a name. The scene
 ## plays over his card shown big (show_card), so the gold words are
 ## card / abilities / attack / defend / -.
+## Several items with + between them (the combo lesson): the bag shows those
+## of them that are in it, gold on each, and any one will do. Nothing is
+## added for a list - give: puts them in the bag first.
 func drink_lesson(spec: String) -> void:
 	var parts := spec.split("@")
 	var head := String(parts[0])
@@ -378,15 +387,19 @@ func drink_lesson(spec: String) -> void:
 		return
 	var who := head.substr(0, eq).strip_edges()
 	var item_id := head.substr(eq + 1).strip_edges()
+	# Several items with + between them: the player picks any one of them.
+	var items: Array = []
+	for part in item_id.split("+", false):
+		items.append(String(part).strip_edges())
 	var vessel := String(parts[1]).strip_edges() if parts.size() > 1 else "barrel"
 	var after := String(parts[2]).strip_edges() if parts.size() > 2 else ""
 	var gold := String(parts[3]).strip_edges() if parts.size() > 3 else "abilities"
 	var state: GameState = main.get("state")
 	if state == null:
 		return
-	if state.count(item_id) <= 0:
+	if items.size() == 1 and state.count(item_id) <= 0:
 		state.add_count(item_id, 1)
-	main.set("bag_only", [item_id])
+	main.set("bag_only", items)
 	main.call("_redraw_offered_cards")
 	await get_tree().process_frame
 
@@ -412,11 +425,15 @@ func drink_lesson(spec: String) -> void:
 	var on_open := func(bag: InventoryScreen) -> void:
 		await get_tree().process_frame
 		await get_tree().process_frame
-		var tile := bag.tile_for(item_id)
-		print("[match talk] drink lesson: the bag is open, gold on %s." % (item_id if tile != null else "nothing"))
+		var tiles: Array = []
+		for one in items:
+			var tile := bag.tile_for(one)
+			if tile != null:
+				tiles.append(tile)
+		print("[match talk] drink lesson: the bag is open, gold on %d of %s." % [tiles.size(), item_id])
 		var layer_now := main.get_node_or_null("DrinkLessonGold") as CanvasLayer
 		if layer_now != null:
-			_gold_on(layer_now, [tile] if tile != null else [])
+			_gold_on(layer_now, tiles)
 		bag.tree_exited.connect(func() -> void:
 			# Closed without using it: back to his bag button.
 			var still := main.get_node_or_null("DrinkLessonGold") as CanvasLayer
@@ -428,7 +445,7 @@ func drink_lesson(spec: String) -> void:
 	print("[match talk] drink lesson: waiting for %s on %s." % [item_id, drinker.player_name])
 	while true:
 		var got: Array = await _next_item_used()
-		if got[0] == drinker and String((got[1] as Dictionary).get("id", "")) == item_id:
+		if got[0] == drinker and items.has(String((got[1] as Dictionary).get("id", ""))):
 			break
 	used[0] = true
 	main.disconnect("bag_opened", on_open)
@@ -439,7 +456,7 @@ func drink_lesson(spec: String) -> void:
 	var tree := get_tree()
 	var was_paused := tree.paused
 	tree.paused = true
-	var window := DrinkWindow.play(main, drinker, vessel)
+	var window = DRINK_WINDOW.play(main, drinker, vessel)
 	await window.finished
 	tree.paused = was_paused
 
@@ -450,6 +467,25 @@ func drink_lesson(spec: String) -> void:
 		await show_card(drinker.player_name, after, gold)
 	_lock_all_but(target)
 	main.call("hold_picks")
+
+
+## `give:anstoss_helles+doppelpass_weisse` - one of each into the bag
+## (`item=3` for more than one).
+func give_items(value: String) -> void:
+	var state: GameState = main.get("state")
+	if state == null:
+		return
+	for part in value.split("+", false):
+		var one := String(part).strip_edges()
+		var how_many := 1
+		if one.contains("="):
+			how_many = maxi(1, int(one.get_slice("=", 1)))
+			one = one.get_slice("=", 0).strip_edges()
+		if AdventureDB.get_db().item(one).is_empty():
+			push_warning("[match talk] give:%s - Items.csv has no such item." % one)
+			continue
+		state.add_count(one, how_many)
+	main.call("_redraw_offered_cards")
 
 
 func _next_item_used() -> Array:

@@ -139,3 +139,26 @@ func test_the_kleiner_fass() -> void:
 	var row := MatchTalk.row_for("cards_shown", "tutorial", null, {"round": "4", "tier": "I"})
 	assert_eq(String(row.get("scene", "")), "tut-fass")
 	assert_string_contains(String(row.get("do", "")), "drink_lesson:first=keg")
+
+
+func test_the_combo_beers() -> void:
+	# Anthony, 8 Oct: three small beers, one good side and one bad side each.
+	var good_bad := {
+		"anstoss_helles": ["COMBO_HELLES_ATK", "COMBO_HELLES_DEF"],
+		"doppelpass_weisse": ["COMBO_WEISSE_ATK", "COMBO_WEISSE_DEF"],
+		"abstauber_dunkel": ["COMBO_DUNKEL_ATK", "COMBO_DUNKEL_DEF"],
+	}
+	for id_text in good_bad:
+		var item := AdventureDB.get_db().item(id_text)
+		assert_false(item.is_empty(), "Items.csv %s" % id_text)
+		assert_eq(AdventureDB.brew_in_use(item, GameState.new()), id_text)
+		var brew := BrewDB.get_db().find(id_text)
+		assert_eq(String(brew.get("attack", "")), good_bad[id_text][0])
+		assert_eq(String(brew.get("defend", "")), good_bad[id_text][1])
+		for ability_id in good_bad[id_text]:
+			assert_not_null(CardDatabase.get_db().get_ability(ability_id), ability_id)
+	var row := MatchTalk.row_for("cards_shown", "tutorial", null, {"round": "6", "tier": "I"})
+	assert_eq(String(row.get("scene", "")), "tut-combo")
+	assert_string_contains(String(row.get("do", "")), "give:anstoss_helles")
+	row = MatchTalk.row_for("cards_shown", "tutorial", null, {"round": "6", "tier": "II"})
+	assert_eq(String(row.get("scene", "")), "tut-combo-2")
