@@ -1,0 +1,13 @@
+ID,Tier,Power,Name,Class,Gender,Artwork,Star,Lead,Notes
+p1,I,0,,Normal,,,,,"THE TUTORIAL MATCH SIDE (round AN, Anthony 8 Oct). A copy of IntroSquad.csv with Koch as a plain Normal player who is the Star (Star yes). Used by MatchModes.csv tutorial. It only ever exists in the tutorial's own save, so none of these players reach your game."
+p2,I,1,,Normal,,,,,
+p3,I,2,,Normal,,,,,
+p4,II,1,,Normal,,,,,
+p5,II,2,,Normal,,,,,
+p6,II,3,,Normal,,,,,
+p7,III,2,,Normal,,,,,
+p8,III,3,,Normal,,,,,
+p9,III,4,,Normal,,,,,
+koch,IV,3,Koch,Normal,m,,yes,yes,"KOCH, a plain club player and the Star of the side (round AN, Anthony 8 Oct): Star yes, Lead yes, Tier IV Power 3, no ability yet. The tutorial's TIME OUTs give him Beer Courage after cycle 1 and turn him into a Bergmännlein with Earth Courage after cycle 2 (MatchTalk.csv Do). p11 and p12 are the plain Stars who come on for him at the switch after cycle 3."
+p11,IV,4,,Normal,,,,,
+p12,IV,5,,Normal,,,,,

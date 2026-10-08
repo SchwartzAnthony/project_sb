@@ -79,7 +79,12 @@ func talk(event: String, facts: Dictionary = {}) -> void:
 	print("[match talk] %s (Play Maker %s, Tier %s): '%s'." % [event,
 		with_round["round"], String(facts.get("tier", "-")), String(row["scene"])])
 
-	var spots: Array = []
+	# ROUND AN (Anthony, 8 Oct): from this moment nothing on the screen can
+	# be clicked until he has finished - not the cards he is about to point
+	# at, not the next line before this one has been read.
+	var shield := _input_shield()
+
+	var groups: Array = []
 	var words := String(row.get("highlight", ""))
 	if words != "":
 		# A moment, so a row of cards that has just been dealt has landed and
@@ -89,19 +94,41 @@ func talk(event: String, facts: Dictionary = {}) -> void:
 		if wait > 0.0:
 			await get_tree().create_timer(wait, false).timeout
 		await get_tree().process_frame
-		spots = _spots_for(words)
-		if spots.is_empty() and words.to_lower().contains("card"):
+		# One group of gold per line, | between them.
+		var found := 0
+		for part in words.split("|"):
+			var group := _spots_for(String(part))
+			found += group.size()
+			groups.append(group)
+		if found == 0 and words.to_lower().contains("card"):
 			# The cards went while we waited (picked already): nothing to say.
+			shield.queue_free()
 			_busy = false
 			return
 
-	var box := MatchTalkBox.play(main, String(row["scene"]), state, true, spots)
+	var box := MatchTalkBox.play(main, String(row["scene"]), state, true, groups)
 	if box != null:
 		main.set("_talk_box", box)
 		await box.finished
+	shield.queue_free()
 
 	await _do(String(row.get("do", "")))
 	_busy = false
+
+
+## A see-through sheet over everything that swallows clicks, up from the
+## moment a stop is decided until the coach's box has closed.
+func _input_shield() -> CanvasLayer:
+	var layer := CanvasLayer.new()
+	layer.name = "CoachShield"
+	layer.layer = 149
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	var sheet := Control.new()
+	sheet.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	sheet.mouse_filter = Control.MOUSE_FILTER_STOP
+	layer.add_child(sheet)
+	main.add_child(layer)
+	return layer
 
 
 ## The duel window's gold moments (duel_arena.gd calls this).
@@ -122,6 +149,8 @@ func _spots_for(words: String) -> Array:
 	var out: Array = []
 	for raw in words.split(";", false):
 		var word := String(raw).strip_edges()
+		if word == "" or word == "-":
+			continue
 		var ring := false
 		if word.to_lower().begins_with("ring:"):
 			ring = true
@@ -177,11 +206,14 @@ func _controls_for(word: String) -> Array:
 func _do(text: String) -> void:
 	for raw in text.split(";", false):
 		var part := String(raw).strip_edges()
-		var colon := part.find(":")
-		if colon <= 0:
+		if part == "":
 			continue
-		var verb := part.substr(0, colon).strip_edges().to_lower()
-		var value := part.substr(colon + 1).strip_edges()
+		var colon := part.find(":")
+		var verb := part.to_lower()
+		var value := ""
+		if colon > 0:
+			verb = part.substr(0, colon).strip_edges().to_lower()
+			value = part.substr(colon + 1).strip_edges()
 		match verb:
 			"pub":
 				await time_out(value)
@@ -193,6 +225,16 @@ func _do(text: String) -> void:
 					give_ability(value.substr(0, eq).strip_edges(), value.substr(eq + 1).strip_edges())
 			"announce":
 				await main.announce(value, 1.6)
+			"keep_star":
+				_keep_star = true
+			"class":
+				var eq := value.find("=")
+				if eq > 0:
+					change_class(value.substr(0, eq).strip_edges(), value.substr(eq + 1).strip_edges())
+			"inspire":
+				var at := value.find("=")
+				if at > 0:
+					inspire(value.substr(0, at).strip_edges(), float(value.substr(at + 1)))
 			_:
 				push_warning("[match talk] Do: '%s' is not something the coach knows how to do." % part)
 
@@ -257,6 +299,46 @@ func make_star(name_text: String) -> void:
 	unit.set_highlight(false)
 	main.set("active_player_star", unit.data)
 	print("[match talk] %s is a Star now." % unit.data.player_name)
+
+
+## `keep_star` - at this STAR PLAYER SWITCH your Star is not swapped: he
+## plays the next cycle too. Used once, by the switch that follows.
+var _keep_star := false
+
+
+func take_keep_star() -> bool:
+	var kept := _keep_star
+	_keep_star = false
+	return kept
+
+
+## `class:Koch=Bergmännlein` - he turns into that class: its element, its
+## sprite on the pitch and on his card (the Earth Brew in the tutorial).
+func change_class(name_text: String, klass: String) -> void:
+	var unit := _my_unit_called(name_text)
+	if unit == null:
+		push_warning("[match talk] class:%s=%s - nobody of that name is playing for you." % [name_text, klass])
+		return
+	var db := CardDatabase.get_db()
+	var data := unit.data
+	data.unit_type = klass
+	data.element = SquadSheet._element_of(klass, db)
+	var art := SquadSheet._art_for("", klass, "m", db)
+	if art != null:
+		data.artwork = art
+	unit.update_unit_data(data)
+	print("[match talk] %s is a %s now." % [data.player_name, klass])
+
+
+## `inspire:Koch=75` - how drunk (inspired) he is, in %, on THE DRUNK METER
+## (drunk_book.gd, data/DrunkLevels.csv). At the star level his star ability
+## (StarAbilities.csv) wakes up.
+func inspire(name_text: String, percent: float) -> void:
+	var unit := _my_unit_called(name_text)
+	if unit == null:
+		return
+	DrunkBook.set_level(unit.data, percent)
+	print("[match talk] %s is %d%% inspired." % [unit.data.player_name, int(percent)])
 
 
 ## `ability:Koch=TUT_KOCH_BEER` - that Abilities.csv row on both his sides.

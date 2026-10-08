@@ -103,6 +103,10 @@ func spot(word: String) -> Control:
 			return _stamina_value.get_parent() as Control if _stamina_value else null
 		"shot_power":
 			return _shot_value.get_parent() as Control if _shot_value else null
+		"stamina_bar":
+			return _stamina_bar
+		"keeper":
+			return _keeper_stage
 	return null
 
 

@@ -3129,7 +3129,10 @@ The words are `Language.csv` `tutorial_offer_title`, `_text`, `_yes` and
 ### What the Tutorial is
 
 1. **Pub Dialogue 1**: the `Dialogue.csv` scene named in `Tuning.csv
-   tutorial_first_scene` (`prologue`). Rewrite it there.
+   tutorial_first_scene` (`prologue`). Rewrite it there. Since 8 Oct Koch
+   does not transform here: the Head Coach says the town needs help, that
+   Koch is the star, one of the best, and Koch is simply wasted. His
+   transformation is now the second TIME OUT.
 2. **The tutorial match** starts by itself. It is `MatchModes.csv`
    `tutorial` (`Tuning.csv tutorial_match_mode`). Your side is
    `IntroSquad.csv` (Koch in the Star's place at Tier IV, eleven plain
@@ -3147,31 +3150,54 @@ away, and your save comes back exactly as it was.
 ### The Head Coach's stops (all in `MatchTalk.csv`, lines in `Dialogue.csv`)
 
 All lines are **drafts** for you to rewrite. Every scene starts with `tut-`.
+The tutorial match has **four cycles** (`MatchModes.csv tutorial`) and is
+played by `data/TutorialSquad.csv`: Koch is a plain club player and the
+Star, with no ability yet.
 
 | Play Maker | moment | scene | gold on |
 |---|---|---|---|
 | | the whistle | tut-kickoff | |
-| 1 | Tier I cards | tut-tier1 | the first card (P:0) |
+| 1 | Tier I cards | tut-tier1 | the P:0 card, then all three |
 | 1 | Tier II cards | tut-tier2 | all three cards |
-| 1 | Tier IV card | tut-tier4 | the card |
-| 1 | the Tier I duel: turned over, ABILITY PRIORITY, first box, second box, POWER CHECK, WIN/LOSE | tut-duel-start ... tut-duel-result | the duel's own gold ring and boxes |
-| 1 | the shot window | tut-shot | a gold circle on the %, a box on the keeper's stamina |
-| 2 | Tier I cards (two left) | tut-exhaust | the cards and the EXHAUST ZONE button |
-| 2 | after the shot | tut-timeout-call, then **TIME OUT**: tut-timeout-pub in the bar | |
-| 3 | Tier IV: Koch, now a Star | tut-koch-star | Koch's card |
-| 3 | STAR PLAYER SWITCH: who comes on for Koch | tut-star-swap | the cards |
+| 1 | Tier IV: Koch, the Star, no ability yet | tut-tier4 | Koch's card |
+| 1 | the Tier I duel: turned over, ABILITY PRIORITY (lower first, the attacker on a tie), first box, second box, POWER CHECK (the defender wins a tie), WIN/LOSE | tut-duel-start ... tut-duel-result | the duel's own gold ring and boxes |
+| 1 | the shot window | tut-shot | the shot power, then the keeper's stamina and its bar, then a circle on the % |
+| 2 | Tier I cards (two left) | tut-exhaust | the cards, then the EXHAUST ZONE button |
+| end of cycle 1 | **TIME OUT**: Koch's inspiration is too low, he drinks, Beer Courage switches on | tut-timeout-call, tut-timeout-inspiration | |
+| 4 | Tier IV: Koch's card with Beer Courage | tut-koch-ability | Koch's card |
+| end of cycle 2 | **TIME OUT**: the cursed brews; an Earth Brew turns Koch into a Bergmännlein with Earth Courage | tut-timeout2-call, tut-timeout-cursed | |
+| 7 | Tier IV: Bergmännlein Koch's new ability | tut-koch-earth | Koch's card |
+| end of cycle 3 | STAR PLAYER SWITCH: Koch is swapped for a plain Star | tut-star-swap | the cards |
 
-After the star swap the match plays out normally (your notes stop there).
+The fourth cycle plays out normally (your notes stop there).
 
-**The TIME OUT.** The match freezes where it is, and the whole screen becomes
-the `tut-timeout-pub` scene. When it ends, the match carries on from the
-same moment, with the same score, clock and exhaust. Then Koch is a **Star**
-with **Beer Courage** (`Abilities.csv TUT_KOCH_BEER`, on both his sides):
-+1 power for each of your normal players who played before him that round.
+**One group of gold per line.** In the Highlight column, `|` separates the
+lines: `-|card:first|cards` points at nothing on line 1, the first card on
+line 2, all the cards from line 3 on.
+
+**No clicking through him.** From the moment he stops the match nothing
+can be clicked, and each line stays up at least `Tuning.csv
+match_talk_line_seconds` (1.2) before a click moves it on; "Click to
+continue" appears when it can.
+
+**The TIME OUTs.** The match freezes where it is and the whole screen
+becomes the pub scene. When it ends, the match carries on from the same
+moment, with the same score, clock and exhaust. Then the row's **Do** runs:
+
+| Do | what it does |
+|---|---|
+| `keep_star:Koch` | at this switch your Star is not swapped; he plays the next cycle too |
+| `ability:Koch=TUT_KOCH_BEER` | Beer Courage: +1 power for each normal player of yours who played before him that round |
+| `class:Koch=Bergmännlein` | he becomes that class: element, sprite and card |
+| `ability:Koch=TUT_KOCH_EARTH` | Earth Courage: +2 power for each normal player before him |
+| `inspire:Koch=75` | his inspiration in % on the drunk meter (`DrunkLevels.csv`): 75 after cycle 1 (past Inspired, so his star ability wakes up), 90 after cycle 2 |
 
 **The EXHAUST ZONE button** (bottom right of every match, `Tuning.csv
 exhaust_button`) says how many of your cards are spent this cycle. Press it
 to see them.
+
+**TOUCHED** on a card now only shows when that card's own ability asks
+whether it touched the ball. Plain players never show it.
 
 ### The starting team
 

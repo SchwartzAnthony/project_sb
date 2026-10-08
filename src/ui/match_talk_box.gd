@@ -28,8 +28,18 @@ var _pause := true
 ## ROUND AN - THE TUTORIAL: what the coach points at while he talks. Each is
 ## {"rect": Rect2 on the screen, "ring": bool}; a gold box (or circle) is drawn
 ## round it in the duel highlight's gold (Tuning.csv duel_hl_*).
-var _spots: Array = []
+## Several groups, one per line (Highlight column with | between lines):
+## line 1 points at group 1, line 2 at group 2, and so on; the last group
+## stays for the lines after it.
+var _groups: Array = []
 var _panel: PanelContainer
+var _spot_holder: Control
+var _hint: Label
+var _line_index := -1
+## ROUND AN (Anthony, 8 Oct): no clicking through him. A line cannot be
+## skipped until it has been up this long (Tuning.csv match_talk_line_seconds).
+var _line_lock := 1.2
+var _shown_at := 0
 
 
 ## Open the box with `scene` over whatever is on screen. Returns the box, or
@@ -44,7 +54,10 @@ static func play(host: Node, scene: String, state: GameState,
 	box._db = dialogue
 	box._state = state
 	box._pause = pause
-	box._spots = spots
+	if not spots.is_empty() and spots[0] is Array:
+		box._groups = spots
+	elif not spots.is_empty():
+		box._groups = [spots]
 	host.add_child(box)
 	box._show(first)
 	return box
@@ -104,8 +117,11 @@ func _ready() -> void:
 	panel.offset_top = -250
 	panel.offset_bottom = -30
 	_panel = panel
-	if not _spots.is_empty():
-		root.add_child(CoachSpots.make(_spots))
+	_line_lock = maxf(0.0, CardDatabase.get_db().tune_float("match_talk_line_seconds", 1.2))
+	_spot_holder = Control.new()
+	_spot_holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_spot_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_spot_holder)
 	root.add_child(panel)
 	# The face sits in the box, on the left; the words to its right.
 	root.add_child(_portrait)
@@ -139,6 +155,7 @@ func _ready() -> void:
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hint.add_theme_color_override("font_color", ThemeBook.text_colour("small", Color(0.7, 0.65, 0.5)))
 	column.add_child(hint)
+	_hint = hint
 	_out_of_the_way()
 
 
@@ -147,10 +164,11 @@ func _ready() -> void:
 func _out_of_the_way() -> void:
 	var low := false
 	var screen := get_viewport().get_visible_rect().size
-	for spot in _spots:
-		var rect: Rect2 = spot.get("rect", Rect2())
-		if rect.end.y > screen.y - 260.0:
-			low = true
+	for group in _groups:
+		for spot in group:
+			var rect: Rect2 = spot.get("rect", Rect2())
+			if rect.end.y > screen.y - 260.0:
+				low = true
 	if not low:
 		return
 	_panel.anchor_top = 0.0
@@ -175,6 +193,33 @@ func _show(line: DialogueLine) -> void:
 	_text.text = line.text
 	_portrait.texture = _face_for(line)
 	_portrait.flip_h = false
+	_line_index += 1
+	_shown_at = Time.get_ticks_msec()
+	if _hint != null:
+		_hint.modulate.a = 0.0
+	_point_for_line()
+
+
+## The gold for this line (its group, or the last group).
+func _point_for_line() -> void:
+	if _spot_holder == null:
+		return
+	for child in _spot_holder.get_children():
+		child.queue_free()
+	if _groups.is_empty():
+		return
+	var group: Array = _groups[mini(_line_index, _groups.size() - 1)]
+	if not group.is_empty():
+		_spot_holder.add_child(CoachSpots.make(group))
+
+
+func _process(_delta: float) -> void:
+	if _hint != null and _hint.modulate.a < 1.0 and _unlocked():
+		_hint.modulate.a = 1.0
+
+
+func _unlocked() -> bool:
+	return float(Time.get_ticks_msec() - _shown_at) / 1000.0 >= _line_lock
 
 
 func _face_for(line: DialogueLine) -> Texture2D:
@@ -186,6 +231,8 @@ func _face_for(line: DialogueLine) -> Texture2D:
 
 
 func _next() -> void:
+	if _line != null and not _unlocked():
+		return
 	if _line == null:
 		_close()
 		return

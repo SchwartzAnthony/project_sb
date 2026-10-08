@@ -28,24 +28,43 @@ func test_every_tutorial_stop_has_its_scene() -> void:
 func test_round_and_tier_pick_the_row() -> void:
 	var r1 := MatchTalk.row_for("cards_shown", "tutorial", null, {"round": "1", "tier": "I"})
 	assert_eq(String(r1.get("scene", "")), "tut-tier1")
-	assert_eq(String(r1.get("highlight", "")), "card:first")
+	assert_string_contains(String(r1.get("highlight", "")), "card:first")
 	var r2 := MatchTalk.row_for("cards_shown", "tutorial", null, {"round": "2", "tier": "I"})
 	assert_eq(String(r2.get("scene", "")), "tut-exhaust")
 	var none := MatchTalk.row_for("cards_shown", "tutorial", null, {"round": "1", "tier": "III"})
 	assert_true(none.is_empty(), "no stop for Tier III")
 	var other_mode := MatchTalk.row_for("cards_shown", "friendly", null, {"round": "1", "tier": "I"})
 	assert_true(other_mode.is_empty(), "the tutorial's stops stay in the tutorial")
-	var swap := MatchTalk.row_for("cards_shown", "tutorial", null, {"round": "3", "tier": "star"})
+	var swap := MatchTalk.row_for("cards_shown", "tutorial", null, {"round": "9", "tier": "star"})
 	assert_eq(String(swap.get("scene", "")), "tut-star-swap")
 
 
-func test_time_out_does_the_pub_and_makes_koch_a_star() -> void:
-	var row := MatchTalk.row_for("shot_done", "tutorial", null, {"round": "2"})
-	var words := String(row.get("do", ""))
-	assert_string_contains(words, "pub:tut-timeout-pub")
-	assert_string_contains(words, "star:Koch")
-	assert_string_contains(words, "ability:Koch=TUT_KOCH_BEER")
-	assert_not_null(CardDatabase.get_db().get_ability("TUT_KOCH_BEER"))
+func test_time_outs_after_cycle_one_and_two() -> void:
+	# After cycle 1 (the switch counts as Play Maker 3): the beer, his star
+	# ability, and he stays on.
+	var first := String(MatchTalk.row_for("star_switch", "tutorial", null, {"round": "3"}).get("do", ""))
+	assert_string_contains(first, "pub:tut-timeout-inspiration")
+	assert_string_contains(first, "ability:Koch=TUT_KOCH_BEER")
+	assert_string_contains(first, "keep_star")
+	# After cycle 2: the Earth Brew, the Bergmännlein, a new ability.
+	var second := String(MatchTalk.row_for("star_switch", "tutorial", null, {"round": "6"}).get("do", ""))
+	assert_string_contains(second, "pub:tut-timeout-cursed")
+	assert_string_contains(second, "class:Koch=Bergmännlein")
+	assert_string_contains(second, "ability:Koch=TUT_KOCH_EARTH")
+	assert_string_contains(second, "keep_star")
+	# After cycle 3 he is swapped as usual.
+	assert_true(MatchTalk.row_for("star_switch", "tutorial", null, {"round": "9"}).is_empty())
+	for id in ["TUT_KOCH_BEER", "TUT_KOCH_EARTH"]:
+		assert_not_null(CardDatabase.get_db().get_ability(id), id)
+
+
+func test_the_opening_pub_has_no_transformation() -> void:
+	var line := DialogueDB.get_db().opening_line("prologue", null)
+	var moods: Array[String] = []
+	while line != null:
+		moods.append(line.mood)
+		line = DialogueDB.get_db().line_after(line, null)
+	assert_false(moods.has("bergmaennlein"), "Koch only turns at the second TIME OUT")
 
 
 func _card(tier: String, power: int, star: bool = false) -> PlayerData:

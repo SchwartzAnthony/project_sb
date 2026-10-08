@@ -823,7 +823,10 @@ func marks_for(card: PlayerData, side_is_enemy: bool) -> String:
 	elif is_kind(card, side_is_enemy, "swan"):
 		bits.append("SWAN")
 	# ROUND AD (C6): what the pitch did for this card - worth knowing when you pick.
-	if card != null and (_touched[side_is_enemy] as Dictionary).has(_k(card, side_is_enemy)):
+	# ROUND AN (Anthony, 8 Oct): only on a card whose own ability asks about
+	# touching the ball - a plain player who touched it has nothing to show.
+	if card != null and (_touched[side_is_enemy] as Dictionary).has(_k(card, side_is_enemy)) \
+			and _reads_touch(card):
 		bits.append("TOUCHED")
 	if card != null and (_mining[side_is_enemy] as Dictionary).has(_k(card, side_is_enemy)):
 		bits.append("MINING")
@@ -2657,6 +2660,17 @@ func set_touched(side_is_enemy: bool, cards: Array) -> void:
 		if c != null:
 			d[_k(c as PlayerData, side_is_enemy)] = true
 	_touched[side_is_enemy] = d
+
+
+## ROUND AN: does either side of this card have an If about touching the ball?
+func _reads_touch(card: PlayerData) -> bool:
+	if db == null:
+		return false
+	for id in [card.active_attack_ability(), card.active_defend_ability()]:
+		var ability = db.get_ability(String(id))
+		if ability != null and CardDatabase._normalise(String(ability.condition)).contains("touched"):
+			return true
+	return false
 
 
 func touched(card: PlayerData, side_is_enemy: bool) -> bool:

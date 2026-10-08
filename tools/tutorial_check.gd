@@ -30,7 +30,8 @@ const GIVE_UP_SECONDS := 1500.0
 const STOPS: Array[String] = ["tut-kickoff", "tut-tier1", "tut-tier2", "tut-tier4",
 	"tut-duel-start", "tut-duel-priority", "tut-duel-ability-1", "tut-duel-ability-2",
 	"tut-duel-power", "tut-duel-result", "tut-shot", "tut-exhaust",
-	"tut-timeout-call", "tut-timeout-pub", "tut-koch-star", "tut-star-swap"]
+	"tut-timeout-call", "tut-timeout-inspiration", "tut-koch-ability",
+	"tut-timeout2-call", "tut-timeout-cursed", "tut-koch-earth", "tut-star-swap"]
 
 var _results: Array[String] = []
 var _failed := false
@@ -77,6 +78,10 @@ func _initialize() -> void:
 		_finish()
 		return
 	_check(String(MatchMode.current(self).get("id", "")) == "tutorial", "it is the tutorial match")
+	var picked := TeamSelection.fetch(self)
+	_check(picked != null and picked.active_star != null and picked.active_star.player_name == "Koch"
+		and picked.active_star.is_star() and picked.active_star.unit_type == "Normal",
+		"Koch starts as a plain Star (no transformation in the pub)")
 
 	# ---- 3. the match ----
 	tutorial_names = RecruitBook.names(GameState.fetch(self))
@@ -232,7 +237,7 @@ func _read_coach(scene: Node, box: Node) -> void:
 			break
 		box.call("_next")
 		await create_timer(0.05, true, false, true).timeout
-	if scene_name == "tut-timeout-call":
+	if scene_name in ["tut-timeout-call", "tut-timeout2-call"]:
 		_before_pub = [int(scene.get("player_score")), int(scene.get("enemy_score")),
 			String(scene.get("timer_label").text)]
 
@@ -240,9 +245,14 @@ func _read_coach(scene: Node, box: Node) -> void:
 var _before_pub: Array = []
 
 
+var _time_outs := 0
+
+
 func _read_time_out(scene: Node, layer: Node) -> void:
-	_seen.append("tut-timeout-pub")
-	var folder := "%02d_tut-timeout-pub" % _stop_index
+	_time_outs += 1
+	var pub_scene := "tut-timeout-inspiration" if _time_outs == 1 else "tut-timeout-cursed"
+	_seen.append(pub_scene)
+	var folder := "%02d_%s" % [_stop_index, pub_scene]
 	_stop_index += 1
 	var frame := 0
 	var view: Node = null
@@ -270,9 +280,17 @@ func _read_time_out(scene: Node, layer: Node) -> void:
 	for unit in scene.call("_everyone_ever"):
 		if not unit.is_enemy and unit.data != null and unit.data.player_name == "Koch":
 			koch = unit
-	_check(koch != null and koch.is_star_player and koch.data.is_star()
-		and koch.data.attack_ability_id == "TUT_KOCH_BEER",
-		"Koch is a Star with Beer Courage after the pub")
+	if _time_outs == 1:
+		_check(koch != null and koch.is_star_player and koch.data.is_star()
+			and koch.data.attack_ability_id == "TUT_KOCH_BEER"
+			and koch.data.unit_type == "Normal",
+			"after the first TIME OUT Koch is still a plain Star, now with Beer Courage")
+	else:
+		_check(koch != null and koch.is_star_player
+			and koch.data.attack_ability_id == "TUT_KOCH_EARTH"
+			and koch.data.unit_type == "Bergmännlein",
+			"after the second TIME OUT Koch is a Bergmännlein with Earth Courage")
+	await _shot_one("after_time_out_%d" % _time_outs)
 
 
 # -------------------------------------------------------------

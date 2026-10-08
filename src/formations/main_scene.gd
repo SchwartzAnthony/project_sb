@@ -3883,7 +3883,12 @@ func trigger_hold_up_event() -> void:
 	# whistle. The name in a spreadsheet is a label, not a sentence.
 	print("STAR PLAYER SWITCH.  Starting cycle %d" % current_cycle)
 	AudioDirector.fire(get_tree(), "hold_up", {"cycle": str(current_cycle)}, state)
-	_match_talk("star_switch")
+	# ROUND AN: awaited, so a TIME OUT here (the tutorial) is over before the
+	# Star choice comes up - and its Do keep_star can skip that choice.
+	if coach != null:
+		await coach.talk("star_switch")
+	else:
+		_match_talk("star_switch")
 	Juice.fire(self, "star_switch", {})
 	await announce("STAR PLAYER SWITCH")
 
@@ -4298,6 +4303,14 @@ func start_next_draft_phase() -> void:
 		for star_data in _weakest_first(get_star_player_choices()):
 			create_card_for_unit(star_data)
 		_offer_auto_pick()
+		return
+
+	if phase == "StarChoice" and coach != null and coach.take_keep_star():
+		# ROUND AN (the tutorial): MatchTalk.csv Do keep_star - your Star stays
+		# on for another cycle, so there is nobody to choose.
+		print("[draft] Your Star stays on this cycle (keep_star).")
+		current_phase_index += 1
+		start_next_draft_phase()
 		return
 
 	if phase == "StarChoice":
