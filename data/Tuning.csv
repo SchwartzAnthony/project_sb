@@ -199,8 +199,8 @@ mark_commitment,0.5,"HOW FAR TOWARD HIS MAN A DEFENDER ACTUALLY COMMITS, 0 to 1.
 mark_level_floor,0.55,"THE SMALLEST GAP A MARKER MAY END UP AT FROM HIS MAN S EXACT HEIGHT, as a share of mark_shoulder. THE LAST WORD AGAINST A PAIR STANDING PARALLEL. Every other rule here is a lerp or a sum and every one of them can average back to nought - commit half way toward a man a shoulder above you and you are half a shoulder above him, then a drift pointing down puts you level again. This is a floor under all of it. 0 turns it off"
 mark_swap_gap,90,"HOW FAR PAST HIS MAN THE BALL MUST TRAVEL before a marker switches to the other shoulder, in pixels. The shoulder a defender stands off is decided by where the ball is; without this gap a ball drifting across his man s exact height flips it every frame and the marker jitters. Bigger is calmer and slower to react"
 mark_drift,26,"HOW FAR A MARKER KEEPS SHIFTING ABOUT on top of the marking spot, in pixels. Nobody in football stands still while marking. 0 parks them"
-open_break,120,"HOW FAR FORWARD A PLAYER BREAKS when showing for the pass, in pixels"
-open_width,150,"HOW FAR TOWARD THEIR OWN TOUCHLINE they break as well. USING THE WIDTH OF THE PITCH. Nobody ever went near a touchline before, so every move went through the middle. 0 keeps play narrow"
+open_break,70,"HOW FAR FORWARD A PLAYER BREAKS when showing for the pass, in pixels. ROUND AN: measured from where his side's block is now (it slides with the ball), not his home slot; 120 sent men away from the play"
+open_width,50,"HOW FAR TOWARD THEIR OWN TOUCHLINE they break as well. ROUND AN: was 150, which with the rest had players running to the touchline away from the ball (Anthony, 8 Oct). USING THE WIDTH OF THE PITCH. Nobody ever went near a touchline before, so every move went through the middle. 0 keeps play narrow"
 goal_kick_converge_seconds,2.6,"HOW LONG THE WHOLE PITCH BREAKS TOWARD THE MAN A GOAL KICK IS AIMED AT. His side comes to support, theirs comes to intercept, and they fan out around him rather than piling on the same spot. 0 and everyone stands watching the ball travel, as before"
 surge_spread,210,"HOW WIDE A SURGING SIDE FANS OUT across the box instead of stacking on the goal mouth, in pixels. surge_centring draws them toward a single point; this pushes them back out to their own share of the width, so a break arrives spread across the area. 0 puts the pile-up back"
 surge_runners,3,"HOW MANY OF A BREAKING SIDE ACTUALLY RUN INTO THE BOX. THE ROW THAT STOPPED THE HUDDLE AT THE SHOT. Every player used to close the same fraction of the distance to the same goal mouth, which is ten people converging on one point. Now the three nearest the goal attack DIFFERENT stations - near post, far post, the spot, the edge - and everybody else pushes up and holds the shape. 0 means nobody goes and the shot arrives out of nowhere; 10 puts the heap back"
@@ -220,7 +220,11 @@ ball_chasers_per_side,2,"ROUND AN (Anthony, 8 Oct: too much crowding, more zone 
 press_helpers,2,Extra defenders from OTHER quarters allowed to join the press
 press_speed,92,Pixels per second when charging the ball carrier
 mark_distance,54,How far goal-side of his man a marker stands
-open_spread,230,How far an attacker breaks off its marker to show for a pass
+open_spread,90,"How far an attacker breaks off its marker to show for a pass. ROUND AN: was 230 - a man stepping 230 px off his marker ran away from the ball"
+open_support_min,190,"ROUND AN (Anthony, 8 Oct: players turning away from the ball and running to the edge). A player showing for the pass keeps at least this far from the ball, in pixels, so there is room to pass to him"
+open_support_max,340,"ROUND AN. ...and never further than this - nor further than he already is. He slides across or comes toward the ball to get open; he never walks away from it to do so. 0 = off (the old spot, which was often further away)"
+open_zone_margin,0.0,"ROUND AN (Anthony: more zone targeted). The spot a player shows for the pass at is kept inside his own quarter, give or take this share of the quarter s width. 0 = strictly in his quarter; 1 = up to a whole quarter beyond it"
+mark_keep_off,120,"ROUND AN. The same ring for a MARKER: he keeps at least this far from the ball, never moves further from it than he already is (up to open_support_max), and stays in his own quarter give or take open_zone_margin. He stays with his man without turning his back on the play to follow him to a corner"
 unit_zone_pull,1.15,How hard a unit is pulled back to its own quarter
 unit_leash,210,"How far from its slot a marking or showing unit may stray, in pixels. ONLY USED WHEN zones_enabled IS FALSE - with zones on, leash_band_fraction works this out from the roam band instead, so it scales with the pitch"
 unit_slot_pull,0.55,Spring back toward the slot once stretched
@@ -444,6 +448,7 @@ linger_seconds,2.5,"ROUND AC (your note: units hovering on the edge). How long a
 linger_radius,60,"ROUND AC. How far (pixels) a unit can drift and still count as ""the same spot"" for linger_seconds"
 linger_fresh_seconds,2.2,"ROUND AC. How long a unit heads for its fresh spot before its usual job takes over again"
 linger_candidates,8,"ROUND AC. How many spots a unit looks at when it picks a fresh one. More = smarter, slightly slower"
+fresh_spot_ball_weight,1.2,"ROUND AN (Anthony, 8 Oct: players running to the edge for no reason). When a player has stood too long and picks a fresh spot, how much he prefers a spot near the ball over empty space. 0 = emptiest space wins (which was nearly always out by a touchline)"
 edge_keep,0.10,"ROUND AC. No unit is SENT closer than this fraction of the pitch height to a touchline (it can still chase the ball over it). This is what had wingers parked on the line. 0 = off"
 zone_map_on_start,false,"ROUND AC. true = every match starts with the zone map on (Z switches it in a match)"
 placeholder_art,class_Normal.png,ROUND AN - PIXELLAB: The Club's own animated sprite sheet (assets/players/class_Normal.png). Used by every class without its own placeholder_art_<Class> row and by any card whose Artwork file is missing. ROUND AC: a unit with no art was invisible on the pitch.

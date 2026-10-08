@@ -21,6 +21,9 @@ extends SceneTree
 #  opengl3) also saves a frame every 0.2 s to user://movement_film/ for a GIF,
 #  and PROBE_OVERLAY=1 turns the Z zone map on while it films.
 #
+#  It also prints who ran AWAY from the ball, by job; PROBE_WHY=1 splits
+#  that by cause (the target was further away / a push / a fresh spot).
+#
 #  A tool, not part of the game. Nothing loads it.
 # =============================================================
 
@@ -29,6 +32,12 @@ var _stats := {}
 var _crowd := {"frames": 0, "near_sum": 0, "near_max": 0, "chasers_sum": 0,
 	"chasers_max": 0, "piles": 0}
 const NEAR := 140.0
+## Running AWAY from the ball, by job: seconds a player moved faster than a
+## stroll with the ball behind his direction of travel. And how much of that
+## was toward a touchline or an end line.
+var _away_by_role := {}
+var _away_to_edge := {}
+const ROLE_WORDS := ["HOLD", "MARK", "OPEN", "PRESS", "BALL", "RECEIVE", "DRIBBLE", "SURGE", "RECOVER"]
 var _film := false
 var _dir := "user://movement_film"
 
@@ -101,6 +110,10 @@ func _initialize() -> void:
 		for unit in scene.call("_all_units"):
 			_sample(unit, ball, reach, dt, last_dir)
 		_count_crowd(scene.call("_all_units"), ball)
+		if ball != null and is_instance_valid(ball):
+			if ball.has_meta("probe_at"):
+				ball.set_meta("probe_step", ball.global_position - ball.get_meta("probe_at"))
+			ball.set_meta("probe_at", ball.global_position)
 		if _film:
 			since_shot += dt
 			if since_shot >= 0.2:
@@ -128,9 +141,36 @@ func _sample(unit: PlayerUnit, ball, reach: float, dt: float, last_dir: Dictiona
 	var speed := 0.0
 	if unit.has_meta("probe_prev"):
 		speed = (unit.global_position - unit.get_meta("probe_prev")).length() / dt
+		unit.set_meta("probe_step", unit.global_position - unit.get_meta("probe_prev"))
 	unit.set_meta("probe_prev", unit.global_position)
 	if speed < 2.0:
 		s["stood"] += dt
+	if ball != null and is_instance_valid(ball) and speed > 25.0 and unit.has_meta("probe_step"):
+		var step: Vector2 = unit.get_meta("probe_step")
+		var to_ball: Vector2 = ball.global_position - unit.global_position
+		if to_ball.length() > 60.0 and step.normalized().dot(to_ball.normalized()) < -0.5:
+			var word: String = ROLE_WORDS[clampi(unit.role, 0, ROLE_WORDS.size() - 1)]
+			_away_by_role[word] = _away_by_role.get(word, 0.0) + dt
+			var bounds: Rect2 = unit.play_bounds
+			var edge := 0.0
+			if bounds.size.x > 1.0:
+				var to_side := minf(unit.global_position.y - bounds.position.y, bounds.end.y - unit.global_position.y)
+				var to_end := minf(unit.global_position.x - bounds.position.x, bounds.end.x - unit.global_position.x)
+				if to_side < bounds.size.y * 0.25 or to_end < bounds.size.x * 0.12:
+					edge = dt
+			_away_to_edge[word] = _away_to_edge.get(word, 0.0) + edge
+			if OS.get_environment("PROBE_WHY") == "1":
+				var why := "fresh" if unit.fresh_left > 0.0 else "target"
+				var tgt_far: bool = unit.role_target.distance_to(ball.global_position) \
+					> unit.global_position.distance_to(ball.global_position) + 20.0
+				if not tgt_far:
+					why = "push"   # the target is not further away: separation / zone / slot pulls
+				var bm: Vector2 = ball.get_meta("probe_step") if ball.has_meta("probe_step") else Vector2.ZERO
+				if bm.length() / dt > 150.0:
+					why += "+ball_flying"
+				var k := word + " " + why
+				_away_by_role[k] = _away_by_role.get(k, 0.0) + dt
+				_away_to_edge[k] = _away_to_edge.get(k, 0.0)
 	if unit.tier_zone.size.x > 1.0 and (unit.global_position.x < unit.tier_zone.position.x \
 			or unit.global_position.x > unit.tier_zone.end.x):
 		s["out"] += dt
@@ -170,6 +210,13 @@ func _count_crowd(units: Array, ball) -> void:
 
 
 func _report(measured: float) -> void:
+	var total := 0.0
+	for word in _away_by_role:
+		total += _away_by_role[word]
+	print("[probe] running away from the ball: %.1f player-seconds in all" % total)
+	for word in _away_by_role:
+		print("[probe]   %-8s %5.1f s  (%.0f%% of it near a touchline or end line)" % [word,
+			_away_by_role[word], 100.0 * _away_to_edge[word] / maxf(_away_by_role[word], 0.001)])
 	var f: float = maxf(1.0, float(_crowd["frames"]))
 	print("[probe] near the ball (%d px): %.1f on average, %d at worst, 6+ for %.0f%% of the time" % [
 		int(NEAR), _crowd["near_sum"] / f, _crowd["near_max"], 100.0 * _crowd["piles"] / f])
