@@ -3200,7 +3200,7 @@ moment, with the same score, clock and exhaust. Then the row's **Do** runs:
 | `keep_star:Koch` | at this switch your Star is not swapped; he plays the next cycle too |
 | `ability:Koch=TUT_KOCH_BEER` | Beer Courage: +1 power for each normal player of yours who played before him that round |
 | `class:Koch=Bergmännlein` | he becomes that class: element, sprite and card |
-| `ability:Koch=TUT_KOCH_EARTH` | Earth Courage: +2 power for each normal player before him |
+| `ability:Koch=TUT_KOCH_EARTH/TUT_KOCH_EARTH_DEF` | Earth Courage, attack side / defend side: 5 stamina off the enemy keeper when he attacks, 3 when he defends (Anthony, 8 Oct) |
 | `inspire:Koch=75` | his inspiration in % on the drunk meter (`DrunkLevels.csv`): 75 after cycle 1 (past Inspired, so his star ability wakes up), 90 after cycle 2 |
 
 **The EXHAUST ZONE button** (bottom right of every match, `Tuning.csv
