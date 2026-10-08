@@ -1,11 +1,15 @@
 ID,Song,Cheer,At,Volume,Pan,Notes
-c01,suno_menu,art_source/suno/cheers/cheer_4.wav,1.7,-12,0,"ROUND AN. Crowd swells in under the first tuba bars. At = seconds into the song, Volume = dB (0 = as loud as the cheer file, -6 = half as loud), Pan = -1 left, 0 middle, 1 right."
-c02,suno_menu,art_source/suno/cheers/cheer_5.wav,8.35,-9,0.5,A short 'hey!' from the right
-c03,suno_menu,art_source/suno/cheers/cheer_3.wav,13.1,-13,-0.4,Whistles on the left
-c04,suno_menu,art_source/suno/cheers/cheer_1.wav,19.6,-11,0,The first big roar
-c05,suno_menu,art_source/suno/cheers/cheer_2.wav,27.25,-7,0.3,Beer tent Prost shouts
-c06,suno_menu,art_source/suno/cheers/cheer_5.wav,32.9,-10,-0.6,Another 'hey!' from the left
-c07,suno_menu,art_source/suno/cheers/cheer_3.wav,36.45,-14,0.4,Whistles on the right
-c08,suno_menu,art_source/suno/cheers/cheer_4.wav,41.8,-11,0,Crowd builds up again
-c09,suno_menu,art_source/suno/cheers/cheer_2.wav,47.55,-8,-0.3,More Prost shouts
-c10,suno_menu,art_source/suno/cheers/cheer_1.wav,52.3,-10,0,The last roar - it fades with the song
+s01,suno_menu,art_source/suno/cheers/cheer_4.wav,2.1,-13,0,"ROUND AN, Sturm Ball (the menu song now). The crowd swells in as the band starts after the zither and alphorn intro; it is gone by 8 s."
+s02,suno_menu,art_source/suno/cheers/cheer_5.wav,9.6,-11,0.5,"A short 'hey!' from the right, finished before the first 'Sturm! Ball!' at about 12.3 s"
+s03,suno_menu,art_source/suno/cheers/cheer_3.wav,14.6,-14,-0.4,"Whistles on the left, between the first shouts (12.3-13.8 s) and the chant (18.3-20.5 s)"
+s04,suno_menu,art_source/suno/cheers/cheer_1.wav,21.0,-12,0.2,"The big roar after the chant, gone before the last 'Sturm! Ball!' at about 26.3 s"
+c01,suno_menu_untitled,art_source/suno/cheers/cheer_4.wav,1.7,-12,0,"ROUND AN. The old Untitled menu song's cheers (now the spare row suno_menu_untitled). Crowd swells in under the first tuba bars. At = seconds into the song, Volume = dB (0 = as loud as the cheer file, -6 = half as loud), Pan = -1 left, 0 middle, 1 right."
+c02,suno_menu_untitled,art_source/suno/cheers/cheer_5.wav,8.35,-9,0.5,A short 'hey!' from the right
+c03,suno_menu_untitled,art_source/suno/cheers/cheer_3.wav,13.1,-13,-0.4,Whistles on the left
+c04,suno_menu_untitled,art_source/suno/cheers/cheer_1.wav,19.6,-11,0,The first big roar
+c05,suno_menu_untitled,art_source/suno/cheers/cheer_2.wav,27.25,-7,0.3,Beer tent Prost shouts
+c06,suno_menu_untitled,art_source/suno/cheers/cheer_5.wav,32.9,-10,-0.6,Another 'hey!' from the left
+c07,suno_menu_untitled,art_source/suno/cheers/cheer_3.wav,36.45,-14,0.4,Whistles on the right
+c08,suno_menu_untitled,art_source/suno/cheers/cheer_4.wav,41.8,-11,0,Crowd builds up again
+c09,suno_menu_untitled,art_source/suno/cheers/cheer_2.wav,47.55,-8,-0.3,More Prost shouts
+c10,suno_menu_untitled,art_source/suno/cheers/cheer_1.wav,52.3,-10,0,The last roar - it fades with the song

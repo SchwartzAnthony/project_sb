@@ -1,16 +1,37 @@
 Part,Image,Layer,X,Y,Scale,Flip,Notes
-terrain,art_source/pixellab/village/terrain.png,background,0,0,4,,"ROUND AN (village ground). The floor of the whole ground: meadow, paths, the stream, a few market stalls. PixelLab create_image_pro 640 x 360, drawn x4 = the full 2560 x 1440. The pitch covers its middle. Rows are drawn top to bottom, so the first row is the bottom layer"
-town_left,art_source/pixellab/village/town.png,background,0,0,2,,"The row of houses and the church behind the far touchline (PixelLab, 640 x 112, x2). X and Y are the top-left corner in pitch pixels (the 2560 x 1440 picture). The white lines are at x 436-2124 and y 288-1152 (tools/make_pitch.py prints them)"
-town_right,art_source/pixellab/village/town.png,background,1280,0,2,h,"The same row again, mirrored (Flip h), so the street runs the whole width"
-farm,art_source/pixellab/village/farm.png,background,-4,430,2,,"The farm on the left: barn, haystacks, cows, the tractor (PixelLab, 200 x 288, x2)"
-beer_tent,art_source/pixellab/village/beer_tent.png,background,2164,300,2,,"The blue-and-white beer tent on the right, with benches (PixelLab, 200 x 160, x2)"
-trees_right,art_source/pixellab/village/trees.png,background,2176,700,2,,"Trees under the beer tent (PixelLab, 192 x 192, x2)"
-trees_bottom_left,art_source/pixellab/village/trees.png,background,0,1060,2,h,Trees in the bottom-left corner
-trees_bottom_right,art_source/pixellab/village/trees.png,background,2176,1090,2,,Trees in the bottom-right corner
-clubhouse,art_source/pixellab/village/clubhouse.png,background,1056,1196,2,,"The club's Vereinsheim, bottom middle, with the blue-and-white flag (PixelLab, 224 x 128, x2)"
-locals,art_source/pixellab/village/locals.png,background,1530,1350,1,,"A few locals who always come: pipe, pram, kids, dachshund, beer (PixelLab, 256 x 64). People are drawn x1, the same pixel size as the players"
-fans_top_left,art_source/pixellab/village/fans.png,crowd,440,180,1,,"FULL HOUSE: the packed terrace along the far touchline (PixelLab, 512 x 64, x1). Everything with Layer crowd goes into stadium_crowd.png, which Stadium.csv only shows once Full House is unlocked"
+terrain,art_source/pixellab/match_topdown/terrain.png,background,0,0,5,,"ROUND AN - THE MATCH GROUND FROM STRAIGHT ABOVE (Anthony: the old village was isometric next to a top-down pitch; it needs a real top-down view, with the base town round it). The floor: meadow, the sandy path round the pitch, the river with the stone bridge along the bottom (PixelLab create_image_pro 640 x 360 with the base's ground.png as style picture, cut to 512 x 288 = terrain.png, drawn x5 = 2560 x 1440). Rows are drawn top to bottom, so the first row is the bottom layer. The old village ground is in art_source/legacy/village_round_an/."
+tree_apple,art_source/pixellab/match_topdown/tree_apple.png,background,150,-10,2,,"Trees and roofs from straight above: art_source/pixellab/match_topdown/props_sheet.png and buildings_sheet.png, cut into one PNG per part. X and Y are the top-left corner in pitch pixels (2560 x 1440); the grass of the pitch is x 392-2168, y 244-1196. Buildings and trees are x2."
+fir_top_a,art_source/pixellab/match_topdown/fir_big.png,background,760,-70,2,,
+tree_top_b,art_source/pixellab/match_topdown/tree_big.png,background,1480,-60,2,,
+fir_top_c,art_source/pixellab/match_topdown/fir_mid.png,background,2160,-30,2,,
+pub,art_source/pixellab/match_topdown/pub.png,background,470,-206,2,,"The Pub (top left, behind the far touchline), cut off by the top edge like the title screen."
+dorms,art_source/pixellab/match_topdown/dorms.png,background,1163,-202,2,,"The Dorms, top middle."
+clubhouse,art_source/pixellab/match_topdown/clubhouse.png,background,1830,-196,2,,"The Club House with its clock tower, top right."
+tables_pub,art_source/pixellab/match_topdown/tables_a.png,background,30,250,2,,The Pub's beer garden.
+tavern,art_source/pixellab/match_topdown/tavern.png,background,140,500,2,,"The Traveling Tavern wagon and its horse, left side."
+trophy,art_source/pixellab/match_topdown/trophy.png,background,100,930,2,,"The Trophy Room hay hut, left side, near the river."
+brewery,art_source/pixellab/match_topdown/brewery.png,background,2180,300,2,,"The Brewery with its copper kettle, right side."
+maypole,art_source/pixellab/match_topdown/maypole.png,background,2205,700,1,,"The maypole, seen from above (x1 so it fits beside the pitch)."
+tables_right,art_source/pixellab/match_topdown/tables_b.png,background,2260,830,2,,Beer tables by the maypole.
+tree_right,art_source/pixellab/match_topdown/tree_mid.png,background,2380,1040,2,,
+fir_river_left,art_source/pixellab/match_topdown/fir_mid.png,background,20,1170,2,,
+tree_river_right,art_source/pixellab/match_topdown/tree_small.png,background,2420,1250,2,,
+boards_top_1,art_source/pixellab/match_topdown/boards.png,background,392,202,2,,"THE BOARDS round the pitch (Anthony: the boards that stop the ball, like a German village club ground), from straight above. boards.png is one strip of four panels from props_sheet.png; boards_v.png is the same strip turned upright for the two ends. They overlap a little so the row ends exactly at the corners."
+boards_top_2,art_source/pixellab/match_topdown/boards.png,background,800,202,2,,
+boards_top_3,art_source/pixellab/match_topdown/boards.png,background,1208,202,2,,
+boards_top_4,art_source/pixellab/match_topdown/boards.png,background,1616,202,2,,
+boards_top_5,art_source/pixellab/match_topdown/boards.png,background,1760,202,2,,
+boards_bottom_1,art_source/pixellab/match_topdown/boards.png,background,392,1196,2,,
+boards_bottom_2,art_source/pixellab/match_topdown/boards.png,background,800,1196,2,,
+boards_bottom_3,art_source/pixellab/match_topdown/boards.png,background,1208,1196,2,,
+boards_bottom_4,art_source/pixellab/match_topdown/boards.png,background,1616,1196,2,,
+boards_bottom_5,art_source/pixellab/match_topdown/boards.png,background,1760,1196,2,,
+boards_left_1,art_source/pixellab/match_topdown/boards_v.png,background,350,244,2,,
+boards_left_2,art_source/pixellab/match_topdown/boards_v.png,background,350,652,2,,
+boards_left_3,art_source/pixellab/match_topdown/boards_v.png,background,350,788,2,,
+boards_right_1,art_source/pixellab/match_topdown/boards_v.png,background,2168,244,2,,
+boards_right_2,art_source/pixellab/match_topdown/boards_v.png,background,2168,652,2,,
+boards_right_3,art_source/pixellab/match_topdown/boards_v.png,background,2168,788,2,,
+fans_top_left,art_source/pixellab/village/fans.png,crowd,440,180,1,,"FULL HOUSE: the packed terrace along the far touchline (PixelLab, 512 x 64, x1). Everything with Layer crowd goes into stadium_crowd.png, which Stadium.csv only shows once Full House is unlocked ROUND AN top-down: the bottom fans are gone - the river runs there now."
 fans_top_mid,art_source/pixellab/village/fans.png,crowd,1024,180,1,h,Second piece of the far terrace
 fans_top_right,art_source/pixellab/village/fans.png,crowd,1608,180,1,,Third piece of the far terrace
-fans_bottom_left,art_source/pixellab/village/fans.png,crowd,470,1200,1,h,The near terrace left of the clubhouse
-fans_bottom_right,art_source/pixellab/village/fans.png,crowd,1560,1200,1,,The near terrace right of the clubhouse

@@ -90,3 +90,13 @@ third_right,the right third,dem rechten Drittel,
 somebody,Somebody,Jemand,"Used when a player has no name - which is what a unit CSV with the placeholder still in its Name column produces"
 you_are_attacking,YOU ARE ATTACKING,DU GREIFST AN,
 you_are_defending,YOU ARE DEFENDING,DU VERTEIDIGST,
+achievements_button,Achievements,Erfolge,"ROUND AN. The base's top-row button that opens the unlock board (its building left the town map)"
+duel_ability_priority,ABILITY PRIORITY,FÄHIGKEITS-VORRANG,"ROUND AN. Over the duel window while the lower number (which fires its ability first) is ringed in gold"
+duel_power_check,POWER CHECK,KRAFTPROBE,"ROUND AN. Over the duel window while both power numbers are ringed in gold and compared"
+tutorial_offer_title,THE TUTORIAL,DIE ANLEITUNG,ROUND AN. The question a brand-new save asks (Tuning.csv tutorial_offer).
+tutorial_offer_text,"Would you like to do the Tutorial? If not, you can find it later on the main menu.","Möchtest du das Tutorial spielen? Wenn nicht, findest du es später im Hauptmenü.","ROUND AN. Your words, 7 Oct."
+tutorial_offer_yes,"Yes, show me","Ja, zeig es mir",ROUND AN.
+tutorial_offer_no,"No, straight to the base","Nein, direkt zur Basis",ROUND AN.
+exhaust_button,EXHAUST ZONE,ERSCHÖPFT,ROUND AN. The button bottom right of a match (Tuning.csv exhaust_button).
+exhaust_head,YOUR EXHAUST ZONE,DEINE ERSCHÖPFTEN,ROUND AN. The list the EXHAUST ZONE button opens.
+exhaust_empty,"Empty. Cards you play wait here until the STAR PLAYER SWITCH.","Leer. Gespielte Karten warten hier bis zum STAR-SPIELERWECHSEL.",ROUND AN.

@@ -1,0 +1,13 @@
+ID,Tier,Power,Name,Class,Gender,Artwork,Lead,Notes
+p1,I,0,,Normal,,,,"YOUR FIRST MATCH (round AN). One row per player: twelve of them, three in each Tier, one of each Power on the ladder (I 0-1-2, II 1-2-3, III 2-3-4, IV 3-4-5). This side plays the first match INSTEAD of your team - no Stars, nobody needs to be owned. It is used by the `intro` row of MatchModes.csv (Squad column), which takes over while flag:tutorial_match is set. ID: a name for this place in the team. A random player is made ONCE per save for each ID and kept: any squad sheet that uses the same ID (IntroSquad2.csv, the second match) gets the same player back, and he or she joins your base as a named player you can let go later (release:Name). NAME blank = a random first name from Names.csv of the right Gender, different for every player, new for every new game. NAME filled in = that player; with CLASS blank it is the real card of that name (Belial, a Star). GENDER m or f; blank = either, at random. CLASS = whose plain card this is (Normal = the club's own players). ARTWORK blank = the sprite for that Gender from Tuning.csv squad_art_m / squad_art_f (or the class's own sprite for any other class)."
+p2,I,1,,Normal,,,,
+p3,I,2,,Normal,,,,
+p4,II,1,,Normal,,,,
+p5,II,2,,Normal,,,,
+p6,II,3,,Normal,,,,
+p7,III,2,,Normal,,,,
+p8,III,3,,Normal,,,,
+p9,III,4,,Normal,,,,
+koch,IV,3,Koch,Bergmännlein,m,,yes,"KOCH, the player everyone gets. A Bergmännlein at Tier IV Power 3 - your answer: the same place in both intro matches (the Stars take Tier III in the second). LEAD = yes: his Tier stands where the Stars usually stand, so he kicks off, and the other two Tier IV players take his place at the STAR PLAYER SWITCH, exactly as Stars would. No abilities - he has none of the Bergmännlein's yet."
+p11,IV,4,,Normal,,,,
+p12,IV,5,,Normal,,,,

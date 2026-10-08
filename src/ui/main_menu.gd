@@ -141,7 +141,7 @@ func _picture(path: String) -> Texture2D:
 	return null
 
 
-func _build_title() -> void:
+func _build_title() -> Label:
 	var title := Label.new()
 	title.text = title_text
 	var row: Dictionary = _look_rows.get("title", {})
@@ -174,6 +174,7 @@ func _build_title() -> void:
 		title.add_theme_constant_override("outline_size", 14)
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(title)
+	return title
 
 
 ## A quiet line at the bottom telling you what the CSVs actually loaded.
@@ -240,6 +241,8 @@ func _read_look() -> void:
 			"fps": MenuSupport.field_float(row, "FPS", 8.0),
 			"scale": MenuSupport.field_float(row, "Scale", 0.0),
 			"flip": MenuSupport.field(row, "Flip").strip_edges().to_lower() == "yes",
+			"motion": MenuSupport.field(row, "Motion").strip_edges().to_lower(),
+			"settings": MenuMotion.parse_settings(MenuSupport.field(row, "Motion Settings")),
 		}
 		match part:
 			"background", "title":
@@ -249,23 +252,55 @@ func _read_look() -> void:
 					# pictures (layers), so a picture below it in the file
 					# - the hero - stands in front of it.
 					if part == "title":
-						_pictures.append({"is_title": true})
+						_pictures.append({"is_title": true, "motion": entry["motion"]})
 			"picture":
 				_pictures.append(entry)
+			"layer":
+				# ROUND AN: a whole-screen picture drawn like the wallpaper
+				# (covering the screen), stacked in row order.
+				entry["is_layer"] = true
+				_pictures.append(entry)
 			_:
-				print("[menu] MainMenu.csv: Part '%s' is not background, title or picture - skipping it." % part)
+				print("[menu] MainMenu.csv: Part '%s' is not background, title, layer or picture - skipping it." % part)
 
 
 func _build_pictures() -> void:
+	var last_art: Control = null
 	for entry in _pictures:
 		if entry.has("is_title"):
-			_build_title()
+			var title := _build_title()
 			_title_built = true
+			# ROUND AN: Motion "follow" = the title is written on the picture
+			# just above it in the list and moves with it (the swinging sign).
+			if title != null and String(entry["motion"]) == "follow" and last_art != null:
+				var row: Dictionary = _look_rows.get("title", {})
+				var box := float(row.get("width", 0.0)) if float(row.get("width", 0.0)) > 0.0 else 1200.0
+				var tall := float(title_font_size) + 20.0
+				title.get_parent().remove_child(title)
+				last_art.add_child(title)
+				title.set_anchors_preset(Control.PRESET_TOP_LEFT)
+				# Painted on the sign: no box of its own behind the letters.
+				title.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+				title.size = Vector2(box, tall)
+				title.position = Vector2(float(row.get("x", 960.0)) - box * 0.5,
+					float(row.get("y", 0.0)) - tall * 0.5) - last_art.position
 			continue
 		var path := String(entry["image"])
 		var sheet := _picture(path)
 		if sheet == null:
 			print("[menu] MainMenu.csv: no picture at '%s' yet." % path)
+			continue
+		if entry.has("is_layer"):
+			var layer := TextureRect.new()
+			layer.texture = sheet
+			layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			layer.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			layer.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			add_child(layer)
+			MenuMotion.apply_to_layer(layer, String(entry["motion"]), entry["settings"])
+			last_art = layer
 			continue
 		var frames := int(entry["frames"])
 		var frame_w := float(sheet.get_width()) / float(frames)
@@ -287,6 +322,15 @@ func _build_pictures() -> void:
 		art.size = Vector2(w, h)
 		art.position = Vector2(float(entry["x"]) - w * 0.5, float(entry["y"]) - h * 0.5)
 		add_child(art)
+		last_art = art
+		# ROUND AN: swing (the hanging sign) and bird (flies in, sits, flies
+		# off) are worked by MenuMotion. A bird's strip frames are its poses,
+		# so the timer below does not cycle them.
+		var motion := String(entry["motion"])
+		if motion != "":
+			MenuMotion.apply_to_picture(art, atlas, sheet, frames, motion, entry["settings"])
+			if motion == "bird":
+				continue
 		if frames > 1 and float(entry["fps"]) > 0.0:
 			var timer := Timer.new()
 			timer.wait_time = 1.0 / float(entry["fps"])
@@ -443,9 +487,17 @@ func _on_action(action: String) -> void:
 			MatchMode.choose(get_tree(), argument if argument != "" else "season")
 			ScenePaths.go_to(get_tree(), ScenePaths.TEAM_SELECT)
 		"tutorial_game", "tutorial":
-			# THE TUTORIAL BASE. A small enclosed base of its own, with its own
-			# buildings, its own visitors and its own save — nothing you do in
-			# there touches the real game. See tutorial_base.gd.
+			# ROUND AN (Anthony, 7 Oct): THE TUTORIAL - the old introduction,
+			# moved here. Pub Dialogue 1, then the tutorial match with the
+			# Head Coach's stops, in a save of its own so your real game is
+			# never touched. See tutorial.gd.
+			state.save_to_disk()
+			Tutorial.start(get_tree(), true)
+		"tutorial_base":
+			# THE TUTORIAL BASE (round W). A small enclosed base of its own,
+			# with its own buildings, its own visitors and its own save. No
+			# button uses it since round AN; MenuConfig.csv tutorial_base
+			# brings it back. See tutorial_base.gd.
 			state.save_to_disk()
 			TutorialBase.enter(get_tree(), argument)
 		"story":

@@ -58,6 +58,8 @@ func _ready() -> void:
 
 	_build_ui()
 	_fill_biomes()
+	# ROUND AN: the Head Coach's Guide.csv rows for the Adventure board.
+	(func() -> void: Guide.check(self, "bounty", state)).call_deferred()
 
 	# Open on the furthest biome you can actually walk into, so a returning
 	# player is not made to click through the ones they have finished.

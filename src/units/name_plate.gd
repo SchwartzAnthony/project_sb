@@ -159,6 +159,9 @@ func _label(size: int) -> Label:
 	var made := Label.new()
 	made.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	made.add_theme_font_size_override("font_size", size)
+	# ROUND AN: a plate sits over a player on a crowded pitch and has its own
+	# sizes (above), so the game-wide smallest text size leaves it alone.
+	made.set_meta(TextScale.FITTED_META, true)
 	# The dark edge that keeps a name readable over grass, over a white shirt
 	# and over a background you have not drawn yet. It was four draw_string
 	# calls before; it is one theme override now.
@@ -220,7 +223,7 @@ func place(edge: Dictionary, card: PlayerData,
 	# The plate is as wide as its CONTENTS need, centred on the body, and
 	# never wider than plate_width_max. So it is the same size for every
 	# player whatever their artwork, and the two stats always have room.
-	var tier_text := "Tier %s%s" % [card.get_tier_clean(), " ★" if card.is_star() else ""]
+	var tier_text := "Tier %s%s" % [card.get_tier_clean(), " ★" if card.shows_star() else ""]
 	var power_text := "P: %d" % card.get_attack_power()
 
 	_tier_label.add_theme_font_size_override("font_size", stat_size)

@@ -1,0 +1,4 @@
+Key,Value,Notes
+scale,2,"ROUND AN (Anthony: the match on the base's own pitch, zoomed in like a drone shot, every building, path and tree exactly where the base has them). tools/make_match_ground.py builds assets/field/match_ground.png out of the BASE's own parts (data/BaseTown.csv and the Map Art of data/Buildings.csv, at their own X / Y), this many times bigger: 2 = 3840 x 2160, the base picture doubled. Every part is its own layer in art_source/aseprite/match_ground.aseprite."
+skip_base_parts,pitch|pitch_boards,"Base parts left out (BaseTown.csv Part or Buildings.csv ID, split by |). The pitch and its boards: the match draws its own, tilted onto the same spot (data/PitchView.csv)."
+pitch_paint_polygon,"176,194|355,135|470,173|294,250","The base's pitch lines are painted out to plain grass inside these corner points, in ground.png's own pixels (640 x 360): left, top, right, bottom corner of the pitch."

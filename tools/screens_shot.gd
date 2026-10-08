@@ -25,8 +25,9 @@ func _initialize() -> void:
 		await create_timer(1.2, true, false, true).timeout
 		root.get_texture().get_image().save_png("user://shot_%s.png" % pair[1])
 		var music := _music()
-		print("[shots] %s  music: %s at %s dB%s" % [pair[1],
+		print("[shots] %s  music: %s (%.1f s) at %s dB%s" % [pair[1],
 			(music.stream.resource_path.get_file() if music.stream.resource_path != "" else "the file, read fresh") if music != null and music.stream != null else "none",
+			music.stream.get_length() if music != null and music.stream != null else 0.0,
 			"%.1f" % music.volume_db if music != null else "-",
 			"  (same player as before - no restart)" if music != null and music == player_before else ""])
 		player_before = music

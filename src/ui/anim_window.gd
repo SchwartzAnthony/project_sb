@@ -122,18 +122,24 @@ func show_panel(caption: String, art: String, animation: String,
 	_picture.visible = picture != null
 	_picture.texture = picture
 
+	# ROUND AN: the figure this player has on the pitch, if there is one.
+	var sheet: Texture2D = card.artwork if card != null else null
 	var spec: AnimSpec = null
-	if picture == null and db != null and card != null and animation != "":
+	var pitch := PitchSprite.window_sheet(card) if picture == null else null
+	if pitch != null and animation != "":
+		sheet = pitch
+		spec = PitchSprite.window_spec(pitch, animation, 1)
+	elif picture == null and db != null and card != null and animation != "":
 		var tries: Array[String] = [animation]
 		tries.append_array(fallbacks)
 		for candidate in tries:
 			spec = db.get_anim(candidate, card.unit_type)
 			if spec != null:
 				break
-	var playing := spec != null and card != null and card.artwork != null
+	var playing := spec != null and card != null and sheet != null
 	_anim.visible = playing
 	if playing:
-		_anim.play(card.artwork, spec)
+		_anim.play(sheet, spec)
 		_anim.fit_into(STAGE - Vector2(20.0, 20.0))
 
 	# ============ NOTHING TO SHOW? DO NOT LEAVE THE HOLE ============

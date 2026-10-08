@@ -55,6 +55,11 @@ func _initialize() -> void:
 	# A currency nothing pays is a currency nothing can be bought with.
 	for money in monies:
 		if int(money["win"]) == 0 and int(money["draw"]) == 0 and int(money["loss"]) == 0:
+			# ROUND AN: an Items.csv item (Reed, Bog Iron) is carried home
+			# from an Adventure - that is what hands it out.
+			if not AdventureDB.get_db().item(String(money["counter"])).is_empty():
+				print("  . '%s' is not paid by a match - it is carried home from an Adventure (Items.csv)." % money["name"])
+				continue
 			print("  ! '%s' is never paid by a match. Anything priced in it is unbuyable unless something else hands it out."
 				% money["name"])
 			problems += 1

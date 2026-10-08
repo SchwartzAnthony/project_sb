@@ -1,0 +1,13 @@
+ID,Tier,Power,Name,Class,Gender,Artwork,Lead,Notes
+p1,I,0,,Normal,,,,"YOUR SECOND MATCH (round AN), straight after star-intro: the same players as the first match (same ID = same player, see IntroSquad.csv), Koch, and now the three Bergmännlein Stars. Used by the intro2 row of MatchModes.csv."
+p2,I,1,,Normal,,,,
+p3,I,2,,Normal,,,,
+p4,II,1,,Normal,,,,
+p5,II,2,,Normal,,,,
+p6,II,3,,Normal,,,,
+belial,III,2,Belial,,,,yes,"THE STARS. Class blank = the real Star card of that name from Star Players.csv, with his ability, his Ultimate and his Emblem. LEAD yes: Belial kicks off; Valefor and Haures come on at the STAR PLAYER SWITCH."
+valefor,III,3,Valefor,,,,,
+haures,III,4,Haures,,,,,
+koch,IV,3,Koch,Bergmännlein,m,,,"KOCH, Tier IV Power 3 - the same place as in the first match (your answer). Sitting this one out: p7, p8 and p9, the three Tier III players of the first match, because the Stars take Tier III. They are still in your first team."
+p11,IV,4,,Normal,,,,
+p12,IV,5,,Normal,,,,

@@ -103,6 +103,9 @@ var _popup: CanvasLayer
 
 func _ready() -> void:
 	GameSpeed.reset()
+	# ROUND AN: the game's font, the smallest text size and the see-through
+	# plate behind words, even when this scene is opened on its own.
+	ThemeBook.dress(get_tree())
 	db = CardDatabase.get_db()
 	adventure = AdventureDB.get_db()
 	state = GameState.fetch(get_tree())
@@ -996,6 +999,9 @@ func _flee_home() -> void:
 	current_state = RunState.FINISHED
 	var keep := db.tune_float("adventure_flee_keep", 0.8)
 	var taken := run.bank(state, keep)
+	# A ROUND PLAYED (Anthony, 8 Oct, Q208): fleeing is an in-game choice
+	# that brings part of the haul home, so it counts like walking home.
+	_party_to_dorms()
 	state.save_to_disk()
 	AdventureRun.clear(get_tree())
 	print("[adventure] Fled with %d%% of the haul: %s" % [int(keep * 100.0), taken])
@@ -1022,6 +1028,7 @@ func _party_fell() -> void:
 	home.pressed.connect(func() -> void:
 		current_state = RunState.FINISHED
 		run.haul.clear()
+		_party_to_dorms()
 		state.save_to_disk()
 		AdventureRun.clear(get_tree())
 		ScenePaths.go_to(get_tree(), ScenePaths.BASE, false))
@@ -1315,6 +1322,27 @@ func _continue_forward() -> void:
 	_say("Onward — wave %d" % run.wave)
 
 
+## ROUND AN: EVERYBODY WHO SET OFF HAS PLAYED A ROUND, walked home, fled or
+## fell (Q208). The knocked-out ones stay longer. data/Resting.csv, rows
+## `adventure` and `adventure_down`; nothing happens while `recovery` is off.
+func _party_to_dorms() -> void:
+	if run == null:
+		return
+	var party: Array = []
+	for tier in run.squad.keys():
+		for card in (run.squad[tier] as Array):
+			if card != null and not run.stand_ins.has(card) and not party.has(card):
+				party.append(card)
+	var down: Array = []
+	for card in run.knocked_out:
+		if card != null and not run.stand_ins.has(card):
+			down.append(card)
+	RecoveryBook.after_adventure(party, down, state, db)
+	# An Adventure is a round too: the party's drunk meters drop, and anybody
+	# now resting is sober (drunk_book.gd).
+	DrunkBook.after_round(party, state, db)
+
+
 ## HOME WITH THE HAUL. This is the only place a run's pickings become real:
 ## bank() turns them into counters in your save, which is what makes them
 ## work with buildings, talents and conditions with no new code.
@@ -1339,6 +1367,10 @@ func _go_home(claimed_bounty: bool) -> void:
 			DialogueGrammar.apply(reward, state)
 			print("[adventure] Bounty claimed: %s" % reward)
 
+	# ROUND AN: a run carried home is counted - count:adventures_home is what
+	# sends you to the Traveling Merchant after your first one (Progression.csv).
+	DialogueGrammar.apply("count:adventures_home+1", state)
+	_party_to_dorms()
 	state.save_to_disk()
 	AdventureRun.clear(get_tree())
 	print("[adventure] Home with: %s" % (", ".join(words) if not words.is_empty() else "nothing"))

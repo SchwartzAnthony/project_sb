@@ -28,7 +28,7 @@ extends RefCounted
 #      Border Width  how thick the edge is, in pixels
 #      Corner        how round the corners are, in pixels
 #      Pad X / Pad Y how much space there is between the edge and the words
-#      Font          a .ttf in assets/fonts/
+#      Font          a .fnt / .ttf / .otf in assets/fonts/ (no extension needed)
 #      Size          the font size
 #      Text Colour   the colour of the words
 #
@@ -86,7 +86,7 @@ const FILE := "res://data/Theme.csv"
 const IMAGE_DIRS: Array[String] = ["res://assets/ui/", "res://assets/menu/", "res://assets/"]
 const FONT_DIRS: Array[String] = ["res://assets/fonts/", "res://assets/"]
 const IMAGE_EXTENSIONS: Array[String] = [".png", ".jpg", ".jpeg", ".webp"]
-const FONT_EXTENSIONS: Array[String] = [".ttf", ".otf", ".woff2", ".woff"]
+const FONT_EXTENSIONS: Array[String] = [".fnt", ".ttf", ".otf", ".woff2", ".woff"]
 
 ## Element -> State -> row. State "" is the ordinary one.
 static var _rows: Dictionary = {}
@@ -363,6 +363,11 @@ static func image(file_name: String) -> Texture2D:
 
 static var _font_cache: Dictionary = {}
 
+static func _smooth_text() -> bool:
+	var db := CardDatabase.get_db()
+	return db == null or db.tune_bool("text_smooth", true)
+
+
 static func font(file_name: String) -> Font:
 	var clean := file_name.strip_edges()
 	if clean == "":
@@ -370,8 +375,56 @@ static func font(file_name: String) -> Font:
 	if _font_cache.has(clean):
 		return _font_cache[clean]
 	var found: Font = _look_for(clean, FONT_DIRS, FONT_EXTENSIONS) as Font
+	# ROUND AN: smaller copies of every letter, so words drawn at any size
+	# (not only 16, 32, 48) come out smooth instead of ragged.
+	if found is FontFile and _smooth_text():
+		(found as FontFile).generate_mipmaps = true
 	_font_cache[clean] = found
 	return found
+
+
+## ============ A LETTER THE FONT DOES NOT HAVE (round AN) ============
+##
+## The PixelLab font has A-Z, a-z, digits, umlauts and the usual marks, and
+## nothing else. Any other letter (& # @ ★ ...) is drawn in the `fallback`
+## row's font of Theme.csv instead of turning into an empty box.
+static var _godot_own: Font = null
+
+
+## Godot's built-in font, remembered before dress() swaps ours in.
+static func _godot_font() -> Font:
+	if _godot_own == null:
+		var builtin := ThemeDB.get_default_theme()
+		if builtin != null and builtin.default_font != null:
+			_godot_own = builtin.default_font
+		else:
+			_godot_own = ThemeDB.fallback_font
+	return _godot_own
+
+
+static func _give_fallback(face: Font, clean: String) -> void:
+	if face == null or not face.fallbacks.is_empty():
+		return
+	# The odd symbol (★ ▶ ▦) comes from the computer's own fonts, as it
+	# always did with Godot's font. A pixel font has that switched off.
+	if face is FontFile:
+		(face as FontFile).allow_system_fallback = true
+		# SturmballComicHD is drawn 64 high and shrunk for small words;
+		# mipmaps keep the shrunk letters clean instead of grainy.
+		(face as FontFile).generate_mipmaps = true
+	var spare_name := String(row_for("fallback").get("font", "")).strip_edges()
+	if spare_name == "" or spare_name == clean:
+		return
+	var spare: Font = _look_for(spare_name, FONT_DIRS, FONT_EXTENSIONS) as Font
+	if spare != null and spare != face:
+		# THE TYPED-ARRAY RULE: a bare [spare] is untyped and would not stick.
+		var spares: Array[Font] = [spare]
+		# ...and Godot's own font last, which has the odd symbol (★ ▶) the
+		# others lack. Read before dress() replaces it with ours.
+		var godots := _godot_font()
+		if godots != null and godots != face and godots != spare:
+			spares.append(godots)
+		face.fallbacks = spares
 
 
 static func _look_for(clean: String, folders: Array[String],
@@ -446,6 +499,11 @@ static func godot_theme() -> Theme:
 
 	var made := Theme.new()
 	var body_font := font(String(row_for("body").get("font", "")))
+	# Every font row gets the `fallback` row's font for letters it lacks.
+	# Done here, once the whole file is read, and not while it is being read.
+	for element in ["heading", "body", "small"]:
+		var face_name := String(row_for(element).get("font", "")).strip_edges()
+		_give_fallback(font(face_name), face_name)
 	var body_size := font_size("body", 16)
 	if body_font != null:
 		made.default_font = body_font
@@ -499,6 +557,35 @@ static func dress(tree: SceneTree) -> void:
 	var wanted := godot_theme()
 	if tree.root.theme != wanted:
 		tree.root.theme = wanted
+	# ============ READABLE WORDS EVERYWHERE (round AN) ============
+	#
+	# Anthony: "make sure this is the case for Adventure, the match, the base,
+	# every menu and building". Three rules for every word in the game, put
+	# on here because every screen and the match pass through this:
+	#   1. smooth shrinking (text_smooth), so no size looks ragged
+	#   2. a smallest size (text_min_size), see text_scale.gd
+	#   3. the see-through black plate behind words that sit straight on a
+	#      picture (text_backdrop_alpha), see text_backdrop.gd
+	if _smooth_text():
+		tree.root.canvas_item_default_texture_filter = \
+			Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	TextScale.watch(tree)
+	TextBackdrop.watch_everything(tree)
+	# ============ EVERY WORD, NOT ONLY THE ONES IN A CONTROL (round AN) ============
+	#
+	# Names painted straight onto the pitch, the season table's numbers and
+	# the class wheel draw with ThemeDB.fallback_font, which is Godot's own
+	# font unless it is told otherwise. Telling it here puts the body font of
+	# Theme.csv on those too, so "ALL text" really is all of it.
+	if wanted.default_font != null and ThemeDB.fallback_font != wanted.default_font:
+		ThemeDB.fallback_font = wanted.default_font
+		# A screen that never reaches the root's theme (a pop-up window, a
+		# layer of the match) falls to Godot's built-in theme, whose own font
+		# is not ours. Give it ours too.
+		var builtin := ThemeDB.get_default_theme()
+		if builtin != null:
+			_godot_font()
+			builtin.default_font = wanted.default_font
 	_dev_strip(tree)
 
 

@@ -4,7 +4,7 @@ extends CanvasLayer
 # =============================================================
 #  THE INVENTORY — one bag, opened from everywhere
 #
-#  A window with three tabs and a grid of square buttons. Each button is the
+#  A window with up to three tabs and a grid of square buttons. Each button is the
 #  thing's picture with how many you have in the corner; pointing at one
 #  writes what it is in the panel underneath. Nothing is labelled, because
 #  forty labelled tiles is a wall of words and forty pictures is a bag.
@@ -12,6 +12,10 @@ extends CanvasLayer
 #      ITEMS      things you USE — a bottled brew, a bandage, smelling salts
 #      RESOURCES  things you SPEND — reed, bog iron, coins
 #      KEYS       things you HOLD — a key, a token, a letter
+#
+#  WHICH TABS SHOW is Tuning.csv `inventory_tabs`. Round AN took the Keys tab
+#  out on 7 Oct and put it back on 8 Oct: the keys to the buildings and the
+#  Brewery machines are bought at the Club House and are listed there.
 #
 #  Which tab a row lands in is decided by Items.csv: the `Tab` column if you
 #  filled it in, worked out from `Kind` if you did not. See
@@ -138,12 +142,14 @@ func _build() -> void:
 	_title_line.text = subtitle
 	column.add_child(_title_line)
 
-	# --- the three tabs ---
+	# --- the tabs (Tuning.csv inventory_tabs) ---
 	var tabs := HBoxContainer.new()
 	tabs.alignment = BoxContainer.ALIGNMENT_CENTER
 	tabs.add_theme_constant_override("separation", 6)
 	column.add_child(tabs)
-	for key in AdventureDB.TABS:
+	if not shown_tabs().has(_tab):
+		_tab = shown_tabs()[0]
+	for key in shown_tabs():
 		var button := MenuSupport.tab_button(String(TAB_WORDS[key]), key == _tab)
 		button.pressed.connect(_show_tab.bind(key))
 		tabs.add_child(button)
@@ -189,6 +195,24 @@ func _build() -> void:
 	column.add_child(centre)
 
 
+## The tabs the window shows, in order: Tuning.csv `inventory_tabs`, words
+## from AdventureDB.TABS split by `;`. Never empty - a blank or misspelt row
+## shows all three, so the bag can never open with nothing to click.
+static func shown_tabs() -> Array[String]:
+	var out: Array[String] = []
+	var said := "items;resources;keys"
+	var book := CardDatabase.get_db()
+	if book != null:
+		said = book.tune_text("inventory_tabs", said)
+	for part in said.split(";", false):
+		var key := part.strip_edges().to_lower()
+		if AdventureDB.TABS.has(key) and not out.has(key):
+			out.append(key)
+	if out.is_empty():
+		out.assign(AdventureDB.TABS)
+	return out
+
+
 # =============================================================
 #  FILLING IT
 # =============================================================
@@ -201,7 +225,7 @@ func refresh() -> void:
 
 
 func _show_tab(which: String) -> void:
-	_tab = which if AdventureDB.TABS.has(which) else "items"
+	_tab = which if shown_tabs().has(which) else shown_tabs()[0]
 
 	for key in _tab_buttons.keys():
 		# The tab you are on is the lit one. Two looks, no third state.

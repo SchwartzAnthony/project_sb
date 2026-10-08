@@ -81,6 +81,10 @@ var side_bonus := {false: 0, true: 0}
 ## the weak cards in a squad — but it can no longer break the top of the
 ## scale, so a card you see is always a number you recognise.
 var max_power: int = 5
+## ROUND AN (Anthony, 8 Oct): the Match Maker's "No Extra Abilities". On, no
+## ability row, Emblem or brew does anything, and every card fights on its
+## printed power. Set by the match from MatchMode.no_abilities().
+var abilities_off := false
 var _stamina_pending: Array = []         # [{"enemy_side": bool, "delta": int}]
 
 ## HOW MUCH EACH SIDE MADE HAPPEN THIS ROUND. One per ability that actually
@@ -640,6 +644,8 @@ func _expire(scope: String) -> void:
 func attack_power(card: PlayerData, is_enemy: bool) -> int:
 	if card == null:
 		return 0
+	if abilities_off:
+		return clampi(card.get_attack_power(), 0, max_power)
 	var printed := card.get_attack_power()
 	# C6: a fused card fights with the HIGHER printed power of the two (Q056).
 	var partner: PlayerData = _fused_with.get(_k(card, is_enemy), null)
@@ -659,6 +665,8 @@ func attack_power(card: PlayerData, is_enemy: bool) -> int:
 func defense_power(card: PlayerData, is_enemy: bool) -> int:
 	if card == null:
 		return 0
+	if abilities_off:
+		return clampi(card.get_defense_power(), 0, max_power)
 	var printed := card.get_defense_power()
 	# C6: a fused card fights with the HIGHER printed power of the two (Q056).
 	var partner: PlayerData = _fused_with.get(_k(card, is_enemy), null)
@@ -678,6 +686,8 @@ func defense_power(card: PlayerData, is_enemy: bool) -> int:
 ## What to add to a shot: what abilities granted this round, plus the
 ## season's difficulty for the whole match.
 func shot_bonus(side_is_enemy: bool) -> int:
+	if abilities_off:
+		return 0
 	var roses := 0
 	# C8 (Gremory): every Rose Unit in your exhaust adds to the shot.
 	if ultimate_up(side_is_enemy, "Gremory"):
@@ -781,6 +791,7 @@ func pending_lines(side_is_enemy: bool) -> Array[String]:
 func _effect_words(ability: AbilityData) -> String:
 	match ability.effect:
 		"addpower": return "%+d power in combat" % ability.value
+		"addpowerperplayed": return "%+d power for each normal player before him" % ability.value
 		"addattack": return "%+d power in combat" % ability.value
 		"adddefense": return "%+d defence in combat" % ability.value
 		"drainstamina": return "%d off their keeper" % ability.value
@@ -812,7 +823,10 @@ func marks_for(card: PlayerData, side_is_enemy: bool) -> String:
 	elif is_kind(card, side_is_enemy, "swan"):
 		bits.append("SWAN")
 	# ROUND AD (C6): what the pitch did for this card - worth knowing when you pick.
-	if card != null and (_touched[side_is_enemy] as Dictionary).has(_k(card, side_is_enemy)):
+	# ROUND AN (Anthony, 8 Oct): only on a card whose own ability asks about
+	# touching the ball - a plain player who touched it has nothing to show.
+	if card != null and (_touched[side_is_enemy] as Dictionary).has(_k(card, side_is_enemy)) \
+			and _reads_touch(card):
 		bits.append("TOUCHED")
 	if card != null and (_mining[side_is_enemy] as Dictionary).has(_k(card, side_is_enemy)):
 		bits.append("MINING")
@@ -1174,7 +1188,7 @@ func needs_yes(ability: AbilityData, side_is_enemy: bool) -> bool:
 func duel_questions(card: PlayerData, side_is_enemy: bool, role: String,
 		opponent: PlayerData, opponent_is_enemy: bool) -> Array[AbilityData]:
 	var out: Array[AbilityData] = []
-	if card == null or not bool(interactive.get(side_is_enemy, false)):
+	if abilities_off or card == null or not bool(interactive.get(side_is_enemy, false)):
 		return out
 	var key := _k(card, side_is_enemy)
 	var was = _role.get(key, null)
@@ -1236,6 +1250,8 @@ func consent(card: PlayerData, side_is_enemy: bool, ability_id: String, yes: boo
 
 
 func _queue_ask(ask: Dictionary) -> void:
+	if abilities_off:
+		return
 	_ask_serial += 1
 	ask["id"] = _ask_serial
 	_asks.append(ask)
@@ -1642,7 +1658,7 @@ const ASK_AFTER: Array[String] = ["reveal", "contemplation", "roundend", "afterc
 
 func _fire_for(card: PlayerData, is_enemy: bool, trigger: String,
 		opponent: PlayerData, opponent_is_enemy: bool) -> void:
-	if card == null:
+	if card == null or abilities_off:
 		return
 	# ============ ONE SIDE PER DUEL (ruling F1 / F2) ============
 	# Its role in its duel, or - outside a duel - the role it played last.
@@ -1730,6 +1746,11 @@ func _fire_for(card: PlayerData, is_enemy: bool, trigger: String,
 func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 		opponent: PlayerData, opponent_is_enemy: bool, badge: ClassBook.Emblem = null,
 		answered: bool = false) -> void:
+
+	# No Extra Abilities: the one door every ability, Emblem and brew row
+	# goes through, shut.
+	if abilities_off:
+		return
 
 	# ============ THE If COLUMN (round Y) ============
 	# Before anything else: a condition that is not met means it did not
@@ -1945,6 +1966,15 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 			# C6: Belial's "temporary weapon" is +power for that combat.
 			buff.attack = ability.value
 			buff.defense = ability.value
+		"addpowerperplayed":
+			# ROUND AN (the tutorial, Koch's beer): +value for each plain
+			# player of this side who played before him this round.
+			var before := _plain_played_before(source, source_is_enemy)
+			if before <= 0:
+				log_lines.append("      %s: nobody played before him - no bonus" % source.player_name)
+				return
+			buff.attack = ability.value * before
+			buff.defense = ability.value * before
 		_:
 			return
 
@@ -1957,6 +1987,21 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 		_flauros(source, buff.card, buff.side_is_enemy, buff)
 	log_lines.append("      %s: %s %+d (%s, %s)"
 		% [source.player_name, ability.effect, ability.value, ability.target, ability.scope])
+
+
+## ROUND AN: how many of this side's plain (not Star) players are in this
+## round's line-up in a LOWER Tier than `card` - the ones who played before it.
+func _plain_played_before(card: PlayerData, side_is_enemy: bool) -> int:
+	var order := ["I", "II", "III", "IV"]
+	var mine := order.find(card.get_tier_clean())
+	var count := 0
+	for thing in (_lineup.get(side_is_enemy, []) as Array):
+		var other := thing as PlayerData
+		if other == null or other == card or other.is_star():
+			continue
+		if order.find(other.get_tier_clean()) < mine:
+			count += 1
+	return count
 
 
 ## Point a buff at whoever the CSV said. Returns false if it hits nothing.
@@ -2615,6 +2660,17 @@ func set_touched(side_is_enemy: bool, cards: Array) -> void:
 		if c != null:
 			d[_k(c as PlayerData, side_is_enemy)] = true
 	_touched[side_is_enemy] = d
+
+
+## ROUND AN: does either side of this card have an If about touching the ball?
+func _reads_touch(card: PlayerData) -> bool:
+	if db == null:
+		return false
+	for id in [card.active_attack_ability(), card.active_defend_ability()]:
+		var ability = db.get_ability(String(id))
+		if ability != null and CardDatabase._normalise(String(ability.condition)).contains("touched"):
+			return true
+	return false
 
 
 func touched(card: PlayerData, side_is_enemy: bool) -> bool:

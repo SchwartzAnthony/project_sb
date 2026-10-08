@@ -147,6 +147,14 @@ static func _load() -> void:
 			"x": clampf(MenuSupport.field_float(row, "X", 0.5), 0.0, 1.0),
 			"y": clampf(MenuSupport.field_float(row, "Y", 0.5), 0.0, 1.0),
 			"art": MenuSupport.field(row, "Art").strip_edges(),
+			# ROUND AN: how big the machine is drawn, in pixels. 0 = Tuning.csv
+			# brewery_machine_size. Lets the back row be smaller than the front.
+			"size": MenuSupport.field_float(row, "Size", 0.0),
+			# ROUND AN: nudge the machine sideways on its platform, in picture
+			# pixels (+ = right). Blank = centred on its weight.
+			"shift_x": MenuSupport.field_float(row, "Shift X", 0.0),
+			# ...and up or down (+ = down, toward you).
+			"shift_y": MenuSupport.field_float(row, "Shift Y", 0.0),
 		})
 
 	_sections.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
@@ -318,10 +326,27 @@ static func stock_a_new_game(state: GameState) -> void:
 ## it is found by asking Achievements.csv who hands out the name this
 ## section's Needs is waiting for, so moving the grant to a different
 ## achievement changes the sign with no edit here.
-static func opened_by(section_id: String) -> Dictionary:
+##
+## ROUND AN: with a `state`, a section whose achievement you HAVE but whose key
+## you have not bought says so instead — "Buy the Mill Key at the Club House".
+static func opened_by(section_id: String, state: GameState = null) -> Dictionary:
 	var one := section(section_id)
 	if one.is_empty():
 		return {}
+	if state != null:
+		var held_all := true
+		var key_id := ""
+		for part in String(one["needs"]).split(";", false):
+			var clean := String(part).strip_edges()
+			if clean.to_lower().begins_with("unlocked:") \
+					and not state.is_unlocked(clean.substr(clean.find(":") + 1).strip_edges()):
+				held_all = false
+			if clean.to_lower().begins_with("count:") and clean.contains("_key"):
+				key_id = clean.substr(6).get_slice(">", 0).strip_edges()
+		if held_all and key_id != "" and state.count(key_id) <= 0:
+			var upgrade := BaseRooms.find_upgrade(key_id)
+			return {"name": "Needs its key",
+				"description": "Buy the %s at the Club House." % String(upgrade.get("name", key_id.replace("_", " ")))}
 	for part in String(one["needs"]).split(";", false):
 		var clean := String(part).strip_edges()
 		if not clean.to_lower().begins_with("unlocked:"):
@@ -450,7 +475,10 @@ static func can_work(section_id: String, state: GameState) -> bool:
 ## puts it in the cellar to lager.
 ##
 ## Returns {"ok", "why", "made", "many", "waiting", "turns"}.
-static func work(section_id: String, state: GameState) -> Dictionary:
+##
+## `spoiled` (round AN, the brewers): the batch went wrong. Everything it takes
+## is still spent, and nothing is made. BrewerBook.work() rolls for it.
+static func work(section_id: String, state: GameState, spoiled: bool = false) -> Dictionary:
 	var out: Dictionary = {"ok": false, "why": "", "made": "", "many": 0,
 		"waiting": false, "turns": 0}
 	var one := section(section_id)
@@ -480,6 +508,11 @@ static func work(section_id: String, state: GameState) -> Dictionary:
 	var makes := String(one["makes"])
 	var many := int(one["how_many"])
 	out["ok"] = true
+	if spoiled:
+		out["made"] = makes
+		out["many"] = 0
+		out["why"] = "the batch is spoiled"
+		return out
 	out["made"] = makes
 	out["many"] = many
 

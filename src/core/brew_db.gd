@@ -162,6 +162,9 @@ func _load_csv(path: String) -> void:
 			# then changes the player's class FOR GOOD. Blank = an ordinary
 			# brew, exactly as before. See transform_book.gd.
 			"drinks": maxi(0, int(_cell(row, columns, "drinks"))) if _cell(row, columns, "drinks").is_valid_int() else 0,
+			# ============ THE DRUNK METER (round AN) ============
+			# How much of the meter one pour fills, in %. See drunk_book.gd.
+			"inspiration": maxi(0, int(_cell(row, columns, "inspiration"))) if _cell(row, columns, "inspiration").is_valid_int() else 0,
 			"where": "%s row %d" % [short_name, i + 1],
 		})
 
@@ -290,11 +293,26 @@ static func pour(card: PlayerData, entry: Dictionary, permanent: bool,
 		print("[pub] Cannot pour %s — it costs %s."
 			% [entry.get("name", entry["id"]), cost_text(entry, state)])
 		return
+	# ALWAYS POURED (Anthony, 8 Oct): a sober player can drink any brew. It
+	# only takes hold once his meter reaches Tipsy - see apply_all().
+	var sober := DrunkBook.refusal(card, entry, state)
+	if sober != "":
+		print("[pub] Poured, but not yet: " + sober)
 	for item in (entry.get("cost", {}) as Dictionary).keys():
 		state.add_count(String(item), -int((entry["cost"] as Dictionary)[item]))
 
 	var key := card_key(card)
 	var brew_id := String(entry["id"])
+
+	# EVERY DRINK FILLS THE METER by its Inspiration. A plain beer does only
+	# that - it never sits on the card as a brew.
+	DrunkBook.drink(card, entry, state)
+	if DrunkBook.is_plain(entry):
+		StatsRules.get_rules().record("brew_drunk", {
+			"brew": brew_id, "card": card.player_name,
+			"class": card.unit_type, "tier": card.get_tier_clean(),
+		}, state)
+		return
 
 	if permanent and bool(entry["permanent"]) and state.is_unlocked(PERMANENT_UNLOCK):
 		state.set_text(PERM_PREFIX + key, brew_id)
@@ -368,6 +386,12 @@ func apply_all(cards: CardDatabase, state: GameState) -> int:
 			push_warning("[brews] '%s' is on %s but no row in Brews.csv defines it."
 				% [brew_id, card.player_name])
 			continue
+		# NOT DRUNK ENOUGH, so the brew does nothing this match - it stays
+		# poured, and a beer at the Pub brings it back.
+		if not DrunkBook.takes_hold(card, entry, state):
+			print("[brews] %s is too sober for the %s - it does nothing this match."
+				% [card.player_name, entry.get("name", brew_id)])
+			continue
 
 		card.brew_id = brew_id
 		card.brew_unit_type = String(entry["becomes"])
@@ -380,10 +404,14 @@ func apply_all(cards: CardDatabase, state: GameState) -> int:
 
 	if count > 0:
 		print("[brews] %d card(s) brewed for this match." % count)
+	# WHO IS DRUNK ENOUGH TO PLAY AS A STAR - after the brews, so a brew's
+	# own ability beats the star one. See drunk_book.gd.
+	DrunkBook.apply_all(cards, state)
 	return count
 
 
 static func restore_all() -> void:
+	DrunkBook.restore_all()
 	for card in _applied:
 		if card != null:
 			card.clear_brew()
@@ -460,8 +488,9 @@ func _validate() -> void:
 				% [entry["where"], entry["id"]])
 		if String(entry["becomes"]).strip_edges() == "" \
 				and String(entry["attack"]).strip_edges() == "" \
-				and String(entry["defend"]).strip_edges() == "":
-			problems.append("%s: brew '%s' changes nothing — it has no Becomes and no abilities"
+				and String(entry["defend"]).strip_edges() == "" \
+				and int(entry.get("inspiration", 0)) <= 0:
+			problems.append("%s: brew '%s' changes nothing — no Becomes, no abilities and no Inspiration"
 				% [entry["where"], entry["id"]])
 
 

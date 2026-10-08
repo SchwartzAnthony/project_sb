@@ -134,11 +134,34 @@ static func recruit(what: String, state: GameState, db: CardDatabase) -> String:
 	state.set_text(PREFIX + CardDatabase._normalise(given), "%s|%d" % [slot["tier"], slot["power"]])
 	# SIGNED AS WELL, so squad_ownership sees him the moment both are on.
 	SquadBook.sign(given, state)
+	# ROUND AN: he arrives untrained; the Training Ground gives him a role.
+	PlayerRoles.arrive(given, "recruit", state, db)
 	print("[recruits] %s joins the base: Tier %s, Power %d." % [given, slot["tier"], slot["power"]])
 	StatsRules.get_rules().record("player_recruited", {
 		"card": given, "tier": String(slot["tier"]),
 	}, state)
 	return given
+
+
+## ROUND AN: sign a player who already HAS a name, tier, power and gender -
+## the random first team of a new game (squad_sheet.gd). No template card is
+## needed: a Tier IV plain player has none in BasicTeam.csv.
+static func enlist(name_text: String, tier: String, power: int, gender: String,
+		state: GameState, look: String = "", role: String = "") -> void:
+	if state == null or name_text == "" or is_recruit(name_text, state):
+		return
+	var have := names(state)
+	have.append(name_text)
+	state.set_text(KEY, "|".join(have))
+	state.set_text(PREFIX + CardDatabase._normalise(name_text), "%s|%d|%s|%s" % [tier, power, gender, look])
+	NameBook.hold(name_text, state)
+	SquadBook.sign(name_text, state)
+	# ROUND AN: the starting team's Role column, else starting_team_role.
+	if role != "":
+		PlayerRoles.set_role(name_text, role, state)
+	else:
+		PlayerRoles.arrive(name_text, "starting", state, CardDatabase.get_db())
+	print("[recruits] %s joins the base: Tier %s, Power %d." % [name_text, tier, power])
 
 
 ## He leaves the base for good. Everything about him goes, and his name is
@@ -155,6 +178,7 @@ static func release(name_text: String, state: GameState) -> void:
 	state.set_text(KEY, "|".join(kept))
 	state.set_text(PREFIX + wanted, "")
 	TransformBook.forget_player(name_text, state)
+	PlayerRoles.forget(name_text, state)
 	NameBook.give_back(name_text, state)
 	print("[recruits] %s has left the base." % name_text)
 
@@ -169,14 +193,35 @@ static func cards(state: GameState, db: CardDatabase) -> Array[PlayerData]:
 	if state == null or db == null:
 		return out
 	for name_text in names(state):
+		# ROUND AN: a BREWER is a recruit who only brews. He is never a card.
+		if BrewerBook.is_brewer(name_text, state):
+			continue
 		var slot := String(state.text(PREFIX + CardDatabase._normalise(name_text))).split("|")
 		if slot.size() < 2 or not String(slot[1]).is_valid_int():
 			continue
 		var template := template_for(String(slot[0]), int(String(slot[1])), db)
-		if template == null:
-			continue
-		var card: PlayerData = template.duplicate(true)
+		var card: PlayerData = null
+		if template != null:
+			card = template.duplicate(true)
+		else:
+			# ROUND AN: no plain card at this rung (Tier IV), so make one.
+			card = PlayerData.new()
+			card.unit_type = db.tune_text("recruit_plain_class", "Normal")
+			card.tier = String(slot[0])
+			card.base_power_left = int(String(slot[1]))
+			card.base_power_right = card.base_power_left
+			card.element = "None"
 		card.player_name = name_text
+		# ROUND AN: a recruit with a gender wears that gender's sprite.
+		if slot.size() >= 3 and String(slot[2]) != "":
+			# The look saved with the player, else the first of that gender.
+			var art := String(slot[3]) if slot.size() >= 4 else ""
+			if art == "":
+				art = db.tune_text("squad_art_" + String(slot[2]), "").get_slice("|", 0).strip_edges()
+			if art != "":
+				var found := db._find_texture(art, CardDatabase.PLAYER_ART_DIRS)
+				if found != null:
+					card.artwork = found
 		out.append(card)
 	return out
 

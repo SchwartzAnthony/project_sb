@@ -90,7 +90,16 @@ var is_star_player: bool = false:
 		is_star_player = value
 		_refresh_star_badge()
 
+## ROUND AN: true for whoever stands in the Stars' place - a Star, or the
+## plain player who takes it in a side with no Stars (the first match). The
+## STAR PLAYER SWITCH swaps this unit.
+var stands_in_star_slot: bool = false
 var is_playmaker: bool = false     # picked during the current round
+## ROUND AN (Anthony, 8 Oct): true only while a PLAY MAKER is running, from
+## the "PLAY MAKER!" call until the round's shot is over. Only then is anyone
+## greyed - the ones not in it. Outside a Play Maker everybody is in colour.
+## One switch for the whole pitch, set by main_scene.set_play_maker_live().
+static var play_maker_live: bool = false
 var is_exhausted: bool = false     # already used this cycle
 
 # =============================================================
@@ -236,6 +245,16 @@ var plate_hidden := false:
 func _measure() -> void:
 	if data == null:
 		return
+	# ON A PITCH SHEET the plate is placed from the pitch figure itself,
+	# standing facing the camera, not from the card's old sheet.
+	if pitch_sheet and artwork != null and artwork.texture != null:
+		var cell := artwork.texture.get_size() / Vector2(artwork.hframes, artwork.vframes)
+		var idle := PitchSprite.anim("idle")
+		var at := AtlasTexture.new()
+		at.atlas = artwork.texture
+		at.region = Rect2(Vector2(0.0, float(int(idle.get("row", 0)) + 2) * cell.y), cell)
+		_box = NamePlate.box_of(at)
+		return
 	# The SAME frame the Adventure walker and the card faces use, so all
 	# three measure the same picture and agree about where the body is.
 	var face := MenuSupport.portrait_for(data, CardDatabase.get_db())
@@ -247,7 +266,7 @@ func _draw() -> void:
 	if data == null or artwork == null or artwork.texture == null:
 		return
 	var frame := artwork.texture.get_size() / Vector2(
-		maxf(1.0, float(SHEET_HFRAMES)), maxf(1.0, float(SHEET_VFRAMES)))
+		maxf(1.0, float(artwork.hframes)), maxf(1.0, float(artwork.vframes)))
 	frame *= artwork.scale
 	# A Sprite2D is drawn centred on its own position.
 	var at := artwork.position - frame * 0.5
@@ -269,6 +288,33 @@ func _apply_artwork() -> void:
 	# Always drive the sheet the same way, everywhere. The old
 	# update_unit_data() built an AtlasTexture instead, which fought with
 	# these hframes/vframes and shredded the sprite after a HOLD UP! swap.
+	# ROUND AN: an isometric pitch sheet (data/PitchSprites.csv) if this card
+	# has one. Picked once per player by name, so a look never changes.
+	var pitch := PitchSprite.sheet_for(data, hash(data.player_name))
+	pitch_sheet = pitch != null
+	if pitch_sheet:
+		var db := CardDatabase.get_db()
+		var cell := 72.0
+		var scale_by := 1.0
+		var lift := 0.0
+		if db != null:
+			cell = maxf(1.0, db.tune_float("pitch_sheet_cell", cell))
+			scale_by = db.tune_float("pitch_sprite_scale", scale_by)
+			lift = db.tune_float("pitch_sprite_lift", lift)
+		artwork.texture = pitch
+		artwork.hframes = maxi(1, int(pitch.get_width() / cell))
+		artwork.vframes = maxi(1, int(pitch.get_height() / cell))
+		artwork.flip_h = false
+		artwork.scale = Vector2.ONE * scale_by
+		artwork.position = Vector2(0.0, -lift * scale_by)
+		_anim_name = ""
+		_last_spot = global_position
+		_show_anim("idle")
+		_tint_pitch_figure(is_playmaker)
+		return
+	artwork.scale = Vector2.ONE
+	artwork.position = Vector2.ZERO
+	artwork.material = null
 	artwork.texture = data.active_artwork()
 	artwork.hframes = SHEET_HFRAMES
 	artwork.vframes = SHEET_VFRAMES
@@ -288,13 +334,50 @@ func update_unit_data(new_data: PlayerData) -> void:
 func set_highlight(is_highlighted: bool) -> void:
 	if artwork == null:
 		return
+	if pitch_sheet:
+		_tint_pitch_figure(is_highlighted or is_playmaker)
+		return
 	# Stay bright while locked in as this round's playmaker.
 	if is_highlighted or is_playmaker:
 		artwork.modulate = Color(1.2, 1.2, 1.2, 1.0)
+	elif not play_maker_live:
+		artwork.modulate = Color.WHITE   # no Play Maker on: everyone in colour
 	elif is_exhausted:
 		artwork.modulate = Color(0.25, 0.25, 0.3, 1.0)  # spent this cycle
 	else:
 		artwork.modulate = Color(0.4, 0.4, 0.4, 1.0)
+
+
+const PITCH_COLOUR_SHADER := preload("res://assets/shaders/pitch_colour.gdshader")
+
+
+## ROUND AN (Anthony: grey shows who is not in the Play Maker session, so
+## the player can follow the play). An isometric figure in the session is in
+## full colour; everybody else is drained of colour, and a spent one is dark
+## as well. All three from Tuning.csv.
+## 8 Oct: ONLY DURING A PLAY MAKER. When none is running (play_maker_live
+## false) every figure is in its own colour, spent or not.
+func _tint_pitch_figure(in_play: bool) -> void:
+	var mat := artwork.material as ShaderMaterial
+	if mat == null:
+		mat = ShaderMaterial.new()
+		mat.shader = PITCH_COLOUR_SHADER
+		artwork.material = mat
+	var db := CardDatabase.get_db()
+	var rest := db.tune_float("pitch_sprite_rest_brightness", 1.0) if db != null else 1.0
+	var grey := db.tune_float("pitch_sprite_rest_saturation", 0.0) if db != null else 0.0
+	if in_play:
+		mat.set_shader_parameter("saturation", 1.0)
+		artwork.modulate = Color(1.15, 1.15, 1.15, 1.0)
+	elif not play_maker_live:
+		mat.set_shader_parameter("saturation", 1.0)
+		artwork.modulate = Color.WHITE
+	elif is_exhausted:
+		mat.set_shader_parameter("saturation", grey)
+		artwork.modulate = Color(0.45, 0.45, 0.45, 1.0)
+	else:
+		mat.set_shader_parameter("saturation", grey)
+		artwork.modulate = Color(rest, rest, rest, 1.0)
 
 
 func reset_for_new_cycle() -> void:
@@ -533,7 +616,7 @@ func _physics_process(delta: float) -> void:
 ## the way this side is attacking. It used to be fixed by side, so half the
 ## players spent the whole match with their back to the game.
 func _face_the_action() -> void:
-	if artwork == null:
+	if artwork == null or pitch_sheet:
 		return
 	var look_at := global_position.x + (1.0 if is_enemy else -1.0) * 100.0
 	if ball != null and is_instance_valid(ball):
@@ -729,6 +812,15 @@ func slide_to(target: Vector2, seconds: float) -> void:
 		return
 	var was_roaming := is_roaming
 	is_roaming = false
+	# A PITCH SHEET HAS ITS OWN SLIDE. No tipping the picture over.
+	if pitch_sheet:
+		play_once("tackle", target - global_position)
+		var glide := create_tween()
+		glide.tween_property(self, "global_position", target, seconds) \
+			.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+		await glide.finished
+		is_roaming = was_roaming
+		return
 	# He falls toward whichever way he is facing, so a slide never looks like
 	# it went through him.
 	var tilt := deg_to_rad(76.0) * (-1.0 if is_enemy else 1.0)
@@ -755,3 +847,124 @@ func stand_up(seconds: float = 0.3) -> void:
 	var up := create_tween()
 	up.tween_property(artwork, "rotation", 0.0, maxf(0.05, seconds)) \
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+# =============================================================
+#  THE ISOMETRIC FIGURE  (round AN, src/core/pitch_sprite.gd)
+#
+#  On a pitch sheet the figure turns to one of 8 directions and plays idle,
+#  run, kick, tackle, fall and cheer from data/PitchAnims.csv. It watches
+#  where it actually moved each frame, so steering, tweens and the
+#  celebration all animate without telling it anything.
+#
+#  Moving = run, toward where it went. Standing = idle, facing the ball (or
+#  cheering, while `celebrating`). play_once() puts a kick, tackle or fall
+#  over the top until it has played through.
+# =============================================================
+
+## True when this unit wears an isometric pitch sheet.
+var pitch_sheet := false
+## While true, standing still means cheering. Set by the goal celebration.
+var celebrating := false
+## 0-7 (PitchSprite.DIRECTIONS) to stand facing that way instead of the ball.
+## The line-up before kick-off sets it so everyone faces the camera. -1 = off.
+var pose_facing := -1
+
+var _anim_name := ""
+var _anim_time := 0.0
+var _one_shot := ""
+var _dir := 2            # south, facing the camera
+var _last_spot := Vector2.ZERO
+var _still_for := 0.0
+
+
+func _process(delta: float) -> void:
+	if Engine.is_editor_hint() or not pitch_sheet or artwork == null:
+		return
+	var moved := global_position - _last_spot
+	_last_spot = global_position
+	var speed := moved.length() / maxf(delta, 0.0001)
+	var screen := get_canvas_transform().basis_xform(moved)
+
+	if _one_shot != "":
+		_anim_time += delta
+		var spec := PitchSprite.anim(_one_shot)
+		if spec.is_empty() or _anim_time * float(spec["fps"]) >= float(spec["frames"]):
+			_one_shot = ""
+		else:
+			_draw_frame(_one_shot)
+			return
+
+	# A few px/s of shuffle is not running. A short grace stops a player who
+	# pauses for one frame flickering between run and idle.
+	if speed > 6.0:
+		_still_for = 0.0
+		var turned := PitchSprite.direction_of(screen, _squash())
+		if turned >= 0:
+			_dir = turned
+		_show_anim("run")
+	else:
+		_still_for += delta
+		if _still_for < 0.12 and _anim_name == "run":
+			_anim_time += delta
+			_draw_frame("run")
+			return
+		if pose_facing >= 0:
+			_dir = posmod(pose_facing, 8)
+		elif not celebrating:
+			_look_at_ball()
+		_show_anim("cheer" if celebrating and PitchSprite.has_anim("cheer") else "idle")
+	_anim_time += delta
+	_draw_frame(_anim_name)
+
+
+## Play `anim_name` once, facing `toward` (a pitch direction) if given.
+func play_once(anim_name: String, toward: Vector2 = Vector2.ZERO) -> void:
+	if not pitch_sheet or not PitchSprite.has_anim(anim_name):
+		return
+	if toward.length_squared() > 0.0001:
+		var turned := PitchSprite.direction_of(
+			get_canvas_transform().basis_xform(toward), _squash())
+		if turned >= 0:
+			_dir = turned
+	_one_shot = anim_name
+	_anim_time = 0.0
+	_draw_frame(anim_name)
+
+
+func _show_anim(anim_name: String) -> void:
+	if anim_name != _anim_name:
+		_anim_name = anim_name
+		_anim_time = 0.0
+	_draw_frame(anim_name)
+
+
+func _draw_frame(anim_name: String) -> void:
+	var spec := PitchSprite.anim(anim_name)
+	if spec.is_empty():
+		spec = PitchSprite.anim("idle")
+		if spec.is_empty():
+			return
+	var frames: int = spec["frames"]
+	var step := int(_anim_time * float(spec["fps"]))
+	step = posmod(step, frames) if bool(spec["loop"]) else mini(step, frames - 1)
+	var row: int = int(spec["row"]) + _dir
+	if row >= artwork.vframes:
+		return
+	artwork.frame = row * artwork.hframes + mini(step, artwork.hframes - 1)
+
+
+func _look_at_ball() -> void:
+	if ball == null or not is_instance_valid(ball):
+		return
+	var gap := ball.global_position - global_position
+	if gap.length() < face_deadzone:
+		return
+	var turned := PitchSprite.direction_of(get_canvas_transform().basis_xform(gap), _squash())
+	if turned >= 0:
+		_dir = turned
+
+
+func _squash() -> float:
+	var db := CardDatabase.get_db()
+	return db.tune_float("pitch_ground_squash", 2.0) if db != null else 2.0

@@ -32,6 +32,7 @@ Celebration.csv,data/,A spreadsheet you edit,"THE GOAL CELEBRATION, one row per 
 ClassInfo.csv,data/,A spreadsheet you edit,
 Combos.csv,data/,A spreadsheet you edit,
 Dialogue.csv,data/,A spreadsheet you edit,
+StoryArt.csv,data/,A spreadsheet you edit,Round AN. The faces and rooms of the conversations
 Drops.csv,data/,A spreadsheet you edit,
 EnemyPlay.csv,data/,A spreadsheet you edit,"HOW THE OTHER SIDE PLAYS. Rules read top to bottom, the first whose When is true decides what they take and whether they play it face up. The opposition instead of an AI"
 example_unit_csv_with_ability_columns.csv,data/,A spreadsheet you edit,
@@ -44,6 +45,7 @@ Keys.csv,data/,A spreadsheet you edit,
 Keywords.csv,data/,A spreadsheet you edit,"EVERY WORD THE GAME UNDERSTANDS. Effects, targets, scopes, conditions and tags, each marked live or planned. Add a row with Status planned to ask for a new one - the sentence you write is the specification"
 Language.csv,data/,A spreadsheet you edit,
 MatchModes.csv,data/,A spreadsheet you edit,
+MatchMaker.csv,data/,A spreadsheet you edit,"ROUND AN. The Match Maker's buttons (Normal 3 cycles, Test 2, Quick 1): each names a MatchModes.csv row"
 MenuConfig.csv,data/,A spreadsheet you edit,
 OutOfBounds.csv,data/,A spreadsheet you edit,"HOW A ROUND BEGINS, one row per beat. Same shape as Celebration.csv. It happens NINE TIMES A MATCH, so watch the total"
 Progression.csv,data/,A spreadsheet you edit,
@@ -54,6 +56,8 @@ Seasons.csv,data/,A spreadsheet you edit,
 ShotOdds.csv,data/,A spreadsheet you edit,"THE SCORING CURVE. Stamina Left against Chance and Per Power. The 0 row says 100, which is why an empty keeper is a certain goal"
 SOUNDS_WANTED.csv,data/,A spreadsheet you edit,
 Stadium.csv,data/,A spreadsheet you edit,"THE PITCH AND THE VILLAGE ROUND IT, and the layers behind and over the grass. All 2560 x 1440; the white lines are the edge of the player zones (round AN)"
+BaseSpots.csv,data/,A spreadsheet you edit,"ROUND AN. Where visitors stand at the base: one row per building door, on its path. A visitor picks a free door at random each visit"
+BaseTown.csv,data/,A spreadsheet you edit,"ROUND AN. The base town map, one row per PixelLab part (the valley ground, the pitch, clouds, boats, the maypole, trees). tools/make_base_town.py builds assets/base/background.png and art_source/aseprite/base_town.aseprite from it"
 VillageGround.csv,data/,A spreadsheet you edit,"ROUND AN. The village round the pitch, one row per PixelLab part (houses, church, farm, beer tent, clubhouse, trees, locals, Full House fans). tools/make_village.py builds stadium_back.png, stadium_crowd.png and art_source/aseprite/stadium.aseprite from it"
 Stats.csv,data/,A spreadsheet you edit,
 Talents.csv,data/,A spreadsheet you edit,
@@ -93,6 +97,7 @@ content_report.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 controller_focus.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 dialogue_choice.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 dialogue_db.gd,src/core/,"Engine. Rules, loaders and shared helpers",
+story_art.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 dialogue_grammar.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 dialogue_line.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 enemy_play.gd,src/core/,"Engine. Rules, loaders and shared helpers","HOW THE OTHER SIDE PLAYS. A list of rules out of EnemyPlay.csv read top to bottom, first match wins. Not an AI - nothing learns or searches, and you write the rules"
@@ -109,6 +114,7 @@ juice_db.gd,src/core/,Engine. Loads Juice.csv,"The list of moments, and the math
 localisation.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 match_camera.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 match_mode.gd,src/core/,"Engine. Rules, loaders and shared helpers",
+match_maker.gd,src/ui/,A screen or a piece of one,"ROUND AN. THE MATCH MAKER - the window the base's Play a match flag opens, one button per MatchMaker.csv row"
 match_report.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 menu_escape.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 out_of_bounds_book.gd,src/core/,"Engine. Rules, loaders and shared helpers","HOW A ROUND BEGINS. Reads OutOfBounds.csv - the hidden roll, the kick out, the walk to the line, the throw. Replaces the 1-10 coin"
@@ -159,7 +165,7 @@ duel_arena.gd,src/ui/,A screen or a piece of one,
 duel_arena.tscn,src/ui/,A screen or a piece of one,
 enemy_team_window.gd,src/ui/,A screen or a piece of one,"ENEMY TEAM DATA. Their whole squad by tier - power, defence and what every ability actually does, in plain words. Opens from the team shelf, from the match HUD and from the team sheet"
 goal_celebration.gd,src/ui/,Engine. A screen or a piece of one,The confetti and the celebration window. The confetti is DRAWN IN ONE CALL - see the measurement in the file
-inventory_screen.gd,src/ui/,A screen or a piece of one,"THE BAG. Three tabs - Items, Resources, Keys - opened from the base, the Bounty Board, an Adventure fight and the match draft. One window, four callers"
+inventory_screen.gd,src/ui/,A screen or a piece of one,"THE BAG. Items and Resources tabs (Keys hidden by Tuning.csv inventory_tabs) - opened from the base, the Bounty Board, an Adventure fight and the match draft. One window, four callers"
 line_up_parade.gd,src/ui/,Engine. A screen or a piece of one,"BOTH SIDES WALK OUT, one player at a time, between the team sheet and the countdown. Click, space or escape skips it"
 main_menu.gd,src/ui/,A screen or a piece of one,
 main_menu.tscn,src/ui/,A screen or a piece of one,
@@ -321,3 +327,24 @@ AbilityRulings.csv.import,data/,Godot bookkeeping,Keeps the CSV as a CSV.
 CardAbilities.csv,data/,Data the tools write,"ROUND Y. Your cards' abilities made from their text by ability_rows.py. Rebuilt every run - edit the card, not this."
 CardAbilities.csv.import,data/,Godot bookkeeping,Keeps the CSV as a CSV.
 COMBAT_PHASES.md,guides/,A guide,"ROUND Y. The plan for making every ability work: the timing chart, the zones, the audit, phases C1-C8."
+SturmballComic.fnt,assets/fonts/,Art you drew,"ROUND AN. THE GAME FONT, used for all text (Theme.csv heading/body/small). A PixelLab comic pixel font with umlauts added. Made by tools/make_font.py from art_source/pixellab/font/sturmball_comic_atlas.png"
+SturmballComic.png,assets/fonts/,Art you drew,"ROUND AN. The letters of SturmballComic.fnt. Made by tools/make_font.py - edit the atlas, not this"
+class_Normal_female.png,assets/players/,Art you drew,ROUND AN. The club's women players: the same kit and animations as class_Normal.png (PixelLab edit of his frames). Tuning.csv squad_art_f. Layered: art_source/aseprite/players/class_Normal_female.aseprite
+IntroSquad.csv,data/,A spreadsheet you edit,"ROUND AN. Your side in the FIRST MATCH of a new game: Koch and eleven random players, no Stars"
+IntroSquad2.csv,data/,A spreadsheet you edit,"ROUND AN. Your side in the SECOND MATCH: the same players, Koch and the three Bergmännlein Stars"
+MatchTalk.csv,data/,A spreadsheet you edit,ROUND AN. When the Head Coach stops a match to explain - a Dialogue.csv scene in a box over the pitch
+squad_sheet.gd,src/core/,"Engine. Rules, loaders and shared helpers",ROUND AN. Reads a squad CSV (IntroSquad.csv) into the team that takes the field; keeps each random player per save
+match_talk.gd,src/core/,"Engine. Rules, loaders and shared helpers",ROUND AN. Reads MatchTalk.csv and says which scene plays at which moment of a match
+match_talk_box.gd,src/ui/,A screen or a piece of one,ROUND AN. The Head Coach's box over the pitch: plays one Dialogue.csv scene while the match waits
+intro_check.gd,tools/,A measuring tool,"ROUND AN. Plays the opening of a new game through the real screens - prologue, first match, star-intro, second match - in its own save, and says PASS or FAIL per step. Without --headless it also takes screenshots"
+make_font.py,tools/,A tool you run from the command line,"ROUND AN. Turns the PixelLab font sheet into assets/fonts/SturmballComic.fnt, adding the umlauts and ß"
+SturmballComicHD.fnt,assets/fonts/,Art you drew,"ROUND AN. THE GAME FONT now: the PixelLab comic letters smoothed to 4 times the detail (64 high), clean and crisp at every size. Made by tools/make_font.py"
+SturmballComicHD.png,assets/fonts/,Art you drew,"ROUND AN. The letters of SturmballComicHD.fnt. Made by tools/make_font.py - edit the atlas, not this"
+class_Normal_female_blonde.png,assets/players/,Art you drew,"ROUND AN. A second women's look: blonde plaits, club kit (PixelLab). Tuning.csv squad_art_f"
+class_Normal_female_bob.png,assets/players/,Art you drew,"ROUND AN. A third women's look: short black bob, club kit (PixelLab). Tuning.csv squad_art_f"
+EnemyIntroSquad.csv,data/,A spreadsheet you edit,"ROUND AN. The opposition in your FIRST MATCH: twelve plain Rivals players, no Stars, no brew"
+EnemyIntroSquad2.csv,data/,A spreadsheet you edit,"ROUND AN. The opposition in your SECOND MATCH: plain players and the plain Stars Bauer, Richter and Klein (+1 to the next normal player)"
+Guide.csv,data/,A spreadsheet you edit,"ROUND AN. The Head Coach explains a screen: a Dialogue scene in a box over the base, the Brewery, the Adventure board or the shop, and a button that lights up"
+guide.gd,src/core/,"Engine. Rules, loaders and shared helpers","ROUND AN. Reads Guide.csv, shows its boxes over a screen and lights up the named button"
+make_bavarian_sfx.py,tools/,A tool you run from the command line,ROUND AN. Builds every sound effect (assets/audio/bav_*.ogg) from scratch in Bavarian style and rewrites SoundCredits.csv. Run: python3 tools/make_bavarian_sfx.py
+SoundCredits.csv,data/,Data the tools write,"ROUND AN. Every sound effect: what you hear, which Audio.csv rows play it, where it came from. Rewritten by make_bavarian_sfx.py"

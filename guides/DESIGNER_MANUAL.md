@@ -115,8 +115,9 @@ fallbacks.
 | `assets/icons/` | small square pictures — trait icons, item icons, menu glyphs | `.png` with transparency, 64×64 or 128×128, the same size across a set | AdventureTraits `Icon`, AdventureCombos `Icon`, Items `Art`, MenuConfig `Art Path`, AdventureSpawns `Art` |
 | `assets/players/` | card spritesheets, one per card | `.png`. Default grid is **12 × 39** — write an Animations.csv row for anything else or the card shows as a sliver | any unit CSV's `Artwork`, Brews `Artwork` |
 | `assets/goalies/` | keeper art | `.png` | Goalies `Artwork` |
-| `assets/base/` | the base and its buildings. A file called `background` here is the backdrop | `.png` / `.jpg`. Buildings are placed by X and Y (0–1 across the screen), so draw them to stand alone | Buildings `Art` |
+| `assets/base/` | the base and its buildings. A file called `background` here is the backdrop (the town map, made by `tools/make_base_town.py`) | `.png` / `.jpg`. Buildings are placed by X and Y (0–1 across the screen), so draw them to stand alone | Buildings `Art` |
 | `assets/portraits/` | faces for dialogue and base visitors | `.png` with transparency | Visitors `Portrait`, Dialogue `Portrait` |
+| `assets/story/` | **round AN:** the conversation faces (`portraits/`, 512×512) and rooms (`backgrounds/`, 688×384, in layers) | `.png` with transparency | StoryArt.csv `Image` |
 | `assets/backgrounds/` | full-screen scenery | `.jpg` / `.png` at 1920×1080. A biome background **tiles and scrolls**, so match its left and right edges | Biomes `Background`, Dialogue `Background` |
 | `assets/menu/` | menu and class banners | `.png` / `.jpg`. A class banner is roughly 3:1 | ClassInfo `Banner Art`, Seasons `Art`, Bounties `Art` |
 | `assets/talents/` | talent tree icons | `.png`, square, 64×64 | Talents `Art` |
@@ -740,13 +741,47 @@ A real side breaking has two jobs going at once:
 > both: the numbers say whether it got better, the pictures say whether it
 > looks right.
 
+### The way into a match — black, then the ball rolls into the goal
+
+Starting a match used to freeze the screen while the match loaded, flash the
+pitch and its village, and only then show the team sheet. Now:
+
+1. **The screen goes black at once** (`match_loader_fade_in`).
+2. **The Alps come up**, with a goal on the right. A ball rolls along the
+   bottom of the screen towards it while the match loads in the background.
+3. **The ball goes in** only when the match is really ready (the team sheet
+   is up behind it), and the picture fades away onto the team sheet.
+
+The ball takes at least `match_loader_seconds`, and longer on a slow machine,
+so it never scores before the match is there.
+
+| Tuning row | |
+|---|---|
+| `match_loader` | `false` puts back the old way: the screen freezes while the match loads |
+| `match_loader_fade_in` | seconds to go black. `0.12` |
+| `match_loader_seconds` | the shortest roll into the goal. `1.6` |
+| `match_loader_fade_out` | seconds for the picture to fade onto the team sheet. `0.35` |
+| `match_loader_background` / `_goal` / `_ball` | the three pictures, in `assets/loading/` |
+| `match_loader_ground` | how far down the ball rolls and the goal stands. `0.93` |
+| `match_loader_ball_size` / `_goal_size` | sizes, as a share of the screen height |
+
+**The art** was made in PixelLab with the Stammtisch places board as the style
+image. Its layers are in `art_source/aseprite/match_loading.aseprite`
+(rebuild it with `tools/make_loading_aseprite.py`) and the PixelLab originals
+in `art_source/pixellab/match_loader/`. `tools/loading_shot.gd` records the
+whole thing frame by frame.
+
 ### Before the whistle — the team sheet and START
 
 A match no longer begins the instant the screen changes. There is a beat:
 
-1. **The team sheet.** A full screen with both sides on it — your crest, your
-   name and your three Star Players on the left, theirs on the right, a big
-   **VS** between them, and a bar filling along the bottom.
+1. **The team sheet (the VS screen).** Since round AN it is two **beer menus
+   in a beer tent**: your side on the left, theirs on the right, two steins
+   clinking under a big **VS** between them. Each board has the crest and team
+   name over it, and the three Stars written on the chalk like beers on a
+   menu: the figure the Star plays as **on the pitch** (same look, standing in
+   idle), its name, its tier and power where a price would be, and its two
+   abilities.
 2. **The gate.** The sheet lifts, the pitch is there with both teams already
    in position, the two crests stay at the top and a **START** button sits
    between them. Nothing runs until it is pressed: the pitch is frozen and the
@@ -815,37 +850,64 @@ files in `assets/team/`.
 |---|---|
 | `team_sheet` | `false` skips all of it and a match opens straight into the countdown |
 | `team_sheet_seconds` | how long the bar takes to fill. `2.6`. It is the bar, not the wait |
+| `team_sheet_bar` | `false` out of the box: no bar on the sheet and START shows at once, because the loading screen's ball already did the waiting. `true` brings the bar back |
 | `team_sheet_hold` | `true` and the sheet waits for START instead of running on when the bar is full. **`true` out of the box** |
 | `team_sheet_stars` | how many Stars a side. `3`. The one actually playing is always first |
 | `team_sheet_abilities` | `false` prints the Stars' names without what they do |
 | `kickoff_needs_button` | `false` and the countdown starts by itself — for a demo or a stream |
 | `team_crest_fallback` | the crest for a class with no Banner Art. `banner_normal_team` |
 
-### The line-ups walk out
+**The beer menus** (round AN). The board picture is blown up by a whole number
+so its pixels stay sharp. The wooden top (crest, bunting) and bottom stay as
+drawn; the rows of chalk in between repeat downward when a side's abilities
+need more room, and if the board would grow past `vs_board_max` the ability
+sentences shrink a size at a time instead. Layered file:
+`art_source/aseprite/vs_screen.aseprite` (layout in
+`art_source/aseprite/vs_screen_layers.csv`); PixelLab drafts and the other
+options in `art_source/pixellab/vs_menu_draft/`.
 
-Between the team sheet and the countdown, both sides are introduced one
-player at a time — yours first, then theirs. A row per card: the portrait,
-the tier, the name with a star beside it if it is a Star, and its two numbers.
-The rows fill downward and stay, so by the end of a side you are looking at
-the whole eleven rather than at the last one of them.
+| Tuning row | |
+|---|---|
+| `vs_menu_board` | the board picture. `assets/team/vs/vs_menu_board.png` |
+| `vs_board_patch` | the wooden frame round the chalk, in the picture's own pixels: left top right bottom. Measure again if you redraw the board |
+| `vs_board_width` | the widest a board may be, share of the screen. `0.44` |
+| `vs_board_height` | how tall a board is, share of the screen. `0.62` |
+| `vs_board_max` | the tallest it may grow for long abilities. `0.74` |
+| `vs_ability_size_min` | the smallest the ability sentences shrink to. `9` |
+| `vs_star_size` | how tall a Star's figure is, in pixels. `120` |
+| `vs_versus` | the picture under VS. `assets/team/vs/vs_steins.png` |
+| `vs_background` | the tent. `assets/team/vs/vs_tent.png` |
+| `vs_background_dim` | how much darker the tent is. `0.55` |
 
-The team sheet tells you the two crests and the six Stars. It does not
-introduce the twenty other people about to play — and those twenty are
-precisely the cards you will be choosing between for the next ninety minutes.
-**A player you have been shown once is a player you recognise in the draft.**
+### The line-ups on the grass
 
-They are sorted **by tier, in ladder order**, because that is the order they
-are drafted in and therefore the order you will meet them.
+After START on the VS screen, both sides are introduced **standing on the
+pitch** (round AN, Anthony). It is the real pitch, frozen, with everyone on
+their own spot, standing in idle and facing the camera. The camera pushes in
+and pans along **your side from right to left**, then along **theirs from
+left to right**. The side not being shown is faded back, and a sign at the
+bottom names whoever is in the middle of the screen: ★ for a Star, the name,
+tier, power and defence. The keepers are included.
+
+It uses the same figures and name plates as the match, so nobody can look
+different here from how they look in play. The camera follows the best
+straight line through the side, because the tilted pitch runs corner to
+corner. The HUD and the keepers' save odds are hidden while it runs.
 
 **It can always be skipped.** A click, space, enter or escape ends the whole
-thing — not one player, the lot. A flourish you cannot get out of is an
-obstacle.
+thing.
 
 | Tuning row | |
 |---|---|
 | `line_up_parade` | `false` turns it off for good |
-| `line_up_gap` | seconds between one player and the next. `0.18` |
-| `line_up_between_sides` | the pause between your side and theirs, and after theirs before the countdown. `0.9` |
+| `line_up_pan_seconds` | how long the pan along one side takes. `5` |
+| `line_up_hold` | the pause at each end of a pan. `0.6` |
+| `line_up_zoom` | how close, as a multiple of the whole-pitch shot. `2.2` |
+| `line_up_fade_other` | how see-through the side not being shown is. `0.3` |
+| `line_up_facing` | `south` = everyone faces the camera; any of the 8 directions; `ball` = they keep looking at the ball |
+| `line_up_between_sides` | the pause between your side and theirs. `0.9` |
+
+`tools/line_up_shot.gd` films it frame by frame for a GIF.
 
 > If every row on one side reads **"Unit Name"**, that is not the parade — it
 > is the `Name` column of that class's unit CSV, which still has the template
@@ -1285,6 +1347,7 @@ shown, so you watched a bar go down with no idea what it was buying you.
 | `Stamina Left` | how much of the keeper's stamina is left, 0 to 100 |
 | `Chance` | the % chance of scoring at that stamina, before shot power |
 | `Per Power` | how many points each point of shot power adds, at that stamina |
+| `Max` | the most this row ever allows, whatever the shot power. Blank = no cap. Since 8 Oct (Anthony) a full keeper is capped at **10%**; it slopes between rows like the others |
 
 Between two rows **both numbers are interpolated**, so six rows draw a smooth
 curve rather than six steps. Out of the box, on a keeper with 25 stamina:
@@ -2049,6 +2112,32 @@ last played).
 time)" when its If was not met (or you kept your Ore), the If in words, and
 "priority N" whenever the power it fights with moved.
 
+**The gold highlights (round AN).** The duel window now walks you through
+each check, slowly enough to follow:
+
+1. **ABILITY PRIORITY** comes up and a gold ring circles the lower number.
+2. A gold box lights that card's ability, then a **success** sound if it
+   went off or an **error** sound if it did not.
+3. The same for the other card.
+4. **POWER CHECK**: both numbers ringed in gold. A change shows as "+1"
+   beside the circle, slides in, and the number becomes the total (3 and +1
+   becomes 4), so the circle stays one size for any one- or two-digit
+   number. Then WIN / LOSE with a **victory** or **fail** sound for your side.
+
+| Where | What you change |
+|---|---|
+| `Tuning.csv` `duel_hl` | false turns the highlights off |
+| `Tuning.csv` `duel_hl_*_seconds` | how long each step is held, including the +1 sliding in (`duel_hl_bonus_*`) |
+| `Tuning.csv` `duel_hl_colour` | the gold |
+| `Language.csv` `duel_ability_priority`, `duel_power_check` | the words |
+| `Tuning.csv` `duel_hl_ring_art`, `duel_hl_box_art` | the ring art (blank for now: a plain gold circle) and the PixelLab pretzel-corner box |
+| `Tuning.csv` `duel_hl_art_scale`, `duel_hl_box_margin` | how big their pixels are; where the box corners end |
+| `Audio.csv` `duel_ability_success` / `_fail`, `duel_power_victory` / `_fail` | the four sounds, made with Ludo.ai |
+
+The old `duel_win` / `duel_lose` rows are gone from Audio.csv, so a duel
+makes only these sounds. Edit the art in `art_source/aseprite/ui/duel_ring.aseprite`
+and `duel_box.aseprite`, then export to `assets/ui/duel/`.
+
 **Rose tokens go home at a goal** (`rose_tokens_end_on_goal`), and the units
 they replaced walk back on.
 
@@ -2151,11 +2240,22 @@ which is the `Squad Per Tier` column of MatchModes.csv.
 | Column of Recovery.csv | |
 |---|---|
 | `Power` | 0 to 5 |
-| `Turns` | fixtures out after playing one |
+| `Plays` | **rounds he plays before he is exhausted** (round AN). Blank = 1 |
+| `Turns` | fixtures he then rests in the Dorms |
 
-Out of the box: powers 0 and 1 are back next week, 2 and 3 need one off, 4
-needs two, and **a power-5 Star is out for four fixtures**. A power with no row
-falls back to `recovery_turns_per_power` × its power, rounded up.
+**Rounds before rest (round AN, Anthony 8 Oct):** a **round** is a match or
+an Adventure played to the end. A Quit or exit counts for nothing: no round
+used, no rest gained. A player keeps playing until he has played his `Plays`
+rounds, then he goes to the Dorms for `Turns` fixtures and comes back fresh.
+Out of the box **both are his power** (Q206): power 5 plays five rounds and
+rests five; power 0 plays one round at a time and never needs rest. A player
+knocked out on an Adventure goes to bed at once. **Fleeing an Adventure counts
+as a round** (Q208), like walking home; only a Quit counts for nothing. **A player who is not used** in a
+match, an Adventure or the Brewery needs no rest and loses nothing (Q207). The count lives in the save
+as `plays_<card>`.
+
+Out of the box Turns equals the power (Anthony, 8 Oct): power 5 rests five
+fixtures, power 0 none.
 
 The state lives in the save as ordinary counters (`rest_<card>`), so it
 survives a reload for free and you can read it in the save inspector. **A card
@@ -2207,8 +2307,10 @@ these are the hooks, with skeletons in the spreadsheets to copy:
 | **Then the base, and learning to brew** | the ordinary Progression chain — `unlock:Brewery`, then buildings, ingredients and money gate what comes next |
 | **A season opens with the head coach** | the `Story` column of Seasons.csv names a Dialogue.csv scene, played **once**, the first time you open that competition. Write the side at the top of the pyramid into it and the last fixture has a face on it from the first |
 
-The three scene skeletons are in Dialogue.csv: `first_team`, `after_first_match`
-and `season_opening`. They say what belongs in them and nothing else.
+The scene skeletons are in Dialogue.csv: `after_first_match` and
+`season_opening`. (`first_team`, the first draft of the opening, was deleted
+in round AN: the Head Coach prologue replaces it, and the new game no longer
+names a scene.) They say what belongs in them and nothing else.
 
 ## 7c. A class, an emblem, and the Team Spirit
 
@@ -3019,6 +3121,247 @@ the game already has it**.
 
 ---
 
+## 7j. A new game: the Tutorial (round AN, 7 Oct)
+
+The old introduction is now **the Tutorial**. It is the Tutorial button on
+the title screen, and a brand-new save offers it.
+
+### A brand-new save asks
+
+The first time the base opens on a new save, a window asks: *Would you like
+to do the Tutorial? If not, you can find it later on the main menu.*
+
+- **Yes** plays the Tutorial (below), then brings you back to this save's
+  base with the starting team, exactly as No would.
+- **No** leaves you at the base with **the starting team** and nothing else.
+
+The words are `Language.csv` `tutorial_offer_title`, `_text`, `_yes` and
+`_no`. `Tuning.csv tutorial_offer` false turns the question off.
+
+### What the Tutorial is
+
+1. **Pub Dialogue 1**: the `Dialogue.csv` scene named in `Tuning.csv
+   tutorial_first_scene` (`prologue`). Rewrite it there. Since 8 Oct Koch
+   does not transform here: the Head Coach says the town needs help, that
+   Koch is the star, one of the best, and Koch is simply wasted. His
+   transformation is now the second TIME OUT.
+2. **The tutorial match** starts by itself. It is `MatchModes.csv`
+   `tutorial` (`Tuning.csv tutorial_match_mode`). Your side is
+   `IntroSquad.csv` (Koch in the Star's place at Tier IV, eleven plain
+   players) and theirs is all plain players. The Head Coach stops it again
+   and again: every stop is a `MatchTalk.csv` row with Mode `tutorial`.
+3. **Full time** (or Quit in the match) ends the Tutorial. From a new save
+   you land at that save's base, locked, with the starting team. From the
+   title screen you go back to the title screen.
+
+**Nothing the Tutorial does reaches your game** (your note, 8 Oct). It always
+plays in a save of its own (`user://tutorial_story.json`), which is wiped
+when it starts and when it ends: its players, flags and match are thrown
+away, and your save comes back exactly as it was.
+
+### The Head Coach's stops (all in `MatchTalk.csv`, lines in `Dialogue.csv`)
+
+All lines are **drafts** for you to rewrite. Every scene starts with `tut-`.
+The tutorial match has **three cycles**, 90 minutes (`MatchModes.csv tutorial`;
+Anthony, 8 Oct), and is played by `data/TutorialSquad.csv`: Koch is a plain
+club player and the Star, Tier IV **Power 4**, with no ability yet. The other
+two Tier IV cards are Power 3 and 5. Koch plays to the final whistle; there is
+no star swap.
+
+**Koch plays every round** (Anthony, 8 Oct). In the tutorial match the man in
+the Star's place is never spent by a Play Maker: his card is offered at every
+Play Maker of his cycle and he never goes to the exhaust. `Tuning.csv tutorial_star_never_spent`
+false spends him like any other card.
+
+| Play Maker | moment | scene | gold on |
+|---|---|---|---|
+| | the whistle | tut-kickoff | |
+| 1 | Tier I cards | tut-tier1 | the P:0 card, then all three |
+| 1 | Tier II cards | tut-tier2 | all three cards |
+| 1 | Tier IV: Koch, the Star, no ability yet | tut-tier4 | Koch's card |
+| 1 | the Tier I duel: turned over, ABILITY PRIORITY (lower first, the attacker on a tie), first box, second box, POWER CHECK (the defender wins a tie), WIN/LOSE | tut-duel-start ... tut-duel-result | the duel's own gold ring and boxes |
+| 1 | the shot window | tut-shot | the shot power, then the keeper's stamina and its bar, then a circle on the % |
+| 2 | Tier I cards (two left) | tut-exhaust | the cards, then the EXHAUST ZONE button |
+| end of cycle 1 | **TIME OUT**: Koch's inspiration is too low, he drinks, Beer Courage switches on | tut-timeout-call, tut-timeout-inspiration | |
+| 4 | Tier IV: Koch's card with Beer Courage | tut-koch-ability | Koch's card |
+| end of cycle 2 | **TIME OUT**: the cursed brews; an Earth Brew turns Koch into a Bergmännlein with Earth Courage | tut-timeout2-call, tut-timeout-cursed | |
+| 7 | Tier IV: Bergmännlein Koch's new ability | tut-koch-earth | Koch's card |
+
+The rest of cycle 3 plays out to the final whistle.
+
+**No clicking through the picks.** A card cannot be taken until it has been
+on the table, and the Head Coach has finished talking, for `Tuning.csv
+tutorial_pick_guard_seconds` (0.8). A fast clicker's clicks simply do nothing
+until then.
+
+**One group of gold per line.** In the Highlight column, `|` separates the
+lines: `-|card:first|cards` points at nothing on line 1, the first card on
+line 2, all the cards from line 3 on.
+
+**No clicking through him.** From the moment he stops the match nothing
+can be clicked, and each line stays up at least `Tuning.csv
+match_talk_line_seconds` (1.2) before a click moves it on; "Click to
+continue" appears when it can.
+
+**The TIME OUTs.** The match freezes where it is and the whole screen
+becomes the pub scene. When it ends, the match carries on from the same
+moment, with the same score, clock and exhaust. Then the row's **Do** runs:
+
+| Do | what it does |
+|---|---|
+| `keep_star:Koch` | at this switch your Star is not swapped; he plays the next cycle too |
+| `ability:Koch=TUT_KOCH_BEER` | Beer Courage: +1 power for each normal player of yours who played before him that round |
+| `class:Koch=Bergmännlein` | he becomes that class: element, sprite and card |
+| `ability:Koch=TUT_KOCH_EARTH/TUT_KOCH_EARTH_DEF` | Earth Courage, attack side / defend side: 5 stamina off the enemy keeper when he attacks, 3 when he defends (Anthony, 8 Oct) |
+| `show_card:Koch=tut-koch-new-card@abilities\|-\|-` | the match stays frozen and his field card comes up big over the pub, his attack and defend abilities beside it; then that Dialogue.csv scene plays. After `@`, the gold per line (`card`, `abilities`, `attack`, `defend`, `-`), `\|` between lines. `Tuning.csv show_card_scale` (1.8) and `show_card_backdrop` (bar) |
+| `inspire:Koch=75` | his inspiration in % on the drunk meter (`DrunkLevels.csv`): 75 after cycle 1 (past Inspired, so his star ability wakes up), 90 after cycle 2 |
+
+**The EXHAUST ZONE button** (bottom right of every match, `Tuning.csv
+exhaust_button`) says how many of your cards are spent this cycle. Press it
+to see them.
+
+**TOUCHED** on a card now only shows when that card's own ability asks
+whether it touched the ball. Plain players never show it.
+
+### The starting team
+
+`data/StartingTeam.csv` (`Tuning.csv starting_team`): twelve plain players,
+three per Tier, with random names. The base gets it at the end of the
+Tutorial, or when you say No. They are new people, not the ones from the
+tutorial match, because nothing from the Tutorial is kept. Nothing else is
+unlocked.
+
+### The old introduction (retired)
+
+The `Progression.csv` rows `welcome_at_base`, `sign_your_first_three`,
+`kick_off_first_match`, `first_match_is_over`, `kick_off_second_match` and
+`second_match_is_over` now wait on `flag:old_introduction`, which nothing
+sets. Delete that word from a row's Requires to bring it back. The intro
+and intro2 match modes, the star-intro scene and the steps below are kept
+for when you continue the Tutorial.
+
+### After match two: the Brewery, an Adventure, the Traveling Merchant
+
+7. **At full time of match two**, `learn_to_brew` opens the Brewery and the
+   Malthouse, sets `flag:brewery_tour`, and plays `brewery-intro`.
+8. **Back at the base, the Brewery window opens by itself**
+   (`open_the_brewery`). The Head Coach's boxes and the lit-up WORK IT
+   button come from `data/Guide.csv` (below).
+9. **After the first malt**, he says you are short of ingredients.
+   `flag:intro_adventure` is set, and the window closes back to the base.
+10. **At the base**, he says go on an Adventure, and the Adventure banner
+    lights up. Nothing is forced.
+11. **The Adventure board** works as usual. While `intro_adventure` is on,
+    the only team is your first team (`MatchModes.csv intro_adventure`,
+    squad `IntroSquad2.csv`), so the run starts as soon as you press start.
+12. **Carry a run home** (`count:adventures_home` goes up by one) and the base
+    sends you straight to **the Traveling Merchant** (`meet_the_merchant`).
+    His intro is `Guide.csv shop_intro`, and he trades beer for Reed and Bog
+    Iron (`Shop.csv trade_fire_brew` / `trade_water_brew`; Reed and Bog Iron
+    are currencies in `Currencies.csv`). **The intro stops here for now.**
+
+A story scene that is missing never strands you. The screen says so for a
+moment, then carries on to wherever the scene was returning to: the base.
+
+### `data/Guide.csv`: the Head Coach explains a screen
+
+| column | what it does |
+|---|---|
+| **ID** | A name for the row. A row that has played sets `flag:guide_done_<ID>`, so the next row can wait for it. |
+| **Screen** | `base`, `brewery`, `shop` or `bounty` (the Adventure board). The screen asks when it opens, and again when it redraws. |
+| **Requires** | The usual condition language. |
+| **Scene** | A `Dialogue.csv` scene, shown in the box over the screen. The lines are placeholders for now. |
+| **Highlight** | The words on a button to light up after the box, such as `WORK IT` or `Adventure`. It pulses until it is pressed. |
+| **Then** | Progression Do actions after the box. `goto:base` closes a window that is open over the base. |
+| **Once** | `true` plays it only once. |
+
+The pictures come from `StoryArt.csv` IDs named in `Tuning.csv`.
+`brewery_background` (`brewery`) sits behind the Brewery screen, the same
+picture as the Brewer's scene. `shop_background` (`merchant_shop`) and
+`shop_keeper` (`merchant`) are the shop and his face. Until a picture exists,
+the screen looks as it always did.
+
+### `MatchModes.csv`: two new columns
+
+| column | what it does |
+|---|---|
+| **Replaces** | Other modes, such as `friendly;season;quick;cup`. While this row's **Requires** is true, a button that asks for one of them plays this mode instead. That is how the intro happens from the ordinary Play a match button. |
+| **Squad** | A CSV in `data/` whose players take the field **instead of your team**. Team Build does not turn you away from such a match. |
+
+### `data/IntroSquad.csv` / `IntroSquad2.csv`, a side written row by row
+
+| column | what it does |
+|---|---|
+| **ID** | A name for this place in the team. **The same ID is the same player.** A random player is made once per save for each ID and kept, and joins your base as a named player. `release:Name` lets one go. |
+| **Tier, Power** | Three per Tier, one of each power on the ladder. |
+| **Name** | Blank gives a random first name from `Names.csv` of that Gender. A Name with **Class** blank is that real card, such as the Star Belial. |
+| **Class** | Whose plain card it is. `Normal` is the club's own players. |
+| **Gender** | `m` or `f`. Blank picks either at random. The sprite comes from `Tuning.csv squad_art_m` / `squad_art_f`, which can list several sheets separated by `\|`. Women have three looks (brown ponytail, blonde plaits, short black bob). Each new player gets one at random and keeps it. |
+| **Lead** | `yes` on one row. That Tier stands where the Stars usually do, and that player kicks off. With no Star in the sheet, nobody wears a Star badge or carries an Emblem. |
+
+`Names.csv` has a new **Gender** column for its first names (m / f).
+
+### The opposition in the first two matches
+
+Your answer: early in a new game the other side is all plain players, with no
+brew and nobody special.
+
+- **Match one, `data/EnemyIntroSquad.csv`:** twelve plain Rivals players, no
+  Stars.
+- **Match two, `data/EnemyIntroSquad2.csv`:** plain players, plus the plain
+  Stars Bauer, Richter and Klein. Their only ability is `PLAIN_STAR_PUSH` in
+  `Abilities.csv`, which gives +1 to the next normal, non-elemental player on
+  their side.
+- `MatchModes.csv` has an **Enemy Squad** column. When it names a squad CSV,
+  set **Opponent** to `squad`.
+- Squad sheets have two more columns: **Star** (`yes` makes a player a Star)
+  and **Ability** (an `Abilities.csv` ID, used on both sides of the card).
+  An opposition is made fresh every match. It is not saved and does not join
+  your base.
+- **The scripted brew is switched off.** `EnemyPlay.csv tutorial_brew` now
+  waits on `flag:enemy_brews_in_intro`, which nothing sets.
+- In a side with no Stars, the plain player standing in the Stars' place is
+  swapped at the STAR PLAYER SWITCH just as a Star would be.
+
+### `data/MatchTalk.csv`: the Head Coach stops the match
+
+One row is one interruption. **Mode** is a `MatchModes.csv` row (`tutorial`),
+or blank for any match. **When** is the moment: kick_off, duel_won, duel_lost, shot_taken,
+goal_scored, goal_conceded, save_made, keeper_emptied, foul_given,
+card_yellow, card_red, free_kick_won, star_switch or play_maker. **Requires**
+is the usual condition language. **Scene** is a `Dialogue.csv` scene. Its
+lines play in a box along the bottom of the screen, with the speaker's face,
+while the game waits. **Once** `true` plays it only the first time ever. The
+size of the words is `Tuning.csv match_talk_text_size`.
+
+Four more columns (round AN, the Tutorial), all optional:
+
+| column | what it does |
+|---|---|
+| **Round** | Only at this Play Maker of the match. 1 is the first; the 4th is the first of cycle 2. |
+| **Tier** | Only for this Tier: `I`, `II`, `III`, `IV`, or `STAR` for the star swap cards. |
+| **Highlight** | What he points at with a gold box: `card:first`, `card:last`, `card:Koch`, `cards`, `exhaust`, `keeper_chance`, `keeper_stamina`, `shot_power`. `ring:` in front draws a gold circle instead. Several with `;`. |
+| **Do** | After his lines: `pub:<scene>` (TIME OUT), `star:<name>`, `ability:<name>=<Abilities ID>`, `announce:<words>`. |
+
+More moments for **When**: `cards_shown` (a Tier's cards are on the table),
+`duel_start`, `duel_priority`, `duel_ability_1`, `duel_ability_2`,
+`duel_power_check`, `duel_result`, `shot_odds` (the shot window shows the %)
+and `shot_done` (after the goal or the miss).
+
+### Checking it
+
+`godot --headless --path . --script res://tools/tutorial_check.gd` plays the
+Tutorial through the real screens: No on one new save, Yes on another, every
+Head Coach stop, the TIME OUT and Koch the Star, and the base at the end.
+Without `--headless` it saves frames of every stop in
+`user://tutorial_check/frames/`.
+
+`tools/intro_check.gd` checks the old introduction, so it fails now that it
+is retired. It plays all of
+this through the real screens, in its own save (`user://intro_check/`), and
+prints PASS or FAIL for each step. Run it without `--headless` and it also
+saves screenshots there.
+
 ## 8. Adventure mode
 
 `src/adventure/` — eleven scripts. The run is a scrolling pitch; the fight is
@@ -3398,6 +3741,105 @@ wide shot — the draft, the whistle, full time — shows the whole village at
 `camera_wide_ground` 1; 0 is the old framing. During play the camera is as
 close as before, so the players are the same size.
 
+### Words over the village — a see-through black plate
+
+With the village round the pitch, words straight on the art could not be
+read. **Every word in the match now sits on a see-through black plate**: the
+score, the clock, the keeper's name and odds, the build stamp, the
+announcements and the zone map (Z). Words already on a panel or a button,
+and the players' name plates, keep their own backdrop. Two rows in
+Tuning.csv: `text_backdrop_alpha` (how dark, 0 = off) and
+`text_backdrop_pad` (how far it reaches past the words). The code is one
+rule, `src/ui/text_backdrop.gd`, so a label added later gets it too.
+
+### The base town map — `data/BaseTown.csv`
+
+The base is the valley the town stands in, seen from a hill like a 1990s
+comic album panorama (round AN, take 2, after Anthony's two example maps):
+sky and far fields, the river with its stone bridge and jetty, cobbled lanes,
+open meadow and **the football pitch in the middle**. There are **no
+buildings and no plots**: the buildings come later, large, and each building
+picture will itself be the button.
+
+One row per PixelLab part (`art_source/pixellab/base_town/`): the ground,
+the pitch (cut from the ground with `Crop`), two clouds, two boats, the
+maypole, firs and two big front trees. `X`, `Y` are the top-left corner in
+screen pixels (1920 x 1080); `Scale` is a whole number (the ground is
+640 x 360 drawn x3; far things x1, near things x2 or x3); `Flip h` mirrors;
+`Crop` (`x,y,width,height`) cuts a piece out of a bigger picture onto its own
+layer. Then:
+
+```
+~/.venvs/sturmball/bin/python tools/make_base_town.py
+```
+
+fuses the layers into `assets/base/background.png` and writes
+`art_source/aseprite/base_town.aseprite` with **every part on its own layer**,
+for editing in Aseprite.
+
+**The buildings are pictures on the map, and the picture is the button.**
+Buildings.csv `Map Art` names a picture in `assets/base/map/` (PixelLab, the
+same bird's-eye view as the map); `Map Size` is how big it is drawn,
+`WIDTHxHEIGHT` (blank = its own size x2). Hovering brightens it, a locked
+building is drawn dark, and its name sits under it on a see-through plate.
+`X`, `Y` are still the centre. **Only the drawn pixels take a click**
+(`src/ui/map_building.gd`): the see-through corners of a picture let the
+click through, so two buildings side by side never open each other. A building with no `Map Art` keeps the old
+plaque until its picture is made. The Brewery, the Pub, the Club House and
+the Training Ground are the large ones; the Dorms (320 x 192), the Trophy
+Room (a Garmisch hut, 192 x 160) and the Traveling Tavern (a wagon pub,
+256 x 192, renamed from the Traveling Brewer) are small (round AN, 160 x 128 PixelLab pictures drawn at 640 x 512). A building with
+its own picture may reach the very edges of the screen; the plaques still
+keep clear of the top buttons and the bottom line. Each building's source is in `art_source/pixellab/base_town/buildings/`. `base_map_shade` in
+Tuning.csv darkens the map (0 = full colour). Team Build and Achievements are
+not on the map (Anthony, round AN): Team Build opens from **Your teams**, and
+Achievements is a button in the top row. The first, top-down try is in
+`art_source/legacy/base/round_an_try1/`; the old yard in `art_source/legacy/base/`.
+
+**Every building is on a path.** The ground's own roads reach the Pub, the
+Training Ground, the Dorms and the Club House; the `path_trophy` and
+`footbridge` rows of BaseTown.csv add a cobbled path past the Trophy Room and
+a stone footbridge over the river to the road with the Brewery and the
+Traveling Tavern.
+
+**The top-row doors are flag banners, and every banner is the same banner**
+(round AN): one blank PixelLab cloth (`art_source/pixellab/banners/cloth.png`)
+on one wooden rod (`rod.png`); only the emblem
+(`art_source/pixellab/banners/emblems/<name>.png`) and the name differ.
+`tools/make_banners.py` puts them together into `assets/ui/banners/<name>.png`
+(drawn 1:1) and an `.aseprite` with cloth, emblem and rod as three layers in
+`art_source/aseprite/banners/`. The name is stitched on by the game
+(`MenuSupport.banner_button`) in cream thread inside the border; the thread
+shrinks until the longest word fits, and every banner then uses the smallest
+size, so all seven names are the same size. A door whose banner is missing
+falls back to the old button. The seven banners are laid out as the released
+game shows them; **Dev is not a banner** - it is a small button in the
+bottom-left corner while we test, and `show_dev_tools` in Tuning.csv hides it.
+The first banners (each its own cloth) are in `art_source/legacy/banners_first/`.
+
+**Sounds** (round AN): pointing at a banner plays `banner_flutter` (a flag
+folding in the wind). **Clicking** a building plays its Buildings.csv `Sound`
+and then its `Door Sound` (`door_open`, a wooden door creaking open)
+`base_door_sound_delay` seconds later (Tuning.csv). The building sounds: `bld_brewery` bubbling, `bld_pub` cheering,
+`bld_club_house`, `bld_dorms` snoring, `bld_training`, `bld_trophy`,
+`bld_tavern`. Made with Ludo; the originals are in `art_source/ludo/base_sounds/`.
+
+**Name Offset** in Buildings.csv (`x,y` in screen pixels) moves a building's
+name off the bottom middle of its picture, e.g. the Club House's, so the
+Trophy Room hut in front of it keeps its own name.
+
+**Visitors greet you**: Visitors.csv `Sound` is played when you click them -
+the Brewer's grunting "Servus" (`visitor_brewer`), Heatwave's cocky "Hah!"
+(`visitor_heatwave`). The Traveling Tavern's door sound is `wagon_creak`.
+
+**Visitors stand at a door** — `data/BaseSpots.csv`, one row per door: `X`,
+`Y` are the centre of the visitor's card, `Building` the Buildings.csv ID
+(the door is skipped while that building is not on the map). Each time the
+base opens every visitor picks a free door at random. A visitor with a
+`Building` in Visitors.csv only uses that building's doors (the Brewer stands
+at the Brewery); blank = any door. No rows = they stand at their own `X`, `Y`
+in Visitors.csv as before.
+
 ### The layers
 
 | Layer | | |
@@ -3671,8 +4113,28 @@ anything. It changes nothing on disk.
 
 ### Fonts
 
-Drop a `.ttf` or `.otf` into `assets/fonts/` and name it in the `Font` column
+Drop a `.ttf`, `.otf` or `.fnt` into `assets/fonts/` and name it in the `Font` column
 of the `heading`, `body` or `small` row. Nothing else to do.
+
+**Round AN, take 2 (your answer: less pixelated when large, clean and crisp):
+the font is now `SturmballComicHD`.** It has the same PixelLab letters, smoothed to
+four times the detail by `tools/make_font.py`. The steps on curves and slopes are
+rounded off, so big words are clean and small words stay sharp. It is on every
+text row of `Theme.csv`. The plain pixel version, `SturmballComic`, is
+still there, and you can put it in a Font cell to compare.
+
+**Round AN, first take: one font for all text, `SturmballComic`.** A PixelLab comic pixel
+font (`create_font`), with Ä Ö Ü ä ö ü ß added by `tools/make_font.py`, because
+PixelLab's sheet has no umlauts. It is on `heading`, `body` and `small`, and
+also on the words painted straight onto the pitch.
+
+- It is drawn 16 pixels high, so **16, 32 and 48 are the crispest sizes**.
+  Any other size still works and is a little softer.
+- Letters it does not have (& # @) come from the **`fallback`** row's font
+  (Schola). Symbols such as ★ and ▶ come from the computer's own fonts.
+- To change a letter: open `art_source/pixellab/font/sturmball_comic_atlas.png`,
+  redraw it, then run `~/.venvs/sturmball/bin/python tools/make_font.py`.
+- The fonts below are still here, and are spares now.
 
 **Three ship with the game**, and they are the single biggest step away from
 "you can tell it is an AI game" — the default Godot font is the most
@@ -4010,11 +4472,160 @@ which is the foundation the played game will sit on top of later. Nothing on
 that screen changes when the game itself arrives; it slots in between
 pressing the button and the work being done.
 
-### The Club House has no spreadsheet
+### The Dorms are where everybody rests (round AN)
 
-It is a view onto `recovery_book.gd`, which already knows who is tired and
-for how long. Writing a second file for it would have been inventing a
-disagreement. `recovery` in `Tuning.csv` turns the whole thing on.
+Every tired player sleeps in the Dorms, whatever tired them out. The Dorms
+window lists **who is in bed, why, and how many fixtures to go**, then the
+beds you can buy. `data/Resting.csv` says what sends a player there:
+
+| ID | when | out of the box |
+|---|---|---|
+| `match` | everybody who has played his last round (`Plays` in `Recovery.csv`) | by power (`Recovery.csv`) |
+| `adventure` | everybody who set off on an Adventure, however it ended | by power |
+| `adventure_down` | **on top of** `adventure`, for a player knocked out on the run | +1 fixture |
+| `brewer` | a **brewer** after a shift at a Brewery machine (see below) | 1 fixture |
+| `brew` | **on top of** `match`, for a player who played on a one-match Pub brew. **Switched off** (`On` = false) since Anthony said Brew Players are the brewers | +1 fixture |
+
+| column | |
+|---|---|
+| `On` | `false` and that row never sends anybody to bed |
+| `Turns` | blank = by power from `Recovery.csv`; a number sets it outright |
+| `Extra` | added on top |
+| `Wakes Others` | `true` = this counts as a fixture, so everybody already in bed is one fixture nearer fit. A match and an Adventure both do |
+
+`rest_less` in `Tuning.csv` takes fixtures off every rest (never below one);
+the **Feather Beds** upgrade raises it. **`recovery` in `Tuning.csv` is the
+master switch, and it is ON** (Anthony, 8 Oct).
+
+**The rest day.** `tools/recovery_check.gd` still says the classes are too
+thin: with three players a tier, one match can put so many in bed that you
+can field neither a match nor an Adventure, and then nothing passes a
+fixture. So the Dorms have a **Rest day** button: everybody in bed is one
+fixture nearer fit. `rest_day_cost` in `Tuning.csv` is its price in coins
+(0 = free, below 0 hides it).
+
+**The Dev screen** (the Dev button, bottom left of the base) has a PLAYERS
+row: a **Wake** button for everybody in the Dorms, **Wake everybody**, and
+**Sign a new player** (pick a Tier and a power; free, random name and look).
+
+`tools/dorms_shot.gd` takes a picture of the Dorms, the Club House, the
+Training Ground, the Brewery and the Dev screen with a few players in bed.
+
+### The brewers (round AN)
+
+> *"Brew Players are trained at the training hall to be only brewers. They
+> have the same number given to them as a power but that is their efficiency
+> and % of success when they work the machines."*
+
+- **Training them.** `Training.csv` has a row with `Kind` = `brewer` (The
+  Brewer's Apprenticeship, 40 coins). The Training Ground lists your players
+  under BREWERS with a Train button. A brewer **never plays again**: no
+  match, no Adventure, no Pub.
+- **Efficiency.** His power is his efficiency. `data/Brewers.csv` turns it
+  into his % of success at a machine (0 = 55%, 5 = 100%). The `none` row is
+  the chance when nobody is free (40%).
+- **Working.** When you work a Brewery machine, the fittest brewer with the
+  highest efficiency does it. A batch that fails uses up what it took and
+  makes nothing. Then he rests in the Dorms (`Resting.csv` row `brewer`).
+- `brewery_brewers` in `Tuning.csv` = false turns all of it off: every batch
+  works, as before.
+
+### Match Players, Adventure Players and Brewers (round AN)
+
+> *"The player can train new player units as Adventure Player, Match Player
+> and Brewer Player. There is also a separate Adventure Team and Match
+> Team."*
+
+Every one of your players has **one role**, and the Training Ground is where
+you choose it. Under YOUR PLAYERS each player has a button for every role he
+could switch to.
+
+| Role | Training.csv `Kind` | Plays in | Cost |
+| --- | --- | --- | --- |
+| Match Player | `match_player` | your **Match Teams** | 20 coins |
+| Adventure Player | `adventure_player` | your **Adventure Teams** | 20 coins |
+| Brewer | `brewer` | no team, works the Brewery machines | 40 coins |
+| Not trained yet | | no team | |
+| *Retraining* | `retrain` (Quereinsteiger) | the new role | 200 coins |
+
+- **Two kinds of team.** A team is a Match Team or an Adventure Team. The
+  button next to the team's name in the builder switches it. A Match Team
+  only lists your Match Players, an Adventure Team only your Adventure
+  Players. The plain CSV cards are nobody's players and play for both.
+- **Which team goes out.** A match shows only your Match Teams; an Adventure
+  run (MatchModes.csv `Scene` = adventure) shows only your Adventure Teams.
+  CREATE TEAM from there makes the right kind.
+- **New players.** A player signed at the Club House arrives **untrained**
+  (`new_player_role`). The starting team's **Role** column in
+  `StartingTeam.csv` says what each starter arrives as: four Adventure
+  Players (the middle Power of each Tier) and eight Match Players, so a
+  fresh game can go on an Adventure straight away. A blank Role, and players
+  signed on the Dev screen, use `starting_team_role` (match). A save made
+  before roles existed counts everybody as a Match Player
+  (`player_role_default`).
+- **A role is for good** (`role_lock`). An untrained player is trained once,
+  at the role's price. After that his row says *Role locked* and has no
+  buttons.
+- **Quereinsteiger.** The Quereinsteiger achievement (`Achievements.csv`,
+  placeholder: play twenty matches) unlocks *Quereinsteiger*, which the
+  Training.csv row with `Kind` = `retrain` needs. Then the Training Ground
+  shows a QUEREINSTEIGER heading and every trained player gets *Retrain*
+  buttons into any other role, for that row's Cost (200 coins) instead of
+  the role's own price. A Brewer can take his apron off this way too.
+  `role_lock` = false switches freely at the role's price, as before.
+
+```
+Achievements.csv  quereinsteiger  ->  Unlocks: Quereinsteiger
+Training.csv      quereinsteiger  ->  Kind retrain, Needs unlocked:Quereinsteiger, 200 coins
+```
+- `player_roles` in `Tuning.csv` = false turns roles off: every team takes
+  everybody, as before.
+
+### Keys (round AN)
+
+> *"For the machines and to get into the buildings, you need to buy the
+> keys."*
+
+Every building except the Club House, and every Brewery machine, needs its
+**key**. An achievement still unlocks the building, but that only puts its
+key on sale at the Club House:
+
+```
+Achievements.csv   first_win  ->  Unlocks: Dorms
+Upgrades.csv       dorms_key  ->  Kind key, Needs unlocked:Dorms, 30 coins, Effect count:dorms_key+1
+Buildings.csv      dorms      ->  Requires unlocked:Dorms;count:dorms_key>=1
+Items.csv          dorms_key  ->  Kind key, Tab keys (it shows in the bag)
+```
+
+The Club House lists KEYS first, then UPGRADES. A key you already carry
+(from an Adventure, a story, the test save) is never sold twice. A locked
+building or machine says "the dorms key (buy it at the Club House)" or
+"Needs its key". The **Keys tab is back in the bag** (`inventory_tabs`).
+The test environment hands you every key.
+
+### The Club House sells upgrades (round AN)
+
+**An achievement only grants the right to buy an upgrade.** Earning it puts
+the upgrade on sale; the money is still yours to find. `data/Upgrades.csv`,
+one row per upgrade:
+
+| column | |
+|---|---|
+| `Kind` | `upgrade`, or `key` (see Keys below) |
+| `Achievement` | an ID from `Achievements.csv`. Blank = on sale from the start |
+| `Needs` | any extra condition, in the usual language |
+| `Cost` · `Currency` | from `Currencies.csv` |
+| `Effect` | the ordinary effects language. `count:batches_cooling+1` is a vat, `count:tune_<any Tuning row>+n` raises a number, `unlock:x` opens a thing |
+
+Each upgrade is bought **once**. The window shows what is on sale first, then
+what is still locked (and which achievement opens it), then what you own.
+The Achievements board says, under each achievement, which upgrade it puts
+on sale. The recruitment board is still in the Club House, under the
+upgrades.
+
+**`second_vat` and `third_vat` changed.** Those two achievements used to hand
+the vat over free in their `Reward`; now they put it on sale. To make an
+upgrade free again, put its Effect back into the achievement's `Reward`.
 
 ### Price everything in seasons
 
@@ -4108,7 +4719,9 @@ Nothing new had to be invented to say that: it is the counter language the
 whole game already speaks, and it works for **any** section, not just the
 cellar. `batches_boiling`, `batches_malthouse` — all of them.
 
-There are two worked rows in `Achievements.csv` (`second_vat`, `third_vat`).
+There are two worked rows in `Upgrades.csv` (`second_vat`, `third_vat`): the
+achievements of the same name put the vats on sale at the Club House (round
+AN), rather than handing them over free.
 And the measurement that says whether a vat was worth an achievement:
 
 ```
@@ -4135,6 +4748,16 @@ panel.
 first version only filled a resource whose count was zero, which reads as
 "once" and is not: spend your last germ, walk out, walk back in, and it hands
 you five more.
+
+### The machines are the buttons (round AN)
+
+Each section is drawn as its machine, which you click to work it, like a
+building on the base, with its name on a see-through plate underneath. The
+machines are the Steeping Tank, Grain Mill, Lauter Tun, Brew Kettle,
+Fermenting Vat and Bottling Machine. Each picture is the **Art** column
+(`assets/brewery/brewery_<id>.png`, PixelLab, layered in
+`art_source/aseprite/brewery/`). Their size is `Tuning.csv
+brewery_machine_size`. A section with no picture falls back to the old panel.
 
 ### `data/BrewerySections.csv`
 
@@ -4294,6 +4917,53 @@ into the Star? into a stand-in? not at all? — is a design question for you.
 Name of the card he became) in the save. Because it is stored against the
 card he *became*, **renaming that set card breaks the link** — the same rule
 as every card name. Code: `src/core/transform_book.gd`.
+
+### The drunk meter (round AN)
+
+Every player has a drunk meter, 0 to 100%. Every drink at the Pub fills it,
+and the levels it reaches give him something.
+
+| File | Column | What it does |
+|---|---|---|
+| `data/Brews.csv` | **Inspiration** | How much of the meter one pour fills, in %. |
+| `data/Items.csv` | **Inspiration** | The same for a bottle in the bag. Blank = the brew's own number. A bought bottle can be weaker than the one your Brewery makes (bottled Fire Brew 15%, poured 25%). |
+| `data/DrunkLevels.csv` | **From**, **Effect** | Where each level starts and what it gives. |
+| `data/StarAbilities.csv` | **Tier**, **Power**, **Ability** | The star ability a drunk Star plays with. Today every row is Koch's Beer Courage. |
+| `data/Tuning.csv` | `drunk_meter`, `drunk_lost_per_round` | Off switch, and how much of his meter a player loses after every round he played, as a % of what he has (50 = half). |
+
+**The levels out of the box:**
+
+- **Sober, 0%.** A brew with an Element, a Becomes or an ability (elemental
+  or inspirational) **can always be drunk** (Anthony, 8 Oct): it is poured,
+  paid for and fills the meter, but it does nothing in the match until he
+  reaches Tipsy. A sober turning beer only fills the meter and does not
+  count towards turning him.
+- **Tipsy, 30%** (`brews`). Every brew takes hold.
+- **Inspired, 70%** (`star;turn_drinks:-2`). He plays as a Star: STAR on his
+  card and name plate, and the star ability from StarAbilities.csv on both
+  sides. A brew's own ability still wins on its side. He also needs two
+  fewer turning beers (three becomes one).
+
+**How it wears off (Anthony, 8 Oct):** after every round he played (a match
+or an Adventure played to the end) he loses `drunk_lost_per_round` % of what
+he has, 50 out of the box, so 80% becomes 40%. While he can still play
+(`Plays` in Recovery.csv) you top him up with more beers. Once he is
+exhausted and resting in the Dorms, **his meter is empty**. A player who sat
+the round out keeps his meter. A Quit changes nothing.
+
+**Plain beers** are Brews.csv rows with no Becomes and no abilities, only
+Inspiration: the Helles (+20%, free) and the Festbier (+35%, 1 Reed). They
+never sit on the card as a brew; they only fill the meter.
+
+**In the Pub** every card has the meter under it, with a notch at each
+level, and the line at the top says when a player reaches a new level.
+
+**To change it:** move the From numbers, add a level row, give a brew more
+or less Inspiration, or add StarAbilities.csv rows such as `II,2,SOME_ABILITY`
+when you design the star abilities. The most exact row wins.
+
+**Checked by:** `tests/unit/test_drunk_meter.gd`, and `tools/drunk_shot.gd`
+presses the real Pub buttons and takes the pictures.
 
 ### `data/Currencies.csv`
 
@@ -4537,13 +5207,115 @@ checks they open Team Build — then that they open the Pub once you're ready.
 ## 12. Words — dialogue, localisation, keys
 
 **`data/Dialogue.csv`** (and `data/tutorial/Dialogue.csv`) — a node graph in
-a spreadsheet. `Scene`, `Node ID`, `Speaker`, `Portrait`, `Side`, `Animation`,
-`Background`, `Music`, `Text`, `Next`, `Requires`, `Effects`, and then three
+a spreadsheet. `Scene`, `Node ID`, `Speaker`, `Portrait`, `Side`, `Mood`, `View`, `Animation`,
+`Background`, `Music`, `Sound`, `Text`, `Next`, `Requires`, `Effects`, and then three
 sets of `Choice N Text / Next / Requires / Effects`.
+
+**`Sound`** (round AN) plays one sound the moment the line shows: an Audio.csv
+ID or a file name in `assets/audio/`. The prologue's "Cheering!" uses
+`bld_pub`, the beer hall cheering.
+
+**Who is on screen (round AN, the stage).** Everybody who has spoken in a
+scene stays on screen. One person alone stands in the middle and looks at
+you (front face). Two or more stand at their own `Side`; the speaker shows
+the line's Mood and View, the others turn to the room and are dimmed.
+Somebody new on a taken Side pushes the old one off. They slide in, across
+and out rather than popping. To send someone off, write their Speaker name
+or Portrait ID in an optional **`Leaves`** column (several separated by `;`,
+or `all`); add the column anywhere in the header when you need it.
+
+**Writing dialogue in the chat (round AN).** Post a script like this in the
+dialogue thread and Claude puts it in Dialogue.csv word for word:
+
+```
+## Scene: prologue
+Narrator: Three players wait at the Stammtisch.
+Head Coach (happy): Servus, Trainer! Sit down.
+Head Coach (mad, side): Koch! Put that down.
+> Shake his hand -> handshake
+# handshake
+Head Coach (drunk): Good grip.
+```
+
+`Name:` is the Speaker, `Narrator:` a blank Speaker. `(mood, side)` fills
+Mood and View. `> text -> label` is a choice, `# label` the Node ID it jumps
+to.
+
+**The prologue (round AN)** is Anthony's Head Coach scene at the Stammtisch.
+It plays the first time the base opens on a new save (Progression.csv
+`welcome_at_base`). Koch's `silhouette` and `bergmaennlein` faces are Mood
+words waiting for their StoryArt.csv rows; until then he shows his everyday
+face. **`star-intro`** (round AN) is Anthony's scene back at the bar after the
+first match: the Head Coach explains what a Star is. Progression.csv
+`first_match_is_over` plays it; it ends on "Another game!", which leads into
+the second match with three Bergmännlein Stars. The old Heatwave conversation is now the scene `heatwave_talk`, and the
+base visitors (Visitors.csv `Story`) point at it.
 
 A line with no choices runs on to `Next`. A line with choices stops and asks.
 A choice whose `Requires` fails is greyed out rather than hidden, so the
 player can see what they missed.
+
+### The faces and the rooms — `data/StoryArt.csv` (round AN)
+
+Every picture a conversation shows, one row each. Dialogue.csv only names a
+row by its **ID**, so changing a face or a room everywhere is one cell.
+
+| Column | |
+|---|---|
+| `ID` | the name Dialogue.csv writes in `Portrait` or `Background` |
+| `Kind` | `portrait` (a face beside the text box) or `background` (the room) |
+| `Speaker` | portraits only. A line with this Speaker and an **empty** Portrait cell gets this face, so you never type it on every line |
+| `Image` | the PNG, as a `res://` path. The new art is in `assets/story/portraits/` and `assets/story/backgrounds/` |
+| `Mood` | portraits only: `happy`, `sad`, `drunk`, `mad` ... any word. Blank = the everyday face |
+| `View` | portraits only: `front` (looking at the player) or `side` (talking to someone in the scene) |
+| `Faces` | side views: which way the drawing looks (`right` / `left`). The game mirrors it on the other side, so everybody looks into the room. A front view is never mirrored |
+| `Front` | backgrounds only. `yes` draws that layer in front of the people |
+| `Scale` | portraits only, **round AN**. How big this face is drawn, 1 = normal (blank = 1). A picture drawn closer in than the character's other faces (a bigger head) gets 0.8 or so; it shrinks towards the bottom edge so the shoulders stay on the text box. Koch's sad face is 0.8 and his happy face 0.85 |
+
+**Every character has a front and a side face** (Anthony, round AN): front
+for talking to the player, side for talking to someone else in the scene.
+One character is several rows with the same ID, one per Mood and View. A
+line in Dialogue.csv picks one with its own **`Mood`** and **`View`** columns
+(blank View = front). When the exact face is missing, the game takes the
+nearest: the same mood from the other side, then the everyday face, then any
+face of that character.
+
+**The Head Coach** (`coach`, Speaker `The Head Coach`): a 1990s German village
+coach, perm mullet, moustache, purple-and-teal shell-suit, whistle and
+clipboard. Eight faces: happy, sad, drunk and mad, each front and side.
+
+**A room in layers.** Give several `background` rows the same ID: they are
+stacked in file order, the first row at the back. The bar is two rows: the
+empty Wirtshaus, then the regulars at the Stammtisch. Delete the second row
+for an empty pub.
+
+**The intro now plays in the bar.** The prologue and the first-team scene
+open with `Background` = `bar`; a line with a blank Background keeps the room
+that is already up. Faces: `heatwave`, `brewer`, `hoffmann`, `schaefer`,
+`koch`.
+
+**Making more.** PixelLab `create_image_pro`, 512×512 with a transparent
+background and `art_source/style_refs/stammtisch/board_characters.png` as the
+style image, prompt from `tools/art_prompt.gd -- pixellab "a waist-up
+visual-novel dialogue portrait of one character, facing right ..."`. A room
+is 688×384, one call per layer. The PixelLab originals are in
+`art_source/pixellab/story/`, the layered files in
+`art_source/aseprite/story/` (`bar.aseprite`, `cast.aseprite`: one layer per
+face). To look at the result without playing:
+`godot --path . --resolution 1920x1080 --script res://tools/story_shot.gd`.
+
+A Portrait or Background that is not an ID in StoryArt.csv still works the old
+way: a file name looked for in `assets/portraits/` or `assets/backgrounds/`.
+The base visitors (Visitors.csv) still read `assets/portraits/`; since round
+AN, Heatwave and the Brewer there are the same PixelLab front faces (the old
+pictures are in `art_source/legacy/portraits/`).
+
+**Music under the conversations:** Audio.csv row `story_theme` plays
+`dialogue_suno` - your Suno Schlager *Leiser Oom-Pah* (round AN), the whole
+song with a 4-second fade before it starts again (MusicLoops.csv row
+`suno_dialogue`). The Pub (`pub_theme`) plays it too. To swap it: put the new
+track in `assets/audio/` and write its file name (no ending) in `Sound`. A
+line's own `Music` cell still wins for that line.
 
 **`data/Language.csv`** — `Key`, `English`, `Deutsch`, `Notes`. Add a column
 for a new language; the game finds it. Any text the game shows goes through a
@@ -5350,6 +6122,8 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | **find out why a sound is silent** | `tools/audio_check.gd`. It is nearly always a missing file |
 | **change how big the pitch is** | the `pitch` row of `Stadium.csv`. It has to stay 16:9 |
 | **change the village round the pitch** | `data/VillageGround.csv`, then `tools/make_village.py` (section 8b) |
+| **move where visitors stand at the base** | `data/BaseSpots.csv`, one row per door |
+| **change the base town map** | `data/BaseTown.csv`, then `tools/make_base_town.py` (one layer per part in `base_town.aseprite`) |
 | **move the white lines in or out** | `pitch_inset_x` and `pitch_inset_y` in `Tuning.csv` - this moves the zones too - then `tools/make_pitch.py` |
 | **see more or less of the village** | `camera_wide_ground` in `Tuning.csv` |
 | **make the item icons bigger** | `icon_tile_size` in `Tuning.csv` |
@@ -5424,12 +6198,13 @@ One row per thing on it. No file, no rows: it looks as it did before.
 
 | column | |
 |---|---|
-| `Part` | `background` (the wallpaper — the first row wins), `title` (the big word), `picture` (anything standing on it — any number of rows) |
+| `Part` | `background` (the wallpaper — the first row wins), `layer` (a whole-screen picture drawn like the wallpaper, stacked in row order — round AN), `title` (the big word), `picture` (anything standing on it — any number of rows) |
 | `Image` | the file. A picture may be a **strip**: `Frames` pictures side by side, all the same width |
 | `Text` | the title's word (`STURMBALL`) |
 | `X`, `Y` | the **centre**, on a 1920 × 1080 screen |
 | `Width`, `Height` | how big to draw it (for the title, `Height` is the font size) |
 | `Frames`, `FPS` | an animated strip; blank = a still picture |
+| `Motion`, `Motion Settings` | round AN: makes the row move — see *The moving title screen* below |
 
 As shipped:
 
@@ -5440,6 +6215,46 @@ As shipped:
   on the ball, stein up (`hero_comic.png`; version B is `hero_comic_b.png`). The round AI backpacker
   (`hero_cheer.png`, 8 frames) is still there.
 - **The title:** **STURMBALL** in gold.
+
+### The moving title screen (round AN)
+
+**Your sketch, built in.** The maypole view (at twice the resolution) is cut
+into layers that move:
+
+- **The sign** hangs on long ropes from the top of the screen and swings
+  gently. **STURMBALL** is written on it and swings with it.
+- **The clouds** drift slowly across the sky and wrap round seamlessly.
+- **The maypole ribbons** sway like cloth: top right (tied at the top) and
+  bottom left (tied at the bottom edge).
+- **The menu buttons** hang on a Bavarian notice board in the middle.
+- **An Alpendohle** with a Bavarian scarf flies in, sits on the notice
+  board's roof for 5 seconds and flies off to the right. It follows **the
+  song, not a timer**: it lands 5 seconds into the menu song every time the
+  song loops, on the same beat (`sync=music; land=5`).
+
+**Everything is two columns of `MainMenu.csv`:** `Motion` says how a row
+moves, and `Motion Settings` holds its numbers as `name=value; name=value`.
+Leave a number out and it keeps its default.
+
+| Motion | for | numbers |
+|---|---|---|
+| `drift` | a layer — slides sideways for ever (clouds) | `speed` pixels a second (minus = the other way) |
+| `sway` | a layer — waves like hanging cloth (ribbons) | `amount` pixels at the loose end, `speed` waves a second, `from` top / bottom (the tied edge), `reach` how far the ribbons hang, `wave` how stretched the ripple is (bigger = calmer), `phase`, `curve` |
+| `swing` | a picture — swings round its top-middle (the sign) | `amount` degrees each way, `speed` swings a second |
+| `bird` | a picture strip of 3 poses: wings up, wings down, sitting | `delay`, `fly`, `stay`, `leave` (seconds), `from` and `to` (x,y where it starts and flies off to), `flap` wing beats a second, `arc` how high it swoops. X / Y = where it sits. `sync=music` ties it to the menu song: it lands `land` seconds into the song, every loop (`delay` is then ignored; with the sound off it uses `delay` and flies once) |
+| `follow` | the title row — written on the picture above it, moves with it | — |
+
+- **The buttons** are placed in `MenuConfig.csv` (X, Y, Width, Height) inside
+  the board's light panel: x 772–1183, y 689–1001.
+- **The pictures** are in `assets/menu/layers/animated/`. Their sources, and
+  the scripts that cut the layers, are in `art_source/pixellab/title_animated/`.
+  The whole screen as one layered file is
+  `art_source/aseprite/title_screen_animated.aseprite`.
+- **To check it without watching:** `godot --path . --script
+  res://tools/menu_motion_shot.gd` saves a picture a second for 13 seconds
+  into `user://menu_motion/`.
+- **The still screen it replaced** is
+  `art_source/legacy/menu_round_an/MainMenu_maypole_still.csv`.
 
 ### Comic first, pixels second — the art style (rounds AJ–AL)
 
@@ -5516,6 +6331,31 @@ character.**
   The whole screen is also one layered Aseprite file:
   `art_source/aseprite/title_screen.aseprite`, made by `tools/make_aseprite.py`.
   See `guides/ART_STYLE.md` for how to edit it and bring a layer back.
+- **The title screen now shows your base town (round AN, take 2).** The
+  crowd, the brawl, the sign and the hero are the same. Behind them the
+  camera stands at the right goal's end of a much bigger pitch: the big
+  penalty box, the goal with its tall ball-stop net, the sandy path, the
+  fields and the sky (`01_goal_end.png`, drawn with the base's `ground.png`
+  as its style picture). The **Pub** (left) and the **Dorms** (right) are
+  drawn again from the ground, massive and cut off by the screen edge.
+  Their masters are in `art_source/pixellab/title_valley/` and their
+  `Pixelate.csv` rows are `pl_title_pub`, `pl_title_dorms`, `pl_title_goal`
+  and `pl_title_boards`. Take 1 (the whole valley with all the small
+  buildings) and the old title background, brewery and tent are in
+  `art_source/legacy/menu_round_an/`.
+  **Take 3:** the Pub drawn x3 and further left, the Dorms flipped, no goal,
+  the crowd and the boards half size (Scale 1) and further back, and the
+  white lines painted out of the pitch for now (`goal_end_nolines.png`; the
+  master with lines is `goal_end.png`).
+- **The Stadium flag is off the base's top row (round AN).** Inventory hangs
+  in its place, second from the left. The Stadium screen still exists.
+- **Pitch boards, menu and base (round AN).** Like a German village club
+  ground, low advertising boards now stop the ball: pictures of a stein, a
+  pretzel, a sausage, a ball, a hop and a cow (no letters). On the menu
+  they stand in front of the crowd (`06_boards.png`, three rows in
+  `MainMenu.csv`). On the base they run all round the pitch:
+  `BaseTown.csv` row `pitch_boards`, its own layer in `base_town.aseprite`
+  (run `tools/make_base_town.py` after changing it).
 - **Settings, the save screen and the menu button are PixelLab too:**
   `assets/ui/settings/pixellab/`, `assets/ui/save/pixellab/` (masters in
   `art_source/pixellab/menus/`), named in `ScreenLook.csv`. Layered files:
@@ -5796,7 +6636,7 @@ never stumbles at the join.
 
 | where | your track | the loop |
 |---|---|---|
-| main menu | Untitled | **only the aggressive tuba part in the middle**: 8 bars at 128 BPM, 14.9 s, starting right on the first heavy tuba hit |
+| main menu | **Sturm Ball** (round AN, 7 Oct) | the whole song, 29.4 s, with four crowd cheers between the shouts (see *The menu song: Sturm Ball* below) |
 | base | Sonniger Nachmittag | 16 bars at 99 BPM, 38.6 s, from 26.3 s into the song |
 | matches | Fussball im Bierzelt | 16 bars at 110 BPM, 35.1 s, from 36.7 s into the song |
 
@@ -5999,8 +6839,123 @@ locked to the beat. The song itself is untouched. Each cheer is one row of
 | `Cheer` | the sound: five Ludo.ai crowd bursts in `art_source/suno/cheers/` |
 
 After a change, run `~/.venvs/sturmball/bin/python tools/mix_cheers.py`,
-then rebuild the loop. To go back to the plain song, set the `suno_menu`
-Source in `MusicLoops.csv` to `menu_untitled.wav`.
+then rebuild the loop. The cheers belong to a song through the `Song`
+column (a `MusicLoops.csv` ID).
+
+### The menu song: Sturm Ball (round AN, 7 Oct)
+
+The main menu now plays your Suno song **Sturm Ball** (prompt: 128 BPM
+B-flat oompah brass anthem, zither and alphorn intro, group shouts
+"Sturm! Ball!", dry mix, no crowd noise). Suno played it at about
+123 BPM, not 128. The WAV is `art_source/suno/music/sturm_ball.wav`.
+
+**The loop.** The song has a real ending: the last brass hit is at
+28.0 s and it rings out to silence by 29.4 s. So it is not cut into
+bars. The loop is the whole song: `Start 0`, `Length 29.4`, `Crossfade 0`,
+`Fade Out 0.6` (only tidies the silent tail), `Loudness keep`. You hear
+the ending, a short breath, then the zither intro again, like a stadium
+song played on repeat.
+
+**The cheers.** The ten old cheers were timed for the 60 s Untitled song,
+so they would have landed on the new shouts. There are now four, in the
+gaps (rows `s01`–`s04`, Song `suno_menu`):
+
+| at | cheer | why there |
+|---|---|---|
+| 2.1 s | crowd swell (cheer_4) | the band starts after the intro; gone by 8 s |
+| 9.6 s | short "hey!", right | finished before the first "Sturm! Ball!" (about 12.3 s) |
+| 14.6 s | whistles, left | between the first shouts and the chant (18.3–20.5 s) |
+| 21.0 s | big roar (cheer_1) | after the chant, gone before the last shouts (about 26.3 s) |
+
+**Switching back:**
+
+| you want | change |
+|---|---|
+| Sturm Ball without cheers | `MusicLoops.csv` `suno_menu` Source = `art_source/suno/music/sturm_ball.wav`, rebuild the loop |
+| the old Untitled song (with its ten cheers) | `Audio.csv` `menu_theme` Sound = `menu_suno_untitled` (already built; its cheers are the `Song suno_menu_untitled` rows) |
+| Untitled without cheers | the `suno_menu_untitled` Source = `art_source/suno/music/menu_untitled.wav`, rebuild |
+
+Rebuild: `~/.venvs/sturmball/bin/python tools/mix_cheers.py`, then
+`~/.venvs/sturmball/bin/python tools/make_loop.py suno_menu` (librosa now
+lives in that venv too).
+
+## 16f. The isometric players on the pitch (round AN)
+
+On the tilted pitch every player is a small isometric figure that turns to
+face one of **8 directions** and plays its own **idle, run, kick, tackle,
+fall and cheer**. These pitch sheets are for the pitch only: cards, duels,
+portraits and the story keep each card's own 12 × 39 sheet.
+
+**What plays when:** run while a player moves (facing where they go); idle,
+facing the ball, while they stand; kick on every pass and shot (the game
+draws its own ball, so the drawing has none); tackle when they win the ball,
+and fall for the player who lost it; cheer for the scoring side whenever
+they stand still during a goal celebration. The scorer's knee slide is the
+tackle animation.
+
+**Two spreadsheets:**
+- `data/PitchSprites.csv` — who wears which sheet. **Wears** is the card's
+  own sheet file name (`class_Normal_female_bob.png`), its card name, or its
+  class (`Normal`); the file name is tried first. **Pitch Sheet** is a file
+  in `assets/players/pitch/`. List several with `|` and each player gets one
+  and keeps it. A card with no row plays on its old sheet, as before.
+- `data/PitchAnims.csv` — where each animation sits on a sheet. Each takes 8
+  rows from **First Row**, one per direction: east, south-east, south,
+  south-west, west, north-west, north, north-east. **Frames**, **FPS** and
+  **Loop** as in `Animations.csv`. **PixelLab** is the animation's name in
+  the PixelLab export.
+
+**Ten looks for The Club** (Anthony: no red nose, and people of different
+skin colours and backgrounds in the same comic style). Five men (`club_m1`-`m5`: light with brown hair,
+dark brown and curly, olive with a beard, East Asian, ginger with freckles)
+and five women (`club_f1`-`f5`: blonde ponytail, brown with plaits, East Asian
+bob, afro puffs, short ginger). Every new player gets a random one (picked by
+their random name) and keeps it, so skin colour, hair colour and style vary. All six were drawn with PixelLab's style copy of the
+approved player, so they match. Add a look: draw it, build its sheet, add
+its file to the right row of `PitchSprites.csv` with `|`.
+
+**The other classes** (two looks each, same style): Rivals (stubbly man,
+woman with a ponytail; grey and blue), Lorelei (water spirits: a woman of living
+water, a river nymph with scales; teal), Rauhnacht-Feuergeister (flame figure, charcoal with a Perchten
+mask), Bergmännlein (bearded dwarf in a red cap, dwarf woman with braids
+and a helmet), Unkengeister (warty toad, fire-bellied toad), Brandteufel
+(fire-devil man and woman with horns). Their rows in `PitchSprites.csv`
+are by class, so every card of the class gets one of its two looks.
+
+**Size:** `pitch_sprite_scale` is 0.8 (Anthony's pick A, so the pitch is not
+crowded).
+
+**Grey when not in play** (Anthony: the grey shows who is not in the Play
+Maker session, so you can follow the play). A player in the session is in
+full colour; everyone else is drained of colour, and a spent player is also
+dark. `pitch_sprite_rest_saturation` (0 = fully grey, 1 = full colour) and
+`pitch_sprite_rest_brightness` set how strong it is.
+
+**Only during a Play Maker** (Anthony, 8 Oct). The grey goes on at the
+**PLAY MAKER!** call and comes off when that round's shot is over (and at
+every Star swap). The rest of the time **everyone is in full colour**, spent
+players too. A Star picked in its tier counts as in the Play Maker. To film
+it: `godot --rendering-driver opengl3 --resolution 1280x720 --path .
+--script res://tools/play_maker_film.gd`, then
+`~/.venvs/sturmball/bin/python tools/make_film_gif.py out.gif`.
+
+**More Tuning.csv dials:** `pitch_sheet_cell` (frame size, 72),
+`pitch_sprite_scale` (how big they are drawn), `pitch_sprite_lift` (moves
+the figure up so the feet sit on the spot), `pitch_ground_squash` (how flat
+the tilted ground is; it decides when a run counts as north-east rather
+than east).
+
+**Making a sheet:** animate the character in PixelLab, download it (the
+character's Download button), unzip it into
+`art_source/pixellab/iso_players/<name>/`, then run
+`~/.venvs/sturmball/bin/python tools/make_pitch_sheet.py art_source/pixellab/iso_players/<name> <name>`.
+It writes the sheet, a layered Aseprite file (one layer per animation) in
+`art_source/aseprite/players/pitch/`, and a preview GIF next to the export:
+one row per animation, one column per direction. A missing direction is
+filled with the standing pose and the script says so.
+
+**To watch it in a match:** `godot --path . --script res://tools/pitch_sprite_shot.gd`
+plays a Club match and saves frames round the ball into `user://pitch_shot/`.
 
 ## 17. A short glossary
 
@@ -6023,3 +6978,122 @@ theirs.
 **Juice** — shake, flash, pop, slow-motion and sound. All of it in Juice.csv.
 **Haul** — what you are carrying in an Adventure run, lost if everybody goes
 down.
+
+## Readable menus (round AN)
+
+Anthony's note: the Settings and Choose a Save screens had icons and words
+off-centre and hard to read, and the intro text was small and ragged.
+
+- **Icon-and-words buttons** (every Settings tab, Back, Save, the key
+  buttons, the save tiles' Settings button) keep the icon and the words
+  inside the frame, centred. A word too long for its button shrinks instead
+  of being cut off. Tuning.csv: `button_text_size` (18), `button_icon_fill`
+  (0.8), `button_inset` (6).
+- **Settings**: every word is `settings_text_scale` (1.25) times its old
+  size, and words on the cellar painting sit on the see-through black plate
+  (`text_backdrop_alpha`, the same rule as the match).
+- **Choose a Save**: the words sit inside each tile instead of on its
+  border. `save_tile_text_size` (20), `save_tile_small_size` (15),
+  `save_tile_padding` (18).
+- **Conversations** (the intro, the bar, every story scene):
+  `story_text_size` 32, `story_name_size` 32, `story_hint_size` 16,
+  `story_choice_size` 32. The pixel font is drawn 16 high, so 16, 32 and 48
+  stay crisp; the old 21 was what made it look ragged.
+- **Faces of different sizes**: StoryArt.csv `Scale` (see above).
+
+**Every screen, not only these** (Anthony: the base, the buildings,
+Adventure, the match). Three game-wide rules, put on by `ThemeBook.dress()`,
+which every screen and the match pass through:
+
+1. **Smooth words** (`text_smooth`, true): the font keeps smaller copies of
+   every letter, so any size is clean, not only 16, 32 and 48.
+2. **A smallest size** (`text_min_size`, 14): a screen that asks for
+   smaller gets 14. Left alone: words that wrap inside a designed box (a
+   longer size would run over), words that shrink themselves to fit (banner
+   titles, button words) and the players' name plates. A label that cuts
+   off at the edge of its box only grows as far as the box allows.
+   Settings > Text size multiplies on top. 16 is easier to read but some
+   tight boxes (Adventure's combo tiles) start to cut off.
+3. **The see-through black plate** (`text_backdrop_alpha`) behind any word
+   that sits straight on a picture. Words on a panel or a button keep
+   theirs. An empty label shows no plate.
+
+
+## The Match Maker, and two tabs gone (round AN)
+
+**Play a match** (the flag on the base) opens **the Match Maker**: a small
+window in the same frame as every other box, with one button per row of
+`data/MatchMaker.csv`.
+
+A match is counted in **Play Maker cycles**, 30 minutes of clock each.
+
+| Button | Plays | Length |
+|---|---|---|
+| **Normal Match** | `friendly` | 3 cycles, 90 minutes, three Stars (what the flag always played) |
+| **Test Match** | `friendly_test` | 2 cycles, 60 minutes, one Star swap |
+| **Quick Match** | `friendly_cycle` | 1 cycle of 3 rounds, 30 minutes, one Star |
+
+`MatchMaker.csv` columns: **Words** (the button), **Icon** (`art|glyph`: an
+icon file in `assets/icons/`, and the characters shown until it exists),
+**Mode** (a `MatchModes.csv` ID: that row sets the clock, cycles, rounds,
+Star swaps and what it pays), **Under** (the line under the button),
+**Requires** (hides it until true). **A new length is two rows**: one in
+`MatchModes.csv`, one here.
+
+**No Extra Abilities** (Anthony, 8 Oct) is a switch at the top of the
+window, OFF unless you turn it on. ON, the match you pick plays on **base
+power only, for both sides**: no ability fires (attack, defend, Star,
+Emblem), no ability asks you anything, a brew already on a card does
+nothing and the bag will not pour one mid-match, and the season's
+difficulty bonus is not added. The duel window says "no ability" for every
+card and the kick-off says **NO EXTRA ABILITIES**. Every other way into a
+match (the season, Adventure, the Tutorial) leaves it off. Film one with
+`FILM_PLAIN=1` in front of the `play_maker_film.gd` line above.
+
+- A shorter clock squeezes the Play Makers in by itself: the last one comes
+  as long before the final whistle as in a full match (8 minutes).
+- Test and Quick pay a little less than a Normal Match (`Rewards` columns).
+- While a story match stands in for the friendly (the first match of a new
+  game), the flag skips the Match Maker and starts that match, as before.
+- To check it: `godot --path . --resolution 1920x1080 --script
+  res://tools/match_maker_shot.gd` presses the real flag and saves the
+  window, the bag, Team Build and two bird landings to `user://match_maker/`.
+
+**The bag has no Keys tab** and **Team Build has no Talents tab**. Both are
+one row of `Tuning.csv`:
+
+- `inventory_tabs` = `items;resources` (add `;keys` to bring it back). Keys
+  are still carried and still open their gates; they are only not listed.
+- `team_build_tabs` = `Star Hall;Your Teams` (add `;Talents` to bring it back).
+
+## Bavarian sound effects (round AN, 8 Oct)
+
+**Every sound effect in the game is new** (your note: "some older sound
+effects are really hurting the ears ... replace ALL sound effects with
+bavarian sounds"). The music is untouched.
+
+- **What you hear:** a tuba and a little brass band, Alpine cow bells,
+  wood blocks and beer tables, Maß glasses clinking, beer pouring and
+  gulping, a zither, a glockenspiel, a Böller salute, blackbirds and
+  chaffinches, a beer-tent crowd. Winning sounds like a polka flourish;
+  losing is a soft tuba sinking down ("wah ... wahhh"). The whole list,
+  one line per file, is `data/SoundCredits.csv`.
+- **Where they live:** `assets/audio/bav_*.ogg`. Audio.csv's `Sound` column
+  names them; every row's ID stayed the same, so Juice.csv, Buildings.csv,
+  Visitors.csv, MenuConfig.csv, ScreenLook.csv, Dialogue.csv and
+  OutOfBounds.csv needed no change.
+- **Kind to ears:** every file is low-passed (nothing shrill), faded in
+  and out, brought to the same loudness and kept under -1 dB so nothing
+  clips. The referee's whistle is lower and rounder than a real one.
+  How loud each plays is Audio.csv's `Volume`, as before.
+- **Undo one:** each Audio.csv note names the old file (still in
+  `assets/audio/`). Put that name back in `Sound`.
+- **Remake or change one:** the sounds are not recordings - they are
+  built from sine waves and noise by `tools/make_bavarian_sfx.py`, one
+  short recipe per file. `python3 tools/make_bavarian_sfx.py bav_goal`
+  remakes one; no name remakes them all and rewrites SoundCredits.csv.
+  Needs numpy, scipy and ffmpeg.
+- **Two spares, ready to use:** `drink_big` (a barrel glugging and three
+  gulps - for the tutorial's drinking window) and `woods_birds` (three
+  birds, for the woods or the base). Name either in a `Sound` column.
+- **Licence:** all our own; nothing to credit.

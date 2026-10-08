@@ -197,11 +197,11 @@ func _beers(db: CardDatabase) -> void:
 	var name_before := plain.player_name
 	print("  %s is plain: Tier I, Power 0, %s." % [plain.player_name, plain.unit_type])
 
-	TransformBook.pour(plain, water, state, db)
-	TransformBook.pour(plain, water, state, db)
+	_tipsy_pour(plain, water, state, db)
+	_tipsy_pour(plain, water, state, db)
 	var mid := TransformBook.progress(plain, state)
 	print("  Two water: %s %d." % [mid["element"], mid["count"]])
-	TransformBook.pour(plain, fire, state, db)
+	_tipsy_pour(plain, fire, state, db)
 	var mixed := TransformBook.progress(plain, state)
 	print("  ...then one fire: %s %d   (a new element starts again)" % [mixed["element"], mixed["count"]])
 	if String(mixed["element"]) != "fire" or int(mixed["count"]) != 1:
@@ -209,7 +209,7 @@ func _beers(db: CardDatabase) -> void:
 
 	var last := {}
 	for i in 3:
-		last = TransformBook.pour(plain, water, state, db)
+		last = _tipsy_pour(plain, water, state, db)
 	print("  Three water: ready to choose = %s.  Reed left: %d of 20 (2 a beer)." % [last.get("ready", false),
 		state.count("reed")])
 	if not bool(last.get("ready", false)):
@@ -253,6 +253,15 @@ func _beers(db: CardDatabase) -> void:
 
 ## THE GAP NOBODY HAS ASKED ABOUT YET: in each class one tier belongs to the
 ## Stars alone, so a plain player of that tier has nothing to turn into.
+
+## ROUND AN: the turning rules on their own. Every pour is made at exactly
+## Tipsy, so the beer counts (a sober one would not) and he never reaches
+## Inspired part-way through (a Star needs fewer turning beers).
+func _tipsy_pour(card: PlayerData, entry: Dictionary, state: GameState,
+		db: CardDatabase) -> Dictionary:
+	DrunkBook.set_meter(card, DrunkBook.threshold("brews"), state)
+	return TransformBook.pour(card, entry, state, db)
+
 func _who_cannot_turn(db: CardDatabase) -> void:
 	print("")
 	print("  === WHO CAN TURN INTO WHAT ===")

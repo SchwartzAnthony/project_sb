@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://dleqf53lydo"
+path="res://.godot/imported/SturmballComic.fnt-e5a35b11485ce887fcae37786fb63325.fontdata"
+
+[deps]
+
+source_file="res://assets/fonts/SturmballComic.fnt"
+dest_files=["res://.godot/imported/SturmballComic.fnt-e5a35b11485ce887fcae37786fb63325.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=2

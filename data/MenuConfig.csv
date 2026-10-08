@@ -1,5 +1,5 @@
 Button ID,Label,X,Y,Width,Height,Action,Art Path,Notes,Hover Sound,Press Sound,Label On Art
-START_GAME,Start,1650,470,260,68,start_game,res://assets/menu/button_plank.png,"Asks which save slot, then opens the base. Everything else is started from in there",menu_hover,menu_start,yes
-SETTINGS,Settings,1650,554,260,68,open_settings,res://assets/menu/button_plank.png,"Keys, screen, sound, colour and controller",menu_hover,menu_click,yes
-TUTORIAL_GAME,Tutorial,1650,638,260,68,tutorial_game,res://assets/menu/button_plank.png,The tutorial base - an enclosed practice game with its own save. Nothing in there touches your real one,menu_hover,menu_click,yes
-QUIT,Quit,1650,722,260,68,quit_game,res://assets/menu/button_plank.png,Closes the game,menu_hover,menu_back,yes
+START_GAME,Start,978,732,265,69,start_game,res://assets/menu/button_plank.png,"Asks which save slot, then opens the base. Everything else is started from in there",menu_hover,menu_start,yes
+SETTINGS,Settings,978,807,265,69,open_settings,res://assets/menu/button_plank.png,"Keys, screen, sound, colour and controller",menu_hover,menu_click,yes
+TUTORIAL_GAME,Tutorial,978,882,265,69,tutorial_game,res://assets/menu/button_plank.png,"ROUND AN (Anthony, 7 Oct): THE TUTORIAL - what used to be the introduction of a new game. Pub Dialogue 1, then the tutorial match with the Head Coach's stops (MatchTalk.csv), in a save of its own, then back here. A new save also offers it. Action tutorial_base opens the old enclosed tutorial base instead.",menu_hover,menu_click,yes
+QUIT,Quit,978,957,265,69,quit_game,res://assets/menu/button_plank.png,Closes the game,menu_hover,menu_back,yes

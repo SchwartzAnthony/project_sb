@@ -154,7 +154,11 @@ static func describe(condition: String) -> String:
 						"<": phrase = "fewer than"
 						"=": phrase = "exactly"
 						"!=": phrase = "any number but"
-					parts.append("%s: %s %s" % [counter, phrase, wanted])
+					# ROUND AN: A KEY reads as a key, not as a number of them.
+					if counter.ends_with(" key") and op == ">=" and wanted == "1" and not negate:
+						parts.append("the %s (buy it at the Club House)" % counter)
+					else:
+						parts.append("%s: %s %s" % [counter, phrase, wanted])
 			"is":
 				parts.append(_words(rest.replace("=", " is ")))
 

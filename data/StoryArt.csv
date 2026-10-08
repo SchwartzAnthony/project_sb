@@ -1,0 +1,43 @@
+ID,Kind,Speaker,Mood,View,Image,Faces,Front,Scale,Notes
+heatwave,portrait,Heatwave Brandteufel,,front,res://assets/story/portraits/heatwave_front.png,,,,"ROUND AN. Looking at the player. Every face here is PixelLab create_image_pro; the originals are in art_source/pixellab/story/portraits/, the layered file is art_source/aseprite/story/cast.aseprite."
+heatwave,portrait,,,side,res://assets/story/portraits/heatwave.png,right,,,ROUND AN. Talking to someone else in the scene (a Dialogue line with View = side).
+brewer,portrait,The Brewer,,front,res://assets/story/portraits/brewer_front.png,,,,ROUND AN. Also his face on the base (assets/portraits/brewer.png).
+brewer,portrait,,,side,res://assets/story/portraits/brewer.png,right,,,ROUND AN.
+hoffmann,portrait,Hoffmann,,front,res://assets/story/portraits/hoffmann_front.png,,,,ROUND AN. One of the three you start with (Progression.csv new_game). The front shirt came out mostly white; say if you want it redone with the stripes.
+hoffmann,portrait,,,side,res://assets/story/portraits/hoffmann.png,right,,,ROUND AN.
+schaefer,portrait,Schäfer,,front,res://assets/story/portraits/schaefer_front.png,,,,ROUND AN. One of the three you start with.
+schaefer,portrait,,,side,res://assets/story/portraits/schaefer.png,right,,,ROUND AN.
+koch,portrait,Koch,,front,res://assets/story/portraits/koch_front.png,,,,ROUND AN. One of the three you start with.
+koch,portrait,,,side,res://assets/story/portraits/koch.png,right,,,ROUND AN.
+koch,portrait,,happy,side,res://assets/story/portraits/koch_happy_side.png,right,,0.85,ROUND AN. The star intro. Scale 0.85: drawn a little closer in than his others.
+koch,portrait,,mad,side,res://assets/story/portraits/koch_mad_side.png,right,,,ROUND AN. The star intro.
+koch,portrait,,sad,side,res://assets/story/portraits/koch_sad_side.png,right,,0.8,"ROUND AN. The new prologue. Scale 0.8: this face was drawn closer in than his others (a much bigger head), so it is drawn smaller to match them."
+koch,portrait,,drunk,side,res://assets/story/portraits/koch_drunk_side.png,right,,,ROUND AN. The new prologue.
+koch,portrait,,silhouette,side,res://assets/story/portraits/koch_silhouette_side.png,right,,,"ROUND AN. The new prologue: Koch mid-transformation, a black shape with a glowing lamp and eye. Made from the Bergmännlein face (all dark pixels, the glow kept), not a PixelLab call."
+koch,portrait,,bergmaennlein,side,res://assets/story/portraits/koch_bergmaennlein_side.png,right,,,"ROUND AN. The new prologue: Koch turned into a Bergmännlein (white beard, miner's cap with lamp, crystals, stone skin)."
+coach,portrait,The Head Coach,happy,front,res://assets/story/portraits/coach_happy_front.png,,,,"ROUND AN. THE HEAD COACH, a 1990s German village coach: perm mullet, moustache, shell-suit, whistle, clipboard. Eight faces: happy / sad / drunk / mad, each front and side. A Dialogue line picks one with its Mood and View columns. The first row is the face he uses when a line asks for a mood he does not have."
+coach,portrait,,happy,side,res://assets/story/portraits/coach_happy_side.png,right,,,ROUND AN.
+coach,portrait,,sad,front,res://assets/story/portraits/coach_sad_front.png,,,,ROUND AN.
+coach,portrait,,sad,side,res://assets/story/portraits/coach_sad_side.png,right,,,ROUND AN.
+coach,portrait,,drunk,front,res://assets/story/portraits/coach_drunk_front.png,,,,ROUND AN.
+coach,portrait,,drunk,side,res://assets/story/portraits/coach_drunk_side.png,right,,,ROUND AN.
+coach,portrait,,mad,front,res://assets/story/portraits/coach_mad_front.png,,,,ROUND AN.
+coach,portrait,,mad,side,res://assets/story/portraits/coach_mad_side.png,right,,,ROUND AN.
+belial,portrait,Belial,,front,res://assets/story/portraits/belial_front.png,,,,"ROUND AN. BERGMÄNNLEIN STAR (IntroSquad2.csv, Star Players.csv): the blacksmith - braided black beard with brass rings, miner's helmet, smith's apron over a brown and gold kit, forging hammer (his Ultimate hands out weapons). Made from his side face."
+belial,portrait,,,side,res://assets/story/portraits/belial_side.png,right,,,ROUND AN.
+valefor,portrait,Valefor,,front,res://assets/story/portraits/valefor_front.png,,,,"ROUND AN. BERGMÄNNLEIN STAR: the sly ore thief - grey goat beard, goggles on a red miner's cap, gold tooth, pockets full of ore, pickaxe (he mines ore counters). Made from his side face."
+valefor,portrait,,,side,res://assets/story/portraits/valefor_side.png,right,,,ROUND AN.
+haures,portrait,Haures,,front,res://assets/story/portraits/haures_front.png,,,,"ROUND AN. BERGMÄNNLEIN STAR: half rock - stone skin with moss, fiery eyes, white beard, lamp on his forehead, goalkeeper gloves (his abilities armour the goalie). Made from his side face."
+haures,portrait,,,side,res://assets/story/portraits/haures_side.png,right,,,ROUND AN.
+hanna,portrait,Hanna,happy,front,res://assets/story/portraits/hanna_front.png,,,,"ROUND AN. HANNA, THE BREWER (your pick: draft C) - blonde braids, green dirndl, leather apron, leaning on her barrels with a thumbs up. Looking at the player."
+hanna,portrait,,happy,side,res://assets/story/portraits/hanna_side.png,right,,,ROUND AN. Hanna talking to someone in the scene. A hole PixelLab cut between the barrel and her apron was filled with brown by hand.
+merchant,portrait,The Traveling Merchant,,front,res://assets/story/portraits/merchant_front.png,,,,"ROUND AN. THE TRAVELING MERCHANT (your pick: draft B) - green feathered hat with hops, waxed moustache, red waistcoat, striped shirt, a beer bottle. Looking at the player; also stands in his shop (Tuning.csv shop_keeper)."
+merchant,portrait,,,side,res://assets/story/portraits/merchant_side.png,left,,,ROUND AN. Talking to someone in the scene. Drawn looking LEFT.
+bar,background,,,,res://assets/story/backgrounds/bar_room.png,,,,"ROUND AN. THE BAR, layer 1 (back): the inside of the Wirtshaus. Rows with the same ID are stacked, first row at the back. Layered file: art_source/aseprite/story/bar.aseprite"
+bar,background,,,,res://assets/story/backgrounds/bar_regulars.png,,,,ROUND AN. The bar layer 2: the regulars at the Stammtisch. Delete this row for an empty pub.
+brewery,background,,,,res://assets/story/backgrounds/brewery_room.png,,,,"ROUND AN. THE BREWERY, layer 1 (back): the empty brewhouse, white walls and timber beams (your pick: draft 3). Also the picture behind the Brewery screen on the base (Tuning.csv brewery_background). Layered file: art_source/aseprite/story/brewery.aseprite"
+brewery,background,,,,res://assets/story/backgrounds/brewery_equipment.png,,,,"ROUND AN. The brewery layer 2: copper kettle, gauges, mash tun and the tall silo with its ladder (the equipment from draft 4)."
+brewery,background,,,,res://assets/story/backgrounds/brewery_barrels.png,,,,ROUND AN. The brewery layer 3: barrels and hop sacks. Delete this row for a tidier floor.
+merchant_shop,background,,,,res://assets/story/backgrounds/merchant_meadow.png,,,,"ROUND AN. THE TRAVELING MERCHANT'S SHOP, layer 1 (back): the village meadow, sky and firs (your pick: draft 1). Tuning.csv shop_background. Layered file: art_source/aseprite/story/merchant_shop.aseprite"
+merchant_shop,background,,,,res://assets/story/backgrounds/merchant_wagon.png,,,,"ROUND AN. The shop layer 2: the Traveling Tavern wagon from the base, close up (made from assets/base/map/tavern.png, nothing added)."
+brewery_yard,background,,,,res://assets/story/backgrounds/brewery_yard_iso.png,,,,"ROUND AN (your picks: isometric, background A). THE BREWERY SCREEN: the isometric courtyard - barn at the back, half-timbered houses with hop vines, the machines on their platforms in the yard (Tuning.csv brewery_background). PixelLab, comic style board as reference. The earlier front-on courtyard is brewery_yard.png in the same folder. The Brewer's scene still uses `brewery`."

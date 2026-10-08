@@ -224,6 +224,13 @@ static func go_to(tree: SceneTree, preferred: String, remember: bool = true) -> 
 	AudioDirector.fire(tree, "screen_opened",
 		{"screen": screen_word(path)}, GameState.fetch(tree))
 
+	# ROUND AN: THE MATCH COMES IN THROUGH THE LOADING SCREEN — black at
+	# once, then the ball rolling into the goal while it loads behind. See
+	# match_loader.gd; `match_loader` in Tuning.csv turns it off.
+	if path == resolve(MATCH) and MatchLoader.enabled():
+		MatchLoader.load_into(tree, path)
+		return
+
 	tree.change_scene_to_file.call_deferred(path)
 
 

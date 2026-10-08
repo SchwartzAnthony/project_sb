@@ -120,10 +120,10 @@ const ART_GROUPS = [
    drawn:"190 × 78", make:"512 × 512", fit:"centered",
    from:"Buildings.csv · Art",
    note:"The whole plaque is <b>190 × 132</b>; the picture takes the top <b>78 pixels</b> and the name sits under it. A square drawing is letterboxed to 78 × 78 in the middle, so if you want the building to fill the plaque draw it about <b>2.4 : 1</b>. Four buildings have no art yet: Achievements, Talent Tree, Dorms, The Traveling Brewer."},
-  {id:"basebg", what:"The yard itself", why:"What the buildings stand on.",
-   drawn:"1920 × 1080", make:"1920 × 1080", fit:"covered",
-   from:"a file literally called <code>background</code>",
-   note:"No CSV names it. Put <code>background.png</code> or <code>.jpg</code> in assets/base/ and it is the backdrop."},
+  {id:"basebg", what:"The town map", why:"The valley the town stands in, seen from a hill: river, bridge, lanes, the pitch in the middle. No plots: the buildings come later and will be the buttons.",
+   drawn:"1920 × 1080", make:"tools/make_base_town.py", fit:"covered",
+   from:"<code>BaseTown.csv</code> → <code>assets/base/background.png</code>",
+   note:"<b>Round AN.</b> Built from <code>BaseTown.csv</code> out of PixelLab parts in <code>art_source/pixellab/base_town/</code>; every part is a layer in <code>art_source/aseprite/base_town.aseprite</code>.  <code>base_map_shade</code> in Tuning.csv darkens it (0 = full colour)."},
   {id:"visitor", what:"A visitor", why:"People who come by the base. They stand in whatever space the buildings leave.",
    drawn:"120 × 105", make:"512 × 512", fit:"centered",
    from:"Visitors.csv · Portrait",
@@ -504,7 +504,7 @@ function paintBook(){
     <p style="margin:0 0 10px"><b>Your Midjourney kicker is the style. OpenAI paints the comic, tools/pixelate.py makes the pixels.</b></p>
     ${rows([
       ["the hero","your pick C (Tyrolean hat), wilder hair, facing right (Pixelate.csv Flip yes) - <code>hero_comic.png</code>; A, B as hero_comic_a / _b"],
-      ["layers","the title screen is 7 layers, back to front in <b>MainMenu.csv</b>: field, brewery, beer tent, crowd (x6), brawl, sign + name, hero - all in the front guy's style, all at Scale 2 (assets/menu/layers/)"],
+      ["layers","the title screen is layers, back to front in <b>MainMenu.csv</b>: the right goal end of the pitch, the Dorms and the Pub (massive), the goal with its ball-stop net, crowd (x3), the pitch boards (x3), brawl, sign + name, hero - all at Scale 2 (round AN)"],
       ["repaint one","ArtStyle.csv <b>layer_prompt</b> with the front guy as the style picture, save in art_source/openai/menu_layers/, run tools/pixelate.py"],
       ["no yellow","<b>Pixelate.csv</b> new column Neutral takes the yellow AI tint out"],
       ["changed file?","music and menu pictures are read straight from the folder, so a changed file plays / shows at once - no re-import needed"],
@@ -555,7 +555,7 @@ function paintBook(){
     ${rows([
       ["the look","<b>ScreenLook.csv</b>: layers, a see-through shade, the content margin, and every button as the oak plank with the menu sounds"],
       ["music","the title music carries on into both, quieter - Audio.csv settings_theme / slot_theme name the SAME Sound with a lower Volume, so it never restarts"],
-      ["loop","the menu song plays unedited, all 60 s, fades out over its last 6 s and starts again (MusicLoops.csv suno_menu: Fade Out 6, Loudness keep)"],
+      ["loop","the menu song is now <b>Sturm Ball</b> (round AN, 7 Oct): the whole 29.4 s song, which ends by itself and starts again (MusicLoops.csv suno_menu: Start 0, Length 29.4, Fade Out 0.6, Loudness keep). Four cheers sit between the shouts (MusicCheers.csv s01-s04). The old Untitled song is the spare menu_suno_untitled"],
       ["sounds","every button sound 6 dB quieter (Audio.csv menu_hover / click / start / back)"],
       ["check","<code>tools/screens_shot.gd</code> photographs the three screens and prints the music on each"],
     ])}`);

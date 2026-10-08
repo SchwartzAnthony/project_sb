@@ -32,6 +32,11 @@ var active_star: PlayerData = null
 ## The Star's own tier is absent — the Stars fill it.
 var regulars: Dictionary = {}
 
+## ROUND AN: a side with NO Stars, such as the first match of a new game
+## (data/IntroSquad.csv, read by squad_sheet.gd). The "Star" slots hold plain
+## players, who wear no Star badge and carry no Emblem.
+var plain: bool = false
+
 
 # -------------------------------------------------------------
 #  HAND-OFF

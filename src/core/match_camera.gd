@@ -48,6 +48,21 @@ var lead: float = 0.30
 ## camera bothers to move. Stops a permanent tiny jitter.
 var deadzone: float = 36.0
 
+## ROUND AN (the tilted pitch, PitchView.csv): the map from the flat match
+## rectangle to the picture. Every point the match hands in is flat; the
+## camera itself moves over the picture. Identity = the flat pitch.
+var view_xform := Transform2D.IDENTITY
+## The whole ground picture, in picture coordinates, when the pitch is tilted.
+var ground_view := Rect2()
+## The tilted pitch's white lines (plus the boards), as a box in the picture.
+## When set, the wide shot is framed on this: corner to corner across the
+## screen (Anthony: the left and right corner almost touching the edges).
+var pitch_box_view := Rect2()
+## home_rect and frame_rect as boxes in the picture - what zoom and clamping
+## actually use.
+var _home_v := Rect2()
+var _frame_v := Rect2()
+
 var _mode: int = Mode.WIDE
 var _want_point: Vector2 = Vector2.ZERO
 var _want_zoom: float = 1.0
@@ -98,13 +113,29 @@ func setup(pitch: Rect2, db: CardDatabase, ground: Rect2 = Rect2()) -> void:
 	# The pushes are multiples of the PITCH shot, not of the village shot, so
 	# showing more of the ground in the wide shot does not make the players
 	# any smaller during play.
-	var pitch_zoom := _zoom_to_fit(home_rect)
-	wide_zoom = minf(_zoom_to_fit(frame_rect), pitch_zoom)
+	_home_v = PitchView.box_of(view_xform, home_rect)
+	if pitch_box_view.size.x > 1.0:
+		_home_v = pitch_box_view
+	_frame_v = PitchView.box_of(view_xform, frame_rect)
+	if ground_view.size.x > 1.0:
+		# The wide shot is the tilted pitch plus a margin of the town round it
+		# (PitchView.csv wide_shot_margin, a fraction of the pitch's size),
+		# never past the edge of the picture.
+		var margin := maxf(0.0, PitchView.number("wide_shot_margin", 0.1))
+		_frame_v = _home_v.grow_individual(_home_v.size.x * margin, _home_v.size.y * margin,
+			_home_v.size.x * margin, _home_v.size.y * margin).intersection(ground_view)
+	pitch_zoom = _zoom_to_fit(_home_v)
+	wide_zoom = minf(_zoom_to_fit(_frame_v), pitch_zoom)
+	if ground_view.size.x > 1.0:
+		# Tilted, the pitch is a long diamond: fit all of it in the frame
+		# (the town fills the corners), but never zoom out past the picture.
+		pitch_zoom = _zoom_to_contain(_home_v)
+		wide_zoom = maxf(minf(_zoom_to_contain(_frame_v), pitch_zoom), _zoom_to_fit(ground_view))
 	play_zoom = pitch_zoom * maxf(1.0, play_zoom)
 	close_zoom = maxf(pitch_zoom * maxf(1.0, close_zoom), play_zoom)
 
 	_want_zoom = wide_zoom
-	_want_point = frame_rect.get_center()
+	_want_point = _frame_v.get_center()
 	_held_point = _want_point
 	global_position = _want_point
 	zoom = Vector2(wide_zoom, wide_zoom)
@@ -132,7 +163,7 @@ func look_wide() -> void:
 	if _locked:
 		return
 	_mode = Mode.WIDE
-	_want_point = frame_rect.get_center()
+	_want_point = _frame_v.get_center()
 	_want_zoom = wide_zoom
 
 
@@ -142,7 +173,7 @@ func look_at_play(point: Vector2, toward: Vector2) -> void:
 	if _locked:
 		return
 	_mode = Mode.PLAY
-	var aim := point.lerp(toward, lead)
+	var aim := view_xform * point.lerp(toward, lead)
 	# Only re-aim once the ball has actually gone somewhere. Without this the
 	# camera creeps a pixel at a time for the whole ninety minutes.
 	if _held_point.distance_to(aim) > deadzone:
@@ -154,8 +185,8 @@ func look_at_play(point: Vector2, toward: Vector2) -> void:
 ## A tight look at one spot — a shot, a tackle, a goal.
 func look_close(point: Vector2) -> void:
 	_mode = Mode.CLOSE
-	_held_point = point
-	_want_point = point
+	_held_point = view_xform * point
+	_want_point = _held_point
 	_want_zoom = close_zoom
 
 
@@ -164,11 +195,42 @@ func mode() -> int:
 
 
 # =============================================================
+#  A SCRIPTED SHOT  (round AN, the line-up on the grass)
+#
+#  The line-up before kick-off pans along each team. While a shot is
+#  scripted, the camera stops easing on its own and sits exactly where it is
+#  put — still never past the edge of the ground picture.
+# =============================================================
+
+var _scripted := false
+## The zoom at which the whole tilted pitch fits; the line-up zoom is a
+## multiple of it, like camera_zoom.
+var pitch_zoom: float = 1.0
+
+
+func script_shot(on: bool) -> void:
+	_scripted = on
+	if not on:
+		# Hand back from wherever the pan ended, not with a jump.
+		_held_point = global_position
+		_want_point = global_position
+		_want_zoom = zoom.x
+
+
+## Put the view on `point` (a point in the PICTURE, see view_xform) at
+## `at_zoom`. Clamped to the ground like every other shot.
+func place_shot(point: Vector2, at_zoom: float) -> void:
+	var z := maxf(at_zoom, wide_zoom)
+	zoom = Vector2(z, z)
+	global_position = _clamp_centre(point, z)
+
+
+# =============================================================
 #  MOVING
 # =============================================================
 
 func _process(delta: float) -> void:
-	if home_rect.size.x < 1.0 or home_rect.size.y < 1.0:
+	if home_rect.size.x < 1.0 or home_rect.size.y < 1.0 or _scripted:
 		return
 
 	# exp() keeps the ease identical whatever the frame rate, which lerp()
@@ -196,6 +258,14 @@ func _zoom_to_fit(area: Rect2) -> float:
 	return maxf(view.x / area.size.x, view.y / area.size.y)
 
 
+## The zoom at which ALL of this rectangle is on screen (the tilted pitch).
+func _zoom_to_contain(area: Rect2) -> float:
+	var view := _view_size()
+	if area.size.x < 1.0 or area.size.y < 1.0 or view.x < 1.0 or view.y < 1.0:
+		return 1.0
+	return minf(view.x / area.size.x, view.y / area.size.y)
+
+
 ## Keep the visible rectangle inside the ground. If the ground is smaller
 ## than the screen on an axis, centre on it instead — clamping would be
 ## impossible.
@@ -204,7 +274,7 @@ func _clamp_centre(point: Vector2, at_zoom: float) -> Vector2:
 		return point
 	var half := (_view_size() / at_zoom) * 0.5
 	var out := point
-	var area := frame_rect if frame_rect.size.x > 1.0 else home_rect
+	var area := _frame_v if _frame_v.size.x > 1.0 else _home_v
 
 	if area.size.x <= half.x * 2.0:
 		out.x = area.get_center().x

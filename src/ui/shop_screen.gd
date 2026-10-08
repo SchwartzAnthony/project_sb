@@ -27,6 +27,10 @@ var state: GameState
 var _purse: HBoxContainer
 var _cart: VBoxContainer
 var _status: Label
+## ROUND AN: true when his picture is behind the shop - the panels then go
+## see-through, and the cart leaves room on the right for him.
+var _scenery := false
+var _keeper_shown := false
 
 
 func _ready() -> void:
@@ -40,14 +44,77 @@ func _ready() -> void:
 		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	db = CardDatabase.get_db()
 	state = GameState.fetch(get_tree())
+	# ROUND AN: his shop behind it and him in it - StoryArt.csv IDs named in
+	# Tuning.csv shop_background / shop_keeper. Nothing there yet = as before.
+	_scenery = StoryArt.add_backdrop(self, db.tune_text("shop_background", "merchant_shop"),
+		db.tune_float("shop_background_shade", 0.45))
+	_keeper_shown = _keeper_path() != ""
 	_build_chrome()
+	_add_keeper()
 	_rebuild()
+	(func() -> void: Guide.check(self, "shop", state)).call_deferred()
+
+
+## The Traveling Merchant behind his counter, bottom right: his StoryArt.csv
+## face (the Portrait ID in Tuning.csv shop_keeper).
+func _keeper_path() -> String:
+	var face_id := db.tune_text("shop_keeper", "merchant").strip_edges()
+	if face_id == "":
+		return ""
+	var row := StoryArt.get_db().portrait_for(face_id, "", "", "front")
+	var path := String(row.get("image", ""))
+	return path if path != "" and ResourceLoader.exists(path) else ""
+
+
+## How wide a strip on the right the merchant stands in (Tuning.csv).
+func _keeper_room() -> float:
+	return db.tune_float("shop_keeper_width", 300.0) if _keeper_shown else 0.0
+
+
+## A panel over his picture: see-through black with a coloured edge, so the
+## shop shows through. Without the picture, the usual skin.
+func _panel(fill: Color, border: Color) -> StyleBox:
+	if not _scenery:
+		return MenuSupport.panel_style(fill, border)
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0, 0, 0, maxf(TextBackdrop.alpha(), 0.55))
+	box.border_color = border if border.a > 0.0 else MenuSupport.COLOUR_SLOT_EMPTY
+	box.set_border_width_all(2)
+	box.set_corner_radius_all(4)
+	box.content_margin_left = 14
+	box.content_margin_right = 14
+	box.content_margin_top = 10
+	box.content_margin_bottom = 10
+	return box
+
+
+func _add_keeper() -> void:
+	var path := _keeper_path()
+	if path == "":
+		return
+	var face := TextureRect.new()
+	face.texture = load(path) as Texture2D
+	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	face.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	face.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	face.anchor_left = 1.0
+	face.anchor_right = 1.0
+	face.anchor_top = 1.0
+	face.anchor_bottom = 1.0
+	# In the strip on the right, standing ABOVE the Back button.
+	face.offset_left = -_keeper_room()
+	face.offset_right = -20
+	face.offset_top = -80 - _keeper_room() * 1.1
+	face.offset_bottom = -80
+	add_child(face)
 
 
 func _build_chrome() -> void:
 	# NO BACKGROUND OF ITS OWN IN A WINDOW — the window has one, and a second
 	# opaque rectangle would paint over the dimmed base behind it.
-	if not MenuSupport.in_a_window(self):
+	# ...and none over his picture either, which is already behind it.
+	if not MenuSupport.in_a_window(self) and not _scenery:
 		var fill := ColorRect.new()
 		fill.color = MenuSupport.COLOUR_BACKGROUND
 		fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -76,7 +143,8 @@ func _build_chrome() -> void:
 	# which is the one line that makes a price mean anything, and I only saw
 	# it was gone in a screenshot.
 	purse_frame.offset_bottom = 182.0
-	purse_frame.add_theme_stylebox_override("panel", MenuSupport.styled(
+	purse_frame.add_theme_stylebox_override("panel", _panel(
+		MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT) if _scenery else MenuSupport.styled(
 		"window", "", MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
 	add_child(purse_frame)
 
@@ -100,7 +168,7 @@ func _build_chrome() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scroll.offset_left = 36.0
-	scroll.offset_right = -36.0
+	scroll.offset_right = -36.0 - _keeper_room()
 	scroll.offset_top = 196.0
 	scroll.offset_bottom = -74.0
 	add_child(scroll)
@@ -199,7 +267,7 @@ func _cart_row(entry: Dictionary) -> Control:
 	var can_pay := have >= price
 
 	var frame := PanelContainer.new()
-	frame.add_theme_stylebox_override("panel", MenuSupport.panel_style(
+	frame.add_theme_stylebox_override("panel", _panel(
 		MenuSupport.COLOUR_PANEL,
 		MenuSupport.COLOUR_SLOT_EMPTY if left == 0 or not can_pay
 		else MenuSupport.COLOUR_ATTACK))

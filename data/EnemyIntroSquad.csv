@@ -1,0 +1,13 @@
+ID,Tier,Power,Name,Class,Gender,Artwork,Lead,Star,Ability,Notes
+e1,I,0,,Rivals,m,,,,,"THE OPPOSITION IN YOUR FIRST MATCH (round AN, your note): all plain players, no Stars, no brew. Used by the Enemy Squad column of the intro row in MatchModes.csv. Class Rivals = the faded blue-grey kit (class_Rivals.png), so they never look like your side. Names are random every match (an opposition is not kept). Gender m, because the Rivals sprite is a man; a women's Rivals sprite would need a new sheet."
+e2,I,1,,Rivals,m,,,,,
+e3,I,2,,Rivals,m,,,,,
+e4,II,1,,Rivals,m,,,,,
+e5,II,2,,Rivals,m,,,,,
+e6,II,3,,Rivals,m,,,,,
+e7,III,2,,Rivals,m,,,,,
+e8,III,3,,Rivals,m,,yes,,,LEAD yes: this Tier stands where the Stars usually stand.
+e9,III,4,,Rivals,m,,,,,
+e10,IV,3,,Rivals,m,,,,,
+e11,IV,4,,Rivals,m,,,,,
+e12,IV,5,,Rivals,m,,,,,

@@ -48,7 +48,13 @@ func _initialize() -> void:
 		var window := AnimWindow.open(stage, db, 150)
 		for i in 3:
 			await process_frame
-		window.show_panel(String(shot[1]), "", "lose", null, ["lose", "idle"])
+		# ROUND AN: a real Club card, so the window shows its pitch figure.
+		var who: PlayerData = null
+		for card in db.players:
+			if card.unit_type == "Normal":
+				who = card
+				break
+		window.show_panel(String(shot[1]), "", "lose", who, ["lose", "idle"])
 		await create_timer(0.6, true, false, true).timeout
 		_shoot(String(shot[0]))
 		window.close()

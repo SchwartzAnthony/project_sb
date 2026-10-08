@@ -23,6 +23,10 @@ extends CanvasLayer
 signal shot_taken          # the striker's foot has hit the ball
 signal view_closed
 
+## ROUND AN - THE TUTORIAL: the Head Coach can stop here once the numbers are
+## up (MatchTalk.csv shot_odds). Set by main_scene's MatchCoach.
+var coach: Callable = Callable()
+
 const BASE := "Dim/Center/Frame/Margin/VBox"
 
 var db: CardDatabase
@@ -88,6 +92,22 @@ func _wire() -> void:
 	if _striker_stage:
 		_striker_stage.add_child(_striker_placeholder)
 		_striker_stage.add_child(_striker_anim)
+
+
+## ROUND AN: a part of the window by name, for the coach to point at.
+func spot(word: String) -> Control:
+	match word:
+		"keeper_chance":
+			return _chance_value.get_parent() as Control if _chance_value else null
+		"keeper_stamina":
+			return _stamina_value.get_parent() as Control if _stamina_value else null
+		"shot_power":
+			return _shot_value.get_parent() as Control if _shot_value else null
+		"stamina_bar":
+			return _stamina_bar
+		"keeper":
+			return _keeper_stage
+	return null
 
 
 func _make_placeholder(colour: Color, box: Vector2) -> ColorRect:
@@ -188,6 +208,8 @@ func play_shot(info: Dictionary) -> void:
 	_dress_striker(card, "idle")
 
 	await _beat(open_seconds)
+	if coach.is_valid():
+		await coach.call("shot_odds")
 	await _beat(read_seconds)
 
 	# The strike.
@@ -229,7 +251,13 @@ func _play_keeper(keeper_data, anim_name: String) -> void:
 
 func _dress_striker(card, anim_name: String) -> void:
 	var spec: AnimSpec = null
-	if db != null and card != null:
+	var sheet: Texture2D = card.artwork if card != null else null
+	# ROUND AN: the striker's own pitch figure, seen from behind.
+	var pitch := PitchSprite.window_sheet(card as PlayerData) if card != null else null
+	if pitch != null:
+		sheet = pitch
+		spec = PitchSprite.window_spec(pitch, anim_name, 6)
+	elif db != null and card != null:
 		# A dedicated from-behind animation if you have drawn one, else the
 		# normal kick, else idle.
 		for candidate in [anim_name, "kick", "idle"]:
@@ -237,14 +265,14 @@ func _dress_striker(card, anim_name: String) -> void:
 			if spec != null:
 				break
 
-	var have_art := card != null and card.artwork != null and spec != null
+	var have_art := card != null and sheet != null and spec != null
 	if _striker_placeholder:
 		_striker_placeholder.visible = not have_art
 	if _striker_anim:
 		_striker_anim.visible = have_art
 		if have_art:
 			_striker_anim.speed_scale = _rate()
-			_striker_anim.play(card.artwork, spec)
+			_striker_anim.play(sheet, spec)
 			_striker_anim.fit_into(Vector2(300.0, 220.0))
 
 

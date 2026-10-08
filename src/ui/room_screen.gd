@@ -14,8 +14,8 @@ extends Control
 #  So there is one script and five one-line scenes, each setting `room`:
 #
 #      src/ui/rooms/achievements.tscn    room = "achievements"
-#      src/ui/rooms/dorms.tscn           room = "dorms"
-#      src/ui/rooms/clubhouse.tscn       room = "clubhouse"
+#      src/ui/rooms/dorms.tscn           room = "dorms"      (where everybody rests)
+#      src/ui/rooms/clubhouse.tscn       room = "clubhouse"  (the upgrade shop)
 #      src/ui/rooms/trophies.tscn        room = "trophies"
 #      src/ui/rooms/training.tscn        room = "training"
 #
@@ -153,21 +153,63 @@ func _fill_achievements() -> void:
 			var hands: Array = row["unlocks"]
 			if not hands.is_empty():
 				words.add_child(_small("Opened: " + ", ".join(PackedStringArray(hands))))
+		# ROUND AN: an achievement can also put an upgrade on sale at the
+		# Club House. It grants the right to buy, never the upgrade itself.
+		var wares: Array[String] = []
+		for upgrade in BaseRooms.upgrades_from(String(row["id"])):
+			wares.append(String(upgrade["name"]))
+		if not wares.is_empty():
+			words.add_child(_small(("On sale at the Club House: " if got
+				else "Earn it to buy at the Club House: ") + ", ".join(PackedStringArray(wares))))
 		else:
 			words.add_child(_small(DialogueGrammar.describe(String(row["needs"]))))
 
 
 # ---- THE DORMS ----------------------------------------------
+#
+# ROUND AN (Anthony): THE DORMS ARE WHERE EVERY PLAYER RESTS — back from a
+# match, back from an Adventure, or sleeping off a brew. First who is in bed
+# and why (data/Resting.csv), then the beds you may buy (data/Dorms.csv).
 
 func _fill_dorms() -> void:
 	var beds := BaseRooms.beds(state)
 	var here := BaseRooms.current_dorm(state)
 	var squad := SquadBook.names(state).size()
-	_intro.text = "%s — %d bed(s). You are keeping %d player(s).%s" % [
-		String(here["name"]) if not here.is_empty() else "No dorm",
-		beds, squad,
-		"  The Club House is where they rest." if beds > 0 else ""]
+	var on := db != null and db.tune_bool("recovery", false)
+	var sleepers := RecoveryBook.in_the_dorms(db, state)
+	var head := "%s — %d bed(s). You are keeping %d player(s). " % [
+		String(here["name"]) if not here.is_empty() else "No dorm", beds, squad]
+	if on:
+		head += "Everybody rests here after a match, an Adventure or a shift at the Brewery; a player's P:x decides how many fixtures."
+	else:
+		head += "RECOVERY IS OFF — `recovery` in Tuning.csv. Nobody gets tired, so nobody is in bed."
+	_intro.text = head
 
+	_list.add_child(MenuSupport.heading("IN BED  ·  %d" % sleepers.size(), 17, MenuSupport.COLOUR_ACCENT))
+	if sleepers.is_empty():
+		_list.add_child(_small("Nobody is resting. The whole squad is fit." if on
+			else "Turn `recovery` on in Tuning.csv and the tired ones sleep here."))
+	# THE REST DAY: nothing else passes a fixture when the squad is too tired
+	# to field a side. `rest_day_cost` in Tuning.csv; below 0 hides it.
+	var rest_price := db.tune_int("rest_day_cost", 0) if db != null else -1
+	if on and rest_price >= 0 and not sleepers.is_empty():
+		var day := _row_frame(true)
+		var day_words := _row_words(day)
+		day_words.add_child(_small("Too many in bed to put out a side? Let them sleep a day: everybody is one fixture nearer fit."))
+		day.add_child(_buy_button("Rest day · " + ("free" if rest_price == 0 else "%d coins" % rest_price),
+			_can_pay(rest_price, "coins"), _rest_day))
+	for sleeper in sleepers:
+		var left := int(sleeper["left"])
+		var line := _row_frame(false)
+		var words := _row_words(line)
+		# A brewer's number is his efficiency, not a power (Brewers.csv).
+		words.add_child(_name_label("%s  ·  Tier %s  ·  %s" % [sleeper["name"], sleeper["tier"],
+			("Brewer, efficiency %d" % int(sleeper["power"])) if bool(sleeper["brewer"])
+				else "P:%d" % int(sleeper["power"])], true))
+		words.add_child(_small("%s — %d fixture%s to go." % [
+			sleeper["why"], left, "" if left == 1 else "s"]))
+
+	_list.add_child(MenuSupport.heading("BEDS", 17, MenuSupport.COLOUR_ACCENT))
 	for dorm in BaseRooms.dorms():
 		var owned := int(dorm["price"]) == 0 or BaseRooms.owns_dorm(String(dorm["id"]), state)
 		var line := _row_frame(owned)
@@ -186,44 +228,75 @@ func _fill_dorms() -> void:
 				_buy_dorm.bind(String(dorm["id"]))))
 
 
+func _rest_day() -> void:
+	_say(RecoveryBook.rest_day(state, db))
+
+
 func _buy_dorm(id_text: String) -> void:
 	_say(BaseRooms.buy_dorm(id_text, state))
 
 
 # ---- THE CLUB HOUSE -----------------------------------------
+#
+# ROUND AN (Anthony): THE UPGRADE SHOP. An achievement only grants the right
+# to buy an upgrade; it is bought here (data/Upgrades.csv). The recruitment
+# board stays underneath. Resting moved to the Dorms.
 
 func _fill_clubhouse() -> void:
-	# ROUND AH (phase P3): THE RECRUITMENT BOARD comes first - see
-	# recruit_board.gd and data/RecruitBoard.csv.
+	var for_sale := 0
+	var all := BaseRooms.upgrades()
+	for entry in all:
+		if BaseRooms.upgrade_state(entry, state) == "for_sale":
+			for_sale += 1
+	_intro.text = "Keys and upgrades for the club. An achievement gives you the right to buy one; the money is yours to find. A building or a Brewery machine opens only with its key. %d on sale now." % for_sale
+
+	if all.is_empty():
+		_list.add_child(_small("Nothing to sell. Add rows to data/Upgrades.csv."))
+	# ROUND AN: THE KEYS FIRST — a building or a Brewery machine opens only
+	# with its key. Then the upgrades. Each list: on sale, locked, owned.
+	for shelf in ["key", "upgrade"]:
+		var any_here := false
+		for entry in all:
+			if (String(entry["kind"]) == "key") == (shelf == "key"):
+				any_here = true
+		if not any_here:
+			continue
+		_list.add_child(MenuSupport.heading("KEYS" if shelf == "key" else "UPGRADES",
+			17, MenuSupport.COLOUR_ACCENT))
+		_fill_shelf(all, shelf)
+
+	# ROUND AH (phase P3): THE RECRUITMENT BOARD - see recruit_board.gd and
+	# data/RecruitBoard.csv.
 	_fill_recruit_board()
-	# THE RESTING LIST HAS NO SPREADSHEET OF ITS OWN. It is a view onto
-	# recovery_book.gd, which already knows who is tired and for how long.
-	var on := db != null and db.tune_bool("recovery", false)
-	var tail := "That is why you want a deep squad — the Dorms say how deep it may be."
-	if not on:
-		tail = "RECOVERY IS OFF — `recovery` in Tuning.csv. Nobody gets tired, so this room lists who is fit, which is everybody."
-	_intro.text = "Everybody rests after a match or an adventure, and a player's P:x is how many fixtures it takes them. " + tail
 
-	var resting := 0
-	for card in db.players:
-		if card.is_star():
-			continue
-		var left := RecoveryBook.turns_left(card, state)
-		if left <= 0 and on:
-			continue
-		var fit := left <= 0
-		var line := _row_frame(fit)
-		var words := _row_words(line)
-		words.add_child(_name_label("%s  ·  Tier %s  ·  P:%d"
-			% [card.player_name, card.get_tier_clean(), card.base_power_left], fit))
-		if fit:
-			words.add_child(_small("Fit."))
-		else:
-			resting += 1
-			words.add_child(_small("Resting — %d fixture(s) to go." % left))
 
-	if on and resting == 0:
-		_list.add_child(_small("Nobody is resting. The whole squad is fit."))
+func _fill_shelf(all: Array[Dictionary], shelf: String) -> void:
+	for kind in ["for_sale", "locked", "bought"]:
+		for entry in all:
+			if (String(entry["kind"]) == "key") != (shelf == "key"):
+				continue
+			if BaseRooms.upgrade_state(entry, state) != kind:
+				continue
+			var line := _row_frame(kind != "locked")
+			var words := _row_words(line)
+			words.add_child(_name_label(String(entry["name"]), kind != "locked"))
+			words.add_child(_small(String(entry["description"])))
+			match kind:
+				"bought":
+					words.add_child(_small("Bought."))
+				"locked":
+					words.add_child(_small("LOCKED — " + BaseRooms.upgrade_lock_words(entry, state)))
+				_:
+					var cur := ShopBook.currency(String(entry["currency"]))
+					var price := "%d %s" % [int(entry["cost"]), cur.get("name", entry["currency"])] \
+						if int(entry["cost"]) > 0 else "Free"
+					line.add_child(_buy_button("Buy · " + price,
+						_can_pay(int(entry["cost"]), String(entry["currency"])),
+						_buy_upgrade.bind(String(entry["id"]))))
+
+
+func _buy_upgrade(id_text: String) -> void:
+	_say(BaseRooms.buy_upgrade(id_text, state))
 
 
 # ---- THE RECRUITMENT BOARD (round AH, phase P3) -------------
@@ -275,7 +348,6 @@ func _fill_recruit_board() -> void:
 			words.add_child(_small(("Brewed at the Pub - he plays as %s's double now." % turned) if turned != ""
 				else "Still a plain player - the Pub can brew him into a class."))
 			line.add_child(_buy_button("Release", true, _release_recruit.bind(who)))
-	_list.add_child(MenuSupport.heading("RESTING", 17, MenuSupport.COLOUR_ACCENT))
 
 
 func _sign_recruit(index: int) -> void:
@@ -367,7 +439,7 @@ func _who_opens(requires: String) -> String:
 # ---- THE TRAINING GROUND ------------------------------------
 
 func _fill_training() -> void:
-	_intro.text = "Ausbildung trains a number for the whole side. A mini-game automates one Brewery section — today it buys that section another vat, which is the foundation the played game will sit on."
+	_intro.text = "Ausbildung trains a number for the whole side. A mini-game automates one Brewery section — today it buys that section another vat, which is the foundation the played game will sit on. And here your players are trained as MATCH, ADVENTURE or BREWER players."
 	for kind in ["ausbildung", "minigame"]:
 		var heading := MenuSupport.heading(
 			"AUSBILDUNG" if kind == "ausbildung" else "THE FIVE MINI-GAMES",
@@ -392,6 +464,95 @@ func _fill_training() -> void:
 					_can_pay(int(entry["cost"]), String(entry["currency"]))
 						and DialogueGrammar.test(String(entry["needs"]), state),
 					_train.bind(String(entry["id"]))))
+	_fill_brewers()
+
+
+# ---- YOUR PLAYERS: MATCH, ADVENTURE OR BREWER (round AN) -----
+#
+# "The player can train new player units as Adventure Player, Match Player
+#  and Brewer Player ... they have to choose new player units where to send
+#  them and what they will be working on." Every one of your players is
+# listed with a button for each role he could be trained for. The roles and
+# their prices are Training.csv rows (Kind match_player, adventure_player,
+# brewer). See player_roles.gd and brewer_book.gd.
+
+func _fill_brewers() -> void:
+	var roles := PlayerRoles.offered()
+	if roles.is_empty() or not PlayerRoles.on(db):
+		return
+	_list.add_child(MenuSupport.heading("YOUR PLAYERS", 17, MenuSupport.COLOUR_ACCENT))
+	var bits: PackedStringArray = []
+	for r in roles:
+		bits.append("%s %s" % [PlayerRoles.label(r), _role_price(r)])
+	_list.add_child(_small("Choose what each player works on: %s. A Match Player plays in your Match Teams, an Adventure Player in your Adventure Teams. A Brewer works the Brewery machines - his power is his efficiency, his chance at a machine (Brewers.csv). New players arrive untrained." % ", ".join(bits)))
+	# ROUND AN: a role is for good, until Quereinsteiger retrains him.
+	var retrain := PlayerRoles.retrain_row()
+	var lock_on := db.tune_bool("role_lock", true)
+	if lock_on and not retrain.is_empty():
+		if PlayerRoles.retrain_open(state):
+			_list.add_child(MenuSupport.heading(String(retrain["name"]).to_upper(), 15, MenuSupport.COLOUR_ACCENT))
+			_list.add_child(_small("Put any trained player in and retrain him for a new role: %s each." % _price_of(retrain)))
+		else:
+			_list.add_child(_small("A role is for good. Once %s is unlocked, a trained player can be retrained for %s." % [
+				retrain["name"], _price_of(retrain)]))
+
+	# Untrained first: they are the ones waiting for you.
+	var order: Array[String] = []
+	for want in [PlayerRoles.NEW, PlayerRoles.MATCH, PlayerRoles.ADVENTURE, PlayerRoles.BREWER]:
+		for name_text in RecruitBook.names(state):
+			if PlayerRoles.role(name_text, state, db) == want:
+				order.append(name_text)
+
+	for name_text in order:
+		var mine := PlayerRoles.role(name_text, state, db)
+		var power := BrewerBook.efficiency(name_text, state)
+		var left := RecoveryBook.turns_left_name(name_text, state)
+		var line := _row_frame(mine != PlayerRoles.NEW)
+		var words := _row_words(line)
+		words.add_child(_name_label("%s  ·  Tier %s  ·  P:%d  ·  %s" % [
+			name_text, BrewerBook.tier(name_text, state), power, PlayerRoles.label(mine)],
+			mine != PlayerRoles.NEW))
+		var note := ""
+		if mine == PlayerRoles.BREWER:
+			note = "Efficiency %d, %d%% at a machine." % [power, BrewerBook.success_for(power)]
+		elif mine == PlayerRoles.NEW:
+			note = "Not in any team until he is trained."
+		else:
+			note = "Plays in your %ss." % PlayerRoles.team_label(mine)
+		if left > 0:
+			note += "  Resting in the Dorms - %d fixture(s) to go." % left
+		var locked := PlayerRoles.locked(name_text, state, db)
+		if locked and not PlayerRoles.retrain_open(state):
+			note += "  Role locked."
+		words.add_child(_small(note))
+		if locked and not PlayerRoles.retrain_open(state):
+			continue
+		if mine == PlayerRoles.BREWER and not locked:
+			continue
+		var short := {"match": "Match", "adventure": "Adventure", "brewer": "Brewer"}
+		for r in roles:
+			if r == mine:
+				continue
+			var entry := PlayerRoles.training_row(r)
+			var pay := retrain if locked else entry
+			line.add_child(_buy_button("%s%s · %s" % ["Retrain: " if locked else "", short.get(r, r), _price_of(pay)],
+				_can_pay(int(pay["cost"]), String(pay["currency"]))
+					and DialogueGrammar.test(String(entry["needs"]), state),
+				_train_role.bind(name_text, r)))
+
+
+func _role_price(role_text: String) -> String:
+	return _price_of(PlayerRoles.training_row(role_text))
+
+
+func _price_of(entry: Dictionary) -> String:
+	if entry.is_empty() or int(entry["cost"]) <= 0:
+		return "free"
+	return "%d %s" % [int(entry["cost"]), entry["currency"]]
+
+
+func _train_role(name_text: String, role_text: String) -> void:
+	_say(BaseRooms.train_role(name_text, role_text, state))
 
 
 func _train(id_text: String) -> void:

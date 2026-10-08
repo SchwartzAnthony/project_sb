@@ -106,6 +106,16 @@ static func enter(tree: SceneTree) -> Array[String]:
 	# 2. Every card.
 	said.append(DevMode.own_everything(state, db))
 
+	# 2b. ROUND AN: EVERY KEY. A building or a Brewery machine opens only with
+	#     its key (bought at the Club House), and "everything unlocked" means
+	#     every door too.
+	var keys := 0
+	for entry in BaseRooms.upgrades():
+		if String(entry["kind"]) == "key" and state.count(String(entry["id"])) <= 0:
+			state.set_count(String(entry["id"]), 1)
+			keys += 1
+	said.append("%d key(s) in the bag" % keys)
+
 	# 3. Money.
 	var coins := db.tune_int("test_env_coins", 99999)
 	state.set_count("coins", coins)

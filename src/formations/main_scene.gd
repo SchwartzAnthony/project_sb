@@ -61,6 +61,12 @@ var LAST_EVENT_MINUTE := 82.0
 ## The row from MatchModes.csv this match is running as. Never empty —
 ## MatchMode.current() falls back to the season match.
 var match_mode: Dictionary = {}
+## ROUND AN: true when your side has no Stars (a squad from a CSV, such as
+## the first match - see squad_sheet.gd).
+var _plain_side := false
+## ROUND AN: the opposition written in a CSV (MatchModes.csv Enemy Squad),
+## or null for the usual opponents.
+var _enemy_squad: TeamSelection = null
 
 ## True in a mode whose Timer is 0. There is no final whistle on the clock;
 ## the match ends when the last round has been played.
@@ -398,9 +404,17 @@ func _ready() -> void:
 	# kind of gap that left the pitch looking like a different game from the
 	# menus in front of it. One line.
 	ThemeBook.dress(get_tree())
+	# ROUND AN: a see-through black plate behind every word in the match, so
+	# nothing has to be read straight off the grass or the village
+	# (text_backdrop_alpha in Tuning.csv; see text_backdrop.gd).
+	TextBackdrop.watch(self)
 
 	db = CardDatabase.get_db()
 	abilities = AbilityEngine.new(db)
+	# A static switch outlives the last match; every match starts in colour.
+	set_play_maker_live(false)
+	round_resolved.connect(func(_mine: int, _theirs: int) -> void:
+		set_play_maker_live(false))
 	state = GameState.fetch(get_tree())
 	stats = StatsRules.get_rules()
 	steps = Progression.get_rules()
@@ -426,6 +440,14 @@ func _ready() -> void:
 	_apply_match_mode()
 	_apply_fixture()
 
+	# ============ NO OLD FIELD WHILE THE MATCH LOADS (round AN) ============
+	# Anthony: "it shows the old field and then loads". main_scene.tscn's
+	# sprite still holds the old soccerfield.jpg, and the Stadium.csv pitch
+	# and village only replaced it when the geometry was locked, a few frames
+	# (and a lot of loading) later. Built here, the very first frame drawn is
+	# already the new ground. _lock_geometry() builds it again, as before.
+	_build_the_stadium()
+
 	# Added BEFORE units_container on purpose. Everything here sits at z_index
 	# 0, so it is tree order that puts the tint over the grass and under the
 	# players.
@@ -436,6 +458,9 @@ func _ready() -> void:
 	units_container = Node2D.new()
 	units_container.name = "UnitsContainer"
 	add_child(units_container)
+	# ROUND AN: the tilted pitch (PitchView.csv) - the zones and everybody on
+	# the pitch move into the tilted layer now that they exist.
+	_tilt_the_pitch()
 
 	spawn_goalies()
 	spawn_ball()
@@ -448,6 +473,7 @@ func _ready() -> void:
 	spawn_card_stats()
 	spawn_pause_menu()
 	_place_card_row()
+	coach = MatchCoach.attach(self)
 
 	# A match is not somewhere Back should ever return you to, so the trail
 	# of screens is wiped at kick-off. Without this, Back on the season table
@@ -605,6 +631,23 @@ func _report(event: String, facts: Dictionary) -> void:
 	# one line gives Audio.csv every match moment at once, including any you
 	# add later.
 	AudioDirector.fire(get_tree(), event, facts, state)
+	_match_talk(event)
+
+
+## ============ THE COACH STOPS THE MATCH (round AN) ============
+##
+## data/MatchTalk.csv: at this moment of a match in this mode, play a
+## Dialogue.csv scene in a box over the pitch while everything waits.
+var _talk_box: MatchTalkBox = null
+## ROUND AN - the tutorial: the coach's stops, gold highlights, TIME OUT and
+## the EXHAUST ZONE button. See match_coach.gd.
+var coach: MatchCoach = null
+
+func _match_talk(event: String) -> void:
+	if _talk_box != null and is_instance_valid(_talk_box):
+		return
+	if coach != null:
+		coach.talk(event)
 
 
 ## Run the Progression rows listening for this moment, then carry out
@@ -694,7 +737,8 @@ func _physics_process(delta: float) -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if GameKeys.pressed(event, "zones") and zone_overlay != null:
 		zone_overlay.detail = not zone_overlay.detail
-		zone_overlay.visible = zone_overlay.detail or zones_enabled
+		zone_overlay.visible = zone_overlay.detail or zones_enabled \
+			or zone_overlay.intent_lines_alpha > 0.0
 		zone_overlay.queue_redraw()
 		get_viewport().set_input_as_handled()
 
@@ -1545,6 +1589,11 @@ func _apply_fixture() -> void:
 ## from MatchModes.csv overrides them for this match only. See match_mode.gd.
 func _apply_match_mode() -> void:
 	match_mode = MatchMode.current(get_tree())
+	# ROUND AN (Anthony, 8 Oct): the Match Maker's "No Extra Abilities" -
+	# base power only, for both sides, for this match.
+	abilities.abilities_off = MatchMode.no_abilities(get_tree())
+	if abilities.abilities_off:
+		print("[mode] No Extra Abilities: every player plays on base power.")
 
 	# ============ AND THE COMPETITION'S OWN RULES ============
 	#
@@ -1573,6 +1622,14 @@ func _apply_match_mode() -> void:
 			+ db.tune_float("no_clock_event_spacing", 6.0) \
 			* float(TOTAL_CYCLES * ROUNDS_PER_CYCLE)
 	else:
+		# ROUND AN: A SHORTER CLOCK (the Match Maker's half and one-cycle
+		# matches) squeezes the Play Makers in: the last one comes just as
+		# long before the final whistle as in a full match, so its round
+		# still has time to play out.
+		var full := MATCH_LENGTH_MINUTES
+		if minutes < full:
+			LAST_EVENT_MINUTE = maxf(FIRST_EVENT_MINUTE + 1.0,
+				LAST_EVENT_MINUTE - (full - minutes))
 		MATCH_LENGTH_MINUTES = minutes
 
 	print("[mode] %s — %d cycle(s) of %d, %s, %s." % [
@@ -1720,6 +1777,13 @@ func _spawn_camera(pitch: Rect2) -> void:
 	add_child(camera)
 	# The whole ground picture, so the wide shot can show the village round
 	# the pitch (camera_wide_ground in Tuning.csv).
+	if pitch_tilted():
+		# ROUND AN: the camera works in the picture, the match in the flat
+		# rectangle; this is the map between the two.
+		camera.view_xform = pitch_view
+		camera.ground_view = _ground_rect
+		camera.pitch_box_view = PitchView.box_of(pitch_view,
+			PitchView.line_rect(get_pitch_rect()).grow(PitchView.number("boards_gap", 34.0)))
 	camera.setup(pitch, db, get_pitch_rect())
 	camera.make_current()
 	print("[camera] Following the ball. Set camera_enabled to false in Tuning.csv to switch it off.")
@@ -1845,6 +1909,15 @@ func _full_time() -> void:
 	print("FULL TIME — %d : %d" % [player_score, enemy_score])
 	match_ended.emit(player_score, enemy_score)
 
+	# ROUND AN: THE TUTORIAL MATCH COUNTS FOR NOTHING. No stats, no
+	# achievements, no Progression rows, no tired players - after the
+	# full-time card it ends at the base (or the title screen). tutorial.gd.
+	if Tutorial.active(get_tree()):
+		GameSpeed.reset()
+		await get_tree().create_timer(db.tune_float("full_time_seconds", 2.6)).timeout
+		Tutorial.finish(get_tree())
+		return
+
 	var outcome := "draw"
 	if player_score > enemy_score:
 		outcome = "win"
@@ -1888,9 +1961,11 @@ func _full_time() -> void:
 	#
 	# `recovery` in Tuning.csv turns the whole thing off and the squad is
 	# available every week, as it was.
+	#
+	# ROUND AN: they go to the DORMS, and a player on a one-match brew sleeps
+	# it off for longer — data/Resting.csv, rows `match` and `brew`.
 	if state != null and db.tune_bool("recovery", false):
-		RecoveryBook.advance_turn(state, db)
-		RecoveryBook.played(_squad_that_played(), state, db)
+		RecoveryBook.after_match(_squad_that_played(), state, db)
 
 	# ============ AND THE MATCH PAYS ============
 	#
@@ -1936,6 +2011,9 @@ func _full_time() -> void:
 
 	# One-match brews wear off at the whistle. Permanent ones stay on.
 	var brews_off := BrewDB.clear_temporary(state)
+	# THE DRUNK METER: everybody who played loses drunk_lost_per_round % of
+	# it, and anybody now resting in the Dorms is sober (drunk_book.gd).
+	DrunkBook.after_round(_squad_that_played(), state, db)
 	if brews_off > 0 and gains != null:
 		gains.note("%d one-match brew%s wore off" % [
 			brews_off, "" if brews_off == 1 else "s"], "pour another at the Pub")
@@ -1982,7 +2060,10 @@ func _full_time() -> void:
 	# A story or a goto in a Progression row takes the screen over. When it is
 	# a story, it now comes back to the season screen rather than restarting
 	# the match.
-	var took_over := await _advance_progression("match_ended", ScenePaths.SEASON)
+	# ROUND AN: a match that is not a league fixture (the first match, a
+	# friendly) sends its story back to the base, not to the season table.
+	var story_home := ScenePaths.SEASON if bool(match_mode.get("records", true)) else ScenePaths.BASE
+	var took_over := await _advance_progression("match_ended", story_home)
 
 	# The second photograph, taken last, so unlocks handed out by the fixture
 	# AND by the Progression rows both land on the panel.
@@ -2098,6 +2179,7 @@ func _resolve_kickoff_star(chosen: PlayerData) -> void:
 ## work _resolve_kickoff_star() does, minus the drafting: the Star, the Star
 ## bundle and the 9 regulars all arrive already decided.
 func _apply_team_selection(picked: TeamSelection) -> void:
+	_plain_side = picked.plain
 	chosen_regulars = picked.regulars
 	active_player_star = picked.active_star
 	player_star_tier = picked.star_tier
@@ -2211,6 +2293,25 @@ func _build_scratch_opponent() -> void:
 
 
 func _choose_enemy_team(player_type_to_avoid: String) -> void:
+	# ROUND AN: an opposition written out in a squad CSV takes the field as
+	# it is - the first two matches of a new game.
+	var enemy_file := String(match_mode.get("enemy_squad", "")).strip_edges()
+	if enemy_file != "":
+		_enemy_squad = SquadSheet.selection_from(enemy_file, db, state, false)
+		if _enemy_squad != null:
+			enemy_star_bundle = _enemy_squad.star_bundle.duplicate()
+			active_enemy_star = _enemy_squad.active_star
+			enemy_star_tier = active_enemy_star.get_tier_clean()
+			available_enemy_stars = enemy_star_bundle.duplicate()
+			available_enemy_stars.erase(active_enemy_star)
+			spawn_team(active_enemy_star, true)
+			for unit in _all_units():
+				if unit.is_enemy:
+					unit.set_highlight(false)
+			print("Enemy: %s | lead %s (Tier %s)%s" % [enemy_file,
+				active_enemy_star.player_name, enemy_star_tier,
+				" - no Stars" if _enemy_squad.plain else ""])
+			return
 	var by_class := _stars_grouped_by_class()
 
 	# THE SEASON GETS FIRST SAY. If today's fixture names a class, that is who
@@ -2306,7 +2407,13 @@ func spawn_team(star_player: PlayerData, is_enemy: bool) -> void:
 			layout["star"].y)
 	var star_unit := create_unit_instance(star_player, star_pos, is_enemy)
 	if star_unit:
-		star_unit.is_star_player = true
+		# ROUND AN: a plain side (the first match) has no Stars - the player
+		# in the Star's place is an ordinary one, with no badge or Emblem.
+		star_unit.stands_in_star_slot = true
+		if is_enemy:
+			star_unit.is_star_player = _enemy_squad == null or not _enemy_squad.plain
+		else:
+			star_unit.is_star_player = not _plain_side
 		_place_in_zone(star_unit, this_star_tier)
 
 	# --- 2. The 9 regulars ---
@@ -2879,6 +2986,11 @@ func _on_quit_match() -> void:
 
 	# And no post-match screens: there is no result to show.
 	MatchReport.take(get_tree())
+	# ROUND AN: Quit in the tutorial match leaves the tutorial, its save
+	# thrown away (tutorial.gd).
+	if Tutorial.active(get_tree()):
+		Tutorial.finish(get_tree())
+		return
 	ScenePaths.go_to(get_tree(), ScenePaths.BASE, false)
 
 
@@ -3232,7 +3344,16 @@ func _build_the_stadium() -> void:
 	field_sprite.z_index = -10
 
 	# ---- AND WHAT IS BEHIND AND OVER IT ----
+	# ROUND AN: this now runs twice - once in _ready() and again when the
+	# geometry is locked - so the layers from the first run go first.
+	for entry in _scenery:
+		var old := entry["node"] as Node
+		if old != null and is_instance_valid(old):
+			old.queue_free()
 	_scenery.clear()
+	if PitchView.enabled():
+		_tilt_the_pitch()
+		return
 	var order := {"background": -40, "crowd": -30, "lights": 60}
 	for row in StadiumBook.layers():
 		var layer_name := String(row["layer"])
@@ -3269,6 +3390,142 @@ func _build_the_stadium() -> void:
 		})
 	if not _scenery.is_empty():
 		print("[stadium] %d scenery layer(s) built." % _scenery.size())
+
+
+# =============================================================
+#  THE TILTED PITCH — data/PitchView.csv  (round AN)
+#
+#  Anthony: the match on the base's own pitch, seen diagonally like a drone
+#  shot. The rules still run on the flat rectangle; only the drawing is
+#  tilted. The pitch, the zones and everybody on it are moved into one
+#  CanvasLayer whose transform lays that rectangle onto the pitch in
+#  match_ground.png. A node keeps its global_position when it moves in, so
+#  nothing that reads or sets positions notices. See pitch_view.gd.
+# =============================================================
+
+var _pitch_layer: CanvasLayer = null
+var _ground_layer: CanvasLayer = null
+## Flat match coordinates -> the picture. Identity while the pitch is flat.
+var pitch_view := Transform2D.IDENTITY
+var _ground_rect := Rect2()
+
+
+func pitch_tilted() -> bool:
+	return _pitch_layer != null
+
+
+func _tilt_the_pitch() -> void:
+	if field_sprite == null or not PitchView.enabled():
+		return
+	if _ground_layer == null:
+		# Under the pitch, following the camera like the world does.
+		_ground_layer = CanvasLayer.new()
+		_ground_layer.name = "GroundLayer"
+		_ground_layer.layer = -2
+		_ground_layer.follow_viewport_enabled = true
+		add_child(_ground_layer)
+		var ground := Sprite2D.new()
+		ground.name = "MatchGround"
+		ground.texture = load(PitchView.value("background")) as Texture2D
+		ground.centered = false
+		ground.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_ground_layer.add_child(ground)
+		_ground_rect = Rect2(Vector2.ZERO, ground.texture.get_size())
+	if _pitch_layer == null:
+		_pitch_layer = CanvasLayer.new()
+		_pitch_layer.name = "PitchLayer"
+		_pitch_layer.layer = -1
+		_pitch_layer.follow_viewport_enabled = true
+		add_child(_pitch_layer)
+
+	pitch_view = PitchView.transform_for(PitchView.line_rect(get_pitch_rect()))
+	_pitch_layer.transform = pitch_view
+
+	for node in [field_sprite, zone_overlay, units_container]:
+		if node != null and (node as Node).get_parent() != _pitch_layer:
+			(node as Node).reparent(_pitch_layer, true)
+	_stand_the_boards()
+	if units_container != null:
+		if not units_container.child_entered_tree.is_connected(_stand_upright):
+			units_container.child_entered_tree.connect(_stand_upright)
+		for unit in units_container.get_children():
+			_stand_upright(unit)
+
+
+var _boards_far: Node2D = null
+var _boards_near: CanvasLayer = null
+
+
+## THE BOARDS ROUND THE PITCH (Anthony: like a German village club ground),
+## standing up along the tilted touchlines. Each board strip is the menu's
+## front-view boards picture, slanted so its bottom runs along the edge and
+## its sides stay upright. The two far edges are drawn under the players,
+## the two near edges over them, so somebody by the near touchline is hidden
+## behind the boards the way he would be.
+func _stand_the_boards() -> void:
+	var art := PitchView.value("boards_image")
+	if art == "" or not ResourceLoader.exists(art) or _ground_layer == null:
+		return
+	if _boards_far != null:
+		_boards_far.queue_free()
+	if _boards_near != null:
+		_boards_near.queue_free()
+	_boards_far = Node2D.new()
+	_boards_far.name = "BoardsFar"
+	_ground_layer.add_child(_boards_far)
+	_boards_near = CanvasLayer.new()
+	_boards_near.name = "BoardsNear"
+	_boards_near.layer = 0
+	_boards_near.follow_viewport_enabled = true
+	add_child(_boards_near)
+
+	var tex := load(art) as Texture2D
+	var tall := PitchView.number("boards_height", 24.0)
+	var gap := PitchView.number("boards_gap", 30.0)
+	var lines := PitchView.line_rect(get_pitch_rect()).grow(gap)
+	var tl := pitch_view * lines.position
+	var tr := pitch_view * Vector2(lines.end.x, lines.position.y)
+	var bl := pitch_view * Vector2(lines.position.x, lines.end.y)
+	var br := pitch_view * lines.end
+	# Far: the top touchline and the right goal line. Near: the left goal
+	# line and the bottom touchline.
+	for edge in [[tl, tr, _boards_far], [tr, br, _boards_far],
+			[tl, bl, _boards_near], [bl, br, _boards_near]]:
+		_board_row(tex, edge[0], edge[1], tall, edge[2])
+
+
+func _board_row(tex: Texture2D, from: Vector2, to: Vector2, tall: float, into: Node) -> void:
+	var length := from.distance_to(to)
+	if length < 1.0:
+		return
+	var along := (to - from) / length
+	var size := tex.get_size()
+	var piece := size.x * tall / size.y   # one strip's length at this height
+	var at := 0.0
+	while at < length - 0.5:
+		var run := minf(piece, length - at)
+		var strip := Sprite2D.new()
+		strip.texture = tex
+		strip.centered = false
+		strip.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		strip.region_enabled = true
+		strip.region_rect = Rect2(Vector2.ZERO, Vector2(size.x * run / piece, size.y))
+		var foot := from + along * at
+		# x runs along the edge, y straight down; the strip's bottom sits on it.
+		strip.transform = Transform2D(along * (tall / size.y), Vector2(0.0, tall / size.y),
+			foot - Vector2(0.0, tall))
+		into.add_child(strip)
+		at += run
+
+
+## A player, a keeper or the ball: where it stands goes through the tilt, but
+## its picture is turned back so it is never skewed.
+func _stand_upright(node: Node) -> void:
+	var body := node as Node2D
+	if body == null or _pitch_layer == null:
+		return
+	var turn := PitchView.upright(pitch_view)
+	body.transform = Transform2D(turn.x, turn.y, body.position)
 
 
 ## Drift the background against the camera, so it reads as distance rather
@@ -3330,7 +3587,9 @@ func _lock_geometry() -> void:
 		db.tune_float("zone_claim", 0.34))
 
 	if zone_overlay != null:
-		zone_overlay.visible = zones_enabled
+		zone_overlay.intent_lines_alpha = maxf(0.0, db.tune_float("intent_lines_alpha", 0.55))
+		zone_overlay.tint = zones_enabled
+		zone_overlay.visible = zones_enabled or zone_overlay.intent_lines_alpha > 0.0
 		zone_overlay.units_source = _all_units
 		zone_overlay.edge_keep = db.tune_float("edge_keep", edge_keep)
 		zone_overlay.linger_seconds = db.tune_float("linger_seconds", linger_seconds)
@@ -3377,6 +3636,14 @@ func load_roster_by_type(unit_type: String, for_enemy: bool = false) -> Array[Pl
 	# than filtered down to one class. They are already ladder-legal — see
 	# scratch_team.gd — and spawn_team() only ever asks "who is Tier II",
 	# which is why a mixed side drops straight in here.
+	# ROUND AN: an opposition from a squad CSV fields exactly its own players.
+	if for_enemy and _enemy_squad != null:
+		var squad_cards: Array[PlayerData] = []
+		for tier_key in _enemy_squad.regulars.keys():
+			for card in _enemy_squad.regulars[tier_key]:
+				squad_cards.append(card)
+		return squad_cards
+
 	if for_enemy and scratch_opponent != null:
 		if not scratch_opponent.cards.is_empty():
 			return scratch_opponent.cards
@@ -3496,6 +3763,19 @@ func _everyone_ever() -> Array[PlayerUnit]:
 	return out
 
 
+## ROUND AN (Anthony, 8 Oct): "players are only greyed out during a Play
+## Maker and them not being a part of it. Once the Play Maker ends, everyone
+## regains their color." On at the PLAY MAKER! call, off when the round's
+## shot is over (round_resolved) and at every Star swap. Every figure on the
+## pitch repaints at once.
+func set_play_maker_live(on: bool) -> void:
+	PlayerUnit.play_maker_live = on
+	if units_container == null:
+		return
+	for unit in _all_units():
+		unit.set_highlight(false)   # a playmaker stays bright
+
+
 # =============================================================
 #  EVENT TRIGGERS
 # =============================================================
@@ -3531,10 +3811,18 @@ func trigger_playmaker_event() -> void:
 	# touches, mines - goes to the engine before anybody picks.
 	await _c6_at_play_maker()
 
+	# THE GREY GOES ON NOW (Anthony, 8 Oct): from here to the end of the
+	# round's shot, whoever is not in this Play Maker is greyed.
+	if db.tune_bool("star_holds_its_tier", false):
+		for unit in _all_units():
+			if unit.is_star_player:
+				unit.is_playmaker = true
+	set_play_maker_live(true)
 	print("PLAY MAKER!  Cycle %d, Round %d" % [current_cycle, rounds_this_cycle])
 	AudioDirector.fire(get_tree(), "play_maker",
 		{"cycle": str(current_cycle), "round": str(rounds_this_cycle)}, state)
 	Juice.fire(self, "play_maker", {})
+	_match_talk("play_maker")
 	await announce("PLAY MAKER!")
 
 	# WHOEVER TAKES THE THROW CHOOSES. That is the whole of what the coin
@@ -3573,6 +3861,7 @@ func trigger_hold_up_event() -> void:
 	abilities.begin_cycle()
 	_absorb_ability_news()
 	_answer_ability_asks(false)
+	set_play_maker_live(false)
 	for unit in _all_units():
 		unit.reset_for_new_cycle()
 
@@ -3595,6 +3884,12 @@ func trigger_hold_up_event() -> void:
 	# whistle. The name in a spreadsheet is a label, not a sentence.
 	print("STAR PLAYER SWITCH.  Starting cycle %d" % current_cycle)
 	AudioDirector.fire(get_tree(), "hold_up", {"cycle": str(current_cycle)}, state)
+	# ROUND AN: awaited, so a TIME OUT here (the tutorial) is over before the
+	# Star choice comes up - and its Do keep_star can skip that choice.
+	if coach != null:
+		await coach.talk("star_switch")
+	else:
+		_match_talk("star_switch")
 	Juice.fire(self, "star_switch", {})
 	await announce("STAR PLAYER SWITCH")
 
@@ -3642,6 +3937,9 @@ func trigger_hold_up_event() -> void:
 # =============================================================
 
 func _open_the_team_sheet() -> void:
+	# The loading screen in front of us can go now: everything is built and
+	# whatever comes next (the sheet, or the countdown) is about to be drawn.
+	MatchLoader.match_ready(get_tree())
 	if db == null or not db.tune_bool("team_sheet", true):
 		_kickoff_sequence()
 		return
@@ -3740,24 +4038,21 @@ func _on_kick_off_wanted() -> void:
 	_kickoff_sequence()
 
 
-## Both line-ups, in order, skippable. Returns when it is done or skipped.
+## Both line-ups, on the grass, skippable. Returns when done or skipped.
+## See src/ui/line_up_parade.gd: the camera pans along your side right to
+## left, then along theirs left to right, everyone standing in idle.
 func _walk_them_out() -> void:
 	if db == null or not db.tune_bool("line_up_parade", true):
 		return
-	var yours: Array = []
-	var others: Array = []
-	for unit in _all_units():
-		if unit.data == null:
-			continue
-		var into: Array = others if unit.is_enemy else yours
-		if not into.has(unit.data):
-			into.append(unit.data)
-	if yours.is_empty() and others.is_empty():
+	if camera == null:
+		return
+	var units := _all_units()
+	if units.is_empty():
 		return
 
 	var mine_facts := _team_facts(false)
 	var their_facts := _team_facts(true)
-	var parade := LineUpParade.open(self, db, yours, others,
+	var parade := LineUpParade.on_field(self, db, camera, units, goalies,
 		String(mine_facts.get("name", "YOUR SIDE")).to_upper(),
 		String(their_facts.get("name", "THEM")).to_upper())
 	await parade.finished
@@ -3879,6 +4174,8 @@ func _kickoff_sequence() -> void:
 	# the teams were on the pitch, which meant the clock ran through the
 	# countdown — two minutes gone before anybody had touched the ball.
 	current_state = MatchState.PLAYING
+	if abilities.abilities_off:
+		announce(Loc.text("no_abilities_banner", "NO EXTRA ABILITIES"), 1.6)
 
 	# ============ AND THE WHISTLE GOES HERE ============
 	#
@@ -4009,6 +4306,14 @@ func start_next_draft_phase() -> void:
 		_offer_auto_pick()
 		return
 
+	if phase == "StarChoice" and coach != null and coach.take_keep_star():
+		# ROUND AN (the tutorial): MatchTalk.csv Do keep_star - your Star stays
+		# on for another cycle, so there is nobody to choose.
+		print("[draft] Your Star stays on this cycle (keep_star).")
+		current_phase_index += 1
+		start_next_draft_phase()
+		return
+
 	if phase == "StarChoice":
 		# ONLY STARS OF YOUR STAR TIER. The incoming Star takes the outgoing
 		# one's place on the pitch, so offering a Star from another tier is
@@ -4026,6 +4331,8 @@ func start_next_draft_phase() -> void:
 		for star_data in _weakest_first(swappable):
 			create_card_for_unit(star_data)
 		_offer_auto_pick()
+		if coach != null:
+			coach.talk("cards_shown", {"tier": "star"})
 		return
 
 	# --- Regular tier phase ---
@@ -4079,6 +4386,8 @@ func start_next_draft_phase() -> void:
 		return
 
 	_offer_auto_pick()
+	if coach != null:
+		coach.talk("cards_shown", {"tier": phase})
 
 
 ## WEAKEST ON THE LEFT, STRONGEST ON THE RIGHT — always.
@@ -4117,6 +4426,7 @@ func _card_order(card: PlayerData) -> int:
 
 
 func create_card_for_unit(data: PlayerData) -> void:
+	hold_picks()
 	var card := PLAYER_CARD_SCENE.instantiate() as PlayerCardUI
 	card_container.add_child(card)
 	card.setup_card(data)
@@ -4159,6 +4469,10 @@ func _on_brew_wanted(card: PlayerData) -> void:
 	if card == null or state == null:
 		return
 	if _auto_is_on():
+		return
+	# No Extra Abilities: a brew would do nothing, so the bottle stays shut.
+	if abilities.abilities_off:
+		announce(Loc.text("no_abilities_no_brews", "NO EXTRA ABILITIES - NO BREWS THIS MATCH"), 1.4)
 		return
 
 	var bag := InventoryScreen.open(self, state, InventoryScreen.Use.ON_CARD,
@@ -4205,7 +4519,16 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 			card.player_name, brew.get("for_class", "?")])
 		return
 
+	# ALWAYS DRUNK (Anthony, 8 Oct). Too sober = it does nothing yet.
+	var sober := DrunkBook.refusal(card, brew, state)
+	if sober != "":
+		announce("%s is too sober for it to work yet." % NamePlate.short_name(card), 1.5)
+		print("[brew] Drunk, but not yet: " + sober)
+
 	state.add_count(item_id, -1)
+	# THE BOTTLE FILLS THE DRUNK METER by its own Inspiration (Items.csv),
+	# or the brew's if it has none - a bought bottle can be weaker.
+	DrunkBook.drink(card, brew, state, entry)
 	# THE BOTTLE IS THE COST. pour() would also charge the brew's material
 	# Cost, which is what the Brewery already took to make it — so the overlay
 	# is laid on directly rather than going through the Pub's till.
@@ -4330,6 +4653,10 @@ func _auto_pick_soon() -> void:
 	var wait := db.tune_float("auto_pick_seconds", 0.9)
 	if wait > 0.0:
 		await get_tree().create_timer(wait).timeout
+	# ROUND AN: never behind the Head Coach's back. The timer runs while the
+	# game is paused, so AUTO used to pick while his box was still up.
+	while get_tree().paused:
+		await get_tree().process_frame
 
 	# Things move on while we wait — you may have picked yourself, or turned
 	# AUTO back off, or the whistle may have gone.
@@ -4513,6 +4840,11 @@ func _on_card_selected(selected_data: PlayerData) -> void:
 	# One pick at a time: the REVEAL question below waits for an answer, and a
 	# second click in that moment must not pick twice.
 	if _pick_in_progress:
+		return
+	# ROUND AN (Anthony, 8 Oct): in the Tutorial a fast clicker skipped every
+	# pick. A card cannot be taken until it has been on the table, and the
+	# Head Coach has been quiet, for tutorial_pick_guard_seconds.
+	if Time.get_ticks_msec() < picks_open_at:
 		return
 	_pick_in_progress = true
 	AudioDirector.fire(get_tree(), "card_picked", _facts_for_card(selected_data), state)
@@ -4852,7 +5184,7 @@ func _resolve_star_rotation(chosen: PlayerData) -> void:
 func _swap_star_on_pitch(new_star: PlayerData, is_enemy: bool) -> void:
 	var star_unit: PlayerUnit = null
 	for unit in _all_units():
-		if unit.is_enemy == is_enemy and unit.is_star_player:
+		if unit.is_enemy == is_enemy and (unit.is_star_player or unit.stands_in_star_slot):
 			star_unit = unit
 			break
 
@@ -4896,6 +5228,33 @@ func _swap_star_on_pitch(new_star: PlayerData, is_enemy: bool) -> void:
 	substitution_finished.emit()
 
 
+## ROUND AN (Anthony, 8 Oct): in the Tutorial your man in the Star's place
+## (Koch) is there EVERY round - picking him never spends him, so he is
+## offered at every Play Maker of his cycle, Star badge or not.
+## Tuning.csv tutorial_star_never_spent false puts him back in the exhaust.
+func _never_spent(unit: PlayerUnit) -> bool:
+	if unit == null or unit.is_enemy or not unit.stands_in_star_slot:
+		return false
+	var db := CardDatabase.get_db()
+	if not db.tune_bool("tutorial_star_never_spent", true):
+		return false
+	return String(match_mode.get("id", "")) == db.tune_text("tutorial_match_mode", "tutorial")
+
+
+## The pick guard (see _on_card_selected). Only in the Tutorial; a time in
+## msec from Time.get_ticks_msec(), 0 = open.
+var picks_open_at := 0
+
+
+func hold_picks() -> void:
+	var guard := db.tune_float("tutorial_pick_guard_seconds", 0.8)
+	if guard <= 0.0:
+		return
+	if String(match_mode.get("id", "")) != db.tune_text("tutorial_match_mode", "tutorial"):
+		return
+	picks_open_at = maxi(picks_open_at, Time.get_ticks_msec() + int(guard * 1000.0))
+
+
 func _resolve_tier_pick(tier_key: String, selected_data: PlayerData) -> void:
 	# --- Your pick ---
 	#
@@ -4904,12 +5263,16 @@ func _resolve_tier_pick(tier_key: String, selected_data: PlayerData) -> void:
 	# who agreed to play out of position, not the card that was drawn for him.
 	var picked := unit_for_card(selected_data, false)
 	for unit in _all_units():
-		if unit.is_enemy or unit.is_star_player:
+		if unit.is_enemy:
 			continue
+		# A Star picked in its tier is in this Play Maker like anyone else,
+		# so it keeps its colour (8 Oct).
 		if unit == picked:
-			unit.is_exhausted = true
+			unit.is_exhausted = not _never_spent(unit)
 			unit.is_playmaker = true
 			unit.set_highlight(true)
+		elif unit.is_star_player:
+			continue
 		elif unit.data != null and unit.data.get_tier_clean() == tier_key:
 			unit.set_highlight(false)
 	round_player_picks.append(selected_data)
@@ -6010,6 +6373,10 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 			await _celebrate_goal(shooter, shooter_is_player)
 		else:
 			await announce("MISS", db.tune_float("verdict_seconds", 1.4))
+		# ROUND AN: the coach may stop the match here (MatchTalk.csv shot_done)
+		# - the TIME OUT to the pub in the tutorial.
+		if coach != null:
+			await coach.talk("shot_done")
 
 		if scored:
 			# Restart from the centre. The side that CONCEDED kicks off, and
@@ -6108,6 +6475,12 @@ func _celebrate_goal(scorer: PlayerUnit, scored_by_player: bool) -> void:
 		for unit in _all_units():
 			unit.plate_hidden = unit != scorer
 
+	# ROUND AN: the scoring side cheers whenever it stands still (the
+	# isometric pitch figures, src/core/pitch_sprite.gd).
+	for unit in _all_units():
+		unit.celebrating = scorer != null and is_instance_valid(scorer) \
+			and unit.is_enemy == scorer.is_enemy
+
 	for i in beats.size():
 		if not is_instance_valid(show) or show.was_cut():
 			break
@@ -6158,6 +6531,7 @@ func _celebrate_goal(scorer: PlayerUnit, scored_by_player: bool) -> void:
 	for unit in _all_units():
 		unit.stand_up()
 		unit.plate_hidden = false
+		unit.celebrating = false
 	freeze_play(false)
 
 
@@ -6946,6 +7320,9 @@ func _dress_card(card: PlayerCardUI, data: PlayerData) -> void:
 ## The row the duel window shows: one that WENT OFF in this duel if any did,
 ## otherwise the first the cell names (and the window says it waited).
 func _shown_ability(cell: String, fired: Array) -> AbilityData:
+	# No Extra Abilities: the duel window says "no ability" for everyone.
+	if abilities.abilities_off:
+		return null
 	for id_text in fired:
 		var hit := db.get_ability(String(id_text))
 		if hit != null:

@@ -1,0 +1,12 @@
+Wears,Pitch Sheet,Notes
+class_Normal.png,club_m1.png|club_m2.png|club_m3.png|club_m4.png|club_m5.png,"ROUND AN (isometric players). Who plays in which isometric pitch sheet. Wears = the card's own sheet file name, its card name, or its class. The file name is tried first, then the name, then the class. Pitch Sheet = a sheet in assets/players/pitch/ (tools/make_pitch_sheet.py). Several separated by | : each player gets one at random (by name) and keeps it; a look whose sheet is missing is skipped. Anthony: random skin colour, hair colour and hair style for the Club. Men: light, brown hair | dark brown, curly | olive, beard | East Asian, spiky | ginger curls, freckles."
+class_Normal_female.png,club_f1.png|club_f2.png|club_f3.png|club_f4.png|club_f5.png,"Women (any of their off-pitch sheets): blonde ponytail | brown skin, plaits | East Asian, bob | dark brown skin, afro puffs | short ginger hair, freckles. Picked at random by name, like the men."
+class_Normal_female_blonde.png,club_f1.png|club_f2.png|club_f3.png|club_f4.png|club_f5.png,
+class_Normal_female_bob.png,club_f1.png|club_f2.png|club_f3.png|club_f4.png|club_f5.png,
+Normal,club_m1.png|club_m2.png|club_m3.png|club_m4.png|club_m5.png,"Every other card of The Club. Cards, duels and portraits still use the card's own sheet: this is for the pitch only."
+Rivals,rivals_1.png|rivals_2.png,"ROUND AN. The Rivals: a scruffy man with stubble | a woman with a messy ponytail, grey and blue kit."
+Lorelei,lorelei_1.png|lorelei_2.png,"ROUND AN. Water spirits (WATER element): a woman of living river water with foam hair | a river nymph with scales and weed-green hair, teal and silver kit."
+Rauhnacht-Feuergeister,feuergeist_1.png|feuergeist_2.png,"ROUND AN. Fire spirits: a figure of flame | charcoal with glowing cracks and a Perchten mask, black and orange kit."
+Bergmännlein,bergmaennlein_1.png|bergmaennlein_2.png,"ROUND AN. Mountain dwarfs: white beard and red cap | ginger braids and a miner's helmet, brown and yellow kit."
+Unkengeister,unkengeist_1.png|unkengeist_2.png,"ROUND AN. Swamp toad spirits: a warty green toad | a fire-bellied toad, swamp green and brown kit."
+Brandteufel,brandteufel_1.png|brandteufel_2.png,"ROUND AN. Fire devils with small horns: a man | a woman, black and red kit."

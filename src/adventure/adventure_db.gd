@@ -268,6 +268,9 @@ func _read_items(rows: Array, columns: Dictionary, where: String) -> void:
 			# Requires. No tag at all means "at the bar, before you set off",
 			# which is most things.
 			"tags": _cell(row, columns, "tags").to_lower(),
+			# ROUND AN - THE DRUNK METER. How much of it a bottled brew fills,
+			# in %. Blank = the brew's own Inspiration. See drunk_book.gd.
+			"inspiration": _cell(row, columns, "inspiration"),
 			"where": "%s row %d" % [where, i + 1],
 		}
 

@@ -19,9 +19,10 @@ extends SceneTree
 #      xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
 #          --script res://tools/base_shot.gd
 #
-#      bs_00_base.png      the nine doors, some locked
+#      bs_00_base.png      the doors on the town map, some locked
 #      bs_01_open.png      everything unlocked, and the visitors placed
-#      bs_02..bs_11        one shot per window, each opened by its own button
+#      bs_02..             one shot per window, each opened by its own button
+#                          (the buildings, then the top-bar doors)
 #
 #  It works on the save IN MEMORY only — nothing is written to disk.
 #
@@ -32,9 +33,14 @@ extends SceneTree
 ## The buildings to press, by the Name in Buildings.csv, plus the Stadium,
 ## which is a button on the top bar rather than a building.
 const DOORS: Array[String] = [
-	"Achievements", "Team Build", "Club House", "Dorms", "Trophy Room",
-	"Training Ground", "Pub", "Brewery", "The Traveling Brewer",
+	"Club House", "Dorms", "Trophy Room",
+	"Training Ground", "Pub", "Brewery", "The Traveling Tavern",
 ]
+
+## Doors on the top bar, by their words. `a|b` = either (the Achievements
+## button says Erfolge in German). Round AN moved Achievements and Team Build
+## off the town map and up here.
+const BAR_DOORS: Array[String] = ["The stadium", "Your teams", "Erfolge|Achievements"]
 
 
 func _initialize() -> void:
@@ -97,21 +103,30 @@ func _initialize() -> void:
 		await create_timer(0.2, true, false, true).timeout
 		at += 1
 
-	# ---- and the Stadium, which is a top-bar button ----
-	var stadium := _bar_button_named(base, "The stadium")
-	if stadium == null:
-		print("[base] ! no 'The stadium' button on the top bar.")
-		broken += 1
-	else:
-		stadium.emit_signal("pressed")
+	# ---- and the top-bar doors ----
+	for words in BAR_DOORS:
+		var door: Button = null
+		for word in words.split("|"):
+			door = _bar_button_named(base, word)
+			if door != null:
+				break
+		if door == null:
+			print("[base] ! no '%s' button on the top bar." % words)
+			broken += 1
+			continue
+		door.emit_signal("pressed")
 		for i in 12:
 			await process_frame
 		await create_timer(0.7, true, false, true).timeout
-		if _open_window(base) == null:
-			print("[base] ! the stadium button opened NO WINDOW.")
+		var window := _open_window(base)
+		if window == null:
+			print("[base] ! the '%s' button opened NO WINDOW." % words)
 			broken += 1
-		else:
-			_shoot("bs_%02d_stadium" % at)
+			continue
+		_shoot("bs_%02d_%s" % [at, words.split("|")[0].to_lower().replace(" ", "_")])
+		window.close()
+		await create_timer(0.2, true, false, true).timeout
+		at += 1
 
 	print("")
 	if broken == 0:

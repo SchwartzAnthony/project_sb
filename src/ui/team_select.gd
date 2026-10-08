@@ -42,16 +42,31 @@ func _ready() -> void:
 	book = TeamRoster.load_all()
 	MenuEscape.install(self)
 
+	# ============ A MATCH WITH A SQUAD OF ITS OWN (round AN) ============
+	#
+	# The first match of a new game is not played by your team: the mode
+	# names a squad CSV (MatchModes.csv, Squad column) and that side walks
+	# straight out. There is nothing to pick, so this screen steps aside.
+	var squad := MatchMode.squad_file(get_tree())
+	if squad != "":
+		var picked := SquadSheet.selection_from(squad, db, state)
+		if picked != null:
+			TeamSelection.store(get_tree(), picked)
+			var scene := String(MatchMode.current(get_tree()).get("scene", "match"))
+			ScenePaths.go_to(get_tree(), ScenePaths.for_name(scene))
+			return
+
 	_build()
 	_fill()
 
 	# Open on the team you played last, so pressing through to a match twice
 	# in a row takes two clicks rather than a hunt.
 	var last := state.text("last_team", "")
-	if last != "" and not book.find(last).is_empty():
+	var shown := _shown_teams()
+	if last != "" and shown.has(book.find(last)):
 		_pick(last)
-	elif not book.teams.is_empty():
-		_pick(String(book.teams[0]["id"]))
+	elif not shown.is_empty():
+		_pick(String(shown[0]["id"]))
 	else:
 		_refresh_footer()
 
@@ -80,7 +95,9 @@ func _build() -> void:
 	page.add_theme_constant_override("separation", 14)
 	margin.add_child(page)
 
-	page.add_child(MenuSupport.heading("CHOOSE YOUR TEAM", 34, MenuSupport.COLOUR_ACCENT))
+	page.add_child(MenuSupport.heading("CHOOSE YOUR %s" % (
+		PlayerRoles.team_label(_kind()).to_upper() if PlayerRoles.on(db) else "TEAM"),
+		34, MenuSupport.COLOUR_ACCENT))
 	page.add_child(MenuSupport.heading(
 		"Pick a side and lock in. Building one is something you do once — after that it is yours.",
 		14, MenuSupport.COLOUR_TEXT_DIM))
@@ -207,14 +224,30 @@ func _next_opponent_class() -> String:
 #  THE SHELF
 # -------------------------------------------------------------
 
+## ROUND AN: the kind of team this mode takes - an Adventure run an
+## Adventure Team, everything else a Match Team (player_roles.gd).
+func _kind() -> String:
+	return PlayerRoles.kind_for_mode(get_tree())
+
+
+## The teams on the shelf: only the right kind while player_roles is on.
+func _shown_teams() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for entry in book.teams:
+		if not PlayerRoles.on(db) or String(entry.get("kind", "match")) == _kind():
+			out.append(entry)
+	return out
+
+
 func _fill() -> void:
 	for child in _list.get_children():
 		child.queue_free()
 
-	if book.teams.is_empty():
+	if _shown_teams().is_empty():
 		var none := VBoxContainer.new()
 		none.add_theme_constant_override("separation", 8)
-		none.add_child(MenuSupport.heading("No teams yet", 24, MenuSupport.COLOUR_TEXT))
+		none.add_child(MenuSupport.heading("No %ss yet" % PlayerRoles.team_label(_kind())
+			if PlayerRoles.on(db) else "No teams yet", 24, MenuSupport.COLOUR_TEXT))
 		var line := Label.new()
 		line.text = "Press CREATE TEAM. You pick a class, choose nine regulars — one of each power in every tier — give them a name and a badge, and they are yours from then on."
 		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -224,7 +257,7 @@ func _fill() -> void:
 		_list.add_child(none)
 		return
 
-	for entry in book.teams:
+	for entry in _shown_teams():
 		_list.add_child(_team_card(entry))
 
 
@@ -310,14 +343,14 @@ func _refresh_footer() -> void:
 
 	# WITH NOTHING SAVED, CREATE TEAM IS THE ONLY BUTTON. Showing a greyed-out
 	# LOCK IN to somebody who has no team to lock in is just noise.
-	var any_teams := not book.teams.is_empty()
+	var any_teams := not _shown_teams().is_empty()
 	_lock.visible = any_teams
 	_edit.visible = any_teams
 	_lock.disabled = not has
 	_edit.disabled = not has
 
 	if not has:
-		_detail.text = "No team chosen." if not book.teams.is_empty() else ""
+		_detail.text = "No team chosen." if any_teams else ""
 		return
 	var trouble := book.trouble(entry, db, _fit_needed())
 	if trouble == "":
@@ -346,6 +379,7 @@ func _on_create() -> void:
 	# No team id stashed means "make a new one": the class picker opens, and
 	# the builder that follows it starts from scratch.
 	TeamBuilderHandoff.clear(get_tree())
+	TeamBuilderHandoff.set_kind(get_tree(), _kind())
 	state.save_to_disk()
 	ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT)
 

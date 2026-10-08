@@ -1,0 +1,12 @@
+Key,Value,Notes
+enabled,true,"ROUND AN (Anthony: the match on the base's own pitch, seen diagonally like a drone shot). true = the match is drawn tilted onto match_ground.png; false = the flat pitch and the village of Stadium.csv, as before. The football itself is the same either way: only the drawing is tilted (src/core/pitch_view.gd)."
+background,res://assets/field/match_ground.png,"The picture under the whole match: the base town, zoomed in (tools/make_match_ground.py, data/MatchGround.csv). Its top-left corner is at 0,0 and it is drawn at its own size."
+pitch_image_size,"2560,1440","The size of the pitch picture in Stadium.csv (soccerfield.png)."
+lines_in_pitch_image,"436,288,1688,864","Where its white lines are inside that picture: x, y, width, height (tools/make_pitch.py prints these)."
+corner_top_left,"1116,1185","Where the TOP-LEFT corner of the white lines lands in match_ground.png (pixels). The base pitch's left corner. These three corners decide the tilt; the fourth follows."
+corner_top_right,"2124,825","Where the TOP-RIGHT corner lands: the base pitch's top corner."
+corner_bottom_left,"1758,1425","Where the BOTTOM-LEFT corner lands: the base pitch's bottom corner. (The bottom-right corner then lands at about 2766,1065.)"
+wide_shot_margin,0.0,"How much of the town the wide shot shows round the tilted pitch, as a fraction of the pitch's own size on screen. 0 = the pitch just fits; 0.5 = a lot of town. The pushed-in shots (Tuning.csv camera_zoom, camera_zoom_close) are multiples of the pitch, as before."
+boards_image,res://assets/menu/layers/pixellab/06_boards.png,"The boards round the pitch (Anthony: like a German village club ground): the title screen's front-view boards strip, repeated and slanted along each edge."
+boards_height,26,"How tall the boards stand, in picture pixels."
+boards_gap,34,"How far outside the white lines they stand, in match pixels."

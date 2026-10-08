@@ -201,6 +201,9 @@ const EFFECTS: Array[String] = [
 	"fuse",               # fuse:fire+iii - a card of that kind from your BENCH
 	                      # fuses with it for the match (higher power, both abilities)
 	"fused",              # "Can be fused." - a word on the card, does nothing itself
+	# ---- ROUND AN: the tutorial (Koch after his beer) ----
+	"addpowerperplayed",  # +value power for EACH of your plain (not Star) players
+	                      # who played before it this round - the lower Tiers
 ]
 
 const SCOPES: Array[String] = ["duel", "round", "cycle", "match"]
@@ -531,6 +534,7 @@ func _what_words() -> String:
 		"addattack": return "%+d attack to %s" % [value, who]
 		"adddefense": return "%+d defence to %s" % [value, who]
 		"addpower": return "%+d attack and defence to %s" % [value, who]
+		"addpowerperplayed": return "%+d power to %s for each of your normal players who played before him this round" % [value, who]
 		"addshotpower": return "%+d on the shot at goal" % value
 		"drainstamina": return "%d stamina off %s" % [value, who]
 		"restorestamina": return "%d stamina back to %s" % [value, who]

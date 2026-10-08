@@ -78,11 +78,25 @@ func _ready() -> void:
 
 	_build_chrome()
 	_rebuild()
+	# ROUND AN: the Head Coach's Guide.csv rows for the Brewery.
+	(func() -> void: Guide.check(self, "brewery", state)).call_deferred()
 
 
 # =============================================================
 #  CHROME
 # =============================================================
+
+## ============ THE BREWERY'S OWN PICTURE (round AN, your note) ============
+##
+## The same background as the Brewer's scene (Dialogue.csv brewery-intro):
+## the StoryArt.csv rows whose ID is Tuning.csv `brewery_background`
+## (default `brewery`), stacked back to front, under a see-through black
+## sheet so the windows read on it. No rows, or no picture yet = the screen
+## looks exactly as it did before.
+func _build_backdrop() -> void:
+	StoryArt.add_backdrop(self, db.tune_text("brewery_background", "brewery"),
+		db.tune_float("brewery_background_shade", 0.45))
+
 
 func _build_chrome() -> void:
 	# NO BACKGROUND OF ITS OWN IN A WINDOW — the window has one, and a second
@@ -93,6 +107,8 @@ func _build_chrome() -> void:
 		fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(fill)
+
+	_build_backdrop()
 
 	var title := MenuSupport.heading(
 		Loc.text("brewery_title", "THE BREWERY"), 32, MenuSupport.COLOUR_ACCENT)
@@ -250,6 +266,16 @@ func _make_section(section: Dictionary) -> Control:
 	var full := BreweryBook.is_full(id_text, state)
 	var short := BreweryBook.missing(id_text, state)
 
+	# ============ THE MACHINE IS THE BUTTON (round AN, your note) ============
+	#
+	# With its picture in assets/brewery/ (the Art column), a section is
+	# drawn the way a building is on the base: the machine itself, clickable,
+	# with its name on a see-through black plate underneath. No picture yet
+	# = the old panel below, so nothing breaks while the art is drawn.
+	var machine_art := _find_texture(String(section["art"]))
+	if machine_art != null:
+		return _make_machine(section, machine_art, open, waiting, full, short)
+
 	var edge := MenuSupport.COLOUR_SLOT_EMPTY
 	if open:
 		edge = MenuSupport.COLOUR_DEFEND if full \
@@ -294,7 +320,7 @@ func _make_section(section: Dictionary) -> Control:
 		# THE SIGN ON THE DOOR NAMES THE ACHIEVEMENT, not the unlock. "Needs
 		# Mill" tells you nothing you can act on; "Clean Sheet — win a match
 		# without conceding" is a thing to go and do. See opened_by().
-		var door := BreweryBook.opened_by(id_text)
+		var door := BreweryBook.opened_by(id_text, state)
 		if door.is_empty():
 			column.add_child(_small("LOCKED — " + DialogueGrammar.describe(String(section["needs"]))))
 		else:
@@ -343,6 +369,174 @@ func _make_section(section: Dictionary) -> Control:
 	button.pressed.connect(_work.bind(id_text))
 	column.add_child(button)
 	return frame
+
+
+func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: bool,
+		full: bool, short: Array) -> Control:
+	var id_text := String(section["id"])
+	# How big a machine is drawn: Tuning.csv brewery_machine_size (pixels).
+	var big := float(section.get("size", 0.0))
+	if big <= 0.0:
+		big = db.tune_float("brewery_machine_size", 200.0)
+	# THE SAME PICTURE IN A SMALLER ROOM. Sizes are written for the yard of
+	# the full-screen Brewery; opened as a window over the base the yard is
+	# smaller, so every machine shrinks by the same share and the pyramid
+	# keeps its shape.
+	var reference := db.tune_float("brewery_yard_height", 776.0)
+	var area := _world.size.y if _world != null and _world.size.y > 2.0 else reference
+	big *= clampf(area / maxf(reference, 1.0), 0.3, 1.0)
+	var box := Vector2(maxf(SECTION_SIZE.x, big), big + 44.0)
+	var holder := Control.new()
+	# Centred where the panel's centre would be, so the X / Y columns and
+	# the chain lines between sections still meet the machine.
+	holder.position = _spot(section) + SECTION_SIZE * 0.5 - box * 0.5
+	holder.size = box
+	holder.custom_minimum_size = box
+
+	# ============ STANDING ON ITS PALLET (round AN, your note) ============
+	#
+	# The FOOT is the spot on the ground the machine stands on. The pallet is
+	# centred on it, and the machine's DRAWING - not its square canvas, which
+	# has more empty space on one side than the other - is centred on it too,
+	# with its bottom edge a little in front of the pallet's middle.
+	var foot := Vector2(box.x * 0.5, big * db.tune_float("brewery_foot_height", 0.86))
+	var pallet_art := _find_texture(db.tune_text("brewery_pallet", ""))
+	var pallet_h := 0.0
+	if pallet_art != null:
+		var pallet_cut := _content_of(pallet_art)
+		var pallet := TextureRect.new()
+		pallet.texture = pallet_cut["texture"]
+		pallet.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pallet.stretch_mode = TextureRect.STRETCH_SCALE
+		pallet.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		pallet.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var used: Rect2 = pallet_cut["rect"]
+		var wide := big * db.tune_float("brewery_pallet_width", 1.1)
+		pallet_h = wide * used.size.y / maxf(used.size.x, 1.0)
+		pallet.size = Vector2(wide, pallet_h)
+		pallet.position = foot - pallet.size * 0.5
+		holder.add_child(pallet)
+
+	var ready := open and not full and short.is_empty()
+	var cut := _content_of(art)
+	var drawn: Rect2 = cut["rect"]
+	var scale_by := big / maxf(float(art.get_width()), 1.0)
+	var machine_size := drawn.size * scale_by
+	var button := Button.new()
+	button.flat = true
+	# The picture fills the button exactly (a Button's own icon is shrunk by
+	# the skin's margins, which is what pushed machines off their pallets).
+	var picture := TextureRect.new()
+	picture.texture = cut["texture"]
+	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	picture.stretch_mode = TextureRect.STRETCH_SCALE
+	picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	button.add_child(picture)
+	button.size = machine_size
+	# Centred on the MACHINE'S WEIGHT, not its outline: a crank handle or a
+	# hop pole sticking out to one side would otherwise drag it off its
+	# platform. BrewerySections.csv `Shift X` (picture pixels, + = right)
+	# nudges it further by hand.
+	var weight_x: float = cut["weight_x"]
+	var shift := (weight_x - drawn.size.x * 0.5 - float(section.get("shift_x", 0.0))) * scale_by
+	button.position = Vector2(foot.x - machine_size.x * 0.5 - shift,
+		foot.y + pallet_h * db.tune_float("brewery_foot_forward", 0.15) - machine_size.y
+		+ float(section.get("shift_y", 0.0)) * scale_by)
+	button.focus_mode = Control.FOCUS_ALL
+	# The tooltip STARTS WITH THE NAME, which is how Guide.csv's Highlight
+	# column finds this machine ("Steeping Tank").
+	button.tooltip_text = "%s: %s" % [section["name"], _recipe_words(section)]
+	if not open:
+		button.modulate = Color(0.35, 0.35, 0.40, 1.0)
+	elif not ready:
+		button.modulate = Color(0.75, 0.75, 0.75, 1.0)
+	button.pressed.connect(func() -> void:
+		if ready:
+			_work(id_text)
+		elif not open:
+			var door := BreweryBook.opened_by(id_text, state)
+			_say("%s is locked. %s" % [section["name"], String(door.get("description", DialogueGrammar.describe(String(section["needs"]))))], false)
+		elif full:
+			_say("%s is full - wait for the cellar." % section["name"], false)
+		else:
+			_say("%s is short of: %s" % [section["name"], ", ".join(short)], false))
+	holder.add_child(button)
+
+	# The name, and what it needs, on a see-through black plate.
+	var plate := PanelContainer.new()
+	plate.add_theme_stylebox_override("panel", TextBackdrop.plate())
+	plate.anchor_left = 0.5
+	plate.anchor_right = 0.5
+	plate.anchor_top = 1.0
+	plate.anchor_bottom = 1.0
+	plate.offset_left = -130.0
+	plate.offset_right = 130.0
+	plate.offset_top = -44.0
+	plate.z_index = 2      # names always on top of a neighbouring machine
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var words := VBoxContainer.new()
+	words.add_theme_constant_override("separation", 0)
+	plate.add_child(words)
+	var title := MenuSupport.heading(String(section["name"]), 15,
+		MenuSupport.COLOUR_TEXT if open else MenuSupport.COLOUR_TEXT_DIM)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	words.add_child(title)
+	var line := ""
+	if not open:
+		var door := BreweryBook.opened_by(id_text, state)
+		line = "LOCKED - " + String(door.get("name", "")) if not door.is_empty() else "LOCKED"
+	elif waiting:
+		line = "Working - %d turn(s)" % BreweryBook.turns_left(id_text, state)
+	elif full:
+		line = "Full"
+	elif not short.is_empty():
+		line = "Short of: " + ", ".join(short)
+	else:
+		line = "Click to work it"
+	var under := _small(line)
+	under.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	words.add_child(under)
+	holder.add_child(plate)
+	return holder
+
+
+## The part of a picture that is actually drawn: {"texture", "rect"}. A
+## PixelLab object sits on a square canvas with uneven empty space round it;
+## centring the canvas puts the drawing off-centre, so we centre this.
+var _cuts: Dictionary = {}
+
+func _content_of(art: Texture2D) -> Dictionary:
+	if _cuts.has(art):
+		return _cuts[art]
+	var rect := Rect2(Vector2.ZERO, art.get_size())
+	var image := art.get_image()
+	if image != null:
+		if image.is_compressed():
+			image.decompress()
+		var used := image.get_used_rect()
+		if used.size.x > 0 and used.size.y > 0:
+			rect = Rect2(used)
+	var piece := AtlasTexture.new()
+	piece.atlas = art
+	piece.region = rect
+	# Where its weight sits across: the average x of every drawn pixel,
+	# measured from the left of the drawn part.
+	var weight_x := rect.size.x * 0.5
+	if image != null:
+		var total := 0.0
+		var count := 0
+		for y in range(int(rect.position.y), int(rect.end.y)):
+			for x in range(int(rect.position.x), int(rect.end.x)):
+				if image.get_pixel(x, y).a > 0.5:
+					total += x - rect.position.x
+					count += 1
+		if count > 0:
+			weight_x = total / count
+	var out := {"texture": piece, "rect": rect, "weight_x": weight_x}
+	_cuts[art] = out
+	return out
 
 
 ## "Wheat, Water, Germs -> Malt", in the resources' display names.
@@ -416,7 +610,8 @@ func _stock_tile(res: Dictionary) -> Control:
 # =============================================================
 
 func _work(section_id: String) -> void:
-	var result := BreweryBook.work(section_id, state)
+	# ROUND AN: a BREWER works it — see brewer_book.gd and data/Brewers.csv.
+	var result := BrewerBook.work(section_id, state, CardDatabase.get_db())
 	if not bool(result["ok"]):
 		_say(String(result["why"]), false)
 		_rebuild()
@@ -424,14 +619,22 @@ func _work(section_id: String) -> void:
 
 	var made := BreweryBook.resource(String(result["made"]))
 	var made_text := String(made["name"]) if not made.is_empty() else String(result["made"])
-	if bool(result["waiting"]):
-		_say("Into the cellar. %d %s in %d turn(s) — a turn is a fixture."
-			% [int(result["many"]), made_text, int(result["turns"])], true)
+	var who := String(result.get("brewer", ""))
+	var crew := ("%s (%d%%)" % [who, int(result["chance"])]) if who != "" \
+		else "Nobody free to brew it (%d%%)" % int(result.get("chance", 100))
+	var bed := ("  %s rests %d fixture(s) in the Dorms." % [who, int(result["rest"])]) \
+		if int(result.get("rest", 0)) > 0 else ""
+	if bool(result.get("spoiled", false)):
+		_say("SPOILED. %s - the batch went wrong and the ingredients are gone.%s" % [crew, bed], false)
+	elif bool(result["waiting"]):
+		_say("%s: into the cellar. %d %s in %d turn(s) — a turn is a fixture.%s"
+			% [crew, int(result["many"]), made_text, int(result["turns"]), bed], true)
 	else:
-		_say("%d %s." % [int(result["many"]), made_text], true)
+		_say("%s: %d %s.%s" % [crew, int(result["many"]), made_text, bed], true)
 
 	state.save_to_disk()
 	_rebuild()
+	(func() -> void: Guide.check(self, "brewery", state)).call_deferred()
 
 
 func _say(words: String, good: bool) -> void:

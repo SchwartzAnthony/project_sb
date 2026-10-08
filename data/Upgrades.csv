@@ -1,0 +1,18 @@
+ID,Name,Kind,Description,Achievement,Needs,Cost,Currency,Effect,Notes
+second_vat,A Second Vat,upgrade,A second lagering vat for the Cooling cellar.,second_vat,,250,coins,count:batches_cooling+1,"ROUND AN (Anthony: an achievement only grants the RIGHT to buy an upgrade; you buy it at the Club House). ONE ROW PER UPGRADE. Achievement = the ID of a row of data/Achievements.csv - once that achievement is earned the upgrade is for sale. Blank = for sale from the start. Needs = any extra condition in the usual language (unlocked:x, count:x>=n). Cost and Currency use data/Currencies.csv. Effect is the ordinary effects language: count:batches_<section>+1 is a Brewery vat, count:tune_<any Tuning row>+n raises a number, unlock:x opens a thing. Each upgrade is bought once. WAS a free Reward on the A Second Vat achievement KIND (round AN): upgrade or key - the Club House lists the keys first, under KEYS."
+third_vat,A Third Vat,upgrade,A third lagering vat for the Cooling cellar.,third_vat,,450,coins,count:batches_cooling+1,WAS a free Reward on the A Third Vat achievement.
+feather_beds,Feather Beds,upgrade,Proper beds in the Dorms. Every player rests one fixture less (never less than one).,ten_matches,,300,coins,count:tune_rest_less+1,Raises rest_less in Tuning.csv by 1. Copy this row (with another Achievement) for a second step.
+physio_table,The Physio's Table,upgrade,Every player starts an Adventure with one more stamina.,hard_man,,180,coins,count:tune_adventure_stamina_base+1,Raises adventure_stamina_base in Tuning.csv by 1.
+lucky_boots,Lucky Boots,upgrade,Everybody runs at a loose ball a little harder.,goal_machine,,220,coins,count:tune_unit_chase_speed+6,Raises unit_chase_speed in Tuning.csv by 6.
+dorms_key,Dorms Key,key,Opens the Dorms building.,,unlocked:Dorms,30,coins,count:dorms_key+1,"THE KEYS (round AN, Anthony: to get into a building or to work a machine you BUY its key). Achievement is blank on a key: the RIGHT to buy it is Needs = unlocked:<name>, which is still handed out by the achievement that always opened that building (Achievements.csv Unlocks), so moving the unlock moves the key too. Effect gives the key, an item of data/Items.csv (Kind key, Tab keys) - it shows in the bag's Keys tab. The building's Requires (Buildings.csv) or the machine's Needs (BrewerySections.csv) asks count:<key>>=1. The Club House itself has no key: it is where keys are bought."
+trophy_room_key,Trophy Room Key,key,Opens the Trophy Room building.,,unlocked:Trophy Room,50,coins,count:trophy_room_key+1,
+training_ground_key,Training Ground Key,key,Opens the Training Ground building.,,unlocked:Training Ground,60,coins,count:training_ground_key+1,
+pub_key,Pub Key,key,Opens the Pub building.,,unlocked:Pub,60,coins,count:pub_key+1,
+brewery_key,Brewery Key,key,Opens the Brewery building.,,unlocked:Brewery,80,coins,count:brewery_key+1,
+tavern_key,Traveling Tavern Key,key,Opens the Traveling Tavern building.,,unlocked:Traveling Tavern,80,coins,count:tavern_key+1,
+malthouse_key,Steeping Tank Key,key,Opens the Steeping Tank in the Brewery.,,unlocked:Malthouse,40,coins,count:malthouse_key+1,
+mill_key,Grain Mill Key,key,Opens the Grain Mill in the Brewery.,,unlocked:Mill,50,coins,count:mill_key+1,
+lautering_key,Lauter Tun Key,key,Opens the Lauter Tun in the Brewery.,,unlocked:Lautering,60,coins,count:lautering_key+1,
+boiling_key,Brew Kettle Key,key,Opens the Brew Kettle in the Brewery.,,unlocked:Boiling,80,coins,count:boiling_key+1,
+cooling_key,Fermenting Vat Key,key,Opens the Fermenting Vat in the Brewery.,,unlocked:Cooling,90,coins,count:cooling_key+1,
+bottling_key,Bottling Machine Key,key,Opens the Bottling Machine in the Brewery.,,unlocked:Bottling,100,coins,count:bottling_key+1,

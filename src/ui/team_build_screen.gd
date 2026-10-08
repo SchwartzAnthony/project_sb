@@ -4,7 +4,9 @@ extends Control
 # =============================================================
 #  TEAM BUILD — the hub (round Y)
 #
-#  The building that used to be the Talent Tree. Three tabs:
+#  The building that used to be the Talent Tree. Up to three tabs - which
+#  ones show is Tuning.csv `team_build_tabs` (round AN: "Star Hall;Your
+#  Teams", Anthony took the Talents tab out; add `Talents` to bring it back):
 #
 #      STAR HALL    place your three Stars. Nothing is played without them,
 #                   and the Stars you place decide which set cards you may
@@ -120,11 +122,29 @@ func _tick(good: bool, words: String) -> Label:
 #  THE TABS
 # =============================================================
 
+## The tabs that show, in order: Tuning.csv `team_build_tabs`, names from
+## TABS split by `;`. A blank or misspelt row shows them all.
+static func shown_tabs() -> Array[String]:
+	var out: Array[String] = []
+	var said := ";".join(TABS)
+	var book := CardDatabase.get_db()
+	if book != null:
+		said = book.tune_text("team_build_tabs", said)
+	for part in said.split(";", false):
+		for name_text in TABS:
+			if name_text.to_lower() == part.strip_edges().to_lower() and not out.has(name_text):
+				out.append(name_text)
+	if out.is_empty():
+		out.assign(TABS)
+	return out
+
+
 func _show(which: String) -> void:
-	_tab = which if TABS.has(which) else TABS[0]
+	var shown := shown_tabs()
+	_tab = which if shown.has(which) else shown[0]
 	for child in _tabs.get_children():
 		child.queue_free()
-	for name_text in TABS:
+	for name_text in shown:
 		var button := Button.new()
 		button.text = name_text.to_upper()
 		button.custom_minimum_size = Vector2(170, 38)
@@ -215,7 +235,9 @@ func _teams_panel() -> Control:
 			gaps.append(short)
 		if stars != "":
 			gaps.append(stars)
-		line.text = "%s   ·   %s   ·   %d / %d players%s" % [entry["name"], entry["class"],
+		line.text = "%s   ·   %s%s   ·   %d / %d players%s" % [entry["name"],
+			(PlayerRoles.team_label(String(entry.get("kind", "match"))) + "   ·   ") if PlayerRoles.on(db) else "",
+			entry["class"],
 			players, TeamBuild.TEAM_SIZE,
 			"" if gaps.is_empty() else "   —   " + "; ".join(gaps)]
 		line.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT
@@ -234,6 +256,8 @@ func _teams_panel() -> Control:
 	make.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	make.pressed.connect(func() -> void:
 		TeamBuilderHandoff.clear(get_tree())
+		# A Match Team to start with; the builder's button switches it.
+		TeamBuilderHandoff.set_kind(get_tree(), PlayerRoles.MATCH)
 		state.save_to_disk()
 		ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT))
 	column.add_child(make)

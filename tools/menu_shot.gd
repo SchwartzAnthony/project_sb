@@ -17,13 +17,9 @@ extends SceneTree
 func _initialize() -> void:
 	await process_frame
 
-	# ---- a save on slot 1, so there is a filled tile to look at ----
-	SaveSlots.choose(self, 1)
-	var state := GameState.fetch(self)
-	if state != null:
-		state.add_count("matches_played", 14)
-		state.unlock("Brewery")
-		state.save_to_disk()
+	# ROUND AN: in the TEST ENVIRONMENT. This used to add 14 matches to your
+	# real slot 1 every time it ran.
+	TestEnvironment.enter(self)
 
 	change_scene_to_file("res://src/ui/slot_screen.tscn")
 	for i in 30:
@@ -77,6 +73,7 @@ func _initialize() -> void:
 			print("[menu] no MenuEscape on the base screen")
 
 	print("[menu] pictures in %s" % ProjectSettings.globalize_path("user://"))
+	TestEnvironment.leave(self)
 	quit(0)
 
 

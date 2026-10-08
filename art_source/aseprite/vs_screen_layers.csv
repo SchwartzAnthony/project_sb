@@ -1,0 +1,5 @@
+Part,Image,X,Y,Width,Height,Scale,Flip,Notes
+background,res://assets/team/vs/vs_tent.png,0,0,1920,1080,1,,"The beer tent behind the VS screen (PixelLab). Layer layout for tools/make_aseprite.py only; the game places these by Tuning.csv vs_* rows"
+picture,res://assets/team/vs/vs_menu_board.png,454,494,828,648,1,,"Your beer menu board (x6). Inside the frame the game repeats the chalk rows downward if the Stars need more room"
+picture,res://assets/team/vs/vs_menu_board.png,1466,494,828,648,1,,"Their beer menu board, the same picture"
+picture,res://assets/team/vs/vs_steins.png,960,460,160,160,1,,"The two steins clinking between the boards, under the word VS"

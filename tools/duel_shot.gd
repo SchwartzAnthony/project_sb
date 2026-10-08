@@ -14,7 +14,8 @@ extends SceneTree
 #      d_00..  the card BACK: "TIER x" with a crest each side
 #      d_0x..  the window squashed to nothing — the turn
 #      d_0x..  the duel itself: two players, then their numbers
-#      d_1x..  the WON / LOST stamps
+#      d_1x..  ROUND AN: ABILITY PRIORITY, the gold ring, the gold boxes
+#      d_3x..  POWER CHECK, both rings, then the WON / LOST stamps
 #
 #  Run it with a window, because a screenshot needs something to photograph:
 #
@@ -26,8 +27,8 @@ extends SceneTree
 #  A tool, not part of the game. Nothing loads it.
 # =============================================================
 
-const STEP := 0.1
-const SHOTS := 46
+const STEP := 0.25
+const SHOTS := 70
 
 var _n := 0
 
@@ -61,6 +62,8 @@ func _initialize() -> void:
 		"power_after": cards[0].get_attack_power() + 1,
 		"printed": cards[0].get_attack_power(),
 		"ability": _first(db, cards[0].active_attack_ability()),
+		# ROUND AN: left's ability goes off (success sound), right's does not.
+		"fired": true,
 		"wins": true,
 	}
 	var right := {
@@ -71,8 +74,16 @@ func _initialize() -> void:
 		"power_after": cards[1].get_defense_power(),
 		"printed": cards[1].get_defense_power(),
 		"ability": _first(db, cards[1].active_defend_ability()),
+		"fired": false,
 		"wins": false,
 	}
+
+	# ROUND AN: `-- tens` adds 10 to every number, to see two-digit powers
+	# sit in the same gold circle as one-digit ones.
+	if OS.get_cmdline_user_args().has("tens"):
+		for side in [left, right]:
+			for field in ["power_before", "power_after", "printed"]:
+				side[field] = int(side[field]) + 10
 
 	arena.play_duel({"tier": "III", "left": left, "right": right})
 
@@ -101,10 +112,15 @@ func _first(db: CardDatabase, cell: String) -> AbilityData:
 func _two_of_a_tier(db: CardDatabase, tier: String) -> Array:
 	var found: Array = []
 	var classes: Array = []
+	# ROUND AN: cards WITH an ability, so the gold boxes have something to
+	# light - the first attacks with one, the second defends with one.
 	for card in db.players:
 		if card.get_tier_clean() != tier:
 			continue
 		if classes.has(card.unit_type):
+			continue
+		var cell: String = card.active_attack_ability() if found.is_empty() else card.active_defend_ability()
+		if _first(db, cell) == null:
 			continue
 		classes.append(card.unit_type)
 		found.append(card)

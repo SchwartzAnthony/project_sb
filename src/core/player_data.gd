@@ -155,6 +155,12 @@ func set_id() -> String:
 ## only changing colour. See trait_db.gd.
 @export var brew_element: String = ""
 
+## THE DRUNK METER (round AN). Drunk enough to play as a Star this match, and
+## the star ability baked in by his Tier and Power. Laid on at kick-off by
+## DrunkBook.apply_all, never saved on the card. See drunk_book.gd.
+var drunk_star: bool = false
+var drunk_ability: String = ""
+
 
 func is_brewed() -> bool:
 	return brew_id.strip_edges() != ""
@@ -171,12 +177,25 @@ func active_element() -> String:
 	return brew_element if brew_element.strip_edges() != "" else element
 
 
+## A brew's ability first, then the star ability from the drunk meter, then
+## the card's own.
 func active_attack_ability() -> String:
-	return brew_attack_ability if brew_attack_ability.strip_edges() != "" else attack_ability_id
+	if brew_attack_ability.strip_edges() != "":
+		return brew_attack_ability
+	return drunk_ability if drunk_ability.strip_edges() != "" else attack_ability_id
 
 
 func active_defend_ability() -> String:
-	return brew_defend_ability if brew_defend_ability.strip_edges() != "" else defend_ability_id
+	if brew_defend_ability.strip_edges() != "":
+		return brew_defend_ability
+	return drunk_ability if drunk_ability.strip_edges() != "" else defend_ability_id
+
+
+## Wears the Star badge: a printed Star, or a player the drunk meter made
+## one for this match. is_star() stays the printed answer, because the team
+## sheet and the star slot ask THAT question.
+func shows_star() -> bool:
+	return is_star() or drunk_star
 
 
 func active_artwork() -> Texture2D:

@@ -6,6 +6,9 @@
 #      ~/.venvs/sturmball/bin/python tools/make_aseprite.py data/ScreenLook.csv art_source/aseprite/settings.aseprite settings
 #
 #  For a CSV with a Screen column (ScreenLook.csv), name the screen last.
+#  --pixel 1 makes the canvas the full 1920 x 1080 screen, for a screen that
+#  mixes Scale 1 and Scale 2 layers (the title screen since round AN: the
+#  far buildings are x1), so no layer loses pixels.
 #  Turns a layered screen (a CSV like MainMenu.csv: Part, Image, X, Y,
 #  Width, Height, Scale, Flip) into ONE .aseprite file with one layer per
 #  picture, in the same order (top row = bottom layer), so you can open the
@@ -115,12 +118,18 @@ def write_aseprite(path, width, height, layers):
 
 
 def main():
-    if len(sys.argv) < 3:
-        print("usage: make_aseprite.py <screen.csv> <out.aseprite> [screen]")
+    args = sys.argv[1:]
+    pixel = 2
+    if "--pixel" in args:
+        at = args.index("--pixel")
+        pixel = max(1, int(args[at + 1]))
+        del args[at:at + 2]
+    if len(args) < 2:
+        print("usage: make_aseprite.py <screen.csv> <out.aseprite> [screen] [--pixel 1]")
         sys.exit(1)
-    screen = sys.argv[3].lower() if len(sys.argv) > 3 else ""
-    width, height, layers = layers_from_csv(sys.argv[1], 2, screen)
-    write_aseprite(sys.argv[2], width, height, layers)
+    screen = args[2].lower() if len(args) > 2 else ""
+    width, height, layers = layers_from_csv(args[0], pixel, screen)
+    write_aseprite(args[1], width, height, layers)
     print("  wrote %s: %dx%d, %d layers" % (sys.argv[2], width, height, len(layers)))
 
 

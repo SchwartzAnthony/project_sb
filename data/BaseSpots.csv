@@ -1,0 +1,8 @@
+Spot,Building,X,Y,Notes
+pub_door,pub,0.25,0.44,"ROUND AN (Anthony: the visitor stands at the edge of a building, touching its path). One row per door. X and Y are where the CENTRE of the visitor's card goes, as fractions of the screen like Buildings.csv. Each time the base opens, every visitor picks a free door at random, so they turn up somewhere new. Building is the Buildings.csv ID; while that building is not on the map its door is skipped. Blank Building = always there. No rows (or no file) = visitors stand at their own X and Y in Visitors.csv, as before"
+training_door,training_ground,0.24,0.57,On the cobbled road between the Pub and the Training Ground
+dorms_door,dorms,0.40,0.28,On the dirt road left of the Dorms
+club_house_door,club_house,0.72,0.40,Where the road meets the Club House veranda and the stone bridge
+trophy_door,trophy_room,0.72,0.63,On the grass between the Trophy Room hut and the maypole
+tavern_door,traveling_brewer,0.43,0.90,At the foot of the footbridge by the Traveling Tavern
+brewery_door,brewery,0.66,0.85,On the road in front of the Brewery
