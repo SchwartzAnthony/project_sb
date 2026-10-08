@@ -117,6 +117,10 @@ static func _load() -> void:
 			"kept": MenuSupport.field(row, "Kept").strip_edges().to_lower().begins_with("y"),
 			"start": maxi(0, MenuSupport.field_int(row, "Start", 0)),
 			"icon": MenuSupport.field(row, "Icon").strip_edges(),
+			# ROUND AN: the GameState counter it is kept in. Blank = res_<id>.
+			# A bag item's ID here makes the resource THAT item: the bottles
+			# the Bottling Machine fills is a small_bottle in the bag.
+			"counter": MenuSupport.field(row, "Counter").strip_edges().to_lower(),
 		})
 
 	var section_ids: Dictionary = {}
@@ -287,7 +291,14 @@ static func section(id_text: String) -> Dictionary:
 ## The GameState counter a resource is kept in. `count:res_malt>=3` works as
 ## a condition anywhere in the game because of this one line.
 static func counter_for(id_text: String) -> String:
-	return COUNTER_PREFIX + id_text.to_lower()
+	# ROUND AN: BreweryResources.csv `Counter` names a different one - the
+	# bottle is the bag's small_bottle.
+	_load()
+	var key := id_text.to_lower()
+	for res in _resources:
+		if String(res["id"]) == key and String(res.get("counter", "")) != "":
+			return String(res["counter"])
+	return COUNTER_PREFIX + key
 
 
 static func stock(id_text: String, state: GameState) -> int:
@@ -478,7 +489,13 @@ static func can_work(section_id: String, state: GameState) -> bool:
 ##
 ## `spoiled` (round AN, the brewers): the batch went wrong. Everything it takes
 ## is still spent, and nothing is made. BrewerBook.work() rolls for it.
-static func work(section_id: String, state: GameState, spoiled: bool = false) -> Dictionary:
+##
+## `output` (round AN, the bottle sizes): {"counter": item ID, "many": n}
+## puts that many of that item in the bag instead of the section's Makes -
+## the Bottling Machine filling small bottles, large bottles or a keg. Only
+## for a machine with no lagering wait (BottleSizes.csv).
+static func work(section_id: String, state: GameState, spoiled: bool = false,
+		output: Dictionary = {}) -> Dictionary:
 	var out: Dictionary = {"ok": false, "why": "", "made": "", "many": 0,
 		"waiting": false, "turns": 0}
 	var one := section(section_id)
@@ -508,6 +525,12 @@ static func work(section_id: String, state: GameState, spoiled: bool = false) ->
 	var makes := String(one["makes"])
 	var many := int(one["how_many"])
 	out["ok"] = true
+	if not output.is_empty() and not spoiled:
+		state.add_count(String(output["counter"]), int(output["many"]))
+		out["made"] = String(output["counter"])
+		out["many"] = int(output["many"])
+		out["item"] = true
+		return out
 	if spoiled:
 		out["made"] = makes
 		out["many"] = 0
@@ -562,3 +585,37 @@ static func advance_turn(state: GameState) -> Array[Dictionary]:
 			add_stock(String(one["makes"]), out_now, state)
 			came_out.append({"section": one["name"], "made": one["makes"], "many": out_now})
 	return came_out
+
+
+# =============================================================
+#  THE BOTTLE SIZES  (round AN - Anthony, 8 Oct)
+#
+#  "The basic three beers, small bottle, large bottle and a keg."
+#
+#  data/BottleSizes.csv, one row per size a machine can fill:
+#    Section   the BrewerySections.csv ID (bottling)
+#    Item      the Items.csv ID that goes in the bag
+#    Many      how many one batch fills (6 small bottles, 3 large, 1 keg)
+#    Requires  the condition language. Blank = always offered
+#  A machine with rows here asks which size before its mini-game. Only for
+#  a machine with no lagering wait.
+# =============================================================
+
+const SIZES_FILE := "res://data/BottleSizes.csv"
+
+
+## The sizes this machine offers right now: [{"item", "name", "many"}].
+static func sizes_for(section_id: String, state: GameState) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var key := section_id.to_lower()
+	for row in MenuSupport.read_csv(SIZES_FILE):
+		if MenuSupport.field(row, "Section").strip_edges().to_lower() != key:
+			continue
+		if not DialogueGrammar.test(MenuSupport.field(row, "Requires").strip_edges(), state):
+			continue
+		var item := MenuSupport.field(row, "Item").strip_edges()
+		if item == "":
+			continue
+		out.append({"item": item, "many": maxi(1, MenuSupport.field_int(row, "Many", 1)),
+			"name": String(AdventureDB.get_db().item(item).get("name", item))})
+	return out

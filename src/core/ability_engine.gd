@@ -792,6 +792,7 @@ func _effect_words(ability: AbilityData) -> String:
 	match ability.effect:
 		"addpower": return "%+d power in combat" % ability.value
 		"addpowerperplayed": return "%+d power for each normal player before him" % ability.value
+		"addpowerpertiermate": return "%+d power for each other Tier mate not in the Exhaust Zone" % ability.value
 		"addattack": return "%+d power in combat" % ability.value
 		"adddefense": return "%+d defence in combat" % ability.value
 		"drainstamina": return "%d off their keeper" % ability.value
@@ -1975,6 +1976,15 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 				return
 			buff.attack = ability.value * before
 			buff.defense = ability.value * before
+		"addpowerpertiermate":
+			# ROUND AN (the tutorial, the Kleiner Faß): +value for each other
+			# card of this side in his Tier that is not in the Exhaust Zone.
+			var mates := _tiermates_ready(source, source_is_enemy)
+			if mates <= 0:
+				log_lines.append("      %s: no Tier mate left out of the exhaust - no bonus" % source.player_name)
+				return
+			buff.attack = ability.value * mates
+			buff.defense = ability.value * mates
 		_:
 			return
 
@@ -1987,6 +1997,22 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 		_flauros(source, buff.card, buff.side_is_enemy, buff)
 	log_lines.append("      %s: %s %+d (%s, %s)"
 		% [source.player_name, ability.effect, ability.value, ability.target, ability.scope])
+
+
+## ROUND AN (the Kleiner Faß): the other cards of this side in `card`'s Tier
+## that are on the field or in combat - anywhere but the Exhaust Zone.
+func _tiermates_ready(card: PlayerData, side_is_enemy: bool) -> int:
+	var count := 0
+	for key in _zone.keys():
+		var e: Dictionary = _zone[key]
+		var other := e.get("card") as PlayerData
+		if other == null or other == card or bool(e.get("enemy", false)) != side_is_enemy:
+			continue
+		if String(e.get("zone", "")) == EXHAUST:
+			continue
+		if other.get_tier_clean() == card.get_tier_clean():
+			count += 1
+	return count
 
 
 ## ROUND AN: how many of this side's plain (not Star) players are in this

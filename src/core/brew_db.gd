@@ -45,6 +45,11 @@ const ART_DIRS: Array[String] = ["res://assets/players/", "res://assets/brews/",
 
 ## How a poured brew is remembered. Both are per-card.
 const TEMP_PREFIX := "brew_"
+## ROUND AN (Anthony, 8 Oct): a drink used ON THE PITCH (the bag on a card,
+## mid-draft) is marked with this too. It takes hold at once
+## (Tuning.csv match_drink_takes_hold_at) and wears off at the next STAR PLAYER
+## SWITCH (match_drink_lasts_cycle) - see end_of_cycle().
+const CYCLE_DRINK := "cycledrink_"
 const PERM_PREFIX := "permbrew_"
 ## What a player must have unlocked before a brew can be made permanent.
 const PERMANENT_UNLOCK := "Permanent Brews"
@@ -165,6 +170,11 @@ func _load_csv(path: String) -> void:
 			# ============ THE DRUNK METER (round AN) ============
 			# How much of the meter one pour fills, in %. See drunk_book.gd.
 			"inspiration": maxi(0, int(_cell(row, columns, "inspiration"))) if _cell(row, columns, "inspiration").is_valid_int() else 0,
+			# ============ A POOL (round AN, plain beer) ============
+			# A word here puts the row in a lucky dip instead of on the Pub's
+			# list: an item whose Use is brew:pool:<word> picks one of them
+			# at random when it is drunk. See pick_from_pool().
+			"pool": _cell(row, columns, "pool").to_lower(),
 			"where": "%s row %d" % [short_name, i + 1],
 		})
 
@@ -195,9 +205,28 @@ func available_for(state: GameState) -> Array[Dictionary]:
 	if cards != null and not cards.tune_bool("brews_allowed", true):
 		return out
 	for entry in brews:
+		# A pool row is only ever drunk from a bottle, never poured.
+		if String(entry.get("pool", "")) != "":
+			continue
 		if DialogueGrammar.test(String(entry["requires"]), state):
 			out.append(entry)
 	return out
+
+
+## ROUND AN - PLAIN BEER. One row of the pool, at random, among those whose
+## Requires pass. "" when the pool is empty.
+func pick_from_pool(pool: String, state: GameState) -> String:
+	var key := pool.strip_edges().to_lower()
+	var choices: Array[String] = []
+	for entry in brews:
+		# A row can sit in several pools: plain|keg.
+		if not String(entry.get("pool", "")).split("|").has(key):
+			continue
+		if DialogueGrammar.test(String(entry["requires"]), state):
+			choices.append(String(entry["id"]))
+	if choices.is_empty():
+		return ""
+	return choices[randi() % choices.size()]
 
 
 ## May this card drink this brew? Only the For Class column decides.
@@ -339,6 +368,48 @@ static func clear_for(card: PlayerData, state: GameState) -> void:
 	state.set_text(PERM_PREFIX + key, "")
 
 
+## A drink used on the pitch: remember it, so it takes hold at once and goes
+## at the next STAR PLAYER SWITCH.
+static func mark_cycle_drink(card: PlayerData, brew_id: String, state: GameState) -> void:
+	if card != null and state != null:
+		state.set_text(CYCLE_DRINK + card_key(card), brew_id)
+
+
+static func is_cycle_drink(card: PlayerData, brew_id: String, state: GameState) -> bool:
+	if card == null or state == null or brew_id == "":
+		return false
+	return state.text(CYCLE_DRINK + card_key(card)) == brew_id
+
+
+## THE STAR PLAYER SWITCH: the drinks used on the pitch this cycle wear off.
+## Returns how many did. Tuning.csv match_drink_lasts_cycle false = they
+## last to the final whistle like a pour at the Pub.
+static func end_of_cycle(cards: CardDatabase, state: GameState, on_pitch: Array = []) -> int:
+	if state == null or cards == null:
+		return 0
+	if not cards.tune_bool("match_drink_lasts_cycle", true):
+		return 0
+	var gone := 0
+	var everyone: Array = cards.players.duplicate()
+	for card in on_pitch:
+		if card != null and not everyone.has(card):
+			everyone.append(card)
+	for card in everyone:
+		var marked := state.text(CYCLE_DRINK + card_key(card))
+		if marked == "":
+			continue
+		if state.text(TEMP_PREFIX + card_key(card)) == marked:
+			state.set_text(TEMP_PREFIX + card_key(card), "")
+		state.set_text(CYCLE_DRINK + card_key(card), "")
+		gone += 1
+	if gone > 0:
+		get_db().apply_all(cards, state)
+		for card in on_pitch:
+			get_db().apply_one(card, state)
+		print("[brews] %d drink(s) used on the pitch wore off at the switch." % gone)
+	return gone
+
+
 ## Called at the final whistle. One-match brews wear off; permanent ones stay.
 ## Returns how many wore off, so the "what you gained" panel can say so.
 static func clear_temporary(state: GameState) -> int:
@@ -349,7 +420,7 @@ static func clear_temporary(state: GameState) -> int:
 		var name_key := String(key)
 		# Keys are stripped to letters and digits, so a temporary brew starts
 		# "brew" and a permanent one starts "perm" — no overlap.
-		if name_key.begins_with("brew"):
+		if name_key.begins_with("brew") or name_key.begins_with(CYCLE_DRINK.replace("_", "")):
 			doomed.append(name_key)
 	for key in doomed:
 		state.texts.erase(key)
@@ -375,39 +446,50 @@ func apply_all(cards: CardDatabase, state: GameState) -> int:
 
 	var count := 0
 	for card in cards.players:
-		var brew_id := brew_id_for(card, state)
-		var poured := find(brew_id)
-		if TransformBook.is_turning(poured):
-			continue          # a turning brew is a count, never an overlay
-		if brew_id == "":
-			continue
-		var entry := find(brew_id)
-		if entry.is_empty():
-			push_warning("[brews] '%s' is on %s but no row in Brews.csv defines it."
-				% [brew_id, card.player_name])
-			continue
-		# NOT DRUNK ENOUGH, so the brew does nothing this match - it stays
-		# poured, and a beer at the Pub brings it back.
-		if not DrunkBook.takes_hold(card, entry, state):
-			print("[brews] %s is too sober for the %s - it does nothing this match."
-				% [card.player_name, entry.get("name", brew_id)])
-			continue
-
-		card.brew_id = brew_id
-		card.brew_unit_type = String(entry["becomes"])
-		card.brew_element = String(entry.get("element", ""))
-		card.brew_attack_ability = String(entry["attack"])
-		card.brew_defend_ability = String(entry["defend"])
-		card.brew_artwork = _artwork_for(card, entry)
-		_applied.append(card)
-		count += 1
-
+		if apply_one(card, state):
+			count += 1
 	if count > 0:
 		print("[brews] %d card(s) brewed for this match." % count)
 	# WHO IS DRUNK ENOUGH TO PLAY AS A STAR - after the brews, so a brew's
 	# own ability beats the star one. See drunk_book.gd.
 	DrunkBook.apply_all(cards, state)
 	return count
+
+
+## One card's overlay (the loop of apply_all). Also for a card that is not
+## in the database's players - the tutorial side, an Adventure stand-in -
+## when a drink is used on it on the pitch. True = it is brewed now.
+func apply_one(card: PlayerData, state: GameState) -> bool:
+	if card == null or state == null:
+		return false
+	if _applied.has(card):
+		card.clear_brew()
+		_applied.erase(card)
+	var brew_id := brew_id_for(card, state)
+	var poured := find(brew_id)
+	if TransformBook.is_turning(poured):
+		return false          # a turning brew is a count, never an overlay
+	if brew_id == "":
+		return false
+	var entry := find(brew_id)
+	if entry.is_empty():
+		push_warning("[brews] '%s' is on %s but no row in Brews.csv defines it."
+			% [brew_id, card.player_name])
+		return false
+	# NOT DRUNK ENOUGH, so the brew does nothing this match - it stays
+	# poured, and a beer at the Pub brings it back.
+	if not DrunkBook.takes_hold(card, entry, state):
+		print("[brews] %s is too sober for the %s - it does nothing this match."
+			% [card.player_name, entry.get("name", brew_id)])
+		return false
+	card.brew_id = brew_id
+	card.brew_unit_type = String(entry["becomes"])
+	card.brew_element = String(entry.get("element", ""))
+	card.brew_attack_ability = String(entry["attack"])
+	card.brew_defend_ability = String(entry["defend"])
+	card.brew_artwork = _artwork_for(card, entry)
+	_applied.append(card)
+	return true
 
 
 static func restore_all() -> void:

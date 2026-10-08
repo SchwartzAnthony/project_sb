@@ -1,6 +1,10 @@
 class_name MatchCoach
 extends Node
 
+## Loaded by path, not by its class name: a Godot editor that has not
+## re-scanned since a pull would not know the name yet, and the whole match
+## would fail to load (the Deck, 8 Oct).
+const DRINK_WINDOW := preload("res://src/ui/drink_window.gd")
 const PLAYER_CARD: PackedScene = preload("res://src/ui/player_card_ui.tscn")
 
 # =============================================================
@@ -25,6 +29,7 @@ const PLAYER_CARD: PackedScene = preload("res://src/ui/player_card_ui.tscn")
 # =============================================================
 
 const DIALOGUE_SCENE := "res://src/ui/dialogue_view.tscn"
+const BREWERY_SCENE := "res://src/ui/brewery_screen.tscn"
 
 var main: Node
 var _busy := false
@@ -190,6 +195,13 @@ func _controls_for(word: String) -> Array:
 		return []
 	if lower == "exhaust":
 		return [_exhaust_button]
+	# flask:first / flask:<name> - the bag button on that card (round AN).
+	if lower.begins_with("flask:"):
+		var on := _controls_for("card:" + word.substr(6))
+		if not on.is_empty():
+			var flask = (on[0] as Node).get("_flask")
+			return [flask] if flask != null else on
+		return []
 	var shot = main.get("shootout")
 	if shot != null and shot.has_method("spot"):
 		var found: Control = shot.spot(lower)
@@ -221,6 +233,8 @@ func _do(text: String) -> void:
 		match verb:
 			"pub":
 				await time_out(value)
+			"brewery":
+				await brewery_time_out(value)
 			"star":
 				make_star(value)
 			"ability":
@@ -244,6 +258,12 @@ func _do(text: String) -> void:
 						gold = scene_words.get_slice("@", 1).strip_edges()
 						scene_words = scene_words.get_slice("@", 0).strip_edges()
 					await show_card(value.substr(0, at_card).strip_edges(), scene_words, gold)
+			"drink_lesson":
+				await drink_lesson(value)
+			"give":
+				give_items(value)
+			"say":
+				await say(value)
 			"inspire":
 				var at := value.find("=")
 				if at > 0:
@@ -285,6 +305,231 @@ func time_out(scene: String) -> void:
 	if parked != null:
 		tree.set_meta(DialogueView.META_RETURN, parked)
 	print("[match talk] Back from the TIME OUT - the match carries on.")
+
+
+## ============ TIME OUT AT THE BREWERY (round AN) =====##
+## `brewery:tut-brewery` - the match freezes and the whole screen becomes
+## the Brewery, with the flag in the value set so Guide.csv rows (Screen
+## brewery, Requires flag:tut-brewery) lead the way: the Brewer, the
+## machines, the mini-games. A Guide.csv row whose Then says goto:back ends
+## it; the flag is cleared and the match carries on from the same frame.
+func brewery_time_out(flag: String) -> void:
+	var tree := get_tree()
+	if not ResourceLoader.exists(BREWERY_SCENE):
+		return
+	var state := GameState.fetch(tree)
+	# tut-brewery and tut_brewery are the same flag.
+	flag = flag.strip_edges().replace("-", "_")
+	if state != null and flag != "":
+		state.set_flag(flag, true)
+	print("[match talk] TIME OUT at the Brewery - '%s'." % flag)
+	var layer := CanvasLayer.new()
+	layer.name = "BreweryTimeOut"
+	layer.layer = 140
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	main.add_child(layer)
+	var was_paused := tree.paused
+	tree.paused = true
+	var screen := (load(BREWERY_SCENE) as PackedScene).instantiate() as BreweryScreen
+	screen.in_match = true
+	layer.add_child(screen)
+	await screen.left
+	if state != null and flag != "":
+		state.set_flag(flag, false)
+	tree.paused = was_paused
+	layer.queue_free()
+	print("[match talk] Back from the Brewery - the match carries on.")
+
+
+## `say:tut-after-brewery@flask:first|-` - more of his lines in the middle
+## of a Do (after the Brewery, say), with the gold per line after @ as in
+## the Highlight column. Nothing can be clicked while he talks.
+func say(value: String) -> void:
+	var scene := value.get_slice("@", 0).strip_edges()
+	var gold := value.get_slice("@", 1).strip_edges() if value.contains("@") else ""
+	var shield := _input_shield()
+	await get_tree().process_frame
+	var groups: Array = []
+	if gold != "":
+		for part in gold.split("|"):
+			groups.append(_spots_for(String(part)))
+	var box := MatchTalkBox.play(main, scene, main.get("state"), true, groups)
+	if box != null:
+		main.set("_talk_box", box)
+		await box.finished
+	shield.queue_free()
+	main.call("hold_picks")
+
+
+## ============ THE DRINKING LESSON ============
+##
+## `drink_lesson:first=keg@barrel@tut-fass-after@card` (Anthony,
+## 8 Oct). The cards are on the table and the Head Coach has asked for it:
+##   1. the item goes in the bag (if it is not there), and the bag on that
+##      card shows ONLY it. Gold on the card's bag button, then on the item;
+##      nothing else can be clicked.
+##   2. the player uses it -> the drinking window (barrel or bottle) with his
+##      own sprite -> the scene after @, gold per line after the next @.
+##   3. only that card can be picked.
+## Parts: <card>=<item>@<barrel|bottle>@<scene>@<gold>. <card> is a word of
+## the Highlight column without "card:" - first, last or a name. The scene
+## plays over his card shown big (show_card), so the gold words are
+## card / abilities / attack / defend / -.
+## Several items with + between them (the combo lesson): the bag shows those
+## of them that are in it, gold on each, and any one will do. Nothing is
+## added for a list - give: puts them in the bag first.
+func drink_lesson(spec: String) -> void:
+	var parts := spec.split("@")
+	var head := String(parts[0])
+	var eq := head.find("=")
+	if eq <= 0:
+		push_warning("[match talk] drink_lesson:%s - write it card=item@barrel@scene@gold." % spec)
+		return
+	var who := head.substr(0, eq).strip_edges()
+	var item_id := head.substr(eq + 1).strip_edges()
+	# Several items with + between them: the player picks any one of them.
+	var items: Array = []
+	for part in item_id.split("+", false):
+		items.append(String(part).strip_edges())
+	var vessel := String(parts[1]).strip_edges() if parts.size() > 1 else "barrel"
+	var after := String(parts[2]).strip_edges() if parts.size() > 2 else ""
+	var gold := String(parts[3]).strip_edges() if parts.size() > 3 else "abilities"
+	var state: GameState = main.get("state")
+	if state == null:
+		return
+	if items.size() == 1 and state.count(item_id) <= 0:
+		state.add_count(item_id, 1)
+	main.set("bag_only", items)
+	main.call("_redraw_offered_cards")
+	await get_tree().process_frame
+
+	var found := _controls_for("card:" + who)
+	if found.is_empty():
+		push_warning("[match talk] drink_lesson: no card '%s' on the table." % who)
+		main.set("bag_only", [])
+		return
+	var target := found[0] as PlayerCardUI
+	var drinker := target.current_data
+
+	# Only his bag button works.
+	_lock_all_but_flask(target)
+	var gold_layer := CanvasLayer.new()
+	gold_layer.name = "DrinkLessonGold"
+	gold_layer.layer = 151
+	gold_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	main.add_child(gold_layer)
+	var flask := target.get("_flask") as Control
+	_gold_on(gold_layer, [flask] if flask != null else [target])
+
+	var used := [false]
+	var on_open := func(bag: InventoryScreen) -> void:
+		await get_tree().process_frame
+		await get_tree().process_frame
+		var tiles: Array = []
+		for one in items:
+			var tile := bag.tile_for(one)
+			if tile != null:
+				tiles.append(tile)
+		print("[match talk] drink lesson: the bag is open, gold on %d of %s." % [tiles.size(), item_id])
+		var layer_now := main.get_node_or_null("DrinkLessonGold") as CanvasLayer
+		if layer_now != null:
+			_gold_on(layer_now, tiles)
+		bag.tree_exited.connect(func() -> void:
+			# Closed without using it: back to his bag button.
+			var still := main.get_node_or_null("DrinkLessonGold") as CanvasLayer
+			if not used[0] and still != null and is_instance_valid(target):
+				_lock_all_but_flask(target)
+				var again := target.get("_flask") as Control
+				_gold_on(still, [again] if again != null else [target]))
+	main.connect("bag_opened", on_open)
+	print("[match talk] drink lesson: waiting for %s on %s." % [item_id, drinker.player_name])
+	while true:
+		var got: Array = await _next_item_used()
+		if got[0] == drinker and items.has(String((got[1] as Dictionary).get("id", ""))):
+			break
+	used[0] = true
+	main.disconnect("bag_opened", on_open)
+	gold_layer.queue_free()
+	main.set("bag_only", [])
+
+	# The drinking window, the match still frozen.
+	var tree := get_tree()
+	var was_paused := tree.paused
+	tree.paused = true
+	var window = DRINK_WINDOW.play(main, drinker, vessel)
+	await window.finished
+	tree.paused = was_paused
+
+	# Only he can be picked now. His new card comes up big, the way
+	# Bergmännlein Koch's does, and the scene after @ plays over it.
+	_lock_all_but(target)
+	if after != "":
+		await show_card(drinker.player_name, after, gold)
+	_lock_all_but(target)
+	main.call("hold_picks")
+
+
+## `give:anstoss_helles+doppelpass_weisse` - one of each into the bag
+## (`item=3` for more than one).
+func give_items(value: String) -> void:
+	var state: GameState = main.get("state")
+	if state == null:
+		return
+	for part in value.split("+", false):
+		var one := String(part).strip_edges()
+		var how_many := 1
+		if one.contains("="):
+			how_many = maxi(1, int(one.get_slice("=", 1)))
+			one = one.get_slice("=", 0).strip_edges()
+		if AdventureDB.get_db().item(one).is_empty():
+			push_warning("[match talk] give:%s - Items.csv has no such item." % one)
+			continue
+		state.add_count(one, how_many)
+	main.call("_redraw_offered_cards")
+
+
+func _next_item_used() -> Array:
+	var got: Array = await main.item_used_on_card
+	return got
+
+
+func _table_cards() -> Array:
+	var out: Array = []
+	var row = main.get("card_container")
+	if row != null:
+		for child in (row as Node).get_children():
+			if child is PlayerCardUI and not child.is_queued_for_deletion():
+				out.append(child)
+	return out
+
+
+func _lock_all_but_flask(target: PlayerCardUI) -> void:
+	for card in _table_cards():
+		var c := card as PlayerCardUI
+		if c != target:
+			c.set_locked(true)
+			continue
+		c.set_locked(false)
+		var face = c.get("_face")
+		if face != null:
+			(face as Button).disabled = true
+			(face as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
+func _lock_all_but(target: PlayerCardUI) -> void:
+	for card in _table_cards():
+		(card as PlayerCardUI).set_locked(card != target)
+
+
+func _gold_on(layer: CanvasLayer, controls: Array) -> void:
+	for child in layer.get_children():
+		child.queue_free()
+	var spots: Array = []
+	for control in controls:
+		if control != null and is_instance_valid(control) and (control as Control).is_visible_in_tree():
+			spots.append({"rect": (control as Control).get_global_rect(), "ring": false})
+	if not spots.is_empty():
+		layer.add_child(MatchTalkBox.CoachSpots.make(spots))
 
 
 ## ============ HIS NEW CARD ============
@@ -347,8 +592,8 @@ func show_card(name_text: String, scene: String, gold: String = "card") -> void:
 	side.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(side)
 	side.add_child(MenuSupport.heading("%s %s" % [data.unit_type.to_upper(), data.player_name.to_upper()], 30, MenuSupport.COLOUR_ACCENT))
-	var attack_box := _ability_box(side, "WHEN HE ATTACKS", data.active_attack_ability())
-	var defend_box := _ability_box(side, "WHEN HE DEFENDS", data.active_defend_ability())
+	var attack_box := _ability_box(side, "ON ATTACK", data.active_attack_ability(), data)
+	var defend_box := _ability_box(side, "ON DEFEND", data.active_defend_ability(), data)
 
 	# Middle of the screen, above the coach's box along the bottom.
 	await tree.process_frame
@@ -378,7 +623,7 @@ func show_card(name_text: String, scene: String, gold: String = "card") -> void:
 	layer.queue_free()
 
 
-func _ability_box(host: Control, title: String, ability_id: String) -> Control:
+func _ability_box(host: Control, title: String, ability_id: String, card: PlayerData = null) -> Control:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel",
 		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
@@ -395,7 +640,7 @@ func _ability_box(host: Control, title: String, ability_id: String) -> Control:
 		return panel
 	inner.add_child(MenuSupport.heading(ability.display_name, 24, MenuSupport.COLOUR_ACCENT))
 	var line := Label.new()
-	line.text = _ability_words(ability, db)
+	line.text = _ability_words(ability, db, card)
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	line.custom_minimum_size = Vector2(480, 0)
 	line.add_theme_font_size_override("font_size", 20)
@@ -405,8 +650,14 @@ func _ability_box(host: Control, title: String, ability_id: String) -> Control:
 
 ## His ability in a sentence for the new card. The keeper ones read the way
 ## the Head Coach says them; anything else falls back to the card popup's words.
-func _ability_words(ability: AbilityData, db: CardDatabase) -> String:
+func _ability_words(ability: AbilityData, db: CardDatabase, card: PlayerData = null) -> String:
 	match CardDatabase._normalise(ability.effect):
+		"addpowerpertiermate":
+			# Anthony's words for the Kleiner Faß, 8 Oct.
+			var who := ("Tier %s player" % card.get_tier_clean()) if card != null else "player of the same Tier"
+			return "For each other %s not in the Exhaust Zone, give this %+d Power during combat." % [who, ability.value]
+		"addpowerperplayed":
+			return ability.plain()
 		"drainstamina":
 			return "Their keeper loses %d stamina." % ability.value
 		"restorestamina":

@@ -341,6 +341,7 @@ func _begin_round() -> void:
 	if _focus < 0 or not _is_alive(_focus):
 		_focus = _first_living()
 	_refresh()
+	AdventureTalk.talk(self, "adv_focus", {"round": str(run.wave)})
 
 
 func _is_alive(index: int) -> bool:
@@ -386,6 +387,7 @@ func _choose_focus(index: int) -> void:
 	_tier_index = 0
 	_note("Focusing %s." % _foe_name(index))
 	_refresh()
+	_talk_draft()
 
 
 func _pick_card(card: PlayerData) -> void:
@@ -431,6 +433,13 @@ func _pick_card(card: PlayerData) -> void:
 		_note("The cycle has come round. The pile empties when this move is done.")
 
 	_refresh()
+	_talk_draft()
+
+
+## ROUND AN: the draft of a Tier may be explained (adventure_talk.gd).
+func _talk_draft() -> void:
+	if step == Step.DRAFT and _current_tier() != "":
+		AdventureTalk.talk(self, "adv_draft", {"round": str(run.wave), "tier": _current_tier()})
 
 
 ## Walk past any tier with nobody left in it, marking each as empty so the
@@ -466,6 +475,7 @@ func _advance_past_empty_tiers() -> bool:
 func _resolve() -> void:
 	step = Step.RESOLVING
 	_refresh()
+	await AdventureTalk.talk(self, "adv_hit", {"round": str(run.wave)})
 
 	# --- YOUR HIT: the four tiers, plus whatever the move was worth ---
 	#
@@ -851,6 +861,7 @@ func _thinnest_tier() -> String:
 ## _carry_off_the_fallen() in adventure_scene.gd.
 func _went_down(card: PlayerData) -> void:
 	party_changed.emit()
+	AdventureTalk.talk(self, "adv_down", {"round": str(run.wave)})
 	if not _can_show():
 		return
 	var mark := _walker(card)

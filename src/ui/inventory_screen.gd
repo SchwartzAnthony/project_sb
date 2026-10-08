@@ -56,6 +56,8 @@ const TAB_WORDS := {
 	"keys": "KEYS",
 }
 
+## ROUND AN: only these item ids show (the tutorial). Empty = all.
+var only_ids: Array = []
 var state: GameState
 var mode: int = Use.NOTHING
 ## Words under the title. The draft puts the card's name here, so it is
@@ -77,14 +79,26 @@ var _title_line: Label
 ## Build it, fill it and show it. Returns the screen so the caller can
 ## connect to `used` and, if it wants, put a line under the title.
 static func open(on: Node, save: GameState, how: int = Use.NOTHING,
-		under_title: String = "") -> InventoryScreen:
+		under_title: String = "", only: Array = []) -> InventoryScreen:
 	var made := InventoryScreen.new()
 	made.name = "InventoryScreen"
 	made.state = save
 	made.mode = how
 	made.subtitle = under_title
+	made.only_ids = only
 	on.add_child(made)
 	return made
+
+
+## The tile of this item, for the Head Coach's gold box. null = not shown.
+func tile_for(item_id: String) -> Control:
+	if _grid == null:
+		return null
+	for child in _grid.get_children():
+		if child.has_meta("item_id") and String(child.get_meta("item_id")) == item_id \
+				and not child.is_queued_for_deletion():
+			return child as Control
+	return null
 
 
 func _ready() -> void:
@@ -235,13 +249,18 @@ func _show_tab(which: String) -> void:
 		child.queue_free()
 
 	var things: Array = _bag.get(_tab, [])
+	# ROUND AN (the tutorial): only these items show.
+	if not only_ids.is_empty():
+		things = things.filter(func(t) -> bool: return only_ids.has(String((t as Dictionary).get("id", ""))))
 	if things.is_empty():
 		_words.text = _nothing_here()
 		return
 
 	_words.text = "Point at something to read what it is."
 	for thing in things:
-		_grid.add_child(_tile(thing as Dictionary))
+		var tile := _tile(thing as Dictionary)
+		tile.set_meta("item_id", String((thing as Dictionary).get("id", "")))
+		_grid.add_child(tile)
 
 
 ## A line for an empty tab that says what WOULD be here, rather than the word

@@ -190,6 +190,12 @@ var zones_enabled: bool = true
 ## Press radius as a fraction of pitch HEIGHT. A defender inside this of where
 ## the ball is going will charge it.
 var press_radius_fraction: float = 0.55
+## ROUND AN: outside the ball's range nobody goes faster than this many times
+## his walk. Tuning.csv far_from_ball_pace; 0 = off.
+var far_from_ball_pace: float = 1.2
+## ROUND AN: how many of a side may go for the ball at once. Tuning.csv
+## ball_chasers_per_side; 0 = no limit (the old pile).
+var ball_chasers_per_side: int = 2
 ## Extra defenders from OTHER quarters allowed to join the press.
 var press_helpers: int = 2
 var press_speed: float = 92.0
@@ -720,6 +726,9 @@ func _physics_process(delta: float) -> void:
 	# restarts — loud exactly when they are useful.
 	if zone_overlay != null:
 		zone_overlay.set_focused(current_state == MatchState.DRAFTING)
+		zone_overlay.ball = ball
+		if zones != null:
+			zone_overlay.ball_reach = zones.play.size.y * press_radius_fraction
 
 	# The ball is fenced into midfield for all of the waiting play and freed
 	# the moment a PLAY MAKER starts resolving. See _ball_corridor().
@@ -799,6 +808,7 @@ func _assign_roles() -> void:
 	var reach := zones.play.size.y * press_radius_fraction
 
 	var pressing := _pick_pressers(units, side, focus, reach)
+	var goers := _pick_goers(units, side, receiver, focus, reach, pressing)
 
 	for unit in units:
 		var tier := "I"
@@ -826,7 +836,8 @@ func _assign_roles() -> void:
 		# pitch breaks toward the man it is aimed at — his side to support
 		# him, theirs to get there first — instead of standing and watching
 		# the ball travel. See _goal_kick().
-		var converge := _converge_target(unit)
+		# Only the few picked in _pick_goers; the rest keep their zone.
+		var converge := _converge_target(unit) if goers.has(unit) else Vector2.INF
 		if converge != Vector2.INF:
 			unit.set_role(PlayerUnit.Role.BALL, converge, unit.chase_speed)
 			continue
@@ -851,22 +862,92 @@ func _assign_roles() -> void:
 		# circle belonged to four Tiers at once and six players set off for it.
 		# The claim band is a third of the pitch and it is a different question
 		# — see pitch_zones.gd.
-		var mine_to_win := side != unit_side and unit.steal_cooldown <= 0.0 \
-			and zones.claims_x(tier, unit.is_enemy, ball.global_position) \
-			and unit.global_position.distance_to(focus) < reach
-		if mine_to_win:
+		if goers.has(unit) and _wants_ball(unit, side, focus, reach):
 			unit.set_role(PlayerUnit.Role.BALL, ball.global_position, unit.chase_speed)
 			continue
 
 		if side < 0:
 			unit.set_role(PlayerUnit.Role.HOLD, _keep_moving(unit, _drift_point(unit)), unit.walk_speed)
 		elif side != unit_side:
-			if pressing.has(unit):
+			if pressing.has(unit) and goers.has(unit):
 				unit.set_role(PlayerUnit.Role.PRESS, focus, press_speed)
 			else:
 				unit.set_role(PlayerUnit.Role.MARK, _mark_point(unit), unit.walk_speed * 1.5)
 		else:
 			unit.set_role(PlayerUnit.Role.OPEN, _keep_moving(unit, _open_point(unit)), unit.walk_speed * 1.6)
+
+	_pace_by_range(units, reach)
+
+
+## ============ ONLY SPRINT WHEN THE BALL IS IN RANGE  (round AN, 8 Oct) ============
+##
+## "They shouldn't be sprinting towards it unless they are within the ball's
+## range." The range is the press reach (press_radius_fraction of the pitch
+## height) - the same circle that decides who may charge the carrier, and the
+## one the Z map draws round the ball.
+##
+## Outside it a player still does his job - marks, shows, drops back, pushes
+## up with the break - but at `far_from_ball_pace` times his walk, so the back
+## rows at the far end jog with the play instead of tearing about. The man on
+## the ball, the man a pass is meant for, the surge's runners into the box and
+## the defenders sent to close a break down keep their full pace.
+func _pace_by_range(units: Array[PlayerUnit], reach: float) -> void:
+	for unit in units:
+		unit.ball_in_range = unit.global_position.distance_to(ball.global_position) <= reach
+		if unit.ball_in_range or far_from_ball_pace <= 0.0:
+			continue
+		match unit.role:
+			PlayerUnit.Role.DRIBBLE, PlayerUnit.Role.RECEIVE:
+				continue
+			PlayerUnit.Role.SURGE:
+				if _surge_station(unit) >= 0:
+					continue
+			PlayerUnit.Role.RECOVER:
+				if _is_closest_to_ball(unit, recover_closers):
+					continue
+		unit.role_speed = minf(unit.role_speed, unit.walk_speed * far_from_ball_pace)
+
+
+## Is the ball this unit's to go and win: not his side's, in the band his
+## Tier claims, and within reach. `claims_x`, not `contains_x` - the roam band
+## is 60% of the pitch, so it would hand a centre-circle ball to four Tiers.
+func _wants_ball(unit: PlayerUnit, side: int, focus: Vector2, reach: float) -> bool:
+	var tier := unit.data.get_tier_clean() if unit.data != null else "I"
+	return side != (1 if unit.is_enemy else 0) and unit.steal_cooldown <= 0.0 \
+		and zones.claims_x(tier, unit.is_enemy, ball.global_position) \
+		and unit.global_position.distance_to(focus) < reach
+
+
+## ============ ONLY A FEW GO; THE REST HOLD THEIR ZONE  (round AN, 8 Oct) ============
+##
+## Anthony: "a few people piling up is great but when it is player units not
+## protecting their zone it is also a little too much ... less crowded and
+## more zone targeted."
+##
+## Every rule that sends a player at the ball - the loose ball in his claim
+## band, the press, the run to a goal kick - used to send EVERYONE who passed
+## it: about seven players on average and the whole pitch for a goal kick.
+## Now each side sends at most `ball_chasers_per_side` of them, the nearest
+## to where the ball is going, and the rest mark or hold in their own quarter.
+func _pick_goers(units: Array[PlayerUnit], side: int, receiver: PlayerUnit,
+		focus: Vector2, reach: float, pressing: Array[PlayerUnit]) -> Dictionary:
+	var out := {}
+	var limit := ball_chasers_per_side if ball_chasers_per_side > 0 else 99
+	for team in [0, 1]:
+		var wanting: Array[PlayerUnit] = []
+		for unit in units:
+			if (1 if unit.is_enemy else 0) != team or ball.is_carried_by(unit) \
+					or unit == receiver:
+				continue
+			if pressing.has(unit) or _wants_ball(unit, side, focus, reach) \
+					or _converge_target(unit) != Vector2.INF:
+				wanting.append(unit)
+		wanting.sort_custom(func(a: PlayerUnit, b: PlayerUnit) -> bool:
+			return a.global_position.distance_squared_to(focus) \
+				< b.global_position.distance_squared_to(focus))
+		for i in mini(limit, wanting.size()):
+			out[wanting[i]] = true
+	return out
 
 
 ## Who charges the ball. Everyone defending whose own quarter the ball is in,
@@ -1649,6 +1730,8 @@ func _apply_match_tuning() -> void:
 
 	zones_enabled = db.tune_bool("zones_enabled", zones_enabled)
 	press_radius_fraction = db.tune_float("press_radius_fraction", press_radius_fraction)
+	far_from_ball_pace = db.tune_float("far_from_ball_pace", far_from_ball_pace)
+	ball_chasers_per_side = db.tune_int("ball_chasers_per_side", ball_chasers_per_side)
 	ball_roam_quarter_first = db.tune_int("ball_roam_quarter_first", ball_roam_quarter_first)
 	ball_roam_quarter_last = db.tune_int("ball_roam_quarter_last", ball_roam_quarter_last)
 	surge_advance = db.tune_float("surge_advance", surge_advance)
@@ -1746,6 +1829,9 @@ func _tune_unit(unit: PlayerUnit) -> void:
 	unit.arrive_radius = db.tune_float("unit_arrive_radius", unit.arrive_radius)
 	unit.still_threshold = db.tune_float("unit_still_threshold", unit.still_threshold)
 	unit.face_deadzone = db.tune_float("unit_face_deadzone", unit.face_deadzone)
+	unit.face_turn_hold = db.tune_float("unit_face_turn_hold", unit.face_turn_hold)
+	unit.stand_below_speed = db.tune_float("unit_stand_below_speed", unit.stand_below_speed)
+	unit.walk_anim_floor = db.tune_float("unit_walk_anim_floor", unit.walk_anim_floor)
 
 
 func _tune_goalie(keeper: GoalieUnit) -> void:
@@ -1915,7 +2001,7 @@ func _full_time() -> void:
 	if Tutorial.active(get_tree()):
 		GameSpeed.reset()
 		await get_tree().create_timer(db.tune_float("full_time_seconds", 2.6)).timeout
-		Tutorial.finish(get_tree())
+		Tutorial.full_time(get_tree(), _squad_that_played())
 		return
 
 	var outcome := "draw"
@@ -3864,6 +3950,15 @@ func trigger_hold_up_event() -> void:
 	set_play_maker_live(false)
 	for unit in _all_units():
 		unit.reset_for_new_cycle()
+	# The drinks used on the pitch last cycle wear off (Anthony, 8 Oct).
+	var on_pitch: Array = []
+	for unit in _all_units():
+		if not unit.is_enemy and unit.data != null:
+			on_pitch.append(unit.data)
+	if BrewDB.end_of_cycle(db, state, on_pitch) > 0:
+		for unit in _all_units():
+			if unit.data != null:
+				unit.update_unit_data(unit.data)
 
 	# Enemy rotates its own Star at the same time.
 	if not available_enemy_stars.is_empty():
@@ -4475,8 +4570,10 @@ func _on_brew_wanted(card: PlayerData) -> void:
 		announce(Loc.text("no_abilities_no_brews", "NO EXTRA ABILITIES - NO BREWS THIS MATCH"), 1.4)
 		return
 
+	var lasts := "the next STAR PLAYER SWITCH" if db.tune_bool("match_drink_lasts_cycle", true) else "the final whistle"
 	var bag := InventoryScreen.open(self, state, InventoryScreen.Use.ON_CARD,
-		"Using something on %s. It wears off at the final whistle." % card.player_name)
+		"Using something on %s. It wears off at %s." % [card.player_name, lasts], bag_only)
+	bag_opened.emit(bag)
 	bag.used.connect(func(entry: Dictionary) -> void:
 		_use_on_card(card, entry)
 		if is_instance_valid(bag):
@@ -4499,7 +4596,7 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 	if item_id == "" or state.count(item_id) <= 0:
 		return
 
-	var brew_id := AdventureDB.brew_in_use(entry)
+	var brew_id := AdventureDB.brew_in_use(entry, state)
 	if brew_id == "":
 		announce("%s cannot be used on a player." % entry.get("name", "That"), 1.5)
 		return
@@ -4519,6 +4616,8 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 			card.player_name, brew.get("for_class", "?")])
 		return
 
+	# ON THE PITCH (Anthony, 8 Oct): it takes hold sooner and lasts the cycle.
+	BrewDB.mark_cycle_drink(card, brew_id, state)
 	# ALWAYS DRUNK (Anthony, 8 Oct). Too sober = it does nothing yet.
 	var sober := DrunkBook.refusal(card, brew, state)
 	if sober != "":
@@ -4534,13 +4633,24 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 	# is laid on directly rather than going through the Pub's till.
 	state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(card), brew_id)
 	BrewDB.get_db().apply_all(db, state)
+	# The card on the table may not be one of the database's players (the
+	# tutorial side): lay it on him directly too.
+	BrewDB.get_db().apply_one(card, state)
 	state.save_to_disk()
 
 	_redraw_offered_cards()
-	announce("%s drinks %s." % [NamePlate.short_name(card),
-		brew.get("name", "it")], 1.6)
+	# ROUND AN - PLAIN BEER: the lucky dip says what came out of the bottle.
+	var luck := ""
+	if String(brew.get("pool", "")) != "":
+		var good := db.get_ability(String(brew.get("attack", "")))
+		var bad := db.get_ability(String(brew.get("defend", "")))
+		if good != null and bad != null:
+			luck = "  ATTACK: %s.  DEFEND: %s." % [good.describe(), bad.describe()]
+	announce("%s drinks %s.%s" % [NamePlate.short_name(card),
+		brew.get("name", "it"), luck], 1.6 if luck == "" else 3.0)
 	print("[brew] %s used on %s mid-draft. %d left." % [
 		entry.get("name", item_id), card.player_name, state.count(item_id)])
+	item_used_on_card.emit(card, entry)
 
 
 ## Rebuild the faces in the card row without changing which cards are on
@@ -5239,6 +5349,13 @@ func _never_spent(unit: PlayerUnit) -> bool:
 	if not db.tune_bool("tutorial_star_never_spent", true):
 		return false
 	return String(match_mode.get("id", "")) == db.tune_text("tutorial_match_mode", "tutorial")
+
+
+## ROUND AN (the tutorial's drinking lesson, match_coach.gd drink_lesson).
+signal bag_opened(bag: InventoryScreen)
+signal item_used_on_card(card: PlayerData, entry: Dictionary)
+## Item ids the bag shows on a card; empty = everything.
+var bag_only: Array = []
 
 
 ## The pick guard (see _on_card_selected). Only in the Tutorial; a time in

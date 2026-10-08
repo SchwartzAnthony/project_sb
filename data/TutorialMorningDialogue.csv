@@ -1,0 +1,48 @@
+Scene,Node ID,Speaker,Portrait,Side,Mood,Background,Text,Effects,Notes
+tut-morning-fulltime,l1,,,,,bar,Full time. The whole side ends up back at the Stammtisch.,,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. Played after the tutorial match (Tuning.csv tutorial_morning_scene), then the base."
+tut-morning-fulltime,l2,Head Coach,coach,left,happy,,"Not bad, Trainer! Not bad at all for a first match.",,
+tut-morning-fulltime,l3,Koch,koch,right,bergmaennlein,,*hic* ...Did we win?,,
+tut-morning-fulltime,l4,Head Coach,coach,left,mad,,"You were there, Koch!",,
+tut-morning-fulltime,l5,Head Coach,coach,left,happy,,"Before I leave for Beuterdorf, there are two more things you need to know. Where the players sleep, and where the beer comes from.",,
+tut-morning-fulltime,l6,Head Coach,coach,left,happy,,Come on. Everybody out to the Dorms.,,
+tut-morning-base,l1,Head Coach,coach,left,happy,,This is our town. Most of it stays locked until you buy the keys at the Club House.,,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. Guide.csv tut_morning_base."
+tut-morning-base,l2,Head Coach,coach,left,happy,,But the Dorms are open. Every tired player sleeps there. Let us have a look.,,
+tut-morning-beds,l1,Head Coach,coach,left,happy,,"A player's power is two numbers in one. How many rounds they play before they need a bed, and how many fixtures they sleep.",,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. Guide.csv tut_morning_beds, over the Dorms."
+tut-morning-beds,l2,Head Coach,coach,left,happy,,"A Power 3 plays three rounds, then sleeps three fixtures. Our Power 1s are done after one match already.",,
+tut-morning-beds,l3,Head Coach,coach,left,happy,,"A Power 0 plays one round and needs no bed at all. Weak, but always ready.",,
+tut-morning-beds,l4,Head Coach,coach,left,happy,,A fixture is a match or an Adventure. Every one you play brings everybody in bed a step nearer to waking up.,,
+tut-morning-beds,l5,Koch,koch,right,bergmaennlein,,And the beer wears off. Such a shame.,,
+tut-morning-beds,l6,Head Coach,coach,left,mad,,Half of what is in them is gone after every round they play. And nobody wakes up in here drunk.,,
+tut-morning-beds,l7,Head Coach,coach,left,happy,,"So you cannot field your best side every week. While one side rests, the other one works.",,
+tut-morning-handover,l1,Head Coach,coach,left,mad,,"Now, the Brewery. Somebody drank it dry.",,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. Guide.csv tut_morning_handover. The Head Coach leaves here; Koch guides the rest."
+tut-morning-handover,l2,Koch,koch,right,bergmaennlein,,It was a long match...,,
+tut-morning-handover,l3,Head Coach,coach,left,mad,,"The Brewer needs reed for the next batch, and reed grows in the Marshlands. Creatures and all.",,
+tut-morning-handover,l4,Head Coach,coach,left,happy,,"That is a job for the Adventure Team. They train for runs, not for the pitch. Four of them, one for each Tier.",,
+tut-morning-handover,l5,Head Coach,coach,left,sad,,"And this is where I leave you, Trainer. Beuterdorf needs me. Koch knows the way to the marsh.",,
+tut-morning-handover,l6,Koch,koch,right,bergmaennlein,,I do?,,
+tut-morning-handover,l7,Head Coach,coach,left,happy,,"You do. Servus, Trainer. Look after my town.",,
+tut-morning-handover,l8,Koch,koch,right,bergmaennlein,,"Right then! Adventure! Up at the top, the banner with the mountain.",,
+tut-adv-board,l1,Koch,koch,right,bergmaennlein,,"The Bounty Board. Pick where we go, then which job. Every job ends with a boss.",,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. Guide.csv tut_morning_board."
+tut-adv-board,l2,Koch,koch,right,bergmaennlein,,"The Marshlands, then the Brewer's Errand. One stretch of marsh and the Reed Warden at the end.",,
+tut-adv-start,l1,Koch,koch,right,bergmaennlein,,Off we go! The four of them run and the ball goes with them.,,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. MatchTalk.csv tut_adv_start."
+tut-adv-start,l2,Koch,koch,right,bergmaennlein,,Remember: nothing we pick up is ours until we carry it home.,,
+tut-adv-pickup,l1,Koch,koch,right,bergmaennlein,,"There, something lying about! Whoever is closest peels off and grabs it.",,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. "
+tut-adv-wave,l1,Koch,koch,right,bergmaennlein,,Hold up. Something is in the way. That means a fight.,,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. "
+tut-adv-focus,l1,Koch,koch,right,bergmaennlein,,First we pick who we go after. Point at one of them and click. Hover first and it tells you everything about it.,,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. "
+tut-adv-draft,l1,Koch,koch,right,bergmaennlein,,"Now one player from each Tier, Tier I first. They pass the ball up the line and the last one shoots.",,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. "
+tut-adv-draft,l2,Koch,koch,right,bergmaennlein,,"Every pick tires them a little. Stamina only counts out here, not on the pitch.",,
+tut-adv-pile,l1,Koch,koch,right,bergmaennlein,,See the icons along the top? That is the pile. Point at a card and it shows which icons it adds.,,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. "
+tut-adv-pile,l2,Koch,koch,right,bergmaennlein,,Collect enough of one kind and it pays out on top of the hit.,,
+tut-adv-hit,l1,Koch,koch,right,bergmaennlein,,All four powers and the pile go into the one we picked. Then everything still standing hits back.,,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. "
+tut-adv-down,l1,Koch,koch,right,bergmaennlein,,"Down! Out of stamina means out for the rest of the run, and one more fixture in bed back home.",,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. "
+tut-adv-down,l2,Koch,koch,right,bergmaennlein,,"If a whole Tier has nobody left, they walk straight through it and hit twice as hard. Keep all four standing.",,
+tut-adv-loot,l1,Koch,koch,right,bergmaennlein,,"Cleared! Now the big question: further in, or home?",,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. The wave before the boss."
+tut-adv-loot,l2,Koch,koch,right,bergmaennlein,,Further in there is more to carry. But if everybody falls we lose all of it. Flee and we keep most of it.,,
+tut-adv-loot,l3,Koch,koch,right,bergmaennlein,,The Warden is just ahead. Let us push on!,,
+tut-adv-boss,l1,Koch,koch,right,bergmaennlein,,"That is the Reed Warden. The bark on him only gives a little each hit, so hit hard.",,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. "
+tut-adv-claim,l1,Koch,koch,right,bergmaennlein,,The Warden is down! Claim the bounty and we carry the lot home.,,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. "
+tut-morning-home,l1,Koch,koch,right,bergmaennlein,,Home! The Brewer will be pleased. Let us see who needs a bed now.,,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. Guide.csv tut_morning_home, however the run ended."
+tut-morning-beds-2,l1,Koch,koch,right,bergmaennlein,,See? The Adventure was a fixture too. The match side is a step nearer to waking up.,,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. Guide.csv tut_morning_beds_2. Its Then is tutorial:end."
+tut-morning-beds-2,l2,Koch,koch,right,bergmaennlein,,And whoever played their last round out there is in bed now. Knocked over on the run? One fixture more.,,
+tut-morning-beds-2,l3,Koch,koch,right,bergmaennlein,,"That is the whole trick, Trainer. Match Team one week, Adventure Team the next, and nobody sleeps through a match day.",,
+tut-morning-beds-2,l4,Koch,koch,right,bergmaennlein,,The town is yours now. The Head Coach left you a starting side. Prost!,,

@@ -31,6 +31,7 @@ const STOPS: Array[String] = ["tut-kickoff", "tut-tier1", "tut-tier2", "tut-tier
 	"tut-duel-start", "tut-duel-priority", "tut-duel-ability-1", "tut-duel-ability-2",
 	"tut-duel-power", "tut-duel-result", "tut-shot", "tut-exhaust",
 	"tut-timeout-call", "tut-timeout-inspiration", "tut-koch-ability",
+	"tut-combo", "tut-combo-2",
 	"tut-timeout2-call", "tut-timeout-cursed", "tut-koch-earth"]
 
 var _results: Array[String] = []
@@ -45,6 +46,9 @@ func _initialize() -> void:
 	_windowed = DisplayServer.get_name() != "headless"
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(DIR + "/frames"))
 	CardDatabase.get_db().tuning[CardDatabase._normalise("choice_window_seconds")] = "0"
+	# The match only: "the morning after" (the Dorms and the first Adventure)
+	# has its own check, tools/morning_after_check.gd.
+	CardDatabase.get_db().tuning[CardDatabase._normalise("tutorial_morning_after")] = "false"
 	await process_frame
 
 	# ---- 1. NO ----
@@ -199,6 +203,23 @@ func _play(scene: Node) -> void:
 			clash.call("auto_play", 0.3, 0.5)
 		elif clash != null and not clash.is_running() and clash.has_meta("answered"):
 			clash.remove_meta("answered")
+		var brewery := scene.get_node_or_null("BreweryTimeOut")
+		if brewery != null and not brewery.has_meta("done"):
+			# The Brewery thread's tour is checked by its own tools; here we
+			# only see that the TIME OUT opens it and that it hands back.
+			brewery.set_meta("done", true)
+			_check(true, "cycle 2, Play Maker 5: the missing beer sends us to the Brewery")
+			await create_timer(1.0, true, false, true).timeout
+			await _shot_one("brewery_time_out")
+			for child in brewery.get_children():
+				if child.has_method("leave"):
+					child.call("leave")
+			continue
+		var lesson := scene.get_node_or_null("DrinkLessonGold")
+		if lesson != null and not lesson.has_meta("done"):
+			lesson.set_meta("done", true)
+			await _drink_lesson(scene)
+			continue
 		var offered: Array = scene.get("offered_cards")
 		if offered.is_empty() or paused:
 			dealt_at = -1
@@ -214,7 +235,7 @@ func _play(scene: Node) -> void:
 					"a card clicked the moment it is dealt is not taken (the pick guard)")
 		elif Time.get_ticks_msec() - dealt_at > 1500:
 			dealt_at = -1
-			var best = scene.call("_best_offered_card")
+			var best = _pickable_card(scene)
 			if best != null:
 				scene.call("_on_card_selected", best)
 		if int(scene.get("current_state")) == 4:
@@ -255,6 +276,7 @@ var _before_pub: Array = []
 
 var _time_outs := 0
 var _tried_fast_click := false
+var _lessons := 0
 
 
 func _read_time_out(scene: Node, layer: Node) -> void:
@@ -416,3 +438,79 @@ func _find(node: Node, wanted: String) -> Node:
 		if hit != null:
 			return hit
 	return null
+
+
+## The best card a player could actually click: the AI's choice when it is
+## not locked, else the first unlocked one (the drinking lesson locks all
+## but one).
+func _pickable_card(scene: Node) -> PlayerData:
+	var best = scene.call("_best_offered_card")
+	var open: Array = []
+	for child in (scene.get("card_container") as Node).get_children():
+		var card := child as PlayerCardUI
+		if card != null and not card.locked and card.current_data != null:
+			open.append(card.current_data)
+	if open.has(best) or open.is_empty():
+		return best
+	return open[0]
+
+
+## THE KLEINER FASS (cycle 2, Play Maker 4): open the bag on the 0 Power,
+## check it holds only the Kleiner Faß, use it, and check what it did.
+func _drink_lesson(scene: Node) -> void:
+	var first: PlayerCardUI = null
+	var locked_others := true
+	for child in (scene.get("card_container") as Node).get_children():
+		var card := child as PlayerCardUI
+		if card == null:
+			continue
+		if first == null:
+			first = card
+		elif not card.locked:
+			locked_others = false
+	if _lessons < 2:
+		_check(first != null and first.current_data.get_attack_power() == _lessons,
+			"drinking lesson %d is on the Tier I Power %d" % [_lessons + 1, _lessons])
+	else:
+		_check(first != null and first.current_data.get_tier_clean() == ("I" if _lessons == 2 else "II"),
+			"combo lesson %d is on the Tier %s" % [_lessons - 1, "I" if _lessons == 2 else "II"])
+	_check(locked_others, "during the lesson only his bag button can be clicked")
+	await create_timer(0.8, true, false, true).timeout
+	scene.call("_on_brew_wanted", first.current_data)
+	await create_timer(0.4, true, false, true).timeout
+	var bag := scene.get_node_or_null("InventoryScreen") as InventoryScreen
+	var shown := 0
+	if bag != null:
+		for tile in bag.get("_grid").get_children():
+			if not tile.is_queued_for_deletion():
+				shown += 1
+	var wanted: String = ["keg", "small_bottle", "anstoss_helles", "doppelpass_weisse"][mini(_lessons, 3)]
+	var should_show: int = [1, 1, 3, 2][mini(_lessons, 3)]
+	_check(bag != null and shown == should_show and bag.tile_for(wanted) != null,
+		"the bag shows %d item(s), the %s among them" % [should_show, wanted])
+	await _shot_one("drink_lesson_bag_%d" % _lessons)
+	var item_id := wanted
+	_lessons += 1
+	scene.call("_use_on_card", first.current_data, AdventureDB.get_db().item(item_id))
+	if bag != null and is_instance_valid(bag):
+		bag.close()
+	await create_timer(1.2, true, false, true).timeout
+	await _shot_one("drink_window_%d" % _lessons)
+	await create_timer(1.6, true, false, true).timeout
+	await _shot_one("drink_window_burp_%d" % _lessons)
+	if _lessons == 1:
+		_check(first.current_data.active_attack_ability() == "TUT_FASS_COURAGE"
+			and first.current_data.active_defend_ability() == "TUT_FASS_COURAGE",
+			"after the Kleiner Faß the 0 Power has Fass Courage on both sides")
+	elif _lessons == 3:
+		_check(first.current_data.active_attack_ability() == "COMBO_HELLES_ATK"
+			and first.current_data.active_defend_ability() == "COMBO_HELLES_DEF",
+			"after the Anstoß Helles the Tier I has Pass It On and Heavy Legs")
+	elif _lessons == 4:
+		_check(first.current_data.active_attack_ability() == "COMBO_WEISSE_ATK"
+			and first.current_data.active_defend_ability() == "COMBO_WEISSE_DEF",
+			"after the Doppelpass Weiße the Tier II has Fumbled Pass and One-Two")
+	else:
+		_check(first.current_data.active_attack_ability() == "PLAIN_GOALIE_ATK"
+			and first.current_data.active_defend_ability() == "PLAIN_GOALIE_DEF",
+			"after the bottle the Power 1 has the plain beer's goalie pair (hit or miss)")

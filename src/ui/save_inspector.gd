@@ -83,6 +83,7 @@ func _ready() -> void:
 
 	_build_add_row()
 	_build_test_row()
+	_build_tutorial_row()
 	_build_players_row()
 
 	if _home != null:
@@ -358,6 +359,40 @@ func _build_test_row() -> void:
 	holder.move_child(row, anchor.get_index())
 
 
+## ROUND AN (Anthony, 8 Oct: "a dev menu for me to jump between the different
+## important aspects of the tutorial"). One button per data/TutorialJumps.csv
+## row. See tutorial_jumps.gd - none of them touches this save.
+func _build_tutorial_row() -> void:
+	var anchor := _jump_heading if _jump_heading != null else _title
+	if anchor == null or anchor.get_parent() == null:
+		return
+	var jumps := TutorialJumps.rows()
+	if jumps.is_empty():
+		return
+	var holder := anchor.get_parent()
+	var box := VBoxContainer.new()
+	box.name = "TutorialRow"
+	box.add_theme_constant_override("separation", 6)
+	box.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	box.add_child(MenuSupport.heading("TUTORIAL JUMPS  ·  straight to one part of the tutorial (your save is not touched)",
+		15, MenuSupport.COLOUR_ACCENT))
+	var flow := HFlowContainer.new()
+	flow.add_theme_constant_override("h_separation", 6)
+	flow.add_theme_constant_override("v_separation", 6)
+	box.add_child(flow)
+	for row in jumps:
+		var button := _small_button(String(row["label"]))
+		button.disabled = not TutorialJumps.known(row)
+		button.tooltip_text = "data/TutorialJumps.csv %s" % row["id"]
+		button.pressed.connect(func() -> void:
+			TutorialJumps.jump(self, row, func(message: String) -> void:
+				state = GameState.fetch(get_tree())
+				_after(message)))
+		flow.add_child(button)
+	holder.add_child(box)
+	holder.move_child(box, anchor.get_index())
+
+
 ## ROUND AN (Anthony, 8 Oct: "allow me as a dev to wake specific players or
 ## to purchase new players directly"). Under the test row: a button per
 ## player in the Dorms, Wake everybody, and Sign a new player for free.
@@ -416,8 +451,11 @@ func _fill_players() -> void:
 		child.queue_free()
 	var sleepers := RecoveryBook.in_the_dorms(db, state)
 	if sleepers.is_empty():
-		_players_list.add_child(_quiet("Nobody is in the Dorms." if db.tune_bool("recovery", false)
-			else "Nobody is in the Dorms (recovery is off in Tuning.csv)."))
+		var nobody := _quiet("Nobody is in the Dorms." if db.tune_bool("recovery", false)
+			else "Nobody is in the Dorms (recovery is off in Tuning.csv).")
+		# In a flow row a wrapping label is squeezed to one letter a line.
+		nobody.autowrap_mode = TextServer.AUTOWRAP_OFF
+		_players_list.add_child(nobody)
 		return
 	for sleeper in sleepers:
 		var who := String(sleeper["name"])

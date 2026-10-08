@@ -10,7 +10,7 @@ extends RefCounted
 #               a row that has played sets flag:guide_done_<ID>, which the
 #               next row can wait on.
 #    Screen     where it plays: base, brewery, shop, bounty (the Adventure
-#               board). The screen asks when it opens, and again whenever it
+#               board), dorms. The screen asks when it opens, and again whenever it
 #               redraws (the base after a window closes, the Brewery after
 #               WORK IT).
 #    Requires   the condition language. Blank = always.
@@ -22,13 +22,26 @@ extends RefCounted
 #    Then       what happens after the box, in the Progression.csv Do
 #               language: flag:x ; count:x+1 ; unlock:Name ; and goto:base,
 #               which on a screen opened over the base just closes it.
+#               goto:dorms opens the Dorms. tutorial:end ends the Tutorial.
 #    Once       true = only ever once (the usual for a tutorial).
+#    Only       true = nothing but the lit button can be used until it has
+#               been (round AN, so the tutorial cannot be clicked through).
+#               The Brewery reads it: only the lit machine works, and its
+#               mini-game cannot be lost.
+#
+#  The Then column runs BEFORE the button lights up (round AN), so a Then
+#  that hands over stock or a key lights a machine that is ready to work.
+#  goto:back closes the screen: a window over the base, or the Brewery over
+#  a match TIME OUT.
 #
 #  The first row that fits plays; one box at a time.
 # =============================================================
 
 const FILE := "res://data/Guide.csv"
 const DONE_PREFIX := "guide_done_"
+## Set on the screen while an Only row's button is waiting to be pressed:
+## the words of that button.
+const ONLY_META := "guide_only"
 
 static var _rows: Array[Dictionary] = []
 static var _loaded := false
@@ -58,6 +71,7 @@ static func _load() -> void:
 			"highlight": MenuSupport.field(row, "Highlight").strip_edges(),
 			"then": MenuSupport.field(row, "Then").strip_edges(),
 			"once": ["true", "yes", "1"].has(MenuSupport.field(row, "Once").strip_edges().to_lower()),
+			"only": ["true", "yes", "1"].has(MenuSupport.field(row, "Only").strip_edges().to_lower()),
 		})
 
 
@@ -98,37 +112,70 @@ static func _play(host: Control, row: Dictionary, state: GameState) -> void:
 	_open_box = null
 	if not is_instance_valid(host):
 		return
-	highlight(host, String(row["highlight"]))
-	_then(host, String(row["then"]), state)
+	# THEN FIRST (round AN): stock or a key handed over here makes the
+	# machine that lights up next ready to work.
+	if _then(host, String(row["then"]), state):
+		return
+	if host.has_method("refresh"):
+		host.call("refresh")
+	var words := String(row["highlight"])
+	if bool(row["only"]) and words.strip_edges() != "":
+		host.set_meta(ONLY_META, words.strip_edges())
+	# Lit after the redraw has built the new buttons.
+	await host.get_tree().process_frame
+	if is_instance_valid(host):
+		highlight(host, words)
 
 
 ## Do the Then column. goto:base over the base closes the window instead.
-static func _then(host: Control, actions: String, state: GameState) -> void:
+## True = the screen was left (goto), so there is nothing left to light.
+static func _then(host: Control, actions: String, state: GameState) -> bool:
 	if actions == "":
-		return
+		return false
 	var rest: Array[String] = []
 	var go_to := ""
+	var finish_tutorial := false
 	for part in actions.split(";", false):
 		var term := String(part).strip_edges()
 		if term.to_lower().begins_with("goto:"):
 			go_to = term.substr(5).strip_edges()
+		elif term.to_lower() == "tutorial:end":
+			finish_tutorial = true
 		else:
 			rest.append(term)
 	if not rest.is_empty():
 		Progression.run_actions(";".join(rest), state)
 		state.save_to_disk()
+	if finish_tutorial:
+		# ROUND AN: the last box of "the morning after" ends the Tutorial.
+		Tutorial.finish(host.get_tree())
+		return true
 	if go_to == "":
-		return
+		return false
 	var tree := host.get_tree()
+	# ROUND AN: goto:back - the screen closes itself (the Brewery over a
+	# match TIME OUT), or its window over the base closes.
+	if CardDatabase._normalise(go_to) == "back":
+		var walk: Node = host
+		while walk != null:
+			if walk.has_method("leave"):
+				walk.call("leave")
+				return true
+			if walk is BaseWindow:
+				(walk as BaseWindow).close()
+				return true
+			walk = walk.get_parent()
+		return true
 	if CardDatabase._normalise(go_to) == "base":
 		# A screen opened over the base: close its window and you are there.
 		var node: Node = host
 		while node != null:
 			if node is BaseWindow:
 				(node as BaseWindow).close()
-				return
+				return true
 			node = node.get_parent()
 	ScenePaths.go_to(tree, ScenePaths.for_name(go_to))
+	return true
 
 
 # =============================================================

@@ -178,6 +178,17 @@ static func pick(state: GameState) -> String:
 	return best
 
 
+## Who would work a machine right now, and his % - before anything is spent.
+## The mini-game (brewery_minigame.gd) sizes its gold on this.
+##     {"brewer": name or "", "chance": %}
+static func chance_now(state: GameState, db: CardDatabase) -> Dictionary:
+	if not on(db):
+		return {"brewer": "", "chance": 100}
+	var who := pick(state)
+	return {"brewer": who,
+		"chance": success_for(efficiency(who, state)) if who != "" else success_alone()}
+
+
 # =============================================================
 #  A SHIFT AT A MACHINE
 # =============================================================
@@ -189,9 +200,9 @@ static func pick(state: GameState) -> String:
 ##     "spoiled"  true = it failed: the inputs are gone, nothing was made
 ##     "rest"     how many fixtures he is in the Dorms for now
 static func work(section_id: String, state: GameState, db: CardDatabase,
-		roll: int = -1) -> Dictionary:
+		roll: int = -1, output: Dictionary = {}) -> Dictionary:
 	if not on(db):
-		var plain := BreweryBook.work(section_id, state)
+		var plain := BreweryBook.work(section_id, state, false, output)
 		plain["brewer"] = ""
 		plain["chance"] = 100
 		plain["spoiled"] = false
@@ -202,7 +213,7 @@ static func work(section_id: String, state: GameState, db: CardDatabase,
 	var chance := success_for(efficiency(who, state)) if who != "" else success_alone()
 	var dice := roll if roll >= 0 else randi_range(1, 100)
 	var spoiled := dice > chance
-	var out := BreweryBook.work(section_id, state, spoiled)
+	var out := BreweryBook.work(section_id, state, spoiled, output)
 	out["brewer"] = who
 	out["chance"] = chance
 	out["spoiled"] = spoiled and bool(out["ok"])
