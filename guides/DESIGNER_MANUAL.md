@@ -4926,9 +4926,11 @@ and the levels it reaches give him something.
 
 **The levels out of the box:**
 
-- **Sober, 0%.** Only plain beers. A brew with an Element, a Becomes or an
-  ability (elemental or inspirational) is refused, and one already poured
-  does nothing in the match.
+- **Sober, 0%.** A brew with an Element, a Becomes or an ability (elemental
+  or inspirational) **can always be drunk** (Anthony, 8 Oct): it is poured,
+  paid for and fills the meter, but it does nothing in the match until he
+  reaches Tipsy. A sober turning beer only fills the meter and does not
+  count towards turning him.
 - **Tipsy, 30%** (`brews`). Every brew takes hold.
 - **Inspired, 70%** (`star;turn_drinks:-2`). He plays as a Star: STAR on his
   card and name plate, and the star ability from StarAbilities.csv on both

@@ -356,8 +356,7 @@ func _make_card(card: PlayerData) -> Control:
 	var seated := PubBook.allowed(card, state, cards)
 	var pourable := seated and not _selected.is_empty() and BrewDB.suits(_selected, card) \
 		and BrewDB.can_afford(_selected, state) \
-		and TransformBook.refusal(card, _selected, state, cards) == "" \
-		and DrunkBook.refusal(card, _selected, state) == ""
+		and TransformBook.refusal(card, _selected, state, cards) == ""
 
 	var button := Button.new()
 	button.custom_minimum_size = CARD_SIZE
@@ -555,10 +554,8 @@ func _on_card(card: PlayerData) -> void:
 			_selected["name"], _selected["for_class"]]
 		return
 
+	# ALWAYS POURED (Anthony, 8 Oct); too sober = it waits for Tipsy.
 	var sober := DrunkBook.refusal(card, _selected, state)
-	if sober != "":
-		_detail.text = sober
-		return
 
 	var permanent := _permanent.button_pressed
 	var before := DrunkBook.level_of(card, state)
@@ -568,6 +565,8 @@ func _on_card(card: PlayerData) -> void:
 	var kept := BrewDB.is_permanent(card, state)
 	_detail.text = "%s drinks the %s.%s" % [card.player_name, _selected["name"],
 		"  It will stick until you remove it." if kept else "  It wears off after the next match."]
+	if sober != "" and DrunkBook.refusal(card, _selected, state) != "":
+		_detail.text += "  He is too sober for it to work yet (it needs %d%%)." % DrunkBook.threshold("brews")
 	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
 	_rebuild_cards()
 	var after := DrunkBook.level_of(card, state)

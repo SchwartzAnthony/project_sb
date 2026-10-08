@@ -46,12 +46,15 @@ func test_a_plain_beer_fills_the_meter_by_its_inspiration() -> void:
 	assert_eq(BrewDB.brew_id_for(plain, state), "", "a plain beer never sits on the card")
 
 
-func test_a_sober_player_is_refused_an_elemental_brew() -> void:
+func test_a_sober_player_drinks_but_the_brew_waits() -> void:
+	# Anthony, 8 Oct: an elemental brew can always be drunk; it only takes
+	# hold once the meter is high enough.
 	var fire := brews.find("fire")
 	assert_ne(DrunkBook.refusal(plain, fire, state), "")
 	BrewDB.pour(plain, fire, false, state)
-	assert_eq(BrewDB.brew_id_for(plain, state), "", "nothing poured on a sober player")
-	assert_eq(state.count("reed"), 50, "and nothing paid")
+	assert_eq(BrewDB.brew_id_for(plain, state), "fire", "poured on a sober player")
+	assert_false(DrunkBook.takes_hold(plain, fire, state), "but it does not take hold")
+	assert_eq(DrunkBook.meter(plain, state), DrunkBook.inspiration(fire), "it filled his meter")
 
 
 func test_tipsy_lets_the_brew_take_hold() -> void:
@@ -125,3 +128,14 @@ func test_a_resting_player_is_sober() -> void:
 	state.set_count(RecoveryBook.key_for(plain), 2)
 	DrunkBook.after_round([], state, db)
 	assert_eq(DrunkBook.meter(plain, state), 0)
+
+
+func test_a_sober_turning_beer_only_fills_the_meter() -> void:
+	var earth := brews.find("turn_earth")
+	state.set_count("reed", 500)
+	for item in (earth.get("cost", {}) as Dictionary).keys():
+		state.set_count(String(item), 500)
+	var result := TransformBook.pour(plain, earth, state, db)
+	assert_true(bool(result["ok"]), "always poured")
+	assert_eq(int(result["count"]), 0, "too sober - it does not count towards turning")
+	assert_true(DrunkBook.meter(plain, state) > 0, "but it filled his meter")

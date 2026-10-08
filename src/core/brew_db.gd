@@ -293,11 +293,11 @@ static func pour(card: PlayerData, entry: Dictionary, permanent: bool,
 		print("[pub] Cannot pour %s — it costs %s."
 			% [entry.get("name", entry["id"]), cost_text(entry, state)])
 		return
-	# NOT DRUNK ENOUGH = it would not take hold, so it is not poured.
+	# ALWAYS POURED (Anthony, 8 Oct): a sober player can drink any brew. It
+	# only takes hold once his meter reaches Tipsy - see apply_all().
 	var sober := DrunkBook.refusal(card, entry, state)
 	if sober != "":
-		print("[pub] " + sober)
-		return
+		print("[pub] Poured, but not yet: " + sober)
 	for item in (entry.get("cost", {}) as Dictionary).keys():
 		state.add_count(String(item), -int((entry["cost"] as Dictionary)[item]))
 

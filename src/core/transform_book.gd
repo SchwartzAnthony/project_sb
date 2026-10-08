@@ -157,9 +157,6 @@ static func refusal(card: PlayerData, entry: Dictionary, state: GameState,
 		return ""
 	if has_turned(card, state):
 		return "%s has already turned. A turning brew only works on a plain player." % card.player_name
-	var sober := DrunkBook.refusal(card, entry, state)
-	if sober != "":
-		return sober
 	if choices(card, entry, db).is_empty():
 		return "%s has no Tier %s, Power %d players outside its Stars, so %s has nothing to turn into." % [
 			String(entry.get("becomes", "")), card.get_tier_clean(), card.base_power_left,
@@ -203,6 +200,25 @@ static func pour(card: PlayerData, entry: Dictionary, state: GameState,
 		return out
 	for item in (entry.get("cost", {}) as Dictionary).keys():
 		state.add_count(String(item), -int((entry["cost"] as Dictionary)[item]))
+	# EVERY BEER FILLS THE DRUNK METER too. See drunk_book.gd. It can make
+	# him a Star, who needs fewer turning beers, so the need is asked again.
+	DrunkBook.drink(card, entry, state)
+	need = drinks_needed_for(card, entry, state)
+	out["need"] = need
+
+	# ALWAYS POURED (Anthony, 8 Oct), but TOO SOBER = it does not count
+	# towards turning him. It only filled his meter.
+	if not DrunkBook.takes_hold(card, entry, state):
+		StatsRules.get_rules().record("brew_drunk", {
+			"brew": String(entry["id"]), "card": card.player_name,
+			"class": card.unit_type, "tier": card.get_tier_clean(),
+		}, state)
+		var before := progress(card, state)
+		out["ok"] = true
+		out["count"] = int(before["count"]) if String(before["element"]) == element_of(entry) else 0
+		out["why"] = "%s drinks the %s, but he is too sober for it to work (it needs %d%%). It only filled his meter." % [
+			card.player_name, String(entry.get("name", entry["id"])), DrunkBook.threshold("brews")]
+		return out
 
 	# A NEW ELEMENT STARTS AGAIN. Your answer: water, water, fire = fire 1.
 	var now := progress(card, state)
@@ -215,8 +231,6 @@ static func pour(card: PlayerData, entry: Dictionary, state: GameState,
 			% [card.player_name, now["element"], element])
 	count = mini(count, need)
 	state.set_text(DRINKS_PREFIX + _key(card), "%s:%d" % [element, count])
-	# EVERY BEER FILLS THE DRUNK METER too. See drunk_book.gd.
-	DrunkBook.drink(card, entry, state)
 
 	StatsRules.get_rules().record("brew_drunk", {
 		"brew": String(entry["id"]),

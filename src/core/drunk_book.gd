@@ -175,6 +175,8 @@ static func level_of(card: PlayerData, state: GameState) -> Dictionary:
 
 ## Does any level he has reached carry this effect?
 static func has(card: PlayerData, state: GameState, effect: String) -> bool:
+	if not on():
+		return false
 	var now := meter(card, state)
 	for level in levels():
 		if now >= int(level["from"]) and (level["effects"] as Dictionary).has(effect):
@@ -185,6 +187,8 @@ static func has(card: PlayerData, state: GameState, effect: String) -> bool:
 ## A level with this effect, its number added up over every level reached.
 static func amount(card: PlayerData, state: GameState, effect: String) -> int:
 	var total := 0
+	if not on():
+		return total
 	var now := meter(card, state)
 	for level in levels():
 		var effects: Dictionary = level["effects"]

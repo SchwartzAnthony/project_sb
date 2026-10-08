@@ -4518,12 +4518,11 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 			card.player_name, brew.get("for_class", "?")])
 		return
 
-	# NOT DRUNK ENOUGH - refused out loud, the bottle is not spent.
+	# ALWAYS DRUNK (Anthony, 8 Oct). Too sober = it does nothing yet.
 	var sober := DrunkBook.refusal(card, brew, state)
 	if sober != "":
-		announce("%s is too sober for that." % NamePlate.short_name(card), 1.5)
-		print("[brew] " + sober)
-		return
+		announce("%s is too sober for it to work yet." % NamePlate.short_name(card), 1.5)
+		print("[brew] Drunk, but not yet: " + sober)
 
 	state.add_count(item_id, -1)
 	# THE BOTTLE FILLS THE DRUNK METER by its own Inspiration (Items.csv),
