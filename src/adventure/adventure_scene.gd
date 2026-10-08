@@ -999,7 +999,9 @@ func _flee_home() -> void:
 	current_state = RunState.FINISHED
 	var keep := db.tune_float("adventure_flee_keep", 0.8)
 	var taken := run.bank(state, keep)
-	_party_to_dorms()
+	# NO ROUND PLAYED (Anthony, 8 Oct, Q208): fleeing is exiting the
+	# Adventure, so nobody rests, nobody is a round nearer the Dorms and no
+	# drunk meter drops.
 	state.save_to_disk()
 	AdventureRun.clear(get_tree())
 	print("[adventure] Fled with %d%% of the haul: %s" % [int(keep * 100.0), taken])
@@ -1320,8 +1322,8 @@ func _continue_forward() -> void:
 	_say("Onward — wave %d" % run.wave)
 
 
-## ROUND AN: EVERYBODY WHO SET OFF GOES TO THE DORMS, whichever door the run
-## ended by. The knocked-out ones stay longer. data/Resting.csv, rows
+## ROUND AN: EVERYBODY WHO SET OFF HAS PLAYED A ROUND, walked home or fell
+## (fleeing counts for nothing, Q208). The knocked-out ones stay longer. data/Resting.csv, rows
 ## `adventure` and `adventure_down`; nothing happens while `recovery` is off.
 func _party_to_dorms() -> void:
 	if run == null:

@@ -32,7 +32,19 @@ func after_each() -> void:
 
 
 func _two_cards() -> Array:
-	return _on_last_round([db.players[0], db.players[1]])
+	return _on_last_round(_resters(2))
+
+
+## Cards that rest after playing. Round AN (Anthony, Q206): rest = power, so a
+## power-0 card never goes to bed.
+func _resters(many: int) -> Array:
+	var out: Array = []
+	for card in db.players:
+		if card != null and RecoveryBook.turns_for(card, db) > 0:
+			out.append(card)
+			if out.size() == many:
+				break
+	return out
 
 
 ## Round AN: a player only goes to bed once he has played his Plays
@@ -80,8 +92,8 @@ func test_a_pub_brew_no_longer_costs_extra_rest() -> void:
 
 
 func test_an_adventure_sends_the_party_and_the_fallen_stay_longer() -> void:
-	var walker: PlayerData = db.players[0]
-	var fallen: PlayerData = db.players[1]
+	var walker: PlayerData = _resters(2)[0]
+	var fallen: PlayerData = _resters(2)[1]
 	_on_last_round([walker])
 	RecoveryBook.after_adventure([walker, fallen], [fallen], state, db)
 	assert_true(RecoveryBook.is_tired(walker, state))
@@ -116,6 +128,15 @@ func test_a_knocked_out_player_goes_to_bed_at_once() -> void:
 	assert_true(RecoveryBook.is_tired(card, state))
 
 
+func test_a_power_0_player_never_needs_rest() -> void:
+	for card in db.players:
+		if card != null and maxi(card.get_attack_power(), card.get_defense_power()) == 0:
+			RecoveryBook.after_match([card], state, db)
+			assert_false(RecoveryBook.is_tired(card, state))
+			return
+	pass_test("no power-0 card in the list")
+
+
 func test_nobody_goes_to_bed_while_recovery_is_off() -> void:
 	db.tuning["recovery"] = "false"
 	RecoveryBook.after_match(_two_cards(), state, db)
@@ -123,7 +144,7 @@ func test_nobody_goes_to_bed_while_recovery_is_off() -> void:
 
 
 func test_feather_beds_shorten_every_rest_but_never_below_one() -> void:
-	var card: PlayerData = db.players[0]
+	var card: PlayerData = _resters(1)[0]
 	var before := RecoveryBook.rest_for(card, "match", [], db, state)
 	state.set_count("tune_rest_less", 1)
 	var after := RecoveryBook.rest_for(card, "match", [], db, state)

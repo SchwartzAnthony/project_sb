@@ -433,7 +433,7 @@ static func after_match(cards: Array, state: GameState, db: CardDatabase) -> voi
 	_after("match", cards, {}, state, db)
 
 
-## HOME FROM AN ADVENTURE, by any door: walked, fled or fell. `party` is
+## HOME FROM AN ADVENTURE, walked or fell (fleeing counts for nothing). `party` is
 ## every card that set off; `down` the ones knocked out on the way.
 static func after_adventure(party: Array, down: Array, state: GameState,
 		db: CardDatabase) -> void:

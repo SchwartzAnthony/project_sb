@@ -1,7 +1,7 @@
 Power,Plays,Turns,Notes
-0,1,1,"ROUND AN (Anthony, 8 Oct: the power number is the rounds they can play and dictates their resting period). PLAYS = how many ROUNDS he plays before he is exhausted; a round is a match or an Adventure played to the end (Quit or exit counts for nothing). TURNS = how many fixtures he then rests in the Dorms. Power 0 still plays one round. Blank Plays = 1, rest after every round. HOW LONG A PLAYER IS OUT AFTER PLAYING, by their power. A FIXTURE is anything that uses a squad - a league match, a friendly, a cup tie, or a run in Adventure mode - so going off to Adventure with four players is also how the other eight get their legs back. Power 0 is a squad player: back next week"
-1,1,1,Still back next week. The first two rows being the same is what makes a bench worth having - your weakest players are the ones who can play every fixture
-2,2,2,"One fixture off. From here up, a player cannot play two in a row"
-3,3,2,"Still two. The jump is at 4 on purpose, so Tier III and Tier IV do not feel identical"
-4,4,3,"Your good ones need a fixture and a half off, in effect. Three fixtures is a match, a bounty and a match"
-5,5,4,"YOUR BEST PLAYER. Four fixtures out. A Star you field every single week is a Star you are not fielding - and that is the decision this whole file exists to create. Lower it if the squad feels too thin, raise it if your best eleven is playing every game"
+0,1,0,"ROUND AN (Anthony, 8 Oct: the power number is the rounds they can play and dictates their resting period). PLAYS = how many ROUNDS he plays before he is exhausted; a round is a match or an Adventure played to the end (Quit or exit counts for nothing). TURNS = how many fixtures he then rests in the Dorms - his power too (Anthony, 8 Oct, Q206). Power 0 plays one round and needs no rest at all. Blank Plays = 1, rest after every round."
+1,1,1,"Plays one round, rests one fixture."
+2,2,2,"Plays two rounds, rests two fixtures."
+3,3,3,"Plays three rounds, rests three fixtures."
+4,4,4,"Plays four rounds, rests four fixtures."
+5,5,5,"YOUR BEST PLAYER. Plays five rounds, then rests five fixtures. A Star you field every single week is a Star you are not fielding - and that is the decision this whole file exists to create."

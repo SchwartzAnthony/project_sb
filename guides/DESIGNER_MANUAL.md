@@ -2245,14 +2245,16 @@ which is the `Squad Per Tier` column of MatchModes.csv.
 **Rounds before rest (round AN, Anthony 8 Oct):** a **round** is a match or
 an Adventure played to the end. A Quit or exit counts for nothing: no round
 used, no rest gained. A player keeps playing until he has played his `Plays`
-rounds (out of the box his power: power 5 plays five, power 0 and 1 play one),
-then he goes to the Dorms for `Turns` fixtures and comes back fresh. A player
-knocked out on an Adventure goes to bed at once. The count lives in the save
+rounds, then he goes to the Dorms for `Turns` fixtures and comes back fresh.
+Out of the box **both are his power** (Q206): power 5 plays five rounds and
+rests five; power 0 plays one round at a time and never needs rest. A player
+knocked out on an Adventure goes to bed at once. **Fleeing an Adventure counts
+for nothing** (Q208), the same as a Quit. **A player who is not used** in a
+match, an Adventure or the Brewery needs no rest and loses nothing (Q207). The count lives in the save
 as `plays_<card>`.
 
-Out of the box: powers 0 and 1 are back next week, 2 and 3 need one off, 4
-needs two, and **a power-5 Star is out for four fixtures**. A power with no row
-falls back to `recovery_turns_per_power` × its power, rounded up.
+Out of the box Turns equals the power (Anthony, 8 Oct): power 5 rests five
+fixtures, power 0 none.
 
 The state lives in the save as ordinary counters (`rest_<card>`), so it
 survives a reload for free and you can read it in the save inspector. **A card
