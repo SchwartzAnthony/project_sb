@@ -35,8 +35,10 @@ func test_round_and_tier_pick_the_row() -> void:
 	assert_true(none.is_empty(), "no stop for Tier III")
 	var other_mode := MatchTalk.row_for("cards_shown", "friendly", null, {"round": "1", "tier": "I"})
 	assert_true(other_mode.is_empty(), "the tutorial's stops stay in the tutorial")
+	# Three cycles (Anthony, 8 Oct): Koch plays to the final whistle, no swap.
 	var swap := MatchTalk.row_for("cards_shown", "tutorial", null, {"round": "9", "tier": "star"})
-	assert_eq(String(swap.get("scene", "")), "tut-star-swap")
+	assert_true(swap.is_empty(), "no star swap in a three-cycle tutorial")
+	assert_eq(int(MatchMode.get_db().find("tutorial").get("cycles", 0)), 3)
 
 
 func test_time_outs_after_cycle_one_and_two() -> void:

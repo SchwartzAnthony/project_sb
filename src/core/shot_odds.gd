@@ -90,6 +90,10 @@ static func rows() -> Array[Dictionary]:
 			"left": clampf(MenuSupport.field_float(row, "Stamina Left", 0.0), 0.0, 100.0),
 			"chance": clampf(MenuSupport.field_float(row, "Chance", 0.0), 0.0, 100.0),
 			"per_power": maxf(0.0, MenuSupport.field_float(row, "Per Power", 0.0)),
+			# ROUND AN (Anthony, 8 Oct): the most this row allows, whatever the
+			# shot power. Blank = no cap (100). A fresh keeper: 10.
+			"max": clampf(MenuSupport.field_float(row, "Max", 100.0), 0.0, 100.0)
+				if MenuSupport.field(row, "Max").strip_edges() != "" else 100.0,
 			"notes": MenuSupport.field(row, "Notes"),
 		})
 
@@ -134,13 +138,16 @@ static func chance(stamina: int, max_stamina: int, power: int) -> float:
 
 	var base := 0.0
 	var per := 0.0
+	var most := 100.0
 
 	if left <= float(table[0]["left"]):
 		base = float(table[0]["chance"])
 		per = float(table[0]["per_power"])
+		most = float(table[0].get("max", 100.0))
 	elif left >= float(table[-1]["left"]):
 		base = float(table[-1]["chance"])
 		per = float(table[-1]["per_power"])
+		most = float(table[-1].get("max", 100.0))
 	else:
 		# BETWEEN TWO ROWS, so six rows draw a curve rather than six steps.
 		for i in range(1, table.size()):
@@ -152,9 +159,10 @@ static func chance(stamina: int, max_stamina: int, power: int) -> float:
 			var how_far := 0.0 if is_zero_approx(span) else (left - float(low["left"])) / span
 			base = lerpf(float(low["chance"]), float(high["chance"]), how_far)
 			per = lerpf(float(low["per_power"]), float(high["per_power"]), how_far)
+			most = lerpf(float(low.get("max", 100.0)), float(high.get("max", 100.0)), how_far)
 			break
 
-	return clampf(base + per * float(maxi(0, power)), 0.0, 100.0)
+	return clampf(minf(base + per * float(maxi(0, power)), most), 0.0, 100.0)
 
 
 ## The same thing as a 0-to-1 roll threshold, which is what take_shot() wants.

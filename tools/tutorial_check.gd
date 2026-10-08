@@ -31,7 +31,7 @@ const STOPS: Array[String] = ["tut-kickoff", "tut-tier1", "tut-tier2", "tut-tier
 	"tut-duel-start", "tut-duel-priority", "tut-duel-ability-1", "tut-duel-ability-2",
 	"tut-duel-power", "tut-duel-result", "tut-shot", "tut-exhaust",
 	"tut-timeout-call", "tut-timeout-inspiration", "tut-koch-ability",
-	"tut-timeout2-call", "tut-timeout-cursed", "tut-koch-earth", "tut-star-swap"]
+	"tut-timeout2-call", "tut-timeout-cursed", "tut-koch-earth"]
 
 var _results: Array[String] = []
 var _failed := false
@@ -204,6 +204,14 @@ func _play(scene: Node) -> void:
 			dealt_at = -1
 		elif dealt_at < 0:
 			dealt_at = Time.get_ticks_msec()
+			if not _tried_fast_click:
+				# Anthony, 8 Oct: clicking fast must not skip a pick.
+				_tried_fast_click = true
+				var first_card = scene.call("_best_offered_card")
+				var before := offered.size()
+				scene.call("_on_card_selected", first_card)
+				_check((scene.get("offered_cards") as Array).size() == before,
+					"a card clicked the moment it is dealt is not taken (the pick guard)")
 		elif Time.get_ticks_msec() - dealt_at > 1500:
 			dealt_at = -1
 			var best = scene.call("_best_offered_card")
@@ -246,6 +254,7 @@ var _before_pub: Array = []
 
 
 var _time_outs := 0
+var _tried_fast_click := false
 
 
 func _read_time_out(scene: Node, layer: Node) -> void:

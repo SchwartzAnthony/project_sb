@@ -113,6 +113,8 @@ func talk(event: String, facts: Dictionary = {}) -> void:
 		main.set("_talk_box", box)
 		await box.finished
 	shield.queue_free()
+	# The click that closed his last line must not also take the card under it.
+	main.call("hold_picks")
 
 	await _do(String(row.get("do", "")))
 	_busy = false

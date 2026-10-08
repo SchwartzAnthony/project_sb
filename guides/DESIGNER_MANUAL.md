@@ -1347,6 +1347,7 @@ shown, so you watched a bar go down with no idea what it was buying you.
 | `Stamina Left` | how much of the keeper's stamina is left, 0 to 100 |
 | `Chance` | the % chance of scoring at that stamina, before shot power |
 | `Per Power` | how many points each point of shot power adds, at that stamina |
+| `Max` | the most this row ever allows, whatever the shot power. Blank = no cap. Since 8 Oct (Anthony) a full keeper is capped at **10%**; it slopes between rows like the others |
 
 Between two rows **both numbers are interpolated**, so six rows draw a smooth
 curve rather than six steps. Out of the box, on a keeper with 25 stamina:
@@ -3161,14 +3162,15 @@ away, and your save comes back exactly as it was.
 ### The Head Coach's stops (all in `MatchTalk.csv`, lines in `Dialogue.csv`)
 
 All lines are **drafts** for you to rewrite. Every scene starts with `tut-`.
-The tutorial match has **four cycles** (`MatchModes.csv tutorial`) and is
-played by `data/TutorialSquad.csv`: Koch is a plain club player and the
-Star, with no ability yet.
+The tutorial match has **three cycles**, 90 minutes (`MatchModes.csv tutorial`;
+Anthony, 8 Oct), and is played by `data/TutorialSquad.csv`: Koch is a plain
+club player and the Star, Tier IV **Power 4**, with no ability yet. The other
+two Tier IV cards are Power 3 and 5. Koch plays to the final whistle; there is
+no star swap.
 
 **Koch plays every round** (Anthony, 8 Oct). In the tutorial match the man in
 the Star's place is never spent by a Play Maker: his card is offered at every
-Play Maker of his cycle and he never goes to the exhaust. The plain Star who
-comes on for cycle 4 works the same way. `Tuning.csv tutorial_star_never_spent`
+Play Maker of his cycle and he never goes to the exhaust. `Tuning.csv tutorial_star_never_spent`
 false spends him like any other card.
 
 | Play Maker | moment | scene | gold on |
@@ -3184,9 +3186,13 @@ false spends him like any other card.
 | 4 | Tier IV: Koch's card with Beer Courage | tut-koch-ability | Koch's card |
 | end of cycle 2 | **TIME OUT**: the cursed brews; an Earth Brew turns Koch into a Bergmännlein with Earth Courage | tut-timeout2-call, tut-timeout-cursed | |
 | 7 | Tier IV: Bergmännlein Koch's new ability | tut-koch-earth | Koch's card |
-| end of cycle 3 | STAR PLAYER SWITCH: Koch is swapped for a plain Star | tut-star-swap | the cards |
 
-The fourth cycle plays out normally (your notes stop there).
+The rest of cycle 3 plays out to the final whistle.
+
+**No clicking through the picks.** A card cannot be taken until it has been
+on the table, and the Head Coach has finished talking, for `Tuning.csv
+tutorial_pick_guard_seconds` (0.8). A fast clicker's clicks simply do nothing
+until then.
 
 **One group of gold per line.** In the Highlight column, `|` separates the
 lines: `-|card:first|cards` points at nothing on line 1, the first card on

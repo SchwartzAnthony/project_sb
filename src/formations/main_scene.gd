@@ -4426,6 +4426,7 @@ func _card_order(card: PlayerData) -> int:
 
 
 func create_card_for_unit(data: PlayerData) -> void:
+	hold_picks()
 	var card := PLAYER_CARD_SCENE.instantiate() as PlayerCardUI
 	card_container.add_child(card)
 	card.setup_card(data)
@@ -4840,6 +4841,11 @@ func _on_card_selected(selected_data: PlayerData) -> void:
 	# second click in that moment must not pick twice.
 	if _pick_in_progress:
 		return
+	# ROUND AN (Anthony, 8 Oct): in the Tutorial a fast clicker skipped every
+	# pick. A card cannot be taken until it has been on the table, and the
+	# Head Coach has been quiet, for tutorial_pick_guard_seconds.
+	if Time.get_ticks_msec() < picks_open_at:
+		return
 	_pick_in_progress = true
 	AudioDirector.fire(get_tree(), "card_picked", _facts_for_card(selected_data), state)
 	if card_stats != null:
@@ -5233,6 +5239,20 @@ func _never_spent(unit: PlayerUnit) -> bool:
 	if not db.tune_bool("tutorial_star_never_spent", true):
 		return false
 	return String(match_mode.get("id", "")) == db.tune_text("tutorial_match_mode", "tutorial")
+
+
+## The pick guard (see _on_card_selected). Only in the Tutorial; a time in
+## msec from Time.get_ticks_msec(), 0 = open.
+var picks_open_at := 0
+
+
+func hold_picks() -> void:
+	var guard := db.tune_float("tutorial_pick_guard_seconds", 0.8)
+	if guard <= 0.0:
+		return
+	if String(match_mode.get("id", "")) != db.tune_text("tutorial_match_mode", "tutorial"):
+		return
+	picks_open_at = maxi(picks_open_at, Time.get_ticks_msec() + int(guard * 1000.0))
 
 
 func _resolve_tier_pick(tier_key: String, selected_data: PlayerData) -> void:

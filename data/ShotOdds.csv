@@ -1,7 +1,7 @@
-Stamina Left,Chance,Per Power,Notes
-0,100,0,"AN EMPTY KEEPER IS AN OPEN GOAL. 100 means it goes in, every time, whatever the shot. This is the row the whole file exists for. Per Power is 0 because there is nothing left to add to."
-10,76,1.4,"Nearly gone. A 16-power shot here is 76 + 1.4 x 16 = 98%."
-25,58,1.3,"THE TIPPING POINT. Past here the keeper is losing and the shooter knows it. A 16-power shot is 79%."
-50,34,1.1,"Half a keeper. A 16-power shot is 52% - a coin, which is about where a good chance should sit."
-75,15,0.9,"One shot in. A 16-power shot is 29%."
-100,5,0.6,"A FRESH KEEPER. A 16-power shot is 5 + 9.6 = 15%. Low on purpose: the stamina is a wall, and the first shots of a match are meant to be about knocking it down rather than about scoring. PER POWER IS SMALL BECAUSE SHOT POWERS ARE BIG - this game produces shots of 10 to 22, so 0.6 here is already nearly ten points. Run tools/scoring_balance.gd after changing any of this."
+Stamina Left,Chance,Per Power,Max,Notes
+0,100,0,,"AN EMPTY KEEPER IS AN OPEN GOAL. 100 means it goes in, every time, whatever the shot. This is the row the whole file exists for. Per Power is 0 because there is nothing left to add to."
+10,76,1.4,,Nearly gone. A 16-power shot here is 76 + 1.4 x 16 = 98%.
+25,58,1.3,,THE TIPPING POINT. Past here the keeper is losing and the shooter knows it. A 16-power shot is 79%.
+50,34,1.1,,"Half a keeper. A 16-power shot is 52% - a coin, which is about where a good chance should sit."
+75,15,0.9,,One shot in. A 16-power shot is 29%.
+100,5,0.6,10,"A FRESH KEEPER. MAX 10 (Anthony, 8 Oct): a full keeper never lets more than 10% through, whatever the shot - the Max column caps a row, blank is no cap, and it slopes between rows like the rest. A 16-power shot is 5 + 9.6 = 15%. Low on purpose: the stamina is a wall, and the first shots of a match are meant to be about knocking it down rather than about scoring. PER POWER IS SMALL BECAUSE SHOT POWERS ARE BIG - this game produces shots of 10 to 22, so 0.6 here is already nearly ten points. Run tools/scoring_balance.gd after changing any of this."
