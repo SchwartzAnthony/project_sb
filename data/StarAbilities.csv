@@ -1,0 +1,2 @@
+Tier,Power,Ability,Notes
+any,any,TUT_KOCH_BEER,"ROUND AN - THE STAR ABILITY BAKED IN (Anthony, 8 Oct: star players have a basic ability based on Tier and Power - not designed yet, so give them all Koch's ability). A player who reaches the star level of the drunk meter (DrunkLevels.csv) plays with this Abilities.csv row on both sides. The most exact row wins: a Tier and a Power beats a Tier with Power any, which beats any/any. Add rows such as  II,2,SOME_ABILITY  when you design them. A brew's own ability still beats this one."

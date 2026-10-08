@@ -30,7 +30,7 @@ extends Control
 #  false the room is everybody and nothing on this screen changes.
 # =============================================================
 
-const CARD_SIZE := Vector2(150.0, 176.0)
+const CARD_SIZE := Vector2(150.0, 204.0)
 
 var cards: CardDatabase
 var brews: BrewDB
@@ -42,6 +42,8 @@ var _detail: Label
 var _permanent: CheckBox
 var _selected: Dictionary = {}
 var _seats: Label
+## The cards drawn right now, by name, so a pour can flash the right one.
+var _card_buttons: Dictionary = {}
 
 
 func _ready() -> void:
@@ -140,6 +142,16 @@ func _build_ui() -> void:
 	_seats.add_theme_font_size_override("font_size", 14)
 	_seats.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
 	page.add_child(_seats)
+
+	# THE DRUNK METER'S LEVELS, in one line, so the bar on every card reads.
+	var legend := Label.new()
+	legend.name = "DrunkLegend"
+	legend.text = _legend_words()
+	legend.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	legend.add_theme_font_size_override("font_size", 14)
+	legend.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+	legend.visible = DrunkBook.on()
+	page.add_child(legend)
 
 	_detail = Label.new()
 	_detail.text = "Pick a brew on the left, then a card to pour it for."
@@ -283,7 +295,28 @@ func _summary(entry: Dictionary) -> String:
 	var price := BrewDB.cost_text(entry)
 	if price != "":
 		bits.append(price)
+	if DrunkBook.on() and DrunkBook.inspiration(entry) > 0:
+		bits.append("+%d%% drunk" % DrunkBook.inspiration(entry))
+	if DrunkBook.on() and DrunkBook.is_plain(entry):
+		bits.insert(0, "plain beer")
 	return " · ".join(bits)
+
+
+## "DRUNK METER  Sober 0% · Tipsy 30%: brews take hold · Inspired 70%: Star"
+func _legend_words() -> String:
+	var bits: PackedStringArray = []
+	for level in DrunkBook.levels():
+		var does: PackedStringArray = []
+		var effects: Dictionary = level["effects"]
+		if effects.has("brews"):
+			does.append("brews take hold")
+		if effects.has("star"):
+			does.append("plays as a Star")
+		if effects.has("turn_drinks"):
+			does.append("%d fewer turning beers" % absi(int(String(effects["turn_drinks"]))))
+		bits.append("%s %d%%%s" % [level["name"], int(level["from"]),
+			(": " + ", ".join(does)) if not does.is_empty() else ""])
+	return "DRUNK METER   " + "  ·  ".join(bits)
 
 
 # =============================================================
@@ -300,6 +333,7 @@ func _refresh_seats() -> void:
 func _rebuild_cards() -> void:
 	for child in _card_grid.get_children():
 		child.queue_free()
+	_card_buttons.clear()
 
 	# ROUND AH (phase P4): classes listed in `pub_hidden_classes` (Tuning.csv)
 	# are never shown here - the Rivals are the other side's men, not yours.
@@ -322,7 +356,8 @@ func _make_card(card: PlayerData) -> Control:
 	var seated := PubBook.allowed(card, state, cards)
 	var pourable := seated and not _selected.is_empty() and BrewDB.suits(_selected, card) \
 		and BrewDB.can_afford(_selected, state) \
-		and TransformBook.refusal(card, _selected, state, cards) == ""
+		and TransformBook.refusal(card, _selected, state, cards) == "" \
+		and DrunkBook.refusal(card, _selected, state) == ""
 
 	var button := Button.new()
 	button.custom_minimum_size = CARD_SIZE
@@ -371,7 +406,7 @@ func _make_card(card: PlayerData) -> Control:
 		var need := 3
 		for entry2 in brews.brews:
 			if TransformBook.is_turning(entry2) and TransformBook.element_of(entry2) == String(beers["element"]):
-				need = TransformBook.drinks_needed(entry2)
+				need = TransformBook.drinks_needed_for(card, entry2, state)
 				break
 		footer.text = "%s %s%s" % [String(beers["element"]).capitalize(),
 			"●".repeat(int(beers["count"])), "○".repeat(maxi(0, need - int(beers["count"])))]
@@ -387,9 +422,80 @@ func _make_card(card: PlayerData) -> Control:
 	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(footer)
 
+	if DrunkBook.on():
+		box.add_child(_make_meter(card))
+
+	_card_buttons[card.player_name] = button
 	button.pressed.connect(_on_card.bind(card))
 	button.gui_input.connect(_on_card_right_click.bind(card))
 	return button
+
+
+## THE DRUNK METER under a card: a bar with a notch at every level, and
+## "Tipsy 45%" (or "★ Inspired 80%") under it.
+func _make_meter(card: PlayerData) -> Control:
+	var now := DrunkBook.meter(card, state)
+	var level := DrunkBook.level_of(card, state)
+	var tint := Color.from_string(String(level.get("colour", "")), MenuSupport.COLOUR_ACCENT)
+
+	var holder := VBoxContainer.new()
+	holder.name = "DrunkMeter"
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_theme_constant_override("separation", 0)
+
+	var bar := Control.new()
+	bar.custom_minimum_size = Vector2(126, 10)
+	bar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.draw.connect(func() -> void:
+		var w := bar.size.x
+		var h := bar.size.y
+		bar.draw_rect(Rect2(0, 0, w, h), Color(0.08, 0.06, 0.05, 1.0))
+		bar.draw_rect(Rect2(0, 0, w * now / 100.0, h), tint)
+		for step in DrunkBook.levels():
+			var at := int(step["from"])
+			if at > 0 and at < 100:
+				bar.draw_line(Vector2(w * at / 100.0, -1), Vector2(w * at / 100.0, h + 1),
+					Color(1, 1, 1, 0.85), 2.0)
+		bar.draw_rect(Rect2(0, 0, w, h), Color(0, 0, 0, 1), false, 1.0))
+	holder.add_child(bar)
+
+	var words := Label.new()
+	words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	words.add_theme_font_size_override("font_size", 11)
+	words.add_theme_color_override("font_color", tint)
+	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	words.text = "%s %d%%%s" % [String(level.get("name", "Sober")), now,
+		"  STAR" if DrunkBook.is_star(card, state) else ""]
+	holder.add_child(words)
+	return holder
+
+
+## A new level: the line says what it gives, and the card flashes gold.
+func _cheer(card: PlayerData, drank: Dictionary) -> void:
+	if not bool(drank.get("new_level", false)):
+		return
+	var level: Dictionary = drank["after"]
+	var effects: Dictionary = level.get("effects", {})
+	var gives: PackedStringArray = []
+	if effects.has("brews"):
+		gives.append("Elemental and inspirational brews take hold now")
+	if effects.has("star"):
+		var ability := cards.get_ability(DrunkBook.star_ability(card))
+		gives.append("He plays as a STAR with %s" % (ability.display_name if ability != null else DrunkBook.star_ability(card)))
+	if effects.has("turn_drinks"):
+		gives.append("%d fewer turning beers" % absi(int(String(effects["turn_drinks"]))))
+	_detail.text += "  %s is %s! %s." % [card.player_name.to_upper(),
+		String(level.get("name", "")).to_upper(), "; ".join(gives)]
+	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
+	var button: Control = _card_buttons.get(card.player_name, null)
+	if button != null:
+		button.pivot_offset = button.size / 2.0
+		var tween := button.create_tween()
+		tween.tween_property(button, "scale", Vector2(1.12, 1.12), 0.15)
+		tween.parallel().tween_property(button, "modulate", Color(1.6, 1.4, 0.6), 0.15)
+		tween.tween_property(button, "scale", Vector2.ONE, 0.35)
+		tween.parallel().tween_property(button, "modulate", Color.WHITE, 0.6)
 
 
 ## Right-click seats a card or sends it home. It is the second decision on
@@ -419,6 +525,12 @@ func _on_card(card: PlayerData) -> void:
 		_pour_turning(card)
 		return
 
+	# A PLAIN BEER only fills the drunk meter, so it is poured whatever brew
+	# he already has on - clicking him does not take that one off.
+	if not _selected.is_empty() and DrunkBook.is_plain(_selected):
+		_pour_plain(card)
+		return
+
 	# Clicking a card that already has a brew takes it off. That is how you
 	# remove a permanent one, which you asked for.
 	if BrewDB.brew_id_for(card, state) != "":
@@ -443,14 +555,47 @@ func _on_card(card: PlayerData) -> void:
 			_selected["name"], _selected["for_class"]]
 		return
 
+	var sober := DrunkBook.refusal(card, _selected, state)
+	if sober != "":
+		_detail.text = sober
+		return
+
 	var permanent := _permanent.button_pressed
+	var before := DrunkBook.level_of(card, state)
 	BrewDB.pour(card, _selected, permanent, state)
 	state.save_to_disk()
 
 	var kept := BrewDB.is_permanent(card, state)
 	_detail.text = "%s drinks the %s.%s" % [card.player_name, _selected["name"],
 		"  It will stick until you remove it." if kept else "  It wears off after the next match."]
+	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
 	_rebuild_cards()
+	var after := DrunkBook.level_of(card, state)
+	_cheer(card, {"after": after,
+		"new_level": String(before.get("id", "")) != String(after.get("id", ""))})
+
+
+func _pour_plain(card: PlayerData) -> void:
+	if not PubBook.allowed(card, state, cards):
+		_detail.text = "%s is not in the room. Right-click to give them a seat." % card.player_name
+		return
+	if not BrewDB.can_afford(_selected, state):
+		_detail.text = "Not enough to pour it: %s." % BrewDB.cost_text(_selected, state)
+		return
+	if DrunkBook.meter(card, state) >= 100:
+		_detail.text = "%s cannot hold another drop." % card.player_name
+		return
+	var before := DrunkBook.level_of(card, state)
+	var was := DrunkBook.meter(card, state)
+	BrewDB.pour(card, _selected, false, state)
+	state.save_to_disk()
+	var after := DrunkBook.level_of(card, state)
+	_detail.text = "%s drinks a %s. %d%% -> %d%%." % [card.player_name, _selected["name"],
+		was, DrunkBook.meter(card, state)]
+	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
+	_rebuild_cards()
+	_cheer(card, {"after": after,
+		"new_level": String(before.get("id", "")) != String(after.get("id", ""))})
 
 
 # =============================================================
@@ -465,12 +610,16 @@ func _pour_turning(card: PlayerData) -> void:
 		_detail.text = "%s is %s. %s is only for %s players." % [
 			card.player_name, card.unit_type, _selected["name"], _selected["for_class"]]
 		return
+	var before := DrunkBook.level_of(card, state)
 	var result := TransformBook.pour(card, _selected, state, cards)
 	_detail.text = String(result["why"])
 	if not bool(result["ok"]):
 		return
 	state.save_to_disk()
 	_rebuild_cards()
+	var after := DrunkBook.level_of(card, state)
+	_cheer(card, {"after": after,
+		"new_level": String(before.get("id", "")) != String(after.get("id", ""))})
 	if bool(result["ready"]):
 		_ask_who(card, _selected)
 

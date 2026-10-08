@@ -620,7 +620,7 @@ func _mark_star(key: String, card) -> void:
 		return
 
 	var mark := stage.get_node_or_null("StarMark") as Control
-	var wants_mark: bool = card != null and card.is_star()
+	var wants_mark: bool = card != null and card.shows_star()
 
 	if not wants_mark:
 		if mark != null:

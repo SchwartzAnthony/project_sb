@@ -67,6 +67,15 @@ static func drinks_needed(entry: Dictionary) -> int:
 	return int(entry.get("drinks", 0))
 
 
+## How many beers THIS player needs. A Star from the drunk meter needs fewer
+## (DrunkLevels.csv turn_drinks), never fewer than one.
+static func drinks_needed_for(card: PlayerData, entry: Dictionary, state: GameState) -> int:
+	var need := drinks_needed(entry)
+	if need <= 0:
+		return need
+	return maxi(1, need + DrunkBook.amount(card, state, "turn_drinks"))
+
+
 static func is_turning(entry: Dictionary) -> bool:
 	return drinks_needed(entry) > 0 and String(entry.get("becomes", "")).strip_edges() != ""
 
@@ -148,6 +157,9 @@ static func refusal(card: PlayerData, entry: Dictionary, state: GameState,
 		return ""
 	if has_turned(card, state):
 		return "%s has already turned. A turning brew only works on a plain player." % card.player_name
+	var sober := DrunkBook.refusal(card, entry, state)
+	if sober != "":
+		return sober
 	if choices(card, entry, db).is_empty():
 		return "%s has no Tier %s, Power %d players outside its Stars, so %s has nothing to turn into." % [
 			String(entry.get("becomes", "")), card.get_tier_clean(), card.base_power_left,
@@ -160,7 +172,7 @@ static func waiting_to_choose(card: PlayerData, entry: Dictionary, state: GameSt
 	if not is_turning(entry) or has_turned(card, state):
 		return false
 	var now := progress(card, state)
-	return String(now["element"]) == element_of(entry) and int(now["count"]) >= drinks_needed(entry)
+	return String(now["element"]) == element_of(entry) and int(now["count"]) >= drinks_needed_for(card, entry, state)
 
 
 # =============================================================
@@ -172,7 +184,8 @@ static func waiting_to_choose(card: PlayerData, entry: Dictionary, state: GameSt
 ## `ready` means that was the last one - now ask which card he becomes.
 static func pour(card: PlayerData, entry: Dictionary, state: GameState,
 		db: CardDatabase) -> Dictionary:
-	var out := {"ok": false, "count": 0, "need": drinks_needed(entry), "ready": false, "why": ""}
+	var need := drinks_needed_for(card, entry, state)
+	var out := {"ok": false, "count": 0, "need": need, "ready": false, "why": ""}
 	if card == null or state == null or not is_turning(entry):
 		return out
 	var no := refusal(card, entry, state, db)
@@ -182,7 +195,7 @@ static func pour(card: PlayerData, entry: Dictionary, state: GameState,
 	if waiting_to_choose(card, entry, state):
 		out["ok"] = true
 		out["ready"] = true
-		out["count"] = drinks_needed(entry)
+		out["count"] = need
 		out["why"] = "%s has had enough. Choose who he becomes." % card.player_name
 		return out
 	if not BrewDB.can_afford(entry, state):
@@ -200,8 +213,10 @@ static func pour(card: PlayerData, entry: Dictionary, state: GameState,
 	elif String(now["element"]) != "":
 		print("[turning] %s switched from %s to %s - the count starts again."
 			% [card.player_name, now["element"], element])
-	count = mini(count, drinks_needed(entry))
+	count = mini(count, need)
 	state.set_text(DRINKS_PREFIX + _key(card), "%s:%d" % [element, count])
+	# EVERY BEER FILLS THE DRUNK METER too. See drunk_book.gd.
+	DrunkBook.drink(card, entry, state)
 
 	StatsRules.get_rules().record("brew_drunk", {
 		"brew": String(entry["id"]),
@@ -212,9 +227,9 @@ static func pour(card: PlayerData, entry: Dictionary, state: GameState,
 
 	out["ok"] = true
 	out["count"] = count
-	out["ready"] = count >= drinks_needed(entry)
+	out["ready"] = count >= need
 	out["why"] = "%s drinks the %s - %d of %d." % [card.player_name,
-		String(entry.get("name", entry["id"])), count, drinks_needed(entry)]
+		String(entry.get("name", entry["id"])), count, need]
 	return out
 
 

@@ -643,7 +643,7 @@ static func card_face(card: PlayerData, db: CardDatabase, box: Vector2,
 	box_in.add_child(name_label)
 
 	var footer := Label.new()
-	var star_mark := "★ " if card.is_star() else ""
+	var star_mark := "★ " if card.shows_star() else ""
 	footer.text = "%sT%s   %d/%d" % [star_mark, card.get_tier_clean(),
 		card.get_attack_power(), card.get_defense_power()]
 	if extra != "":

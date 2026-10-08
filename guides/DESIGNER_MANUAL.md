@@ -4817,6 +4817,44 @@ Name of the card he became) in the save. Because it is stored against the
 card he *became*, **renaming that set card breaks the link** — the same rule
 as every card name. Code: `src/core/transform_book.gd`.
 
+### The drunk meter (round AN)
+
+Every player has a drunk meter, 0 to 100%. Every drink at the Pub fills it,
+and the levels it reaches give him something.
+
+| File | Column | What it does |
+|---|---|---|
+| `data/Brews.csv` | **Inspiration** | How much of the meter one pour fills, in %. |
+| `data/Items.csv` | **Inspiration** | The same for a bottle in the bag. Blank = the brew's own number. A bought bottle can be weaker than the one your Brewery makes (bottled Fire Brew 15%, poured 25%). |
+| `data/DrunkLevels.csv` | **From**, **Effect** | Where each level starts and what it gives. |
+| `data/StarAbilities.csv` | **Tier**, **Power**, **Ability** | The star ability a drunk Star plays with. Today every row is Koch's Beer Courage. |
+| `data/Tuning.csv` | `drunk_meter`, `drunk_sober_per_match` | Off switch, and how much drains at the final whistle (100 = sober after every match). |
+
+**The levels out of the box:**
+
+- **Sober, 0%.** Only plain beers. A brew with an Element, a Becomes or an
+  ability (elemental or inspirational) is refused, and one already poured
+  does nothing in the match.
+- **Tipsy, 30%** (`brews`). Every brew takes hold.
+- **Inspired, 70%** (`star;turn_drinks:-2`). He plays as a Star: STAR on his
+  card and name plate, and the star ability from StarAbilities.csv on both
+  sides. A brew's own ability still wins on its side. He also needs two
+  fewer turning beers (three becomes one).
+
+**Plain beers** are Brews.csv rows with no Becomes and no abilities, only
+Inspiration: the Helles (+20%, free) and the Festbier (+35%, 1 Reed). They
+never sit on the card as a brew; they only fill the meter.
+
+**In the Pub** every card has the meter under it, with a notch at each
+level, and the line at the top says when a player reaches a new level.
+
+**To change it:** move the From numbers, add a level row, give a brew more
+or less Inspiration, or add StarAbilities.csv rows such as `II,2,SOME_ABILITY`
+when you design the star abilities. The most exact row wins.
+
+**Checked by:** `tests/unit/test_drunk_meter.gd`, and `tools/drunk_shot.gd`
+presses the real Pub buttons and takes the pictures.
+
 ### `data/Currencies.csv`
 
 | column | |

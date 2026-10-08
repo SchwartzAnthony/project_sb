@@ -2002,6 +2002,8 @@ func _full_time() -> void:
 
 	# One-match brews wear off at the whistle. Permanent ones stay on.
 	var brews_off := BrewDB.clear_temporary(state)
+	# THE DRUNK METER drops too (Tuning.csv drunk_sober_per_match).
+	DrunkBook.sober_up(state, db)
 	if brews_off > 0 and gains != null:
 		gains.note("%d one-match brew%s wore off" % [
 			brews_off, "" if brews_off == 1 else "s"], "pour another at the Pub")
@@ -4466,7 +4468,17 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 			card.player_name, brew.get("for_class", "?")])
 		return
 
+	# NOT DRUNK ENOUGH - refused out loud, the bottle is not spent.
+	var sober := DrunkBook.refusal(card, brew, state)
+	if sober != "":
+		announce("%s is too sober for that." % NamePlate.short_name(card), 1.5)
+		print("[brew] " + sober)
+		return
+
 	state.add_count(item_id, -1)
+	# THE BOTTLE FILLS THE DRUNK METER by its own Inspiration (Items.csv),
+	# or the brew's if it has none - a bought bottle can be weaker.
+	DrunkBook.drink(card, brew, state, entry)
 	# THE BOTTLE IS THE COST. pour() would also charge the brew's material
 	# Cost, which is what the Brewery already took to make it — so the overlay
 	# is laid on directly rather than going through the Pub's till.

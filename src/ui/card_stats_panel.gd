@@ -99,6 +99,8 @@ func show_card(card: PlayerData, near: Vector2) -> void:
 	var bits: Array[String] = ["Tier %s" % card.get_tier_clean(), card.active_unit_type()]
 	if card.is_star():
 		bits.append("STAR")
+	elif card.drunk_star:
+		bits.append("STAR (drunk)")
 	if card.is_brewed():
 		bits.append("brewed: %s" % card.brew_id)
 	_line.text = "   ·   ".join(bits)

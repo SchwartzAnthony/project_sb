@@ -223,7 +223,7 @@ func place(edge: Dictionary, card: PlayerData,
 	# The plate is as wide as its CONTENTS need, centred on the body, and
 	# never wider than plate_width_max. So it is the same size for every
 	# player whatever their artwork, and the two stats always have room.
-	var tier_text := "Tier %s%s" % [card.get_tier_clean(), " ★" if card.is_star() else ""]
+	var tier_text := "Tier %s%s" % [card.get_tier_clean(), " ★" if card.shows_star() else ""]
 	var power_text := "P: %d" % card.get_attack_power()
 
 	_tier_label.add_theme_font_size_override("font_size", stat_size)
