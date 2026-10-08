@@ -330,16 +330,31 @@ async function fetchWithProgress(url, onp){
   if (!r.ok) throw new Error(url+" answered "+r.status);
   const total = +r.headers.get("content-length") || 0;
   const reader = r.body.getReader(); const parts=[]; let got=0;
-  for(;;){ const {done,value}=await reader.read(); if(done)break; parts.push(value); got+=value.length; if(total) onp(got/total); }
+  for(;;){ const {done,value}=await reader.read(); if(done)break; parts.push(value); got+=value.length; onp(got, total); }
   return new Blob(parts);
 }
+/* Where the start got to, so a stuck page can say so. */
+let STAGE = "starting", LAST_ERR = "";
+function stage(text, bar){ STAGE = text; $("#bootmsg").textContent = text; if (bar!=null) $("#bootbar").style.width = bar+"%"; }
+function withTimeout(p, ms, what){
+  return Promise.race([p, new Promise((_,bad)=>setTimeout(()=>bad(new Error(what+" took longer than "+Math.round(ms/1000)+" s"+(LAST_ERR?" (last engine message: "+LAST_ERR+")":""))), ms))]);
+}
+window.addEventListener("error", e=>{ LAST_ERR = String(e.message||e.error||""); });
+window.addEventListener("unhandledrejection", e=>{ LAST_ERR = String((e.reason&&e.reason.message)||e.reason||""); });
 async function boot(){
+  const t0 = Date.now();
   try{
-    if (typeof WebAssembly !== "object") throw new Error("This browser has WebAssembly turned off, which the engine needs.");
-    if (typeof DecompressionStream !== "function") throw new Error("This browser is too old to unpack the engine (no DecompressionStream). Try a current Chrome, Edge or Firefox.");
-    await loadScript("lab.js");
-    const gz = await fetchWithProgress("lab.engine.wasm", p => { $("#bootbar").style.width = (5+p*80)+"%"; });
-    $("#bootmsg").textContent = "Unpacking…";
+    stage("Checking that this browser can run the engine…", 2);
+    if (typeof WebAssembly !== "object") throw new Error("this browser has WebAssembly turned off, which the engine needs.");
+    if (typeof DecompressionStream !== "function") throw new Error("this browser is too old to unpack the engine (no DecompressionStream). Try a current Chrome, Edge or Firefox.");
+    try{ await WebAssembly.instantiate(new Uint8Array([0,97,115,109,1,0,0,0])); }
+    catch(e){ throw new Error("this page is not allowed to run WebAssembly here ("+e.message+")."); }
+    stage("Loading the engine's loader…", 3);
+    await withTimeout(loadScript("lab.js"), 30000, "Loading lab.js");
+    const gz = await withTimeout(fetchWithProgress("lab.engine.wasm", (got,total) => {
+      stage(`Downloading the engine: ${(got/1e6).toFixed(1)}${total?" of "+(total/1e6).toFixed(1):""} MB`, total ? 5+80*got/total : Math.min(80, 5+got/1.3e5));
+    }), 180000, "Downloading the engine");
+    stage("Unpacking the engine…", 86);
     const head = new Uint8Array(await gz.slice(0,2).arrayBuffer());
     const zipped = head[0]===0x1f && head[1]===0x8b;   // the host may already have unzipped it
     const wasm = zipped ? await new Response(gz.stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer() : await gz.arrayBuffer();
@@ -351,24 +366,24 @@ async function boot(){
       if (/lab\.pck(\?|$)/.test(u)) return realFetch("lab.rules.wasm", init);
       return realFetch(input, init);
     };
-    $("#bootmsg").textContent = "Reading the spreadsheets…"; $("#bootbar").style.width="90%";
+    stage("Starting the engine and reading the spreadsheets…", 90);
     const engine = new Engine({executable:"lab", mainPack:"lab.pck", canvas:$("#gd"), args:["--headless"],
-      unloadAfterInit:false, onPrint:()=>{}, onPrintError:(...a)=>console.warn("[godot]", ...a)});
-    await engine.startGame();
-    const t0 = Date.now();
+      unloadAfterInit:false, onPrint:()=>{}, onPrintError:(...a)=>{ LAST_ERR = a.join(" ").slice(0,200); console.warn("[godot]", ...a); }});
+    await withTimeout(engine.startGame(), 90000, "Starting the engine");
+    stage("Waiting for the rules to answer…", 96);
+    const t1 = Date.now();
     while (typeof window.sbLabCall !== "function"){
-      if (Date.now()-t0 > 20000) throw new Error("The engine started but the lab never answered.");
+      if (Date.now()-t1 > 30000) throw new Error("the engine started but the lab never answered"+(LAST_ERR?" (last engine message: "+LAST_ERR+")":""));
       await new Promise(r=>setTimeout(r,50));
     }
     META = lab({cmd:"meta"});
     $("#boot").hidden = true;
-    setStatus("Rules engine ready · "+Object.keys(META.classes).length+" classes", "ok");
+    setStatus("Rules engine ready · "+Object.keys(META.classes).length+" classes · started in "+((Date.now()-t0)/1000).toFixed(1)+" s", "ok");
     initAll();
   }catch(err){
     console.error(err);
-    let msg = "The engine could not start: " + err.message;
-    if (/WebAssembly|wasm|Content Security/i.test(String(err.message))) msg += " This page needs WebAssembly, which this browser or its network policy blocked.";
-    $("#bootmsg").textContent = msg;
+    $("#bootmsg").textContent = `The engine could not start. It got as far as: "${STAGE}" after ${((Date.now()-t0)/1000).toFixed(0)} s. Reason: ${err.message}`;
+    $("#bootbar").style.background = "var(--away)";
     setStatus("Engine failed to start", "bad");
   }
 }
