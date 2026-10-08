@@ -214,7 +214,8 @@ func pick_from_pool(pool: String, state: GameState) -> String:
 	var key := pool.strip_edges().to_lower()
 	var choices: Array[String] = []
 	for entry in brews:
-		if String(entry.get("pool", "")) != key:
+		# A row can sit in several pools: plain|keg.
+		if not String(entry.get("pool", "")).split("|").has(key):
 			continue
 		if DialogueGrammar.test(String(entry["requires"]), state):
 			choices.append(String(entry["id"]))

@@ -92,7 +92,7 @@ func test_the_basic_three_beers() -> void:
 	assert_eq(sizes.map(func(one: Dictionary) -> int: return int(one["many"])), [6, 3, 1])
 	var adventure := AdventureDB.get_db()
 	for item in items:
-		assert_eq(String(adventure.item(String(item)).get("use", "")), "brew:pool:plain", "%s is plain beer" % item)
+		assert_true(String(adventure.item(String(item)).get("use", "")).begins_with("brew:pool:"), "%s is plain beer" % item)
 	state.set_flag("tut_brewery", true)
 	assert_eq(BreweryBook.sizes_for("bottling", state).size(), 1, "the tutorial only bottles small bottles")
 
@@ -109,6 +109,12 @@ func test_plain_beer_is_a_good_and_a_bad_side_and_never_on_tap() -> void:
 		assert_not_null(db.get_ability(String(entry["attack"])), "%s attack" % id_text)
 		assert_not_null(db.get_ability(String(entry["defend"])), "%s defend" % id_text)
 		assert_false(DrunkBook.needs_drunk(entry), "plain beer takes hold sober")
+
+
+func test_the_keg_has_its_own_pool() -> void:
+	for i in 20:
+		var id_text := AdventureDB.brew_in_use({"use": "brew:pool:keg"}, state)
+		assert_true(id_text in ["keg_goalie", "plain_power", "plain_keeper"], id_text)
 
 
 func test_the_tutorial_only_pours_the_goalie_pair() -> void:

@@ -20,6 +20,7 @@ extends RefCounted
 #                        Tuning.csv brewery_tour_chance %, and it CAN be lost,
 #                        so you see both endings
 #    Value    see Kind
+#    Target   for a kind that needs more than Value (match jumps: pm:4)
 #
 #  A jump never touches your real save. The Brewery jump plays in a save of
 #  its own (user://tutorial_jump.json, wiped before and after) with
@@ -44,6 +45,8 @@ static func rows() -> Array[Dictionary]:
 			"label": MenuSupport.field(row, "Label", id_text).strip_edges(),
 			"kind": MenuSupport.field(row, "Kind").strip_edges().to_lower(),
 			"value": MenuSupport.field(row, "Value").strip_edges(),
+			# Kept for kinds that need more (the match jumps: pm:4).
+			"target": MenuSupport.field(row, "Target").strip_edges(),
 		})
 	return out
 
