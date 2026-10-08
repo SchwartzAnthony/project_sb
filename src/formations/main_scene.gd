@@ -5223,6 +5223,19 @@ func _swap_star_on_pitch(new_star: PlayerData, is_enemy: bool) -> void:
 	substitution_finished.emit()
 
 
+## ROUND AN (Anthony, 8 Oct): in the Tutorial your man in the Star's place
+## (Koch) is there EVERY round - picking him never spends him, so he is
+## offered at every Play Maker of his cycle, Star badge or not.
+## Tuning.csv tutorial_star_never_spent false puts him back in the exhaust.
+func _never_spent(unit: PlayerUnit) -> bool:
+	if unit == null or unit.is_enemy or not unit.stands_in_star_slot:
+		return false
+	var db := CardDatabase.get_db()
+	if not db.tune_bool("tutorial_star_never_spent", true):
+		return false
+	return String(match_mode.get("id", "")) == db.tune_text("tutorial_match_mode", "tutorial")
+
+
 func _resolve_tier_pick(tier_key: String, selected_data: PlayerData) -> void:
 	# --- Your pick ---
 	#
@@ -5236,7 +5249,7 @@ func _resolve_tier_pick(tier_key: String, selected_data: PlayerData) -> void:
 		# A Star picked in its tier is in this Play Maker like anyone else,
 		# so it keeps its colour (8 Oct).
 		if unit == picked:
-			unit.is_exhausted = true
+			unit.is_exhausted = not _never_spent(unit)
 			unit.is_playmaker = true
 			unit.set_highlight(true)
 		elif unit.is_star_player:

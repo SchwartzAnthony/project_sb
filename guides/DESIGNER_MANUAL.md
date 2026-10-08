@@ -3165,6 +3165,12 @@ The tutorial match has **four cycles** (`MatchModes.csv tutorial`) and is
 played by `data/TutorialSquad.csv`: Koch is a plain club player and the
 Star, with no ability yet.
 
+**Koch plays every round** (Anthony, 8 Oct). In the tutorial match the man in
+the Star's place is never spent by a Play Maker: his card is offered at every
+Play Maker of his cycle and he never goes to the exhaust. The plain Star who
+comes on for cycle 4 works the same way. `Tuning.csv tutorial_star_never_spent`
+false spends him like any other card.
+
 | Play Maker | moment | scene | gold on |
 |---|---|---|---|
 | | the whistle | tut-kickoff | |
