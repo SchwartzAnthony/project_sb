@@ -70,4 +70,4 @@ brew_game_hit,brew_game_hit,,bav_card_pick,Effects,,-10,,,"ROUND AN - THE BREWIN
 brew_game_won,brew_game_won,,bav_ability_success,Effects,,-6,,,"ROUND AN: a mini-game won, the batch is made."
 brew_game_lost,brew_game_lost,,bav_ability_fail,Effects,,-6,,,"ROUND AN: a mini-game missed (spoiled, or Again! in the tutorial)."
 farm_moo,,,bav_moo,Effects,,-12,,,"BAVARIAN (Round AN). Not used by a screen yet - a cow mooing on the Alm, for the farm or the base. Name farm_moo in a Sound column."
-drink_burp,,,bav_burp,Effects,,-6,,,"ROUND AN - the tutorial drinking window (src/ui/drink_window.gd): the big burp after the arm wipe. The file is not made yet (SOUNDS_WANTED.csv), so it is silent until then."
+drink_burp,,,bav_burp,Effects,,-6,,,"ROUND AN - the tutorial drinking window (src/ui/drink_window.gd): the big burp after the arm wipe. bav_burp.ogg, made by tools/make_bavarian_sfx.py: one long, rumbling, comic burp, warm not shrill."

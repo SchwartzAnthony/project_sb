@@ -959,6 +959,23 @@ def c_birds():
 
 
 
+def c_burp():
+    "The big burp after a drink: one long, proud, rumbling Bavarian burp - comic, not gross, and warm rather than shrill."
+    d = 0.75
+    t = t_axis(d)
+    # vocal fry: slow, uneven pulses through an open 'oa' mouth
+    f0 = 78 * (1 + 0.25 * np.sin(np.pi * t / d)) * (1 - 0.2 * t / d)
+    f0 = f0 * (1 + 0.06 * lowpass(noise(d), 25))
+    phase = np.cumsum(f0) / SR
+    pulses = (np.diff(np.floor(phase), prepend=0) > 0).astype(float) * (0.6 + 0.4 * rng.random(len(t)))
+    src = lowpass(pulses, 2500) + 0.08 * lowpass(noise(d), 1500)
+    mouth = np.clip(t / 0.08, 0, 1)
+    voice = resonator(src, 520, 4) + 0.7 * resonator(src, 950, 5) + 0.25 * resonator(src, 2300, 7)
+    rumble = 1 + 0.35 * np.sin(2 * np.pi * 9 * t)  # the throaty roll
+    out = voice * mouth * rumble * np.exp(-1.2 * t / d) * np.sin(np.pi * np.clip(t / d, 0, 1)) ** 0.3
+    return fade(lowpass(out, 3200), 0.01, 0.12)
+
+
 # =============================================================
 #  REAL INSTRUMENTS (round AN take 2)
 #
@@ -1457,6 +1474,7 @@ PICKS = {
     "bav_drink": "band",
     "bav_birds": "band",
     "bav_moo": "band",
+    "bav_burp": "classic",
 }
 SOUNDS = {name: globals()[("c_" if kind == "classic" else "s_") + name[4:]] for name, kind in PICKS.items()}
 
