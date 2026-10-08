@@ -700,19 +700,26 @@ func _draw_stage() -> void:
 func _draw_stir() -> void:
 	var middle := STAGE * Vector2(0.5, 0.56)
 	var soak := float(s["soak"])
-	if not _picture("tank", middle, Vector2(330, 250)):
+	# The mash fills the tank's opening: the picture's is smaller and higher
+	# than the plain drawing's.
+	var mash := middle
+	var size := Vector2(130.0, 91.0)
+	if _picture("tank", middle, Vector2(330, 250)):
+		mash = middle + Vector2(0, -35)
+		size = Vector2(100.0, 40.0)
+	else:
 		_bar.draw_set_transform(middle, 0.0, Vector2(1.0, 0.72))
 		_bar.draw_circle(Vector2.ZERO, 155.0, COPPER)
 		_bar.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	# The grain darkens as it soaks.
-	_bar.draw_set_transform(middle, 0.0, Vector2(1.0, 0.7))
-	_bar.draw_circle(Vector2.ZERO, 130.0, Color(0.8, 0.67, 0.36).lerp(Color(0.45, 0.33, 0.18), soak))
+	_bar.draw_set_transform(mash, 0.0, Vector2(1.0, size.y / size.x))
+	_bar.draw_circle(Vector2.ZERO, size.x, Color(0.8, 0.67, 0.36).lerp(Color(0.45, 0.33, 0.18), soak))
 	_bar.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	var spin := float(s["spin"])
 	for i in 6:
 		var a := spin + i * 1.05
-		_bar.draw_circle(middle + Vector2(cos(a) * 80.0, sin(a) * 55.0), 6.0, Color(1, 1, 1, 0.35))
-	var tip := middle + Vector2(cos(spin) * 70.0, sin(spin) * 48.0)
+		_bar.draw_circle(mash + Vector2(cos(a), sin(a)) * size * 0.6, 5.0, Color(1, 1, 1, 0.35))
+	var tip := mash + Vector2(cos(spin), sin(spin)) * size * 0.53
 	if not _picture("paddle", tip + Vector2(0, -50), Vector2(60, 130), 0.2 * sin(spin)):
 		_bar.draw_line(tip, tip + Vector2(0, -110), WOOD, 10.0)
 	_meter(Rect2(40, 30, 220, 18), soak, WATER, "SOAKED")
@@ -724,7 +731,8 @@ func _draw_rhythm() -> void:
 	if not _picture("mill", middle, Vector2(220, 240)):
 		_bar.draw_rect(Rect2(200, 70, 200, 200), WOOD)
 		_bar.draw_rect(Rect2(230, 40, 140, 40), WOOD.darkened(0.3))
-	var hub := Vector2(450, 170)
+	# On the mill's wheel.
+	var hub := Vector2(340, 175) if _art.has("mill") else Vector2(450, 170)
 	var crank := float(s["crank"])
 	var jammed := float(s["jam"]) > 0.0
 	if not _picture("crank", hub + Vector2(cos(crank), sin(crank)) * 30.0, Vector2(70, 70), crank,
@@ -747,9 +755,15 @@ func _draw_colour() -> void:
 	if _holding:
 		_bar.draw_rect(Rect2(313, 162, 14, 100), BEER if clear else Color(0.48, 0.39, 0.28))
 	var fill := float(s["fill"])
-	if not _picture("bucket", Vector2(320, 285), Vector2(150, 70)):
+	if _picture("bucket", Vector2(320, 285), Vector2(150, 70)):
+		# The wort shows in the bucket's mouth, rising to the rim.
+		_bar.draw_set_transform(Vector2(320, 268 - 6 * fill), 0.0, Vector2(1.0, 0.2))
+		_bar.draw_circle(Vector2.ZERO, 50.0, Color(BEER, clampf(fill * 3.0, 0.0, 1.0)))
+		_bar.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		_meter(Rect2(470, 240, 140, 16), fill, BEER, "BUCKET")
+	else:
 		_bar.draw_rect(Rect2(250, 255, 140, 60), WOOD)
-	_bar.draw_rect(Rect2(258, 309 - 50 * fill, 124, 50 * fill), BEER)
+		_bar.draw_rect(Rect2(258, 309 - 50 * fill, 124, 50 * fill), BEER)
 	_text("CLEAR" if clear else "CLOUDY", Vector2(540, 100), 32, GOLD if clear else MenuSupport.COLOUR_TEXT_DIM)
 	_meter(Rect2(470, 280, 140, 16), float(s["mud"]), BAD, "MUD")
 
