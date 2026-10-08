@@ -84,8 +84,9 @@ func _box() -> MatchTalkBox:
 	return null
 
 
-## Play the open mini-game with its own press/release, the way a hand would.
-## `miss_first` presses once out of the gold to prove the tutorial forgives.
+## Play the open mini-game with the good hand (BreweryMinigame.bot_step),
+## which uses the game's own inputs. `miss_first` lets it fail once on purpose
+## (does nothing until it is lost) to prove the tutorial forgives.
 func _play_game(miss_first: bool) -> void:
 	await process_frame
 	var games := root.find_children("*", "BreweryMinigame", true, false)
@@ -93,33 +94,32 @@ func _play_game(miss_first: bool) -> void:
 		_check(false, "a mini-game opened")
 		return
 	var game := games[0] as BreweryMinigame
-	print("[jumps] %s: %s, gold %.0f%%." % [game.title, game.kind(), game._zone_size * 100.0])
+	print("[jumps] %s: %s." % [game.title, game.kind()])
 	await _hold(0.4, 2)
-	if miss_first and game.kind() == "hold":
-		game.press()
-		await _hold(0.1, 1)
-		game.release()               # far too early
-		_check(not game._over, "a miss in the tutorial starts the game again")
+	if miss_first:
+		if game.kind() in ["conveyor", "hold", "colour"]:
+			game.press()                 # hold on until it goes wrong
+		var started := game._time_left
+		var guard := 0
+		while game._time_left <= started and guard < 2000:
+			started = game._time_left
+			await process_frame
+			guard += 1
+			if guard % 8 == 0:
+				_shoot()
+		_check(not game._over, "a miss in the tutorial starts the game again: " + game._status.text)
 		await _hold(0.3, 2)
 	var guard := 0
-	if game.kind() == "hold":
-		game.press()
-		while is_instance_valid(game) and not game.in_zone() and guard < 2000:
-			await process_frame
-			guard += 1
-			if guard % 8 == 0:
-				_shoot()
-		_shoot()
-		game.release()
-	else:
-		while is_instance_valid(game) and not game._over and guard < 4000:
-			await process_frame
-			guard += 1
-			if guard % 8 == 0:
-				_shoot()
-			if game.in_zone() and game._pos > game._zone_start + game._zone_size * 0.3:
-				game.press()
-				await _hold(0.25, 1)
+	var last := Time.get_ticks_msec()
+	while is_instance_valid(game) and not game._over and guard < 4000:
+		await process_frame
+		var now := Time.get_ticks_msec()
+		game.bot_step((now - last) / 1000.0, false)
+		last = now
+		guard += 1
+		if guard % 8 == 0:
+			_shoot()
+	_check(is_instance_valid(game) and game._won, "the game is won")
 	while is_instance_valid(game):
 		await process_frame
 	await _hold(0.3, 3)

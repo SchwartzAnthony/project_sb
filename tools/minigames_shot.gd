@@ -41,32 +41,26 @@ func _initialize() -> void:
 func _play(game: BreweryMinigame, lose: bool) -> void:
 	await _hold(0.5, 3)
 	var guard := 0
-	match game.kind():
-		"hold":
-			game.press()
-			while is_instance_valid(game) and not game.in_zone() and guard < 2000:
-				await _hold(0.05, 1)
-				guard += 1
-			await _hold(0.04, 1)
-			if is_instance_valid(game):
-				game.release()
-		"mash":
-			var clicks := 0
-			while is_instance_valid(game) and not game._over and guard < 2000:
-				await _hold(0.05 if not lose else 0.25, 1)
-				game.press()
-				clicks += 1
-				guard += 1
-		_:
-			while is_instance_valid(game) and not game._over and guard < 4000:
-				await _hold(0.04, 1)
-				guard += 1
-				if game.in_zone() and game._pos > game._zone_start + game._zone_size * 0.3:
-					game.press()
-					await _hold(0.1, 2)
+	var last := Time.get_ticks_msec()
+	while is_instance_valid(game) and not game._over and guard < 4000:
+		await process_frame
+		var now := Time.get_ticks_msec()
+		# The lost one: the hand stops halfway.
+		if not (lose and game._time_left < float(game.game.get("seconds", 10.0)) * 0.6):
+			game.bot_step((now - last) / 1000.0, false)
+		last = now
+		guard += 1
+		if guard % 3 == 0:
+			_hold_shot()
 	while is_instance_valid(game):
 		await _hold(0.1, 1)
 	await _hold(0.2, 2)
+
+
+func _hold_shot() -> void:
+	if DisplayServer.get_name() != "headless":
+		root.get_texture().get_image().save_png("user://minigames/frame_%03d.png" % _frame)
+		_frame += 1
 
 
 func _hold(gap: float, shots: int) -> void:

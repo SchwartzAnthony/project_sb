@@ -4857,18 +4857,21 @@ brewery_machine_size`. A section with no picture falls back to the old panel.
 Clicking a machine opens its game. **Win it and the batch is made; lose it
 and the batch is spoiled** (what it took is gone, nothing is made).
 
-| Machine | Game | What you do |
-|---|---|---|
-| Steeping Tank | hold | hold to let the water in, let go in the gold |
-| Grain Mill | mash | click as fast as you can to turn the crank |
-| Lauter Tun | bar | click when the marker is in the gold |
-| Brew Kettle | bar | hit the right temperature twice |
-| Fermenting Vat | hold | hold to cool, let go in the cold gold |
-| Bottling Machine | bar | stop three bottles under the tap |
+Anthony picked them from the playable mock-ups (8 Oct): "keep the others",
+with Keep the fire for the Brew Kettle and the Fermenting Vat as it was.
 
-**The brewer's training is the gold.** His success % (`Brewers.csv`) shrinks
-it: a 100% brewer gets the whole Zone, a 55% one a little over half, nobody at
-all (40%) a sliver. A mash game needs more clicks the less trained he is. So
+| Machine | Kind | What you do |
+|---|---|---|
+| Steeping Tank | `stir` | **Stir the mash**: move the mouse round and round over the tank. Stop and it clumps |
+| Grain Mill | `rhythm` | **Crank rhythm**: left, right, left, right (arrows, A/D, or click each half). The same side twice jams it |
+| Lauter Tun | `colour` | **Watch the colour**: hold the tap open while the wort runs clear, let go when it clouds |
+| Brew Kettle | `fire` | **Keep the fire**: the heat drops, click to pump the bellows and keep the needle in the gold |
+| Fermenting Vat | `hold` | hold to cool, let go in the cold gold |
+| Bottling Machine | `conveyor` | **Conveyor**: hold to pour, let go at each bottle's line, three bottles |
+
+**The brewer's training makes it easier.** His success % (`Brewers.csv`)
+sets how hard each game is: an untrained hand gets a narrower gold, a mash
+that clumps faster, a mill that jams longer, less room at the fill line. So
 an untrained hand fails more, which is your rule.
 
 `data/BreweryGames.csv`, one row per machine:
@@ -4876,12 +4879,26 @@ an untrained hand fails more, which is your rule.
 | column | |
 |---|---|
 | `Section` | the BrewerySections.csv ID |
-| `Kind` | `bar`, `hold` or `mash` |
+| `Kind` | `stir`, `rhythm`, `colour`, `fire`, `hold`, `conveyor` (the old `bar` and `mash` still work) |
 | `Seconds` | the time limit |
-| `Zone` | how wide the gold is for a 100% brewer (0.15 = 15% of the bar) |
-| `Speed` | bar: sweeps a second. hold: bar filled per second held. mash: meter lost per second |
-| `Hits` | bar: gold hits in a row. mash: clicks to fill the meter |
+| `Zone` | colour: share of the time it runs clear. fire and hold: the gold's width. conveyor: how close to the line counts |
+| `Speed` | stir: soak per full turn. colour, hold, conveyor: fill a second |
+| `Hits` | rhythm: turns to grind it. fire: seconds in the gold. conveyor: bottles |
 | `Prompt` | the one line telling you what to do |
+| `Art` | a folder of pictures, `assets/brewery/games/<machine>/` |
+
+**The pictures.** Each game looks for these PNGs in its Art folder; one that
+is missing is drawn as a plain shape, so the game always works.
+
+| Kind | Pictures |
+|---|---|
+| stir | `tank.png`, `paddle.png` |
+| rhythm | `mill.png`, `crank.png` |
+| colour | `tun.png`, `bucket.png` |
+| fire | `kettle.png`, `bellows.png` |
+| hold | `vat.png` |
+| conveyor | `tap.png`, `bottle.png`, `belt.png` |
+| any | `background.png` behind it all (640x320 stage) |
 
 No row = no game (the batch is rolled on the brewer's % as before).
 `Tuning.csv brewery_minigames` false turns them all off. The game fires the
