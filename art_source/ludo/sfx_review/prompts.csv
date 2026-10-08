@@ -1,0 +1,55 @@
+Name,Prompt,Seconds
+bav_kickoff,"Football kickoff at a Bavarian Oktoberfest: one long round low-pitched referee whistle, an Alpine cow bell clang from the stands and a brass band tuba oom-pah pickup, festival crowd cheer rising. Warm, full, low-mid sound, no piercing high whistle.",3
+bav_play_maker,"One short round low referee whistle blast followed by two wooden block knocks on a beer bench, the game pauses. Warm, dry, low-mid, not shrill.",1.5
+bav_star_switch,"Two quick soft round referee whistle blasts then a warm brass band rising flourish with accordion and a cow bell ring, a star player is coming on, exciting Bavarian Oktoberfest. Full low-mid sound, no piercing highs.",2.5
+bav_goal,"GOAL celebration: Bavarian brass band oom-pah-pah TA-DAAA fanfare with tuba and trombones in B-flat, Alpine cow bells ringing, beer tent crowd cheering. Triumphant, warm, full, low-mid sound, no shrill whistles.",4
+bav_goal_star,"Huge star goal: a deep Bavarian Böller cannon boom, then a full oom-pah brass band fanfare with tuba and accordion, cow bells clanging, beer steins clinking, Oktoberfest tent on its feet with a yodel shout. Triumphant and warm, low-mid, no piercing highs.",5
+bav_goal_against,"Conceding a goal: a soft sad tuba going wah-wahhh sliding downhill, Oktoberfest beer tent crowd sighing in disappointment. Gentle, deflating, warm low sound.",2.5
+bav_shot,"Football shot: a leather boot striking a heavy leather ball hard, a short whoosh of air. Punchy, warm, low-mid, dry.",1
+bav_save,"Goalkeeper catch: leather gloves catching a leather football with a firm thup. Short, dry, low-mid.",0.6
+bav_save_big,"Big diving goalkeeper save: a hard glove slap on the ball, the keeper thudding onto grass, beer tent crowd going ooooh in amazement. Exciting, warm, low-mid.",2
+bav_ability_success,"Special ability triggers: two heavy glass beer steins clinking together for Prost, then a quick rising accordion and brass band flourish, Bavarian Oktoberfest. Fun and triumphant, warm, not shrill.",1.5
+bav_ability_fail,"Ability fizzles: a dud cork popping with a weak pfft, beer foam hissing flat, then one low sad tuba bloop. Comic, gentle, deflating, warm low sound.",1.5
+bav_power_victory,"Winning a contest: a heavy glass beer stein slammed down on a wooden beer bench, then a cheeky tuba oom-PAH and a short cheer. Punchy, triumphant, warm low-mid.",1.5
+bav_power_fail,"Losing a contest: a dull wooden knock on a beer table, then a tuba drooping down two notes. Sad but gentle, warm low sound.",1.5
+bav_pour,"Beer being poured from a tap into a large glass Mass beer stein, the glass filling up, foam fizzing and settling. Warm, full, close up.",3
+bav_card_hover,"Tiny soft tap on a cardboard beer mat. Extremely short, soft, dry, quiet UI sound.",0.2
+bav_card_pick,"Picking a card: two quick wooden knocks on a beer table, tock-tock. Short, dry, warm.",0.4
+bav_full_time_win,"Match won: a happy Bavarian polka flourish, tuba oom-pah, trumpets and trombones on top, accordion, Alpine cow bells ringing, Oktoberfest crowd cheering and a yodel shout. Triumphant, joyful, warm full low-mid, no shrill highs.",5
+bav_full_time_loss,"Match lost: a lone tuba sinking slowly down four notes, the last note wobbling sadly away, a quiet beer tent sigh. Sad, deflating but gentle, warm low sound.",4
+bav_full_time_draw,"Match drawn: a Bavarian brass band starts a cheerful oom-pah polka tune and stops halfway on an unresolved note, a puzzled hm. Comic, warm, low-mid.",3.5
+bav_foul,"Football foul: one short round referee whistle blast, low-pitched and warm, not piercing.",0.6
+bav_yellow,"Yellow card booking: a round low referee whistle, the beer tent crowd going ooooh, and a low tuba uh-oh two-note slide. Warm, low-mid, not shrill.",2
+bav_red,"Red card sending-off: a long low referee whistle, a dark dramatic brass band chord with tuba and trombones, Oktoberfest beer tent crowd booing. Warm, full, low-mid, no shrill highs.",3
+bav_ball_tap,"Tiniest soft scuff of a leather boot touching a leather football. Very short, dry, quiet.",0.2
+bav_ball_kick,"Football kicked on the run: short dry leathery boot on ball thump. Warm, low-mid.",0.4
+bav_hit_soft,"A knock on a wooden beer bench, a short plain dry thud. Very short, warm, low-mid.",0.3
+bav_hit_heavy,"A full heavy glass beer stein slammed hard onto a wooden table, deep impact thud with a glass clunk. Punchy, warm, low.",0.6
+bav_enemy_down,"Enemy knocked out: three wooden knocks tumbling down the scale then a heavy body thud on wooden floorboards, a small cheer and a cow bell clang. Satisfying, warm low-mid.",1.5
+bav_player_hurt,"Player hurt: a muffled oof thump of a body hit, with a little sour tuba note bend. Gentle, warm, low.",0.8
+bav_player_drop,"Player exhausted: a heavy body flopping onto grass and a tired tuba sigh sliding down. Sad but gentle, warm low.",1.5
+bav_item_use,"Item heals: a quick glug of beer from a stein, an aah of relief and a warm two-note zither pluck rising. Pleasant, warm, low-mid.",1.2
+bav_combo,"Combo succeeds: a warm Alpine cow bell clang and a cheerful accordion chord stab with a short hey shout. Fun, punchy, low-mid, not shrill.",0.8
+bav_shot_heavy,"The hardest football shot: a massive leather boot strike on the ball, a big whoosh rushing past and a deep Bavarian Böller cannon boom in the distance. Exciting, powerful, warm low.",2
+bav_enemy_windup,"Enemy powering up: a wooden cuckoo clock ticking tick tock tick tock getting faster, building tension, low wooden ticks. Warm, not shrill.",2
+bav_crowd_goal,"Oktoberfest beer tent crowd roaring for a goal, Alpine cow bells clanging, beer steins clinking, a yodel shout. Exciting, warm, full low-mid crowd.",4
+bav_menu_hover,"The lightest soft pluck of a single low zither string. Extremely short, soft, quiet UI sound.",0.2
+bav_menu_click,"Menu button press: a single soft knock on a wooden plank sign. Very short, dry, warm.",0.25
+bav_menu_start,"Start game: a tuba's cheerful oom-PAH with an Alpine cow bell clang and a short yodel whoop, off we go. Punchy, exciting, warm low-mid.",1.5
+bav_menu_back,"Back button: two soft wooden knocks falling in pitch, wood on wood. Very short, dry, warm.",0.3
+bav_coin,"Paying: a handful of coins dropped into a stoneware beer mug with a clink, and a small warm brass shop bell ding. Satisfying, warm.",1
+bav_boeller,"A Bavarian Böller black-powder salute cannon fired from across a mountain valley, a deep boom with a rolling echo. Warm, low, powerful.",3
+bav_banner,"A cloth banner flapping and snapping in a breeze, a blackbird singing softly in the trees. Gentle, warm.",3
+bav_bld_brewery,"Bavarian brewery: a copper brewing kettle bubbling and a splash of wort, wooden barrels knocking. Warm, cosy, low-mid.",3
+bav_bld_pub,"Bavarian beer hall pub: people chatting and laughing, glass beer steins clinking, an accordion playing a polka in the corner. Warm, cosy, lively.",3
+bav_bld_club_house,"Football club house: heavy boots walking on wooden floorboards, a coach's short low whistle and a gruff shout. Warm, low-mid, not shrill.",3
+bav_bld_dorms,"Dormitory: someone snoring loudly in a creaky wooden bunk bed. Comic, warm, low.",3
+bav_bld_training,"Training ground: a football thumped against a wooden board, a chaffinch singing, a short low coach whistle, a cow mooing in the distance. Warm, outdoorsy.",3
+bav_bld_trophy,"Trophy room: a heavy pewter cup set down on a wooden shelf with a warm ring, and a short proud brass band chord. Warm, low-mid.",2.5
+bav_bld_tavern,"Traveling tavern: a horse clip-clopping on cobblestones, a wooden wagon creaking, a beer mug set down on the counter, a horse snort. Warm, rustic.",3
+bav_door,"Old heavy wooden farmhouse door: an iron latch clacking, a low groan of the hinges, a thump as it swings open. Warm, low.",2
+bav_visitor_brewer,"A gruff jolly Bavarian brewer's deep voice going Hm-HO! and his heavy beer stein set down on the bar. Warm, low, comic.",1.5
+bav_visitor_heatwave,"A cocky man's short laugh HAH! and a whoosh crackle of fire flaring up. Punchy, warm low-mid, not shrill.",1.5
+bav_wagon,"An old timber wagon hatch creaking open slowly, wood groaning, a soft thump. Warm, low.",1.5
+bav_drink,"A big drink: beer glugging out of a wooden barrel tap, three big gulps and a satisfied aaah, foam fizzing. Warm, full, comic.",3
+bav_birds,"Bavarian woods: a blackbird, a great tit and a chaffinch singing, a distant cow bell, gentle breeze. Soft, warm, not shrill.",4
