@@ -46,8 +46,11 @@ const EMBLEM_COLOURS: Array[Color] = [
 ]
 
 ## Every team you have, newest last.
-##   {"id", "name", "icon", "colour", "class", "star_tier", "cards"}
+##   {"id", "name", "icon", "colour", "class", "star_tier", "kind", "cards"}
 ## `cards` is tier key -> Array[String] of card names.
+## `kind` is "match" or "adventure" (round AN): a Match Team only fields
+## Match Players, an Adventure Team only Adventure Players. See
+## player_roles.gd. A team saved before it existed is a Match Team.
 var teams: Array[Dictionary] = []
 
 
@@ -96,6 +99,7 @@ static func _tidy(entry: Dictionary) -> Dictionary:
 		"colour": int(entry.get("colour", 0)),
 		"class": String(entry.get("class", "")),
 		"star_tier": String(entry.get("star_tier", "")),
+		"kind": PlayerRoles.team_kind_clean(String(entry.get("kind", "match"))),
 		"cards": entry.get("cards", {}) as Dictionary,
 	}
 
@@ -104,8 +108,9 @@ static func _tidy(entry: Dictionary) -> Dictionary:
 #  MAKING AND CHANGING
 # =============================================================
 
-static func blank(unit_type: String, star_tier: String) -> Dictionary:
+static func blank(unit_type: String, star_tier: String, kind: String = "match") -> Dictionary:
 	return {
+		"kind": PlayerRoles.team_kind_clean(kind),
 		"id": "team_%d_%d" % [Time.get_unix_time_from_system(), randi() % 1000],
 		"name": "%s XI" % unit_type,
 		"icon": EMBLEMS[randi() % EMBLEMS.size()],
@@ -154,7 +159,9 @@ func cards_for(entry: Dictionary, db: CardDatabase) -> Dictionary:
 	if entry.is_empty() or db == null:
 		return out
 
-	var pool := db.roster_for_class(String(entry["class"]))
+	# ROUND AN: only the players this KIND of team may field (player_roles.gd).
+	var pool := PlayerRoles.filter(db.roster_for_class(String(entry["class"])),
+		String(entry.get("kind", "match")), PlayerRoles.current_state(), db)
 	var by_name: Dictionary = {}
 	for card in pool:
 		by_name[CardDatabase._normalise(card.player_name)] = card
@@ -238,6 +245,11 @@ func resting(entry: Dictionary, db: CardDatabase, state: GameState,
 	var tired: Array[String] = []
 	var short_of: Array[String] = []
 	for tier in TierLadder.TIERS:
+		# The Stars' tier holds no regulars - its Stars are counted elsewhere
+		# (team_select.gd _stars_missing). Counting it here made every team
+		# "1 short" the moment `recovery` went on.
+		if tier == String(entry["star_tier"]):
+			continue
 		var fit := 0
 		for card in built.get(tier, []):
 			if RecoveryBook.is_tired(card, state):

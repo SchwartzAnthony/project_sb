@@ -134,6 +134,8 @@ static func recruit(what: String, state: GameState, db: CardDatabase) -> String:
 	state.set_text(PREFIX + CardDatabase._normalise(given), "%s|%d" % [slot["tier"], slot["power"]])
 	# SIGNED AS WELL, so squad_ownership sees him the moment both are on.
 	SquadBook.sign(given, state)
+	# ROUND AN: he arrives untrained; the Training Ground gives him a role.
+	PlayerRoles.arrive(given, "recruit", state, db)
 	print("[recruits] %s joins the base: Tier %s, Power %d." % [given, slot["tier"], slot["power"]])
 	StatsRules.get_rules().record("player_recruited", {
 		"card": given, "tier": String(slot["tier"]),
@@ -145,7 +147,7 @@ static func recruit(what: String, state: GameState, db: CardDatabase) -> String:
 ## the random first team of a new game (squad_sheet.gd). No template card is
 ## needed: a Tier IV plain player has none in BasicTeam.csv.
 static func enlist(name_text: String, tier: String, power: int, gender: String,
-		state: GameState, look: String = "") -> void:
+		state: GameState, look: String = "", role: String = "") -> void:
 	if state == null or name_text == "" or is_recruit(name_text, state):
 		return
 	var have := names(state)
@@ -154,6 +156,11 @@ static func enlist(name_text: String, tier: String, power: int, gender: String,
 	state.set_text(PREFIX + CardDatabase._normalise(name_text), "%s|%d|%s|%s" % [tier, power, gender, look])
 	NameBook.hold(name_text, state)
 	SquadBook.sign(name_text, state)
+	# ROUND AN: the starting team are Match Players (starting_team_role).
+	if role != "":
+		PlayerRoles.set_role(name_text, role, state)
+	else:
+		PlayerRoles.arrive(name_text, "starting", state, CardDatabase.get_db())
 	print("[recruits] %s joins the base: Tier %s, Power %d." % [name_text, tier, power])
 
 
@@ -171,6 +178,7 @@ static func release(name_text: String, state: GameState) -> void:
 	state.set_text(KEY, "|".join(kept))
 	state.set_text(PREFIX + wanted, "")
 	TransformBook.forget_player(name_text, state)
+	PlayerRoles.forget(name_text, state)
 	NameBook.give_back(name_text, state)
 	print("[recruits] %s has left the base." % name_text)
 

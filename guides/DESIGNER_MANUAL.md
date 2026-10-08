@@ -4480,6 +4480,39 @@ Training Ground, the Brewery and the Dev screen with a few players in bed.
 - `brewery_brewers` in `Tuning.csv` = false turns all of it off: every batch
   works, as before.
 
+### Match Players, Adventure Players and Brewers (round AN)
+
+> *"The player can train new player units as Adventure Player, Match Player
+> and Brewer Player. There is also a separate Adventure Team and Match
+> Team."*
+
+Every one of your players has **one role**, and the Training Ground is where
+you choose it. Under YOUR PLAYERS each player has a button for every role he
+could switch to.
+
+| Role | Training.csv `Kind` | Plays in | Cost |
+| --- | --- | --- | --- |
+| Match Player | `match_player` | your **Match Teams** | 20 coins |
+| Adventure Player | `adventure_player` | your **Adventure Teams** | 20 coins |
+| Brewer | `brewer` | no team, works the Brewery machines | 40 coins |
+| Not trained yet | | no team | |
+
+- **Two kinds of team.** A team is a Match Team or an Adventure Team. The
+  button next to the team's name in the builder switches it. A Match Team
+  only lists your Match Players, an Adventure Team only your Adventure
+  Players. The plain CSV cards are nobody's players and play for both.
+- **Which team goes out.** A match shows only your Match Teams; an Adventure
+  run (MatchModes.csv `Scene` = adventure) shows only your Adventure Teams.
+  CREATE TEAM from there makes the right kind.
+- **New players.** A player signed at the Club House arrives **untrained**
+  (`new_player_role`). The starting team and players signed on the Dev
+  screen arrive as Match Players (`starting_team_role`). A save made before
+  roles existed counts everybody as a Match Player (`player_role_default`).
+- A Brewer stays a Brewer. Switching between Match and Adventure costs the
+  row's price each time.
+- `player_roles` in `Tuning.csv` = false turns roles off: every team takes
+  everybody, as before.
+
 ### Keys (round AN)
 
 > *"For the machines and to get into the buildings, you need to buy the

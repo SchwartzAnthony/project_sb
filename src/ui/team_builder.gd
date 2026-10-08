@@ -88,6 +88,7 @@ var _lock_button: Button
 var _save_button: Button
 var _title: Label
 var _name_field: LineEdit
+var _kind_button: Button
 var _badge_slot: PanelContainer
 var _badge_picker: Control
 
@@ -145,7 +146,8 @@ func _load_team() -> void:
 	if selection == null or selection.unit_type == "":
 		entry = {}
 		return
-	entry = TeamRoster.blank(selection.unit_type, selection.star_tier)
+	entry = TeamRoster.blank(selection.unit_type, selection.star_tier,
+		TeamBuilderHandoff.kind(get_tree()))
 
 
 ## Put the saved line-up back in the slots. Any card the CSVs no longer have
@@ -186,6 +188,13 @@ func _slotted(tier: String) -> Array[PlayerData]:
 
 func _load_library() -> void:
 	_library = db.roster_for_class(selection.unit_type)
+
+	# ============ MATCH TEAM OR ADVENTURE TEAM (round AN) ============
+	#
+	# Your own players have a role from the Training Ground. A Match Team
+	# lists only Match Players, an Adventure Team only Adventure Players;
+	# untrained players and brewers are in neither. See player_roles.gd.
+	_library = PlayerRoles.filter(_library, String(entry.get("kind", "match")), state, db)
 
 	# ============ THE CLASS TREE'S GATE ============
 	#
@@ -433,6 +442,22 @@ func _build_identity_row() -> Control:
 	_name_field.text_changed.connect(_on_name_typed)
 	words.add_child(_name_field)
 
+	# ROUND AN: a Match Team or an Adventure Team. Click to switch.
+	if PlayerRoles.on(db):
+		_kind_button = Button.new()
+		_kind_button.text = PlayerRoles.team_label(String(entry.get("kind", "match")))
+		_kind_button.custom_minimum_size = Vector2(230, 54)
+		_kind_button.add_theme_font_size_override("font_size", 20)
+		_kind_button.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
+		_kind_button.add_theme_stylebox_override("normal",
+			MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
+		_kind_button.add_theme_stylebox_override("hover",
+			MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+		_kind_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_kind_button.tooltip_text = "A Match Team fields your Match Players, an Adventure Team your Adventure Players.\nThe Training Ground decides who is which."
+		_kind_button.pressed.connect(_on_switch_kind)
+		row.add_child(_kind_button)
+
 	var pick := MenuSupport.icon_button("◈", "Choose badge", Vector2(210, 54))
 	pick.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	pick.tooltip_text = "Pick the shape and colour this team wears on the shelf.\nDrop a PNG in assets/team_icons/ and it is offered here too."
@@ -441,6 +466,25 @@ func _build_identity_row() -> Control:
 
 	_refresh_badge()
 	return frame
+
+
+## ROUND AN: switch between a Match Team and an Adventure Team. Anybody who
+## may not play for the new kind leaves his slot.
+func _on_switch_kind() -> void:
+	if entry.is_empty():
+		return
+	var now := PlayerRoles.ADVENTURE if String(entry.get("kind", "match")) == PlayerRoles.MATCH \
+		else PlayerRoles.MATCH
+	entry["kind"] = now
+	_load_library()
+	for tier in _chosen.keys():
+		var by_power: Dictionary = _chosen[tier]
+		for power in by_power.keys():
+			if not PlayerRoles.fits(by_power[power], now, state, db):
+				by_power.erase(power)
+	if _kind_button != null:
+		_kind_button.text = PlayerRoles.team_label(now)
+	_refresh()
 
 
 func _on_name_typed(new_text: String) -> void:

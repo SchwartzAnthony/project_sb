@@ -235,7 +235,9 @@ func _teams_panel() -> Control:
 			gaps.append(short)
 		if stars != "":
 			gaps.append(stars)
-		line.text = "%s   ·   %s   ·   %d / %d players%s" % [entry["name"], entry["class"],
+		line.text = "%s   ·   %s%s   ·   %d / %d players%s" % [entry["name"],
+			(PlayerRoles.team_label(String(entry.get("kind", "match"))) + "   ·   ") if PlayerRoles.on(db) else "",
+			entry["class"],
 			players, TeamBuild.TEAM_SIZE,
 			"" if gaps.is_empty() else "   —   " + "; ".join(gaps)]
 		line.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT
@@ -254,6 +256,8 @@ func _teams_panel() -> Control:
 	make.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	make.pressed.connect(func() -> void:
 		TeamBuilderHandoff.clear(get_tree())
+		# A Match Team to start with; the builder's button switches it.
+		TeamBuilderHandoff.set_kind(get_tree(), PlayerRoles.MATCH)
 		state.save_to_disk()
 		ScenePaths.go_to(get_tree(), ScenePaths.CLASS_SELECT))
 	column.add_child(make)

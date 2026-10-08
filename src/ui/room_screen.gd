@@ -439,7 +439,7 @@ func _who_opens(requires: String) -> String:
 # ---- THE TRAINING GROUND ------------------------------------
 
 func _fill_training() -> void:
-	_intro.text = "Ausbildung trains a number for the whole side. A mini-game automates one Brewery section — today it buys that section another vat, which is the foundation the played game will sit on. And here your players are trained as BREWERS."
+	_intro.text = "Ausbildung trains a number for the whole side. A mini-game automates one Brewery section — today it buys that section another vat, which is the foundation the played game will sit on. And here your players are trained as MATCH, ADVENTURE or BREWER players."
 	for kind in ["ausbildung", "minigame"]:
 		var heading := MenuSupport.heading(
 			"AUSBILDUNG" if kind == "ausbildung" else "THE FIVE MINI-GAMES",
@@ -467,47 +467,73 @@ func _fill_training() -> void:
 	_fill_brewers()
 
 
-# ---- THE BREWERS (round AN) ---------------------------------
+# ---- YOUR PLAYERS: MATCH, ADVENTURE OR BREWER (round AN) -----
 #
-# "Brew Players are trained at the training hall to be only brewers." One of
-# your players takes the apprenticeship; his power becomes his efficiency.
+# "The player can train new player units as Adventure Player, Match Player
+#  and Brewer Player ... they have to choose new player units where to send
+#  them and what they will be working on." Every one of your players is
+# listed with a button for each role he could be trained for. The roles and
+# their prices are Training.csv rows (Kind match_player, adventure_player,
+# brewer). See player_roles.gd and brewer_book.gd.
 
 func _fill_brewers() -> void:
-	var entry := BaseRooms.brewer_training()
-	if entry.is_empty():
+	var roles := PlayerRoles.offered()
+	if roles.is_empty() or not PlayerRoles.on(db):
 		return
-	_list.add_child(MenuSupport.heading("BREWERS", 17, MenuSupport.COLOUR_ACCENT))
-	var price := "%d %s" % [int(entry["cost"]), entry["currency"]] if int(entry["cost"]) > 0 else "Free"
-	_list.add_child(_small("%s: one of your players becomes a brewer for %s and never plays again. His power is his efficiency - his chance at a Brewery machine (Brewers.csv). After a shift he rests in the Dorms." % [entry["name"], price]))
-	var allowed := DialogueGrammar.test(String(entry["needs"]), state)
-	if not allowed:
-		_list.add_child(_small("LOCKED — " + DialogueGrammar.describe(String(entry["needs"]))))
+	_list.add_child(MenuSupport.heading("YOUR PLAYERS", 17, MenuSupport.COLOUR_ACCENT))
+	var bits: PackedStringArray = []
+	for r in roles:
+		bits.append("%s %s" % [PlayerRoles.label(r), _role_price(r)])
+	_list.add_child(_small("Choose what each player works on: %s. A Match Player plays in your Match Teams, an Adventure Player in your Adventure Teams. A Brewer works the Brewery machines and never plays again - his power is his efficiency, his chance at a machine (Brewers.csv). New players arrive untrained." % ", ".join(bits)))
 
-	for name_text in BrewerBook.names(state):
-		var eff := BrewerBook.efficiency(name_text, state)
+	# Untrained first: they are the ones waiting for you.
+	var order: Array[String] = []
+	for want in [PlayerRoles.NEW, PlayerRoles.MATCH, PlayerRoles.ADVENTURE, PlayerRoles.BREWER]:
+		for name_text in RecruitBook.names(state):
+			if PlayerRoles.role(name_text, state, db) == want:
+				order.append(name_text)
+
+	for name_text in order:
+		var mine := PlayerRoles.role(name_text, state, db)
+		var power := BrewerBook.efficiency(name_text, state)
 		var left := RecoveryBook.turns_left_name(name_text, state)
-		var line := _row_frame(true)
+		var line := _row_frame(mine != PlayerRoles.NEW)
 		var words := _row_words(line)
-		words.add_child(_name_label("%s  ·  Brewer  ·  efficiency %d  ·  %d%%" % [
-			name_text, eff, BrewerBook.success_for(eff)], true))
-		words.add_child(_small(("Resting in the Dorms — %d fixture(s) to go." % left) if left > 0
-			else "Ready to work a machine."))
+		words.add_child(_name_label("%s  ·  Tier %s  ·  P:%d  ·  %s" % [
+			name_text, BrewerBook.tier(name_text, state), power, PlayerRoles.label(mine)],
+			mine != PlayerRoles.NEW))
+		var note := ""
+		if mine == PlayerRoles.BREWER:
+			note = "Efficiency %d, %d%% at a machine." % [power, BrewerBook.success_for(power)]
+		elif mine == PlayerRoles.NEW:
+			note = "Not in any team until he is trained."
+		else:
+			note = "Plays in your %ss." % PlayerRoles.team_label(mine)
+		if left > 0:
+			note += "  Resting in the Dorms - %d fixture(s) to go." % left
+		words.add_child(_small(note))
+		if mine == PlayerRoles.BREWER:
+			continue
+		for r in roles:
+			if r == mine:
+				continue
+			var entry := PlayerRoles.training_row(r)
+			var short := {"match": "Match", "adventure": "Adventure", "brewer": "Brewer"}
+			line.add_child(_buy_button("%s · %s" % [short.get(r, r), _role_price(r)],
+				_can_pay(int(entry["cost"]), String(entry["currency"]))
+					and DialogueGrammar.test(String(entry["needs"]), state),
+				_train_role.bind(name_text, r)))
 
-	var can_pay := _can_pay(int(entry["cost"]), String(entry["currency"]))
-	for name_text in BrewerBook.candidates(state):
-		var eff := BrewerBook.efficiency(name_text, state)
-		var line := _row_frame(false)
-		var words := _row_words(line)
-		words.add_child(_name_label("%s  ·  Tier %s  ·  P:%d" % [
-			name_text, BrewerBook.tier(name_text, state), eff], false))
-		words.add_child(_small("As a brewer: efficiency %d, %d%% at a machine." % [
-			eff, BrewerBook.success_for(eff)]))
-		line.add_child(_buy_button("Train · " + price, allowed and can_pay,
-			_train_brewer.bind(name_text)))
+
+func _role_price(role_text: String) -> String:
+	var entry := PlayerRoles.training_row(role_text)
+	if entry.is_empty() or int(entry["cost"]) <= 0:
+		return "free"
+	return "%d %s" % [int(entry["cost"]), entry["currency"]]
 
 
-func _train_brewer(name_text: String) -> void:
-	_say(BaseRooms.train_brewer(name_text, state))
+func _train_role(name_text: String, role_text: String) -> void:
+	_say(BaseRooms.train_role(name_text, role_text, state))
 
 
 func _train(id_text: String) -> void:
