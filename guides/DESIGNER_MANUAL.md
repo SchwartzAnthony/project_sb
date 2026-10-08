@@ -6811,9 +6811,11 @@ window in the same frame as every other box, with one button per row of
 
 | Button | Plays | Length |
 |---|---|---|
-| **Half Match** | `friendly_half` | 45 minutes, 2 Play Maker cycles, one Star swap |
-| **Full Match** | `friendly` | 90 minutes, 3 cycles, three Stars (what the flag always played) |
-| **1 Cycle Match** | `friendly_cycle` | 30 minutes, 1 cycle of 3 rounds, one Star |
+| **Normal Match** | `friendly` | 3 cycles, 90 minutes, three Stars (what the flag always played) |
+| **Test Match** | `friendly_test` | 2 cycles, 60 minutes, one Star swap |
+| **Quick Match** | `friendly_cycle` | 1 cycle of 3 rounds, 30 minutes, one Star |
+A match is counted in **Play Maker cycles**, 30 minutes of clock each.
+
 
 `MatchMaker.csv` columns: **Words** (the button), **Icon** (`art|glyph`: an
 icon file in `assets/icons/`, and the characters shown until it exists),
@@ -6824,7 +6826,7 @@ Star swaps and what it pays), **Under** (the line under the button),
 
 - A shorter clock squeezes the Play Makers in by itself: the last one comes
   as long before the final whistle as in a full match (8 minutes).
-- Half and 1 Cycle pay a little less than a Full Match (`Rewards` columns).
+- Test and Quick pay a little less than a Normal Match (`Rewards` columns).
 - While a story match stands in for the friendly (the first match of a new
   game), the flag skips the Match Maker and starts that match, as before.
 - To check it: `godot --path . --resolution 1920x1080 --script

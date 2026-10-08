@@ -4,8 +4,9 @@ extends RefCounted
 # =============================================================
 #  THE MATCH MAKER  (round AN)
 #
-#  Anthony: "the base's Play Match flag opens a new Match Maker window with
-#  options half match, full match and 1 cycle match".
+#  Anthony: "the base's Play Match flag opens a new Match Maker window".
+#  A match is counted in Play Maker cycles (8 Oct): Normal Match = 3,
+#  Test Match = 2, Quick Match = 1.
 #
 #  A small window over the base, in the same `window` frame as every "are you
 #  sure" in the game (Theme.csv), with one button per row of
@@ -52,9 +53,9 @@ static func options(state: GameState) -> Array[Dictionary]:
 			"under": MenuSupport.field(row, "Under"),
 		})
 	# NEVER AN EMPTY WINDOW. No file, or every row hidden, is the old button:
-	# a full friendly.
+	# a Normal Match.
 	if out.is_empty():
-		out.append({"id": "full", "words": "Full Match", "icon": "play|▶",
+		out.append({"id": "normal", "words": "Normal Match", "icon": "cycle3|3",
 			"mode": "friendly", "under": ""})
 	return out
 

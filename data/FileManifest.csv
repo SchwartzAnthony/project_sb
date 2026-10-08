@@ -45,7 +45,7 @@ Keys.csv,data/,A spreadsheet you edit,
 Keywords.csv,data/,A spreadsheet you edit,"EVERY WORD THE GAME UNDERSTANDS. Effects, targets, scopes, conditions and tags, each marked live or planned. Add a row with Status planned to ask for a new one - the sentence you write is the specification"
 Language.csv,data/,A spreadsheet you edit,
 MatchModes.csv,data/,A spreadsheet you edit,
-MatchMaker.csv,data/,A spreadsheet you edit,"ROUND AN. The Match Maker's buttons (Half, Full, 1 Cycle): each names a MatchModes.csv row"
+MatchMaker.csv,data/,A spreadsheet you edit,"ROUND AN. The Match Maker's buttons (Normal 3 cycles, Test 2, Quick 1): each names a MatchModes.csv row"
 MenuConfig.csv,data/,A spreadsheet you edit,
 OutOfBounds.csv,data/,A spreadsheet you edit,"HOW A ROUND BEGINS, one row per beat. Same shape as Celebration.csv. It happens NINE TIMES A MATCH, so watch the total"
 Progression.csv,data/,A spreadsheet you edit,

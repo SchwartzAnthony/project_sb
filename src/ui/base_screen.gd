@@ -315,8 +315,8 @@ func _build_exits() -> void:
 	var to_match := _exit("play|▶", "Play a match", EXIT_SIZE)
 	to_match.tooltip_text = "A friendly against a side at your own level. Nothing goes in the table, but you still come away with something."
 	to_match.pressed.connect(func() -> void:
-		# ROUND AN (Anthony): the flag opens THE MATCH MAKER first - half,
-		# full or one cycle, data/MatchMaker.csv. Not while a story match
+		# ROUND AN (Anthony): the flag opens THE MATCH MAKER first - a 3, 2
+		# or 1 cycle match, data/MatchMaker.csv. Not while a story match
 		# stands in for the friendly (the first match of a new game): that
 		# one has its own length, so it starts straight away as before.
 		if MatchMode.stand_in_for("friendly", state) != "friendly":
