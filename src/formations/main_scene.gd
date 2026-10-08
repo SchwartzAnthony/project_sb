@@ -193,6 +193,9 @@ var press_radius_fraction: float = 0.55
 ## ROUND AN: outside the ball's range nobody goes faster than this many times
 ## his walk. Tuning.csv far_from_ball_pace; 0 = off.
 var far_from_ball_pace: float = 1.2
+## ROUND AN: how many of a side may go for the ball at once. Tuning.csv
+## ball_chasers_per_side; 0 = no limit (the old pile).
+var ball_chasers_per_side: int = 2
 ## Extra defenders from OTHER quarters allowed to join the press.
 var press_helpers: int = 2
 var press_speed: float = 92.0
@@ -805,6 +808,7 @@ func _assign_roles() -> void:
 	var reach := zones.play.size.y * press_radius_fraction
 
 	var pressing := _pick_pressers(units, side, focus, reach)
+	var goers := _pick_goers(units, side, receiver, focus, reach, pressing)
 
 	for unit in units:
 		var tier := "I"
@@ -832,7 +836,8 @@ func _assign_roles() -> void:
 		# pitch breaks toward the man it is aimed at — his side to support
 		# him, theirs to get there first — instead of standing and watching
 		# the ball travel. See _goal_kick().
-		var converge := _converge_target(unit)
+		# Only the few picked in _pick_goers; the rest keep their zone.
+		var converge := _converge_target(unit) if goers.has(unit) else Vector2.INF
 		if converge != Vector2.INF:
 			unit.set_role(PlayerUnit.Role.BALL, converge, unit.chase_speed)
 			continue
@@ -857,17 +862,14 @@ func _assign_roles() -> void:
 		# circle belonged to four Tiers at once and six players set off for it.
 		# The claim band is a third of the pitch and it is a different question
 		# — see pitch_zones.gd.
-		var mine_to_win := side != unit_side and unit.steal_cooldown <= 0.0 \
-			and zones.claims_x(tier, unit.is_enemy, ball.global_position) \
-			and unit.global_position.distance_to(focus) < reach
-		if mine_to_win:
+		if goers.has(unit) and _wants_ball(unit, side, focus, reach):
 			unit.set_role(PlayerUnit.Role.BALL, ball.global_position, unit.chase_speed)
 			continue
 
 		if side < 0:
 			unit.set_role(PlayerUnit.Role.HOLD, _keep_moving(unit, _drift_point(unit)), unit.walk_speed)
 		elif side != unit_side:
-			if pressing.has(unit):
+			if pressing.has(unit) and goers.has(unit):
 				unit.set_role(PlayerUnit.Role.PRESS, focus, press_speed)
 			else:
 				unit.set_role(PlayerUnit.Role.MARK, _mark_point(unit), unit.walk_speed * 1.5)
@@ -904,6 +906,48 @@ func _pace_by_range(units: Array[PlayerUnit], reach: float) -> void:
 				if _is_closest_to_ball(unit, recover_closers):
 					continue
 		unit.role_speed = minf(unit.role_speed, unit.walk_speed * far_from_ball_pace)
+
+
+## Is the ball this unit's to go and win: not his side's, in the band his
+## Tier claims, and within reach. `claims_x`, not `contains_x` - the roam band
+## is 60% of the pitch, so it would hand a centre-circle ball to four Tiers.
+func _wants_ball(unit: PlayerUnit, side: int, focus: Vector2, reach: float) -> bool:
+	var tier := unit.data.get_tier_clean() if unit.data != null else "I"
+	return side != (1 if unit.is_enemy else 0) and unit.steal_cooldown <= 0.0 \
+		and zones.claims_x(tier, unit.is_enemy, ball.global_position) \
+		and unit.global_position.distance_to(focus) < reach
+
+
+## ============ ONLY A FEW GO; THE REST HOLD THEIR ZONE  (round AN, 8 Oct) ============
+##
+## Anthony: "a few people piling up is great but when it is player units not
+## protecting their zone it is also a little too much ... less crowded and
+## more zone targeted."
+##
+## Every rule that sends a player at the ball - the loose ball in his claim
+## band, the press, the run to a goal kick - used to send EVERYONE who passed
+## it: about seven players on average and the whole pitch for a goal kick.
+## Now each side sends at most `ball_chasers_per_side` of them, the nearest
+## to where the ball is going, and the rest mark or hold in their own quarter.
+func _pick_goers(units: Array[PlayerUnit], side: int, receiver: PlayerUnit,
+		focus: Vector2, reach: float, pressing: Array[PlayerUnit]) -> Dictionary:
+	var out := {}
+	var limit := ball_chasers_per_side if ball_chasers_per_side > 0 else 99
+	for team in [0, 1]:
+		var wanting: Array[PlayerUnit] = []
+		for unit in units:
+			if (1 if unit.is_enemy else 0) != team or ball.is_carried_by(unit) \
+					or unit == receiver:
+				continue
+			if pressing.has(unit) or _wants_ball(unit, side, focus, reach) \
+					or _converge_target(unit) != Vector2.INF:
+				wanting.append(unit)
+		wanting.sort_custom(func(a: PlayerUnit, b: PlayerUnit) -> bool:
+			return a.global_position.distance_squared_to(focus) \
+				< b.global_position.distance_squared_to(focus))
+		for i in mini(limit, wanting.size()):
+			out[wanting[i]] = true
+	return out
 
 
 ## Who charges the ball. Everyone defending whose own quarter the ball is in,
@@ -1687,6 +1731,7 @@ func _apply_match_tuning() -> void:
 	zones_enabled = db.tune_bool("zones_enabled", zones_enabled)
 	press_radius_fraction = db.tune_float("press_radius_fraction", press_radius_fraction)
 	far_from_ball_pace = db.tune_float("far_from_ball_pace", far_from_ball_pace)
+	ball_chasers_per_side = db.tune_int("ball_chasers_per_side", ball_chasers_per_side)
 	ball_roam_quarter_first = db.tune_int("ball_roam_quarter_first", ball_roam_quarter_first)
 	ball_roam_quarter_last = db.tune_int("ball_roam_quarter_last", ball_roam_quarter_last)
 	surge_advance = db.tune_float("surge_advance", surge_advance)

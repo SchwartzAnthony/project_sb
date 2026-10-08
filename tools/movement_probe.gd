@@ -25,6 +25,10 @@ extends SceneTree
 # =============================================================
 
 var _stats := {}
+## Crowding: per frame, how many stand near the ball and how many go for it.
+var _crowd := {"frames": 0, "near_sum": 0, "near_max": 0, "chasers_sum": 0,
+	"chasers_max": 0, "piles": 0}
+const NEAR := 140.0
 var _film := false
 var _dir := "user://movement_film"
 
@@ -96,6 +100,7 @@ func _initialize() -> void:
 			if zones != null else 300.0
 		for unit in scene.call("_all_units"):
 			_sample(unit, ball, reach, dt, last_dir)
+		_count_crowd(scene.call("_all_units"), ball)
 		if _film:
 			since_shot += dt
 			if since_shot >= 0.2:
@@ -111,7 +116,7 @@ func _sample(unit: PlayerUnit, ball, reach: float, dt: float, last_dir: Dictiona
 	var key := "%s %s" % ["THEM" if unit.is_enemy else "YOU ", tier]
 	if not _stats.has(key):
 		_stats[key] = {"t": 0.0, "free": 0.0, "away": 0.0, "far_sprint": 0.0,
-			"turns": 0, "stood": 0.0, "n": {}}
+			"turns": 0, "stood": 0.0, "out": 0.0, "n": {}}
 	var s: Dictionary = _stats[key]
 	s["n"][unit.get_instance_id()] = true
 	s["t"] += dt
@@ -126,6 +131,9 @@ func _sample(unit: PlayerUnit, ball, reach: float, dt: float, last_dir: Dictiona
 	unit.set_meta("probe_prev", unit.global_position)
 	if speed < 2.0:
 		s["stood"] += dt
+	if unit.tier_zone.size.x > 1.0 and (unit.global_position.x < unit.tier_zone.position.x \
+			or unit.global_position.x > unit.tier_zone.end.x):
+		s["out"] += dt
 	if ball == null or not is_instance_valid(ball):
 		return
 	var gap: Vector2 = ball.global_position - unit.global_position
@@ -142,9 +150,33 @@ func _sample(unit: PlayerUnit, ball, reach: float, dt: float, last_dir: Dictiona
 		s["far_sprint"] += dt
 
 
+func _count_crowd(units: Array, ball) -> void:
+	if ball == null or not is_instance_valid(ball):
+		return
+	var near := 0
+	var chasers := 0
+	for unit in units:
+		if unit.global_position.distance_to(ball.global_position) < NEAR:
+			near += 1
+		if unit.role == PlayerUnit.Role.BALL or unit.role == PlayerUnit.Role.PRESS:
+			chasers += 1
+	_crowd["frames"] += 1
+	_crowd["near_sum"] += near
+	_crowd["near_max"] = maxi(_crowd["near_max"], near)
+	_crowd["chasers_sum"] += chasers
+	_crowd["chasers_max"] = maxi(_crowd["chasers_max"], chasers)
+	if near >= 6:
+		_crowd["piles"] += 1
+
+
 func _report(measured: float) -> void:
+	var f: float = maxf(1.0, float(_crowd["frames"]))
+	print("[probe] near the ball (%d px): %.1f on average, %d at worst, 6+ for %.0f%% of the time" % [
+		int(NEAR), _crowd["near_sum"] / f, _crowd["near_max"], 100.0 * _crowd["piles"] / f])
+	print("[probe] going for it (BALL/PRESS): %.1f on average, %d at worst" % [
+		_crowd["chasers_sum"] / f, _crowd["chasers_max"]])
 	print("[probe] %.1f s of open play measured" % measured)
-	print("[probe] %-9s %3s  %12s  %10s  %8s  %6s" % ["who", "n", "facing away", "far sprint", "turns/s", "stood"])
+	print("[probe] %-9s %3s  %12s  %10s  %8s  %6s  %9s" % ["who", "n", "facing away", "far sprint", "turns/s", "stood", "off zone"])
 	var keys := _stats.keys()
 	keys.sort()
 	var worst_away := 0.0
@@ -154,8 +186,9 @@ func _report(measured: float) -> void:
 		var n: int = s["n"].size()
 		var away: float = 100.0 * s["away"] / maxf(s["free"], 0.001)
 		worst_away = maxf(worst_away, away)
-		print("[probe] %-9s %3d  %11.0f%%  %9.0f%%  %8.2f  %5.0f%%" % [key, n, away,
-			100.0 * s["far_sprint"] / t, float(s["turns"]) / t / maxf(n, 1), 100.0 * s["stood"] / t])
+		print("[probe] %-9s %3d  %11.0f%%  %9.0f%%  %8.2f  %5.0f%%  %8.0f%%" % [key, n, away,
+			100.0 * s["far_sprint"] / t, float(s["turns"]) / t / maxf(n, 1), 100.0 * s["stood"] / t,
+			100.0 * s["out"] / t])
 	print("[probe] worst facing-away: %.0f%%" % worst_away)
 
 
