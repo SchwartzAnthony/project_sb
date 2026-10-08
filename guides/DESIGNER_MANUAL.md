@@ -659,6 +659,29 @@ went for the ball on average and **19** at a goal kick. After: about **2**, and
 |---|---|
 | `ball_chasers_per_side` | how many of a side may go for the ball at once. `2`. `0` = no limit |
 
+**Nobody runs away from the ball to get open.** Anthony: *"why would they
+turn away from the ball and run towards the edge of the field for no
+reason?"* The probe showed it was mostly players **showing for a pass**
+(OPEN): the spot was their home slot plus 230 px off their marker, 120
+forward and 150 toward their touchline, so a man on the far side of the play
+walked further away to "get open". Markers following their man did the rest.
+
+Now both keep to a **ring round the ball**: no closer than `open_support_min`
+(a marker: `mark_keep_off`), **never further than they already are** (up to
+`open_support_max`), and inside their own quarter (`open_zone_margin`). A
+"don't stand still" fresh spot also prefers space near the ball
+(`fresh_spot_ball_weight`). Away-from-the-ball running went from about **390**
+player-seconds a minute to about **65**.
+
+| Tuning row | |
+|---|---|
+| `open_support_min` | closest a player showing for a pass comes to the ball. `190` px |
+| `open_support_max` | furthest he may be sent from it. `340` px. `0` = off |
+| `open_zone_margin` | how far past his own quarter that spot may be, share of a quarter. `0` |
+| `mark_keep_off` | closest a marker comes to the ball under the same rule. `120` px |
+| `fresh_spot_ball_weight` | how much a fresh spot prefers being near the ball. `1.2` |
+| `open_spread` / `open_break` / `open_width` | now `90` / `70` / `50` (were 230 / 120 / 150) |
+
 **See it in the game:** press **Z** in a match. On top of the zone map you get
 the gold **ball range** circle, a gold cross where the ball will land, every
 player's **job word** (gold = the ball is in his range, `sprint` = going
