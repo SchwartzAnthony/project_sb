@@ -65,8 +65,9 @@ func _initialize() -> void:
 	_check(asked, "the second new save asks too")
 	var story := await _wait_for_scene("dialogue", 20.0)
 	_check(story != "", "YES: Pub Dialogue 1 plays")
-	state = GameState.fetch(self)
 	_check(Tutorial.active(self), "the tutorial is running")
+	_check(GameState.SAVE_PATH == Tutorial.SEALED_SAVE, "YES: the tutorial plays in a save of its own")
+	var tutorial_names: Array[String] = []
 	await create_timer(1.0, true, false, true).timeout
 	await _shot_one("prologue")
 	await _read_story(90.0)
@@ -78,6 +79,7 @@ func _initialize() -> void:
 	_check(String(MatchMode.current(self).get("id", "")) == "tutorial", "it is the tutorial match")
 
 	# ---- 3. the match ----
+	tutorial_names = RecruitBook.names(GameState.fetch(self))
 	await _play(scene)
 	for stop in STOPS:
 		_check(_seen.has(stop), "the coach stopped: %s" % stop)
@@ -89,6 +91,23 @@ func _initialize() -> void:
 	state = GameState.fetch(self)
 	_check(RecruitBook.names(state).size() == 12, "the base has the full starting team (%d)" % RecruitBook.names(state).size())
 	_check(state.unlocks.is_empty(), "nothing is unlocked (%s)" % str(state.unlocks))
+	# NOTHING FROM THE TUTORIAL REACHES YOUR GAME (Anthony, 8 Oct).
+	_check(GameState.SAVE_PATH == DIR + "/story_yes.json", "your own save is back")
+	_check(not FileAccess.file_exists(Tutorial.SEALED_SAVE), "the tutorial's save is thrown away")
+	var leaked: Array[String] = []
+	for key in state.flags.keys():
+		if String(key).contains("tutorial") or String(key).begins_with("matchtalkdone") \
+				or String(key).begins_with("match_talk_done"):
+			leaked.append(String(key))
+	_check(leaked.is_empty(), "no tutorial flags in your save (%s)" % str(leaked))
+	var same := 0
+	for name_text in RecruitBook.names(state):
+		if tutorial_names.has(name_text):
+			same += 1
+	# The starting team is made fresh in your save, so a shared name can only
+	# be chance (Names.csv is long, so it is nearly always 0).
+	_check(same <= 2, "the tutorial's players did not come with you (%d names shared)" % same)
+	_check(int(state.count("matches_played")) == 0, "the tutorial match is not counted (%d)" % int(state.count("matches_played")))
 	await _shot_one("end_base")
 
 	# ---- 5. from the main menu ----
@@ -170,11 +189,11 @@ func _play(scene: Node) -> void:
 			throw.set_meta("answered", true)
 			throw.call("auto_play", 0.3, 0.5)
 		var clash = scene.get("rps")
-		if clash != null and clash.is_running():
-			if clash.awaiting_throw():
-				clash.throw_buttons.get_child(0).pressed.emit()
-			elif clash.awaiting_choice():
-				clash.choice_buttons.get_child(0).pressed.emit()
+		if clash != null and clash.is_running() and not clash.has_meta("answered"):
+			clash.set_meta("answered", true)
+			clash.call("auto_play", 0.3, 0.5)
+		elif clash != null and not clash.is_running() and clash.has_meta("answered"):
+			clash.remove_meta("answered")
 		var offered: Array = scene.get("offered_cards")
 		if offered.is_empty() or paused:
 			dealt_at = -1

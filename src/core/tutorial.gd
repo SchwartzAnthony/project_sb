@@ -11,11 +11,14 @@ extends RefCounted
 #  ============ THE TWO WAYS IN ============
 #
 #    A NEW SAVE      the base asks the question (Language.csv tutorial_offer_*).
-#                    YES plays the tutorial in that save. NO gives the base its
-#                    starting team (below) and nothing else.
-#    THE MAIN MENU   the Tutorial button plays it in a save of its own
-#                    (user://tutorial_story.json, wiped every time), so your
-#                    real game is never touched, and comes back to the menu.
+#                    YES plays the tutorial, then back to that save's base
+#                    with the starting team. NO gives the base its starting
+#                    team (below) and nothing else.
+#    THE MAIN MENU   the Tutorial button plays it and comes back to the menu.
+#
+#  EITHER WAY it plays in a save of its own (user://tutorial_story.json,
+#  wiped at the start and the end), so it opens and ends with nothing
+#  affecting your real game (Anthony, 8 Oct).
 #
 #  ============ WHAT IT IS ============
 #
@@ -27,11 +30,9 @@ extends RefCounted
 #  ============ THE STARTING TEAM ============
 #
 #  Tuning.csv starting_team names a squad CSV (data/StartingTeam.csv): twelve
-#  plain players, three per Tier. Each ID is made ONCE per save and kept, so
-#  a player who already played the tutorial match under the same ID (the
-#  IDs match data/IntroSquad.csv) is the same person at the base. Whether
-#  you said yes or no, the base ends up the same: the full team, everything
-#  else locked.
+#  plain players, three per Tier, with random names, made once per save.
+#  Whether you said yes or no, the base ends up the same: the full team,
+#  everything else locked.
 # =============================================================
 
 const META := "cw_tutorial"
@@ -63,27 +64,31 @@ static func ask(host: Node) -> bool:
 	return picked == 0
 
 
-## Start it. `sealed` = in a save of its own (from the main menu).
-static func start(tree: SceneTree, sealed: bool) -> void:
+## Start it. ALWAYS in a save of its own (user://tutorial_story.json, wiped
+## every time), so nothing the tutorial does - its players, its flags, its
+## match - ever reaches your real game (Anthony, 8 Oct: "the tutorial should
+## open and end with nothing affecting the base game").
+## `from_menu` true = back to the title screen at the end; false (a new
+## save said Yes) = back to that save, at its base with the starting team.
+static func start(tree: SceneTree, from_menu: bool) -> void:
 	if tree == null:
 		return
 	var db := CardDatabase.get_db()
-	var info := {"sealed": sealed}
-	if sealed:
-		info["save"] = GameState.SAVE_PATH
-		info["teams"] = TeamRoster.SAVE_PATH
-		for path in [SEALED_SAVE, SEALED_TEAMS]:
-			if FileAccess.file_exists(path):
-				DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
-		GameState.SAVE_PATH = SEALED_SAVE
-		TeamRoster.SAVE_PATH = SEALED_TEAMS
-		GameState.forget(tree)
-		TeamSelection.clear(tree)
+	var info := {
+		"from_menu": from_menu,
+		"save": GameState.SAVE_PATH,
+		"teams": TeamRoster.SAVE_PATH,
+	}
+	_wipe_sealed()
+	GameState.SAVE_PATH = SEALED_SAVE
+	TeamRoster.SAVE_PATH = SEALED_TEAMS
+	GameState.forget(tree)
+	TeamSelection.clear(tree)
 	tree.set_meta(META, info)
 
 	var state := GameState.fetch(tree)
 	if state != null:
-		# A tutorial save never asks the question itself.
+		# The tutorial's own save never asks the question itself.
 		state.set_flag("game_begun")
 		state.set_flag("in_tutorial")
 		state.save_to_disk()
@@ -91,47 +96,44 @@ static func start(tree: SceneTree, sealed: bool) -> void:
 	ScenePaths.clear_trail(tree)
 	MatchMode.choose(tree, db.tune_text("tutorial_match_mode", "tutorial"))
 	var first := db.tune_text("tutorial_first_scene", "prologue")
-	print("[tutorial] Starting the tutorial (%s): '%s', then the %s match." % [
-		"its own save" if sealed else "this save", first,
-		db.tune_text("tutorial_match_mode", "tutorial")])
+	print("[tutorial] Starting the tutorial in its own save: '%s', then the %s match." % [
+		first, db.tune_text("tutorial_match_mode", "tutorial")])
 	# A squad match walks straight through Team Select, so the screen goes
 	# black from the end of the story, not after it.
 	DialogueView.play(tree, first, ScenePaths.TEAM_SELECT)
 
 
-## The tutorial match is over.
+## The tutorial is over (full time, or Quit in the match). Its save is thrown
+## away and yours comes back exactly as it was.
 static func finish(tree: SceneTree) -> void:
 	if tree == null or not tree.has_meta(META):
 		return
 	var info: Dictionary = tree.get_meta(META)
 	tree.remove_meta(META)
-	var state := GameState.fetch(tree)
-	if state != null:
-		state.set_flag("in_tutorial", false)
-		state.set_flag("tutorial_done")
 	MatchMode.clear(tree)
 	TeamSelection.clear(tree)
 	ScenePaths.clear_trail(tree)
 
-	if bool(info.get("sealed", false)):
-		if state != null:
-			state.save_to_disk()
-		GameState.SAVE_PATH = String(info.get("save", SaveSlots.REAL_STATE))
-		TeamRoster.SAVE_PATH = String(info.get("teams", SaveSlots.REAL_TEAMS))
-		GameState.forget(tree)
-		print("[tutorial] Finished. Your own save is back - to the title screen.")
+	GameState.SAVE_PATH = String(info.get("save", SaveSlots.REAL_STATE))
+	TeamRoster.SAVE_PATH = String(info.get("teams", SaveSlots.REAL_TEAMS))
+	GameState.forget(tree)
+	_wipe_sealed()
+
+	if bool(info.get("from_menu", true)):
+		print("[tutorial] Finished. Nothing kept - to the title screen.")
 		ScenePaths.go_to(tree, ScenePaths.MAIN_MENU, false)
 		return
 
-	give_starting_team(state)
-	print("[tutorial] Finished. To the base: the full team, everything else locked.")
+	# A new save said Yes: it gets exactly what No would have given it.
+	give_starting_team(GameState.fetch(tree))
+	print("[tutorial] Finished. Nothing kept - to the base: the starting team, everything else locked.")
 	ScenePaths.go_to(tree, ScenePaths.BASE, false)
 
 
-## Leave it half way (the pause menu's Quit in the tutorial match).
-static func abandon(tree: SceneTree) -> void:
-	if active(tree):
-		finish(tree)
+static func _wipe_sealed() -> void:
+	for path in [SEALED_SAVE, SEALED_TEAMS]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 
 
 ## The base after the tutorial, or after NO: a full team of plain players

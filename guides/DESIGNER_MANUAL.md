@@ -3119,7 +3119,8 @@ the title screen, and a brand-new save offers it.
 The first time the base opens on a new save, a window asks: *Would you like
 to do the Tutorial? If not, you can find it later on the main menu.*
 
-- **Yes** plays the Tutorial in that save (below).
+- **Yes** plays the Tutorial (below), then brings you back to this save's
+  base with the starting team, exactly as No would.
 - **No** leaves you at the base with **the starting team** and nothing else.
 
 The words are `Language.csv` `tutorial_offer_title`, `_text`, `_yes` and
@@ -3134,10 +3135,14 @@ The words are `Language.csv` `tutorial_offer_title`, `_text`, `_yes` and
    `IntroSquad.csv` (Koch in the Star's place at Tier IV, eleven plain
    players) and theirs is all plain players. The Head Coach stops it again
    and again: every stop is a `MatchTalk.csv` row with Mode `tutorial`.
-3. **Full time** ends the Tutorial at the base, locked, with the starting
-   team. Started from the title screen, it plays in a save of its own
-   (`user://tutorial_story.json`, wiped each time) and comes back to the
-   title screen, so your real game is never touched.
+3. **Full time** (or Quit in the match) ends the Tutorial. From a new save
+   you land at that save's base, locked, with the starting team. From the
+   title screen you go back to the title screen.
+
+**Nothing the Tutorial does reaches your game** (your note, 8 Oct). It always
+plays in a save of its own (`user://tutorial_story.json`), which is wiped
+when it starts and when it ends: its players, flags and match are thrown
+away, and your save comes back exactly as it was.
 
 ### The Head Coach's stops (all in `MatchTalk.csv`, lines in `Dialogue.csv`)
 
@@ -3172,9 +3177,9 @@ to see them.
 
 `data/StartingTeam.csv` (`Tuning.csv starting_team`): twelve plain players,
 three per Tier, with random names. The base gets it at the end of the
-Tutorial, or when you say No. **The same ID is the same player**, so the
-eleven who played the tutorial match are the ones at your base, and p10
-takes Koch's place. Nothing else is unlocked.
+Tutorial, or when you say No. They are new people, not the ones from the
+tutorial match, because nothing from the Tutorial is kept. Nothing else is
+unlocked.
 
 ### The old introduction (retired)
 

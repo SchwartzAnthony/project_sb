@@ -2974,6 +2974,11 @@ func _on_quit_match() -> void:
 
 	# And no post-match screens: there is no result to show.
 	MatchReport.take(get_tree())
+	# ROUND AN: Quit in the tutorial match leaves the tutorial, its save
+	# thrown away (tutorial.gd).
+	if Tutorial.active(get_tree()):
+		Tutorial.finish(get_tree())
+		return
 	ScenePaths.go_to(get_tree(), ScenePaths.BASE, false)
 
 
