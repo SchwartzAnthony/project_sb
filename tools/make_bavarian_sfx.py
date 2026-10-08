@@ -1,27 +1,32 @@
 #!/usr/bin/env python3
-"""Every sound effect in Sturmball, made from scratch in Bavarian style.
+"""Every sound effect in Sturmball, in Bavarian style.
 
 ROUND AN (Anthony, 8 Oct 2026): "replace ALL sound effects with bavarian
 sounds - woods, birds, beer being poured, cow bell, tuba ... winning should
-sound fun and good, losing unfun and sad."
+sound fun and good, losing unfun and sad", then "quick sound effects".
 
-Nothing here is a recording. Every sound is built from sine waves and
-filtered noise by the little instruments below (a tuba, an Alpine cow bell,
-a wood block, beer pouring, a blackbird ...), so there is nobody to credit
-and no licence to track: the files are our own (data/SoundCredits.csv).
+Two sets live here, and PICKS (near the bottom) says which one each sound
+uses - Anthony chose sound by sound on the sound board:
+
+  classic  take 1: built from sine waves and noise (the c_ functions)
+  band     take 3: one quick idea each, played on the real recorded
+           instruments of the GeneralUser GS SoundFont the songs already
+           use (art_source/soundfonts/), plus synthesized thumps and beer
+           (the s_ functions)
 
     python3 tools/make_bavarian_sfx.py            # make them all
     python3 tools/make_bavarian_sfx.py bav_goal   # make one (or several)
 
-Writes assets/audio/bav_<name>.ogg. Audio.csv names these files in its
-Sound column, so a remade file is heard the next time the game starts.
+Writes assets/audio/bav_<name>.ogg and data/SoundCredits.csv. Audio.csv
+names these files in its Sound column.
 
 KIND TO EARS: every sound is low-passed (nothing shrill above ~7 kHz),
 faded in and out (no clicks), brought to the same loudness and kept under
--1 dBFS by a soft limiter, so no sound can clip. How loud each one plays
-in the game is the Volume column of Audio.csv.
+-1 dBFS, so no sound can clip. How loud each one plays in the game is the
+Volume column of Audio.csv.
 
-Needs numpy and scipy (pip install numpy scipy) and ffmpeg for the .ogg.
+Needs numpy, scipy, tinysoundfont (pip install --no-deps tinysoundfont)
+and ffmpeg.
 """
 import os
 import subprocess
@@ -619,30 +624,30 @@ def sad_tuba(notes, bpm=76, vel=0.7, wobble=True):
 
 
 # =============================================================
-#  THE SOUNDS - one function per file. The docstring is what you
-#  hear; it is copied into data/SoundCredits.csv by hand.
+#  THE CLASSIC SET (take 1, all synthesized). Anthony picked these
+#  "keep before" on the sound board, so they stay exactly as they were.
 # =============================================================
 
-def s_kickoff():
+def c_kickoff():
     "Referee's whistle (long), a cow bell from the stands and the tuba's 'oom-pah' pickup."
     return mix([(0, whistle(0.75, 2000, 1.0), 0.55),
                 (0.55, cowbells(2, 1.1, 0.25), 0.3),
                 (0.8, tuba("F2", 0.22, 0.8), 0.6), (1.05, tuba("Bb2", 0.4, 0.9), 0.7)])
 
 
-def s_play_maker():
+def c_play_maker():
     "One short whistle blast and two wood-block knocks - the game stops for a Play Maker."
     return mix([(0, whistle(0.28, 2050, 1.0), 0.55),
                 (0.32, woodblock(700, 0.12), 0.5), (0.47, woodblock(950, 0.12), 0.5)])
 
 
-def s_star_switch():
+def c_star_switch():
     "Two quick whistle blasts and a glockenspiel run up - a Star is coming on."
     return mix([(0, whistle(0.16, 2050), 0.5), (0.22, whistle(0.18, 2050), 0.5),
                 (0.45, glock("Bb5", 0.6), 0.35), (0.53, glock("D6", 0.6), 0.35), (0.61, glock("F6", 0.9), 0.4)])
 
 
-def s_goal():
+def c_goal():
     "GOAL: the band's 'oom-pah-pah TA-DAAA' in B-flat with cow bells ringing."
     beat = 60 / 140
     band = mix([(0, tuba("Bb2", beat * 0.7, 0.9), 0.8),
@@ -655,7 +660,7 @@ def s_goal():
     return mix([(0, band, 1.0), (beat * 2.5, cowbells(4, 1.4, 0.4), 0.25)])
 
 
-def s_goal_star():
+def c_goal_star():
     "A STAR scores: a Böller salute, the full band fanfare, cow bells and the beer tent on its feet."
     beat = 60 / 140
     fan = melody([("F4", 0.5), ("Bb4", 0.5), ("D5", 0.5), ("F5", 2.5)], 140, "horn", 0.9, 0.42)
@@ -666,67 +671,67 @@ def s_goal_star():
                 (0.3, crowd(2.8, "cheer", 45), 0.35)])
 
 
-def s_goal_against():
+def c_goal_against():
     "Conceding: a soft tuba going 'wah... wahhh' downhill and the tent sighing."
     return mix([(0, sad_tuba([("F2", 1), ("Db2", 2.2)], 84, 0.65), 0.8),
                 (0.05, crowd(1.8, "groan", 30), 0.3)])
 
 
-def s_shot():
+def c_shot():
     "A shot: a boot through a leather ball, and a little rush of air."
     return mix([(0, kick(1.0), 1.0), (0.02, whoosh(0.25, 500, 1800), 0.18)])
 
 
-def s_save():
+def c_save():
     "Keeper's catch: leather glove on leather ball, a grunt-less 'thup'."
     return mix([(0, leather(0.05, 1.0, 400, 2200), 0.9), (0, thump(160, 0.12, 0.7, 0.2), 0.7)])
 
 
-def s_save_big():
+def c_save_big():
     "A big save: the glove slap, the keeper hitting the grass and the crowd going 'ooh'."
     return mix([(0, leather(0.06, 1.0, 400, 2400), 1.0), (0, thump(150, 0.12, 0.7), 0.6),
                 (0.25, thump(70, 0.35, 1.0, 0.4), 0.8), (0.1, crowd(1.4, "ooh", 30), 0.35)])
 
 
-def s_ability_success():
+def c_ability_success():
     "An ability goes off: two Maß glasses clink - Prost! - and the glockenspiel climbs."
     return mix([(0, glass_clink(1900, 0.6), 0.45), (0.04, glass_clink(2250, 0.5), 0.35),
                 (0.12, glock("F5", 0.5), 0.3), (0.2, glock("Bb5", 0.5), 0.3), (0.28, glock("D6", 0.8), 0.35)])
 
 
-def s_ability_fail():
+def c_ability_fail():
     "An ability fizzles: a dud cork 'pfft', the foam going flat and one low tuba bloop."
     return mix([(0, cork_pop(0.5), 0.3), (0.03, fizz(0.6), 0.25),
                 (0.15, sad_tuba([("Db2", 1.1)], 90, 0.55, wobble=False), 0.7)])
 
 
-def s_power_victory():
+def c_power_victory():
     "Winning the power check: a Maßkrug slammed on the table and the tuba's cheeky 'oom-PAH!'."
     return mix([(0, mug_on_table(), 0.7), (0.12, tuba("F2", 0.16, 0.8), 0.6),
                 (0.3, tuba("Bb2", 0.35, 1.0), 0.75), (0.3, horn("D4", 0.3, 0.8), 0.25), (0.3, horn("F4", 0.3, 0.8), 0.22)])
 
 
-def s_power_fail():
+def c_power_fail():
     "Losing the power check: a dull knock on the table and the tuba drooping two notes."
     return mix([(0, woodblock(260, 0.15, 0.7), 0.6), (0.1, sad_tuba([("Ab2", 0.7), ("E2", 1.2)], 110, 0.6, wobble=False), 0.75)])
 
 
-def s_pour():
+def c_pour():
     "Beer being poured into a Maß, the glass filling up, the foam settling."
     return pour(1.6)
 
 
-def s_card_hover():
+def c_card_hover():
     "A tiny, soft knock on a beer mat - plays every time the mouse crosses a card."
     return woodblock(1250, 0.05, 0.6, hollow=0.4)
 
 
-def s_card_pick():
+def c_card_pick():
     "Picking a card: two knocks on the beer table, 'tock-tock'."
     return mix([(0, woodblock(820, 0.09), 0.7), (0.07, woodblock(1050, 0.1), 0.6)])
 
 
-def s_full_time_win():
+def c_full_time_win():
     "Full time, WON: a happy Bavarian polka flourish - tuba oom-pah, horns on top, cow bells and a glockenspiel sparkle."
     bpm = 140
     beat = 60 / bpm
@@ -740,14 +745,14 @@ def s_full_time_win():
                 (beat * 6.1, glock("Bb5", 0.6), 0.25), (beat * 6.3, glock("D6", 0.6), 0.25), (beat * 6.5, glock("F6", 1.0), 0.3)])
 
 
-def s_full_time_loss():
+def c_full_time_loss():
     "Full time, LOST: a lone tuba sinking down four notes, the last one wobbling sadly away."
     return mix([(0, sad_tuba([("Bb2", 1), ("A2", 1), ("Ab2", 1), ("G2", 3.2)], 76, 0.65), 0.85),
                 (0.2, accordion(["Eb4", "Gb4", "Bb4"], 1.4, 0.4), 0.25),
                 (1.8, accordion(["Eb4", "G4", "Bb4"], 1.8, 0.35), 0.2)])
 
 
-def s_full_time_draw():
+def c_full_time_draw():
     "Full time, DRAWN: the band starts a tune and stops halfway - an unresolved 'oom-pah... hm?'."
     bpm = 132
     back = oompah(["Bb1", "F2"], ["D4", "F4", "Bb4"], 4, bpm, 0.75)
@@ -756,18 +761,18 @@ def s_full_time_draw():
     return mix([(0, back, 1.0), (0, tune, 1.0), (4 * 60 / bpm, hang, 1.0)])
 
 
-def s_foul():
+def c_foul():
     "A foul: one short, round whistle blast."
     return whistle(0.35, 2000, 1.0, trill=True) * 0.6
 
 
-def s_yellow():
+def c_yellow():
     "A booking: the whistle, the tent going 'oooh' and a low tuba 'uh-oh'."
     return mix([(0, whistle(0.3, 2000), 0.5), (0.25, crowd(1.3, "ooh", 25), 0.3),
                 (0.35, sad_tuba([("D2", 0.5), ("Bb1", 0.9)], 120, 0.55, wobble=False), 0.6)])
 
 
-def s_red():
+def c_red():
     "A sending-off: a long whistle, a dark brass chord and the beer tent booing."
     return mix([(0, whistle(0.7, 2000), 0.5),
                 (0.5, horn("Db4", 1.2, 0.85, vibrato=0.01), 0.3), (0.5, horn("E4", 1.2, 0.85), 0.25),
@@ -775,107 +780,107 @@ def s_red():
                 (0.6, crowd(1.8, "boo", 35), 0.35)])
 
 
-def s_ball_tap():
+def c_ball_tap():
     "A player taking the ball: the tiniest scuff of boot on leather."
     return mix([(0, leather(0.025, 1.0, 300, 1600), 0.6), (0, thump(180, 0.05, 0.5, 0.3), 0.5)])
 
 
-def s_ball_kick():
+def c_ball_kick():
     "A player striking the ball on the run: short, dry, leathery."
     return kick(0.8)
 
 
-def s_hit_soft():
+def c_hit_soft():
     "An ordinary hit: a knock on a wooden beer bench. Short and plain - you hear it a lot."
     return mix([(0, woodblock(520, 0.08, 0.9), 0.7), (0, thump(140, 0.07, 0.5, 0.3), 0.4)])
 
 
-def s_hit_heavy():
+def c_hit_heavy():
     "A big hit: a full Maßkrug slammed down. Sits under the ordinary hit."
     return mix([(0, thump(80, 0.28, 1.0, 0.6), 0.9), (0, glass_clink(700, 0.2, 0.4), 0.3), (0.02, slosh(0.2), 0.3)])
 
 
-def s_enemy_down():
+def c_enemy_down():
     "An enemy finished off: three knocks tumbling down the scale and a thud on the floorboards."
     return mix([(0, woodblock(900, 0.08), 0.5), (0.08, woodblock(700, 0.09), 0.5), (0.16, woodblock(520, 0.1), 0.5),
                 (0.27, thump(75, 0.35, 1.0, 0.5), 0.8)])
 
 
-def s_player_hurt():
+def c_player_hurt():
     "One of yours hurt: a muffled 'oof' of a thump with a little sour tuba bend."
     return mix([(0, thump(120, 0.15, 0.8, 0.2), 0.6),
                 (0.02, lowpass(brass(note("E2"), 0.25, 0.5, 0.5, scoop=-0.08), 1500), 0.4)])
 
 
-def s_player_drop():
+def c_player_drop():
     "One of yours exhausted: a heavy body on the grass and a tired tuba sigh."
     return mix([(0, thump(65, 0.5, 1.0, 0.4), 0.9), (0.05, leather(0.08, 0.5, 200, 900), 0.4),
                 (0.15, sad_tuba([("C2", 0.6), ("A1", 1.2)], 100, 0.5, wobble=False), 0.55)])
 
 
-def s_item_use():
+def c_item_use():
     "An item mends somebody: a quick glug of beer and a warm two-note zither pluck."
     return mix([(0, pour(0.45, 0.8), 0.5), (0.35, gulp(), 0.5),
                 (0.4, zither("F4", 0.9), 0.4), (0.5, zither("Bb4", 1.0), 0.4)])
 
 
-def s_combo():
+def c_combo():
     "A combo comes off: a bright little Alpine cow bell and a glockenspiel 'ding'."
     return mix([(0, cowbell(880, 0.9, 1.0), 0.45), (0.03, glock("F6", 0.6), 0.3)])
 
 
-def s_shot_heavy():
+def c_shot_heavy():
     "The big Adventure shot: the hardest boot in the game, a whoosh and a distant Böller."
     return mix([(0, kick(1.0, heavy=True), 1.0), (0.02, whoosh(0.4, 300, 2000), 0.3), (0.05, boeller(), 0.3)])
 
 
-def s_enemy_windup():
+def c_enemy_windup():
     "An enemy powering up: a cuckoo clock ticking - tick, tock, tick, tock."
     return mix([(i * 0.22, woodblock(1400 if i % 2 == 0 else 1000, 0.05, 0.8, 0.3), 0.5) for i in range(4)])
 
 
-def s_crowd_goal():
+def c_crowd_goal():
     "The beer tent roaring for a goal, cow bells clanging."
     return mix([(0, crowd(2.6, "cheer", 50), 0.6), (0.2, cowbells(5, 1.8, 0.8), 0.18)])
 
 
-def s_menu_hover():
+def c_menu_hover():
     "Pointing at a menu button: the lightest touch on a zither string."
     return zither("Bb5", 0.25, 0.5) * 0.6
 
 
-def s_menu_click():
+def c_menu_click():
     "Pressing a menu button: a knock on a wooden plank sign."
     return woodblock(760, 0.09, 0.9)
 
 
-def s_menu_start():
+def c_menu_start():
     "START: the tuba's 'oom-PAH!' and a cow bell - off we go."
     return mix([(0, tuba("F2", 0.18, 0.8), 0.7), (0.2, tuba("Bb2", 0.45, 1.0), 0.8),
                 (0.2, horn("D4", 0.4, 0.8), 0.25), (0.2, horn("F4", 0.4, 0.8), 0.22), (0.2, cowbell(640, 1.0), 0.3)])
 
 
-def s_menu_back():
+def c_menu_back():
     "Back / Quit: two knocks falling, wood on wood."
     return mix([(0, woodblock(900, 0.09), 0.6), (0.09, woodblock(620, 0.12), 0.6)])
 
 
-def s_coin():
+def c_coin():
     "Paying: coins dropped into a stoneware mug and a little shop bell."
     return mix([(0, coins(6), 0.4), (0.25, hand_bell(1700, 0.9), 0.3)])
 
 
-def s_boeller():
+def c_boeller():
     "A Böller salute from across the valley - the festival's black-powder boom."
     return boeller()
 
 
-def s_banner():
+def c_banner():
     "A banner snapping in the breeze, and a blackbird in the trees."
     return mix([(0, flutter(0.7), 0.6), (0.3, bird("amsel"), 0.18)])
 
 
-def s_bld_brewery():
+def c_bld_brewery():
     "The Brewery: the copper kettle bubbling and a splash of wort."
     d = 1.6
     t = t_axis(d)
@@ -883,7 +888,7 @@ def s_bld_brewery():
     return mix([(0, boil * np.sin(np.pi * t / d), 0.7), (0.6, slosh(0.4), 0.4), (0.9, glass_clink(1100, 0.3), 0.15)])
 
 
-def s_bld_pub():
+def c_bld_pub():
     "The Pub: a beer hall chatting, mugs clinking, an accordion in the corner."
     return mix([(0, crowd(2.0, "murmur", 25), 0.5),
                 (0.3, glass_clink(1900, 0.5), 0.3), (0.34, glass_clink(2200, 0.5), 0.25),
@@ -892,88 +897,568 @@ def s_bld_pub():
                 (1.1, accordion(["F4", "A4", "C5"], 0.8, 0.5), 0.25)])
 
 
-def s_bld_club_house():
+def c_bld_club_house():
     "The Club House: boots on floorboards and the coach's short whistle."
     return mix([(i * 0.18, thump(150 + 20 * (i % 2), 0.09, 0.8, 0.2), 0.5) for i in range(4)] +
                [(0.15, woodblock(400, 0.06, 0.6), 0.3), (0.8, whistle(0.25, 2100), 0.4)])
 
 
-def s_bld_dorms():
+def c_bld_dorms():
     "The Dorms: someone snoring in a creaky bunk."
     return mix([(0, snore(), 0.6), (1.0, creak(0.4, 60), 0.2)])
 
 
-def s_bld_training():
+def c_bld_training():
     "The Training Ground: a ball thumped against a wooden board, a chaffinch, the whistle."
     return mix([(0, kick(0.8), 0.7), (0.18, woodblock(300, 0.18, 1.0), 0.6), (0.2, thump(110, 0.15), 0.4),
                 (0.6, bird("fink"), 0.18), (1.0, whistle(0.25, 2100), 0.35)])
 
 
-def s_bld_trophy():
+def c_bld_trophy():
     "The Trophy Room: a pewter cup set down with a ring, and a glockenspiel sparkle."
     return mix([(0, thump(180, 0.12, 0.6), 0.5), (0.01, hand_bell(1150, 1.4), 0.4),
                 (0.2, glock("Bb5", 0.5), 0.25), (0.28, glock("D6", 0.5), 0.25), (0.36, glock("F6", 0.8), 0.28)])
 
 
-def s_bld_tavern():
+def c_bld_tavern():
     "The Traveling Tavern: a horse clip-clopping, the wagon creaking, a mug on the counter."
     hooves = mix([(i * 0.2 + (0.07 if i % 2 else 0), woodblock(600 if i % 2 else 480, 0.06, 0.8, 1.2), 0.4) for i in range(6)])
     return mix([(0, hooves, 1.0), (0.5, creak(0.7, 55), 0.3), (1.3, mug_on_table(), 0.4)])
 
 
-def s_door():
+def c_door():
     "An old wooden door: the latch, a low groan of the hinges, the thump as it opens."
     return mix([(0, woodblock(1300, 0.04, 0.8, 0.2), 0.4), (0.05, creak(0.6, 75), 0.35), (0.6, thump(110, 0.15, 0.6), 0.4)])
 
 
-def s_visitor_brewer():
+def c_visitor_brewer():
     "The Brewer: a gruff 'Hm-HO!' and his mug on the bar."
     v = voice([("m", 105, 0.18, 0.1), ("o", 125, 0.3, 0.15)])
     return mix([(0, v, 0.5), (0.45, mug_on_table(), 0.35)])
 
 
-def s_visitor_heatwave():
+def c_visitor_heatwave():
     "Heatwave: a cocky 'HAH!' and a crackle of fire."
     v = voice([("h", 170, 0.06, 0.9), ("a", 175, 0.25, 0.2)])
     return mix([(0, crackle(1.0), 0.4), (0.05, v, 0.5)])
 
 
-def s_wagon():
+def c_wagon():
     "The Tavern wagon's hatch: old timber creaking open."
     return mix([(0, creak(0.9, 55), 0.5), (0.85, thump(120, 0.12, 0.6), 0.3)])
 
 
-def s_drink():
+def c_drink():
     "A big drink: beer glugging out of a barrel, three gulps and a satisfied sigh of foam."
     return mix([(0, pour(0.7, 0.7), 0.4), (0.5, gulp(), 0.6), (0.72, gulp(), 0.55), (0.94, gulp(), 0.5), (1.1, fizz(0.5), 0.2)])
 
 
-def s_birds():
+def c_birds():
     "The woods: a blackbird, a great tit and a chaffinch."
     return mix([(0, bird("amsel"), 0.5), (0.8, bird("meise"), 0.35), (1.6, bird("fink"), 0.4)])
 
 
-SOUNDS = {
-    "bav_kickoff": s_kickoff, "bav_play_maker": s_play_maker, "bav_star_switch": s_star_switch,
-    "bav_goal": s_goal, "bav_goal_star": s_goal_star, "bav_goal_against": s_goal_against,
-    "bav_shot": s_shot, "bav_save": s_save, "bav_save_big": s_save_big,
-    "bav_ability_success": s_ability_success, "bav_ability_fail": s_ability_fail,
-    "bav_power_victory": s_power_victory, "bav_power_fail": s_power_fail,
-    "bav_pour": s_pour, "bav_card_hover": s_card_hover, "bav_card_pick": s_card_pick,
-    "bav_full_time_win": s_full_time_win, "bav_full_time_loss": s_full_time_loss, "bav_full_time_draw": s_full_time_draw,
-    "bav_foul": s_foul, "bav_yellow": s_yellow, "bav_red": s_red,
-    "bav_ball_tap": s_ball_tap, "bav_ball_kick": s_ball_kick, "bav_hit_soft": s_hit_soft, "bav_hit_heavy": s_hit_heavy,
-    "bav_enemy_down": s_enemy_down, "bav_player_hurt": s_player_hurt, "bav_player_drop": s_player_drop,
-    "bav_item_use": s_item_use, "bav_combo": s_combo, "bav_shot_heavy": s_shot_heavy,
-    "bav_enemy_windup": s_enemy_windup, "bav_crowd_goal": s_crowd_goal,
-    "bav_menu_hover": s_menu_hover, "bav_menu_click": s_menu_click, "bav_menu_start": s_menu_start, "bav_menu_back": s_menu_back,
-    "bav_coin": s_coin, "bav_boeller": s_boeller, "bav_banner": s_banner,
-    "bav_bld_brewery": s_bld_brewery, "bav_bld_pub": s_bld_pub, "bav_bld_club_house": s_bld_club_house,
-    "bav_bld_dorms": s_bld_dorms, "bav_bld_training": s_bld_training, "bav_bld_trophy": s_bld_trophy,
-    "bav_bld_tavern": s_bld_tavern, "bav_door": s_door, "bav_visitor_brewer": s_visitor_brewer,
-    "bav_visitor_heatwave": s_visitor_heatwave, "bav_wagon": s_wagon,
-    "bav_drink": s_drink, "bav_birds": s_birds,
+
+# =============================================================
+#  REAL INSTRUMENTS (round AN take 2)
+#
+#  The brass band, accordion, dulcimer, bells, drums and the crowd's
+#  applause are REAL RECORDINGS from the free GeneralUser GS SoundFont the
+#  songs already use (art_source/soundfonts/, by S. Christian Collins,
+#  free for any use). The thumps, beer, glass and wood above fill in what
+#  a band cannot play.
+# =============================================================
+
+SOUNDFONT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "art_source", "soundfonts", "GeneralUser-GS.sf2")
+
+# name: (bank, program). Bank 128 = a drum kit, where the "note" picks the drum.
+INSTRUMENTS = {
+    "tuba": (0, 58), "trombone": (0, 57), "trumpet": (0, 56), "horn": (1, 60),
+    "brass": (8, 61), "clarinet": (0, 71), "accordion": (8, 21), "dulcimer": (0, 15),
+    "glock": (0, 9), "xylo": (0, 13), "marimba": (0, 12), "tubular": (0, 14), "church": (8, 14),
+    "woodblock": (0, 115), "bassdrum": (8, 116), "choir": (1, 52), "timpani": (0, 47),
+    "applause": (0, 126), "laughing": (1, 126), "footsteps": (5, 126), "punch": (3, 126),
+    "explosion": (3, 127), "door": (3, 124), "creak": (2, 124), "horse": (2, 123),
+    "birds": (0, 123), "bird2": (3, 123), "bubbles": (5, 122), "stream": (4, 122), "wind": (3, 122),
+    "kit": (128, 0), "orch": (128, 48),
 }
+# drums in the kit (General MIDI numbers)
+KICK, SNARE, CLAP, CRASH, COWBELL, TAMBO, HI_WOOD, LO_WOOD, TRIANGLE = 36, 38, 39, 49, 56, 54, 76, 77, 81
+
+
+def midi(k):
+    if isinstance(k, int):
+        return k
+    return int(round(69 + 12 * np.log2(note(k) / 440.0)))
+
+
+def sf(events, tail=1.5, room=0.18):
+    """Play the SoundFont. events = [(seconds, instrument, note, velocity, length), ...]
+    note is 'Bb2' or a drum number. A 6th item 'bend' = semitones the note
+    slides by over its length (the sad trombone). room = beer-tent echo."""
+    import tinysoundfont
+    synth = tinysoundfont.Synth(samplerate=SR)
+    sfid = synth.sfload(SOUNDFONT)
+    chans = {}
+    timeline = []
+    for ev in events:
+        start, inst, key, vel, length = ev[:5]
+        bend = ev[5] if len(ev) > 5 else 0
+        if inst not in chans:
+            c = len(chans)
+            c = c + 1 if c >= 9 else c
+            chans[inst] = c
+            bank, prog = INSTRUMENTS[inst]
+            if bank == 128:
+                synth.program_select(c, sfid, 128, prog, True)
+            else:
+                synth.program_select(c, sfid, bank, prog)
+            synth.pitchbend_range(c, 12)
+        c = chans[inst]
+        k = midi(key)
+        timeline.append((start, 1, "on", c, k, int(vel), 0))
+        if bend:
+            steps = 24
+            for i in range(1, steps + 1):
+                timeline.append((start + length * i / steps, 0, "bend", c, k, 0, bend * (i / steps) ** 1.6))
+            timeline.append((start + length + 0.3, 2, "bend", c, k, 0, 0.0))
+        timeline.append((start + length, 0, "off", c, k, 0, 0))
+    timeline.sort(key=lambda e: (e[0], e[1]))
+    total = int((max(e[0] for e in timeline) + tail) * SR)
+    out = np.zeros((total, 2), dtype=np.float32)
+    pos = 0
+    for t, _, kind, c, k, v, b in timeline + [(total / SR, 9, "end", 0, 0, 0, 0)]:
+        at = min(total, int(t * SR))
+        if at > pos:
+            out[pos:at] = np.frombuffer(synth.generate(at - pos), dtype=np.float32).reshape(-1, 2)
+            pos = at
+        if kind == "on":
+            synth.noteon(c, k, v)
+        elif kind == "off":
+            synth.noteoff(c, k)
+        elif kind == "bend":
+            synth.pitchbend(c, int(8192 + 8191 * max(-1, min(1, b / 12))))
+    mono = out.mean(axis=1).astype(float)
+    return tent(mono, room) if room else mono
+
+
+def tent(x, wet=0.18, size=0.9):
+    """A beer tent's warm echo: soft, short, dull - never a cathedral."""
+    n = int(size * SR)
+    r = np.random.default_rng(3)
+    ir = r.standard_normal(n) * np.exp(-np.arange(n) / (0.22 * SR))
+    ir[: int(0.01 * SR)] = 0
+    ir = lowpass(ir, 2800)
+    ir /= np.sqrt((ir ** 2).sum())
+    wet_sig = signal.fftconvolve(x, ir)
+    dry = np.zeros(len(wet_sig))
+    dry[: len(x)] = x
+    return dry * (1 - wet * 0.5) + wet * wet_sig
+
+
+def polka(bars, chords, melody=(), bpm=138, start=0.0, tuba_vel=105, pah_vel=80, mel_inst="trumpet",
+          mel_vel=95, drums=True, thirds=True):
+    """A Bavarian polka, as events: tuba on 1 and 3, accordion 'pah' on 2
+    and 4, a bass drum and a little snare, and a tune (with its third below,
+    the Bavarian way). chords = one triad per bar, e.g. [('Bb1','F2'), ['D4','F4','Bb4']]
+    melody = [(note or None, beats), ...]"""
+    beat = 60 / bpm
+    ev = []
+    for b in range(bars):
+        (root, fifth), triad = chords[b % len(chords)]
+        t0 = start + b * 4 * beat
+        ev += [(t0, "tuba", root, tuba_vel, beat * 0.8), (t0 + 2 * beat, "tuba", fifth, tuba_vel - 8, beat * 0.8)]
+        for off in (1, 3):
+            for n in triad:
+                ev.append((t0 + off * beat, "accordion", n, pah_vel, beat * 0.45))
+        if drums:
+            ev += [(t0, "kit", KICK, 70, 0.1), (t0 + 2 * beat, "kit", KICK, 60, 0.1),
+                   (t0 + beat, "kit", SNARE, 38, 0.1), (t0 + 3 * beat, "kit", SNARE, 38, 0.1)]
+    pos = start
+    for n, beats in melody:
+        if n:
+            ev.append((pos, mel_inst, n, mel_vel, beats * beat * 0.92))
+            if thirds:
+                ev.append((pos, "clarinet", midi(n) - 4 if midi(n) % 12 in (2, 7) else midi(n) - 3, mel_vel - 15, beats * beat * 0.92))
+        pos += beats * beat
+    return ev
+
+
+def moo(vel=1.0):
+    """A cow on the Alm: a long, low 'mmmoooh'."""
+    d = 1.6
+    t = t_axis(d)
+    f = 120 * (1 + 0.25 * np.sin(np.pi * np.clip(t / d, 0, 1)) - 0.15 * t / d)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    src = sum(np.sin(k * ph) / k ** 1.1 for k in range(1, 30) if 120 * k < 5000) + 0.05 * noise(d)
+    mouth = np.clip((t - 0.25) / 0.35, 0, 1)  # m ... oo opening
+    voice = (1 - mouth) * resonator(src, 260, 6) + mouth * (resonator(src, 420, 5) + 0.6 * resonator(src, 800, 6) + 0.2 * resonator(src, 2400, 8))
+    return fade(lowpass(voice * np.sin(np.pi * t / d) ** 0.7, 3500) * vel, 0.05, 0.3)
+
+
+# =============================================================
+#  THE SOUNDS - one function per file. The docstring is what you
+#  hear; it is copied into data/SoundCredits.csv.
+#
+#  TAKE 3 (Anthony, 8 Oct): "too much going on, these are supposed to be
+#  quick sound effects". So: ONE idea per sound, two layers at most,
+#  most of them under half a second. Longest is the win fanfare.
+# =============================================================
+
+def s_kickoff():
+    "Kick-off: one round referee's whistle and a tuba 'oom' under it."
+    return mix([(0, whistle(0.45, 1750), 0.55), (0.3, sf([(0, "tuba", "Bb1", 100, 0.3)], tail=0.3, room=0.08), 0.8)])
+
+
+def s_play_maker():
+    "Play Maker: the trumpet's quick 'ta-DAA!'."
+    return sf([(0, "trumpet", "F4", 95, 0.1), (0.12, "trumpet", "Bb4", 105, 0.3)], tail=0.3, room=0.1)
+
+
+def s_star_switch():
+    "Star switch: a quick glockenspiel run up."
+    return sf([(i * 0.06, "glock", n, 85, 0.3) for i, n in enumerate(("Bb4", "D5", "F5"))], tail=0.4, room=0.08)
+
+
+def s_goal():
+    "GOAL: a bass-drum boom, the brass band's 'ta-ta-DAAA!' with a cow bell, and the beer tent cheering."
+    ev = [(0, "kit", KICK, 115, 0.15), (0, "kit", CRASH, 45, 0.8)]
+    ev += [(0, "brass", n, 105, 0.1) for n in ("F3", "F4")] + [(0.12, "brass", n, 108, 0.1) for n in ("A3", "A4")]
+    ev += [(0.24, "brass", n, 115, 0.9) for n in ("Bb3", "D4", "F4", "Bb4")]
+    ev += [(0.24, "tuba", "Bb1", 115, 0.9), (0.24, "kit", COWBELL, 85, 0.2), (0.45, "kit", COWBELL, 75, 0.2)]
+    ev += [(0.2, "applause", "C4", 105, 1.4)]
+    return mix([(0, sf(ev, tail=0.7, room=0.12), 1.0), (0.2, crowd(1.6, "cheer", 40), 0.3)])
+
+
+def s_goal_star():
+    "A STAR scores: a Böller boom and a huge brass chord."
+    ev = [(0.15, "brass", n, 115, 1.2) for n in ("Bb2", "F3", "D4", "F4", "Bb4")] + [(0.15, "tuba", "Bb1", 115, 1.2)]
+    return mix([(0, boeller(), 0.45), (0, sf(ev, tail=0.8, room=0.12), 1.0)])
+
+
+def s_goal_against():
+    "Conceding: the trombone's sad 'wah-wahhh'."
+    return sf([(0, "trombone", "F3", 85, 0.3), (0.35, "trombone", "Db3", 82, 0.8, -1.0)], tail=0.4, room=0.1)
+
+
+def s_shot():
+    "A shot: boot through leather."
+    return mix([(0, kick(1.0), 0.8), (0, sf([(0, "kit", KICK, 100, 0.08)], tail=0.15, room=0), 0.7)])
+
+
+def s_save():
+    "Keeper's catch: a leather glove slap."
+    return mix([(0, leather(0.05, 1.0, 400, 2200), 0.8), (0, thump(160, 0.1, 0.7, 0.2), 0.6)])
+
+
+def s_save_big():
+    "A big save: the glove slap and a timpani thud."
+    return mix([(0, leather(0.06, 1.0, 400, 2400), 0.8), (0.05, sf([(0, "orch", 41, 100, 0.3)], tail=0.3, room=0.05), 0.9)])
+
+
+def s_ability_success():
+    "An ability goes off: two steins clinking - Prost!"
+    return mix([(0, glass_clink(1900, 0.4), 0.5), (0.05, glass_clink(2250, 0.35), 0.4)])
+
+
+def s_ability_fail():
+    "An ability fizzles: the trombone's 'bwomp'."
+    return sf([(0, "trombone", "Bb2", 80, 0.35, -2.0)], tail=0.2, room=0.08)
+
+
+def s_power_victory():
+    "Winning the power check: the tuba's cheeky 'oom-PAH!'."
+    return sf([(0, "tuba", "F2", 100, 0.12), (0.14, "tuba", "Bb2", 115, 0.3)], tail=0.25, room=0.08)
+
+
+def s_power_fail():
+    "Losing the power check: the tuba drooping down two notes."
+    return sf([(0, "tuba", "Ab2", 85, 0.15), (0.18, "tuba", "E2", 80, 0.35, -1.0)], tail=0.25, room=0.08)
+
+
+def s_pour():
+    "Beer poured into a Maß."
+    return pour(0.9)
+
+
+def s_card_hover():
+    "Pointing at a card: one soft tap of a wooden xylophone bar."
+    return sf([(0, "marimba", "F5", 55, 0.05)], tail=0.12, room=0)
+
+
+def s_card_pick():
+    "Picking a card: one wood-block knock."
+    return sf([(0, "kit", LO_WOOD, 90, 0.05)], tail=0.12, room=0)
+
+
+def s_full_time_win():
+    "Full time, WON: a quick brass-band fanfare up to a big happy chord, tuba underneath."
+    ev = [(i * 0.13, "trumpet", n, 100, 0.11) for i, n in enumerate(("F4", "Bb4", "D5"))]
+    ev += [(0.39, "trumpet", "F5", 108, 1.2)] + [(0.39, "brass", n, 105, 1.2) for n in ("Bb3", "D4", "F4")]
+    ev += [(0, "tuba", "Bb1", 100, 0.12), (0.26, "tuba", "F2", 100, 0.12), (0.39, "tuba", "Bb1", 110, 1.2)]
+    return sf(ev, tail=0.8, room=0.12)
+
+
+def s_full_time_loss():
+    "Full time, LOST: a slow trombone sinking three notes, the last one sagging away."
+    return sf([(0, "trombone", "Bb3", 78, 0.45), (0.5, "trombone", "A3", 76, 0.45), (1.0, "trombone", "Ab3", 74, 1.0, -1.0)],
+              tail=0.6, room=0.1)
+
+
+def s_full_time_draw():
+    "Full time, DRAWN: the tuba goes 'oom... pah?' and stops, unfinished."
+    return sf([(0, "tuba", "Bb1", 95, 0.3), (0.4, "tuba", "F2", 90, 0.5)], tail=0.4, room=0.08)
+
+
+def s_foul():
+    "A foul: one short, round whistle blast."
+    return whistle(0.35, 1750) * 0.6
+
+
+def s_yellow():
+    "A booking: a whistle and a low trombone 'uh-oh'."
+    return mix([(0, whistle(0.25, 1750), 0.5), (0.3, sf([(0, "trombone", "Bb2", 80, 0.35, -0.5)], tail=0.2, room=0.08), 1.0)])
+
+
+def s_red():
+    "A sending-off: a long whistle and one dark brass chord."
+    ev = [(0, "brass", n, 100, 0.6) for n in ("G2", "Db3", "G3")]
+    return mix([(0, whistle(0.5, 1750), 0.5), (0.45, sf(ev, tail=0.4, room=0.1), 1.0)])
+
+
+def s_ball_tap():
+    "A player taking the ball: the tiniest scuff of boot on leather."
+    return mix([(0, leather(0.025, 1.0, 300, 1600), 0.6), (0, sf([(0, "kit", KICK, 45, 0.03)], tail=0.06, room=0), 0.8)])
+
+
+def s_ball_kick():
+    "A player striking the ball on the run: short and dry."
+    return mix([(0, kick(0.8), 0.8), (0, sf([(0, "kit", KICK, 80, 0.05)], tail=0.12, room=0), 0.7)])
+
+
+def s_hit_soft():
+    "An ordinary hit: a knock on a wooden beer bench."
+    return sf([(0, "kit", LO_WOOD, 90, 0.05)], tail=0.1, room=0)
+
+
+def s_hit_heavy():
+    "A big hit: a punch with a bass drum under it."
+    return sf([(0, "punch", "C4", 90, 0.15), (0, "bassdrum", "C3", 85, 0.2)], tail=0.2, room=0)
+
+
+def s_enemy_down():
+    "An enemy finished off: a xylophone tumbling down."
+    return sf([(i * 0.06, "xylo", n, 90, 0.08) for i, n in enumerate(("F5", "D5", "Bb4"))], tail=0.25, room=0.05)
+
+
+def s_player_hurt():
+    "One of yours hurt: a muffled punch."
+    return sf([(0, "punch", "C4", 65, 0.12)], tail=0.15, room=0)
+
+
+def s_player_drop():
+    "One of yours exhausted: a bass-drum thud and a tired low tuba note."
+    return sf([(0, "bassdrum", "C3", 90, 0.2), (0.08, "tuba", "A1", 80, 0.4, -1.0)], tail=0.3, room=0.05)
+
+
+def s_item_use():
+    "An item mends somebody: a gulp and a warm dulcimer 'ding'."
+    return mix([(0, gulp(), 0.6), (0.12, sf([(0, "dulcimer", "Bb4", 80, 0.3)], tail=0.4, room=0.05), 0.8)])
+
+
+def s_combo():
+    "A combo comes off: one cow-bell clank."
+    return sf([(0, "kit", COWBELL, 85, 0.15)], tail=0.3, room=0.05)
+
+
+def s_shot_heavy():
+    "The big Adventure shot: the hardest boot in the game with a timpani boom."
+    return mix([(0, kick(1.0, heavy=True), 0.8), (0, sf([(0, "orch", 41, 110, 0.4)], tail=0.4, room=0.05), 0.9)])
+
+
+def s_enemy_windup():
+    "An enemy powering up: a cuckoo clock's 'tick-tock'."
+    return sf([(0, "kit", HI_WOOD, 75, 0.05), (0.2, "kit", LO_WOOD, 75, 0.05)], tail=0.15, room=0)
+
+
+def s_crowd_goal():
+    "The tent celebrating a goal: everyone clapping along in polka time - clap, clap, clap-clap-clap - and the supporters' cow bells shaking."
+    ev = []
+    for t in (0, 0.3, 0.6, 0.75, 0.9):
+        for j in range(8):  # a room full of hands, never quite together
+            ev.append((t + float(rng.uniform(0, 0.025)), "kit", CLAP, int(rng.integers(60, 100)), 0.05))
+    return mix([(0, lowpass(sf(ev, tail=0.4, room=0.15), 5000), 1.0), (0.05, cowbells(4, 1.0, 0.9), 0.12)])
+
+
+def s_menu_hover():
+    "Pointing at a menu button: the lightest pluck of a dulcimer string."
+    return sf([(0, "dulcimer", "Bb5", 50, 0.06)], tail=0.15, room=0)
+
+
+def s_menu_click():
+    "Pressing a menu button: a knock on a wooden plank."
+    return sf([(0, "kit", HI_WOOD, 90, 0.05)], tail=0.1, room=0)
+
+
+def s_menu_start():
+    "START: the tuba's 'oom-PAH!'."
+    return sf([(0, "tuba", "F2", 100, 0.12), (0.14, "tuba", "Bb1", 115, 0.35)], tail=0.25, room=0.08)
+
+
+def s_menu_back():
+    "Back / Quit: a low wood-block knock."
+    return sf([(0, "kit", LO_WOOD, 80, 0.05)], tail=0.1, room=0)
+
+
+def s_coin():
+    "Paying: coins clinking into a mug."
+    return lowpass(coins(4), 4000)
+
+
+def s_boeller():
+    "A Böller salute from across the valley - one deep black-powder boom."
+    return boeller()
+
+
+def s_banner():
+    "A banner snapping in the wind."
+    return flutter(0.6)
+
+
+def s_bld_brewery():
+    "The Brewery: the copper kettle bubbling."
+    return sf([(0, "bubbles", "C3", 70, 0.8)], tail=0.2, room=0)
+
+
+def s_bld_pub():
+    "The Pub: one squeeze of accordion and a stein clink."
+    ev = [(0, "accordion", n, 85, 0.4) for n in ("F4", "A4", "C5")]
+    return mix([(0, sf(ev, tail=0.3, room=0.08), 1.0), (0.35, glass_clink(2000, 0.3), 0.25)])
+
+
+def s_bld_club_house():
+    "The Club House: a wooden door swinging open."
+    return lowpass(sf([(0, "door", "C4", 70, 0.6)], tail=0.2, room=0.05), 4000)
+
+
+def s_bld_dorms():
+    "The Dorms: one big snore."
+    return snore()[: int(2.0 * SR)]
+
+
+def s_bld_training():
+    "The Training Ground: a ball thumped against a wooden board."
+    return mix([(0, kick(0.8), 0.6), (0.12, sf([(0, "kit", LO_WOOD, 100, 0.05)], tail=0.15, room=0.05), 0.9)])
+
+
+def s_bld_trophy():
+    "The Trophy Room: one ring of a bell."
+    return sf([(0, "church", "Bb3", 75, 0.8)], tail=0.5, room=0.05)
+
+
+def s_bld_tavern():
+    "The Traveling Tavern: a horse trotting up."
+    return sf([(0, "horse", "C4", 70, 0.8)], tail=0.2, room=0)
+
+
+def s_door():
+    "An old wooden door creaking open."
+    return lowpass(sf([(0, "creak", "C4", 60, 0.6)], tail=0.2, room=0.05), 3500, 4)
+
+
+def s_visitor_brewer():
+    "The Brewer: the tuba's gruff 'hm-HO!'."
+    return sf([(0, "tuba", "Bb1", 85, 0.12), (0.15, "tuba", "F2", 95, 0.3)], tail=0.25, room=0.08)
+
+
+def s_visitor_heatwave():
+    "Heatwave: a crackle of fire and a hot brass stab."
+    ev = [(0.05, "brass", n, 100, 0.25) for n in ("E3", "Bb3")]
+    return mix([(0, crackle(0.6), 0.35), (0, sf(ev, tail=0.3, room=0.05), 0.8)])
+
+
+def s_wagon():
+    "The Tavern wagon's hatch: old timber creaking."
+    return lowpass(sf([(0, "creak", "C3", 60, 0.6)], tail=0.2, room=0.05), 3500, 4)
+
+
+def s_drink():
+    "A big drink: three quick gulps."
+    return mix([(0, gulp(), 0.6), (0.2, gulp(), 0.55), (0.4, gulp(), 0.5)])
+
+
+def s_birds():
+    "The woods: a bird singing in the trees."
+    return lowpass(sf([(0, "birds", "C4", 60, 1.2)], tail=0.3, room=0), 4500, 4)
+
+
+def s_moo():
+    "The Alm: a cow mooing."
+    return moo()
+
+
+# Which version of each sound the game uses - Anthony's picks on the sound
+# board (8 Oct). "classic" = take 1, all synthesized (the c_ functions);
+# "band" = take 3, real instruments from the soundfont (the s_ functions).
+# To swap one, change its word here and run the tool for that sound.
+PICKS = {
+    "bav_kickoff": "band",
+    "bav_play_maker": "band",
+    "bav_star_switch": "classic",
+    "bav_goal": "band",
+    "bav_goal_star": "band",
+    "bav_goal_against": "classic",
+    "bav_shot": "band",
+    "bav_save": "band",
+    "bav_save_big": "band",
+    "bav_ability_success": "classic",
+    "bav_ability_fail": "classic",
+    "bav_power_victory": "band",
+    "bav_power_fail": "band",
+    "bav_pour": "band",
+    "bav_card_hover": "classic",
+    "bav_card_pick": "classic",
+    "bav_full_time_win": "classic",
+    "bav_full_time_loss": "classic",
+    "bav_full_time_draw": "classic",
+    "bav_foul": "band",
+    "bav_yellow": "classic",
+    "bav_red": "classic",
+    "bav_ball_tap": "band",
+    "bav_ball_kick": "band",
+    "bav_hit_soft": "classic",
+    "bav_hit_heavy": "classic",
+    "bav_enemy_down": "classic",
+    "bav_player_hurt": "band",
+    "bav_player_drop": "classic",
+    "bav_item_use": "classic",
+    "bav_combo": "classic",
+    "bav_shot_heavy": "band",
+    "bav_enemy_windup": "classic",
+    "bav_crowd_goal": "band",
+    "bav_menu_hover": "classic",
+    "bav_menu_click": "band",
+    "bav_menu_start": "band",
+    "bav_menu_back": "classic",
+    "bav_coin": "classic",
+    "bav_boeller": "band",
+    "bav_banner": "band",
+    "bav_bld_brewery": "band",
+    "bav_bld_pub": "band",
+    "bav_bld_club_house": "classic",
+    "bav_bld_dorms": "band",
+    "bav_bld_training": "classic",
+    "bav_bld_trophy": "band",
+    "bav_bld_tavern": "classic",
+    "bav_door": "band",
+    "bav_visitor_brewer": "classic",
+    "bav_visitor_heatwave": "classic",
+    "bav_wagon": "classic",
+    "bav_drink": "band",
+    "bav_birds": "band",
+    "bav_moo": "band",
+}
+SOUNDS = {name: globals()[("c_" if kind == "classic" else "s_") + name[4:]] for name, kind in PICKS.items()}
 
 
 # =============================================================
@@ -984,7 +1469,7 @@ TARGET_RMS_DB = -20.0   # loudness of the loud part of every sound
 CEILING_DB = -1.0       # nothing ever goes above this
 
 
-def finish(x):
+def finish(x, classic=False):
     x = np.asarray(x, dtype=float)
     x = highpass(x, 60)          # no sub-rumble to eat the speakers
     x = lowpass(x, 7500)         # nothing shrill
@@ -1004,10 +1489,12 @@ def finish(x):
     x *= min(1.0, ceiling * 1.1 / (np.max(np.abs(x)) + 1e-12))
     x = ceiling * np.tanh(x / ceiling)
     # trim trailing silence, then fade out
-    keep = np.nonzero(np.abs(x) > 10 ** (-60 / 20))[0]
+    # (the classic set was trimmed at -60 dB with a short fade; kept so it
+    # comes out exactly as Anthony heard it)
+    keep = np.nonzero(np.abs(x) > 10 ** ((-60 if classic else -48) / 20))[0]
     if len(keep):
         x = x[: keep[-1] + int(0.02 * SR)]
-    return fade(x, 0.003, 0.03)
+    return fade(x, 0.003, 0.03 if classic else min(0.25, len(x) / SR * 0.1))
 
 
 def write(name, x):
@@ -1029,6 +1516,16 @@ def write(name, x):
 CREDITS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "SoundCredits.csv")
 
 
+SOURCE = {
+    "classic": "Synthesized from scratch by tools/make_bavarian_sfx.py (Round AN, 8 Oct 2026). No recordings.",
+    "band": "tools/make_bavarian_sfx.py playing the GeneralUser GS SoundFont (art_source/soundfonts/, recorded instruments by S. Christian Collins), plus synthesized thumps and beer.",
+}
+LICENCE = {
+    "classic": "Our own - no attribution needed",
+    "band": "GeneralUser GS licence: free for any use, commercial included. credit appreciated: 'GeneralUser GS by S. Christian Collins'",
+}
+
+
 def write_credits():
     """data/SoundCredits.csv: every effect, what you hear, which Audio.csv
     rows play it, and where it came from. Rewritten on every full run."""
@@ -1043,8 +1540,35 @@ def write_credits():
         w.writerow(["File", "Folder", "What you hear", "Audio.csv rows", "Source", "Licence"])
         for name, fn in SOUNDS.items():
             w.writerow([name + ".ogg", "assets/audio/", fn.__doc__.strip(), "; ".join(users.get(name, [])) or "spare",
-                        "Synthesized from scratch by tools/make_bavarian_sfx.py (Round AN, 8 Oct 2026). No recordings or samples.",
-                        "Our own - no attribution needed"])
+                        SOURCE[PICKS[name]], LICENCE[PICKS[name]]])
+
+
+# The longest each may ring, in seconds: sounds that play often or under
+# a click must stop quickly, whatever the instrument's own ring-out.
+MAX_SECONDS = {
+    "bav_card_hover": 0.15, "bav_card_pick": 0.2, "bav_menu_hover": 0.2, "bav_menu_click": 0.15,
+    "bav_menu_back": 0.2, "bav_ball_tap": 0.1, "bav_ball_kick": 0.2, "bav_hit_soft": 0.15,
+    "bav_hit_heavy": 0.35, "bav_player_hurt": 0.3, "bav_combo": 0.4, "bav_enemy_windup": 0.4,
+    "bav_shot": 0.3, "bav_save": 0.3, "bav_enemy_down": 0.45, "bav_play_maker": 0.6, "bav_menu_start": 0.6,
+    "bav_ability_success": 0.6, "bav_ability_fail": 0.6, "bav_power_victory": 0.6, "bav_power_fail": 0.7,
+    "bav_coin": 0.5, "bav_door": 0.8, "bav_wagon": 0.8, "bav_foul": 0.4, "bav_player_drop": 0.7,
+    "bav_item_use": 0.6, "bav_save_big": 0.5, "bav_shot_heavy": 0.7, "bav_star_switch": 0.7,
+    "bav_kickoff": 0.9, "bav_goal": 2.0, "bav_goal_star": 2.0, "bav_goal_against": 1.4, "bav_crowd_goal": 1.6,
+    "bav_yellow": 0.8, "bav_red": 1.3, "bav_full_time_win": 2.2, "bav_full_time_loss": 2.4, "bav_full_time_draw": 1.3,
+    "bav_pour": 1.0, "bav_banner": 0.7, "bav_bld_brewery": 0.9, "bav_bld_pub": 0.8, "bav_bld_club_house": 0.8,
+    "bav_bld_training": 0.5, "bav_bld_trophy": 1.2, "bav_bld_tavern": 0.9, "bav_visitor_brewer": 0.6,
+    "bav_visitor_heatwave": 0.7, "bav_drink": 0.8, "bav_birds": 1.4, "bav_moo": 1.6, "bav_boeller": 1.4,
+}
+
+
+def cap(name, x):
+    limit = MAX_SECONDS.get(name)
+    if not limit or len(x) <= limit * SR:
+        return x
+    x = x[: int(limit * SR)].copy()
+    n = int(len(x) * 0.3)
+    x[-n:] *= np.linspace(1, 0, n) ** 2
+    return x
 
 
 def main(argv):
@@ -1055,7 +1579,9 @@ def main(argv):
             sys.exit(f"No sound called {name}. Known: {', '.join(SOUNDS)}")
         # each sound has its own dice, so remaking one never changes another
         rng = np.random.default_rng(zlib.crc32(name.encode()))
-        write(name, finish(SOUNDS[name]()))
+        classic = PICKS[name] == "classic"
+        x = finish(SOUNDS[name](), classic)
+        write(name, x if classic else cap(name, x))
     if not argv:
         write_credits()
 
