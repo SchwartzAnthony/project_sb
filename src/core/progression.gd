@@ -70,6 +70,8 @@ const DATA_DIR := "res://data/"
 ## ROUND AN: `match:<mode>` starts a match of that MatchModes.csv row, from
 ## the base. `match:intro` is how the prologue walks you onto the pitch.
 const DEFERRED: Array[String] = ["story", "goto", "announce", "window", "match"]
+## CSVs with a When and a Do column that are read by something else.
+const NOT_PROGRESSION: Array[String] = ["MatchTalk.csv"]
 ## Flag prefix used to remember that a once-only row has fired.
 const DONE_PREFIX := "progression_done_"
 
@@ -145,6 +147,10 @@ func _load_csv(path: String) -> void:
 		return
 
 	var short_name := path.get_file()
+	# MatchTalk.csv has a When and a Do too, but its Do is the Head Coach's
+	# (match_coach.gd), not a progression action.
+	if NOT_PROGRESSION.has(short_name):
+		return
 
 	for i in range(1, rows.size()):
 		var row: PackedStringArray = rows[i]

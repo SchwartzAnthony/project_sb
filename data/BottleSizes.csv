@@ -1,0 +1,4 @@
+Section,Item,Many,Requires,Notes
+bottling,small_bottle,6,,"ROUND AN - THE BASIC THREE BEERS (Anthony, 8 Oct: small bottle, large bottle and a keg). A machine with rows here asks WHICH SIZE before its mini-game, and one batch puts MANY of that Items.csv item in the bag. One barrel = 6 small bottles, 3 large bottles or 1 keg. REQUIRES: the condition language; blank = always offered. In the tutorial Brewery only the small bottle is offered (the others need !flag:tut_brewery), because the Tier I P:1 drinks from a bottle. Only for a machine with no lagering wait."
+bottling,large_bottle,3,!flag:tut_brewery,
+bottling,keg,1,!flag:tut_brewery,"The Kleiner Faß. The tutorial hands one out itself in cycle 2 round 1."

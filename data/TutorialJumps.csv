@@ -1,0 +1,8 @@
+ID,Label,Kind,Value,Target,Notes
+brewery,The Brewery TIME OUT,brewery,tut_brewery,,"ROUND AN - TUTORIAL JUMPS (Anthony, 8 Oct: a dev menu to jump between the important parts of the tutorial). One button per row on the Dev screen (the Dev button on the base), under TUTORIAL JUMPS. KIND brewery: the cycle 2 round 2 Brewery with Hanna, on its own, in a throwaway save with flag:in_tutorial (your real save is never touched). VALUE = the flag its Guide.csv rows wait on. TARGET: for kinds that need more than Value (the Tutorial thread's match jumps, e.g. pm:4)."
+game_steeping,Mini-game: Steeping Tank,minigame,malthouse,,"KIND minigame: that machine's brewing game on its own (BreweryGames.csv). VALUE = the BrewerySections.csv ID. Played as a brewer of Tuning.csv brewery_tour_chance %, and it can be lost."
+game_mill,Mini-game: Grain Mill,minigame,mill,,
+game_lauter,Mini-game: Lauter Tun,minigame,lautering,,
+game_kettle,Mini-game: Brew Kettle,minigame,boiling,,
+game_vat,Mini-game: Fermenting Vat,minigame,cooling,,
+game_bottling,Mini-game: Bottling Machine,minigame,bottling,,

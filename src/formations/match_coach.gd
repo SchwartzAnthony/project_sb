@@ -357,7 +357,7 @@ func say(value: String) -> void:
 
 ## ============ THE DRINKING LESSON ============
 ##
-## `drink_lesson:first=kleiner_fass@barrel@tut-fass-after@card` (Anthony,
+## `drink_lesson:first=keg@barrel@tut-fass-after@card` (Anthony,
 ## 8 Oct). The cards are on the table and the Head Coach has asked for it:
 ##   1. the item goes in the bag (if it is not there), and the bag on that
 ##      card shows ONLY it. Gold on the card's bag button, then on the item;

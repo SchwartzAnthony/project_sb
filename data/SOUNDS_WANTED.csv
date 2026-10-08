@@ -7,3 +7,4 @@ season_table.wav,assets/audio/,Music,screen_opened  screen=season,,Named in the 
 crowd_loop.wav,assets/audio/,Music,match_started,The crowd. A loop under the whole match.,Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there
 pub_room.ogg,assets/audio/,Music,The Pub,"Warm, close, a room with people in it. Currently borrowing dialogue_theme",Named in Audio.csv. The row already works - the game is silent only because the file is not there yet.
 season_table.ogg,assets/audio/,Music,The season shelf,Currently borrowing menu_theme,Named in Audio.csv. The row already works - the game is silent only because the file is not there yet.
+bav_burp.ogg,assets/audio/,Effects,"drink_burp (the drinking window, after the arm wipe)","One long, proud, rumbling Bavarian burp. Comic, not gross.",Named in the Sound column of Audio.csv. The row already works - the game is silent only because the file is not there

@@ -124,9 +124,13 @@ func test_a_fresh_keeper_lets_in_ten_percent_at_most() -> void:
 
 
 func test_the_kleiner_fass() -> void:
-	var item := AdventureDB.get_db().item("kleiner_fass")
-	assert_false(item.is_empty(), "Items.csv kleiner_fass")
-	assert_eq(AdventureDB.brew_in_use(item), "kleiner_fass")
+	# The Kleiner Faß is the Brewery's keg; in the tutorial its pool has one row.
+	var item := AdventureDB.get_db().item("keg")
+	assert_false(item.is_empty(), "Items.csv keg")
+	var state := GameState.new()
+	state.set_flag("in_tutorial", true)
+	for i in 10:
+		assert_eq(AdventureDB.brew_in_use(item, state), "kleiner_fass")
 	var brew := BrewDB.get_db().find("kleiner_fass")
 	assert_eq(String(brew.get("attack", "")), "TUT_FASS_COURAGE")
 	assert_eq(String(brew.get("defend", "")), "TUT_FASS_COURAGE")
@@ -134,4 +138,4 @@ func test_the_kleiner_fass() -> void:
 	assert_eq(CardDatabase._normalise(ability.effect), "addpowerpertiermate")
 	var row := MatchTalk.row_for("cards_shown", "tutorial", null, {"round": "4", "tier": "I"})
 	assert_eq(String(row.get("scene", "")), "tut-fass")
-	assert_string_contains(String(row.get("do", "")), "drink_lesson:first=kleiner_fass")
+	assert_string_contains(String(row.get("do", "")), "drink_lesson:first=keg")

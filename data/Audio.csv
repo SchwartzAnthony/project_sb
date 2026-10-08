@@ -69,3 +69,4 @@ woods_birds,,,bav_birds,Effects,,-14,,,"BAVARIAN (Round AN). Not used by a scree
 brew_game_hit,brew_game_hit,,bav_card_pick,Effects,,-10,,,"ROUND AN - THE BREWING MINI-GAMES (brewery_minigame.gd): a hit in the gold, or a click on the Mill. Reuses a Bavarian sound; swap Sound for your own."
 brew_game_won,brew_game_won,,bav_ability_success,Effects,,-6,,,"ROUND AN: a mini-game won, the batch is made."
 brew_game_lost,brew_game_lost,,bav_ability_fail,Effects,,-6,,,"ROUND AN: a mini-game missed (spoiled, or Again! in the tutorial)."
+drink_burp,,,bav_burp,Effects,,-6,,,"ROUND AN - the tutorial drinking window (src/ui/drink_window.gd): the big burp after the arm wipe. The file is not made yet (SOUNDS_WANTED.csv), so it is silent until then."

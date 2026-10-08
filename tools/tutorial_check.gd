@@ -476,11 +476,11 @@ func _drink_lesson(scene: Node) -> void:
 		for tile in bag.get("_grid").get_children():
 			if not tile.is_queued_for_deletion():
 				shown += 1
-	var wanted := "kleiner_fass" if _lessons == 0 else "plain_beer"
+	var wanted := "keg" if _lessons == 0 else "small_bottle"
 	_check(bag != null and shown == 1 and bag.tile_for(wanted) != null,
 		"the bag shows only the %s" % wanted)
 	await _shot_one("drink_lesson_bag_%d" % _lessons)
-	var item_id := "kleiner_fass" if _lessons == 0 else "plain_beer"
+	var item_id := "keg" if _lessons == 0 else "small_bottle"
 	_lessons += 1
 	scene.call("_use_on_card", first.current_data, AdventureDB.get_db().item(item_id))
 	if bag != null and is_instance_valid(bag):

@@ -3183,7 +3183,9 @@ false spends him like any other card.
 | 1 | the shot window | tut-shot | the shot power, then the keeper's stamina and its bar, then a circle on the % |
 | 2 | Tier I cards (two left) | tut-exhaust | the cards, then the EXHAUST ZONE button |
 | end of cycle 1 | **TIME OUT**: Koch's inspiration is too low, he drinks, Beer Courage switches on | tut-timeout-call, tut-timeout-inspiration | |
+| 4 | Tier I: **the Kleiner Faß**. Only the P:0's bag works and it shows only the keg; he drinks it in the drinking window; his card comes up big with Fass Courage (+1 Power in combat for each other Tier I player of yours not in the exhaust, attack and defend); only he can be picked | tut-fass, tut-fass-after | the cards, then his bag button, then the keg, then his abilities |
 | 4 | Tier IV: Koch's card with Beer Courage | tut-koch-ability | Koch's card |
+| 5 | Tier I: **the missing beer**. "Where is the rest of the beer?!" TIME OUT at the Brewery; back on the pitch the P:1 drinks a Small Bottle (bottle window) and gets the plain beer's goalie pair: 1 off their keeper when he attacks, 1 off yours when he defends | tut-missing-beer, tut-after-brewery, tut-bottle-after | his bag button, then the bottle |
 | end of cycle 2 | **TIME OUT**: the cursed brews; an Earth Brew turns Koch into a Bergmännlein with Earth Courage | tut-timeout2-call, tut-timeout-cursed | |
 | 7 | Tier IV: Bergmännlein Koch's new ability | tut-koch-earth | Koch's card |
 
@@ -3215,7 +3217,20 @@ moment, with the same score, clock and exhaust. Then the row's **Do** runs:
 | `ability:Koch=TUT_KOCH_EARTH/TUT_KOCH_EARTH_DEF` | Earth Courage, attack side / defend side: 5 stamina off the enemy keeper when he attacks, 3 when he defends (Anthony, 8 Oct) |
 | `show_card:Koch=tut-koch-new-card@abilities\|-\|-` | the match stays frozen and his field card comes up big over the pub, his attack and defend abilities beside it; then that Dialogue.csv scene plays. After `@`, the gold per line (`card`, `abilities`, `attack`, `defend`, `-`), `\|` between lines. `Tuning.csv show_card_scale` (1.8) and `show_card_backdrop` (bar) |
 | `inspire:Koch=75` | his inspiration in % on the drunk meter (`DrunkLevels.csv`): 75 after cycle 1 (past Inspired, so his star ability wakes up), 90 after cycle 2 |
+| `drink_lesson:first=keg@barrel@tut-fass-after@abilities\|-\|card` | the drinking lesson. `<card>=<item>@<barrel or bottle>@<scene>@<gold>`. The item goes in the bag if it is missing; only that card's bag button works and his bag shows only that item; gold on the button, then on the item. When he drinks: the drinking window (his own sprite, the barrel or bottle, gulps, spills, arm wipe, burp; `Tuning.csv drink_window_seconds`), then his card comes up big as with show_card and the scene plays. Only he can be picked after |
+| `say:tut-after-brewery@-\|-\|flask:first` | plays that Dialogue.csv scene, gold per line after `@` (the Highlight words) |
 | `brewery:tut_brewery` | a TIME OUT at the Brewery (round AN): the match freezes, that flag is set and the Brewery opens over it; `Guide.csv` rows that need the flag lead the way, and one whose Then is `goto:back` ends it. See "The tutorial Brewery" |
+
+**A drink in a match lasts one cycle** (Anthony, 8 Oct). A brew or beer used
+on a card during the draft wears off at the next STAR PLAYER SWITCH
+(`Tuning.csv match_drink_lasts_cycle`), and it takes hold at once, however
+low his drunk meter is (`match_drink_takes_hold_at`, 0). In the tutorial the
+keg (`Items.csv keg`, Use `brew:pool:keg`) always gives the `Brews.csv
+kleiner_fass` row, because that is the only keg row whose Requires
+(`flag:in_tutorial`) passes. Outside the tutorial the keg is the plain beer
+gamble. The barrel and bottle in the drinking window are drawn in code for
+now, until PixelLab art exists. The burp is `Audio.csv drink_burp`, silent
+until `bav_burp.ogg` is made (`SOUNDS_WANTED.csv`).
 
 **The EXHAUST ZONE button** (bottom right of every match, `Tuning.csv
 exhaust_button`) says how many of your cards are spent this cycle. Press it
@@ -4807,10 +4822,25 @@ sound events `brew_game_hit`, `brew_game_won` and `brew_game_lost` for
 > *"Plain beer gives random abilities that have one positive and then the
 > opposite being negative."*
 
-- **The Bottling Machine fills Plain Beer.** `BreweryResources.csv` has a new
-  `Counter` column: the bottle's is `plain_beer`, so the number in the
-  Brewery's window and the bag are the same thing (`Items.csv plain_beer`).
-- **It's a lucky dip.** Its Use is `brew:pool:plain`: every bottle picks one
+- **The basic three beers** (Anthony, 8 Oct: "small bottle, large bottle and
+  a keg"). Before its game the Bottling Machine asks which size to fill, from
+  `data/BottleSizes.csv`: one barrel is **6 Small Bottles, 3 Large Bottles or
+  1 Kleiner Faß**, straight into the bag (`Items.csv small_bottle`,
+  `large_bottle`, `keg`). Bigger fills more of the drunk meter: 10%, 20%, 35%.
+
+| BottleSizes.csv column | |
+|---|---|
+| `Section` | the machine (`bottling`) |
+| `Item` | the Items.csv ID that goes in the bag |
+| `Many` | how many one batch fills |
+| `Requires` | the condition language. Blank = always offered |
+
+  One size offered = no question. In the tutorial Brewery only the Small
+  Bottle is offered (the others need `!flag:tut_brewery`). A machine with
+  sizes must have no lagering wait.
+- `BreweryResources.csv` has a new `Counter` column (blank = `res_<ID>`).
+  The bottle's is `small_bottle`, used only if BottleSizes.csv has no rows.
+- **It's a lucky dip.** All three are plain beer, Use `brew:pool:plain`: every bottle picks one
   `Brews.csv` row whose new **Pool** column is `plain` (and whose Requires
   passes). Each row is a good **attack** side and its bad opposite on the
   **defend** side:
@@ -4841,7 +4871,7 @@ Three `Guide.csv` rows lead the way, all `Only`:
    Bottling Machine with their keys, and the Steeping Tank lights up.
 2. `tut_brewery_2`: after the malt, Hanna skips the middle four machines and
    hands over a barrel. The Bottling Machine lights up.
-3. `tut_brewery_3`: six plain beers in the bag. `goto:back` closes the
+3. `tut_brewery_3`: six Small Bottles in the bag. `goto:back` closes the
    Brewery and the match carries on.
 
 In those steps the game is played with Hanna's hand on it
@@ -4851,6 +4881,27 @@ is in the tutorial's own save, so nothing is kept.
 
 **Checked by:** `tests/unit/test_brewery_games.gd`, and
 `tools/brewery_tour_shot.gd` presses the real buttons and plays both games.
+`tools/minigames_shot.gd` plays all six games and takes the pictures.
+
+### Tutorial jumps: the Dev screen goes straight to one part (round AN)
+
+> *"Are you able to create a dev menu for me to jump between the different
+> important aspects of the tutorial?"*
+
+The Dev screen (the Dev button on the base) has a **TUTORIAL JUMPS** row, one
+button per row of `data/TutorialJumps.csv`:
+
+| column | |
+|---|---|
+| `ID` · `Label` | a name, and the words on the button |
+| `Kind` | `brewery`: the tutorial Brewery TIME OUT on its own, Hanna and all (Value = its flag, `tut_brewery`). `minigame`: one machine's game on its own (Value = the BrewerySections.csv ID), played at `brewery_tour_chance` % and losable |
+| `Value` | see Kind |
+
+**Your save is never touched.** The Brewery jump plays in a throwaway save
+(`user://tutorial_jump.json`) with `flag:in_tutorial`, and when Hanna is done
+you are back on the Dev screen with your own save. Jumps into the match
+itself (a cycle and a round) are with the Tutorial thread.
+`tools/tutorial_jumps_shot.gd` presses the buttons and checks the save.
 
 ### `data/BrewerySections.csv`
 

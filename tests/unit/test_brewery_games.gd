@@ -81,8 +81,20 @@ func test_mash_fills_with_clicks() -> void:
 
 
 func test_bottles_are_plain_beer_in_the_bag() -> void:
-	assert_eq(BreweryBook.counter_for("bottle"), "plain_beer")
+	assert_eq(BreweryBook.counter_for("bottle"), "small_bottle")
 	assert_eq(BreweryBook.counter_for("malt"), "res_malt")
+
+
+func test_the_basic_three_beers() -> void:
+	var sizes := BreweryBook.sizes_for("bottling", state)
+	var items: Array = sizes.map(func(one: Dictionary) -> String: return String(one["item"]))
+	assert_eq(items, ["small_bottle", "large_bottle", "keg"])
+	assert_eq(sizes.map(func(one: Dictionary) -> int: return int(one["many"])), [6, 3, 1])
+	var adventure := AdventureDB.get_db()
+	for item in items:
+		assert_true(String(adventure.item(String(item)).get("use", "")).begins_with("brew:pool:"), "%s is plain beer" % item)
+	state.set_flag("tut_brewery", true)
+	assert_eq(BreweryBook.sizes_for("bottling", state).size(), 1, "the tutorial only bottles small bottles")
 
 
 func test_plain_beer_is_a_good_and_a_bad_side_and_never_on_tap() -> void:
@@ -97,6 +109,12 @@ func test_plain_beer_is_a_good_and_a_bad_side_and_never_on_tap() -> void:
 		assert_not_null(db.get_ability(String(entry["attack"])), "%s attack" % id_text)
 		assert_not_null(db.get_ability(String(entry["defend"])), "%s defend" % id_text)
 		assert_false(DrunkBook.needs_drunk(entry), "plain beer takes hold sober")
+
+
+func test_the_keg_has_its_own_pool() -> void:
+	for i in 20:
+		var id_text := AdventureDB.brew_in_use({"use": "brew:pool:keg"}, state)
+		assert_true(id_text in ["keg_goalie", "plain_power", "plain_keeper"], id_text)
 
 
 func test_the_tutorial_only_pours_the_goalie_pair() -> void:
@@ -117,5 +135,8 @@ func test_the_tutorial_brewery_steps_line_up() -> void:
 	assert_true(BrewerBook.work("malthouse", state, CardDatabase.get_db(), 0)["ok"])
 	assert_eq(BreweryBook.stock("malt", state), 1)
 	Progression.run_actions("count:res_barrel+1", state)
-	assert_true(BrewerBook.work("bottling", state, CardDatabase.get_db(), 0)["ok"])
-	assert_eq(state.count("plain_beer"), 6, "a barrel is six plain beers")
+	var small := BreweryBook.sizes_for("bottling", state)[0]
+	assert_true(BrewerBook.work("bottling", state, CardDatabase.get_db(), 0,
+		{"counter": small["item"], "many": small["many"]})["ok"])
+	assert_eq(state.count("small_bottle"), 6, "a barrel is six small bottles")
+	assert_eq(BreweryBook.stock("barrel", state), 0, "the barrel was used")
