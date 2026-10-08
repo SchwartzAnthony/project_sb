@@ -3864,6 +3864,15 @@ func trigger_hold_up_event() -> void:
 	set_play_maker_live(false)
 	for unit in _all_units():
 		unit.reset_for_new_cycle()
+	# The drinks used on the pitch last cycle wear off (Anthony, 8 Oct).
+	var on_pitch: Array = []
+	for unit in _all_units():
+		if not unit.is_enemy and unit.data != null:
+			on_pitch.append(unit.data)
+	if BrewDB.end_of_cycle(db, state, on_pitch) > 0:
+		for unit in _all_units():
+			if unit.data != null:
+				unit.update_unit_data(unit.data)
 
 	# Enemy rotates its own Star at the same time.
 	if not available_enemy_stars.is_empty():
@@ -4475,8 +4484,10 @@ func _on_brew_wanted(card: PlayerData) -> void:
 		announce(Loc.text("no_abilities_no_brews", "NO EXTRA ABILITIES - NO BREWS THIS MATCH"), 1.4)
 		return
 
+	var lasts := "the next STAR PLAYER SWITCH" if db.tune_bool("match_drink_lasts_cycle", true) else "the final whistle"
 	var bag := InventoryScreen.open(self, state, InventoryScreen.Use.ON_CARD,
-		"Using something on %s. It wears off at the final whistle." % card.player_name)
+		"Using something on %s. It wears off at %s." % [card.player_name, lasts], bag_only)
+	bag_opened.emit(bag)
 	bag.used.connect(func(entry: Dictionary) -> void:
 		_use_on_card(card, entry)
 		if is_instance_valid(bag):
@@ -4519,6 +4530,8 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 			card.player_name, brew.get("for_class", "?")])
 		return
 
+	# ON THE PITCH (Anthony, 8 Oct): it takes hold sooner and lasts the cycle.
+	BrewDB.mark_cycle_drink(card, brew_id, state)
 	# ALWAYS DRUNK (Anthony, 8 Oct). Too sober = it does nothing yet.
 	var sober := DrunkBook.refusal(card, brew, state)
 	if sober != "":
@@ -4534,6 +4547,9 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 	# is laid on directly rather than going through the Pub's till.
 	state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(card), brew_id)
 	BrewDB.get_db().apply_all(db, state)
+	# The card on the table may not be one of the database's players (the
+	# tutorial side): lay it on him directly too.
+	BrewDB.get_db().apply_one(card, state)
 	state.save_to_disk()
 
 	_redraw_offered_cards()
@@ -4548,6 +4564,7 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 		brew.get("name", "it"), luck], 1.6 if luck == "" else 3.0)
 	print("[brew] %s used on %s mid-draft. %d left." % [
 		entry.get("name", item_id), card.player_name, state.count(item_id)])
+	item_used_on_card.emit(card, entry)
 
 
 ## Rebuild the faces in the card row without changing which cards are on
@@ -5246,6 +5263,13 @@ func _never_spent(unit: PlayerUnit) -> bool:
 	if not db.tune_bool("tutorial_star_never_spent", true):
 		return false
 	return String(match_mode.get("id", "")) == db.tune_text("tutorial_match_mode", "tutorial")
+
+
+## ROUND AN (the tutorial's drinking lesson, match_coach.gd drink_lesson).
+signal bag_opened(bag: InventoryScreen)
+signal item_used_on_card(card: PlayerData, entry: Dictionary)
+## Item ids the bag shows on a card; empty = everything.
+var bag_only: Array = []
 
 
 ## The pick guard (see _on_card_selected). Only in the Tutorial; a time in

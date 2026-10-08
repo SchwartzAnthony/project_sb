@@ -114,3 +114,24 @@ func test_starting_team_is_a_full_ladder() -> void:
 	for tier_key in picked.regulars.keys():
 		count += (picked.regulars[tier_key] as Array).size()
 	assert_eq(count, 12, "twelve players, three per Tier")
+
+
+func test_a_fresh_keeper_lets_in_ten_percent_at_most() -> void:
+	# Anthony, 8 Oct: full stamina never above 10%, whatever the shot.
+	ShotOdds.forget()
+	assert_true(ShotOdds.chance(30, 30, 22) <= 10.0)
+	assert_true(ShotOdds.chance(0, 30, 0) >= 99.0, "an empty keeper is still an open goal")
+
+
+func test_the_kleiner_fass() -> void:
+	var item := AdventureDB.get_db().item("kleiner_fass")
+	assert_false(item.is_empty(), "Items.csv kleiner_fass")
+	assert_eq(AdventureDB.brew_in_use(item), "kleiner_fass")
+	var brew := BrewDB.get_db().find("kleiner_fass")
+	assert_eq(String(brew.get("attack", "")), "TUT_FASS_COURAGE")
+	assert_eq(String(brew.get("defend", "")), "TUT_FASS_COURAGE")
+	var ability := CardDatabase.get_db().get_ability("TUT_FASS_COURAGE")
+	assert_eq(CardDatabase._normalise(ability.effect), "addpowerpertiermate")
+	var row := MatchTalk.row_for("cards_shown", "tutorial", null, {"round": "4", "tier": "I"})
+	assert_eq(String(row.get("scene", "")), "tut-fass")
+	assert_string_contains(String(row.get("do", "")), "drink_lesson:first=kleiner_fass")

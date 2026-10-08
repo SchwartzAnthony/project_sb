@@ -235,6 +235,11 @@ static func takes_hold(card: PlayerData, entry: Dictionary, state: GameState) ->
 	if not on() or not needs_drunk(entry):
 		return true
 	var gate := threshold("brews")
+	# ROUND AN (Anthony, 8 Oct): a drink used on the pitch takes less to
+	# take hold (it lasts only the cycle, and leaves him barely drunk).
+	if BrewDB.is_cycle_drink(card, String(entry.get("id", "")), state):
+		var db := CardDatabase.get_db()
+		gate = db.tune_int("match_drink_takes_hold_at", 0) if db != null else 0
 	return gate < 0 or meter(card, state) >= gate
 
 

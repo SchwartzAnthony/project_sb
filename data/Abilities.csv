@@ -29,3 +29,4 @@ PLAIN_POWER_ATK,Plain Beer: Dutch Courage,on_attack,self,add_power,1,duel,,,,,RO
 PLAIN_POWER_DEF,Plain Beer: Wobbly Legs,on_defend,self,add_power,-1,duel,,,,,ROUND AN - PLAIN BEER. The catch: -1 power when he defends.
 PLAIN_KEEPER_ATK,Plain Beer: A Round for the Keeper,on_attack,own_goalie,restore_stamina,1,duel,,,,,"ROUND AN - PLAIN BEER (plain_keeper). The good side: when he attacks, 1 stamina back to your keeper."
 PLAIN_KEEPER_DEF,Plain Beer: A Round for Theirs,on_defend,enemy_goalie,restore_stamina,1,duel,,,,,"ROUND AN - PLAIN BEER. The catch: when he defends, 1 stamina back to THEIR keeper."
+TUT_FASS_COURAGE,Fass Courage,on_duel_start,self,add_power_per_tiermate,1,duel,,,,,"ROUND AN - THE TUTORIAL (Anthony, 8 Oct): the Kleiner Faß. +1 power for each OTHER player of your side in the same Tier who is not in the Exhaust Zone. Both sides."

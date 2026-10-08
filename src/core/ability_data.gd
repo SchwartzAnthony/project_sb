@@ -204,6 +204,8 @@ const EFFECTS: Array[String] = [
 	# ---- ROUND AN: the tutorial (Koch after his beer) ----
 	"addpowerperplayed",  # +value power for EACH of your plain (not Star) players
 	                      # who played before it this round - the lower Tiers
+	"addpowerpertiermate",  # +value power for EACH other player of its side in
+	                      # its Tier who is not in the Exhaust Zone (Kleiner Faß)
 ]
 
 const SCOPES: Array[String] = ["duel", "round", "cycle", "match"]
@@ -535,6 +537,7 @@ func _what_words() -> String:
 		"adddefense": return "%+d defence to %s" % [value, who]
 		"addpower": return "%+d attack and defence to %s" % [value, who]
 		"addpowerperplayed": return "%+d power to %s for each of your normal players who played before him this round" % [value, who]
+		"addpowerpertiermate": return "%+d power to %s for each other player of his Tier not in the Exhaust Zone" % [value, who]
 		"addshotpower": return "%+d on the shot at goal" % value
 		"drainstamina": return "%d stamina off %s" % [value, who]
 		"restorestamina": return "%d stamina back to %s" % [value, who]
