@@ -619,6 +619,44 @@ and:
 > purpose: the second number calls a wandering player a shaking one, and the
 > wandering is wanted.
 
+### Eyes on the ball, and only sprint when it is in range (round AN)
+
+Anthony: *"All players should be facing towards the ball, but they shouldn't
+be sprinting towards it unless they are within the ball's range."*
+
+Every player has a **job** each frame. Five jobs are *going for the ball*
+(BALL, PRESS, RECEIVE, DRIBBLE, SURGE) and four are *watching it* (HOLD, MARK,
+OPEN, RECOVER).
+
+- **Watching it**: he faces the ball the whole time, even while he shuffles
+  across or drops back, and his legs go at a jog (his speed ÷ his sprint speed
+  of the run animation). Slower than `unit_stand_below_speed` he just stands.
+- **Going for it**: he faces where he runs, at full animation speed.
+- **The ball's range** is the press reach (`press_radius_fraction` of the
+  pitch height). Outside it nobody goes faster than `far_from_ball_pace` × his
+  walk. That is what had the back rows (Tier I and the far Tier IV) tearing
+  about at the far end of the pitch.
+- After turning, a player keeps his facing for `unit_face_turn_hold` seconds,
+  unless the ball goes round behind him.
+
+| Tuning row | |
+|---|---|
+| `far_from_ball_pace` | top speed outside the ball's range, × walk. `1.2`. `0` = off |
+| `unit_face_turn_hold` | seconds a facing is held before the next turn. `0.3` |
+| `unit_stand_below_speed` | px/s under which a watcher is drawn standing. `16` |
+| `unit_walk_anim_floor` | slowest the legs go for a watcher, share of the run rate. `0.4` |
+
+**See it in the game:** press **Z** in a match. On top of the zone map you get
+the gold **ball range** circle, a gold cross where the ball will land, every
+player's **job word** (gold = the ball is in his range, `sprint` = going
+faster than a jog), a short **arrow for where he looks**, and a thin line to
+the man he marks.
+
+> `tools/movement_probe.gd` measures it per Tier and side. Before: players
+> off the ball had it behind them **55-96%** of the time, and the Tier I and
+> Tier IV back rows sprinted with the ball out of range **55-71%** of the time.
+> After: **0-1%** and **0%**.
+
 ### The shape — why they were standing in pairs
 
 **A zone is a centre of gravity. It is not a fence.** That sentence is the
