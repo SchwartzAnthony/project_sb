@@ -156,7 +156,7 @@ both cases.
 
 ## 6. Questions only Anthony can answer
 
-These are also in `data/Questions.csv` (Q223 to Q227).
+These are also in `data/Questions.csv` (Q225 to Q229).
 
 1. **Pure reskin, or different rules?** My default: identical rules and
    numbers, only names, words, art and sound change.
