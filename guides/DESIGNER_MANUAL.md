@@ -713,6 +713,37 @@ defend ... a back and forth that looks natural."*
 | `intent_lines_chasers_only` | `true` = lines only for players going for the ball |
 | `ball_carrier_marker_height` / `ball_carrier_marker_size` | the arrow over the carrier. `74` / `20` |
 
+**The back rows: half the range, shadowing, breathers (9 Oct).** Anthony:
+*"Tier IV / Tier I ... still grouping too much and ... running into an
+invisible wall ... If they are outside of the ball range (maybe make it
+smaller by half) have them chase the person they should be watching."*
+
+- **The ball's range is half what it was** (`press_radius_fraction` 0.55 →
+  0.275). Inside it, pressing and sprinting as before.
+- **Outside it a marker shadows his man**: `mark_shadow_commitment` of the
+  way to goal-side of him, and not held to his quarter. Holding him to the
+  quarter is what had him leaning on an invisible line while his man walked
+  off.
+- **Breathers**: off the ball a player runs for `unit_run_burst_min`–`_max`
+  seconds, then stands watching the ball for `unit_rest_min`–`_max`.
+- **No running into walls**: if he makes under `unit_stuck_progress` px in
+  `unit_stuck_window` seconds while his target is still away, he stops and
+  takes a breather instead.
+- **Committing to a run**: a player getting open looks again only when he
+  has got there (or after twice `open_rethink_seconds`), and only switches
+  for a spot that beats his by `open_switch_margin`.
+
+| Tuning row | |
+|---|---|
+| `press_radius_fraction` | the ball's range, share of pitch height. `0.275` (halved) |
+| `mark_shadow_commitment` | how close a marker outside the range stays on his man. `0.85` |
+| `unit_run_burst_min` / `_max` | seconds of running before a breather. `2.5` / `4.5` |
+| `unit_rest_min` / `_max` | seconds a breather lasts. `1` / `2`. `_max` 0 = off |
+| `unit_stuck_window` / `unit_stuck_progress` | the wall check. `0.8` s / `18` px |
+| `unit_rest_skip_distance` | no breather while his target is further than this. `220` px |
+| `open_switch_margin` | how much better a new opening must be. `60` |
+| `open_zone_margin` | back to `0.25` of a quarter |
+
 **See it in the game:** press **Z** in a match. On top of the zone map you get
 the gold **ball range** circle, a gold cross where the ball will land, every
 player's **job word** (gold = the ball is in his range, `sprint` = going

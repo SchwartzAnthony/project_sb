@@ -552,6 +552,9 @@ func _physics_process(delta: float) -> void:
 		speed = walk_speed
 		role = Role.HOLD
 
+	if _take_a_breather(delta, target):
+		return
+
 	# ============ STEERING ============
 	#
 	# The pull toward the target is ONE FORCE AMONG FOUR, and the sum decides
@@ -633,6 +636,72 @@ func _physics_process(delta: float) -> void:
 	global_position += (want / force) * step
 	_face_the_action()
 	_clamp_to_bounds()
+
+
+## ============ A BREATHER, AND NO RUNNING INTO WALLS  (round AN, 9 Oct) ============
+##
+## Anthony: "they are obviously running into an invisible wall. They can stop
+## running on a timer of 1-2 seconds then run again."
+##
+## Two rules, for a player whose job is NOT the ball (going for it never
+## stops):
+##   * STUCK: if over `stuck_window` seconds he has made less than
+##     `stuck_progress` px of ground while his target is still away, he is
+##     leaning on something - a zone edge, a team-mate, the touchline. He
+##     stops, and stands watching the ball for a rest.
+##   * BREATHER: after a run of `run_burst` seconds (random between the two)
+##     he stands for `rest_seconds` (random between the two), then goes again.
+##     Not if his target is further than `rest_skip_distance`: a man with
+##     somewhere to be does not stop half way.
+## While resting he still faces the ball (see _process).
+@export var run_burst := Vector2(2.5, 4.5)
+@export var rest_seconds := Vector2(1.0, 2.0)
+@export var stuck_window := 0.8
+@export var stuck_progress := 18.0
+@export var rest_skip_distance := 220.0
+var _rest_left := 0.0
+var _burst_left := -1.0
+var _stuck_clock := 0.0
+var _stuck_from := Vector2.INF
+
+
+func _take_a_breather(delta: float, target: Vector2) -> bool:
+	if _is_chasing() or not has_role_target or celebrating or rest_seconds.y <= 0.0:
+		_rest_left = 0.0
+		_burst_left = -1.0
+		_stuck_from = Vector2.INF
+		return false
+	if _rest_left > 0.0:
+		_rest_left -= delta
+		return true
+	var far := global_position.distance_to(target)
+	if far <= arrive_radius * 2.0:
+		_stuck_from = Vector2.INF
+		return false
+	if _stuck_from == Vector2.INF:
+		_stuck_from = global_position
+		_stuck_clock = 0.0
+	_stuck_clock += delta
+	if _stuck_clock >= stuck_window:
+		var made := global_position.distance_to(_stuck_from)
+		_stuck_from = global_position
+		_stuck_clock = 0.0
+		if made < stuck_progress:
+			_start_rest()
+			return true
+	if _burst_left < 0.0:
+		_burst_left = randf_range(run_burst.x, maxf(run_burst.x, run_burst.y))
+	_burst_left -= delta
+	if _burst_left <= 0.0 and far < rest_skip_distance:
+		_start_rest()
+		return true
+	return false
+
+
+func _start_rest() -> void:
+	_rest_left = randf_range(rest_seconds.x, maxf(rest_seconds.x, rest_seconds.y))
+	_burst_left = -1.0
+	_stuck_from = Vector2.INF
 
 
 ## ============ WHICH WAY THEY ARE LOOKING ============

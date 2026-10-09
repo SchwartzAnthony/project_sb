@@ -38,6 +38,7 @@ const NEAR := 140.0
 var _away_by_role := {}
 ## Who is within 240 px of the ball, by job, summed over frames.
 var _near_role := {}
+var _traced := 0
 var _away_to_edge := {}
 const ROLE_WORDS := ["HOLD", "MARK", "OPEN", "PRESS", "BALL", "RECEIVE", "DRIBBLE", "SURGE", "RECOVER"]
 var _film := false
@@ -131,7 +132,7 @@ func _sample(unit: PlayerUnit, ball, reach: float, dt: float, last_dir: Dictiona
 	var key := "%s %s" % ["THEM" if unit.is_enemy else "YOU ", tier]
 	if not _stats.has(key):
 		_stats[key] = {"t": 0.0, "free": 0.0, "away": 0.0, "far_sprint": 0.0,
-			"turns": 0, "stood": 0.0, "out": 0.0, "n": {}}
+			"turns": 0, "stood": 0.0, "out": 0.0, "spot": 0.0, "grouped": 0.0, "n": {}}
 	var s: Dictionary = _stats[key]
 	s["n"][unit.get_instance_id()] = true
 	s["t"] += dt
@@ -147,6 +148,45 @@ func _sample(unit: PlayerUnit, ball, reach: float, dt: float, last_dir: Dictiona
 	unit.set_meta("probe_prev", unit.global_position)
 	if speed < 2.0:
 		s["stood"] += dt
+	# RUNNING ON THE SPOT: legs going (over 15 px/s) but under 25 px of real
+	# ground made over the last second - leaning into an invisible wall.
+	var hist: Array = unit.get_meta("probe_hist") if unit.has_meta("probe_hist") else []
+	hist.append(unit.global_position)
+	if hist.size() > int(1.0 / dt):
+		hist.pop_front()
+	unit.set_meta("probe_hist", hist)
+	if speed > 15.0 and hist.size() >= int(1.0 / dt) \
+			and (hist[0] as Vector2).distance_to(unit.global_position) < 25.0:
+		s["spot"] += dt
+		if OS.get_environment("PROBE_WHY") == "1":
+			var word: String = ROLE_WORDS[clampi(unit.role, 0, ROLE_WORDS.size() - 1)]
+			var tgt: float = unit.role_target.distance_to(unit.global_position)
+			var zf: Vector2 = unit.call("_zone_force") * unit.zone_pull
+			var sep: Vector2 = unit.call("_separation") * unit.separation_strength
+			var back := unit.home_position - unit.global_position
+			var slot := back.length() > unit.leash
+			var cause := "zone" if zf.length() > 0.3 else ("crowd" if sep.length() > 0.3 else ("slot" if slot else ("resting" if float(unit.get("_rest_left")) > 0.0 else "?")))
+			var k := "ON SPOT %s target %s %s" % [word, "far" if tgt > 40.0 else "near", cause]
+			if _traced < 3 and word == "OPEN" and tgt > 40.0 and not unit.has_meta("traced"):
+				unit.set_meta("traced", true)
+				_traced += 1
+				var pts := []
+				for i in range(0, hist.size(), 6):
+					pts.append("(%d,%d)" % [int(hist[i].x), int(hist[i].y)])
+				print("[trace] %s at %s target %s rest %.2f roam %s spd %.0f path %s" % [unit.data.player_name,
+					unit.global_position, unit.role_target, float(unit.get("_rest_left")),
+					unit.is_roaming, speed, " ".join(pts)])
+			_away_by_role[k] = _away_by_role.get(k, 0.0) + dt
+			_away_to_edge[k] = 0.0
+	# GROUPED: a team-mate within 70 px while the ball is far away.
+	if ball != null and is_instance_valid(ball) \
+			and unit.global_position.distance_to(ball.global_position) > 300.0:
+		for other in unit.get_parent().get_children():
+			var mate := other as PlayerUnit
+			if mate != null and mate != unit and mate.is_enemy == unit.is_enemy \
+					and mate.global_position.distance_to(unit.global_position) < 70.0:
+				s["grouped"] += dt
+				break
 	if ball != null and is_instance_valid(ball) and speed > 25.0 and unit.has_meta("probe_step"):
 		var step: Vector2 = unit.get_meta("probe_step")
 		var to_ball: Vector2 = ball.global_position - unit.global_position
@@ -237,7 +277,7 @@ func _report(measured: float) -> void:
 	print("[probe] going for it (BALL/PRESS): %.1f on average, %d at worst" % [
 		_crowd["chasers_sum"] / f, _crowd["chasers_max"]])
 	print("[probe] %.1f s of open play measured" % measured)
-	print("[probe] %-9s %3s  %12s  %10s  %8s  %6s  %9s" % ["who", "n", "facing away", "far sprint", "turns/s", "stood", "off zone"])
+	print("[probe] %-9s %3s  %12s  %10s  %8s  %6s  %9s  %8s  %8s" % ["who", "n", "facing away", "far sprint", "turns/s", "stood", "off zone", "on spot", "grouped"])
 	var keys := _stats.keys()
 	keys.sort()
 	var worst_away := 0.0
@@ -247,9 +287,9 @@ func _report(measured: float) -> void:
 		var n: int = s["n"].size()
 		var away: float = 100.0 * s["away"] / maxf(s["free"], 0.001)
 		worst_away = maxf(worst_away, away)
-		print("[probe] %-9s %3d  %11.0f%%  %9.0f%%  %8.2f  %5.0f%%  %8.0f%%" % [key, n, away,
+		print("[probe] %-9s %3d  %11.0f%%  %9.0f%%  %8.2f  %5.0f%%  %8.0f%%  %7.0f%%  %7.0f%%" % [key, n, away,
 			100.0 * s["far_sprint"] / t, float(s["turns"]) / t / maxf(n, 1), 100.0 * s["stood"] / t,
-			100.0 * s["out"] / t])
+			100.0 * s["out"] / t, 100.0 * s["spot"] / t, 100.0 * s["grouped"] / t])
 	print("[probe] worst facing-away: %.0f%%" % worst_away)
 
 
