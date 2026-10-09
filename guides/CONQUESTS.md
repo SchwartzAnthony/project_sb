@@ -34,7 +34,7 @@ from Anthony.
 
 A flag on the top row with the others, but **a black infinity symbol on it,
 and looking really torn and old.** Today's stand-in: the shared PixelLab
-banner cloth, aged by `tools/tear_cloth.py` (bleached to bone, ragged sides,
+banner cloth, aged by `tools/tear_cloth.py` (faded to a dirty grey-brown, ragged sides,
 moth holes, a rip, half the stitches gone), with a script-drawn infinity.
 `tools/make_banners.py` builds it like every other banner. PixelLab should
 redraw both (ArtOrders.csv `conquests_banner`).

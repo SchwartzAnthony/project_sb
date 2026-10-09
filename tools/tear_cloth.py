@@ -10,7 +10,7 @@
 #  looking really torn and old."
 #
 #  So this takes the ONE shared PixelLab cloth and ages it, instead of
-#  drawing a new one: bleached to old bone, ragged down both sides, two
+#  drawing a new one: faded to a dirty grey-brown, ragged down both sides, two
 #  moth holes, a rip up from the swallowtail and half the stitches gone.
 #  It writes:
 #
@@ -34,9 +34,15 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(HERE, "art_source", "pixellab", "banners")
 SEED = 1979
 INK = (1, 1, 2, 255)
-BONE = (186, 172, 140, 255)       # the old cloth, where it was blue
-BONE_DARK = (142, 126, 98, 255)   # its shadows and stains
-THREAD = (120, 96, 60, 255)       # what is left of the gold stitching
+# A weathered, dirty grey-brown: dark enough that the cream name thread
+# every banner uses still reads on it, light enough for a black infinity.
+BONE = (112, 100, 82, 255)        # the old cloth, where it was blue
+BONE_DARK = (86, 76, 62, 255)     # its shadows and stains
+THREAD = (150, 124, 78, 255)      # what is left of the gold stitching
+# The rows the name is stitched on (MenuSupport.BANNER_TEXT_BOX, in cloth
+# pixels from the top of the loops). Nothing is torn or stained there, so
+# the whole word sits on solid cloth like on every other banner.
+NAME_ROWS = range(24, 43)
 
 
 def _is_ink(px):
@@ -50,7 +56,7 @@ def tear(cloth):
     box = cloth.getbbox()
     left, top, right, bottom = box
 
-    # 1. Bleach: blue cloth -> old bone, gold thread -> dull brown, and lose
+    # 1. Fade: blue cloth -> dirty grey-brown, gold thread -> dull brown, and lose
     #    about half the stitches.
     for y in range(h):
         for x in range(w):
@@ -63,9 +69,11 @@ def tear(cloth):
             else:       # the gold stitching
                 out.putpixel((x, y), BONE if rnd.random() < 0.5 else THREAD)
 
-    # 2. Stains: a few blotches of the darker bone.
+    # 2. Stains: a few blotches of the darker shade.
     for _ in range(5):
         cx, cy = rnd.randint(left + 4, right - 4), rnd.randint(top + 14, bottom - 14)
+        if cy - top in range(NAME_ROWS.start - 4, NAME_ROWS.stop + 4):
+            continue
         rad = rnd.randint(2, 4)
         for y in range(cy - rad, cy + rad + 1):
             for x in range(cx - rad, cx + rad + 1):
@@ -80,6 +88,8 @@ def tear(cloth):
     gone = set()
     hang = top + 8
     for y in range(hang, bottom + 1):
+        if y - top in NAME_ROWS:
+            continue
         if rnd.random() < 0.35:
             depth = rnd.randint(1, 3)
             for x in range(left, left + depth):
@@ -100,7 +110,7 @@ def tear(cloth):
     notch_y = max(y for y in range(h) if not out.getpixel((notch_x, y))[3]
                   and y < bottom and out.getpixel((notch_x, y - 1))[3])
     x = notch_x
-    for y in range(notch_y, notch_y - 8, -1):
+    for y in range(notch_y, max(notch_y - 8, top + NAME_ROWS.stop), -1):
         x += rnd.choice((-1, 0, 0, -1, 1))
         gone.add((x, y))
         if rnd.random() < 0.5:

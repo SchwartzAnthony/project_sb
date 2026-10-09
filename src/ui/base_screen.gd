@@ -357,12 +357,6 @@ func _build_exits() -> void:
 			Loc.text("conquests_button", "Conquests"), EXIT_SIZE)
 		to_conquests.tooltip_text = "Draft Mode. Coming one day."
 		to_conquests.pressed.connect(_conquests_soon)
-		# Pale thread vanishes on the bleached cloth: its name is stitched in
-		# black, like the infinity.
-		for child in to_conquests.get_children():
-			if child is Label:
-				child.add_theme_color_override("font_color", MenuSupport.BANNER_STITCH)
-				child.add_theme_color_override("font_outline_color", Color("baac8c"))
 		row.add_child(to_conquests)
 
 	# THE WAY OUT OF THE TUTORIAL, and only there. In the real base there is
