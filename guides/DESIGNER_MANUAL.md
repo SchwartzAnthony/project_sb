@@ -3333,6 +3333,12 @@ moment, with the same score, clock and exhaust. Then the row's **Do** runs:
 | `say:tut-after-brewery@-\|-\|flask:first` | plays that Dialogue.csv scene, gold per line after `@` (the Highlight words) |
 | `brewery:tut_brewery` | a TIME OUT at the Brewery (round AN): the match freezes, that flag is set and the Brewery opens over it; `Guide.csv` rows that need the flag lead the way, and one whose Then is `goto:back` ends it. See "The tutorial Brewery" |
 
+**Time passes: a fade to black** (Anthony, 9 Oct). A Dialogue.csv line
+whose **Background** is `black` fades the screen to black (the words still
+show) and it stays black; the next line with any other Background (`bar`)
+fades back in on that picture. `Tuning.csv story_fade_seconds` (0.8). The
+prologue's "Cheering!" and "After a few more rounds..." use it.
+
 **A drink in a match lasts one cycle** (Anthony, 8 Oct). A brew or beer used
 on a card during the draft wears off at the next STAR PLAYER SWITCH
 (`Tuning.csv match_drink_lasts_cycle`), and it takes hold at once, however
