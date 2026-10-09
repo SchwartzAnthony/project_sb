@@ -169,3 +169,76 @@ Also recorded in `data/Questions.csv` (Q225 to Q229).
    beer-hall UI look, drunk portraits, the crowd's steins, the Pub.
    Bavaria and Oktoberfest stay.
 5. **Name: "Sturmball: Brotzeit".**
+
+---
+
+## 7. Languages and where to sell which edition
+
+Researched 9 Oct 2026. **Checked** means a source says it. **Inferred** is
+my own reading, to be confirmed before launch.
+
+### Which languages
+
+Share of Steam users by their main language in 2024, as Valve reported at
+GDC 2025 ([WN Hub](https://wnhub.io/news/stores-and-publishing/item-47433)):
+Simplified Chinese 33.7%, English 33.5%, Russian 8.2%, Spanish 4.6%,
+Brazilian Portuguese 2.8%, German 2.5%, Korean 2.2%, French 2.1%,
+Japanese 1.7%, Turkish 1.7%, Traditional Chinese 1%. **Checked.**
+
+Recommended order for Sturmball:
+
+| # | Language | Why |
+|---|---|---|
+| 1 | English | Already done. |
+| 2 | German | The game is Bavarian. Its jokes and names (Anstoß Helles, Abstauber, Brotzeit) are German puns, so German is nearly free and plays best. Also the home market. *Inferred.* |
+| 3 | Simplified Chinese | A third of Steam, and auto-battlers have a big following there. *Share checked; genre fit inferred.* |
+| 4 | Russian | 8% of Steam and cheap to translate ([Alconost](https://alconost.com/en/blog/steam-language-mix-indies)). |
+| 5 | Brazilian Portuguese, Spanish | Growing and under-served ([Alconost](https://alconost.com/en/blog/steam-language-mix-indies)). |
+| 6 | French, Japanese, Korean | Next tier, after launch if wishlists ask for them. |
+| For Brotzeit | Turkish, Arabic, Indonesian | Small on Steam overall, but these are the players the bread edition is for. Store page first, the game later if they buy. *Inferred.* |
+
+Two notes:
+- **Start with the store page.** Translating only the store page in 2 or 3
+  languages is the cheapest step and can bring 30 to 50% more interest from
+  those markets ([Alconost](https://alconost.com/en/blog/steam-language-mix-indies)).
+- **Use people, not machine translation.** Sturmball is full of puns and
+  Bavarian words, which is where machine translation does worst (same
+  source). The `Words.csv` step in section 4 is also what makes a
+  translation possible: Godot reads translations from a CSV, so a language
+  is one more column.
+
+### Where only Brotzeit should be sold
+
+**No country I could find bans a game just for showing beer.** The Gulf
+regulators refuse games for nudity, gambling, religious content and
+"material contrary to cultural and social norms"
+([GCC guide](https://salmangul.com/gaming-regulation-age-rating-gcc/));
+older Saudi bans also named "substance use"
+([Niko Partners](https://nikopartners.com/grand-theft-approval-a-turning-point-for-mena-game-regulations/)).
+A game they refuse to rate is effectively banned there
+([Gmedia](https://en.wikipedia.org/wiki/General_Authority_of_Media_Regulation)).
+Steam does hide games in single countries over ratings: Brave x Junction is
+blocked on Steam in Germany, China and Saudi Arabia for "regional rating
+restrictions" ([RPG Site](https://www.rpgsite.net/news/18742-brave-x-junction-still-not-available-for-switch-in-the-west-pc-steam-in-germany-china-saudi-arabia)).
+**Checked.**
+
+So my recommendation, **inferred** from the above:
+
+| Where | Beer edition | Brotzeit |
+|---|---|---|
+| **Saudi Arabia, Kuwait** (alcohol is illegal there) | Not sold at launch; ask Gmedia for a rating later | Sold |
+| **UAE, Qatar, Bahrain, Oman** | Sold, unless a rating comes back refused | Sold, and shown first on the store page |
+| **Indonesia, Malaysia** | Sold | Sold, and the edition to advertise |
+| **Iran** | Steam does not sell there | — |
+| **Everywhere else** (Germany, the US, Europe, Japan, Brazil …) | Sold | Sold |
+
+Two practical points:
+- **Germany is fine.** The USK has no problem with beer; the Bavarian
+  theme is a plus there. *Inferred.*
+- **Indonesia:** from January 2026 a game needs an IGRS rating, filed
+  through an Indonesian representative, or it can be blocked
+  ([Wikipedia](https://en.wikipedia.org/wiki/Indonesia_Game_Rating_System)).
+  This applies to both editions. **Checked.**
+
+Before launch, a rating check per country (IARC on Steam, Gmedia for Saudi
+Arabia) gives the real answer. This table is where to start.
