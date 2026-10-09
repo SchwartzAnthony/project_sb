@@ -148,6 +148,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--m
 .console .h{color:var(--accent);font-weight:500}
 .console .dim{color:var(--dim)}
 .console .bg{color:var(--faint)}
+.console .emb{color:var(--accent);font-weight:600}
 .console.nobg .bg{display:none}
 .console .win{color:var(--pitch);font-weight:500}
 .console .goal{background:var(--pitch);color:var(--card);padding:0 4px;font-weight:500}
@@ -391,6 +392,7 @@ tr.added td{background:var(--pitch-soft)}
       <div class="hint" style="display:grid;gap:8px;max-width:75ch">
         <p style="margin:0">This page runs the game's own rules code (AbilityEngine, the tier ladder, Emblems, ShotOdds) compiled for the browser, reading the same <code>data/*.csv</code> files. It is built by <code>tools/lab/build.sh</code> from the branch and commit shown at the top.</p>
         <p style="margin:0">A round is played the way <code>tests/sim_runner.gd</code> plays it: passives, four duels with abilities resolved on the stack, the bank, then the shot against the keeper. Left out, because they only exist on the pitch: touches, mines being worked, gravestones, fouls and free kicks, and the Emblem race (so no Ultimates turn on). Questions a card would ask are answered with their default and listed in the log.</p>
+        <p style="margin:0"><b>Emblems.</b> As in the game, the Emblem on the field is the one belonging to the cycle's Star, so it changes at each Star switch (Tuning.csv <code>emblem_follows_star</code>). The standings show which Emblem is ON for each side, and every time its basic side fires the log prints an orange <b>EMBLEM</b> line naming whose Emblem it was and which card fed it. Only the basic side: the lab has no Emblem race, so no Ultimate turns over.</p>
         <p style="margin:0"><b>Adventure</b> opens the real AdventureEncounter with no pitch, the way tools/adventure_soak.gd does, with the clock run fast. Stamina, knock-outs and the tier rotation carry from wave to wave, and stand-ins go home after each fight. Items and fleeing are left out. The one-off breakpoints in "Many runs" are counted from the fight log.</p>
         <p style="margin:0"><b>Editing.</b> An edited spreadsheet is packed into a small file of its own and laid over the shipped one inside the engine, so every part of the rules reads the edited numbers exactly as the game would read a changed CSV. Nothing reaches the game until Claude puts it into <code>data/</code>. Ability rows whose ID starts with C_ are made from the card text by <code>tools/ability_rows.py</code>; when you change one, Claude keeps your version as a row of your own in Abilities.csv so the next re-run does not undo it.</p>
         <p style="margin:0">In the match, two things differ from the simulator, to match the real match: a token that takes a card's place is offered in the draft instead of the card, and the keeper's stamina is handed to the engine before each round.</p>
@@ -590,7 +592,8 @@ function drawBoard(){
   const keeper = (side, info) => {
     const st = s.stamina[side], mx = s.max_stamina[side], sh = s.shield[side];
     return `<div class="hint">Keeper ${esc(info.keeper)} · stamina <span class="num">${st}/${mx}</span>${sh?` · shield ${sh}`:""} · Ore <span class="num">${s.ore[side]}</span></div>
-      <div class="bar"><i style="width:${100*st/mx}%"></i></div>`;
+      <div class="bar"><i style="width:${100*st/mx}%"></i></div>
+      <div class="hint">Emblem: ${((s.emblems||{})[side]||[]).map(e=>`<b style="color:var(--accent)">${esc(e.id)} ON</b>`).join(", ") || "none yet (it goes on at the Star switch)"}</div>`;
   };
   $("#board").innerHTML = `
     <div class="side"><div class="lbl home">Home</div><div class="cls">${esc(H.class)}</div>${keeper("home",H)}</div>
@@ -1035,6 +1038,21 @@ const abl = id => `<span class="abl" data-ab="${esc(id)}">${esc(id)}</span>`;
 const S = (side, t) => `<span class="${side}">${esc(t ?? side.toUpperCase())}</span>`;
 const bgl = t => `<span class="bg">${esc(t)}\n</span>`;
 const isEventLine = l => /^(home|away): [a-z_]+( \(.*\))?$/.test(String(l).trim());
+/* An Emblem firing is never background: it is what you asked to see. */
+const isEmblemLine = l => /^(home|away): EMBLEM /.test(String(l).trim());
+const line = (pre, l) => isEmblemLine(l) ? `<span class="emb">${esc(pre + String(l).trim())}</span>\n`
+  : isEventLine(l) ? bgl(pre + String(l).trim()) : `${esc(pre + String(l).trim())}\n`;
+function emblemText(s){
+  const E = s.emblems || {};
+  let o = "";
+  for (const side of ["home","away"]){
+    const list = E[side] || [];
+    o += `  ${S(side, padE(side+" emblem", 13))}` + (list.length
+      ? list.map(b => `<span class="emb">${esc(b.id)} is ON</span> <span class="dim">(basic side, fed by ${esc(b.feeds)} cards: ${esc(b.basic.length > 90 ? b.basic.slice(0, 88) + "…" : b.basic)})</span>`).join("; ")
+      : `<span class="dim">none yet (it goes on with the Star at the Star switch)</span>`) + "\n";
+  }
+  return o;
+}
 
 function showView(){
   const text = $("#m-view").value === "text";
@@ -1073,7 +1091,8 @@ function scoreboardText(s){
       o += line + "\n";
     }
   }
-  return o + `<span class="dim">  * the Star this cycle · T a token · x played this cycle (in the exhaust)</span>\n`;
+  o += emblemText(s);
+  return o + `<span class="dim">  * the Star this cycle · T a token · x played this cycle (in the exhaust) · an Emblem is on while its Star is the cycle's Star; the lab has no Emblem race, so Ultimates never turn over</span>\n`;
 }
 function roundBlocks(r){
   const B = [];
@@ -1087,12 +1106,12 @@ function roundBlocks(r){
       o += `  ${S(side, padE(side, 9))}` + r.lineup[side].map(c => c && c.name ? cn(c.name, side, W) : padE("-", W)).join("") + "\n";
   }
   o += `  ${S(r.has_ball_first)} has the ball for Tier I\n`;
-  for (const l of r.before||[]) o += isEventLine(l) ? bgl("  · "+l) : `  · ${esc(l)}\n`;
+  for (const l of r.before||[]) o += line("  · ", l);
   B.push(o);
   for (const d of r.duels) B.push(duelText(d));
   B.push(shotText(r.shot));
   let a = (r.after||[]).length ? `<span class="dim">  after the round</span>\n` : "";
-  for (const l of r.after||[]) a += isEventLine(l) ? bgl("  · "+l) : `  · ${esc(l)}\n`;
+  for (const l of r.after||[]) a += line("  · ", l);
   B.push(a);
   return B;
 }
@@ -1115,7 +1134,7 @@ function duelText(d){
   const fired = [...d.atk.fired.map(id=>[d.atk,id]), ...d.def.fired.map(id=>[d.def,id])];
   o += fired.length ? `  <span class="dim">fired</span>  ` + fired.map(([p,id])=>`${abl(id)} <span class="dim">(${esc(p.name)})</span>`).join(", ") + "\n"
                     : `  <span class="dim">no ability changed anything</span>\n`;
-  for (const l of d.lines) o += isEventLine(l) ? bgl("         "+l.trim()) : `         ${esc(l.trim())}\n`;
+  for (const l of d.lines) o += line("         ", l);
   for (const n of d.notes) o += `  » ${esc(n)}\n`;
   for (const a of d.asks) o += bgl(`  asked, default answer used: ${a}`);
   o += `  <span class="dim">result</span> ${d.atk.power} v ${d.def.power}${d.tie ? ` (a tie: ${esc(d.tie_rule)})` : ""}  → <span class="win">${d.winner.toUpperCase()} WINS</span>${d.turnover ? `, turnover: ${d.winner} has the ball` : ", the attacker keeps the ball"}\n`;

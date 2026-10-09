@@ -384,7 +384,21 @@ func _state_json(s: Dictionary) -> Dictionary:
 		"keeper_damage": {"home": s["dmg"][HOME], "away": s["dmg"][AWAY]},
 		"home_attacks_next": _next_has_ball(s) == HOME if not s["done"] else false,
 		"ore": {"home": e.pool(HOME, "ore"), "away": e.pool(AWAY, "ore")},
+		"emblems": {"home": _emblems_json(e, HOME), "away": _emblems_json(e, AWAY)},
 		"squads": zones}
+
+
+## The Emblems ON THE FIELD for a side right now - the cycle's Star's, as
+## in the game (Tuning.csv emblem_follows_star). Only the basic side: the
+## lab has no Emblem race, so no Ultimate ever turns over.
+func _emblems_json(e: AbilityEngine, side: bool) -> Array:
+	var out: Array = []
+	for thing in (e._emblems.get(side, []) as Array):
+		var badge := thing as ClassBook.Emblem
+		if badge != null:
+			out.append({"id": badge.id, "star": badge.star, "basic": badge.basic.strip_edges(),
+				"ability": badge.basic_ability, "feeds": badge.feeds})
+	return out
 
 
 func _zone_card(e: AbilityEngine, c: PlayerData, side: bool) -> Dictionary:
@@ -416,6 +430,13 @@ func _events_text(e: AbilityEngine) -> Array:
 		var f: Dictionary = ev.get("facts", {})
 		var what := String(ev.get("event", ""))
 		if what == "card_played":
+			continue
+		# AN EMBLEM'S BASIC SIDE FIRED (Anthony, 9 Oct: "I am unsure if the
+		# Emblem is on"). Said in words, with whose Emblem it was.
+		if what == "emblem_basic":
+			out.append("%s: EMBLEM %s's Emblem (basic side) fires through %s: %s" % [
+				_side_name(bool(ev.get("enemy", false))), String(f.get("emblem", "?")),
+				String(f.get("card", "?")), String(f.get("effect", ""))])
 			continue
 		out.append("%s: %s%s" % [_side_name(bool(ev.get("enemy", false))), what,
 			(" (" + String(f.get("card", "")) + ")") if f.has("card") else ""])
