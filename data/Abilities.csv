@@ -1,6 +1,6 @@
 Ability ID,Name,Trigger,Target,Effect,Value,Scope,Max,If,Cost,Ask,Notes
 BRAND_MASK_ATK,Teufel Mask,on_attack,self,add_attack,1,duel,,,,,Example. Attacker hits one harder in its own duel.
-BRAND_RALLY,Furnace Rally,on_win_duel,tag:brandteufel,add_power,1,round,,,,,Example. Winning fires up every Brandteufel for the rest of the round.
+BRAND_RALLY,Furnace Rally,on_win_duel,tag:rauhnacht-feuergeister,add_power,1,round,,,,,Example. Winning fires up every Rauhnacht-Feuergeist for the rest of the round.
 BRAND_SCORCH,Scorching Strike,on_win_duel,enemy_goalie,drain_stamina,3,duel,,,,,Example. Chip the keeper even when the round ends in a turnover.
 LORE_VEIL,Rhine Veil,on_defend,self,add_defense,1,duel,,,,,Example. Defender holds one harder.
 LORE_TIDE,Rising Tide,passive,tier:I,add_power,1,round,,,,,Example. Every friendly Tier I unit is stronger all round.

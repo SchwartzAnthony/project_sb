@@ -2128,6 +2128,25 @@ THEIRS tile shows their pips, and "THEIR X - ULTIMATE" is announced.
   `tools/test_env_check.gd` checks that it builds and that the real save was
   not touched.
 
+### Brandteufel and Rivals are gone (round AN, 9 Oct)
+
+You asked for both to be removed as outdated. What took their place:
+
+- **League:** the five Brandteufel sides keep their names and now play as
+  Bergmännlein (Cinderworks Colts, Hollowforge City), Unkengeister (Emberfall
+  United), Rauhnacht-Feuergeister (Ashford Ironworks) and Lorelei (Glutstadt
+  Rangers), with any cards of that class (Teams.csv, Season.csv).
+- **First and second match:** the opposition (EnemyIntroSquad.csv,
+  EnemyIntroSquad2.csv) is class Normal instead of Rivals.
+- **Fire and Water Brews:** Lorelei becomes Rauhnacht-Feuergeister and back.
+  Furnace Rally now fires up every Rauhnacht-Feuergeist.
+- **Heatwave** is just "Heatwave", and his question is Rauhnacht-Feuergeister
+  or Lorelei.
+- **Removed:** BasicEnemyTeam.csv, the example unit CSV, the Brandteufel
+  keeper, both pitch sprite rows, the Rivals class page and its achievement,
+  the Brandteufel and Rivals Adventure icons and their combos, and
+  `placeholder_art_Rivals`. The art files themselves are still in assets/.
+
 ### Round AB: your testing notes
 
 | you said | now |

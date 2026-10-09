@@ -1,13 +1,13 @@
 ID,Name,Class,Cards,Power,Requires,Keeper,Play Style,Description,Notes
 reedbank,Reedbank Wanderers,Lorelei,Silver-Rhine Lorelei|Rose Water Lorelei|Lorelei of the Deep River|Twilight Lorelei of the Rocks,1,,,,A gentle opening. Nobody expects much of you yet.,"The four cards it fields, one per tier, separated by a pipe. Power is what you INTEND it to be; the startup report tells you if the cards disagree by 2 or more."
-cinderworks,Cinderworks Colts,Brandteufel,Smokestorm Brandteufel|Cinderworks Brandteufel|Heatwave Brandteufel|Blacksmoke Brandteufel,1,,,,The furnace apprentices. All pace and no patience.,
+cinderworks,Cinderworks Colts,Bergmännlein,,1,,,,The furnace apprentices. All pace and no patience.,
 mistmarsh,Mistmarsh Athletic,Lorelei,Moonlit River Lorelei|Mist-Born Lorelei|Whispering Rhine Lorelei|Golden River Lorelei,2,,,,"They sing you to sleep, then score.",The middle card of each tier - a genuinely even fight.
-emberfall,Emberfall United,Brandteufel,Furnacebreak Brandteufel|Ironflare Brandteufel|Coalblaze Brandteufel|Hexflame Brandteufel,2,,,,Fourth of eleven. The table starts to matter.,
+emberfall,Emberfall United,Unkengeister,,2,,,,Fourth of eleven. The table starts to matter.,
 silverbeck,Silverbeck Rovers,Lorelei,Echo of the Cliff Lorelei|Sapphire Current Lorelei|Songbound Shore Lorelei|Heart-Luring Wave Lorelei,3,,,,They have not lost at home in two years.,The strongest of each tier.
-ashford,Ashford Ironworks,Brandteufel,Boilerblast Brandteufel|Foundryburn Brandteufel|Fireline Brandteufel|Sigilburn Brandteufel,3,,,,"Big, slow, and very hard to move.",
+ashford,Ashford Ironworks,Rauhnacht-Feuergeister,,3,,,,"Big, slow, and very hard to move.",
 nixenhafen,Nixenhafen Harbour,Lorelei,,4,,,,The harbour side. They play the whole match in your half.,"BLANK Cards = any cards of that class, which is what the game did before Teams.csv existed. Still perfectly valid."
-glutstadt,Glutstadt Rangers,Brandteufel,,4,,,,Four straight wins behind them.,
+glutstadt,Glutstadt Rangers,Lorelei,,4,,,,Four straight wins behind them.,
 wellenberg,Wellenberg Academy,Lorelei,,4,,,,Young and quick and completely fearless.,
-hollowforge,Hollowforge City,Brandteufel,,5,,,,The last league game. Win it and you go in confident.,
+hollowforge,Hollowforge City,Bergmännlein,,5,,,,The last league game. Win it and you go in confident.,
 kesselgrund,The Kesselgrund Cup Final,,,5,,,,One match. Everything on it.,"Class BLANK as well, so the final is a surprise."
 tap_room_xi,The Tap Room XI,Lorelei,Heart-Luring Wave Lorelei|Songbound Shore Lorelei|Sapphire Current Lorelei|Echo of the Cliff Lorelei,5,unlocked:Master Brewer,,,A side that only turns up once you know your way around a barrel.,PROOF that Requires works here too: this team cannot be drawn until you take the Master Brewer talent.

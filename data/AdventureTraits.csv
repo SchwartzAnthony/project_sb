@@ -1,9 +1,7 @@
 ID,Name,From,Value,Icon,Colour,Order,Max,Requires,Notes
 fire,Fire,element,Fire,trait_fire,#e07a3c,10,4,,A player counts as Fire if their Element column says Fire - OR if they drank something whose Element column says Fire. See Brews.csv. This is the one to copy when you add a new element
 water,Water,element,Water,trait_water,#4a9ad6,20,4,,Cold and patient. The healing and reviving side of the table
-wand,Wand,element,Wand,trait_wand,#a46fd0,30,4,,The Brandteufel set is all Wand out of the box - so a pure Brandteufel side fills this bar and nothing else
-brandteufel,Brandteufel,class,Brandteufel,trait_brandteufel,#d0502f,40,4,,"From = class, so it follows the BREWED class. A Lorelei who drank a Fire Brew counts as a Brandteufel here, which is the whole point of brewing"
+wand,Wand,element,Wand,trait_wand,#a46fd0,30,4,,Wand cards fill this bar
 lorelei,Lorelei,class,Lorelei,trait_lorelei,#3fa8b4,50,4,,The mirror of the row above
 star,Star,star,,trait_star,#e3c246,60,2,,"From = star, so the Value column is ignored. Only Player Type = Star counts. You hold one Star in Adventure, so 2 is hard - it needs the cycle to come round"
 normal,Journeyman,class,Normal,trait_normal,#8a95a4,70,4,,"THE STARTER TEAM. BasicTeam.csv has Unit Type = Normal and Element = None, so without this row those players would put nothing on the pile at all and the bar would never move for them. A player whose element and class match no row here simply contributes nothing - which is a legal thing to want, but it should be on purpose"
-rivals,The Rivals,class,Rivals,trait_rivals,#7a6a8a,80,4,,The scratch side. Here so that a Rivals player is not iconless either
