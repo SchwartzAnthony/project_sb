@@ -37,6 +37,8 @@ class Ctx:
 	var rounds := 0
 	var auto: Dictionary = {}    # {} = off; else {"focus": .., "pick": ..}
 	var fixed_wave: Array = []
+	var per_wave := 0            # 0 = adventure_enemies_per_wave
+	var lost_at := 0             # the wave a lost run fell in
 	var counted := false
 
 var db: CardDatabase
@@ -184,7 +186,36 @@ func _new_ctx(req: Dictionary) -> Ctx:
 		squad[t] = line
 	c.run.squad = squad
 	c.fixed_wave = req.get("wave", [])
+	c.per_wave = int(req.get("per_wave", 0))
+	# HOW LONG A RUN IS: the bounty's Waves, else the biome's. The page may
+	# ask for another number; both copies are changed so either one counts.
+	var waves := int(req.get("waves", 0))
+	if waves > 0:
+		c.run.biome = c.run.biome.duplicate()
+		c.run.biome["waves"] = waves
+		if not c.run.bounty.is_empty():
+			c.run.bounty = c.run.bounty.duplicate()
+			c.run.bounty["waves"] = waves
+	# HOW OFTEN THIS BIOME WAS BEATEN BEFORE. The game's own ramp
+	# (AdventureRun.difficulty: +adventure_repeat_step x biome Difficulty per
+	# clear) makes every enemy tougher from it - this is how enemies grow.
+	var clears := int(req.get("clears", 0))
+	if clears > 0:
+		c.state.add_count(c.run.clears_counter(), clears)
 	return c
+
+
+## The spreadsheets were edited: whatever was being played was built from
+## the old numbers, so it stops, and the books are asked again.
+func reset_after_edit() -> void:
+	_stop_sim()
+	sim = {}
+	if one != null:
+		_close(one)
+		one = null
+	db = CardDatabase.get_db()
+	adventure = AdventureDB.get_db()
+	TraitDB.get_db()
 
 
 func _new(req: Dictionary) -> Dictionary:
@@ -218,7 +249,7 @@ func _draw_wave(c: Ctx) -> Array[Dictionary]:
 		if not boss.is_empty():
 			wave.append(boss)
 			return wave
-	var wanted := maxi(1, db.tune_int("adventure_enemies_per_wave", 3))
+	var wanted := c.per_wave if c.per_wave > 0 else maxi(1, db.tune_int("adventure_enemies_per_wave", 3))
 	for i in wanted:
 		var drawn := adventure.draw_from_pool(pool)
 		if not drawn.is_empty():
@@ -266,6 +297,7 @@ func _on_finished(cleared: bool, _fled: bool, c: Ctx) -> void:
 			return
 	else:
 		c.result = "lost"
+		c.lost_at = c.run.wave
 	_close.call_deferred(c)
 
 
@@ -387,7 +419,7 @@ func _state(c: Ctx) -> Dictionary:
 	var run := c.run
 	var out := {"ok": true, "result": c.result, "wave": run.wave, "waves": run.waves(),
 		"biome": run.biome.get("name", "?"), "waves_cleared": c.waves_cleared, "rounds": c.rounds,
-		"auto": not c.auto.is_empty()}
+		"auto": not c.auto.is_empty(), "hard": snappedf(run.difficulty(c.state, db), 0.01)}
 	out["notes"] = c.notes.slice(c.notes_sent)
 	c.notes_sent = c.notes.size()
 	var party := {}
@@ -474,7 +506,8 @@ func _sim_start(req: Dictionary) -> Dictionary:
 	_set_loadout(req.get("loadout", []))
 	sim = {"req": req, "n": clampi(int(req.get("n", 50)), 1, 2000), "started_runs": 0, "done": 0,
 		"seed": seed_value, "cleared": 0, "waves": {}, "rounds": 0, "ko": {}, "fired": {},
-		"started": Time.get_ticks_msec(), "waves_total": 0}
+		"started": Time.get_ticks_msec(), "waves_total": 0,
+		"lost_at": {}, "kos": 0, "kos_runs": 0, "party": 0, "hard": 1.0}
 	for i in mini(PARALLEL, int(sim["n"])):
 		_sim_launch()
 	return _sim_state()
@@ -486,6 +519,7 @@ func _sim_launch() -> void:
 	c.auto = {"focus": req.get("focus", "first"), "pick": req.get("pick", "random")}
 	sim["started_runs"] = int(sim["started_runs"]) + 1
 	sim["waves_total"] = c.run.waves()
+	sim["hard"] = c.run.difficulty(c.state, db)
 	sim_runs.append(c)
 	_open_wave(c)
 
@@ -502,12 +536,24 @@ func _sim_tick() -> void:
 			sim["cleared"] = int(sim["cleared"]) + 1
 		var w := str(c.waves_cleared)
 		sim["waves"][w] = int(sim["waves"].get(w, 0)) + 1
+		if c.result == "lost":
+			var la := str(c.lost_at)
+			sim["lost_at"][la] = int(sim["lost_at"].get(la, 0)) + 1
+		var kos := 0
+		var size := 0
 		sim["rounds"] = int(sim["rounds"]) + c.rounds
 		for t in TIERS:
 			for entry in (c.run.squad.get(t, []) as Array):
 				var card := entry as PlayerData
-				if card != null and not c.run.stand_ins.has(card) and c.run.is_out(card):
+				if card == null or c.run.stand_ins.has(card):
+					continue
+				size += 1
+				if c.run.is_out(card):
+					kos += 1
 					sim["ko"][card.player_name] = int(sim["ko"].get(card.player_name, 0)) + 1
+		sim["kos"] = int(sim["kos"]) + kos
+		sim["kos_runs"] = int(sim["kos_runs"]) + (1 if kos > 0 else 0)
+		sim["party"] = size
 		for line in c.notes:
 			var s := String(line)
 			var at := s.find("!  ")
@@ -526,4 +572,6 @@ func _sim_state() -> Dictionary:
 	return {"ok": true, "n": sim["n"], "done": sim["done"], "seed": sim["seed"],
 		"cleared": sim["cleared"], "waves": sim["waves"], "rounds_per_run": snappedf(float(sim["rounds"]) / n, 0.01),
 		"ko": sim["ko"], "fired": sim["fired"], "ms": Time.get_ticks_msec() - int(sim["started"]),
-		"waves_total": sim["waves_total"]}
+		"waves_total": sim["waves_total"], "lost_at": sim["lost_at"],
+		"kos_per_run": snappedf(float(sim["kos"]) / n, 0.01), "runs_with_ko": sim["kos_runs"],
+		"party": sim["party"], "hard": snappedf(float(sim["hard"]), 0.01)}

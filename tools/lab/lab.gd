@@ -87,6 +87,12 @@ func handle(req: Dictionary) -> Dictionary:
 			return _sim(req)
 		"tune":
 			return _tune(req)
+		"files_list":
+			return _files_list()
+		"files_get":
+			return _files_get(req)
+		"files_set":
+			return _files_set(req)
 	return {"ok": false, "error": "unknown cmd '%s'" % cmd}
 
 
@@ -316,6 +322,7 @@ func _new_match(req: Dictionary) -> Dictionary:
 	s["stamina"] = {}
 	s["max_st"] = {}
 	s["shield"] = {HOME: 0, AWAY: 0}
+	s["dmg"] = {HOME: 0, AWAY: 0}     # keeper stamina lost, all match
 	for side in [HOME, AWAY]:
 		var k: GoalieData = s["teams"][side]["keeper"]
 		s["max_st"][side] = k.max_stamina if k != null else 25
@@ -370,6 +377,7 @@ func _state_json(s: Dictionary) -> Dictionary:
 		"stamina": {"home": s["stamina"][HOME], "away": s["stamina"][AWAY]},
 		"max_stamina": {"home": s["max_st"][HOME], "away": s["max_st"][AWAY]},
 		"shield": {"home": s["shield"][HOME], "away": s["shield"][AWAY]},
+		"keeper_damage": {"home": s["dmg"][HOME], "away": s["dmg"][AWAY]},
 		"home_attacks_next": _next_has_ball(s) == HOME if not s["done"] else false,
 		"ore": {"home": e.pool(HOME, "ore"), "away": e.pool(AWAY, "ore")},
 		"squads": zones}
@@ -463,6 +471,7 @@ func _keeper_changes(s: Dictionary, into: Array) -> void:
 			delta += soaked
 		var before := int(s["stamina"][side])
 		s["stamina"][side] = clampi(before + delta, 0, int(s["max_st"][side]))
+		s["dmg"][side] = int(s["dmg"][side]) + maxi(0, before - int(s["stamina"][side]))
 		s["shield"][side] = int(s["shield"][side]) + int(ch.get("shield", 0))
 		if into != null:
 			into.append("%s keeper: stamina %d -> %d%s" % [_side_name(side), before, int(s["stamina"][side]),
@@ -536,6 +545,10 @@ func _play_round(s: Dictionary, plan: Dictionary, logging: bool) -> Dictionary:
 		var def: PlayerData = theirs if has_ball == HOME else mine
 		var atk_before := e.attack_power(atk, atk_side)
 		var def_before := e.defense_power(def, not atk_side)
+		# THE STACK ORDER: lower Ability Priority resolves first, the attacker
+		# on a tie (AbilityEngine.resolve_duel_abilities).
+		var prio := {"atk": atk.get_ability_priority() + e.priority_mod(atk, atk_side),
+			"def": def.get_ability_priority() + e.priority_mod(def, not atk_side)}
 		e.resolve_duel_abilities(atk, atk_side, def, "", [])
 		var asks: Array = []
 		for ask in e.take_asks():
@@ -587,6 +600,7 @@ func _play_round(s: Dictionary, plan: Dictionary, logging: bool) -> Dictionary:
 					"before": atk_before, "power": ap, "fired": fired_atk},
 				"def": {"side": _side_name(not atk_side), "name": def.player_name, "printed": def.get_defense_power(),
 					"before": def_before, "power": dp, "fired": fired_def},
+				"prio": prio, "first": "atk" if int(prio["atk"]) <= int(prio["def"]) else "def",
 				"notes": notes, "asks": asks, "lines": lines, "tie": ap == dp, "tie_rule": tie_rule if ap == dp else "",
 				"winner": _side_name(atk_side if atk_wins else not atk_side), "turnover": not atk_wins,
 				"banked": ap + dp, "bank": {"home": bank[HOME], "away": bank[AWAY]}})
@@ -633,6 +647,7 @@ func _play_round(s: Dictionary, plan: Dictionary, logging: bool) -> Dictionary:
 		var soaked := mini(int(s["shield"][keeper_side]), loss)
 		s["shield"][keeper_side] = int(s["shield"][keeper_side]) - soaked
 		loss -= soaked
+		s["dmg"][keeper_side] = int(s["dmg"][keeper_side]) + mini(loss, int(s["stamina"][keeper_side]))
 		s["stamina"][keeper_side] = maxi(0, int(s["stamina"][keeper_side]) - loss)
 		shot["chance"] = snappedf(chance, 0.1)
 		shot["base_chance"] = snappedf(base_chance, 0.1)
@@ -777,3 +792,147 @@ func _sim(req: Dictionary) -> Dictionary:
 		"results": res, "goals": goals, "scores": scores.slice(0, 12), "shots": shots,
 		"shot_goals": shot_goals, "shot_power": shot_power,
 		"tiers": tally["tiers"], "cards": cards, "abilities": abil}
+
+
+# =============================================================
+#  EDITING THE SPREADSHEETS IN THE BROWSER
+#
+#  The page edits a CSV and sends the whole text back. The lab packs every
+#  edited file into a small .pck of its own and lays it over res://data/
+#  (ProjectSettings.load_resource_pack with replace_files), so EVERY reader
+#  in the game - CardDatabase, TraitDB, ShotOdds, ClassBook ... - reads the
+#  edited file exactly as it would read a changed CSV on the Deck. Then every
+#  book is told to forget what it read, and reads again on next use.
+#
+#  Nothing is written back to the game from here. The page keeps the edits
+#  and hands them to Claude, who puts them into data/ on the round branch.
+# =============================================================
+
+const DATA := "res://data/"
+var _originals: Dictionary = {}    # file name -> the text the build shipped
+var _packs := 0
+var _edited: Dictionary = {}       # file name -> true while overridden
+
+
+func _csv_names() -> Array:
+	var out: Array = []
+	var dir := DirAccess.open(DATA)
+	if dir == null:
+		return out
+	for f in dir.get_files():
+		if f.to_lower().ends_with(".csv"):
+			out.append(f)
+	out.sort()
+	return out
+
+
+func _read_text(name: String) -> String:
+	var f := FileAccess.open(DATA + name, FileAccess.READ)
+	if f == null:
+		return ""
+	var t := f.get_as_text()
+	f.close()
+	return t
+
+
+func _files_list() -> Dictionary:
+	var out: Array = []
+	for n in _csv_names():
+		var t := _read_text(n)
+		var nl := t.find("\n")
+		out.append({"name": n, "bytes": t.length(), "header": t.left(nl if nl >= 0 else t.length()).strip_edges(),
+			"edited": _edited.has(n)})
+	return {"ok": true, "files": out}
+
+
+## {"cmd":"files_get","names":[...], "original": false}
+func _files_get(req: Dictionary) -> Dictionary:
+	var out := {}
+	for n in (req.get("names", []) as Array):
+		var name := String(n)
+		if bool(req.get("original", false)) and _originals.has(name):
+			out[name] = _originals[name]
+		else:
+			out[name] = _read_text(name)
+	return {"ok": true, "files": out}
+
+
+## {"cmd":"files_set","files":{"Abilities.csv": "<whole text>"}, "reset":["Combos.csv"]}
+## `reset` puts a file back to what the build shipped.
+func _files_set(req: Dictionary) -> Dictionary:
+	var files: Dictionary = req.get("files", {})
+	var reset: Array = req.get("reset", [])
+	var want := {}
+	for k in files.keys():
+		var name := String(k).get_file()
+		if not FileAccess.file_exists(DATA + name):
+			return {"ok": false, "error": "no file data/%s in this build" % name}
+		want[name] = String(files[k])
+	for k in reset:
+		var name := String(k).get_file()
+		if _originals.has(name):
+			want[name] = _originals[name]
+	if want.is_empty():
+		return {"ok": true, "changed": []}
+	for name in want.keys():
+		if not _originals.has(name):
+			_originals[name] = _read_text(name)
+	_packs += 1
+	DirAccess.make_dir_recursive_absolute("user://lab_edits")
+	var pck_path := "user://lab_edits/edits_%d.pck" % _packs
+	var packer := PCKPacker.new()
+	var err := packer.pck_start(pck_path)
+	if err != OK:
+		return {"ok": false, "error": "could not start the edit pack (%d)" % err}
+	var i := 0
+	for name in want.keys():
+		i += 1
+		var tmp := "user://lab_edits/%d_%d.csv" % [_packs, i]
+		var w := FileAccess.open(tmp, FileAccess.WRITE)
+		w.store_string(want[name])
+		w.close()
+		packer.add_file(DATA + name, tmp)
+	err = packer.flush()
+	if err != OK:
+		return {"ok": false, "error": "could not write the edit pack (%d)" % err}
+	if not ProjectSettings.load_resource_pack(pck_path, true):
+		return {"ok": false, "error": "the engine would not take the edit pack"}
+	for name in want.keys():
+		if reset.has(name) and not files.has(name):
+			_edited.erase(name)
+		else:
+			_edited[name] = true
+	_forget_everything()
+	# The new numbers are read now, so anything wrong with them is reported now.
+	db = CardDatabase.get_db()
+	var problems: Array = []
+	for p in db.problems:
+		if not String(p).contains("artwork '"):     # the lab ships no pictures
+			problems.append(p)
+	problems.append_array(ShotOdds.problems())
+	var adv_db := AdventureDB.get_db()
+	if adv_db.get("problems") is Array:
+		problems.append_array(adv_db.get("problems"))
+	m = {}
+	if adv != null:
+		adv.call("reset_after_edit")
+	return {"ok": true, "changed": want.keys(), "edited": _edited.keys(), "problems": problems.slice(0, 80)}
+
+
+## Every book that read a CSV keeps what it read in a static. Drop them all,
+## so the next question reads the (edited) file again.
+func _forget_everything() -> void:
+	for entry in ProjectSettings.get_global_class_list():
+		var path := String(entry.get("path", ""))
+		if not path.begins_with("res://src/"):
+			continue
+		var script = load(path)
+		if script == null:
+			continue
+		for flag in ["_loaded", "_info_loaded", "_causes_loaded"]:
+			if script.get(flag) is bool:
+				script.set(flag, false)
+		if script.get("_instance") != null:
+			script.set("_instance", null)
+	ShotOdds.forget()
+	TraitDB._live = []

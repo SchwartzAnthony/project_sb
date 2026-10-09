@@ -142,6 +142,34 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--m
 #gdbox{position:fixed;width:1px;height:1px;left:0;top:0;overflow:hidden;opacity:0;pointer-events:none}
 #gd{width:1px!important;height:1px!important;pointer-events:none!important}
 .notice{border-left:3px solid var(--accent);padding:6px 10px;background:var(--accent-soft);font-size:13px}
+/* the text view: a console, one line per thing that happened */
+.console{font-family:var(--mono);font-size:12.5px;line-height:1.5;white-space:pre;overflow:auto;max-height:74vh;min-height:120px;
+  background:var(--raise);border:1px solid var(--hair);border-radius:3px;padding:10px 12px;margin:0}
+.console .h{color:var(--accent);font-weight:500}
+.console .dim{color:var(--dim)}
+.console .bg{color:var(--faint)}
+.console.nobg .bg{display:none}
+.console .win{color:var(--pitch);font-weight:500}
+.console .goal{background:var(--pitch);color:var(--card);padding:0 4px;font-weight:500}
+.cn,.abl{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+.cn:hover,.abl:hover{color:var(--accent)}
+/* the editor */
+.grid{overflow:auto;max-height:66vh;border:1px solid var(--hair);border-radius:3px}
+.grid table{font-size:12px;width:auto}
+.grid th{position:sticky;top:0;background:var(--card);z-index:1}
+.grid td{padding:1px 3px}
+.grid input{font-family:var(--mono);font-size:12px;border:1px solid transparent;background:transparent;padding:2px 4px;border-radius:2px}
+.grid input:focus,.form input:focus{border-color:var(--accent);background:var(--card);outline:none}
+input.chg{background:var(--accent-soft)!important;border-color:var(--accent)!important}
+tr.added td{background:var(--pitch-soft)}
+.form{display:grid;grid-template-columns:minmax(110px,max-content) minmax(0,1fr);gap:4px 10px;align-items:center}
+.form label{font-size:12px;color:var(--dim);overflow-wrap:anywhere}
+.form input{width:100%;font-family:var(--mono);font-size:12.5px;background:var(--raise);border:1px solid var(--line);border-radius:3px;padding:4px 6px}
+.abbox{border:1px solid var(--hair);border-radius:3px;padding:10px;display:grid;gap:8px;margin-top:10px}
+.diff{font-family:var(--mono);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;margin-top:4px}
+.diff del{color:var(--away)} .diff ins{color:var(--pitch);text-decoration:none}
+.split{display:grid;gap:16px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media (max-width:900px){.split{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
@@ -149,6 +177,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--m
   <div class="wrap">
     <h1>Sturmball <span>Lab</span></h1>
     <div id="stamp">rules from __BUILD__ · __STAMP__ · built __DATE__</div>
+    <button class="btn sm" id="edits-pill" hidden></button>
     <div class="grow"></div>
     <div id="status">Loading the rules engine…</div>
   </div>
@@ -157,6 +186,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--m
     <button role="tab" data-tab="sim" aria-selected="false">1,000 matches</button>
     <button role="tab" data-tab="cards" aria-selected="false">Cards &amp; tiers</button>
     <button role="tab" data-tab="adventure" aria-selected="false">Adventure</button>
+    <button role="tab" data-tab="edit" aria-selected="false">Edit &amp; send</button>
     <button role="tab" data-tab="tuning" aria-selected="false">Tuning</button>
     <button role="tab" data-tab="about" aria-selected="false">What it runs</button>
   </nav></div>
@@ -181,6 +211,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--m
         <div class="field"><span class="lbl">Seed (0 = new)</span><input id="m-seed" type="number" value="0" style="width:110px"></div>
         <label class="chk"><input type="checkbox" id="m-noab"> No Extra Abilities</label>
         <label class="chk"><input type="checkbox" id="m-combos"> Add Combos.csv to the shot</label>
+        <div class="field"><span class="lbl">Show it as</span><select id="m-view"><option value="text">Text, step by step</option><option value="cards">Cards</option></select></div>
         <button class="btn key" id="m-start">Kick off</button>
       </div>
       <details style="margin-top:10px"><summary>Choose the squads (which card stands on each rung)</summary>
@@ -194,6 +225,22 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--m
       <div id="m-plan" style="margin-top:14px"></div>
     </div>
 
+    <div class="panel" id="m-textp" hidden>
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <div class="row">
+          <button class="btn key" id="x-step" title="One tier duel, the shot, or the end of the round">Next step</button>
+          <button class="btn" id="x-round">Finish the round</button>
+          <button class="btn" id="x-cycle">Play the cycle</button>
+          <button class="btn" id="x-all">Play to full time</button>
+        </div>
+        <div class="row">
+          <label class="chk"><input type="checkbox" id="x-bg" checked> Show the background</label>
+          <button class="btn sm" id="x-copy">Copy the text</button>
+        </div>
+      </div>
+      <pre class="console" id="m-text" aria-live="polite"></pre>
+      <div class="hint" style="margin-top:6px">Click a card name or an ability to change it in Edit &amp; send. Grey lines are the background: events the engine raised, questions answered with their default, end-of-round bookkeeping.</div>
+    </div>
     <div id="m-log" style="display:grid;gap:16px"></div>
   </section>
 
@@ -238,8 +285,14 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--m
         <div class="field"><span class="lbl">Seed (0 = new)</span><input id="a-seed" type="number" value="0" style="width:110px"></div>
         <button class="btn key" id="a-start">Start the run</button>
       </div>
-      <details style="margin-top:10px"><summary>Party: one card per rung, any class</summary>
-        <div class="hint" style="margin:6px 0">The class fills these in (one Star in the Star tier, as in the game). Change any rung to any card of that tier and power to test mixed parties.</div>
+      <div class="row" style="margin-top:10px">
+        <div class="field"><span class="lbl">Waves in the run</span><input id="a-waves" type="number" min="0" max="40" value="0" style="width:90px" aria-describedby="a-hard"></div>
+        <div class="field"><span class="lbl">Enemies a wave</span><input id="a-per" type="number" min="0" max="12" value="0" style="width:90px"></div>
+        <div class="field"><span class="lbl">Biome beaten before</span><input id="a-clears" type="number" min="0" max="50" value="0" style="width:90px"></div>
+        <div class="hint" id="a-hard" style="max-width:60ch"></div>
+      </div>
+      <details style="margin-top:10px" open><summary>Party: how many players, and who</summary>
+        <div class="hint" style="margin:6px 0">The class fills these in. Set how many players each tier brings, and pick any card of that tier from any class (★ = Star).</div>
         <div class="lineup" id="a-party"></div>
       </details>
       <details style="margin-top:8px"><summary>Icons in play (the loadout)</summary>
@@ -254,23 +307,22 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--m
 
     <div class="panel" id="a-live" hidden>
       <div class="roundhead"><h3 id="a-title"></h3><span class="lbl" id="a-step"></span></div>
+      <pre class="console" id="a-ascii" style="margin-top:10px;max-height:none"></pre>
       <div class="row" style="margin-top:8px">
         <div class="field"><span class="lbl">Auto: target</span><select id="a-af"><option>first</option><option>weakest</option><option>strongest</option></select></div>
         <div class="field"><span class="lbl">Auto: pick</span><select id="a-ap"><option>random</option><option>strongest</option><option>weakest</option><option>healthiest</option></select></div>
         <button class="btn" id="a-auto">Play on automatically</button>
       </div>
-      <div id="a-foes" class="ladder" style="margin-top:12px"></div>
+      <div id="a-foes" style="margin-top:12px"></div>
       <div id="a-draft" style="margin-top:12px"></div>
-      <div id="a-pile" style="margin-top:12px"></div>
-      <div class="lbl" style="margin-top:12px">Party</div>
-      <div id="a-partylive" class="lineup" style="margin-top:4px"></div>
+
     </div>
-    <div class="panel" id="a-logp" hidden><h2>What happened</h2><div class="extra" id="a-log" style="max-height:420px;overflow:auto"></div></div>
+    <div class="panel" id="a-logp" hidden><h2>What happened</h2><pre class="console" id="a-log" style="max-height:480px"></pre></div>
 
     <div class="panel">
       <h2>Many runs with this set-up</h2>
       <div class="row">
-        <div class="field"><span class="lbl">Runs</span><select id="as-n"><option>20</option><option selected>50</option><option>200</option></select></div>
+        <div class="field"><span class="lbl">Runs</span><select id="as-n"><option>20</option><option selected>50</option><option>200</option><option>500</option></select></div>
         <div class="field"><span class="lbl">Target</span><select id="as-f"><option>first</option><option selected>weakest</option><option>strongest</option></select></div>
         <div class="field"><span class="lbl">Pick</span><select id="as-p"><option>random</option><option selected>strongest</option><option>weakest</option><option>healthiest</option></select></div>
         <button class="btn key" id="as-run">Run</button>
@@ -280,16 +332,55 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--m
     </div>
   </section>
 
+  <!-- ================= EDIT & SEND ================= -->
+  <section class="tab" id="tab-edit" hidden>
+    <div class="panel">
+      <h2>Your changes</h2>
+      <p class="hint" style="margin-top:0">Everything you change here is used by the lab straight away (the match restarts with the new numbers). It stays in this browser until you undo it. When you like it, send it to Claude, then say <b>"upload my Lab changes"</b> in the thread and Claude puts it into the game's spreadsheets on the round branch.</p>
+      <div id="e-diff"></div>
+      <div class="row" style="margin-top:12px">
+        <div class="field" style="flex:1 1 260px"><span class="lbl">A note for Claude (optional)</span><input id="e-note" type="text" placeholder="e.g. Erich felt too weak in Tier I" style="width:100%"></div>
+        <button class="btn key" id="e-send">Send to Claude</button>
+        <button class="btn" id="e-copy">Copy as text</button>
+        <button class="btn" id="e-undo">Undo everything</button>
+      </div>
+      <div class="hint" id="e-sendmsg" style="margin-top:6px"></div>
+      <div id="e-problems" style="margin-top:8px"></div>
+    </div>
+    <div class="split">
+      <div class="panel">
+        <h2>A card</h2>
+        <div class="row">
+          <div class="field"><span class="lbl">Class</span><select id="e-class"></select></div>
+          <div class="field" style="flex:1 1 200px"><span class="lbl">Card</span><select id="e-card" style="width:100%"></select></div>
+          <button class="btn" id="e-try">Try it in a match</button>
+        </div>
+        <div id="e-cardbox" style="margin-top:12px"></div>
+      </div>
+      <div class="panel">
+        <h2>Any spreadsheet</h2>
+        <div class="row">
+          <div class="field" style="flex:1 1 220px"><span class="lbl">File</span><select id="e-file" style="width:100%"></select></div>
+          <div class="field"><span class="lbl">Filter rows</span><input id="e-filter" type="text" placeholder="name, id, word…" style="width:170px"></div>
+        </div>
+        <div class="row" style="margin-top:8px;justify-content:space-between"><span class="hint" id="e-gridnote"></span><button class="btn sm" id="e-addrow">Add an empty row</button></div>
+        <div class="grid" id="e-grid" style="margin-top:6px"></div>
+        <div class="hint" style="margin-top:6px">⧉ copies a row to a new one (give it a new name or ID), ✕ removes it.</div>
+      </div>
+    </div>
+    <div id="e-lists" hidden></div>
+  </section>
+
   <!-- ================= TUNING ================= -->
   <section class="tab" id="tab-tuning" hidden>
     <div class="panel">
-      <h2>Tuning.csv, for this tab only</h2>
-      <p class="hint">Change any value and the next match or run uses it. Nothing is saved: reloading the page, or Reset, puts the spreadsheet's values back. Changed rows are marked.</p>
+      <h2>Tuning.csv</h2>
+      <p class="hint">Change any value and the next match or run uses it. A change here is an edit like any other: it stays until you undo it and goes to Claude with the rest from Edit &amp; send.</p>
       <div class="row" style="margin-bottom:10px">
         <div class="field"><span class="lbl">Filter</span><input id="t-filter" type="text" placeholder="shot, tie, emblem…" style="width:220px"></div>
-        <button class="btn" id="t-reset">Reset to the spreadsheet</button>
+        <button class="btn" id="t-reset">Undo my Tuning changes</button>
       </div>
-      <div class="tbl"><table><thead><tr><th>Key</th><th>Value</th></tr></thead><tbody id="t-body"></tbody></table></div>
+      <div class="tbl"><table><thead><tr><th>Key</th><th>Value</th><th>What it does</th></tr></thead><tbody id="t-body"></tbody></table></div>
     </div>
   </section>
 
@@ -301,6 +392,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--m
         <p style="margin:0">This page runs the game's own rules code (AbilityEngine, the tier ladder, Emblems, ShotOdds) compiled for the browser, reading the same <code>data/*.csv</code> files. It is built by <code>tools/lab/build.sh</code> from the branch and commit shown at the top.</p>
         <p style="margin:0">A round is played the way <code>tests/sim_runner.gd</code> plays it: passives, four duels with abilities resolved on the stack, the bank, then the shot against the keeper. Left out, because they only exist on the pitch: touches, mines being worked, gravestones, fouls and free kicks, and the Emblem race (so no Ultimates turn on). Questions a card would ask are answered with their default and listed in the log.</p>
         <p style="margin:0"><b>Adventure</b> opens the real AdventureEncounter with no pitch, the way tools/adventure_soak.gd does, with the clock run fast. Stamina, knock-outs and the tier rotation carry from wave to wave, and stand-ins go home after each fight. Items and fleeing are left out. The one-off breakpoints in "Many runs" are counted from the fight log.</p>
+        <p style="margin:0"><b>Editing.</b> An edited spreadsheet is packed into a small file of its own and laid over the shipped one inside the engine, so every part of the rules reads the edited numbers exactly as the game would read a changed CSV. Nothing reaches the game until Claude puts it into <code>data/</code>. Ability rows whose ID starts with C_ are made from the card text by <code>tools/ability_rows.py</code>; when you change one, Claude keeps your version as a row of your own in Abilities.csv so the next re-run does not undo it.</p>
         <p style="margin:0">In the match, two things differ from the simulator, to match the real match: a token that takes a card's place is offered in the draft instead of the card, and the keeper's stamina is handed to the engine before each round.</p>
       </div>
       <div id="a-problems" style="margin-top:12px"></div>
@@ -333,6 +425,27 @@ async function fetchWithProgress(url, onp){
   for(;;){ const {done,value}=await reader.read(); if(done)break; parts.push(value); got+=value.length; onp(got, total); }
   return new Blob(parts);
 }
+/* THE ENGINE IS KEPT. The first visit downloads it; later visits take it from
+   this browser's own store (Cache Storage), keyed by the build, so a new
+   build is downloaded once and the old one thrown away. */
+const BUILD_KEY = "__BUILD__ __DATE__ __NONCE__";
+async function cachedBlob(url, onp){
+  const key = new URL("cache/" + url + "?b=" + encodeURIComponent(BUILD_KEY), location.href).href;
+  let cache = null;
+  try{
+    cache = await caches.open("sturmball-lab");
+    const hit = await cache.match(key);
+    if (hit){ const b = await hit.blob(); if (b.size > 1000){ onp && onp(b.size, b.size, true); return b; } }
+  }catch(e){ cache = null; }
+  const blob = await fetchWithProgress(url, onp || (()=>{}));
+  if (cache){
+    try{
+      await cache.put(key, new Response(blob));
+      for (const req of await cache.keys()) if (req.url.includes("/cache/" + url) && req.url !== key) await cache.delete(req);
+    }catch(e){}
+  }
+  return blob;
+}
 /* Where the start got to, so a stuck page can say so. */
 let STAGE = "starting", LAST_ERR = "";
 function stage(text, bar){ STAGE = text; $("#bootmsg").textContent = text; if (bar!=null) $("#bootbar").style.width = bar+"%"; }
@@ -351,8 +464,8 @@ async function boot(){
     catch(e){ throw new Error("this page is not allowed to run WebAssembly here ("+e.message+")."); }
     stage("Loading the engine's loader…", 3);
     await withTimeout(loadScript("lab.js"), 30000, "Loading lab.js");
-    const gz = await withTimeout(fetchWithProgress("lab.engine.wasm", (got,total) => {
-      stage(`Downloading the engine: ${(got/1e6).toFixed(1)}${total?" of "+(total/1e6).toFixed(1):""} MB`, total ? 5+80*got/total : Math.min(80, 5+got/1.3e5));
+    const gz = await withTimeout(cachedBlob("lab.engine.wasm", (got,total,kept) => {
+      stage(kept ? "Engine found in this browser, no download needed." : `Downloading the engine (once, then this browser keeps it): ${(got/1e6).toFixed(1)}${total?" of "+(total/1e6).toFixed(1):""} MB`, total ? 5+80*got/total : Math.min(80, 5+got/1.3e5));
     }), 180000, "Downloading the engine");
     stage("Unpacking the engine…", 86);
     const head = new Uint8Array(await gz.slice(0,2).arrayBuffer());
@@ -363,7 +476,7 @@ async function boot(){
       const u = typeof input === "string" ? input : (input && input.url) || "";
       if (/lab\.wasm(\?|$)/.test(u)) return Promise.resolve(new Response(wasm.slice(0), {headers:{"Content-Type":"application/wasm"}}));
       // The rules pack is published under a .wasm name, because the host only serves known file types.
-      if (/lab\.pck(\?|$)/.test(u)) return realFetch("lab.rules.wasm", init);
+      if (/lab\.pck(\?|$)/.test(u)) return cachedBlob("lab.rules.wasm").then(b => new Response(b, {headers:{"Content-Type":"application/octet-stream"}}));
       return realFetch(input, init);
     };
     stage("Starting the engine and reading the spreadsheets…", 90);
@@ -380,6 +493,7 @@ async function boot(){
     $("#boot").hidden = true;
     setStatus("Rules engine ready · "+Object.keys(META.classes).length+" classes · started in "+((Date.now()-t0)/1000).toFixed(1)+" s", "ok");
     initAll();
+    try{ restoreEdits(); }catch(e){ console.error(e); setStatus("Could not put your saved edits back: "+e.message, "bad"); }
   }catch(err){
     console.error(err);
     $("#bootmsg").textContent = `The engine could not start. It got as far as: "${STAGE}" after ${((Date.now()-t0)/1000).toFixed(0)} s. Reason: ${err.message}`;
@@ -393,6 +507,9 @@ function showTab(name){
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===name));
   document.querySelectorAll("section.tab").forEach(s=>s.hidden = !META || s.id!=="tab-"+name);
   try{ localStorage.setItem("sblab-tab", name); }catch(e){}
+  if (!META) return;
+  if (name === "tuning") drawTuning();
+  if (name === "edit"){ drawGrid(); drawCardEditor(); }
 }
 document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
 
@@ -405,18 +522,22 @@ function initAll(){
   classOptions($("#m-home"), a); classOptions($("#m-away"), b);
   classOptions($("#s-home"), a); classOptions($("#s-away"), b);
   classOptions($("#c-class"), a);
-  ["#m-home","#m-away"].forEach(s=>$(s).addEventListener("change", drawSquadPickers));
+  ["#m-home","#m-away"].forEach(s=>$(s).addEventListener("change", ()=>drawSquadPickers(false)));
   drawSquadPickers();
   $("#c-class").addEventListener("change", drawCards); drawCards();
-  drawTuning(); drawProblems();
+  drawProblems();
   try{ initAdventure(); }catch(e){ console.error(e); setStatus("Adventure failed to load: "+e.message,"bad"); }
+  try{ initEditor(); }catch(e){ console.error(e); setStatus("The editor failed to load: "+e.message,"bad"); }
+  try{ const v = localStorage.getItem("sblab-view"); if (v) $("#m-view").value = v; }catch(e){}
+  $("#m-view").addEventListener("change", ()=>{ try{ localStorage.setItem("sblab-view", $("#m-view").value); }catch(e){} showView(); });
   let t="match"; try{ t = localStorage.getItem("sblab-tab") || "match"; }catch(e){}
   showTab(t);
   startMatch();
 }
 
 /* ---------------- squads ---------------- */
-function drawSquadPickers(){
+function drawSquadPickers(keep){
+  const before = keep ? squadsChosen() : null;
   const box = $("#m-squads"); box.innerHTML = "";
   for (const side of ["home","away"]){
     const cls = META.classes[$("#m-"+side).value];
@@ -435,6 +556,9 @@ function drawSquadPickers(){
     }
     div.innerHTML = h + "</div>"; box.appendChild(div);
   }
+  if (before) for (const side of ["home","away"]) for (const [t, names] of Object.entries(before[side]))
+    for (const n of names) for (const sel of box.querySelectorAll(`select[data-side="${side}"][data-tier="${t}"]`))
+      if ([...sel.options].some(o=>o.value===n)){ sel.value = n; break; }
 }
 function squadsChosen(){
   const out = {home:{}, away:{}};
@@ -454,7 +578,9 @@ function startMatch(){
     MINFO = r; MS = r.state;
     $("#m-log").innerHTML = "";
     $("#m-live").hidden = false;
-    drawBoard(); drawPlan();
+    STEPQ.length = 0;
+    $("#m-text").innerHTML = matchHeadText(r) + scoreboardText(MS);
+    drawBoard(); drawPlan(); showView();
   }catch(e){ setStatus(e.message,"bad"); }
 }
 $("#m-start").addEventListener("click", startMatch);
@@ -501,12 +627,14 @@ function drawPlan(){
     }
     h += `</div></div>`;
   }
-  h += `<div class="row" style="margin-top:12px"><button class="btn key" id="m-play">Play round</button>
+  h += `<div class="row" style="margin-top:12px" id="m-cardbtns"><button class="btn key" id="m-play">Play round</button>
     <button class="btn" id="m-auto">Play the rest at random</button>
-    <span class="hint">Cards marked "exhaust" already played this cycle; the game would not offer them.</span></div>`;
+    <span class="hint">Cards marked "exhaust" already played this cycle; the game would not offer them.</span></div>
+    <div class="hint" style="margin-top:8px" id="m-textnote">The line-up above is used for the next round the text view plays. Away picks at random unless you choose.</div>`;
   box.innerHTML = h;
   $("#m-play").onclick = () => playRound(false);
   $("#m-auto").onclick = () => { while(!MS.done) playRound(true); };
+  showView();
 }
 function defaultStar(z, i){
   const idx = (MS.cycle-1) % Math.max(1, z.stars.length);
@@ -528,9 +656,13 @@ function playRound(randomAll){
   try{
     const r = lab(Object.assign({cmd:"match_round"}, planFromUI(randomAll)));
     MS = r.state;
+    const blocks = roundBlocks(r.round);
+    blocks[blocks.length-1] += "\n" + scoreboardText(MS);
+    STEPQ.push(...blocks);
     drawBoard(); drawPlan();
     $("#m-log").prepend(roundView(r.round));
-  }catch(e){ setStatus(e.message,"bad"); }
+    return true;
+  }catch(e){ setStatus(e.message,"bad"); return false; }
 }
 
 function firedChips(list){ return (list||[]).map(id=>`<span class="chip fire">${esc(id)}</span>`).join(" "); }
@@ -670,25 +802,28 @@ function drawCards(){
   $("#c-out").innerHTML = h + `</div>`;
 }
 
-/* ---------------- tuning ---------------- */
-let TUNE_BASE = null; const TUNE_CHANGED = new Set();
+/* ---------------- tuning (an edit of Tuning.csv like any other) ---------------- */
 function drawTuning(){
-  TUNE_BASE ||= Object.assign({}, META.all_tuning);
-  const f = ($("#t-filter").value||"").toLowerCase();
-  const keys = Object.keys(META.all_tuning).sort().filter(k=>!f || k.includes(f.replace(/[_ ]/g,"")));
-  $("#t-body").innerHTML = keys.slice(0,400).map(k=>`<tr><td class="num">${esc(k)}${TUNE_CHANGED.has(k)?' <span class="chip fire">changed</span>':""}</td>
-    <td><input type="text" data-key="${esc(k)}" value="${esc(META.all_tuning[k])}" aria-label="${esc(k)}" style="width:100%;max-width:340px"></td></tr>`).join("");
+  const name = "Tuning.csv"; ensureFiles([name]);
+  const f = FILES[name]; if (!f) return;
+  const H = f.header.map(normH), iK = H.indexOf("key"), iV = H.indexOf("value"), iN = H.findIndex(h=>h!=="key"&&h!=="value");
+  const flt = ($("#t-filter").value||"").toLowerCase();
+  const rows = [];
+  for (let r=1; r<f.recs.length; r++){
+    if (!f.keys[r]) continue;
+    const k = cellNow(name,r,iK), note = iN>=0 ? cellNow(name,r,iN) : "";
+    if (flt && !(k.toLowerCase().includes(flt) || note.toLowerCase().includes(flt))) continue;
+    rows.push(r);
+  }
+  $("#t-body").innerHTML = rows.slice(0,400).map(r=>{ const v = cellNow(name,r,iV), chg = v !== (f.recs[r].cells[iV]??""); const note = iN>=0 ? cellNow(name,r,iN) : "";
+    return `<tr><td class="num">${esc(cellNow(name,r,iK))}</td>
+    <td><input type="text" data-f="${esc(name)}" data-r="${r}" data-c="${iV}" value="${esc(v)}" aria-label="${esc(cellNow(name,r,iK))}" class="${chg?"chg":""}" style="width:100%;min-width:90px;max-width:260px"></td>
+    <td class="hint" title="${esc(note)}">${esc(note.length>140?note.slice(0,140)+"…":note)}</td></tr>`; }).join("")
+    + (rows.length>400 ? `<tr><td colspan="3" class="hint">${rows.length-400} more: use the filter.</td></tr>` : "");
 }
 $("#t-filter").addEventListener("input", drawTuning);
-$("#t-body").addEventListener("change", e=>{
-  const k = e.target.dataset.key; if(!k) return;
-  try{ lab({cmd:"tune", set:{[k]: e.target.value}}); META.all_tuning[k]=e.target.value;
-    if (TUNE_BASE[k]===e.target.value) TUNE_CHANGED.delete(k); else TUNE_CHANGED.add(k);
-    drawTuning(); setStatus("Tuning changed: "+k+" = "+e.target.value, "ok"); }catch(err){ setStatus(err.message,"bad"); }
-});
-$("#t-reset").addEventListener("click", ()=>{
-  try{ lab({cmd:"tune", reset:true}); META = lab({cmd:"meta"}); TUNE_CHANGED.clear(); drawTuning(); setStatus("Tuning back to the spreadsheet","ok"); }catch(e){ setStatus(e.message,"bad"); }
-});
+$("#t-body").addEventListener("change", e=>onCellChange(e));
+$("#t-reset").addEventListener("click", ()=>{ revertFile("Tuning.csv"); });
 
 function drawProblems(){
   const p = META.problems || [];
@@ -697,52 +832,99 @@ function drawProblems(){
 
 /* ---------------- adventure ---------------- */
 let AMETA = null, APOLL = null, ASTATE = null;
+let PARTY = {};          // tier -> [card names]
 function initAdventure(){
   AMETA = lab({cmd:"adv_meta"});
-  $("#a-biome").innerHTML = AMETA.biomes.map(b=>`<option value="${esc(b.id)}">${esc(b.name)} · ${b.waves} waves</option>`).join("");
-  const fillBounty = () => {
-    const b = AMETA.biomes.find(x=>x.id===$("#a-biome").value);
-    $("#a-bounty").innerHTML = `<option value="">none (no boss)</option>` + (b?b.bounties:[]).map(x=>`<option value="${esc(x.id)}">${esc(x.name)} · boss ${esc(x.boss)}${x.waves?" · "+x.waves+" waves":""}</option>`).join("");
-  };
-  $("#a-biome").addEventListener("change", fillBounty); fillBounty();
+  $("#a-biome").addEventListener("change", ()=>{ fillBounty(); hardHint(); });
+  $("#a-bounty").addEventListener("change", hardHint);
+  ["#a-clears","#a-waves","#a-per"].forEach(id=>$(id).addEventListener("input", hardHint));
   classOptions($("#a-class"), Object.keys(META.classes).find(c=>c==="Lorelei") || Object.keys(META.classes)[0]);
-  $("#a-class").addEventListener("change", fillParty); fillParty();
-  $("#a-slots").textContent = `${AMETA.slots} icons can be in play at once. Only these count on the pile. Hover one to see its breakpoints.`;
-  $("#a-loadout").innerHTML = AMETA.traits.map((t,i)=>`<label class="chk" title="${esc(t.steps.map(s=>s.at+": "+s.name+" ("+s.effect+" "+s.value+")").join("\n"))}"><input type="checkbox" value="${esc(t.id)}" ${i<AMETA.slots?"checked":""}> ${esc(t.name)} <span class="chip">${esc(t.from)}</span></label>`).join("");
-  $("#a-wave").innerHTML = AMETA.enemies.slice().sort((a,b)=>(a.pool+a.name).localeCompare(b.pool+b.name)).map(e=>`<label class="chk"><input type="checkbox" value="${esc(e.id)}"> ${esc(e.name)} <span class="chip">${esc(e.pool)}${e.boss?" boss":""}</span></label>`).join("");
+  $("#a-class").addEventListener("change", ()=>{ partyFromClass(); drawParty(); });
+  $("#a-party").addEventListener("change", e=>{
+    const t = e.target;
+    if (t.dataset.count != null){
+      const tier = t.dataset.count, want = +t.value, line = PARTY[tier] ||= [];
+      const pool = AMETA.players.filter(p=>p.tier===tier).map(p=>p.name);
+      while (line.length < want) line.push(pool.find(n=>!line.includes(n)) || pool[0] || "");
+      line.length = want; drawParty(); return;
+    }
+    if (t.dataset.slot != null){ PARTY[t.dataset.tier][+t.dataset.slot] = t.value; }
+  });
+  $("#a-loadout").addEventListener("change", slotsHint);
   $("#a-start").addEventListener("click", startRun);
   $("#a-auto").addEventListener("click", ()=>{ const on = !(ASTATE && ASTATE.auto); advCall({cmd:"adv_auto", on, auto:{focus:$("#a-af").value, pick:$("#a-ap").value}}); });
   $("#as-run").addEventListener("click", runAdvSim);
   $("#a-foes").addEventListener("click", e=>{ const b=e.target.closest("[data-focus]"); if(b) advCall({cmd:"adv_focus", i:+b.dataset.focus}); });
   $("#a-draft").addEventListener("click", e=>{ const b=e.target.closest("[data-pick]"); if(b) advCall({cmd:"adv_pick", card:b.dataset.pick}); });
+  fillAdventureLists(false);
 }
-function fillParty(){
+function fillBounty(){
+  const b = AMETA.biomes.find(x=>x.id===$("#a-biome").value), keep = $("#a-bounty").value;
+  $("#a-bounty").innerHTML = `<option value="">none (no boss)</option>` + (b?b.bounties:[]).map(x=>`<option value="${esc(x.id)}" ${x.id===keep?"selected":""}>${esc(x.name)} · boss ${esc(x.boss)}${x.waves?" · "+x.waves+" waves":""}</option>`).join("");
+}
+/* Called at start and again after the spreadsheets change: keeps what was chosen where it still exists. */
+function fillAdventureLists(keep){
+  const biome = $("#a-biome").value;
+  $("#a-biome").innerHTML = AMETA.biomes.map(b=>`<option value="${esc(b.id)}" ${b.id===biome?"selected":""}>${esc(b.name)} · ${b.waves} waves</option>`).join("");
+  fillBounty();
+  const ticked = keep ? new Set([...document.querySelectorAll("#a-loadout input:checked")].map(i=>i.value)) : null;
+  $("#a-loadout").innerHTML = AMETA.traits.map((t,i)=>`<label class="chk" title="${esc(t.steps.map(s=>s.at+": "+s.name+" ("+s.effect+" "+s.value+")").join("\n"))}"><input type="checkbox" value="${esc(t.id)}" ${(ticked ? ticked.has(t.id) : i<AMETA.slots)?"checked":""}> ${esc(t.name)} <span class="chip">${esc(t.from)}</span></label>`).join("");
+  const wave = keep ? new Set([...document.querySelectorAll("#a-wave input:checked")].map(i=>i.value)) : new Set();
+  $("#a-wave").innerHTML = AMETA.enemies.slice().sort((a,b)=>(a.pool+a.name).localeCompare(b.pool+b.name)).map(e=>`<label class="chk"><input type="checkbox" value="${esc(e.id)}" ${wave.has(e.id)?"checked":""}> ${esc(e.name)} <span class="chip">${esc(e.pool)}${e.boss?" boss":""}</span> <span class="hint">atk ${e.attack} · ${e.layers.map(l=>l.name+" "+l.amount).join(", ")}</span></label>`).join("");
+  if (!keep) partyFromClass();
+  drawParty(); slotsHint(); hardHint();
+}
+function slotsHint(){
+  const n = document.querySelectorAll("#a-loadout input:checked").length;
+  $("#a-slots").textContent = `${n} ticked. The game carries ${AMETA.slots} into a run (adventure_trait_slots in Tuning); the lab takes as many as you tick. Hover one to see its breakpoints.`;
+}
+/* Tuning keys come back normalised by CardDatabase (lower case, no _ or spaces). */
+const tuneVal = (key, fallback) => { const v = META.all_tuning[normH(key)]; return v === undefined || v === "" ? fallback : v; };
+function hardHint(){
+  const b = AMETA.biomes.find(x=>x.id===$("#a-biome").value) || {};
+  const bo = (b.bounties||[]).find(x=>x.id===$("#a-bounty").value);
+  const clears = +$("#a-clears").value||0, step = +tuneVal("adventure_repeat_step", 0.35), pace = Math.max(1, +b.difficulty||1);
+  const hard = clears>0 ? 1 + clears*step*pace : 1;
+  const waves = +$("#a-waves").value || (bo && bo.waves) || b.waves || 1;
+  const per = +$("#a-per").value || +tuneVal("adventure_enemies_per_wave", 3);
+  $("#a-hard").textContent = `${waves} waves${bo?", the last is the boss":""} · ${per} enemies a wave · enemies ×${hard.toFixed(2)}` +
+    (clears>0 ? ` (1 + ${clears} clears × ${step} adventure_repeat_step × biome difficulty ${pace}): their attack and every layer are scaled, as in the game when you go back.` : `. Raise "beaten before" to grow the enemies the way the game does on a return visit. 0 in the first two boxes means as written in the spreadsheets.`);
+}
+function partyFromClass(){
   const cls = META.classes[$("#a-class").value];
+  PARTY = {};
+  for (const t of TIERS){
+    PARTY[t] = t===cls.star_tier ? cls.stars.slice(0,1).map(c=>c.name)
+      : META.rungs[t].map(r=>(cls.tiers[t].find(c=>c.atk===r)||{}).name).filter(Boolean);
+  }
+}
+function drawParty(){
   let h = "";
   for (const t of TIERS){
-    const starTier = t===cls.star_tier;
-    h += `<div class="tierbox"><div class="t">Tier ${t}${starTier?" · Star":""}</div>`;
-    const rungs = starTier ? [null] : META.rungs[t];
-    for (const r of rungs){
-      const pool = AMETA.players.filter(p=>p.tier===t && (r===null ? p.star : p.atk===r && !p.star));
-      const pick = starTier ? (cls.stars[0]||{}).name : (cls.tiers[t].find(c=>c.atk===r)||{}).name;
-      h += `<select data-tier="${t}" aria-label="Tier ${t} ${r===null?"star":"power "+r}"><option value="">(empty)</option>${pool.map(p=>`<option ${p.name===pick?"selected":""} value="${esc(p.name)}">${esc(p.name)} · ${p.atk} · ${esc(p.class)}${p.star?" ★":""}</option>`).join("")}</select>`;
-    }
+    const pool = AMETA.players.filter(p=>p.tier===t).sort((a,b)=>(a.class+a.atk+a.name).localeCompare(b.class+b.atk+b.name));
+    const line = PARTY[t] ||= [];
+    h += `<div class="tierbox"><div class="row" style="justify-content:space-between;align-items:center"><span class="t">Tier ${t}</span>
+      <label class="hint">players <select data-count="${t}" aria-label="Tier ${t}: how many players">${[0,1,2,3,4,5,6].map(n=>`<option ${n===line.length?"selected":""}>${n}</option>`).join("")}</select></label></div>`;
+    line.forEach((name, i) => {
+      h += `<select data-tier="${t}" data-slot="${i}" aria-label="Tier ${t} player ${i+1}">${pool.map(p=>`<option ${p.name===name?"selected":""} value="${esc(p.name)}">${esc(p.name)} · ${p.atk} · ${esc(p.class)}${p.star?" ★":""}</option>`).join("")}</select>`;
+    });
     h += `</div>`;
   }
   $("#a-party").innerHTML = h;
 }
 function advSetup(){
   const party = {};
-  document.querySelectorAll("#a-party select").forEach(s=>{ if(s.value) (party[s.dataset.tier] ||= []).push(s.value); });
+  for (const t of TIERS) party[t] = (PARTY[t]||[]).filter(Boolean);
   const loadout = [...document.querySelectorAll("#a-loadout input:checked")].map(i=>i.value);
   const wave = [...document.querySelectorAll("#a-wave input:checked")].map(i=>i.value);
-  return {biome:$("#a-biome").value, bounty:$("#a-bounty").value, party, loadout, wave};
+  return {biome:$("#a-biome").value, bounty:$("#a-bounty").value, party, loadout, wave,
+    waves:+$("#a-waves").value||0, per_wave:+$("#a-per").value||0, clears:+$("#a-clears").value||0};
 }
 function advCall(cmd){
   try{ const st = lab(cmd); drawRun(st); pollRun(); return st; }catch(e){ setStatus(e.message,"bad"); }
 }
 function startRun(){
+  applyEdits();
   $("#a-log").textContent = "";
   const st = advCall(Object.assign({cmd:"adv_new", seed:+$("#a-seed").value||0}, advSetup()));
   if (st) $("#a-log").textContent = "seed "+st.seed+"\n" + $("#a-log").textContent;
@@ -757,8 +939,38 @@ function pollRun(){
     }catch(e){ clearInterval(APOLL); APOLL=null; setStatus(e.message,"bad"); }
   }, 60);
 }
-function layerBar(f){
-  return f.layers.map((l,i)=>`<div class="hint">${esc(l.name)} ${f.left[i]}/${l.amount}${l.soak?` · soaks ${l.soak}`:""}</div><div class="bar"><i style="width:${100*f.left[i]/Math.max(1,l.amount)}%;background:var(--away)"></i></div>`).join("");
+/* The fight as text: enemies and their layers, the icon pile, the party and their stamina. */
+function advText(st){
+  let o = `<span class="h">${esc(rule(`${st.biome} · wave ${st.wave} of ${st.waves} · enemies ×${(st.hard||1).toFixed(2)} · ${st.rounds} rounds`, "═"))}</span>\n`;
+  if (st.foes){
+    o += `<span class="dim">ENEMIES</span>\n`;
+    st.foes.forEach((f,i)=>{
+      const target = i===st.focus && f.alive;
+      const head = `  ${i+1} ${padE(f.name, 18)} atk ${padE(f.attack, 3)} hits ${padE(f.targeting, 10)}`;
+      const layers = f.layers.map((l,k)=>`${l.name} ${tbar(f.left[k], l.amount, 10)} ${f.left[k]}/${l.amount}${l.soak?` soaks ${l.soak}`:""}`).join("   ");
+      o += (f.alive ? esc(head) : `<span class="dim">${esc(head)}</span>`) + " " + (f.alive ? esc(layers) : "down") + (target ? `  <span class="win">← target</span>` : "") + (f.boss ? "  BOSS" : "") + (f.buff ? `  +${f.buff} a pass` : "") + "\n";
+    });
+  }
+  if (st.stack){
+    o += `<span class="dim">THE PILE</span>  +${st.stack.attack} to the hit · ${st.stack.shield} soaked off each enemy hit\n`;
+    for (const id of st.live_icons||[]){
+      const n = st.stack.counts[id]||0, t = AMETA.traits.find(x=>x.id===id), next = t ? t.steps.find(s=>s.at>n) : null;
+      o += `  ${padE(t?t.name:id, 18)} ${padS(n,2)}${next?`  next at ${next.at}: ${next.name} (${next.effect} ${next.value})`:"  (top reached)"}\n`;
+    }
+    if (st.stack.active.length) o += `  active now: ${st.stack.active.map(a=>a.name+" ("+a.effect+" "+a.value+")").join(", ")}\n`;
+  }
+  o += `<span class="dim">PARTY</span>\n`;
+  for (const t of TIERS){
+    const line = st.party[t]||[];
+    if (!line.length){ o += `  ${padE("Tier "+t, 9)}nobody\n`; continue; }
+    line.forEach((c,i)=>{
+      const state = c.out ? "KNOCKED OUT" : c.spent ? "rested this cycle" : "ready";
+      const txt = `  ${padE(i===0?"Tier "+t:"", 9)}${padE(c.name+(c.star?" ★":"")+(c.stand_in?" (stand-in)":""), 22)} ${padS(c.atk,2)}  ${tbar(c.stamina, c.max, 12)} ${padS(c.stamina,2)}/${padE(c.max,3)} ${padE(state, 18)} ${c.icons.join(", ")}`;
+      o += (c.out ? `<span class="dim">${esc(txt)}</span>` : esc(txt)) + "\n";
+    });
+  }
+  if (st.picked){ const pk = Object.entries(st.picked).map(([t,n])=>`${t}: ${n||"nobody"}`).join(" · "); if (pk) o += `<span class="dim">THIS MOVE</span>  ${esc(pk)}\n`; }
+  return o;
 }
 function drawRun(st){
   if (!st || st.none) return;
@@ -768,35 +980,17 @@ function drawRun(st){
   const stepWords = {focus:"choose an enemy", draft:"Tier "+st.tier+": choose who goes", resolving:"the move is going in", done:"wave over", over: st.result==="cleared"?"run cleared":"party down", between:"next wave"};
   $("#a-step").textContent = (st.result ? (st.result==="cleared"?"CLEARED · ":"LOST · ") : "") + (stepWords[st.step]||st.step) + ` · ${st.rounds} rounds so far`;
   $("#a-auto").textContent = st.auto ? "Stop playing automatically" : "Play on automatically";
-  if (st.foes){
-    $("#a-foes").innerHTML = st.foes.map((f,i)=>`<div class="cardx ${i===st.focus&&f.alive?"star":""}" style="${f.alive?"":"opacity:.45"}">
-      <div class="top"><div><b>${esc(f.name)}</b>${f.boss?' <span class="chip fire">boss</span>':""}${i===st.focus&&f.alive?' <span class="chip fire">target</span>':""}</div><div class="pw num" title="attack">${f.attack}</div></div>
-      <p class="hint">hits ${esc(f.targeting)}${f.buff?` · +${f.buff} per pass while you build`:""} ${f.icons.map(x=>`<span class="chip">${esc(x)}</span>`).join(" ")}</p>
-      ${layerBar(f)}
-      ${st.step==="focus"&&f.alive&&!st.auto?`<button class="btn sm" data-focus="${i}" style="margin-top:6px;justify-self:start">Go after it</button>`:""}</div>`).join("");
-  }
-  let d = "";
-  if (st.step==="draft" && !st.auto){
-    d = `<div class="lbl">Tier ${esc(st.tier)}: send one</div><div class="row" style="margin-top:4px">` +
-      st.available.map((c,i)=>`<button class="btn" data-pick="#${i}">${esc(c.name)} · ${c.atk} · ${c.stamina} sta ${c.icons.map(x=>"["+esc(x)+"]").join("")}</button>`).join("") + `</div>`;
-  }
-  const picked = Object.entries(st.picked||{}).map(([t,n])=>`${t}: ${n?esc(n):"nobody"}`).join(" · ");
-  if (picked) d += `<div class="hint" style="margin-top:6px">This move: ${picked}</div>`;
-  $("#a-draft").innerHTML = d;
-  if (st.stack){
-    const live = st.live_icons || [];
-    $("#a-pile").innerHTML = `<div class="lbl">The pile · +${st.stack.attack} to the hit · ${st.stack.shield} soaked off each enemy hit</div>
-      <div class="row" style="margin-top:4px;gap:8px">${live.map(id=>{ const n = st.stack.counts[id]||0; const t = AMETA.traits.find(x=>x.id===id); const next = t ? t.steps.find(s=>s.at>n) : null;
-        return `<span class="chip ${n?"fire":""}" title="${esc(t?t.steps.map(s=>s.at+": "+s.name+" ("+s.effect+" "+s.value+", "+s.lasts+")").join("\n"):"")}">${esc(id)} ${n}${next?` → at ${next.at}: ${esc(next.name)}`:""}</span>`; }).join("")}</div>
-      ${st.stack.active.length?`<div class="hint" style="margin-top:4px">Active now: ${st.stack.active.map(a=>esc(a.name)+" ("+esc(a.effect)+" "+a.value+")").join(", ")}</div>`:""}`;
-  }
-  $("#a-partylive").innerHTML = TIERS.map(t=>`<div class="tierbox"><div class="t">Tier ${t}</div>${(st.party[t]||[]).map(c=>`<div style="${c.out?"opacity:.45":""}"><div class="row" style="justify-content:space-between;gap:6px"><span>${esc(c.name)}${c.star?" ★":""}${c.stand_in?" (stand-in)":""}</span><span class="num">${c.atk}</span></div>
-     <div class="hint">${c.out?"knocked out":c.spent?"rested this cycle":"ready"} · ${c.stamina}/${c.max} · ${esc(c.icons.join(", "))}</div><div class="bar"><i style="width:${100*c.stamina/Math.max(1,c.max)}%"></i></div></div>`).join("") || '<div class="hint">nobody</div>'}</div>`).join("");
+  $("#a-ascii").innerHTML = advText(st);
+  $("#a-foes").innerHTML = (st.foes && st.step==="focus" && !st.auto) ? `<div class="lbl">Go after</div><div class="row" style="margin-top:4px">` +
+    st.foes.map((f,i)=>f.alive?`<button class="btn" data-focus="${i}">${i+1} ${esc(f.name)}</button>`:"").join("") + `</div>` : "";
+  $("#a-draft").innerHTML = (st.step==="draft" && !st.auto) ? `<div class="lbl">Tier ${esc(st.tier)}: send one</div><div class="row" style="margin-top:4px">` +
+    st.available.map((c,i)=>`<button class="btn" data-pick="#${i}">${esc(c.name)} · ${c.atk} · ${c.stamina} sta ${c.icons.map(x=>"["+esc(x)+"]").join("")}</button>`).join("") + `</div>` : "";
   if (st.notes && st.notes.length){ const L=$("#a-log"); L.textContent += st.notes.join("\n")+"\n"; L.scrollTop = L.scrollHeight; }
 }
 
 function runAdvSim(){
   try{
+    applyEdits();
     lab(Object.assign({cmd:"adv_sim", n:+$("#as-n").value, focus:$("#as-f").value, pick:$("#as-p").value, seed:+$("#a-seed").value||0}, advSetup()));
     $("#as-run").disabled = true; $("#a-live").hidden = true; $("#a-logp").hidden = true;
     if (APOLL){ clearInterval(APOLL); APOLL=null; }
@@ -811,14 +1005,574 @@ function runAdvSim(){
 }
 function drawAdvSim(s){
   const n = s.done, ko = Object.entries(s.ko).sort((a,b)=>b[1]-a[1]), fired = Object.entries(s.fired).sort((a,b)=>b[1]-a[1]);
-  const waves = Object.entries(s.waves).sort((a,b)=>+a[0]-+b[0]);
-  $("#as-out").innerHTML = `<div class="kpis"><div class="kpi"><div class="lbl">Runs cleared</div><div class="v num">${pct(s.cleared,n)}</div></div>
-    <div class="kpi"><div class="lbl">Rounds a run</div><div class="v num">${s.rounds_per_run}</div></div>
-    <div class="kpi"><div class="lbl">Waves in the run</div><div class="v num">${s.waves_total}</div></div></div>
-    <div class="hint" style="margin-top:6px">seed ${s.seed} · ${(s.ms/1000).toFixed(1)} s · waves cleared before the end: ${waves.map(([w,c])=>w+" ("+pct(c,n)+")").join(", ")}</div>
+  const lost = n - s.cleared;
+  const lostAt = Object.entries(s.lost_at||{}).sort((a,b)=>+a[0]-+b[0]);
+  const hist = lostAt.length ? lostAt.map(([w,c])=>`  wave ${padS(w,2)}  ${"█".repeat(Math.max(1,Math.round(30*c/n)))} ${c} (${pct(c,n)})`).join("\n") : "  never";
+  $("#as-out").innerHTML = `<div class="kpis"><div class="kpi"><div class="lbl">Runs won</div><div class="v num">${pct(s.cleared,n)}</div></div>
+    <div class="kpi"><div class="lbl">Runs lost (party down)</div><div class="v num away">${pct(lost,n)}</div></div>
+    <div class="kpi"><div class="lbl">Knock-outs a run</div><div class="v num">${s.kos_per_run}</div></div>
+    <div class="kpi"><div class="lbl">Runs with a knock-out</div><div class="v num">${pct(s.runs_with_ko,n)}</div></div>
+    <div class="kpi"><div class="lbl">Rounds a run</div><div class="v num">${s.rounds_per_run}</div></div></div>
+    <div class="hint" style="margin-top:6px">${n} runs · ${s.party} players · ${s.waves_total} waves · enemies ×${s.hard} · seed ${s.seed} · ${(s.ms/1000).toFixed(1)} s</div>
+    <pre class="console" style="margin-top:10px;max-height:none">Where lost runs fell\n${esc(hist)}</pre>
     <div style="display:grid;gap:12px;margin-top:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
       <div class="tbl"><table><thead><tr><th>Knocked out</th><th class="n">Of runs</th></tr></thead><tbody>${ko.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${pct(v,n)}</td></tr>`).join("")||'<tr><td colspan="2" class="hint">Nobody.</td></tr>'}</tbody></table></div>
       <div class="tbl"><table><thead><tr><th>One-off breakpoint</th><th class="n">Times</th><th class="n">A run</th></tr></thead><tbody>${fired.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="n">${v}</td><td class="n">${(v/n).toFixed(2)}</td></tr>`).join("")||'<tr><td colspan="3" class="hint">None.</td></tr>'}</tbody></table></div></div>`;
+}
+
+/* ================= THE MATCH AS TEXT ================= */
+const STEPQ = [];
+const padE = (s, n) => { s = String(s ?? ""); return s.length >= n ? s : s + " ".repeat(n - s.length); };
+const padS = (s, n) => { s = String(s ?? ""); return s.length >= n ? s : " ".repeat(n - s.length) + s; };
+function tbar(v, max, w=20){ const f = max>0 ? Math.round(w*Math.max(0,Math.min(v,max))/max) : 0; return "["+"█".repeat(f)+"░".repeat(w-f)+"]"; }
+const rule = (t, ch="─") => { const s = `${ch}${ch} ${t} `; return s + ch.repeat(Math.max(4, 84 - s.length)); };
+const sideCls = side => side==="home" ? MINFO.home.class : MINFO.away.class;
+function cn(name, side, width){
+  const pad = width ? " ".repeat(Math.max(1, width - String(name).length)) : "";
+  return `<span class="cn ${side||""}" data-card="${esc(name)}" data-cls="${esc(side?sideCls(side):"")}">${esc(name)}</span>${pad}`;
+}
+const abl = id => `<span class="abl" data-ab="${esc(id)}">${esc(id)}</span>`;
+const S = (side, t) => `<span class="${side}">${esc(t ?? side.toUpperCase())}</span>`;
+const bgl = t => `<span class="bg">${esc(t)}\n</span>`;
+const isEventLine = l => /^(home|away): [a-z_]+( \(.*\))?$/.test(String(l).trim());
+
+function showView(){
+  const text = $("#m-view").value === "text";
+  $("#m-textp").hidden = !text; $("#m-log").hidden = text; $("#board").hidden = text;
+  const cb = $("#m-cardbtns"), tn = $("#m-textnote");
+  if (cb) cb.hidden = text; if (tn) tn.hidden = !text;
+}
+function matchHeadText(r){
+  return `<span class="h">${esc(rule("NEW MATCH", "═"))}</span>\n  ${S("home","HOME")} ${esc(r.home.class)} v ${S("away","AWAY")} ${esc(r.away.class)} · seed ${r.seed} · ${MS.cycles} cycles of ${MS.per_cycle} rounds\n` +
+    `  Each round: four tier duels (I to IV), then whoever has the ball shoots with everything banked.\n\n`;
+}
+function scoreboardText(s){
+  const H=MINFO.home, A=MINFO.away;
+  let o = `<span class="h">${esc(rule(s.done ? "FULL TIME" : `STANDINGS · next: cycle ${s.cycle} of ${s.cycles}, round ${s.round} of ${s.per_cycle}`))}</span>\n`;
+  o += `  ${S("home","HOME "+H.class)}  ${s.score.home} : ${s.score.away}  ${S("away","AWAY "+A.class)}\n`;
+  for (const side of ["home","away"]){
+    const info = side==="home"?H:A;
+    o += `  ${S(side, padE(side+" keeper", 13))}${esc(padE(info.keeper, 18))} ${tbar(s.stamina[side], s.max_stamina[side])} ${padS(s.stamina[side],2)}/${s.max_stamina[side]}  shield ${s.shield[side]}  damage taken ${(s.keeper_damage||{})[side] ?? 0}  Ore ${s.ore[side]}\n`;
+  }
+  let W = 18;
+  for (const side of ["home","away"]){ const z = s.squads[side]; for (const t of TIERS) for (const c of (t===z.star_tier ? z.stars : z[t])) W = Math.max(W, c.name.length + 9); }
+  o += "  " + padE("", 7) + TIERS.map(t=>padE("Tier "+t, W)).join("") + "\n";
+  for (const side of ["home","away"]){
+    const z = s.squads[side];
+    const cols = TIERS.map(t => t===z.star_tier ? z.stars.map(c=>Object.assign({star:true}, c)) : z[t]);
+    const rows = Math.max(1, ...cols.map(c=>c.length));
+    for (let i=0;i<rows;i++){
+      let line = "  " + (i===0 ? S(side, padE(side, 7)) : padE("", 7));
+      for (let k=0;k<4;k++){
+        const c = cols[k][i];
+        if (!c){ line += padE("", W); continue; }
+        const mark = (c.star && c.name===z.star_now ? " *" : "") + (c.token ? " T" : "") + (c.zone!=="field" ? " x" : "");
+        const tail = ` ${c.atk}${mark}`;
+        line += cn(c.name, side) + esc(tail) + " ".repeat(Math.max(1, W - c.name.length - tail.length));
+      }
+      o += line + "\n";
+    }
+  }
+  return o + `<span class="dim">  * the Star this cycle · T a token · x played this cycle (in the exhaust)</span>\n`;
+}
+function roundBlocks(r){
+  const B = [];
+  let o = `\n<span class="h">${esc(rule(`CYCLE ${r.cycle} · ROUND ${r.round}`, "═"))}</span>\n`;
+  if (r.stars) o += `  Star switch (new cycle): ${S("home","home")} ${cn(r.stars.home,"home")} · ${S("away","away")} ${cn(r.stars.away,"away")}\n`;
+  if (r.lineup){
+    let W = 16;
+    for (const side of ["home","away"]) for (const c of r.lineup[side]) if (c && c.name) W = Math.max(W, c.name.length + 3);
+    o += `  ${padE("line-ups", 9)}` + TIERS.map(t=>padE("Tier "+t, W)).join("") + "\n";
+    for (const side of ["home","away"])
+      o += `  ${S(side, padE(side, 9))}` + r.lineup[side].map(c => c && c.name ? cn(c.name, side, W) : padE("-", W)).join("") + "\n";
+  }
+  o += `  ${S(r.has_ball_first)} has the ball for Tier I\n`;
+  for (const l of r.before||[]) o += isEventLine(l) ? bgl("  · "+l) : `  · ${esc(l)}\n`;
+  B.push(o);
+  for (const d of r.duels) B.push(duelText(d));
+  B.push(shotText(r.shot));
+  let a = (r.after||[]).length ? `<span class="dim">  after the round</span>\n` : "";
+  for (const l of r.after||[]) a += isEventLine(l) ? bgl("  · "+l) : `  · ${esc(l)}\n`;
+  B.push(a);
+  return B;
+}
+function duelText(d){
+  if (d.skipped) return `\n${esc(rule("TIER "+d.tier))}\n  nobody in this tier on one side, so no duel\n`;
+  let o = `\n<span class="h">${esc(rule("TIER "+d.tier))}</span>\n`;
+  const NW = Math.max(16, d.atk.name.length + 2, d.def.name.length + 2);
+  const row = (role, p, prio) => {
+    const pw = p.before!==p.power ? `${p.before} → ${p.power}` : `${p.power}`;
+    const printed = p.printed!==p.before ? ` (card says ${p.printed})` : "";
+    return `  ${role} ${S(p.side, padE(p.side, 5))} ${cn(p.name, p.side, NW)}power ${padE(pw + printed, 22)}priority ${prio}\n`;
+  };
+  o += row("ATTACK", d.atk, d.prio ? d.prio.atk : "?");
+  o += row("DEFEND", d.def, d.prio ? d.prio.def : "?");
+  if (d.prio){
+    const first = d.first==="atk" ? d.atk : d.def, second = d.first==="atk" ? d.def : d.atk;
+    const why = d.prio.atk===d.prio.def ? "same priority: the attacker resolves first" : "lower priority resolves first";
+    o += `  <span class="dim">stack</span>  1) ${cn(first.name, first.side)}  2) ${cn(second.name, second.side)}  <span class="dim">(${why})</span>\n`;
+  }
+  const fired = [...d.atk.fired.map(id=>[d.atk,id]), ...d.def.fired.map(id=>[d.def,id])];
+  o += fired.length ? `  <span class="dim">fired</span>  ` + fired.map(([p,id])=>`${abl(id)} <span class="dim">(${esc(p.name)})</span>`).join(", ") + "\n"
+                    : `  <span class="dim">no ability changed anything</span>\n`;
+  for (const l of d.lines) o += isEventLine(l) ? bgl("         "+l.trim()) : `         ${esc(l.trim())}\n`;
+  for (const n of d.notes) o += `  » ${esc(n)}\n`;
+  for (const a of d.asks) o += bgl(`  asked, default answer used: ${a}`);
+  o += `  <span class="dim">result</span> ${d.atk.power} v ${d.def.power}${d.tie ? ` (a tie: ${esc(d.tie_rule)})` : ""}  → <span class="win">${d.winner.toUpperCase()} WINS</span>${d.turnover ? `, turnover: ${d.winner} has the ball` : ", the attacker keeps the ball"}\n`;
+  o += `  <span class="dim">bank</span>   +${d.banked} to ${d.winner} → ${S("home","home")} ${d.bank.home} | ${S("away","away")} ${d.bank.away}\n`;
+  return o;
+}
+function shotText(s){
+  let o = `\n<span class="h">${esc(rule("SHOT", "═"))}</span>\n`;
+  o += `  ${S(s.side)}: ${cn(s.shooter, s.side)} shoots (the side with the ball after Tier IV)\n`;
+  const parts = [`bank ${s.bank}`];
+  if (s.ability_bonus) parts.push(`abilities ${s.ability_bonus>0?"+":""}${s.ability_bonus}`);
+  if (s.on_shot) parts.push(`on-shot +${s.on_shot}`);
+  const cb = (s.combos||[]).reduce((a,c)=>a+(+c.bonus),0);
+  if (cb) parts.push(s.combos_applied ? `combos +${cb}` : `[combos +${cb} not added]`);
+  o += `  <span class="dim">power</span>  ${parts.join(" + ")} = ${s.power}\n`;
+  if ((s.combos||[]).length) o += `  <span class="dim">combos</span> ${esc(s.combos.map(c=>c.name+" +"+c.bonus).join(", "))}${s.combos_applied?"":" (Combos.csv is not part of the match yet; tick the box to add it)"}\n`;
+  if (s.note) return o + `  ${esc(s.note)}\n`;
+  const keeper = s.side==="home" ? "away" : "home";
+  o += `  <span class="dim">keeper</span> ${S(keeper)} stamina ${s.stamina_before}/${s.max_stamina}${s.shield_before?`, shield ${s.shield_before}`:""} → ShotOdds.csv says ${s.base_chance}%${s.keeper_shift?`, ${s.keeper_shift>0?"+":""}${s.keeper_shift} keeper shift = ${s.chance}%`:""}\n`;
+  o += `  <span class="dim">roll</span>   ${s.roll} ${s.scored?"<":"≥"} ${s.chance} → ${s.scored?`<span class="goal">GOAL</span>`:"SAVED"}\n`;
+  o += `  <span class="dim">damage</span> the keeper loses ${s.bite} stamina${s.soaked?` (${s.soaked} more soaked by the shield)`:""}${s.scored?`, then is refilled to ${s.stamina_after} after the goal`:` → ${s.stamina_after}`}\n`;
+  for (const l of s.keeper_lines||[]) o += `  · ${esc(l)}\n`;
+  return o;
+}
+function textOut(html){ const el = $("#m-text"); el.insertAdjacentHTML("beforeend", html); el.scrollTop = el.scrollHeight; }
+function stepOnce(){
+  if (!STEPQ.length){ if (MS.done) return false; if (!playRound(false)) return false; }
+  textOut(STEPQ.shift());
+  return true;
+}
+function finishRound(){
+  if (!STEPQ.length && !MS.done) playRound(false);
+  while (STEPQ.length) textOut(STEPQ.shift());
+}
+$("#x-step").addEventListener("click", ()=>{ applyEdits(); stepOnce(); });
+$("#x-round").addEventListener("click", ()=>{ applyEdits(); finishRound(); });
+$("#x-cycle").addEventListener("click", ()=>{
+  applyEdits();
+  if (STEPQ.length) finishRound();
+  do { finishRound(); } while (!MS.done && MS.round !== 1);
+});
+$("#x-all").addEventListener("click", ()=>{ applyEdits(); finishRound(); while (!MS.done) finishRound(); });
+$("#x-bg").addEventListener("change", ()=>$("#m-text").classList.toggle("nobg", !$("#x-bg").checked));
+$("#x-copy").addEventListener("click", ()=>{ const el = $("#m-text"); const c = el.cloneNode(true); if (!$("#x-bg").checked) c.querySelectorAll(".bg").forEach(x=>x.remove());
+  navigator.clipboard.writeText(c.textContent).then(()=>setStatus("The match text is on the clipboard","ok"), ()=>setStatus("The browser would not allow copying","bad")); });
+document.addEventListener("click", e=>{
+  const c = e.target.closest(".cn"); if (c){ openCard(c.dataset.cls, c.dataset.card); return; }
+  const a = e.target.closest(".abl"); if (a){ openAbility(a.dataset.ab); }
+});
+
+/* ================= EDITING THE SPREADSHEETS =================
+   Edits are kept as a PATCH per file: changed cells by row key, added rows, removed
+   rows. The page rebuilds the CSV from the shipped file plus the patch, so a patch
+   still lands on next round's spreadsheet (a row that is gone is reported). */
+let FLIST = [];
+const FILES = {};            // name -> {recs, header, keys, eol, trailing}
+let PATCH = {};
+let APPLIED = new Set(), LAST_TEXT = {}, APPLY_T = null;
+const normH = h => String(h).toLowerCase().replace(/[^a-z0-9]/g,"");
+
+function parseCSV(text){
+  const recs = []; let i = 0; const n = text.length;
+  while (i < n){
+    const start = i, cells = []; let cell = "", q = false;
+    for (;;){
+      if (i >= n){ cells.push(cell); break; }
+      const ch = text[i];
+      if (q){ if (ch === '"'){ if (text[i+1] === '"'){ cell += '"'; i += 2; continue; } q = false; i++; continue; } cell += ch; i++; continue; }
+      if (ch === '"'){ q = true; i++; continue; }
+      if (ch === ','){ cells.push(cell); cell = ""; i++; continue; }
+      if (ch === '\r' && text[i+1] === '\n'){ cells.push(cell); i += 2; break; }
+      if (ch === '\n'){ cells.push(cell); i++; break; }
+      cell += ch; i++;
+    }
+    let end = i; while (end > start && (text[end-1] === '\n' || text[end-1] === '\r')) end--;
+    recs.push({cells, raw: text.slice(start, end)});
+  }
+  return {recs, eol: text.includes("\r\n") ? "\r\n" : "\n", trailing: /\n$/.test(text)};
+}
+const csvCell = v => /[",\r\n]/.test(v) ? '"' + String(v).replace(/"/g,'""') + '"' : String(v);
+function keyCols(header){
+  const H = header.map(normH);
+  for (const k of ["abilityid","id","key"]){ const i = H.indexOf(k); if (i >= 0) return [i]; }
+  if (H.includes("name")) return ["unittype","name","tier"].map(k=>H.indexOf(k)).filter(i=>i>=0);
+  return [0];
+}
+function loadFile(name, text){
+  const p = parseCSV(text);
+  const header = p.recs.length ? p.recs[0].cells : [];
+  const kc = keyCols(header), seen = {}, keys = [null];
+  for (let r=1; r<p.recs.length; r++){
+    const rec = p.recs[r];
+    if (rec.raw.trim() === "" || rec.cells.every(c=>c.trim()==="")){ keys.push(null); continue; }
+    let k = kc.map(i=>(rec.cells[i]||"").trim()).join(" | ");
+    seen[k] = (seen[k]||0) + 1; if (seen[k] > 1) k += " #" + seen[k];
+    keys.push(k);
+  }
+  FILES[name] = {recs:p.recs, eol:p.eol, trailing:p.trailing, header, keys};
+}
+function ensureFiles(names){
+  const need = names.filter(n=>n && !FILES[n]);
+  if (!need.length) return;
+  const r = lab({cmd:"files_get", names:need, original:true});
+  for (const [n, t] of Object.entries(r.files)) loadFile(n, t);
+}
+const P = name => (PATCH[name] ||= {rows:{}, added:[], deleted:[]});
+const isClean = p => !p || (!Object.keys(p.rows).length && !p.added.length && !p.deleted.length);
+const editedNames = () => Object.keys(PATCH).filter(n=>!isClean(PATCH[n]));
+function cellNow(name, r, c){
+  const f = FILES[name], pr = PATCH[name] && PATCH[name].rows[f.keys[r]];
+  const col = f.header[c];
+  return pr && col in pr ? pr[col] : (f.recs[r].cells[c] ?? "");
+}
+function setCell(name, r, c, value){
+  const f = FILES[name], k = f.keys[r], col = f.header[c], p = P(name);
+  if (value === (f.recs[r].cells[c] ?? "")){ if (p.rows[k]){ delete p.rows[k][col]; if (!Object.keys(p.rows[k]).length) delete p.rows[k]; } }
+  else (p.rows[k] ||= {})[col] = value;
+  edited();
+}
+function buildText(name){
+  const f = FILES[name], p = PATCH[name], lines = [];
+  f.recs.forEach((rec, r) => {
+    const k = f.keys[r];
+    if (r > 0 && k && p && p.deleted.includes(k)) return;
+    const pr = r > 0 && k && p ? p.rows[k] : null;
+    if (!pr){ lines.push(rec.raw); return; }
+    const cells = f.header.map((col, c) => col in pr ? pr[col] : (rec.cells[c] ?? ""));
+    for (let c=f.header.length; c<rec.cells.length; c++) cells.push(rec.cells[c]);
+    lines.push(cells.map(csvCell).join(","));
+  });
+  while (lines.length > 1 && lines[lines.length-1].trim() === "" && p && p.added.length) lines.pop();
+  for (const row of (p ? p.added : [])) lines.push(f.header.map((_,c)=>csvCell(row[c] ?? "")).join(","));
+  return lines.join(f.eol) + (f.trailing ? f.eol : "");
+}
+function saveLocal(){ try{ localStorage.setItem("sblab-patch", JSON.stringify(PATCH)); }catch(e){} }
+function edited(){
+  saveLocal(); drawChanges();
+  clearTimeout(APPLY_T); APPLY_T = setTimeout(applyEdits, 500);
+}
+/* Hand the edited files to the engine (only when something changed since last time). */
+function applyEdits(){
+  clearTimeout(APPLY_T); APPLY_T = null;
+  const files = {}, reset = [];
+  for (const n of editedNames()){ const t = buildText(n); if (LAST_TEXT[n] !== t) files[n] = t; }
+  for (const n of APPLIED) if (isClean(PATCH[n])) reset.push(n);
+  if (!Object.keys(files).length && !reset.length) return;
+  try{
+    const r = lab({cmd:"files_set", files, reset});
+    for (const n of reset){ APPLIED.delete(n); delete LAST_TEXT[n]; }
+    for (const [n, t] of Object.entries(files)){ APPLIED.add(n); LAST_TEXT[n] = t; }
+    refreshAll();
+    const probs = r.problems || [];
+    $("#e-problems").innerHTML = probs.length ? `<details><summary>What the loader said about the edited spreadsheets (${probs.length})</summary><div class="extra">${esc(probs.join("\n"))}</div></details>` : "";
+    setStatus(`Edits in use: ${APPLIED.size} file${APPLIED.size===1?"":"s"} changed. The match restarted with the new numbers.`, "ok");
+  }catch(e){ setStatus("The engine would not take the edit: "+e.message, "bad"); }
+}
+/* After an edit the engine has new numbers: ask again for everything the page shows. */
+function refreshAll(){
+  META = lab({cmd:"meta"});
+  for (const id of ["#m-home","#m-away","#s-home","#s-away","#c-class","#a-class","#e-class"]){
+    const v = $(id).value; classOptions($(id), META.classes[v] ? v : Object.keys(META.classes)[0]);
+  }
+  drawSquadPickers(true); drawCards(); drawProblems();
+  AMETA = lab({cmd:"adv_meta"}); fillAdventureLists(true);
+  if ($("#tab-tuning") && !$("#tab-tuning").hidden) drawTuning();
+  startMatch();
+  textOut(`<span class="dim">  (the spreadsheets changed, so this is a new match with the edited numbers)</span>\n`);
+}
+function revertFile(name){ delete PATCH[name]; edited(); drawCardEditor(); drawGrid(); drawTuning(); }
+
+function drawChanges(){
+  const names = editedNames();
+  let h = "", rows = 0;
+  for (const name of names){
+    const p = PATCH[name], f = FILES[name];
+    h += `<div style="margin-top:10px"><div class="row" style="justify-content:space-between;align-items:center"><b class="num">${esc(name)}</b><button class="btn sm" data-revert="${esc(name)}">Undo this file</button></div><div class="diff">`;
+    for (const [k, cols] of Object.entries(p.rows)){
+      const r = f.keys.indexOf(k);
+      for (const [col, v] of Object.entries(cols)){
+        rows++;
+        const old = r >= 0 ? (f.recs[r].cells[f.header.indexOf(col)] ?? "") : "?";
+        h += `${esc(k)} · ${esc(col.trim())}: <del>${esc(old)||"(empty)"}</del> → <ins>${esc(v)||"(empty)"}</ins>\n`;
+      }
+    }
+    for (const row of p.added){ rows++; h += `<ins>+ new row: ${esc(row.filter(x=>String(x).trim()).slice(0,5).join(" · "))}</ins>\n`; }
+    for (const k of p.deleted){ rows++; h += `<del>− row removed: ${esc(k)}</del>\n`; }
+    h += `</div></div>`;
+  }
+  $("#e-diff").innerHTML = h || `<div class="hint">No changes yet. Pick a card or a spreadsheet below; what you change is used on the next duel.</div>`;
+  const pill = $("#edits-pill");
+  pill.hidden = !names.length;
+  pill.textContent = `${rows} edit${rows===1?"":"s"} in use`;
+  $("#e-send").disabled = !names.length; $("#e-copy").disabled = !names.length; $("#e-undo").disabled = !names.length;
+}
+function diffText(){
+  const out = [];
+  for (const name of editedNames()){
+    const p = PATCH[name], f = FILES[name];
+    out.push("== " + name);
+    for (const [k, cols] of Object.entries(p.rows)){
+      const r = f.keys.indexOf(k);
+      for (const [col, v] of Object.entries(cols)) out.push(`${k} · ${col.trim()}: ${r>=0 ? (f.recs[r].cells[f.header.indexOf(col)] ?? "") : "?"} -> ${v}`);
+    }
+    for (const row of p.added) out.push("+ " + f.header.map((_,c)=>csvCell(row[c] ?? "")).join(","));
+    for (const k of p.deleted) out.push("- " + k);
+  }
+  return out.join("\n");
+}
+
+/* ---- which files hold cards and abilities ---- */
+const hdr = f => f.header.split(",").map(normH);
+const unitFiles = () => FLIST.filter(f=>{ const H = hdr(f); return H.includes("unittype") && H.includes("name") && (H.includes("basepower") || H.includes("basepowerleft")); }).map(f=>f.name);
+const abilityFiles = () => FLIST.filter(f=>hdr(f).includes("abilityid")).map(f=>f.name);
+function findCardRow(klass, name, tier){
+  for (const strict of [true, false]) for (const fn of unitFiles()){
+    const f = FILES[fn]; if (!f) continue;
+    const H = f.header.map(normH), iT = H.indexOf("unittype"), iN = H.indexOf("name"), iTi = H.indexOf("tier");
+    for (let r=1; r<f.recs.length; r++){
+      if (!f.keys[r] || (PATCH[fn] && PATCH[fn].deleted.includes(f.keys[r]))) continue;
+      if (cellNow(fn,r,iN).trim() !== name) continue;
+      if (strict && klass && cellNow(fn,r,iT).trim() !== klass) continue;
+      if (strict && tier && iTi >= 0 && cellNow(fn,r,iTi).trim().replace(/^tier\s*/i,"") !== tier) continue;
+      return {file: fn, r};
+    }
+  }
+  return null;
+}
+function findAbility(id){
+  for (const fn of abilityFiles()){
+    const f = FILES[fn]; if (!f) continue;
+    const iId = f.header.map(normH).indexOf("abilityid");
+    for (let r=1; r<f.recs.length; r++) if (f.keys[r] && cellNow(fn,r,iId).trim() === id) return {file: fn, r};
+    const p = PATCH[fn];
+    if (p) for (let a=0; a<p.added.length; a++) if (String(p.added[a][iId]||"").trim() === id) return {file: fn, a};
+  }
+  return null;
+}
+function inputFor(name, where, c, extra){
+  const f = FILES[name];
+  const v = where.a != null ? (PATCH[name].added[where.a][c] ?? "") : cellNow(name, where.r, c);
+  const chg = where.a != null || v !== (f.recs[where.r].cells[c] ?? "");
+  const dl = DATALISTS[normH(f.header[c])];
+  return `<input data-f="${esc(name)}" ${where.a != null ? `data-a="${where.a}"` : `data-r="${where.r}"`} data-c="${c}" value="${esc(v)}" class="${chg?"chg":""}" ${dl?`list="${dl}"`:""} ${extra||""}>`;
+}
+let DATALISTS = {};
+function buildDatalists(){
+  const vals = {};
+  for (const fn of abilityFiles()){
+    const f = FILES[fn]; if (!f) continue;
+    f.header.forEach((col, c) => {
+      const k = normH(col); if (!["trigger","target","effect","scope","if","cost","max","ask"].includes(k)) return;
+      const set = vals[k] ||= new Set();
+      for (let r=1; r<f.recs.length; r++){ const v = (f.recs[r].cells[c]||"").trim(); if (v && v.length < 60) set.add(v); }
+    });
+  }
+  DATALISTS = {}; let h = "";
+  for (const [k, set] of Object.entries(vals)){ DATALISTS[k] = "dl-"+k; h += `<datalist id="dl-${k}">${[...set].sort().map(v=>`<option value="${esc(v)}">`).join("")}</datalist>`; }
+  $("#e-lists").innerHTML = h;
+}
+
+/* ---- the card editor ---- */
+function cardOptions(){
+  const klass = $("#e-class").value, cls = META.classes[klass], keep = $("#e-card").value;
+  const opts = [];
+  for (const t of TIERS) for (const c of (t===cls.star_tier ? cls.stars : cls.tiers[t])) opts.push([`${t}|${c.name}`, `Tier ${t} · ${c.name} · ${c.atk}${c.star?" ★":""}`]);
+  for (const c of cls.stars) if (!opts.some(o=>o[0].endsWith("|"+c.name))) opts.push([`${c.tier}|${c.name}`, `Tier ${c.tier} · ${c.name} · ${c.atk} ★`]);
+  $("#e-card").innerHTML = opts.map(([v,l])=>`<option value="${esc(v)}" ${v===keep?"selected":""}>${esc(l)}</option>`).join("");
+}
+function drawCardEditor(){
+  const box = $("#e-cardbox"); if (!box || !$("#e-card").value) return;
+  const klass = $("#e-class").value, [tier, name] = $("#e-card").value.split("|");
+  const hit = findCardRow(klass, name, tier);
+  if (!hit){ box.innerHTML = `<div class="hint">${esc(name)} is not in any unit spreadsheet the lab can see.</div>`; return; }
+  const f = FILES[hit.file];
+  let h = `<div class="lbl">${esc(hit.file)}</div><div class="form" style="margin-top:6px">` +
+    f.header.map((col, c) => `<label>${esc(col.trim())}</label>${inputFor(hit.file, hit, c)}`).join("") + `</div>
+    <p class="hint">Power and Tier change the card at once. The Attack and Defend words are what a player reads; what the rules run is the ability row underneath, named in the Ability columns.</p>`;
+  const H = f.header.map(normH);
+  H.forEach((k, c) => {
+    if (!k.endsWith("ability") || k === "attack" || k === "defend") return;
+    const ids = cellNow(hit.file, hit.r, c).split(";").map(x=>x.trim()).filter(Boolean);
+    for (const id of ids){
+      const ab = findAbility(id);
+      h += `<div class="abbox" id="ab-${esc(id)}"><div class="row" style="justify-content:space-between;align-items:center"><span><span class="lbl">${esc(f.header[c].trim())}</span> <b class="num">${esc(id)}</b>${ab?` <span class="hint">in ${esc(ab.file)}</span>`:""}</span>
+        ${ab && /^C_/.test(id) ? `<button class="btn sm" data-own="${esc(id)}" data-col="${c}" title="Copy it into Abilities.csv under a name of your own, so tools/ability_rows.py never overwrites it">Make it my own row</button>` : ""}</div>`;
+      if (!ab){ h += `<div class="hint">No ability row with this ID, so this side does nothing in the rules.</div></div>`; continue; }
+      const af = FILES[ab.file];
+      h += `<div class="form">` + af.header.map((col, ac) => `<label>${esc(col.trim())}</label>${inputFor(ab.file, ab, ac)}`).join("") + `</div>`;
+      if (/^C_/.test(id)) h += `<div class="hint">Made from the card text by tools/ability_rows.py. Change it here to test; when you send it, Claude keeps your version as a row of your own so the next re-run does not undo it.</div>`;
+      h += `</div>`;
+    }
+  });
+  box.innerHTML = h;
+}
+/* A C_ row copied into Abilities.csv as LAB_<card>_<side>, and the card pointed at it. */
+function makeOwn(id, col){
+  const ab = findAbility(id); if (!ab) return;
+  const klass = $("#e-class").value, [tier, name] = $("#e-card").value.split("|");
+  const hit = findCardRow(klass, name, tier); if (!hit) return;
+  const target = "Abilities.csv"; ensureFiles([target]);
+  const tf = FILES[target], src = FILES[ab.file];
+  const side = /_D\d*$/.test(id) ? "D" : /_F\d*$/.test(id) ? "F" : "A";
+  let newId = `LAB_${name.replace(/[^A-Za-z0-9]/g,"")}_${side}`, n = 2;
+  while (findAbility(newId)) newId = `LAB_${name.replace(/[^A-Za-z0-9]/g,"")}_${side}${n++}`;
+  const row = tf.header.map(col2 => {
+    const sc = src.header.findIndex(h=>normH(h)===normH(col2));
+    if (normH(col2) === "abilityid") return newId;
+    if (normH(col2) === "notes") return `Lab copy of ${id} (${name}), tuned in Sturmball Lab.`;
+    return sc >= 0 ? (ab.a != null ? PATCH[ab.file].added[ab.a][sc] : cellNow(ab.file, ab.r, sc)) : "";
+  });
+  P(target).added.push(row);
+  const ids = cellNow(hit.file, hit.r, col).split(";").map(x=>x.trim());
+  setCell(hit.file, hit.r, col, ids.map(x=>x===id?newId:x).join(";"));
+  drawCardEditor(); drawGrid();
+}
+function openCard(klass, name){
+  if (!META.classes[klass]){ klass = Object.keys(META.classes).find(k=>{ const c = META.classes[k]; return c.stars.some(s=>s.name===name) || TIERS.some(t=>c.tiers[t].some(x=>x.name===name)); }) || $("#e-class").value; }
+  $("#e-class").value = klass; cardOptions();
+  const opt = [...$("#e-card").options].find(o=>o.value.endsWith("|"+name));
+  if (opt) $("#e-card").value = opt.value;
+  showTab("edit"); drawCardEditor();
+  $("#e-cardbox").scrollIntoView({block:"start"});
+}
+function openAbility(id){
+  const ab = findAbility(id);
+  if (!ab){ setStatus("No ability row named "+id, "bad"); return; }
+  $("#e-file").value = ab.file; $("#e-filter").value = id; showTab("edit"); drawGrid();
+  $("#e-grid").scrollIntoView({block:"start"});
+}
+
+/* ---- any spreadsheet ---- */
+function drawGrid(){
+  const name = $("#e-file").value; if (!name) return;
+  ensureFiles([name]);
+  const f = FILES[name], p = PATCH[name], flt = $("#e-filter").value.toLowerCase().trim();
+  let rows = [];
+  for (let r=1; r<f.recs.length; r++){ const k = f.keys[r]; if (!k || (p && p.deleted.includes(k))) continue; rows.push({r}); }
+  if (p) p.added.forEach((_, a) => rows.push({a}));
+  if (flt) rows = rows.filter(x => (x.a != null ? p.added[x.a] : f.header.map((_,c)=>cellNow(name,x.r,c))).join(" ").toLowerCase().includes(flt));
+  const shown = rows.slice(0, 300);
+  const width = f.header.map((h,c)=>{ let w = h.trim().length; for (let r=1; r<Math.min(f.recs.length,60); r++) w = Math.max(w, (f.recs[r].cells[c]||"").length); return Math.min(36, Math.max(4, w+1)); });
+  let h = `<table><thead><tr><th></th>${f.header.map(c=>`<th>${esc(c.trim())}</th>`).join("")}</tr></thead><tbody>`;
+  for (const x of shown){
+    h += x.a != null
+      ? `<tr class="added"><td><button class="btn sm" data-delrow="a${x.a}" title="Remove this new row" aria-label="Remove this new row">✕</button></td>`
+      : `<tr><td style="white-space:nowrap"><button class="btn sm" data-dup="${x.r}" title="Copy this row to a new row" aria-label="Copy this row">⧉</button> <button class="btn sm" data-delrow="${x.r}" title="Remove this row" aria-label="Remove this row">✕</button></td>`;
+    h += f.header.map((_,c)=>`<td>${inputFor(name, x, c, `size="${width[c]}" aria-label="${esc(f.header[c].trim())}"`)}</td>`).join("") + `</tr>`;
+  }
+  $("#e-grid").innerHTML = h + `</tbody></table>`;
+  $("#e-gridnote").textContent = `${rows.length} row${rows.length===1?"":"s"}${rows.length>shown.length?`, showing the first ${shown.length}: use the filter`:""}`;
+}
+function onCellChange(e){
+  const t = e.target; if (!t.dataset || t.dataset.f == null) return;
+  const name = t.dataset.f, c = +t.dataset.c;
+  if (t.dataset.a != null){ P(name).added[+t.dataset.a][c] = t.value; edited(); return; }
+  setCell(name, +t.dataset.r, c, t.value);
+  t.classList.toggle("chg", t.value !== (FILES[name].recs[+t.dataset.r].cells[c] ?? ""));
+}
+
+/* ---- sending to Claude ---- */
+let DBH = null;
+const slug = n => n.replace(/[^A-Za-z0-9._-]/g, "_");
+async function sendToClaude(){
+  const names = editedNames(), msg = $("#e-sendmsg");
+  if (!names.length) return;
+  if (!DBH){ msg.textContent = "Sending needs this page open on claude.ai while signed in. Use Copy as text and paste it in the thread instead."; return; }
+  $("#e-send").disabled = true; msg.textContent = "Sending…";
+  try{
+    const old = await DBH.collection("changes").get();
+    const at = new Date().toISOString();
+    for (const name of names)
+      await DBH.doc("changes/" + slug(name)).set({file: name, patch: PATCH[name], text: buildText(name), build: BUILD_KEY, saved_at: at});
+    for (const d of old.docs) if (!names.map(slug).includes(d.id)) await DBH.doc("changes/" + d.id).delete();
+    await DBH.doc("sent/latest").set({files: names, note: $("#e-note").value, summary: diffText(), build: BUILD_KEY, saved_at: at});
+    msg.innerHTML = `Sent ${names.length} file${names.length===1?"":"s"}. Now tell Claude in the thread: <b>upload my Lab changes</b>.`;
+  }catch(e){ msg.textContent = "Could not send: " + (e.message || e.code || e) + ". Copy as text works as a fallback."; }
+  $("#e-send").disabled = false;
+}
+async function offerSent(){
+  if (!DBH || editedNames().length) return;
+  try{
+    const last = await DBH.doc("sent/latest").get();
+    const d = last.data(); if (!d || !d.files || !d.files.length) return;
+    $("#e-sendmsg").innerHTML = `You sent ${d.files.length} changed file${d.files.length===1?"":"s"} on ${esc(String(d.saved_at).slice(0,16).replace("T"," "))}. <button class="btn sm" id="e-loadsent">Load them here</button>`;
+    $("#e-loadsent").onclick = async ()=>{
+      const snap = await DBH.collection("changes").get();
+      for (const doc of snap.docs){ const x = doc.data(); if (x && x.file && x.patch){ ensureFiles([x.file]); PATCH[x.file] = x.patch; } }
+      edited(); drawCardEditor(); drawGrid(); $("#e-sendmsg").textContent = "Loaded what you sent.";
+    };
+  }catch(e){}
+}
+
+function initEditor(){
+  FLIST = lab({cmd:"files_list"}).files;
+  ensureFiles([...unitFiles(), ...abilityFiles(), "Tuning.csv"]);
+  buildDatalists();
+  const main = ["Abilities.csv","CardAbilities.csv","Combos.csv","TierPowers.csv","ShotOdds.csv","Goalies.csv","Tuning.csv"];
+  const adv = FLIST.map(f=>f.name).filter(n=>/^Adventure|^Biomes|^Bounties|^Drops/.test(n));
+  const units = unitFiles(), emblems = FLIST.map(f=>f.name).filter(n=>/Emblems\.csv$/.test(n));
+  const rest = FLIST.map(f=>f.name).filter(n=>![...main,...adv,...units,...emblems].includes(n));
+  const grp = (label, list) => list.length ? `<optgroup label="${esc(label)}">${list.map(n=>`<option>${esc(n)}</option>`).join("")}</optgroup>` : "";
+  $("#e-file").innerHTML = grp("Cards", units) + grp("Match rules", main.filter(n=>FLIST.some(f=>f.name===n))) + grp("Emblems", emblems) + grp("Adventure", adv) + grp("Everything else", rest);
+  if (FLIST.some(f=>f.name==="Abilities.csv")) $("#e-file").value = "Abilities.csv";
+  classOptions($("#e-class"), $("#m-home").value);
+  cardOptions();
+  $("#e-class").addEventListener("change", ()=>{ cardOptions(); drawCardEditor(); });
+  $("#e-card").addEventListener("change", drawCardEditor);
+  $("#e-file").addEventListener("change", ()=>{ $("#e-filter").value = ""; drawGrid(); });
+  $("#e-filter").addEventListener("input", drawGrid);
+  $("#e-cardbox").addEventListener("change", e=>{ onCellChange(e); const t=e.target; if (t.dataset && normH(FILES[t.dataset.f]?.header[+t.dataset.c]||"").endsWith("ability")) drawCardEditor(); });
+  $("#e-cardbox").addEventListener("click", e=>{ const b = e.target.closest("[data-own]"); if (b) makeOwn(b.dataset.own, +b.dataset.col); });
+  $("#e-grid").addEventListener("change", onCellChange);
+  $("#e-grid").addEventListener("click", e=>{
+    const name = $("#e-file").value, f = FILES[name];
+    const d = e.target.closest("[data-dup]"); if (d){ const r = +d.dataset.dup; P(name).added.push(f.header.map((_,c)=>cellNow(name,r,c))); edited(); drawGrid(); return; }
+    const x = e.target.closest("[data-delrow]"); if (!x) return;
+    const v = x.dataset.delrow;
+    if (v[0] === "a") P(name).added.splice(+v.slice(1), 1); else P(name).deleted.push(f.keys[+v]);
+    edited(); drawGrid();
+  });
+  $("#e-addrow").addEventListener("click", ()=>{ const name = $("#e-file").value; P(name).added.push(FILES[name].header.map(()=> "")); edited(); $("#e-filter").value = ""; drawGrid(); const g = $("#e-grid"); g.scrollTop = g.scrollHeight; });
+  $("#e-diff").addEventListener("click", e=>{ const b = e.target.closest("[data-revert]"); if (b) revertFile(b.dataset.revert); });
+  $("#e-undo").addEventListener("click", ()=>{ if (!confirm("Undo every change you made in the lab?")) return; PATCH = {}; edited(); drawCardEditor(); drawGrid(); drawTuning(); });
+  $("#e-send").addEventListener("click", sendToClaude);
+  $("#e-copy").addEventListener("click", ()=>{ const t = diffText() + ($("#e-note").value ? "\n\nNote: " + $("#e-note").value : "");
+    navigator.clipboard.writeText(t).then(()=>{ $("#e-sendmsg").textContent = "Copied. Paste it in the thread for Claude."; }, ()=>{ $("#e-sendmsg").textContent = "The browser would not allow copying."; }); });
+  $("#e-try").addEventListener("click", ()=>{
+    const klass = $("#e-class").value, [tier, name] = $("#e-card").value.split("|");
+    $("#m-home").value = klass; drawSquadPickers(false);
+    const sel = [...document.querySelectorAll(`#m-squads select[data-side="home"][data-tier="${tier}"]`)].find(s=>[...s.options].some(o=>o.value===name));
+    if (sel) sel.value = name;
+    $("#m-view").value = "text"; showTab("match"); applyEdits(); startMatch();
+    textOut(`<span class="dim">  ${esc(name)} is in the home squad for Tier ${esc(tier)}${sel?"":" (as a Star, it plays when its turn in the rotation comes)"}. Pick it in the line-up above to field it.</span>\n`);
+  });
+  $("#edits-pill").addEventListener("click", ()=>showTab("edit"));
+  drawGrid(); drawCardEditor(); drawChanges();
+  (async ()=>{ try{ if (window.claude && window.claude.use) DBH = await window.claude.use("db"); }catch(e){ DBH = null; } offerSent(); })();
+}
+/* The edits from last time, put back on when the page opens. Rows that no longer
+   exist in this build are dropped and named. */
+function restoreEdits(){
+  let saved = {};
+  try{ saved = JSON.parse(localStorage.getItem("sblab-patch") || "{}") || {}; }catch(e){}
+  const gone = [];
+  for (const [name, p] of Object.entries(saved)){
+    if (!FLIST.some(f=>f.name===name)){ gone.push(name); continue; }
+    ensureFiles([name]);
+    const f = FILES[name];
+    for (const k of Object.keys(p.rows||{})) if (!f.keys.includes(k)){ gone.push(name+": "+k); delete p.rows[k]; }
+    p.deleted = (p.deleted||[]).filter(k=>f.keys.includes(k));
+    p.added = p.added || [];
+    PATCH[name] = p;
+  }
+  if (editedNames().length){
+    saveLocal(); drawChanges(); applyEdits(); drawCardEditor(); drawGrid();
+    setStatus(`Your edits from last time are back on (${editedNames().length} file${editedNames().length===1?"":"s"})${gone.length?"; no longer in the spreadsheets: "+gone.join(", "):""}.`, "ok");
+  }
 }
 
 boot();

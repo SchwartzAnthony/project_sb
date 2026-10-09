@@ -40,6 +40,6 @@ cp out/index.js "$DIST/lab.js"
 STAMP=$(python3 -c "import csv,sys;r=[x for x in csv.reader(open(sys.argv[1],encoding='utf-8')) if x and x[0].strip().lower()=='build_stamp'];s=r[0][1] if r else '?';print(s.split('(')[0].strip().replace('#',''))" "$ROOT/data/Tuning.csv")
 COMMIT=$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo "?")
 BRANCH=$(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")
-sed -e "s#__BUILD__#$BRANCH @ $COMMIT#" -e "s#__STAMP__#$STAMP#" -e "s#__DATE__#$(date -u +%Y-%m-%d)#" \
+sed -e "s#__NONCE__#$(date -u +%s)#" -e "s#__BUILD__#$BRANCH @ $COMMIT#" -e "s#__STAMP__#$STAMP#" -e "s#__DATE__#$(date -u +%Y-%m-%d)#" \
     "$HERE/web/index.html" > "$DIST/index.html"
 ls -la "$DIST"
