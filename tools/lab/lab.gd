@@ -32,6 +32,9 @@ extends Node
 # =============================================================
 
 const TIERS: Array[String] = ["I", "II", "III", "IV"]
+## Classes the lab leaves out (Anthony, 9 Oct: outdated, not needed). The
+## game still reads them; this only keeps them off the lab's lists.
+const HIDDEN_CLASSES: Array[String] = ["Brandteufel", "Rivals"]
 const HOME := false   # the engine's "player" side
 const AWAY := true    # the engine's "enemy" side
 
@@ -111,7 +114,8 @@ func _adv() -> Node:
 func _classes() -> Array[String]:
 	var out: Array[String] = []
 	for key in db.stars_by_class().keys():
-		out.append(String(key))
+		if not HIDDEN_CLASSES.has(String(key)):
+			out.append(String(key))
 	out.sort()
 	# The Basic Team: plain cards, no Stars.
 	if not out.has("Normal") and not db.roster_for_class("Normal").is_empty():
@@ -183,7 +187,7 @@ func _meta() -> Dictionary:
 	var all_tuning := {}
 	for k in db.tuning.keys():
 		all_tuning[k] = db.tuning[k]
-	return {"ok": true, "build": db.tune_text("build_stamp", "?"), "classes": classes, "rungs": rungs,
+	return {"ok": true, "build": db.tune_text("build_stamp", "?"), "classes": classes, "hidden_classes": HIDDEN_CLASSES, "rungs": rungs,
 		"combos": combos, "shot_odds": odds, "tuning": tuning, "all_tuning": all_tuning,
 		"problems": db.problems.slice(0, 40)}
 

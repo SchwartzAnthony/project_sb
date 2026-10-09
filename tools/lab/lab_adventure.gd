@@ -124,7 +124,10 @@ func _meta() -> Dictionary:
 		traits.append({"id": t["id"], "name": t["name"], "from": t["from"], "value": t["value"],
 			"requires": t["requires"], "steps": steps})
 	var players: Array = []
+	var hidden: Array = load("res://tools/lab/lab.gd").HIDDEN_CLASSES
 	for c in db.players:
+		if hidden.has(c.unit_type):
+			continue
 		players.append({"name": c.player_name, "class": c.unit_type, "tier": c.get_tier_clean(),
 			"atk": c.get_attack_power(), "star": c.is_star(), "element": c.active_element(),
 			"icons": TraitDB.icons_of(c), "stamina": AdventureRun.stamina_for(c, db)})
