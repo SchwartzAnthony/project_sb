@@ -40,6 +40,15 @@ extends RefCounted
 #
 #  ============ STOCK ============
 #
+#  ============ HIS MOOD (Anthony, 9 Oct) ============
+#
+#  "a vendor sales guy that changes prices based on how he feels (so every
+#   time the price changes to -% or +% (not below 50% and not higher than
+#   25%)". The MOOD column holds the range in %, low|high: -50|25 means the
+#  price is anywhere from half to a quarter more. It changes after every
+#  match you play (the counter matches_played), the same for every row that
+#  game, and opening the cart again does not re-roll it. Blank = fixed price.
+#
 #  `Stock` is how many he has EVER, not per visit. Once the sack of hops is
 #  bought three times it is gone from his cart for good — which is what makes
 #  a shop a decision rather than a tap. Leave it blank for unlimited.
@@ -112,6 +121,7 @@ static func _load() -> void:
 			"stock": MenuSupport.field_int(row, "Stock", -1),
 			"requires": MenuSupport.field(row, "Requires").strip_edges(),
 			"art": MenuSupport.field(row, "Art").strip_edges(),
+			"mood": _mood_range(MenuSupport.field(row, "Mood")),
 		})
 		if currency != "" and not seen.has(_squash(currency)):
 			_problems.append("'%s' is priced in '%s', which is not a row of Currencies.csv — nobody can ever pay for it."
@@ -226,6 +236,37 @@ static func on_offer(state: GameState) -> Array[Dictionary]:
 	return out
 
 
+## "-50|25" -> [-50, 25]. Blank or unreadable = [] (a fixed price).
+static func _mood_range(text: String) -> Array:
+	var bits := text.strip_edges().split("|", false)
+	if bits.size() != 2 or not String(bits[0]).strip_edges().is_valid_int() \
+			or not String(bits[1]).strip_edges().is_valid_int():
+		return []
+	var low := int(String(bits[0]).strip_edges())
+	var high := int(String(bits[1]).strip_edges())
+	return [mini(low, high), maxi(low, high)]
+
+
+## How he feels about this row today, in %: -50 = half price, 25 = a
+## quarter more. 0 for a row with no Mood.
+static func mood(entry: Dictionary, state: GameState) -> int:
+	var range_pct: Array = entry.get("mood", [])
+	if range_pct.size() != 2:
+		return 0
+	var rng := RandomNumberGenerator.new()
+	var day := state.count("matches_played") if state != null else 0
+	rng.seed = hash("%s|%d" % [String(entry.get("id", "")), day])
+	return rng.randi_range(int(range_pct[0]), int(range_pct[1]))
+
+
+## What it costs right now, his mood included. Never below 1.
+static func price_of(entry: Dictionary, state: GameState) -> int:
+	var base := int(entry.get("price", 0))
+	if base <= 0:
+		return base
+	return maxi(1, int(round(base * (100.0 + mood(entry, state)) / 100.0)))
+
+
 ## Buy one. Returns {"ok": bool, "why": String}.
 static func buy(row_id: String, state: GameState) -> Dictionary:
 	if state == null:
@@ -247,7 +288,7 @@ static func buy(row_id: String, state: GameState) -> Dictionary:
 	var money := currency(String(entry["currency"]))
 	if money.is_empty():
 		return {"ok": false, "why": "'%s' is not a currency" % entry["currency"]}
-	var price := int(entry["price"])
+	var price := price_of(entry, state)
 	var have := state.count(String(money["counter"]))
 	if have < price:
 		return {"ok": false, "why": "%d %s, and you have %d"

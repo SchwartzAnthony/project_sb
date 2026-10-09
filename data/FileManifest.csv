@@ -22,7 +22,6 @@ AdventureSpawns.csv,data/,Data. Stand-ins a combo can bring on,The Treant that w
 AdventureTraits.csv,data/,Data. The Adventure icon stacks,WHAT AN ICON IS. Every player drops these onto the pile when you send them in
 Animations.csv,data/,A spreadsheet you edit,
 Audio.csv,data/,A spreadsheet you edit,
-BasicEnemyTeam.csv,data/,A spreadsheet you edit,
 BasicTeam.csv,data/,A spreadsheet you edit,
 Biomes.csv,data/,A spreadsheet you edit,
 Bounties.csv,data/,A spreadsheet you edit,
@@ -35,7 +34,6 @@ Dialogue.csv,data/,A spreadsheet you edit,
 StoryArt.csv,data/,A spreadsheet you edit,Round AN. The faces and rooms of the conversations
 Drops.csv,data/,A spreadsheet you edit,
 EnemyPlay.csv,data/,A spreadsheet you edit,"HOW THE OTHER SIDE PLAYS. Rules read top to bottom, the first whose When is true decides what they take and whether they play it face up. The opposition instead of an AI"
-example_unit_csv_with_ability_columns.csv,data/,A spreadsheet you edit,
 FileManifest.csv,data/,A spreadsheet you edit,
 Goalies.csv,data/,A spreadsheet you edit,
 ICONS_WANTED.csv,data/,A spreadsheet you edit,
@@ -144,7 +142,6 @@ tier_ladder.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 tutorial_base.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 unlock_progress.gd,src/core/,"Engine. Rules, loaders and shared helpers",
 zone_overlay.gd,src/core/,"Engine. Rules, loaders and shared helpers",
-brandteufel_formation.tscn,src/formations/,The match and its formations,
 lorelei_formation.tscn,src/formations/,The match and its formations,
 main_scene.gd,src/formations/,The match and its formations,
 main_scene.tscn,src/formations/,The match and its formations,
@@ -342,7 +339,7 @@ SturmballComicHD.fnt,assets/fonts/,Art you drew,"ROUND AN. THE GAME FONT now: th
 SturmballComicHD.png,assets/fonts/,Art you drew,"ROUND AN. The letters of SturmballComicHD.fnt. Made by tools/make_font.py - edit the atlas, not this"
 class_Normal_female_blonde.png,assets/players/,Art you drew,"ROUND AN. A second women's look: blonde plaits, club kit (PixelLab). Tuning.csv squad_art_f"
 class_Normal_female_bob.png,assets/players/,Art you drew,"ROUND AN. A third women's look: short black bob, club kit (PixelLab). Tuning.csv squad_art_f"
-EnemyIntroSquad.csv,data/,A spreadsheet you edit,"ROUND AN. The opposition in your FIRST MATCH: twelve plain Rivals players, no Stars, no brew"
+EnemyIntroSquad.csv,data/,A spreadsheet you edit,"ROUND AN. The opposition in your FIRST MATCH: twelve plain players (class Normal), no Stars, no brew"
 EnemyIntroSquad2.csv,data/,A spreadsheet you edit,"ROUND AN. The opposition in your SECOND MATCH: plain players and the plain Stars Bauer, Richter and Klein (+1 to the next normal player)"
 Guide.csv,data/,A spreadsheet you edit,"ROUND AN. The Head Coach explains a screen: a Dialogue scene in a box over the base, the Brewery, the Adventure board or the shop, and a button that lights up"
 guide.gd,src/core/,"Engine. Rules, loaders and shared helpers","ROUND AN. Reads Guide.csv, shows its boxes over a screen and lights up the named button"

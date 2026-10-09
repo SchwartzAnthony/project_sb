@@ -12,8 +12,6 @@ reed reed.png
 salts salts_v2.png
 scroll scroll_v2.png
 stone stone_v2.png
-trait_brandteufel trait_brandteufel.png
-trait_brandteufel_1 trait_brandteufel_1.png
 trait_fire trait_fire_v2.png
 trait_fire_1 trait_fire_1_v2.png
 trait_fire_2 trait_fire_2_v2.png
@@ -24,9 +22,6 @@ trait_lorelei_2 trait_lorelei_2.png
 trait_normal trait_normal_v2.png
 trait_normal_1 trait_normal_1_v2.png
 trait_normal_2 trait_normal_2_v2.png
-trait_rivals trait_rivals_v2.png
-trait_rivals_1 trait_rivals_1_v2.png
-trait_rivals_2 trait_rivals_2_v2.png
 trait_star trait_star_v2.png
 trait_star_1 trait_star_1_v2.png
 trait_star_2 trait_star_2_v2.png

@@ -48,7 +48,7 @@ func _initialize() -> void:
 		print("[reveal]   %s (Tier %s) — %s" % [card.player_name,
 			card.get_tier_clean(), card.active_attack_ability()])
 	if carriers.is_empty():
-		print("[reveal] WRITE ONE: put BRAND_CALLED_SHOT or LORE_OPEN_HAND in a card's Attack Ability column.")
+		print("[reveal] WRITE ONE: put CALLED_SHOT or LORE_OPEN_HAND in a card's Attack Ability column.")
 		bad += 1
 
 	# ---- 3. does the ability actually land ----

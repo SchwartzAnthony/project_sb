@@ -35,7 +35,7 @@ FAIR_ROW = "random classes"
 CLASS_BAND = (0.45, 0.55)
 LIFT_FLAG = 0.15
 MIN_DUELS = 150
-SKIP_CLASSES = {"Normal", "Rivals"}
+SKIP_CLASSES = {"Normal"}
 
 
 def pct(x):

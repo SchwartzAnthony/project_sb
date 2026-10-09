@@ -1248,7 +1248,7 @@ reveal          YOU press SHOW on it during the draft
 ```
 
 > **Win and Lose were already built.** `on_win_duel` and `on_lose_duel` have
-> been in the engine since the beginning — `BRAND_RALLY` and `BRAND_SCORCH`
+> been in the engine since the beginning — `FIRE_RALLY` and `FIRE_SCORCH`
 > in Abilities.csv both use them. That is one phase you do not have to wait
 > for.
 
@@ -1291,7 +1291,7 @@ real match:
 
 ```
 LORE_OPEN_HAND      reveal  self  add_power       2  round
-BRAND_CALLED_SHOT   reveal  self  add_shot_power  3  round
+CALLED_SHOT         reveal  self  add_shot_power  3  round
 ```
 
 `Open Hand` pays the card; `Called Shot` pays **the shot**, which is where
@@ -1314,7 +1314,7 @@ what its abilities do in plain words:
 ```
   +--------------------------------------------------------------+
   |  THEY PLAYED IT FACE UP      |      YOU PLAYED IT FACE UP     |
-  |  Hexflame · Tier IV · P:4 D:4|  Cinderworks · Tier II · P:1   |
+  |  Belial · Tier III · P:4 D:4 |  Ignaz · Tier III · P:1        |
   |  Attack — Called Shot. ...   |  Attack — Open Hand. ...       |
   +--------------------------------------------------------------+
         ( the four cards you are choosing from )
@@ -2128,6 +2128,49 @@ THEIRS tile shows their pips, and "THEIR X - ULTIMATE" is announced.
   `tools/test_env_check.gd` checks that it builds and that the real save was
   not touched.
 
+### Brandteufel and Rivals are gone (round AN, 9 Oct)
+
+You asked for both to be removed completely. What took their place:
+
+- **League:** the five old Brandteufel sides have new names and play as
+  Bergmännlein (Stollenbach Colts, Erzgrube City), Unkengeister (Unkenmoor
+  United), Rauhnacht-Feuergeister (Zwölfnacht Rovers) and Lorelei
+  (Rheinfels Rangers), with any cards of that class (Teams.csv, Season.csv).
+- **First and second match:** the opposition (EnemyIntroSquad.csv,
+  EnemyIntroSquad2.csv) are plain Normal players.
+- **Elemental beers (Anthony, 9 Oct):** the drunk meter has a new level,
+  **Elemental at 60%** (DrunkLevels.csv, effect word `turns`). A plain Normal
+  player who is already at 60% BEFORE he drinks an elemental beer turns:
+  class, element and abilities all at once. The Fire Brew makes him a
+  Rauhnacht-Feuergeist, the Water Brew a Lorelei, and each turning beer
+  (Smoke Beer, Rhine Water Lager, Miner's Dunkel, Unken Weisse) does it in
+  ONE pour now instead of three. Below 60% the beer only fills his meter.
+- **One element at a time:** an elemental player is refused a second
+  elemental beer. A **Bottle of Water** (Items.csv `water_bottle`, pours
+  Brews.csv `water_glass`, Inspiration -30) used on him in a match takes 30%
+  off; below 60% he is plain again and can take a different element once he
+  is back up to 60%.
+- **The end of every game turns everyone back to plain** (Anthony, 9 Oct),
+  Pub brews and turning beers alike. The drunk meter still only halves.
+- **Water is not free and not at the Pub.** Only the Traveling Merchant sells
+  it (Shop.csv `trade_water`, 20 coins, DRAFT). He is **moody**: Shop.csv has
+  a new **Mood** column, `-50|25` = his price is anywhere from half to a
+  quarter more, and it changes after every match. Put a range on any row to
+  make it moody; blank = a fixed price.
+- **Your numbers:** move `turns` to another level to change the 60%; change
+  the Inspiration of `water_bottle` (or `water_glass`) for stronger water;
+  change trade_water's Price and Mood for what he charges.
+- **Heatwave** is just "Heatwave" (a placeholder). His question is
+  Rauhnacht-Feuergeister or Lorelei.
+- **Ability IDs:** BRAND_MASK_ATK, BRAND_RALLY, BRAND_SCORCH and
+  BRAND_CALLED_SHOT are now FIRE_MASK_ATK, FIRE_RALLY, FIRE_SCORCH and
+  CALLED_SHOT. Furnace Rally fires up every Rauhnacht-Feuergeist.
+- **Removed:** BasicEnemyTeam.csv, the example unit CSV, the Brandteufel
+  keeper and formation, the pitch sprites, the Rivals class page and its
+  achievement, the Adventure icons and combos, `placeholder_art_Rivals`,
+  and every Brandteufel and Rivals art file in assets/ and art_source/.
+  Older sections of this manual still name them as history.
+
 ### Round AB: your testing notes
 
 | you said | now |
@@ -2222,7 +2265,7 @@ they replaced walk back on.
 | `Ability ID` | what a card's Attack Ability column points at |
 | `Name` | shown to the player |
 | `Trigger` | `on_attack`, `on_win_duel`, … |
-| `Target` | `self`, `tag:brandteufel`, … |
+| `Target` | `self`, `tag:lorelei`, … |
 | `Effect` | `add_attack`, `add_power`, … |
 | `Value` | the number |
 | `Scope` | `duel` = this duel only. `round` = the rest of the round |
@@ -6367,7 +6410,7 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | simulate 1,000 matches | `godot --headless --path . --script res://tests/sim_runner.gd` (matchups: `data/SimMatchups.csv`) |
 | find over- and under-powered cards | `python3 tools/balance_analysis.py` -> `guides/BALANCE_ANALYSIS.md` |
 | run the unit tests | `godot --headless -s addons/gut/gut_cmdln.gd` |
-| stop a class's cards being listed in the Pub | `pub_hidden_classes` in `Tuning.csv` (`Rivals`) |
+| stop a class's cards being listed in the Pub | `pub_hidden_classes` in `Tuning.csv` (blank = show all) |
 | let the player keep more recruits | buy a dorm, or lower `recruit_beds_kept` in `Tuning.csv` |
 | make one class stronger in one tier | `tier_power_<class>_<tier>` in `Tuning.csv`, e.g. `tier_power_unkengeister_IV` |
 | see what art is still missing, and what to make next | `python3 tools/art_status.py` -> `guides/ART_STATUS.md` |

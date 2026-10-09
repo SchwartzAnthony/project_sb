@@ -18,7 +18,7 @@ extends RefCounted
 #    Team         a row of Teams.csv — the exact side you face, with the
 #                 exact cards it fields. BLANK = fall back to Class.
 #    Class        which class the opposition fields — "Lorelei",
-#                 "Brandteufel". Ignored when Team names a team. BLANK and no
+#                 "Lorelei". Ignored when Team names a team. BLANK and no
 #                 Team = pick one at random, which is what the game did
 #                 before either file existed.
 #    Difficulty   a flat power bonus to every enemy card, for this fixture
@@ -38,7 +38,7 @@ extends RefCounted
 #      ID          md07
 #      Match       7
 #      Opponent    Cinderworks Reserves
-#      Class       Brandteufel
+#      Class       Lorelei
 #      Difficulty  2
 #      On Win      unlock:Away Kit
 #

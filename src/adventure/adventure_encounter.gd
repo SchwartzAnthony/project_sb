@@ -123,7 +123,7 @@ var _choice_head_room := 700.0
 ## ============ THE STACK, WHICH IS WHAT ADVENTURE COMBAT IS ============
 ##
 ## Every player you send into the move drops their ICONS onto this pile —
-## Fire, Water, Brandteufel, Star — and AdventureCombos.csv decides what
+## Fire, Water, Lorelei, Star — and AdventureCombos.csv decides what
 ## holding three of one is worth. Abilities are not read in Adventure at all;
 ## the icons are the whole game here.
 ##

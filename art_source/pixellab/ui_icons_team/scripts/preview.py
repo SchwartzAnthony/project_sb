@@ -70,8 +70,7 @@ y+=3*120+10
 # team
 ban=Image.open(P+'assets/team/banner_normal_team.png').convert('RGBA'); S_.alpha_composite(ban,(16,y))
 fo=Image.open(P+'assets/team/formation_normal_team.png').convert('RGBA'); S_.alpha_composite(fo,(170,y))
-tb=Image.open(P+'assets/team/trait_brandteufel.png').convert('RGBA'); S_.alpha_composite(tb,(510,y))
-d.text((520+64,y),'team/: banner 128x128, formation 324x232, trait_brandteufel 64x64',font=FS,fill=hexc('#bca888'))
+d.text((520+64,y),'team/: banner 128x128, formation 324x232',font=FS,fill=hexc('#bca888'))
 S_=S_.crop((0,0,1400,y+240))
 S_.convert('RGB').save(P+'art_source/pixellab/ui_icons_team/preview.png')
 print(S_.size)

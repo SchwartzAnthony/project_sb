@@ -4675,8 +4675,8 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 			% [item_id, brew_id])
 		return
 
-	# THE CLASS RULE STILL APPLIES. A Fire Brew is written For Class Lorelei,
-	# and a Brandteufel drinking it would be nonsense — so it is refused here,
+	# THE CLASS RULE STILL APPLIES. A brew written For Class Lorelei
+	# drunk by anyone else would be nonsense — so it is refused here,
 	# out loud, and the bottle is NOT spent.
 	if not BrewDB.suits(brew, card):
 		announce("%s cannot drink that." % NamePlate.short_name(card), 1.5)
@@ -4684,18 +4684,26 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 			card.player_name, brew.get("for_class", "?")])
 		return
 
+	# ONE ELEMENT AT A TIME (Anthony, 9 Oct): water first, then a new one.
+	var already := DrunkBook.elemental_refusal(card, brew, state)
+	if already != "":
+		announce("%s is already elemental." % NamePlate.short_name(card), 1.5)
+		print("[brew] " + already)
+		return
+
 	# ON THE PITCH (Anthony, 8 Oct): it takes hold sooner and lasts the cycle.
 	BrewDB.mark_cycle_drink(card, brew_id, state)
-	# ALWAYS DRUNK (Anthony, 8 Oct). Too sober = it does nothing yet.
-	var sober := DrunkBook.refusal(card, brew, state)
-	if sober != "":
-		announce("%s is too sober for it to work yet." % NamePlate.short_name(card), 1.5)
-		print("[brew] Drunk, but not yet: " + sober)
 
 	state.add_count(item_id, -1)
 	# THE BOTTLE FILLS THE DRUNK METER by its own Inspiration (Items.csv),
 	# or the brew's if it has none - a bought bottle can be weaker.
 	DrunkBook.drink(card, brew, state, entry)
+	# ALWAYS DRUNK (Anthony, 8 Oct). Too sober = it does nothing. Asked after
+	# the drink, because an elemental beer looks at his meter BEFORE it.
+	var sober := DrunkBook.refusal(card, brew, state)
+	if sober != "":
+		announce("%s is too sober for it to work." % NamePlate.short_name(card), 1.5)
+		print("[brew] Drunk, but not enough: " + sober)
 	# THE BOTTLE IS THE COST. pour() would also charge the brew's material
 	# Cost, which is what the Brewery already took to make it — so the overlay
 	# is laid on directly rather than going through the Pub's till.

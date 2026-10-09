@@ -103,7 +103,7 @@ func _initialize() -> void:
 			# that is not there, and the next person to read the folder
 			# (including you, in six months) will go looking for the CSV.
 			#
-			# This happened the day the old Lorelei and Brandteufel sets were
+			# This happened the day an old unit set was
 			# removed, which is why it is here.
 			if file_name.to_lower().ends_with(".csv.import"):
 				var source := "%s/%s" % [folder, file_name.substr(0, file_name.length() - 7)]

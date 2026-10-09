@@ -73,6 +73,10 @@ static func drinks_needed_for(card: PlayerData, entry: Dictionary, state: GameSt
 	var need := drinks_needed(entry)
 	if need <= 0:
 		return need
+	# ROUND AN (Anthony, 9 Oct): with a `turns` level in DrunkLevels.csv ONE
+	# beer does it, if he was drunk enough before it. The count is history.
+	if DrunkBook.on() and DrunkBook.threshold("turns") >= 0:
+		return 1
 	return maxi(1, need + DrunkBook.amount(card, state, "turn_drinks"))
 
 
@@ -156,7 +160,8 @@ static func refusal(card: PlayerData, entry: Dictionary, state: GameState,
 	if not is_turning(entry):
 		return ""
 	if has_turned(card, state):
-		return "%s has already turned. A turning brew only works on a plain player." % card.player_name
+		return "%s has already turned. A turning brew only works on a plain player - give him water until he is below %d%% first." % [
+			card.player_name, maxi(0, DrunkBook.threshold("turns"))]
 	if choices(card, entry, db).is_empty():
 		return "%s has no Tier %s, Power %d players outside its Stars, so %s has nothing to turn into." % [
 			String(entry.get("becomes", "")), card.get_tier_clean(), card.base_power_left,
@@ -216,8 +221,9 @@ static func pour(card: PlayerData, entry: Dictionary, state: GameState,
 		var before := progress(card, state)
 		out["ok"] = true
 		out["count"] = int(before["count"]) if String(before["element"]) == element_of(entry) else 0
-		out["why"] = "%s drinks the %s, but he is too sober for it to work (it needs %d%%). It only filled his meter." % [
-			card.player_name, String(entry.get("name", entry["id"])), DrunkBook.threshold("brews")]
+		out["why"] = "%s drinks the %s, but he is too sober for it to work. %s It only filled his meter." % [
+			card.player_name, String(entry.get("name", entry["id"])),
+			DrunkBook.refusal(card, entry, state)]
 		return out
 
 	# A NEW ELEMENT STARTS AGAIN. Your answer: water, water, fire = fire 1.

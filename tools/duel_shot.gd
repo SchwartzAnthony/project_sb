@@ -51,7 +51,7 @@ func _initialize() -> void:
 	# The two crests on the back of the card. Banner Art out of ClassInfo.csv,
 	# exactly as the team sheet uses it.
 	arena.left_team = "THE CLUB"
-	arena.right_team = "THE RIVALS"
+	arena.right_team = "THE OPPOSITION"
 	arena.left_crest = _crest(db, cards[0])
 	arena.right_crest = _crest(db, cards[1])
 	await process_frame

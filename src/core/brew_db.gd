@@ -31,7 +31,7 @@ extends RefCounted
 #  PER-CARD ART
 #    If a PNG named  "<Card Name> <brew id>.png"  exists in
 #    assets/players/, it is used instead of the brew's Artwork column. So
-#    "Cinderworks Brandteufel water.png" gives that one card its own
+#    "Silver-Rhine Lorelei water.png" gives that one card its own
 #    water-brewed look, and everyone else falls back to the shared one.
 #
 #  HOW LONG IT LASTS
@@ -169,7 +169,7 @@ func _load_csv(path: String) -> void:
 			"drinks": maxi(0, int(_cell(row, columns, "drinks"))) if _cell(row, columns, "drinks").is_valid_int() else 0,
 			# ============ THE DRUNK METER (round AN) ============
 			# How much of the meter one pour fills, in %. See drunk_book.gd.
-			"inspiration": maxi(0, int(_cell(row, columns, "inspiration"))) if _cell(row, columns, "inspiration").is_valid_int() else 0,
+			"inspiration": clampi(int(_cell(row, columns, "inspiration")), -100, 100) if _cell(row, columns, "inspiration").is_valid_int() else 0,
 			# ============ A POOL (round AN, plain beer) ============
 			# A word here puts the row in a lucky dip instead of on the Pub's
 			# list: an item whose Use is brew:pool:<word> picks one of them
@@ -571,7 +571,7 @@ func _validate() -> void:
 		if String(entry["becomes"]).strip_edges() == "" \
 				and String(entry["attack"]).strip_edges() == "" \
 				and String(entry["defend"]).strip_edges() == "" \
-				and int(entry.get("inspiration", 0)) <= 0:
+				and int(entry.get("inspiration", 0)) == 0:
 			problems.append("%s: brew '%s' changes nothing — no Becomes, no abilities and no Inspiration"
 				% [entry["where"], entry["id"]])
 
