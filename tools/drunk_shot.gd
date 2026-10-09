@@ -41,7 +41,7 @@ func _initialize() -> void:
 	# at other levels so the picture reads at a glance.
 	var grid_cards: Array[PlayerData] = []
 	for card in db.players:
-		if card != null and not card.is_star() and card.unit_type != "Rivals":
+		if card != null and not card.is_star():
 			grid_cards.append(card)
 	var who: PlayerData = grid_cards[0]
 	for pair in [[1, 15], [2, 45], [3, 85], [5, 30]]:

@@ -122,7 +122,7 @@ const TARGETS_SIMPLE: Array[String] = [
 	"owngoalie",      # its own keeper
 ]
 # Also accepted, with a colon:
-#   tag:<tag>    e.g. tag:brandteufel, tag:fire, tag:star  (see PlayerData.get_tags)
+#   tag:<tag>    e.g. tag:lorelei, tag:fire, tag:star  (see PlayerData.get_tags)
 #   tier:<tier>  e.g. tier:III  — allies in that tier
 #   enemytier:<tier>
 

@@ -2,7 +2,7 @@ ID,Name,Status,Phase,Fires When,What It Needs,Notes
 on_duel_start,Duel Start,live,0,"Either way, the moment its duel begins",nothing,The plain one. Use it when an ability should happen whichever side the card is on
 on_attack,Attacking,live,0,This card is the attacker in its duel,nothing,Half of the attack/defend pair. The attacker is decided by the clash
 on_defend,Defending,live,0,This card is the defender in its duel,nothing,The other half
-on_win_duel,Win,live,4,After this card WINS its duel,nothing,"PHASE 4 WAS ALREADY BUILT. Win and Lose have been in the engine since the beginning - see BRAND_RALLY and BRAND_SCORCH in Abilities.csv, which both use this"
+on_win_duel,Win,live,4,After this card WINS its duel,nothing,"PHASE 4 WAS ALREADY BUILT. Win and Lose have been in the engine since the beginning - see FIRE_RALLY and FIRE_SCORCH in Abilities.csv, which both use this"
 on_lose_duel,Lose,live,4,After this card LOSES its duel,nothing,Also already built. A losing card that still does something is one of the better feelings in the game
 passive,Passive,live,0,Once at the start of every round,nothing,No condition at all. Applied and forgotten
 flip,Flip,live,2,The two cards are turned face up at the start of a duel,the duel arena,"PHASE 2. The cards arrive face down and turn over together; anything written against `flip` goes off as they land. It fires BEFORE on_duel_start, so a flip ability can change what the duel starts with"

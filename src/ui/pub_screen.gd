@@ -11,7 +11,7 @@ extends Control
 #
 #  Base cards have no abilities. A brew is where a card's ability comes
 #  from, and it changes what class the card counts as, so a Lorelei who
-#  drank a Fire Brew is hit by "give all Brandteufel +1 power".
+#  drank a Water Brew is hit by "give all Lorelei +1 power".
 #
 #  ============ TONIGHT'S TEN ============
 #
@@ -269,7 +269,7 @@ func _make_brew_button(entry: Dictionary) -> Control:
 	return button
 
 
-## "Lorelei becomes Brandteufel · 2 abilities · can be permanent"
+## "anyone becomes Lorelei · 2 abilities · can be permanent"
 func _summary(entry: Dictionary) -> String:
 	var bits: PackedStringArray = []
 
@@ -336,9 +336,9 @@ func _rebuild_cards() -> void:
 	_card_buttons.clear()
 
 	# ROUND AH (phase P4): classes listed in `pub_hidden_classes` (Tuning.csv)
-	# are never shown here - the Rivals are the other side's men, not yours.
+	# are never shown here - blank shows every class.
 	var hidden: Array[String] = []
-	for piece in cards.tune_text("pub_hidden_classes", "Rivals").split(",", false):
+	for piece in cards.tune_text("pub_hidden_classes", "").split(",", false):
 		hidden.append(CardDatabase._normalise(String(piece)))
 	for card in cards.players:
 		if card.is_star():

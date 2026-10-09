@@ -1,5 +1,5 @@
 ID,Tier,Power,Name,Class,Gender,Artwork,Lead,Star,Ability,Notes
-e1,I,0,Bauer,Normal,m,,yes,yes,PLAIN_STAR_PUSH,"THE OPPOSITION IN YOUR SECOND MATCH (round AN, your note): plain players, and the plain Stars Bauer, Richter and Klein (the Rivals' own Tier I Stars, from BasicEnemyTeam.csv). STAR yes makes a player a Star. ABILITY names an Abilities.csv row for both sides of the card: PLAIN_STAR_PUSH = +1 to the next normal, non-elemental player of their side. Nothing else - no brew, no Emblem."
+e1,I,0,Bauer,Normal,m,,yes,yes,PLAIN_STAR_PUSH,"THE OPPOSITION IN YOUR SECOND MATCH (round AN, your note): plain players, and the plain Stars Bauer, Richter and Klein. STAR yes makes a player a Star. ABILITY names an Abilities.csv row for both sides of the card: PLAIN_STAR_PUSH = +1 to the next normal, non-elemental player of their side. Nothing else - no brew, no Emblem."
 e2,I,1,Richter,Normal,m,,,yes,PLAIN_STAR_PUSH,
 e3,I,2,Klein,Normal,m,,,yes,PLAIN_STAR_PUSH,
 e4,II,1,,Normal,m,,,,,

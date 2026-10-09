@@ -1,13 +1,13 @@
 ID,Season,Match,Opponent,Team,Class,Difficulty,Final,Requires,On Win,On Loss,Story,Description,Notes
 md01,county_league,1,Reedbank Wanderers,reedbank,Lorelei,0,,,,,season_opening,A gentle opening. Nobody expects much of you yet.,"A DIALOGUE BEFORE A FIXTURE. Story names a Dialogue.csv scene and it plays on the way to the team sheet, before you pick anybody - which is the only moment a scene can change your mind about who to field. Leave it blank and the fixture goes straight there. A fixture's Story plays every time it is played; use flag:x in the scene if it should only happen once."
-md02,county_league,2,Cinderworks Colts,cinderworks,Bergmännlein,0,,,,,,The furnace apprentices. All pace and no patience.,
+md02,county_league,2,Stollenbach Colts,stollenbach,Bergmännlein,0,,,,,,The pit apprentices. All pace and no patience.,
 md03,county_league,3,Mistmarsh Athletic,mistmarsh,Lorelei,1,,,,,,"They sing you to sleep, then score.",Difficulty 1 gives every one of their cards +1 attack and +1 defence.
-md04,county_league,4,Emberfall United,emberfall,Unkengeister,1,,,count:coins+25,,,Fourth of eleven. The table starts to matter.,"On Win runs the same words as Progression.csv - unlock:x, count:x+n, flag:x, announce:Text"
+md04,county_league,4,Unkenmoor United,unkenmoor,Unkengeister,1,,,count:coins+25,,,Fourth of eleven. The table starts to matter.,"On Win runs the same words as Progression.csv - unlock:x, count:x+n, flag:x, announce:Text"
 md05,county_league,5,Silverbeck Rovers,silverbeck,Lorelei,1,,,,,,Halfway. They have not lost at home in two years.,
-md06,county_league,6,Ashford Ironworks,ashford,Rauhnacht-Feuergeister,2,,,,,,"Big, slow, and very hard to move.",
+md06,county_league,6,Zwölfnacht Rovers,zwoelfnacht,Rauhnacht-Feuergeister,2,,,,,,"Big, slow, and very hard to move.",
 md07,county_league,7,Nixenhafen Harbour,nixenhafen,Lorelei,2,,,,,,The harbour side. They play the whole match in your half.,
-md08,county_league,8,Glutstadt Rangers,glutstadt,Lorelei,2,,,,,,Four straight wins behind them.,
+md08,county_league,8,Rheinfels Rangers,rheinfels,Lorelei,2,,,,,,Four straight wins behind them.,
 md09,county_league,9,Wellenberg Academy,wellenberg,Lorelei,2,,,,,,Young and quick and completely fearless.,
-md10,county_league,10,Hollowforge City,hollowforge,Bergmännlein,3,,,announce:Into the final.,,,The last league game. Win it and you go in confident.,Difficulty 3 is as high as you should go - cards are 0-5 power.
+md10,county_league,10,Erzgrube City,erzgrube,Bergmännlein,3,,,announce:Into the final.,,,The last league game. Win it and you go in confident.,Difficulty 3 is as high as you should go - cards are 0-5 power.
 final,county_league,11,The Kesselgrund Cup Final,kesselgrund,,3,true,,unlock:The Cup;announce:The cup is yours.,announce:So close. There is always next season.,,One match. Everything on it.,"Final=true ends the season. Class is BLANK here, so the opponent is a surprise."
 md12,county_league,12,Tap Room XI,tap_room_xi,Lorelei,3,true,unlocked:Marsh King,unlock:The Cup;count:coins+250,,,The season decider. Only reachable once you have beaten the Marsh King in Adventure.,WORKED EXAMPLE - THE SEASON READS ADVENTURE. Requires gates a fixture the same way it gates anything else.

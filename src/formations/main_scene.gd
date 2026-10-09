@@ -4675,8 +4675,8 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 			% [item_id, brew_id])
 		return
 
-	# THE CLASS RULE STILL APPLIES. A Fire Brew is written For Class Lorelei,
-	# and a Brandteufel drinking it would be nonsense — so it is refused here,
+	# THE CLASS RULE STILL APPLIES. A brew written For Class Lorelei
+	# drunk by anyone else would be nonsense — so it is refused here,
 	# out loud, and the bottle is NOT spent.
 	if not BrewDB.suits(brew, card):
 		announce("%s cannot drink that." % NamePlate.short_name(card), 1.5)

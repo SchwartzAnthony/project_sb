@@ -1248,7 +1248,7 @@ reveal          YOU press SHOW on it during the draft
 ```
 
 > **Win and Lose were already built.** `on_win_duel` and `on_lose_duel` have
-> been in the engine since the beginning — `BRAND_RALLY` and `BRAND_SCORCH`
+> been in the engine since the beginning — `FIRE_RALLY` and `FIRE_SCORCH`
 > in Abilities.csv both use them. That is one phase you do not have to wait
 > for.
 
@@ -1291,7 +1291,7 @@ real match:
 
 ```
 LORE_OPEN_HAND      reveal  self  add_power       2  round
-BRAND_CALLED_SHOT   reveal  self  add_shot_power  3  round
+CALLED_SHOT         reveal  self  add_shot_power  3  round
 ```
 
 `Open Hand` pays the card; `Called Shot` pays **the shot**, which is where
@@ -1314,7 +1314,7 @@ what its abilities do in plain words:
 ```
   +--------------------------------------------------------------+
   |  THEY PLAYED IT FACE UP      |      YOU PLAYED IT FACE UP     |
-  |  Hexflame · Tier IV · P:4 D:4|  Cinderworks · Tier II · P:1   |
+  |  Belial · Tier III · P:4 D:4 |  Ignaz · Tier III · P:1        |
   |  Attack — Called Shot. ...   |  Attack — Open Hand. ...       |
   +--------------------------------------------------------------+
         ( the four cards you are choosing from )
@@ -2130,22 +2130,27 @@ THEIRS tile shows their pips, and "THEIR X - ULTIMATE" is announced.
 
 ### Brandteufel and Rivals are gone (round AN, 9 Oct)
 
-You asked for both to be removed as outdated. What took their place:
+You asked for both to be removed completely. What took their place:
 
-- **League:** the five Brandteufel sides keep their names and now play as
-  Bergmännlein (Cinderworks Colts, Hollowforge City), Unkengeister (Emberfall
-  United), Rauhnacht-Feuergeister (Ashford Ironworks) and Lorelei (Glutstadt
-  Rangers), with any cards of that class (Teams.csv, Season.csv).
+- **League:** the five old Brandteufel sides have new names and play as
+  Bergmännlein (Stollenbach Colts, Erzgrube City), Unkengeister (Unkenmoor
+  United), Rauhnacht-Feuergeister (Zwölfnacht Rovers) and Lorelei
+  (Rheinfels Rangers), with any cards of that class (Teams.csv, Season.csv).
 - **First and second match:** the opposition (EnemyIntroSquad.csv,
-  EnemyIntroSquad2.csv) is class Normal instead of Rivals.
-- **Fire and Water Brews:** Lorelei becomes Rauhnacht-Feuergeister and back.
-  Furnace Rally now fires up every Rauhnacht-Feuergeist.
-- **Heatwave** is just "Heatwave", and his question is Rauhnacht-Feuergeister
+  EnemyIntroSquad2.csv) are plain Normal players.
+- **Fire Brew:** anyone may drink it. Nobody changes class (fire is not the
+  Rauhnacht-Feuergeister); they turn Fire and gain its two abilities.
+- **Water Brew:** anyone may drink it and counts as a Lorelei, the water class.
+- **Heatwave** is just "Heatwave". His question is Rauhnacht-Feuergeister
   or Lorelei.
+- **Ability IDs:** BRAND_MASK_ATK, BRAND_RALLY, BRAND_SCORCH and
+  BRAND_CALLED_SHOT are now FIRE_MASK_ATK, FIRE_RALLY, FIRE_SCORCH and
+  CALLED_SHOT. Furnace Rally fires up every Rauhnacht-Feuergeist.
 - **Removed:** BasicEnemyTeam.csv, the example unit CSV, the Brandteufel
-  keeper, both pitch sprite rows, the Rivals class page and its achievement,
-  the Brandteufel and Rivals Adventure icons and their combos, and
-  `placeholder_art_Rivals`. The art files themselves are still in assets/.
+  keeper and formation, the pitch sprites, the Rivals class page and its
+  achievement, the Adventure icons and combos, `placeholder_art_Rivals`,
+  and every Brandteufel and Rivals art file in assets/ and art_source/.
+  Older sections of this manual still name them as history.
 
 ### Round AB: your testing notes
 
@@ -2241,7 +2246,7 @@ they replaced walk back on.
 | `Ability ID` | what a card's Attack Ability column points at |
 | `Name` | shown to the player |
 | `Trigger` | `on_attack`, `on_win_duel`, … |
-| `Target` | `self`, `tag:brandteufel`, … |
+| `Target` | `self`, `tag:lorelei`, … |
 | `Effect` | `add_attack`, `add_power`, … |
 | `Value` | the number |
 | `Scope` | `duel` = this duel only. `round` = the rest of the round |
@@ -6386,7 +6391,7 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | simulate 1,000 matches | `godot --headless --path . --script res://tests/sim_runner.gd` (matchups: `data/SimMatchups.csv`) |
 | find over- and under-powered cards | `python3 tools/balance_analysis.py` -> `guides/BALANCE_ANALYSIS.md` |
 | run the unit tests | `godot --headless -s addons/gut/gut_cmdln.gd` |
-| stop a class's cards being listed in the Pub | `pub_hidden_classes` in `Tuning.csv` (`Rivals`) |
+| stop a class's cards being listed in the Pub | `pub_hidden_classes` in `Tuning.csv` (blank = show all) |
 | let the player keep more recruits | buy a dorm, or lower `recruit_beds_kept` in `Tuning.csv` |
 | make one class stronger in one tier | `tier_power_<class>_<tier>` in `Tuning.csv`, e.g. `tier_power_unkengeister_IV` |
 | see what art is still missing, and what to make next | `python3 tools/art_status.py` -> `guides/ART_STATUS.md` |

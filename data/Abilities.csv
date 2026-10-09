@@ -1,14 +1,14 @@
 Ability ID,Name,Trigger,Target,Effect,Value,Scope,Max,If,Cost,Ask,Notes
-BRAND_MASK_ATK,Teufel Mask,on_attack,self,add_attack,1,duel,,,,,Example. Attacker hits one harder in its own duel.
-BRAND_RALLY,Furnace Rally,on_win_duel,tag:rauhnacht-feuergeister,add_power,1,round,,,,,Example. Winning fires up every Rauhnacht-Feuergeist for the rest of the round.
-BRAND_SCORCH,Scorching Strike,on_win_duel,enemy_goalie,drain_stamina,3,duel,,,,,Example. Chip the keeper even when the round ends in a turnover.
+FIRE_MASK_ATK,Teufel Mask,on_attack,self,add_attack,1,duel,,,,,Example. Attacker hits one harder in its own duel.
+FIRE_RALLY,Furnace Rally,on_win_duel,tag:rauhnacht-feuergeister,add_power,1,round,,,,,Example. Winning fires up every Rauhnacht-Feuergeist for the rest of the round.
+FIRE_SCORCH,Scorching Strike,on_win_duel,enemy_goalie,drain_stamina,3,duel,,,,,Example. Chip the keeper even when the round ends in a turnover.
 LORE_VEIL,Rhine Veil,on_defend,self,add_defense,1,duel,,,,,Example. Defender holds one harder.
 LORE_TIDE,Rising Tide,passive,tier:I,add_power,1,round,,,,,Example. Every friendly Tier I unit is stronger all round.
 LORE_UNDERTOW,Undertow,on_lose_duel,opponent,add_defense,-1,round,,,,,Example. Negative values are legal — this is a debuff.
 LORE_SURGE,Siren Surge,on_attack,self,add_shot_power,2,round,,,,,Example. Adds to this round's shot if your side takes it.
 KEEP_BULWARK,Bulwark,passive,own_goalie,restore_stamina,2,round,,,,,Example. A card that tops your own keeper up each round.
 LORE_OPEN_HAND,Open Hand,reveal,self,add_power,2,round,,,,,"THE WORKED EXAMPLE FOR SHOW. Playing this card face up is worth +2 attack and defence to it for the whole round - but the other side now answers a card they can see, and takes their best in that tier instead of picking blind. That trade is the trigger"
-BRAND_CALLED_SHOT,Called Shot,reveal,self,add_shot_power,3,round,,,,,"The same bargain paid into the SHOT instead of the card, which is where the tier ladder says a bonus belongs. Show it, and if your side takes the shot this round it is worth three more"
+CALLED_SHOT,Called Shot,reveal,self,add_shot_power,3,round,,,,,"The same bargain paid into the SHOT instead of the card, which is where the tier ladder says a bonus belongs. Show it, and if your side takes the shot this round it is worth three more"
 BERG_ORE_WHISPER,A Word With The Ref,on_attack,all_enemies,add_card_chance,1,match,5,,ore:3,,"KARL'S CARD (Bergmännlein, Belial set, Tier I P2): ""Consume 3 Ore: Add +1% to enemy Yellow Card chance (Max 5)"". Every time he attacks, a foul the OTHER side commits and the referee sees is 1% likelier to be a yellow instead of a free kick, for the rest of the match, five times at most. THE ORE COST IS NOT CHARGED YET: there is no Ore counter in a match to spend. When there is, change the Trigger to the Ore one and nothing else."
 EMB_GREMORY_ROSE,Gremory's Emblem - Rose Unit,contemplation,replace:water+I,create_token:rose,1,match,1/round/side,element:water;exhausted_this_round:2:water,,,"GREMORY'S BASIC SIDE (round Z). When the second water unit of a round enters the exhaust, a Rose Unit token takes the place of one of your water Tier I units: same power, no ability text. The unit it replaced waits in the exhaust - where its 'While in exhaust' side works. Once a round for the whole side."
 EMB_ZEPAR_SWAN,Zepar's Emblem - Swan,reveal,self,make_swan,1,match,,element:water,,yes,ZEPAR'S BASIC SIDE (round Z). A water unit that is revealed becomes a Swan for the rest of the match. ROUND AA: Ask = yes - you are asked whether to transform (ruling Q6). The other side and AUTO always say yes.

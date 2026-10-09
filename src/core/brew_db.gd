@@ -31,7 +31,7 @@ extends RefCounted
 #  PER-CARD ART
 #    If a PNG named  "<Card Name> <brew id>.png"  exists in
 #    assets/players/, it is used instead of the brew's Artwork column. So
-#    "Cinderworks Brandteufel water.png" gives that one card its own
+#    "Silver-Rhine Lorelei water.png" gives that one card its own
 #    water-brewed look, and everyone else falls back to the shared one.
 #
 #  HOW LONG IT LASTS

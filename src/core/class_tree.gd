@@ -314,7 +314,7 @@ static func fits(star: PlayerData, set_id: String, db: CardDatabase) -> bool:
 	if CardDatabase._normalise(_set_of(star)) == want:
 		return true
 	# A NODE NO STAR CLAIMS takes any of them - the old one-node classes
-	# (Normal, Brandteufel) have no Emblems saying which Star is whose.
+	# (Normal) have no Emblems saying which Star is whose.
 	var entry := ClassBook.entry_for(star.unit_type)
 	if entry != null:
 		for other in entry.stars:
