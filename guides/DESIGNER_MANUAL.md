@@ -682,6 +682,68 @@ player-seconds a minute to about **65**.
 | `fresh_spot_ball_weight` | how much a fresh spot prefers being near the ball. `1.2` |
 | `open_spread` / `open_break` / `open_width` | now `90` / `70` / `50` (were 230 / 120 / 150) |
 
+**Moving for an opening, and cutting the lane (9 Oct).** Anthony: *"1 or 2
+people on the person that has the ball, but the rest are waiting for a pass
+... not standing there, but trying to move for an opening ... and trying to
+defend ... a back and forth that looks natural."*
+
+- The ring above used to say "never further than you already are", which
+  ratcheted the whole pitch in on the ball. Now the cap is the further of
+  *where he is* and *his own place in the shape* (the drift point, which
+  slides with the ball). He never goes past his place; he can go back to it.
+- **Showing for the pass:** every `open_rethink_seconds` (a little different
+  for each player) he looks at spots up to `open_search_radius` round his
+  place and goes to the most open one: away from defenders, a clear lane for
+  the ball, not on a team-mate, not too near the ball.
+- **Marking:** the marker leans `mark_lane_cut` off his man toward the ball,
+  into the lane, which sends the attacker off to find another opening.
+- **Seeing the ball:** an arrow in his side's colour floats over the man on
+  the ball (`ball_carrier_marker_height` / `_size`), his ring pulses, the
+  name plates of players not involved fade (`bystander_plate_alpha`), and
+  during play only players going for the ball get a line
+  (`intent_lines_chasers_only`). Z still shows everything.
+
+| Tuning row | |
+|---|---|
+| `open_search_radius` | how far round his place he looks for an opening. `220` px (doubled 9 Oct) |
+| `open_rethink_seconds` | how long he goes for one before looking again. `0.7` (twice as often, 9 Oct) |
+| `mark_lane_cut` | how far a marker leans into the passing lane. `100` px (doubled 9 Oct) |
+| `open_support_min` / `mark_keep_off` | now `270` / `200` px from the ball (the 9 Oct step, doubled) |
+| `bystander_plate_alpha` | name plates of players not involved, in open play. `0.18` (twice as faded, 9 Oct). `1` = off |
+| `intent_lines_chasers_only` | `true` = lines only for players going for the ball |
+| `ball_carrier_marker_height` / `ball_carrier_marker_size` | the arrow over the carrier. `74` / `20` |
+
+**The back rows: half the range, shadowing, breathers (9 Oct).** Anthony:
+*"Tier IV / Tier I ... still grouping too much and ... running into an
+invisible wall ... If they are outside of the ball range (maybe make it
+smaller by half) have them chase the person they should be watching."*
+
+- **The ball's range is half what it was** (`press_radius_fraction` 0.55 →
+  0.275). Inside it, pressing and sprinting as before.
+- **Outside it a marker shadows his man**: `mark_shadow_commitment` of the
+  way to goal-side of him, and not held to his quarter. Holding him to the
+  quarter is what had him leaning on an invisible line while his man walked
+  off.
+- **Breathers**: off the ball a player runs for `unit_run_burst_min`–`_max`
+  seconds, then stands watching the ball for `unit_rest_min`–`_max`.
+- **No running into walls**: if he makes under `unit_stuck_progress` px in
+  `unit_stuck_window` seconds while his target is still away, he stops and
+  takes a breather instead.
+- **Committing to a run**: a player getting open looks again only when he
+  has got there (or after twice `open_rethink_seconds`), and only switches
+  for a spot that beats his by `open_switch_margin`.
+
+| Tuning row | |
+|---|---|
+| `press_radius_fraction` | the ball's range, share of pitch height. `0.275` (halved) |
+| `mark_shadow_commitment` | how close a marker outside the range stays on his man. `0.85` |
+| `unit_run_burst_min` / `_max` | seconds of running before a breather. `2.5` / `4.5` |
+| `unit_rest_min` / `_max` | seconds a breather lasts. `1` / `2`. `_max` 0 = off |
+| `unit_stuck_window` / `unit_stuck_progress` | the wall check. `0.8` s / `18` px |
+| `unit_rest_skip_distance` | no breather while his target is further than this. `220` px |
+| `open_switch_margin` | how much better a new opening must be. `60` |
+| `open_zone_margin` | back to `0.25` of a quarter |
+
 **See it in the game:** press **Z** in a match. On top of the zone map you get
 the gold **ball range** circle, a gold cross where the ball will land, every
 player's **job word** (gold = the ball is in his range, `sprint` = going
@@ -3301,6 +3363,12 @@ moment, with the same score, clock and exhaust. Then the row's **Do** runs:
 | `give:anstoss_helles+doppelpass_weisse+abstauber_dunkel` | puts one of each into the bag (`item=3` for more). A drink_lesson can then name several items with `+`: the bag shows those, gold on each, and any one will do |
 | `say:tut-after-brewery@-\|-\|flask:first` | plays that Dialogue.csv scene, gold per line after `@` (the Highlight words) |
 | `brewery:tut_brewery` | a TIME OUT at the Brewery (round AN): the match freezes, that flag is set and the Brewery opens over it; `Guide.csv` rows that need the flag lead the way, and one whose Then is `goto:back` ends it. See "The tutorial Brewery" |
+
+**Time passes: a fade to black** (Anthony, 9 Oct). A Dialogue.csv line
+whose **Background** is `black` fades the screen to black (the words still
+show) and it stays black; the next line with any other Background (`bar`)
+fades back in on that picture. `Tuning.csv story_fade_seconds` (0.8). The
+prologue's "Cheering!" and "After a few more rounds..." use it.
 
 **A drink in a match lasts one cycle** (Anthony, 8 Oct). A brew or beer used
 on a card during the draft wears off at the next STAR PLAYER SWITCH

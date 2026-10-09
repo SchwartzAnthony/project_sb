@@ -189,7 +189,7 @@ var zones: PitchZones = null
 var zones_enabled: bool = true
 ## Press radius as a fraction of pitch HEIGHT. A defender inside this of where
 ## the ball is going will charge it.
-var press_radius_fraction: float = 0.55
+var press_radius_fraction: float = 0.275
 ## ROUND AN: outside the ball's range nobody goes faster than this many times
 ## his walk. Tuning.csv far_from_ball_pace; 0 = off.
 var far_from_ball_pace: float = 1.2
@@ -200,10 +200,20 @@ var ball_chasers_per_side: int = 2
 ## the ball over being in empty space. Tuning.csv fresh_spot_ball_weight.
 var fresh_spot_ball_weight: float = 1.2
 ## ROUND AN: the ring round the ball a player showing for a pass stays on.
-var open_support_min: float = 190.0
+var open_support_min: float = 270.0
 var open_support_max: float = 340.0
-var open_zone_margin: float = 0.0
-var mark_keep_off: float = 120.0
+var open_zone_margin: float = 0.25
+var mark_keep_off: float = 200.0
+## ROUND AN (9 Oct): moving for an opening, and cutting the lane.
+var open_search_radius: float = 220.0
+var open_rethink_seconds: float = 0.7
+var mark_lane_cut: float = 100.0
+## ROUND AN (9 Oct): outside the ball's range a marker shadows his man.
+var mark_shadow_commitment: float = 0.85
+var open_switch_margin: float = 60.0
+## ROUND AN (9 Oct): name plates of players not involved with the ball, in
+## open play. Tuning.csv bystander_plate_alpha; 1 = off.
+var bystander_plate_alpha: float = 0.18
 ## Extra defenders from OTHER quarters allowed to join the press.
 var press_helpers: int = 2
 var press_speed: float = 92.0
@@ -744,6 +754,9 @@ func _physics_process(delta: float) -> void:
 		ball.set_corridor(_ball_corridor(), current_state == MatchState.PLAYING)
 
 	_move_the_scenery()
+	PlayerUnit.fade_bystander_plates = current_state == MatchState.PLAYING \
+		and not PlayerUnit.play_maker_live and bystander_plate_alpha < 1.0
+	PlayerUnit.bystander_plate_alpha = bystander_plate_alpha
 	_assign_roles()
 	# ROUND AD (C6): who touched the ball, who is at a mine.
 	if pitch_engines != null:
@@ -881,48 +894,64 @@ func _assign_roles() -> void:
 				unit.set_role(PlayerUnit.Role.PRESS, focus, press_speed)
 			else:
 				unit.set_role(PlayerUnit.Role.MARK,
-					_support_range(unit, _mark_point(unit), mark_keep_off), unit.walk_speed * 1.5)
+					_mark_or_shadow(unit), unit.walk_speed * 1.5)
 		else:
 			unit.set_role(PlayerUnit.Role.OPEN,
-				_support_range(unit, _keep_moving(unit, _open_point(unit))), unit.walk_speed * 1.6)
+				_keep_with_play(unit, _open_point(unit), open_support_min), unit.walk_speed * 1.6)
 
 	_pace_by_range(units, reach)
 
 
-## ============ SHOWING FOR THE PASS NEVER MEANS RUNNING AWAY  (round AN, 8 Oct) ============
+## ============ STAY WITH THE PLAY - BUT FROM YOUR OWN SPOT  (round AN, 8-9 Oct) ============
 ##
-## Anthony: "why would they turn away from the ball and run towards the edge
-## of the field for no reason?" The probe put most of it on OPEN: the spot a
-## player showed for the pass at was often further from the ball than he
-## already was, so he turned his back on the play and walked off.
+## 8 Oct: "why would they turn away from the ball and run towards the edge of
+## the field for no reason?" - the spot was further from the ball than the
+## player already was, so he walked off.
 ##
-## So the spot is kept on a ring round the ball: no closer than
-## `open_support_min` (room to receive), and NO FURTHER THAN HE ALREADY IS
-## (or `open_support_max`, whichever is nearer). He slides across or comes
-## toward the ball to get open; he never walks away from it to do so.
+## 9 Oct: the first fix kept everyone on a ring round the ball, NEVER further
+## than they already were. That is a ratchet: every step in was kept, so the
+## whole pitch slowly closed on the ball. "Don't have EVERYONE huddle in
+## groups ... 1 or 2 people on the person that has the ball, the rest are
+## waiting for a pass."
 ##
-## A MARKER gets the same ring with a smaller inside edge (`mark_keep_off`):
-## he stays with his man, but not by turning his back on the play and
-## following him off toward a corner of the pitch.
-func _support_range(unit: PlayerUnit, spot: Vector2, nearest := -1.0) -> Vector2:
+## So the cap is now "no further from the ball than he is, OR than his own
+## spot in the shape is" (the drift point, which slides with the ball) -
+## whichever is further. A player can drift back out to his place in the
+## shape; he is never sent past it. Plus: not closer than `nearest` to the
+## ball, and inside his own quarter (give or take `open_zone_margin`).
+## ============ OUTSIDE THE BALL'S RANGE, SHADOW YOUR MAN  (round AN, 9 Oct) ============
+##
+## Anthony: "If they are outside of the ball range ... have them chase the
+## person they should be watching / observing while the other is trying to
+## get open to get the ball passed to them."
+##
+## Inside the range a marker defends the zone and cuts the lane, as before.
+## Outside it he goes with his man: `mark_shadow_commitment` of the way from
+## his own place to goal-side of the man (zonal marking is 0.5), and NOT held
+## to his quarter - the quarter is what had the back rows leaning on an
+## invisible line while their man walked off.
+func _mark_or_shadow(unit: PlayerUnit) -> Vector2:
+	if unit.ball_in_range or mark_shadow_commitment <= 0.0:
+		return _keep_with_play(unit, _mark_point(unit), mark_keep_off)
+	return _keep_with_play(unit, _mark_point(unit, mark_shadow_commitment), mark_keep_off, false)
+
+
+func _keep_with_play(unit: PlayerUnit, spot: Vector2, nearest: float,
+		in_quarter := true) -> Vector2:
 	if ball == null or not is_instance_valid(ball) or open_support_max <= 0.0:
 		return spot
-	var least := open_support_min if nearest < 0.0 else nearest
 	var at := ball.global_position
 	var off := spot - at
 	var length := off.length()
 	if length < 0.001:
-		off = (unit.global_position - at)
+		off = unit.global_position - at
 		length = maxf(off.length(), 0.001)
 	var now := unit.global_position.distance_to(at)
-	var far := maxf(least, minf(open_support_max, now))
-	var want := clampf(length, least, far)
-	var out := at + off / length * want
-	# AND IN HIS OWN QUARTER (give or take `open_zone_margin` of it), so a
-	# Tier IV waiting for the ball holds the near edge of his quarter rather
-	# than walking out of it to meet the play.
+	var shape := _drift_point(unit).distance_to(at)
+	var far := maxf(nearest, minf(open_support_max, maxf(now, shape)))
+	var out := at + off / length * clampf(length, nearest, far)
 	var quarter := unit.tier_zone
-	if quarter.size.x > 1.0:
+	if in_quarter and quarter.size.x > 1.0:
 		var give := quarter.size.x * open_zone_margin
 		out.x = clampf(out.x, quarter.position.x - give, quarter.end.x + give)
 	return unit.leash_point(out)
@@ -1130,7 +1159,7 @@ func _converge_target(unit: PlayerUnit) -> Vector2:
 ##   * and the shoulder they stand off is decided by where the BALL is, which
 ##     means the marker shifts as play moves — the thing that reads as
 ##     defending rather than as standing.
-func _mark_point(unit: PlayerUnit) -> Vector2:
+func _mark_point(unit: PlayerUnit, commitment := -1.0) -> Vector2:
 	var man := unit.mark_target
 	if man == null or not is_instance_valid(man):
 		return _drift_point(unit)
@@ -1171,7 +1200,17 @@ func _mark_point(unit: PlayerUnit) -> Vector2:
 	# ROUND AN: from where the BLOCK is (the drift point, sliding with the
 	# ball), not the bare home slot - so a marker leans with the play instead
 	# of being dragged back toward an empty corner of his quarter.
-	spot = unit.home_position.lerp(spot, clampf(mark_commitment, 0.0, 1.0))
+	# ROUND AN (9 Oct): CUT THE LANE. The marker leans off his man toward the
+	# ball by `mark_lane_cut`, between him and the pass - which is what moves
+	# the man showing for it to look for another opening.
+	if ball != null and is_instance_valid(ball) and mark_lane_cut > 0.0:
+		var to_ball := ball.global_position - man.global_position
+		if to_ball.length() > 1.0:
+			spot += to_ball.normalized() * minf(mark_lane_cut, to_ball.length() * 0.5)
+	# From his own place in the shape (the drift point, sliding with the ball),
+	# not the bare home slot.
+	var commit := mark_commitment if commitment < 0.0 else commitment
+	spot = _drift_point(unit).lerp(spot, clampf(commit, 0.0, 1.0))
 
 	# Never parked: a slow wander on top of the marking spot, wider across
 	# than up and down so it does not fight the shoulder offset.
@@ -1328,41 +1367,84 @@ func _fresh_spot(unit: PlayerUnit) -> Vector2:
 	return best
 
 
+## ============ MOVING FOR AN OPENING  (round AN, 9 Oct) ============
+##
+## Anthony: "trying to move for an opening as the team that has the ball and
+## trying to defend as the team that needs the ball. It has to have a back
+## and forth that looks natural."
+##
+## A player showing for the pass looks at a handful of spots around HIS OWN
+## PLACE IN THE SHAPE (the drift point, sliding with the ball) and goes to the
+## one that is most open: away from defenders, with a clear lane for the ball
+## to reach him, not on top of a team-mate, and not too near the ball. He
+## keeps that choice for `open_rethink_seconds`, then looks again - by then
+## the defenders have moved to cut his lane (see _mark_point), so he moves
+## again. That is the back and forth.
 func _open_point(unit: PlayerUnit) -> Vector2:
-	var nearest_foe: PlayerUnit = null
-	var best := INF
+	var shape := _drift_point(unit)
+	var held := unit.open_spot != Vector2.INF \
+		and unit.open_spot.distance_to(shape) < open_search_radius * 1.5
+	# COMMIT TO A RUN (9 Oct). Doubled, the re-think made players turn round
+	# half way to one opening for another, and back - running on the spot.
+	# He now looks again only when the timer is up AND he has got there, or
+	# when twice the time has gone by.
+	if held:
+		var there := unit.global_position.distance_to(unit.open_spot) < 40.0
+		if _anim_clock < unit.open_until \
+				or (not there and _anim_clock < unit.open_until + open_rethink_seconds):
+			return unit.open_spot
+	var at := ball.global_position if ball != null and is_instance_valid(ball) else shape
+	var foes: Array[Vector2] = []
+	var mates: Array[Vector2] = []
 	for other in _all_units():
-		if other.is_enemy == unit.is_enemy:
+		if other == unit:
 			continue
-		var d := other.global_position.distance_to(unit.global_position)
-		if d < best:
-			best = d
-			nearest_foe = other
+		if other.is_enemy == unit.is_enemy:
+			mates.append(other.global_position)
+		else:
+			foes.append(other.global_position)
+	var forward := 1.0 if not unit.is_enemy else -1.0
+	var best := shape
+	var best_score := -INF
+	for ring in [0.0, 0.5, 1.0]:
+		for step in 8:
+			if ring == 0.0 and step > 0:
+				break
+			var p: Vector2 = shape + Vector2.from_angle(float(step) * TAU / 8.0) * open_search_radius * ring
+			# A little forward, the way this side attacks.
+			p.x += forward * open_break * 0.5
+			var score := _opening_score(p, at, shape, foes, mates)
+			if score > best_score:
+				best_score = score
+				best = p
+	# And only for a CLEARLY better one: the spot he has must lose by
+	# `open_switch_margin` before he gives it up.
+	if held and _opening_score(unit.open_spot, at, shape, foes, mates) + open_switch_margin >= best_score:
+		best = unit.open_spot
+	unit.open_spot = unit.leash_point(best)
+	var phase := float(int(unit.get_instance_id()) % 7) / 7.0
+	unit.open_until = _anim_clock + open_rethink_seconds * (0.75 + 0.5 * phase)
+	return unit.open_spot
 
-	# ROUND AN (Anthony, 8 Oct: "why would they turn away from the ball and
-	# run towards the edge of the field for no reason?"). Measured, showing
-	# for a pass was most of it: the spot was the player's HOME slot plus
-	# 230 px off his marker, 120 forward and 150 toward his touchline - so a
-	# man on the far side of the play ran further away from the ball to "get
-	# open". It now starts from where the block is (the drift point, which
-	# slides with the ball) and the breaks are smaller (Tuning.csv).
-	var spot := _drift_point(unit)
-	if nearest_foe != null and best < open_spread * 1.6:
-		spot += (unit.global_position - nearest_foe.global_position).normalized() * open_spread
 
-	# Forward, the way this side attacks.
-	spot.x += (1.0 if not unit.is_enemy else -1.0) * open_break
-
-	# AND WIDE. Whichever touchline this player is already nearer, pushed
-	# toward it — so a move has somebody on the wing to find.
-	var play := get_play_rect()
-	var middle := play.position.y + play.size.y * 0.5
-	var out := signf(unit.home_position.y - middle)
-	if is_zero_approx(out):
-		out = 1.0 if int(unit.get_instance_id()) % 2 == 0 else -1.0
-	spot.y += out * open_width
-
-	return unit.leash_point(spot)
+## How open a spot is: space from defenders, a clear lane from the ball, not
+## on a team-mate, not too near the ball, not far from his place in the shape.
+func _opening_score(p: Vector2, from_ball: Vector2, shape: Vector2, foes: Array[Vector2],
+		mates: Array[Vector2]) -> float:
+	var space := 220.0
+	var lane := 140.0
+	for f in foes:
+		space = minf(space, f.distance_to(p))
+		lane = minf(lane, Geometry2D.get_closest_point_to_segment(f, from_ball, p).distance_to(f))
+	var score := space + lane * 1.5
+	for m in mates:
+		var d := m.distance_to(p)
+		if d < 110.0:
+			score -= (110.0 - d) * 2.0
+	var to_ball := p.distance_to(from_ball)
+	if to_ball < open_support_min:
+		score -= (open_support_min - to_ball) * 3.0
+	return score - p.distance_to(shape) * 0.4
 
 
 ## Where a surging unit runs to: its own slot, thrown forward toward the goal
@@ -1800,6 +1882,12 @@ func _apply_match_tuning() -> void:
 	open_support_max = db.tune_float("open_support_max", open_support_max)
 	open_zone_margin = db.tune_float("open_zone_margin", open_zone_margin)
 	mark_keep_off = db.tune_float("mark_keep_off", mark_keep_off)
+	open_search_radius = db.tune_float("open_search_radius", open_search_radius)
+	open_rethink_seconds = db.tune_float("open_rethink_seconds", open_rethink_seconds)
+	mark_lane_cut = db.tune_float("mark_lane_cut", mark_lane_cut)
+	mark_shadow_commitment = db.tune_float("mark_shadow_commitment", mark_shadow_commitment)
+	open_switch_margin = db.tune_float("open_switch_margin", open_switch_margin)
+	bystander_plate_alpha = db.tune_float("bystander_plate_alpha", bystander_plate_alpha)
 	ball_roam_quarter_first = db.tune_int("ball_roam_quarter_first", ball_roam_quarter_first)
 	ball_roam_quarter_last = db.tune_int("ball_roam_quarter_last", ball_roam_quarter_last)
 	surge_advance = db.tune_float("surge_advance", surge_advance)
@@ -1859,6 +1947,8 @@ func _tune_ball() -> void:
 	ball.intercept_grace = db.tune_float("ball_intercept_grace", ball.intercept_grace)
 	ball.trail_seconds = db.tune_float("ball_trail_seconds", ball.trail_seconds)
 	ball.ring_radius = db.tune_float("ball_ring_radius", ball.ring_radius)
+	ball.carrier_marker_height = db.tune_float("ball_carrier_marker_height", ball.carrier_marker_height)
+	ball.carrier_marker_size = db.tune_float("ball_carrier_marker_size", ball.carrier_marker_size)
 	ball.corridor_return_speed = db.tune_float(
 		"ball_corridor_return_speed", ball.corridor_return_speed)
 
@@ -1898,6 +1988,13 @@ func _tune_unit(unit: PlayerUnit) -> void:
 	unit.still_threshold = db.tune_float("unit_still_threshold", unit.still_threshold)
 	unit.face_deadzone = db.tune_float("unit_face_deadzone", unit.face_deadzone)
 	unit.face_turn_hold = db.tune_float("unit_face_turn_hold", unit.face_turn_hold)
+	unit.run_burst = Vector2(db.tune_float("unit_run_burst_min", unit.run_burst.x),
+		db.tune_float("unit_run_burst_max", unit.run_burst.y))
+	unit.rest_seconds = Vector2(db.tune_float("unit_rest_min", unit.rest_seconds.x),
+		db.tune_float("unit_rest_max", unit.rest_seconds.y))
+	unit.stuck_window = db.tune_float("unit_stuck_window", unit.stuck_window)
+	unit.stuck_progress = db.tune_float("unit_stuck_progress", unit.stuck_progress)
+	unit.rest_skip_distance = db.tune_float("unit_rest_skip_distance", unit.rest_skip_distance)
 	unit.stand_below_speed = db.tune_float("unit_stand_below_speed", unit.stand_below_speed)
 	unit.walk_anim_floor = db.tune_float("unit_walk_anim_floor", unit.walk_anim_floor)
 
@@ -3742,6 +3839,7 @@ func _lock_geometry() -> void:
 
 	if zone_overlay != null:
 		zone_overlay.intent_lines_alpha = maxf(0.0, db.tune_float("intent_lines_alpha", 0.55))
+		zone_overlay.intent_lines_chasers_only = db.tune_bool("intent_lines_chasers_only", true)
 		zone_overlay.tint = zones_enabled
 		zone_overlay.visible = zones_enabled or zone_overlay.intent_lines_alpha > 0.0
 		zone_overlay.units_source = _all_units
