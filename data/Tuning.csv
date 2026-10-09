@@ -221,13 +221,13 @@ press_helpers,2,Extra defenders from OTHER quarters allowed to join the press
 press_speed,92,Pixels per second when charging the ball carrier
 mark_distance,54,How far goal-side of his man a marker stands
 open_spread,90,"How far an attacker breaks off its marker to show for a pass. ROUND AN: was 230 - a man stepping 230 px off his marker ran away from the ball"
-open_support_min,230,"ROUND AN (Anthony, 8 Oct: players turning away from the ball and running to the edge). A player showing for the pass keeps at least this far from the ball, in pixels, so there is room to pass to him"
+open_support_min,270,"ROUND AN (Anthony, 8 Oct: players turning away from the ball and running to the edge). A player showing for the pass keeps at least this far from the ball, in pixels, so there is room to pass to him"
 open_support_max,340,"ROUND AN. ...and never further than this - nor further than he already is. He slides across or comes toward the ball to get open; he never walks away from it to do so. 0 = off (the old spot, which was often further away)"
 open_zone_margin,0.0,"ROUND AN (Anthony: more zone targeted). The spot a player shows for the pass at is kept inside his own quarter, give or take this share of the quarter s width. 0 = strictly in his quarter; 1 = up to a whole quarter beyond it"
-mark_keep_off,160,"ROUND AN. The same ring for a MARKER: he keeps at least this far from the ball, never moves further from it than he already is (up to open_support_max), and stays in his own quarter give or take open_zone_margin. He stays with his man without turning his back on the play to follow him to a corner"
-open_search_radius,110,"ROUND AN (Anthony, 9 Oct: move for an opening, a natural back and forth). How far round his own place in the shape a player showing for the pass looks for a more open spot, in pixels. He picks the one furthest from defenders with a clear lane for the ball, not on a team-mate, not too near the ball. 0 = he just stands in his place"
-open_rethink_seconds,1.4,"ROUND AN. How long he goes for that opening before looking again (each player a little different, so they do not all move at once). Shorter = busier; longer = calmer"
-mark_lane_cut,50,"ROUND AN (Anthony, 9 Oct: defend as the team that needs the ball). How far a marker leans off his man toward the ball, into the passing lane. That is what sends the man showing for the pass off to find another opening. 0 = he only stands goal-side"
+mark_keep_off,200,"ROUND AN. The same ring for a MARKER: he keeps at least this far from the ball, never moves further from it than he already is (up to open_support_max), and stays in his own quarter give or take open_zone_margin. He stays with his man without turning his back on the play to follow him to a corner"
+open_search_radius,220,"ROUND AN (Anthony, 9 Oct: move for an opening, a natural back and forth). How far round his own place in the shape a player showing for the pass looks for a more open spot, in pixels. He picks the one furthest from defenders with a clear lane for the ball, not on a team-mate, not too near the ball. 0 = he just stands in his place"
+open_rethink_seconds,0.7,"ROUND AN. How long he goes for that opening before looking again (each player a little different, so they do not all move at once). Shorter = busier; longer = calmer"
+mark_lane_cut,100,"ROUND AN (Anthony, 9 Oct: defend as the team that needs the ball). How far a marker leans off his man toward the ball, into the passing lane. That is what sends the man showing for the pass off to find another opening. 0 = he only stands goal-side"
 unit_zone_pull,1.15,How hard a unit is pulled back to its own quarter
 unit_leash,210,"How far from its slot a marking or showing unit may stray, in pixels. ONLY USED WHEN zones_enabled IS FALSE - with zones on, leash_band_fraction works this out from the roam band instead, so it scales with the pitch"
 unit_slot_pull,0.55,Spring back toward the slot once stretched
@@ -238,11 +238,11 @@ zone_tint_alpha,0.07,How strongly the four Tier quarters are tinted on the grass
 zone_tint_alpha_draft,0.20,Tint strength while you are choosing cards. Fades back afterwards
 intent_lines_alpha,0.55,"ROUND AN (Anthony: add the red and blue lines to the game). Every player's line to where he is heading - blue for yours, red for theirs - drawn during the match, not only on the zone map (Z). How strong: 0 = off, 1 = solid."
 intent_lines_chasers_only,true,"ROUND AN (Anthony, 9 Oct: too cluttered to see who has the ball). true = during play only the players going for the ball (and the one a pass is meant for) get their line; the Z map still shows everyone s. false = twenty lines at once, as before"
-bystander_plate_alpha,0.35,"ROUND AN (Anthony, 9 Oct: too cluttered to see who has the ball). In open play the name plates of players not involved with the ball fade to this (0 = gone, 1 = solid, which turns this off). The man on the ball, whoever is going for it and the one a pass is meant for stay solid. Back to solid during the draft and a Play Maker"
+bystander_plate_alpha,0.18,"ROUND AN (Anthony, 9 Oct: too cluttered to see who has the ball). In open play the name plates of players not involved with the ball fade to this (0 = gone, 1 = solid, which turns this off). The man on the ball, whoever is going for it and the one a pass is meant for stay solid. Back to solid during the draft and a Play Maker"
 ball_trail_seconds,0.55,Length of the fading trail behind the ball. 0 = off
 ball_ring_radius,17,Ring drawn at the feet of whoever has the ball. 0 = off
 ball_carrier_marker_height,74,"ROUND AN (Anthony, 9 Oct: we don t see who has the ball). An arrow in his side s colour floats over the man on the ball, this many screen pixels above his feet - above his name plate. 0 = off"
-ball_carrier_marker_size,15,"ROUND AN. How big that arrow is, in screen pixels"
+ball_carrier_marker_size,20,"ROUND AN. How big that arrow is, in screen pixels"
 ball_roam_quarter_first,2,First quarter the ball may enter during normal waiting play. Quarters are numbered 1-4 from your goal
 ball_roam_quarter_last,3,Last quarter it may enter. 2 and 3 keeps it out of both Tier IV territories. Set 1 and 4 to allow the whole pitch
 ball_corridor_return_speed,420,How fast a stray ball rolls back into the allowed strip instead of snapping

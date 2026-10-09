@@ -200,17 +200,17 @@ var ball_chasers_per_side: int = 2
 ## the ball over being in empty space. Tuning.csv fresh_spot_ball_weight.
 var fresh_spot_ball_weight: float = 1.2
 ## ROUND AN: the ring round the ball a player showing for a pass stays on.
-var open_support_min: float = 230.0
+var open_support_min: float = 270.0
 var open_support_max: float = 340.0
 var open_zone_margin: float = 0.0
-var mark_keep_off: float = 160.0
+var mark_keep_off: float = 200.0
 ## ROUND AN (9 Oct): moving for an opening, and cutting the lane.
-var open_search_radius: float = 110.0
-var open_rethink_seconds: float = 1.4
-var mark_lane_cut: float = 50.0
+var open_search_radius: float = 220.0
+var open_rethink_seconds: float = 0.7
+var mark_lane_cut: float = 100.0
 ## ROUND AN (9 Oct): name plates of players not involved with the ball, in
 ## open play. Tuning.csv bystander_plate_alpha; 1 = off.
-var bystander_plate_alpha: float = 0.35
+var bystander_plate_alpha: float = 0.18
 ## Extra defenders from OTHER quarters allowed to join the press.
 var press_helpers: int = 2
 var press_speed: float = 92.0

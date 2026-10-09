@@ -705,13 +705,13 @@ defend ... a back and forth that looks natural."*
 
 | Tuning row | |
 |---|---|
-| `open_search_radius` | how far round his place he looks for an opening. `110` px |
-| `open_rethink_seconds` | how long he goes for one before looking again. `1.4` |
-| `mark_lane_cut` | how far a marker leans into the passing lane. `50` px |
-| `open_support_min` / `mark_keep_off` | now `230` / `160` px from the ball |
-| `bystander_plate_alpha` | name plates of players not involved, in open play. `0.35`. `1` = off |
+| `open_search_radius` | how far round his place he looks for an opening. `220` px (doubled 9 Oct) |
+| `open_rethink_seconds` | how long he goes for one before looking again. `0.7` (twice as often, 9 Oct) |
+| `mark_lane_cut` | how far a marker leans into the passing lane. `100` px (doubled 9 Oct) |
+| `open_support_min` / `mark_keep_off` | now `270` / `200` px from the ball (the 9 Oct step, doubled) |
+| `bystander_plate_alpha` | name plates of players not involved, in open play. `0.18` (twice as faded, 9 Oct). `1` = off |
 | `intent_lines_chasers_only` | `true` = lines only for players going for the ball |
-| `ball_carrier_marker_height` / `ball_carrier_marker_size` | the arrow over the carrier. `74` / `15` |
+| `ball_carrier_marker_height` / `ball_carrier_marker_size` | the arrow over the carrier. `74` / `20` |
 
 **See it in the game:** press **Z** in a match. On top of the zone map you get
 the gold **ball range** circle, a gold cross where the ball will land, every

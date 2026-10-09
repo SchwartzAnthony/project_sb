@@ -120,7 +120,7 @@ static var play_maker_live: bool = false
 ## plates of players NOT involved with the ball fade to `bystander_plate_alpha`,
 ## so the carrier and whoever is going for it read first.
 static var fade_bystander_plates: bool = false
-static var bystander_plate_alpha: float = 0.35
+static var bystander_plate_alpha: float = 0.18
 var is_exhausted: bool = false     # already used this cycle
 
 # =============================================================

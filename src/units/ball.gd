@@ -75,7 +75,7 @@ signal delivery_arrived
 ## plate, in his side's colour: how far above his feet (screen px, 0 = off)
 ## and how big.
 @export var carrier_marker_height: float = 74.0
-@export var carrier_marker_size: float = 15.0
+@export var carrier_marker_size: float = 20.0
 @export var ring_ally: Color = Color(0.55, 0.85, 1.0, 0.85)
 @export var ring_enemy: Color = Color(1.0, 0.55, 0.5, 0.85)
 
