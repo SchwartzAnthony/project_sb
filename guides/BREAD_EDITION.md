@@ -91,7 +91,8 @@ difference: it **patches** rows instead of replacing whole files.
 1. **`data/bread/`** holds small CSVs with only the ID and the columns that
    change. `data/bread/Items.csv` might be just `ID,Name,Description`. Every
    number, price and condition still comes from the main file, so the two
-   editions cannot drift apart. IDs never change, so one save works in both.
+   editions cannot drift apart. IDs never change, so a save exported from
+   one edition can be imported into the other.
 2. **`assets/bread/` and `audio/bread/`** mirror the normal folders. When the
    game loads a picture or a sound, it looks in the bread folder first and
    falls back to the normal one. Our rule that every picture stays in layers
@@ -99,8 +100,11 @@ difference: it **patches** rows instead of replacing whole files.
 3. **Words in the code** (the ~98 strings) move into one `Words.csv`, with a
    beer column and a bread column. This is also the first step towards a
    German translation.
-4. **One setting, `edition`**, read at start-up: from a launch argument
-   (`--edition=bread`), from Settings, or from a first-launch question.
+4. **One setting, `edition`**, read at start-up from a launch argument
+   (`--edition=bread`), which the Brotzeit app on Steam always passes. Each
+   edition keeps **its own saves** (for example `user://bread/`), and
+   Settings gets **Export save** and **Import save** so a player can carry
+   progress across.
 5. **A check tool** (like `art_status.py`) lists every row, picture and sound
    that still shows beer in the bread edition, so we always know what is
    left.
@@ -147,24 +151,21 @@ first, only Option B gives them a page of their own.
 On consoles every edition is its own product and rating anyway, so
 Option B is the shape we would end up with there too.
 
-**Recommendation:** build the in-game switch, start with Option A because it
-costs nothing, and add Option B when the store page goes up if the bread
-edition should be found and bought by itself. The game is the same build in
-both cases.
+**Decision (Anthony, 9 Oct): Option B.** "Sturmball: Brotzeit" is its own
+Steam app with its own store page and age rating, in the main game's package
+so one purchase gives both. Same build, with `--edition=bread` set.
 
 ---
 
-## 6. Questions only Anthony can answer
+## 6. Anthony's decisions (9 Oct 2026)
 
-These are also in `data/Questions.csv` (Q225 to Q229).
+Also recorded in `data/Questions.csv` (Q225 to Q229).
 
-1. **Pure reskin, or different rules?** My default: identical rules and
-   numbers, only names, words, art and sound change.
-2. **Two library entries (Option B) or one game with a launch choice
-   (Option A)?** Default: A first, B later if wanted.
-3. **One save for both, switchable in Settings?** Default: yes, one save;
-   the edition can be changed any time.
-4. **How far does it go?** Only drinks, or also the beer-hall look, drunk
-   faces, the crowd's steins, the Pub? Default: anything that shows or names
-   alcohol is replaced; Bavaria and Oktoberfest stay.
-5. **The name of the bread edition.** Draft: "Sturmball: Brotzeit".
+1. **Pure reskin.** Same rules and numbers; only names, words, art and
+   sound change.
+2. **Option B.** A second Steam app, in the same package as the main game.
+3. **Separate saves**, with export and import between editions.
+4. **Everything** that shows or names alcohol is replaced: drinks, the
+   beer-hall UI look, drunk portraits, the crowd's steins, the Pub.
+   Bavaria and Oktoberfest stay.
+5. **Name: "Sturmball: Brotzeit".**
