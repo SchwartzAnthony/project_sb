@@ -2138,11 +2138,21 @@ You asked for both to be removed completely. What took their place:
   (Rheinfels Rangers), with any cards of that class (Teams.csv, Season.csv).
 - **First and second match:** the opposition (EnemyIntroSquad.csv,
   EnemyIntroSquad2.csv) are plain Normal players.
-- **Fire Brew:** anyone may drink it. He becomes a Rauhnacht-Feuergeist only
-  if he was already drunk enough BEFORE he drank it: the level with the word
-  `turns` in DrunkLevels.csv (Tipsy, 30%). Too sober and he only turns Fire
-  and gains its two abilities. Move `turns` to another level to change it.
-- **Water Brew:** anyone may drink it and counts as a Lorelei, the water class.
+- **Elemental beers (Anthony, 9 Oct):** the drunk meter has a new level,
+  **Elemental at 60%** (DrunkLevels.csv, effect word `turns`). A plain Normal
+  player who is already at 60% BEFORE he drinks an elemental beer turns:
+  class, element and abilities all at once. The Fire Brew makes him a
+  Rauhnacht-Feuergeist, the Water Brew a Lorelei, and each turning beer
+  (Smoke Beer, Rhine Water Lager, Miner's Dunkel, Unken Weisse) does it in
+  ONE pour now instead of three. Below 60% the beer only fills his meter.
+- **One element at a time:** an elemental player is refused a second
+  elemental beer. Give him a **Glass of Water** (Brews.csv `water_glass`,
+  Inspiration -30, free) until he is below 60%: he turns back to plain, and
+  once he is back up to 60% he can take a different one. Sobering after a
+  match does NOT turn him back - only water does.
+- **Your numbers:** move `turns` to another level to change the 60%, and
+  change the Inspiration of `water_glass` to make water stronger or weaker.
+  Any brew with a negative Inspiration sobers.
 - **Heatwave** is just "Heatwave" (a placeholder). His question is
   Rauhnacht-Feuergeister or Lorelei.
 - **Ability IDs:** BRAND_MASK_ATK, BRAND_RALLY, BRAND_SCORCH and

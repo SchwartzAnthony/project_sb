@@ -297,8 +297,10 @@ func _summary(entry: Dictionary) -> String:
 		bits.append(price)
 	if DrunkBook.on() and DrunkBook.inspiration(entry) > 0:
 		bits.append("+%d%% drunk" % DrunkBook.inspiration(entry))
+	elif DrunkBook.on() and DrunkBook.inspiration(entry) < 0:
+		bits.append("%d%% drunk" % DrunkBook.inspiration(entry))
 	if DrunkBook.on() and DrunkBook.is_plain(entry):
-		bits.insert(0, "plain beer")
+		bits.insert(0, "sobers him up" if DrunkBook.inspiration(entry) < 0 else "plain beer")
 	return " · ".join(bits)
 
 
@@ -310,6 +312,8 @@ func _legend_words() -> String:
 		var effects: Dictionary = level["effects"]
 		if effects.has("brews"):
 			does.append("brews take hold")
+		if effects.has("turns"):
+			does.append("elemental beers turn him")
 		if effects.has("star"):
 			does.append("plays as a Star")
 		if effects.has("turn_drinks"):
@@ -554,6 +558,12 @@ func _on_card(card: PlayerData) -> void:
 			_selected["name"], _selected["for_class"]]
 		return
 
+	# ONE ELEMENT AT A TIME (Anthony, 9 Oct): water first, then a new one.
+	var already := DrunkBook.elemental_refusal(card, _selected, state)
+	if already != "":
+		_detail.text = already
+		return
+
 	# ALWAYS POURED (Anthony, 8 Oct); too sober = it waits for Tipsy.
 	var sober := DrunkBook.refusal(card, _selected, state)
 
@@ -565,11 +575,11 @@ func _on_card(card: PlayerData) -> void:
 	var kept := BrewDB.is_permanent(card, state)
 	_detail.text = "%s drinks the %s.%s" % [card.player_name, _selected["name"],
 		"  It will stick until you remove it." if kept else "  It wears off after the next match."]
-	if sober != "" and DrunkBook.refusal(card, _selected, state) != "":
+	if DrunkBook.changes_class(_selected) and DrunkBook.refusal(card, _selected, state) != "":
+		# An elemental beer looks at his meter BEFORE he drank it.
+		_detail.text += "  " + DrunkBook.refusal(card, _selected, state)
+	elif sober != "" and DrunkBook.refusal(card, _selected, state) != "":
 		_detail.text += "  He is too sober for it to work yet (it needs %d%%)." % DrunkBook.threshold("brews")
-	if not DrunkBook.turns(card, _selected, state):
-		_detail.text += "  He was not drunk enough beforehand (%d%%) to become a %s." % [
-			DrunkBook.threshold("turns"), _selected["becomes"]]
 	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
 	_rebuild_cards()
 	var after := DrunkBook.level_of(card, state)
@@ -584,16 +594,22 @@ func _pour_plain(card: PlayerData) -> void:
 	if not BrewDB.can_afford(_selected, state):
 		_detail.text = "Not enough to pour it: %s." % BrewDB.cost_text(_selected, state)
 		return
-	if DrunkBook.meter(card, state) >= 100:
+	var sobering := DrunkBook.inspiration(_selected) < 0
+	if DrunkBook.meter(card, state) >= 100 and not sobering:
 		_detail.text = "%s cannot hold another drop." % card.player_name
 		return
 	var before := DrunkBook.level_of(card, state)
 	var was := DrunkBook.meter(card, state)
+	var elemental := DrunkBook.is_elemental(card, state)
 	BrewDB.pour(card, _selected, false, state)
 	state.save_to_disk()
 	var after := DrunkBook.level_of(card, state)
 	_detail.text = "%s drinks a %s. %d%% -> %d%%." % [card.player_name, _selected["name"],
 		was, DrunkBook.meter(card, state)]
+	# WATER TURNS HIM BACK (Anthony, 9 Oct).
+	if elemental and not DrunkBook.is_elemental(card, state):
+		_detail.text += "  He is a plain player again."
+		TransformBook.apply_all(cards, state)
 	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
 	_rebuild_cards()
 	_cheer(card, {"after": after,

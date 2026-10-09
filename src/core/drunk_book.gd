@@ -216,10 +216,11 @@ static func is_star(card: PlayerData, state: GameState) -> bool:
 ## How much of the meter this brew fills. A bottle's own Inspiration
 ## (Items.csv) beats the brew's, so a bought bottle can be weaker.
 static func inspiration(entry: Dictionary, item: Dictionary = {}) -> int:
+	# Below 0 SOBERS HIM UP - the Glass of Water (Anthony, 9 Oct).
 	var own := String(item.get("inspiration", "")).strip_edges()
 	if own.is_valid_int():
-		return maxi(0, int(own))
-	return maxi(0, int(entry.get("inspiration", 0)))
+		return int(own)
+	return int(entry.get("inspiration", 0))
 
 
 ## A plain beer only fills the meter: no new class, no ability.
@@ -242,6 +243,10 @@ static func needs_drunk(entry: Dictionary) -> bool:
 static func takes_hold(card: PlayerData, entry: Dictionary, state: GameState) -> bool:
 	if not on() or not needs_drunk(entry):
 		return true
+	# AN ELEMENTAL BEER is all or nothing: class, element and abilities come
+	# together, and only if he was drunk enough BEFORE he drank it.
+	if changes_class(entry) and threshold("turns") >= 0:
+		return turns(card, entry, state)
 	var gate := threshold("brews")
 	# ROUND AN (Anthony, 8 Oct): a drink used on the pitch takes less to
 	# take hold (it lasts only the cycle, and leaves him barely drunk).
@@ -256,20 +261,26 @@ static func refusal(card: PlayerData, entry: Dictionary, state: GameState) -> St
 	if takes_hold(card, entry, state):
 		return ""
 	var gate := threshold("brews")
+	if changes_class(entry) and threshold("turns") >= 0:
+		return "%s was only %d%% when he drank it. %s needs him at %d%% BEFORE he drinks it." % [
+			card.player_name, meter(card, state), String(entry.get("name", "That brew")),
+			threshold("turns")]
 	var level := level_of(card, state)
 	return "%s is only %s (%d%%). %s needs %d%% before it takes hold - pour him a plain beer first." % [
 		card.player_name, String(level.get("name", "sober")).to_lower(), meter(card, state),
 		String(entry.get("name", "That brew")), gate]
 
 
-## ROUND AN (Anthony, 9 Oct): THE FIRE BREW TURNS HIM ONLY IF HE WAS
-## ALREADY DRUNK ENOUGH. A brew with a Becomes (not a turning beer, which
-## counts its own drinks) changes his class only if his meter was at the
-## level carrying `turns` (DrunkLevels.csv) BEFORE this drink. Too sober
-## and he still gets the brew's element and abilities, once it takes hold.
+## ROUND AN (Anthony, 9 Oct): AN ELEMENTAL BEER TURNS A PLAIN PLAYER.
+## "60% needed and then drink any of the elemental beers to transform them
+## from normal to an elemental one." Any brew with a Becomes - the Fire and
+## Water Brews and the turning beers - takes hold only if his meter was at
+## the level carrying `turns` (DrunkLevels.csv) BEFORE this drink. Then the
+## class, element and abilities all come at once; too sober and the beer
+## only fills his meter. To change element he drinks water until he is
+## below that level again, which turns him back to plain (sober_up()).
 static func changes_class(entry: Dictionary) -> bool:
-	return String(entry.get("becomes", "")).strip_edges() != "" \
-		and int(entry.get("drinks", 0)) <= 0
+	return String(entry.get("becomes", "")).strip_edges() != ""
 
 
 static func _turns_key(card: PlayerData, entry: Dictionary) -> String:
@@ -277,8 +288,8 @@ static func _turns_key(card: PlayerData, entry: Dictionary) -> String:
 		+ CardDatabase._normalise(String(entry.get("id", "")))
 
 
-## Does this brew change his class? Only if he was drunk enough when he
-## drank it. Always true for a brew that changes no class.
+## Was he drunk enough when he drank this one? Always true for a brew that
+## changes no class, or when no level carries `turns`.
 static func turns(card: PlayerData, entry: Dictionary, state: GameState) -> bool:
 	if not on() or not changes_class(entry) or threshold("turns") < 0:
 		return true
@@ -294,14 +305,64 @@ static func drink(card: PlayerData, entry: Dictionary, state: GameState,
 	if changes_class(entry) and card != null and state != null:
 		var gate := threshold("turns")
 		state.set_count(_turns_key(card, entry), 1 if gate < 0 or was >= gate else 0)
-	var now := mini(100, was + inspiration(entry, item))
+	var now := clampi(was + inspiration(entry, item), 0, 100)
 	set_meter(card, now, state)
 	var after := level_of(card, state)
 	if now != was:
 		print("[drunk] %s %d%% -> %d%% (%s)." % [card.player_name, was, now,
 			String(after.get("name", ""))])
+	var back := now < was and sober_up(card, state)
 	return {"from": was, "to": now, "before": before, "after": after,
+		"turned_back": back,
 		"new_level": String(before.get("id", "")) != String(after.get("id", ""))}
+
+
+## Is he elemental already - turned, or wearing an elemental brew? Then a
+## second elemental beer is refused: water first (Anthony, 9 Oct).
+static func is_elemental(card: PlayerData, state: GameState) -> bool:
+	if card == null or state == null:
+		return false
+	if TransformBook.has_turned(card, state):
+		return true
+	for prefix in [BrewDB.TEMP_PREFIX, BrewDB.PERM_PREFIX]:
+		var brew := BrewDB.get_db().find(state.text(String(prefix) + BrewDB.card_key(card)))
+		if not brew.is_empty() and changes_class(brew):
+			return true
+	return false
+
+
+## The sentence for refusing a second elemental beer. "" = he may drink it.
+static func elemental_refusal(card: PlayerData, entry: Dictionary, state: GameState) -> String:
+	if not on() or threshold("turns") < 0 or not changes_class(entry) \
+			or not is_elemental(card, state):
+		return ""
+	return "%s is already elemental. Give him water until he is below %d%% to turn him back first." % [
+		card.player_name, threshold("turns")]
+
+
+## WATER TURNS HIM BACK (Anthony, 9 Oct): "If they want to switch from
+## Elemental to another, give them water, to reduce their drunkenness to get
+## below 60% to transform them back to normal." Called when a drink LOWERED
+## his meter: below the `turns` level he loses the class he turned into and
+## any elemental brew on him. (Sobering after a round does not do this - only
+## a drink does.) True = he was elemental and is plain again.
+static func sober_up(card: PlayerData, state: GameState) -> bool:
+	var gate := threshold("turns")
+	if not on() or gate < 0 or card == null or state == null or meter(card, state) >= gate:
+		return false
+	var back := false
+	if TransformBook.has_turned(card, state):
+		TransformBook.forget_player(card.player_name, state)
+		back = true
+	for prefix in [BrewDB.TEMP_PREFIX, BrewDB.PERM_PREFIX]:
+		var key := String(prefix) + BrewDB.card_key(card)
+		var brew := BrewDB.get_db().find(state.text(key))
+		if not brew.is_empty() and changes_class(brew):
+			state.set_text(key, "")
+			back = true
+	if back:
+		print("[drunk] %s is below %d%% - back to a plain player." % [card.player_name, gate])
+	return back
 
 
 ## ROUND AN (Anthony, 8 Oct): A ROUND IS OVER - a match or an Adventure

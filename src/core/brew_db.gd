@@ -169,7 +169,7 @@ func _load_csv(path: String) -> void:
 			"drinks": maxi(0, int(_cell(row, columns, "drinks"))) if _cell(row, columns, "drinks").is_valid_int() else 0,
 			# ============ THE DRUNK METER (round AN) ============
 			# How much of the meter one pour fills, in %. See drunk_book.gd.
-			"inspiration": maxi(0, int(_cell(row, columns, "inspiration"))) if _cell(row, columns, "inspiration").is_valid_int() else 0,
+			"inspiration": clampi(int(_cell(row, columns, "inspiration")), -100, 100) if _cell(row, columns, "inspiration").is_valid_int() else 0,
 			# ============ A POOL (round AN, plain beer) ============
 			# A word here puts the row in a lucky dip instead of on the Pub's
 			# list: an item whose Use is brew:pool:<word> picks one of them
@@ -483,8 +483,7 @@ func apply_one(card: PlayerData, state: GameState) -> bool:
 			% [card.player_name, entry.get("name", brew_id)])
 		return false
 	card.brew_id = brew_id
-	# Anthony, 9 Oct: the class change needs him drunk enough beforehand.
-	card.brew_unit_type = String(entry["becomes"]) if DrunkBook.turns(card, entry, state) else ""
+	card.brew_unit_type = String(entry["becomes"])
 	card.brew_element = String(entry.get("element", ""))
 	card.brew_attack_ability = String(entry["attack"])
 	card.brew_defend_ability = String(entry["defend"])
@@ -572,7 +571,7 @@ func _validate() -> void:
 		if String(entry["becomes"]).strip_edges() == "" \
 				and String(entry["attack"]).strip_edges() == "" \
 				and String(entry["defend"]).strip_edges() == "" \
-				and int(entry.get("inspiration", 0)) <= 0:
+				and int(entry.get("inspiration", 0)) == 0:
 			problems.append("%s: brew '%s' changes nothing — no Becomes, no abilities and no Inspiration"
 				% [entry["where"], entry["id"]])
 
