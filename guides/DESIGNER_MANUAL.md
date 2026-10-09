@@ -682,6 +682,37 @@ player-seconds a minute to about **65**.
 | `fresh_spot_ball_weight` | how much a fresh spot prefers being near the ball. `1.2` |
 | `open_spread` / `open_break` / `open_width` | now `90` / `70` / `50` (were 230 / 120 / 150) |
 
+**Moving for an opening, and cutting the lane (9 Oct).** Anthony: *"1 or 2
+people on the person that has the ball, but the rest are waiting for a pass
+... not standing there, but trying to move for an opening ... and trying to
+defend ... a back and forth that looks natural."*
+
+- The ring above used to say "never further than you already are", which
+  ratcheted the whole pitch in on the ball. Now the cap is the further of
+  *where he is* and *his own place in the shape* (the drift point, which
+  slides with the ball). He never goes past his place; he can go back to it.
+- **Showing for the pass:** every `open_rethink_seconds` (a little different
+  for each player) he looks at spots up to `open_search_radius` round his
+  place and goes to the most open one: away from defenders, a clear lane for
+  the ball, not on a team-mate, not too near the ball.
+- **Marking:** the marker leans `mark_lane_cut` off his man toward the ball,
+  into the lane, which sends the attacker off to find another opening.
+- **Seeing the ball:** an arrow in his side's colour floats over the man on
+  the ball (`ball_carrier_marker_height` / `_size`), his ring pulses, the
+  name plates of players not involved fade (`bystander_plate_alpha`), and
+  during play only players going for the ball get a line
+  (`intent_lines_chasers_only`). Z still shows everything.
+
+| Tuning row | |
+|---|---|
+| `open_search_radius` | how far round his place he looks for an opening. `110` px |
+| `open_rethink_seconds` | how long he goes for one before looking again. `1.4` |
+| `mark_lane_cut` | how far a marker leans into the passing lane. `50` px |
+| `open_support_min` / `mark_keep_off` | now `230` / `160` px from the ball |
+| `bystander_plate_alpha` | name plates of players not involved, in open play. `0.35`. `1` = off |
+| `intent_lines_chasers_only` | `true` = lines only for players going for the ball |
+| `ball_carrier_marker_height` / `ball_carrier_marker_size` | the arrow over the carrier. `74` / `15` |
+
 **See it in the game:** press **Z** in a match. On top of the zone map you get
 the gold **ball range** circle, a gold cross where the ball will land, every
 player's **job word** (gold = the ball is in his range, `sprint` = going

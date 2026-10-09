@@ -43,6 +43,9 @@ var edge_keep := 0.10
 ## zone map too, every unit gets its line to where it is heading - blue for
 ## yours, red for theirs. Tuning.csv intent_lines_alpha; 0 = off.
 var intent_lines_alpha := 0.0
+## ROUND AN (9 Oct): only the players going for the ball get a line during
+## play (Tuning.csv intent_lines_chasers_only). The Z map still draws all.
+var intent_lines_chasers_only := true
 ## The quarter tint itself (Tuning.csv zones off = false, lines only).
 var tint := true
 var linger_seconds := 2.5
@@ -193,8 +196,13 @@ func _draw_intent(strength: float) -> void:
 		return
 	for u in units_source.call():
 		var unit := u as PlayerUnit
-		if unit != null and is_instance_valid(unit):
-			_intent_line(unit, strength)
+		if unit == null or not is_instance_valid(unit):
+			continue
+		# ROUND AN (Anthony, 9 Oct: "way too cluttered"). Outside the zone
+		# map only the players going for the ball get a line; Z shows all.
+		if intent_lines_chasers_only and not unit._is_chasing():
+			continue
+		_intent_line(unit, strength)
 
 
 ## One unit's line to where it is heading: blue for yours, red for theirs.

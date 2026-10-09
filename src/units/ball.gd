@@ -70,6 +70,12 @@ signal delivery_arrived
 ## Ring drawn at the carrier's feet. 0 turns it off.
 @export var ring_radius: float = 17.0
 @export var ring_width: float = 2.5
+## ROUND AN (Anthony, 9 Oct: "now we don't see who has the ball as it is way
+## too cluttered"). A marker floating over the carrier's head, above his name
+## plate, in his side's colour: how far above his feet (screen px, 0 = off)
+## and how big.
+@export var carrier_marker_height: float = 74.0
+@export var carrier_marker_size: float = 15.0
 @export var ring_ally: Color = Color(0.55, 0.85, 1.0, 0.85)
 @export var ring_enemy: Color = Color(1.0, 0.55, 0.5, 0.85)
 
@@ -157,8 +163,31 @@ func _draw_possession_ring() -> void:
 	if ring_radius <= 0.0 or not is_instance_valid(carrier):
 		return
 	var colour := ring_enemy if carrier.is_enemy else ring_ally
-	draw_arc(carrier.global_position - global_position, ring_radius,
+	# A pulse, so the eye finds the one ring on the pitch that is moving.
+	var pulse := 1.0 + 0.18 * sin(float(Time.get_ticks_msec()) * 0.008)
+	draw_arc(carrier.global_position - global_position, ring_radius * pulse,
 		0.0, TAU, 28, colour, ring_width, true)
+	_draw_carrier_marker(colour)
+
+
+## The arrow over the man on the ball: drawn flat to the SCREEN (the pitch is
+## tilted, and a triangle drawn in its plane comes out squashed), solid, with
+## a dark outline so it reads over grass, crowd and name plates alike.
+func _draw_carrier_marker(colour: Color) -> void:
+	if carrier_marker_height <= 0.0 or carrier_marker_size <= 0.0:
+		return
+	var to_screen := get_global_transform_with_canvas()
+	var feet := to_screen * (carrier.global_position - global_position)
+	var bob := 3.0 * sin(float(Time.get_ticks_msec()) * 0.006)
+	var tip := feet + Vector2(0.0, -carrier_marker_height + bob)
+	draw_set_transform_matrix(to_screen.affine_inverse())
+	var k := carrier_marker_size
+	var points := PackedVector2Array([tip, tip + Vector2(-k, -k * 1.3), tip + Vector2(k, -k * 1.3)])
+	var solid := Color(colour, 1.0)
+	draw_colored_polygon(points, solid)
+	points.append(tip)
+	draw_polyline(points, Color(0.05, 0.05, 0.08, 0.95), 2.0, true)
+	draw_set_transform_matrix(Transform2D.IDENTITY)
 
 
 func _physics_process(delta: float) -> void:

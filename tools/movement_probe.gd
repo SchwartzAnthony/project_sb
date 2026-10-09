@@ -36,6 +36,8 @@ const NEAR := 140.0
 ## stroll with the ball behind his direction of travel. And how much of that
 ## was toward a touchline or an end line.
 var _away_by_role := {}
+## Who is within 240 px of the ball, by job, summed over frames.
+var _near_role := {}
 var _away_to_edge := {}
 const ROLE_WORDS := ["HOLD", "MARK", "OPEN", "PRESS", "BALL", "RECEIVE", "DRIBBLE", "SURGE", "RECOVER"]
 var _film := false
@@ -195,7 +197,12 @@ func _count_crowd(units: Array, ball) -> void:
 		return
 	var near := 0
 	var chasers := 0
+	var wide := 0
 	for unit in units:
+		if unit.global_position.distance_to(ball.global_position) < 240.0:
+			wide += 1
+			var word: String = ROLE_WORDS[clampi(unit.role, 0, ROLE_WORDS.size() - 1)]
+			_near_role[word] = _near_role.get(word, 0) + 1
 		if unit.global_position.distance_to(ball.global_position) < NEAR:
 			near += 1
 		if unit.role == PlayerUnit.Role.BALL or unit.role == PlayerUnit.Role.PRESS:
@@ -207,6 +214,7 @@ func _count_crowd(units: Array, ball) -> void:
 	_crowd["chasers_max"] = maxi(_crowd["chasers_max"], chasers)
 	if near >= 6:
 		_crowd["piles"] += 1
+	_crowd["wide_sum"] = _crowd.get("wide_sum", 0) + wide
 
 
 func _report(measured: float) -> void:
@@ -220,6 +228,12 @@ func _report(measured: float) -> void:
 	var f: float = maxf(1.0, float(_crowd["frames"]))
 	print("[probe] near the ball (%d px): %.1f on average, %d at worst, 6+ for %.0f%% of the time" % [
 		int(NEAR), _crowd["near_sum"] / f, _crowd["near_max"], 100.0 * _crowd["piles"] / f])
+	print("[probe] within 240 px of the ball: %.1f on average (of the whole pitch)" % [
+		_crowd.get("wide_sum", 0) / f])
+	var who := []
+	for word in _near_role:
+		who.append("%s %.1f" % [word, _near_role[word] / f])
+	print("[probe]   of them: %s" % ", ".join(who))
 	print("[probe] going for it (BALL/PRESS): %.1f on average, %d at worst" % [
 		_crowd["chasers_sum"] / f, _crowd["chasers_max"]])
 	print("[probe] %.1f s of open play measured" % measured)
