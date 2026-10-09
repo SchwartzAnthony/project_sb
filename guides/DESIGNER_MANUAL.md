@@ -2171,6 +2171,16 @@ You asked for both to be removed completely. What took their place:
   and every Brandteufel and Rivals art file in assets/ and art_source/.
   Older sections of this manual still name them as history.
 
+### One main Emblem for the whole match (round AN, 9 Oct)
+
+You decided: "We will just do 3 cycles for one main Emblem." With
+`emblem_whole_match` true (Tuning.csv, on by default) the Emblem on the
+field is the one belonging to the Star who **starts** the match, and it
+stays there through all three cycles while the Stars still switch as usual.
+Its race has the whole match to reach the Ultimate. You choose your Emblem by
+choosing who starts. The other side works the same way. Set it to false to
+go back to `emblem_follows_star` (a new Emblem with every Star).
+
 ### Round AB: your testing notes
 
 | you said | now |

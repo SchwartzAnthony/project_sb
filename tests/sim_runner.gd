@@ -225,15 +225,21 @@ func _play_match(r: Dictionary) -> void:
 	var match_ticks := 0
 	var home_attacks := rng.randf() < 0.5
 
+	# ROUND AN (Anthony, 9 Oct): one main Emblem for all three cycles - the
+	# first Star's - when Tuning.csv emblem_whole_match is on.
+	var whole_match := db.tune_bool("emblem_whole_match", true)
 	for cycle in cycles:
 		e.begin_cycle()
 		var star_now := {}
 		for side in [false, true]:
 			var stars: Array[PlayerData] = teams[side]["stars"]
 			star_now[side] = stars[cycle % stars.size()] if not stars.is_empty() else null
+			var emblem_star: PlayerData = star_now[side]
+			if whole_match and not stars.is_empty():
+				emblem_star = stars[0]
 			var badges: Array = []
-			if star_now[side] != null:
-				badges.append_array(EmblemBook.on_the_field([star_now[side]]))
+			if emblem_star != null:
+				badges.append_array(EmblemBook.on_the_field([emblem_star]))
 			e.set_emblems(side, badges)
 		for round_i in per_cycle:
 			var lineup := {false: [], true: []}

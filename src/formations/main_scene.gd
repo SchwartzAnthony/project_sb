@@ -367,6 +367,10 @@ var available_player_stars: Array[PlayerData] = []
 var available_enemy_stars: Array[PlayerData] = []
 var active_player_star: PlayerData = null
 var active_enemy_star: PlayerData = null
+## ROUND AN (Anthony, 9 Oct: "3 cycles for one main Emblem"): the Star whose
+## Emblem is on the field for the WHOLE match - the one who starts it. Kept
+## per side {false: you, true: them}; cleared when a new match opens.
+var _match_emblem_star := {false: null, true: null}
 var player_star_tier: String = ""
 var enemy_star_tier: String = ""
 
@@ -7622,6 +7626,10 @@ func _my_cards() -> Array[PlayerData]:
 	# ROUND AA: AN EMBLEM IS ON THE FIELD ONLY WHILE ITS STAR IS. "When the
 	# star player leaves, it takes their emblem with them and the new star
 	# player brings their own." `emblem_follows_star` FALSE puts back all three.
+	var main := _main_emblem_star(false)
+	if main != null:
+		out.append(main)
+		return out
 	if db == null or db.tune_bool("emblem_follows_star", true):
 		var on_pitch := active_player_star
 		if on_pitch == null:
@@ -7650,6 +7658,7 @@ func _open_emblem_bar() -> void:
 	# ROUND AB: A NEW MATCH, A NEW RACE. Nothing reset the Emblems between
 	# matches before, so a count could carry over in the save.
 	EmblemBook.new_match(state)
+	_match_emblem_star = {false: null, true: null}
 	# ROUND AC (your Q063): THE AI RACES TOO. Its counters live in a save of
 	# their own that is never written to disk - a fresh one every match.
 	enemy_race = GameState.new()
@@ -7866,6 +7875,10 @@ var match_tracker: MatchTracker = null
 ## one on the pitch now (`emblem_follows_star`).
 func _stars_of(side_is_enemy: bool) -> Array[PlayerData]:
 	var out: Array[PlayerData] = []
+	var main := _main_emblem_star(side_is_enemy)
+	if main != null:
+		out.append(main)
+		return out
 	var on_pitch: PlayerData = active_enemy_star if side_is_enemy else active_player_star
 	if db == null or db.tune_bool("emblem_follows_star", true):
 		if on_pitch != null:
@@ -7879,6 +7892,25 @@ func _stars_of(side_is_enemy: bool) -> Array[PlayerData]:
 	if on_now != null and not out.has(on_now):
 		out.append(on_now)
 	return out
+
+
+## ONE MAIN EMBLEM FOR ALL THREE CYCLES (Anthony, 9 Oct). With Tuning.csv
+## `emblem_whole_match` true, the Emblem on the field is the one belonging to
+## the Star who STARTS the match, and it stays when the Stars switch - so its
+## race has the whole match to reach the Ultimate. null = the setting is off
+## (then `emblem_follows_star` decides, as before) or no Star is out yet.
+func _main_emblem_star(side_is_enemy: bool) -> PlayerData:
+	if db == null or not db.tune_bool("emblem_whole_match", true):
+		return null
+	if _match_emblem_star[side_is_enemy] == null:
+		var first: PlayerData = active_enemy_star if side_is_enemy else active_player_star
+		if first == null and not side_is_enemy:
+			for unit in _all_units():
+				if not unit.is_enemy and unit.is_star_player and unit.data != null:
+					first = unit.data
+					break
+		_match_emblem_star[side_is_enemy] = first
+	return _match_emblem_star[side_is_enemy]
 
 
 ## Tell the engine who is on the pitch and which Emblems each side carries.
