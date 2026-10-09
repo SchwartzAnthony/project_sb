@@ -524,9 +524,19 @@ func _play_round(s: Dictionary, plan: Dictionary, logging: bool) -> Dictionary:
 				if star == null:
 					star = stars[int(s["cycle"]) % stars.size()]
 			s["star_now"][side] = star
+			# ONE MAIN EMBLEM (Anthony, 9 Oct): the Star who starts the match
+			# keeps his Emblem on the field for all three cycles, when
+			# Tuning.csv emblem_whole_match is on - as in the game.
+			if not s.has("emblem_star"):
+				s["emblem_star"] = {}
+			var emblem_star: PlayerData = star
+			if db.tune_bool("emblem_whole_match", true):
+				if not (s["emblem_star"] as Dictionary).has(side):
+					s["emblem_star"][side] = star
+				emblem_star = s["emblem_star"][side]
 			var badges: Array = []
-			if star != null:
-				badges.append_array(EmblemBook.on_the_field([star]))
+			if emblem_star != null:
+				badges.append_array(EmblemBook.on_the_field([emblem_star]))
 			e.set_emblems(side, badges)
 		out["stars"] = {"home": s["star_now"][HOME].player_name if s["star_now"][HOME] != null else "",
 			"away": s["star_now"][AWAY].player_name if s["star_now"][AWAY] != null else ""}
