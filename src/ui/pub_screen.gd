@@ -567,6 +567,9 @@ func _on_card(card: PlayerData) -> void:
 		"  It will stick until you remove it." if kept else "  It wears off after the next match."]
 	if sober != "" and DrunkBook.refusal(card, _selected, state) != "":
 		_detail.text += "  He is too sober for it to work yet (it needs %d%%)." % DrunkBook.threshold("brews")
+	if not DrunkBook.turns(card, _selected, state):
+		_detail.text += "  He was not drunk enough beforehand (%d%%) to become a %s." % [
+			DrunkBook.threshold("turns"), _selected["becomes"]]
 	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
 	_rebuild_cards()
 	var after := DrunkBook.level_of(card, state)

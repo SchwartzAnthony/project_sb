@@ -4696,6 +4696,9 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 	# THE BOTTLE FILLS THE DRUNK METER by its own Inspiration (Items.csv),
 	# or the brew's if it has none - a bought bottle can be weaker.
 	DrunkBook.drink(card, brew, state, entry)
+	if not DrunkBook.turns(card, brew, state):
+		print("[brew] %s was not drunk enough beforehand to become a %s." % [
+			card.player_name, brew.get("becomes", "?")])
 	# THE BOTTLE IS THE COST. pour() would also charge the brew's material
 	# Cost, which is what the Brewery already took to make it — so the overlay
 	# is laid on directly rather than going through the Pub's till.

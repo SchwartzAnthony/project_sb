@@ -483,7 +483,8 @@ func apply_one(card: PlayerData, state: GameState) -> bool:
 			% [card.player_name, entry.get("name", brew_id)])
 		return false
 	card.brew_id = brew_id
-	card.brew_unit_type = String(entry["becomes"])
+	# Anthony, 9 Oct: the class change needs him drunk enough beforehand.
+	card.brew_unit_type = String(entry["becomes"]) if DrunkBook.turns(card, entry, state) else ""
 	card.brew_element = String(entry.get("element", ""))
 	card.brew_attack_ability = String(entry["attack"])
 	card.brew_defend_ability = String(entry["defend"])

@@ -29,6 +29,11 @@ extends RefCounted
 #                                                    with the ability from
 #                                                    StarAbilities.csv
 #                                   turn_drinks:-2   two fewer turning beers
+#                                   turns            a brew with a Becomes
+#                                                    (the Fire Brew) changes
+#                                                    his class only if he was
+#                                                    this drunk BEFORE he
+#                                                    drank it (Anthony, 9 Oct)
 #      StarAbilities.csv        the star ability by Tier and Power.
 #
 #  ============ WHERE IT LIVES ============
@@ -42,6 +47,9 @@ extends RefCounted
 # =============================================================
 
 const PREFIX := "drunk_"
+## Was he drunk enough to turn when he drank this brew? One counter per
+## player and brew: drunk_turns_<name>_<brew id>, 1 = yes.
+const TURNS_PREFIX := "drunk_turns_"
 const LEVELS_FILE := "res://data/DrunkLevels.csv"
 const STARS_FILE := "res://data/StarAbilities.csv"
 
@@ -254,12 +262,38 @@ static func refusal(card: PlayerData, entry: Dictionary, state: GameState) -> St
 		String(entry.get("name", "That brew")), gate]
 
 
+## ROUND AN (Anthony, 9 Oct): THE FIRE BREW TURNS HIM ONLY IF HE WAS
+## ALREADY DRUNK ENOUGH. A brew with a Becomes (not a turning beer, which
+## counts its own drinks) changes his class only if his meter was at the
+## level carrying `turns` (DrunkLevels.csv) BEFORE this drink. Too sober
+## and he still gets the brew's element and abilities, once it takes hold.
+static func changes_class(entry: Dictionary) -> bool:
+	return String(entry.get("becomes", "")).strip_edges() != "" \
+		and int(entry.get("drinks", 0)) <= 0
+
+
+static func _turns_key(card: PlayerData, entry: Dictionary) -> String:
+	return TURNS_PREFIX + CardDatabase._normalise(card.player_name) + "_" \
+		+ CardDatabase._normalise(String(entry.get("id", "")))
+
+
+## Does this brew change his class? Only if he was drunk enough when he
+## drank it. Always true for a brew that changes no class.
+static func turns(card: PlayerData, entry: Dictionary, state: GameState) -> bool:
+	if not on() or not changes_class(entry) or threshold("turns") < 0:
+		return true
+	return state != null and card != null and state.count(_turns_key(card, entry)) > 0
+
+
 ## One drink: the meter goes up by the brew's Inspiration. Returns the
 ## level he was on and the one he is on now, so the Pub can cheer a new one.
 static func drink(card: PlayerData, entry: Dictionary, state: GameState,
 		item: Dictionary = {}) -> Dictionary:
 	var before := level_of(card, state)
 	var was := meter(card, state)
+	if changes_class(entry) and card != null and state != null:
+		var gate := threshold("turns")
+		state.set_count(_turns_key(card, entry), 1 if gate < 0 or was >= gate else 0)
 	var now := mini(100, was + inspiration(entry, item))
 	set_meter(card, now, state)
 	var after := level_of(card, state)
@@ -386,6 +420,6 @@ static func problems() -> Array[String]:
 			out.append("StarAbilities.csv: '%s' is not in Abilities.csv" % row["ability"])
 	for level in _levels:
 		for verb in (level["effects"] as Dictionary).keys():
-			if not String(verb) in ["brews", "star", "turn_drinks"]:
-				out.append("DrunkLevels.csv %s: '%s' is not an effect the game knows (brews, star, turn_drinks)" % [level["id"], verb])
+			if not String(verb) in ["brews", "star", "turn_drinks", "turns"]:
+				out.append("DrunkLevels.csv %s: '%s' is not an effect the game knows (brews, star, turn_drinks, turns)" % [level["id"], verb])
 	return out

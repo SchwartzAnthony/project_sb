@@ -2138,11 +2138,13 @@ You asked for both to be removed completely. What took their place:
   (Rheinfels Rangers), with any cards of that class (Teams.csv, Season.csv).
 - **First and second match:** the opposition (EnemyIntroSquad.csv,
   EnemyIntroSquad2.csv) are plain Normal players.
-- **Fire Brew:** anyone may drink it. Nobody changes class (fire is not the
-  Rauhnacht-Feuergeister); they turn Fire and gain its two abilities.
+- **Fire Brew:** anyone may drink it. He becomes a Rauhnacht-Feuergeist only
+  if he was already drunk enough BEFORE he drank it: the level with the word
+  `turns` in DrunkLevels.csv (Tipsy, 30%). Too sober and he only turns Fire
+  and gains its two abilities. Move `turns` to another level to change it.
 - **Water Brew:** anyone may drink it and counts as a Lorelei, the water class.
-- **Heatwave** is just "Heatwave". His question is Rauhnacht-Feuergeister
-  or Lorelei.
+- **Heatwave** is just "Heatwave" (a placeholder). His question is
+  Rauhnacht-Feuergeister or Lorelei.
 - **Ability IDs:** BRAND_MASK_ATK, BRAND_RALLY, BRAND_SCORCH and
   BRAND_CALLED_SHOT are now FIRE_MASK_ATK, FIRE_RALLY, FIRE_SCORCH and
   CALLED_SHOT. Furnace Rally fires up every Rauhnacht-Feuergeist.

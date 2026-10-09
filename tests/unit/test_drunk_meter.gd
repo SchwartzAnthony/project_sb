@@ -139,3 +139,28 @@ func test_a_sober_turning_beer_only_fills_the_meter() -> void:
 	assert_true(bool(result["ok"]), "always poured")
 	assert_eq(int(result["count"]), 0, "too sober - it does not count towards turning")
 	assert_true(DrunkBook.meter(plain, state) > 0, "but it filled his meter")
+
+
+func test_the_fire_brew_turns_only_a_player_already_drunk_enough() -> void:
+	# Anthony, 9 Oct: the Fire Brew makes him a Rauhnacht-Feuergeist only if
+	# he had the right drunk level BEFORE he drank it.
+	var fire := brews.find("fire")
+	var gate := DrunkBook.threshold("turns")
+	assert_gt(gate, 0, "a level carries the word turns")
+	assert_eq(String(fire["becomes"]), "Rauhnacht-Feuergeister")
+
+	# Just below the gate: this drink lifts him past it, but that is too late.
+	DrunkBook.set_meter(plain, gate - 1, state)
+	BrewDB.pour(plain, fire, false, state)
+	assert_false(DrunkBook.turns(plain, fire, state))
+	brews.apply_all(db, state)
+	assert_eq(plain.brew_id, "fire", "the brew still takes hold")
+	assert_eq(plain.active_unit_type(), "Lorelei", "but he keeps his class")
+	BrewDB.restore_all()
+
+	# Drunk enough beforehand: he turns.
+	DrunkBook.set_meter(plain, gate, state)
+	BrewDB.pour(plain, fire, false, state)
+	assert_true(DrunkBook.turns(plain, fire, state))
+	brews.apply_all(db, state)
+	assert_eq(plain.active_unit_type(), "Rauhnacht-Feuergeister")
