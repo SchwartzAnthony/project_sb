@@ -2146,13 +2146,20 @@ You asked for both to be removed completely. What took their place:
   (Smoke Beer, Rhine Water Lager, Miner's Dunkel, Unken Weisse) does it in
   ONE pour now instead of three. Below 60% the beer only fills his meter.
 - **One element at a time:** an elemental player is refused a second
-  elemental beer. Give him a **Glass of Water** (Brews.csv `water_glass`,
-  Inspiration -30, free) until he is below 60%: he turns back to plain, and
-  once he is back up to 60% he can take a different one. Sobering after a
-  match does NOT turn him back - only water does.
-- **Your numbers:** move `turns` to another level to change the 60%, and
-  change the Inspiration of `water_glass` to make water stronger or weaker.
-  Any brew with a negative Inspiration sobers.
+  elemental beer. A **Bottle of Water** (Items.csv `water_bottle`, pours
+  Brews.csv `water_glass`, Inspiration -30) used on him in a match takes 30%
+  off; below 60% he is plain again and can take a different element once he
+  is back up to 60%.
+- **The end of every game turns everyone back to plain** (Anthony, 9 Oct),
+  Pub brews and turning beers alike. The drunk meter still only halves.
+- **Water is not free and not at the Pub.** Only the Traveling Merchant sells
+  it (Shop.csv `trade_water`, 20 coins, DRAFT). He is **moody**: Shop.csv has
+  a new **Mood** column, `-50|25` = his price is anywhere from half to a
+  quarter more, and it changes after every match. Put a range on any row to
+  make it moody; blank = a fixed price.
+- **Your numbers:** move `turns` to another level to change the 60%; change
+  the Inspiration of `water_bottle` (or `water_glass`) for stronger water;
+  change trade_water's Price and Mood for what he charges.
 - **Heatwave** is just "Heatwave" (a placeholder). His question is
   Rauhnacht-Feuergeister or Lorelei.
 - **Ability IDs:** BRAND_MASK_ATK, BRAND_RALLY, BRAND_SCORCH and

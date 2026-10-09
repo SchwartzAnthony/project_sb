@@ -218,3 +218,36 @@ func test_water_above_sixty_keeps_him_elemental() -> void:
 	BrewDB.pour(normal, brews.find("water_glass"), false, state)
 	assert_gte(DrunkBook.meter(normal, state), 60)
 	assert_true(DrunkBook.is_elemental(normal, state))
+
+
+func test_the_end_of_a_game_turns_everyone_back() -> void:
+	# Anthony, 9 Oct: they lose their element at the end of each game.
+	var normal := _a_normal_card()
+	DrunkBook.set_meter(normal, 100, state)
+	BrewDB.pour(normal, brews.find("fire"), true, state)
+	assert_true(DrunkBook.is_elemental(normal, state))
+	DrunkBook.after_round([normal], state, db)
+	assert_false(DrunkBook.is_elemental(normal, state), "plain again after the game")
+	assert_gt(DrunkBook.meter(normal, state), 0, "still a bit drunk, though")
+
+
+func test_water_is_sold_by_a_moody_merchant() -> void:
+	# Anthony, 9 Oct: not free, only from the vendor, -50% to +25%.
+	assert_eq(String(brews.find("water_glass")["pool"]), "water", "never poured at the Pub")
+	var row: Dictionary = {}
+	for one in ShopBook.shelf():
+		if String(one["id"]) == "trade_water":
+			row = one
+	assert_false(row.is_empty(), "Shop.csv sells the water")
+	assert_gt(int(row["price"]), 0, "water is not free")
+	var seen: Dictionary = {}
+	for day in 40:
+		state.set_count("matches_played", day)
+		var feel := ShopBook.mood(row, state)
+		assert_between(feel, -50, 25)
+		var price := ShopBook.price_of(row, state)
+		assert_between(price, int(round(int(row["price"]) * 0.5)), int(round(int(row["price"]) * 1.25)))
+		seen[price] = true
+	assert_gt(seen.size(), 3, "his price moves from game to game")
+	state.set_count("matches_played", 7)
+	assert_eq(ShopBook.price_of(row, state), ShopBook.price_of(row, state), "the same all game")

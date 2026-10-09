@@ -343,12 +343,21 @@ static func elemental_refusal(card: PlayerData, entry: Dictionary, state: GameSt
 ## WATER TURNS HIM BACK (Anthony, 9 Oct): "If they want to switch from
 ## Elemental to another, give them water, to reduce their drunkenness to get
 ## below 60% to transform them back to normal." Called when a drink LOWERED
-## his meter: below the `turns` level he loses the class he turned into and
-## any elemental brew on him. (Sobering after a round does not do this - only
-## a drink does.) True = he was elemental and is plain again.
+## his meter: below the `turns` level he is plain again. True = he was
+## elemental and is plain now.
 static func sober_up(card: PlayerData, state: GameState) -> bool:
 	var gate := threshold("turns")
 	if not on() or gate < 0 or card == null or state == null or meter(card, state) >= gate:
+		return false
+	return turn_back(card, state)
+
+
+## Plain again: the class he turned into and any elemental brew on him go.
+## Water does it below 60%, and the END OF EVERY GAME does it to everyone who
+## played (Anthony, 9 Oct: "they are supposed to lose their elemental at the
+## end of each game"). True = he was elemental.
+static func turn_back(card: PlayerData, state: GameState) -> bool:
+	if card == null or state == null:
 		return false
 	var back := false
 	if TransformBook.has_turned(card, state):
@@ -361,7 +370,7 @@ static func sober_up(card: PlayerData, state: GameState) -> bool:
 			state.set_text(key, "")
 			back = true
 	if back:
-		print("[drunk] %s is below %d%% - back to a plain player." % [card.player_name, gate])
+		print("[drunk] %s is a plain player again." % card.player_name)
 	return back
 
 
@@ -379,6 +388,9 @@ static func after_round(cards: Array, state: GameState, db: CardDatabase) -> int
 	for card in cards:
 		if card == null or not (card is PlayerData):
 			continue
+		# THE GAME IS OVER, SO IS THE ELEMENT (Anthony, 9 Oct).
+		if on() and threshold("turns") >= 0 and turn_back(card, state):
+			many += 1
 		var was := meter(card, state)
 		if was <= 0:
 			continue
