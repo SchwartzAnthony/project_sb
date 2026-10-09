@@ -30,6 +30,14 @@ from Anthony.
 - **The sacrifice:** to use a player in Conquests, you "sacrifice" them to the
   infinite realm. From then on they can be drafted in this mode indefinitely.
 
+## Mods and the score board
+
+Anthony, 9 Oct: **players can mod the game, but then the score board is
+inactive and the score cannot be posted.** A modded game still plays; its
+runs just never reach the board. (Conquests is the only mode with a board
+so far, so this is where it bites. The rule reads as game-wide: any future
+board would follow it too.)
+
 ## The banner
 
 A flag on the top row with the others, but **a black infinity symbol on it,
