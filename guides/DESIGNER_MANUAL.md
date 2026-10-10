@@ -7582,3 +7582,24 @@ It is left out of both tutorials, where the row is already full.
   (team music). Put one in place of the lud_ name to try it.
 - **Credits:** every new file has a line in `data/SoundCredits.csv`, and
   `tools/make_bavarian_sfx.py` now keeps those lines when it rewrites the file.
+
+### The overnight sound check (10 Oct, night)
+
+`tools/sound_playback_check.gd` plays the game's moments through the real
+sound system and says which track and sound each one gets. It found and
+fixed four things:
+
+- **The goal cheer was really too loud because of Juice.csv.** Juice.csv has
+  When and Sound columns, so it was also read as a sound sheet, and its
+  goal_scored row played the OLD crowd_goal.ogg at full volume on every
+  goal. Only sheets with a `Bus` column are sound sheets now; Juice still
+  plays its own sounds by name.
+- **The drinking window was silent.** `drink_big` and `drink_burp` had no
+  When, but the window fires them as moments. Their When is filled in.
+- **Pouring in the Pub made no sound** (brew_drunk never reached the sound
+  system). It does now: `brew_pour` (Match `where=pub`).
+- **Drinking from the bag on the pitch** now has gulps: new row
+  `drink_pitch` (Match `where=pitch`), using your Suno drink sound once it
+  is there.
+
+Run it with `godot --headless --path . --script res://tools/sound_playback_check.gd`.

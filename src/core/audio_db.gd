@@ -159,6 +159,13 @@ func _load_csv(path: String) -> void:
 	# file in the project has both, so yours can be called anything.
 	if not (columns.has("when") and columns.has("sound")):
 		return
+	# ROUND AN (10 Oct): AND A BUS. Juice.csv has When and Sound too, so it
+	# was read as a sound sheet: its goal_scored row played the OLD
+	# crowd_goal.ogg at full volume on every goal, on top of goal_horn and
+	# the quieter crowd_goal row - the "cheering is too loud". Juice plays
+	# its sounds by name itself (cue_by_name), so it is skipped here.
+	if not columns.has("bus"):
+		return
 
 	var short_name := path.get_file()
 	var buses := GameSettings.bus_names()

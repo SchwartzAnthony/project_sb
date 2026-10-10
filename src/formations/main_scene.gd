@@ -4821,6 +4821,9 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 	var drinker := unit_for_card(card, false)
 	if drinker != null:
 		drinker.play_drink()
+	# And it is heard: Audio.csv rows on `brew_drunk` with where=pitch.
+	AudioDirector.fire(get_tree(), "brew_drunk", {"where": "pitch", "brew": brew_id,
+		"class": card.unit_type, "tier": card.get_tier_clean()}, state)
 	# ROUND AN - PLAIN BEER: the lucky dip says what came out of the bottle.
 	var luck := ""
 	if String(brew.get("pool", "")) != "":
