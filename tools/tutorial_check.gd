@@ -31,13 +31,14 @@ const STOPS: Array[String] = ["tut-kickoff", "tut-tier1", "tut-tier2", "tut-tier
 	"tut-duel-start", "tut-duel-priority", "tut-duel-ability-1", "tut-duel-ability-2",
 	"tut-duel-power", "tut-duel-result", "tut-shot", "tut-exhaust",
 	"tut-timeout-call", "tut-timeout-inspiration", "tut-koch-ability",
-	"tut-combo", "tut-combo-2",
-	"tut-timeout2-call", "tut-timeout-cursed", "tut-koch-earth"]
+	"tut-referee", "tut-combo", "tut-combo-2",
+	"tut-timeout2-call", "tut-timeout-cursed", "tut-koch-earth", "tut-keeper-tip"]
 
 var _results: Array[String] = []
 var _failed := false
 var _seen: Array[String] = []
 var _stop_index := 0
+var _keeper_drains := 0
 var _windowed := false
 
 
@@ -92,6 +93,7 @@ func _initialize() -> void:
 	await _play(scene)
 	for stop in STOPS:
 		_check(_seen.has(stop), "the coach stopped: %s" % stop)
+	_check(int(_keeper_drains) > 0, "Koch's Earth Courage opened the keeper's window (%d times)" % int(_keeper_drains))
 
 	# ---- 4. the base ----
 	await _wait_for_scene("base", 30.0)
@@ -214,6 +216,18 @@ func _play(scene: Node) -> void:
 			for child in brewery.get_children():
 				if child.has_method("leave"):
 					child.call("leave")
+			continue
+		var shot_view = scene.get("shootout")
+		if shot_view != null and bool(shot_view.get("draining")):
+			if int(shot_view.get("drains_shown")) > _keeper_drains:
+				_keeper_drains = int(shot_view.get("drains_shown"))
+				if _keeper_drains == 1:
+					await create_timer(0.3, true, false, true).timeout
+					await _shot_one("keeper_drain_before")
+					await create_timer(0.9, true, false, true).timeout
+					await _shot_one("keeper_drain_stamina")
+					await create_timer(0.9, true, false, true).timeout
+					await _shot_one("keeper_drain_chance")
 			continue
 		var lesson := scene.get_node_or_null("DrinkLessonGold")
 		if lesson != null and not lesson.has_meta("done"):
@@ -475,6 +489,7 @@ func _drink_lesson(scene: Node) -> void:
 		_check(first != null and first.current_data.get_tier_clean() == ("I" if _lessons == 2 else "II"),
 			"combo lesson %d is on the Tier %s" % [_lessons - 1, "I" if _lessons == 2 else "II"])
 	_check(locked_others, "during the lesson only his bag button can be clicked")
+	_check(first != null and not first.bag_shut, "his bag button is not greyed")
 	await create_timer(0.8, true, false, true).timeout
 	scene.call("_on_brew_wanted", first.current_data)
 	await create_timer(0.4, true, false, true).timeout
@@ -498,6 +513,7 @@ func _drink_lesson(scene: Node) -> void:
 	await _shot_one("drink_window_%d" % _lessons)
 	await create_timer(1.6, true, false, true).timeout
 	await _shot_one("drink_window_burp_%d" % _lessons)
+	_check(first.bag_shut, "after he has drunk, his bag is greyed like the rest")
 	if _lessons == 1:
 		_check(first.current_data.active_attack_ability() == "TUT_FASS_COURAGE"
 			and first.current_data.active_defend_ability() == "TUT_FASS_COURAGE",

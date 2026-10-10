@@ -1096,7 +1096,12 @@ func play_once(anim_name: String, toward: Vector2 = Vector2.ZERO) -> void:
 ## the beer, gulps and wipes his mouth with his arm. The `drink` row of
 ## PitchAnims.csv; Tuning.csv pitch_drink_stands_still stops him on the spot
 ## while he drinks (never with the ball at his feet).
+## pitch_drink_faces_camera: a player facing away (north-west, north,
+## north-east) turns round first, so the stein is seen (Anthony, 10 Oct).
 func play_drink() -> void:
+	var db := CardDatabase.get_db()
+	if (db == null or db.tune_bool("pitch_drink_faces_camera", true)) and _dir >= 5:
+		_dir = 8 - _dir    # north-west -> south-west, north -> south, north-east -> south-east
 	play_once("drink")
 
 
