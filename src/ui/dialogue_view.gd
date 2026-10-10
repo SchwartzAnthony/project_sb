@@ -58,6 +58,7 @@ var _shown_chars: float = 0.0
 # --- Nodes, all built in code ---
 var _background: TextureRect
 var _background_layers: Control      # StoryArt.csv rows behind the people
+var _blackout: ColorRect             # Background "black": time passes
 var _front_layers: Control           # StoryArt.csv rows with Front = yes
 var _art: StoryArt
 var _backdrop_fill: ColorRect
@@ -147,6 +148,15 @@ func _build_ui() -> void:
 
 	_stage = _layer_box("Stage")
 	_front_layers = _layer_box("FrontLayers")
+	# ROUND AN (Anthony, 9 Oct): "have the screen go black and then back in
+	# to show passage of time". Over the people, under the words.
+	_blackout = ColorRect.new()
+	_blackout.name = "Blackout"
+	_blackout.color = Color.BLACK
+	_blackout.modulate.a = 0.0
+	_blackout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_blackout.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_blackout)
 	_build_text_box()
 
 	_music = AudioStreamPlayer.new()
@@ -374,6 +384,12 @@ func _go_next() -> void:
 func _apply_background(line: DialogueLine) -> void:
 	if line.background.strip_edges() == "":
 		return          # blank means "keep the one already up"
+	# BLACK: the screen fades to black and stays black (time passes). The
+	# next line with any other Background fades back in on that picture.
+	var black := line.background.strip_edges().to_lower() == "black"
+	_fade_black(black)
+	if black:
+		return
 	for box in [_background_layers, _front_layers]:
 		for child in box.get_children():
 			child.queue_free()
@@ -391,6 +407,17 @@ func _apply_background(line: DialogueLine) -> void:
 	_background.texture = art
 	if art == null:
 		print("[Story] %s: no background art called '%s'." % [line.where(), line.background])
+
+
+func _fade_black(on: bool) -> void:
+	if _blackout == null:
+		return
+	var target := 1.0 if on else 0.0
+	if is_equal_approx(_blackout.modulate.a, target):
+		return
+	var seconds := MenuSupport.tuned("story_fade_seconds", 0.8)
+	var tween := create_tween()
+	tween.tween_property(_blackout, "modulate:a", target, maxf(0.0, seconds))
 
 
 # =============================================================
