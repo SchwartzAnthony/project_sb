@@ -348,3 +348,6 @@ Guide.csv,data/,A spreadsheet you edit,"ROUND AN. The Head Coach explains a scre
 guide.gd,src/core/,"Engine. Rules, loaders and shared helpers","ROUND AN. Reads Guide.csv, shows its boxes over a screen and lights up the named button"
 make_bavarian_sfx.py,tools/,A tool you run from the command line,ROUND AN. Builds every sound effect (assets/audio/bav_*.ogg) from scratch in Bavarian style and rewrites SoundCredits.csv. Run: python3 tools/make_bavarian_sfx.py
 SoundCredits.csv,data/,Data the tools write,"ROUND AN. Every sound effect: what you hear, which Audio.csv rows play it, where it came from. Rewritten by make_bavarian_sfx.py"
+CONQUESTS.md,guides/,A guide,"Conquests (Draft Mode): Anthony's idea for the replayable roguelite mode, parked. Only its banner and a coming-soon note are in the game"
+tear_cloth.py,tools/,A tool. Nothing in the game loads it,Ages the shared banner cloth into the torn Conquests cloth and draws its black infinity (stand-ins until PixelLab redraws them). Run make_banners.py after
+conquests_shot.gd,tools/,A tool. Nothing in the game loads it,Presses the Conquests banner on the base and photographs it and the coming-soon note it opens
