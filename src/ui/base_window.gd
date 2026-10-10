@@ -67,7 +67,24 @@ static func open(on: Node, title: String, scene_path: String) -> BaseWindow:
 	on.add_child(made)
 	made._build(title, scene_path)
 	_open_one = made
+	made._announce(scene_path)
 	return made
+
+
+## ROUND AN (10 Oct): A WINDOW HAS SOUNDS AND MUSIC OF ITS OWN.
+## Opening fires `window_opened` (screen = the window's word, `over` = the
+## screen under it), so Audio.csv can give it a "menu open" sound and, with
+## a looping Music row, its own music - the Brewery's, the Dorms'. Closing
+## hands the music back to the screen underneath.
+var _screen_word := ""
+var _over_word := ""
+
+
+func _announce(scene_path: String) -> void:
+	_screen_word = ScenePaths.screen_word(scene_path)
+	_over_word = ScenePaths.screen_word(ScenePaths.here(get_tree()))
+	AudioDirector.fire(get_tree(), "window_opened",
+		{"screen": _screen_word, "over": _over_word})
 
 
 func _ready() -> void:
@@ -150,6 +167,15 @@ func _build(title: String, scene_path: String) -> void:
 func close() -> void:
 	if _open_one == self:
 		_open_one = null
+	var tree := get_tree()
+	if tree != null and _screen_word != "":
+		AudioDirector.fire(tree, "window_closed",
+			{"screen": _screen_word, "over": _over_word})
+		# The screen underneath asks for its music again. The same track
+		# already playing is left alone, so only a window with music of its
+		# own makes any difference here.
+		if tree.current_scene != null:
+			AudioDirector.announce_screen(tree, tree.current_scene)
 	closed.emit()
 	queue_free()
 

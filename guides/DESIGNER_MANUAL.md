@@ -7633,3 +7633,76 @@ yet" note. The idea is written up in `guides/CONQUESTS.md`.
 
 It is left out of both tutorials, where the row is already full.
 `tools/conquests_shot.gd` presses it and photographs the note.
+
+## Suno slots, quieter goals, sooner doors (round AN, 10 Oct)
+
+- **Your Suno sounds drop straight in.** `guides/SUNO_PROMPTS.md` has a
+  Suno prompt for every sound and seven new music tracks, each with a file
+  name. Every Audio.csv `Sound` now reads like `suno_goal_horn | bav_goal`:
+  the first file that is in `assets/audio/` plays. Save your Suno file as
+  `suno_<row ID>.mp3` (or .wav / .ogg), drop it in, done. Delete it to get
+  the old sound back.
+- **`| -` means "or nothing yet".** `suno_menu_open | -` is silent, and not
+  reported as missing, until your file is there.
+- **New moments with a row each:** `duel_priority_check`,
+  `duel_ability_check`, `duel_power_check` (the three duel checks as they
+  come up), `menu_open` (When `window_opened`: every window over the base and
+  the Escape menu, `screen=pause`).
+- **New music rows:** `play_maker_music` (while you pick at a PLAY MAKER),
+  `goal_attempt_music` (the shot cut-away), `brewery_music` and
+  `dorms_music` (their windows over the base, When `window_opened` with
+  `screen=brewery;over=base`; closing gives the base its music back),
+  `marsh_music` (an Adventure in the Marshlands, When `match_started`,
+  `biome=The Marshlands`), `team_build_theme`. `match_music_back` and
+  `match_music_back_shot` (When `play_resumed` / `goal_attempt_over`) bring
+  the match music back; keep their Sound the same as `match_theme`.
+- **Fixed:** the team shelf and builder rows said `screen=teamselect` and
+  `screen=teambuilder`, but those screens call themselves `team_select` and
+  `team_builder`, so their music never played.
+- **Goal cheering quieter** (your note): `goal_horn` -5 → -11 dB,
+  `goal_horn_star` -4 → -10, `crowd_goal` -10 → -17.
+- **Door sounds sooner** (your note): `base_door_sound_delay` in Tuning.csv
+  1.0 → 0.15 seconds after the building's own sound.
+
+### Your seven Suno tracks and the missing sounds (10 Oct, evening)
+
+- **Your music is in.** The seven Suno tracks you put in the `audio/`
+  folder moved to `art_source/suno/music/` (the game never looks in
+  `audio/`). `data/MusicLoops.csv` rows `suno_adventure_menu`,
+  `suno_brewery`, `suno_dorms`, `suno_goal_attempt`, `suno_marsh`,
+  `suno_play_maker` and `suno_team` turn each into
+  `assets/audio/suno_<name>_music.ogg` - the whole song with a 4 s fade
+  before it starts again (`python3 tools/make_loop.py suno_brewery`).
+  Next time, drop a track straight into `assets/audio/` with its suno_ name
+  and it plays; or add a MusicLoops row like these.
+- **The missing sounds, made with Ludo.ai:** `lud_duel_priority_check`
+  (0.45 s), `lud_duel_ability_check` (0.2 s), `lud_duel_power_check`
+  (0.5 s), `lud_menu_open` (0.6 s) and a new flag, `lud_banner_flutter`
+  (0.7 s). Each sits after your Suno slot in Audio.csv, so a Suno file
+  still wins once it is there. Ludo's originals: `art_source/ludo/sfx_10oct/`.
+- **Spares cut from your own music:** `mus_duel_priority_check` (goal
+  attempt music), `mus_duel_ability_check` (Brewery), `mus_duel_power_check`
+  (team music). Put one in place of the lud_ name to try it.
+- **Credits:** every new file has a line in `data/SoundCredits.csv`, and
+  `tools/make_bavarian_sfx.py` now keeps those lines when it rewrites the file.
+
+### The overnight sound check (10 Oct, night)
+
+`tools/sound_playback_check.gd` plays the game's moments through the real
+sound system and says which track and sound each one gets. It found and
+fixed four things:
+
+- **The goal cheer was really too loud because of Juice.csv.** Juice.csv has
+  When and Sound columns, so it was also read as a sound sheet, and its
+  goal_scored row played the OLD crowd_goal.ogg at full volume on every
+  goal. Only sheets with a `Bus` column are sound sheets now; Juice still
+  plays its own sounds by name.
+- **The drinking window was silent.** `drink_big` and `drink_burp` had no
+  When, but the window fires them as moments. Their When is filled in.
+- **Pouring in the Pub made no sound** (brew_drunk never reached the sound
+  system). It does now: `brew_pour` (Match `where=pub`).
+- **Drinking from the bag on the pitch** now has gulps: new row
+  `drink_pitch` (Match `where=pitch`), using your Suno drink sound once it
+  is there.
+
+Run it with `godot --headless --path . --script res://tools/sound_playback_check.gd`.
