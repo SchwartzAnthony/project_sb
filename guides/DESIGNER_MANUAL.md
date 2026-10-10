@@ -2190,6 +2190,69 @@ THEIRS tile shows their pips, and "THEIR X - ULTIMATE" is announced.
   `tools/test_env_check.gd` checks that it builds and that the real save was
   not touched.
 
+### Sturmball Lab: the rules in a browser (round AN, 8 Oct)
+
+**`tools/lab/`** builds a web page that runs the game's own rules code (no
+pitch, no art) so you can playtest combat on any computer with a browser.
+Nothing is installed: the page downloads about 13 MB once and the browser
+keeps it, so later visits start in seconds.
+
+- **Match:** two classes, their squads, the Star and the line-up each round.
+  Every duel shows the powers before and after abilities, which abilities
+  fired, the engine's log lines, the tie rule, the bank and the shot roll.
+- **1,000 matches:** win/draw/loss, goals, duels won per tier, every card and
+  every ability that fired.
+- **Adventure:** a party of any cards, a biome and bounty, the icon loadout,
+  an optional fixed wave. Pick the target and draft by hand, or play on
+  automatically. "Many runs" plays the set-up many times.
+- **Tuning:** change any Tuning.csv value (an edit like any other, below).
+
+**Balancing with it (9 Oct).**
+
+- **Text, step by step** (Match tab, the default view). Each press of Next step
+  shows one tier duel: who attacks and who defends, their power before and
+  after abilities, their priority and the order the stack resolves in, the
+  abilities that fired and what they did, the result and the bank. Then the
+  shot: the power sum, the ShotOdds chance, the roll, goal or save, and the
+  damage to the keeper. A standings block after each round shows the score,
+  both keepers' stamina and damage taken, and who is in the exhaust. Grey
+  lines are the background (engine events, default answers). Finish the
+  round, Play the cycle and Play to full time skip ahead.
+- **Edit & send.** Pick a card and change any of its columns (power, tier,
+  element, ability IDs) and the ability rows it runs; or open any CSV as a
+  grid (copy a row, remove a row, add a row). The lab uses the edit on the
+  next duel. Click a card or an ability in the text view to jump to it.
+  Edits stay in that browser until you undo them.
+- **Getting edits into the game.** Send to Claude saves them with the page.
+  Say "upload my Lab changes" in the thread and Claude writes them into
+  `data/` on the round branch. A changed `C_` ability row (made from the card
+  text by `tools/ability_rows.py`) goes into Abilities.csv under a name of
+  your own (Make it my own row does this in the lab too), so the next re-run
+  of the script does not undo it.
+- **Adventure:** players per tier (0 to 6, any card of that tier), which icons
+  are in play, waves in the run, enemies per wave, and "biome beaten before",
+  which grows the enemies by the game's own ramp (1 + clears x
+  `adventure_repeat_step` x the biome's Difficulty). Many runs reports runs
+  won and lost, where lost runs fell, knock-outs per run and per card.
+
+**How an edit runs:** the page sends the edited CSV to the engine, which packs
+it into a small .pck of its own and lays it over `res://data/`, then makes
+every rule book read again. So the lab reads an edited file exactly as the
+game reads a changed CSV.
+
+**It cannot drift from the game:** it is the same AbilityEngine,
+AdventureEncounter, TierLadder, ShotOdds and CSVs, exported with Godot's
+Web template. A match round is played the way `tests/sim_runner.gd` plays it
+(no fouls, mines, touches or Emblem race). Adventure uses
+`tools/lab/lab_encounter.gd`, which is AdventureEncounter with only its
+drawing and its pauses taken out.
+
+**Rebuild it every round:** `sh tools/lab/build.sh` (needs Godot 4.7 and the
+Web export templates) writes `tools/lab/dist/`, which Claude publishes. The
+page header names the branch and commit it was built from. To check it on
+the command line: `godot --headless --path . --script
+res://tools/lab/lab_cli.gd -- '{"cmd":"meta"}'`.
+
 ### Round AB: your testing notes
 
 | you said | now |
