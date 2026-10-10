@@ -1,0 +1,9 @@
+Biome,Image,Side,Out Min,Out Max,Gap,Scale,Notes
+marshlands,res://assets/adventure/decor/willow_a.png,both,90,420,520,1,"ADVENTURE-LOOK (10 Oct). Scenery going past beside the lane on the isometric field (iso_field.gd). Side: above, below or both. Out Min / Out Max: how far outside the lane, in run pixels. Gap: run pixels between one and the next (it varies a little). Scale: how many times bigger it is drawn. Pictures stand with their bottom edge on the spot and are mirrored at random."
+marshlands,res://assets/adventure/decor/willow_b.png,both,120,460,700,1,
+marshlands,res://assets/adventure/decor/reeds_a.png,both,40,300,260,1,Reeds right by the lane
+marshlands,res://assets/adventure/decor/reeds_b.png,both,40,300,340,1,
+marshlands,res://assets/adventure/decor/sunken_goal.png,above,140,320,1800,1,A rotten goal in the mud
+marshlands,res://assets/adventure/decor/boardwalk.png,below,120,380,1500,1,
+marshlands,res://assets/adventure/decor/wisp_a.png,both,60,380,600,1,Will-o'-wisps
+marshlands,res://assets/adventure/decor/wisp_b.png,both,60,380,800,1,

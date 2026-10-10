@@ -43,6 +43,10 @@ extends Node2D
 ## end up with a thread of a bar beneath it.
 static var RADIUS := 26.0
 
+## adventure-look: how the run's world is tilted on screen (iso_field.gd).
+## Used only to face the isometric figure the way it is really going.
+static var screen_basis := Transform2D.IDENTITY
+
 
 static func bar_width() -> float:
 	return RADIUS * 2.2
@@ -445,17 +449,23 @@ func _process(delta: float) -> void:
 		# The run cycle does the bobbing itself. Running, or walking off to
 		# fetch something, plays run facing the way they go; standing to
 		# fight plays idle facing the enemy (east).
-		if jogging or to_target.length() > 6.0:
-			var way := 0
-			if to_target.length() > 6.0:
-				way = PitchSprite.direction_of(to_target)
+		if jogging or (fetching and to_target.length() > 6.0):
+			# Which way that is ON SCREEN: on the isometric field "along the
+			# run" is up and to the right, which is north-east.
+			# The little drift around their slot does not turn them; only
+			# running off to fetch something does.
+			var heading := to_target if fetching and to_target.length() > 6.0 else Vector2.RIGHT
+			var way := PitchSprite.direction_of(screen_basis.basis_xform(heading), 2.0)
+			if way < 0:
+				way = 0
 			if way != _run_way:
 				_run_way = way
 				_anim_now = ""
 			_play("run", _run_way)
 		else:
 			if _anim_now == "run":
-				_play("idle", 0)
+				_play("idle", maxi(0, PitchSprite.direction_of(
+					screen_basis.basis_xform(Vector2.RIGHT), 2.0)))
 	elif _art != null:
 		_art.position.y = _feet_y() + sin(_bob) * (RADIUS * 0.09)
 

@@ -1,0 +1,22 @@
+Biome,Zone,Image,Weight,Notes
+marshlands,path,res://assets/adventure/tiles/marsh_land_10.png,3,"ADVENTURE-LOOK (10 Oct). The ground of the isometric field (iso_field.gd). Zone: path = the rows down the middle of the lane, lane = the rest of the lane where the players run, edge = the first rows outside it, outside = everything beyond. Several rows for one zone are picked at random by Weight; the same spot always gets the same tile. Biome * = every biome without its own rows. PixelLab isometric tiles 64 x 64; the top diamond is 64 x 32."
+marshlands,path,res://assets/adventure/tiles/marsh_land_9.png,1,Dirt path with a grass verge
+marshlands,path,res://assets/adventure/tiles/marsh_land_11.png,1,
+marshlands,path,res://assets/adventure/tiles/marsh_land_14.png,1,Trodden mud
+marshlands,lane,res://assets/adventure/tiles/marsh_land_1.png,4,Meadow grass
+marshlands,lane,res://assets/adventure/tiles/marsh_land_2.png,3,
+marshlands,lane,res://assets/adventure/tiles/marsh_land_3.png,1,Yellow flowers
+marshlands,lane,res://assets/adventure/tiles/marsh_land_6.png,1,Pebbles
+marshlands,lane,res://assets/adventure/tiles/marsh_land_7.png,1,
+marshlands,lane,res://assets/adventure/tiles/marsh_land_8.png,1,
+marshlands,edge,res://assets/adventure/tiles/marsh_bog_10.png,2,Mossy marsh ground
+marshlands,edge,res://assets/adventure/tiles/marsh_bog_11.png,2,
+marshlands,edge,res://assets/adventure/tiles/marsh_bog_4.png,1,Lily pads
+marshlands,edge,res://assets/adventure/tiles/marsh_bog_5.png,1,
+marshlands,edge,res://assets/adventure/tiles/marsh_land_16.png,1,Muddy grass edge
+marshlands,outside,res://assets/adventure/tiles/marsh_bog_1.png,4,Dark bog water
+marshlands,outside,res://assets/adventure/tiles/marsh_bog_2.png,3,Ripples
+marshlands,outside,res://assets/adventure/tiles/marsh_bog_3.png,1,
+marshlands,outside,res://assets/adventure/tiles/marsh_bog_13.png,1,A floating log
+marshlands,outside,res://assets/adventure/tiles/marsh_bog_14.png,1,
+marshlands,outside,res://assets/adventure/tiles/marsh_bog_7.png,1,Black mud

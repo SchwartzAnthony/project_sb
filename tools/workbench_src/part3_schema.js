@@ -32,6 +32,12 @@ const S = {
   help:"Leave <b>Tier</b> blank and it takes the tier of whoever it is replacing, which is almost always what you want. <b>Its Power is clamped into that tier's rungs</b> — the ladder is not broken even by a spawn, and the log says so if a number had to move."},
 
 /* ---------- Adventure: the run ---------- */
+"AdventureTiles.csv":{what:"The isometric ground of each biome's run: which PixelLab tiles go where.",
+  key:null, enums:{Zone:["path","lane","edge","outside"]},
+  help:"<b>Zone</b>: path = the rows down the middle of the lane, lane = the rest of the lane, edge = the first rows outside it, outside = everything beyond. Several rows for one zone are picked at random by <b>Weight</b>. <b>Biome</b> * = every biome without its own rows."},
+"AdventureDecor.csv":{what:"The scenery going past beside the lane on the isometric field.",
+  key:null, enums:{Side:["above","below","both"]},
+  help:"<b>Out Min</b> / <b>Out Max</b>: how far outside the lane, in run pixels. <b>Gap</b>: run pixels between one and the next. <b>Scale</b>: how many times bigger it is drawn."},
 "AdventureEnemies.csv":{what:"Who you meet in a biome. An enemy has NO TIER — it is what it hits for, and what it is made of.",
   key:"ID", enums:{Targeting:["weakest","strongest","lowest_stamina","aoe"],Boss:YN},
   help:"<b>Layers</b> is <code>Name:Amount:Soak</code> separated by <code>|</code>, outermost first — damage eats the outer layer before it reaches the next. <b>Weight</b> 0 means it never turns up randomly, which is what a boss is. <b>Buff</b> is what it gains per pass while you build your move: blank for most of them, and give it to the ones that should feel like a clock ticking."},

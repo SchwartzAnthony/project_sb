@@ -3673,6 +3673,28 @@ picture never shows a seam; the grass stripes still move), and the new
 `adventure_backdrop_fit` blows a small picture up to fill the screen. Enemies
 and drops: `adventure_enemy_art_scale`, `adventure_drop_art_scale`.
 
+### The isometric field (adventure-look, 10 Oct: "full iso field")
+
+The run is played on an isometric board, like a 1980s Bavarian role-playing
+game: a dirt path through a meadow, marsh and bog water either side, reeds,
+willows, a sunken goal and will-o'-wisps going past. The party runs up and
+to the right; enemies come down the field and stand on it; drops lie on it.
+**The rules did not change** - the same run is only seen tilted
+(`src/adventure/iso_field.gd`).
+
+| To change | Where |
+|---|---|
+| The ground tiles, per biome and zone | `AdventureTiles.csv` (Zone: path, lane, edge, outside; Weight) |
+| The scenery going past | `AdventureDecor.csv` (Side, Out Min/Max, Gap, Scale) |
+| Off / on | `adventure_iso_field` |
+| Camera: where the party runs, how close the two sides look | `adventure_iso_party_x/y`, `adventure_iso_scale` |
+| Tile size and fit | `adventure_iso_tile_zoom`, `adventure_iso_tile_lift` |
+| Where things appear / walk in / are let go | `adventure_iso_spawn_x`, `adventure_iso_wave_x`, `adventure_iso_forget_x` |
+
+A new biome needs its own rows in the two CSVs (or `*` rows for all).
+The Marsh tiles are PixelLab isometric tiles in `assets/adventure/tiles/`
+(every candidate kept in `art_source/adventure_look/parts/tile_*`).
+
 ### How a fight goes
 
 ```

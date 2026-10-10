@@ -351,3 +351,9 @@ SoundCredits.csv,data/,Data the tools write,"ROUND AN. Every sound effect: what 
 CONQUESTS.md,guides/,A guide,"Conquests (Draft Mode): Anthony's idea for the replayable roguelite mode, parked. Only its banner and a coming-soon note are in the game"
 tear_cloth.py,tools/,A tool. Nothing in the game loads it,Ages the shared banner cloth into the torn Conquests cloth and draws its black infinity (stand-ins until PixelLab redraws them). Run make_banners.py after
 conquests_shot.gd,tools/,A tool. Nothing in the game loads it,Presses the Conquests banner on the base and photographs it and the coming-soon note it opens
+AdventureTiles.csv,data/,A spreadsheet you edit,"ADVENTURE-LOOK. The isometric ground tiles of each biome, by zone (path, lane, edge, outside)"
+AdventureDecor.csv,data/,A spreadsheet you edit,ADVENTURE-LOOK. The scenery that goes past beside the lane on the isometric field
+iso_field.gd,src/adventure/,Code,ADVENTURE-LOOK. Tilts the run into the isometric view and lays the tiles and scenery. The rules are untouched
+contract_scroll.gd,src/ui/,Code,ADVENTURE-LOOK. The contract scroll that unrolls from the board
+compose_layers.py,tools/,A measuring tool,ADVENTURE-LOOK. Builds one picture from its PixelLab parts (a layer CSV) and writes the layered .aseprite
+adventure_look_check.gd,tools/,A measuring tool,"ADVENTURE-LOOK. Opens the board, a scroll, the run and the first fight; with a window it saves screenshots"

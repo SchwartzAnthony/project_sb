@@ -9,7 +9,7 @@ extends SceneTree
 #
 #      godot --headless --path . --script res://tools/adventure_look_check.gd
 #
-#  With a window (no --headless) it also saves four pictures to
+#  With a window (no --headless) it also saves five pictures to
 #  art_source/drafts/adventure_look/screens/.
 #
 #  It is a tool, not part of the game. Nothing loads it.
@@ -75,8 +75,19 @@ func _run() -> void:
 		# A drop and a wave on the field, so their isometric pictures show.
 		scene._drop_a_pickup()
 		scene._drop_a_pickup()
-		scene._spawn_wave()
-		await _frames(150)
-		print("[look] %d enemies, %d drops on the field" % [scene._foes.size(), scene._pickups.size()])
+		await _frames(120)
+		print("[look] %d drops on the field" % scene._pickups.size())
 		await _shot("run_wave.png")
+		# Let the run go on, fast, until the first wave is met and the fight
+		# opens, then look at the fight on the field.
+		Engine.time_scale = 4.0
+		var waited := 0
+		while scene.current_state != AdventureScene.RunState.ENCOUNTER and waited < 3000:
+			await process_frame
+			waited += 1
+		Engine.time_scale = 1.0
+		await _frames(90)
+		print("[look] fight open: %s, %d enemies" % [
+			scene.current_state == AdventureScene.RunState.ENCOUNTER, scene._foes.size()])
+		await _shot("fight.png")
 	quit(0)

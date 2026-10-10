@@ -86,6 +86,15 @@ var _pickups: Array[Node2D] = []
 var _foes: Array[Node2D] = []
 
 var _world: Node2D
+## adventure-look: the isometric field (iso_field.gd), or null for the flat
+## lane. Where things appear and are let go of moves with it.
+var _iso: IsoField = null
+var _spawn_x := SPAWN_X
+var _forget_x := -120.0
+## Where a wave's enemies start walking in from. On the isometric field it
+## is nearer than _spawn_x, so they reach their places before the fight.
+var _wave_x := SPAWN_X
+var _iso_seen := 0.0
 var _ball: Node2D
 var _ball_holder: int = 0
 var _pass_clock := 0.0
@@ -282,8 +291,25 @@ func _build_world() -> void:
 	_ball.draw.connect(_draw_ball.bind(_ball))
 	_world.add_child(_ball)
 
+	# THE ISOMETRIC FIELD (Tuning adventure_iso_field). It tilts this world
+	# into the isometric view and lays the tiles; the rules are untouched.
+	_iso = IsoField.make(_world, db, String(run.biome.get("id", "")),
+		LANE_TOP, LANE_BOTTOM, PARTY_X, get_viewport().get_visible_rect().size)
+	if _iso != null:
+		_spawn_x = _iso.spawn_x
+		_forget_x = _iso.forget_x
+		_wave_x = db.tune_float("adventure_iso_wave_x", 1450.0)
+		_world.set_meta("upright", _iso.upright)
+		AdventureWalker.screen_basis = _iso.to_screen
+		_iso.stand_up()
+	else:
+		AdventureWalker.screen_basis = Transform2D.IDENTITY
+
 
 func _draw_ground(on: Node2D) -> void:
+	# On the isometric field the tiles are the ground.
+	if _iso != null and _iso.has_tiles():
+		return
 	# THE LANE. Everything the party does happens between these two lines,
 	# and the stripes slide with the run so the motion reads even with no art.
 	var lane := Rect2(Vector2(-400.0, LANE_TOP), Vector2(2800.0, LANE_HEIGHT))
@@ -471,6 +497,12 @@ func _process(delta: float) -> void:
 			walker.jogging = current_state == RunState.RUNNING
 	_settle_walkers()
 
+	# The isometric board slides by however far the party came this frame,
+	# and everything on it is stood upright, front to back.
+	if _iso != null:
+		_iso.update(_travelled, _travelled - _iso_seen)
+		_iso_seen = _travelled
+
 	if _world != null:
 		var ground := _world.get_node_or_null("Ground")
 		if ground != null:
@@ -605,7 +637,7 @@ func _drop_a_pickup() -> void:
 	# same two players collecting everything: an item near the top edge is
 	# reached by whoever happens to be drifting up there.
 	var pickup := Node2D.new()
-	pickup.position = Vector2(SPAWN_X,
+	pickup.position = Vector2(_spawn_x,
 		randf_range(LANE_TOP + 34.0, LANE_BOTTOM - 34.0))
 	pickup.set_meta("item", item_id)
 	pickup.set_meta("amount", amount)
@@ -642,7 +674,7 @@ func _carry_pickups(delta: float) -> void:
 			continue
 
 		# Off the left edge and never reached — it is gone.
-		if pickup.position.x < -120.0:
+		if pickup.position.x < _forget_x:
 			pickup.queue_free()
 			continue
 
@@ -774,7 +806,7 @@ func _spawn_wave() -> void:
 
 	for i in line_up.size():
 		var foe := Node2D.new()
-		foe.position = Vector2(SPAWN_X + i * 90.0,
+		foe.position = Vector2(_wave_x + i * 90.0,
 			LANE_TOP + LANE_HEIGHT * (0.16 + float(i % 3) * 0.30))
 		foe.set_meta("enemy", line_up[i])
 		foe.set_meta("home", Vector2(920.0 + (i / 3) * 96.0,
@@ -785,6 +817,11 @@ func _spawn_wave() -> void:
 			(26.0 if boss_art else 19.0) * 0.9)
 		foe.draw.connect(_draw_foe.bind(foe))
 		_world.add_child(foe)
+		if _iso != null:
+			# They come into view at the far end of the field: faded in, not
+			# popped in.
+			foe.modulate.a = 0.0
+			foe.create_tween().tween_property(foe, "modulate:a", 1.0, 0.35)
 		_foes.append(foe)
 
 	print("[adventure] Wave %d of %d — %d enemy(s)%s." % [
@@ -920,6 +957,22 @@ func _run_encounter() -> void:
 		return
 	current_state = RunState.ENCOUNTER
 	_say("COMBAT")
+
+	# adventure-look: ANYBODY STILL WALKING IN gets to their place now. The
+	# walk-in has a time limit (adventure_meet_seconds); an enemy cut off by
+	# it used to stay half way and be fought out there.
+	var settle := create_tween().set_parallel(true)
+	var moved := false
+	for foe in _foes:
+		if is_instance_valid(foe) and foe.has_meta("home") \
+				and foe.position.distance_to(foe.get_meta("home")) > 6.0:
+			settle.tween_property(foe, "position", foe.get_meta("home") as Vector2, 0.35) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			moved = true
+	if moved:
+		await settle.finished
+	else:
+		settle.kill()
 
 	# Everything about the fight lives in adventure_encounter.gd. This scene
 	# only hands it the wave and waits to hear how it went.
