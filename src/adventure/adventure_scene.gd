@@ -449,6 +449,14 @@ func _spawn_party() -> void:
 ##     adventure_party_rows      how many across the band. 5 out of the box
 ##     adventure_party_spacing   pixels between columns, back down the lane
 func _slot_for(index: int) -> Vector2:
+	if _run_spots.size() != _walkers.size():
+		_plan_run_spots()
+	if index >= 0 and index < _run_spots.size():
+		return _run_spots[index]
+	return _slot_for_flat(index)
+
+
+func _slot_for_flat(index: int) -> Vector2:
 	var lanes := maxi(1, db.tune_int("adventure_party_rows", 5))
 	var spacing := db.tune_float("adventure_party_spacing", 108.0)
 	var seat := index % lanes
@@ -559,7 +567,6 @@ func _process(delta: float) -> void:
 	if _iso != null:
 		_iso.update(_travelled, _travelled - _iso_seen)
 		_iso_seen = _travelled
-	_spread_plates(delta)
 	_roll_ball()
 
 	if _world != null:
@@ -802,14 +809,22 @@ func _settle_walkers() -> void:
 		var walker := _walkers[i]
 		if walker == null or not is_instance_valid(walker) or walker.fetching:
 			continue
+		walker.holding = current_state != RunState.RUNNING
 		if current_state == RunState.RUNNING:
 			walker.target = _slot_for(i)
 		else:
 			walker.target = _formation_slot(i)
 
 
-## Where the party stands to fight: a tighter block, further left.
+## Where the party stands to fight: a spot of their own (_plan_fight_spots),
+## or the old block when there is no plan.
 func _formation_slot(index: int) -> Vector2:
+	if index >= 0 and index < _fight_spots.size():
+		return _fight_spots[index]
+	return _formation_slot_flat(index)
+
+
+func _formation_slot_flat(index: int) -> Vector2:
 	var column := index / 4
 	var seat := index % 4
 	return Vector2(FORM_X - column * 72.0,
@@ -823,6 +838,7 @@ func _formation_slot(index: int) -> Vector2:
 func _begin_meeting() -> void:
 	current_state = RunState.MEETING
 	_meeting_clock = 0.0
+	_plan_fight_spots()
 
 	# DROP WHATEVER YOU WERE CHASING. A player half way to a pickup when a
 	# wave arrived used to keep walking towards it forever — the pickup was
@@ -888,57 +904,100 @@ func _spawn_wave() -> void:
 		"  (THE BOSS)" if boss_wave else ""])
 
 
-## ============ NAME PLATES NEVER SIT ON TOP OF EACH OTHER (adventure-look) ============
+## ============ ROOM TO STAND FOR A FIGHT (adventure-look, Anthony) ============
 ##
-## Anthony: the plates overlapped in the Adventure run. A plate hangs under
-## its player's feet, so when two players stand close their plates stack.
-## Every frame the plates are taken from the top of the screen down, and one
-## that would cover a plate already placed is slid down (and a little aside)
-## until it is clear. They glide to their new place rather than jump, so the
-## drift of the players never makes them flicker.
+## "Have them stand far enough from each other that they are not stacking
+## name plates or themselves." While the party runs, names may cross; once a
+## wave is met, every player gets a spot of their own.
 ##
-## Tuning adventure_plate_gap (pixels kept between two plates),
-## adventure_plate_glide (how quickly a plate moves to its place, 0-1),
-## adventure_plate_reach (the furthest a plate is ever moved from its player).
-func _spread_plates(delta: float) -> void:
-	var gap := db.tune_float("adventure_plate_gap", 3.0)
-	var glide := clampf(db.tune_float("adventure_plate_glide", 0.25), 0.01, 1.0)
-	var reach := db.tune_float("adventure_plate_reach", 90.0)
-	var items: Array = []
-	for walker in _walkers:
-		if not is_instance_valid(walker):
-			continue
-		var plate := walker.plate()
-		if plate == null or not plate.visible or plate.panel_rect().size.x <= 0.0:
-			continue
-		# Where the plate would be with no nudge, on screen.
-		var home := plate.panel_rect()
-		home.position += plate.global_position - plate.position
-		items.append({"plate": plate, "home": home})
-	items.sort_custom(func(a, b): return (a["home"] as Rect2).position.y < (b["home"] as Rect2).position.y)
+## Each player takes up a box ON SCREEN: their figure above the feet and their
+## name plate below. The spots are handed out front and centre first, and a
+## spot is only taken if its box touches nobody else's. Nobody drifts while
+## they stand (the walker's `holding`), so the boxes stay clear.
+##
+## Tuning: adventure_stand_width, adventure_stand_above, adventure_stand_below
+## (the box), adventure_stand_gap (between boxes), adventure_stand_screen_top
+## and _bottom (the part of the screen the HUD leaves free).
+##
+## WHILE RUNNING the same is done with a smaller room (adventure_run_width,
+## adventure_run_below): the players never stand on each other, but their
+## names may cross, which is what Anthony asked for.
+var _fight_spots: Array[Vector2] = []
+var _run_spots: Array[Vector2] = []
 
-	var placed: Array[Rect2] = []
-	var step := clampf(glide * delta * 60.0, 0.0, 1.0)
-	for item in items:
-		var home: Rect2 = item["home"]
-		var spot := home
-		var tries := 0
-		var moved := true
-		while moved and tries < 12:
-			moved = false
-			for other in placed:
-				if spot.grow(gap * 0.5).intersects(other.grow(gap * 0.5)):
-					# Below the one in the way, and nudged away from its middle
-					# so a pile of plates fans out instead of making a column.
-					spot.position.y = other.end.y + gap
-					var side := signf(spot.get_center().x - other.get_center().x)
-					spot.position.x += (side if side != 0.0 else 1.0) * 6.0
-					moved = true
-			tries += 1
-		var offset := (spot.position - home.position).limit_length(reach)
-		placed.append(Rect2(home.position + offset, home.size))
-		var plate: NamePlate = item["plate"]
-		plate.position = plate.position.lerp(offset, step)
+
+func _plan_fight_spots() -> void:
+	_fight_spots = _plan_spots(FORM_X,
+		db.tune_float("adventure_stand_width", 104.0),
+		db.tune_float("adventure_stand_below", 52.0),
+		db.tune_float("adventure_stand_gap", 6.0))
+
+
+func _plan_run_spots() -> void:
+	_run_spots = _plan_spots(PARTY_X,
+		db.tune_float("adventure_run_width", 70.0),
+		db.tune_float("adventure_run_below", 14.0),
+		db.tune_float("adventure_run_gap", 30.0))
+
+
+## Spots for the whole party around `centre_x`, so that no two players'
+## rooms (`wide` across, the figure above the feet, `below` under them,
+## `gap` between) touch on screen.
+func _plan_spots(centre_x: float, wide: float, below: float, gap: float) -> Array[Vector2]:
+	var result: Array[Vector2] = []
+	var count := _walkers.size()
+	if count == 0:
+		return result
+	var above := db.tune_float("adventure_stand_above", 104.0)
+	var screen := get_viewport().get_visible_rect().size
+	var top_free := db.tune_float("adventure_stand_screen_top", 140.0)
+	var bottom_free := screen.y - db.tune_float("adventure_stand_screen_bottom", 215.0)
+	var view := _iso.to_screen if _iso != null else Transform2D.IDENTITY
+	var room := Vector2(LANE_TOP + 40.0, LANE_BOTTOM - 40.0)
+	for walker in _walkers:
+		if is_instance_valid(walker):
+			room = walker.lane_room()
+			break
+
+	# Every spot on the grass in front of and behind the line, best first:
+	# near the front line and near the middle of the lane.
+	var middle := (room.x + room.y) * 0.5
+	var spots: Array = []
+	var x := centre_x + 340.0
+	while x >= centre_x - 700.0:
+		var y := room.x
+		while y <= room.y:
+			spots.append(Vector2(x, y))
+			y += 12.0
+		x -= 12.0
+	spots.sort_custom(func(a, b):
+		return absf(a.x - centre_x) + absf(a.y - middle) * 0.6 \
+			< absf(b.x - centre_x) + absf(b.y - middle) * 0.6)
+
+	var taken: Array[Rect2] = []
+	for i in count:
+		var chosen := _formation_slot_flat(i) if centre_x == FORM_X else _slot_for_flat(i)
+		var found := false
+		for spot in spots:
+			var feet: Vector2 = view * (spot as Vector2)
+			var box := Rect2(feet.x - wide * 0.5, feet.y - above, wide, above + below)
+			if box.position.y < top_free or box.end.y > bottom_free \
+					or box.position.x < 8.0 or box.end.x > screen.x - 8.0:
+				continue
+			var clear := true
+			for other in taken:
+				if box.grow(gap * 0.5).intersects(other.grow(gap * 0.5)):
+					clear = false
+					break
+			if clear:
+				chosen = spot
+				taken.append(box)
+				found = true
+				break
+		if not found:
+			print("[adventure] No clear spot left for player %d - make adventure_stand_width / _gap smaller or the lane deeper." % (i + 1))
+		result.append(chosen)
+	return result
 
 
 ## adventure-look: THE ISOMETRIC PICTURE of an enemy or a drop, as a child

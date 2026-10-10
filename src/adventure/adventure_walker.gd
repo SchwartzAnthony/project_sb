@@ -88,6 +88,10 @@ var being_carried: bool = false
 ## True while it has broken formation to fetch something off the ground.
 var fetching: bool = false
 
+## True while the party stands for a fight: no drift at all, so the spots
+## worked out for them (adventure_scene.gd _plan_fight_spots) stay clear.
+var holding: bool = false
+
 ## Multiplies the party's speed for this one player, so the group spreads.
 var pace: float = 1.0
 
@@ -136,7 +140,9 @@ func setup(player: PlayerData, walk_speed: float = 260.0,
 	_bob = randf() * TAU
 	_drift_clock = randf() * TAU
 	_drift_rate = randf_range(0.5, 1.15)
-	_drift_reach = randf_range(10.0, 28.0)
+	# adventure-look (Anthony: spread the players apart): a smaller wander,
+	# so neighbours do not drift into each other. Tuning adventure_drift_scale.
+	_drift_reach = randf_range(10.0, 28.0) * clampf(working_db_drift(db), 0.0, 2.0)
 	pace = randf_range(0.82, 1.22)
 
 	# ONE FRAME, NOT THE WHOLE SHEET.
@@ -212,9 +218,14 @@ func setup(player: PlayerData, walk_speed: float = 260.0,
 		_box = Rect2(0, 0, 1, 1) if _iso else NamePlate.box_of(face)
 
 
-## The name plate, for the scene's keep-the-plates-apart pass.
-func plate() -> NamePlate:
-	return _plate if _plate != null and is_instance_valid(_plate) else null
+static func working_db_drift(db: CardDatabase) -> float:
+	var working := db if db != null else CardDatabase.get_db()
+	return working.tune_float("adventure_drift_scale", 0.6) if working != null else 0.6
+
+
+## The lowest and highest lane position this player's feet may take.
+func lane_room() -> Vector2:
+	return _lane_room()
 
 
 ## Plays one of the pitch sheet's animations (PitchAnims.csv), facing
@@ -434,7 +445,7 @@ func _process(delta: float) -> void:
 	var wander := Vector2(
 		sin(_drift_clock * 1.3) * _drift_reach,
 		cos(_drift_clock) * _drift_reach * 1.4)
-	var wanted := target + (Vector2.ZERO if fetching else wander)
+	var wanted := target + (Vector2.ZERO if fetching or holding else wander)
 
 	# THE LANE IS ABSOLUTE. Whatever the drift wanted, the player stays on
 	# the grass — this is the clamp that keeps them off the black.

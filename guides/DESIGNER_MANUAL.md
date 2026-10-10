@@ -3707,10 +3707,15 @@ scenery: `assets/adventure/decor/`; every PixelLab candidate is kept in
 To look at one biome's field: `godot --path . --script res://tools/adventure_look_check.gd -- --biome=frostreach`
 (saves `art_source/drafts/adventure_look/screens/field_frostreach.png`).
 
-**Name plates (11 Oct).** On the field a plate that would cover another
-slides down and a little aside, gliding so it never flickers, and plates
-always draw above the figures. `adventure_plate_gap`, `adventure_plate_glide`,
-`adventure_plate_reach`. The Marsh King now carries a round football.
+**Room to stand (11 Oct, Anthony).** Plates stay with their player. Every
+player gets room of their own ON SCREEN: while running a small room (names
+may cross, players never stand on each other: `adventure_run_width`,
+`_below`, `_gap`), and from the moment a wave is met a full room for figure
+and name plate, so nothing overlaps before or during the fight
+(`adventure_stand_width`, `_above`, `_below`, `_gap`, `_screen_top`,
+`_screen_bottom`). Nobody wanders while they stand; while running the
+wander is `adventure_drift_scale`. Plates draw above the figures. The Marsh
+King now carries a round football.
 
 **The ball (11 Oct).** A PixelLab football (`adventure_ball_art`), drawn
 `adventure_ball_art_size` pixels across (about a player's foot), with a

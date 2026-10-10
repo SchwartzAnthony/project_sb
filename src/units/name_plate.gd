@@ -324,12 +324,6 @@ func mark_down(middle: Vector2, span: float) -> void:
 	queue_redraw()
 
 
-## The dark window, in this plate's own coordinates (before the plate node
-## itself is moved). The Adventure run reads it to keep plates apart.
-func panel_rect() -> Rect2:
-	return _panel
-
-
 func clear_down_mark() -> void:
 	if not _show_cross:
 		return
