@@ -1,0 +1,9 @@
+Part,Image,X,Y,Width,Height,Scale,Flip
+picture,res://art_source/pixellab/dorms_ui_draft/layers_b_chalkboard/01_room.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_b_chalkboard/02_beds.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_b_chalkboard/03_zzz_and_rest.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_b_chalkboard/04_room_tabs.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_b_chalkboard/05_chalkboard.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_b_chalkboard/06_chalk_words.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_b_chalkboard/07_buy_buttons.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_b_chalkboard/08_hover_tag.png,960,540,1920,1080,,

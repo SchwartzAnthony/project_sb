@@ -1,0 +1,9 @@
+Part,Image,X,Y,Width,Height,Scale,Flip
+picture,res://art_source/pixellab/dorms_ui_draft/layers_c_beerhall/01_dark.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_c_beerhall/02_room.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_c_beerhall/03_beds.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_c_beerhall/04_zzz_and_rest.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_c_beerhall/05_room_banners.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_c_beerhall/06_shelf_window.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_c_beerhall/07_beer_mat_buttons.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_c_beerhall/08_hover_tag.png,960,540,1920,1080,,
