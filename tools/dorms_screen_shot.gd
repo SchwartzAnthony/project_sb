@@ -10,8 +10,9 @@ extends SceneTree
 #  Puts players to bed (one, three and five fixtures of rest, some part
 #  rested), buys a second and a third room and seven single beds, opens the Dorms over the
 #  base, hovers a sleeper, then clicks tab 2 and records the slide.
-#  Writes dorms_room1.png, dorms_hover.png, dorms_room2.png and
-#  dorms_slide_00.png ... into the user:// folder.
+#  Writes dorms_room1.png, dorms_hover.png, dorms_room2.png, dorms_room3.png,
+#  dorms_coach.png (the Head Coach's box) and dorms_slide_00.png ... into
+#  the user:// folder.
 # =============================================================
 
 
@@ -75,12 +76,12 @@ func _initialize() -> void:
 	var screen := window.content as DormsScreen
 	for node in screen.find_children("*", "MapBuilding", true, false):
 		var bed := node as MapBuilding
-		if bed.tooltip_text.contains("P:"):
+		if bed.has_meta("sleeper"):
 			bed.mouse_entered.emit()
 			break
 	await create_timer(0.3, true, false, true).timeout
 	_shoot("dorms_hover")
-	screen._hover.visible = false
+	screen._tag.visible = false
 
 	# ---- tab 2, recording the slide ----
 	screen._show_room(1)
@@ -92,6 +93,14 @@ func _initialize() -> void:
 	screen._show_room(2)
 	await create_timer(0.6, true, false, true).timeout
 	_shoot("dorms_room3")
+
+	# ---- the Head Coach explains the Dorms the first time ----
+	window.close()
+	state.set_flag(Guide.DONE_PREFIX + "dorms_explain", false)
+	await create_timer(0.4, true, false, true).timeout
+	window = BaseWindow.open(base, base._window_title("dorms"), ScenePaths.for_name("dorms"))
+	await create_timer(1.6, true, false, true).timeout
+	_shoot("dorms_coach")
 
 	print("[shot] pictures in %s" % ProjectSettings.globalize_path("user://"))
 	TestEnvironment.leave(self)

@@ -4689,8 +4689,29 @@ it are in `Tuning.csv`:
 | `dorm_bed_price` · `dorm_bed_currency` | one single bed (25 coins) |
 | `dorm_beer_rest_speedup` | fixtures a beer takes off a sleeper's rest (1). **Not on a button yet** |
 | `dorm_background` | the room picture every tab shows (the clubhouse cellar, Q263) |
-| `dorm_view_top` | how much of the picture's top (the ceiling) is cut off, so the beds are bigger (0.4) |
 | `dorm_bed_art` · `dorm_bed_sleeper_art` | the empty bed and the bed with a sleeper (one sleeper picture for everybody, Q267) |
+
+### `data/DormsLayout.csv` — every piece of the Dorms screen
+
+One row per piece: its `Image`, where it goes (`X`, `Y`) and how big
+(`Scale` = screen pixels per picture pixel).
+
+| Part | what | X and Y are shares of |
+|---|---|---|
+| `pennant` | the room tabs (`Step` = the gap between pennants) | the screen |
+| `pennant_drop` | how much lower the room you are in hangs (`Y`) | the screen |
+| `number` | where the number sits in a pennant's circle | the pennant |
+| `status` | the one line on the wall | the screen |
+| `board` | the notice board shop | the screen |
+| `buy_bed` · `buy_room` | the camp bed and the key (their middle) | the board |
+| `bed_card` · `room_card` · `rest_card` | the price cards (middle, top) | the board |
+| `card` · `tag` · `mug_full` · `mug_empty` | the card, the luggage tag, the rest mugs | — |
+| `message` | where "bought" / "not enough money" shows for a few seconds | the screen |
+
+Keep the board on the wall, above the beds. The pieces are PixelLab
+(`art_source/pixellab/dorms_ui_draft/`, the picked ones in `full/`); the
+board's frame and its felt are two layers in
+`art_source/aseprite/dorms_notice_board.aseprite`.
 
 ### `data/DormBeds.csv` — where each bed stands
 
@@ -4705,7 +4726,8 @@ of each other (Anthony, 10 Oct).
 
 Moving a bed: remember it also has **Z Z Z** above it and its **rest bar**
 on the floor in front, so leave room for both. The spots are shares of the
-WHOLE picture, so changing `dorm_view_top` never moves a bed. Open
+WHOLE picture, and the room fills the screen with the ceiling cut when the
+screen is wider - the floor is never cut. Open
 `art_source/aseprite/dorms_cellar.aseprite` to see the room with all ten beds
 in place.
 
@@ -4734,18 +4756,27 @@ pressing the button and the work being done.
 
 Every tired player sleeps in the Dorms, whatever tired them out.
 
-**The Dorms screen (Anthony, 10 Oct).** Two windows:
+**The Dorms screen (Anthony, 10 Oct) — look A, the club noticeboard.** No
+boxes: the cellar fills the screen and everything is a thing in the room.
 
-- **THE BEDS** — tabs 1, 2, 3 ... one per room you have; a tab slides to
-  that room. Each room is the room picture with its ten places standing on
-  the floor (`DormBeds.csv`). A **sleeper** has **Z Z Z** over
+- **The room tabs** are blue-and-white **pennants** on a string, one per
+  room; the room you are in hangs lower. Click one and the room slides
+  across. Each room is the cellar with its ten places standing on the floor
+  (`DormBeds.csv`).
+- **The shop** is the club's **notice board** on the wall: click the folded
+  camp bed for a single bed or the door key for the next room (a new
+  pennant). Each has a price card pinned under it, and the cards buy too.
+  Hover the key for **every room's price**. A **Rest day** card hangs under
+  the board while somebody is asleep.
+- **One line on the wall** says the room, how many are asleep and the beds.
+  The explaining is the **Head Coach's** box, the first time you come in
+  (`Guide.csv` `dorms_explain`, lines in `data/DormsDialogue.csv`). A **sleeper** has **Z Z Z** over
   his head and a **rest bar** under his bed: one segment per fixture of his
-  rest (his power — power 1 is one game, power 5 five), filling one a
-  fixture. He plays nothing — Adventure, Brewery or Match — until it is
-  full. **Hover** him for his name and power; click him for why he is there.
+  rest (his power — power 1 is one game, power 5 five) — **a row of Maß
+  mugs** on the floor in front of his bed, one filling every fixture. He plays nothing — Adventure, Brewery or Match — until it is
+  full. **Hover** him: a brown **luggage tag** with his name and power. Click him
+  for why he is there.
   A made bed is free. A **+ bed** patch of floor is empty: click it to buy a bed.
-- **BUY** — a single bed, the next room (a new tab), every room's price, and
-  the Rest day.
 
 Players keep the same bed every visit (by name). More asleep than beds? The
 rest sleep **on the floor** — they still rest — and the screen names them

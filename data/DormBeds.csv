@@ -1,11 +1,11 @@
 Place,X,Y,Size,Notes
-1,0.30,0.735,0.085,"ROUND AN (Anthony, 10 Oct: the beds stand ON THE FLOOR of the room picture, a little random, never on top of each other). ONE ROW PER BED PLACE in a room, in the order beds are bought. X and Y are where the FOOT of the bed stands, as a share of the room picture (Tuning.csv dorm_background): 0 = left / top edge, 1 = right / bottom edge. SIZE is how wide the bed is, as a share of the picture's width. The back row is smaller than the front row, for depth. Move one and check nothing overlaps: a bed also has its Z Z Z above it and its rest bar in front."
-2,0.415,0.728,0.085,
-3,0.53,0.728,0.085,
-4,0.645,0.73,0.085,
-5,0.755,0.738,0.085,"The back row stops short of the beer crates on the right and the chalkboard on the left."
-6,0.27,0.985,0.09,"THE FRONT ROW, a little bigger. Kept clear of the lockers (left) and the kit bags (right)."
-7,0.39,0.975,0.09,
-8,0.505,0.99,0.09,
-9,0.625,0.98,0.09,
-10,0.74,0.99,0.09,"Ten places = dorm_beds_per_room. Fewer rows than beds a room and the rest stand in a line along the front."
+1,0.30,0.725,0.085,"ROUND AN (Anthony, 10 Oct: the beds stand ON THE FLOOR of the room picture, a little random, never on top of each other). ONE ROW PER BED PLACE in a room, in the order beds are bought. X and Y are where the FOOT of the bed stands, as a share of the room picture (Tuning.csv dorm_background): 0 = left / top edge, 1 = right / bottom edge. SIZE is how wide the bed is, as a share of the picture's width. The back row is smaller than the front row, for depth. Move one and check nothing overlaps: a bed also has its Z Z Z above it and its rest bar in front."
+2,0.415,0.718,0.085,
+3,0.53,0.718,0.085,
+4,0.645,0.72,0.085,
+5,0.755,0.728,0.085,The back row stops short of the beer crates on the right and the chalkboard on the left.
+6,0.27,0.955,0.09,"THE FRONT ROW, a little bigger. Kept clear of the lockers (left) and the kit bags (right). Lifted 0.03 (and the back row 0.01) when the room went full-screen, so the front row's rest mugs are never cut off at the bottom (Anthony, 10 Oct, look A)."
+7,0.39,0.945,0.09,
+8,0.505,0.96,0.09,
+9,0.625,0.95,0.09,
+10,0.74,0.96,0.09,Ten places = dorm_beds_per_room. Fewer rows than beds a room and the rest stand in a line along the front.
