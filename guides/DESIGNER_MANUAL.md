@@ -7298,17 +7298,20 @@ tackle animation.
   rows for this animation yet.
 
 **Drinking on the pitch** (10 Oct). When you use a drink from the bag on a
-player during a match, his figure plays `drink` once: he lifts the beer,
-gulps and wipes his mouth with his arm. It is the `drink` row of
-`PitchAnims.csv` (rows 48-55); its Frames and FPS set how long it lasts.
-All ten Club looks have it drawn (a glass stein, Anthony's pick B). A look
-whose sheet does not have it yet (the other classes) plays its Stand-in
-(`cheer`). To draw it for another look: animate the PixelLab character
-with the same action and the name `drink`, download it, then rebuild the
-sheet with `tools/make_pitch_sheet.py`. Film it with `tools/drink_shot.gd`.
-`Tuning.csv` `pitch_drink_stands_still` (true) stops him on the spot while
-he drinks; a player with the ball always keeps running. Drafts:
-`art_source/pixellab/iso_players/drink_drafts/`.
+player during a match, his figure plays `drink` once: he lifts a glass stein,
+gulps, wipes his mouth with his arm and tosses the empty stein away over his
+shoulder (Anthony's pick B, then "fix please": the stein no longer just
+vanishes). It is the `drink` row of `PitchAnims.csv` (rows 48-55, 17 frames);
+its FPS sets how long it lasts (10 = about 1.7 seconds). Every look in the
+game has it drawn: the ten Club looks and both looks of every other class.
+A new look without it plays its Stand-in (`cheer`) until it is drawn.
+`Tuning.csv`: `pitch_drink_stands_still` (true) stops him on the spot while
+he drinks (a player with the ball keeps running); `pitch_drink_faces_camera`
+(true) turns a player who faces away (north-west, north, north-east) round
+first, so the stein is always seen. To draw it for a new look: animate its
+PixelLab character with the same action, 16 frames, named `drink_toss`,
+download it, then rebuild the sheet with `tools/make_pitch_sheet.py`. Film
+it with `tools/drink_shot.gd`. Drafts: `art_source/pixellab/iso_players/drink_drafts/`.
 
 **Ten looks for The Club** (Anthony: no red nose, and people of different
 skin colours and backgrounds in the same comic style). Five men (`club_m1`-`m5`: light with brown hair,

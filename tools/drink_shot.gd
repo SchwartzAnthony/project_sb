@@ -53,12 +53,14 @@ func _initialize() -> void:
 		var u := unit as PlayerUnit
 		if u.is_enemy or u.data == null or not u.pitch_sheet or u.has_ball():
 			continue
-		# Prefer a look whose sheet has the drink drawn (not the Stand-in).
+		# Prefer a look whose sheet has the drink drawn (not the Stand-in),
+		# and one a little way from the ball: near enough to be on screen (the
+		# camera follows the ball), not so near that play cuts him off.
 		var drawn: bool = int(PitchSprite.anim("drink").get("row", 0)) + 8 <= u.artwork.vframes
-		if drinker == null or drawn:
+		if not drawn and drinker != null:
+			continue
+		if drinker == null or _fit(u) < _fit(drinker):
 			drinker = u
-		if drawn:
-			break
 	if drinker == null:
 		print("[drink_shot] no Club player on a pitch sheet")
 		quit(1)
@@ -112,6 +114,17 @@ func _units() -> Array:
 			found.append(node)
 		stack.append_array(node.get_children())
 	return found
+
+
+func _ball_gap(unit: Node2D) -> float:
+	var b = _scene.get("ball")
+	if b == null or not is_instance_valid(b):
+		return 0.0
+	return unit.global_position.distance_to((b as Node2D).global_position)
+
+
+func _fit(unit: Node2D) -> float:
+	return absf(_ball_gap(unit) - 220.0)
 
 
 func _wait(seconds: float) -> void:
