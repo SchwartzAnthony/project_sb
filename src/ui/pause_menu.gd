@@ -79,6 +79,9 @@ func open() -> void:
 	_quit_armed = false
 	_refresh()
 	show()
+	# ROUND AN (10 Oct): the "menu open" sound, Audio.csv row menu_open.
+	AudioDirector.fire(get_tree(), "window_opened", {"screen": "pause",
+		"over": ScenePaths.screen_word(ScenePaths.here(get_tree()))})
 	get_tree().paused = true
 
 

@@ -14,6 +14,10 @@ extends RefCounted
 #              different sounds. `screen=base`, `class=Lorelei`, `tier=IV`,
 #              `result=win`. Blank = every time that moment happens.
 #    Sound     the file, in assets/audio/. The extension may be left off.
+#              Several names split by | are tried in order, and the first
+#              file that is there plays: `suno_goal | bav_goal`.
+#              End with `| -` for "or nothing yet": `suno_menu_open | -`
+#              is silent, and not reported, until that file is there.
 #    Bus       Music, Effects or UI. Looping tracks belong on Music.
 #    Loop      true  = keeps playing until something else claims that bus.
 #              blank = plays once and stops.
@@ -180,7 +184,26 @@ func _load_csv(path: String) -> void:
 		# has no event of its own. Blank When now reads as "nothing fires this
 		# by itself; something asks for it", which is exactly what it is.
 
-		var stream := _find_sound(sound)
+		# ROUND AN (10 Oct): SEVERAL NAMES, FIRST ONE THERE WINS.
+		# `suno_goal | bav_goal` plays suno_goal once you drop that file in,
+		# and bav_goal until then - so a new sound needs no edit here.
+		# A last choice of `-` means "or nothing": the row waits quietly for
+		# its file instead of being reported as missing.
+		var stream: AudioStream = null
+		var may_be_silent := false
+		for choice in sound.split("|", false):
+			if choice.strip_edges() == "-":
+				may_be_silent = true
+				continue
+			stream = _find_sound(choice)
+			if stream != null:
+				sound = choice.strip_edges()
+				break
+		if stream == null and may_be_silent:
+			var quiet_id := _cell(row, columns, "id")
+			if quiet_id != "":
+				named_but_silent[CardDatabase._normalise(quiet_id)] = sound
+			continue
 		if stream == null:
 			# THE ROW IS FINE; THE FILE IS NOT THERE YET. Remembered by ID so
 			# that anything asking for this cue by name can say which of the
@@ -301,7 +324,12 @@ func cue_by_name(name_text: String) -> Dictionary:
 		if CardDatabase._normalise(String(cue["id"])) == wanted:
 			return cue
 
-	var stream := _find_sound(name_text)
+	var stream: AudioStream = null
+	for choice in name_text.split("|", false):
+		stream = _find_sound(choice)
+		if stream != null:
+			name_text = choice.strip_edges()
+			break
 	if stream == null:
 		return {}
 	return {

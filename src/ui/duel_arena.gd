@@ -25,6 +25,8 @@ extends CanvasLayer
 #  fail sound for YOUR side. Timings and the gold are `duel_hl_*` rows in
 #  Tuning.csv, the words are Language.csv, the sounds Audio.csv
 #  (duel_ability_success / _fail, duel_power_victory / _fail).
+#  The three checks have a sound of their own as they come up (round AN,
+#  10 Oct): duel_priority_check, duel_ability_check, duel_power_check.
 #
 #  PACING is entirely from Tuning.csv (`arena_*` rows). Holding SPACE, or
 #  clicking, fast-forwards the current duel; nothing is skipped silently,
@@ -235,6 +237,7 @@ func play_duel(info: Dictionary) -> void:
 	var order := _priority_order(left, right)
 	if highlight:
 		_show_banner(Loc.text("duel_ability_priority", "ABILITY PRIORITY"))
+		_sound("duel_priority_check", info)
 		_ring(order[0], true)
 		await _beat(hl_priority_seconds)
 		await _coach("duel_priority")
@@ -259,6 +262,7 @@ func play_duel(info: Dictionary) -> void:
 		# it and the number becomes the total - 3 (+1) turns into 4 - so the
 		# ring never changes size.
 		_show_banner(Loc.text("duel_power_check", "POWER CHECK"))
+		_sound("duel_power_check", info)
 		_set_power(_side["left"], int(left.get("power_after", 0)) - left_change, LIVE_TEXT)
 		_set_power(_side["right"], int(right.get("power_after", 0)) - right_change, LIVE_TEXT)
 		_ring("left", true)
@@ -366,6 +370,7 @@ func _fire_ability(key: String, data: Dictionary, moment: String = "") -> void:
 	# ROUND AN: the gold box round the ability, held long enough to read,
 	# then the verdict as a sound - success if it went off, error if not.
 	_box(key, true)
+	_sound("duel_ability_check", data)
 	await _beat(hl_ability_seconds)
 	await _coach(moment)
 	var went_off := bool(data.get("fired", true))

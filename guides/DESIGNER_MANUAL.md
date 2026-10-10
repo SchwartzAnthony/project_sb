@@ -7496,3 +7496,32 @@ yet" note. The idea is written up in `guides/CONQUESTS.md`.
 
 It is left out of both tutorials, where the row is already full.
 `tools/conquests_shot.gd` presses it and photographs the note.
+## Suno slots, quieter goals, sooner doors (round AN, 10 Oct)
+
+- **Your Suno sounds drop straight in.** `guides/SUNO_PROMPTS.md` has a
+  Suno prompt for every sound and seven new music tracks, each with a file
+  name. Every Audio.csv `Sound` now reads like `suno_goal_horn | bav_goal`:
+  the first file that is in `assets/audio/` plays. Save your Suno file as
+  `suno_<row ID>.mp3` (or .wav / .ogg), drop it in, done. Delete it to get
+  the old sound back.
+- **`| -` means "or nothing yet".** `suno_menu_open | -` is silent, and not
+  reported as missing, until your file is there.
+- **New moments with a row each:** `duel_priority_check`,
+  `duel_ability_check`, `duel_power_check` (the three duel checks as they
+  come up), `menu_open` (When `window_opened`: every window over the base and
+  the Escape menu, `screen=pause`).
+- **New music rows:** `play_maker_music` (while you pick at a PLAY MAKER),
+  `goal_attempt_music` (the shot cut-away), `brewery_music` and
+  `dorms_music` (their windows over the base, When `window_opened` with
+  `screen=brewery;over=base`; closing gives the base its music back),
+  `marsh_music` (an Adventure in the Marshlands, When `match_started`,
+  `biome=The Marshlands`), `team_build_theme`. `match_music_back` and
+  `match_music_back_shot` (When `play_resumed` / `goal_attempt_over`) bring
+  the match music back; keep their Sound the same as `match_theme`.
+- **Fixed:** the team shelf and builder rows said `screen=teamselect` and
+  `screen=teambuilder`, but those screens call themselves `team_select` and
+  `team_builder`, so their music never played.
+- **Goal cheering quieter** (your note): `goal_horn` -5 → -11 dB,
+  `goal_horn_star` -4 → -10, `crowd_goal` -10 → -17.
+- **Door sounds sooner** (your note): `base_door_sound_delay` in Tuning.csv
+  1.0 → 0.15 seconds after the building's own sound.

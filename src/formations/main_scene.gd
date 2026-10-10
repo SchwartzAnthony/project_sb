@@ -3322,8 +3322,14 @@ func run_rps_clash() -> bool:
 ## Everyone stops running and passing — used while a substitution plays out,
 ## and for the whole of a PLAY MAKER so the pitch holds still during picks.
 func freeze_play(value: bool) -> void:
+	var was_frozen := _freeze_depth > 0
 	_freeze_depth = maxi(0, _freeze_depth + (1 if value else -1))
 	var frozen := _freeze_depth > 0
+	# ROUND AN (10 Oct): the ball is live again - after the Play Maker
+	# picks, a shot, a talk. Audio.csv row play_resumed puts the match music
+	# back if the Play Maker or goal attempt music had taken over.
+	if was_frozen and not frozen:
+		AudioDirector.fire(get_tree(), "play_resumed", {}, state)
 	if ball != null:
 		ball.set_frozen(frozen)
 	for unit in _all_units():
@@ -6586,7 +6592,11 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 	_apply_keeper_changes()
 
 	# --- 2. The shootout cut-away, showing the numbers BEFORE the shot ---
+	# ROUND AN (10 Oct): `goal_attempt` / `goal_attempt_over` give the
+	# cut-away music of its own (Audio.csv goal_attempt_music).
 	if shootout != null:
+		AudioDirector.fire(get_tree(), "goal_attempt",
+			{"side": "you" if shooter_is_player else "them"}, state)
 		shootout.play_shot({
 			"shooter_card": shooter.data if shooter != null else null,
 			"shooter_is_player": shooter_is_player,
@@ -6598,6 +6608,7 @@ func finish_round(shooter_is_player: bool, shot_power: int) -> void:
 			"shield": keeper.shield,
 		})
 		await shootout.view_closed
+		AudioDirector.fire(get_tree(), "goal_attempt_over", {}, state)
 
 	# --- 3. Decide the outcome, THEN show it ---
 	var stamina_before := keeper.current_stamina
