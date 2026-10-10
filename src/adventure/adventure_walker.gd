@@ -43,6 +43,10 @@ extends Node2D
 ## end up with a thread of a bar beneath it.
 static var RADIUS := 26.0
 
+## adventure-look: how the run's world is tilted on screen (iso_field.gd).
+## Used only to face the isometric figure the way it is really going.
+static var screen_basis := Transform2D.IDENTITY
+
 
 static func bar_width() -> float:
 	return RADIUS * 2.2
@@ -84,6 +88,10 @@ var being_carried: bool = false
 ## True while it has broken formation to fetch something off the ground.
 var fetching: bool = false
 
+## True while the party stands for a fight: no drift at all, so the spots
+## worked out for them (adventure_scene.gd _plan_fight_spots) stay clear.
+var holding: bool = false
+
 ## Multiplies the party's speed for this one player, so the group spreads.
 var pace: float = 1.0
 
@@ -93,6 +101,22 @@ var _drift_clock: float = 0.0
 var _drift_rate: float = 1.0
 var _drift_reach: float = 18.0
 var _art: TextureRect = null
+
+## ============ THE ISOMETRIC FIGURE  (adventure-look, 10 Oct) ============
+##
+## Anthony: Adventure uses the same isometric players as the match - the
+## Club and class sheets in assets/players/pitch/, chosen by PitchSprites.csv
+## exactly as the pitch chooses them, so a player looks the same in both.
+## `_iso` is true when this card has such a sheet; then `_art` is a
+## SpriteAnimator playing run / idle / fall instead of one still frame.
+## Tuning adventure_iso_players = false goes back to the old card sheet.
+var _iso := false
+var _sheet: Texture2D = null
+var _anim_now := ""
+## Set by the scene every frame: true while the party is running (run cycle),
+## false while it stands to fight (idle). See adventure_scene.gd.
+var jogging := true
+var _run_way := 0
 
 
 func setup(player: PlayerData, walk_speed: float = 260.0,
@@ -105,13 +129,20 @@ func setup(player: PlayerData, walk_speed: float = 260.0,
 	if _plate == null or not is_instance_valid(_plate):
 		_plate = NamePlate.make()
 		add_child(_plate)
+		# adventure-look: above every figure on the field, so a player
+		# standing in front never hides somebody else's name. Set AFTER
+		# add_child, because the plate sets its own z_index in _ready().
+		_plate.z_as_relative = false
+		_plate.z_index = 3000
 
 	# Everything below is per-player randomness. It is what stops ten units
 	# moving as one rectangle.
 	_bob = randf() * TAU
 	_drift_clock = randf() * TAU
 	_drift_rate = randf_range(0.5, 1.15)
-	_drift_reach = randf_range(10.0, 28.0)
+	# adventure-look (Anthony: spread the players apart): a smaller wander,
+	# so neighbours do not drift into each other. Tuning adventure_drift_scale.
+	_drift_reach = randf_range(10.0, 28.0) * clampf(working_db_drift(db), 0.0, 2.0)
 	pace = randf_range(0.82, 1.22)
 
 	# ONE FRAME, NOT THE WHOLE SHEET.
@@ -125,9 +156,27 @@ func setup(player: PlayerData, walk_speed: float = 260.0,
 	# So all three screens now show the same picture of the same player.
 	var working_db := db if db != null else CardDatabase.get_db()
 	var face := MenuSupport.portrait_for(card, working_db)
-	if face != null:
+	var frame_size := face.get_size() if face != null else Vector2.ZERO
+
+	# THE PITCH FIGURE FIRST. The same sheet and the same look the card wears
+	# in a match (PitchSprite.window_sheet picks it by name, so it never
+	# changes between the two modes). The card's old sheet is the fallback.
+	if working_db.tune_bool("adventure_iso_players", true):
+		_sheet = PitchSprite.window_sheet(card)
+		var spec := PitchSprite.window_spec(_sheet, "run", 0) if _sheet != null else null
+		if spec != null:
+			var figure := SpriteAnimator.new()
+			figure.play(_sheet, spec)
+			if figure.crop_size().x > 0:
+				_iso = true
+				_anim_now = "run"
+				_art = figure
+				frame_size = Vector2(figure.crop_size())
+
+	if not _iso and face != null:
 		_art = TextureRect.new()
 		_art.texture = face
+	if _art != null:
 		_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		_art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -146,10 +195,12 @@ func setup(player: PlayerData, walk_speed: float = 260.0,
 		# TALL a player should be and the width follows from the artwork, so
 		# the number in the spreadsheet is the number you see.
 		var tall := RADIUS * working_db.tune_float("adventure_player_art_scale", 3.4)
-		var frame := face.get_size()
+		var frame := frame_size
 		var ratio := 0.62
 		if frame.y > 1.0:
 			ratio = clampf(frame.x / frame.y, 0.25, 4.0)
+		if _iso:
+			tall *= working_db.tune_float("adventure_iso_player_scale", 1.15)
 		_art.custom_minimum_size = Vector2(tall * ratio, tall)
 		_art.size = _art.custom_minimum_size
 		# Standing ON the spot rather than centred over it: the feet sit at
@@ -162,7 +213,37 @@ func setup(player: PlayerData, walk_speed: float = 260.0,
 		# MEASURE THE FRAME ONCE. Everything this player is labelled with is
 		# placed from the rectangle the drawing actually fills, so a label
 		# hugs the body whatever padding the sheet has. See name_plate.gd.
-		_box = NamePlate.box_of(face)
+		# A pitch figure is already cropped tight to the drawing, so the
+		# whole frame is the body.
+		_box = Rect2(0, 0, 1, 1) if _iso else NamePlate.box_of(face)
+
+
+static func _form_up_pace() -> float:
+	var working := CardDatabase.get_db()
+	return maxf(0.2, working.tune_float("adventure_form_up_pace", 2.5)) if working != null else 2.5
+
+
+static func working_db_drift(db: CardDatabase) -> float:
+	var working := db if db != null else CardDatabase.get_db()
+	return working.tune_float("adventure_drift_scale", 0.6) if working != null else 0.6
+
+
+## The lowest and highest lane position this player's feet may take.
+func lane_room() -> Vector2:
+	return _lane_room()
+
+
+## Plays one of the pitch sheet's animations (PitchAnims.csv), facing
+## `direction` (0 east ... 7 north-east). Does nothing on the old sheet, and
+## nothing if that animation is already playing.
+func _play(anim_name: String, direction: int = 0) -> void:
+	if not _iso or _sheet == null or _anim_now == anim_name:
+		return
+	var spec := PitchSprite.window_spec(_sheet, anim_name, direction)
+	if spec == null:
+		return
+	_anim_now = anim_name
+	(_art as SpriteAnimator).play(_sheet, spec)
 
 
 ## Where the top of the sprite goes so that its FEET land on the player's
@@ -213,7 +294,7 @@ func _edges() -> Dictionary:
 
 	var size := _art.size
 	var at := Vector2(-size.x * 0.5, _feet_y())
-	if not lying:
+	if not lying or _iso:
 		return NamePlate.edges(_box, at, size)
 
 	# TURNED ON ITS SIDE. The opaque box turns with it: what was the box's
@@ -263,7 +344,10 @@ func lie_down() -> void:
 	position.y = clampf(position.y, room.x, room.y)
 	target = position
 
-	if _art != null:
+	if _iso:
+		# THE PITCH SHEET HAS ITS OWN FALL, so nobody is turned on their side.
+		_play("fall")
+	elif _art != null:
 		# PIVOT IN THE MIDDLE. A Control turns about its top-left corner out of
 		# the box, which would swing the player off sideways instead of laying
 		# them down.
@@ -283,7 +367,9 @@ func get_up() -> void:
 		return
 	lying = false
 	being_carried = false
-	if _art != null:
+	if _iso:
+		_play("run" if jogging else "idle")
+	elif _art != null:
 		_art.rotation = 0.0
 		_art.position = Vector2(-_art.size.x * 0.5, _feet_y())
 	queue_redraw()
@@ -364,7 +450,7 @@ func _process(delta: float) -> void:
 	var wander := Vector2(
 		sin(_drift_clock * 1.3) * _drift_reach,
 		cos(_drift_clock) * _drift_reach * 1.4)
-	var wanted := target + (Vector2.ZERO if fetching else wander)
+	var wanted := target + (Vector2.ZERO if fetching or holding else wander)
 
 	# THE LANE IS ABSOLUTE. Whatever the drift wanted, the player stays on
 	# the grass — this is the clamp that keeps them off the black.
@@ -372,7 +458,9 @@ func _process(delta: float) -> void:
 	wanted.y = clampf(wanted.y, room.x, room.y)
 
 	var to_target := wanted - position
-	var step := _speed * pace * delta
+	# Forming up for a fight is brisk: everybody is in their spot before the
+	# fight opens (Tuning adventure_form_up_pace).
+	var step := _speed * pace * delta * (_form_up_pace() if holding else 1.0)
 	if to_target.length() <= step:
 		position = wanted
 	else:
@@ -385,7 +473,28 @@ func _process(delta: float) -> void:
 	# the sprite — otherwise every frame would undo the standing-on-the-spot
 	# placement and the players would float again.
 	_bob += delta * (9.0 if to_target.length() > 2.0 else 2.0)
-	if _art != null:
+	if _iso:
+		# The run cycle does the bobbing itself. Running, or walking off to
+		# fetch something, plays run facing the way they go; standing to
+		# fight plays idle facing the enemy (east).
+		if jogging or (fetching and to_target.length() > 6.0):
+			# Which way that is ON SCREEN: on the isometric field "along the
+			# run" is up and to the right, which is north-east.
+			# The little drift around their slot does not turn them; only
+			# running off to fetch something does.
+			var heading := to_target if fetching and to_target.length() > 6.0 else Vector2.RIGHT
+			var way := PitchSprite.direction_of(screen_basis.basis_xform(heading), 2.0)
+			if way < 0:
+				way = 0
+			if way != _run_way:
+				_run_way = way
+				_anim_now = ""
+			_play("run", _run_way)
+		else:
+			if _anim_now == "run":
+				_play("idle", maxi(0, PitchSprite.direction_of(
+					screen_basis.basis_xform(Vector2.RIGHT), 2.0)))
+	elif _art != null:
 		_art.position.y = _feet_y() + sin(_bob) * (RADIUS * 0.09)
 
 	queue_redraw()
