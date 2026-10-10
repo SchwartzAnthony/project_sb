@@ -7496,6 +7496,7 @@ yet" note. The idea is written up in `guides/CONQUESTS.md`.
 
 It is left out of both tutorials, where the row is already full.
 `tools/conquests_shot.gd` presses it and photographs the note.
+
 ## Suno slots, quieter goals, sooner doors (round AN, 10 Oct)
 
 - **Your Suno sounds drop straight in.** `guides/SUNO_PROMPTS.md` has a
