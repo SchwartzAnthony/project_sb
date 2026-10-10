@@ -367,3 +367,6 @@ mug_full.png,assets/dorms/ui/,Art you drew,"A full Mass mug: one fixture of rest
 mug_empty.png,assets/dorms/ui/,Art you drew,"An empty Mass mug: one fixture of rest still to sleep (PixelLab)"
 tag.png,assets/dorms/ui/,Art you drew,"The luggage tag that names a sleeper (PixelLab)"
 card.png,assets/dorms/ui/,Art you drew,"The price card pinned on the notice board (PixelLab)"
+building_frame.png,assets/ui/,Art you drew,"The beer hall frame round every building window (PixelLab, Theme.csv building_window)"
+building_title.png,assets/ui/,Art you drew,"The hanging wooden sign a building window's name is on (PixelLab, Theme.csv building_title)"
+building_close.png,assets/ui/,Art you drew,"The beer mat that closes a building window (PixelLab, Theme.csv building_close)"

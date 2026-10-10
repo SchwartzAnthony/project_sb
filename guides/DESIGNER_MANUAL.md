@@ -4646,6 +4646,30 @@ a full-screen one drifting apart.
 behind it eats clicks — without that you can press a building *through* the
 window and open a second one on top.
 
+### The beer hall frame round every building window (round AN)
+
+Anthony, 10 Oct: look C, **the beer hall**, on every building window. A
+carved wooden frame with hop vines and a Maß in each corner; the building's
+name on a **wooden sign** hanging over the top edge; a **beer mat** on the
+top-right corner that closes the window (Escape still does too). The title
+bar inside the window is gone, so every screen gets that height back.
+
+It is three `Theme.csv` rows and three `Tuning.csv` numbers:
+
+| row | |
+|---|---|
+| `building_window` | the frame. `Slice` 76 keeps the corner mugs whole; `Repeat` tile repeats the carved edges instead of stretching them; `Fill` is the dark inside; `Pad X` / `Pad Y` keep the screen inside the carving |
+| `building_title` | the sign. It stretches sideways to fit the name; `Font`, `Size` and `Text Colour` are the name's |
+| `building_close` | the beer mat |
+| `building_window_inset` (Tuning) | how far in the dark inside starts, so it stays under the carving |
+| `building_title_rise` (Tuning) | how much of the sign stands above the frame (0.55) |
+| `building_close_size` (Tuning) | how big the beer mat is |
+
+**Delete the `building_window` row and every building window goes back to
+the plain box.** The pictures are PixelLab (`assets/ui/building_*.png`),
+layered in `art_source/aseprite/building_window.aseprite`; the other two
+looks Anthony did not pick are in `art_source/pixellab/window_frame_draft/`.
+
 ### Visitors go in the gaps
 
 > *"The dialogue option for people to come by will still be possible, but

@@ -204,6 +204,13 @@ static func palette() -> Dictionary:
 ## The row for this element and state, falling back to the element's ordinary
 ## state, then to `panel`, then to nothing. So `button:hover` with no row of
 ## its own looks like a button, and a brand new element looks like a panel.
+## Does Theme.csv have its OWN row for this element? row_for() falls back
+## to the panel row, which is right for drawing and wrong for asking.
+static func has_element(element: String) -> bool:
+	load_it()
+	return _rows.has(element.to_lower())
+
+
 static func row_for(element: String, state: String = "") -> Dictionary:
 	load_it()
 	var name_text := element.to_lower()
