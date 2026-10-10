@@ -155,6 +155,10 @@ func _ready() -> void:
 func _read_scale() -> void:
 	LANE_TOP = db.tune_float("adventure_lane_top", 250.0)
 	LANE_HEIGHT = db.tune_float("adventure_lane_height", 540.0)
+	# adventure-look: ON THE ISOMETRIC FIELD the path band is deeper, so the
+	# players have room to stand well apart (adventure_iso_lane_height).
+	if db.tune_bool("adventure_iso_field", true):
+		LANE_HEIGHT = db.tune_float("adventure_iso_lane_height", 900.0)
 	LANE_BOTTOM = LANE_TOP + LANE_HEIGHT
 	AdventureWalker.RADIUS = db.tune_float("adventure_player_size", 26.0)
 	AdventureStrike.BALL_RADIUS = db.tune_float("adventure_ball_size", 7.0)
@@ -360,7 +364,7 @@ func _dress_ball() -> void:
 	sprite.name = "Art"
 	sprite.texture = art
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	var wide := maxf(4.0, db.tune_float("adventure_ball_art_size", 22.0))
+	var wide := maxf(4.0, db.tune_float("adventure_ball_art_size", 44.0))
 	sprite.scale = Vector2.ONE * (wide / float(maxi(1, art.get_width())))
 	_ball.add_child(sprite)
 	_ball.queue_redraw()
@@ -425,6 +429,12 @@ func _spawn_party() -> void:
 			walker.stamina_fraction = 1.0
 			_walkers.append(walker)
 			index += 1
+
+	# Now the whole party is known, every player starts ON their own spot
+	# (planned for all of them at once) rather than walking over to it.
+	_plan_run_spots()
+	for i in _walkers.size():
+		_walkers[i].place_at(_slot_for(i))
 
 	if _walkers.is_empty():
 		push_warning("[adventure] Nobody set off — no team was chosen. Go through the team builder first.")
@@ -963,8 +973,8 @@ func _plan_spots(centre_x: float, wide: float, below: float, gap: float) -> Arra
 	# near the front line and near the middle of the lane.
 	var middle := (room.x + room.y) * 0.5
 	var spots: Array = []
-	var x := centre_x + 340.0
-	while x >= centre_x - 700.0:
+	var x := centre_x + 500.0
+	while x >= centre_x - 1100.0:
 		var y := room.x
 		while y <= room.y:
 			spots.append(Vector2(x, y))

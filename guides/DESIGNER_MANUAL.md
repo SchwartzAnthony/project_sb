@@ -3714,11 +3714,14 @@ may cross, players never stand on each other: `adventure_run_width`,
 and name plate, so nothing overlaps before or during the fight
 (`adventure_stand_width`, `_above`, `_below`, `_gap`, `_screen_top`,
 `_screen_bottom`). Nobody wanders while they stand; while running the
-wander is `adventure_drift_scale`. Plates draw above the figures. The Marsh
+wander is `adventure_drift_scale`. Plates draw above the figures. Players start
+a run on their own spot and walk briskly to their fight spot
+(`adventure_form_up_pace`). On the isometric field the path band is
+`adventure_iso_lane_height` deep (900) to give them that room. The Marsh
 King now carries a round football.
 
 **The ball (11 Oct).** A PixelLab football (`adventure_ball_art`), drawn
-`adventure_ball_art_size` pixels across (about a player's foot), with a
+`adventure_ball_art_size` pixels across (44), with a
 shadow; it rolls as it moves and draws above the name plates.
 
 ### How a fight goes

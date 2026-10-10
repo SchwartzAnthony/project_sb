@@ -218,6 +218,11 @@ func setup(player: PlayerData, walk_speed: float = 260.0,
 		_box = Rect2(0, 0, 1, 1) if _iso else NamePlate.box_of(face)
 
 
+static func _form_up_pace() -> float:
+	var working := CardDatabase.get_db()
+	return maxf(0.2, working.tune_float("adventure_form_up_pace", 2.5)) if working != null else 2.5
+
+
 static func working_db_drift(db: CardDatabase) -> float:
 	var working := db if db != null else CardDatabase.get_db()
 	return working.tune_float("adventure_drift_scale", 0.6) if working != null else 0.6
@@ -453,7 +458,9 @@ func _process(delta: float) -> void:
 	wanted.y = clampf(wanted.y, room.x, room.y)
 
 	var to_target := wanted - position
-	var step := _speed * pace * delta
+	# Forming up for a fight is brisk: everybody is in their spot before the
+	# fight opens (Tuning adventure_form_up_pace).
+	var step := _speed * pace * delta * (_form_up_pace() if holding else 1.0)
 	if to_target.length() <= step:
 		position = wanted
 	else:
