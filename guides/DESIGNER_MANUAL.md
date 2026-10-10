@@ -3712,6 +3712,10 @@ slides down and a little aside, gliding so it never flickers, and plates
 always draw above the figures. `adventure_plate_gap`, `adventure_plate_glide`,
 `adventure_plate_reach`. The Marsh King now carries a round football.
 
+**The ball (11 Oct).** A PixelLab football (`adventure_ball_art`), drawn
+`adventure_ball_art_size` pixels across (about a player's foot), with a
+shadow; it rolls as it moves and draws above the name plates.
+
 ### How a fight goes
 
 ```

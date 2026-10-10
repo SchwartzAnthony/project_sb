@@ -290,6 +290,11 @@ func _build_world() -> void:
 	_ball.name = "Ball"
 	_ball.draw.connect(_draw_ball.bind(_ball))
 	_world.add_child(_ball)
+	# Above the name plates, which hang right where the ball is carried.
+	_ball.set_meta("float_on_top", true)
+	_ball.z_as_relative = false
+	_ball.z_index = 3100
+	_dress_ball()
 
 	# THE ISOMETRIC FIELD (Tuning adventure_iso_field). It tilts this world
 	# into the isometric view and lays the tiles; the rules are untouched.
@@ -331,8 +336,50 @@ func _draw_ground(on: Node2D) -> void:
 
 
 func _draw_ball(on: Node2D) -> void:
+	var art := on.get_node_or_null("Art") as Sprite2D
+	if art != null:
+		# Only its shadow on the grass; the PixelLab ball is the sprite.
+		var wide := art.texture.get_width() * art.scale.x
+		on.draw_circle(Vector2(0.0, wide * 0.42), wide * 0.42, Color(0, 0, 0, 0.28))
+		return
 	on.draw_circle(Vector2.ZERO, 7.0, Color(0.93, 0.93, 0.90))
 	on.draw_arc(Vector2.ZERO, 7.0, 0.0, TAU, 16, Color(0.25, 0.25, 0.25), 1.5, true)
+
+
+## ============ A BALL YOU CAN SEE (adventure-look, Anthony) ============
+##
+## The ball was a seven-pixel circle and could not be seen at all. It is the
+## PixelLab football in Tuning adventure_ball_art now, drawn
+## adventure_ball_art_size pixels across on screen (about as big as a
+## player's foot), with a shadow, and it rolls as it moves.
+func _dress_ball() -> void:
+	var art := MenuSupport.icon_texture(db.tune_text("adventure_ball_art", ""))
+	if art == null:
+		return
+	var sprite := Sprite2D.new()
+	sprite.name = "Art"
+	sprite.texture = art
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var wide := maxf(4.0, db.tune_float("adventure_ball_art_size", 22.0))
+	sprite.scale = Vector2.ONE * (wide / float(maxi(1, art.get_width())))
+	_ball.add_child(sprite)
+	_ball.queue_redraw()
+
+
+var _ball_was := Vector2.ZERO
+
+
+## Rolls the ball picture by how far it moved this frame.
+func _roll_ball() -> void:
+	if _ball == null:
+		return
+	var art := _ball.get_node_or_null("Art") as Sprite2D
+	if art == null:
+		return
+	var moved := _ball.position - _ball_was
+	_ball_was = _ball.position
+	if moved.length() > 0.01 and moved.length() < 400.0:
+		art.rotation += moved.length() * 0.09 * (1.0 if moved.x >= 0.0 else -1.0)
 
 
 # =============================================================
@@ -513,6 +560,7 @@ func _process(delta: float) -> void:
 		_iso.update(_travelled, _travelled - _iso_seen)
 		_iso_seen = _travelled
 	_spread_plates(delta)
+	_roll_ball()
 
 	if _world != null:
 		var ground := _world.get_node_or_null("Ground")

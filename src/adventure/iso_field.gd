@@ -281,8 +281,13 @@ func stand_up() -> void:
 			thing.transform = Transform2D(upright.x, upright.y, thing.position)
 			thing.z_as_relative = false
 			# z_index stops at 4096, so the screen height is squeezed into it.
-			thing.z_index = clampi(int((to_screen * thing.position).y), -1500, 1900) \
-				+ (2000 if thing.has_meta("float_on_top") else 0)
+			var screen_y := int((to_screen * thing.position).y)
+			if thing.has_meta("float_on_top"):
+				# The ball and the numbers off a hit: above the name plates
+				# (z 3000), still front to back among themselves.
+				thing.z_index = 3100 + clampi(screen_y / 4, 0, 900)
+			else:
+				thing.z_index = clampi(screen_y, -1500, 1900)
 
 
 # -------------------------------------------------------------
