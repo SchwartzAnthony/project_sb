@@ -28,5 +28,25 @@ tut_adv_hit,tutorial_adventure,adv_hit,,,,tut-adv-hit,,,true,
 tut_adv_down,tutorial_adventure,adv_down,,,,tut-adv-down,,,true,
 tut_adv_claim,tutorial_adventure,adv_loot,,2,,tut-adv-claim,CLAIM THE BOUNTY,,true,The boss is down (wave 2).
 tut_adv_loot,tutorial_adventure,adv_loot,,,,tut-adv-loot,Continue forward,,true,
+coach_adv_start,adventure;intro_adventure,adv_start,,,,coach-adv-start,,,true,"ROUND AN (Anthony, 10 Oct) - THE HEAD COACH EXPLAINS EACH ADVENTURE MOMENT the first time it happens in your own game (Mode adventure;intro_adventure; Once true = first time ever in this save). Lines in data/AdventureCoachDialogue.csv. New moments: adv_icons (first icons on the pile), adv_combo (an icon ability pays out), adv_enemy_buff, adv_foe_down (an enemy dies), adv_enemy_turn, adv_enemy_combo, adv_walkover, adv_cycle (the pile empties), adv_stretcher, adv_wipe (everybody down), adv_items (the bag). Delete a row to drop that stop."
+coach_adv_pickup,adventure;intro_adventure,adv_pickup,,,,coach-adv-pickup,,,true,
+coach_adv_wave,adventure;intro_adventure,adv_wave,,,,coach-adv-wave,,,true,
+coach_adv_boss,adventure;intro_adventure,adv_boss,,,,coach-adv-boss,,,true,
+coach_adv_focus,adventure;intro_adventure,adv_focus,,,,coach-adv-focus,,,true,
+coach_adv_draft,adventure;intro_adventure,adv_draft,,,I,coach-adv-draft,,,true,"Tier I only, so it plays once at the first pick."
+coach_adv_icons,adventure;intro_adventure,adv_icons,,,,coach-adv-icons,,,true,
+coach_adv_combo,adventure;intro_adventure,adv_combo,,,,coach-adv-combo,,,true,
+coach_adv_hit,adventure;intro_adventure,adv_hit,,,,coach-adv-hit,,,true,
+coach_adv_enemy_buff,adventure;intro_adventure,adv_enemy_buff,,,,coach-adv-enemy-buff,,,true,
+coach_adv_foe_down,adventure;intro_adventure,adv_foe_down,,,,coach-adv-foe-down,,,true,
+coach_adv_enemy_turn,adventure;intro_adventure,adv_enemy_turn,,,,coach-adv-enemy-turn,,,true,
+coach_adv_enemy_combo,adventure;intro_adventure,adv_enemy_combo,,,,coach-adv-enemy-combo,,,true,
+coach_adv_down,adventure;intro_adventure,adv_down,,,,coach-adv-down,,,true,
+coach_adv_walkover,adventure;intro_adventure,adv_walkover,,,,coach-adv-walkover,,,true,
+coach_adv_cycle,adventure;intro_adventure,adv_cycle,,,,coach-adv-cycle,,,true,
+coach_adv_stretcher,adventure;intro_adventure,adv_stretcher,,,,coach-adv-stretcher,,,true,
+coach_adv_loot,adventure;intro_adventure,adv_loot,,,,coach-adv-loot,Return to base,,true,
+coach_adv_wipe,adventure;intro_adventure,adv_wipe,,,,coach-adv-wipe,,,true,
+coach_adv_items,adventure;intro_adventure,adv_items,,,,coach-adv-items,,,true,
 tut_combo,tutorial,cards_shown,,6,I,tut-combo,-|-|-|-|-|flask:first,give:anstoss_helles+doppelpass_weisse+abstauber_dunkel;drink_lesson:first=anstoss_helles+doppelpass_weisse+abstauber_dunkel@bottle@tut-combo-after@abilities|card,false,"ROUND AN - THE COMBO LESSON (Anthony, 8 Oct: three small beers, one good and one bad side each). Cycle 2 round 3, Tier I. give: puts them in the bag; the drinking lesson lets the player choose any of them (+ between items)."
 tut_combo_2,tutorial,cards_shown,,6,II,tut-combo-2,flask:first|flask:first,drink_lesson:first=anstoss_helles+doppelpass_weisse+abstauber_dunkel@bottle@tut-combo-2-after@abilities|abilities|-,false,"ROUND AN - the combo lesson, Tier II: a second beer, so Tier I's push lands on it. The third beer stays in the bag."

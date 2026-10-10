@@ -57,6 +57,26 @@ var _note: Label
 ## The action waiting for a key press, or "" when nothing is.
 var _listening: String = ""
 
+## ROUND AN: OPENED ON TOP OF ANOTHER SCREEN (the Adventure's Escape menu)
+## rather than as a screen of its own. Back then closes it and you are where
+## you were, instead of travelling back through the screen trail.
+var as_overlay: bool = false
+signal closed
+
+
+## Open Settings over whatever is on screen, with the game paused underneath.
+## `host` is any node in the scene; the window frees itself on Back.
+static func open_over(host: Node) -> SettingsScreen:
+	var layer := CanvasLayer.new()
+	layer.name = "SettingsOverlay"
+	layer.layer = 170
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	var screen := (load("res://src/ui/settings_screen.tscn") as PackedScene).instantiate() as SettingsScreen
+	screen.as_overlay = true
+	layer.add_child(screen)
+	host.add_child(layer)
+	return screen
+
 
 ## WHICH TAB TO OPEN ON. It rides on the SceneTree rather than living in
 ## this script, so that rebuilding the screen — which a palette change does,
@@ -66,7 +86,8 @@ const TAB_KEY := "cw_settings_tab"
 
 
 func _ready() -> void:
-	MenuEscape.install(self)
+	if not as_overlay:
+		MenuEscape.install(self)
 	GameKeys.install(get_tree())
 	_saved = GameSettings.load_all()
 	settings = _saved.duplicate(true)
@@ -746,4 +767,17 @@ func _leave() -> void:
 
 func _go() -> void:
 	_settled = true
+	if as_overlay:
+		closed.emit()
+		var layer := get_parent()
+		if layer is CanvasLayer and layer.name.begins_with("SettingsOverlay"):
+			layer.queue_free()
+		else:
+			queue_free()
+		return
 	ScenePaths.go_back(get_tree(), ScenePaths.MAIN_MENU)
+
+
+## Escape while Settings is open over another screen is Back.
+func leave() -> void:
+	_leave()

@@ -46,6 +46,35 @@ const NODE_NAME := "MenuEscape"
 var _panel: Control
 var _armed: bool = false
 
+## ROUND AN: THE ADVENTURE'S ESCAPE MENU (Anthony, 10 Oct: "Continue, Exit,
+## Main Menu and Settings"). Set by install_adventure(). The same panel, but
+## the run stops underneath it, there is a Settings button that opens over
+## the run, and Exit / Main Menu leave the Adventure the way fleeing does
+## (adventure_scene.gd leave_adventure()), so nothing is lost by accident.
+var adventure: Node = null
+var _was_paused := false
+var _settings: SettingsScreen = null
+
+
+## ROUND AN: the Adventure's version. `on` is the AdventureScene; it must
+## have leave_adventure(destination).
+static func install_adventure(on: Node) -> MenuEscape:
+	if on == null:
+		return null
+	for child in on.get_children():
+		if child is MenuEscape:
+			return child as MenuEscape
+	var made := MenuEscape.new()
+	made.name = NODE_NAME
+	made.adventure = on
+	on.add_child(made)
+	GameKeys.install(on.get_tree())
+	ThemeBook.dress(on.get_tree())
+	GameSettings.apply(on.get_tree())
+	ControllerFocus.install(on)
+	Loc.install()
+	return made
+
 
 ## Put the Escape handler on a screen. Safe to call twice — the second call
 ## does nothing, so a screen that is reloaded does not end up with two.
@@ -130,7 +159,9 @@ static func install(on: Node) -> MenuEscape:
 func _ready() -> void:
 	# Above ordinary screen content, below the pause menu (layer 200) so that
 	# if both ever exist at once the match's own menu wins.
-	layer = 150
+	# The Adventure's menu sits above Head Coach boxes (150), so Escape
+	# works even while he is talking.
+	layer = 160 if adventure != null else 150
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build()
 
@@ -169,6 +200,14 @@ func _input(event: InputEvent) -> void:
 	if _match_is_running():
 		return
 
+	# SETTINGS IS OPEN OVER THE RUN: Escape is its Back button. Not while a
+	# key row is waiting for a new key - that Escape belongs to Settings.
+	if is_instance_valid(_settings):
+		if String(_settings.get("_listening")) == "":
+			get_viewport().set_input_as_handled()
+			_settings.leave()
+		return
+
 	get_viewport().set_input_as_handled()
 
 	# ============ A SECOND ESCAPE CLOSES THE MENU ============
@@ -189,6 +228,9 @@ func _input(event: InputEvent) -> void:
 		return
 
 	_armed = true
+	if adventure != null:
+		_was_paused = get_tree().paused
+		get_tree().paused = true
 	_panel.show()
 
 
@@ -205,6 +247,9 @@ func _to_main_menu() -> void:
 
 
 func _quit() -> void:
+	if adventure != null and is_instance_valid(adventure):
+		get_tree().paused = false
+		adventure.call("leave_adventure", "")
 	var state := GameState.fetch(get_tree())
 	if state != null:
 		state.save_to_disk()
@@ -213,8 +258,31 @@ func _quit() -> void:
 
 
 func _stand_down() -> void:
+	if _armed and adventure != null:
+		get_tree().paused = _was_paused
 	_armed = false
 	_panel.hide()
+
+
+## ROUND AN (Adventure): leave the run for the base or the title screen.
+func _leave_adventure(destination: String) -> void:
+	_stand_down()
+	get_tree().paused = false
+	print("[menu] Leaving the Adventure from Escape.")
+	adventure.call("leave_adventure", destination)
+
+
+## ROUND AN (Adventure): Settings over the paused run. The panel hides while
+## it is open and comes back when Settings closes.
+func _open_settings() -> void:
+	if is_instance_valid(_settings):
+		return
+	_panel.hide()
+	_settings = SettingsScreen.open_over(self)
+	_settings.closed.connect(func() -> void:
+		_settings = null
+		if _armed:
+			_panel.show())
 
 
 # =============================================================
@@ -259,6 +327,10 @@ func _build() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)
 
+	if adventure != null:
+		_build_adventure_buttons(column)
+		return
+
 	var note := Label.new()
 	note.text = "Your save and your teams are written to disk before you go anywhere. Escape again closes this."
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -294,3 +366,52 @@ func _build() -> void:
 	out.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	out.pressed.connect(_quit)
 	column.add_child(out)
+
+
+## ROUND AN: the Adventure's buttons - Continue, Exit, Main Menu, Settings,
+## and Quit to Desktop at the bottom as everywhere else.
+func _build_adventure_buttons(column: VBoxContainer) -> void:
+	var keep := 0.8
+	var book := CardDatabase.get_db()
+	if book != null:
+		keep = book.tune_float("adventure_flee_keep", 0.8)
+	var note := Label.new()
+	note.text = ("The run is stopped. Leaving now is the same as fleeing: you keep %d%% of what you carry and the party goes to bed. Escape again carries on."
+		% int(round(keep * 100.0)))
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	note.add_theme_font_size_override("font_size", 14)
+	note.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+	column.add_child(note)
+
+	var go_on := MenuSupport.icon_button("↩", Loc.text("continue", "Continue"),
+		Vector2(0, 52))
+	go_on.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	go_on.pressed.connect(_stand_down)
+	column.add_child(go_on)
+
+	var out := MenuSupport.icon_button("home|⌂",
+		Loc.text("exit_adventure", "Exit to Base"), Vector2(0, 52))
+	out.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	out.tooltip_text = "Leave the Adventure and go back to your base."
+	out.pressed.connect(_leave_adventure.bind(ScenePaths.BASE))
+	column.add_child(out)
+
+	var home := MenuSupport.icon_button("⌂",
+		Loc.text("main_menu", "Main Menu"), Vector2(0, 52))
+	home.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	home.tooltip_text = "Leave the Adventure and go to the title screen. Everything is saved first."
+	home.pressed.connect(_leave_adventure.bind(ScenePaths.MAIN_MENU))
+	column.add_child(home)
+
+	var options := MenuSupport.icon_button("⚙",
+		Loc.text("settings", "Settings"), Vector2(0, 52))
+	options.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	options.pressed.connect(_open_settings)
+	column.add_child(options)
+
+	var quit := MenuSupport.icon_button("✕",
+		Loc.text("quit_game", "Quit to Desktop"), Vector2(0, 52))
+	quit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	quit.pressed.connect(_quit)
+	column.add_child(quit)

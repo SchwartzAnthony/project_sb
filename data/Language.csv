@@ -59,6 +59,7 @@ controller,Controller,Controller,
 language,Language,Sprache,
 main_menu,Main Menu,Hauptmenü,"The Escape panel, on every screen outside a match"
 quit_game,Quit to Desktop,Spiel beenden,The Escape panel
+exit_adventure,Exit to Base,Zurück zur Basis,ROUND AN: the Adventure's Escape menu - leave the run (as if fleeing) and go back to the base
 delete_profile,Delete Profile,Profil löschen,"Inside a slot s settings window, behind a confirmation"
 are_you_sure,Are you sure?,Bist du sicher?,
 yes,Yes,Ja,
