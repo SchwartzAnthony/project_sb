@@ -3605,6 +3605,33 @@ Returning to base banks the haul. Fleeing keeps `adventure_flee_keep` of it.
 Everybody being knocked out loses all of it — which is what makes Return to
 Base a real decision.
 
+### The board and the look (adventure-look, 10 Oct)
+
+**The soccer & training board.** The Bounty Board is now a board in a beer
+cave. Biomes are tabs across the top; that biome's jobs hang on the board as
+scrolls. Click a scroll and it unrolls: the quest, what you need, what it
+pays, **Back** (roll it up, read another) and **Accept Contract** (sets off,
+same as START EXPLORING did). A locked scroll still opens and says what it
+needs; Accept is greyed.
+
+| To change | Where |
+|---|---|
+| Scroll label (Match, Training ...) | `Bounties.csv` **Kind** |
+| What the scroll says | `Bounties.csv` **Quest Text** (blank = Description) |
+| Where it hangs | `Bounties.csv` **Pin X**, **Pin Y** (0-1, blank = rows) |
+| Cave, board, pinned scroll, open scroll art | `Tuning.csv` `adventure_board_background`, `adventure_board_art`, `adventure_board_pin_art`, `adventure_scroll_art` (blank = plain colours) |
+| Board and scroll size, unroll speed | `adventure_board_width/height/inset`, `adventure_scroll_width/height`, `adventure_scroll_unroll_seconds` |
+| Words | `Language.csv` `adventure_board_title`, `accept_contract`, `scroll_requirements`, `scroll_rewards` |
+
+**Isometric players.** The squad on the run is the squad you picked, drawn
+with the same isometric sheet each player wears in a match
+(`PitchSprites.csv`), with run, idle and fall. Name, tier, power and the
+stamina bar sit on the same plate as before. `adventure_iso_players` = false
+goes back to the old card sheet; `adventure_iso_player_scale` sizes them.
+
+Art drafts for the board, cave, scroll, isometric Marsh and map style are in
+`art_source/drafts/adventure_look/` and wait for your pick before finals.
+
 ### How a fight goes
 
 ```

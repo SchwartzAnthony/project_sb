@@ -188,8 +188,24 @@ func _read_bounties(rows: Array, columns: Dictionary, where: String) -> void:
 			"power": _int(_cell(row, columns, "recommendedpower"), 0),
 			"art": _cell(row, columns, "art"),
 			"description": _cell(row, columns, "description"),
+			# THE BOARD (adventure-look): Kind is written over the name on the
+			# scroll (Match, Training ...), Quest Text is what the unrolled
+			# scroll says (blank = Description), and Pin X / Pin Y place it
+			# on the board from 0 to 1 (blank = laid out in rows).
+			"kind": _cell(row, columns, "kind"),
+			"quest": _cell(row, columns, "questtext"),
+			"pin_x": _fraction(_cell(row, columns, "pinx")),
+			"pin_y": _fraction(_cell(row, columns, "piny")),
 			"where": "%s row %d" % [where, i + 1],
 		}
+
+
+## A 0-to-1 position from a cell, or -1 when the cell is blank or not a number.
+static func _fraction(text: String) -> float:
+	var clean := text.strip_edges()
+	if not clean.is_valid_float():
+		return -1.0
+	return clampf(float(clean), 0.0, 1.0)
 
 
 func _read_enemies(rows: Array, columns: Dictionary, where: String) -> void:

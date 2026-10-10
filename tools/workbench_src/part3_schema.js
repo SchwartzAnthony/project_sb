@@ -40,7 +40,7 @@ const S = {
   help:"Colours are written <code>#213a26</code>. <b>Parallax</b> 0 is a still background, 1 moves with the ground. <b>Difficulty</b> is multiplied by how many times you have cleared the place, so a repeat run is genuinely tougher rather than just longer."},
 "Bounties.csv":{what:"The jobs on the board. A bounty is a boss — go into that biome and kill the thing named on the paper.",
   key:"ID", enums:{Repeatable:YN},
-  help:"<b>Waves</b> blank means \"as long as the biome is\". A number makes this one job shorter or longer through the same place."},
+  help:"<b>Waves</b> blank means \"as long as the biome is\". A number makes this one job shorter or longer through the same place. <b>Kind</b> (Match, Training ...) is written over the name on the scroll. <b>Quest Text</b> is what the unrolled scroll says (blank = Description). <b>Pin X</b> / <b>Pin Y</b> hang the scroll on the board, 0 to 1 from the top-left; blank = laid out in rows."},
 "Drops.csv":{what:"What things leave behind. A drop table is every row sharing a Table name.",
   key:null, help:"<b>Chance</b> is 0 to 1. <b>Requires</b> gates a drop — a recipe only falls once you can brew."},
 "Items.csv":{what:"Everything you can pick up, spend or use. Every item is a counter in the save, so anything that tests a counter works on it.",

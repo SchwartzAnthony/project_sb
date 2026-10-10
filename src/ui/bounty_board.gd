@@ -3,18 +3,20 @@ extends Control
 
 # =============================================================
 #  THE BOUNTY BOARD — where an Adventure run starts
+#  (adventure-look, 10 Oct: now the SOCCER & TRAINING BOARD in a beer cave)
 #
-#      LEFT    the biomes. Locked ones are greyed and say what would open
-#              them, the same way the unlock board does.
-#      RIGHT   the bounties pinned up for the biome you clicked. A BOUNTY IS
-#              A BOSS: the job is to go into that biome and kill the thing
-#              named on the paper.
-#      BOTTOM  what the chosen job pays, and START EXPLORING.
+#      TOP     the biomes, one tab each. Locked ones are greyed and say in
+#              their tooltip what would open them.
+#      MIDDLE  the board, with the jobs for that biome pinned on it as
+#              scrolls. A BOUNTY IS A BOSS: the job is to go into that biome
+#              and kill the thing named on the paper.
+#      CLICK   a scroll and it unrolls in its own window: the quest, what you
+#              need, what it pays, BACK and ACCEPT CONTRACT.
 #
 #  Everything on this screen is read from Biomes.csv and Bounties.csv.
 #  Nothing here names a place, a boss or a reward.
 #
-#  WHAT START EXPLORING DOES, TODAY (Phase 1)
+#  WHAT ACCEPT CONTRACT DOES (it was START EXPLORING), TODAY (Phase 1)
 #    It opens the run, remembers which bounty you took, and sends you to the
 #    class select and team builder so you can pick the squad you set off
 #    with. The run then plays as an ordinary match.
@@ -30,7 +32,27 @@ extends Control
 #  in nodes it finds by name.
 # =============================================================
 
-const CARD_SIZE := Vector2(250.0, 96.0)
+## ============ THE SOCCER & TRAINING BOARD  (adventure-look, 10 Oct) ============
+##
+## Anthony: the Bounty board becomes a soccer & training board in a Bavarian
+## beer cave. The jobs hang on it as scrolls; clicking one UNROLLS it in its
+## own window (contract_scroll.gd) with the rewards, the quest text, what you
+## need and ACCEPT CONTRACT. Back rolls it up and you can read another.
+##
+## THE PICTURES are Tuning.csv rows, so new art is a file name, not code:
+##     adventure_board_background   the beer cave behind everything
+##     adventure_board_art          the board the scrolls hang on
+##     adventure_board_pin_art      one rolled-up scroll on the board
+## Blank or missing: plain colours stand in, and the screen still works.
+##
+## WHERE EACH SCROLL HANGS is Bounties.csv: Pin X and Pin Y, from 0 (left /
+## top of the board) to 1 (right / bottom). Blank = laid out in rows.
+## Kind (Match, Training ...) is written over the name on the scroll.
+
+const PIN_SIZE := Vector2(190.0, 118.0)
+const WOOD := Color(0.36, 0.22, 0.12)
+const WOOD_EDGE := Color(0.18, 0.10, 0.05)
+const SCROLL_PAPER := Color(0.86, 0.76, 0.56)
 
 var db: CardDatabase
 var adventure: AdventureDB
@@ -39,11 +61,12 @@ var state: GameState
 var _chosen_biome: Dictionary = {}
 var _chosen_bounty: Dictionary = {}
 
-var _biome_list: VBoxContainer
-var _bounty_list: VBoxContainer
+var _biome_tabs: HBoxContainer
+var _board: Control
+var _pins: Control
 var _bounty_heading: Label
 var _detail: Label
-var _start: Button
+var _scroll: ContractScroll = null
 
 
 func _ready() -> void:
@@ -74,13 +97,28 @@ func _ready() -> void:
 #  LAYOUT
 # -------------------------------------------------------------
 
+func _picture(key: String) -> Texture2D:
+	return MenuSupport.icon_texture(db.tune_text(key, "")) if db != null else null
+
+
 func _build_ui() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
+	# THE BEER CAVE. Its colour first, the picture over it when there is one.
 	var background := ColorRect.new()
-	background.color = MenuSupport.COLOUR_BACKGROUND
+	background.color = Color(0.10, 0.07, 0.06)
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
+	var cave := _picture("adventure_board_background")
+	if cave != null:
+		var cave_rect := TextureRect.new()
+		cave_rect.texture = cave
+		cave_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		cave_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		cave_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		cave_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		cave_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(cave_rect)
 
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -91,56 +129,55 @@ func _build_ui() -> void:
 	add_child(margin)
 
 	var page := VBoxContainer.new()
-	page.add_theme_constant_override("separation", 12)
+	page.add_theme_constant_override("separation", 10)
 	margin.add_child(page)
 
-	page.add_child(MenuSupport.heading("THE BOUNTY BOARD", 32,
-		MenuSupport.COLOUR_ACCENT))
 	page.add_child(MenuSupport.heading(
-		"Pick where you are going, then pick what you are going for. A bounty is the thing waiting at the end of it.",
-		14, MenuSupport.COLOUR_TEXT_DIM))
+		Loc.text("adventure_board_title", "THE SOCCER & TRAINING BOARD"), 32,
+		MenuSupport.COLOUR_ACCENT))
 
-	var columns := HBoxContainer.new()
-	columns.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	columns.add_theme_constant_override("separation", 20)
-	page.add_child(columns)
+	# WHERE: one tab per biome across the top. A locked one is greyed and
+	# says in its tooltip what would open it.
+	_biome_tabs = HBoxContainer.new()
+	_biome_tabs.add_theme_constant_override("separation", 8)
+	_biome_tabs.alignment = BoxContainer.ALIGNMENT_CENTER
+	page.add_child(_biome_tabs)
 
-	# --- LEFT: the biomes ---
-	var left := VBoxContainer.new()
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.add_theme_constant_override("separation", 6)
-	columns.add_child(left)
-	left.add_child(MenuSupport.heading("WHERE", 16, MenuSupport.COLOUR_TEXT_DIM))
+	_bounty_heading = MenuSupport.heading("", 16, MenuSupport.COLOUR_TEXT)
+	_bounty_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	page.add_child(_bounty_heading)
 
-	var left_scroll := ScrollContainer.new()
-	left_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	left_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	left.add_child(left_scroll)
+	# THE BOARD, in the middle, with the scrolls hanging on it.
+	var holder := CenterContainer.new()
+	holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	page.add_child(holder)
 
-	_biome_list = VBoxContainer.new()
-	_biome_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_biome_list.add_theme_constant_override("separation", 8)
-	left_scroll.add_child(_biome_list)
+	var board_size := Vector2(
+		db.tune_float("adventure_board_width", 1000.0),
+		db.tune_float("adventure_board_height", 520.0))
+	var art := _picture("adventure_board_art")
+	if art != null:
+		var board_rect := TextureRect.new()
+		board_rect.texture = art
+		board_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		board_rect.stretch_mode = TextureRect.STRETCH_SCALE
+		board_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_board = board_rect
+	else:
+		var panel := Panel.new()
+		panel.add_theme_stylebox_override("panel", _wood())
+		_board = panel
+	_board.custom_minimum_size = board_size
+	holder.add_child(_board)
 
-	# --- RIGHT: the bounties ---
-	var right := VBoxContainer.new()
-	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right.size_flags_stretch_ratio = 1.4
-	right.add_theme_constant_override("separation", 6)
-	columns.add_child(right)
-
-	_bounty_heading = MenuSupport.heading("WHAT", 16, MenuSupport.COLOUR_TEXT_DIM)
-	right.add_child(_bounty_heading)
-
-	var right_scroll := ScrollContainer.new()
-	right_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	right.add_child(right_scroll)
-
-	_bounty_list = VBoxContainer.new()
-	_bounty_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_bounty_list.add_theme_constant_override("separation", 8)
-	right_scroll.add_child(_bounty_list)
+	_pins = Control.new()
+	_pins.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var inset := db.tune_float("adventure_board_inset", 48.0)
+	_pins.offset_left = inset
+	_pins.offset_top = inset
+	_pins.offset_right = -inset
+	_pins.offset_bottom = -inset
+	_board.add_child(_pins)
 
 	# --- Footer: the standard one, Back on the left like every screen ---
 	_detail = Label.new()
@@ -150,46 +187,38 @@ func _build_ui() -> void:
 	footer.add_child(MenuSupport.footer_gap(_detail))
 	page.add_child(footer)
 
-	# THE INVENTORY, IN THE MIDDLE OF THE BOTTOM. The same bag that opens
-	# from the base, from a fight and from the match draft — see
-	# inventory_screen.gd. It used to be a screen of its own called YOUR KIT
-	# that listed a third of what you were carrying as lines of text.
-	#
-	# EDIT ELEMENT BONUS SITS BESIDE IT, because both are things you settle
-	# before you set off and neither belongs on a page of biomes. The two are
-	# pinned as a PAIR - pinning them one at a time would put them both in the
-	# middle, on top of each other.
+	# THE INVENTORY, IN THE MIDDLE OF THE BOTTOM, with EDIT ELEMENT BONUS
+	# beside it - both are things you settle before you set off. Pinned as a
+	# PAIR so they do not land on top of each other. See inventory_screen.gd.
 	var middle := HBoxContainer.new()
 	middle.add_theme_constant_override("separation", 10)
 	add_child(middle)
 
-	var items := MenuSupport.footer_button("inventory|\u2692",
+	var items := MenuSupport.footer_button("inventory|⚒",
 		Loc.text("inventory", "Inventory"))
-	items.tooltip_text = "Everything you are carrying \u2014 what you can use, what you can spend, and what you are holding on to."
+	items.tooltip_text = "Everything you are carrying — what you can use, what you can spend, and what you are holding on to."
 	items.pressed.connect(_show_inventory)
 	middle.add_child(items)
 
-	# WIDE ENOUGH FOR ITS OWN LABEL. The ordinary footer button is 170 across
-	# and "Edit Element Bonus" is not; in a windowed game the words were cut
-	# off. icon_button() takes a size, so it is given one rather than being
-	# left to the default.
-	var loadout := MenuSupport.icon_button("traits|\u25c8",
+	var loadout := MenuSupport.icon_button("traits|◈",
 		Loc.text("edit_element_bonus", "Edit Element Bonus"),
 		Vector2(290, MenuSupport.FOOTER_BUTTON.y))
 	loadout.tooltip_text = "Which %d icons you carry into a run. Everything else you have unlocked stays on the shelf and does nothing." % TraitDB.slots(db)
 	loadout.pressed.connect(_show_loadout)
 	middle.add_child(loadout)
 
-	# Its own footprint, or the pin would size it as a single button and the
-	# pair would sit half off centre. Two buttons plus the gap between them.
 	middle.custom_minimum_size = Vector2(
 		MenuSupport.FOOTER_BUTTON.x + 290.0 + 10.0, MenuSupport.FOOTER_BUTTON.y)
 	MenuSupport.pin_bottom_centre(middle)
 
-	_start = MenuSupport.footer_primary("play|▶", "START EXPLORING")
-	_start.disabled = true
-	_start.pressed.connect(_on_start)
-	footer.add_child(_start)
+
+func _wood() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = WOOD
+	style.border_color = WOOD_EDGE
+	style.set_border_width_all(10)
+	style.set_corner_radius_all(6)
+	return style
 
 
 # -------------------------------------------------------------
@@ -197,190 +226,215 @@ func _build_ui() -> void:
 # -------------------------------------------------------------
 
 func _fill_biomes() -> void:
-	for child in _biome_list.get_children():
+	for child in _biome_tabs.get_children():
 		child.queue_free()
 
 	var all := adventure.all_biomes()
 	if all.is_empty():
-		_biome_list.add_child(_quiet(
+		_biome_tabs.add_child(_quiet(
 			"No biomes. Put rows in data/Biomes.csv and they appear here."))
 		return
 
 	for entry in all:
-		_biome_list.add_child(_biome_card(entry))
+		_biome_tabs.add_child(_biome_tab(entry))
 
 
-func _biome_card(entry: Dictionary) -> Control:
+func _biome_tab(entry: Dictionary) -> Control:
 	var open := DialogueGrammar.test(String(entry.get("requires", "")), state)
-
-	var button := Button.new()
-	button.custom_minimum_size = CARD_SIZE
-	button.disabled = not open
-	button.focus_mode = Control.FOCUS_NONE
-
-	var tint := MenuSupport.COLOUR_ACCENT if open else MenuSupport.COLOUR_TEXT_DIM
-	button.add_theme_stylebox_override("normal",
-		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, tint))
-	button.add_theme_stylebox_override("hover",
-		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, tint))
-	button.add_theme_stylebox_override("disabled",
-		MenuSupport.panel_style(MenuSupport.COLOUR_LOCKED, MenuSupport.COLOUR_TEXT_DIM))
-
-	var box := VBoxContainer.new()
-	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	box.add_theme_constant_override("margin_left", 10)
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_theme_constant_override("separation", 2)
-	button.add_child(box)
-
-	var title := Label.new()
-	title.text = String(entry.get("name", "?"))
-	title.add_theme_font_size_override("font_size", 18)
-	title.add_theme_color_override("font_color",
-		MenuSupport.COLOUR_TEXT if open else MenuSupport.COLOUR_TEXT_DIM)
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(title)
-
-	var line := Label.new()
+	# The button's own text is the biome's name: the Head Coach's Guide.csv
+	# rows find it by those words.
+	var tab := Button.new()
+	tab.text = String(entry.get("name", "?")) if open \
+		else "🔒 " + String(entry.get("name", "?"))
+	tab.custom_minimum_size = Vector2(200, 44)
+	tab.disabled = not open
+	tab.focus_mode = Control.FOCUS_NONE
 	if open:
-		line.text = "%d wave%s   ·   %s" % [int(entry.get("waves", 1)),
-			"" if int(entry.get("waves", 1)) == 1 else "s",
+		tab.tooltip_text = "%d waves  ·  %s" % [int(entry.get("waves", 1)),
 			String(entry.get("description", ""))]
+		tab.pressed.connect(_choose_biome.bind(entry))
 	else:
-		# THE SAME SENTENCE THE UNLOCK BOARD WOULD GIVE YOU. A locked place
-		# always says what would open it, never just "locked".
-		line.text = "🔒  %s" % DialogueGrammar.describe(String(entry.get("requires", "")))
-	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	line.add_theme_font_size_override("font_size", 12)
-	line.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_child(line)
-
-	if open:
-		button.pressed.connect(_choose_biome.bind(entry))
-	return button
+		# A locked place always says what would open it, never just "locked".
+		tab.tooltip_text = DialogueGrammar.describe(String(entry.get("requires", "")))
+	var chosen := String(entry.get("id", "")) == String(_chosen_biome.get("id", "-"))
+	var tint := MenuSupport.COLOUR_ACCENT if chosen else MenuSupport.COLOUR_TEXT_DIM
+	tab.add_theme_stylebox_override("normal",
+		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, tint))
+	tab.add_theme_stylebox_override("hover",
+		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+	tab.add_theme_stylebox_override("disabled",
+		MenuSupport.panel_style(MenuSupport.COLOUR_LOCKED, MenuSupport.COLOUR_TEXT_DIM))
+	return tab
 
 
 func _choose_biome(entry: Dictionary) -> void:
 	_chosen_biome = entry
 	_chosen_bounty = {}
+	_fill_biomes()
 	_refresh_bounties()
 	_refresh_footer()
 
 
 # -------------------------------------------------------------
-#  THE BOUNTIES
+#  THE SCROLLS ON THE BOARD
 # -------------------------------------------------------------
 
 func _refresh_bounties() -> void:
-	for child in _bounty_list.get_children():
+	for child in _pins.get_children():
 		child.queue_free()
 
 	if _chosen_biome.is_empty():
-		_bounty_heading.text = "WHAT"
-		_bounty_list.add_child(_quiet(
-			"Pick a biome on the left and its bounties are pinned up here."))
+		_bounty_heading.text = ""
+		_pins.add_child(_quiet(
+			"Pick a place at the top and its jobs are pinned up here."))
 		return
 
-	_bounty_heading.text = "WHAT  ·  %s" % String(_chosen_biome.get("name", "?"))
+	_bounty_heading.text = String(_chosen_biome.get("name", "?"))
 
 	var jobs := adventure.bounties_in(String(_chosen_biome.get("id", "")), state)
 	if jobs.is_empty():
-		_bounty_list.add_child(_quiet(
+		_pins.add_child(_quiet(
 			"Nothing pinned up for %s. Add rows to data/Bounties.csv with Biome = %s."
 			% [_chosen_biome.get("name", "?"), _chosen_biome.get("id", "")]))
 		return
 
+	# Where each one hangs: its own Pin X / Pin Y, or the next slot in rows.
+	var room := _board.custom_minimum_size - Vector2.ONE * 2.0 \
+		* db.tune_float("adventure_board_inset", 48.0)
+	var per_row := maxi(1, int(room.x / (PIN_SIZE.x + 16.0)))
+	var slot := 0
 	for job in jobs:
-		_bounty_list.add_child(_bounty_card(job))
+		var pin := _scroll_pin(job)
+		var spot := Vector2(float(job.get("pin_x", -1.0)), float(job.get("pin_y", -1.0)))
+		if spot.x < 0.0 or spot.y < 0.0:
+			spot = Vector2(
+				(float(slot % per_row) + 0.5) / float(per_row),
+				(float(slot / per_row) + 0.5) / maxf(1.0, ceilf(float(jobs.size()) / per_row)))
+			slot += 1
+		pin.position = Vector2(spot.x * room.x, spot.y * room.y) - PIN_SIZE * 0.5
+		# A slight tilt each, so it reads as paper someone pinned up by hand.
+		pin.pivot_offset = PIN_SIZE * 0.5
+		pin.rotation_degrees = float(hash(String(job.get("id", ""))) % 7 - 3)
+		_pins.add_child(pin)
 
 
-func _bounty_card(job: Dictionary) -> Control:
+## One rolled-up scroll on the board: its kind, its name, and what it pays.
+func _scroll_pin(job: Dictionary) -> Control:
 	var open := bool(job.get("open", true))
 	var done := bool(job.get("done", false))
-	var boss := adventure.enemy(String(job.get("boss", "")))
 
 	var button := Button.new()
-	button.custom_minimum_size = Vector2(0, 104)
-	button.disabled = not open
+	button.name = "Pin_" + String(job.get("id", ""))
+	button.custom_minimum_size = PIN_SIZE
+	button.size = PIN_SIZE
 	button.focus_mode = Control.FOCUS_NONE
+	button.tooltip_text = String(job.get("description", ""))
 
-	var tint := MenuSupport.COLOUR_TEXT_DIM
-	if open:
-		tint = MenuSupport.COLOUR_ACCENT if not done else MenuSupport.COLOUR_TEXT
-	button.add_theme_stylebox_override("normal",
-		MenuSupport.panel_style(MenuSupport.COLOUR_PANEL, tint))
-	button.add_theme_stylebox_override("hover",
-		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, tint))
-	button.add_theme_stylebox_override("disabled",
-		MenuSupport.panel_style(MenuSupport.COLOUR_LOCKED, MenuSupport.COLOUR_TEXT_DIM))
-
-	var row := HBoxContainer.new()
-	row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	row.add_theme_constant_override("separation", 12)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	button.add_child(row)
-
-	# The boss's picture, or a placeholder square — same rule as everywhere.
-	var portrait := PanelContainer.new()
-	portrait.custom_minimum_size = Vector2(84, 84)
-	portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	portrait.add_theme_stylebox_override("panel",
-		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, tint))
-	var art := MenuSupport.icon_texture(String(job.get("art", "")))
-	if art == null and not boss.is_empty():
-		art = MenuSupport.icon_texture(String(boss.get("art", "")))
-	if art != null:
-		var rect := TextureRect.new()
-		rect.texture = art
-		rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		portrait.add_child(rect)
-	row.add_child(portrait)
+	var pin_art := _picture("adventure_board_pin_art")
+	if pin_art != null:
+		var flat := StyleBoxTexture.new()
+		flat.texture = pin_art
+		for state_name in ["normal", "hover", "pressed", "disabled"]:
+			button.add_theme_stylebox_override(state_name, flat)
+	else:
+		var paper := SCROLL_PAPER if open else SCROLL_PAPER.darkened(0.45)
+		button.add_theme_stylebox_override("normal", MenuSupport.panel_style(paper, WOOD_EDGE))
+		button.add_theme_stylebox_override("hover",
+			MenuSupport.panel_style(paper.lightened(0.12), MenuSupport.COLOUR_ACCENT))
+		button.add_theme_stylebox_override("pressed", MenuSupport.panel_style(paper, WOOD_EDGE))
+	if not open:
+		button.modulate = Color(0.7, 0.7, 0.7)
 
 	var column := VBoxContainer.new()
-	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	column.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	column.add_theme_constant_override("separation", 3)
+	column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.add_theme_constant_override("separation", 2)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(column)
+	button.add_child(column)
 
-	var title := Label.new()
-	title.text = String(job.get("name", "?"))
+	var kind := String(job.get("kind", ""))
+	if kind != "":
+		column.add_child(_pin_line(kind.to_upper(), 11, MenuSupport.COLOUR_ACCENT))
+	var title := String(job.get("name", "?"))
 	if done:
-		title.text += "   ✓ claimed"
-	title.add_theme_font_size_override("font_size", 18)
-	title.add_theme_color_override("font_color",
-		MenuSupport.COLOUR_TEXT if open else MenuSupport.COLOUR_TEXT_DIM)
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(title)
+		title += "  ✓"
+	column.add_child(_pin_line(title, 15, MenuSupport.COLOUR_TEXT))
+	if not open:
+		column.add_child(_pin_line("🔒", 13, MenuSupport.COLOUR_TEXT_DIM))
+	elif int(job.get("power", 0)) > 0:
+		column.add_child(_pin_line("P %d" % int(job.get("power", 0)), 12,
+			MenuSupport.COLOUR_TEXT_DIM))
 
-	var line := Label.new()
-	if open:
-		line.text = _boss_line(boss, job)
-	else:
-		line.text = "🔒  %s" % DialogueGrammar.describe(String(job.get("requires", "")))
-	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	line.add_theme_font_size_override("font_size", 12)
-	line.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(line)
-
-	var pays := Label.new()
-	pays.text = "Pays:  %s" % _reward_words(String(job.get("reward", "")))
-	pays.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	pays.add_theme_font_size_override("font_size", 12)
-	pays.add_theme_color_override("font_color",
-		MenuSupport.COLOUR_ACCENT if open else MenuSupport.COLOUR_TEXT_DIM)
-	pays.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(pays)
-
-	if open:
-		button.pressed.connect(_choose_bounty.bind(job))
+	# Even a locked scroll opens: it says what you still need.
+	button.pressed.connect(_open_scroll.bind(job))
 	return button
+
+
+## Light words on the see-through black plate, the one rule for text.
+func _pin_line(text: String, font_size: int, colour: Color) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", colour)
+	label.add_theme_stylebox_override("normal", TextBackdrop.plate())
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+
+# -------------------------------------------------------------
+#  THE SCROLL WINDOW
+# -------------------------------------------------------------
+
+func _open_scroll(job: Dictionary) -> void:
+	if _scroll != null and is_instance_valid(_scroll):
+		return
+	_chosen_bounty = job
+	_refresh_footer()
+	_scroll = ContractScroll.open(self, _scroll_words(job))
+	_scroll.accepted.connect(_on_start)
+	_scroll.closed.connect(func() -> void:
+		_scroll = null
+		_chosen_bounty = {}
+		_refresh_footer())
+
+
+## Everything the scroll says, from the CSV row.
+func _scroll_words(job: Dictionary) -> Dictionary:
+	var boss := adventure.enemy(String(job.get("boss", "")))
+	var quest := String(job.get("quest", ""))
+	if quest == "":
+		quest = String(job.get("description", ""))
+
+	var needs: Array[String] = []
+	var requires := String(job.get("requires", "")).strip_edges()
+	if requires != "":
+		var met := bool(job.get("open", true))
+		needs.append("%s%s" % ["" if met else "🔒 ",
+			DialogueGrammar.describe(requires)])
+	if int(job.get("power", 0)) > 0:
+		needs.append("Suggested power %d" % int(job.get("power", 0)))
+	var waves := int(job.get("waves", 0))
+	if waves <= 0:
+		waves = int(_chosen_biome.get("waves", 1))
+	needs.append("%d wave%s, then %s" % [maxi(0, waves - 1),
+		"" if waves - 1 == 1 else "s", _boss_line(boss, {})])
+
+	var rewards: Array[String] = []
+	for bit in _reward_words(String(job.get("reward", ""))).split("  ·  "):
+		rewards.append(bit)
+	if not bool(job.get("repeatable", false)):
+		rewards.append("Once only")
+
+	return {
+		"title": String(job.get("name", "?")),
+		"kind": String(job.get("kind", "")),
+		"quest": quest,
+		"requirements": needs,
+		"rewards": rewards,
+		"open": bool(job.get("open", true)) and not bool(job.get("done", false)),
+	}
 
 
 ## "The Marsh King — 3 layers, 42 deep, hits for 3. Suggested power 2."
@@ -441,22 +495,12 @@ func _reward_words(reward: String) -> String:
 	return "  ·  ".join(words) if not words.is_empty() else "nothing yet"
 
 
-func _choose_bounty(job: Dictionary) -> void:
-	_chosen_bounty = job
-	_refresh_footer()
-
-
 func _refresh_footer() -> void:
 	if _chosen_bounty.is_empty():
-		_detail.text = "Choose a bounty."
-		_start.disabled = true
+		_detail.text = "Click a scroll on the board to read it."
 		return
-
-	_start.disabled = false
-	_detail.text = "%s  ·  %s  ·  %d wave%s before the boss." % [
-		_chosen_bounty.get("name", "?"), _chosen_biome.get("name", "?"),
-		maxi(0, int(_chosen_biome.get("waves", 1)) - 1),
-		"" if int(_chosen_biome.get("waves", 1)) - 1 == 1 else "s"]
+	_detail.text = "%s  ·  %s" % [
+		_chosen_bounty.get("name", "?"), _chosen_biome.get("name", "?")]
 
 
 # -------------------------------------------------------------

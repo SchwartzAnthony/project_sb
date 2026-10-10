@@ -103,3 +103,7 @@ exhaust_empty,"Empty. Cards you play wait here until the STAR PLAYER SWITCH.","L
 conquests_button,Conquests,Eroberungen,"CONQUESTS PLACEHOLDER. The torn, old banner with the black infinity on the base's top row. The mode is not built yet: it only opens the coming-soon note below (guides/CONQUESTS.md)"
 conquests_title,CONQUESTS,EROBERUNGEN,The heading of the Conquests coming-soon note
 conquests_soon,"Not open yet. One day: take your sacrificed players into the realm of the Myths, build towns as you push in, and see how far you get before the immortal deity at its heart stops you. Your best run goes on the board.","Noch nicht offen. Eines Tages: Führe deine geopferten Spieler ins Reich der Mythen, gründe Städte auf dem Weg und schau, wie weit du kommst, bevor dich die unsterbliche Gottheit in seinem Herzen aufhält. Dein bester Lauf kommt an die Tafel.",The body of the Conquests coming-soon note
+adventure_board_title,THE SOCCER & TRAINING BOARD,DAS FUSSBALL- & TRAININGSBRETT,"adventure-look (10 Oct). The heading of the Adventure board in the beer cave"
+accept_contract,Accept Contract,Vertrag annehmen,"adventure-look. The button on an unrolled scroll that takes the job"
+scroll_requirements,YOU NEED,DU BRAUCHST,"adventure-look. The heading over what a job needs, on the unrolled scroll"
+scroll_rewards,REWARD,BELOHNUNG,"adventure-look. The heading over what a job pays, on the unrolled scroll"

@@ -449,6 +449,11 @@ func _process(delta: float) -> void:
 
 	if current_state == RunState.RUNNING:
 		_carry_pickups(delta)
+	# The isometric figures play their run cycle while the party runs and
+	# stand in idle to fight. See adventure_walker.gd.
+	for walker in _walkers:
+		if is_instance_valid(walker):
+			walker.jogging = current_state == RunState.RUNNING
 	_settle_walkers()
 
 	if _world != null:
