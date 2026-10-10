@@ -425,7 +425,7 @@ adventure_run_width,70,"WHILE RUNNING every player has room of their own too, sm
 adventure_run_below,14,"How much room below the feet while running (the names are allowed to overlap then)"
 adventure_run_gap,30,"Pixels kept between players while running. Larger spreads the running party out further"
 adventure_ball_art,res://assets/adventure/ball.png,"ADVENTURE-LOOK (Anthony: cannot see the ball). The PixelLab football the party knocks about in the Adventure run. Blank = the old small drawn circle"
-adventure_ball_art_size,22,"How many pixels across the Adventure ball is drawn on screen - about the size of a player's foot. It rolls as it moves"
+adventure_ball_art_size,44,"How many pixels across the Adventure ball is drawn on screen - about the size of a player's foot. It rolls as it moves"
 juice_slowmo_depth,0.35,"HOW FAR a slow-motion dip slows the game. 0.35 = a third speed. 1.0 = no dip at all, which is a gentler way to turn them off than juice_slowmo = false"
 juice_flash_strength,0.3,HOW BRIGHT A FULL-SCREEN FLASH IS. It was a hard-coded 0.55 and a white flash at that strength across a whole screen is genuinely unpleasant. 0 turns screen flashes off entirely and leaves the shakes alone
 juice_scale,1.0,"HOW MUCH SHAKE, FLASH AND POP THE WHOLE GAME GETS. 0 kills every effect stone dead, 0.5 halves them, 2 doubles them. This is the row to expose in Settings for people who dislike screen shake, and the row to set to 0 while you are debugging"
