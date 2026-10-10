@@ -3556,6 +3556,36 @@ after the box, such as `Continue forward`. **Once** true plays a row only the
 first time. The game is paused under the box and nothing can be clicked
 until it closes. Any Adventure mode can have rows like these.
 
+**The Head Coach explains your own Adventures too** (round AN, 10 Oct). The
+`coach_adv_*` rows in `MatchTalk.csv` have Mode `adventure;intro_adventure`
+(a **Mode** cell can now list several modes with `;`) and Once true, so each
+plays the first time that moment happens in a save, then never again. His
+lines are drafts in `data/AdventureCoachDialogue.csv`. Delete a row to drop a
+stop. Besides the moments above there are new ones:
+
+| When | The moment |
+|---|---|
+| `adv_icons` | a pick has put the first icons on the pile (the bar along the top) |
+| `adv_combo` | an icon ability pays out |
+| `adv_enemy_buff` | enemies grew while you passed |
+| `adv_foe_down` | an enemy has been put down |
+| `adv_enemy_turn` | their half of the round begins |
+| `adv_enemy_combo` | their icons paid out too |
+| `adv_walkover` | a Tier had nobody, so they hit twice |
+| `adv_cycle` | everybody has had a turn and the pile empties |
+| `adv_stretcher` | the fallen are carried off after a fight |
+| `adv_wipe` | everybody is down |
+| `adv_items` | the bag is opened in a fight |
+
+**Escape in an Adventure** stops the run and opens a menu: **Continue**,
+**Exit to Base**, **Main Menu**, **Settings** (opens over the run; Escape or
+Back closes it) and **Quit to Desktop**. Leaving is never a way round the
+rules: with the loot window up it is Return to Base (the whole haul), with
+everybody down the haul is gone, and anywhere else it is fleeing
+(`adventure_flee_keep`). The button words are `Language.csv` rows
+`continue`, `exit_adventure`, `main_menu`, `settings`, `quit_game`. The check
+`tools/adventure_coach_check.gd` plays both through.
+
 **Two new Guide.csv words.** Screen `dorms` plays over the Dorms, and Then
 `goto:dorms` opens them. Then `tutorial:end` ends the Tutorial.
 

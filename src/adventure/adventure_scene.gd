@@ -124,6 +124,10 @@ func _ready() -> void:
 	# EIGHT SLOTS note at the top of trait_db.gd.
 	TraitDB.refresh_loadout(state, db)
 
+	# ROUND AN: Escape stops the run and opens Continue / Exit / Main Menu /
+	# Settings (menu_escape.gd install_adventure, leave_adventure below).
+	MenuEscape.install_adventure(self)
+
 	_read_scale()
 	_read_biome_look()
 	_build_world()
@@ -999,8 +1003,34 @@ func _refresh_walkers() -> void:
 			walker.get_up()
 
 
+## ROUND AN: LEAVING FROM THE ESCAPE MENU (Exit, Main Menu, Quit). It is
+## never a way round the rules:
+##   between waves, loot on screen   = Return to Base: the whole haul
+##   everybody down                  = the haul is gone, as always
+##   anywhere else (running, a fight) = fleeing: adventure_flee_keep of it
+## `destination` is a ScenePaths path, or "" to stay put (quitting).
+func leave_adventure(destination: String) -> void:
+	get_tree().paused = false
+	if current_state == RunState.FINISHED:
+		if destination != "":
+			ScenePaths.go_to(get_tree(), destination, false)
+		return
+	if current_state == RunState.LOOT and run.party_is_down():
+		current_state = RunState.FINISHED
+		run.haul.clear()
+		_party_to_dorms()
+		state.save_to_disk()
+		AdventureRun.clear(get_tree())
+		if destination != "":
+			ScenePaths.go_to(get_tree(), destination, false)
+	elif current_state == RunState.LOOT:
+		_go_home(false, destination)
+	else:
+		_flee_home(destination)
+
+
 ## FLED. You keep the share Tuning.csv says and walk out with it.
-func _flee_home() -> void:
+func _flee_home(destination: String = ScenePaths.BASE) -> void:
 	current_state = RunState.FINISHED
 	var keep := db.tune_float("adventure_flee_keep", 0.8)
 	var taken := run.bank(state, keep)
@@ -1010,7 +1040,8 @@ func _flee_home() -> void:
 	state.save_to_disk()
 	AdventureRun.clear(get_tree())
 	print("[adventure] Fled with %d%% of the haul: %s" % [int(keep * 100.0), taken])
-	ScenePaths.go_to(get_tree(), ScenePaths.BASE, false)
+	if destination != "":
+		ScenePaths.go_to(get_tree(), destination, false)
 
 
 ## EVERYBODY DOWN. The haul is gone — that is what makes Return to Base a
@@ -1038,6 +1069,8 @@ func _party_fell() -> void:
 		AdventureRun.clear(get_tree())
 		ScenePaths.go_to(get_tree(), ScenePaths.BASE, false))
 	buttons.add_child(home)
+	# ROUND AN: the first time everybody falls may be explained.
+	AdventureTalk.talk(self, "adv_wipe", {"round": str(run.wave)})
 
 
 # =============================================================
@@ -1082,6 +1115,8 @@ func _carry_off_the_fallen() -> void:
 			fallen.append(walker)
 	if fallen.is_empty():
 		return
+	# ROUND AN: the first stretcher may be explained.
+	await AdventureTalk.talk(self, "adv_stretcher", {"round": str(run.wave)})
 
 	# TWO BEARERS PER FALLEN PLAYER, all going at once. One pair at a time
 	# looked like a queue at a bus stop when three players were down.
@@ -1355,7 +1390,7 @@ func _party_to_dorms() -> void:
 ## HOME WITH THE HAUL. This is the only place a run's pickings become real:
 ## bank() turns them into counters in your save, which is what makes them
 ## work with buildings, talents and conditions with no new code.
-func _go_home(claimed_bounty: bool) -> void:
+func _go_home(claimed_bounty: bool, destination: String = ScenePaths.BASE) -> void:
 	if current_state == RunState.FINISHED:
 		return
 	current_state = RunState.FINISHED
@@ -1384,7 +1419,8 @@ func _go_home(claimed_bounty: bool) -> void:
 	AdventureRun.clear(get_tree())
 	print("[adventure] Home with: %s" % (", ".join(words) if not words.is_empty() else "nothing"))
 
-	ScenePaths.go_to(get_tree(), ScenePaths.BASE, false)
+	if destination != "":
+		ScenePaths.go_to(get_tree(), destination, false)
 
 
 # =============================================================

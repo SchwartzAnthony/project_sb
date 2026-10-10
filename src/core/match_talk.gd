@@ -8,7 +8,7 @@ extends RefCounted
 #
 #    ID        a name for the row, unique. Also how Once is remembered.
 #    Mode      the MatchModes.csv row it belongs to (intro, intro2).
-#              Blank = any match.
+#              Blank = any match. Several with ; (adventure;intro_adventure).
 #    When      the match moment: kick_off, duel_won, duel_lost, shot_taken,
 #              goal_scored, goal_conceded, save_made, keeper_emptied,
 #              foul_given, card_yellow, card_red, free_kick_won,
@@ -79,6 +79,7 @@ static func _load() -> void:
 		_rows.append({
 			"id": id_text,
 			"mode": CardDatabase._normalise(MenuSupport.field(row, "Mode")),
+			"modes": _modes(MenuSupport.field(row, "Mode")),
 			"when": MenuSupport.field(row, "When").strip_edges().to_lower(),
 			"requires": MenuSupport.field(row, "Requires").strip_edges(),
 			"scene": scene,
@@ -88,6 +89,16 @@ static func _load() -> void:
 			"highlight": MenuSupport.field(row, "Highlight").strip_edges(),
 			"do": MenuSupport.field(row, "Do").strip_edges(),
 		})
+
+
+## ROUND AN: the Mode cell as a list - "adventure;intro_adventure" is two.
+static func _modes(text: String) -> Array:
+	var out: Array = []
+	for part in text.split(";", false):
+		var key := CardDatabase._normalise(part)
+		if key != "":
+			out.append(key)
+	return out
 
 
 ## The scene to play at this moment of a match in this mode, or "".
@@ -106,7 +117,7 @@ static func row_for(event: String, mode_id: String, state: GameState,
 	for row in _rows:
 		if String(row["when"]) != event:
 			continue
-		if String(row["mode"]) != "" and String(row["mode"]) != mode_key:
+		if not (row["modes"] as Array).is_empty() and not (row["modes"] as Array).has(mode_key):
 			continue
 		if String(row["round"]) != "" and String(row["round"]) != str(facts.get("round", "")):
 			continue
