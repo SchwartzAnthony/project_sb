@@ -423,10 +423,20 @@ func _stand_in_squad() -> Dictionary:
 	if classes.is_empty():
 		return squad
 
-	var roster := db.roster_for_class(classes[0])
+	# adventure-look: A DIFFERENT CLASS FOR EACH TIER, the Club first, so a
+	# run opened on its own shows the mix of isometric looks a real team has
+	# rather than one class's two faces.
+	if classes.has("Normal"):
+		classes.erase("Normal")
+		classes.push_front("Normal")
+	var i := 0
 	for tier in TierLadder.TIERS:
+		var roster := db.roster_for_class(classes[i % classes.size()])
 		var made := TierLadder.build(roster, tier, db, false)
+		if (made["cards"] as Array).is_empty():
+			made = TierLadder.build(db.roster_for_class(classes[0]), tier, db, false)
 		squad[tier] = made["cards"]
+		i += 1
 	return squad
 
 

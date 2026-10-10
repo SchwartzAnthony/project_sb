@@ -71,7 +71,7 @@ var _zone_of_row: Array[String] = []
 var _tile_zoom := 2.0
 ## How far the picture is moved down so its top diamond lands on the cell,
 ## in the tile's own pixels (Tuning adventure_iso_tile_lift).
-var _tile_lift := 7.0
+var _tile_lift := 0.0
 
 var _decor_rows: Array[Dictionary] = []
 var _decor: Array[Node2D] = []
@@ -113,7 +113,7 @@ func _setup(world: Node2D, db: CardDatabase, biome_id: String,
 	forget_x = db.tune_float("adventure_iso_forget_x", -800.0)
 
 	_tile_zoom = maxf(1.0, db.tune_float("adventure_iso_tile_zoom", 2.0))
-	_tile_lift = db.tune_float("adventure_iso_tile_lift", 7.0)
+	_tile_lift = db.tune_float("adventure_iso_tile_lift", 0.0)
 	_read_tiles(biome_id)
 	_build_tiles(screen, along, squash)
 	_read_decor(biome_id)

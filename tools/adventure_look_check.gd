@@ -38,6 +38,11 @@ func _shot(file_name: String) -> void:
 
 
 func _run() -> void:
+	# -- --biome=<id> : just the run in that biome, and one picture of it.
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--biome="):
+			await _one_biome(arg.substr(8))
+			return
 	change_scene_to_file(ScenePaths.BOUNTY_BOARD)
 	await _frames(30)
 	var board := current_scene as BountyBoard
@@ -90,4 +95,23 @@ func _run() -> void:
 		print("[look] fight open: %s, %d enemies" % [
 			scene.current_state == AdventureScene.RunState.ENCOUNTER, scene._foes.size()])
 		await _shot("fight.png")
+	quit(0)
+
+
+func _one_biome(biome_id: String) -> void:
+	var adventure := AdventureDB.get_db()
+	var biome := {}
+	for entry in adventure.all_biomes():
+		if String(entry.get("id", "")) == biome_id:
+			biome = entry
+	if biome.is_empty():
+		push_error("[look] no biome " + biome_id)
+		quit(1)
+		return
+	var jobs := adventure.bounties_in(biome_id, null)
+	AdventureRun.begin(self, jobs[0] if not jobs.is_empty() else {}, biome)
+	change_scene_to_file(ScenePaths.ADVENTURE)
+	await _frames(300)
+	print("[look] %s field open" % biome_id)
+	await _shot("field_%s.png" % biome_id)
 	quit(0)

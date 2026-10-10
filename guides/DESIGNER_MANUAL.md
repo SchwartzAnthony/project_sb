@@ -3691,9 +3691,21 @@ to the right; enemies come down the field and stand on it; drops lie on it.
 | Tile size and fit | `adventure_iso_tile_zoom`, `adventure_iso_tile_lift` |
 | Where things appear / walk in / are let go | `adventure_iso_spawn_x`, `adventure_iso_wave_x`, `adventure_iso_forget_x` |
 
-A new biome needs its own rows in the two CSVs (or `*` rows for all).
-The Marsh tiles are PixelLab isometric tiles in `assets/adventure/tiles/`
-(every candidate kept in `art_source/adventure_look/parts/tile_*`).
+All four biomes have their own ground and scenery (11 Oct): the Marsh
+(path, meadow, mossy banks, bog water), the Cinder Wastes (ash, cinder path,
+cracked earth, black rock with lava cracks; dead trees, braziers, a burnt
+brewery chimney, a slag cart), the Hollowdeep (cave stone, mine path with
+rails, flagstones, black water; mine beams, glowing mushrooms, stalagmites,
+a mine cart) and the Frostreach (snow, trodden path, frosty grass, lake ice;
+firs, a snowman in a scarf, grumpy icy rocks, a beer sled). The tiles are
+FLAT (no block sides, no outline), so the ground shows no grid; one main
+tile per zone (the biggest Weight) keeps it calm. A new biome needs its own
+rows in the two CSVs (or `*` rows for all). Tiles: `assets/adventure/tiles/`,
+scenery: `assets/adventure/decor/`; every PixelLab candidate is kept in
+`art_source/adventure_look/parts/` (`flat_*` tiles).
+
+To look at one biome's field: `godot --path . --script res://tools/adventure_look_check.gd -- --biome=frostreach`
+(saves `art_source/drafts/adventure_look/screens/field_frostreach.png`).
 
 ### How a fight goes
 
