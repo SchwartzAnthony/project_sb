@@ -1,0 +1,4 @@
+Part,Image,X,Y,Width,Height,Scale,Flip
+picture,res://art_source/pixellab/window_frame_draft/layers_a_wood_brass/frame.png,700,540,,,2,
+picture,res://art_source/pixellab/window_frame_draft/layers_a_wood_brass/title_plate.png,1400,300,,,2,
+picture,res://art_source/pixellab/window_frame_draft/layers_a_wood_brass/close_button.png,1400,700,,,2,
