@@ -7278,6 +7278,17 @@ tackle animation.
   south-west, west, north-west, north, north-east. **Frames**, **FPS** and
   **Loop** as in `Animations.csv`. **PixelLab** is the animation's name in
   the PixelLab export.
+  **Stand-in** (optional) is what a sheet plays instead while it has no
+  rows for this animation yet.
+
+**Drinking on the pitch** (10 Oct). When you use a drink from the bag on a
+player during a match, his figure plays `drink` once: he lifts the beer,
+gulps and wipes his mouth with his arm. It is the `drink` row of
+`PitchAnims.csv` (rows 48-55); its Frames and FPS set how long it lasts.
+Until a look's sheet has the drink drawn, it plays its Stand-in (`cheer`).
+`Tuning.csv` `pitch_drink_stands_still` (true) stops him on the spot while
+he drinks; a player with the ball always keeps running. Drafts:
+`art_source/pixellab/iso_players/drink_drafts/`.
 
 **Ten looks for The Club** (Anthony: no red nose, and people of different
 skin colours and backgrounds in the same comic style). Five men (`club_m1`-`m5`: light with brown hair,

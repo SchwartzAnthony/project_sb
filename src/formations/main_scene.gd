@@ -4805,6 +4805,10 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 	state.save_to_disk()
 
 	_redraw_offered_cards()
+	# ROUND AN (10 Oct): on the pitch he lifts it, gulps and wipes his mouth.
+	var drinker := unit_for_card(card, false)
+	if drinker != null:
+		drinker.play_drink()
 	# ROUND AN - PLAIN BEER: the lucky dip says what came out of the bottle.
 	var luck := ""
 	if String(brew.get("pool", "")) != "":
