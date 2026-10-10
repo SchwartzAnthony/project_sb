@@ -291,3 +291,72 @@ func test_a_rest_day_gets_everybody_one_fixture_nearer_fit() -> void:
 	var r := RecoveryBook.rest_day(state, db)
 	assert_true(bool(r["ok"]), String(r["why"]))
 	assert_eq(RecoveryBook.turns_left(card, state), 1)
+
+
+# ---- ROOMS AND BEDS (round AN, Anthony 10 Oct) --------------
+
+func test_a_new_game_has_twelve_beds_in_two_rooms() -> void:
+	assert_eq(BaseRooms.beds(state), 12)
+	assert_eq(BaseRooms.rooms_owned(state).size(), 2)
+	assert_eq(BaseRooms.beds_by_room(state), [10, 2] as Array[int])
+
+
+func test_a_single_bed_fills_the_next_place_and_costs_its_price() -> void:
+	var price := db.tune_int("dorm_bed_price", 25)
+	var r := BaseRooms.buy_bed(state)
+	assert_true(bool(r["ok"]), String(r["why"]))
+	assert_eq(BaseRooms.beds(state), 13)
+	assert_eq(state.count("coins"), 2000 - price)
+
+
+func test_no_bed_without_a_place_for_it() -> void:
+	for i in 8:
+		BaseRooms.buy_bed(state)
+	assert_eq(BaseRooms.beds(state), 20)
+	assert_false(bool(BaseRooms.buy_bed(state)["ok"]), "both rooms are full")
+
+
+func test_rooms_are_bought_in_order_and_add_a_tab() -> void:
+	state.unlock("Dorms")
+	assert_false(bool(BaseRooms.buy_dorm("room_4", state)["ok"]), "room 3 first")
+	var r := BaseRooms.buy_dorm("room_3", state)
+	assert_true(bool(r["ok"]), String(r["why"]))
+	assert_eq(BaseRooms.rooms_owned(state).size(), 3)
+	assert_eq(BaseRooms.bed_places(state), 30)
+	assert_eq(BaseRooms.beds(state), 12, "a room comes empty - beds are bought")
+
+
+func test_never_more_rooms_than_dorm_max_rooms() -> void:
+	var key := CardDatabase._normalise("dorm_max_rooms")
+	var was: Variant = db.tuning.get(key, null)
+	db.tuning[key] = "3"
+	assert_eq(BaseRooms.dorms().size(), 3)
+	if was == null:
+		db.tuning.erase(key)
+	else:
+		db.tuning[key] = was
+
+
+func test_an_old_save_with_the_long_house_keeps_its_beds() -> void:
+	state.set_flag(BaseRooms.DORM_PREFIX + "long_house", true)
+	assert_eq(BaseRooms.beds(state), 26)
+	assert_eq(BaseRooms.rooms_owned(state).size(), 3)
+
+
+func test_the_rest_bar_has_a_segment_per_fixture_and_fills() -> void:
+	var card: PlayerData = _resters(1)[0]
+	var turns := RecoveryBook.send_to_dorms(card, "match", [], state, db)
+	var power := maxi(card.get_attack_power(), card.get_defense_power())
+	var bar := RecoveryBook.rest_bar(card.player_name, power, state, db)
+	assert_eq(int(bar["full"]), turns)
+	assert_eq(int(bar["done"]), 0)
+	RecoveryBook.advance_turn(state, db)
+	bar = RecoveryBook.rest_bar(card.player_name, power, state, db)
+	assert_eq(int(bar["done"]), mini(1, turns))
+
+
+func test_a_beer_in_bed_takes_the_speedup_off() -> void:
+	var card: PlayerData = db.players[0]
+	state.set_count(RecoveryBook.key_for(card), 3)
+	var less := db.tune_int("dorm_beer_rest_speedup", 1)
+	assert_eq(RecoveryBook.beer_in_bed(card.player_name, state, db), maxi(0, 3 - less))

@@ -253,7 +253,7 @@ shop_screen.gd,src/ui/,A screen or a piece of one,
 shop_screen.tscn,src/ui/,A screen or a piece of one,
 shop_check.gd,tools/,A tool you run from the command line,
 shop_shot.gd,tools/,A tool you run from the command line,
-Dorms.csv,data/,A spreadsheet you edit,"Beds. Beds is the TOTAL a dorm gives, not what it adds"
+Dorms.csv,data/,A spreadsheet you edit,"The Dorms' rooms, one row per room: price and the beds that come with it (round AN, 10 Oct)"
 Trophies.csv,data/,A spreadsheet you edit,What is on the shelf. A name and a condition
 Training.csv,data/,A spreadsheet you edit,Ausbildung and the five brewing mini-games
 base_rooms.gd,src/core/,"Engine. Rules, loaders and shared helpers","The Dorms, the Trophy Room and the Training Ground - three small things of one shape"
@@ -351,3 +351,8 @@ SoundCredits.csv,data/,Data the tools write,"ROUND AN. Every sound effect: what 
 CONQUESTS.md,guides/,A guide,"Conquests (Draft Mode): Anthony's idea for the replayable roguelite mode, parked. Only its banner and a coming-soon note are in the game"
 tear_cloth.py,tools/,A tool. Nothing in the game loads it,Ages the shared banner cloth into the torn Conquests cloth and draws its black infinity (stand-ins until PixelLab redraws them). Run make_banners.py after
 conquests_shot.gd,tools/,A tool. Nothing in the game loads it,Presses the Conquests banner on the base and photographs it and the coming-soon note it opens
+dorms_screen.gd,src/ui/,Code,"The Dorms screen: rooms of beds on tabs, sleepers with rest bars, beds and rooms for sale (round AN)"
+dorms_screen_shot.gd,tools/,Code,"Pictures of the Dorms screen, in the test environment (round AN)"
+dorms_bg.png,assets/dorms/,Art you drew,"PLACEHOLDER: the Dorms room picture (PixelLab draft A) until Anthony picks"
+bed.png,assets/dorms/,Art you drew,"PLACEHOLDER: one bed on the Dorms screen (PixelLab draft)"
+bed_sleeper.png,assets/dorms/,Art you drew,"PLACEHOLDER: a bed with a player asleep in it (PixelLab draft)"

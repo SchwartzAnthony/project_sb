@@ -2,7 +2,10 @@ class_name RoomScreen
 extends Control
 
 # =============================================================
-#  THE FOUR ROOMS AND THE ACHIEVEMENT BOARD — one script, five scenes
+#  THE ROOMS AND THE ACHIEVEMENT BOARD — one script, several scenes
+#
+#  ROUND AN (Anthony, 10 Oct): THE DORMS LEFT. They are a picture of rooms
+#  and beds now, with their own screen - src/ui/dorms_screen.gd.
 #
 #  ============ WHY ONE SCRIPT ============
 #
@@ -14,7 +17,6 @@ extends Control
 #  So there is one script and five one-line scenes, each setting `room`:
 #
 #      src/ui/rooms/achievements.tscn    room = "achievements"
-#      src/ui/rooms/dorms.tscn           room = "dorms"      (where everybody rests)
 #      src/ui/rooms/clubhouse.tscn       room = "clubhouse"  (the upgrade shop)
 #      src/ui/rooms/trophies.tscn        room = "trophies"
 #      src/ui/rooms/training.tscn        room = "training"
@@ -113,7 +115,6 @@ func _build_chrome(windowed: bool) -> void:
 
 func _title() -> String:
 	match room:
-		"dorms": return "The Dorms"
 		"clubhouse": return "The Club House"
 		"trophies": return "The Trophy Room"
 		"training": return "The Training Ground"
@@ -129,10 +130,6 @@ func _rebuild() -> void:
 	for child in _list.get_children():
 		child.queue_free()
 	match room:
-		"dorms":
-			_fill_dorms()
-			# ROUND AN: the Tutorial's "morning after" explains the beds here.
-			(func() -> void: Guide.check(self, "dorms", state)).call_deferred()
 		"clubhouse": _fill_clubhouse()
 		"trophies": _fill_trophies()
 		"training": _fill_training()
@@ -166,77 +163,6 @@ func _fill_achievements() -> void:
 				else "Earn it to buy at the Club House: ") + ", ".join(PackedStringArray(wares))))
 		else:
 			words.add_child(_small(DialogueGrammar.describe(String(row["needs"]))))
-
-
-# ---- THE DORMS ----------------------------------------------
-#
-# ROUND AN (Anthony): THE DORMS ARE WHERE EVERY PLAYER RESTS — back from a
-# match, back from an Adventure, or sleeping off a brew. First who is in bed
-# and why (data/Resting.csv), then the beds you may buy (data/Dorms.csv).
-
-func _fill_dorms() -> void:
-	var beds := BaseRooms.beds(state)
-	var here := BaseRooms.current_dorm(state)
-	var squad := SquadBook.names(state).size()
-	var on := db != null and db.tune_bool("recovery", false)
-	var sleepers := RecoveryBook.in_the_dorms(db, state)
-	var head := "%s — %d bed(s). You are keeping %d player(s). " % [
-		String(here["name"]) if not here.is_empty() else "No dorm", beds, squad]
-	if on:
-		head += "Everybody rests here after a match, an Adventure or a shift at the Brewery; a player's P:x decides how many fixtures."
-	else:
-		head += "RECOVERY IS OFF — `recovery` in Tuning.csv. Nobody gets tired, so nobody is in bed."
-	_intro.text = head
-
-	_list.add_child(MenuSupport.heading("IN BED  ·  %d" % sleepers.size(), 17, MenuSupport.COLOUR_ACCENT))
-	if sleepers.is_empty():
-		_list.add_child(_small("Nobody is resting. The whole squad is fit." if on
-			else "Turn `recovery` on in Tuning.csv and the tired ones sleep here."))
-	# THE REST DAY: nothing else passes a fixture when the squad is too tired
-	# to field a side. `rest_day_cost` in Tuning.csv; below 0 hides it.
-	var rest_price := db.tune_int("rest_day_cost", 0) if db != null else -1
-	if on and rest_price >= 0 and not sleepers.is_empty():
-		var day := _row_frame(true)
-		var day_words := _row_words(day)
-		day_words.add_child(_small("Too many in bed to put out a side? Let them sleep a day: everybody is one fixture nearer fit."))
-		day.add_child(_buy_button("Rest day · " + ("free" if rest_price == 0 else "%d coins" % rest_price),
-			_can_pay(rest_price, "coins"), _rest_day))
-	for sleeper in sleepers:
-		var left := int(sleeper["left"])
-		var line := _row_frame(false)
-		var words := _row_words(line)
-		# A brewer's number is his efficiency, not a power (Brewers.csv).
-		words.add_child(_name_label("%s  ·  Tier %s  ·  %s" % [sleeper["name"], sleeper["tier"],
-			("Brewer, efficiency %d" % int(sleeper["power"])) if bool(sleeper["brewer"])
-				else "P:%d" % int(sleeper["power"])], true))
-		words.add_child(_small("%s — %d fixture%s to go." % [
-			sleeper["why"], left, "" if left == 1 else "s"]))
-
-	_list.add_child(MenuSupport.heading("BEDS", 17, MenuSupport.COLOUR_ACCENT))
-	for dorm in BaseRooms.dorms():
-		var owned := int(dorm["price"]) == 0 or BaseRooms.owns_dorm(String(dorm["id"]), state)
-		var line := _row_frame(owned)
-		var words := _row_words(line)
-		words.add_child(_name_label("%s — %d beds" % [dorm["name"], int(dorm["beds"])], owned))
-		if int(dorm["price"]) == 0:
-			words.add_child(_small("Yours from the first minute."))
-		elif owned:
-			words.add_child(_small("Bought."))
-		else:
-			words.add_child(_small(DialogueGrammar.describe(String(dorm["requires"]))))
-			line.add_child(_buy_button("%d %s" % [int(dorm["price"]), dorm["currency"]],
-				_can_pay(int(dorm["price"]), String(dorm["currency"]))
-					and int(dorm["beds"]) > beds
-					and DialogueGrammar.test(String(dorm["requires"]), state),
-				_buy_dorm.bind(String(dorm["id"]))))
-
-
-func _rest_day() -> void:
-	_say(RecoveryBook.rest_day(state, db))
-
-
-func _buy_dorm(id_text: String) -> void:
-	_say(BaseRooms.buy_dorm(id_text, state))
 
 
 # ---- THE CLUB HOUSE -----------------------------------------

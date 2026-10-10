@@ -76,7 +76,7 @@ func _initialize() -> void:
 	print("")
 	print("  === THE DORMS ===")
 	for dorm in BaseRooms.dorms():
-		print("  %-18s %2d beds   %-12s %s" % [dorm["name"], int(dorm["beds"]),
+		print("  %-18s %2d beds included   %-12s %s" % [dorm["name"], int(dorm["beds"]),
 			"free" if int(dorm["price"]) == 0 else "%d %s" % [int(dorm["price"]), dorm["currency"]],
 			_in_seasons(int(dorm["price"]), String(dorm["currency"]), purse)])
 

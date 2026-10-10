@@ -1,5 +1,11 @@
-ID,Name,Beds,Price,Currency,Requires,Notes
-starting_hut,The Old Hut,12,0,,,"THE FIRST ROW IS FREE and it is what a new game has. Beds is the TOTAL from then on, not how many this row adds - so reading down the column tells you the whole story of your squad size at a glance."
-lean_to,The Lean-To,18,150,coins,unlocked:Dorms,"Price and Currency use data/Currencies.csv, so a dorm can be bought with marks if you would rather it came from quick matches."
-long_house,The Long House,26,400,coins,count:matches_won>=8,"Requires is the ordinary condition language, so a dorm can want an achievement, a season, anything."
-stone_wing,The Stone Wing,36,900,coins,unlocked:The Cup,"The last one written. Add another row with more Beds and it appears on the screen with no code."
+ID,Name,Price,Currency,Requires,Beds Included,Notes
+room_1,Room 1,0,,,10,"ROUND AN (Anthony, 10 Oct: the Dorms screen - 10 beds a room, buy single beds and extra rooms). ONE ROW PER ROOM, in the order they are bought; each room is a tab (1, 2, 3 ...) on the Dorms screen. Price 0 = yours from the first minute. BEDS INCLUDED = beds that come with the room; the rest of its places are bought one at a time (dorm_bed_price in Tuning.csv). A room holds dorm_beds_per_room beds (10), and there are at most dorm_max_rooms rooms (10), however many rows you write."
+room_2,Room 2,0,,,2,"ALSO FREE, with 2 beds in it, so a new game still has the 12 beds the Old Hut gave (9 regulars + 3 recruits, recruit_beds_kept in Tuning.csv). Set Price to a number and Beds Included to 0 to make a new game start with one room of 10."
+room_3,Room 3,150,coins,unlocked:Dorms,0,"Price and Currency use data/Currencies.csv. Requires is the ordinary condition language."
+room_4,Room 4,250,coins,unlocked:Dorms,0,
+room_5,Room 5,400,coins,count:matches_won>=8,0,"Requires can wait on anything - here 8 matches won, as the old Long House did."
+room_6,Room 6,600,coins,count:matches_won>=8,0,
+room_7,Room 7,900,coins,unlocked:The Cup,0,"As the old Stone Wing: after the Cup."
+room_8,Room 8,1200,coins,unlocked:The Cup,0,
+room_9,Room 9,1600,coins,unlocked:The Cup,0,
+room_10,Room 10,2000,coins,unlocked:The Cup,0,"The tenth and last (dorm_max_rooms). A row past the tenth is ignored until dorm_max_rooms is raised."

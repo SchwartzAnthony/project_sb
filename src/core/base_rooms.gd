@@ -25,7 +25,7 @@ extends RefCounted
 #  "The basic foundation is there free, and everything that would make it
 #   easier or more can be unlocked later on."
 #
-#  So the FIRST dorm is free and holds twelve; the rest are bought. Every
+#  So the FIRST rooms of the Dorms are free (twelve beds); the rest are bought. Every
 #  Ausbildung and every mini-game is bought. And every one of them pays in a
 #  currency out of Currencies.csv, which only certain match modes hand out.
 # =============================================================
@@ -73,23 +73,22 @@ static func _load() -> void:
 		var id_text := MenuSupport.field(row, "ID").strip_edges()
 		if id_text == "":
 			continue
+		# ROUND AN (Anthony, 10 Oct): ONE ROW PER ROOM, in the order they are
+		# bought. Beds Included come with the room; the rest of its places are
+		# single beds bought one at a time.
 		_dorms.append({
 			"id": id_text,
 			"name": MenuSupport.field(row, "Name", id_text).strip_edges(),
-			# BEDS IS THE TOTAL, not what this row adds. Reading down the
-			# column tells you the whole story of your squad size.
-			"beds": maxi(0, MenuSupport.field_int(row, "Beds", 0)),
 			"price": maxi(0, MenuSupport.field_int(row, "Price", 0)),
 			"currency": MenuSupport.field(row, "Currency").strip_edges(),
 			"requires": MenuSupport.field(row, "Requires").strip_edges(),
+			"beds": maxi(0, MenuSupport.field_int(row, "Beds Included", 0)),
 		})
-	_dorms.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		return int(a["beds"]) < int(b["beds"]))
 
 	if _dorms.is_empty():
-		_problems.append("No Dorms.csv rows, so there is no bed for anybody. Write at least a free first row.")
+		_problems.append("No Dorms.csv rows, so there is no room and no bed for anybody. Write at least a free first row.")
 	elif int(_dorms[0]["price"]) > 0:
-		_problems.append("The smallest dorm costs %d. A new game can never buy its first bed — the first row has to be free."
+		_problems.append("Room 1 costs %d. A new game can never buy its first room - the first row has to be free."
 			% int(_dorms[0]["price"]))
 
 	for row in MenuSupport.read_csv(TROPHY_FILE):
@@ -168,67 +167,177 @@ static func problems() -> Array[String]:
 
 
 # =============================================================
-#  THE DORMS — how many players you may keep
+#  THE DORMS - rooms of beds (round AN, Anthony 10 Oct)
+#
+#  data/Dorms.csv is one row per ROOM, in the order they are bought. A room
+#  holds `dorm_beds_per_room` beds (Tuning.csv, 10) and there are at most
+#  `dorm_max_rooms` rooms (10). A room comes with its Beds Included; every
+#  other place in it is a SINGLE BED bought for `dorm_bed_price`.
+#
+#  In the save:   bought_dorm_<room id>   a flag per room you bought
+#                 dorm_beds_bought        single beds bought, all rooms
+#
+#  Beds fill room 1 first, then room 2, and so on - so the screen can lay
+#  them out without remembering which bed is where.
 # =============================================================
 
+## Single beds bought, over all the rooms.
+const BEDS_BOUGHT := "dorm_beds_bought"
+## The old dorms (before rooms) and how many beds each gave in all. A save
+## that bought one is given the same number of beds in rooms, once.
+const LEGACY_DORMS := {"lean_to": 18, "long_house": 26, "stone_wing": 36}
+const LEGACY_MOVED := "dorms_moved_to_rooms"
+
+
+static func _db() -> CardDatabase:
+	return CardDatabase.get_db()
+
+
+## How many beds one room holds.
+static func beds_per_room() -> int:
+	var db := _db()
+	return maxi(1, db.tune_int("dorm_beds_per_room", 10) if db != null else 10)
+
+
+## Every room the Dorms can ever have, in buying order.
 static func dorms() -> Array[Dictionary]:
 	_load()
-	return _dorms
+	var db := _db()
+	var most := db.tune_int("dorm_max_rooms", 10) if db != null else 10
+	if most <= 0 or _dorms.size() <= most:
+		return _dorms
+	return _dorms.slice(0, most)
 
 
 static func owns_dorm(id_text: String, state: GameState) -> bool:
-	if state == null:
-		return false
-	return state.has_flag(DORM_PREFIX + id_text.to_lower())
+	for room in dorms():
+		if String(room["id"]) == id_text:
+			return int(room["price"]) == 0 or (state != null
+				and state.has_flag(DORM_PREFIX + id_text.to_lower()))
+	return false
 
 
-## HOW MANY BEDS YOU HAVE. The free first row, plus the biggest one bought.
-##
-## Not a sum: `Beds` is the total a dorm gives, so buying the Long House
-## after the Lean-To replaces it rather than stacking on top of it. That is
-## what makes the column readable — you can see your squad size at a glance
-## instead of adding up.
+## The rooms you have, in order.
+static func rooms_owned(state: GameState) -> Array[Dictionary]:
+	_move_legacy(state)
+	var out: Array[Dictionary] = []
+	for room in dorms():
+		if owns_dorm(String(room["id"]), state):
+			out.append(room)
+	return out
+
+
+## The next room on sale, or {} when you have them all. Rooms are bought in
+## order, so this is the first one you do not have.
+static func next_room(state: GameState) -> Dictionary:
+	for room in dorms():
+		if not owns_dorm(String(room["id"]), state):
+			return room
+	return {}
+
+
+## Places for beds in the rooms you have.
+static func bed_places(state: GameState) -> int:
+	return rooms_owned(state).size() * beds_per_room()
+
+
+## HOW MANY BEDS YOU HAVE: what came with your rooms plus the single beds,
+## never more than the rooms hold. It is also how many players you may keep.
 static func beds(state: GameState) -> int:
-	var most := 0
-	for dorm in dorms():
-		if int(dorm["price"]) == 0 or owns_dorm(String(dorm["id"]), state):
-			most = maxi(most, int(dorm["beds"]))
-	return most
+	var have := 0
+	for room in rooms_owned(state):
+		have += int(room["beds"])
+	if state != null:
+		have += maxi(0, state.count(BEDS_BOUGHT))
+	return mini(have, bed_places(state))
 
 
-## The dorm you are living in right now.
+## How many beds stand in each room you have, in order: [10, 2]. Beds fill
+## room 1 first.
+static func beds_by_room(state: GameState) -> Array[int]:
+	var out: Array[int] = []
+	var left := beds(state)
+	var per := beds_per_room()
+	for room in rooms_owned(state):
+		var here := mini(left, per)
+		out.append(here)
+		left -= here
+	return out
+
+
+## The room you have the most of - kept for anything that names "your dorm".
 static func current_dorm(state: GameState) -> Dictionary:
-	var best: Dictionary = {}
-	for dorm in dorms():
-		if int(dorm["price"]) == 0 or owns_dorm(String(dorm["id"]), state):
-			if best.is_empty() or int(dorm["beds"]) > int(best["beds"]):
-				best = dorm
-	return best
+	var owned := rooms_owned(state)
+	return owned[-1] if not owned.is_empty() else {}
 
 
-## Buy one. Returns {"ok", "why"}.
+## Buy one SINGLE BED. Returns {"ok", "why"}.
+static func buy_bed(state: GameState) -> Dictionary:
+	if state == null:
+		return {"ok": false, "why": "no save"}
+	if beds(state) >= bed_places(state):
+		var nxt := next_room(state)
+		return {"ok": false, "why": "every room is full - buy %s first" % nxt["name"]
+			if not nxt.is_empty() else "every room is full"}
+	var db := _db()
+	var price := db.tune_int("dorm_bed_price", 25) if db != null else 25
+	var spent := _spend(price, db.tune_text("dorm_bed_currency", "coins") if db != null else "coins", state)
+	if spent != "":
+		return {"ok": false, "why": spent}
+	state.add_count(BEDS_BOUGHT, 1)
+	return {"ok": true, "why": "A new bed. %d beds now." % beds(state)}
+
+
+## Buy a ROOM. Only the next one in order can be bought. Returns {"ok", "why"}.
 static func buy_dorm(id_text: String, state: GameState) -> Dictionary:
 	if state == null:
 		return {"ok": false, "why": "no save"}
-	var dorm: Dictionary = {}
+	var room: Dictionary = {}
 	for one in dorms():
 		if String(one["id"]) == id_text:
-			dorm = one
+			room = one
 			break
-	if dorm.is_empty():
-		return {"ok": false, "why": "there is no such dorm"}
+	if room.is_empty():
+		return {"ok": false, "why": "there is no such room"}
 	if owns_dorm(id_text, state):
 		return {"ok": false, "why": "you already have it"}
-	if int(dorm["beds"]) <= beds(state):
-		return {"ok": false, "why": "%s is no bigger than what you have" % dorm["name"]}
-	if not DialogueGrammar.test(String(dorm["requires"]), state):
-		return {"ok": false, "why": DialogueGrammar.describe(String(dorm["requires"]))}
-
-	var spent := _spend(int(dorm["price"]), String(dorm["currency"]), state)
+	var nxt := next_room(state)
+	if String(nxt.get("id", "")) != id_text:
+		return {"ok": false, "why": "buy %s first" % nxt.get("name", "the rooms before it")}
+	if not DialogueGrammar.test(String(room["requires"]), state):
+		return {"ok": false, "why": DialogueGrammar.describe(String(room["requires"]))}
+	var spent := _spend(int(room["price"]), String(room["currency"]), state)
 	if spent != "":
 		return {"ok": false, "why": spent}
 	state.set_flag(DORM_PREFIX + id_text.to_lower(), true)
-	return {"ok": true, "why": "%s. Room for %d now." % [dorm["name"], int(dorm["beds"])]}
+	return {"ok": true, "why": "%s. Room for %d beds now - buy them one at a time." % [
+		room["name"], bed_places(state)]}
+
+
+## A save from before the rooms bought a whole dorm (the Lean-To ...). Give
+## it the same number of beds, in rooms, once, for free.
+static func _move_legacy(state: GameState) -> void:
+	if state == null or state.has_flag(LEGACY_MOVED):
+		return
+	var wanted := 0
+	for old_id in LEGACY_DORMS:
+		if state.has_flag(DORM_PREFIX + String(old_id)):
+			wanted = maxi(wanted, int(LEGACY_DORMS[old_id]))
+	state.set_flag(LEGACY_MOVED, true)
+	if wanted <= 0:
+		return
+	var per := beds_per_room()
+	var included := 0
+	var places := 0
+	for room in dorms():
+		if places >= wanted:
+			break
+		if int(room["price"]) > 0:
+			state.set_flag(DORM_PREFIX + String(room["id"]).to_lower(), true)
+		included += int(room["beds"])
+		places += per
+	state.set_count(BEDS_BOUGHT, maxi(state.count(BEDS_BOUGHT), wanted - included))
+	print("[rooms] An old dorm became rooms: %d beds." % wanted)
 
 
 # =============================================================

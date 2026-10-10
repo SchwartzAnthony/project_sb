@@ -452,8 +452,8 @@ In the **Club House**, above the resting list. Your Q123.
 - **Sign** = pay, and he joins under his own name. **Release** (under *Your
   recruits*) = he leaves, his bed and name are free.
 - **Beds:** you may hold `beds − recruit_beds_kept` recruits (`9` kept for
-  your team's regulars; the Old Hut's 12 beds = 3 recruits). The Dorms sell
-  beds.
+  your team's regulars; a new game's 12 beds = 3 recruits). The Dorms sell
+  single beds and extra rooms.
 - `recruit_board_reroll_cost` (10 coins) puts new men up now; `0` = no
   button. `recruit_board` false hides the board.
 - As shipped: two Tier I places (30 coins), one Tier II place (60 coins)
@@ -4574,7 +4574,7 @@ and the building you just used is still under your cursor.
 | **Achievements** | the root. Everything is unlocked here first. **The only door with no `Requires`** — a game whose unlock board is itself locked has nothing to aim at |
 | **Team Build** *(was the Talent Tree, round Y)* | three tabs: **Star Hall** (place your three Stars), **Your Teams** (create and edit sides) and **Talents** (the old talent tree, still behind `unlocked:Talent Tree`). **The Pub and every match wait on it** — see section 11e |
 | **Club House** | exhaustion and recovery. A player's `P:x` is how many fixtures they need |
-| **Dorms** | beds — how many players you may keep at all |
+| **Dorms** | rooms of beds — how many players you may keep at all, and where they rest |
 | **Trophy Room** | what you have won |
 | **Training Ground** | Ausbildung, or one of the five games that automate a Brewery section |
 | **Pub** | ten seats, ten drinks. Whoever is not in the room plays as a basic unit |
@@ -4666,16 +4666,32 @@ a visitor who is not there, and the Output panel says who is waiting outside.
 > there was no room. **A visitors file is now recognised by its `Portrait` or
 > `Once` column** — things only a person has.
 
-### `data/Dorms.csv`
+### `data/Dorms.csv` — the rooms (round AN, 10 Oct)
+
+One row per **room**, in the order they are bought. Each room is a tab
+(1, 2, 3 ...) on the Dorms screen with ten places for beds.
 
 | column | |
 |---|---|
-| `Beds` | **the TOTAL**, not what this row adds. Buying the Long House replaces the Lean-To rather than stacking on it, so reading down the column tells you the whole story of your squad size |
-| `Price` · `Currency` | from `Currencies.csv` |
+| `Price` · `Currency` | from `Currencies.csv`. `0` = yours from the first minute |
 | `Requires` | the ordinary condition language |
+| `Beds Included` | beds that come with the room. Every other place in it is a single bed, bought on the screen |
 
-**The first row has to be free.** A new game cannot buy its first bed, and
-the checker says so if the cheapest dorm costs anything.
+**The first row has to be free.** As shipped, Room 1 (10 beds) and Room 2
+(2 beds) are free, so a new game keeps the 12 beds it always had. The
+numbers around it are in `Tuning.csv`:
+
+| row | |
+|---|---|
+| `dorm_beds_per_room` | beds one room holds (10) |
+| `dorm_max_rooms` | the most rooms (10); rows past it are ignored |
+| `dorm_bed_price` · `dorm_bed_currency` | one single bed (25 coins) |
+| `dorm_beer_rest_speedup` | fixtures a beer takes off a sleeper's rest (1). **Not on a button yet** |
+| `dorm_background` · `dorm_background_shade` | the room picture, and the see-through sheet over it |
+| `dorm_bed_art` · `dorm_bed_sleeper_art` · `dorm_bed_size` | the bed pictures and how wide a bed is drawn |
+
+An old save that bought the Lean-To, the Long House or the Stone Wing gets
+the same number of beds in rooms, once, for free.
 
 ### `data/Trophies.csv`
 
@@ -4697,9 +4713,25 @@ pressing the button and the work being done.
 
 ### The Dorms are where everybody rests (round AN)
 
-Every tired player sleeps in the Dorms, whatever tired them out. The Dorms
-window lists **who is in bed, why, and how many fixtures to go**, then the
-beds you can buy. `data/Resting.csv` says what sends a player there:
+Every tired player sleeps in the Dorms, whatever tired them out.
+
+**The Dorms screen (Anthony, 10 Oct).** The room picture behind, then two
+see-through windows:
+
+- **THE BEDS** — tabs 1, 2, 3 ... one per room you have; a tab slides to
+  that room. Ten places a room, five a row. A **sleeper** has **Z Z Z** over
+  his head and a **rest bar** under his bed: one segment per fixture of his
+  rest (his power — power 1 is one game, power 5 five), filling one a
+  fixture. He plays nothing — Adventure, Brewery or Match — until it is
+  full. **Hover** him for his name and power; click him for why he is there.
+  A made bed is free. A dashed **+ bed** place is empty: click it to buy a bed.
+- **BUY** — a single bed, the next room (a new tab), every room's price, and
+  the Rest day.
+
+Players keep the same bed every visit (by name). More asleep than beds? The
+rest sleep **on the floor**, and the screen names them.
+
+`data/Resting.csv` says what sends a player there:
 
 | ID | when | out of the box |
 |---|---|---|
@@ -4733,6 +4765,14 @@ row: a **Wake** button for everybody in the Dorms, **Wake everybody**, and
 
 `tools/dorms_shot.gd` takes a picture of the Dorms, the Club House, the
 Training Ground, the Brewery and the Dev screen with a few players in bed.
+`tools/dorms_screen_shot.gd` takes the new Dorms screen: room 1, a hover,
+the slide to room 2, and room 3.
+
+**The art is a placeholder** until Anthony picks: three room drafts, four
+beds and four sleepers in `art_source/pixellab/dorms_draft/` (`preview_*.png`
+shows each room with beds in it), layered in
+`art_source/aseprite/dorms_*.aseprite`. Put the chosen one in
+`assets/dorms/` under the names `Tuning.csv` gives.
 
 ### The brewers (round AN)
 

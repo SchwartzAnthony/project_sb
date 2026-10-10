@@ -58,6 +58,11 @@ const RESTING_FILE := "res://data/Resting.csv"
 ## Plays (Recovery.csv, by power) he is exhausted and goes to the Dorms.
 const PLAYS_PREFIX := "plays_"
 
+## ROUND AN (Anthony, 10 Oct): HOW LONG HIS WHOLE REST WAS when he went to
+## bed: `restfull_<card>`. The Dorms' rest bar has this many segments and
+## fills one per fixture; he can play again when it is full.
+const FULL_PREFIX := "restfull_"
+
 static var _turns: Dictionary = {}
 static var _plays: Dictionary = {}
 static var _loaded := false
@@ -200,6 +205,7 @@ static func played(cards: Array, state: GameState, db: CardDatabase) -> void:
 		# SET, not add. Playing two matches in a row does not stack a queue of
 		# rest up behind a player; it restarts the same rest.
 		state.set_count(key_for(card), turns)
+		state.set_count(FULL_PREFIX + CardDatabase._normalise(card.player_name), turns)
 		said.append("%s %d" % [card.player_name, turns])
 	if not said.is_empty():
 		print("[rest] Out for: %s" % ", ".join(said))
@@ -418,6 +424,7 @@ static func send_name_to_dorms(name_text: String, power: int, main: String,
 	if turns <= 0:
 		return 0
 	state.set_count(key_for_name(name_text), turns)
+	state.set_count(FULL_PREFIX + CardDatabase._normalise(name_text), turns)
 	var why := main
 	if not extras.is_empty():
 		# The extra is the more interesting reason: "Carried home".
@@ -481,6 +488,37 @@ static func _after(main: String, cards: Array, extras: Dictionary,
 	if not said.is_empty():
 		print("[dorms] To bed after %s: %s" % [main, ", ".join(said)])
 	state.save_to_disk()
+
+
+## THE REST BAR on the Dorms screen: {"full", "done"}. One segment per
+## fixture of his rest (his power - power 1 is one game, power 5 five), and
+## `done` of them filled. He can play Adventure, Brewery or Match again only
+## once it is full - which is the moment his rest runs out.
+static func rest_bar(name_text: String, power: int, state: GameState,
+		db: CardDatabase = null) -> Dictionary:
+	var left := turns_left_name(name_text, state)
+	var full := 0
+	if state != null:
+		full = state.count(FULL_PREFIX + CardDatabase._normalise(name_text))
+	if full <= 0:
+		# A save from before the bar: his power's rest, as Recovery.csv says.
+		full = turns_for_power(power, db)
+	full = maxi(full, left)
+	return {"full": full, "done": full - left}
+
+
+## A BEER FOR A SLEEPER (Anthony, 10 Oct: LATER). Takes
+## `dorm_beer_rest_speedup` fixtures (Tuning.csv) off his rest. Nothing calls
+## it yet - the Dorms will, once beers can be handed to sleeping players.
+## Returns the fixtures he still has to go.
+static func beer_in_bed(name_text: String, state: GameState, db: CardDatabase) -> int:
+	var left := turns_left_name(name_text, state)
+	if left <= 0 or db == null:
+		return left
+	var less := maxi(0, db.tune_int("dorm_beer_rest_speedup", 1))
+	left = maxi(0, left - less)
+	state.set_count(key_for_name(name_text), left)
+	return left
 
 
 ## Everybody in the Dorms right now, longest rest first. One entry each:
