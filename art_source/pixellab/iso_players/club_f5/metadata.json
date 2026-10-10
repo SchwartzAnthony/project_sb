@@ -144,6 +144,128 @@
               "Idle/animations/tackle/south-east/frame_005.png"
             ]
           },
+          "drink": {
+            "north-west": [
+              "Idle/animations/drink/north-west/frame_000.png",
+              "Idle/animations/drink/north-west/frame_001.png",
+              "Idle/animations/drink/north-west/frame_002.png",
+              "Idle/animations/drink/north-west/frame_003.png",
+              "Idle/animations/drink/north-west/frame_004.png",
+              "Idle/animations/drink/north-west/frame_005.png",
+              "Idle/animations/drink/north-west/frame_006.png",
+              "Idle/animations/drink/north-west/frame_007.png",
+              "Idle/animations/drink/north-west/frame_008.png",
+              "Idle/animations/drink/north-west/frame_009.png",
+              "Idle/animations/drink/north-west/frame_010.png",
+              "Idle/animations/drink/north-west/frame_011.png",
+              "Idle/animations/drink/north-west/frame_012.png"
+            ],
+            "south": [
+              "Idle/animations/drink/south/frame_000.png",
+              "Idle/animations/drink/south/frame_001.png",
+              "Idle/animations/drink/south/frame_002.png",
+              "Idle/animations/drink/south/frame_003.png",
+              "Idle/animations/drink/south/frame_004.png",
+              "Idle/animations/drink/south/frame_005.png",
+              "Idle/animations/drink/south/frame_006.png",
+              "Idle/animations/drink/south/frame_007.png",
+              "Idle/animations/drink/south/frame_008.png",
+              "Idle/animations/drink/south/frame_009.png",
+              "Idle/animations/drink/south/frame_010.png",
+              "Idle/animations/drink/south/frame_011.png",
+              "Idle/animations/drink/south/frame_012.png"
+            ],
+            "south-east": [
+              "Idle/animations/drink/south-east/frame_000.png",
+              "Idle/animations/drink/south-east/frame_001.png",
+              "Idle/animations/drink/south-east/frame_002.png",
+              "Idle/animations/drink/south-east/frame_003.png",
+              "Idle/animations/drink/south-east/frame_004.png",
+              "Idle/animations/drink/south-east/frame_005.png",
+              "Idle/animations/drink/south-east/frame_006.png",
+              "Idle/animations/drink/south-east/frame_007.png",
+              "Idle/animations/drink/south-east/frame_008.png",
+              "Idle/animations/drink/south-east/frame_009.png",
+              "Idle/animations/drink/south-east/frame_010.png",
+              "Idle/animations/drink/south-east/frame_011.png",
+              "Idle/animations/drink/south-east/frame_012.png"
+            ],
+            "north": [
+              "Idle/animations/drink/north/frame_000.png",
+              "Idle/animations/drink/north/frame_001.png",
+              "Idle/animations/drink/north/frame_002.png",
+              "Idle/animations/drink/north/frame_003.png",
+              "Idle/animations/drink/north/frame_004.png",
+              "Idle/animations/drink/north/frame_005.png",
+              "Idle/animations/drink/north/frame_006.png",
+              "Idle/animations/drink/north/frame_007.png",
+              "Idle/animations/drink/north/frame_008.png",
+              "Idle/animations/drink/north/frame_009.png",
+              "Idle/animations/drink/north/frame_010.png",
+              "Idle/animations/drink/north/frame_011.png",
+              "Idle/animations/drink/north/frame_012.png"
+            ],
+            "west": [
+              "Idle/animations/drink/west/frame_000.png",
+              "Idle/animations/drink/west/frame_001.png",
+              "Idle/animations/drink/west/frame_002.png",
+              "Idle/animations/drink/west/frame_003.png",
+              "Idle/animations/drink/west/frame_004.png",
+              "Idle/animations/drink/west/frame_005.png",
+              "Idle/animations/drink/west/frame_006.png",
+              "Idle/animations/drink/west/frame_007.png",
+              "Idle/animations/drink/west/frame_008.png",
+              "Idle/animations/drink/west/frame_009.png",
+              "Idle/animations/drink/west/frame_010.png",
+              "Idle/animations/drink/west/frame_011.png",
+              "Idle/animations/drink/west/frame_012.png"
+            ],
+            "north-east": [
+              "Idle/animations/drink/north-east/frame_000.png",
+              "Idle/animations/drink/north-east/frame_001.png",
+              "Idle/animations/drink/north-east/frame_002.png",
+              "Idle/animations/drink/north-east/frame_003.png",
+              "Idle/animations/drink/north-east/frame_004.png",
+              "Idle/animations/drink/north-east/frame_005.png",
+              "Idle/animations/drink/north-east/frame_006.png",
+              "Idle/animations/drink/north-east/frame_007.png",
+              "Idle/animations/drink/north-east/frame_008.png",
+              "Idle/animations/drink/north-east/frame_009.png",
+              "Idle/animations/drink/north-east/frame_010.png",
+              "Idle/animations/drink/north-east/frame_011.png",
+              "Idle/animations/drink/north-east/frame_012.png"
+            ],
+            "south-west": [
+              "Idle/animations/drink/south-west/frame_000.png",
+              "Idle/animations/drink/south-west/frame_001.png",
+              "Idle/animations/drink/south-west/frame_002.png",
+              "Idle/animations/drink/south-west/frame_003.png",
+              "Idle/animations/drink/south-west/frame_004.png",
+              "Idle/animations/drink/south-west/frame_005.png",
+              "Idle/animations/drink/south-west/frame_006.png",
+              "Idle/animations/drink/south-west/frame_007.png",
+              "Idle/animations/drink/south-west/frame_008.png",
+              "Idle/animations/drink/south-west/frame_009.png",
+              "Idle/animations/drink/south-west/frame_010.png",
+              "Idle/animations/drink/south-west/frame_011.png",
+              "Idle/animations/drink/south-west/frame_012.png"
+            ],
+            "east": [
+              "Idle/animations/drink/east/frame_000.png",
+              "Idle/animations/drink/east/frame_001.png",
+              "Idle/animations/drink/east/frame_002.png",
+              "Idle/animations/drink/east/frame_003.png",
+              "Idle/animations/drink/east/frame_004.png",
+              "Idle/animations/drink/east/frame_005.png",
+              "Idle/animations/drink/east/frame_006.png",
+              "Idle/animations/drink/east/frame_007.png",
+              "Idle/animations/drink/east/frame_008.png",
+              "Idle/animations/drink/east/frame_009.png",
+              "Idle/animations/drink/east/frame_010.png",
+              "Idle/animations/drink/east/frame_011.png",
+              "Idle/animations/drink/east/frame_012.png"
+            ]
+          },
           "run": {
             "north-west": [
               "Idle/animations/run/north-west/frame_000.png",
@@ -485,5 +607,5 @@
     }
   ],
   "export_version": "3.1",
-  "export_date": "2026-10-07T12:24:30.225979"
+  "export_date": "2026-10-10T19:08:07.253254"
 }

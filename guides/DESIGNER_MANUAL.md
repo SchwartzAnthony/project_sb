@@ -7285,7 +7285,11 @@ tackle animation.
 player during a match, his figure plays `drink` once: he lifts the beer,
 gulps and wipes his mouth with his arm. It is the `drink` row of
 `PitchAnims.csv` (rows 48-55); its Frames and FPS set how long it lasts.
-Until a look's sheet has the drink drawn, it plays its Stand-in (`cheer`).
+All ten Club looks have it drawn (a glass stein, Anthony's pick B). A look
+whose sheet does not have it yet (the other classes) plays its Stand-in
+(`cheer`). To draw it for another look: animate the PixelLab character
+with the same action and the name `drink`, download it, then rebuild the
+sheet with `tools/make_pitch_sheet.py`. Film it with `tools/drink_shot.gd`.
 `Tuning.csv` `pitch_drink_stands_still` (true) stops him on the spot while
 he drinks; a player with the ball always keeps running. Drafts:
 `art_source/pixellab/iso_players/drink_drafts/`.
