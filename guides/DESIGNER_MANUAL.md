@@ -452,8 +452,8 @@ In the **Club House**, above the resting list. Your Q123.
 - **Sign** = pay, and he joins under his own name. **Release** (under *Your
   recruits*) = he leaves, his bed and name are free.
 - **Beds:** you may hold `beds − recruit_beds_kept` recruits (`9` kept for
-  your team's regulars; the Old Hut's 12 beds = 3 recruits). The Dorms sell
-  beds.
+  your team's regulars; a new game's 10 beds = 1 recruit, Q264). The Dorms
+  sell single beds and extra rooms.
 - `recruit_board_reroll_cost` (10 coins) puts new men up now; `0` = no
   button. `recruit_board` false hides the board.
 - As shipped: two Tier I places (30 coins), one Tier II place (60 coins)
@@ -4693,7 +4693,7 @@ and the building you just used is still under your cursor.
 | **Achievements** | the root. Everything is unlocked here first. **The only door with no `Requires`** — a game whose unlock board is itself locked has nothing to aim at |
 | **Team Build** *(was the Talent Tree, round Y)* | three tabs: **Star Hall** (place your three Stars), **Your Teams** (create and edit sides) and **Talents** (the old talent tree, still behind `unlocked:Talent Tree`). **The Pub and every match wait on it** — see section 11e |
 | **Club House** | exhaustion and recovery. A player's `P:x` is how many fixtures they need |
-| **Dorms** | beds — how many players you may keep at all |
+| **Dorms** | rooms of beds — how many players you may keep at all, and where they rest |
 | **Trophy Room** | what you have won |
 | **Training Ground** | Ausbildung, or one of the five games that automate a Brewery section |
 | **Pub** | ten seats, ten drinks. Whoever is not in the room plays as a basic unit |
@@ -4765,6 +4765,30 @@ a full-screen one drifting apart.
 behind it eats clicks — without that you can press a building *through* the
 window and open a second one on top.
 
+### The beer hall frame round every building window (round AN)
+
+Anthony, 10 Oct: look C, **the beer hall**, on every building window. A
+carved wooden frame with hop vines and a Maß in each corner; the building's
+name on a **wooden sign** hanging over the top edge; a **beer mat** on the
+top-right corner that closes the window (Escape still does too). The title
+bar inside the window is gone, so every screen gets that height back.
+
+It is three `Theme.csv` rows and three `Tuning.csv` numbers:
+
+| row | |
+|---|---|
+| `building_window` | the frame. `Slice` 76 keeps the corner mugs whole; `Repeat` tile repeats the carved edges instead of stretching them; `Fill` is the dark inside; `Pad X` / `Pad Y` keep the screen inside the carving |
+| `building_title` | the sign. It stretches sideways to fit the name; `Font`, `Size` and `Text Colour` are the name's |
+| `building_close` | the beer mat |
+| `building_window_inset` (Tuning) | how far in the dark inside starts, so it stays under the carving |
+| `building_title_rise` (Tuning) | how much of the sign stands above the frame (0.55) |
+| `building_close_size` (Tuning) | how big the beer mat is |
+
+**Delete the `building_window` row and every building window goes back to
+the plain box.** The pictures are PixelLab (`assets/ui/building_*.png`),
+layered in `art_source/aseprite/building_window.aseprite`; the other two
+looks Anthony did not pick are in `art_source/pixellab/window_frame_draft/`.
+
 ### Visitors go in the gaps
 
 > *"The dialogue option for people to come by will still be possible, but
@@ -4785,16 +4809,73 @@ a visitor who is not there, and the Output panel says who is waiting outside.
 > there was no room. **A visitors file is now recognised by its `Portrait` or
 > `Once` column** — things only a person has.
 
-### `data/Dorms.csv`
+### `data/Dorms.csv` — the rooms (round AN, 10 Oct)
+
+One row per **room**, in the order they are bought. Each room is a tab
+(1, 2, 3 ...) on the Dorms screen with ten places for beds.
 
 | column | |
 |---|---|
-| `Beds` | **the TOTAL**, not what this row adds. Buying the Long House replaces the Lean-To rather than stacking on it, so reading down the column tells you the whole story of your squad size |
-| `Price` · `Currency` | from `Currencies.csv` |
+| `Price` · `Currency` | from `Currencies.csv`. `0` = yours from the first minute |
 | `Requires` | the ordinary condition language |
+| `Beds Included` | beds that come with the room. Every other place in it is a single bed, bought on the screen |
 
-**The first row has to be free.** A new game cannot buy its first bed, and
-the checker says so if the cheapest dorm costs anything.
+**The first row has to be free.** As shipped, Room 1 (10 beds) is the only
+free room (Anthony, 10 Oct, Q264): a new game keeps 10 players, which is 1
+recruit (`recruit_beds_kept` 9). Room 2 costs 100 coins. The numbers around
+it are in `Tuning.csv`:
+
+| row | |
+|---|---|
+| `dorm_beds_per_room` | beds one room holds (10) |
+| `dorm_max_rooms` | the most rooms (10); rows past it are ignored |
+| `dorm_bed_price` · `dorm_bed_currency` | one single bed (25 coins) |
+| `dorm_beer_rest_speedup` | fixtures a beer takes off a sleeper's rest (1). **Not on a button yet** |
+| `dorm_background` | the room picture every tab shows (the clubhouse cellar, Q263) |
+| `dorm_bed_art` · `dorm_bed_sleeper_art` | the empty bed and the bed with a sleeper (one sleeper picture for everybody, Q267) |
+
+### `data/DormsLayout.csv` — every piece of the Dorms screen
+
+One row per piece: its `Image`, where it goes (`X`, `Y`) and how big
+(`Scale` = screen pixels per picture pixel).
+
+| Part | what | X and Y are shares of |
+|---|---|---|
+| `pennant` | the room tabs (`Step` = the gap between pennants) | the screen |
+| `pennant_drop` | how much lower the room you are in hangs (`Y`) | the screen |
+| `number` | where the number sits in a pennant's circle | the pennant |
+| `status` | the one line on the wall | the screen |
+| `board` | the notice board shop | the screen |
+| `buy_bed` · `buy_room` | the camp bed and the key (their middle) | the board |
+| `bed_card` · `room_card` · `rest_card` | the price cards (middle, top) | the board |
+| `card` · `tag` · `mug_full` · `mug_empty` | the card, the luggage tag, the rest mugs | — |
+| `message` | where "bought" / "not enough money" shows for a few seconds | the screen |
+
+Keep the board on the wall, above the beds. The pieces are PixelLab
+(`art_source/pixellab/dorms_ui_draft/`, the picked ones in `full/`); the
+board's frame and its felt are two layers in
+`art_source/aseprite/dorms_notice_board.aseprite`.
+
+### `data/DormBeds.csv` — where each bed stands
+
+One row per bed place in a room, in the order beds are bought. The beds
+stand **on the floor of the room picture**, a little scattered, never on top
+of each other (Anthony, 10 Oct).
+
+| column | |
+|---|---|
+| `X` · `Y` | where the **foot** of the bed stands, as a share of the whole room picture: 0 = left / top, 1 = right / bottom |
+| `Size` | how wide the bed is, as a share of the picture's width. The back row is smaller, for depth |
+
+Moving a bed: remember it also has **Z Z Z** above it and its **rest bar**
+on the floor in front, so leave room for both. The spots are shares of the
+WHOLE picture, and the room fills the screen with the ceiling cut when the
+screen is wider - the floor is never cut. Open
+`art_source/aseprite/dorms_cellar.aseprite` to see the room with all ten beds
+in place.
+
+An old save that bought the Lean-To, the Long House or the Stone Wing gets
+the same number of beds in rooms, once, for free.
 
 ### `data/Trophies.csv`
 
@@ -4816,9 +4897,35 @@ pressing the button and the work being done.
 
 ### The Dorms are where everybody rests (round AN)
 
-Every tired player sleeps in the Dorms, whatever tired them out. The Dorms
-window lists **who is in bed, why, and how many fixtures to go**, then the
-beds you can buy. `data/Resting.csv` says what sends a player there:
+Every tired player sleeps in the Dorms, whatever tired them out.
+
+**The Dorms screen (Anthony, 10 Oct) — look A, the club noticeboard.** No
+boxes: the cellar fills the screen and everything is a thing in the room.
+
+- **The room tabs** are blue-and-white **pennants** on a string, one per
+  room; the room you are in hangs lower. Click one and the room slides
+  across. Each room is the cellar with its ten places standing on the floor
+  (`DormBeds.csv`).
+- **The shop** is the club's **notice board** on the wall: click the folded
+  camp bed for a single bed or the door key for the next room (a new
+  pennant). Each has a price card pinned under it, and the cards buy too.
+  Hover the key for **every room's price**. A **Rest day** card hangs under
+  the board while somebody is asleep.
+- **One line on the wall** says the room, how many are asleep and the beds.
+  The explaining is the **Head Coach's** box, the first time you come in
+  (`Guide.csv` `dorms_explain`, lines in `data/DormsDialogue.csv`). A **sleeper** has **Z Z Z** over
+  his head and a **rest bar** under his bed: one segment per fixture of his
+  rest (his power — power 1 is one game, power 5 five) — **a row of Maß
+  mugs** on the floor in front of his bed, one filling every fixture. He plays nothing — Adventure, Brewery or Match — until it is
+  full. **Hover** him: a brown **luggage tag** with his name and power. Click him
+  for why he is there.
+  A made bed is free. A **+ bed** patch of floor is empty: click it to buy a bed.
+
+Players keep the same bed every visit (by name). More asleep than beds? The
+rest sleep **on the floor** — they still rest — and the screen names them
+(Anthony, 10 Oct, Q266: leave it that way).
+
+`data/Resting.csv` says what sends a player there:
 
 | ID | when | out of the box |
 |---|---|---|
@@ -4852,6 +4959,14 @@ row: a **Wake** button for everybody in the Dorms, **Wake everybody**, and
 
 `tools/dorms_shot.gd` takes a picture of the Dorms, the Club House, the
 Training Ground, the Brewery and the Dev screen with a few players in bed.
+`tools/dorms_screen_shot.gd` takes the new Dorms screen: room 1, a hover,
+the slide to room 2, and room 3.
+
+**The art (Anthony, 10 Oct, Q263):** the clubhouse cellar, made again at
+full size (688 x 384) with its floor cleared for the beds
+(`art_source/pixellab/dorms_draft/bg_b_cellar_full.png`), bed a and sleeper c.
+The other drafts stay in that folder. The room with its beds is layered in
+`art_source/aseprite/dorms_cellar.aseprite`.
 
 ### The brewers (round AN)
 
@@ -4945,6 +5060,50 @@ building or machine says "the dorms key (buy it at the Club House)" or
 "Needs its key". The **Keys tab is back in the bag** (`inventory_tabs`).
 The test environment hands you every key.
 
+### The Club House and the Training Ground are pictures (round AN, 10 Oct)
+
+Like the Dorms, both are one PixelLab scene inside the beer hall window, and
+what you buy are **things in it**. Hover a thing: it lights up and a
+**luggage tag** says what it is and what it costs. Things on sale have a
+**price card** pinned under them (the card buys too); things you may not buy
+yet are grey with a **padlock**; things you own are in full colour. The
+**Head Coach** explains each room the first time (`Guide.csv`
+`clubhouse_explain` / `training_explain`, lines in `data/RoomsDialogue.csv`).
+
+**The Club House is the Vereinsheim bar** (Anthony's pick, look A):
+
+| thing | is |
+|---|---|
+| the keys on the **rack behind the bar** | the keys (`Upgrades.csv` Kind = key). A key you own is off its hook |
+| the **plaques** on the wall | the upgrades, each with its own painting |
+| the **wanted posters** on the cork board | the recruitment board: name, tier and power on each, a Sign card under it |
+| the **bell** | new faces on the board now (`recruit_board_reroll_cost`) |
+| the **Stammtisch sign** on the bar | your recruits - a paper list to release one |
+
+**The Training Ground is the old Turnhalle** (look B):
+
+| thing | is |
+|---|---|
+| the **handball goal**, the **vaulting horse**, the **climbing ropes** | Ausbildung (Keeper's, Long Legs, Cold Nerve) |
+| the **malt heap**, **grain mill**, **lauter tub**, **brew kettle**, **cellar barrels** | the five mini-games, one per Brewery section (a vat each) |
+| the **shirt**, **rucksack** and **brewer's apron** on the wall hooks | the roles: click one for a list of who could be trained for it |
+| the **blackboard** | the team sheet: every player, his role, and retraining (Quereinsteiger) |
+
+**Every place and picture is a CSV**: `data/ClubhouseLayout.csv` and
+`data/TrainingLayout.csv`, one row per thing - `Image`, `X` / `Y` (the
+thing's middle, as a share of the room picture) and `Scale` (1 = the room's
+own pixel size). The Club House has a row per key hook (`key_1` ...), per
+upgrade (`upgrade:<ID>`, with its own painting; a new upgrade without a row
+takes the next `upgrade_N` place as a pinned note with its name), per poster
+(`poster_1` ...), the `bell` and the `stammtisch`. The Training Ground has a
+row per training (`training:<ID>`), per role (`role:match`,
+`role:adventure`, `role:brewer`) and the `team_sheet`. A training with no
+row is not shown, so a new Training.csv row needs its row here. The rooms
+with every thing in place are layered in `art_source/aseprite/clubhouse.aseprite`
+and `training.aseprite`; the pieces are in `assets/clubhouse/` and
+`assets/training/` (all PixelLab), the other drafts in
+`art_source/pixellab/rooms_draft/`. `tools/rooms_shot.gd` takes pictures of both.
+
 ### The Club House sells upgrades (round AN)
 
 **An achievement only grants the right to buy an upgrade.** Earning it puts
@@ -4959,8 +5118,9 @@ one row per upgrade:
 | `Cost` · `Currency` | from `Currencies.csv` |
 | `Effect` | the ordinary effects language. `count:batches_cooling+1` is a vat, `count:tune_<any Tuning row>+n` raises a number, `unlock:x` opens a thing |
 
-Each upgrade is bought **once**. The window shows what is on sale first, then
-what is still locked (and which achievement opens it), then what you own.
+Each upgrade is bought **once**. In the bar (above), a plaque on sale has a
+price card, a locked one a padlock (hover it: which achievement opens it),
+and one you own hangs in full colour.
 The Achievements board says, under each achievement, which upgrade it puts
 on sale. The recruitment board is still in the Club House, under the
 upgrades.

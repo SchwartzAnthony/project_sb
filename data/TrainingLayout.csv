@@ -1,0 +1,19 @@
+Part,Image,X,Y,Scale,Notes
+background,res://assets/training/turnhalle.png,,,,"ROUND AN (Anthony, 10 Oct: the Training Ground is the old Turnhalle, look B). EVERY THING IN THE TRAINING GROUND: its picture, where it is and how big. X and Y are the MIDDLE of the thing as a share of this picture; Scale = its pixels against the room's (1 = the same). This row is the gym itself."
+training:ausbildung_keeper,res://assets/training/keeper_goal.png,0.5,0.73,0.9,AUSBILDUNG: one row per Training.csv ID (training:<ID>). The handball goal and the gloves: Keeper's Ausbildung.
+training:ausbildung_legs,res://assets/training/vaulting_horse.png,0.240,0.790,0.9,The vaulting horse: Long Legs.
+training:ausbildung_nerve,res://assets/training/ropes.png,0.4,0.3,0.85,The climbing ropes: Cold Nerve.
+training:mini_malthouse,res://assets/training/malt_heap.png,0.360,0.925,0.85,"THE MINI-GAMES, brewery things in the gym, one per Training.csv row with Kind = minigame. The malt heap: the Turning Floor (Steeping Tank)."
+training:mini_mill,res://assets/training/mill.png,0.46,0.9,0.85,The grain mill: the Hammer Rhythm.
+training:mini_lautering,res://assets/training/lauter_tub.png,0.62,0.9,0.85,The lauter tub: the Slow Run-Off.
+training:mini_boiling,res://assets/training/kettle.png,0.77,0.9,0.85,The brew kettle: the Turning Circles.
+training:mini_cellar,res://assets/training/cellar_barrels.png,0.9,0.79,0.85,The cellar barrels: the Cellar Watch.
+role:match,res://assets/training/hook_match.png,0.82,0.61,0.7,"THE ROLES, kit on the wall hooks. Click one: who to train for it (Training.csv Kind = match_player)."
+role:adventure,res://assets/training/hook_adventure.png,0.88,0.61,0.7,The rucksack: Adventure Player (Kind = adventure_player).
+role:brewer,res://assets/training/hook_brewer.png,0.94,0.61,0.7,The brewer's apron: Brewer (Kind = brewer).
+team_sheet,res://assets/training/team_sheet.png,0.09,0.86,0.9,"The blackboard: every player, his role, and retraining (Quereinsteiger)."
+padlock,res://assets/clubhouse/padlock.png,,,0.35,The padlock on anything you may not buy yet.
+tag,res://assets/dorms/ui/tag.png,,,,The luggage tag (shared with the Dorms).
+card,res://assets/dorms/ui/card.png,,,0.95,The price card under things on sale. Scale is screen pixels per card pixel.
+status,,0.012,0.015,,"The one line at the top, as a share of the SCREEN."
+message,,0.012,0.93,,"Where messages show, as a share of the SCREEN."

@@ -1,0 +1,7 @@
+Scene,Node ID,Speaker,Portrait,Side,Mood,Background,Text,Effects,Notes
+guide-clubhouse,l1,Head Coach,coach,left,happy,,"Our Vereinsheim! The keys behind the bar open the buildings and the Brewery machines. Hover one to see what it opens and what it costs.",,"ROUND AN (Anthony, 10 Oct: the Club House as the Vereinsheim bar). Played the first time you open the Club House (Guide.csv clubhouse_explain). DRAFT lines - rewrite them here."
+guide-clubhouse,l2,Head Coach,coach,left,happy,,"The plaques on the wall are upgrades. An achievement gives you the right to buy one - a padlock means you have not earned it yet.",,
+guide-clubhouse,l3,Head Coach,coach,left,happy,,"Wanted posters by the door: lads looking for a club. Ring the bell for new faces, and the Stammtisch sign keeps your recruits.",,
+guide-training,l1,Head Coach,coach,left,happy,,"The old Turnhalle. The goal, the horse and the ropes are Ausbildung - training for the whole side.",,"ROUND AN (Anthony, 10 Oct: the Training Ground as the old Turnhalle). Played the first time you open the Training Ground (Guide.csv training_explain). DRAFT lines - rewrite them here."
+guide-training,l2,Head Coach,coach,left,happy,,"The brewery things are the mini-games: each one gives a Brewery machine another vat.",,
+guide-training,l3,Head Coach,coach,left,happy,,"And the kit on the hooks: shirt, rucksack or apron. Pick one and choose who trains as a Match Player, an Adventure Player or a Brewer. The blackboard shows the whole squad.",,

@@ -1,0 +1,4 @@
+Part,Image,X,Y,Width,Height,Scale,Flip
+picture,res://assets/ui/building_frame.png,560,540,508,502,,
+picture,res://assets/ui/building_title.png,1400,330,,,,
+picture,res://assets/ui/building_close.png,1400,700,,,,
