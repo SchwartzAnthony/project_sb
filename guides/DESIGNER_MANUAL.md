@@ -4941,6 +4941,50 @@ building or machine says "the dorms key (buy it at the Club House)" or
 "Needs its key". The **Keys tab is back in the bag** (`inventory_tabs`).
 The test environment hands you every key.
 
+### The Club House and the Training Ground are pictures (round AN, 10 Oct)
+
+Like the Dorms, both are one PixelLab scene inside the beer hall window, and
+what you buy are **things in it**. Hover a thing: it lights up and a
+**luggage tag** says what it is and what it costs. Things on sale have a
+**price card** pinned under them (the card buys too); things you may not buy
+yet are grey with a **padlock**; things you own are in full colour. The
+**Head Coach** explains each room the first time (`Guide.csv`
+`clubhouse_explain` / `training_explain`, lines in `data/RoomsDialogue.csv`).
+
+**The Club House is the Vereinsheim bar** (Anthony's pick, look A):
+
+| thing | is |
+|---|---|
+| the keys on the **rack behind the bar** | the keys (`Upgrades.csv` Kind = key). A key you own is off its hook |
+| the **plaques** on the wall | the upgrades, each with its own painting |
+| the **wanted posters** on the cork board | the recruitment board: name, tier and power on each, a Sign card under it |
+| the **bell** | new faces on the board now (`recruit_board_reroll_cost`) |
+| the **Stammtisch sign** on the bar | your recruits - a paper list to release one |
+
+**The Training Ground is the old Turnhalle** (look B):
+
+| thing | is |
+|---|---|
+| the **handball goal**, the **vaulting horse**, the **climbing ropes** | Ausbildung (Keeper's, Long Legs, Cold Nerve) |
+| the **malt heap**, **grain mill**, **lauter tub**, **brew kettle**, **cellar barrels** | the five mini-games, one per Brewery section (a vat each) |
+| the **shirt**, **rucksack** and **brewer's apron** on the wall hooks | the roles: click one for a list of who could be trained for it |
+| the **blackboard** | the team sheet: every player, his role, and retraining (Quereinsteiger) |
+
+**Every place and picture is a CSV**: `data/ClubhouseLayout.csv` and
+`data/TrainingLayout.csv`, one row per thing - `Image`, `X` / `Y` (the
+thing's middle, as a share of the room picture) and `Scale` (1 = the room's
+own pixel size). The Club House has a row per key hook (`key_1` ...), per
+upgrade (`upgrade:<ID>`, with its own painting; a new upgrade without a row
+takes the next `upgrade_N` place as a pinned note with its name), per poster
+(`poster_1` ...), the `bell` and the `stammtisch`. The Training Ground has a
+row per training (`training:<ID>`), per role (`role:match`,
+`role:adventure`, `role:brewer`) and the `team_sheet`. A training with no
+row is not shown, so a new Training.csv row needs its row here. The rooms
+with every thing in place are layered in `art_source/aseprite/clubhouse.aseprite`
+and `training.aseprite`; the pieces are in `assets/clubhouse/` and
+`assets/training/` (all PixelLab), the other drafts in
+`art_source/pixellab/rooms_draft/`. `tools/rooms_shot.gd` takes pictures of both.
+
 ### The Club House sells upgrades (round AN)
 
 **An achievement only grants the right to buy an upgrade.** Earning it puts
@@ -4955,8 +4999,9 @@ one row per upgrade:
 | `Cost` · `Currency` | from `Currencies.csv` |
 | `Effect` | the ordinary effects language. `count:batches_cooling+1` is a vat, `count:tune_<any Tuning row>+n` raises a number, `unlock:x` opens a thing |
 
-Each upgrade is bought **once**. The window shows what is on sale first, then
-what is still locked (and which achievement opens it), then what you own.
+Each upgrade is bought **once**. In the bar (above), a plaque on sale has a
+price card, a locked one a padlock (hover it: which achievement opens it),
+and one you own hangs in full colour.
 The Achievements board says, under each achievement, which upgrade it puts
 on sale. The recruitment board is still in the Club House, under the
 upgrades.

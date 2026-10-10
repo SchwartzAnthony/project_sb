@@ -750,9 +750,10 @@ func _show_tag(lines: Array, over: Control) -> void:
 	# The words start after the hole and the string at the tag's left end.
 	var cut := _tag_margins()
 	var high := 22.0 * lines.size() + 20.0
-	var wide := widest + cut.x + cut.y + 14.0
+	# The words start clear of the string that loops from the tag's hole.
+	var wide := widest + cut.x + cut.y + 40.0
 	_tag.size = Vector2(wide, high)
-	_tag_words.position = Vector2(cut.x + 6.0, 10.0)
+	_tag_words.position = Vector2(cut.x + 32.0, 10.0)
 	_tag.visible = true
 	var at := over.get_global_rect()
 	var spot := Vector2(at.position.x + at.size.x * 0.5 - wide * 0.3, at.position.y - high - 6.0)

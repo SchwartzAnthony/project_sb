@@ -402,6 +402,52 @@ static func train(id_text: String, state: GameState) -> Dictionary:
 		DialogueGrammar.describe(String(entry["effect"]))]}
 
 
+## WHAT A TRAINING DOES, IN A SENTENCE.
+##
+## `DialogueGrammar.describe()` is for CONDITIONS — "Needs matches won: at
+## least 3" — and running an EFFECT through it produces "Needs any tune
+## keeper stamina base+3", which is not English and is not true. So the two
+## effects a training may have get their own words here.
+##
+## Anything else falls back to printing the term, which is honest: a designer
+## who writes an effect this does not know about sees exactly what they typed
+## rather than a sentence that is wrong.
+static func effect_words(effect: String) -> String:
+	var said: Array[String] = []
+	for piece in effect.split(";", false):
+		var term := String(piece).strip_edges()
+		if not term.to_lower().begins_with("count:"):
+			said.append(term)
+			continue
+		var body := term.substr(6).strip_edges()
+		var at := -1
+		for i in range(body.length() - 1, 0, -1):
+			if body[i] == "+" or body[i] == "-":
+				at = i
+				break
+		if at <= 0:
+			said.append(term)
+			continue
+		var counter := body.substr(0, at)
+		var amount := body.substr(at)
+
+		# A VAT. The one a mini-game buys — see brewery_book.gd.
+		if counter.begins_with(BreweryBook.BATCHES_PREFIX):
+			var which := counter.substr(BreweryBook.BATCHES_PREFIX.length())
+			var section := BreweryBook.section(which)
+			said.append("%s more vat at the %s" % [amount.lstrip("+"),
+				String(section["name"]) if not section.is_empty() else which])
+			continue
+
+		# A TUNING ROW. `tune_<key>` edits any number in Tuning.csv.
+		if counter.begins_with("tune_"):
+			said.append("%s to %s" % [amount, counter.substr(5).replace("_", " ")])
+			continue
+
+		said.append("%s %s" % [amount, counter.replace("_", " ")])
+	return ("Gives " + ", ".join(said) + ".") if not said.is_empty() else ""
+
+
 # =============================================================
 #  THE CLUB HOUSE — data/Upgrades.csv (round AN)
 #
