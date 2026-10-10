@@ -201,6 +201,9 @@ func _read_biome_look() -> void:
 	_stripe_colour = _colour(String(run.biome.get("stripe", "")), _stripe_colour)
 	_edge_colour = _colour(String(run.biome.get("edge", "")), _edge_colour)
 	_parallax = clampf(float(run.biome.get("parallax", 0.3)), 0.0, 1.0)
+	var see_through := float(run.biome.get("ground_alpha", 1.0))
+	_grass_colour.a = see_through
+	_stripe_colour.a = see_through
 
 
 ## "#213a26" -> a Color. Anything unreadable keeps the fallback rather than
@@ -248,6 +251,18 @@ func _build_world() -> void:
 		# Wider than the window, so sliding it never shows an edge.
 		_backdrop.offset_left = -art.get_width()
 		_backdrop.offset_right = art.get_width()
+		# adventure-look: A PIXELLAB PICTURE IS SMALL (688 x 384). Tuning
+		# adventure_backdrop_fit = true blows it up by whole pixels until it
+		# fills the screen top to bottom, so it reads as a place, not a strip.
+		if db.tune_bool("adventure_backdrop_fit", true):
+			var screen := get_viewport().get_visible_rect().size
+			var zoom := maxf(1.0, ceilf(screen.y / float(art.get_height())))
+			_backdrop.set_anchors_preset(Control.PRESET_TOP_LEFT)
+			_backdrop.scale = Vector2(zoom, zoom)
+			_backdrop.position = Vector2.ZERO
+			_backdrop.size = Vector2(screen.x / zoom + art.get_width() * 2.0,
+				float(art.get_height()))
+			_backdrop.position.y = (screen.y - art.get_height() * zoom) * 0.5
 		layer.add_child(_backdrop)
 	elif String(run.biome.get("art", "")).strip_edges() != "":
 		print("[adventure] Biomes.csv wants background '%s' — put that image in assets/backgrounds/ and it appears. Using the Sky colour until then."
@@ -498,7 +513,7 @@ func _scroll(delta: float) -> void:
 	# The background slides slower than the ground, which is what makes the
 	# lane read as near and the picture behind it as far away.
 	if _backdrop != null and _backdrop.texture != null:
-		var span := float(_backdrop.texture.get_width())
+		var span := float(_backdrop.texture.get_width()) * _backdrop.scale.x
 		if span > 1.0:
 			_backdrop.position.x = -fposmod(_travelled * _parallax, span)
 
@@ -597,6 +612,8 @@ func _drop_a_pickup() -> void:
 	pickup.set_meta("name", String(known["name"]) if not known.is_empty() else item_id)
 	pickup.set_meta("claimed", false)
 	pickup.set_meta("carriers", [] as Array)
+	_art_sprite(pickup, String(known.get("ground_art", "")) if not known.is_empty() else "",
+		db.tune_float("adventure_drop_art_scale", 2.0), 0.0, true)
 	pickup.draw.connect(_draw_pickup.bind(pickup))
 	_world.add_child(pickup)
 	_pickups.append(pickup)
@@ -605,6 +622,12 @@ func _drop_a_pickup() -> void:
 
 func _draw_pickup(on: Node2D) -> void:
 	var lit := not bool(on.get_meta("claimed", false))
+	# adventure-look: the item's isometric GROUND picture (Items.csv Ground
+	# Art), lying on the grass at adventure_drop_art_scale. Blank: a square.
+	var picture := on.get_node_or_null("Art") as Sprite2D
+	if picture != null:
+		picture.modulate = Color.WHITE if lit else Color(0.6, 0.6, 0.6, 0.7)
+		return
 	var tint := MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT_DIM
 	on.draw_rect(Rect2(Vector2(-9, -9), Vector2(18, 18)), tint.darkened(0.4), true)
 	on.draw_rect(Rect2(Vector2(-9, -9), Vector2(18, 18)), tint, false, 2.0)
@@ -756,6 +779,10 @@ func _spawn_wave() -> void:
 		foe.set_meta("enemy", line_up[i])
 		foe.set_meta("home", Vector2(920.0 + (i / 3) * 96.0,
 			LANE_TOP + LANE_HEIGHT * (0.16 + float(i % 3) * 0.30)))
+		var boss_art := bool(line_up[i].get("boss", false))
+		_art_sprite(foe, String(line_up[i].get("art", "")),
+			db.tune_float("adventure_enemy_art_scale", 2.0) * (1.35 if boss_art else 1.0),
+			(26.0 if boss_art else 19.0) * 0.9)
 		foe.draw.connect(_draw_foe.bind(foe))
 		_world.add_child(foe)
 		_foes.append(foe)
@@ -763,6 +790,26 @@ func _spawn_wave() -> void:
 	print("[adventure] Wave %d of %d — %d enemy(s)%s." % [
 		run.wave, run.waves(), line_up.size(),
 		"  (THE BOSS)" if boss_wave else ""])
+
+
+## adventure-look: THE ISOMETRIC PICTURE of an enemy or a drop, as a child
+## Sprite2D called "Art". `feet` is how far below the node's spot its bottom
+## edge sits; `centred` puts it on the spot instead (a drop lying there).
+## A blank or missing picture adds nothing, and the old drawing is used.
+func _art_sprite(on: Node2D, art_name: String, zoom: float, feet: float,
+		centred: bool = false) -> void:
+	var art := MenuSupport.icon_texture(art_name)
+	if art == null:
+		return
+	var sprite := Sprite2D.new()
+	sprite.name = "Art"
+	sprite.texture = art
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.scale = Vector2(zoom, zoom)
+	sprite.centered = true
+	if not centred:
+		sprite.position = Vector2(0.0, feet - art.get_height() * zoom * 0.5)
+	on.add_child(sprite)
 
 
 func _draw_foe(on: Node2D) -> void:
@@ -774,8 +821,17 @@ func _draw_foe(on: Node2D) -> void:
 	var size := 26.0 if boss else 19.0
 	var tint := Color(0.62, 0.28, 0.30) if boss else Color(0.45, 0.30, 0.36)
 
-	on.draw_circle(Vector2.ZERO, size, tint)
-	on.draw_arc(Vector2.ZERO, size, 0.0, TAU, 24, tint.lightened(0.35), 2.0, true)
+	# adventure-look: THE ISOMETRIC CREATURE when AdventureEnemies.csv Art
+	# names a picture that exists, standing with its feet on the spot and
+	# drawn adventure_enemy_art_scale times its own size (a boss bigger).
+	# No picture: the disc, as before.
+	if on.has_node("Art"):
+		# The picture is a Sprite2D child (see _art_sprite); only its
+		# shadow on the grass is drawn here.
+		on.draw_circle(Vector2(0.0, size * 0.55), size * 0.9, Color(0, 0, 0, 0.25))
+	else:
+		on.draw_circle(Vector2.ZERO, size, tint)
+		on.draw_arc(Vector2.ZERO, size, 0.0, TAU, 24, tint.lightened(0.35), 2.0, true)
 
 	# YOU PICK BY CLICKING THE THING ITSELF, so it has to show that it can be
 	# clicked and which one is chosen. A pale ring under the pointer, a solid

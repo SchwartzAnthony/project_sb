@@ -16,8 +16,11 @@ extends Control
 #    adventure_scroll_art             the scroll picture (PixelLab). Blank or
 #                                     missing = a drawn tan paper with rods.
 #    adventure_scroll_unroll_seconds  how long the unroll takes
-#    adventure_scroll_width           how wide the scroll is, in pixels
+#    adventure_scroll_width           how wide the drawn placeholder is
 #    adventure_scroll_height          how tall it is, unrolled
+#    adventure_scroll_art_zoom        with art: its whole-pixel zoom (sets the size)
+#    adventure_scroll_art_top/_bottom with art: where the rods end, 0-1 down it
+#    adventure_scroll_art_side        with art: how far in the words start, 0-1
 # =============================================================
 
 signal accepted
@@ -30,7 +33,12 @@ const ROD := Color(0.30, 0.18, 0.09)
 var _words: Dictionary = {}
 var _can_accept := true
 var _clip: Control
+var _top_rod: Control
 var _bottom_rod: Control
+## How far in from each side the words start, as a fraction of the width.
+var _paper_side := 0.12
+## How much of the paper's bottom is kept clear (the wax seal), 0-1.
+var _paper_foot := 0.0
 var _full_height := 560.0
 var _width := 460.0
 var _seconds := 0.45
@@ -64,7 +72,6 @@ func _ready() -> void:
 
 	var art := MenuSupport.icon_texture(
 		db.tune_text("adventure_scroll_art", "") if db != null else "")
-	var rod_h := 26.0
 
 	# THE PAPER, behind a clip that grows: that is the unroll.
 	_clip = Control.new()
@@ -74,13 +81,22 @@ func _ready() -> void:
 
 	var paper: Control
 	if art != null:
-		var picture := TextureRect.new()
-		picture.texture = art
-		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		picture.stretch_mode = TextureRect.STRETCH_SCALE
-		picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		paper = picture
-		rod_h = 0.0
+		# THE PICTURE IN THREE PIECES: the top rod stays put, the paper is
+		# revealed, and the bottom rod travels down with the edge of it.
+		# Where the rods end is Tuning adventure_scroll_art_top / _bottom
+		# (fractions of the picture's height); its size is a whole-pixel
+		# zoom, adventure_scroll_art_zoom, so the pixels stay square.
+		var zoom := maxf(1.0, roundf(db.tune_float("adventure_scroll_art_zoom", 5.0)))
+		var top_cut := clampf(db.tune_float("adventure_scroll_art_top", 0.1), 0.0, 0.5)
+		var bottom_cut := clampf(db.tune_float("adventure_scroll_art_bottom", 0.88), 0.5, 1.0)
+		var tall := float(art.get_height())
+		_width = art.get_width() * zoom
+		_full_height = tall * (bottom_cut - top_cut) * zoom
+		_paper_side = clampf(db.tune_float("adventure_scroll_art_side", 0.17), 0.0, 0.4)
+		_paper_foot = clampf(db.tune_float("adventure_scroll_art_foot", 0.17), 0.0, 0.5)
+		_top_rod = _slice(art, 0.0, tall * top_cut, zoom)
+		_bottom_rod = _slice(art, tall * bottom_cut, tall, zoom)
+		paper = _slice(art, tall * top_cut, tall * bottom_cut, zoom)
 	else:
 		var sheet := Panel.new()
 		var style := StyleBoxFlat.new()
@@ -89,22 +105,36 @@ func _ready() -> void:
 		style.set_border_width_all(3)
 		sheet.add_theme_stylebox_override("panel", style)
 		paper = sheet
+		_top_rod = _rod(26.0)
+		_bottom_rod = _rod(26.0)
 	paper.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	paper.size = Vector2(_width, _full_height)
 	_clip.add_child(paper)
 	paper.add_child(_contents())
-
-	# The two rods of the placeholder. The art has its own.
-	if rod_h > 0.0:
-		add_child(_rod(rod_h))
-		_bottom_rod = _rod(rod_h)
-		add_child(_bottom_rod)
+	add_child(_top_rod)
+	add_child(_bottom_rod)
 
 	_layout(0.0)
 	resized.connect(func() -> void: _layout(_clip.size.y / _full_height))
 	var tween := create_tween()
 	tween.tween_method(_layout, 0.0, 1.0, _seconds) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## One band of the scroll picture, from `from` to `to` (pixels down it),
+## drawn at a whole-pixel zoom.
+func _slice(art: Texture2D, from: float, to: float, zoom: float) -> TextureRect:
+	var region := AtlasTexture.new()
+	region.atlas = art
+	region.region = Rect2(0.0, from, float(art.get_width()), maxf(1.0, to - from))
+	var band := TextureRect.new()
+	band.texture = region
+	band.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	band.stretch_mode = TextureRect.STRETCH_SCALE
+	band.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	band.size = region.region.size * zoom
+	return band
 
 
 func _rod(height: float) -> Control:
@@ -127,20 +157,19 @@ func _layout(open: float) -> void:
 	var high := maxf(0.0, _full_height * open)
 	_clip.position = Vector2(left, top)
 	_clip.size = Vector2(_width, high)
-	var rods := get_children().filter(func(c): return c is Panel and c != _clip)
-	if rods.size() >= 2:
-		var rod_top: Control = rods[0]
-		rod_top.position = Vector2(left - 18.0, top - rod_top.size.y * 0.5)
-		_bottom_rod.position = Vector2(left - 18.0, top + high - _bottom_rod.size.y * 0.5)
+	if _top_rod != null and _bottom_rod != null:
+		var top_left := left + (_width - _top_rod.size.x) * 0.5
+		_top_rod.position = Vector2(top_left, top - _top_rod.size.y)
+		_bottom_rod.position = Vector2(top_left, top + high)
 
 
 func _contents() -> Control:
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for side in ["left", "right"]:
-		margin.add_theme_constant_override("margin_" + side, int(_width * 0.12))
-	margin.add_theme_constant_override("margin_top", 34)
-	margin.add_theme_constant_override("margin_bottom", 30)
+		margin.add_theme_constant_override("margin_" + side, int(_width * _paper_side) + 8)
+	margin.add_theme_constant_override("margin_top", 18)
+	margin.add_theme_constant_override("margin_bottom", 18 + int(_full_height * _paper_foot))
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var page := VBoxContainer.new()
@@ -174,13 +203,13 @@ func _contents() -> Control:
 	page.add_child(buttons)
 
 	var back := MenuSupport.icon_button("back|←", Loc.text("back", "Back"),
-		Vector2(150, 48))
+		Vector2(130, 46))
 	back.name = "ScrollBack"
 	back.pressed.connect(close)
 	buttons.add_child(back)
 
 	var accept := MenuSupport.icon_button("play|▶",
-		Loc.text("accept_contract", "Accept Contract"), Vector2(220, 48))
+		Loc.text("accept_contract", "Accept Contract"), Vector2(200, 46))
 	accept.name = "AcceptContract"
 	accept.disabled = not _can_accept
 	accept.pressed.connect(func() -> void: accepted.emit())

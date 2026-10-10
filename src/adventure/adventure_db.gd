@@ -154,6 +154,10 @@ func _read_biomes(rows: Array, columns: Dictionary, where: String) -> void:
 			# Blank is fine everywhere — the scene falls back to marsh green.
 			"art": _first_of(row, columns, ["background", "scrollart"]),
 			"parallax": _float(_cell(row, columns, "parallax"), 0.3),
+			# adventure-look: how solid the grass band is over the picture.
+			# 1 = solid colour (as before), 0.3 = the isometric field behind
+			# shows through. Blank = 1.
+			"ground_alpha": clampf(_float(_cell(row, columns, "groundalpha"), 1.0), 0.0, 1.0),
 			"sky": _cell(row, columns, "sky"),
 			"grass": _cell(row, columns, "grass"),
 			"stripe": _first_of(row, columns, ["grassstripe", "stripe"]),
@@ -263,6 +267,9 @@ func _read_items(rows: Array, columns: Dictionary, where: String) -> void:
 			"kind": _or(_cell(row, columns, "kind").to_lower(), "material"),
 			"stack": maxi(1, _int(_cell(row, columns, "stack"), 99)),
 			"art": _cell(row, columns, "art"),
+			# adventure-look: the isometric picture of it LYING ON THE GROUND
+			# in an Adventure run. Blank = a plain square.
+			"ground_art": _cell(row, columns, "groundart"),
 			# WHAT IT DOES WHEN YOU USE IT in a fight. Blank means it is just
 			# material and never appears in the item menu.
 			#   revive       one knocked-out player comes back

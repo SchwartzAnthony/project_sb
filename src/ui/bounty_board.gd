@@ -49,7 +49,7 @@ extends Control
 ## top of the board) to 1 (right / bottom). Blank = laid out in rows.
 ## Kind (Match, Training ...) is written over the name on the scroll.
 
-const PIN_SIZE := Vector2(190.0, 118.0)
+const PIN_SIZE := Vector2(176.0, 110.0)
 const WOOD := Color(0.36, 0.22, 0.12)
 const WOOD_EDGE := Color(0.18, 0.10, 0.05)
 const SCROLL_PAPER := Color(0.86, 0.76, 0.56)
@@ -170,13 +170,14 @@ func _build_ui() -> void:
 	_board.custom_minimum_size = board_size
 	holder.add_child(_board)
 
+	# WHERE THE SCROLLS MAY HANG: the part of the board inside its frame, as
+	# fractions of the board (Tuning adventure_board_area_*), so a new board
+	# picture with a thicker or thinner frame is four numbers, not code.
 	_pins = Control.new()
-	_pins.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var inset := db.tune_float("adventure_board_inset", 48.0)
-	_pins.offset_left = inset
-	_pins.offset_top = inset
-	_pins.offset_right = -inset
-	_pins.offset_bottom = -inset
+	_pins.anchor_left = db.tune_float("adventure_board_area_left", 0.05)
+	_pins.anchor_top = db.tune_float("adventure_board_area_top", 0.09)
+	_pins.anchor_right = db.tune_float("adventure_board_area_right", 0.95)
+	_pins.anchor_bottom = db.tune_float("adventure_board_area_bottom", 0.91)
 	_board.add_child(_pins)
 
 	# --- Footer: the standard one, Back on the left like every screen ---
@@ -299,8 +300,8 @@ func _refresh_bounties() -> void:
 		return
 
 	# Where each one hangs: its own Pin X / Pin Y, or the next slot in rows.
-	var room := _board.custom_minimum_size - Vector2.ONE * 2.0 \
-		* db.tune_float("adventure_board_inset", 48.0)
+	var room := _board.custom_minimum_size * Vector2(
+		_pins.anchor_right - _pins.anchor_left, _pins.anchor_bottom - _pins.anchor_top)
 	var per_row := maxi(1, int(room.x / (PIN_SIZE.x + 16.0)))
 	var slot := 0
 	for job in jobs:

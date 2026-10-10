@@ -24,3 +24,11 @@ Notes
 - scroll: An unrolled parchment contract scroll hanging open, dark wooden rods with brass knobs at the top and bottom, the paper filled with a light tan colour, a red wax seal with a football on it near the bottom, slightly torn edges, front view, empty paper with no writing.
 - marsh_iso: Isometric view of a Bavarian marsh, a wide flat green football-sized clearing of wet grass in the middle surrounded by reed beds, dark pools of bog water, crooked willow trees, an old wooden boardwalk, a sunken goal post, will-o-wisps glowing in the mist, seen from above at a 2:1 isometric angle.
 - map_style: An isometric adventure map like a 1980s Bavarian fantasy role-playing game board from a European comic book, diamond-shaped grass and marsh tiles joined by a winding dirt path with round stepping-stone stops, small tents, a wooden footbridge, little monsters waiting on some stops, sacks of loot on others, a castle ruin at the far end, seen from above at a 2:1 isometric angle.
+
+## Finals (10 Oct, Anthony: "continue please")
+Made from: board 2, cave 3, scroll 1, marsh 3. The map style waits for QAL1.
+Parts and every candidate: `art_source/adventure_look/parts/`; layer CSVs
+`art_source/adventure_look/*.csv` (rebuild with `tools/compose_layers.py`);
+layered files `art_source/aseprite/adventure/`. In-game screenshots: `screens/`.
+The big scroll final came back broken (PixelLab mixed the style board into
+it), so the open scroll uses draft option 1 at a whole-pixel zoom.

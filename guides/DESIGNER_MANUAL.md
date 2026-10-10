@@ -3629,8 +3629,33 @@ with the same isometric sheet each player wears in a match
 stamina bar sit on the same plate as before. `adventure_iso_players` = false
 goes back to the old card sheet; `adventure_iso_player_scale` sizes them.
 
-Art drafts for the board, cave, scroll, isometric Marsh and map style are in
-`art_source/drafts/adventure_look/` and wait for your pick before finals.
+**The art (PixelLab, 10 Oct).** Every picture is built from separate parts
+by a layer CSV, so you can move a part in a spreadsheet and rebuild it:
+
+```
+~/.venvs/sturmball/bin/python tools/compose_layers.py art_source/adventure_look/marsh_iso.csv
+```
+
+| Picture | Layer CSV | Game file | Aseprite |
+|---|---|---|---|
+| Beer cave | `art_source/adventure_look/beer_cave.csv` | `assets/adventure/board/beer_cave.png` | `art_source/aseprite/adventure/beer_cave.aseprite` |
+| Board (frame + cork) | `.../board.csv` | `assets/adventure/board/board.png` | `.../board.aseprite` |
+| Isometric Marsh | `.../marsh_iso.csv` | `assets/backgrounds/marsh_iso.png` | `.../marsh_iso.aseprite` |
+
+Single pictures: the pinned scroll `assets/adventure/board/pin.png`, the open
+scroll `scroll.png` (it unrolls in three pieces: `adventure_scroll_art_top`,
+`_bottom`, `_side`, `_foot`, `_zoom`), the Marsh enemies in
+`assets/adventure/enemies/` (AdventureEnemies.csv **Art**) and the ground
+drops in `assets/adventure/drops/` (Items.csv **Ground Art**). Every other
+candidate PixelLab gave is kept in `art_source/adventure_look/parts/` if you
+would rather have a different one.
+
+**The Marsh behind the run.** Biomes.csv: Background
+`res://assets/backgrounds/marsh_iso.png`, Parallax 0 (it stays still, so the
+picture never shows a seam; the grass stripes still move), and the new
+**Ground Alpha** 0.35 so the isometric field shows through the grass band.
+`adventure_backdrop_fit` blows a small picture up to fill the screen. Enemies
+and drops: `adventure_enemy_art_scale`, `adventure_drop_art_scale`.
 
 ### How a fight goes
 

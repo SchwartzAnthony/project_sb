@@ -9,7 +9,7 @@ extends SceneTree
 #
 #      godot --headless --path . --script res://tools/adventure_look_check.gd
 #
-#  With a window (no --headless) it also saves three pictures to
+#  With a window (no --headless) it also saves four pictures to
 #  art_source/drafts/adventure_look/screens/.
 #
 #  It is a tool, not part of the game. Nothing loads it.
@@ -71,4 +71,12 @@ func _run() -> void:
 				iso += 1
 		print("[look] %d of %d players are isometric" % [iso, scene._walkers.size()])
 	await _shot("run.png")
+	if scene != null:
+		# A drop and a wave on the field, so their isometric pictures show.
+		scene._drop_a_pickup()
+		scene._drop_a_pickup()
+		scene._spawn_wave()
+		await _frames(150)
+		print("[look] %d enemies, %d drops on the field" % [scene._foes.size(), scene._pickups.size()])
+		await _shot("run_wave.png")
 	quit(0)
