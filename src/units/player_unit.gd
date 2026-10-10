@@ -525,6 +525,8 @@ func has_ball() -> bool:
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint() or movement_frozen or not is_roaming:
 		return
+	if is_drinking() and not has_ball():
+		return
 
 	steal_cooldown = maxf(0.0, steal_cooldown - delta)
 
@@ -1088,6 +1090,23 @@ func play_once(anim_name: String, toward: Vector2 = Vector2.ZERO) -> void:
 	_draw_frame(anim_name)
 
 
+## ============ A DRINK ON THE PITCH (round AN, 10 Oct) ============
+##
+## Anthony: when a player drinks from the inventory during a match, he lifts
+## the beer, gulps and wipes his mouth with his arm. The `drink` row of
+## PitchAnims.csv; Tuning.csv pitch_drink_stands_still stops him on the spot
+## while he drinks (never with the ball at his feet).
+func play_drink() -> void:
+	play_once("drink")
+
+
+func is_drinking() -> bool:
+	if _one_shot != "drink":
+		return false
+	var db := CardDatabase.get_db()
+	return db.tune_bool("pitch_drink_stands_still", true) if db != null else true
+
+
 func _show_anim(anim_name: String) -> void:
 	if anim_name != _anim_name:
 		_anim_name = anim_name
@@ -1101,12 +1120,19 @@ func _draw_frame(anim_name: String) -> void:
 		spec = PitchSprite.anim("idle")
 		if spec.is_empty():
 			return
+	var row: int = int(spec["row"]) + _dir
+	# A sheet drawn before this animation existed has no rows for it: play
+	# its Stand-in (PitchAnims.csv) at the stand-in's own speed instead.
+	if row >= artwork.vframes and String(spec.get("stand_in", "")) != "":
+		spec = PitchSprite.anim(String(spec["stand_in"]))
+		if spec.is_empty():
+			return
+		row = int(spec["row"]) + _dir
+	if row >= artwork.vframes:
+		return
 	var frames: int = spec["frames"]
 	var step := int(_anim_time * float(spec["fps"]))
 	step = posmod(step, frames) if bool(spec["loop"]) else mini(step, frames - 1)
-	var row: int = int(spec["row"]) + _dir
-	if row >= artwork.vframes:
-		return
 	artwork.frame = row * artwork.hframes + mini(step, artwork.hframes - 1)
 
 
