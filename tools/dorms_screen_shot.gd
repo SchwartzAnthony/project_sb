@@ -8,7 +8,7 @@ extends SceneTree
 #
 #  Runs inside the TEST ENVIRONMENT, so your real save is never touched.
 #  Puts players to bed (one, three and five fixtures of rest, some part
-#  rested), buys a third room and a few single beds, opens the Dorms over the
+#  rested), buys a second and a third room and seven single beds, opens the Dorms over the
 #  base, hovers a sleeper, then clicks tab 2 and records the slide.
 #  Writes dorms_room1.png, dorms_hover.png, dorms_room2.png and
 #  dorms_slide_00.png ... into the user:// folder.
@@ -40,12 +40,12 @@ func _initialize() -> void:
 		state.set_count(RecoveryBook.key_for(card), maxi(1, left - put % 3))
 		put += 1
 
-	# ---- a third room and four single beds in it ----
-	BaseRooms.buy_bed(state)
-	BaseRooms.buy_bed(state)
-	print("[shot] room 3: ", BaseRooms.buy_dorm("room_3", state))
-	for i in 4:
+	# ---- a second and a third room, some single beds in them ----
+	print("[shot] room 2: ", BaseRooms.buy_dorm("room_2", state))
+	for i in 7:
 		BaseRooms.buy_bed(state)
+	print("[shot] room 3: ", BaseRooms.buy_dorm("room_3", state))
+	state.set_count("coins", 900)
 	print("[shot] beds by room: ", BaseRooms.beds_by_room(state))
 
 	for row in MenuSupport.read_csv("res://data/Progression.csv"):

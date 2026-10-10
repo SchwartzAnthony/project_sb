@@ -11,9 +11,10 @@ extends Control
 #
 #  ============ THE SCREEN ============
 #
-#      the picture       Tuning.csv dorm_background, under a see-through sheet
-#      THE BEDS          tabs 1, 2, 3 ... one per room you have. A tab slides
-#                        to that room's beds, five a row, two rows.
+#      THE BEDS          tabs 1, 2, 3 ... one per room you have. Each room is
+#                        the room picture (Tuning.csv dorm_background) with
+#                        its beds standing on the floor where DormBeds.csv
+#                        says. A tab slides to that room.
 #      BUY               a single bed, the next room, and every room's price
 #
 #  ============ A BED ============
@@ -27,12 +28,16 @@ extends Control
 #      to buy    an empty place in the room: click it to buy a bed
 #
 #  WHERE THE NUMBERS LIVE: data/Dorms.csv (the rooms and their prices),
+#  data/DormBeds.csv (where each bed stands),
 #  Tuning.csv dorm_* (beds a room, most rooms, a bed's price, the art),
 #  data/Recovery.csv (how long by power), data/Resting.csv (what sends a
 #  player to bed). The rules are in base_rooms.gd and recovery_book.gd.
 # =============================================================
 
-const COLUMNS := 5
+## Where each bed stands in the room picture (Anthony, 10 Oct: "on the
+## floor in the image, not floating around ... a little more random, but
+## not on top of each other"). One row per place - see _load_spots().
+const SPOTS_FILE := "res://data/DormBeds.csv"
 ## The sleeper hover plate goes above everything, even another room's beds.
 const HOVER_Z := 50
 
@@ -52,6 +57,11 @@ var _hover_words: Label
 var _room := 0
 var _tab_buttons: Array[Button] = []
 var _slide: Tween
+var _spots: Array[Dictionary] = []
+# What the rooms show, kept so a resize can lay them out again.
+var _rooms: Array[Dictionary] = []
+var _counts: Array[int] = []
+var _sleepers: Array[Dictionary] = []
 
 
 func _ready() -> void:
@@ -80,7 +90,7 @@ func _build(windowed: bool) -> void:
 		fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(fill)
-	_build_backdrop()
+	_load_spots()
 
 	var page := VBoxContainer.new()
 	page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -120,14 +130,12 @@ func _build(windowed: bool) -> void:
 	_pager.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_pager.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_pager.clip_contents = true
-	# Two rows of beds, whatever the window: a bed, its rest bar and a gap.
-	var bed_h := _bed_size() * 0.8 + 16.0 + 4.0
-	_pager.custom_minimum_size = Vector2(0, bed_h * 2.0 + 14.0 + 24.0)
+	_pager.custom_minimum_size = Vector2(0, 360)
 	beds_box.add_child(_pager)
 	_strip = HBoxContainer.new()
 	_strip.add_theme_constant_override("separation", 0)
 	_pager.add_child(_strip)
-	_pager.resized.connect(_lay_pages)
+	_pager.resized.connect(_build_rooms)
 
 	# ---- BUY ----
 	var shop_box := _window(page, false)
@@ -160,24 +168,31 @@ func _build(windowed: bool) -> void:
 	add_child(_hover)
 
 
-## The picture behind it all, under a see-through black sheet.
-func _build_backdrop() -> void:
-	var art := _texture(db.tune_text("dorm_background", "") if db != null else "")
-	if art == null:
-		return
-	var picture := TextureRect.new()
-	picture.texture = art
-	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(picture)
-	var shade := ColorRect.new()
-	shade.color = Color(0, 0, 0, clampf(db.tune_float("dorm_background_shade", 0.35), 0.0, 1.0))
-	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(shade)
+## The bed places out of DormBeds.csv: X and Y are where the FOOT of the
+## bed stands, as a share of the room picture (0 = left / top, 1 = right /
+## bottom); Size is how wide the bed is, as a share of the picture's width.
+func _load_spots() -> void:
+	_spots.clear()
+	for row in MenuSupport.read_csv(SPOTS_FILE):
+		var place := MenuSupport.field(row, "Place").strip_edges()
+		if place == "":
+			continue
+		_spots.append({
+			"x": clampf(MenuSupport.field_float(row, "X", 0.5), 0.0, 1.0),
+			"y": clampf(MenuSupport.field_float(row, "Y", 0.8), 0.0, 1.0),
+			"size": maxf(0.02, MenuSupport.field_float(row, "Size", 0.12)),
+		})
+	if _spots.size() < BaseRooms.beds_per_room():
+		print("[dorms] DormBeds.csv has %d place(s) for %d beds a room - the rest stand in a row along the front." % [
+			_spots.size(), BaseRooms.beds_per_room()])
+
+
+## Place `index` in a room: from the CSV, or along the front if it has none.
+func _spot(index: int) -> Dictionary:
+	if index < _spots.size():
+		return _spots[index]
+	var per := BaseRooms.beds_per_room()
+	return {"x": (index + 0.5) / float(per), "y": 0.95, "size": 0.8 / float(per)}
 
 
 ## One of the two windows. Returns the column its contents go in.
@@ -242,47 +257,98 @@ func _rebuild() -> void:
 		_tabs.add_child(tab)
 		_tab_buttons.append(tab)
 
-	# ---- the rooms, side by side on one strip ----
-	for child in _strip.get_children():
-		child.queue_free()
-	var asleep := 0
-	for i in rooms.size():
-		var page := CenterContainer.new()
-		var grid := GridContainer.new()
-		grid.columns = COLUMNS
-		grid.add_theme_constant_override("h_separation", 18)
-		grid.add_theme_constant_override("v_separation", 14)
-		page.add_child(grid)
-		for place in per:
-			if place < counts[i]:
-				var who: Dictionary = sleepers[asleep] if asleep < sleepers.size() else {}
-				if not who.is_empty():
-					asleep += 1
-				grid.add_child(_bed(who))
-			else:
-				grid.add_child(_place_to_buy())
-		_strip.add_child(page)
-	# MORE ASLEEP THAN BEDS: they sleep on the floor, and say so.
-	if asleep < sleepers.size():
+	_rooms = rooms
+	_counts = counts
+	_sleepers = sleepers
+	_build_rooms()
+	# MORE ASLEEP THAN BEDS: they sleep on the floor, and say so (Q266:
+	# Anthony, 10 Oct - they still rest).
+	var in_beds := mini(sleepers.size(), beds)
+	if in_beds < sleepers.size():
 		var floor_names: Array[String] = []
-		for k in range(asleep, sleepers.size()):
+		for k in range(in_beds, sleepers.size()):
 			floor_names.append(String(sleepers[k]["name"]))
 		_intro.text += "  ON THE FLOOR (no bed for them): " + ", ".join(floor_names) + "."
-	_lay_pages.call_deferred()
 	_name_room()
 	_fill_shop(sleepers.size(), on)
 
 
-## Every page as wide as the window, the strip slid to the room you are on.
-func _lay_pages() -> void:
-	if _pager == null or _strip == null:
+## EVERY ROOM IS THE ROOM PICTURE with its beds standing on the floor, side
+## by side on one strip; a tab slides the strip. Built again when the window
+## changes size, because a bed's size is a share of the picture.
+func _build_rooms() -> void:
+	if _strip == null:
 		return
+	for child in _strip.get_children():
+		_strip.remove_child(child)
+		child.queue_free()
 	var box := _pager.size
-	for page in _strip.get_children():
-		(page as Control).custom_minimum_size = box
+	if box.x < 8.0 or box.y < 8.0:
+		return
+	var art := _texture(db.tune_text("dorm_background", "") if db != null else "")
+	# THE CEILING IS CUT OFF (dorm_view_top), so the floor and its beds are
+	# drawn bigger. `full` is the whole picture's size on screen; only the
+	# part below `top` is shown.
+	var top := clampf(db.tune_float("dorm_view_top", 0.3), 0.0, 0.9) if db != null else 0.0
+	var aspect := float(art.get_width()) / float(art.get_height()) if art != null else 16.0 / 9.0
+	var shown_aspect := aspect / (1.0 - top)
+	# Room under the front row for its rest bar.
+	var room := Vector2(box.x, box.y - 22.0)
+	# The shown part as big as it fits, centred, keeping its shape - so a
+	# spot in the CSV is the same spot on the floor at any window size.
+	var pic := Vector2(room.x, room.x / shown_aspect)
+	if pic.y > room.y:
+		pic = Vector2(room.y * shown_aspect, room.y)
+	var at := Vector2((box.x - pic.x) * 0.5, (room.y - pic.y) * 0.5)
+	var full := Vector2(pic.x, pic.y / (1.0 - top))
+	var per := BaseRooms.beds_per_room()
+	var asleep := 0
+	for i in _rooms.size():
+		var page := Control.new()
+		page.custom_minimum_size = box
+		page.size = box
+		_strip.add_child(page)
+		if art != null:
+			var shown := AtlasTexture.new()
+			shown.atlas = art
+			shown.region = Rect2(0, art.get_height() * top, art.get_width(), art.get_height() * (1.0 - top))
+			var picture := TextureRect.new()
+			picture.texture = shown
+			picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			picture.stretch_mode = TextureRect.STRETCH_SCALE
+			picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			picture.position = at
+			picture.size = pic
+			page.add_child(picture)
+		# Back beds first, so a bed nearer the front is drawn over the wall
+		# behind the one further back.
+		var order: Array[int] = []
+		for place in per:
+			order.append(place)
+		var tiles: Dictionary = {}
+		for place in per:
+			var who: Dictionary = {}
+			if place < _counts[i] and asleep < _sleepers.size():
+				who = _sleepers[asleep]
+				asleep += 1
+			var spot := _spot(place)
+			var wide := float(spot["size"]) * full.x
+			var tile := _bed(who, wide) if place < _counts[i] else _place_to_buy(wide)
+			# THE FOOT OF THE BED ON THE SPOT: the bed picture's bottom edge
+			# sits there, its rest bar on the floor in front of it.
+			var foot := at + Vector2(float(spot["x"]) * full.x, (float(spot["y"]) - top) * full.y)
+			tile.position = Vector2(foot.x - wide * 0.5, foot.y - float(tile.get_meta("bed_height")))
+			tile.z_index = int(float(spot["y"]) * 100.0)
+			tiles[place] = tile
+		order.sort_custom(func(a: int, b: int) -> bool:
+			return float(_spot(a)["y"]) < float(_spot(b)["y"]))
+		for place in order:
+			page.add_child(tiles[place])
 	_strip.size = Vector2(box.x * _strip.get_child_count(), box.y)
-	if _slide == null or not _slide.is_running():
-		_strip.position = Vector2(-box.x * _room, 0)
+	if _slide != null and _slide.is_running():
+		_slide.kill()
+	_strip.position = Vector2(-box.x * _room, 0)
 
 
 func _show_room(index: int) -> void:
@@ -311,8 +377,7 @@ func _name_room() -> void:
 
 # ---- A BED ---------------------------------------------------
 
-func _bed(who: Dictionary) -> Control:
-	var big := _bed_size()
+func _bed(who: Dictionary, big: float) -> Control:
 	var tile := VBoxContainer.new()
 	tile.add_theme_constant_override("separation", 4)
 	tile.custom_minimum_size = Vector2(big, 0)
@@ -323,7 +388,11 @@ func _bed(who: Dictionary) -> Control:
 		art = _texture(db.tune_text("dorm_bed_art", ""))
 	var button := MapBuilding.new()
 	button.flat = true
-	button.custom_minimum_size = Vector2(big, big * 0.8)
+	# As tall as the picture is for this width, so its bottom edge - the
+	# feet of the bed - is the bottom of the button.
+	var tall := big * (float(art.get_height()) / float(art.get_width()) if art != null else 0.8)
+	button.custom_minimum_size = Vector2(big, tall)
+	tile.set_meta("bed_height", tall)
 	button.focus_mode = Control.FOCUS_ALL
 	button.add_theme_stylebox_override("focus", MenuSupport.focus_style())
 	if art != null:
@@ -410,12 +479,14 @@ func _rest_bar(who: Dictionary, wide: float) -> Control:
 
 
 ## An empty place in the room. Click it to buy a bed.
-func _place_to_buy() -> Control:
-	var big := _bed_size()
+func _place_to_buy(big: float) -> Control:
 	var tile := VBoxContainer.new()
 	tile.custom_minimum_size = Vector2(big, 0)
 	var place := Button.new()
-	place.custom_minimum_size = Vector2(big, big * 0.8)
+	# A patch of floor the shape of a bed, where one would stand.
+	var tall := big * 0.75
+	tile.set_meta("bed_height", tall)
+	place.custom_minimum_size = Vector2(big, tall)
 	place.text = "+ bed"
 	place.add_theme_font_size_override("font_size", 14)
 	var face := ThemeBook.font(String(ThemeBook.row_for("heading").get("font", "")))
@@ -494,15 +565,8 @@ func _fill_shop(asleep: int, on: bool) -> void:
 		var mine := BaseRooms.owns_dorm(String(room["id"]), state)
 		lines.append("%s  %s" % [room["name"], "yours" if mine
 			else _price_words(int(room["price"]), String(room["currency"]))])
-	var listing := _small("\n".join(lines.slice(0, 5)))
-	var listing2 := _small("\n".join(lines.slice(5)))
-	listing.autowrap_mode = TextServer.AUTOWRAP_OFF
-	listing2.autowrap_mode = TextServer.AUTOWRAP_OFF
-	var two := HBoxContainer.new()
-	two.add_theme_constant_override("separation", 22)
-	two.add_child(listing)
-	two.add_child(listing2)
-	list_col.add_child(two)
+	# One wrapped line, so the price list never makes the window taller.
+	list_col.add_child(_small("  ·  ".join(lines)))
 
 	# THE REST DAY (rest_day_cost in Tuning.csv; below 0 hides it).
 	var rest_price := db.tune_int("rest_day_cost", 0) if db != null else -1
@@ -552,10 +616,6 @@ func _say(result: Dictionary, rebuild: bool = true) -> void:
 	if bool(result["ok"]):
 		state.save_to_disk()
 	_rebuild()
-
-
-func _bed_size() -> float:
-	return maxf(32.0, db.tune_float("dorm_bed_size", 96.0) if db != null else 96.0)
 
 
 func _bed_price() -> int:
