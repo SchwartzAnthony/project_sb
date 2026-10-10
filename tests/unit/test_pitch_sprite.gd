@@ -30,9 +30,19 @@ func test_squash_turns_the_tilted_pitch_into_diagonals() -> void:
 func test_every_animation_has_eight_rows_without_overlap() -> void:
 	PitchSprite.reload()
 	var used := {}
-	for anim_name in ["idle", "run", "kick", "tackle", "fall", "cheer"]:
+	for anim_name in ["idle", "run", "kick", "tackle", "fall", "cheer", "drink"]:
 		assert_true(PitchSprite.has_anim(anim_name), "%s is in PitchAnims.csv" % anim_name)
 		var first: int = PitchSprite.anim(anim_name)["row"]
 		for d in 8:
 			assert_false(used.has(first + d), "%s row %d is used once" % [anim_name, first + d])
 			used[first + d] = true
+
+
+func test_drink_has_a_stand_in_until_it_is_drawn() -> void:
+	PitchSprite.reload()
+	var drink := PitchSprite.anim("drink")
+	assert_false(drink.is_empty(), "drink is in PitchAnims.csv")
+	assert_false(bool(drink["loop"]), "a drink plays once")
+	var stand_in := String(drink["stand_in"])
+	assert_true(stand_in == "" or PitchSprite.has_anim(stand_in),
+		"the Stand-in '%s' is an animation too" % stand_in)

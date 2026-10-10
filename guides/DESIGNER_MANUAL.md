@@ -7294,6 +7294,17 @@ tackle animation.
   south-west, west, north-west, north, north-east. **Frames**, **FPS** and
   **Loop** as in `Animations.csv`. **PixelLab** is the animation's name in
   the PixelLab export.
+  **Stand-in** (optional) is what a sheet plays instead while it has no
+  rows for this animation yet.
+
+**Drinking on the pitch** (10 Oct). When you use a drink from the bag on a
+player during a match, his figure plays `drink` once: he lifts the beer,
+gulps and wipes his mouth with his arm. It is the `drink` row of
+`PitchAnims.csv` (rows 48-55); its Frames and FPS set how long it lasts.
+Until a look's sheet has the drink drawn, it plays its Stand-in (`cheer`).
+`Tuning.csv` `pitch_drink_stands_still` (true) stops him on the spot while
+he drinks; a player with the ball always keeps running. Drafts:
+`art_source/pixellab/iso_players/drink_drafts/`.
 
 **Ten looks for The Club** (Anthony: no red nose, and people of different
 skin colours and backgrounds in the same comic style). Five men (`club_m1`-`m5`: light with brown hair,
@@ -7494,3 +7505,21 @@ The music is untouched.
 - **Licence:** the classic set is our own. The band set uses GeneralUser GS
   by S. Christian Collins, free for any use including commercial; a line
   in the game's credits is appreciated.
+
+## Conquests: a banner for a mode that is not built yet (round AN, 9 Oct)
+
+**The torn, old flag with the black infinity** hangs at the right end of the
+base's top row. It is **Conquests**, the Draft Mode: the replayable roguelite
+you described (a run into the realm of the Myths, a draft from your unlocks,
+players sacrificed to the infinite realm, a high score on the menu board).
+**Nothing of the mode is built.** Pressing the banner only opens a "not open
+yet" note. The idea is written up in `guides/CONQUESTS.md`.
+
+| To change | Where |
+|---|---|
+| The banner's name, the note's heading and words | `Language.csv` `conquests_button`, `conquests_title`, `conquests_soon` |
+| The banner picture | `art_source/pixellab/banners/cloths/conquests.png` (its own cloth) and `emblems/conquests.png`, then `tools/make_banners.py`. Both are stand-ins made by `tools/tear_cloth.py`; ArtOrders.csv `conquests_banner` is the PixelLab order |
+| Its own cloth for any other banner | drop `cloths/<name>.png` next to the shared `cloth.png` and run `make_banners.py` |
+
+It is left out of both tutorials, where the row is already full.
+`tools/conquests_shot.gd` presses it and photographs the note.
