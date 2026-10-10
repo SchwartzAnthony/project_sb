@@ -3121,6 +3121,7 @@ func spawn_cutaways() -> void:
 			duel_arena.name = "DuelArena"
 			add_child(duel_arena)
 			duel_arena.apply_tuning(db)
+			duel_arena.keeper_hit = _show_keeper_hits
 		else:
 			push_error("duel_arena.tscn did not instantiate as a DuelArena.")
 
@@ -4070,11 +4071,16 @@ func trigger_playmaker_event() -> void:
 			if unit.is_star_player:
 				unit.is_playmaker = true
 	set_play_maker_live(true)
+	bags_shut = coach != null and coach.lesson_this_play_maker()
+	bag_open_for = null
 	print("PLAY MAKER!  Cycle %d, Round %d" % [current_cycle, rounds_this_cycle])
 	AudioDirector.fire(get_tree(), "play_maker",
 		{"cycle": str(current_cycle), "round": str(rounds_this_cycle)}, state)
 	Juice.fire(self, "play_maker", {})
-	_match_talk("play_maker")
+	# Awaited (round AN): the referee lesson stops the match here, before
+	# the PLAY MAKER call and the throw-in choice.
+	if coach != null and (_talk_box == null or not is_instance_valid(_talk_box)):
+		await coach.talk("play_maker")
 	await announce("PLAY MAKER!")
 
 	# WHOEVER TAKES THE THROW CHOOSES. That is the whole of what the coin
@@ -5522,6 +5528,12 @@ signal bag_opened(bag: InventoryScreen)
 signal item_used_on_card(card: PlayerData, entry: Dictionary)
 ## Item ids the bag shows on a card; empty = everything.
 var bag_only: Array = []
+## ROUND AN (Anthony, 10 Oct): "don't allow the player to pick beer for any
+## other". In a Tutorial Play Maker with a drinking lesson (MatchTalk.csv Do
+## drink_lesson) every bag button is grey except the one being taught.
+## Tuning.csv tutorial_bags_shut_in_lessons.
+var bags_shut := false
+var bag_open_for: PlayerData = null
 
 
 ## The pick guard (see _on_card_selected). Only in the Tutorial; a time in
@@ -5909,7 +5921,13 @@ func resolve_round() -> void:
 		# the list knows about theirs as well as yours.
 		var face_up: Array = revealed_by_tier.values()
 		face_up.append_array(enemy_revealed_by_tier.values())
+		var keeper_queue_before := abilities.pending_stamina_count()
 		abilities.resolve_duel_abilities(atk, attacker_is_enemy, def, "", face_up)
+		# ROUND AN: this duel's keeper drains, shown in the keeper's window
+		# when the ability's gold box goes off (Tuning keeper_drain_window).
+		_duel_keeper_hits = abilities.peek_pending_stamina(keeper_queue_before)
+		_duel_keeper_queue_before = keeper_queue_before
+		_duel_banks = {false: player_bank, true: enemy_bank}
 
 		# ROUND AB (C4): A CARD SWITCHED TO BEING THE DEFENDER. The duel turns
 		# round - it defends, the other card attacks, and the ball goes to
@@ -7559,6 +7577,7 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		"token": abilities.token_used(atk, attacker_is_enemy) if abilities != null else null,
 		"printed": atk.get_attack_power(),
 		"wins": attacker_wins,
+		"keeper_hits": _hits_from(atk, attacker_is_enemy),
 	}
 	var defender_side := {
 		"card": def,
@@ -7571,6 +7590,7 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		"token": abilities.token_used(def, not attacker_is_enemy) if abilities != null else null,
 		"printed": def.get_defense_power(),
 		"wins": not attacker_wins,
+		"keeper_hits": _hits_from(def, not attacker_is_enemy),
 	}
 
 	# EVERYTHING ON THE PITCH STOPS while the cut-away is up.
@@ -7593,6 +7613,8 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 ## ROUND Z: what the card carries this match (counters, SWAN, TOKEN), and a
 ## SHOW button when an Emblem gives it a Reveal (Zepar's Swan).
 func _dress_card(card: PlayerCardUI, data: PlayerData) -> void:
+	if card != null:
+		card.set_bag_shut(bags_shut and data != bag_open_for)
 	if abilities == null or data == null or card == null:
 		return
 	card.set_marks(abilities.marks_for(data, false))
@@ -8093,6 +8115,78 @@ func _absorb_ability_news() -> void:
 # =============================================================
 #  ROUND AA - THE KEEPERS, AND ASKING YOU
 # =============================================================
+
+## ROUND AN (Anthony, 10 Oct): "With Koch's ability trigger, show the enemy
+## goalie window, deal the stamina, change the %, then go back to the cards."
+## The drains are still SPENT after the last duel, as before; this only shows
+## them at the moment the ability goes off. Tuning.csv keeper_drain_window:
+## tutorial (default), always or off. keeper_drain_step_seconds per step.
+var _duel_keeper_hits: Array = []
+var _duel_keeper_queue_before := 0
+var _duel_banks := {false: 0, true: 0}
+
+
+func _hits_from(card: PlayerData, side_is_enemy: bool) -> Array:
+	var out: Array = []
+	if not _keeper_drain_window_on():
+		return out
+	for hit in _duel_keeper_hits:
+		var h := hit as Dictionary
+		if h.get("source") == card and bool(h.get("source_is_enemy", false)) == side_is_enemy \
+				and int(h.get("delta", 0)) != 0:
+			out.append(h)
+	return out
+
+
+func _keeper_drain_window_on() -> bool:
+	match db.tune_text("keeper_drain_window", "tutorial").strip_edges().to_lower():
+		"always", "true", "yes":
+			return true
+		"tutorial":
+			return String(match_mode.get("id", "")) == "tutorial"
+	return false
+
+
+## The keeper's window for one card's drains, opened from the duel window.
+func _show_keeper_hits(hits: Array) -> void:
+	if shootout == null or hits.is_empty():
+		return
+	var queued := abilities.peek_pending_stamina(0)
+	for hit in hits:
+		var h := hit as Dictionary
+		var side := bool(h["enemy_side"])
+		var keeper: GoalieUnit = goalies.get(side)
+		if keeper == null:
+			continue
+		# What he has now, with every change queued before this one.
+		var before := keeper.current_stamina
+		for other in queued:
+			if other == h:
+				break
+			if bool((other as Dictionary)["enemy_side"]) == side:
+				before = clampi(before + int((other as Dictionary).get("delta", 0)), 0, keeper.max_stamina)
+		var after := clampi(before + int(h["delta"]), 0, keeper.max_stamina)
+		var source: PlayerData = h.get("source")
+		var ability: AbilityData = h.get("ability")
+		var shooter_side := bool(h.get("source_is_enemy", false))
+		# The % at the shot power his side has piled up so far, plus his own.
+		var power := int(_duel_banks.get(shooter_side, 0))
+		if source != null:
+			power += source.get_attack_power()
+		shootout.play_drain({
+			"title": ability.display_name.to_upper() if ability != null else "",
+			"card": source,
+			"shooter_is_player": not shooter_side,
+			"shot_power": power,
+			"keeper_data": keeper.data,
+			"before": before,
+			"after": after,
+			"keeper_max": keeper.max_stamina,
+			"chance_shift": keeper.chance_shift,
+			"seconds": db.tune_float("keeper_drain_step_seconds", 2.5),
+		})
+		await shootout.view_closed
+
 
 ## Everything abilities queued for the keepers: stamina, shields, and the
 ## shift on how likely each is to be beaten (phase C3).

@@ -3325,11 +3325,14 @@ false spends him like any other card.
 | end of cycle 1 | **TIME OUT**: Koch's inspiration is too low, he drinks, Beer Courage switches on | tut-timeout-call, tut-timeout-inspiration | |
 | 4 | Tier I: **the Kleiner Faß**. Only the P:0's bag works and it shows only the keg; he drinks it in the drinking window; his card comes up big with Fass Courage (+1 Power in combat for each other Tier I player of yours not in the exhaust, attack and defend); only he can be picked | tut-fass, tut-fass-after | the cards, then his bag button, then the keg, then his abilities |
 | 4 | Tier IV: Koch's card with Beer Courage | tut-koch-ability | Koch's card |
+| 5 | before the PLAY MAKER call: **the referee** (Anthony, 10 Oct). The match stops and the Head Coach walks through the referee's bar: triggers fill it, missed fouls fill it a lot, full means the next foul is called, two yellows or a red sends a man off, theirs fills the same way | tut-referee | the referee's bar, then your side of it, then theirs |
 | 5 | Tier I: **the missing beer**. "Where is the rest of the beer?!" TIME OUT at the Brewery; back on the pitch the P:1 drinks a Small Bottle (bottle window) and gets the plain beer's goalie pair: 1 off their keeper when he attacks, 1 off yours when he defends | tut-missing-beer, tut-after-brewery, tut-bottle-after | his bag button, then the bottle |
 | end of cycle 2 | **TIME OUT**: the cursed brews; an Earth Brew turns Koch into a Bergmännlein with Earth Courage | tut-timeout2-call, tut-timeout-cursed | |
 | 6 | Tier I: **the combo beers**. Koch hid three small beers; each has one good side and one bad side. The player reads the ATTACKING / DEFENDING banner and gives any of the three to the Tier I card | tut-combo, tut-combo-after | his bag button, then the three beers |
 | 6 | Tier II: a second beer, so a Pass It On from Tier I lands on it. The third stays in the bag | tut-combo-2, tut-combo-2-after | his bag button, then the beers |
 | 7 | Tier IV: Bergmännlein Koch's new ability | tut-koch-earth | Koch's card |
+| 7+ | Koch's Earth Courage goes off in a duel: **the keeper's window** opens from the duel window (Anthony, 10 Oct). Three steps of `Tuning.csv keeper_drain_step_seconds` (2.5): the numbers as they are, the stamina falling by 5 (attack) or 3 (defend), then the % moving to match. Then back to the duel. `keeper_drain_window`: tutorial / always / off. The % is shown at the shot power his side has piled up so far plus his own | | |
+| 8 | before the PLAY MAKER call: **just so you know** (Anthony asked Claude to pick something vital nobody had said). The keeper's stamina never comes back on its own: every saved shot and every drain stays off for the match, and only a goal he lets in fills him up again | tut-keeper-tip | |
 
 The rest of cycle 3 plays out to the final whistle.
 
@@ -3337,6 +3340,19 @@ The rest of cycle 3 plays out to the final whistle.
 on the table, and the Head Coach has finished talking, for `Tuning.csv
 tutorial_pick_guard_seconds` (0.8). A fast clicker's clicks simply do nothing
 until then.
+
+**Grey bags in a lesson** (Anthony, 10 Oct). In a Play Maker with a drinking
+lesson (a row whose Do has `drink_lesson`), every bag button is grey and does
+nothing, except the card being taught while he teaches it. After he drinks,
+his shuts too. Other Play Makers are left alone. `Tuning.csv
+tutorial_bags_shut_in_lessons` false turns it off.
+
+**When: `play_maker`** fires as each Play Maker starts, after the throw-in
+and before the PLAY MAKER call, and the match waits for him there. Use it
+for a stop that is not about any card.
+
+**More Highlight words**: `referee` (the referee's bar), `referee:you`,
+`referee:them` (one side of it).
 
 **One group of gold per line.** In the Highlight column, `|` separates the
 lines: `-|card:first|cards` points at nothing on line 1, the first card on
