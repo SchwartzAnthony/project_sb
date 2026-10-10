@@ -3621,6 +3621,109 @@ Returning to base banks the haul. Fleeing keeps `adventure_flee_keep` of it.
 Everybody being knocked out loses all of it — which is what makes Return to
 Base a real decision.
 
+### The board and the look (adventure-look, 10 Oct)
+
+**The soccer & training board.** The Bounty Board is now a board in a beer
+cave. Biomes are tabs across the top; that biome's jobs hang on the board as
+scrolls. Click a scroll and it unrolls: the quest, what you need, what it
+pays, **Back** (roll it up, read another) and **Accept Contract** (sets off,
+same as START EXPLORING did). A locked scroll still opens and says what it
+needs; Accept is greyed.
+
+| To change | Where |
+|---|---|
+| Scroll label (Match, Training ...) | `Bounties.csv` **Kind** |
+| What the scroll says | `Bounties.csv` **Quest Text** (blank = Description) |
+| Where it hangs | `Bounties.csv` **Pin X**, **Pin Y** (0-1, blank = rows) |
+| Cave, board, pinned scroll, open scroll art | `Tuning.csv` `adventure_board_background`, `adventure_board_art`, `adventure_board_pin_art`, `adventure_scroll_art` (blank = plain colours) |
+| Board and scroll size, unroll speed | `adventure_board_width/height/inset`, `adventure_scroll_width/height`, `adventure_scroll_unroll_seconds` |
+| Words | `Language.csv` `adventure_board_title`, `accept_contract`, `scroll_requirements`, `scroll_rewards` |
+
+**Isometric players.** The squad on the run is the squad you picked, drawn
+with the same isometric sheet each player wears in a match
+(`PitchSprites.csv`), with run, idle and fall. Name, tier, power and the
+stamina bar sit on the same plate as before. `adventure_iso_players` = false
+goes back to the old card sheet; `adventure_iso_player_scale` sizes them.
+
+**The art (PixelLab, 10 Oct).** Every picture is built from separate parts
+by a layer CSV, so you can move a part in a spreadsheet and rebuild it:
+
+```
+~/.venvs/sturmball/bin/python tools/compose_layers.py art_source/adventure_look/marsh_iso.csv
+```
+
+| Picture | Layer CSV | Game file | Aseprite |
+|---|---|---|---|
+| Beer cave | `art_source/adventure_look/beer_cave.csv` | `assets/adventure/board/beer_cave.png` | `art_source/aseprite/adventure/beer_cave.aseprite` |
+| Board (frame + cork) | `.../board.csv` | `assets/adventure/board/board.png` | `.../board.aseprite` |
+| Isometric Marsh | `.../marsh_iso.csv` | `assets/backgrounds/marsh_iso.png` | `.../marsh_iso.aseprite` |
+
+Single pictures: the pinned scroll `assets/adventure/board/pin.png`, the open
+scroll `scroll.png` (it unrolls in three pieces: `adventure_scroll_art_top`,
+`_bottom`, `_side`, `_foot`, `_zoom`), the Marsh enemies in
+`assets/adventure/enemies/` (AdventureEnemies.csv **Art**) and the ground
+drops in `assets/adventure/drops/` (Items.csv **Ground Art**). Every other
+candidate PixelLab gave is kept in `art_source/adventure_look/parts/` if you
+would rather have a different one.
+
+**The Marsh behind the run.** Biomes.csv: Background
+`res://assets/backgrounds/marsh_iso.png`, Parallax 0 (it stays still, so the
+picture never shows a seam; the grass stripes still move), and the new
+**Ground Alpha** 0.35 so the isometric field shows through the grass band.
+`adventure_backdrop_fit` blows a small picture up to fill the screen. Enemies
+and drops: `adventure_enemy_art_scale`, `adventure_drop_art_scale`.
+
+### The isometric field (adventure-look, 10 Oct: "full iso field")
+
+The run is played on an isometric board, like a 1980s Bavarian role-playing
+game: a dirt path through a meadow, marsh and bog water either side, reeds,
+willows, a sunken goal and will-o'-wisps going past. The party runs up and
+to the right; enemies come down the field and stand on it; drops lie on it.
+**The rules did not change** - the same run is only seen tilted
+(`src/adventure/iso_field.gd`).
+
+| To change | Where |
+|---|---|
+| The ground tiles, per biome and zone | `AdventureTiles.csv` (Zone: path, lane, edge, outside; Weight) |
+| The scenery going past | `AdventureDecor.csv` (Side, Out Min/Max, Gap, Scale) |
+| Off / on | `adventure_iso_field` |
+| Camera: where the party runs, how close the two sides look | `adventure_iso_party_x/y`, `adventure_iso_scale` |
+| Tile size and fit | `adventure_iso_tile_zoom`, `adventure_iso_tile_lift` |
+| Where things appear / walk in / are let go | `adventure_iso_spawn_x`, `adventure_iso_wave_x`, `adventure_iso_forget_x` |
+
+All four biomes have their own ground and scenery (11 Oct): the Marsh
+(path, meadow, mossy banks, bog water), the Cinder Wastes (ash, cinder path,
+cracked earth, black rock with lava cracks; dead trees, braziers, a burnt
+brewery chimney, a slag cart), the Hollowdeep (cave stone, mine path with
+rails, flagstones, black water; mine beams, glowing mushrooms, stalagmites,
+a mine cart) and the Frostreach (snow, trodden path, frosty grass, lake ice;
+firs, a snowman in a scarf, grumpy icy rocks, a beer sled). The tiles are
+FLAT (no block sides, no outline), so the ground shows no grid; one main
+tile per zone (the biggest Weight) keeps it calm. A new biome needs its own
+rows in the two CSVs (or `*` rows for all). Tiles: `assets/adventure/tiles/`,
+scenery: `assets/adventure/decor/`; every PixelLab candidate is kept in
+`art_source/adventure_look/parts/` (`flat_*` tiles).
+
+To look at one biome's field: `godot --path . --script res://tools/adventure_look_check.gd -- --biome=frostreach`
+(saves `art_source/drafts/adventure_look/screens/field_frostreach.png`).
+
+**Room to stand (11 Oct, Anthony).** Plates stay with their player. Every
+player gets room of their own ON SCREEN: while running a small room (names
+may cross, players never stand on each other: `adventure_run_width`,
+`_below`, `_gap`), and from the moment a wave is met a full room for figure
+and name plate, so nothing overlaps before or during the fight
+(`adventure_stand_width`, `_above`, `_below`, `_gap`, `_screen_top`,
+`_screen_bottom`). Nobody wanders while they stand; while running the
+wander is `adventure_drift_scale`. Plates draw above the figures. Players start
+a run on their own spot and walk briskly to their fight spot
+(`adventure_form_up_pace`). On the isometric field the path band is
+`adventure_iso_lane_height` deep (900) to give them that room. The Marsh
+King now carries a round football.
+
+**The ball (11 Oct).** A PixelLab football (`adventure_ball_art`), drawn
+`adventure_ball_art_size` pixels across (44), with a
+shadow; it rolls as it moves and draws above the name plates.
+
 ### How a fight goes
 
 ```

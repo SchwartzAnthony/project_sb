@@ -1,0 +1,4 @@
+Layer,Image,X,Y,Flip,Notes
+canvas,assets/adventure/board/board.png,688,384,,"The Soccer & Training board (Tuning adventure_board_art). The scrolls hang inside the frame: Tuning adventure_board_area_left/top/right/bottom."
+cork,art_source/adventure_look/parts/board_cork_fill.png,150,118,,The cork behind the frame (cut from board_cork_1.png)
+frame,art_source/adventure_look/parts/board_frame_1.png,0,0,,"The oak frame with the football and beer mug crest"
