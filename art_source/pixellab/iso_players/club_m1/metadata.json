@@ -208,6 +208,23 @@
               "Idle/animations/cheer/north-west/frame_008.png"
             ]
           },
+          "drink_draft_keg": {
+            "south-east": [
+              "Idle/animations/drink_draft_keg/south-east/frame_000.png",
+              "Idle/animations/drink_draft_keg/south-east/frame_001.png",
+              "Idle/animations/drink_draft_keg/south-east/frame_002.png",
+              "Idle/animations/drink_draft_keg/south-east/frame_003.png",
+              "Idle/animations/drink_draft_keg/south-east/frame_004.png",
+              "Idle/animations/drink_draft_keg/south-east/frame_005.png",
+              "Idle/animations/drink_draft_keg/south-east/frame_006.png",
+              "Idle/animations/drink_draft_keg/south-east/frame_007.png",
+              "Idle/animations/drink_draft_keg/south-east/frame_008.png",
+              "Idle/animations/drink_draft_keg/south-east/frame_009.png",
+              "Idle/animations/drink_draft_keg/south-east/frame_010.png",
+              "Idle/animations/drink_draft_keg/south-east/frame_011.png",
+              "Idle/animations/drink_draft_keg/south-east/frame_012.png"
+            ]
+          },
           "run": {
             "south-east": [
               "Idle/animations/run/south-east/frame_000.png",
@@ -288,6 +305,138 @@
               "Idle/animations/run/east/frame_005.png",
               "Idle/animations/run/east/frame_006.png",
               "Idle/animations/run/east/frame_007.png"
+            ]
+          },
+          "drink_draft_stein": {
+            "north": [
+              "Idle/animations/drink_draft_stein/north/frame_000.png",
+              "Idle/animations/drink_draft_stein/north/frame_001.png",
+              "Idle/animations/drink_draft_stein/north/frame_002.png",
+              "Idle/animations/drink_draft_stein/north/frame_003.png",
+              "Idle/animations/drink_draft_stein/north/frame_004.png",
+              "Idle/animations/drink_draft_stein/north/frame_005.png",
+              "Idle/animations/drink_draft_stein/north/frame_006.png",
+              "Idle/animations/drink_draft_stein/north/frame_007.png",
+              "Idle/animations/drink_draft_stein/north/frame_008.png",
+              "Idle/animations/drink_draft_stein/north/frame_009.png",
+              "Idle/animations/drink_draft_stein/north/frame_010.png",
+              "Idle/animations/drink_draft_stein/north/frame_011.png",
+              "Idle/animations/drink_draft_stein/north/frame_012.png"
+            ],
+            "east": [
+              "Idle/animations/drink_draft_stein/east/frame_000.png",
+              "Idle/animations/drink_draft_stein/east/frame_001.png",
+              "Idle/animations/drink_draft_stein/east/frame_002.png",
+              "Idle/animations/drink_draft_stein/east/frame_003.png",
+              "Idle/animations/drink_draft_stein/east/frame_004.png",
+              "Idle/animations/drink_draft_stein/east/frame_005.png",
+              "Idle/animations/drink_draft_stein/east/frame_006.png",
+              "Idle/animations/drink_draft_stein/east/frame_007.png",
+              "Idle/animations/drink_draft_stein/east/frame_008.png",
+              "Idle/animations/drink_draft_stein/east/frame_009.png",
+              "Idle/animations/drink_draft_stein/east/frame_010.png",
+              "Idle/animations/drink_draft_stein/east/frame_011.png",
+              "Idle/animations/drink_draft_stein/east/frame_012.png"
+            ],
+            "west": [
+              "Idle/animations/drink_draft_stein/west/frame_000.png",
+              "Idle/animations/drink_draft_stein/west/frame_001.png",
+              "Idle/animations/drink_draft_stein/west/frame_002.png",
+              "Idle/animations/drink_draft_stein/west/frame_003.png",
+              "Idle/animations/drink_draft_stein/west/frame_004.png",
+              "Idle/animations/drink_draft_stein/west/frame_005.png",
+              "Idle/animations/drink_draft_stein/west/frame_006.png",
+              "Idle/animations/drink_draft_stein/west/frame_007.png",
+              "Idle/animations/drink_draft_stein/west/frame_008.png",
+              "Idle/animations/drink_draft_stein/west/frame_009.png",
+              "Idle/animations/drink_draft_stein/west/frame_010.png",
+              "Idle/animations/drink_draft_stein/west/frame_011.png",
+              "Idle/animations/drink_draft_stein/west/frame_012.png"
+            ],
+            "south": [
+              "Idle/animations/drink_draft_stein/south/frame_000.png",
+              "Idle/animations/drink_draft_stein/south/frame_001.png",
+              "Idle/animations/drink_draft_stein/south/frame_002.png",
+              "Idle/animations/drink_draft_stein/south/frame_003.png",
+              "Idle/animations/drink_draft_stein/south/frame_004.png",
+              "Idle/animations/drink_draft_stein/south/frame_005.png",
+              "Idle/animations/drink_draft_stein/south/frame_006.png",
+              "Idle/animations/drink_draft_stein/south/frame_007.png",
+              "Idle/animations/drink_draft_stein/south/frame_008.png",
+              "Idle/animations/drink_draft_stein/south/frame_009.png",
+              "Idle/animations/drink_draft_stein/south/frame_010.png",
+              "Idle/animations/drink_draft_stein/south/frame_011.png",
+              "Idle/animations/drink_draft_stein/south/frame_012.png"
+            ],
+            "north-west": [
+              "Idle/animations/drink_draft_stein/north-west/frame_000.png",
+              "Idle/animations/drink_draft_stein/north-west/frame_001.png",
+              "Idle/animations/drink_draft_stein/north-west/frame_002.png",
+              "Idle/animations/drink_draft_stein/north-west/frame_003.png",
+              "Idle/animations/drink_draft_stein/north-west/frame_004.png",
+              "Idle/animations/drink_draft_stein/north-west/frame_005.png",
+              "Idle/animations/drink_draft_stein/north-west/frame_006.png",
+              "Idle/animations/drink_draft_stein/north-west/frame_007.png",
+              "Idle/animations/drink_draft_stein/north-west/frame_008.png",
+              "Idle/animations/drink_draft_stein/north-west/frame_009.png",
+              "Idle/animations/drink_draft_stein/north-west/frame_010.png",
+              "Idle/animations/drink_draft_stein/north-west/frame_011.png",
+              "Idle/animations/drink_draft_stein/north-west/frame_012.png"
+            ],
+            "south-west": [
+              "Idle/animations/drink_draft_stein/south-west/frame_000.png",
+              "Idle/animations/drink_draft_stein/south-west/frame_001.png",
+              "Idle/animations/drink_draft_stein/south-west/frame_002.png",
+              "Idle/animations/drink_draft_stein/south-west/frame_003.png",
+              "Idle/animations/drink_draft_stein/south-west/frame_004.png",
+              "Idle/animations/drink_draft_stein/south-west/frame_005.png",
+              "Idle/animations/drink_draft_stein/south-west/frame_006.png",
+              "Idle/animations/drink_draft_stein/south-west/frame_007.png",
+              "Idle/animations/drink_draft_stein/south-west/frame_008.png",
+              "Idle/animations/drink_draft_stein/south-west/frame_009.png",
+              "Idle/animations/drink_draft_stein/south-west/frame_010.png",
+              "Idle/animations/drink_draft_stein/south-west/frame_011.png",
+              "Idle/animations/drink_draft_stein/south-west/frame_012.png"
+            ],
+            "north-east": [
+              "Idle/animations/drink_draft_stein/north-east/frame_000.png",
+              "Idle/animations/drink_draft_stein/north-east/frame_001.png",
+              "Idle/animations/drink_draft_stein/north-east/frame_002.png",
+              "Idle/animations/drink_draft_stein/north-east/frame_003.png",
+              "Idle/animations/drink_draft_stein/north-east/frame_004.png",
+              "Idle/animations/drink_draft_stein/north-east/frame_005.png",
+              "Idle/animations/drink_draft_stein/north-east/frame_006.png",
+              "Idle/animations/drink_draft_stein/north-east/frame_007.png",
+              "Idle/animations/drink_draft_stein/north-east/frame_008.png",
+              "Idle/animations/drink_draft_stein/north-east/frame_009.png",
+              "Idle/animations/drink_draft_stein/north-east/frame_010.png",
+              "Idle/animations/drink_draft_stein/north-east/frame_011.png",
+              "Idle/animations/drink_draft_stein/north-east/frame_012.png"
+            ],
+            "south-east": [
+              "Idle/animations/drink_draft_stein/south-east/frame_000.png",
+              "Idle/animations/drink_draft_stein/south-east/frame_001.png",
+              "Idle/animations/drink_draft_stein/south-east/frame_002.png",
+              "Idle/animations/drink_draft_stein/south-east/frame_003.png",
+              "Idle/animations/drink_draft_stein/south-east/frame_004.png",
+              "Idle/animations/drink_draft_stein/south-east/frame_005.png",
+              "Idle/animations/drink_draft_stein/south-east/frame_006.png",
+              "Idle/animations/drink_draft_stein/south-east/frame_007.png",
+              "Idle/animations/drink_draft_stein/south-east/frame_008.png",
+              "Idle/animations/drink_draft_stein/south-east/frame_009.png",
+              "Idle/animations/drink_draft_stein/south-east/frame_010.png",
+              "Idle/animations/drink_draft_stein/south-east/frame_011.png",
+              "Idle/animations/drink_draft_stein/south-east/frame_012.png"
+            ]
+          },
+          "drink_draft_template": {
+            "south-east": [
+              "Idle/animations/drink_draft_template/south-east/frame_000.png",
+              "Idle/animations/drink_draft_template/south-east/frame_001.png",
+              "Idle/animations/drink_draft_template/south-east/frame_002.png",
+              "Idle/animations/drink_draft_template/south-east/frame_003.png",
+              "Idle/animations/drink_draft_template/south-east/frame_004.png",
+              "Idle/animations/drink_draft_template/south-east/frame_005.png"
             ]
           },
           "tackle": {
@@ -485,5 +634,5 @@
     }
   ],
   "export_version": "3.1",
-  "export_date": "2026-10-07T10:18:57.630666"
+  "export_date": "2026-10-10T18:40:13.777441"
 }
