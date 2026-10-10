@@ -90,6 +90,19 @@ static func _load() -> void:
 		})
 
 
+## ROUND AN: does any row for this mode and Play Maker teach a drink
+## (Do drink_lesson)? The match greys every other bag button in it.
+static func has_lesson(mode_id: String, play_maker: String) -> bool:
+	_load()
+	var mode_key := CardDatabase._normalise(mode_id)
+	for row in _rows:
+		if String(row["mode"]) != mode_key or String(row["round"]) != play_maker:
+			continue
+		if String(row["do"]).contains("drink_lesson:"):
+			return true
+	return false
+
+
 ## The scene to play at this moment of a match in this mode, or "".
 ## Marks a Once row as done.
 static func scene_for(event: String, mode_id: String, state: GameState) -> String:
