@@ -53,8 +53,12 @@ func _initialize() -> void:
 		var u := unit as PlayerUnit
 		if u.is_enemy or u.data == null or not u.pitch_sheet or u.has_ball():
 			continue
-		drinker = u
-		break
+		# Prefer a look whose sheet has the drink drawn (not the Stand-in).
+		var drawn: bool = int(PitchSprite.anim("drink").get("row", 0)) + 8 <= u.artwork.vframes
+		if drinker == null or drawn:
+			drinker = u
+		if drawn:
+			break
 	if drinker == null:
 		print("[drink_shot] no Club player on a pitch sheet")
 		quit(1)
@@ -67,13 +71,13 @@ func _initialize() -> void:
 	state.add_count(item_id, 1)
 	for i in 5:
 		await _wait(0.1)
-		_snap(drinker)
+		await _snap(drinker)
 	_scene.call("_use_on_card", drinker.data, entry)
 	print("[drink_shot] %s drinks %s, drinking=%s" % [
 		drinker.data.player_name, item_id, drinker.is_drinking()])
 	for i in 30:
 		await _wait(0.1)
-		_snap(drinker)
+		await _snap(drinker)
 		if i % 5 == 0:
 			print("[drink_shot] t=%.1f at %s drinking=%s frame=%d" % [
 				i * 0.1, drinker.global_position.round(), drinker.is_drinking(),
@@ -115,11 +119,18 @@ func _wait(seconds: float) -> void:
 
 
 func _snap(who: Node2D) -> void:
+	# The match's own announcement covers the pitch; hide it for the film.
+	var words = _scene.get("event_announcement")
+	if words != null and is_instance_valid(words):
+		words.hide()
+	await process_frame
 	var picture := root.get_viewport().get_texture().get_image()
-	var at := who.get_global_transform_with_canvas().origin
-	var size := Vector2i(240, 160)
+	# The window may be smaller than the 1920 x 1080 the game is laid out in.
+	var shrink := float(picture.get_width()) / root.get_visible_rect().size.x
+	var at := who.get_global_transform_with_canvas().origin * shrink
+	var size := Vector2i(int(260 * shrink), int(170 * shrink))
 	var corner := Vector2i(
 		clampi(int(at.x) - size.x / 2, 0, picture.get_width() - size.x),
-		clampi(int(at.y) - size.y / 2 - 20, 0, picture.get_height() - size.y))
+		clampi(int(at.y) - size.y / 2 - int(15 * shrink), 0, picture.get_height() - size.y))
 	picture.get_region(Rect2i(corner, size)).save_png("user://drink_shot/f_%03d.png" % _shot)
 	_shot += 1
