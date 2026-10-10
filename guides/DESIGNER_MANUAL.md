@@ -7560,3 +7560,25 @@ It is left out of both tutorials, where the row is already full.
   `goal_horn_star` -4 → -10, `crowd_goal` -10 → -17.
 - **Door sounds sooner** (your note): `base_door_sound_delay` in Tuning.csv
   1.0 → 0.15 seconds after the building's own sound.
+
+### Your seven Suno tracks and the missing sounds (10 Oct, evening)
+
+- **Your music is in.** The seven Suno tracks you put in the `audio/`
+  folder moved to `art_source/suno/music/` (the game never looks in
+  `audio/`). `data/MusicLoops.csv` rows `suno_adventure_menu`,
+  `suno_brewery`, `suno_dorms`, `suno_goal_attempt`, `suno_marsh`,
+  `suno_play_maker` and `suno_team` turn each into
+  `assets/audio/suno_<name>_music.ogg` - the whole song with a 4 s fade
+  before it starts again (`python3 tools/make_loop.py suno_brewery`).
+  Next time, drop a track straight into `assets/audio/` with its suno_ name
+  and it plays; or add a MusicLoops row like these.
+- **The missing sounds, made with Ludo.ai:** `lud_duel_priority_check`
+  (0.45 s), `lud_duel_ability_check` (0.2 s), `lud_duel_power_check`
+  (0.5 s), `lud_menu_open` (0.6 s) and a new flag, `lud_banner_flutter`
+  (0.7 s). Each sits after your Suno slot in Audio.csv, so a Suno file
+  still wins once it is there. Ludo's originals: `art_source/ludo/sfx_10oct/`.
+- **Spares cut from your own music:** `mus_duel_priority_check` (goal
+  attempt music), `mus_duel_ability_check` (Brewery), `mus_duel_power_check`
+  (team music). Put one in place of the lud_ name to try it.
+- **Credits:** every new file has a line in `data/SoundCredits.csv`, and
+  `tools/make_bavarian_sfx.py` now keeps those lines when it rewrites the file.
