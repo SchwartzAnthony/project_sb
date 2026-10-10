@@ -125,6 +125,11 @@ func setup(player: PlayerData, walk_speed: float = 260.0,
 	if _plate == null or not is_instance_valid(_plate):
 		_plate = NamePlate.make()
 		add_child(_plate)
+		# adventure-look: above every figure on the field, so a player
+		# standing in front never hides somebody else's name. Set AFTER
+		# add_child, because the plate sets its own z_index in _ready().
+		_plate.z_as_relative = false
+		_plate.z_index = 3000
 
 	# Everything below is per-player randomness. It is what stops ten units
 	# moving as one rectangle.
@@ -205,6 +210,11 @@ func setup(player: PlayerData, walk_speed: float = 260.0,
 		# A pitch figure is already cropped tight to the drawing, so the
 		# whole frame is the body.
 		_box = Rect2(0, 0, 1, 1) if _iso else NamePlate.box_of(face)
+
+
+## The name plate, for the scene's keep-the-plates-apart pass.
+func plate() -> NamePlate:
+	return _plate if _plate != null and is_instance_valid(_plate) else null
 
 
 ## Plays one of the pitch sheet's animations (PitchAnims.csv), facing

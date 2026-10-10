@@ -512,6 +512,7 @@ func _process(delta: float) -> void:
 	if _iso != null:
 		_iso.update(_travelled, _travelled - _iso_seen)
 		_iso_seen = _travelled
+	_spread_plates(delta)
 
 	if _world != null:
 		var ground := _world.get_node_or_null("Ground")
@@ -837,6 +838,59 @@ func _spawn_wave() -> void:
 	print("[adventure] Wave %d of %d — %d enemy(s)%s." % [
 		run.wave, run.waves(), line_up.size(),
 		"  (THE BOSS)" if boss_wave else ""])
+
+
+## ============ NAME PLATES NEVER SIT ON TOP OF EACH OTHER (adventure-look) ============
+##
+## Anthony: the plates overlapped in the Adventure run. A plate hangs under
+## its player's feet, so when two players stand close their plates stack.
+## Every frame the plates are taken from the top of the screen down, and one
+## that would cover a plate already placed is slid down (and a little aside)
+## until it is clear. They glide to their new place rather than jump, so the
+## drift of the players never makes them flicker.
+##
+## Tuning adventure_plate_gap (pixels kept between two plates),
+## adventure_plate_glide (how quickly a plate moves to its place, 0-1),
+## adventure_plate_reach (the furthest a plate is ever moved from its player).
+func _spread_plates(delta: float) -> void:
+	var gap := db.tune_float("adventure_plate_gap", 3.0)
+	var glide := clampf(db.tune_float("adventure_plate_glide", 0.25), 0.01, 1.0)
+	var reach := db.tune_float("adventure_plate_reach", 90.0)
+	var items: Array = []
+	for walker in _walkers:
+		if not is_instance_valid(walker):
+			continue
+		var plate := walker.plate()
+		if plate == null or not plate.visible or plate.panel_rect().size.x <= 0.0:
+			continue
+		# Where the plate would be with no nudge, on screen.
+		var home := plate.panel_rect()
+		home.position += plate.global_position - plate.position
+		items.append({"plate": plate, "home": home})
+	items.sort_custom(func(a, b): return (a["home"] as Rect2).position.y < (b["home"] as Rect2).position.y)
+
+	var placed: Array[Rect2] = []
+	var step := clampf(glide * delta * 60.0, 0.0, 1.0)
+	for item in items:
+		var home: Rect2 = item["home"]
+		var spot := home
+		var tries := 0
+		var moved := true
+		while moved and tries < 12:
+			moved = false
+			for other in placed:
+				if spot.grow(gap * 0.5).intersects(other.grow(gap * 0.5)):
+					# Below the one in the way, and nudged away from its middle
+					# so a pile of plates fans out instead of making a column.
+					spot.position.y = other.end.y + gap
+					var side := signf(spot.get_center().x - other.get_center().x)
+					spot.position.x += (side if side != 0.0 else 1.0) * 6.0
+					moved = true
+			tries += 1
+		var offset := (spot.position - home.position).limit_length(reach)
+		placed.append(Rect2(home.position + offset, home.size))
+		var plate: NamePlate = item["plate"]
+		plate.position = plate.position.lerp(offset, step)
 
 
 ## adventure-look: THE ISOMETRIC PICTURE of an enemy or a drop, as a child

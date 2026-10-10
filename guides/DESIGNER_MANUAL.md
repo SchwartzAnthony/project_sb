@@ -3707,6 +3707,11 @@ scenery: `assets/adventure/decor/`; every PixelLab candidate is kept in
 To look at one biome's field: `godot --path . --script res://tools/adventure_look_check.gd -- --biome=frostreach`
 (saves `art_source/drafts/adventure_look/screens/field_frostreach.png`).
 
+**Name plates (11 Oct).** On the field a plate that would cover another
+slides down and a little aside, gliding so it never flickers, and plates
+always draw above the figures. `adventure_plate_gap`, `adventure_plate_glide`,
+`adventure_plate_reach`. The Marsh King now carries a round football.
+
 ### How a fight goes
 
 ```
