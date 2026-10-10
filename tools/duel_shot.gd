@@ -24,6 +24,9 @@ extends SceneTree
 #
 #  Pictures land beside your save, in user://. The path is printed at the end.
 #
+#  ROUND AN (11 Oct): `-- film` photographs every 1/20 s instead, for a GIF
+#  of the pop-ups and the juice (tools/make_duel_gif.py).
+#
 #  A tool, not part of the game. Nothing loads it.
 # =============================================================
 
@@ -87,8 +90,11 @@ func _initialize() -> void:
 
 	arena.play_duel({"tier": "III", "left": left, "right": right})
 
-	for i in SHOTS:
-		await create_timer(STEP, true, false, true).timeout
+	var film := OS.get_cmdline_user_args().has("film")
+	var step := 0.05 if film else STEP
+	var shots := 600 if film else SHOTS
+	for i in shots:
+		await create_timer(step, true, false, true).timeout
 		_shoot("d_%02d" % _n)
 		_n += 1
 		if not arena.is_running():

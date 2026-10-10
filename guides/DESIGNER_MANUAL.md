@@ -2270,6 +2270,30 @@ each check, slowly enough to follow:
 | `Tuning.csv` `duel_hl_art_scale`, `duel_hl_box_margin` | how big their pixels are; where the box corners end |
 | `Audio.csv` `duel_ability_success` / `_fail`, `duel_power_victory` / `_fail` | the four sounds, made with Ludo.ai |
 
+**The check pop-ups (round AN, 11 Oct).** Each check now slams into the
+middle of the screen: **ABILITY PRIORITY**, then **ABILITY CHECK** for each
+ability, then **POWER CHECK**. The words start big and crooked, snap to size
+with a flash and a shake, hold, then shrink down onto the plate under the
+window. The card moves with them: the gold ring or box punches in at the
+moment the words land, the +1 total jumps, an ability that went off flares
+white and one that did not goes grey with a shake, and at the end the
+winner's number and WIN stamp jump while the loser's panel shakes and its
+number greys out. Each check has its own sound (`duel_priority_check`,
+`duel_ability_check`, `duel_power_check`, from the sound thread).
+
+| Where | What you change |
+|---|---|
+| `Tuning.csv` `duel_hl_pop` | false puts the words straight on the plate, as before |
+| `Tuning.csv` `duel_hl_pop_ability` | false skips ABILITY CHECK (the box just appears) |
+| `Tuning.csv` `duel_hl_pop_font_size`, `_scale_from`, `_tilt` | how big the words are, how much bigger and how crooked they start |
+| `Tuning.csv` `duel_hl_pop_in_seconds`, `_hold_seconds`, `_out_seconds` | the slam, the hold, the move down |
+| `Tuning.csv` `duel_hl_pop_settle` | false fades the words away instead of moving them to the plate |
+| `Tuning.csv` `duel_hl_juice_flash`, `_shake`, `_punch`, `_win_punch` (+ `_seconds`) | how hard the flash, the shake and the jumps are; 0 (or 1 for a jump) turns one off |
+| `Language.csv` `duel_ability_check` | the ABILITY CHECK words |
+
+Each pop-up adds about one second to a duel; holding SPACE still speeds it
+all up, the pop-ups included.
+
 The old `duel_win` / `duel_lose` rows are gone from Audio.csv, so a duel
 makes only these sounds. Edit the art in `art_source/aseprite/ui/duel_ring.aseprite`
 and `duel_box.aseprite`, then export to `assets/ui/duel/`.
