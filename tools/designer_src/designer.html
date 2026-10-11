@@ -422,7 +422,9 @@ function makeCanvas(el,layer,getView,setView){
 function dragCard(el,e,getPos,setPos,canvas,onClick,onEnd){
   if(e.button!==undefined&&e.button!==0) return;
   e.stopPropagation();
-  const start=canvas.toLocal(e.clientX,e.clientY), p0=getPos(); let moved=false;
+  // p0 is a COPY: getPos() may hand back the live position object, and
+  // adding the drag to a start point that moves with it flings the card away.
+  const start=canvas.toLocal(e.clientX,e.clientY), p0={...getPos()}; let moved=false;
   el.setPointerCapture(e.pointerId);
   const mv=ev=>{ const p=canvas.toLocal(ev.clientX,ev.clientY); const dx=p.x-start.x,dy=p.y-start.y; if(!moved&&Math.abs(dx)+Math.abs(dy)<4) return; moved=true;
     setPos(Math.round((p0.x+dx)/8)*8,Math.round((p0.y+dy)/8)*8); };
@@ -946,7 +948,21 @@ function openExport(){
 /* ============================================================
    BOOT
    ============================================================ */
+/* A card that ended up somewhere absurd (an older version could fling
+   cards away on a click) is put back in its column. */
+function rescueLost(){
+  const bad=p=>!p||!Number.isFinite(p.x)||!Number.isFinite(p.y)||Math.abs(p.x)>20000||Math.abs(p.y)>20000;
+  let fixed=0;
+  S.nodes.forEach(n=>{ if(bad(n)){ n.x=null; n.y=null; fixed++; } });
+  if(fixed) S.trees.forEach(t=>arrangeTree(t.id,true));
+  const ings=ingredientIds(); let bf=0;
+  ings.forEach((id,i)=>{ if(bad(S.ingPos[id])){ S.ingPos[id]={x:0,y:i*90}; bf++; } });
+  S.brews.forEach((b,i)=>{ if(bad(S.brewPos[b.ID])){ S.brewPos[b.ID]={x:260+(i%3)*250,y:Math.floor(i/3)*200}; bf++; } });
+  if(bf) S.view.bFitted=0;
+  return fixed+bf;
+}
 function renderAll(){
+  if(rescueLost()) setTimeout(()=>toast('Brought back cards that had flown off the board'),400);
   document.getElementById('source').textContent='Game data: '+SOURCE;
   renderUnlocks(); renderChain(); renderBrews();
 }
