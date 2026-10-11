@@ -201,7 +201,7 @@ var ball_chasers_per_side: int = 2
 var fresh_spot_ball_weight: float = 1.2
 ## ROUND AN: the ring round the ball a player showing for a pass stays on.
 var open_support_min: float = 270.0
-var open_support_max: float = 340.0
+var open_support_max: float = 5000.0
 var open_zone_margin: float = 0.25
 var mark_keep_off: float = 200.0
 ## ROUND AN (9 Oct): moving for an opening, and cutting the lane.
@@ -209,8 +209,13 @@ var open_search_radius: float = 220.0
 var open_rethink_seconds: float = 0.7
 var mark_lane_cut: float = 100.0
 ## ROUND AN (9 Oct): outside the ball's range a marker shadows his man.
-var mark_shadow_commitment: float = 0.85
+var mark_shadow_commitment: float = 0.6
 var open_switch_margin: float = 60.0
+## ROUND AN (11 Oct): spread the whole shape out.
+var shape_spread_x: float = 1.2
+var shape_spread_y: float = 1.25
+var shape_edge_margin: float = 0.05
+var open_mate_space_weight: float = 0.8
 ## ROUND AN (9 Oct): name plates of players not involved with the ball, in
 ## open play. Tuning.csv bystander_plate_alpha; 1 = off.
 var bystander_plate_alpha: float = 0.18
@@ -1437,10 +1442,15 @@ func _opening_score(p: Vector2, from_ball: Vector2, shape: Vector2, foes: Array[
 		space = minf(space, f.distance_to(p))
 		lane = minf(lane, Geometry2D.get_closest_point_to_segment(f, from_ball, p).distance_to(f))
 	var score := space + lane * 1.5
+	var nearest_mate := 400.0
 	for m in mates:
 		var d := m.distance_to(p)
+		nearest_mate = minf(nearest_mate, d)
 		if d < 110.0:
 			score -= (110.0 - d) * 2.0
+	# ROUND AN (11 Oct): ROOM FROM TEAM-MATES counts too, so a side fans out
+	# over the pitch instead of every man finding the same pocket.
+	score += minf(nearest_mate, 300.0) * open_mate_space_weight
 	var to_ball := p.distance_to(from_ball)
 	if to_ball < open_support_min:
 		score -= (open_support_min - to_ball) * 3.0
@@ -1887,6 +1897,10 @@ func _apply_match_tuning() -> void:
 	mark_lane_cut = db.tune_float("mark_lane_cut", mark_lane_cut)
 	mark_shadow_commitment = db.tune_float("mark_shadow_commitment", mark_shadow_commitment)
 	open_switch_margin = db.tune_float("open_switch_margin", open_switch_margin)
+	shape_spread_x = db.tune_float("shape_spread_x", shape_spread_x)
+	shape_spread_y = db.tune_float("shape_spread_y", shape_spread_y)
+	shape_edge_margin = db.tune_float("shape_edge_margin", shape_edge_margin)
+	open_mate_space_weight = db.tune_float("open_mate_space_weight", open_mate_space_weight)
 	bystander_plate_alpha = db.tune_float("bystander_plate_alpha", bystander_plate_alpha)
 	ball_roam_quarter_first = db.tune_int("ball_roam_quarter_first", ball_roam_quarter_first)
 	ball_roam_quarter_last = db.tune_int("ball_roam_quarter_last", ball_roam_quarter_last)
@@ -2978,6 +2992,24 @@ func default_layout(star_tier: String) -> Dictionary:
 	}
 
 
+## ============ A WIDER SHAPE  (round AN, Anthony 11 Oct) ============
+##
+## "Everyone is crowding in one spot the whole game, spread them out even
+## more." Every slot is pushed away from the centre spot by `shape_spread_x`
+## along the pitch and `shape_spread_y` across it (1 = the formation as
+## drawn), and kept `shape_edge_margin` of the pitch inside the lines.
+func _spread_slot(pos: Vector2) -> Vector2:
+	var rect := get_play_rect()
+	if rect.size.x <= 1.0 or (is_equal_approx(shape_spread_x, 1.0) and is_equal_approx(shape_spread_y, 1.0)):
+		return pos
+	var mid := rect.get_center()
+	var out := mid + (pos - mid) * Vector2(shape_spread_x, shape_spread_y)
+	var keep := rect.size * shape_edge_margin
+	out.x = clampf(out.x, rect.position.x + keep.x, rect.end.x - keep.x)
+	out.y = clampf(out.y, rect.position.y + keep.y, rect.end.y - keep.y)
+	return out
+
+
 func create_unit_instance(data: PlayerData, pos: Vector2, is_enemy: bool) -> PlayerUnit:
 	var unit := PLAYER_UNIT_SCENE.instantiate() as PlayerUnit
 	if unit == null:
@@ -2993,7 +3025,7 @@ func create_unit_instance(data: PlayerData, pos: Vector2, is_enemy: bool) -> Pla
 	unit.attack_dir = -1.0 if is_enemy else 1.0   # home defends the left goal
 	_tune_unit(unit)
 	units_container.add_child(unit)   # add first so @onready refs exist
-	unit.set_home(pos)                # then place and start roaming
+	unit.set_home(_spread_slot(pos))  # then place and start roaming
 	return unit
 
 
