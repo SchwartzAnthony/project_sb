@@ -93,6 +93,7 @@ you_are_defending,YOU ARE DEFENDING,DU VERTEIDIGST,
 achievements_button,Achievements,Erfolge,"ROUND AN. The base's top-row button that opens the unlock board (its building left the town map)"
 duel_ability_priority,ABILITY PRIORITY,FÄHIGKEITS-VORRANG,"ROUND AN. Over the duel window while the lower number (which fires its ability first) is ringed in gold"
 duel_power_check,POWER CHECK,KRAFTPROBE,"ROUND AN. Over the duel window while both power numbers are ringed in gold and compared"
+duel_ability_check,ABILITY CHECK,FÄHIGKEITSPROBE,"ROUND AN (11 Oct). Pops up in the middle of the duel window as the gold box lands on an ability (Tuning.csv duel_hl_pop_ability)"
 tutorial_offer_title,THE TUTORIAL,DIE ANLEITUNG,ROUND AN. The question a brand-new save asks (Tuning.csv tutorial_offer).
 tutorial_offer_text,"Would you like to do the Tutorial? If not, you can find it later on the main menu.","Möchtest du das Tutorial spielen? Wenn nicht, findest du es später im Hauptmenü.","ROUND AN. Your words, 7 Oct."
 tutorial_offer_yes,"Yes, show me","Ja, zeig es mir",ROUND AN.
