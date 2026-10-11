@@ -423,6 +423,10 @@ func _pick_card(card: PlayerData) -> void:
 		await _breakpoint(crossed)
 	if _trait_bar != null:
 		_trait_bar.refresh()
+	# ROUND AN: the first time a pick puts icons on the pile, the icon bar
+	# along the top may be explained.
+	if not stack.counts.is_empty():
+		await AdventureTalk.talk(self, "adv_icons", {"round": str(run.wave)})
 
 	# THE CYCLE. A tier comes back round on its own; the CYCLE comes round
 	# when the last tier still owing a turn does. That is when the pile
@@ -505,6 +509,7 @@ func _resolve() -> void:
 				named.append("%s +%d" % [held["name"], int(held["value"])])
 		_note("The pile is carrying — %s" % "   ".join(named))
 		Juice.fire(self, "combo_fired", {})
+		await AdventureTalk.talk(self, "adv_combo", {"round": str(run.wave)})
 
 	# WHAT THEY GAINED WHILE YOU BUILT IT. Every pass gives an enemy with a
 	# Buff column that much more to hit you with, this round only.
@@ -515,6 +520,9 @@ func _resolve() -> void:
 		var gained := AdventureBuildup.buff_gained(foes[i]["row"], chain)
 		if gained > 0:
 			_their_gain[i] = gained
+	# ROUND AN: enemies that grow while you pass may be explained.
+	if not _their_gain.is_empty():
+		await AdventureTalk.talk(self, "adv_enemy_buff", {"round": str(run.wave)})
 
 	# --- WATCH IT GO IN ---
 	#
@@ -564,6 +572,7 @@ func _resolve() -> void:
 	if empty_tiers > 0:
 		multiplier = db.tune_int("adventure_walkover_multiplier", 2)
 		_note("%d tier(s) empty — everything they do lands twice." % empty_tiers)
+		await AdventureTalk.talk(self, "adv_walkover", {"round": str(run.wave)})
 
 	# --- WATCH THEIRS GO IN TOO ---
 	#
@@ -594,6 +603,11 @@ func _resolve() -> void:
 		their_bonus = AdventureBuildup.their_stack_bonus(foes, still_up, theirs)
 		if their_bonus > 0:
 			_note("They have a move of their own — %s" % "   ".join(theirs))
+
+	# ROUND AN: their half of the round may be explained, and their combo.
+	await AdventureTalk.talk(self, "adv_enemy_turn", {"round": str(run.wave)})
+	if their_bonus > 0:
+		await AdventureTalk.talk(self, "adv_enemy_combo", {"round": str(run.wave)})
 
 	if _buildup != null:
 		await _buildup.play_their_turn(foes, still_up, _their_gain, _bracing_lines())
@@ -657,6 +671,7 @@ func _resolve() -> void:
 		stack.clear()
 		if _trait_bar != null:
 			_trait_bar.refresh()
+		await AdventureTalk.talk(self, "adv_cycle", {"round": str(run.wave)})
 
 	_begin_round()
 
@@ -684,6 +699,8 @@ func _breakpoint(step_row: Dictionary) -> void:
 
 	_note("%s!  %s" % [step_row["name"], step_row["description"]])
 	Juice.fire(self, "combo_fired", {})
+	# ROUND AN: the first icon ability that ever pays out may be explained.
+	await AdventureTalk.talk(self, "adv_combo", {"round": str(run.wave)})
 
 	match effect:
 		"strike":
@@ -945,6 +962,12 @@ func _show_the_kick(dealt: int) -> void:
 ## of the box, because that animation already exists in your sheet). An
 ## enemy with an Art column pointing at a sheet will play it.
 func _show_the_death(index: int) -> void:
+	await _animate_death(index)
+	# ROUND AN: the first enemy you ever put down may be explained.
+	await AdventureTalk.talk(self, "adv_foe_down", {"round": str(run.wave)})
+
+
+func _animate_death(index: int) -> void:
 	if not _can_show():
 		return
 	var node := _foe_node(index)
@@ -1204,6 +1227,7 @@ func _open_items() -> void:
 	var bag := InventoryScreen.open(self, state, InventoryScreen.Use.ITEM,
 		"Using one takes your turn nowhere — it is free.")
 	bag.used.connect(_use_item)
+	AdventureTalk.talk(self, "adv_items", {"round": str(run.wave)})
 
 
 ## Items are counters, so "using one" is spending a counter and applying the

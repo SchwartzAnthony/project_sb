@@ -17,6 +17,23 @@ extends RefCounted
 #    adv_down     one of yours has run out of stamina
 #    adv_loot     a wave is cleared: the loot and Continue / Return
 #
+#  ROUND AN (Anthony, 10 Oct: "the Head Coach stops and explains each of the
+#  triggered events") added these, so every first can be explained:
+#    adv_icons        a pick has put the first icons on the pile
+#    adv_combo        an icon ability pays out (a once step, or the held
+#                     bonus going into the shot)
+#    adv_enemy_buff   enemies grew while you passed (their Buff column)
+#    adv_foe_down     an enemy has been put down
+#    adv_enemy_turn   their half of the round begins
+#    adv_enemy_combo  their icons paid out too
+#    adv_walkover     a Tier had nobody, so they hit twice
+#    adv_cycle        everybody has had a turn and the pile empties
+#    adv_stretcher    the fallen are carried off after a fight
+#    adv_wipe         everybody is down
+#    adv_items        the bag is opened in a fight
+#  The Head Coach's rows (coach_adv_*) are Mode adventure;intro_adventure,
+#  lines in data/AdventureCoachDialogue.csv.
+#
 #  ROUND is the wave number (1 = the first). HIGHLIGHT is different here:
 #  it is the words on a button to light up after the box, the way Guide.csv
 #  does it ("Return to base"). DO is not read.
