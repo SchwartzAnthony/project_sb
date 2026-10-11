@@ -1,0 +1,3 @@
+Part,Image,X,Y,Width,Height,Scale,Flip
+picture,res://art_source/pixellab/dorms_ui_draft/full/board_felt.png,960,540,512,320,,
+picture,res://art_source/pixellab/dorms_ui_draft/full/board_frame.png,960,540,512,320,,
