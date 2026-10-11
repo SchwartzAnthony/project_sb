@@ -36,6 +36,11 @@ var db: AudioDB
 
 ## bus -> {"player": AudioStreamPlayer, "cue_id": String}
 var _loops: Dictionary = {}
+## ROUND AN (Anthony, 11 Oct: "transition the music better"): where each
+## track was when it was faded away, so the match music picks up where it
+## left off after the Play Maker instead of starting from the top.
+## stream -> {"at": seconds into the track, "left": Time msec}
+var _left_off: Dictionary = {}
 var _voices: Array[AudioStreamPlayer] = []
 var _next_voice: int = 0
 var _muted: bool = false
@@ -278,6 +283,7 @@ func _start_loop(cue: Dictionary) -> void:
 			var glide := create_tween()
 			glide.tween_property(player, "volume_db", float(cue["volume"]), maxf(0.3, float(cue["fade"])))
 			return
+		_remember(player)
 		_fade_out(player, float(cue["fade"]))
 
 	var fresh := AudioStreamPlayer.new()
@@ -295,13 +301,13 @@ func _start_loop(cue: Dictionary) -> void:
 	add_child(fresh)
 
 	var fade := float(cue["fade"])
+	var from := _resume_point(fresh.stream)
 	if fade > 0.0:
-		fresh.volume_db = float(cue["volume"]) - 40.0
-		fresh.play()
-		var rise := create_tween()
-		rise.tween_property(fresh, "volume_db", float(cue["volume"]), fade)
+		fresh.volume_db = -80.0
+		fresh.play(from)
+		_glide(fresh, float(cue["volume"]), fade)
 	else:
-		fresh.play()
+		fresh.play(from)
 
 	# Godot does not loop a stream unless the stream itself says so, and an
 	# imported .ogg often does not. Restarting it on finish is the one way
@@ -339,9 +345,49 @@ func _fade_out(player: AudioStreamPlayer, seconds: float) -> void:
 	if seconds <= 0.0:
 		player.queue_free()
 		return
-	var drop := create_tween()
-	drop.tween_property(player, "volume_db", -60.0, seconds)
+	var drop := _glide(player, -80.0, seconds)
 	drop.tween_callback(player.queue_free)
+
+
+## A volume change that SOUNDS even. Tuning `music_smooth_fades` (on): the
+## loudness moves along a soft S-curve, so a fade-out drops gently at first
+## and a fade-in swells in instead of jumping up at the end - two tracks
+## crossing over never leave a hole or a bump. Off: the old straight line in dB.
+func _glide(player: AudioStreamPlayer, to_db: float, seconds: float) -> Tween:
+	var tween := create_tween()
+	var book := CardDatabase.get_db()
+	if book != null and not book.tune_bool("music_smooth_fades", true):
+		tween.tween_property(player, "volume_db", to_db, seconds)
+		return tween
+	var start := db_to_linear(player.volume_db)
+	var end := db_to_linear(to_db)
+	tween.tween_method(func(amount: float) -> void:
+		if is_instance_valid(player):
+			player.volume_db = linear_to_db(maxf(amount, 0.0001)),
+		start, end, seconds).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	return tween
+
+
+## Note where a track was as it fades away (see _left_off).
+func _remember(player: AudioStreamPlayer) -> void:
+	if player == null or not is_instance_valid(player) or not player.playing or player.stream == null:
+		return
+	_left_off[player.stream] = {"at": player.get_playback_position(), "left": Time.get_ticks_msec()}
+
+
+## Where to start a track: where it was left, if that was less than Tuning
+## `music_resume_seconds` ago, else from the top. 0 = always from the top.
+func _resume_point(stream: AudioStream) -> float:
+	if stream == null or not _left_off.has(stream):
+		return 0.0
+	var book := CardDatabase.get_db()
+	var memory := book.tune_float("music_resume_seconds", 90.0) if book != null else 90.0
+	var note: Dictionary = _left_off[stream]
+	_left_off.erase(stream)
+	if (Time.get_ticks_msec() - int(note["left"])) / 1000.0 > memory:
+		return 0.0
+	var length := stream.get_length()
+	return fposmod(float(note["at"]), length) if length > 0.0 else 0.0
 
 
 # =============================================================
@@ -354,6 +400,7 @@ func stop_loop(bus: String = "", seconds: float = 0.4) -> void:
 		if bus != "" and String(key) != bus:
 			continue
 		var entry: Dictionary = _loops[key]
+		_remember(entry["player"] as AudioStreamPlayer)
 		_fade_out(entry["player"] as AudioStreamPlayer, seconds)
 	if bus == "":
 		_loops.clear()

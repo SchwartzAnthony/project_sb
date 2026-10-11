@@ -2317,6 +2317,13 @@ each check, slowly enough to follow:
 | `Tuning.csv` `duel_hl_art_scale`, `duel_hl_box_margin` | how big their pixels are; where the box corners end |
 | `Audio.csv` `duel_ability_success` / `_fail`, `duel_power_victory` / `_fail` | the four sounds, made with Ludo.ai |
 
+**The checks under the window (round AN, 11 Oct, later).** You asked for
+the checks to be listed on the plate under the window again, so
+`duel_hl_pop` is now **false**: ABILITY PRIORITY, ABILITY CHECK and POWER
+CHECK appear on the plate at the bottom, as before, with their sounds. The
+rings, boxes, numbers and stamps on the cards still punch, flare and shake.
+Set `duel_hl_pop` back to true to bring the centre pop-ups back.
+
 **The check pop-ups (round AN, 11 Oct).** Each check now slams into the
 middle of the screen: **ABILITY PRIORITY**, then **ABILITY CHECK** for each
 ability, then **POWER CHECK**. The words start big and crooked, snap to size
@@ -3446,7 +3453,7 @@ moment, with the same score, clock and exhaust. Then the row's **Do** runs:
 | `ability:Koch=TUT_KOCH_EARTH/TUT_KOCH_EARTH_DEF` | Earth Courage, attack side / defend side: 5 stamina off the enemy keeper when he attacks, 3 when he defends (Anthony, 8 Oct) |
 | `show_card:Koch=tut-koch-new-card@abilities\|-\|-` | the match stays frozen and his field card comes up big over the pub, his attack and defend abilities beside it; then that Dialogue.csv scene plays. After `@`, the gold per line (`card`, `abilities`, `attack`, `defend`, `-`), `\|` between lines. `Tuning.csv show_card_scale` (1.8) and `show_card_backdrop` (bar) |
 | `inspire:Koch=75` | his inspiration in % on the drunk meter (`DrunkLevels.csv`): 75 after cycle 1 (past Inspired, so his star ability wakes up), 90 after cycle 2 |
-| `drink_lesson:first=keg@barrel@tut-fass-after@abilities\|-\|card` | the drinking lesson. `<card>=<item>@<barrel or bottle>@<scene>@<gold>`. The item goes in the bag if it is missing; only that card's bag button works and his bag shows only that item; gold on the button, then on the item. When he drinks: the drinking window (his own sprite, the barrel or bottle, gulps, spills, arm wipe, burp; `Tuning.csv drink_window_seconds`), then his card comes up big as with show_card and the scene plays. Only he can be picked after |
+| `drink_lesson:first=keg@barrel@tut-fass-after@abilities\|-\|card` | the drinking lesson. `<card>=<item>@<barrel or bottle>@<scene>@<gold>`. The item goes in the bag if it is missing; only that card's bag button works and his bag shows only that item; gold on the button, then on the item. When he drinks: the drinking window (his PixelLab stein drink from his pitch sheet, then the burp; `Tuning.csv drink_window_seconds`), then his card comes up big as with show_card and the scene plays. Only he can be picked after |
 | `give:anstoss_helles+doppelpass_weisse+abstauber_dunkel` | puts one of each into the bag (`item=3` for more). A drink_lesson can then name several items with `+`: the bag shows those, gold on each, and any one will do |
 | `say:tut-after-brewery@-\|-\|flask:first` | plays that Dialogue.csv scene, gold per line after `@` (the Highlight words) |
 | `brewery:tut_brewery` | a TIME OUT at the Brewery (round AN): the match freezes, that flag is set and the Brewery opens over it; `Guide.csv` rows that need the flag lead the way, and one whose Then is `goto:back` ends it. See "The tutorial Brewery" |
@@ -3464,8 +3471,11 @@ low his drunk meter is (`match_drink_takes_hold_at`, 0). In the tutorial the
 keg (`Items.csv keg`, Use `brew:pool:keg`) always gives the `Brews.csv
 kleiner_fass` row, because that is the only keg row whose Requires
 (`flag:in_tutorial`) passes. Outside the tutorial the keg is the plain beer
-gamble. The barrel and bottle in the drinking window are drawn in code for
-now, until PixelLab art exists. The burp is `Audio.csv drink_burp`, silent
+gamble. The drinking window plays the player's own PixelLab stein drink from
+his pitch sheet (the `drink` row of `PitchAnims.csv`, facing south-east, at
+its FPS; Anthony, 11 Oct), so it is the same figure and drink as on the
+pitch, then the burp. Only a look whose pitch sheet has no drink rows still
+gets the old code-drawn barrel or bottle. The burp is `Audio.csv drink_burp`, silent
 until `bav_burp.ogg` is made (`SOUNDS_WANTED.csv`).
 
 **The combo beers** (Anthony, 8 Oct). Three small beers, `Items.csv`
@@ -7950,6 +7960,38 @@ It is left out of both tutorials, where the row is already full.
   (team music). Put one in place of the lud_ name to try it.
 - **Credits:** every new file has a line in `data/SoundCredits.csv`, and
   `tools/make_bavarian_sfx.py` now keeps those lines when it rewrites the file.
+
+### Dialogue click (11 Oct)
+
+- Every click that moves a conversation on plays the `dialogue_click` row of
+  Audio.csv (When `dialogue_next`). It covers both story scenes (`box=story`)
+  and the Head Coach's pop-ups in a match (`box=coach`); put one of those in
+  Match to limit it.
+- The sound is a beer mat flicked over, 0.07 s long, at -16 so fast clicking
+  never tires (`bav_dialogue_click.ogg`, made by `tools/make_bavarian_sfx.py`).
+  A `suno_dialogue_click` file wins once it is there, and its prompt is in
+  `guides/SUNO_PROMPTS.md`.
+
+### Smoother music switches in a match (11 Oct)
+
+- **The match music carries on where it stopped.** After the Play Maker or a
+  shot, it no longer starts from the top. Tuning `music_resume_seconds` (90)
+  sets how long a track remembers its place; 0 = always from the top. This
+  also works for the base music after a window.
+- **Fades are S-curves now.** One track swells in while the other sinks away,
+  with no hole and no bump. Tuning `music_smooth_fades` false brings back the
+  old straight fade.
+- **Longer fades on the match rows** (Audio.csv Fade): `play_maker_music` 1.5,
+  `goal_attempt_music` 1.0, `match_music_back` and `match_music_back_shot` 2.0.
+  A bigger number gives a slower handover.
+
+### Kick sound on every pass (11 Oct)
+
+- Before, only shots (`shot_kick`) and restarts had a kick sound, so the
+  ball went round the pitch in silence. Now every pass is a `ball_passed`
+  moment and plays the Audio.csv row `pass_kick`. That covers open play, the
+  Play Maker relay and goal kicks, and Match `kind=pass`, `hoof` or `relay`
+  can split them into separate rows.
 
 ### The overnight sound check (10 Oct, night)
 
