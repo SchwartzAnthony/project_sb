@@ -26,6 +26,14 @@ extends CanvasLayer
 #  Tuning.csv, the words are Language.csv, the sounds Audio.csv
 #  (duel_ability_success / _fail, duel_power_victory / _fail).
 #
+#  ROUND AN - THE POP-UPS (11 Oct): each check (ABILITY PRIORITY, ABILITY
+#  CHECK, POWER CHECK) slams into the MIDDLE of the screen - big, tilted,
+#  with a flash and a shake - holds, then shrinks down onto the plate under
+#  the window. The rings, boxes and numbers on the cards punch in the same
+#  way, and the winner's number jumps while the loser's panel shakes. Every
+#  size and time is a `duel_hl_pop_*` / `duel_hl_juice_*` row in Tuning.csv;
+#  `duel_hl_pop` false puts the words straight onto the plate as before.
+#
 #  PACING is entirely from Tuning.csv (`arena_*` rows). Holding SPACE, or
 #  clicking, fast-forwards the current duel; nothing is skipped silently,
 #  it just runs at `arena_skip_speed`.
@@ -76,6 +84,27 @@ var hl_ring_hole := Vector2(44.0, 30.0)
 var hl_bonus_seconds: float = 0.9
 var hl_bonus_merge_seconds: float = 0.45
 var _banner: Label
+## ROUND AN pop-ups and juice - all from Tuning.csv `duel_hl_pop_*` and
+## `duel_hl_juice_*`.
+var hl_pop := true
+var hl_pop_ability := true
+var hl_pop_font_size: int = 72
+var hl_pop_scale_from: float = 2.4
+var hl_pop_tilt: float = 8.0
+var hl_pop_in_seconds: float = 0.22
+var hl_pop_hold_seconds: float = 0.5
+var hl_pop_out_seconds: float = 0.25
+var hl_pop_settle := true
+var hl_flash_alpha: float = 0.35
+var hl_flash_seconds: float = 0.2
+var hl_shake_pixels: float = 12.0
+var hl_shake_seconds: float = 0.3
+var hl_juice_punch: float = 1.35
+var hl_juice_seconds: float = 0.28
+var hl_juice_win_punch: float = 1.6
+var _pop: Label
+var _flash: ColorRect
+var _pop_count := 0
 ## ROUND AN - THE TUTORIAL: the Head Coach can stop the duel at each gold
 ## moment (MatchTalk.csv duel_start, duel_priority, duel_ability_1/_2,
 ## duel_power_check, duel_result). main_scene's MatchCoach sets this; it is
@@ -166,6 +195,22 @@ func apply_tuning(database: CardDatabase) -> void:
 	var hole := db.tune_text("duel_hl_ring_hole", "").split(" ", false)
 	if hole.size() == 2 and hole[0].is_valid_float() and hole[1].is_valid_float():
 		hl_ring_hole = Vector2(maxf(1.0, float(hole[0])), maxf(1.0, float(hole[1])))
+	hl_pop = db.tune_bool("duel_hl_pop", hl_pop)
+	hl_pop_ability = db.tune_bool("duel_hl_pop_ability", hl_pop_ability)
+	hl_pop_font_size = maxi(8, db.tune_int("duel_hl_pop_font_size", hl_pop_font_size))
+	hl_pop_scale_from = maxf(0.1, db.tune_float("duel_hl_pop_scale_from", hl_pop_scale_from))
+	hl_pop_tilt = db.tune_float("duel_hl_pop_tilt", hl_pop_tilt)
+	hl_pop_in_seconds = maxf(0.01, db.tune_float("duel_hl_pop_in_seconds", hl_pop_in_seconds))
+	hl_pop_hold_seconds = maxf(0.0, db.tune_float("duel_hl_pop_hold_seconds", hl_pop_hold_seconds))
+	hl_pop_out_seconds = maxf(0.01, db.tune_float("duel_hl_pop_out_seconds", hl_pop_out_seconds))
+	hl_pop_settle = db.tune_bool("duel_hl_pop_settle", hl_pop_settle)
+	hl_flash_alpha = clampf(db.tune_float("duel_hl_juice_flash", hl_flash_alpha), 0.0, 1.0)
+	hl_flash_seconds = maxf(0.01, db.tune_float("duel_hl_juice_flash_seconds", hl_flash_seconds))
+	hl_shake_pixels = maxf(0.0, db.tune_float("duel_hl_juice_shake", hl_shake_pixels))
+	hl_shake_seconds = maxf(0.01, db.tune_float("duel_hl_juice_shake_seconds", hl_shake_seconds))
+	hl_juice_punch = maxf(1.0, db.tune_float("duel_hl_juice_punch", hl_juice_punch))
+	hl_juice_seconds = maxf(0.01, db.tune_float("duel_hl_juice_punch_seconds", hl_juice_seconds))
+	hl_juice_win_punch = maxf(1.0, db.tune_float("duel_hl_juice_win_punch", hl_juice_win_punch))
 
 
 func _art(path: String) -> Texture2D:
@@ -237,8 +282,9 @@ func play_duel(info: Dictionary) -> void:
 	# gold before anything fires, so you see WHO goes first and why.
 	var order := _priority_order(left, right)
 	if highlight:
-		_show_banner(Loc.text("duel_ability_priority", "ABILITY PRIORITY"))
-		_ring(order[0], true)
+		# The ring lands on the lower number at the moment the words slam in.
+		await _pop_check(Loc.text("duel_ability_priority", "ABILITY PRIORITY"),
+				"duel_priority_check", info, func() -> void: _ring(order[0], true))
 		await _beat(hl_priority_seconds)
 		await _coach("duel_priority")
 	var turn := 0
@@ -261,11 +307,16 @@ func play_duel(info: Dictionary) -> void:
 		# number. A change is shown as "+1" beside the ring, then slides into
 		# it and the number becomes the total - 3 (+1) turns into 4 - so the
 		# ring never changes size.
-		_show_banner(Loc.text("duel_power_check", "POWER CHECK"))
+		_ring("left", false)
+		_ring("right", false)
 		_set_power(_side["left"], int(left.get("power_after", 0)) - left_change, LIVE_TEXT)
 		_set_power(_side["right"], int(right.get("power_after", 0)) - right_change, LIVE_TEXT)
-		_ring("left", true)
-		_ring("right", true)
+		# Both rings punch in as POWER CHECK lands.
+		var both_rings := func() -> void:
+			_ring("left", true)
+			_ring("right", true)
+		await _pop_check(Loc.text("duel_power_check", "POWER CHECK"), "duel_power_check",
+				info, both_rings)
 		var bonus_shown := _show_bonus("left", left_change)
 		bonus_shown = _show_bonus("right", right_change) or bonus_shown
 		if bonus_shown:
@@ -292,12 +343,24 @@ func play_duel(info: Dictionary) -> void:
 		_ring("left", left_wins)
 		_ring("right", bool(right.get("wins", false)))
 		_sound("duel_power_victory" if left_wins else "duel_power_fail", info)
+		# The winner's number jumps, the loser's panel shakes.
+		for key in ["left", "right"]:
+			var won := left_wins if key == "left" else bool(right.get("wins", false))
+			var number: Label = _side[key]["power"]
+			if won:
+				_punch(number, hl_juice_win_punch)
+				_glow(number)
+			else:
+				_shake(_side_panel(key), hl_shake_pixels)
+				_dull(number)
 	await _beat(result_seconds)
 	await _coach("duel_result")
 
 	_ring("left", false)
 	_ring("right", false)
 	_show_banner("")
+	if _pop != null:
+		_pop.visible = false
 	_dim.visible = false
 	_running = false
 	duel_finished.emit()
@@ -368,11 +431,26 @@ func _fire_ability(key: String, data: Dictionary, moment: String = "") -> void:
 
 	# ROUND AN: the gold box round the ability, held long enough to read,
 	# then the verdict as a sound - success if it went off, error if not.
-	_box(key, true)
+	# ABILITY CHECK slams in first and the box punches in with it.
+	if hl_pop_ability:
+		await _pop_check(Loc.text("duel_ability_check", "ABILITY CHECK"),
+				"duel_ability_check", data, func() -> void: _box(key, true))
+	else:
+		_box(key, true)
 	await _beat(hl_ability_seconds)
 	await _coach(moment)
 	var went_off := bool(data.get("fired", true))
 	_sound("duel_ability_success" if went_off else "duel_ability_fail", data)
+	# Went off: the box and the words flare up. Did not: the panel shakes
+	# and the box goes grey.
+	var plate: Label = nodes["ability"]
+	var gold_box := plate.get_node_or_null("GoldBox") as Control if plate != null else null
+	if went_off:
+		_punch(plate, hl_juice_punch)
+		_glow(gold_box)
+	else:
+		_shake(_side_panel(key), hl_shake_pixels * 0.6)
+		_dull(gold_box)
 	await _beat(hl_ability_result_seconds)
 	var hits: Array = data.get("keeper_hits", [])
 	if went_off and not hits.is_empty() and keeper_hit.is_valid():
@@ -685,6 +763,10 @@ func _stamp(key: String, won: bool) -> void:
 		return
 	label.text = "WIN" if won else "LOSE"
 	label.add_theme_color_override("font_color", WIN_TEXT if won else LOSE_TEXT)
+	label.modulate = Color.WHITE
+	if highlight:
+		# The stamp lands like a rubber stamp: big and crooked, then flat.
+		_punch(label, hl_juice_win_punch if won else hl_juice_punch, -6.0 if won else 6.0)
 	_play_anim(key, _cards.get(key), "win" if won else "lose")
 
 
@@ -750,8 +832,21 @@ func _ring(key: String, on: bool) -> void:
 	ring.colour = hl_colour
 	ring.art = hl_ring_art
 	ring.hole = hl_ring_hole
+	var arriving := on and not ring.visible
 	ring.visible = on
 	ring.queue_redraw()
+	if not on:
+		ring.scale = Vector2.ONE
+		label.scale = Vector2.ONE
+		label.modulate = Color.WHITE
+		return
+	if arriving:
+		# The ring is drawn in the label's own space, so its middle is the
+		# label's middle.
+		ring.pivot_offset = label.size * 0.5
+		_punch(ring, hl_juice_punch * 1.25)
+		_punch(label, hl_juice_punch)
+		_glow(label)
 
 
 ## "+1" / "-2" beside one side's ring. False when there is no change to show.
@@ -806,8 +901,9 @@ func _merge_bonus(key: String, total: int) -> void:
 	label.pivot_offset = label.size * 0.5
 	var pop := create_tween()
 	pop.tween_interval(seconds)
-	pop.tween_property(label, "scale", Vector2.ONE * 1.18, 0.08)
-	pop.tween_property(label, "scale", Vector2.ONE, 0.12)
+	pop.tween_callback(func() -> void:
+		_punch(label, hl_juice_punch)
+		_glow(label))
 
 
 ## A gold box round one side's ability plate.
@@ -835,7 +931,11 @@ func _box(key: String, on: bool) -> void:
 	style.set_border_width_all(0 if hl_box_art != null else 4)
 	style.set_corner_radius_all(6)
 	box.add_theme_stylebox_override("panel", style)
+	var arriving := on and not box.visible
 	box.visible = on
+	box.modulate = Color.WHITE
+	if arriving:
+		_punch(box, 1.0 + (hl_juice_punch - 1.0) * 0.5)
 	if hl_box_art == null or not on:
 		return
 
@@ -855,6 +955,211 @@ func _box(key: String, on: bool) -> void:
 	art.patch_margin_bottom = hl_box_margin
 	art.scale = Vector2.ONE * hl_art_scale
 	art.size = box.size / hl_art_scale
+
+
+# =============================================================
+#  ROUND AN - THE POP-UPS AND THE JUICE
+#
+#  _pop_check: the words slam into the middle of the screen (big, tilted,
+#  see-through) and snap to full size. On impact the screen flashes, the
+#  window shakes and `on_impact` runs - that is where the ring or box on the
+#  card punches in, so the words and the card land together. Then it holds,
+#  and shrinks down onto the plate under the window, where it stays.
+#
+#      duel_hl_pop                 false: words straight onto the plate
+#      duel_hl_pop_ability         ABILITY CHECK for every ability too
+#      duel_hl_pop_font_size       how big the words are in the middle
+#      duel_hl_pop_scale_from      how much bigger they start
+#      duel_hl_pop_tilt            how crooked they start, in degrees
+#      duel_hl_pop_in/hold/out_seconds
+#      duel_hl_pop_settle          false: fade away instead of moving down
+#      duel_hl_juice_*             flash, shake and punch sizes and times
+# =============================================================
+
+## Awaitable. `sound` is an Audio.csv event; the snare roll / pluck / drum
+## is timed to land with the words.
+func _pop_check(text: String, sound: String, facts: Dictionary,
+		on_impact: Callable = Callable()) -> void:
+	_sound(sound, facts)
+	if not hl_pop:
+		_show_banner(text)
+		if on_impact.is_valid():
+			on_impact.call()
+		return
+	_show_banner("")
+	_build_pop()
+	_pop.text = text
+	_pop.add_theme_color_override("font_color", hl_colour)
+	_pop.reset_size()
+	_pop.pivot_offset = _pop.size * 0.5
+	var middle := _dim.size * 0.5 - _pop.size * 0.5
+	_pop.position = middle
+	# Alternate the tilt so two checks in a row do not lean the same way.
+	_pop_count += 1
+	var tilt := deg_to_rad(hl_pop_tilt) * (1.0 if _pop_count % 2 == 1 else -1.0)
+	_pop.scale = Vector2.ONE * hl_pop_scale_from
+	_pop.rotation = tilt
+	_pop.modulate = Color(1, 1, 1, 0)
+	_pop.visible = true
+
+	var slam := create_tween().set_parallel(true)
+	slam.set_speed_scale(_rate())
+	slam.tween_property(_pop, "scale", Vector2.ONE, hl_pop_in_seconds) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	slam.tween_property(_pop, "rotation", 0.0, hl_pop_in_seconds) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	slam.tween_property(_pop, "modulate:a", 1.0, hl_pop_in_seconds * 0.5)
+	await _beat(hl_pop_in_seconds)
+	if not _running:
+		return
+
+	# IMPACT.
+	_flash_screen()
+	_shake(_panels_node(), hl_shake_pixels)
+	_glow(_pop)
+	if on_impact.is_valid():
+		on_impact.call()
+	await _beat(hl_pop_hold_seconds)
+	if not _running:
+		return
+
+	var away := create_tween().set_parallel(true)
+	away.set_speed_scale(_rate())
+	if hl_pop_settle:
+		# Down onto the plate under the window, at the plate's size.
+		_show_banner(text)
+		_banner.visible = false
+		var plate_middle := _banner.get_global_rect().get_center()
+		var shrink := float(_banner.get_theme_font_size("font_size")) / float(hl_pop_font_size)
+		away.tween_property(_pop, "position", plate_middle - _pop.size * 0.5, hl_pop_out_seconds) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		away.tween_property(_pop, "scale", Vector2.ONE * shrink, hl_pop_out_seconds) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	else:
+		away.tween_property(_pop, "modulate:a", 0.0, hl_pop_out_seconds)
+		away.tween_property(_pop, "scale", Vector2.ONE * 0.6, hl_pop_out_seconds)
+	await _beat(hl_pop_out_seconds)
+	away.kill()
+	_pop.visible = false
+	if hl_pop_settle and _running:
+		_banner.visible = true
+		_punch(_banner, 1.0 + (hl_juice_punch - 1.0) * 0.4)
+
+
+func _build_pop() -> void:
+	if _pop != null:
+		return
+	_pop = Label.new()
+	_pop.name = "CheckPopUp"
+	_pop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_pop.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_pop.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_pop.add_theme_font_size_override("font_size", hl_pop_font_size)
+	_pop.add_theme_color_override("font_outline_color", Color(0.05, 0.04, 0.03))
+	_pop.add_theme_constant_override("outline_size", maxi(4, hl_pop_font_size / 7))
+	# The see-through black plate, with a gold edge so it reads as a sign.
+	var plate := TextBackdrop.plate()
+	plate.bg_color.a = maxf(plate.bg_color.a, 0.75)
+	plate.content_margin_left = 36.0
+	plate.content_margin_right = 36.0
+	plate.border_color = hl_colour
+	plate.set_border_width_all(4)
+	_pop.add_theme_stylebox_override("normal", plate)
+	_pop.visible = false
+	_dim.add_child(_pop)
+
+
+## A quick full-screen flash (duel_hl_juice_flash, 0 = none).
+func _flash_screen() -> void:
+	if hl_flash_alpha <= 0.0:
+		return
+	if _flash == null:
+		_flash = ColorRect.new()
+		_flash.name = "CheckFlash"
+		_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_dim.add_child(_flash)
+		# Under the words, over everything else.
+		if _pop != null:
+			_dim.move_child(_flash, _pop.get_index())
+	_flash.color = Color(1.0, 0.97, 0.85, hl_flash_alpha)
+	_flash.visible = true
+	var fade := create_tween()
+	fade.set_speed_scale(_rate())
+	fade.tween_property(_flash, "color:a", 0.0, hl_flash_seconds)
+	fade.tween_callback(func() -> void: _flash.visible = false)
+
+
+## Scale a thing up to `amount` and spring it back to its own size.
+## `tilt` (degrees) starts it crooked too.
+func _punch(node: Control, amount: float, tilt: float = 0.0) -> void:
+	if node == null or amount <= 1.0:
+		return
+	# A ring's pivot was already set to the middle of its number.
+	if not node is GoldRing:
+		node.pivot_offset = node.size * 0.5
+	node.scale = Vector2.ONE * amount
+	node.rotation = deg_to_rad(tilt)
+	var spring := create_tween().set_parallel(true)
+	spring.set_speed_scale(_rate())
+	spring.tween_property(node, "scale", Vector2.ONE, hl_juice_seconds) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	spring.tween_property(node, "rotation", 0.0, hl_juice_seconds) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## A white-hot flash on one thing that cools back to its colour.
+func _glow(node: CanvasItem) -> void:
+	if node == null:
+		return
+	node.modulate = Color(2.2, 2.2, 2.2, node.modulate.a)
+	var cool := create_tween()
+	cool.set_speed_scale(_rate())
+	cool.tween_property(node, "modulate", Color(1, 1, 1, node.modulate.a), hl_juice_seconds * 1.5)
+
+
+## Greyed out: an ability that did not go off, the number that lost.
+func _dull(node: CanvasItem) -> void:
+	if node == null:
+		return
+	var grey := create_tween()
+	grey.set_speed_scale(_rate())
+	grey.tween_property(node, "modulate", Color(0.55, 0.55, 0.6, node.modulate.a), hl_juice_seconds)
+
+
+## A shudder that dies away (duel_hl_juice_shake pixels, 0 = none).
+func _shake(node: Control, pixels: float) -> void:
+	if node == null or pixels <= 0.0:
+		return
+	# Where it really lives, kept from the first shake so two shakes on top
+	# of each other never leave it out of place.
+	if not node.has_meta("shake_home"):
+		node.set_meta("shake_home", node.position)
+	var home: Vector2 = node.get_meta("shake_home")
+	var steps := maxi(3, int(hl_shake_seconds / 0.035))
+	var shudder := create_tween()
+	shudder.set_speed_scale(_rate())
+	for i in steps:
+		var fall := 1.0 - float(i) / float(steps)
+		var nudge := Vector2(randf_range(-1.0, 1.0), randf_range(-0.6, 0.6)) * pixels * fall
+		shudder.tween_property(node, "position", home + nudge, hl_shake_seconds / steps)
+	shudder.tween_property(node, "position", home, 0.03)
+	shudder.tween_callback(func() -> void:
+		node.remove_meta("shake_home")
+		# A panel in the row is put back by the row itself.
+		var row := node.get_parent() as Container
+		if row != null:
+			row.queue_sort())
+
+
+func _panels_node() -> Control:
+	if _panels == null:
+		_panels = get_node_or_null("Dim/Panels") as Control
+	return _panels
+
+
+func _side_panel(key: String) -> Control:
+	return get_node_or_null("Dim/Panels/%s" % ("LeftPanel" if key == "left" else "RightPanel")) as Control
 
 
 ## One of the highlight sounds. The rows are in Audio.csv, so which file
