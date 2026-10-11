@@ -12,8 +12,11 @@ extends CanvasLayer
 #
 #  DrinkWindow.play(host, card, "barrel") - or "bottle". Await `finished`.
 #  The match stays frozen underneath. Nothing to click; it plays itself.
-#  The barrel and the bottle are drawn in code for now (placeholders until
-#  PixelLab art exists); the player is his own card sprite.
+#  PIXELLAB DRINK (Anthony, 11 Oct): when his pitch sheet has the `drink`
+#  rows (PitchAnims.csv, the stein drink drawn in PixelLab on 10 Oct) the
+#  window plays THAT - the very same figure and drink as on the pitch,
+#  facing south-east - and then burps. Only a look without a pitch drink
+#  still gets the old code-drawn barrel/bottle placeholder.
 #  Sound: Audio.csv drink_big while he drinks, drink_burp on the burp.
 #  Tuning.csv drink_window_seconds stretches or shrinks the whole thing.
 # =============================================================
@@ -35,6 +38,9 @@ var _hero: TextureRect
 var _vessel: Control
 var _burp: Label
 var _speed := 1.0
+var _pitch: Texture2D       # his pitch sheet, when it has the drink drawn
+var _drink := {}            # PitchAnims.csv drink row
+var _cell := 72.0
 
 
 static func play(host: Node, who: PlayerData, what: String = "barrel") -> DrinkWindow:
@@ -91,8 +97,20 @@ func _ready() -> void:
 	name_label.position = Vector2(14, 10)
 	_panel.add_child(name_label)
 
-	_vessel = _make_barrel() if kind != "bottle" else _make_bottle()
-	_panel.add_child(_vessel)
+	# The PixelLab drink, when his sheet has it.
+	_pitch = PitchSprite.window_sheet(card) if card != null else null
+	_drink = PitchSprite.anim("drink")
+	_cell = db.tune_float("pitch_sheet_cell", 72.0) if db != null else 72.0
+	if _pitch != null and not _drink.is_empty() \
+			and _pitch.get_height() >= (int(_drink["row"]) + 8) * _cell:
+		_hero.size = Vector2(240, 240)
+		_hero.position = Vector2(BOX.x * 0.5 - 120, BOX.y - 270)
+		_hero.pivot_offset = Vector2(120, 240)
+		_show_drink_frame(0)
+	else:
+		_pitch = null
+		_vessel = _make_barrel() if kind != "bottle" else _make_bottle()
+		_panel.add_child(_vessel)
 
 	_burp = MenuSupport.heading("*BURP!*", 40, MenuSupport.COLOUR_ACCENT)
 	_burp.position = Vector2(BOX.x * 0.5 + 20, 40)
@@ -172,7 +190,19 @@ func _t(seconds: float) -> float:
 	return seconds * _speed
 
 
+## One frame of the pitch drink, facing south-east (PitchSprite.DIRECTIONS 1).
+func _show_drink_frame(step: int) -> void:
+	var cut := AtlasTexture.new()
+	cut.atlas = _pitch
+	var row := int(_drink["row"]) + 1
+	cut.region = Rect2(step * _cell, row * _cell, _cell, _cell)
+	_hero.texture = cut
+
+
 func _run() -> void:
+	if _pitch != null:
+		await _run_pitch()
+		return
 	var mouth := _hero.position + Vector2(118, 50)
 	# 1. He grabs it: the barrel flies up to his mouth and tips.
 	var up := create_tween()
@@ -221,6 +251,30 @@ func _run() -> void:
 	burp.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	burp.tween_property(_burp, "scale", Vector2.ONE, _t(0.5))
 	burp.parallel().tween_property(_hero, "scale", Vector2(0.92, 1.1), _t(0.15))
+	burp.tween_property(_hero, "scale", Vector2.ONE, _t(0.2))
+	await burp.finished
+	await get_tree().create_timer(_t(0.7), true, false, true).timeout
+	finished.emit()
+	queue_free()
+
+
+## The PixelLab drink: lift, gulp, wipe, toss - frame by frame at the
+## PitchAnims.csv FPS (drink_window_seconds stretches it) - then the BURP.
+func _run_pitch() -> void:
+	AudioDirector.fire(get_tree(), "drink_big", {"kind": kind})
+	var frames := int(_drink["frames"])
+	var wait := _t(1.0 / maxf(1.0, float(_drink["fps"])))
+	for step in frames:
+		_show_drink_frame(step)
+		await get_tree().create_timer(wait, true, false, true).timeout
+	# The last frame has the stein in the air; he burps standing, hands empty
+	# (frame 0 is his plain standing drawing).
+	_show_drink_frame(0)
+	AudioDirector.fire(get_tree(), "drink_burp", {"kind": kind})
+	var burp := create_tween()
+	burp.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	burp.tween_property(_burp, "scale", Vector2.ONE, _t(0.5))
+	burp.parallel().tween_property(_hero, "scale", Vector2(0.95, 1.06), _t(0.15))
 	burp.tween_property(_hero, "scale", Vector2.ONE, _t(0.2))
 	await burp.finished
 	await get_tree().create_timer(_t(0.7), true, false, true).timeout
