@@ -11,7 +11,8 @@ extends SceneTree
 #    1. Escape stops the run: the menu has Continue, Exit to Base, Main Menu,
 #       Settings and Quit, the game is paused under it, Continue carries on
 #    2. Settings opens over the run, Escape closes it, the menu comes back
-#    3. the run is played: every Head Coach box (MatchTalk.csv coach_adv_*)
+#    0. the board: the Head Coach introduces Wastl and says goodbye
+#    3. the run is played: every Wastl box (MatchTalk.csv coach_adv_*)
 #       that comes up is read and listed
 #    4. Escape > Exit to Base leaves the run and lands at the base, unpaused
 #
@@ -42,6 +43,15 @@ func _initialize() -> void:
 	await process_frame
 
 	_fresh_save()
+
+	# ---- 0. the board: the Head Coach introduces Wastl and says goodbye ----
+	change_scene_to_file(ScenePaths.BOUNTY_BOARD)
+	await _wait_for_scene("bounty", 10.0)
+	await create_timer(0.8, true, false, true).timeout
+	await _read_boxes()
+	_check(_seen.has("wastl-intro"), "the Head Coach introduces Wastl at the board")
+	_seen.clear()
+
 	_pick_a_real_team()
 	MatchMode.choose(self, "adventure")
 	change_scene_to_file("res://src/adventure/adventure_scene.tscn")
@@ -54,7 +64,7 @@ func _initialize() -> void:
 	# ---- 1. the Escape menu over the Head Coach's first box ----
 	await create_timer(0.6, true, false, true).timeout
 	var first := _find_kind(root, MatchTalkBox)
-	_check(first != null, "the Head Coach stops the run as it sets off")
+	_check(first != null, "Wastl stops the run as it sets off")
 	_escape()
 	await process_frame
 	var menu := _find_kind(scene, MenuEscape) as MenuEscape
@@ -81,13 +91,13 @@ func _initialize() -> void:
 	_button_saying(menu, "Continue").pressed.emit()
 	await process_frame
 	_check(not menu._panel.visible, "Continue closes the menu")
-	_check(paused, "the Head Coach's box still holds the run")
+	_check(paused, "Wastl's box still holds the run")
 
 	# ---- 3. the run, every box read ----
 	await _play_run(scene, 3)
 	print("[coach] boxes seen: %s" % ", ".join(_seen))
 	for scene_name in MUST_SEE:
-		_check(_seen.has(scene_name), "the Head Coach explains %s" % scene_name)
+		_check(_seen.has(scene_name), "Wastl explains %s" % scene_name)
 	_check(not _seen.has("tut-adv-start"), "Koch's tutorial stops stay in the tutorial")
 
 	# ---- 4. Exit to Base ----

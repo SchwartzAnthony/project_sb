@@ -3598,7 +3598,11 @@ after the box, such as `Continue forward`. **Once** true plays a row only the
 first time. The game is paused under the box and nothing can be clicked
 until it closes. Any Adventure mode can have rows like these.
 
-**The Head Coach explains your own Adventures too** (round AN, 10 Oct). The
+**Wastl explains your own Adventures** (round AN, 10-11 Oct). WASTL is the
+captain of the Adventure Team, a Bavarian hiking footballer (StoryArt.csv
+`wastl`). The first time you open the Adventure board in your own game the
+Head Coach introduces him and says goodbye (`Guide.csv wastl_intro`, scene
+`wastl-intro`). From then on Wastl does the stops. The
 `coach_adv_*` rows in `MatchTalk.csv` have Mode `adventure;intro_adventure`
 (a **Mode** cell can now list several modes with `;`) and Once true, so each
 plays the first time that moment happens in a save, then never again. His
