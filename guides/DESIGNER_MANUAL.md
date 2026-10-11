@@ -293,6 +293,39 @@ Two directions, and both of them matter:
   problem. That is a room waiting for its door, which is the normal state of
   a game you are still building
 
+### Drawing it: the Sturmball Designer (round AN, 11 Oct)
+
+Double-click **`sturmball_designer.html`** in the project folder. It opens in
+your browser, needs nothing installed, and has two tabs:
+
+* **Unlock Tree** - every row of `Achievements.csv` is a card. A line from
+  one card down to another means the lower one can only be earned after the
+  upper one (in the CSV that is `flag:earned_<id>` in its Needs). Drag the
+  orange dot under a card onto another card to link them, or press
+  *+ next step*. Click a card to set what earns it, what it unlocks (picked
+  from every name the game tests, grouped: buildings, base banners, Brewery
+  machines, drinks, ...), the key price and the upgrades it puts on sale at
+  the Club House. *+ New tree* adds another tab (Brewery, Adventure, ...);
+  trees are only for drawing - they all export into one `Achievements.csv`,
+  whose new columns **Tree**, **Map X** and **Map Y** remember where each
+  card sits.
+* **Brewery Recipes** - every row of `Brews.csv` is a card, ingredients
+  (`Items.csv`) are the green pills. Drag a pill's dot onto a drink to put
+  one more in its `Cost`. Click a drink for amounts, who drinks it, what it
+  turns them into and which unlock opens it.
+
+**Export...** gives you `Achievements.csv`, `Upgrades.csv` and `Brews.csv` in
+exactly the game's format, plus `designer_summary.md` - what you drew, in
+words, with any names the game does not use yet. Drop the CSVs into `data/`,
+or send them and the summary to Claude. *Save design* keeps a file you can
+open again; the browser also remembers your last design by itself.
+
+The page carries a copy of the CSVs from when it was built. *Load game
+data...* reads the newest ones from `project_sb/data` (in Chrome it can then
+write the export straight back). Rebuild the copy with
+`python3 tools/designer_src/build.py`; edit `tools/designer_src/designer.html`,
+never the built page.
+
 ---
 
 ## 5. How the game reads a spreadsheet
