@@ -212,6 +212,8 @@ var mark_lane_cut: float = 100.0
 var mark_shadow_commitment: float = 0.6
 var open_switch_margin: float = 60.0
 ## ROUND AN (11 Oct): spread the whole shape out.
+## Round AN (11 Oct): no two team-mates' spots closer than this. 0 = off.
+var team_spacing: float = 170.0
 var shape_spread_x: float = 1.2
 var shape_spread_y: float = 1.25
 var shape_edge_margin: float = 0.05
@@ -904,6 +906,7 @@ func _assign_roles() -> void:
 			unit.set_role(PlayerUnit.Role.OPEN,
 				_keep_with_play(unit, _open_point(unit), open_support_min), unit.walk_speed * 1.6)
 
+	_space_out_targets(units)
 	_pace_by_range(units, reach)
 
 
@@ -960,6 +963,71 @@ func _keep_with_play(unit: PlayerUnit, spot: Vector2, nearest: float,
 		var give := quarter.size.x * open_zone_margin
 		out.x = clampf(out.x, quarter.position.x - give, quarter.end.x + give)
 	return unit.leash_point(out)
+
+
+## ============ TEAM-MATES KEEP THEIR DISTANCE  (round AN, 11 Oct) ============
+##
+## Anthony: "the enemy team is still too cluttered ... at one point only the
+## left side was huddled together." Each job picks its own spot, and nothing
+## stopped two team-mates picking spots on top of each other - most of all in
+## the break after a Play Maker, when the attack pushes up and the defence
+## drops back with it and both land in one half.
+##
+## So after every job is handed out, the spots of team-mates who are NOT going
+## for the ball are pushed apart until no two are closer than
+## `team_spacing`. Both sides, every phase. The man on the ball, the man a
+## pass is meant for, the ones going for it and the runners into the box keep
+## their spots; everyone else makes room around them.
+func _space_out_targets(units: Array[PlayerUnit]) -> void:
+	if team_spacing <= 0.0:
+		return
+	var rect := get_play_rect()
+	for enemy in [false, true]:
+		var fixed: Array[PlayerUnit] = []
+		var free: Array[PlayerUnit] = []
+		for unit in units:
+			if unit.is_enemy != enemy or not unit.has_role_target:
+				continue
+			if _keeps_his_spot(unit):
+				fixed.append(unit)
+			else:
+				free.append(unit)
+		for _pass in 3:
+			for i in free.size():
+				var a := free[i]
+				var push := Vector2.ZERO
+				for other in free + fixed:
+					if other == a:
+						continue
+					var off := a.role_target - other.role_target
+					var d := off.length()
+					if d >= team_spacing:
+						continue
+					if d < 0.5:
+						# Same spot: split them by who is who, never at random.
+						off = Vector2.UP if a.get_instance_id() < other.get_instance_id() else Vector2.DOWN
+						d = 0.5
+					# A free man shares the gap with another free man, but
+					# makes all of it up himself next to one who keeps his spot.
+					var share := 0.5 if free.has(other) else 1.0
+					push += off / d * (team_spacing - d) * share
+				if push != Vector2.ZERO:
+					a.role_target = Vector2(
+						clampf(a.role_target.x + push.x, rect.position.x + 20.0, rect.end.x - 20.0),
+						clampf(a.role_target.y + push.y, rect.position.y + 24.0, rect.end.y - 24.0))
+
+
+## The jobs whose spot is the point of the job, so team_spacing never moves it.
+func _keeps_his_spot(unit: PlayerUnit) -> bool:
+	match unit.role:
+		PlayerUnit.Role.BALL, PlayerUnit.Role.PRESS, PlayerUnit.Role.RECEIVE, \
+				PlayerUnit.Role.DRIBBLE:
+			return true
+		PlayerUnit.Role.SURGE:
+			return _surge_station(unit) >= 0
+		PlayerUnit.Role.RECOVER:
+			return _is_closest_to_ball(unit, recover_closers)
+	return false
 
 
 ## ============ ONLY SPRINT WHEN THE BALL IS IN RANGE  (round AN, 8 Oct) ============
@@ -1897,6 +1965,7 @@ func _apply_match_tuning() -> void:
 	mark_lane_cut = db.tune_float("mark_lane_cut", mark_lane_cut)
 	mark_shadow_commitment = db.tune_float("mark_shadow_commitment", mark_shadow_commitment)
 	open_switch_margin = db.tune_float("open_switch_margin", open_switch_margin)
+	team_spacing = db.tune_float("team_spacing", team_spacing)
 	shape_spread_x = db.tune_float("shape_spread_x", shape_spread_x)
 	shape_spread_y = db.tune_float("shape_spread_y", shape_spread_y)
 	shape_edge_margin = db.tune_float("shape_edge_margin", shape_edge_margin)
