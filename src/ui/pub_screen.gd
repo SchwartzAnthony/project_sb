@@ -560,6 +560,7 @@ func _on_card(card: PlayerData) -> void:
 	var permanent := _permanent.button_pressed
 	var before := DrunkBook.level_of(card, state)
 	BrewDB.pour(card, _selected, permanent, state)
+	_pour_sound(card)
 	state.save_to_disk()
 
 	var kept := BrewDB.is_permanent(card, state)
@@ -587,6 +588,7 @@ func _pour_plain(card: PlayerData) -> void:
 	var before := DrunkBook.level_of(card, state)
 	var was := DrunkBook.meter(card, state)
 	BrewDB.pour(card, _selected, false, state)
+	_pour_sound(card)
 	state.save_to_disk()
 	var after := DrunkBook.level_of(card, state)
 	_detail.text = "%s drinks a %s. %d%% -> %d%%." % [card.player_name, _selected["name"],
@@ -614,6 +616,7 @@ func _pour_turning(card: PlayerData) -> void:
 	_detail.text = String(result["why"])
 	if not bool(result["ok"]):
 		return
+	_pour_sound(card)
 	state.save_to_disk()
 	_rebuild_cards()
 	var after := DrunkBook.level_of(card, state)
@@ -691,3 +694,11 @@ func _ask_who(card: PlayerData, entry: Dictionary) -> void:
 	later.text = "Not yet - he keeps his beers"
 	later.pressed.connect(shade.queue_free)
 	list.add_child(later)
+
+
+## ROUND AN (10 Oct): the pour is heard. Audio.csv rows on `brew_drunk`
+## with where=pub (brew_pour). The same moment on the pitch is where=pitch.
+func _pour_sound(card: PlayerData) -> void:
+	AudioDirector.fire(get_tree(), "brew_drunk", {"where": "pub",
+		"brew": String(_selected.get("id", "")), "class": card.unit_type,
+		"tier": card.get_tier_clean()}, state)

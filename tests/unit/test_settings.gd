@@ -40,8 +40,11 @@ func test_every_bus_in_the_sheet_exists() -> void:
 
 
 func test_every_audio_row_names_a_real_bus() -> void:
+	var wrong: Array[String] = []
 	for line in AudioDB.get_db().problems:
-		assert_false(String(line).contains("bus '"), line)
+		if String(line).contains("bus '"):
+			wrong.append(String(line))
+	assert_eq(wrong.size(), 0, "\n".join(wrong))
 
 
 func test_a_slider_reaches_its_bus_without_saving() -> void:
