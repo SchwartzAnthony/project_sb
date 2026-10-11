@@ -44,10 +44,13 @@ func _initialize() -> void:
 		var sound := MenuSupport.field(row, "Sound").strip_edges()
 		var cue := book.cue_by_name(sound)
 		var there := not cue.is_empty()
-		if not there and not missing.has(sound):
+		# `suno_x | -` is waiting for its file on purpose (round AN).
+		var waiting := not there and sound.replace(" ", "").ends_with("|-")
+		if not there and not waiting and not missing.has(sound):
 			missing.append(sound)
-		print("[audio] %-22s %-18s %s" % [id_text, sound,
-			"ok" if there else "NO FILE in assets/audio/"])
+		var shown := "ok -> " + String(cue.get("sound", "")) if there \
+			else ("waiting for its file (silent until then)" if waiting else "NO FILE in assets/audio/")
+		print("[audio] %-22s %-18s %s" % [id_text, sound, shown])
 
 	# ---- 2. the moments ----
 	print("")
@@ -58,7 +61,14 @@ func _initialize() -> void:
 		"screen_opened  match": {"screen": "match"},
 		"screen_opened  pub": {"screen": "pub"},
 		"screen_opened  season": {"screen": "season"},
-		"screen_opened  teamselect": {"screen": "teamselect"},
+		"screen_opened  team_select": {"screen": "team_select"},
+		"screen_opened  team_builder": {"screen": "team_builder"},
+		"window_opened  brewery": {"screen": "brewery", "over": "base"},
+		"window_opened  dorms": {"screen": "dorms", "over": "base"},
+		"match_started  marsh": {"biome": "The Marshlands"},
+		"goal_attempt": {},
+		"play_resumed": {},
+		"duel_priority_check": {},
 		"screen_opened  bounty": {"screen": "bounty"},
 		"kick_off": {},
 		"goal_scored": {},

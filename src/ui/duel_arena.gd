@@ -25,6 +25,8 @@ extends CanvasLayer
 #  fail sound for YOUR side. Timings and the gold are `duel_hl_*` rows in
 #  Tuning.csv, the words are Language.csv, the sounds Audio.csv
 #  (duel_ability_success / _fail, duel_power_victory / _fail).
+#  The three checks have a sound of their own as they come up (round AN,
+#  10 Oct): duel_priority_check, duel_ability_check, duel_power_check.
 #
 #  ROUND AN - THE POP-UPS (11 Oct): each check (ABILITY PRIORITY, ABILITY
 #  CHECK, POWER CHECK) slams into the MIDDLE of the screen - big, tilted,
@@ -437,6 +439,7 @@ func _fire_ability(key: String, data: Dictionary, moment: String = "") -> void:
 				"duel_ability_check", data, func() -> void: _box(key, true))
 	else:
 		_box(key, true)
+		_sound("duel_ability_check", data)
 	await _beat(hl_ability_seconds)
 	await _coach(moment)
 	var went_off := bool(data.get("fired", true))
