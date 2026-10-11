@@ -1,0 +1,996 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sturmball Designer</title>
+<!--
+  STURMBALL DESIGNER - draw the unlock trees and the brewery recipes, then
+  export them as the game's own CSV files.
+
+  DO NOT EDIT sturmball_designer.html IN THE PROJECT ROOT. It is built from
+  this file by tools/designer_src/build.py, which pastes a copy of the game's
+  CSVs in at GAME_DATA below so the page works with a plain double-click.
+-->
+<style>
+:root{
+  --paper:#f4f1e8; --card:#fffdf7; --raise:#faf7ee;
+  --ink:#1b2027; --dim:#6d7684; --faint:#9aa2ae;
+  --line:#ddd5c4; --hair:#e8e2d5;
+  --accent:#a95c14; --accent-soft:#f0e2cf;
+  --pitch:#3d6a45; --pitch-soft:#e0eade; --warn:#a33a23; --warn-soft:#f4ddd6;
+  --grid:#e9e3d4; --edge:#8d7a5c;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#12151a; --card:#191d24; --raise:#1f242d;
+  --ink:#e4e8ef; --dim:#8a93a2; --faint:#646d7b;
+  --line:#2b323d; --hair:#232932;
+  --accent:#e0a04a; --accent-soft:#3a2d18;
+  --pitch:#6aa374; --pitch-soft:#1d2c21; --warn:#e0765c; --warn-soft:#331d17;
+  --grid:#1a1e25; --edge:#b59a6e;
+}}
+:root[data-theme="dark"]{
+  --paper:#12151a; --card:#191d24; --raise:#1f242d;
+  --ink:#e4e8ef; --dim:#8a93a2; --faint:#646d7b;
+  --line:#2b323d; --hair:#232932;
+  --accent:#e0a04a; --accent-soft:#3a2d18;
+  --pitch:#6aa374; --pitch-soft:#1d2c21; --warn:#e0765c; --warn-soft:#331d17;
+  --grid:#1a1e25; --edge:#b59a6e;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.4;display:flex;flex-direction:column;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:5px 10px}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.small{padding:2px 7px;font-size:12px}
+button.danger{color:var(--warn)}
+input,select,textarea{background:var(--card);border:1px solid var(--line);border-radius:5px;padding:4px 6px;width:100%}
+textarea{resize:vertical;min-height:52px}
+label{display:block;font-size:12px;color:var(--dim);margin:10px 0 3px}
+header.top{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--raise);flex-wrap:wrap}
+header.top > button{padding:4px 9px;font-size:13px}
+header.top h1{font-size:17px;margin:0 8px 0 0;letter-spacing:.3px}
+.tabs{display:flex;gap:4px}
+.tabs button{border-radius:6px 6px 0 0;border-bottom:none;background:transparent}
+.tabs button.on{background:var(--card);border-color:var(--line);font-weight:600}
+.spacer{flex:1}
+.source{font-size:12px;color:var(--dim);min-width:0;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:1100px){.source{display:none}}
+.subbar{display:flex;align-items:center;gap:6px;padding:6px 12px;border-bottom:1px solid var(--line);background:var(--card);flex-wrap:wrap}
+.treetab{border-radius:14px;padding:3px 12px}
+.treetab.on{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+main{flex:1;display:flex;min-height:0}
+.view{flex:1;display:none;min-width:0}
+.view.on{display:flex;flex-direction:column}
+.work{flex:1;display:flex;min-height:0}
+.canvas{flex:1;position:relative;overflow:hidden;cursor:grab;touch-action:none;
+  background-color:var(--paper);
+  background-image:radial-gradient(var(--grid) 1.2px,transparent 1.2px);background-size:24px 24px}
+.canvas.panning{cursor:grabbing}
+.layer{position:absolute;left:0;top:0;transform-origin:0 0}
+svg.edges{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+svg.edges path.e{fill:none;stroke:var(--edge);stroke-width:2.2;pointer-events:stroke;cursor:pointer}
+svg.edges path.hit{fill:none;stroke:transparent;stroke-width:14;pointer-events:stroke;cursor:pointer}
+svg.edges path.e.sel{stroke:var(--accent);stroke-width:3.5}
+svg.edges path.temp{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-dasharray:6 5}
+svg.edges text{font-size:12px;font-weight:700;fill:var(--ink);paint-order:stroke;stroke:var(--paper);stroke-width:4px}
+.node{position:absolute;width:220px;background:var(--card);border:1.5px solid var(--line);border-radius:10px;
+  box-shadow:0 1px 3px rgba(0,0,0,.08);cursor:pointer;user-select:none}
+.node.sel{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.node.drop{border-color:var(--pitch);box-shadow:0 0 0 3px var(--pitch-soft)}
+.node .hd{padding:7px 10px 4px;font-weight:650;display:flex;gap:6px;align-items:flex-start}
+.node .hd .ico{font-size:15px;line-height:1.2}
+.node .when{padding:0 10px 6px;font-size:12px;color:var(--dim)}
+.node .chips{padding:0 8px 8px;display:flex;flex-wrap:wrap;gap:4px}
+.chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:10px;padding:1px 7px;font-size:12px;background:var(--raise);max-width:100%}
+.chip i{width:8px;height:8px;border-radius:50%;flex:none}
+.chip.new{border-style:dashed}
+.chip.dup{border-color:var(--warn)}
+.node .price{padding:0 10px 7px;font-size:12px;color:var(--accent)}
+.node .foot{display:flex;justify-content:center;border-top:1px solid var(--hair);padding:3px}
+.node .foot button{border:none;background:transparent;font-size:12px;color:var(--dim);padding:2px 8px}
+.node .foot button:hover{color:var(--accent)}
+.node .handle{position:absolute;left:50%;bottom:-9px;width:16px;height:16px;margin-left:-8px;border-radius:50%;
+  background:var(--accent);border:2px solid var(--card);cursor:crosshair;display:none}
+.node:hover .handle,.node.sel .handle{display:block}
+.node.start{border-color:var(--pitch)}
+.node.start .hd{color:var(--pitch)}
+.node .warn{padding:0 10px 6px;font-size:11.5px;color:var(--warn)}
+.node .xparent{padding:0 10px 4px;font-size:11.5px;color:var(--dim);font-style:italic}
+.ing{position:absolute;width:150px;background:var(--pitch-soft);border:1.5px solid var(--pitch);border-radius:20px;padding:6px 12px;cursor:pointer;user-select:none;font-weight:600}
+.ing small{display:block;font-weight:400;color:var(--dim);font-size:11.5px}
+.ing.sel{box-shadow:0 0 0 3px var(--accent-soft);border-color:var(--accent)}
+.ing .handle{position:absolute;right:-9px;top:50%;margin-top:-8px;width:16px;height:16px;border-radius:50%;background:var(--pitch);border:2px solid var(--card);cursor:crosshair}
+.drink .class{padding:0 10px 6px;font-size:12px}
+.side{width:360px;flex:none;border-left:1px solid var(--line);background:var(--card);overflow:auto;padding:12px 14px 40px}
+.side h2{font-size:15px;margin:0 0 4px}
+.side .hint{font-size:12px;color:var(--dim)}
+.side .row{display:flex;gap:6px;align-items:center}
+.side .row > *{flex:1}
+.side .row > .fixed{flex:none}
+.side .box{border:1px solid var(--hair);border-radius:8px;padding:8px;margin-top:6px;background:var(--raise)}
+.side hr{border:none;border-top:1px solid var(--hair);margin:14px 0}
+.list{display:flex;flex-direction:column;gap:5px}
+.picker{position:fixed;z-index:50;width:380px;max-height:70vh;display:flex;flex-direction:column;background:var(--card);
+  border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.picker .pk-head{padding:10px;border-bottom:1px solid var(--hair)}
+.picker .pk-body{overflow:auto;padding:4px 10px 10px}
+.picker h4{margin:10px 0 4px;font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:6px}
+.picker h4 i{width:9px;height:9px;border-radius:50%}
+.picker .opt{display:flex;gap:8px;align-items:center;padding:3px 4px;border-radius:5px;cursor:pointer}
+.picker .opt:hover{background:var(--raise)}
+.picker .opt input{width:auto}
+.picker .opt small{color:var(--dim)}
+.picker .pk-foot{padding:8px 10px;border-top:1px solid var(--hair);display:flex;gap:6px;justify-content:flex-end}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--card);border-radius:12px;max-width:640px;width:100%;max-height:85vh;overflow:auto;padding:18px 20px;border:1px solid var(--line)}
+.modal h2{margin:0 0 8px;font-size:18px}
+.modal .files{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.modal .file{display:flex;align-items:center;gap:8px;border:1px solid var(--hair);border-radius:8px;padding:7px 10px}
+.modal .file .nm{font-family:var(--mono);font-weight:600}
+.modal .file .st{flex:1;color:var(--dim);font-size:12.5px}
+.modal .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:8px 16px;border-radius:8px;z-index:80;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+.chain{display:flex;gap:6px;align-items:center;padding:6px 12px;border-bottom:1px solid var(--line);background:var(--raise);overflow-x:auto;font-size:12px;white-space:nowrap}
+.chain b{color:var(--accent)}
+.chain .arrow{color:var(--faint)}
+.empty{color:var(--dim);font-size:13px;margin-top:20px}
+.legend{position:absolute;left:10px;bottom:10px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap;max-width:70%}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:9px;height:9px;border-radius:50%}
+kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 4px;background:var(--raise)}
+@media (max-width:760px){.side{width:100%;position:absolute;right:0;top:auto;bottom:0;height:45%;border-left:none;border-top:1px solid var(--line)} .work{position:relative}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Sturmball Designer</h1>
+  <div class="tabs">
+    <button data-view="unlocks" class="on">Unlock Tree</button>
+    <button data-view="brews">Brewery Recipes</button>
+  </div>
+  <div class="spacer"></div>
+  <span class="source" id="source"></span>
+  <button id="btnLoad" title="Read the CSVs from your project_sb/data folder">Load game data…</button>
+  <button id="btnOpen" title="Open a design you saved earlier">Open design…</button>
+  <button id="btnSave" title="Save this design as a file you can open again">Save design</button>
+  <button id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
+  <button id="btnExport" class="primary">Export…</button>
+  <input type="file" id="dirInput" webkitdirectory multiple hidden>
+  <input type="file" id="designInput" accept=".json,application/json" hidden>
+</header>
+<main>
+  <!-- =========================== UNLOCK TREE =========================== -->
+  <section class="view on" id="view-unlocks">
+    <div class="subbar">
+      <span id="treeTabs" style="display:flex;gap:6px;flex-wrap:wrap"></span>
+      <button class="small" id="btnAddTree">+ New tree</button>
+      <div class="spacer"></div>
+      <button class="small" id="btnAddNode">+ Add unlock step</button>
+      <button class="small" id="btnArrange" title="Lay this tree out neatly">Tidy up</button>
+      <button class="small" id="btnFit">Fit</button>
+      <button class="small" id="btnZoomOut">−</button>
+      <button class="small" id="btnZoomIn">+</button>
+    </div>
+    <div class="work">
+      <div class="canvas" id="ucanvas">
+        <div class="layer" id="ulayer"><svg class="edges" id="uedges"></svg></div>
+        <div class="legend" id="ulegend"></div>
+      </div>
+      <aside class="side" id="uside"></aside>
+    </div>
+  </section>
+  <!-- ========================= BREWERY RECIPES ========================= -->
+  <section class="view" id="view-brews">
+    <div class="chain" id="chain"></div>
+    <div class="subbar">
+      <span class="hint" style="font-size:12px;color:var(--dim)">Drag from an ingredient's dot onto a drink to put it in the recipe.</span>
+      <div class="spacer"></div>
+      <button class="small" id="btnAddBrew">+ New drink</button>
+      <button class="small" id="btnAddIng">+ Ingredient</button>
+      <button class="small" id="btnBArrange">Tidy up</button>
+      <button class="small" id="btnBFit">Fit</button>
+    </div>
+    <div class="work">
+      <div class="canvas" id="bcanvas">
+        <div class="layer" id="blayer"><svg class="edges" id="bedges"></svg></div>
+      </div>
+      <aside class="side" id="bside"></aside>
+    </div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+/* The game's CSVs, pasted in by tools/designer_src/build.py. */
+const GAME_DATA = /*GAME_DATA*/{"stamp":"not built","files":{}}/*END_GAME_DATA*/;
+
+/* ============================================================
+   CSV - the same quoting the game's files use (quote only when needed,
+   \n line ends), so an unchanged file exports byte-for-byte the same.
+   ============================================================ */
+function parseCSV(text){
+  if(text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+  const rows=[]; let row=[], f='', q=false, i=0;
+  while(i<text.length){
+    const c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){f+='"';i+=2;continue;} q=false; i++; continue; }
+      f+=c; i++; continue;
+    }
+    if(c==='"'){q=true;i++;continue;}
+    if(c===','){row.push(f);f='';i++;continue;}
+    if(c==='\r'){i++;continue;}
+    if(c==='\n'){row.push(f);rows.push(row);row=[];f='';i++;continue;}
+    f+=c;i++;
+  }
+  if(f!==''||row.length){row.push(f);rows.push(row);}
+  return rows;
+}
+function csvCell(v){ v=v==null?'':String(v); return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; }
+function toCSV(rows){ return rows.map(r=>r.map(csvCell).join(',')).join('\n')+'\n'; }
+function table(name){
+  const t=FILES[name]; if(!t) return {header:[],rows:[]};
+  const all=parseCSV(t); const header=all.shift()||[];
+  const rows=all.filter(r=>r.some(c=>c.trim()!=='')).map(r=>{const o={};header.forEach((h,i)=>o[h]=r[i]??'');return o;});
+  return {header,rows};
+}
+function tableToCSV(header,rows){ return toCSV([header,...rows.map(r=>header.map(h=>r[h]??''))]); }
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let FILES={};            // file name (no .csv) -> text, the game data in use
+let SOURCE='';           // where FILES came from, for the top bar
+let S=null;              // the design (everything that is saved / exported)
+let CAT=null;            // the catalogue of unlockable names
+let dirHandle=null;      // the data folder, when the browser lets us write to it
+const UNDO=[]; let lastSnap='';
+const STORE='sturmball-designer-v1';
+
+const CATS=[ // file -> group in the unlock picker, in the order the picker shows them
+  ['Buildings','Buildings','#c0752b'],
+  ['BaseBanners','Base banners','#6b7fb8'],
+  ['BrewerySections','Brewery machines','#9b5fb0'],
+  ['Brews','Drinks','#d4a017'],
+  ['Biomes','Adventure','#3f8f6a'],['Bounties','Adventure'],['Season','Adventure'],
+  ['ClassInfo','Classes & teams','#b5484b'],['Teams','Classes & teams'],
+  ['Seasons','Competitions & modes','#2f7fa3'],['MatchModes','Competitions & modes'],['Trophies','Competitions & modes'],
+  ['Stadium','Stadium','#7a8b3a'],
+  ['Talents','Talents & training','#8a6d5a'],['Training','Talents & training'],['Progression','Talents & training'],
+];
+const CAT_COLOR={}; CATS.forEach(c=>{ if(c[2]) CAT_COLOR[c[1]]=c[2]; });
+CAT_COLOR['Other']='#8f8f8f'; CAT_COLOR['New (not in the game yet)']='#d0d0d0';
+/* The top-row banners on the base are not locked by anything in the game
+   today. They are offered so you can plan them; the export says they need
+   wiring. */
+const BASE_BANNERS=[['Team Maker','"Your teams" banner'],['Match Maker','"Play a match" banner'],['Adventure','Adventure banner'],
+  ['The Season','Season shelf banner'],['Inventory','Inventory banner'],['Achievements','Achievements banner'],['Conquests','Conquests banner']];
+
+function slug(s){ return String(s).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g,'').replace(/ß/g,'ss').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')||'step'; }
+function norm(s){ return String(s).toLowerCase().replace(/[\s_-]+/g,' ').trim(); }
+function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function uid(base,taken){ let id=base,n=2; while(taken.has(id)) id=base+'_'+(n++); return id; }
+
+/* ---------- the catalogue of names an achievement can hand over ---------- */
+function buildCatalogue(){
+  const map=new Map(); // norm(name) -> {name, cat, label}
+  const add=(name,cat,label)=>{ name=name.trim(); if(!name||name.length<2) return; const k=norm(name); if(!map.has(k)) map.set(k,{name,cat,label:label||''}); };
+  // Building names first, so "Dorms" is a building rather than whatever mentions it first.
+  table('Buildings').rows.forEach(r=>{ const m=/unlocked:([^;|]+)/.exec(r.Requires||''); add(m?m[1]:r.Name,'Buildings',r.Name); });
+  BASE_BANNERS.forEach(([n,l])=>add(n,'Base banners',l));
+  table('BrewerySections').rows.forEach(r=>{ const m=/unlocked:([^;|]+)/.exec(r.Needs||''); if(m) add(m[1],'Brewery machines',r.Name); });
+  table('Brews').rows.forEach(r=>{ const m=/unlocked:([^;|]+)/.exec(r.Requires||''); if(m) add(m[1],'Drinks',r.Name); });
+  const skip=new Set(['Notes','Description','Text','Line','What it does','Example','Keyword']);
+  CATS.forEach(([file,cat])=>{
+    if(file==='BaseBanners') return;
+    const t=table(file);
+    t.rows.forEach(r=>{ for(const h of t.header){ if(skip.has(h)) continue; const v=r[h]||''; for(const m of v.matchAll(/unlocked:([^;|\n]+)/g)) add(m[1],cat,r.Name||r.ID||r.Layer||''); } });
+  });
+  // Every other file that tests an unlock.
+  for(const file of Object.keys(FILES)){
+    if(CATS.some(c=>c[0]===file)||['Achievements','Upgrades','Keywords','Tuning','Dialogue'].includes(file)) continue;
+    const t=table(file);
+    t.rows.forEach(r=>{ for(const h of t.header){ if(skip.has(h)) continue; for(const m of (r[h]||'').matchAll(/unlocked:([^;|\n]+)/g)) add(m[1],'Other',file); } });
+  }
+  // Whatever Achievements.csv already hands over.
+  table('Achievements').rows.forEach(r=>splitList(r.Unlocks).forEach(u=>add(u,'Other','')));
+  return map;
+}
+function catOf(name){ const e=CAT.get(norm(name)); return e?e.cat:'New (not in the game yet)'; }
+function splitList(s){ return String(s||'').split(';').map(x=>x.trim()).filter(Boolean); }
+
+/* ---------- conditions ---------- */
+let STATS=[];
+function statLabel(counter){ const s=STATS.find(x=>x.Counter===counter); return s&&s.Label?s.Label:counter.replace(/_/g,' '); }
+function humanCond(tok){
+  let m=/^count:([\w{}]+)\s*(>=|<=|==|>|<|=)\s*(-?\d+)$/.exec(tok);
+  if(m){ const op={'>=':'≥','<=':'≤','==':'=','=':'=','>':'>','<':'<'}[m[2]]; return statLabel(m[1])+' '+op+' '+m[3]; }
+  if((m=/^(!?)flag:(.+)$/.exec(tok))) return (m[1]?'not ':'')+'flag '+m[2];
+  if((m=/^(!?)unlocked:(.+)$/.exec(tok))) return (m[1]?'not yet ':'has ')+m[2];
+  return tok;
+}
+
+/* ============================================================
+   IMPORT: game CSVs -> design
+   ============================================================ */
+function designFromGame(){
+  STATS=table('Stats').rows;
+  CAT=buildCatalogue();
+  const ach=table('Achievements');
+  const ids=new Set(ach.rows.map(r=>r.ID));
+  const trees=[]; const tree=(name)=>{ let t=trees.find(x=>x.name===name); if(!t){ t={id:uid(slug(name),new Set(trees.map(x=>x.id))),name}; trees.push(t);} return t.id; };
+  const nodes=ach.rows.map(r=>{
+    const toks=splitList(r.Needs), parents=[], cond=[];
+    toks.forEach(t=>{ const m=/^flag:earned_(.+)$/.exec(t); if(m&&ids.has(m[1])) parents.push(m[1]); else cond.push(t); });
+    const x=parseFloat(r['Map X']), y=parseFloat(r['Map Y']);
+    return {id:r.ID,name:r.Name,desc:r.Description,cond,parents,unlocks:splitList(r.Unlocks),reward:r.Reward||'',
+      art:r.Art||'',hidden:r.Hidden||'',notes:r.Notes||'',tree:tree(r.Tree||'Main Game'),
+      x:isNaN(x)?null:x,y:isNaN(y)?null:y,row:r};
+  });
+  if(!trees.length) tree('Main Game');
+  // The start of the game: an achievement with nothing to wait for.
+  const main=trees[0].id;
+  if(!nodes.some(n=>!n.cond.length&&!n.parents.length&&n.tree===main)){
+    nodes.unshift({id:uid('main_game',ids),name:'Main Game',desc:'Open from the very first moment of a new save.',cond:[],parents:[],unlocks:[],
+      reward:'',art:'',hidden:'',notes:'',tree:main,x:null,y:null,row:null,start:true});
+  }
+  nodes.forEach(n=>{ if(!n.cond.length&&!n.parents.length) n.start=true; });
+  const up=table('Upgrades'), br=table('Brews');
+  S={version:1,trees,curTree:main,nodes,
+     achHeader:ach.header, upHeader:up.header, upgrades:up.rows,
+     brewHeader:br.header, brews:br.rows, brewPos:{}, ingPos:{}, extraIngs:[], view:{u:{},b:null}};
+  trees.forEach(t=>arrangeTree(t.id,true));
+  arrangeBrews();
+}
+
+/* ============================================================
+   EXPORT: design -> game CSVs
+   ============================================================ */
+function needsOf(n){ return [...n.parents.map(p=>'flag:earned_'+p),...n.cond].join(';'); }
+function exportedNodes(){ return S.nodes.filter(n=>!(n.start&&!n.row&&!n.unlocks.length&&!n.reward)); }
+function buildAchievements(){
+  let header=[...S.achHeader];
+  if(!header.length) header=['ID','Name','Description','Needs','Unlocks','Reward','Art','Hidden','Notes'];
+  // Where each step sits on the board, so the tree comes back the same.
+  const ni=header.indexOf('Notes'); const extra=['Tree','Map X','Map Y'].filter(h=>!header.includes(h));
+  if(extra.length){ if(ni<0) header.push(...extra); else header.splice(ni,0,...extra); }
+  const rows=exportedNodes().map(n=>{
+    const r={...(n.row||{})};
+    r.ID=n.id; r.Name=n.name; r.Description=n.desc; r.Needs=needsOf(n); r.Unlocks=n.unlocks.join(';');
+    r.Reward=n.reward; r.Art=n.art; r.Hidden=n.hidden; r.Notes=n.notes;
+    r.Tree=(S.trees.find(t=>t.id===n.tree)||{}).name||''; r['Map X']=Math.round(n.x); r['Map Y']=Math.round(n.y);
+    return r;
+  });
+  return tableToCSV(header,rows);
+}
+function buildUpgrades(){ return tableToCSV(S.upHeader.length?S.upHeader:['ID','Name','Kind','Description','Achievement','Needs','Cost','Currency','Effect','Notes'],S.upgrades); }
+function buildBrews(){ return tableToCSV(S.brewHeader,S.brews); }
+function exportFiles(){
+  return [
+    {name:'Achievements.csv',key:'Achievements',text:buildAchievements(),what:'the unlock trees'},
+    {name:'Upgrades.csv',key:'Upgrades',text:buildUpgrades(),what:'keys and upgrades sold at the Club House'},
+    {name:'Brews.csv',key:'Brews',text:buildBrews(),what:'the brewery recipes'},
+  ].map(f=>({...f,changed:f.text!==FILES[f.key]}));
+}
+
+/* ============================================================
+   SAVE / UNDO
+   ============================================================ */
+function snap(){ return JSON.stringify(S); }
+function changed(){ // call after every edit
+  const s=snap(); if(s===lastSnap) return;
+  if(lastSnap) { UNDO.push(lastSnap); if(UNDO.length>80) UNDO.shift(); }
+  lastSnap=s;
+  try{ localStorage.setItem(STORE,JSON.stringify({savedAt:Date.now(),source:SOURCE,files:FILES,design:S})); }catch(e){}
+}
+function undo(){ if(!UNDO.length){toast('Nothing to undo');return;} S=JSON.parse(UNDO.pop()); lastSnap=snap(); persistOnly(); renderAll(); }
+function persistOnly(){ try{ localStorage.setItem(STORE,JSON.stringify({savedAt:Date.now(),source:SOURCE,files:FILES,design:S})); }catch(e){} }
+
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.remove('on'),2200); }
+function download(name,text,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:type||'text/csv'})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500); }
+
+/* ============================================================
+   CANVAS - shared pan / zoom
+   ============================================================ */
+function makeCanvas(el,layer,getView,setView){
+  const apply=()=>{ const v=getView(); layer.style.transform=`translate(${v.x}px,${v.y}px) scale(${v.k})`; };
+  let pan=null;
+  el.addEventListener('pointerdown',e=>{
+    if(e.target!==el&&e.target!==layer&&!e.target.closest('svg.edges')) return;
+    if(e.target.closest('path.hit')) return;
+    pan={sx:e.clientX,sy:e.clientY,v:{...getView()},moved:false}; el.setPointerCapture(e.pointerId); el.classList.add('panning');
+  });
+  el.addEventListener('pointermove',e=>{ if(!pan) return; const dx=e.clientX-pan.sx, dy=e.clientY-pan.sy; if(Math.abs(dx)+Math.abs(dy)>3) pan.moved=true; setView({...pan.v,x:pan.v.x+dx,y:pan.v.y+dy}); apply(); });
+  el.addEventListener('pointerup',e=>{ if(!pan) return; el.classList.remove('panning'); if(!pan.moved) el.dispatchEvent(new CustomEvent('bgclick')); pan=null; });
+  el.addEventListener('wheel',e=>{ e.preventDefault(); const v=getView(); const r=el.getBoundingClientRect(); const mx=e.clientX-r.left,my=e.clientY-r.top;
+    const k=Math.min(2.2,Math.max(0.25,v.k*(e.deltaY<0?1.1:1/1.1))); setView({k,x:mx-(mx-v.x)*k/v.k,y:my-(my-v.y)*k/v.k}); apply(); },{passive:false});
+  return {apply,
+    zoom(f){ const v=getView(); const r=el.getBoundingClientRect(); const mx=r.width/2,my=r.height/2; const k=Math.min(2.2,Math.max(0.25,v.k*f)); setView({k,x:mx-(mx-v.x)*k/v.k,y:my-(my-v.y)*k/v.k}); apply(); },
+    toLocal(cx,cy){ const v=getView(); const r=el.getBoundingClientRect(); return {x:(cx-r.left-v.x)/v.k,y:(cy-r.top-v.y)/v.k}; },
+    fit(boxes){ if(!boxes.length){ setView({x:40,y:40,k:1}); apply(); return; }
+      const r=el.getBoundingClientRect(); const minX=Math.min(...boxes.map(b=>b.x)),minY=Math.min(...boxes.map(b=>b.y)),maxX=Math.max(...boxes.map(b=>b.x+b.w)),maxY=Math.max(...boxes.map(b=>b.y+b.h));
+      const k=Math.min(1.2,Math.max(0.25,Math.min((r.width-80)/(maxX-minX||1),(r.height-80)/(maxY-minY||1))));
+      setView({k,x:(r.width-(maxX-minX)*k)/2-minX*k,y:Math.max(30,(r.height-(maxY-minY)*k)/2)-minY*k}); apply(); }};
+}
+/* Drag a card; a click without movement selects it. */
+function dragCard(el,e,getPos,setPos,canvas,onClick,onEnd){
+  if(e.button!==undefined&&e.button!==0) return;
+  e.stopPropagation();
+  const start=canvas.toLocal(e.clientX,e.clientY), p0=getPos(); let moved=false;
+  el.setPointerCapture(e.pointerId);
+  const mv=ev=>{ const p=canvas.toLocal(ev.clientX,ev.clientY); const dx=p.x-start.x,dy=p.y-start.y; if(!moved&&Math.abs(dx)+Math.abs(dy)<4) return; moved=true;
+    setPos(Math.round((p0.x+dx)/8)*8,Math.round((p0.y+dy)/8)*8); };
+  const up=()=>{ el.removeEventListener('pointermove',mv); el.removeEventListener('pointerup',up); el.removeEventListener('pointercancel',up); if(moved) onEnd(); else onClick(); };
+  el.addEventListener('pointermove',mv); el.addEventListener('pointerup',up); el.addEventListener('pointercancel',up);
+}
+/* Drag a line out of a handle and drop it on a card. */
+function dragLink(e,canvas,svg,from,findTarget,onDrop){
+  e.stopPropagation(); e.preventDefault();
+  const tmp=document.createElementNS('http://www.w3.org/2000/svg','path'); tmp.setAttribute('class','temp'); svg.appendChild(tmp);
+  let over=null; const h=e.target; h.setPointerCapture(e.pointerId);
+  const mv=ev=>{ const p=canvas.toLocal(ev.clientX,ev.clientY); tmp.setAttribute('d',`M${from.x},${from.y} L${p.x},${p.y}`);
+    const t=findTarget(ev.clientX,ev.clientY); if(over&&over!==t) over.el.classList.remove('drop'); over=t; if(t) t.el.classList.add('drop'); };
+  const up=()=>{ h.removeEventListener('pointermove',mv); h.removeEventListener('pointerup',up); tmp.remove(); if(over){ over.el.classList.remove('drop'); onDrop(over.id); } };
+  h.addEventListener('pointermove',mv); h.addEventListener('pointerup',up);
+}
+function cardUnder(cx,cy,selector,attr){
+  const els=document.elementsFromPoint(cx,cy); for(const el of els){ const c=el.closest&&el.closest(selector); if(c) return {el:c,id:c.dataset[attr]}; } return null;
+}
+
+/* ============================================================
+   UNLOCK TREE VIEW
+   ============================================================ */
+const NODE_W=220, GAP_X=250, GAP_Y=190;
+let uSel=null; // {kind:'node',id} | {kind:'edge',from,to}
+let UC;
+function treeNodes(tid){ return S.nodes.filter(n=>n.tree===tid); }
+function node(id){ return S.nodes.find(n=>n.id===id); }
+function children(id){ return S.nodes.filter(n=>n.parents.includes(id)); }
+function wouldLoop(child,parent){ // is child an ancestor of parent?
+  const seen=new Set(); const walk=id=>{ if(id===child) return true; if(seen.has(id)) return false; seen.add(id); const n=node(id); return !!n&&n.parents.some(walk); };
+  return walk(parent);
+}
+function counterKey(n){ const t=n.cond.find(c=>c.startsWith('count:')); if(!t) return n.cond[0]?n.cond[0].split(':')[0]:'~'; return t.replace(/^count:([\w{}]+).*$/,'$1'); }
+function threshold(n){ const m=/(-?\d+)\s*$/.exec(n.cond.find(c=>c.startsWith('count:'))||''); return m?+m[1]:0; }
+
+/* Lay a tree out: linked steps in rows by depth; loose steps in columns,
+   one per counter (wins, goals, ...) sorted by how many you need. */
+function arrangeTree(tid,onlyMissing){
+  const ns=treeNodes(tid); const inTree=new Set(ns.map(n=>n.id));
+  const linked=ns.filter(n=>n.parents.some(p=>inTree.has(p))||ns.some(c=>c.parents.includes(n.id)));
+  const loose=ns.filter(n=>!linked.includes(n));
+  const depth={}; const d=n=>{ if(depth[n.id]!=null) return depth[n.id]; depth[n.id]=0; const ps=n.parents.filter(p=>inTree.has(p)).map(node); depth[n.id]=ps.length?1+Math.max(...ps.map(d)):0; return depth[n.id]; };
+  linked.forEach(d);
+  // start steps go on top of everything
+  const layers=[]; linked.forEach(n=>{ (layers[depth[n.id]]=layers[depth[n.id]]||[]).push(n); });
+  const pos={};
+  layers.forEach((layer,li)=>{
+    if(li>0) layer.sort((a,b)=>avgX(a)-avgX(b));
+    function avgX(n){ const ps=n.parents.filter(p=>pos[p]); return ps.length?ps.reduce((s,p)=>s+pos[p].x,0)/ps.length:0; }
+    layer.forEach((n,i)=>pos[n.id]={x:i*GAP_X,y:li*GAP_Y});
+    // centre each layer under its parents
+    if(li>0){ const want=layer.reduce((s,n)=>s+avgX(n),0)/layer.length, have=layer.reduce((s,n)=>s+pos[n.id].x,0)/layer.length; layer.forEach(n=>pos[n.id].x+=Math.round(want-have)); }
+  });
+  let x0=linked.length?Math.max(...linked.map(n=>pos[n.id].x))+GAP_X+40:0;
+  const starts=loose.filter(n=>n.start); const rest=loose.filter(n=>!n.start);
+  starts.forEach((n,i)=>pos[n.id]={x:x0+i*GAP_X,y:0}); if(starts.length) x0+=starts.length*GAP_X;
+  const groups={}; rest.forEach(n=>(groups[counterKey(n)]=groups[counterKey(n)]||[]).push(n));
+  Object.keys(groups).sort().forEach((k,gi)=>{ groups[k].sort((a,b)=>threshold(a)-threshold(b)).forEach((n,i)=>pos[n.id]={x:x0+gi*GAP_X,y:(starts.length?GAP_Y:0)+i*150}); });
+  ns.forEach(n=>{ if(!onlyMissing||n.x==null||n.y==null){ n.x=pos[n.id].x; n.y=pos[n.id].y; n.fresh=true; } });
+}
+/* Cards differ in height, so after a Tidy up push any card that sits on the
+   one above it further down (only the cards the tidy-up just placed). */
+function unstack(tid){
+  const els={}; document.querySelectorAll('#ulayer .node').forEach(e=>els[e.dataset.nid]=e);
+  const cols={}; treeNodes(tid).forEach(n=>(cols[n.x]=cols[n.x]||[]).push(n));
+  let moved=false;
+  Object.values(cols).forEach(col=>{ col.sort((a,b)=>a.y-b.y); for(let i=1;i<col.length;i++){ const a=col[i-1],b=col[i]; const h=els[a.id]?els[a.id].offsetHeight:140; if(b.fresh&&b.y<a.y+h+28){ b.y=a.y+h+28; moved=true; } } });
+  S.nodes.forEach(n=>delete n.fresh);
+  return moved;
+}
+
+function renderTreeTabs(){
+  const box=document.getElementById('treeTabs'); box.innerHTML='';
+  S.trees.forEach(t=>{
+    const b=document.createElement('button'); b.className='treetab'+(t.id===S.curTree?' on':''); b.textContent=t.name+' · '+treeNodes(t.id).length;
+    b.onclick=()=>{ S.curTree=t.id; uSel=null; changed(); renderUnlocks(); fitU(); };
+    b.ondblclick=()=>renameTree(t);
+    b.title='Double-click to rename';
+    box.appendChild(b);
+  });
+}
+function renameTree(t){ const n=prompt('Name of this tree',t.name); if(n&&n.trim()){ t.name=n.trim(); changed(); renderUnlocks(); } }
+
+function nodeCard(n){
+  const el=document.createElement('div'); el.className='node'+(n.start?' start':'')+(uSel&&uSel.kind==='node'&&uSel.id===n.id?' sel':'');
+  el.dataset.nid=n.id; el.style.left=n.x+'px'; el.style.top=n.y+'px';
+  const dups=n.unlocks.filter(u=>S.nodes.some(o=>o!==n&&o.unlocks.some(x=>norm(x)===norm(u))));
+  const xp=n.parents.map(node).filter(p=>p&&p.tree!==n.tree);
+  const keys=n.unlocks.map(keyFor).filter(Boolean); const sales=S.upgrades.filter(u=>u.Achievement===n.id);
+  el.innerHTML=`<div class="hd"><span class="ico">${n.start?'⚑':n.hidden==='yes'?'◌':'★'}</span><span>${esc(n.name)}</span></div>
+    ${xp.length?`<div class="xparent">after ${xp.map(p=>esc(p.name)+' ('+esc((S.trees.find(t=>t.id===p.tree)||{}).name)+')').join(', ')}</div>`:''}
+    <div class="when">${n.start&&!n.parents.length?'From the start of the game':n.cond.length?'When: '+n.cond.map(c=>esc(humanCond(c))).join(' and '):'As soon as the step above is done'}</div>
+    <div class="chips">${n.unlocks.map(u=>{const c=catOf(u);return `<span class="chip${c.startsWith('New')?' new':''}${dups.includes(u)?' dup':''}" title="${esc(c)}${dups.includes(u)?' - also unlocked by another step':''}"><i style="background:${CAT_COLOR[c]||'#999'}"></i>${esc(u)}</span>`;}).join('')}</div>
+    ${n.reward?`<div class="price" style="color:var(--pitch)">Reward: ${esc(rewardText(n.reward))}</div>`:''}
+    ${keys.length||sales.length?`<div class="price">${keys.map(k=>'🔑 '+esc(k.Name)+' '+esc(k.Cost)+' '+esc(k.Currency)).concat(sales.map(s=>'🛒 '+esc(s.Name)+' '+esc(s.Cost)+' '+esc(s.Currency))).join('<br>')}</div>`:''}
+    ${!n.unlocks.length&&!n.reward&&!sales.length?'<div class="warn">Hands nothing over yet</div>':''}
+    <div class="foot"><button data-act="child">+ next step</button></div><div class="handle" title="Drag onto another step to make it come after this one"></div>`;
+  el.addEventListener('pointerdown',e=>{
+    if(e.target.closest('button')) return;
+    if(e.target.classList.contains('handle')){
+      dragLink(e,UC,document.getElementById('uedges'),{x:n.x+NODE_W/2,y:n.y+el.offsetHeight},
+        (cx,cy)=>{ const t=cardUnder(cx,cy,'.node','nid'); return t&&t.id!==n.id?t:null; },
+        id=>{ const c=node(id); if(c.parents.includes(n.id)) return; if(wouldLoop(c.id,n.id)){ toast('That would make a loop'); return; } c.parents.push(n.id); c.start=false; changed(); renderUnlocks(); });
+      return;
+    }
+    dragCard(el,e,()=>({x:n.x,y:n.y}),(x,y)=>{ n.x=x;n.y=y; el.style.left=x+'px'; el.style.top=y+'px'; drawEdges(); },UC,
+      ()=>{ uSel={kind:'node',id:n.id}; renderUnlocks(); },()=>changed());
+  });
+  el.querySelector('[data-act=child]').onclick=e=>{ e.stopPropagation(); addNode(n); };
+  return el;
+}
+function rewardText(r){ return splitList(r).map(t=>{ let m=/^count:(\w+)\+(\d+)$/.exec(t); if(m) return '+'+m[2]+' '+m[1]; if((m=/^announce:(.*)$/.exec(t))) return '“'+m[1]+'”'; return t; }).join(', '); }
+function keyFor(name){ return S.upgrades.find(u=>u.Kind==='key'&&splitList(u.Needs).some(t=>norm(t)===norm('unlocked:'+name))); }
+
+function drawEdges(){
+  const svg=document.getElementById('uedges'); svg.innerHTML='';
+  const ns=treeNodes(S.curTree); const els={}; document.querySelectorAll('#ulayer .node').forEach(e=>els[e.dataset.nid]=e);
+  ns.forEach(c=>c.parents.forEach(pid=>{
+    const p=node(pid); if(!p||p.tree!==S.curTree||!els[pid]) return;
+    const x1=p.x+NODE_W/2,y1=p.y+els[pid].offsetHeight,x2=c.x+NODE_W/2,y2=c.y; const dy=Math.max(40,Math.abs(y2-y1)/2);
+    const d=`M${x1},${y1} C${x1},${y1+dy} ${x2},${y2-dy} ${x2},${y2}`;
+    const sel=uSel&&uSel.kind==='edge'&&uSel.from===pid&&uSel.to===c.id;
+    svg.insertAdjacentHTML('beforeend',`<path class="e${sel?' sel':''}" d="${d}" marker-end="url(#arr)"/><path class="hit" data-from="${pid}" data-to="${c.id}" d="${d}"/>`);
+  }));
+  svg.insertAdjacentHTML('afterbegin','<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor" style="color:var(--edge)"/></marker></defs>');
+  svg.querySelectorAll('path.hit').forEach(h=>h.addEventListener('pointerdown',e=>{ e.stopPropagation(); uSel={kind:'edge',from:h.dataset.from,to:h.dataset.to}; renderUnlocks(); }));
+}
+function renderUnlocks(){
+  renderTreeTabs();
+  const layer=document.getElementById('ulayer'); layer.querySelectorAll('.node').forEach(e=>e.remove());
+  treeNodes(S.curTree).forEach(n=>layer.appendChild(nodeCard(n)));
+  drawEdges(); renderUSide(); renderLegend();
+}
+function renderLegend(){
+  const used=new Set(); S.nodes.forEach(n=>n.unlocks.forEach(u=>used.add(catOf(u))));
+  document.getElementById('ulegend').innerHTML=[...used].map(c=>`<span><i style="background:${CAT_COLOR[c]||'#999'}"></i>${esc(c)}</span>`).join('')+'<span><kbd>Del</kbd> removes the selected step or line</span>';
+}
+function fitU(){ const els=[...document.querySelectorAll('#ulayer .node')]; UC.fit(treeNodes(S.curTree).map(n=>{ const e=els.find(x=>x.dataset.nid===n.id); return {x:n.x,y:n.y,w:NODE_W,h:e?e.offsetHeight:120}; })); }
+
+function addNode(parent){
+  const name=prompt(parent?'Name of the step that comes after “'+parent.name+'”':'Name of the new unlock step','New step'); if(!name||!name.trim()) return;
+  const id=uid(slug(name),new Set(S.nodes.map(n=>n.id)));
+  const kids=parent?children(parent.id).filter(c=>c.tree===S.curTree):[];
+  const n={id,name:name.trim(),desc:'',cond:[],parents:parent?[parent.id]:[],unlocks:[],reward:'',art:'',hidden:'',notes:'',tree:S.curTree,row:null,
+    x:parent?parent.x+kids.length*GAP_X- (kids.length?0:0):0,y:parent?parent.y+GAP_Y:0};
+  if(!parent){ const ns=treeNodes(S.curTree); n.start=true; n.x=ns.length?Math.max(...ns.map(m=>m.x))+GAP_X:0; n.y=0; }
+  S.nodes.push(n); uSel={kind:'node',id}; changed(); renderUnlocks();
+}
+function deleteNode(n){
+  if(!confirm('Remove “'+n.name+'”? Steps after it keep their other links.')) return;
+  S.nodes.forEach(o=>o.parents=o.parents.filter(p=>p!==n.id));
+  S.nodes=S.nodes.filter(o=>o!==n); uSel=null; changed(); renderUnlocks();
+}
+
+/* ---------- the right-hand panel ---------- */
+function renderUSide(){
+  const side=document.getElementById('uside');
+  if(uSel&&uSel.kind==='edge'){
+    const p=node(uSel.from), c=node(uSel.to);
+    side.innerHTML=`<h2>Link</h2><p class="hint">“${esc(c.name)}” can only be earned after “${esc(p.name)}”.<br>In the CSV this is <code>flag:earned_${esc(p.id)}</code> in its Needs.</p><button class="danger" id="rmEdge">Remove this link</button>`;
+    side.querySelector('#rmEdge').onclick=removeSelEdge; return;
+  }
+  const n=uSel&&uSel.kind==='node'&&node(uSel.id);
+  if(!n){
+    const t=S.trees.find(t=>t.id===S.curTree);
+    side.innerHTML=`<h2>${esc(t.name)}</h2>
+      <p class="hint">Each card is one <b>unlock step</b> (a row of Achievements.csv). A line from one card down to another means the lower one can only be earned <b>after</b> the upper one.</p>
+      <p class="hint"><b>Add a step:</b> “+ next step” under a card, or “+ Add unlock step”.<br><b>Link two steps:</b> drag the orange dot under a card onto another card.<br><b>Move around:</b> drag the background, scroll to zoom.<br>Click a card to set what it unlocks, what it costs and what earns it.</p>
+      <hr><label>Tree name</label><div class="row"><input id="tName" value="${esc(t.name)}"><button class="fixed danger" id="tDel" ${treeNodes(t.id).length?'disabled title="Move or remove its steps first"':''}>Delete tree</button></div>
+      <p class="hint">Trees are only for drawing. On export they all go into one Achievements.csv (the <b>Tree</b> column remembers which is which).</p>`;
+    side.querySelector('#tName').onchange=e=>{ t.name=e.target.value.trim()||t.name; changed(); renderTreeTabs(); };
+    side.querySelector('#tDel').onclick=()=>{ if(S.trees.length<2){toast('Keep at least one tree');return;} S.trees=S.trees.filter(x=>x!==t); S.curTree=S.trees[0].id; changed(); renderUnlocks(); fitU(); };
+    return;
+  }
+  const others=S.nodes.filter(o=>o!==n&&!wouldLoop(o.id,n.id)&&!n.parents.includes(o.id));
+  side.innerHTML=`<h2>${esc(n.name)}</h2><div class="hint">Achievements.csv row <code>${esc(n.id)}</code>${n.row?'':' · new'}</div>
+    <label>Name on the board</label><input id="fName" value="${esc(n.name)}">
+    <label>Description (what the player did)</label><textarea id="fDesc">${esc(n.desc)}</textarea>
+    <label>Tree</label><select id="fTree">${S.trees.map(t=>`<option value="${t.id}"${t.id===n.tree?' selected':''}>${esc(t.name)}</option>`).join('')}</select>
+    <hr><h2 style="font-size:14px">Comes after</h2>
+    <div class="list" id="fParents">${n.parents.map(p=>{const o=node(p);return `<div class="row"><span>${esc(o?o.name:p)}${o&&o.tree!==n.tree?' <small class="hint">('+esc((S.trees.find(t=>t.id===o.tree)||{}).name)+')</small>':''}</span><button class="fixed small" data-rmp="${esc(p)}">✕</button></div>`;}).join('')||'<span class="hint">Nothing - it can be earned any time.</span>'}</div>
+    <div class="row" style="margin-top:6px"><select id="fAddParent"><option value="">+ add a step it comes after…</option>${S.trees.map(t=>`<optgroup label="${esc(t.name)}">${others.filter(o=>o.tree===t.id).map(o=>`<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('')}</optgroup>`).join('')}</select></div>
+    <h2 style="font-size:14px;margin-top:14px">Earned when</h2>
+    <div class="list" id="fConds"></div>
+    <button class="small" id="fAddCond" style="margin-top:6px">+ add a condition</button>
+    <hr><h2 style="font-size:14px">Unlocks</h2>
+    <div class="list" id="fUnlocks"></div>
+    <button class="small" id="fPick" style="margin-top:6px">+ choose what it unlocks…</button>
+    <label>Reward on top (coins, a message…)</label>
+    <div class="row"><input id="fCoins" type="number" min="0" placeholder="coins" value="${(/count:coins\+(\d+)/.exec(n.reward)||[])[1]||''}"><span class="fixed hint">coins</span></div>
+    <input id="fReward" style="margin-top:5px" value="${esc(n.reward)}" title="The Do language: count:coins+25;announce:Text;flag:x">
+    <hr><h2 style="font-size:14px">For sale at the Club House once earned</h2>
+    <div class="list" id="fSales"></div>
+    <button class="small" id="fAddSale" style="margin-top:6px">+ add an upgrade for sale</button>
+    <hr><label>Hidden until earned</label><select id="fHidden"><option value="">no</option><option value="yes"${n.hidden==='yes'?' selected':''}>yes</option></select>
+    <label>Row ID (renaming an old one breaks old saves)</label><input id="fId" value="${esc(n.id)}">
+    <label>Notes</label><textarea id="fNotes">${esc(n.notes)}</textarea>
+    <div style="margin-top:14px"><button class="danger" id="fDel">Remove this step</button></div>`;
+  const $=s=>side.querySelector(s);
+  $('#fName').onchange=e=>{ n.name=e.target.value; changed(); renderUnlocks(); };
+  $('#fDesc').onchange=e=>{ n.desc=e.target.value; changed(); };
+  $('#fTree').onchange=e=>{ n.tree=e.target.value; changed(); renderUnlocks(); };
+  side.querySelectorAll('[data-rmp]').forEach(b=>b.onclick=()=>{ n.parents=n.parents.filter(p=>p!==b.dataset.rmp); changed(); renderUnlocks(); });
+  $('#fAddParent').onchange=e=>{ if(e.target.value){ n.parents.push(e.target.value); n.start=false; changed(); renderUnlocks(); } };
+  // conditions
+  const cl=$('#fConds');
+  if(!n.cond.length) cl.innerHTML='<span class="hint">None.'+(n.parents.length?' It is earned as soon as the step above is.':' It is open from the start of the game.')+'</span>';
+  n.cond.forEach((c,i)=>cl.appendChild(condEditor(n,i)));
+  $('#fAddCond').onclick=()=>{ n.cond.push('count:matches_won>=1'); changed(); renderUnlocks(); };
+  // unlocks
+  const ul=$('#fUnlocks');
+  if(!n.unlocks.length) ul.innerHTML='<span class="hint">Nothing yet.</span>';
+  n.unlocks.forEach(u=>{
+    const c=catOf(u), k=keyFor(u), also=S.nodes.filter(o=>o!==n&&o.unlocks.some(x=>norm(x)===norm(u)));
+    const d=document.createElement('div'); d.className='box';
+    d.innerHTML=`<div class="row"><span><span class="chip${c.startsWith('New')?' new':''}"><i style="background:${CAT_COLOR[c]||'#999'}"></i>${esc(u)}</span> <small class="hint">${esc(c)}</small></span><button class="fixed small" data-rm>✕</button></div>
+      ${also.length?`<div class="hint" style="color:var(--warn)">Also unlocked by ${also.map(o=>esc(o.name)).join(', ')}</div>`:''}
+      ${k?`<div class="row" style="margin-top:5px"><span class="fixed hint">🔑 ${esc(k.Name)} costs</span><input type="number" min="0" data-kc value="${esc(k.Cost)}"><select data-kcur>${currencyOptions(k.Currency)}</select></div>`
+         :`<button class="small" data-addkey style="margin-top:5px" title="Sell a key at the Club House that opens it">+ needs a key from the Club House</button>`}`;
+    d.querySelector('[data-rm]').onclick=()=>{ n.unlocks=n.unlocks.filter(x=>x!==u); changed(); renderUnlocks(); };
+    if(k){ d.querySelector('[data-kc]').onchange=e=>{ k.Cost=e.target.value; changed(); renderUnlocks(); }; d.querySelector('[data-kcur]').onchange=e=>{ k.Currency=e.target.value; changed(); renderUnlocks(); }; }
+    else d.querySelector('[data-addkey]').onclick=()=>{ const s=slug(u)+'_key'; S.upgrades.push(blankRow(S.upHeader,{ID:uid(s,new Set(S.upgrades.map(r=>r.ID))),Name:u+' Key',Kind:'key',Description:'Opens the '+u+'.',Needs:'unlocked:'+u,Cost:'50',Currency:'coins',Effect:'count:'+s+'+1',Notes:'NEW from the Designer - the thing it opens still has to test count:'+s+'>=1.'})); changed(); renderUnlocks(); };
+    ul.appendChild(d);
+  });
+  $('#fPick').onclick=e=>openPicker(e.target,n);
+  $('#fCoins').onchange=e=>{ const v=e.target.value.trim(); let toks=splitList(n.reward).filter(t=>!/^count:coins\+\d+$/.test(t)); if(v&&+v>0) toks.unshift('count:coins+'+v); n.reward=toks.join(';'); changed(); renderUnlocks(); };
+  $('#fReward').onchange=e=>{ n.reward=e.target.value.trim(); changed(); renderUnlocks(); };
+  // upgrades for sale
+  const sl=$('#fSales'); const sales=S.upgrades.filter(u=>u.Achievement===n.id);
+  if(!sales.length) sl.innerHTML='<span class="hint">None.</span>';
+  sales.forEach(s=>{ const d=document.createElement('div'); d.className='box';
+    d.innerHTML=`<div class="row"><input data-f="Name" value="${esc(s.Name)}"><button class="fixed small" data-rm>✕</button></div>
+      <div class="row" style="margin-top:5px"><input type="number" min="0" data-f="Cost" value="${esc(s.Cost)}"><select data-f="Currency">${currencyOptions(s.Currency)}</select></div>
+      <input style="margin-top:5px" data-f="Effect" value="${esc(s.Effect)}" placeholder="what it does, e.g. count:tune_rest_less+1" title="Effect column">
+      <input style="margin-top:5px" data-f="Description" value="${esc(s.Description)}" placeholder="description">`;
+    d.querySelectorAll('[data-f]').forEach(i=>i.onchange=e=>{ s[i.dataset.f]=e.target.value; changed(); renderUnlocks(); });
+    d.querySelector('[data-rm]').onclick=()=>{ S.upgrades=S.upgrades.filter(x=>x!==s); changed(); renderUnlocks(); };
+    sl.appendChild(d); });
+  $('#fAddSale').onclick=()=>{ const id=uid(slug(n.name)+'_upgrade',new Set(S.upgrades.map(r=>r.ID))); S.upgrades.push(blankRow(S.upHeader,{ID:id,Name:'New upgrade',Kind:'upgrade',Description:'',Achievement:n.id,Cost:'100',Currency:'coins',Effect:''})); changed(); renderUnlocks(); };
+  $('#fHidden').onchange=e=>{ n.hidden=e.target.value; changed(); renderUnlocks(); };
+  $('#fNotes').onchange=e=>{ n.notes=e.target.value; changed(); };
+  $('#fId').onchange=e=>{ const v=slug(e.target.value); if(!v||v===n.id) return; if(S.nodes.some(o=>o.id===v)){ toast('That ID is taken'); e.target.value=n.id; return; }
+    S.nodes.forEach(o=>o.parents=o.parents.map(p=>p===n.id?v:p)); S.upgrades.forEach(u=>{ if(u.Achievement===n.id) u.Achievement=v; }); n.id=v; uSel.id=v; changed(); renderUnlocks(); };
+  $('#fDel').onclick=()=>deleteNode(n);
+}
+function blankRow(header,vals){ const r={}; header.forEach(h=>r[h]=''); return Object.assign(r,vals); }
+function currencyOptions(cur){ const cs=table('Currencies').rows.map(r=>r.ID); if(!cs.length) cs.push('coins'); if(cur&&!cs.includes(cur)) cs.push(cur); return cs.map(c=>`<option${c===cur?' selected':''}>${esc(c)}</option>`).join(''); }
+
+/* One condition: a counter and a number, or any other condition as text. */
+function condEditor(n,i){
+  const tok=n.cond[i]; const d=document.createElement('div'); d.className='row';
+  const m=/^count:([\w{}]+)\s*(>=|<=|==|>|<|=)\s*(-?\d+)$/.exec(tok);
+  const counters=[...new Set(STATS.map(s=>s.Counter).filter(Boolean))];
+  if(m){
+    if(!counters.includes(m[1])) counters.push(m[1]);
+    d.innerHTML=`<select data-c>${counters.map(c=>`<option value="${esc(c)}"${c===m[1]?' selected':''}>${esc(statLabel(c))}</option>`).join('')}<option value="__text">other (type it)…</option></select>
+      <select class="fixed" data-op style="width:56px">${['>=','<=','==','>','<'].map(o=>`<option${o===m[2]?' selected':''}>${o}</option>`).join('')}</select>
+      <input class="fixed" data-n type="number" style="width:70px" value="${m[3]}"><button class="fixed small" data-rm>✕</button>`;
+    const upd=()=>{ const c=d.querySelector('[data-c]').value; if(c==='__text'){ n.cond[i]='flag:'; } else n.cond[i]=`count:${c}${d.querySelector('[data-op]').value}${d.querySelector('[data-n]').value||0}`; changed(); renderUnlocks(); };
+    d.querySelectorAll('select,input').forEach(x=>x.onchange=upd);
+  } else {
+    d.innerHTML=`<input data-t value="${esc(tok)}" title="Any condition: flag:x, unlocked:y, count:z>=3"><button class="fixed small" data-counter title="Use a counter instead">#</button><button class="fixed small" data-rm>✕</button>`;
+    d.querySelector('[data-t]').onchange=e=>{ n.cond[i]=e.target.value.trim(); if(!n.cond[i]) n.cond.splice(i,1); changed(); renderUnlocks(); };
+    d.querySelector('[data-counter]').onclick=()=>{ n.cond[i]='count:matches_won>=1'; changed(); renderUnlocks(); };
+  }
+  d.querySelector('[data-rm]').onclick=()=>{ n.cond.splice(i,1); changed(); renderUnlocks(); };
+  return d;
+}
+
+/* The "what does it unlock" picker: every name the game tests, grouped. */
+function openPicker(anchor,n){
+  closePicker();
+  const pk=document.createElement('div'); pk.className='picker'; pk.id='picker';
+  const r=anchor.getBoundingClientRect(); pk.style.left=Math.max(8,Math.min(window.innerWidth-390,r.left-30))+'px'; pk.style.top=Math.max(8,Math.min(window.innerHeight*0.3,r.top-200))+'px';
+  pk.innerHTML=`<div class="pk-head"><input id="pkQ" placeholder="Search, or type a new name…"></div><div class="pk-body" id="pkB"></div>
+    <div class="pk-foot"><button id="pkNew" class="small">Add as a new name</button><button id="pkDone" class="primary small">Done</button></div>`;
+  document.body.appendChild(pk);
+  const sel=new Set(n.unlocks.map(norm));
+  const draw=()=>{
+    const q=norm(pk.querySelector('#pkQ').value); const groups={};
+    for(const e of CAT.values()){ if(q&&!norm(e.name+' '+e.label).includes(q)) continue; (groups[e.cat]=groups[e.cat]||[]).push(e); }
+    const order=[...new Set(CATS.map(c=>c[1])),'Other'];
+    pk.querySelector('#pkB').innerHTML=order.filter(g=>groups[g]).map(g=>`<h4><i style="background:${CAT_COLOR[g]}"></i>${esc(g)}</h4>`+
+      groups[g].sort((a,b)=>a.name.localeCompare(b.name)).map(e=>{ const by=S.nodes.filter(o=>o!==n&&o.unlocks.some(x=>norm(x)===norm(e.name)));
+        return `<label class="opt"><input type="checkbox" data-n="${esc(e.name)}"${sel.has(norm(e.name))?' checked':''}><span>${esc(e.name)} ${e.label&&norm(e.label)!==norm(e.name)?'<small>('+esc(e.label)+')</small>':''}${by.length?' <small style="color:var(--warn)">· now from '+esc(by.map(o=>o.name).join(', '))+'</small>':''}</span></label>`; }).join('')).join('')
+      ||'<p class="hint">No match. “Add as a new name” adds it anyway - the export tells Claude it still has to be built.</p>';
+    pk.querySelectorAll('[data-n]').forEach(cb=>cb.onchange=()=>{ const v=cb.dataset.n; if(cb.checked){ if(!n.unlocks.some(x=>norm(x)===norm(v))) n.unlocks.push(v); sel.add(norm(v)); } else { n.unlocks=n.unlocks.filter(x=>norm(x)!==norm(v)); sel.delete(norm(v)); } changed(); renderUnlocks(); });
+  };
+  pk.querySelector('#pkQ').oninput=draw;
+  pk.querySelector('#pkNew').onclick=()=>{ const v=pk.querySelector('#pkQ').value.trim(); if(!v){ toast('Type the name first'); return; } if(!n.unlocks.some(x=>norm(x)===norm(v))) n.unlocks.push(v); changed(); renderUnlocks(); closePicker(); };
+  pk.querySelector('#pkDone').onclick=closePicker;
+  pk.querySelector('#pkQ').onkeydown=e=>{ if(e.key==='Escape') closePicker(); };
+  draw(); pk.querySelector('#pkQ').focus();
+}
+function closePicker(){ const p=document.getElementById('picker'); if(p) p.remove(); }
+function removeSelEdge(){ const c=node(uSel.to); c.parents=c.parents.filter(p=>p!==uSel.from); if(!c.parents.length&&!c.cond.length) c.start=true; uSel=null; changed(); renderUnlocks(); }
+
+/* ============================================================
+   BREWERY RECIPES VIEW
+   ============================================================ */
+let bSel=null; let BC;
+const ING_W=150, DRINK_W=220;
+function costOf(b){ return String(b.Cost||'').split('|').map(s=>s.trim()).filter(Boolean).map(s=>{ const [id,n]=s.split(':'); return {id:id.trim(),n:+(n||1)}; }); }
+function setCost(b,list){ b.Cost=list.filter(x=>x.n>0).map(x=>x.id+':'+x.n).join('|'); }
+function items(){ return table('Items').rows; }
+function itemName(id){ const it=items().find(r=>r.ID===id); return it?it.Name:id; }
+function ingredientIds(){
+  const ids=[]; const add=id=>{ if(id&&!ids.includes(id)) ids.push(id); };
+  items().filter(r=>r.Kind==='material').forEach(r=>add(r.ID));
+  S.brews.forEach(b=>costOf(b).forEach(c=>add(c.id)));
+  (S.extraIngs||[]).forEach(add);
+  return ids;
+}
+function unlockerOf(name){ return S.nodes.filter(n=>n.unlocks.some(u=>norm(u)===norm(name))); }
+function brewUnlockName(b){ const m=/(?:^|;)\s*unlocked:([^;|]+)/.exec(b.Requires||''); return m?m[1].trim():''; }
+function arrangeBrews(){
+  ingredientIds().forEach((id,i)=>S.ingPos[id]={x:0,y:i*90});
+  const cols=3; S.brews.forEach((b,i)=>S.brewPos[b.ID]={x:260+(i%cols)*250,y:Math.floor(i/cols)*200});
+}
+function renderChain(){
+  const secs=table('BrewerySections').rows.sort((a,b)=>+a.Order-+b.Order);
+  const res=id=>{ const r=table('BreweryResources').rows.find(x=>x.ID===id); return r?r.Name:id; };
+  document.getElementById('chain').innerHTML='<span style="color:var(--dim)">The machines (BrewerySections.csv, read only):</span> '+secs.map(s=>
+    `<span>${s.Takes.split(';').map(t=>esc(res(t.split(':')[0]))).join(' + ')} <span class="arrow">→</span> <b>${esc(s.Name)}</b> <span class="arrow">→</span> ${esc(res(s.Makes))}${s['How Many']>1?' ×'+s['How Many']:''}</span>`).join('<span class="arrow"> │ </span>');
+}
+function renderBrews(){
+  const layer=document.getElementById('blayer'); layer.querySelectorAll('.node,.ing').forEach(e=>e.remove());
+  ingredientIds().forEach((id,i)=>{
+    const p=S.ingPos[id]||(S.ingPos[id]={x:0,y:i*90});
+    const el=document.createElement('div'); el.className='ing'+(bSel&&bSel.kind==='ing'&&bSel.id===id?' sel':''); el.dataset.iid=id; el.style.left=p.x+'px'; el.style.top=p.y+'px';
+    const uses=S.brews.filter(b=>costOf(b).some(c=>c.id===id)).length;
+    el.innerHTML=`${esc(itemName(id))}<small>${esc(id)} · in ${uses} drink${uses===1?'':'s'}</small><div class="handle" title="Drag onto a drink"></div>`;
+    el.addEventListener('pointerdown',e=>{
+      if(e.target.classList.contains('handle')){
+        dragLink(e,BC,document.getElementById('bedges'),{x:p.x+ING_W,y:p.y+el.offsetHeight/2},(cx,cy)=>cardUnder(cx,cy,'.node','bid'),
+          bid=>{ const b=S.brews.find(x=>x.ID===bid); const c=costOf(b); const f=c.find(x=>x.id===id); if(f) f.n++; else c.push({id,n:1}); setCost(b,c); bSel={kind:'brew',id:bid}; changed(); renderBrews(); });
+        return;
+      }
+      dragCard(el,e,()=>p,(x,y)=>{ p.x=x;p.y=y; el.style.left=x+'px'; el.style.top=y+'px'; drawBEdges(); },BC,()=>{ bSel={kind:'ing',id}; renderBrews(); },()=>changed());
+    });
+    layer.appendChild(el);
+  });
+  S.brews.forEach((b,i)=>{
+    const p=S.brewPos[b.ID]||(S.brewPos[b.ID]={x:260+(i%3)*250,y:Math.floor(i/3)*200});
+    const el=document.createElement('div'); el.className='node drink'+(bSel&&bSel.kind==='brew'&&bSel.id===b.ID?' sel':''); el.dataset.bid=b.ID; el.style.left=p.x+'px'; el.style.top=p.y+'px';
+    const un=brewUnlockName(b), by=un?unlockerOf(un):[];
+    const turn=b['For Class']||b.Becomes?`${esc(b['For Class']||'anyone')}${b.Becomes?' → <b>'+esc(b.Becomes)+'</b>':''}`:'Anyone, nobody changes class';
+    el.innerHTML=`<div class="hd"><span class="ico">🍺</span><span>${esc(b.Name)}</span></div>
+      <div class="class">${turn}${b.Element?' · '+esc(b.Element):''}</div>
+      <div class="when">${un?'🔒 '+esc(un)+(by.length?' - from '+by.map(n=>esc(n.name)).join(', '):' - <span style="color:var(--warn)">no unlock step gives it yet</span>'):esc(b.Requires?'Needs '+b.Requires:'Always available')}</div>
+      <div class="chips">${costOf(b).map(c=>`<span class="chip"><i style="background:var(--pitch)"></i>${esc(itemName(c.id))} ×${c.n}</span>`).join('')||'<span class="hint" style="font-size:12px">No ingredients</span>'}</div>
+      ${b.Inspiration?`<div class="price">Inspiration ${esc(b.Inspiration)}${b.Drinks?' · '+esc(b.Drinks)+' drinks':''}${b.Permanent==='true'?' · permanent':''}</div>`:''}`;
+    el.addEventListener('pointerdown',e=>dragCard(el,e,()=>p,(x,y)=>{ p.x=x;p.y=y; el.style.left=x+'px'; el.style.top=y+'px'; drawBEdges(); },BC,()=>{ bSel={kind:'brew',id:b.ID}; renderBrews(); },()=>changed()));
+    layer.appendChild(el);
+  });
+  drawBEdges(); renderBSide();
+}
+function drawBEdges(){
+  const svg=document.getElementById('bedges'); svg.innerHTML='';
+  const ingEls={}; document.querySelectorAll('#blayer .ing').forEach(e=>ingEls[e.dataset.iid]=e);
+  S.brews.forEach(b=>{ const bp=S.brewPos[b.ID]; if(!bp) return; costOf(b).forEach(c=>{
+    const ip=S.ingPos[c.id], ie=ingEls[c.id]; if(!ip||!ie) return;
+    const x1=ip.x+ING_W,y1=ip.y+ie.offsetHeight/2,x2=bp.x,y2=bp.y+22; const dx=Math.max(50,(x2-x1)/2);
+    const sel=bSel&&((bSel.kind==='brew'&&bSel.id===b.ID)||(bSel.kind==='ing'&&bSel.id===c.id));
+    svg.insertAdjacentHTML('beforeend',`<path class="e${sel?' sel':''}" d="M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}"/>${sel?`<text x="${x2-34}" y="${y2-6}">×${c.n}</text>`:''}`);
+  }); });
+}
+function classOptions(cur){ const cs=['',...table('ClassInfo').rows.map(r=>r.Class)]; if(cur&&!cs.includes(cur)) cs.push(cur); return cs.map(c=>`<option value="${esc(c)}"${c===cur?' selected':''}>${c?esc(c):'—'}</option>`).join(''); }
+function elementOptions(cur){ const es=['',...table('Elements').rows.map(r=>r['Display Name']||r.Element)]; if(cur&&!es.includes(cur)) es.push(cur); return es.map(c=>`<option value="${esc(c)}"${c===cur?' selected':''}>${c?esc(c):'—'}</option>`).join(''); }
+function renderBSide(){
+  const side=document.getElementById('bside');
+  if(bSel&&bSel.kind==='ing'){
+    const id=bSel.id, it=items().find(r=>r.ID===id)||{};
+    const uses=S.brews.filter(b=>costOf(b).some(c=>c.id===id));
+    side.innerHTML=`<h2>${esc(it.Name||id)}</h2><div class="hint">Items.csv <code>${esc(id)}</code>${it.Kind?' · '+esc(it.Kind):' · <span style="color:var(--warn)">not in Items.csv</span>'}</div>
+      <p class="hint">${esc(it.Description||'')}</p><label>Used in</label><div class="list">${uses.map(b=>`<div>${esc(b.Name)} ×${costOf(b).find(c=>c.id===id).n}</div>`).join('')||'<span class="hint">No drink yet. Drag its dot onto a drink.</span>'}</div>
+      ${!uses.length&&(S.extraIngs||[]).includes(id)?'<div style="margin-top:12px"><button class="danger small" id="rmIng">Remove from the board</button></div>':''}`;
+    const rm=side.querySelector('#rmIng'); if(rm) rm.onclick=()=>{ S.extraIngs=S.extraIngs.filter(x=>x!==id); delete S.ingPos[id]; bSel=null; changed(); renderBrews(); };
+    return;
+  }
+  const b=bSel&&bSel.kind==='brew'&&S.brews.find(x=>x.ID===bSel.id);
+  if(!b){ side.innerHTML=`<h2>Brewery recipes</h2><p class="hint">Every card on the right is a drink (a row of <b>Brews.csv</b>). Green pills on the left are ingredients (Items.csv). A line means the drink costs that ingredient.</p>
+      <p class="hint"><b>Add an ingredient to a drink:</b> drag the green dot onto the drink (again for one more).<br><b>Change amounts:</b> click the drink.<br>The 🔒 line shows which unlock step from the Unlock Tree opens the drink.</p>
+      <p class="hint">The strip at the top is the machine chain the brewery mini-games use. It is read only here.</p>`; return; }
+  const un=brewUnlockName(b);
+  const drinkNames=[...CAT.values()].filter(e=>e.cat==='Drinks').map(e=>e.name);
+  side.innerHTML=`<h2>${esc(b.Name)}</h2><div class="hint">Brews.csv row <code>${esc(b.ID)}</code></div>
+    <label>Name</label><input data-f="Name" value="${esc(b.Name)}">
+    <label>Description</label><textarea data-f="Description">${esc(b.Description)}</textarea>
+    <hr><h2 style="font-size:14px">Ingredients</h2><div class="list" id="bIngs"></div>
+    <div class="row" style="margin-top:6px"><select id="bAddIng"><option value="">+ add an ingredient…</option>${items().filter(r=>['material','brew','currency'].includes(r.Kind)||ingredientIds().includes(r.ID)).map(r=>`<option value="${esc(r.ID)}">${esc(r.Name)} (${esc(r.Kind)})</option>`).join('')}</select></div>
+    <hr><h2 style="font-size:14px">Who drinks it</h2>
+    <div class="row"><div><label>For class</label><select data-f="For Class">${classOptions(b['For Class'])}</select></div><div><label>Becomes</label><select data-f="Becomes">${classOptions(b.Becomes)}</select></div></div>
+    <div class="row"><div><label>Element</label><select data-f="Element">${elementOptions(b.Element)}</select></div><div><label>Drinks needed</label><input data-f="Drinks" type="number" min="0" value="${esc(b.Drinks)}"></div></div>
+    <div class="row"><div><label>Inspiration</label><input data-f="Inspiration" type="number" value="${esc(b.Inspiration)}"></div><div><label>Permanent</label><select data-f="Permanent"><option value="">no</option><option value="true"${b.Permanent==='true'?' selected':''}>yes</option></select></div></div>
+    <div class="row"><div><label>Attack ability</label><input data-f="Attack Ability" value="${esc(b['Attack Ability'])}"></div><div><label>Defend ability</label><input data-f="Defend Ability" value="${esc(b['Defend Ability'])}"></div></div>
+    <hr><h2 style="font-size:14px">Unlocked by</h2>
+    <select id="bUnlock"><option value="">Always available (no unlock)</option>${[...new Set([...drinkNames,un].filter(Boolean))].map(nm=>`<option${nm===un?' selected':''}>${esc(nm)}</option>`).join('')}<option value="__new">A new unlock name…</option></select>
+    <div class="hint" style="margin-top:4px">${un?(unlockerOf(un).length?'Given by: '+unlockerOf(un).map(n=>esc(n.name)).join(', '):'<span style="color:var(--warn)">No step in the Unlock Tree gives “'+esc(un)+'” yet.</span> <button class="small" id="bGoTree">Add it to the selected step</button>'):''}</div>
+    <label>Requires (the whole condition, as the game reads it)</label><input data-f="Requires" value="${esc(b.Requires)}">
+    <label>Row ID</label><input id="bId" value="${esc(b.ID)}">
+    <label>Notes</label><textarea data-f="Notes">${esc(b.Notes)}</textarea>
+    <div style="margin-top:14px"><button class="small" id="bDup">Duplicate</button> <button class="danger small" id="bDel">Remove this drink</button></div>`;
+  const il=side.querySelector('#bIngs'); const cost=costOf(b);
+  if(!cost.length) il.innerHTML='<span class="hint">None.</span>';
+  cost.forEach(c=>{ const d=document.createElement('div'); d.className='row';
+    d.innerHTML=`<span>${esc(itemName(c.id))}</span><input class="fixed" type="number" min="0" style="width:70px" value="${c.n}"><button class="fixed small">✕</button>`;
+    d.querySelector('input').onchange=e=>{ c.n=Math.max(0,+e.target.value||0); setCost(b,cost); changed(); renderBrews(); };
+    d.querySelector('button').onclick=()=>{ c.n=0; setCost(b,cost); changed(); renderBrews(); };
+    il.appendChild(d); });
+  side.querySelector('#bAddIng').onchange=e=>{ const id=e.target.value; if(!id) return; const f=cost.find(x=>x.id===id); if(f) f.n++; else cost.push({id,n:1}); setCost(b,cost); changed(); renderBrews(); };
+  side.querySelectorAll('[data-f]').forEach(i=>i.onchange=e=>{ b[i.dataset.f]=e.target.value; changed(); renderBrews(); });
+  side.querySelector('#bUnlock').onchange=e=>{ let v=e.target.value; if(v==='__new'){ v=prompt('Unlock name (an unlock step in the tree then hands it over)',b.Name)||''; v=v.trim(); }
+    const rest=splitList(b.Requires).filter(t=>!/^unlocked:/.test(t)); b.Requires=(v?['unlocked:'+v]:[]).concat(rest).join(';');
+    if(v&&!CAT.has(norm(v))) CAT.set(norm(v),{name:v,cat:'Drinks',label:b.Name}); changed(); renderBrews(); };
+  const go=side.querySelector('#bGoTree'); if(go) go.onclick=()=>{ const n=uSel&&uSel.kind==='node'&&node(uSel.id); if(!n){ toast('First click a step in the Unlock Tree, then come back'); return; } n.unlocks.push(un); changed(); renderBrews(); toast('“'+un+'” added to '+n.name); };
+  side.querySelector('#bId').onchange=e=>{ const v=slug(e.target.value); if(!v||v===b.ID) return; if(S.brews.some(x=>x.ID===v)){ toast('That ID is taken'); return; } S.brewPos[v]=S.brewPos[b.ID]; delete S.brewPos[b.ID]; b.ID=v; bSel.id=v; changed(); renderBrews(); };
+  side.querySelector('#bDup').onclick=()=>{ const id=uid(b.ID+'_copy',new Set(S.brews.map(x=>x.ID))); const c={...b,ID:id,Name:b.Name+' (copy)'}; S.brews.splice(S.brews.indexOf(b)+1,0,c); const p=S.brewPos[b.ID]; S.brewPos[id]={x:p.x+30,y:p.y+30}; bSel={kind:'brew',id}; changed(); renderBrews(); };
+  side.querySelector('#bDel').onclick=()=>{ if(!confirm('Remove '+b.Name+'?')) return; S.brews=S.brews.filter(x=>x!==b); bSel=null; changed(); renderBrews(); };
+}
+function fitB(){ const boxes=[]; document.querySelectorAll('#blayer .ing,#blayer .node').forEach(e=>boxes.push({x:e.offsetLeft,y:e.offsetTop,w:e.offsetWidth,h:e.offsetHeight})); BC.fit(boxes); }
+
+/* ============================================================
+   LOAD GAME DATA / DESIGN FILES / EXPORT
+   ============================================================ */
+async function loadFolder(){
+  if(window.showDirectoryPicker){
+    try{
+      const h=await window.showDirectoryPicker({id:'sturmball-data',mode:'readwrite'});
+      let dir=h; try{ dir=await h.getDirectoryHandle('data'); }catch(e){} // they picked project_sb itself
+      const files={}; for await (const [name,f] of dir.entries()){ if(f.kind==='file'&&name.endsWith('.csv')) files[name.slice(0,-4)]=await (await f.getFile()).text(); }
+      if(!files.Achievements){ alert('No Achievements.csv in that folder. Pick project_sb or project_sb/data.'); return; }
+      dirHandle=dir; useFiles(files,'your data folder ('+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+')'); return;
+    }catch(e){ if(e.name==='AbortError') return; }
+  }
+  document.getElementById('dirInput').click();
+}
+document.getElementById('dirInput').onchange=async e=>{
+  const files={}; for(const f of e.target.files){ const p=f.webkitRelativePath||f.name; if(!f.name.endsWith('.csv')) continue; if(/\/data\/[^/]+\.csv$/.test(p)||p.split('/').length<=2) files[f.name.slice(0,-4)]=await f.text(); }
+  e.target.value='';
+  if(!files.Achievements){ alert('No Achievements.csv found. Pick the project_sb/data folder.'); return; }
+  dirHandle=null; useFiles(files,'your data folder ('+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+')');
+};
+function useFiles(files,source){
+  if(UNDO.length&&!confirm('Start again from these game files? Your current drawing is replaced (Save design first if you want to keep it).')) return;
+  // Keep only what the Designer uses (the same list as build.py), so the
+  // browser's memory of your last design stays small.
+  const always=['Achievements','Upgrades','Brews','Items','Stats','Currencies','Buildings','BrewerySections','BreweryResources','ClassInfo','Elements'];
+  const keep={}; for(const [k,v] of Object.entries(files)){ if(always.includes(k)||(!['Dialogue','Tuning','Keywords','Questions'].includes(k)&&v.includes('unlocked:'))) keep[k]=v; }
+  FILES=keep; SOURCE=source; designFromGame(); UNDO.length=0; lastSnap=''; uSel=null; bSel=null; renderAll(); S.trees.forEach(t=>{ const c=S.curTree; S.curTree=t.id; renderUnlocks(); unstack(t.id); S.curTree=c; }); changed(); renderUnlocks(); fitU(); toast('Loaded '+Object.keys(files).length+' CSV files');
+}
+function saveDesign(){
+  const d=new Date(); const stamp=d.toISOString().slice(0,16).replace(/[:T]/g,'-');
+  download('sturmball_design_'+stamp+'.json',JSON.stringify({format:'sturmball-designer',version:1,savedAt:d.toISOString(),source:SOURCE,files:FILES,design:S},null,1),'application/json');
+  toast('Design saved to your Downloads');
+}
+document.getElementById('designInput').onchange=async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  try{ const j=JSON.parse(await f.text()); if(j.format!=='sturmball-designer') throw new Error('not a design file');
+    FILES=j.files||FILES; SOURCE=(j.source||'')+' · design '+f.name; S=j.design; STATS=table('Stats').rows; CAT=buildCatalogue(); UNDO.length=0; lastSnap=''; changed(); uSel=null; bSel=null; renderAll(); fitU(); toast('Opened '+f.name);
+  }catch(err){ alert('Could not open that file: '+err.message); }
+};
+function summaryForClaude(files){
+  const L=[]; const d=new Date();
+  L.push('# Sturmball Designer export - '+d.toLocaleString(),'Game data it started from: '+SOURCE,'');
+  L.push('Changed files: '+(files.filter(f=>f.changed).map(f=>f.name).join(', ')||'none'),'');
+  S.trees.forEach(t=>{
+    L.push('## Unlock tree: '+t.name);
+    const ns=treeNodes(t.id); const depth=n=>n.parents.length?1+Math.max(...n.parents.map(p=>{const o=node(p);return o&&o.tree===t.id?depth(o):0;})):0;
+    ns.slice().sort((a,b)=>depth(a)-depth(b)||a.x-b.x).forEach(n=>{
+      const sales=S.upgrades.filter(u=>u.Achievement===n.id);
+      L.push(`- **${n.name}** (\`${n.id}\`)`+(n.parents.length?' - after '+n.parents.map(p=>(node(p)||{}).name||p).join(' + '):n.cond.length?'':' - open from the start')+
+        (n.cond.length?'; earned when '+n.cond.map(humanCond).join(' and '):'')+
+        (n.unlocks.length?'; unlocks '+n.unlocks.map(u=>{const k=keyFor(u);return u+(k?' (key '+k.Cost+' '+k.Currency+')':'');}).join(', '):'')+
+        (n.reward?'; reward '+rewardText(n.reward):'')+(sales.length?'; then sells '+sales.map(s=>s.Name+' '+s.Cost+' '+s.Currency).join(', '):''));
+    });
+    L.push('');
+  });
+  const fresh=[...new Set(S.nodes.flatMap(n=>n.unlocks).filter(u=>catOf(u).startsWith('New')))];
+  const banners=[...new Set(S.nodes.flatMap(n=>n.unlocks).filter(u=>catOf(u)==='Base banners'))];
+  if(fresh.length||banners.length){ L.push('## Needs wiring in the game');
+    if(fresh.length) L.push('New unlock names nothing in the game tests yet: '+fresh.join(', '));
+    if(banners.length) L.push('Base banners that are not locked in the game today: '+banners.join(', '));
+    L.push(''); }
+  L.push('## Brewery recipes');
+  S.brews.forEach(b=>L.push(`- **${b.Name}** (\`${b.ID}\`): `+(costOf(b).map(c=>itemName(c.id)+' ×'+c.n).join(', ')||'no ingredients')+
+    (b['For Class']||b.Becomes?'; '+(b['For Class']||'anyone')+(b.Becomes?' becomes '+b.Becomes:''):'')+(brewUnlockName(b)?'; unlocked by "'+brewUnlockName(b)+'"':'')));
+  return L.join('\n')+'\n';
+}
+function openExport(){
+  const files=exportFiles(); const sum=summaryForClaude(files);
+  const bg=document.createElement('div'); bg.className='modal-bg';
+  bg.innerHTML=`<div class="modal"><h2>Export</h2>
+    <p class="hint">These are the game's own files, ready to drop into <code>project_sb/data</code> - or send them (with the summary) to Claude in the project chat.</p>
+    <div class="files">${files.map((f,i)=>`<div class="file"><span class="nm">${f.name}</span><span class="st">${f.what} · ${f.changed?'<b style="color:var(--accent)">changed</b>':'no changes'}</span><button class="small" data-dl="${i}">Download</button></div>`).join('')}
+      <div class="file"><span class="nm">designer_summary.md</span><span class="st">what you drew, in words, for Claude</span><button class="small" id="dlSum">Download</button></div></div>
+    <div class="btns">
+      <button class="primary" id="dlAll">Download changed files + summary</button>
+      ${dirHandle?'<button id="writeDir">Write changed files into the data folder</button>':''}
+      <button id="copySum">Copy summary</button>
+      <button id="closeEx">Close</button>
+    </div>
+    ${dirHandle?'':'<p class="hint" style="margin-top:10px">Tip: in Chrome or Edge, “Load game data…” can also write the files straight back into the data folder.</p>'}</div>`;
+  document.body.appendChild(bg);
+  const q=s=>bg.querySelector(s);
+  bg.querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>download(files[+b.dataset.dl].name,files[+b.dataset.dl].text));
+  q('#dlSum').onclick=()=>download('designer_summary.md',sum,'text/markdown');
+  q('#dlAll').onclick=()=>{ const ch=files.filter(f=>f.changed); ch.forEach((f,i)=>setTimeout(()=>download(f.name,f.text),i*350)); setTimeout(()=>download('designer_summary.md',sum,'text/markdown'),ch.length*350); toast((ch.length+1)+' files to your Downloads'); };
+  q('#copySum').onclick=async()=>{ try{ await navigator.clipboard.writeText(sum); toast('Summary copied'); }catch(e){ const t=document.createElement('textarea'); t.value=sum; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); toast('Summary copied'); } };
+  q('#closeEx').onclick=()=>bg.remove(); bg.onclick=e=>{ if(e.target===bg) bg.remove(); };
+  if(dirHandle) q('#writeDir').onclick=async()=>{
+    const ch=files.filter(f=>f.changed); if(!ch.length){ toast('Nothing has changed'); return; }
+    if(!confirm('Overwrite '+ch.map(f=>f.name).join(', ')+' in the data folder?')) return;
+    try{ for(const f of ch){ const fh=await dirHandle.getFileHandle(f.name,{create:true}); const w=await fh.createWritable(); await w.write(f.text); await w.close(); FILES[f.key]=f.text; }
+      persistOnly(); toast('Wrote '+ch.length+' file'+(ch.length>1?'s':'')+' into data'); bg.remove(); }
+    catch(e){ alert('Could not write: '+e.message); }
+  };
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+function renderAll(){
+  document.getElementById('source').textContent='Game data: '+SOURCE;
+  renderUnlocks(); renderChain(); renderBrews();
+}
+function boot(){
+  const ui=document.getElementById('ucanvas'), bi=document.getElementById('bcanvas');
+  UC=makeCanvas(ui,document.getElementById('ulayer'),()=>S.view.u[S.curTree]||(S.view.u[S.curTree]={x:40,y:40,k:1}),v=>S.view.u[S.curTree]=v);
+  BC=makeCanvas(bi,document.getElementById('blayer'),()=>S.view.b||(S.view.b={x:40,y:40,k:1}),v=>S.view.b=v);
+  ui.addEventListener('bgclick',()=>{ uSel=null; closePicker(); renderUnlocks(); });
+  bi.addEventListener('bgclick',()=>{ bSel=null; renderBrews(); });
+  document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+    document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='view-'+b.dataset.view));
+    closePicker(); if(b.dataset.view==='brews'){ renderBrews(); if(!S.view.bFitted){ S.view.bFitted=1; fitB(); } else BC.apply(); } else { renderUnlocks(); UC.apply(); }
+  });
+  const on=(id,f)=>document.getElementById(id).onclick=f;
+  on('btnLoad',loadFolder); on('btnOpen',()=>document.getElementById('designInput').click()); on('btnSave',saveDesign); on('btnExport',openExport); on('btnUndo',undo);
+  on('btnAddTree',()=>{ const n=prompt('Name of the new tree (e.g. Brewery, Adventure, Training)'); if(!n||!n.trim()) return; const id=uid(slug(n),new Set(S.trees.map(t=>t.id))); S.trees.push({id,name:n.trim()}); S.curTree=id; uSel=null; changed(); renderUnlocks(); UC.apply(); });
+  on('btnAddNode',()=>addNode(null));
+  on('btnArrange',()=>{ arrangeTree(S.curTree,false); renderUnlocks(); unstack(S.curTree); changed(); renderUnlocks(); fitU(); });
+  on('btnFit',fitU); on('btnZoomIn',()=>UC.zoom(1.2)); on('btnZoomOut',()=>UC.zoom(1/1.2));
+  on('btnBArrange',()=>{ arrangeBrews(); changed(); renderBrews(); fitB(); }); on('btnBFit',fitB);
+  on('btnAddBrew',()=>{ const n=prompt('Name of the new drink'); if(!n||!n.trim()) return; const id=uid(slug(n),new Set(S.brews.map(b=>b.ID)));
+    S.brews.push(blankRow(S.brewHeader,{ID:id,Name:n.trim(),Inspiration:'15'})); const ps=Object.values(S.brewPos); S.brewPos[id]={x:260,y:ps.length?Math.max(...ps.map(p=>p.y))+200:0}; bSel={kind:'brew',id}; changed(); renderBrews(); });
+  on('btnAddIng',()=>{ const have=ingredientIds(); const opts=items().filter(r=>!have.includes(r.ID)).map(r=>r.ID+'  ('+r.Name+')');
+    const v=prompt('Items.csv ID of the ingredient to add to the board:\n'+opts.slice(0,30).join('\n')); if(!v) return; const id=v.split(/\s/)[0].trim(); if(!id) return;
+    S.extraIngs=S.extraIngs||[]; if(!have.includes(id)) S.extraIngs.push(id); const ys=Object.values(S.ingPos).map(p=>p.y); S.ingPos[id]={x:0,y:ys.length?Math.max(...ys)+90:0}; changed(); renderBrews(); });
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){ e.preventDefault(); undo(); return; }
+    if((e.key==='Delete'||e.key==='Backspace')&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){
+      if(document.getElementById('view-unlocks').classList.contains('on')&&uSel){ e.preventDefault(); if(uSel.kind==='edge') removeSelEdge(); else deleteNode(node(uSel.id)); }
+    }
+    if(e.key==='Escape') closePicker();
+  });
+  // Pick up where you left off, when the browser kept it.
+  let saved=null; try{ saved=JSON.parse(localStorage.getItem(STORE)||'null'); }catch(e){}
+  if(saved&&saved.design&&saved.files){ FILES=saved.files; SOURCE=saved.source||'earlier session'; S=saved.design; STATS=table('Stats').rows; CAT=buildCatalogue();
+    lastSnap=snap(); setTimeout(()=>toast('Picked up your last design. “Load game data…” starts fresh.'),300); }
+  else { FILES=GAME_DATA.files; SOURCE='built-in copy, '+GAME_DATA.stamp; designFromGame(); lastSnap=snap(); }
+  renderAll();
+  // First open: cards placed by the automatic layout may sit on each other.
+  if(S.nodes.some(n=>n.fresh)){ S.trees.forEach(t=>{ const c=S.curTree; S.curTree=t.id; renderUnlocks(); unstack(t.id); S.curTree=c; }); lastSnap=snap(); renderUnlocks(); }
+  requestAnimationFrame(fitU);
+}
+boot();
+</script>
+</body>
+</html>
