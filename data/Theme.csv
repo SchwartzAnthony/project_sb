@@ -33,3 +33,6 @@ colour tier_1,,,,,#4a6b8a,,,,,,,,,,"The four tiers in ladder order. Autumn: slat
 colour tier_2,,,,,#5a7a44,,,,,,,,,,
 colour tier_3,,,,,#b07a32,,,,,,,,,,
 colour tier_4,,,,,#8c4a5a,,,,,,,,,,
+building_window,,building_frame,no,76,#1a120b,,,,64,64,,,,tile,"ROUND AN (Anthony, 10 Oct: look C, THE BEER HALL, on every building window). The carved wooden frame with hop vines and a Mass in each corner, round every building window (base_window.gd). Slice 76 keeps the four mugs whole; Repeat tile REPEATS the carved edges between them instead of stretching them, so a wide window never smears the carving. Fill is the dark inside the frame (the picture is hollow); Pad X / Pad Y keep the screen inside the carving. Delete this row and the building windows go back to the plain window row above."
+building_title,,building_title,no,56 40 56 20,,,,,60,30,SturmballComicHD,30,#3a2210,,"The hanging wooden sign the building's name is written on, over the top edge of the frame. It stretches sideways to fit the name; the chains and corners never stretch. How far it rises above the frame: building_title_rise in Tuning.csv."
+building_close,,building_close,no,,,,,,,,,,,,"The beer mat on the frame's top-right corner that closes the window (Escape does too). Size: building_close_size in Tuning.csv."
