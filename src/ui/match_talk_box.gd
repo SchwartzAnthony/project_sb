@@ -233,6 +233,8 @@ func _face_for(line: DialogueLine) -> Texture2D:
 func _next() -> void:
 	if _line != null and not _unlocked():
 		return
+	# ROUND AN (Anthony, 11 Oct): the dialogue_click row of Audio.csv.
+	AudioDirector.fire(get_tree(), "dialogue_next", {"box": "coach"})
 	if _line == null:
 		_close()
 		return

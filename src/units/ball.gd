@@ -296,6 +296,7 @@ func deliver_to(unit: PlayerUnit) -> void:
 	_to = unit.global_position
 	_distance = maxf(_from.distance_to(_to), 1.0)
 	_travelled = 0.0
+	_kick_sound("relay")
 
 
 ## A pass that gets picked off. The ball sets out for `intended` exactly as a
@@ -681,6 +682,16 @@ func make_pass(hurried: bool = false) -> void:
 	carrier.play_once("kick", _to - _from)
 	carrier = null
 	_in_flight = true
+	_kick_sound("hoof" if hurried else "pass")
+
+
+## ROUND AN (Anthony, 11 Oct: "the sound of kicking the ball is missing"):
+## every pass is a `ball_passed` moment for Audio.csv (row pass_kick). Shots
+## have their own row (shot_kick, on shot_taken). `kind` is pass, hoof (a
+## hurried ball under pressure) or relay (the Play Maker and goal kicks).
+func _kick_sound(kind: String) -> void:
+	if is_inside_tree():
+		AudioDirector.fire(get_tree(), "ball_passed", {"kind": kind})
 
 
 ## Take the tiers named in `pass_skips_tiers` out of a list of possible
