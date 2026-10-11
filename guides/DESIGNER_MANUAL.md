@@ -2296,6 +2296,13 @@ each check, slowly enough to follow:
 | `Tuning.csv` `duel_hl_art_scale`, `duel_hl_box_margin` | how big their pixels are; where the box corners end |
 | `Audio.csv` `duel_ability_success` / `_fail`, `duel_power_victory` / `_fail` | the four sounds, made with Ludo.ai |
 
+**The checks under the window (round AN, 11 Oct, later).** You asked for
+the checks to be listed on the plate under the window again, so
+`duel_hl_pop` is now **false**: ABILITY PRIORITY, ABILITY CHECK and POWER
+CHECK appear on the plate at the bottom, as before, with their sounds. The
+rings, boxes, numbers and stamps on the cards still punch, flare and shake.
+Set `duel_hl_pop` back to true to bring the centre pop-ups back.
+
 **The check pop-ups (round AN, 11 Oct).** Each check now slams into the
 middle of the screen: **ABILITY PRIORITY**, then **ABILITY CHECK** for each
 ability, then **POWER CHECK**. The words start big and crooked, snap to size
@@ -7932,6 +7939,38 @@ It is left out of both tutorials, where the row is already full.
   (team music). Put one in place of the lud_ name to try it.
 - **Credits:** every new file has a line in `data/SoundCredits.csv`, and
   `tools/make_bavarian_sfx.py` now keeps those lines when it rewrites the file.
+
+### Dialogue click (11 Oct)
+
+- Every click that moves a conversation on plays the `dialogue_click` row of
+  Audio.csv (When `dialogue_next`). It covers both story scenes (`box=story`)
+  and the Head Coach's pop-ups in a match (`box=coach`); put one of those in
+  Match to limit it.
+- The sound is a beer mat flicked over, 0.07 s long, at -16 so fast clicking
+  never tires (`bav_dialogue_click.ogg`, made by `tools/make_bavarian_sfx.py`).
+  A `suno_dialogue_click` file wins once it is there, and its prompt is in
+  `guides/SUNO_PROMPTS.md`.
+
+### Smoother music switches in a match (11 Oct)
+
+- **The match music carries on where it stopped.** After the Play Maker or a
+  shot, it no longer starts from the top. Tuning `music_resume_seconds` (90)
+  sets how long a track remembers its place; 0 = always from the top. This
+  also works for the base music after a window.
+- **Fades are S-curves now.** One track swells in while the other sinks away,
+  with no hole and no bump. Tuning `music_smooth_fades` false brings back the
+  old straight fade.
+- **Longer fades on the match rows** (Audio.csv Fade): `play_maker_music` 1.5,
+  `goal_attempt_music` 1.0, `match_music_back` and `match_music_back_shot` 2.0.
+  A bigger number gives a slower handover.
+
+### Kick sound on every pass (11 Oct)
+
+- Before, only shots (`shot_kick`) and restarts had a kick sound, so the
+  ball went round the pitch in silence. Now every pass is a `ball_passed`
+  moment and plays the Audio.csv row `pass_kick`. That covers open play, the
+  Play Maker relay and goal kicks, and Match `kind=pass`, `hoof` or `relay`
+  can split them into separate rows.
 
 ### The overnight sound check (10 Oct, night)
 
