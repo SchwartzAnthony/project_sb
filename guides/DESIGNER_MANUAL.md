@@ -2296,6 +2296,30 @@ each check, slowly enough to follow:
 | `Tuning.csv` `duel_hl_art_scale`, `duel_hl_box_margin` | how big their pixels are; where the box corners end |
 | `Audio.csv` `duel_ability_success` / `_fail`, `duel_power_victory` / `_fail` | the four sounds, made with Ludo.ai |
 
+**The check pop-ups (round AN, 11 Oct).** Each check now slams into the
+middle of the screen: **ABILITY PRIORITY**, then **ABILITY CHECK** for each
+ability, then **POWER CHECK**. The words start big and crooked, snap to size
+with a flash and a shake, hold, then shrink down onto the plate under the
+window. The card moves with them: the gold ring or box punches in at the
+moment the words land, the +1 total jumps, an ability that went off flares
+white and one that did not goes grey with a shake, and at the end the
+winner's number and WIN stamp jump while the loser's panel shakes and its
+number greys out. Each check has its own sound (`duel_priority_check`,
+`duel_ability_check`, `duel_power_check`, from the sound thread).
+
+| Where | What you change |
+|---|---|
+| `Tuning.csv` `duel_hl_pop` | false puts the words straight on the plate, as before |
+| `Tuning.csv` `duel_hl_pop_ability` | false skips ABILITY CHECK (the box just appears) |
+| `Tuning.csv` `duel_hl_pop_font_size`, `_scale_from`, `_tilt` | how big the words are, how much bigger and how crooked they start |
+| `Tuning.csv` `duel_hl_pop_in_seconds`, `_hold_seconds`, `_out_seconds` | the slam, the hold, the move down |
+| `Tuning.csv` `duel_hl_pop_settle` | false fades the words away instead of moving them to the plate |
+| `Tuning.csv` `duel_hl_juice_flash`, `_shake`, `_punch`, `_win_punch` (+ `_seconds`) | how hard the flash, the shake and the jumps are; 0 (or 1 for a jump) turns one off |
+| `Language.csv` `duel_ability_check` | the ABILITY CHECK words |
+
+Each pop-up adds about one second to a duel; holding SPACE still speeds it
+all up, the pop-ups included.
+
 The old `duel_win` / `duel_lose` rows are gone from Audio.csv, so a duel
 makes only these sounds. Edit the art in `art_source/aseprite/ui/duel_ring.aseprite`
 and `duel_box.aseprite`, then export to `assets/ui/duel/`.
@@ -3597,6 +3621,40 @@ an Adventure mode. The moments (**When**) are `adv_start`, `adv_pickup`,
 after the box, such as `Continue forward`. **Once** true plays a row only the
 first time. The game is paused under the box and nothing can be clicked
 until it closes. Any Adventure mode can have rows like these.
+
+**Wastl explains your own Adventures** (round AN, 10-11 Oct). WASTL is the
+captain of the Adventure Team, a Bavarian hiking footballer (StoryArt.csv
+`wastl`). The first time you open the Adventure board in your own game the
+Head Coach introduces him and says goodbye (`Guide.csv wastl_intro`, scene
+`wastl-intro`). From then on Wastl does the stops. The
+`coach_adv_*` rows in `MatchTalk.csv` have Mode `adventure;intro_adventure`
+(a **Mode** cell can now list several modes with `;`) and Once true, so each
+plays the first time that moment happens in a save, then never again. His
+lines are drafts in `data/AdventureCoachDialogue.csv`. Delete a row to drop a
+stop. Besides the moments above there are new ones:
+
+| When | The moment |
+|---|---|
+| `adv_icons` | a pick has put the first icons on the pile (the bar along the top) |
+| `adv_combo` | an icon ability pays out |
+| `adv_enemy_buff` | enemies grew while you passed |
+| `adv_foe_down` | an enemy has been put down |
+| `adv_enemy_turn` | their half of the round begins |
+| `adv_enemy_combo` | their icons paid out too |
+| `adv_walkover` | a Tier had nobody, so they hit twice |
+| `adv_cycle` | everybody has had a turn and the pile empties |
+| `adv_stretcher` | the fallen are carried off after a fight |
+| `adv_wipe` | everybody is down |
+| `adv_items` | the bag is opened in a fight |
+
+**Escape in an Adventure** stops the run and opens a menu: **Continue**,
+**Exit to Base**, **Main Menu**, **Settings** (opens over the run; Escape or
+Back closes it) and **Quit to Desktop**. Leaving is never a way round the
+rules: with the loot window up it is Return to Base (the whole haul), with
+everybody down the haul is gone, and anywhere else it is fleeing
+(`adventure_flee_keep`). The button words are `Language.csv` rows
+`continue`, `exit_adventure`, `main_menu`, `settings`, `quit_game`. The check
+`tools/adventure_coach_check.gd` plays both through.
 
 **Two new Guide.csv words.** Screen `dorms` plays over the Dorms, and Then
 `goto:dorms` opens them. Then `tutorial:end` ends the Tutorial.
@@ -7819,3 +7877,76 @@ yet" note. The idea is written up in `guides/CONQUESTS.md`.
 
 It is left out of both tutorials, where the row is already full.
 `tools/conquests_shot.gd` presses it and photographs the note.
+
+## Suno slots, quieter goals, sooner doors (round AN, 10 Oct)
+
+- **Your Suno sounds drop straight in.** `guides/SUNO_PROMPTS.md` has a
+  Suno prompt for every sound and seven new music tracks, each with a file
+  name. Every Audio.csv `Sound` now reads like `suno_goal_horn | bav_goal`:
+  the first file that is in `assets/audio/` plays. Save your Suno file as
+  `suno_<row ID>.mp3` (or .wav / .ogg), drop it in, done. Delete it to get
+  the old sound back.
+- **`| -` means "or nothing yet".** `suno_menu_open | -` is silent, and not
+  reported as missing, until your file is there.
+- **New moments with a row each:** `duel_priority_check`,
+  `duel_ability_check`, `duel_power_check` (the three duel checks as they
+  come up), `menu_open` (When `window_opened`: every window over the base and
+  the Escape menu, `screen=pause`).
+- **New music rows:** `play_maker_music` (while you pick at a PLAY MAKER),
+  `goal_attempt_music` (the shot cut-away), `brewery_music` and
+  `dorms_music` (their windows over the base, When `window_opened` with
+  `screen=brewery;over=base`; closing gives the base its music back),
+  `marsh_music` (an Adventure in the Marshlands, When `match_started`,
+  `biome=The Marshlands`), `team_build_theme`. `match_music_back` and
+  `match_music_back_shot` (When `play_resumed` / `goal_attempt_over`) bring
+  the match music back; keep their Sound the same as `match_theme`.
+- **Fixed:** the team shelf and builder rows said `screen=teamselect` and
+  `screen=teambuilder`, but those screens call themselves `team_select` and
+  `team_builder`, so their music never played.
+- **Goal cheering quieter** (your note): `goal_horn` -5 → -11 dB,
+  `goal_horn_star` -4 → -10, `crowd_goal` -10 → -17.
+- **Door sounds sooner** (your note): `base_door_sound_delay` in Tuning.csv
+  1.0 → 0.15 seconds after the building's own sound.
+
+### Your seven Suno tracks and the missing sounds (10 Oct, evening)
+
+- **Your music is in.** The seven Suno tracks you put in the `audio/`
+  folder moved to `art_source/suno/music/` (the game never looks in
+  `audio/`). `data/MusicLoops.csv` rows `suno_adventure_menu`,
+  `suno_brewery`, `suno_dorms`, `suno_goal_attempt`, `suno_marsh`,
+  `suno_play_maker` and `suno_team` turn each into
+  `assets/audio/suno_<name>_music.ogg` - the whole song with a 4 s fade
+  before it starts again (`python3 tools/make_loop.py suno_brewery`).
+  Next time, drop a track straight into `assets/audio/` with its suno_ name
+  and it plays; or add a MusicLoops row like these.
+- **The missing sounds, made with Ludo.ai:** `lud_duel_priority_check`
+  (0.45 s), `lud_duel_ability_check` (0.2 s), `lud_duel_power_check`
+  (0.5 s), `lud_menu_open` (0.6 s) and a new flag, `lud_banner_flutter`
+  (0.7 s). Each sits after your Suno slot in Audio.csv, so a Suno file
+  still wins once it is there. Ludo's originals: `art_source/ludo/sfx_10oct/`.
+- **Spares cut from your own music:** `mus_duel_priority_check` (goal
+  attempt music), `mus_duel_ability_check` (Brewery), `mus_duel_power_check`
+  (team music). Put one in place of the lud_ name to try it.
+- **Credits:** every new file has a line in `data/SoundCredits.csv`, and
+  `tools/make_bavarian_sfx.py` now keeps those lines when it rewrites the file.
+
+### The overnight sound check (10 Oct, night)
+
+`tools/sound_playback_check.gd` plays the game's moments through the real
+sound system and says which track and sound each one gets. It found and
+fixed four things:
+
+- **The goal cheer was really too loud because of Juice.csv.** Juice.csv has
+  When and Sound columns, so it was also read as a sound sheet, and its
+  goal_scored row played the OLD crowd_goal.ogg at full volume on every
+  goal. Only sheets with a `Bus` column are sound sheets now; Juice still
+  plays its own sounds by name.
+- **The drinking window was silent.** `drink_big` and `drink_burp` had no
+  When, but the window fires them as moments. Their When is filled in.
+- **Pouring in the Pub made no sound** (brew_drunk never reached the sound
+  system). It does now: `brew_pour` (Match `where=pub`).
+- **Drinking from the bag on the pitch** now has gulps: new row
+  `drink_pitch` (Match `where=pitch`), using your Suno drink sound once it
+  is there.
+
+Run it with `godot --headless --path . --script res://tools/sound_playback_check.gd`.

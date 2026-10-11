@@ -1552,13 +1552,21 @@ def write_credits():
     users = {}
     with open(audio, encoding="utf-8", newline="") as f:
         for row in csv.DictReader(f):
-            users.setdefault(row["Sound"].strip(), []).append(row["ID"])
+            for choice in row["Sound"].split("|"):
+                users.setdefault(choice.strip(), []).append(row["ID"])
+    # Rows for files this script did not make (Ludo, cuts) are kept.
+    others = []
+    if os.path.exists(CREDITS):
+        with open(CREDITS, encoding="utf-8", newline="") as f:
+            others = [r for r in csv.reader(f)][1:]
+        others = [r for r in others if r and not r[0].startswith("bav_")]
     with open(CREDITS, "w", encoding="utf-8", newline="") as f:
         w = csv.writer(f, lineterminator="\n")
         w.writerow(["File", "Folder", "What you hear", "Audio.csv rows", "Source", "Licence"])
         for name, fn in SOUNDS.items():
             w.writerow([name + ".ogg", "assets/audio/", fn.__doc__.strip(), "; ".join(users.get(name, [])) or "spare",
                         SOURCE[PICKS[name]], LICENCE[PICKS[name]]])
+        w.writerows(others)
 
 
 # The longest each may ring, in seconds: sounds that play often or under
