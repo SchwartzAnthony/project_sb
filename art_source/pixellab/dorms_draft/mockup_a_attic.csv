@@ -1,0 +1,12 @@
+Part,Image,X,Y,Width,Height,Scale,Flip
+background,res://art_source/pixellab/dorms_draft/bg_a_attic.png,,,,,,
+picture,res://art_source/pixellab/dorms_draft/bed_a.png,560,440,192,192,,
+picture,res://art_source/pixellab/dorms_draft/bed_sleeper_c.png,760,440,192,192,,
+picture,res://art_source/pixellab/dorms_draft/bed_a.png,960,440,192,192,,
+picture,res://art_source/pixellab/dorms_draft/bed_a.png,1160,440,192,192,,
+picture,res://art_source/pixellab/dorms_draft/bed_sleeper_c.png,1360,440,192,192,,
+picture,res://art_source/pixellab/dorms_draft/bed_a.png,560,660,192,192,,
+picture,res://art_source/pixellab/dorms_draft/bed_a.png,760,660,192,192,,
+picture,res://art_source/pixellab/dorms_draft/bed_sleeper_c.png,960,660,192,192,,
+picture,res://art_source/pixellab/dorms_draft/bed_a.png,1160,660,192,192,,
+picture,res://art_source/pixellab/dorms_draft/bed_a.png,1360,660,192,192,,

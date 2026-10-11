@@ -1,0 +1,8 @@
+Part,Image,X,Y,Width,Height,Scale,Flip
+picture,res://art_source/pixellab/dorms_ui_draft/layers_a_noticeboard/01_room.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_a_noticeboard/02_beds.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_a_noticeboard/03_zzz_and_rest.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_a_noticeboard/04_room_tabs.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_a_noticeboard/05_notice_board.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_a_noticeboard/06_shop_items.png,960,540,1920,1080,,
+picture,res://art_source/pixellab/dorms_ui_draft/layers_a_noticeboard/07_hover_tag.png,960,540,1920,1080,,

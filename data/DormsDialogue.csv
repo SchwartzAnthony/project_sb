@@ -1,0 +1,4 @@
+Scene,Node ID,Speaker,Portrait,Side,Mood,Background,Text,Effects,Notes
+guide-dorms,l1,Head Coach,coach,left,happy,,"The Dorms. Every tired player sleeps here - after a match, an Adventure or a shift at the Brewery.",,"ROUND AN (Anthony, 10 Oct: the explaining moved off the Dorms screen into the Head Coach's box). Played the first time you open the Dorms (Guide.csv dorms_explain), after the Tutorial's own Dorms lines. DRAFT lines - rewrite them here."
+guide-dorms,l2,Head Coach,coach,left,happy,,"The mugs in front of a bed are his rest: one for every point of power. One fills each fixture, and he plays nothing until they are all full.",,
+guide-dorms,l3,Head Coach,coach,left,happy,,"Hover a sleeper to see who he is. Short of beds? The notice board sells them one at a time - and the key buys a whole new room, with its own pennant.",,

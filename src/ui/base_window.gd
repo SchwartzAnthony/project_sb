@@ -83,6 +83,28 @@ func _build(title: String, scene_path: String) -> void:
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(dim)
 
+	# ============ THE BEER HALL FRAME (round AN, Anthony 10 Oct) ============
+	#
+	# "Everywhere": every building window wears the same carved frame - the
+	# Theme.csv rows building_window (the frame), building_title (the hanging
+	# sign the name is written on) and building_close (the beer mat that
+	# closes it). No building_window row = the old brown box, as before.
+	var carved := ThemeBook.has_element("building_window")
+	if carved:
+		# The frame is drawn hollow, so the inside gets its own dark fill,
+		# tucked in under the carving (building_window_inset in Tuning.csv).
+		var inset := _tune_float("building_window_inset", 24.0)
+		var inside := ColorRect.new()
+		inside.color = ThemeBook._colour_of(String(ThemeBook.row_for("building_window").get("fill", "")),
+			MenuSupport.COLOUR_BACKGROUND)
+		inside.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		inside.offset_left = MARGIN.x + inset
+		inside.offset_right = -MARGIN.x - inset
+		inside.offset_top = MARGIN.y + inset
+		inside.offset_bottom = -MARGIN.y - inset
+		inside.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(inside)
+
 	var frame := PanelContainer.new()
 	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	frame.offset_left = MARGIN.x
@@ -90,7 +112,7 @@ func _build(title: String, scene_path: String) -> void:
 	frame.offset_top = MARGIN.y
 	frame.offset_bottom = -MARGIN.y
 	frame.add_theme_stylebox_override("panel", MenuSupport.styled(
-		"window", "", MenuSupport.COLOUR_BACKGROUND, MenuSupport.COLOUR_ACCENT))
+		"building_window" if carved else "window", "", MenuSupport.COLOUR_BACKGROUND, MenuSupport.COLOUR_ACCENT))
 	add_child(frame)
 	# IT COMES UP INTO PLACE rather than appearing. `window_open` in
 	# Motion.csv — fourteen pixels and six per cent over a sixth of a second,
@@ -110,6 +132,27 @@ func _build(title: String, scene_path: String) -> void:
 	pad.add_child(column)
 
 	# ---- the title bar ----
+	if carved:
+		_carved_title(title)
+	else:
+		_plain_title(column, title)
+
+	# ---- the screen itself ----
+	var packed := load(scene_path) as PackedScene
+	if packed == null:
+		return
+	content = packed.instantiate() as Control
+	if content == null:
+		return
+	# SET BEFORE IT ENTERS THE TREE, so the screen's own _ready() can see it.
+	content.set_meta("windowed", true)
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(content)
+
+
+## THE OLD TITLE BAR: the name and a ✕ across the top of the window.
+func _plain_title(column: VBoxContainer, title: String) -> void:
 	var bar := HBoxContainer.new()
 	bar.add_theme_constant_override("separation", 12)
 	column.add_child(bar)
@@ -133,18 +176,61 @@ func _build(title: String, scene_path: String) -> void:
 
 	column.add_child(HSeparator.new())
 
-	# ---- the screen itself ----
-	var packed := load(scene_path) as PackedScene
-	if packed == null:
-		return
-	content = packed.instantiate() as Control
-	if content == null:
-		return
-	# SET BEFORE IT ENTERS THE TREE, so the screen's own _ready() can see it.
-	content.set_meta("windowed", true)
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	column.add_child(content)
+
+
+## THE BEER HALL TITLE: the name on a wooden sign hanging over the top edge
+## of the frame, and a beer mat on the top-right corner that closes it.
+func _carved_title(title: String) -> void:
+	var sign := PanelContainer.new()
+	sign.add_theme_stylebox_override("panel", MenuSupport.styled("building_title"))
+	sign.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var words := Label.new()
+	words.text = title.to_upper()
+	words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	words.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	var face := ThemeBook.font(String(ThemeBook.row_for("building_title").get("font", "")))
+	if face != null:
+		words.add_theme_font_override("font", face)
+	words.add_theme_font_size_override("font_size", ThemeBook.font_size("building_title", 28))
+	words.add_theme_color_override("font_color", ThemeBook.text_colour("building_title", Color(0.2, 0.12, 0.05)))
+	sign.add_child(words)
+	add_child(sign)
+	var wide := get_viewport().get_visible_rect().size.x if get_viewport() != null else 1920.0
+	var box := sign.get_combined_minimum_size()
+	sign.size = box
+	# Centred on the top edge; building_title_rise (Tuning.csv) is how much
+	# of the sign stands above the frame - 0.5 = half of it.
+	sign.position = Vector2((wide - box.x) * 0.5, MARGIN.y - box.y * _tune_float("building_title_rise", 0.55))
+
+	var mat := TextureButton.new()
+	mat.name = "Close"
+	var art := ThemeBook.image(String(ThemeBook.row_for("building_close").get("image", "")))
+	mat.texture_normal = art
+	mat.ignore_texture_size = true
+	mat.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	mat.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var side := _tune_float("building_close_size", 72.0)
+	mat.size = Vector2(side, side)
+	mat.position = Vector2(wide - MARGIN.x - side * 0.6, MARGIN.y - side * 0.4)
+	mat.focus_mode = Control.FOCUS_ALL
+	mat.tooltip_text = "Close"
+	mat.mouse_entered.connect(func() -> void: mat.modulate = Color(1.2, 1.2, 1.2))
+	mat.mouse_exited.connect(func() -> void: mat.modulate = Color.WHITE)
+	mat.pressed.connect(close)
+	add_child(mat)
+	if art == null:
+		# No beer mat picture: a plain ✕ still closes it.
+		var cross := MenuSupport.heading("✕", 28, MenuSupport.COLOUR_ACCENT)
+		cross.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		cross.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cross.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		cross.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mat.add_child(cross)
+
+
+func _tune_float(key: String, fallback: float) -> float:
+	var db := CardDatabase.get_db()
+	return db.tune_float(key, fallback) if db != null else fallback
 
 
 func close() -> void:
