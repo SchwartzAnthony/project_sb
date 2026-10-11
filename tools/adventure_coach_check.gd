@@ -194,6 +194,9 @@ func _read_boxes() -> void:
 			_seen.append(scene_name)
 			print("[coach] box: %s" % scene_name)
 			await _shot(scene_name)
+		elif scene_name == "wastl-intro":
+			# Every line of the hand-over, so both faces are seen.
+			await _shot(scene_name)
 		box.call("_next")
 		await create_timer(0.1, true, false, true).timeout
 
