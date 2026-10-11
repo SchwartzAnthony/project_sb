@@ -392,8 +392,33 @@ function changed(){ // call after every edit
 function undo(){ if(!UNDO.length){toast('Nothing to undo');return;} S=JSON.parse(UNDO.pop()); lastSnap=snap(); persistOnly(); renderAll(); }
 function persistOnly(){ try{ localStorage.setItem(STORE,JSON.stringify({savedAt:Date.now(),source:SOURCE,files:FILES,design:S})); }catch(e){} }
 
+// In-page questions. Browser pop-ups (prompt/confirm/alert) are switched off on
+// claude.ai link pages, so the Designer asks in its own little window instead.
+function _askBox(msg,def,withInput,okText,noText){
+  return new Promise(res=>{
+    const bg=document.createElement('div'); bg.className='modal-bg'; bg.style.zIndex=80;
+    bg.innerHTML=`<div class="modal" role="dialog" aria-modal="true" style="max-width:460px"><p style="margin:0;white-space:pre-wrap"></p>
+      ${withInput?'<input id="askIn" type="text" style="width:100%;margin-top:10px;padding:7px 9px;font:inherit">':''}
+      <div class="btns"><button class="primary" id="askOk"></button>${noText?'<button id="askNo"></button>':''}</div></div>`;
+    bg.querySelector('p').textContent=msg; bg.querySelector('#askOk').textContent=okText;
+    if(noText) bg.querySelector('#askNo').textContent=noText;
+    const inp=bg.querySelector('#askIn'); if(inp) inp.value=def||'';
+    const done=v=>{ bg.remove(); res(v); };
+    bg.querySelector('#askOk').onclick=()=>done(withInput?inp.value:true);
+    if(noText) bg.querySelector('#askNo').onclick=()=>done(withInput?null:false);
+    bg.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter') bg.querySelector('#askOk').click(); if(e.key==='Escape') done(withInput?null:false); });
+    document.body.appendChild(bg); (inp||bg.querySelector('#askOk')).focus(); if(inp) inp.select();
+  });
+}
+const ask=(msg,def)=>_askBox(msg,def,true,'OK','Cancel');
+const yes=msg=>_askBox(msg,'',false,'Yes','No');
+const say=msg=>_askBox(msg,'',false,'OK',null);
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast.h); toast.h=setTimeout(()=>t.classList.remove('on'),2200); }
-function download(name,text,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:type||'text/csv'})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500); }
+// On a claude.ai link page plain download links are blocked, so ask the page's
+// "downloads" helper first; opened as a file on the computer, the old link works.
+let _dl; try{ _dl=window.claude&&window.claude.use?window.claude.use('downloads').catch(()=>null):null; }catch(e){ _dl=null; }
+async function download(name,text,type){ const d=_dl?await _dl:null; if(d){ try{ await d.save({filename:name,data:new Blob([text],{type:type||'text/csv'})}); }catch(e){ toast('Not saved: '+name); } return; } plainDownload(name,text,type); }
+function plainDownload(name,text,type){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:type||'text/csv'})); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500); }
 
 /* ============================================================
    CANVAS - shared pan / zoom
@@ -507,7 +532,7 @@ function renderTreeTabs(){
     box.appendChild(b);
   });
 }
-function renameTree(t){ const n=prompt('Name of this tree',t.name); if(n&&n.trim()){ t.name=n.trim(); changed(); renderUnlocks(); } }
+async function renameTree(t){ const n=await ask('Name of this tree',t.name); if(n&&n.trim()){ t.name=n.trim(); changed(); renderUnlocks(); } }
 
 function nodeCard(n){
   const el=document.createElement('div'); el.className='node'+(n.start?' start':'')+(uSel&&uSel.kind==='node'&&uSel.id===n.id?' sel':'');
@@ -565,8 +590,8 @@ function renderLegend(){
 }
 function fitU(){ const els=[...document.querySelectorAll('#ulayer .node')]; UC.fit(treeNodes(S.curTree).map(n=>{ const e=els.find(x=>x.dataset.nid===n.id); return {x:n.x,y:n.y,w:NODE_W,h:e?e.offsetHeight:120}; })); }
 
-function addNode(parent){
-  const name=prompt(parent?'Name of the step that comes after “'+parent.name+'”':'Name of the new unlock step','New step'); if(!name||!name.trim()) return;
+async function addNode(parent){
+  const name=await ask(parent?'Name of the step that comes after “'+parent.name+'”':'Name of the new unlock step','New step'); if(!name||!name.trim()) return;
   const id=uid(slug(name),new Set(S.nodes.map(n=>n.id)));
   const kids=parent?children(parent.id).filter(c=>c.tree===S.curTree):[];
   const n={id,name:name.trim(),desc:'',cond:[],parents:parent?[parent.id]:[],unlocks:[],reward:'',art:'',hidden:'',notes:'',tree:S.curTree,row:null,
@@ -574,8 +599,8 @@ function addNode(parent){
   if(!parent){ const ns=treeNodes(S.curTree); n.start=true; n.x=ns.length?Math.max(...ns.map(m=>m.x))+GAP_X:0; n.y=0; }
   S.nodes.push(n); uSel={kind:'node',id}; changed(); renderUnlocks();
 }
-function deleteNode(n){
-  if(!confirm('Remove “'+n.name+'”? Steps after it keep their other links.')) return;
+async function deleteNode(n){
+  if(!await yes('Remove “'+n.name+'”? Steps after it keep their other links.')) return;
   S.nodes.forEach(o=>o.parents=o.parents.filter(p=>p!==n.id));
   S.nodes=S.nodes.filter(o=>o!==n); uSel=null; changed(); renderUnlocks();
 }
@@ -838,13 +863,13 @@ function renderBSide(){
     il.appendChild(d); });
   side.querySelector('#bAddIng').onchange=e=>{ const id=e.target.value; if(!id) return; const f=cost.find(x=>x.id===id); if(f) f.n++; else cost.push({id,n:1}); setCost(b,cost); changed(); renderBrews(); };
   side.querySelectorAll('[data-f]').forEach(i=>i.onchange=e=>{ b[i.dataset.f]=e.target.value; changed(); renderBrews(); });
-  side.querySelector('#bUnlock').onchange=e=>{ let v=e.target.value; if(v==='__new'){ v=prompt('Unlock name (an unlock step in the tree then hands it over)',b.Name)||''; v=v.trim(); }
+  side.querySelector('#bUnlock').onchange=async e=>{ let v=e.target.value; if(v==='__new'){ v=await ask('Unlock name (an unlock step in the tree then hands it over)',b.Name)||''; v=v.trim(); }
     const rest=splitList(b.Requires).filter(t=>!/^unlocked:/.test(t)); b.Requires=(v?['unlocked:'+v]:[]).concat(rest).join(';');
     if(v&&!CAT.has(norm(v))) CAT.set(norm(v),{name:v,cat:'Drinks',label:b.Name}); changed(); renderBrews(); };
   const go=side.querySelector('#bGoTree'); if(go) go.onclick=()=>{ const n=uSel&&uSel.kind==='node'&&node(uSel.id); if(!n){ toast('First click a step in the Unlock Tree, then come back'); return; } n.unlocks.push(un); changed(); renderBrews(); toast('“'+un+'” added to '+n.name); };
   side.querySelector('#bId').onchange=e=>{ const v=slug(e.target.value); if(!v||v===b.ID) return; if(S.brews.some(x=>x.ID===v)){ toast('That ID is taken'); return; } S.brewPos[v]=S.brewPos[b.ID]; delete S.brewPos[b.ID]; b.ID=v; bSel.id=v; changed(); renderBrews(); };
   side.querySelector('#bDup').onclick=()=>{ const id=uid(b.ID+'_copy',new Set(S.brews.map(x=>x.ID))); const c={...b,ID:id,Name:b.Name+' (copy)'}; S.brews.splice(S.brews.indexOf(b)+1,0,c); const p=S.brewPos[b.ID]; S.brewPos[id]={x:p.x+30,y:p.y+30}; bSel={kind:'brew',id}; changed(); renderBrews(); };
-  side.querySelector('#bDel').onclick=()=>{ if(!confirm('Remove '+b.Name+'?')) return; S.brews=S.brews.filter(x=>x!==b); bSel=null; changed(); renderBrews(); };
+  side.querySelector('#bDel').onclick=async()=>{ if(!await yes('Remove '+b.Name+'?')) return; S.brews=S.brews.filter(x=>x!==b); bSel=null; changed(); renderBrews(); };
 }
 function fitB(){ const boxes=[]; document.querySelectorAll('#blayer .ing,#blayer .node').forEach(e=>boxes.push({x:e.offsetLeft,y:e.offsetTop,w:e.offsetWidth,h:e.offsetHeight})); BC.fit(boxes); }
 
@@ -857,7 +882,7 @@ async function loadFolder(){
       const h=await window.showDirectoryPicker({id:'sturmball-data',mode:'readwrite'});
       let dir=h; try{ dir=await h.getDirectoryHandle('data'); }catch(e){} // they picked project_sb itself
       const files={}; for await (const [name,f] of dir.entries()){ if(f.kind==='file'&&name.endsWith('.csv')) files[name.slice(0,-4)]=await (await f.getFile()).text(); }
-      if(!files.Achievements){ alert('No Achievements.csv in that folder. Pick project_sb or project_sb/data.'); return; }
+      if(!files.Achievements){ say('No Achievements.csv in that folder. Pick project_sb or project_sb/data.'); return; }
       dirHandle=dir; useFiles(files,'your data folder ('+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+')'); return;
     }catch(e){ if(e.name==='AbortError') return; }
   }
@@ -866,11 +891,11 @@ async function loadFolder(){
 document.getElementById('dirInput').onchange=async e=>{
   const files={}; for(const f of e.target.files){ const p=f.webkitRelativePath||f.name; if(!f.name.endsWith('.csv')) continue; if(/\/data\/[^/]+\.csv$/.test(p)||p.split('/').length<=2) files[f.name.slice(0,-4)]=await f.text(); }
   e.target.value='';
-  if(!files.Achievements){ alert('No Achievements.csv found. Pick the project_sb/data folder.'); return; }
+  if(!files.Achievements){ say('No Achievements.csv found. Pick the project_sb/data folder.'); return; }
   dirHandle=null; useFiles(files,'your data folder ('+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+')');
 };
-function useFiles(files,source){
-  if(UNDO.length&&!confirm('Start again from these game files? Your current drawing is replaced (Save design first if you want to keep it).')) return;
+async function useFiles(files,source){
+  if(UNDO.length&&!await yes('Start again from these game files? Your current drawing is replaced (Save design first if you want to keep it).')) return;
   // Keep only what the Designer uses (the same list as build.py), so the
   // browser's memory of your last design stays small.
   const always=['Achievements','Upgrades','Brews','Items','Stats','Currencies','Buildings','BrewerySections','BreweryResources','ClassInfo','Elements'];
@@ -886,7 +911,7 @@ document.getElementById('designInput').onchange=async e=>{
   const f=e.target.files[0]; e.target.value=''; if(!f) return;
   try{ const j=JSON.parse(await f.text()); if(j.format!=='sturmball-designer') throw new Error('not a design file');
     FILES=j.files||FILES; SOURCE=(j.source||'')+' · design '+f.name; S=j.design; STATS=table('Stats').rows; CAT=buildCatalogue(); UNDO.length=0; lastSnap=''; changed(); uSel=null; bSel=null; renderAll(); fitU(); toast('Opened '+f.name);
-  }catch(err){ alert('Could not open that file: '+err.message); }
+  }catch(err){ say('Could not open that file: '+err.message); }
 };
 function summaryForClaude(files){
   const L=[]; const d=new Date();
@@ -933,15 +958,15 @@ function openExport(){
   const q=s=>bg.querySelector(s);
   bg.querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>download(files[+b.dataset.dl].name,files[+b.dataset.dl].text));
   q('#dlSum').onclick=()=>download('designer_summary.md',sum,'text/markdown');
-  q('#dlAll').onclick=()=>{ const ch=files.filter(f=>f.changed); ch.forEach((f,i)=>setTimeout(()=>download(f.name,f.text),i*350)); setTimeout(()=>download('designer_summary.md',sum,'text/markdown'),ch.length*350); toast((ch.length+1)+' files to your Downloads'); };
+  q('#dlAll').onclick=async()=>{ const ch=files.filter(f=>f.changed); toast((ch.length+1)+' files to your Downloads'); for(const f of ch){ await download(f.name,f.text); await new Promise(r=>setTimeout(r,350)); } await download('designer_summary.md',sum,'text/markdown'); };
   q('#copySum').onclick=async()=>{ try{ await navigator.clipboard.writeText(sum); toast('Summary copied'); }catch(e){ const t=document.createElement('textarea'); t.value=sum; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); toast('Summary copied'); } };
   q('#closeEx').onclick=()=>bg.remove(); bg.onclick=e=>{ if(e.target===bg) bg.remove(); };
   if(dirHandle) q('#writeDir').onclick=async()=>{
     const ch=files.filter(f=>f.changed); if(!ch.length){ toast('Nothing has changed'); return; }
-    if(!confirm('Overwrite '+ch.map(f=>f.name).join(', ')+' in the data folder?')) return;
+    if(!await yes('Overwrite '+ch.map(f=>f.name).join(', ')+' in the data folder?')) return;
     try{ for(const f of ch){ const fh=await dirHandle.getFileHandle(f.name,{create:true}); const w=await fh.createWritable(); await w.write(f.text); await w.close(); FILES[f.key]=f.text; }
       persistOnly(); toast('Wrote '+ch.length+' file'+(ch.length>1?'s':'')+' into data'); bg.remove(); }
-    catch(e){ alert('Could not write: '+e.message); }
+    catch(e){ say('Could not write: '+e.message); }
   };
 }
 
@@ -979,15 +1004,15 @@ function boot(){
   });
   const on=(id,f)=>document.getElementById(id).onclick=f;
   on('btnLoad',loadFolder); on('btnOpen',()=>document.getElementById('designInput').click()); on('btnSave',saveDesign); on('btnExport',openExport); on('btnUndo',undo);
-  on('btnAddTree',()=>{ const n=prompt('Name of the new tree (e.g. Brewery, Adventure, Training)'); if(!n||!n.trim()) return; const id=uid(slug(n),new Set(S.trees.map(t=>t.id))); S.trees.push({id,name:n.trim()}); S.curTree=id; uSel=null; changed(); renderUnlocks(); UC.apply(); });
+  on('btnAddTree',async()=>{ const n=await ask('Name of the new tree (e.g. Brewery, Adventure, Training)'); if(!n||!n.trim()) return; const id=uid(slug(n),new Set(S.trees.map(t=>t.id))); S.trees.push({id,name:n.trim()}); S.curTree=id; uSel=null; changed(); renderUnlocks(); UC.apply(); });
   on('btnAddNode',()=>addNode(null));
   on('btnArrange',()=>{ arrangeTree(S.curTree,false); renderUnlocks(); unstack(S.curTree); changed(); renderUnlocks(); fitU(); });
   on('btnFit',fitU); on('btnZoomIn',()=>UC.zoom(1.2)); on('btnZoomOut',()=>UC.zoom(1/1.2));
   on('btnBArrange',()=>{ arrangeBrews(); changed(); renderBrews(); fitB(); }); on('btnBFit',fitB);
-  on('btnAddBrew',()=>{ const n=prompt('Name of the new drink'); if(!n||!n.trim()) return; const id=uid(slug(n),new Set(S.brews.map(b=>b.ID)));
+  on('btnAddBrew',async()=>{ const n=await ask('Name of the new drink'); if(!n||!n.trim()) return; const id=uid(slug(n),new Set(S.brews.map(b=>b.ID)));
     S.brews.push(blankRow(S.brewHeader,{ID:id,Name:n.trim(),Inspiration:'15'})); const ps=Object.values(S.brewPos); S.brewPos[id]={x:260,y:ps.length?Math.max(...ps.map(p=>p.y))+200:0}; bSel={kind:'brew',id}; changed(); renderBrews(); });
-  on('btnAddIng',()=>{ const have=ingredientIds(); const opts=items().filter(r=>!have.includes(r.ID)).map(r=>r.ID+'  ('+r.Name+')');
-    const v=prompt('Items.csv ID of the ingredient to add to the board:\n'+opts.slice(0,30).join('\n')); if(!v) return; const id=v.split(/\s/)[0].trim(); if(!id) return;
+  on('btnAddIng',async()=>{ const have=ingredientIds(); const opts=items().filter(r=>!have.includes(r.ID)).map(r=>r.ID+'  ('+r.Name+')');
+    const v=await ask('Items.csv ID of the ingredient to add to the board:\n'+opts.slice(0,30).join('\n')); if(!v) return; const id=v.split(/\s/)[0].trim(); if(!id) return;
     S.extraIngs=S.extraIngs||[]; if(!have.includes(id)) S.extraIngs.push(id); const ys=Object.values(S.ingPos).map(p=>p.y); S.ingPos[id]={x:0,y:ys.length?Math.max(...ys)+90:0}; changed(); renderBrews(); });
   document.addEventListener('keydown',e=>{
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){ e.preventDefault(); undo(); return; }

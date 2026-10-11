@@ -118,8 +118,8 @@ function paintTable(){
     const inputs=wrap.querySelectorAll("tbody tr:last-child input,tbody tr:last-child select");
     if(inputs[0]) inputs[0].focus();
   },"key");
-  mk("+ Column",()=>{
-    const n=prompt("New column name (write it the way a person would — \"Max Stamina\"):");
+  mk("+ Column",async()=>{
+    const n=await ask("New column name (write it the way a person would — \"Max Stamina\"):");
     if(!n) return; d.headers.push(n); d.rows.forEach(r=>r.push("")); save(); paintTable();
   });
   mk("Copy this file",()=>showExport(CUR));
@@ -142,7 +142,7 @@ function paintTable(){
     const tools=document.createElement("td"); tools.className="rowtools";
     tools.innerHTML='<button class="ico" title="Duplicate">⧉</button><button class="ico del" title="Delete">✕</button>';
     tools.children[0].onclick=()=>{d.rows.splice(ri+1,0,row.slice());save();paintTable();check();paintRail();};
-    tools.children[1].onclick=()=>{if(confirm("Delete this row?")){d.rows.splice(ri,1);save();paintTable();check();paintRail();}};
+    tools.children[1].onclick=async()=>{if(await yes("Delete this row?")){d.rows.splice(ri,1);save();paintTable();check();paintRail();}};
     tr.appendChild(tools);
     const n=document.createElement("td"); n.className="rn"; n.textContent=ri+2; tr.appendChild(n);
 
@@ -256,10 +256,10 @@ function paintBoard(){
       lines.push("");
     });
     const text=lines.join("\n");
-    navigator.clipboard.writeText(text).then(()=>alert("The list is on your clipboard."),
-      ()=>alert(text));
+    navigator.clipboard.writeText(text).then(()=>say("The list is on your clipboard."),
+      ()=>say(text));
   },"key");
-  mk("Untick everything",()=>{ if(confirm("Clear every tick on this page?")){ Object.keys(HAVE).forEach(k=>{ if(k.indexOf("art:")!==0) delete HAVE[k]; }); saveHave(); paintTable(); paintRail(); } });
+  mk("Untick everything",async()=>{ if(await yes("Clear every tick on this page?")){ Object.keys(HAVE).forEach(k=>{ if(k.indexOf("art:")!==0) delete HAVE[k]; }); saveHave(); paintTable(); paintRail(); } });
 
   const wants=assetWants();
   const wrap=$("#wrap"); wrap.innerHTML="";
@@ -364,11 +364,11 @@ function paintWords(){
 
   $("#tools").innerHTML="";
   const mk=(t,fn,cls)=>{const b=document.createElement("button");b.className="btn sm "+(cls||"");b.textContent=t;b.onclick=fn;$("#tools").appendChild(b);return b;};
-  mk("+ Ask for a keyword",()=>{
-    if(!DATA["Keywords.csv"]){ alert("Load your data folder first — Keywords.csv is the file this writes to."); return; }
-    const word=prompt("The word itself, as you would write it in a spreadsheet cell:");
+  mk("+ Ask for a keyword",async()=>{
+    if(!DATA["Keywords.csv"]){ say("Load your data folder first — Keywords.csv is the file this writes to."); return; }
+    const word=await ask("The word itself, as you would write it in a spreadsheet cell:");
     if(!word) return;
-    const what=prompt("What should it do? One clear sentence — this is the specification.");
+    const what=await ask("What should it do? One clear sentence — this is the specification.");
     const d=DATA["Keywords.csv"];
     const r=d.headers.map(h=>{
       if(h==="Keyword") return word;

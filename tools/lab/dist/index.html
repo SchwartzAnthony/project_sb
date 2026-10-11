@@ -1568,7 +1568,10 @@ function initEditor(){
   });
   $("#e-addrow").addEventListener("click", ()=>{ const name = $("#e-file").value; P(name).added.push(FILES[name].header.map(()=> "")); edited(); $("#e-filter").value = ""; drawGrid(); const g = $("#e-grid"); g.scrollTop = g.scrollHeight; });
   $("#e-diff").addEventListener("click", e=>{ const b = e.target.closest("[data-revert]"); if (b) revertFile(b.dataset.revert); });
-  $("#e-undo").addEventListener("click", ()=>{ if (!confirm("Undo every change you made in the lab?")) return; PATCH = {}; edited(); drawCardEditor(); drawGrid(); drawTuning(); });
+  /* Asks by a second click: browser pop-ups are switched off on claude.ai link pages. */
+  $("#e-undo").addEventListener("click", ()=>{ const u = $("#e-undo");
+    if (!u.dataset.sure){ u.dataset.sure = "1"; u.textContent = "Click again to undo all"; setTimeout(()=>{ delete u.dataset.sure; u.textContent = "Undo everything"; }, 4000); return; }
+    delete u.dataset.sure; u.textContent = "Undo everything"; PATCH = {}; edited(); drawCardEditor(); drawGrid(); drawTuning(); });
   $("#e-send").addEventListener("click", sendToClaude);
   $("#e-copy").addEventListener("click", ()=>{ const t = diffText() + ($("#e-note").value ? "\n\nNote: " + $("#e-note").value : "");
     navigator.clipboard.writeText(t).then(()=>{ $("#e-sendmsg").textContent = "Copied. Paste it in the thread for Claude."; }, ()=>{ $("#e-sendmsg").textContent = "The browser would not allow copying."; }); });

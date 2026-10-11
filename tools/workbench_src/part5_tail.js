@@ -63,7 +63,7 @@ function loadFiles(list){
   function done(){
     if(n){ SAMPLE=false; CUR=(CUR&&(DATA[CUR]||VIEWS[CUR]))?CUR:Object.keys(DATA)[0]; save(); paintRail(); paintTable(); check(); }
     closeVeil();
-    if(!n) alert("Nothing loaded — pick .csv files.");
+    if(!n) say("Nothing loaded — pick .csv files.");
   }
 }
 
@@ -109,8 +109,8 @@ function showLoad(){
       <div class="grow"></div><button class="btn" id="bClose">Close</button></footer>`);
   v.querySelector("#bPickGo").onclick=()=>$("#pick").click();
   v.querySelector("#bClose").onclick=closeVeil;
-  v.querySelector("#bSeed").onclick=()=>{
-    if(!confirm("Replace everything currently loaded with the example set?")) return;
+  v.querySelector("#bSeed").onclick=async()=>{
+    if(!await yes("Replace everything currently loaded with the example set?")) return;
     DATA=JSON.parse(JSON.stringify(unseed())); CUR=Object.keys(DATA)[0]; SAMPLE=true;
     save(); paintRail(); paintTable(); check(); closeVeil();
   };
@@ -148,8 +148,11 @@ function showExport(only){
     v.querySelector("#said").textContent=`${sel.value} copied.`;
     setTimeout(()=>{const s=v.querySelector("#said"); if(s) s.textContent="";},2600);
   };
-  const drop=(name,text)=>{
+  const drop=async(name,text)=>{
     const blob=new Blob([text],{type:"text/csv"});
+    // On a claude.ai link page plain download links are blocked: use its "downloads" helper.
+    let d=null; try{ d=window.claude&&window.claude.use?await window.claude.use("downloads"):null; }catch(e){}
+    if(d){ try{ await d.save({filename:name,data:blob}); }catch(e){} return; }
     const a=document.createElement("a");
     a.href=URL.createObjectURL(blob); a.download=name;
     document.body.appendChild(a); a.click(); a.remove();
@@ -160,8 +163,8 @@ function showExport(only){
   };
   v.querySelector("#bAll").onclick=()=>{
     const all=Object.keys(DATA).sort();
-    all.forEach((n,i)=>setTimeout(()=>drop(n,toCSV(n)), i*180));
     v.querySelector("#said").textContent=`${all.length} files on their way.`;
+    (async()=>{ for(const n of all){ await drop(n,toCSV(n)); await new Promise(r=>setTimeout(r,180)); } })();
   };
 }
 
