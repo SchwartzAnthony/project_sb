@@ -1,0 +1,14 @@
+Layer,Image,X,Y,Flip,Notes
+canvas,assets/backgrounds/marsh_iso.png,688,384,,"The isometric Marsh behind the Adventure lane (Biomes.csv marshlands Background). The lane covers about Y 84 to 284, so tall things stay above or below it."
+ground,art_source/adventure_look/parts/marsh_ground_1_clean.png,0,0,,"The clearing and the bog pools (marsh_ground_1.png with a glitch in the bottom-left water painted over)"
+goal,art_source/adventure_look/parts/marsh_goal_3.png,300,-28,,The sunken goal at the top edge
+reeds left,art_source/adventure_look/parts/marsh_reeds_1.png,150,-30,,
+reeds right,art_source/adventure_look/parts/marsh_reeds_3.png,440,-34,yes,
+willow left,art_source/adventure_look/parts/marsh_willow_1.png,-30,-70,,
+willow right,art_source/adventure_look/parts/marsh_willow_1.png,585,-80,yes,
+boardwalk,art_source/adventure_look/parts/marsh_boardwalk_1.png,500,300,,
+reeds bottom,art_source/adventure_look/parts/marsh_reeds_1.png,20,296,yes,
+willow bottom,art_source/adventure_look/parts/marsh_willow_4.png,250,262,,
+wisp 1,art_source/adventure_look/parts/marsh_wisp_1.png,120,70,,
+wisp 2,art_source/adventure_look/parts/marsh_wisp_3.png,610,110,,
+wisp 3,art_source/adventure_look/parts/marsh_wisp_8.png,420,300,,

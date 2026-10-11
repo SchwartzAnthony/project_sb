@@ -1,0 +1,34 @@
+Part,Image,X,Y,Scale,Notes
+background,res://assets/clubhouse/bar.png,,,,"ROUND AN (Anthony, 10 Oct: the Club House is the Vereinsheim bar, look A). EVERY THING IN THE CLUB HOUSE: its picture, where it is and how big. X and Y are the MIDDLE of the thing as a share of this picture (0 = left / top, 1 = right / bottom). Scale = the thing's pixels against the room's: 1 = the same pixel size. This row is the room itself."
+key,res://assets/clubhouse/key.png,,,,The key picture every hook uses. A key you own is off its hook.
+key_1,,0.278,0.427,0.38,"THE KEY RACK: one hook per key, in the order of data/Upgrades.csv (Kind = key). Seven hooks on the top row; the bottom row starts at the second hook."
+key_2,,0.302,0.427,0.38,
+key_3,,0.330,0.427,0.38,
+key_4,,0.357,0.427,0.38,
+key_5,,0.384,0.427,0.38,
+key_6,,0.414,0.427,0.38,
+key_7,,0.441,0.427,0.38,
+key_8,,0.302,0.488,0.38,
+key_9,,0.330,0.488,0.38,
+key_10,,0.357,0.488,0.38,
+key_11,,0.384,0.488,0.38,
+key_12,,0.414,0.488,0.38,
+upgrade:second_vat,res://assets/clubhouse/plaque_second_vat.png,0.050,0.310,0.65,"THE AWARD WALL: one plaque per upgrade (Upgrades.csv Kind = upgrade), each painted with its own picture. A new upgrade with no row of its own takes the next upgrade_N place and the pinned note."
+upgrade:third_vat,res://assets/clubhouse/plaque_third_vat.png,0.130,0.310,0.65,
+upgrade:feather_beds,res://assets/clubhouse/plaque_feather_beds.png,0.210,0.310,0.65,
+upgrade:physio_table,res://assets/clubhouse/plaque_physio_table.png,0.090,0.425,0.65,
+upgrade:lucky_boots,res://assets/clubhouse/plaque_lucky_boots.png,0.170,0.425,0.65,
+upgrade_6,,0.250,0.425,0.45,"Places for upgrades that have no row of their own yet, in order."
+upgrade_7,,0.250,0.310,0.45,
+upgrade_blank,res://assets/clubhouse/poster.png,,,,The pinned note an upgrade without its own painting is written on.
+poster_1,res://assets/clubhouse/poster.png,0.902,0.405,0.55,"THE RECRUITMENT BOARD: one wanted poster per place in data/RecruitBoard.csv, on the cork board by the door."
+poster_2,,0.968,0.405,0.55,
+poster_3,,0.935,0.600,0.55,
+poster,res://assets/clubhouse/poster.png,,,,The wanted poster picture.
+bell,res://assets/clubhouse/bell.png,0.748,0.36,0.5,Ring it for new faces on the board now (Tuning.csv recruit_board_reroll_cost).
+stammtisch,res://assets/clubhouse/stammtisch.png,0.68,0.535,0.7,"The Stammtisch sign on the bar: your recruits, and releasing one."
+padlock,res://assets/clubhouse/padlock.png,,,0.35,The padlock on anything you may not buy yet.
+tag,res://assets/dorms/ui/tag.png,,,,The luggage tag (shared with the Dorms).
+card,res://assets/dorms/ui/card.png,,,0.95,The price card pinned under things on sale. Scale is screen pixels per card pixel.
+status,,0.012,0.015,,"The one line at the top, as a share of the SCREEN."
+message,,0.012,0.93,,"Where 'bought' / 'not enough money' shows, as a share of the SCREEN."

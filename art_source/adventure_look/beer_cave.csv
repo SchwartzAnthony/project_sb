@@ -1,0 +1,9 @@
+Layer,Image,X,Y,Flip,Notes
+canvas,assets/adventure/board/beer_cave.png,688,384,,"The beer cave behind the Soccer & Training board (Tuning adventure_board_background). The board covers the middle."
+room,art_source/adventure_look/parts/cave_room_1.png,0,0,,"The cellar: arches, the glowing door, the steps"
+pennants left,art_source/adventure_look/parts/cave_pennants_1.png,120,30,,
+pennants right,art_source/adventure_look/parts/cave_pennants_1.png,400,26,yes,
+torch left,art_source/adventure_look/parts/cave_torch_1.png,218,96,,
+torch right,art_source/adventure_look/parts/cave_torch_1.png,474,96,,
+barrels,art_source/adventure_look/parts/cave_barrels_3.png,540,226,,
+barrels left,art_source/adventure_look/parts/cave_barrels_2.png,150,240,yes,

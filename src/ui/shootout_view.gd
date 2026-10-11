@@ -40,6 +40,9 @@ var skip_speed: float = 6.0
 
 var _running := false
 var _skipping := false
+## ROUND AN: true while an ability's keeper drain is on show; how many so far.
+var draining := false
+var drains_shown := 0
 
 var _dim: ColorRect
 var _title: Label
@@ -223,6 +226,99 @@ func play_shot(info: Dictionary) -> void:
 	_dim.visible = false
 	_running = false
 	view_closed.emit()
+
+
+# =============================================================
+#  ROUND AN - AN ABILITY HITS THE KEEPER (Anthony, 10 Oct)
+#
+#  "Show the enemy goalie window (like when shooting at it), then deal -3
+#   or -5 stamina, then change their % based on that damage, then go back
+#   to cards. Give 2.5 seconds for each."
+#
+#  The same window as the shot, with no shot in it: the numbers as they
+#  are, the stamina falling, then the % moving to match. `seconds` is each
+#  step (Tuning.csv keeper_drain_step_seconds). Click skips, as ever.
+#  `info`: title, card, shooter_is_player, shot_power, keeper_data, before,
+#  after, keeper_max, chance_shift, seconds.
+# =============================================================
+
+func play_drain(info: Dictionary) -> void:
+	_wire()
+	if _dim == null:
+		view_closed.emit()
+		return
+	_running = true
+	_skipping = false
+	draining = true
+	drains_shown += 1
+	_dim.visible = true
+
+	var card = info.get("card")
+	var power := int(info.get("shot_power", 0))
+	var before := int(info.get("before", 0))
+	var after := int(info.get("after", 0))
+	var top := maxi(1, int(info.get("keeper_max", 1)))
+	var shift := float(info.get("chance_shift", 0.0))
+	var step := float(info.get("seconds", 2.5))
+
+	if _title:
+		_title.text = String(info.get("title", "")) if String(info.get("title", "")) != "" else "THE KEEPER"
+	if _caption:
+		var who: String = card.player_name if card != null else ""
+		var loss := after - before
+		_caption.text = "%s: %+d stamina to their keeper" % [who, loss] if bool(info.get("shooter_is_player", true)) \
+			else "%s: %+d stamina to your keeper" % [who, loss]
+	if _shot_value:
+		_shot_value.text = str(power)
+	_show_stamina(before, top)
+	_show_chance(before, top, power, shift)
+	_dress_keeper(info.get("keeper_data"))
+	_dress_striker(card, "idle")
+
+	# 1. As he is.
+	await _beat(step)
+	# 2. The stamina comes off, counted down where you can see it.
+	var fall := create_tween()
+	fall.tween_method(func(v: float) -> void: _show_stamina(int(round(v)), top),
+		float(before), float(after), minf(1.0, step * 0.4) / _rate())
+	if _stamina_value:
+		_stamina_value.add_theme_color_override("font_color", Color(1.0, 0.45, 0.35))
+	await _beat(step)
+	# 3. And the % moves to match.
+	_show_chance(after, top, power, shift)
+	if _chance_value:
+		var pop := create_tween()
+		_chance_value.pivot_offset = _chance_value.size * 0.5
+		pop.tween_property(_chance_value, "scale", Vector2(1.35, 1.35), 0.15)
+		pop.tween_property(_chance_value, "scale", Vector2.ONE, 0.25)
+	await _beat(step)
+
+	if _stamina_value:
+		_stamina_value.remove_theme_color_override("font_color")
+	await _beat(close_seconds)
+	_dim.visible = false
+	_running = false
+	draining = false
+	view_closed.emit()
+
+
+func _show_stamina(stamina: int, top: int) -> void:
+	if _stamina_value:
+		_stamina_value.text = "%d / %d" % [stamina, top]
+	if _stamina_bar:
+		_stamina_bar.max_value = top
+		_stamina_bar.value = stamina
+
+
+func _show_chance(stamina: int, top: int, power: int, shift: float) -> void:
+	if _chance_value == null:
+		return
+	var percent := clampf(ShotOdds.chance(stamina, top, power) + shift, 0.0, 100.0)
+	_chance_value.text = "%d%%" % int(round(percent))
+	_chance_value.add_theme_color_override("font_color", ShotOdds.colour_for(percent))
+	if _chance_note:
+		_chance_note.text = Loc.text("goal_is_open", "the goal is open") if stamina <= 0 \
+			else "%d of %d stamina left, at shot power %d" % [stamina, top, power]
 
 
 func _dress_keeper(keeper_data) -> void:

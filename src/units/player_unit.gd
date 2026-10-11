@@ -115,6 +115,12 @@ var is_playmaker: bool = false     # picked during the current round
 ## greyed - the ones not in it. Outside a Play Maker everybody is in colour.
 ## One switch for the whole pitch, set by main_scene.set_play_maker_live().
 static var play_maker_live: bool = false
+## ROUND AN (Anthony, 9 Oct: "we don't see who has the ball as it is way too
+## cluttered"). While true - open play only, set by main_scene - the name
+## plates of players NOT involved with the ball fade to `bystander_plate_alpha`,
+## so the carrier and whoever is going for it read first.
+static var fade_bystander_plates: bool = false
+static var bystander_plate_alpha: float = 0.18
 var is_exhausted: bool = false     # already used this cycle
 
 # =============================================================
@@ -455,6 +461,10 @@ func clear_round_flags() -> void:
 var linger_anchor := Vector2.INF
 var linger_time := 0.0
 var fresh_spot := Vector2.INF
+## ROUND AN (9 Oct): the opening this unit is moving for, and until when
+## (match clock) it keeps it before looking again. See main_scene _open_point.
+var open_spot := Vector2.INF
+var open_until := 0.0
 var fresh_left := 0.0
 
 enum Role { HOLD, MARK, OPEN, PRESS, BALL, RECEIVE, DRIBBLE, SURGE, RECOVER }
@@ -515,6 +525,8 @@ func has_ball() -> bool:
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint() or movement_frozen or not is_roaming:
 		return
+	if is_drinking() and not has_ball():
+		return
 
 	steal_cooldown = maxf(0.0, steal_cooldown - delta)
 
@@ -541,6 +553,9 @@ func _physics_process(delta: float) -> void:
 		target = _roam_target
 		speed = walk_speed
 		role = Role.HOLD
+
+	if _take_a_breather(delta, target):
+		return
 
 	# ============ STEERING ============
 	#
@@ -623,6 +638,72 @@ func _physics_process(delta: float) -> void:
 	global_position += (want / force) * step
 	_face_the_action()
 	_clamp_to_bounds()
+
+
+## ============ A BREATHER, AND NO RUNNING INTO WALLS  (round AN, 9 Oct) ============
+##
+## Anthony: "they are obviously running into an invisible wall. They can stop
+## running on a timer of 1-2 seconds then run again."
+##
+## Two rules, for a player whose job is NOT the ball (going for it never
+## stops):
+##   * STUCK: if over `stuck_window` seconds he has made less than
+##     `stuck_progress` px of ground while his target is still away, he is
+##     leaning on something - a zone edge, a team-mate, the touchline. He
+##     stops, and stands watching the ball for a rest.
+##   * BREATHER: after a run of `run_burst` seconds (random between the two)
+##     he stands for `rest_seconds` (random between the two), then goes again.
+##     Not if his target is further than `rest_skip_distance`: a man with
+##     somewhere to be does not stop half way.
+## While resting he still faces the ball (see _process).
+@export var run_burst := Vector2(2.5, 4.5)
+@export var rest_seconds := Vector2(1.0, 2.0)
+@export var stuck_window := 0.8
+@export var stuck_progress := 18.0
+@export var rest_skip_distance := 220.0
+var _rest_left := 0.0
+var _burst_left := -1.0
+var _stuck_clock := 0.0
+var _stuck_from := Vector2.INF
+
+
+func _take_a_breather(delta: float, target: Vector2) -> bool:
+	if _is_chasing() or not has_role_target or celebrating or rest_seconds.y <= 0.0:
+		_rest_left = 0.0
+		_burst_left = -1.0
+		_stuck_from = Vector2.INF
+		return false
+	if _rest_left > 0.0:
+		_rest_left -= delta
+		return true
+	var far := global_position.distance_to(target)
+	if far <= arrive_radius * 2.0:
+		_stuck_from = Vector2.INF
+		return false
+	if _stuck_from == Vector2.INF:
+		_stuck_from = global_position
+		_stuck_clock = 0.0
+	_stuck_clock += delta
+	if _stuck_clock >= stuck_window:
+		var made := global_position.distance_to(_stuck_from)
+		_stuck_from = global_position
+		_stuck_clock = 0.0
+		if made < stuck_progress:
+			_start_rest()
+			return true
+	if _burst_left < 0.0:
+		_burst_left = randf_range(run_burst.x, maxf(run_burst.x, run_burst.y))
+	_burst_left -= delta
+	if _burst_left <= 0.0 and far < rest_skip_distance:
+		_start_rest()
+		return true
+	return false
+
+
+func _start_rest() -> void:
+	_rest_left = randf_range(rest_seconds.x, maxf(rest_seconds.x, rest_seconds.y))
+	_burst_left = -1.0
+	_stuck_from = Vector2.INF
 
 
 ## ============ WHICH WAY THEY ARE LOOKING ============
@@ -896,7 +977,10 @@ var _anim_rate := 1.0
 
 
 func _process(delta: float) -> void:
-	if Engine.is_editor_hint() or not pitch_sheet or artwork == null:
+	if Engine.is_editor_hint():
+		return
+	_fade_plate(delta)
+	if not pitch_sheet or artwork == null:
 		return
 	var moved := global_position - _last_spot
 	_last_spot = global_position
@@ -982,6 +1066,16 @@ func watching_ball() -> bool:
 		and ball != null and is_instance_valid(ball)
 
 
+func _fade_plate(delta: float) -> void:
+	if _plate == null or not is_instance_valid(_plate):
+		return
+	var want := 1.0
+	if fade_bystander_plates and not has_ball() and not _is_chasing() \
+			and role != Role.RECEIVE and not is_playmaker:
+		want = bystander_plate_alpha
+	_plate.modulate.a = move_toward(_plate.modulate.a, want, delta * 3.0)
+
+
 ## Play `anim_name` once, facing `toward` (a pitch direction) if given.
 func play_once(anim_name: String, toward: Vector2 = Vector2.ZERO) -> void:
 	if not pitch_sheet or not PitchSprite.has_anim(anim_name):
@@ -994,6 +1088,28 @@ func play_once(anim_name: String, toward: Vector2 = Vector2.ZERO) -> void:
 	_one_shot = anim_name
 	_anim_time = 0.0
 	_draw_frame(anim_name)
+
+
+## ============ A DRINK ON THE PITCH (round AN, 10 Oct) ============
+##
+## Anthony: when a player drinks from the inventory during a match, he lifts
+## the beer, gulps and wipes his mouth with his arm. The `drink` row of
+## PitchAnims.csv; Tuning.csv pitch_drink_stands_still stops him on the spot
+## while he drinks (never with the ball at his feet).
+## pitch_drink_faces_camera: a player facing away (north-west, north,
+## north-east) turns round first, so the stein is seen (Anthony, 10 Oct).
+func play_drink() -> void:
+	var db := CardDatabase.get_db()
+	if (db == null or db.tune_bool("pitch_drink_faces_camera", true)) and _dir >= 5:
+		_dir = 8 - _dir    # north-west -> south-west, north -> south, north-east -> south-east
+	play_once("drink")
+
+
+func is_drinking() -> bool:
+	if _one_shot != "drink":
+		return false
+	var db := CardDatabase.get_db()
+	return db.tune_bool("pitch_drink_stands_still", true) if db != null else true
 
 
 func _show_anim(anim_name: String) -> void:
@@ -1009,12 +1125,19 @@ func _draw_frame(anim_name: String) -> void:
 		spec = PitchSprite.anim("idle")
 		if spec.is_empty():
 			return
+	var row: int = int(spec["row"]) + _dir
+	# A sheet drawn before this animation existed has no rows for it: play
+	# its Stand-in (PitchAnims.csv) at the stand-in's own speed instead.
+	if row >= artwork.vframes and String(spec.get("stand_in", "")) != "":
+		spec = PitchSprite.anim(String(spec["stand_in"]))
+		if spec.is_empty():
+			return
+		row = int(spec["row"]) + _dir
+	if row >= artwork.vframes:
+		return
 	var frames: int = spec["frames"]
 	var step := int(_anim_time * float(spec["fps"]))
 	step = posmod(step, frames) if bool(spec["loop"]) else mini(step, frames - 1)
-	var row: int = int(spec["row"]) + _dir
-	if row >= artwork.vframes:
-		return
 	artwork.frame = row * artwork.hframes + mini(step, artwork.hframes - 1)
 
 

@@ -250,7 +250,7 @@ shop_screen.gd,src/ui/,A screen or a piece of one,
 shop_screen.tscn,src/ui/,A screen or a piece of one,
 shop_check.gd,tools/,A tool you run from the command line,
 shop_shot.gd,tools/,A tool you run from the command line,
-Dorms.csv,data/,A spreadsheet you edit,"Beds. Beds is the TOTAL a dorm gives, not what it adds"
+Dorms.csv,data/,A spreadsheet you edit,"The Dorms' rooms, one row per room: price and the beds that come with it (round AN, 10 Oct)"
 Trophies.csv,data/,A spreadsheet you edit,What is on the shelf. A name and a condition
 Training.csv,data/,A spreadsheet you edit,Ausbildung and the five brewing mini-games
 base_rooms.gd,src/core/,"Engine. Rules, loaders and shared helpers","The Dorms, the Trophy Room and the Training Ground - three small things of one shape"
@@ -345,3 +345,40 @@ Guide.csv,data/,A spreadsheet you edit,"ROUND AN. The Head Coach explains a scre
 guide.gd,src/core/,"Engine. Rules, loaders and shared helpers","ROUND AN. Reads Guide.csv, shows its boxes over a screen and lights up the named button"
 make_bavarian_sfx.py,tools/,A tool you run from the command line,ROUND AN. Builds every sound effect (assets/audio/bav_*.ogg) from scratch in Bavarian style and rewrites SoundCredits.csv. Run: python3 tools/make_bavarian_sfx.py
 SoundCredits.csv,data/,Data the tools write,"ROUND AN. Every sound effect: what you hear, which Audio.csv rows play it, where it came from. Rewritten by make_bavarian_sfx.py"
+CONQUESTS.md,guides/,A guide,"Conquests (Draft Mode): Anthony's idea for the replayable roguelite mode, parked. Only its banner and a coming-soon note are in the game"
+tear_cloth.py,tools/,A tool. Nothing in the game loads it,Ages the shared banner cloth into the torn Conquests cloth and draws its black infinity (stand-ins until PixelLab redraws them). Run make_banners.py after
+conquests_shot.gd,tools/,A tool. Nothing in the game loads it,Presses the Conquests banner on the base and photographs it and the coming-soon note it opens
+AdventureTiles.csv,data/,A spreadsheet you edit,"ADVENTURE-LOOK. The isometric ground tiles of each biome, by zone (path, lane, edge, outside)"
+AdventureDecor.csv,data/,A spreadsheet you edit,ADVENTURE-LOOK. The scenery that goes past beside the lane on the isometric field
+iso_field.gd,src/adventure/,Code,ADVENTURE-LOOK. Tilts the run into the isometric view and lays the tiles and scenery. The rules are untouched
+contract_scroll.gd,src/ui/,Code,ADVENTURE-LOOK. The contract scroll that unrolls from the board
+compose_layers.py,tools/,A measuring tool,ADVENTURE-LOOK. Builds one picture from its PixelLab parts (a layer CSV) and writes the layered .aseprite
+adventure_look_check.gd,tools/,A measuring tool,"ADVENTURE-LOOK. Opens the board, a scroll, the run and the first fight; with a window it saves screenshots"
+dorms_screen.gd,src/ui/,Code,"The Dorms screen: rooms of beds on tabs, sleepers with rest bars, beds and rooms for sale (round AN)"
+dorms_screen_shot.gd,tools/,Code,"Pictures of the Dorms screen, in the test environment (round AN)"
+dorms_bg.png,assets/dorms/,Art you drew,"The Dorms room picture: the clubhouse cellar, PixelLab, 688 x 384 (Anthony, 10 Oct)"
+bed.png,assets/dorms/,Art you drew,"One empty bed on the Dorms screen (PixelLab, bed a)"
+bed_sleeper.png,assets/dorms/,Art you drew,"A bed with a player asleep in it - one picture for everybody (PixelLab, sleeper c)"
+DormBeds.csv,data/,A spreadsheet you edit,"Where each bed stands on the floor of the Dorms room picture (round AN, 10 Oct)"
+DormsLayout.csv,data/,A spreadsheet you edit,"Every piece of the Dorms screen: picture, place and size (round AN, look A)"
+DormsDialogue.csv,data/,A spreadsheet you edit,"The Head Coach explaining the Dorms, the first time you open them (Guide.csv dorms_explain)"
+board.png,assets/dorms/ui/,Art you drew,"The Dorms notice board shop (PixelLab; frame and felt layered in art_source/aseprite/dorms_notice_board.aseprite)"
+pennant.png,assets/dorms/ui/,Art you drew,"A Dorms room tab: a blue-and-white pennant (PixelLab)"
+buy_bed.png,assets/dorms/ui/,Art you drew,"The folded camp bed on the notice board: buy a bed (PixelLab)"
+buy_room.png,assets/dorms/ui/,Art you drew,"The door key on the notice board: buy a room (PixelLab)"
+mug_full.png,assets/dorms/ui/,Art you drew,"A full Mass mug: one fixture of rest slept (PixelLab)"
+mug_empty.png,assets/dorms/ui/,Art you drew,"An empty Mass mug: one fixture of rest still to sleep (PixelLab)"
+tag.png,assets/dorms/ui/,Art you drew,"The luggage tag that names a sleeper (PixelLab)"
+card.png,assets/dorms/ui/,Art you drew,"The price card pinned on the notice board (PixelLab)"
+building_frame.png,assets/ui/,Art you drew,"The beer hall frame round every building window (PixelLab, Theme.csv building_window)"
+building_title.png,assets/ui/,Art you drew,"The hanging wooden sign a building window's name is on (PixelLab, Theme.csv building_title)"
+building_close.png,assets/ui/,Art you drew,"The beer mat that closes a building window (PixelLab, Theme.csv building_close)"
+ClubhouseLayout.csv,data/,A spreadsheet you edit,"Every thing in the Club House (the Vereinsheim bar): picture, place and size (round AN)"
+TrainingLayout.csv,data/,A spreadsheet you edit,"Every thing in the Training Ground (the old Turnhalle): picture, place and size (round AN)"
+RoomsDialogue.csv,data/,A spreadsheet you edit,"The Head Coach explaining the Club House and the Training Ground the first time (round AN)"
+scene_room.gd,src/ui/,Code,"The shared half of a building drawn as a picture with things to click (round AN)"
+clubhouse_screen.gd,src/ui/,Code,"The Club House as the Vereinsheim bar (round AN)"
+training_screen.gd,src/ui/,Code,"The Training Ground as the old Turnhalle (round AN)"
+rooms_shot.gd,tools/,Code,"Pictures of the Club House and the Training Ground, in the test environment (round AN)"
+bar.png,assets/clubhouse/,Art you drew,"The Club House room: the Vereinsheim bar, empty rack and walls (PixelLab); the keys, plaques, posters, bell, Stammtisch sign and padlock are their own PNGs here"
+turnhalle.png,assets/training/,Art you drew,"The Training Ground room: the old Turnhalle, empty floor (PixelLab); every training thing and the wall-hook kit are their own PNGs here"

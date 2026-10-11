@@ -347,6 +347,18 @@ func _build_exits() -> void:
 			opened.closed.connect(_rebuild))
 	row.add_child(to_teams)
 
+	# CONQUESTS, THE DRAFT MODE THAT IS NOT BUILT YET (Anthony, 9 Oct: "add
+	# some basic structure so that I can see it ... and be reminded"). A torn,
+	# old banner with a black infinity (tools/tear_cloth.py). It only opens a
+	# coming-soon note; the idea itself is written up in guides/CONQUESTS.md.
+	# Not in either tutorial, where the row is already full.
+	if not TutorialBase.active(get_tree()) and not Tutorial.active(get_tree()):
+		var to_conquests := _exit("conquests|∞",
+			Loc.text("conquests_button", "Conquests"), EXIT_SIZE)
+		to_conquests.tooltip_text = "Draft Mode. Coming one day."
+		to_conquests.pressed.connect(_conquests_soon)
+		row.add_child(to_conquests)
+
 	# THE WAY OUT OF THE TUTORIAL, and only there. In the real base there is
 	# nothing to leave — Escape ends the game.
 	if TutorialBase.active(get_tree()):
@@ -365,6 +377,19 @@ func _build_exits() -> void:
 		row.add_child(skip)
 
 	_same_thread_size(row)
+
+
+## The Conquests banner's note: the mode is not open yet. Words in
+## Language.csv (conquests_title, conquests_soon).
+func _conquests_soon() -> void:
+	var window := MenuSupport.dialog(self,
+		Loc.text("conquests_title", "CONQUESTS"),
+		Loc.text("conquests_soon", "Not open yet."), 520.0)
+	var column: VBoxContainer = window.get_meta("column")
+	var back := MenuSupport.icon_button("←", "Back to the base", Vector2(300, 50))
+	back.pressed.connect(func() -> void:
+		window.queue_free())
+	column.add_child(back)
 
 
 ## Every banner's name in the same size of thread (Anthony: the banners look
