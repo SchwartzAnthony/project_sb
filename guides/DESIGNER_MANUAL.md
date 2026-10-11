@@ -2296,6 +2296,13 @@ each check, slowly enough to follow:
 | `Tuning.csv` `duel_hl_art_scale`, `duel_hl_box_margin` | how big their pixels are; where the box corners end |
 | `Audio.csv` `duel_ability_success` / `_fail`, `duel_power_victory` / `_fail` | the four sounds, made with Ludo.ai |
 
+**The checks under the window (round AN, 11 Oct, later).** You asked for
+the checks to be listed on the plate under the window again, so
+`duel_hl_pop` is now **false**: ABILITY PRIORITY, ABILITY CHECK and POWER
+CHECK appear on the plate at the bottom, as before, with their sounds. The
+rings, boxes, numbers and stamps on the cards still punch, flare and shake.
+Set `duel_hl_pop` back to true to bring the centre pop-ups back.
+
 **The check pop-ups (round AN, 11 Oct).** Each check now slams into the
 middle of the screen: **ABILITY PRIORITY**, then **ABILITY CHECK** for each
 ability, then **POWER CHECK**. The words start big and crooked, snap to size
