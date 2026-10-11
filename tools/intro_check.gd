@@ -182,7 +182,7 @@ func _initialize() -> void:
 	var board := current_scene
 	var jobs: Array = AdventureDB.get_db().bounties_in(String(board.get("_chosen_biome").get("id", "")), state)
 	if not jobs.is_empty():
-		board.call("_choose_bounty", jobs[0])
+		board.set("_chosen_bounty", jobs[0])
 	board.call("_on_start")
 	_check(String(MatchMode.current(self).get("id", "")) == "intro_adventure", "it is the first-Adventure mode")
 	var run_scene := ""
