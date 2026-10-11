@@ -39,6 +39,8 @@ var _away_by_role := {}
 ## Who is within 240 px of the ball, by job, summed over frames.
 var _near_role := {}
 var _traced := 0
+var _only_play: bool = OS.get_environment("PROBE_PLAY") == "1"
+var _side_spread: Dictionary = {}
 var _in_by_role := {}
 var _away_to_edge := {}
 const ROLE_WORDS := ["HOLD", "MARK", "OPEN", "PRESS", "BALL", "RECEIVE", "DRIBBLE", "SURGE", "RECOVER"]
@@ -104,7 +106,9 @@ func _initialize() -> void:
 		await physics_frame
 		var dt := 1.0 / float(Engine.physics_ticks_per_second)
 		# Only open play: not the draft, not a Play Maker, not a talk box.
-		if int(scene.get("current_state")) != 1 or PlayerUnit.play_maker_live:
+		# PROBE_PLAY=1 measures the other moments instead: open play while a
+		# Play Maker is live (the break toward goal and the defence under it).
+		if int(scene.get("current_state")) != 1 or PlayerUnit.play_maker_live != _only_play:
 			continue
 		measured += dt
 		var ball = scene.get("ball")
@@ -288,6 +292,36 @@ func _count_crowd(units: Array, ball) -> void:
 		_crowd["span_x"] = _crowd.get("span_x", 0.0) + (xs[hi] - xs[lo]) / bounds.size.x
 		_crowd["span_y"] = _crowd.get("span_y", 0.0) + (ys[hi] - ys[lo]) / bounds.size.y
 		_crowd["home_off"] = _crowd.get("home_off", 0.0) + home_off / units.size()
+	# PER SIDE: how spread each team is on its own - the average distance of
+	# its outfield players from their own team's middle, and to the nearest
+	# team-mate - split by whether that side has the ball.
+	var carrier: PlayerUnit = ball.carrier if is_instance_valid(ball.carrier) else null
+	for enemy in [false, true]:
+		var mine: Array = []
+		for unit in units:
+			if unit.is_enemy == enemy:
+				mine.append(unit)
+		if mine.size() < 3:
+			continue
+		var c := Vector2.ZERO
+		for unit in mine:
+			c += unit.global_position
+		c /= mine.size()
+		var r := 0.0
+		var nn := 0.0
+		for unit in mine:
+			r += unit.global_position.distance_to(c)
+			var best := INF
+			for other in mine:
+				if other != unit:
+					best = minf(best, unit.global_position.distance_to(other.global_position))
+			nn += best
+		var key := ("THEM" if enemy else "YOU") + (" with ball" if carrier != null and carrier.is_enemy == enemy else " without")
+		var acc: Array = _side_spread.get(key, [0.0, 0.0, 0])
+		acc[0] += r / mine.size()
+		acc[1] += nn / mine.size()
+		acc[2] += 1
+		_side_spread[key] = acc
 	_crowd["frames"] += 1
 	_crowd["near_sum"] += near
 	_crowd["near_max"] = maxi(_crowd["near_max"], near)
@@ -317,6 +351,12 @@ func _report(measured: float) -> void:
 			word, acc[0] / maxf(acc[2], 1), acc[1] / maxf(acc[2], 1), acc[2] / f])
 	print("[probe]   (their own slots cover %.0f%% of the length, %.0f%% of the width)" % [
 		100.0 * _crowd.get("home_x", 0.0), 100.0 * _crowd.get("home_y", 0.0)])
+	var side_keys := _side_spread.keys()
+	side_keys.sort()
+	for key in side_keys:
+		var acc: Array = _side_spread[key]
+		print("[probe] SIDE %-16s %4.0f px from their own middle, %4.0f px to the nearest team-mate" % [
+			key, acc[0] / maxf(acc[2], 1), acc[1] / maxf(acc[2], 1)])
 	print("[probe] within 240 px of the ball: %.1f on average (of the whole pitch)" % [
 		_crowd.get("wide_sum", 0) / f])
 	var who := []
