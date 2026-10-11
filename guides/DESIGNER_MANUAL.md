@@ -781,6 +781,27 @@ Three changes pull the team apart:
 > length and **43%** of its width before; after, **67%** and **60%**. Players
 > within 240 px of the ball dropped from about 5 to 3.5.
 
+#### Team-mates keep their distance (Anthony, 11 Oct: "the enemy team is still too cluttered")
+
+Every job picks its own spot, and nothing stopped two team-mates from picking
+spots on top of each other. It showed most on one side at a time, for example
+in the break after a Play Maker, when the attack pushes up and the defence
+drops back with it.
+
+Now, after every job is handed out, team-mates' spots are pushed apart until
+no two are closer than `team_spacing`. This works for both sides and in every
+phase. The man on the ball, the man a pass is for, the ones going for the ball
+and the runners into the box keep their spots, and everyone else makes room
+around them.
+
+| Tuning row | |
+|---|---|
+| `team_spacing` | the closest two team-mates' spots may be, in px. `170`, 0 = off |
+
+> Probe, 40 s of open play: the enemy side had a pair of team-mates within
+> 120 px of each other 0.3-0.5 of the time and up to 3 pairs at once before;
+> after, about 0.2 and never more than 1.
+
 ### The shape — why they were standing in pairs
 
 **A zone is a centre of gravity. It is not a fence.** That sentence is the
