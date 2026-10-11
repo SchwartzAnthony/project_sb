@@ -154,6 +154,10 @@ func _read_biomes(rows: Array, columns: Dictionary, where: String) -> void:
 			# Blank is fine everywhere — the scene falls back to marsh green.
 			"art": _first_of(row, columns, ["background", "scrollart"]),
 			"parallax": _float(_cell(row, columns, "parallax"), 0.3),
+			# adventure-look: how solid the grass band is over the picture.
+			# 1 = solid colour (as before), 0.3 = the isometric field behind
+			# shows through. Blank = 1.
+			"ground_alpha": clampf(_float(_cell(row, columns, "groundalpha"), 1.0), 0.0, 1.0),
 			"sky": _cell(row, columns, "sky"),
 			"grass": _cell(row, columns, "grass"),
 			"stripe": _first_of(row, columns, ["grassstripe", "stripe"]),
@@ -188,8 +192,24 @@ func _read_bounties(rows: Array, columns: Dictionary, where: String) -> void:
 			"power": _int(_cell(row, columns, "recommendedpower"), 0),
 			"art": _cell(row, columns, "art"),
 			"description": _cell(row, columns, "description"),
+			# THE BOARD (adventure-look): Kind is written over the name on the
+			# scroll (Match, Training ...), Quest Text is what the unrolled
+			# scroll says (blank = Description), and Pin X / Pin Y place it
+			# on the board from 0 to 1 (blank = laid out in rows).
+			"kind": _cell(row, columns, "kind"),
+			"quest": _cell(row, columns, "questtext"),
+			"pin_x": _fraction(_cell(row, columns, "pinx")),
+			"pin_y": _fraction(_cell(row, columns, "piny")),
 			"where": "%s row %d" % [where, i + 1],
 		}
+
+
+## A 0-to-1 position from a cell, or -1 when the cell is blank or not a number.
+static func _fraction(text: String) -> float:
+	var clean := text.strip_edges()
+	if not clean.is_valid_float():
+		return -1.0
+	return clampf(float(clean), 0.0, 1.0)
 
 
 func _read_enemies(rows: Array, columns: Dictionary, where: String) -> void:
@@ -247,6 +267,9 @@ func _read_items(rows: Array, columns: Dictionary, where: String) -> void:
 			"kind": _or(_cell(row, columns, "kind").to_lower(), "material"),
 			"stack": maxi(1, _int(_cell(row, columns, "stack"), 99)),
 			"art": _cell(row, columns, "art"),
+			# adventure-look: the isometric picture of it LYING ON THE GROUND
+			# in an Adventure run. Blank = a plain square.
+			"ground_art": _cell(row, columns, "groundart"),
 			# WHAT IT DOES WHEN YOU USE IT in a fight. Blank means it is just
 			# material and never appears in the item menu.
 			#   revive       one knocked-out player comes back

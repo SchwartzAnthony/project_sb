@@ -736,7 +736,7 @@ smaller by half) have them chase the person they should be watching."*
 | Tuning row | |
 |---|---|
 | `press_radius_fraction` | the ball's range, share of pitch height. `0.275` (halved) |
-| `mark_shadow_commitment` | how close a marker outside the range stays on his man. `0.85` |
+| `mark_shadow_commitment` | how close a marker outside the range stays on his man. `0.6` (was `0.85`, see below) |
 | `unit_run_burst_min` / `_max` | seconds of running before a breather. `2.5` / `4.5` |
 | `unit_rest_min` / `_max` | seconds a breather lasts. `1` / `2`. `_max` 0 = off |
 | `unit_stuck_window` / `unit_stuck_progress` | the wall check. `0.8` s / `18` px |
@@ -754,6 +754,32 @@ the man he marks.
 > off the ball had it behind them **55-96%** of the time, and the Tier I and
 > Tier IV back rows sprinted with the ball out of range **55-71%** of the time.
 > After: **0-1%** and **0%**.
+
+#### Spread out (Anthony, 11 Oct: "everyone is crowding in one spot")
+
+Three changes pull the team apart:
+
+1. **Wider shape.** Every slot is pushed away from the centre spot before
+   kick-off: `shape_spread_x` along the pitch, `shape_spread_y` across it,
+   but never closer to the edge than `shape_edge_margin`.
+2. **Space from team-mates.** A player looking for an opening now also scores
+   a spot by how far it is from his nearest team-mate
+   (`open_mate_space_weight`), so two of them stop picking the same gap.
+3. **Markers stay nearer home.** `mark_shadow_commitment` went from `0.85` to
+   `0.6`: a marker outside the ball range still follows his man, but keeps
+   more of his own place.
+
+| Tuning row | |
+|---|---|
+| `shape_spread_x` | push slots out along the pitch. `1.2` (1 = as drawn) |
+| `shape_spread_y` | push slots out toward the touchlines. `1.25` |
+| `shape_edge_margin` | how close to the edge a slot may go, share of the pitch. `0.05` |
+| `open_mate_space_weight` | how much an opening likes room from team-mates. `0.8`, 0 = off |
+| `open_support_max` | now `5000` (off): the old cap kept openings too close to the ball |
+
+> Probe, 45 s: the middle 80% of players covered about **50%** of the pitch's
+> length and **43%** of its width before; after, **67%** and **60%**. Players
+> within 240 px of the ball dropped from about 5 to 3.5.
 
 ### The shape — why they were standing in pairs
 
@@ -3325,11 +3351,14 @@ false spends him like any other card.
 | end of cycle 1 | **TIME OUT**: Koch's inspiration is too low, he drinks, Beer Courage switches on | tut-timeout-call, tut-timeout-inspiration | |
 | 4 | Tier I: **the Kleiner Faß**. Only the P:0's bag works and it shows only the keg; he drinks it in the drinking window; his card comes up big with Fass Courage (+1 Power in combat for each other Tier I player of yours not in the exhaust, attack and defend); only he can be picked | tut-fass, tut-fass-after | the cards, then his bag button, then the keg, then his abilities |
 | 4 | Tier IV: Koch's card with Beer Courage | tut-koch-ability | Koch's card |
+| 5 | before the PLAY MAKER call: **the referee** (Anthony, 10 Oct). The match stops and the Head Coach walks through the referee's bar: triggers fill it, missed fouls fill it a lot, full means the next foul is called, two yellows or a red sends a man off, theirs fills the same way | tut-referee | the referee's bar, then your side of it, then theirs |
 | 5 | Tier I: **the missing beer**. "Where is the rest of the beer?!" TIME OUT at the Brewery; back on the pitch the P:1 drinks a Small Bottle (bottle window) and gets the plain beer's goalie pair: 1 off their keeper when he attacks, 1 off yours when he defends | tut-missing-beer, tut-after-brewery, tut-bottle-after | his bag button, then the bottle |
 | end of cycle 2 | **TIME OUT**: the cursed brews; an Earth Brew turns Koch into a Bergmännlein with Earth Courage | tut-timeout2-call, tut-timeout-cursed | |
 | 6 | Tier I: **the combo beers**. Koch hid three small beers; each has one good side and one bad side. The player reads the ATTACKING / DEFENDING banner and gives any of the three to the Tier I card | tut-combo, tut-combo-after | his bag button, then the three beers |
 | 6 | Tier II: a second beer, so a Pass It On from Tier I lands on it. The third stays in the bag | tut-combo-2, tut-combo-2-after | his bag button, then the beers |
 | 7 | Tier IV: Bergmännlein Koch's new ability | tut-koch-earth | Koch's card |
+| 7+ | Koch's Earth Courage goes off in a duel: **the keeper's window** opens from the duel window (Anthony, 10 Oct). Three steps of `Tuning.csv keeper_drain_step_seconds` (2.5): the numbers as they are, the stamina falling by 5 (attack) or 3 (defend), then the % moving to match. Then back to the duel. `keeper_drain_window`: tutorial / always / off. The % is shown at the shot power his side has piled up so far plus his own | | |
+| 8 | before the PLAY MAKER call: **just so you know** (Anthony asked Claude to pick something vital nobody had said). The keeper's stamina never comes back on its own: every saved shot and every drain stays off for the match, and only a goal he lets in fills him up again | tut-keeper-tip | |
 
 The rest of cycle 3 plays out to the final whistle.
 
@@ -3337,6 +3366,19 @@ The rest of cycle 3 plays out to the final whistle.
 on the table, and the Head Coach has finished talking, for `Tuning.csv
 tutorial_pick_guard_seconds` (0.8). A fast clicker's clicks simply do nothing
 until then.
+
+**Grey bags in a lesson** (Anthony, 10 Oct). In a Play Maker with a drinking
+lesson (a row whose Do has `drink_lesson`), every bag button is grey and does
+nothing, except the card being taught while he teaches it. After he drinks,
+his shuts too. Other Play Makers are left alone. `Tuning.csv
+tutorial_bags_shut_in_lessons` false turns it off.
+
+**When: `play_maker`** fires as each Play Maker starts, after the throw-in
+and before the PLAY MAKER call, and the match waits for him there. Use it
+for a stop that is not about any card.
+
+**More Highlight words**: `referee` (the referee's bar), `referee:you`,
+`referee:them` (one side of it).
 
 **One group of gold per line.** In the Highlight column, `|` separates the
 lines: `-|card:first|cards` points at nothing on line 1, the first card on
@@ -3634,6 +3676,109 @@ pick a bounty  ->  the party runs right, collecting things off the ground
 Returning to base banks the haul. Fleeing keeps `adventure_flee_keep` of it.
 Everybody being knocked out loses all of it — which is what makes Return to
 Base a real decision.
+
+### The board and the look (adventure-look, 10 Oct)
+
+**The soccer & training board.** The Bounty Board is now a board in a beer
+cave. Biomes are tabs across the top; that biome's jobs hang on the board as
+scrolls. Click a scroll and it unrolls: the quest, what you need, what it
+pays, **Back** (roll it up, read another) and **Accept Contract** (sets off,
+same as START EXPLORING did). A locked scroll still opens and says what it
+needs; Accept is greyed.
+
+| To change | Where |
+|---|---|
+| Scroll label (Match, Training ...) | `Bounties.csv` **Kind** |
+| What the scroll says | `Bounties.csv` **Quest Text** (blank = Description) |
+| Where it hangs | `Bounties.csv` **Pin X**, **Pin Y** (0-1, blank = rows) |
+| Cave, board, pinned scroll, open scroll art | `Tuning.csv` `adventure_board_background`, `adventure_board_art`, `adventure_board_pin_art`, `adventure_scroll_art` (blank = plain colours) |
+| Board and scroll size, unroll speed | `adventure_board_width/height/inset`, `adventure_scroll_width/height`, `adventure_scroll_unroll_seconds` |
+| Words | `Language.csv` `adventure_board_title`, `accept_contract`, `scroll_requirements`, `scroll_rewards` |
+
+**Isometric players.** The squad on the run is the squad you picked, drawn
+with the same isometric sheet each player wears in a match
+(`PitchSprites.csv`), with run, idle and fall. Name, tier, power and the
+stamina bar sit on the same plate as before. `adventure_iso_players` = false
+goes back to the old card sheet; `adventure_iso_player_scale` sizes them.
+
+**The art (PixelLab, 10 Oct).** Every picture is built from separate parts
+by a layer CSV, so you can move a part in a spreadsheet and rebuild it:
+
+```
+~/.venvs/sturmball/bin/python tools/compose_layers.py art_source/adventure_look/marsh_iso.csv
+```
+
+| Picture | Layer CSV | Game file | Aseprite |
+|---|---|---|---|
+| Beer cave | `art_source/adventure_look/beer_cave.csv` | `assets/adventure/board/beer_cave.png` | `art_source/aseprite/adventure/beer_cave.aseprite` |
+| Board (frame + cork) | `.../board.csv` | `assets/adventure/board/board.png` | `.../board.aseprite` |
+| Isometric Marsh | `.../marsh_iso.csv` | `assets/backgrounds/marsh_iso.png` | `.../marsh_iso.aseprite` |
+
+Single pictures: the pinned scroll `assets/adventure/board/pin.png`, the open
+scroll `scroll.png` (it unrolls in three pieces: `adventure_scroll_art_top`,
+`_bottom`, `_side`, `_foot`, `_zoom`), the Marsh enemies in
+`assets/adventure/enemies/` (AdventureEnemies.csv **Art**) and the ground
+drops in `assets/adventure/drops/` (Items.csv **Ground Art**). Every other
+candidate PixelLab gave is kept in `art_source/adventure_look/parts/` if you
+would rather have a different one.
+
+**The Marsh behind the run.** Biomes.csv: Background
+`res://assets/backgrounds/marsh_iso.png`, Parallax 0 (it stays still, so the
+picture never shows a seam; the grass stripes still move), and the new
+**Ground Alpha** 0.35 so the isometric field shows through the grass band.
+`adventure_backdrop_fit` blows a small picture up to fill the screen. Enemies
+and drops: `adventure_enemy_art_scale`, `adventure_drop_art_scale`.
+
+### The isometric field (adventure-look, 10 Oct: "full iso field")
+
+The run is played on an isometric board, like a 1980s Bavarian role-playing
+game: a dirt path through a meadow, marsh and bog water either side, reeds,
+willows, a sunken goal and will-o'-wisps going past. The party runs up and
+to the right; enemies come down the field and stand on it; drops lie on it.
+**The rules did not change** - the same run is only seen tilted
+(`src/adventure/iso_field.gd`).
+
+| To change | Where |
+|---|---|
+| The ground tiles, per biome and zone | `AdventureTiles.csv` (Zone: path, lane, edge, outside; Weight) |
+| The scenery going past | `AdventureDecor.csv` (Side, Out Min/Max, Gap, Scale) |
+| Off / on | `adventure_iso_field` |
+| Camera: where the party runs, how close the two sides look | `adventure_iso_party_x/y`, `adventure_iso_scale` |
+| Tile size and fit | `adventure_iso_tile_zoom`, `adventure_iso_tile_lift` |
+| Where things appear / walk in / are let go | `adventure_iso_spawn_x`, `adventure_iso_wave_x`, `adventure_iso_forget_x` |
+
+All four biomes have their own ground and scenery (11 Oct): the Marsh
+(path, meadow, mossy banks, bog water), the Cinder Wastes (ash, cinder path,
+cracked earth, black rock with lava cracks; dead trees, braziers, a burnt
+brewery chimney, a slag cart), the Hollowdeep (cave stone, mine path with
+rails, flagstones, black water; mine beams, glowing mushrooms, stalagmites,
+a mine cart) and the Frostreach (snow, trodden path, frosty grass, lake ice;
+firs, a snowman in a scarf, grumpy icy rocks, a beer sled). The tiles are
+FLAT (no block sides, no outline), so the ground shows no grid; one main
+tile per zone (the biggest Weight) keeps it calm. A new biome needs its own
+rows in the two CSVs (or `*` rows for all). Tiles: `assets/adventure/tiles/`,
+scenery: `assets/adventure/decor/`; every PixelLab candidate is kept in
+`art_source/adventure_look/parts/` (`flat_*` tiles).
+
+To look at one biome's field: `godot --path . --script res://tools/adventure_look_check.gd -- --biome=frostreach`
+(saves `art_source/drafts/adventure_look/screens/field_frostreach.png`).
+
+**Room to stand (11 Oct, Anthony).** Plates stay with their player. Every
+player gets room of their own ON SCREEN: while running a small room (names
+may cross, players never stand on each other: `adventure_run_width`,
+`_below`, `_gap`), and from the moment a wave is met a full room for figure
+and name plate, so nothing overlaps before or during the fight
+(`adventure_stand_width`, `_above`, `_below`, `_gap`, `_screen_top`,
+`_screen_bottom`). Nobody wanders while they stand; while running the
+wander is `adventure_drift_scale`. Plates draw above the figures. Players start
+a run on their own spot and walk briskly to their fight spot
+(`adventure_form_up_pace`). On the isometric field the path band is
+`adventure_iso_lane_height` deep (900) to give them that room. The Marsh
+King now carries a round football.
+
+**The ball (11 Oct).** A PixelLab football (`adventure_ball_art`), drawn
+`adventure_ball_art_size` pixels across (44), with a
+shadow; it rolls as it moves and draws above the name plates.
 
 ### How a fight goes
 
@@ -7312,13 +7457,20 @@ tackle animation.
   rows for this animation yet.
 
 **Drinking on the pitch** (10 Oct). When you use a drink from the bag on a
-player during a match, his figure plays `drink` once: he lifts the beer,
-gulps and wipes his mouth with his arm. It is the `drink` row of
-`PitchAnims.csv` (rows 48-55); its Frames and FPS set how long it lasts.
-Until a look's sheet has the drink drawn, it plays its Stand-in (`cheer`).
-`Tuning.csv` `pitch_drink_stands_still` (true) stops him on the spot while
-he drinks; a player with the ball always keeps running. Drafts:
-`art_source/pixellab/iso_players/drink_drafts/`.
+player during a match, his figure plays `drink` once: he lifts a glass stein,
+gulps, wipes his mouth with his arm and tosses the empty stein away over his
+shoulder (Anthony's pick B, then "fix please": the stein no longer just
+vanishes). It is the `drink` row of `PitchAnims.csv` (rows 48-55, 17 frames);
+its FPS sets how long it lasts (10 = about 1.7 seconds). Every look in the
+game has it drawn: the ten Club looks and both looks of every other class.
+A new look without it plays its Stand-in (`cheer`) until it is drawn.
+`Tuning.csv`: `pitch_drink_stands_still` (true) stops him on the spot while
+he drinks (a player with the ball keeps running); `pitch_drink_faces_camera`
+(true) turns a player who faces away (north-west, north, north-east) round
+first, so the stein is always seen. To draw it for a new look: animate its
+PixelLab character with the same action, 16 frames, named `drink_toss`,
+download it, then rebuild the sheet with `tools/make_pitch_sheet.py`. Film
+it with `tools/drink_shot.gd`. Drafts: `art_source/pixellab/iso_players/drink_drafts/`.
 
 **Ten looks for The Club** (Anthony: no red nose, and people of different
 skin colours and backgrounds in the same comic style). Five men (`club_m1`-`m5`: light with brown hair,

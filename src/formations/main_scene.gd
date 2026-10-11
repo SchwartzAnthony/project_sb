@@ -201,7 +201,7 @@ var ball_chasers_per_side: int = 2
 var fresh_spot_ball_weight: float = 1.2
 ## ROUND AN: the ring round the ball a player showing for a pass stays on.
 var open_support_min: float = 270.0
-var open_support_max: float = 340.0
+var open_support_max: float = 5000.0
 var open_zone_margin: float = 0.25
 var mark_keep_off: float = 200.0
 ## ROUND AN (9 Oct): moving for an opening, and cutting the lane.
@@ -209,8 +209,13 @@ var open_search_radius: float = 220.0
 var open_rethink_seconds: float = 0.7
 var mark_lane_cut: float = 100.0
 ## ROUND AN (9 Oct): outside the ball's range a marker shadows his man.
-var mark_shadow_commitment: float = 0.85
+var mark_shadow_commitment: float = 0.6
 var open_switch_margin: float = 60.0
+## ROUND AN (11 Oct): spread the whole shape out.
+var shape_spread_x: float = 1.2
+var shape_spread_y: float = 1.25
+var shape_edge_margin: float = 0.05
+var open_mate_space_weight: float = 0.8
 ## ROUND AN (9 Oct): name plates of players not involved with the ball, in
 ## open play. Tuning.csv bystander_plate_alpha; 1 = off.
 var bystander_plate_alpha: float = 0.18
@@ -1437,10 +1442,15 @@ func _opening_score(p: Vector2, from_ball: Vector2, shape: Vector2, foes: Array[
 		space = minf(space, f.distance_to(p))
 		lane = minf(lane, Geometry2D.get_closest_point_to_segment(f, from_ball, p).distance_to(f))
 	var score := space + lane * 1.5
+	var nearest_mate := 400.0
 	for m in mates:
 		var d := m.distance_to(p)
+		nearest_mate = minf(nearest_mate, d)
 		if d < 110.0:
 			score -= (110.0 - d) * 2.0
+	# ROUND AN (11 Oct): ROOM FROM TEAM-MATES counts too, so a side fans out
+	# over the pitch instead of every man finding the same pocket.
+	score += minf(nearest_mate, 300.0) * open_mate_space_weight
 	var to_ball := p.distance_to(from_ball)
 	if to_ball < open_support_min:
 		score -= (open_support_min - to_ball) * 3.0
@@ -1887,6 +1897,10 @@ func _apply_match_tuning() -> void:
 	mark_lane_cut = db.tune_float("mark_lane_cut", mark_lane_cut)
 	mark_shadow_commitment = db.tune_float("mark_shadow_commitment", mark_shadow_commitment)
 	open_switch_margin = db.tune_float("open_switch_margin", open_switch_margin)
+	shape_spread_x = db.tune_float("shape_spread_x", shape_spread_x)
+	shape_spread_y = db.tune_float("shape_spread_y", shape_spread_y)
+	shape_edge_margin = db.tune_float("shape_edge_margin", shape_edge_margin)
+	open_mate_space_weight = db.tune_float("open_mate_space_weight", open_mate_space_weight)
 	bystander_plate_alpha = db.tune_float("bystander_plate_alpha", bystander_plate_alpha)
 	ball_roam_quarter_first = db.tune_int("ball_roam_quarter_first", ball_roam_quarter_first)
 	ball_roam_quarter_last = db.tune_int("ball_roam_quarter_last", ball_roam_quarter_last)
@@ -2978,6 +2992,24 @@ func default_layout(star_tier: String) -> Dictionary:
 	}
 
 
+## ============ A WIDER SHAPE  (round AN, Anthony 11 Oct) ============
+##
+## "Everyone is crowding in one spot the whole game, spread them out even
+## more." Every slot is pushed away from the centre spot by `shape_spread_x`
+## along the pitch and `shape_spread_y` across it (1 = the formation as
+## drawn), and kept `shape_edge_margin` of the pitch inside the lines.
+func _spread_slot(pos: Vector2) -> Vector2:
+	var rect := get_play_rect()
+	if rect.size.x <= 1.0 or (is_equal_approx(shape_spread_x, 1.0) and is_equal_approx(shape_spread_y, 1.0)):
+		return pos
+	var mid := rect.get_center()
+	var out := mid + (pos - mid) * Vector2(shape_spread_x, shape_spread_y)
+	var keep := rect.size * shape_edge_margin
+	out.x = clampf(out.x, rect.position.x + keep.x, rect.end.x - keep.x)
+	out.y = clampf(out.y, rect.position.y + keep.y, rect.end.y - keep.y)
+	return out
+
+
 func create_unit_instance(data: PlayerData, pos: Vector2, is_enemy: bool) -> PlayerUnit:
 	var unit := PLAYER_UNIT_SCENE.instantiate() as PlayerUnit
 	if unit == null:
@@ -2993,7 +3025,7 @@ func create_unit_instance(data: PlayerData, pos: Vector2, is_enemy: bool) -> Pla
 	unit.attack_dir = -1.0 if is_enemy else 1.0   # home defends the left goal
 	_tune_unit(unit)
 	units_container.add_child(unit)   # add first so @onready refs exist
-	unit.set_home(pos)                # then place and start roaming
+	unit.set_home(_spread_slot(pos))  # then place and start roaming
 	return unit
 
 
@@ -3121,6 +3153,7 @@ func spawn_cutaways() -> void:
 			duel_arena.name = "DuelArena"
 			add_child(duel_arena)
 			duel_arena.apply_tuning(db)
+			duel_arena.keeper_hit = _show_keeper_hits
 		else:
 			push_error("duel_arena.tscn did not instantiate as a DuelArena.")
 
@@ -4070,11 +4103,16 @@ func trigger_playmaker_event() -> void:
 			if unit.is_star_player:
 				unit.is_playmaker = true
 	set_play_maker_live(true)
+	bags_shut = coach != null and coach.lesson_this_play_maker()
+	bag_open_for = null
 	print("PLAY MAKER!  Cycle %d, Round %d" % [current_cycle, rounds_this_cycle])
 	AudioDirector.fire(get_tree(), "play_maker",
 		{"cycle": str(current_cycle), "round": str(rounds_this_cycle)}, state)
 	Juice.fire(self, "play_maker", {})
-	_match_talk("play_maker")
+	# Awaited (round AN): the referee lesson stops the match here, before
+	# the PLAY MAKER call and the throw-in choice.
+	if coach != null and (_talk_box == null or not is_instance_valid(_talk_box)):
+		await coach.talk("play_maker")
 	await announce("PLAY MAKER!")
 
 	# WHOEVER TAKES THE THROW CHOOSES. That is the whole of what the coin
@@ -5526,6 +5564,12 @@ signal bag_opened(bag: InventoryScreen)
 signal item_used_on_card(card: PlayerData, entry: Dictionary)
 ## Item ids the bag shows on a card; empty = everything.
 var bag_only: Array = []
+## ROUND AN (Anthony, 10 Oct): "don't allow the player to pick beer for any
+## other". In a Tutorial Play Maker with a drinking lesson (MatchTalk.csv Do
+## drink_lesson) every bag button is grey except the one being taught.
+## Tuning.csv tutorial_bags_shut_in_lessons.
+var bags_shut := false
+var bag_open_for: PlayerData = null
 
 
 ## The pick guard (see _on_card_selected). Only in the Tutorial; a time in
@@ -5913,7 +5957,13 @@ func resolve_round() -> void:
 		# the list knows about theirs as well as yours.
 		var face_up: Array = revealed_by_tier.values()
 		face_up.append_array(enemy_revealed_by_tier.values())
+		var keeper_queue_before := abilities.pending_stamina_count()
 		abilities.resolve_duel_abilities(atk, attacker_is_enemy, def, "", face_up)
+		# ROUND AN: this duel's keeper drains, shown in the keeper's window
+		# when the ability's gold box goes off (Tuning keeper_drain_window).
+		_duel_keeper_hits = abilities.peek_pending_stamina(keeper_queue_before)
+		_duel_keeper_queue_before = keeper_queue_before
+		_duel_banks = {false: player_bank, true: enemy_bank}
 
 		# ROUND AB (C4): A CARD SWITCHED TO BEING THE DEFENDER. The duel turns
 		# round - it defends, the other card attacks, and the ball goes to
@@ -7563,6 +7613,7 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		"token": abilities.token_used(atk, attacker_is_enemy) if abilities != null else null,
 		"printed": atk.get_attack_power(),
 		"wins": attacker_wins,
+		"keeper_hits": _hits_from(atk, attacker_is_enemy),
 	}
 	var defender_side := {
 		"card": def,
@@ -7575,6 +7626,7 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		"token": abilities.token_used(def, not attacker_is_enemy) if abilities != null else null,
 		"printed": def.get_defense_power(),
 		"wins": not attacker_wins,
+		"keeper_hits": _hits_from(def, not attacker_is_enemy),
 	}
 
 	# EVERYTHING ON THE PITCH STOPS while the cut-away is up.
@@ -7597,6 +7649,8 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 ## ROUND Z: what the card carries this match (counters, SWAN, TOKEN), and a
 ## SHOW button when an Emblem gives it a Reveal (Zepar's Swan).
 func _dress_card(card: PlayerCardUI, data: PlayerData) -> void:
+	if card != null:
+		card.set_bag_shut(bags_shut and data != bag_open_for)
 	if abilities == null or data == null or card == null:
 		return
 	card.set_marks(abilities.marks_for(data, false))
@@ -8097,6 +8151,78 @@ func _absorb_ability_news() -> void:
 # =============================================================
 #  ROUND AA - THE KEEPERS, AND ASKING YOU
 # =============================================================
+
+## ROUND AN (Anthony, 10 Oct): "With Koch's ability trigger, show the enemy
+## goalie window, deal the stamina, change the %, then go back to the cards."
+## The drains are still SPENT after the last duel, as before; this only shows
+## them at the moment the ability goes off. Tuning.csv keeper_drain_window:
+## tutorial (default), always or off. keeper_drain_step_seconds per step.
+var _duel_keeper_hits: Array = []
+var _duel_keeper_queue_before := 0
+var _duel_banks := {false: 0, true: 0}
+
+
+func _hits_from(card: PlayerData, side_is_enemy: bool) -> Array:
+	var out: Array = []
+	if not _keeper_drain_window_on():
+		return out
+	for hit in _duel_keeper_hits:
+		var h := hit as Dictionary
+		if h.get("source") == card and bool(h.get("source_is_enemy", false)) == side_is_enemy \
+				and int(h.get("delta", 0)) != 0:
+			out.append(h)
+	return out
+
+
+func _keeper_drain_window_on() -> bool:
+	match db.tune_text("keeper_drain_window", "tutorial").strip_edges().to_lower():
+		"always", "true", "yes":
+			return true
+		"tutorial":
+			return String(match_mode.get("id", "")) == "tutorial"
+	return false
+
+
+## The keeper's window for one card's drains, opened from the duel window.
+func _show_keeper_hits(hits: Array) -> void:
+	if shootout == null or hits.is_empty():
+		return
+	var queued := abilities.peek_pending_stamina(0)
+	for hit in hits:
+		var h := hit as Dictionary
+		var side := bool(h["enemy_side"])
+		var keeper: GoalieUnit = goalies.get(side)
+		if keeper == null:
+			continue
+		# What he has now, with every change queued before this one.
+		var before := keeper.current_stamina
+		for other in queued:
+			if other == h:
+				break
+			if bool((other as Dictionary)["enemy_side"]) == side:
+				before = clampi(before + int((other as Dictionary).get("delta", 0)), 0, keeper.max_stamina)
+		var after := clampi(before + int(h["delta"]), 0, keeper.max_stamina)
+		var source: PlayerData = h.get("source")
+		var ability: AbilityData = h.get("ability")
+		var shooter_side := bool(h.get("source_is_enemy", false))
+		# The % at the shot power his side has piled up so far, plus his own.
+		var power := int(_duel_banks.get(shooter_side, 0))
+		if source != null:
+			power += source.get_attack_power()
+		shootout.play_drain({
+			"title": ability.display_name.to_upper() if ability != null else "",
+			"card": source,
+			"shooter_is_player": not shooter_side,
+			"shot_power": power,
+			"keeper_data": keeper.data,
+			"before": before,
+			"after": after,
+			"keeper_max": keeper.max_stamina,
+			"chance_shift": keeper.chance_shift,
+			"seconds": db.tune_float("keeper_drain_step_seconds", 2.5),
+		})
+		await shootout.view_closed
+
 
 ## Everything abilities queued for the keepers: stamina, shields, and the
 ## shift on how likely each is to be beaten (phase C3).

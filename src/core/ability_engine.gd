@@ -713,6 +713,17 @@ func note_trigger(side_is_enemy: bool, how_many: int = 1) -> void:
 	triggers[side_is_enemy] = int(triggers.get(side_is_enemy, 0)) + maxi(0, how_many)
 
 
+## How many keeper changes are queued so far (round AN: the match takes the
+## ones a duel added, to show them in the keeper's window).
+func pending_stamina_count() -> int:
+	return _stamina_pending.size()
+
+
+## The queued keeper changes from `from` on, without taking them.
+func peek_pending_stamina(from: int = 0) -> Array:
+	return _stamina_pending.slice(from)
+
+
 ## Goalie stamina changes queued this round: [{enemy_side, delta}, ...]
 func take_pending_stamina() -> Array:
 	var out := _stamina_pending.duplicate()
@@ -1834,7 +1845,8 @@ func _apply_one(ability: AbilityData, source: PlayerData, source_is_enemy: bool,
 		var keeper_is_enemy := not source_is_enemy if flat == "enemygoalie" else source_is_enemy
 		var delta := -ability.value if ability.effect == "drainstamina" else ability.value
 		if ability.effect in ["drainstamina", "restorestamina"]:
-			_stamina_pending.append({"enemy_side": keeper_is_enemy, "delta": delta})
+			_stamina_pending.append({"enemy_side": keeper_is_enemy, "delta": delta,
+				"source": source, "source_is_enemy": source_is_enemy, "ability": ability})
 			log_lines.append("      %s: %s %d on the %s keeper"
 				% [source.player_name, ability.effect, absi(delta),
 				   "away" if keeper_is_enemy else "home"])

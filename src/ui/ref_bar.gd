@@ -112,6 +112,21 @@ func _build() -> void:
 		_labels[side_is_enemy] = says
 
 
+## ROUND AN: what the Head Coach points at (MatchTalk.csv Highlight
+## referee / referee:you / referee:them) - one side's dark glass, or both.
+func spots(which: String) -> Array:
+	var out: Array = []
+	for side_is_enemy in [false, true]:
+		if which == "you" and side_is_enemy:
+			continue
+		if which == "them" and not side_is_enemy:
+			continue
+		var pips := _rows.get(side_is_enemy) as Control
+		if pips != null and pips.get_parent() != null:
+			out.append(pips.get_parent().get_parent())
+	return out
+
+
 ## Read it again. Cheap, and called at the end of every round.
 func refresh() -> void:
 	if db == null:

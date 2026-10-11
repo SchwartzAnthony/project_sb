@@ -1,10 +1,10 @@
 ID,Name,Pool,Attack,Layers,Targeting,Element,Ability,Buff,Art,Drops,Weight,Boss,Description
-mire_grub,Mire Grub,marsh,1,Body:4,weakest,Water,,,grub,grub_drops,10,no,Soft and slow. There are always more of them.
-reed_biter,Reed Biter,marsh,1,Body:6,weakest,Water,,,biter,biter_drops,8,no,Fast in the shallows.
-bog_lurker,Bog Lurker,marsh,2,Hide:3:1|Body:6,weakest,Water,,,lurker,lurker_drops,6,no,Its hide turns the first couple of hits.
-fen_stalker,Fen Stalker,marsh,2,Body:8,weakest,Water,,,stalker,lurker_drops,4,no,Waits at the back and picks its moment.
-reed_warden,The Reed Warden,marsh,2,Bark:4:1|Body:8,weakest,Water,,1,warden,warden_drops,0,yes,"A small bounty and a good first kill. Two layers, and the bark only turns one point a hit."
-marsh_king,The Marsh King,marsh,3,Crown:6:2|Weed:8:1|Body:12,weakest,Water,,1,king,king_drops,0,yes,"Three layers of him, and each one is harder than the last."
+mire_grub,Mire Grub,marsh,1,Body:4,weakest,Water,,,res://assets/adventure/enemies/grub.png,grub_drops,10,no,Soft and slow. There are always more of them.
+reed_biter,Reed Biter,marsh,1,Body:6,weakest,Water,,,res://assets/adventure/enemies/biter.png,biter_drops,8,no,Fast in the shallows.
+bog_lurker,Bog Lurker,marsh,2,Hide:3:1|Body:6,weakest,Water,,,res://assets/adventure/enemies/lurker.png,lurker_drops,6,no,Its hide turns the first couple of hits.
+fen_stalker,Fen Stalker,marsh,2,Body:8,weakest,Water,,,res://assets/adventure/enemies/stalker.png,lurker_drops,4,no,Waits at the back and picks its moment.
+reed_warden,The Reed Warden,marsh,2,Bark:4:1|Body:8,weakest,Water,,1,res://assets/adventure/enemies/warden.png,warden_drops,0,yes,"A small bounty and a good first kill. Two layers, and the bark only turns one point a hit."
+marsh_king,The Marsh King,marsh,3,Crown:6:2|Weed:8:1|Body:12,weakest,Water,,1,res://assets/adventure/enemies/king.png,king_drops,0,yes,"Three layers of him, and each one is harder than the last."
 ash_pup,Ash Pup,cinder,1,Body:5,weakest,Fire,,,pup,pup_drops,10,no,Small and hot.
 slag_hound,Slag Hound,cinder,2,Slag:3:1|Body:6,weakest,Fire,,,hound,hound_drops,8,no,
 furnace_husk,Furnace Husk,cinder,2,Plate:5:2|Body:8,strongest,Fire,,,husk,husk_drops,5,no,"Goes for your best player, not your worst."

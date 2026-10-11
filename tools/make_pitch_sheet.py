@@ -12,7 +12,8 @@
 #
 #  Where each animation goes is data/PitchAnims.csv: First Row, then 8 rows
 #  (east, south-east, south, south-west, west, north-west, north,
-#  north-east). The PixelLab column is the animation's name in the export.
+#  north-east). The PixelLab column is the animation's name in the export
+#  (several separated by | : the first one the export has).
 #  Frames are centred in square cells of Tuning.csv pitch_sheet_cell.
 #  The script prints each animation's real frame count; if it differs from
 #  the Frames column it says so.
@@ -82,8 +83,15 @@ def main():
     rotations = state["frames"]["rotations"]
     rows = anims()
     cols = max(int(r["Frames"]) for r in rows)
+    def export_of(r):
+        # Several names separated by | : the first one the export has.
+        for pl_name in r["PixelLab"].split("|"):
+            if found.get(pl_name.strip()):
+                return found[pl_name.strip()]
+        return {}
+
     for r in rows:
-        got = found.get(r["PixelLab"].strip(), {})
+        got = export_of(r)
         if got:
             cols = max(cols, max(len(v) for v in got.values()))
     height_rows = max(int(r["First Row"]) + 8 for r in rows)
@@ -98,8 +106,7 @@ def main():
 
     for r in rows:
         anim, first = r["Animation"].strip(), int(r["First Row"])
-        pl = r["PixelLab"].strip()
-        got = found.get(pl, {})
+        got = export_of(r)
         layer = Image.new("RGBA", sheet.size)
         counts = set()
         for d, direction in enumerate(DIRECTIONS):
