@@ -736,7 +736,7 @@ smaller by half) have them chase the person they should be watching."*
 | Tuning row | |
 |---|---|
 | `press_radius_fraction` | the ball's range, share of pitch height. `0.275` (halved) |
-| `mark_shadow_commitment` | how close a marker outside the range stays on his man. `0.85` |
+| `mark_shadow_commitment` | how close a marker outside the range stays on his man. `0.6` (was `0.85`, see below) |
 | `unit_run_burst_min` / `_max` | seconds of running before a breather. `2.5` / `4.5` |
 | `unit_rest_min` / `_max` | seconds a breather lasts. `1` / `2`. `_max` 0 = off |
 | `unit_stuck_window` / `unit_stuck_progress` | the wall check. `0.8` s / `18` px |
@@ -754,6 +754,32 @@ the man he marks.
 > off the ball had it behind them **55-96%** of the time, and the Tier I and
 > Tier IV back rows sprinted with the ball out of range **55-71%** of the time.
 > After: **0-1%** and **0%**.
+
+#### Spread out (Anthony, 11 Oct: "everyone is crowding in one spot")
+
+Three changes pull the team apart:
+
+1. **Wider shape.** Every slot is pushed away from the centre spot before
+   kick-off: `shape_spread_x` along the pitch, `shape_spread_y` across it,
+   but never closer to the edge than `shape_edge_margin`.
+2. **Space from team-mates.** A player looking for an opening now also scores
+   a spot by how far it is from his nearest team-mate
+   (`open_mate_space_weight`), so two of them stop picking the same gap.
+3. **Markers stay nearer home.** `mark_shadow_commitment` went from `0.85` to
+   `0.6`: a marker outside the ball range still follows his man, but keeps
+   more of his own place.
+
+| Tuning row | |
+|---|---|
+| `shape_spread_x` | push slots out along the pitch. `1.2` (1 = as drawn) |
+| `shape_spread_y` | push slots out toward the touchlines. `1.25` |
+| `shape_edge_margin` | how close to the edge a slot may go, share of the pitch. `0.05` |
+| `open_mate_space_weight` | how much an opening likes room from team-mates. `0.8`, 0 = off |
+| `open_support_max` | now `5000` (off): the old cap kept openings too close to the ball |
+
+> Probe, 45 s: the middle 80% of players covered about **50%** of the pitch's
+> length and **43%** of its width before; after, **67%** and **60%**. Players
+> within 240 px of the ball dropped from about 5 to 3.5.
 
 ### The shape — why they were standing in pairs
 

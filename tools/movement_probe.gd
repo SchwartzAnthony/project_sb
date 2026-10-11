@@ -39,6 +39,7 @@ var _away_by_role := {}
 ## Who is within 240 px of the ball, by job, summed over frames.
 var _near_role := {}
 var _traced := 0
+var _in_by_role := {}
 var _away_to_edge := {}
 const ROLE_WORDS := ["HOLD", "MARK", "OPEN", "PRESS", "BALL", "RECEIVE", "DRIBBLE", "SURGE", "RECOVER"]
 var _film := false
@@ -247,6 +248,46 @@ func _count_crowd(units: Array, ball) -> void:
 			near += 1
 		if unit.role == PlayerUnit.Role.BALL or unit.role == PlayerUnit.Role.PRESS:
 			chasers += 1
+	# SPREAD: how much of the pitch the 20 outfield players cover - the
+	# middle 80% of them, across and up-and-down, as a share of the pitch.
+	var bounds: Rect2 = units[0].play_bounds if not units.is_empty() else Rect2()
+	if bounds.size.x > 1.0 and units.size() > 4:
+		var xs: Array[float] = []
+		var ys: Array[float] = []
+		var home_off := 0.0
+		var mid := bounds.get_center()
+		for unit in units:
+			# How far IN toward the middle of the pitch he is from his slot,
+			# by job (px; negative = further out than his slot).
+			var word: String = ROLE_WORDS[clampi(unit.role, 0, ROLE_WORDS.size() - 1)]
+			var inx := absf(unit.home_position.x - mid.x) - absf(unit.global_position.x - mid.x)
+			var iny := absf(unit.home_position.y - mid.y) - absf(unit.global_position.y - mid.y)
+			var acc: Array = _in_by_role.get(word, [0.0, 0.0, 0])
+			acc[0] += inx
+			acc[1] += iny
+			acc[2] += 1
+			_in_by_role[word] = acc
+			xs.append(unit.global_position.x)
+			ys.append(unit.global_position.y)
+			home_off += unit.global_position.distance_to(unit.home_position)
+		if not _crowd.has("home_x"):
+			var hx: Array[float] = []
+			var hy: Array[float] = []
+			for unit in units:
+				hx.append(unit.home_position.x)
+				hy.append(unit.home_position.y)
+			hx.sort()
+			hy.sort()
+			var l := int(hx.size() * 0.1)
+			_crowd["home_x"] = (hx[hx.size() - 1 - l] - hx[l]) / bounds.size.x
+			_crowd["home_y"] = (hy[hy.size() - 1 - l] - hy[l]) / bounds.size.y
+		xs.sort()
+		ys.sort()
+		var lo := int(xs.size() * 0.1)
+		var hi := xs.size() - 1 - lo
+		_crowd["span_x"] = _crowd.get("span_x", 0.0) + (xs[hi] - xs[lo]) / bounds.size.x
+		_crowd["span_y"] = _crowd.get("span_y", 0.0) + (ys[hi] - ys[lo]) / bounds.size.y
+		_crowd["home_off"] = _crowd.get("home_off", 0.0) + home_off / units.size()
 	_crowd["frames"] += 1
 	_crowd["near_sum"] += near
 	_crowd["near_max"] = maxi(_crowd["near_max"], near)
@@ -268,6 +309,14 @@ func _report(measured: float) -> void:
 	var f: float = maxf(1.0, float(_crowd["frames"]))
 	print("[probe] near the ball (%d px): %.1f on average, %d at worst, 6+ for %.0f%% of the time" % [
 		int(NEAR), _crowd["near_sum"] / f, _crowd["near_max"], 100.0 * _crowd["piles"] / f])
+	print("[probe] SPREAD (middle 80%% of players): %.0f%% of the pitch's length, %.0f%% of its width; %.0f px from their own slot on average" % [
+		100.0 * _crowd.get("span_x", 0.0) / f, 100.0 * _crowd.get("span_y", 0.0) / f, _crowd.get("home_off", 0.0) / f])
+	for word in _in_by_role:
+		var acc: Array = _in_by_role[word]
+		print("[probe]   %-8s pulled in from his slot: %4.0f px along, %4.0f px across  (%.1f players)" % [
+			word, acc[0] / maxf(acc[2], 1), acc[1] / maxf(acc[2], 1), acc[2] / f])
+	print("[probe]   (their own slots cover %.0f%% of the length, %.0f%% of the width)" % [
+		100.0 * _crowd.get("home_x", 0.0), 100.0 * _crowd.get("home_y", 0.0)])
 	print("[probe] within 240 px of the ball: %.1f on average (of the whole pitch)" % [
 		_crowd.get("wide_sum", 0) / f])
 	var who := []
