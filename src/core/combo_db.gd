@@ -162,8 +162,8 @@ static func facts_of(card: PlayerData) -> Dictionary:
 		return {"element": "", "class": "", "power": 0, "star": false}
 	return {
 		"element": card.element,
-		# The BREWED class, so a Lorelei who drank a Fire Brew combos with the
-		# Brandteufel she is standing next to. Same rule the rest of the
+		# The BREWED class, so a card that drank a Water Brew combos with the
+		# Lorelei she is standing next to. Same rule the rest of the
 		# game's targeting uses.
 		"class": card.active_unit_type(),
 		"power": card.get_attack_power(),

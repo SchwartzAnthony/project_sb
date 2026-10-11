@@ -199,10 +199,8 @@ which set answers for which Star, and the code no longer assumes they share a
 name. Emblem rows are named `"Gremory's Emblem"`; the code finds them by
 either name (`ClassEntry.aliases`). **Never make him rename.**
 
-Also present: `Normal` (BasicTeam, Stars Tier IV), `Rivals` (locked), and
-**`Brandteufel`** in `example_unit_csv_with_ability_columns.csv`. Brandteufel
-is probably the retired ancestor of Rauhnacht-Feuergeister. **Unresolved —
-ask him.**
+Also present: `Normal` (BasicTeam, Stars Tier IV). Brandteufel and Rivals
+were removed completely in round AN (Anthony, 9 Oct).
 
 ---
 
@@ -319,8 +317,7 @@ part6_guide, part7_wizard, part5_tail`. Per-file help lives in
 `part3_schema.js`; the Handbook in `part6_guide.js`; the wizard in
 `part7_wizard.js`. `real.mjs` and `wiz.mjs` are Playwright tests — fix their
 hard-coded `/tmp` paths and Chromium path before using them. Six known
-checker notes are expected (Normal class has no adventure cards, Brandteufel
-has no ClassInfo row, four biome music rows missing from Audio.csv). Google
+checker notes are expected (Normal class has no adventure cards, four biome music rows missing from Audio.csv). Google
 Fonts fail offline, which is fine.
 
 ---
@@ -336,7 +333,6 @@ Fonts fail offline, which is fine.
   file (`SOUNDS_WANTED.csv`). Four buildings have no art. `recovery` is OFF on
   purpose (needs six players per tier).
 - `data/tutorial/*.translation` — delete them.
-- Brandteufel: is it still a class?
 
 ---
 
@@ -384,7 +380,7 @@ round AH.)
    0.94 cards a match per side) or the Yellow share lowered.
 3. The set cards' abilities are prose; only Ability-ID rows run. Ore has no
    counter in a match yet.
-4. The Pub lists Rivals (enemy) cards under YOUR CARDS - pre-existing.
+4. (Fixed: the Rivals class is gone.)
 
 ## 12b. Round Y — DONE
 

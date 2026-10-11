@@ -8,7 +8,7 @@ extends Resource
 
 @export var formation_scene: PackedScene
 @export var player_type: String = "Normal" # "Normal" or "Star"
-@export var unit_type: String              # class / race, e.g. "Brandteufel"
+@export var unit_type: String              # class / race, e.g. "Lorelei"
 @export var player_name: String
 @export_multiline var attack_text: String
 @export_multiline var defend_text: String
@@ -296,7 +296,7 @@ func get_tags() -> PackedStringArray:
 	var tags := PackedStringArray()
 	if element.strip_edges() != "":
 		tags.append(element.strip_edges().to_lower())
-	# The BREWED class, so "give all Brandteufel +1" reaches a Lorelei who
+	# The BREWED class, so "give all Lorelei +1" reaches a Bergmännlein who
 	# drank a Fire Brew. That is the whole point of the brew.
 	var current := active_unit_type()
 	if current.strip_edges() != "":

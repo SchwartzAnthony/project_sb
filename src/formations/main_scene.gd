@@ -382,6 +382,10 @@ var available_player_stars: Array[PlayerData] = []
 var available_enemy_stars: Array[PlayerData] = []
 var active_player_star: PlayerData = null
 var active_enemy_star: PlayerData = null
+## ROUND AN (Anthony, 9 Oct: "3 cycles for one main Emblem"): the Star whose
+## Emblem is on the field for the WHOLE match - the one who starts it. Kept
+## per side {false: you, true: them}; cleared when a new match opens.
+var _match_emblem_star := {false: null, true: null}
 var player_star_tier: String = ""
 var enemy_star_tier: String = ""
 
@@ -4811,8 +4815,8 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 			% [item_id, brew_id])
 		return
 
-	# THE CLASS RULE STILL APPLIES. A Fire Brew is written For Class Lorelei,
-	# and a Brandteufel drinking it would be nonsense — so it is refused here,
+	# THE CLASS RULE STILL APPLIES. A brew written For Class Lorelei
+	# drunk by anyone else would be nonsense — so it is refused here,
 	# out loud, and the bottle is NOT spent.
 	if not BrewDB.suits(brew, card):
 		announce("%s cannot drink that." % NamePlate.short_name(card), 1.5)
@@ -4820,18 +4824,26 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 			card.player_name, brew.get("for_class", "?")])
 		return
 
+	# ONE ELEMENT AT A TIME (Anthony, 9 Oct): water first, then a new one.
+	var already := DrunkBook.elemental_refusal(card, brew, state)
+	if already != "":
+		announce("%s is already elemental." % NamePlate.short_name(card), 1.5)
+		print("[brew] " + already)
+		return
+
 	# ON THE PITCH (Anthony, 8 Oct): it takes hold sooner and lasts the cycle.
 	BrewDB.mark_cycle_drink(card, brew_id, state)
-	# ALWAYS DRUNK (Anthony, 8 Oct). Too sober = it does nothing yet.
-	var sober := DrunkBook.refusal(card, brew, state)
-	if sober != "":
-		announce("%s is too sober for it to work yet." % NamePlate.short_name(card), 1.5)
-		print("[brew] Drunk, but not yet: " + sober)
 
 	state.add_count(item_id, -1)
 	# THE BOTTLE FILLS THE DRUNK METER by its own Inspiration (Items.csv),
 	# or the brew's if it has none - a bought bottle can be weaker.
 	DrunkBook.drink(card, brew, state, entry)
+	# ALWAYS DRUNK (Anthony, 8 Oct). Too sober = it does nothing. Asked after
+	# the drink, because an elemental beer looks at his meter BEFORE it.
+	var sober := DrunkBook.refusal(card, brew, state)
+	if sober != "":
+		announce("%s is too sober for it to work." % NamePlate.short_name(card), 1.5)
+		print("[brew] Drunk, but not enough: " + sober)
 	# THE BOTTLE IS THE COST. pour() would also charge the brew's material
 	# Cost, which is what the Brewery already took to make it — so the overlay
 	# is laid on directly rather than going through the Pub's till.
@@ -7770,6 +7782,10 @@ func _my_cards() -> Array[PlayerData]:
 	# ROUND AA: AN EMBLEM IS ON THE FIELD ONLY WHILE ITS STAR IS. "When the
 	# star player leaves, it takes their emblem with them and the new star
 	# player brings their own." `emblem_follows_star` FALSE puts back all three.
+	var main := _main_emblem_star(false)
+	if main != null:
+		out.append(main)
+		return out
 	if db == null or db.tune_bool("emblem_follows_star", true):
 		var on_pitch := active_player_star
 		if on_pitch == null:
@@ -7798,6 +7814,7 @@ func _open_emblem_bar() -> void:
 	# ROUND AB: A NEW MATCH, A NEW RACE. Nothing reset the Emblems between
 	# matches before, so a count could carry over in the save.
 	EmblemBook.new_match(state)
+	_match_emblem_star = {false: null, true: null}
 	# ROUND AC (your Q063): THE AI RACES TOO. Its counters live in a save of
 	# their own that is never written to disk - a fresh one every match.
 	enemy_race = GameState.new()
@@ -8014,6 +8031,10 @@ var match_tracker: MatchTracker = null
 ## one on the pitch now (`emblem_follows_star`).
 func _stars_of(side_is_enemy: bool) -> Array[PlayerData]:
 	var out: Array[PlayerData] = []
+	var main := _main_emblem_star(side_is_enemy)
+	if main != null:
+		out.append(main)
+		return out
 	var on_pitch: PlayerData = active_enemy_star if side_is_enemy else active_player_star
 	if db == null or db.tune_bool("emblem_follows_star", true):
 		if on_pitch != null:
@@ -8027,6 +8048,25 @@ func _stars_of(side_is_enemy: bool) -> Array[PlayerData]:
 	if on_now != null and not out.has(on_now):
 		out.append(on_now)
 	return out
+
+
+## ONE MAIN EMBLEM FOR ALL THREE CYCLES (Anthony, 9 Oct). With Tuning.csv
+## `emblem_whole_match` true, the Emblem on the field is the one belonging to
+## the Star who STARTS the match, and it stays when the Stars switch - so its
+## race has the whole match to reach the Ultimate. null = the setting is off
+## (then `emblem_follows_star` decides, as before) or no Star is out yet.
+func _main_emblem_star(side_is_enemy: bool) -> PlayerData:
+	if db == null or not db.tune_bool("emblem_whole_match", true):
+		return null
+	if _match_emblem_star[side_is_enemy] == null:
+		var first: PlayerData = active_enemy_star if side_is_enemy else active_player_star
+		if first == null and not side_is_enemy:
+			for unit in _all_units():
+				if not unit.is_enemy and unit.is_star_player and unit.data != null:
+					first = unit.data
+					break
+		_match_emblem_star[side_is_enemy] = first
+	return _match_emblem_star[side_is_enemy]
 
 
 ## Tell the engine who is on the pitch and which Emblems each side carries.

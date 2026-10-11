@@ -83,7 +83,7 @@ func _initialize() -> void:
 	if mine == null:
 		print("[shown] Nothing in your CSVs has a `reveal` ability, so there is")
 		print("[shown] nothing to put on the table. Put LORE_OPEN_HAND or")
-		print("[shown] BRAND_CALLED_SHOT in a card's Attack Ability column.")
+		print("[shown] CALLED_SHOT in a card's Attack Ability column.")
 		quit(1)
 		return
 

@@ -2,7 +2,7 @@ ID,Name,Status,Phase,Fires When,What It Needs,Notes
 on_duel_start,Duel Start,live,0,"Either way, the moment its duel begins",nothing,The plain one. Use it when an ability should happen whichever side the card is on
 on_attack,Attacking,live,0,This card is the attacker in its duel,nothing,Half of the attack/defend pair. The attacker is decided by the clash
 on_defend,Defending,live,0,This card is the defender in its duel,nothing,The other half
-on_win_duel,Win,live,4,After this card WINS its duel,nothing,"PHASE 4 WAS ALREADY BUILT. Win and Lose have been in the engine since the beginning - see BRAND_RALLY and BRAND_SCORCH in Abilities.csv, which both use this"
+on_win_duel,Win,live,4,After this card WINS its duel,nothing,"PHASE 4 WAS ALREADY BUILT. Win and Lose have been in the engine since the beginning - see FIRE_RALLY and FIRE_SCORCH in Abilities.csv, which both use this"
 on_lose_duel,Lose,live,4,After this card LOSES its duel,nothing,Also already built. A losing card that still does something is one of the better feelings in the game
 passive,Passive,live,0,Once at the start of every round,nothing,No condition at all. Applied and forgotten
 flip,Flip,live,2,The two cards are turned face up at the start of a duel,the duel arena,"PHASE 2. The cards arrive face down and turn over together; anything written against `flip` goes off as they land. It fires BEFORE on_duel_start, so a flip ability can change what the duel starts with"
@@ -10,7 +10,7 @@ reveal,Reveal,live,2,"ROUND AC: you PICK this card and are then asked whether to
 contemplation,Contemplation,live,C1,This card ENTERS the Exhausted Zone,the Exhausted Zone,"BUILT IN ROUND Y (C1). ""If sent to Exhaust"" on your cards. Fires when the round a card played in is over and it goes to the exhaust zone. PHASE 3. The zone itself comes first - a button that opens the pile of cards already played this cycle"
 rejuvenation,Rejuvenation,live,C1,This card LEAVES the Exhausted Zone,the Exhausted Zone,"BUILT IN ROUND Y (C1). Fires at the end of the cycle, when every exhausted card walks back onto the field. PHASE 3. Everything comes back when the cycle is complete, so this fires on all of them at once"
 fused,Fused,planned,5,Two player units have become one,fusing,"PHASE 5. The fused card replaces both, and the ladder still has to hold - one card per power per tier - so the replacement is a spawn like the Treant"
-last_player,Last Player,planned,6,The card played in the PREVIOUS tier matched a condition,a memory of the last card,PHASE 6. 'Last player was a Brandteufel' - so a Tier I can answer what the Tier IV did. Needs the round to remember the tier before
+last_player,Last Player,planned,6,The card played in the PREVIOUS tier matched a condition,a memory of the last card,PHASE 6. 'Last player was a Lorelei' - so a Tier I can answer what the Tier IV did. Needs the round to remember the tier before
 marked,Marked,planned,7,This card carries a mark,marks,"PHASE 7. Mask is the example. A mark is temporary or permanent, and the Exhausted Zone is where a temporary one is cleaned off"
 counters,Counters,planned,7,This card has N counters of a named kind,counters,"PHASE 7. 'Enemy has 3 hypnosis counters: negate their ability'. Counters go on a card, ours or theirs"
 cards_left,Cards Left,planned,8,How many playable cards remain,a count of the hand,PHASE 8

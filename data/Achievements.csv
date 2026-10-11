@@ -13,7 +13,6 @@ season_winner,Champions,Win a season.,flag:season_won,Trophy Case;Boiling,,,yes,
 night_game,Under the Lights,Play five matches.,count:matches_played>=5,Floodlights,,,,"Grants a Stadium.csv layer. Stadium layers test unlocked: like everything else, so an achievement is all it takes to switch one on."
 full_house,Full House,Win five matches.,count:matches_won>=5,Full House,,,,Another Stadium layer - the crowd.
 the_crown,The Crown,Win eight matches.,count:matches_won>=8,The Crown,,,,A competition on the season shelf. Seasons.csv has been waiting for somebody to hand this out since round F.
-scout_the_rivals,Know Your Rivals,Play three matches.,count:matches_played>=3,Rival Scouting,,,,Opens the Rivals class on the team-builder screen.
 master_brewer,Master Brewer,Score eight times with brewed players.,count:goals_with_brew_fire>=8,Master Brewer,,,,"Your spreadsheets spell this three ways - Master Brewer, master_brewer and master brewer. That is FINE: unlock names are matched loosely (lowercase, letters and digits only), so all three are the same unlock. See section 4 of the manual."
 first_pour,First Pour,Pour a brew on a player at the Pub.,count:brews_poured>=1,Fire Brew;Water Brew,,,,"The two starting recipes. A brew is a Brews.csv row and it tests unlocked: like everything else, so an achievement is the whole of what opens one."
 the_cup,The Cup,Win six matches.,count:matches_won>=6,The Cup,,,,Another competition on the season shelf.

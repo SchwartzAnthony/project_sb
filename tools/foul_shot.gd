@@ -20,7 +20,7 @@ extends SceneTree
 
 const SHOTS: Array = [
 	["fl_00_free_kick", "FREE KICK — Müller"],
-	["fl_01_yellow", "YELLOW CARD — Schwarzhammer Brandteufel"],
+	["fl_01_yellow", "YELLOW CARD — Schwarzhammer"],
 	["fl_02_red", "RED CARD — Bischoff"],
 	["fl_03_second", "SECOND YELLOW — Schröder"],
 ]

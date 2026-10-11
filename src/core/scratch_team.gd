@@ -28,7 +28,7 @@ extends RefCounted
 #  ============ IT MIXES CLASSES ON PURPOSE ============
 #
 #  A scratch side is not a club, it is a pick-up team, so Tier II can be
-#  Lorelei and Tier III can be Brandteufel. Its three STARS still come from
+#  Lorelei and Tier III can be Bergmännlein. Its three STARS still come from
 #  one class, because a Star bundle holds a whole tier between them and
 #  mixing those would break the ladder.
 #

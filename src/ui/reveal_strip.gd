@@ -12,7 +12,7 @@ extends Control
 #
 #      +--------------------------------------------------+
 #      |  THEY SHOWED            |         YOU SHOWED      |
-#      |  [card]  Hexflame       |     Cinderworks [card]  |
+#      |  [card]  Belial         |        Ignaz [card]     |
 #      |  P: 4  D: 4             |          P: 1   D: 1    |
 #      |  Called Shot. +3 on ... |   Open Hand. +2 att ... |
 #      +--------------------------------------------------+

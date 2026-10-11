@@ -59,20 +59,22 @@ func test_a_sober_player_drinks_but_the_brew_waits() -> void:
 
 func test_tipsy_lets_the_brew_take_hold() -> void:
 	DrunkBook.set_meter(plain, DrunkBook.threshold("brews"), state)
-	var fire := brews.find("fire")
-	assert_eq(DrunkBook.refusal(plain, fire, state), "")
-	BrewDB.pour(plain, fire, false, state)
-	assert_eq(BrewDB.brew_id_for(plain, state), "fire")
+	var keeper := brews.find("keeper")
+	for item in (keeper.get("cost", {}) as Dictionary).keys():
+		state.set_count(String(item), 50)
+	assert_eq(DrunkBook.refusal(plain, keeper, state), "")
+	BrewDB.pour(plain, keeper, false, state)
+	assert_eq(BrewDB.brew_id_for(plain, state), "keeper")
 	assert_gt(DrunkBook.meter(plain, state), DrunkBook.threshold("brews"), "the brew fills the meter too")
 
 
 func test_a_brew_already_on_a_sobered_player_does_nothing() -> void:
-	state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(plain), "fire")
+	state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(plain), "keeper")
 	brews.apply_all(db, state)
 	assert_eq(plain.brew_id, "", "too sober - no overlay")
 	DrunkBook.set_meter(plain, 100, state)
 	brews.apply_all(db, state)
-	assert_eq(plain.brew_id, "fire")
+	assert_eq(plain.brew_id, "keeper")
 
 
 func test_inspired_plays_as_a_star_with_kochs_ability() -> void:
@@ -89,10 +91,10 @@ func test_inspired_plays_as_a_star_with_kochs_ability() -> void:
 
 func test_a_brew_ability_beats_the_star_one() -> void:
 	DrunkBook.set_meter(plain, 100, state)
-	state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(plain), "fire")
+	state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(plain), "keeper")
 	brews.apply_all(db, state)
 	assert_true(plain.drunk_star)
-	assert_eq(plain.active_attack_ability(), String(brews.find("fire")["attack"]))
+	assert_eq(plain.active_defend_ability(), String(brews.find("keeper")["defend"]))
 
 
 func test_a_bottle_can_be_weaker_than_the_brew() -> void:
@@ -101,10 +103,9 @@ func test_a_bottle_can_be_weaker_than_the_brew() -> void:
 	assert_eq(DrunkBook.inspiration(fire, {"inspiration": ""}), int(fire["inspiration"]))
 
 
-func test_a_star_needs_fewer_turning_beers() -> void:
+func test_one_turning_beer_does_it_now() -> void:
+	# Anthony, 9 Oct: 60% and then any elemental beer - no count of three.
 	var earth := brews.find("turn_earth")
-	assert_eq(TransformBook.drinks_needed_for(plain, earth, state), 3)
-	DrunkBook.set_meter(plain, DrunkBook.threshold("star"), state)
 	assert_eq(TransformBook.drinks_needed_for(plain, earth, state), 1)
 
 
@@ -139,3 +140,114 @@ func test_a_sober_turning_beer_only_fills_the_meter() -> void:
 	assert_true(bool(result["ok"]), "always poured")
 	assert_eq(int(result["count"]), 0, "too sober - it does not count towards turning")
 	assert_true(DrunkBook.meter(plain, state) > 0, "but it filled his meter")
+
+
+func _a_normal_card() -> PlayerData:
+	for card in db.players:
+		if card != null and not card.is_star() and card.unit_type == "Normal":
+			return card
+	return null
+
+
+func test_an_elemental_beer_turns_a_plain_player_at_sixty() -> void:
+	# Anthony, 9 Oct: "60% needed and then drink any of the elemental beers
+	# to transform them from normal to an elemental one."
+	var normal := _a_normal_card()
+	assert_not_null(normal, "BasicTeam has plain Normal cards")
+	var fire := brews.find("fire")
+	var gate := DrunkBook.threshold("turns")
+	assert_eq(gate, 60, "the Elemental level carries turns")
+	assert_true(BrewDB.suits(fire, normal))
+
+	# Just below 60: this beer lifts him past it, but that is too late.
+	DrunkBook.set_meter(normal, gate - 1, state)
+	BrewDB.pour(normal, fire, false, state)
+	brews.apply_all(db, state)
+	assert_eq(normal.brew_id, "", "all or nothing - no abilities either")
+	assert_eq(normal.active_unit_type(), "Normal")
+	assert_ne(DrunkBook.refusal(normal, fire, state), "")
+	BrewDB.restore_all()
+
+	# At 60 beforehand: class, Fire and abilities at once.
+	BrewDB.clear_for(normal, state)
+	DrunkBook.set_meter(normal, gate, state)
+	BrewDB.pour(normal, fire, false, state)
+	brews.apply_all(db, state)
+	assert_eq(normal.active_unit_type(), "Rauhnacht-Feuergeister")
+	assert_eq(normal.active_attack_ability(), String(fire["attack"]))
+
+
+func test_water_turns_an_elemental_player_back() -> void:
+	# Anthony, 9 Oct: to switch element, water him below 60% and he is plain.
+	var normal := _a_normal_card()
+	var fire := brews.find("fire")
+	var lager := brews.find("water")
+	var glass := brews.find("water_glass")
+	assert_false(glass.is_empty(), "Brews.csv has the Glass of Water")
+	assert_lt(DrunkBook.inspiration(glass), 0, "water sobers him")
+	for item in (lager.get("cost", {}) as Dictionary).keys():
+		state.set_count(String(item), 50)
+
+	DrunkBook.set_meter(normal, 70, state)
+	BrewDB.pour(normal, fire, false, state)
+	assert_true(DrunkBook.is_elemental(normal, state))
+	assert_ne(DrunkBook.elemental_refusal(normal, lager, state), "", "one element at a time")
+
+	var glasses := 0
+	while DrunkBook.meter(normal, state) >= 60 and glasses < 5:
+		assert_true(DrunkBook.is_elemental(normal, state), "still 60% or more")
+		BrewDB.pour(normal, glass, false, state)
+		glasses += 1
+	assert_lt(DrunkBook.meter(normal, state), 60)
+	assert_false(DrunkBook.is_elemental(normal, state), "plain again")
+	brews.apply_all(db, state)
+	assert_eq(normal.active_unit_type(), "Normal")
+
+	# Back up to 60 and the other element works.
+	DrunkBook.set_meter(normal, 60, state)
+	assert_eq(DrunkBook.elemental_refusal(normal, lager, state), "")
+	BrewDB.pour(normal, lager, false, state)
+	brews.apply_all(db, state)
+	assert_eq(normal.active_unit_type(), "Lorelei")
+
+
+func test_water_above_sixty_keeps_him_elemental() -> void:
+	var normal := _a_normal_card()
+	DrunkBook.set_meter(normal, 100, state)
+	BrewDB.pour(normal, brews.find("fire"), false, state)
+	BrewDB.pour(normal, brews.find("water_glass"), false, state)
+	assert_gte(DrunkBook.meter(normal, state), 60)
+	assert_true(DrunkBook.is_elemental(normal, state))
+
+
+func test_the_end_of_a_game_turns_everyone_back() -> void:
+	# Anthony, 9 Oct: they lose their element at the end of each game.
+	var normal := _a_normal_card()
+	DrunkBook.set_meter(normal, 100, state)
+	BrewDB.pour(normal, brews.find("fire"), true, state)
+	assert_true(DrunkBook.is_elemental(normal, state))
+	DrunkBook.after_round([normal], state, db)
+	assert_false(DrunkBook.is_elemental(normal, state), "plain again after the game")
+	assert_gt(DrunkBook.meter(normal, state), 0, "still a bit drunk, though")
+
+
+func test_water_is_sold_by_a_moody_merchant() -> void:
+	# Anthony, 9 Oct: not free, only from the vendor, -50% to +25%.
+	assert_eq(String(brews.find("water_glass")["pool"]), "water", "never poured at the Pub")
+	var row: Dictionary = {}
+	for one in ShopBook.shelf():
+		if String(one["id"]) == "trade_water":
+			row = one
+	assert_false(row.is_empty(), "Shop.csv sells the water")
+	assert_gt(int(row["price"]), 0, "water is not free")
+	var seen: Dictionary = {}
+	for day in 40:
+		state.set_count("matches_played", day)
+		var feel := ShopBook.mood(row, state)
+		assert_between(feel, -50, 25)
+		var price := ShopBook.price_of(row, state)
+		assert_between(price, int(round(int(row["price"]) * 0.5)), int(round(int(row["price"]) * 1.25)))
+		seen[price] = true
+	assert_gt(seen.size(), 3, "his price moves from game to game")
+	state.set_count("matches_played", 7)
+	assert_eq(ShopBook.price_of(row, state), ShopBook.price_of(row, state), "the same all game")

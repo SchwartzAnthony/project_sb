@@ -17,7 +17,7 @@ all_allies,ability target,live,Every card on its own side,,
 all_enemies,ability target,live,Every card on the other side,,
 enemy_goalie,ability target,live,The keeper it would shoot at,,
 own_goalie,ability target,live,Its own keeper,,
-tag:<tag>,ability target,live,Every card on its side carrying that tag,tag:brandteufel,"A tag is a class, an element or star - see PlayerData.get_tags"
+tag:<tag>,ability target,live,Every card on its side carrying that tag,tag:lorelei,"A tag is a class, an element or star - see PlayerData.get_tags"
 tier:<tier>,ability target,live,Its own side's cards in that tier,tier:III,
 enemy_tier:<tier>,ability target,live,The other side's cards in that tier,enemy_tier:IV,
 duel,ability scope,live,Until this duel is over,,The default. Leave Scope blank and this is what you get

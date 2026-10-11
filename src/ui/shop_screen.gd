@@ -262,7 +262,7 @@ func _purse_tile(money: Dictionary) -> Control:
 func _cart_row(entry: Dictionary) -> Control:
 	var money := ShopBook.currency(String(entry["currency"]))
 	var left := ShopBook.left_on_the_cart(entry, state)
-	var price := int(entry["price"])
+	var price := ShopBook.price_of(entry, state)
 	var have := ShopBook.purse(String(entry["currency"]), state)
 	var can_pay := have >= price
 
@@ -322,6 +322,10 @@ func _cart_row(entry: Dictionary) -> Control:
 	var button := Button.new()
 	button.custom_minimum_size = Vector2(230.0, 44.0)
 	button.text = "%d %s" % [price, money["name"] if not money.is_empty() else entry["currency"]]
+	# HIS MOOD (Anthony, 9 Oct): say when today's price is not the usual one.
+	var feel := ShopBook.mood(entry, state)
+	if feel != 0:
+		button.text += "  (%s%d%% today)" % ["+" if feel > 0 else "", feel]
 	button.disabled = left == 0 or not can_pay
 	var tint := MenuSupport.COLOUR_ATTACK if not button.disabled else MenuSupport.COLOUR_TEXT_DIM
 	button.add_theme_stylebox_override("normal",

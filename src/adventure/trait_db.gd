@@ -8,7 +8,7 @@ extends RefCounted
 #
 #  In a league match a player brings their ABILITIES. In Adventure they bring
 #  their ICONS. Every player you send into the move drops their icons onto a
-#  stack — Fire, Water, Brandteufel, Star — and the stack is what you are
+#  stack — Fire, Water, Lorelei, Star — and the stack is what you are
 #  really playing. Three Fire in the stack and every shot is worth four more.
 #  Four Wand and a Treant walks on to replace somebody you lost.
 #
@@ -35,8 +35,8 @@ extends RefCounted
 #                            Element column of Brews.csv if they drank
 #                            something, so what they drink changes their icon
 #                  class     the Unit Type column — and the BREWED class, so
-#                            a Lorelei who drank a Fire Brew stacks as a
-#                            Brandteufel
+#                            anyone who drank a Water Brew stacks as a
+#                            Lorelei
 #                  star      Player Type = Star. The Value column is ignored
 #                  tier      their Tier. Value is I / II / III / IV
 #      Value    which value in that column counts. Blank for `star`

@@ -586,7 +586,7 @@ func stars_for_class(unit_type: String) -> Array[PlayerData]:
 ## ============ WHICH TIER DOES THIS CLASS'S STARS HOLD? ============
 ##
 ## A class's Star Players hold ONE tier between them — Lorelei's three are
-## Tier IV, Brandteufel's are Tier III. That tier is locked in the team
+## Tier II, Bergmännlein's are Tier III. That tier is locked in the team
 ## builder and the Stars rotate through it at HOLD UP.
 ##
 ## It used to be read as "whatever tier the FIRST Star row happens to be",

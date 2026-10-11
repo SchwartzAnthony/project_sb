@@ -16,7 +16,7 @@ extends RefCounted
 
 const META_KEY := "cw_team_selection"
 
-## The class / race you locked in, e.g. "Brandteufel".
+## The class / race you locked in, e.g. "Lorelei".
 var unit_type: String = ""
 
 ## Which Tier your Star Players occupy — that tier is locked in the builder.

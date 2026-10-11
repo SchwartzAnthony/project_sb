@@ -65,7 +65,7 @@ func _initialize() -> void:
 		# ============ A CLASS WITH NO EMBLEM FILE IS NOT BROKEN ============
 		#
 		# It is unwritten, which is the ordinary state of a game being made.
-		# BasicTeam and the Brandteufel both have Stars and one set each and
+		# BasicTeam has Stars and one set and
 		# no "<Class> Emblems.csv" at all — reporting four problems for that
 		# would be a tool crying wolf, and a tool that cries wolf gets
 		# ignored on the day it is right.
