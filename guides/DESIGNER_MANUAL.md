@@ -7954,6 +7954,14 @@ It is left out of both tutorials, where the row is already full.
   `goal_attempt_music` 1.0, `match_music_back` and `match_music_back_shot` 2.0.
   A bigger number gives a slower handover.
 
+### Kick sound on every pass (11 Oct)
+
+- Before, only shots (`shot_kick`) and restarts had a kick sound, so the
+  ball went round the pitch in silence. Now every pass is a `ball_passed`
+  moment and plays the Audio.csv row `pass_kick`. That covers open play, the
+  Play Maker relay and goal kicks, and Match `kind=pass`, `hoof` or `relay`
+  can split them into separate rows.
+
 ### The overnight sound check (10 Oct, night)
 
 `tools/sound_playback_check.gd` plays the game's moments through the real

@@ -206,6 +206,7 @@ foley sound effect, a big cloth flag snapping twice in a strong mountain wind, a
 |---|---|---|---|
 | Player takes the ball | `suno_ball_tap.mp3` | 0.08 s | `foley, the tiniest scuff of a boot on a leather football, very short, dry` |
 | Kick on the run | `suno_ball_kick.mp3` | 0.15 s | `foley, short dry kick of a leather football, dry, no music` |
+| A pass in the match | `suno_pass_kick.mp3` | 0.15 s | `foley, one clean side-foot pass of a leather football on grass, dry, no music` |
 | Ordinary hit | `suno_hit_soft.mp3` | 0.1 s | `foley, one knock on a wooden beer bench, short and plain, dry` |
 | Big hit | `suno_hit_heavy.mp3` | 0.25 s | `foley, a full glass beer stein slammed onto a wooden table, low thud, dry` |
 | Enemy finished off | `suno_enemy_down.mp3` | 0.6 s | `comic sound effect, three wooden knocks tumbling down the scale then a thud on floorboards, dry` |

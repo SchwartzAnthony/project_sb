@@ -89,6 +89,8 @@ func _initialize() -> void:
 		["goal_scored", {}, "goal_horn"], ["duel_priority_check", {}, "duel_priority_check"],
 		["duel_ability_check", {}, "duel_ability_check"], ["duel_power_check", {}, "duel_power_check"],
 		["window_opened", {"screen": "pause", "over": "match"}, "menu_open"],
+		["ball_passed", {"kind": "pass"}, "pass_kick"], ["ball_passed", {"kind": "relay"}, "pass_kick"],
+		["shot_taken", {}, "shot_kick"],
 		["dialogue_next", {"box": "story"}, "dialogue_click"], ["dialogue_next", {"box": "coach"}, "dialogue_click"],
 	]
 	for shot in shots:
