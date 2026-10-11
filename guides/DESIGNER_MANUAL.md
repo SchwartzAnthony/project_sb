@@ -7941,6 +7941,19 @@ It is left out of both tutorials, where the row is already full.
   A `suno_dialogue_click` file wins once it is there, and its prompt is in
   `guides/SUNO_PROMPTS.md`.
 
+### Smoother music switches in a match (11 Oct)
+
+- **The match music carries on where it stopped.** After the Play Maker or a
+  shot, it no longer starts from the top. Tuning `music_resume_seconds` (90)
+  sets how long a track remembers its place; 0 = always from the top. This
+  also works for the base music after a window.
+- **Fades are S-curves now.** One track swells in while the other sinks away,
+  with no hole and no bump. Tuning `music_smooth_fades` false brings back the
+  old straight fade.
+- **Longer fades on the match rows** (Audio.csv Fade): `play_maker_music` 1.5,
+  `goal_attempt_music` 1.0, `match_music_back` and `match_music_back_shot` 2.0.
+  A bigger number gives a slower handover.
+
 ### The overnight sound check (10 Oct, night)
 
 `tools/sound_playback_check.gd` plays the game's moments through the real

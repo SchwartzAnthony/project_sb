@@ -70,6 +70,17 @@ func _initialize() -> void:
 		_check(playing == step[2], "%-14s %-36s -> %s%s" % [step[0], str(step[1]), playing,
 			"" if playing == step[2] else "   (wanted %s)" % step[2]])
 
+	# The match music picks up where it stopped after the Play Maker
+	# (Tuning music_resume_seconds), instead of starting from the top.
+	director.play_event("screen_opened", {"screen": "match"}, null)
+	var match_player := director._loops["Music"]["player"] as AudioStreamPlayer
+	match_player.seek(12.0)
+	director.play_event("play_maker", {"cycle": "1", "round": "1"}, null)
+	director.play_event("play_resumed", {}, null)
+	var back_player := director._loops["Music"]["player"] as AudioStreamPlayer
+	var at := back_player.get_playback_position()
+	_check(at > 11.0, "match music comes back at %.1f s (left at 12.0 s)" % at)
+
 	print("")
 	print("[play] ==== ONE-SHOT SOUNDS, MOMENT BY MOMENT ====")
 	var shots := [
