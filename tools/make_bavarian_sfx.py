@@ -854,6 +854,12 @@ def c_menu_click():
     return woodblock(760, 0.09, 0.9)
 
 
+def c_dialogue_click():
+    "Clicking on to the next dialogue line: a beer mat flicked over - a short papery flick with a soft wooden tick under it."
+    flick = whoosh(0.07, 1200, 3200, 0.5)
+    return mix([(0, flick, 0.6), (0.012, woodblock(1100, 0.05, 0.5, hollow=0.5), 0.5)])
+
+
 def c_menu_start():
     "START: the tuba's 'oom-PAH!' and a cow bell - off we go."
     return mix([(0, tuba("F2", 0.18, 0.8), 0.7), (0.2, tuba("Bb2", 0.45, 1.0), 0.8),
@@ -1434,6 +1440,7 @@ PICKS = {
     "bav_power_fail": "band",
     "bav_pour": "band",
     "bav_card_hover": "classic",
+    "bav_dialogue_click": "classic",
     "bav_card_pick": "classic",
     "bav_full_time_win": "classic",
     "bav_full_time_loss": "classic",
@@ -1573,6 +1580,7 @@ def write_credits():
 # a click must stop quickly, whatever the instrument's own ring-out.
 MAX_SECONDS = {
     "bav_card_hover": 0.15, "bav_card_pick": 0.2, "bav_menu_hover": 0.2, "bav_menu_click": 0.15,
+    "bav_dialogue_click": 0.12,
     "bav_menu_back": 0.2, "bav_ball_tap": 0.1, "bav_ball_kick": 0.2, "bav_hit_soft": 0.15,
     "bav_hit_heavy": 0.35, "bav_player_hurt": 0.3, "bav_combo": 0.4, "bav_enemy_windup": 0.4,
     "bav_shot": 0.3, "bav_save": 0.3, "bav_enemy_down": 0.45, "bav_play_maker": 0.6, "bav_menu_start": 0.6,

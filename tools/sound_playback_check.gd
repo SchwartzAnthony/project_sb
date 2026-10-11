@@ -78,6 +78,7 @@ func _initialize() -> void:
 		["goal_scored", {}, "goal_horn"], ["duel_priority_check", {}, "duel_priority_check"],
 		["duel_ability_check", {}, "duel_ability_check"], ["duel_power_check", {}, "duel_power_check"],
 		["window_opened", {"screen": "pause", "over": "match"}, "menu_open"],
+		["dialogue_next", {"box": "story"}, "dialogue_click"], ["dialogue_next", {"box": "coach"}, "dialogue_click"],
 	]
 	for shot in shots:
 		var ids: Array[String] = []

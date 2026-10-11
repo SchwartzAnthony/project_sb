@@ -225,6 +225,7 @@ Lyrics box for all of these: `[Instrumental] [End]`.
 |---|---|---|---|
 | Point at a button | `suno_menu_hover.mp3` | 0.1 s | `UI sound, the lightest touch on a zither string, very soft, dry` |
 | Press a button | `suno_menu_click.mp3` | 0.15 s | `UI sound, one knock on a wooden plank, dry` |
+| Click on through dialogue | `suno_dialogue_click.mp3` | 0.07 s | `UI sound, a cardboard beer mat flicked over on a wooden table, tiny and soft, dry` |
 | START | `suno_menu_start.mp3` | 0.6 s | `Bavarian brass sting, tuba "oom-PAH!" with a trumpet on top, let's go, dry studio` |
 | Back / Quit | `suno_menu_back.mp3` | 0.3 s | `UI sound, two wooden knocks falling in pitch, dry` |
 | Paying | `suno_coin_register.mp3` | 0.6 s | `foley, coins dropped into a stoneware beer mug and a little shop bell, dry` |

@@ -342,12 +342,20 @@ func _unhandled_input(event: InputEvent) -> void:
 ## otherwise move on. A line with choices waits for a button instead.
 func _advance() -> void:
 	if _typing:
+		_click_sound()
 		_finish_typing()
 		return
 	if _line != null and _line.has_choices() \
 			and not _line.available_choices(state).is_empty():
 		return
+	_click_sound()
 	_go_next()
+
+
+## ROUND AN (Anthony, 11 Oct): a little sound on every click through the
+## talk - the dialogue_click row of Audio.csv.
+func _click_sound() -> void:
+	AudioDirector.fire(get_tree(), "dialogue_next", {"box": "story"})
 
 
 func _on_choice(choice: DialogueChoice) -> void:

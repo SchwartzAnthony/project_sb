@@ -7930,6 +7930,17 @@ It is left out of both tutorials, where the row is already full.
 - **Credits:** every new file has a line in `data/SoundCredits.csv`, and
   `tools/make_bavarian_sfx.py` now keeps those lines when it rewrites the file.
 
+### Dialogue click (11 Oct)
+
+- Every click that moves a conversation on plays the `dialogue_click` row of
+  Audio.csv (When `dialogue_next`). It covers both story scenes (`box=story`)
+  and the Head Coach's pop-ups in a match (`box=coach`); put one of those in
+  Match to limit it.
+- The sound is a beer mat flicked over, 0.07 s long, at -16 so fast clicking
+  never tires (`bav_dialogue_click.ogg`, made by `tools/make_bavarian_sfx.py`).
+  A `suno_dialogue_click` file wins once it is there, and its prompt is in
+  `guides/SUNO_PROMPTS.md`.
+
 ### The overnight sound check (10 Oct, night)
 
 `tools/sound_playback_check.gd` plays the game's moments through the real
