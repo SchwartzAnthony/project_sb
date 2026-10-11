@@ -1,0 +1,12 @@
+Part,Image,X,Y,Width,Height,Scale,Flip
+background,res://assets/dorms/dorms_bg.png,,,,,,
+picture,res://assets/dorms/bed_sleeper.png,573,709,164,169,,
+picture,res://assets/dorms/bed_sleeper.png,796,702,164,169,,
+picture,res://assets/dorms/bed.png,1018,709,164,155,,
+picture,res://assets/dorms/bed_sleeper.png,1241,704,164,169,,
+picture,res://assets/dorms/bed_sleeper.png,1453,713,164,169,,
+picture,res://assets/dorms/bed.png,515,982,174,164,,
+picture,res://assets/dorms/bed_sleeper.png,747,964,174,179,,
+picture,res://assets/dorms/bed_sleeper.png,970,980,174,179,,
+picture,res://assets/dorms/bed.png,1202,976,174,164,,
+picture,res://assets/dorms/bed_sleeper.png,1424,980,174,179,,

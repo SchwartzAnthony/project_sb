@@ -26,6 +26,8 @@ extends RefCounted
 #                     in this order: east, south-east, south, south-west,
 #                     west, north-west, north, north-east.
 #        Frames, FPS, Loop
+#        Stand-in     (optional) what to play instead while a sheet has no
+#                     rows for this animation yet, e.g. drink -> cheer.
 #
 #  A card with no row in PitchSprites.csv plays on the old sheet, as before.
 #
@@ -73,6 +75,7 @@ static func _load() -> void:
 			"frames": maxi(1, MenuSupport.field_int(row, "Frames", 1)),
 			"fps": maxf(0.1, MenuSupport.field_float(row, "FPS", 10.0)),
 			"loop": MenuSupport.field(row, "Loop", "true").strip_edges().to_lower() == "true",
+			"stand_in": MenuSupport.field(row, "Stand-in").strip_edges().to_lower(),
 		}
 
 

@@ -94,7 +94,7 @@ func _initialize() -> void:
 	var marsh := AdventureDB.get_db().biome("marshlands")
 	_check(not errand.is_empty() and not marsh.is_empty(), "the Brewer's Errand is on the board")
 	board.call("_choose_biome", marsh)
-	board.call("_choose_bounty", errand)
+	board.set("_chosen_bounty", errand)
 	board.call("_on_start")
 	_check(String(MatchMode.current(self).get("id", "")) == "tutorial_adventure",
 		"the run is the tutorial's Adventure (%s)" % String(MatchMode.current(self).get("id", "")))

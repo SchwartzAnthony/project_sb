@@ -82,6 +82,9 @@ var _banner: Label
 ## awaited with (moment, tier). Unset = the duel never stops.
 var coach: Callable = Callable()
 var _coach_tier := ""
+## ROUND AN: awaited with a card's keeper drains when its ability goes off -
+## main_scene opens the keeper's window, then the duel carries on.
+var keeper_hit: Callable = Callable()
 
 var _dim: ColorRect
 var _tier_label: Label
@@ -371,6 +374,9 @@ func _fire_ability(key: String, data: Dictionary, moment: String = "") -> void:
 	var went_off := bool(data.get("fired", true))
 	_sound("duel_ability_success" if went_off else "duel_ability_fail", data)
 	await _beat(hl_ability_result_seconds)
+	var hits: Array = data.get("keeper_hits", [])
+	if went_off and not hits.is_empty() and keeper_hit.is_valid():
+		await keeper_hit.call(hits)
 	_box(key, false)
 
 

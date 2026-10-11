@@ -452,8 +452,8 @@ In the **Club House**, above the resting list. Your Q123.
 - **Sign** = pay, and he joins under his own name. **Release** (under *Your
   recruits*) = he leaves, his bed and name are free.
 - **Beds:** you may hold `beds − recruit_beds_kept` recruits (`9` kept for
-  your team's regulars; the Old Hut's 12 beds = 3 recruits). The Dorms sell
-  beds.
+  your team's regulars; a new game's 10 beds = 1 recruit, Q264). The Dorms
+  sell single beds and extra rooms.
 - `recruit_board_reroll_cost` (10 coins) puts new men up now; `0` = no
   button. `recruit_board` false hides the board.
 - As shipped: two Tier I places (30 coins), one Tier II place (60 coins)
@@ -682,6 +682,68 @@ player-seconds a minute to about **65**.
 | `fresh_spot_ball_weight` | how much a fresh spot prefers being near the ball. `1.2` |
 | `open_spread` / `open_break` / `open_width` | now `90` / `70` / `50` (were 230 / 120 / 150) |
 
+**Moving for an opening, and cutting the lane (9 Oct).** Anthony: *"1 or 2
+people on the person that has the ball, but the rest are waiting for a pass
+... not standing there, but trying to move for an opening ... and trying to
+defend ... a back and forth that looks natural."*
+
+- The ring above used to say "never further than you already are", which
+  ratcheted the whole pitch in on the ball. Now the cap is the further of
+  *where he is* and *his own place in the shape* (the drift point, which
+  slides with the ball). He never goes past his place; he can go back to it.
+- **Showing for the pass:** every `open_rethink_seconds` (a little different
+  for each player) he looks at spots up to `open_search_radius` round his
+  place and goes to the most open one: away from defenders, a clear lane for
+  the ball, not on a team-mate, not too near the ball.
+- **Marking:** the marker leans `mark_lane_cut` off his man toward the ball,
+  into the lane, which sends the attacker off to find another opening.
+- **Seeing the ball:** an arrow in his side's colour floats over the man on
+  the ball (`ball_carrier_marker_height` / `_size`), his ring pulses, the
+  name plates of players not involved fade (`bystander_plate_alpha`), and
+  during play only players going for the ball get a line
+  (`intent_lines_chasers_only`). Z still shows everything.
+
+| Tuning row | |
+|---|---|
+| `open_search_radius` | how far round his place he looks for an opening. `220` px (doubled 9 Oct) |
+| `open_rethink_seconds` | how long he goes for one before looking again. `0.7` (twice as often, 9 Oct) |
+| `mark_lane_cut` | how far a marker leans into the passing lane. `100` px (doubled 9 Oct) |
+| `open_support_min` / `mark_keep_off` | now `270` / `200` px from the ball (the 9 Oct step, doubled) |
+| `bystander_plate_alpha` | name plates of players not involved, in open play. `0.18` (twice as faded, 9 Oct). `1` = off |
+| `intent_lines_chasers_only` | `true` = lines only for players going for the ball |
+| `ball_carrier_marker_height` / `ball_carrier_marker_size` | the arrow over the carrier. `74` / `20` |
+
+**The back rows: half the range, shadowing, breathers (9 Oct).** Anthony:
+*"Tier IV / Tier I ... still grouping too much and ... running into an
+invisible wall ... If they are outside of the ball range (maybe make it
+smaller by half) have them chase the person they should be watching."*
+
+- **The ball's range is half what it was** (`press_radius_fraction` 0.55 →
+  0.275). Inside it, pressing and sprinting as before.
+- **Outside it a marker shadows his man**: `mark_shadow_commitment` of the
+  way to goal-side of him, and not held to his quarter. Holding him to the
+  quarter is what had him leaning on an invisible line while his man walked
+  off.
+- **Breathers**: off the ball a player runs for `unit_run_burst_min`–`_max`
+  seconds, then stands watching the ball for `unit_rest_min`–`_max`.
+- **No running into walls**: if he makes under `unit_stuck_progress` px in
+  `unit_stuck_window` seconds while his target is still away, he stops and
+  takes a breather instead.
+- **Committing to a run**: a player getting open looks again only when he
+  has got there (or after twice `open_rethink_seconds`), and only switches
+  for a spot that beats his by `open_switch_margin`.
+
+| Tuning row | |
+|---|---|
+| `press_radius_fraction` | the ball's range, share of pitch height. `0.275` (halved) |
+| `mark_shadow_commitment` | how close a marker outside the range stays on his man. `0.6` (was `0.85`, see below) |
+| `unit_run_burst_min` / `_max` | seconds of running before a breather. `2.5` / `4.5` |
+| `unit_rest_min` / `_max` | seconds a breather lasts. `1` / `2`. `_max` 0 = off |
+| `unit_stuck_window` / `unit_stuck_progress` | the wall check. `0.8` s / `18` px |
+| `unit_rest_skip_distance` | no breather while his target is further than this. `220` px |
+| `open_switch_margin` | how much better a new opening must be. `60` |
+| `open_zone_margin` | back to `0.25` of a quarter |
+
 **See it in the game:** press **Z** in a match. On top of the zone map you get
 the gold **ball range** circle, a gold cross where the ball will land, every
 player's **job word** (gold = the ball is in his range, `sprint` = going
@@ -692,6 +754,32 @@ the man he marks.
 > off the ball had it behind them **55-96%** of the time, and the Tier I and
 > Tier IV back rows sprinted with the ball out of range **55-71%** of the time.
 > After: **0-1%** and **0%**.
+
+#### Spread out (Anthony, 11 Oct: "everyone is crowding in one spot")
+
+Three changes pull the team apart:
+
+1. **Wider shape.** Every slot is pushed away from the centre spot before
+   kick-off: `shape_spread_x` along the pitch, `shape_spread_y` across it,
+   but never closer to the edge than `shape_edge_margin`.
+2. **Space from team-mates.** A player looking for an opening now also scores
+   a spot by how far it is from his nearest team-mate
+   (`open_mate_space_weight`), so two of them stop picking the same gap.
+3. **Markers stay nearer home.** `mark_shadow_commitment` went from `0.85` to
+   `0.6`: a marker outside the ball range still follows his man, but keeps
+   more of his own place.
+
+| Tuning row | |
+|---|---|
+| `shape_spread_x` | push slots out along the pitch. `1.2` (1 = as drawn) |
+| `shape_spread_y` | push slots out toward the touchlines. `1.25` |
+| `shape_edge_margin` | how close to the edge a slot may go, share of the pitch. `0.05` |
+| `open_mate_space_weight` | how much an opening likes room from team-mates. `0.8`, 0 = off |
+| `open_support_max` | now `5000` (off): the old cap kept openings too close to the ball |
+
+> Probe, 45 s: the middle 80% of players covered about **50%** of the pitch's
+> length and **43%** of its width before; after, **67%** and **60%**. Players
+> within 240 px of the ball dropped from about 5 to 3.5.
 
 ### The shape — why they were standing in pairs
 
@@ -3263,11 +3351,14 @@ false spends him like any other card.
 | end of cycle 1 | **TIME OUT**: Koch's inspiration is too low, he drinks, Beer Courage switches on | tut-timeout-call, tut-timeout-inspiration | |
 | 4 | Tier I: **the Kleiner Faß**. Only the P:0's bag works and it shows only the keg; he drinks it in the drinking window; his card comes up big with Fass Courage (+1 Power in combat for each other Tier I player of yours not in the exhaust, attack and defend); only he can be picked | tut-fass, tut-fass-after | the cards, then his bag button, then the keg, then his abilities |
 | 4 | Tier IV: Koch's card with Beer Courage | tut-koch-ability | Koch's card |
+| 5 | before the PLAY MAKER call: **the referee** (Anthony, 10 Oct). The match stops and the Head Coach walks through the referee's bar: triggers fill it, missed fouls fill it a lot, full means the next foul is called, two yellows or a red sends a man off, theirs fills the same way | tut-referee | the referee's bar, then your side of it, then theirs |
 | 5 | Tier I: **the missing beer**. "Where is the rest of the beer?!" TIME OUT at the Brewery; back on the pitch the P:1 drinks a Small Bottle (bottle window) and gets the plain beer's goalie pair: 1 off their keeper when he attacks, 1 off yours when he defends | tut-missing-beer, tut-after-brewery, tut-bottle-after | his bag button, then the bottle |
 | end of cycle 2 | **TIME OUT**: the cursed brews; an Earth Brew turns Koch into a Bergmännlein with Earth Courage | tut-timeout2-call, tut-timeout-cursed | |
 | 6 | Tier I: **the combo beers**. Koch hid three small beers; each has one good side and one bad side. The player reads the ATTACKING / DEFENDING banner and gives any of the three to the Tier I card | tut-combo, tut-combo-after | his bag button, then the three beers |
 | 6 | Tier II: a second beer, so a Pass It On from Tier I lands on it. The third stays in the bag | tut-combo-2, tut-combo-2-after | his bag button, then the beers |
 | 7 | Tier IV: Bergmännlein Koch's new ability | tut-koch-earth | Koch's card |
+| 7+ | Koch's Earth Courage goes off in a duel: **the keeper's window** opens from the duel window (Anthony, 10 Oct). Three steps of `Tuning.csv keeper_drain_step_seconds` (2.5): the numbers as they are, the stamina falling by 5 (attack) or 3 (defend), then the % moving to match. Then back to the duel. `keeper_drain_window`: tutorial / always / off. The % is shown at the shot power his side has piled up so far plus his own | | |
+| 8 | before the PLAY MAKER call: **just so you know** (Anthony asked Claude to pick something vital nobody had said). The keeper's stamina never comes back on its own: every saved shot and every drain stays off for the match, and only a goal he lets in fills him up again | tut-keeper-tip | |
 
 The rest of cycle 3 plays out to the final whistle.
 
@@ -3275,6 +3366,19 @@ The rest of cycle 3 plays out to the final whistle.
 on the table, and the Head Coach has finished talking, for `Tuning.csv
 tutorial_pick_guard_seconds` (0.8). A fast clicker's clicks simply do nothing
 until then.
+
+**Grey bags in a lesson** (Anthony, 10 Oct). In a Play Maker with a drinking
+lesson (a row whose Do has `drink_lesson`), every bag button is grey and does
+nothing, except the card being taught while he teaches it. After he drinks,
+his shuts too. Other Play Makers are left alone. `Tuning.csv
+tutorial_bags_shut_in_lessons` false turns it off.
+
+**When: `play_maker`** fires as each Play Maker starts, after the throw-in
+and before the PLAY MAKER call, and the match waits for him there. Use it
+for a stop that is not about any card.
+
+**More Highlight words**: `referee` (the referee's bar), `referee:you`,
+`referee:them` (one side of it).
 
 **One group of gold per line.** In the Highlight column, `|` separates the
 lines: `-|card:first|cards` points at nothing on line 1, the first card on
@@ -3301,6 +3405,12 @@ moment, with the same score, clock and exhaust. Then the row's **Do** runs:
 | `give:anstoss_helles+doppelpass_weisse+abstauber_dunkel` | puts one of each into the bag (`item=3` for more). A drink_lesson can then name several items with `+`: the bag shows those, gold on each, and any one will do |
 | `say:tut-after-brewery@-\|-\|flask:first` | plays that Dialogue.csv scene, gold per line after `@` (the Highlight words) |
 | `brewery:tut_brewery` | a TIME OUT at the Brewery (round AN): the match freezes, that flag is set and the Brewery opens over it; `Guide.csv` rows that need the flag lead the way, and one whose Then is `goto:back` ends it. See "The tutorial Brewery" |
+
+**Time passes: a fade to black** (Anthony, 9 Oct). A Dialogue.csv line
+whose **Background** is `black` fades the screen to black (the words still
+show) and it stays black; the next line with any other Background (`bar`)
+fades back in on that picture. `Tuning.csv story_fade_seconds` (0.8). The
+prologue's "Cheering!" and "After a few more rounds..." use it.
 
 **A drink in a match lasts one cycle** (Anthony, 8 Oct). A brew or beer used
 on a card during the draft wears off at the next STAR PLAYER SWITCH
@@ -3536,6 +3646,109 @@ pick a bounty  ->  the party runs right, collecting things off the ground
 Returning to base banks the haul. Fleeing keeps `adventure_flee_keep` of it.
 Everybody being knocked out loses all of it — which is what makes Return to
 Base a real decision.
+
+### The board and the look (adventure-look, 10 Oct)
+
+**The soccer & training board.** The Bounty Board is now a board in a beer
+cave. Biomes are tabs across the top; that biome's jobs hang on the board as
+scrolls. Click a scroll and it unrolls: the quest, what you need, what it
+pays, **Back** (roll it up, read another) and **Accept Contract** (sets off,
+same as START EXPLORING did). A locked scroll still opens and says what it
+needs; Accept is greyed.
+
+| To change | Where |
+|---|---|
+| Scroll label (Match, Training ...) | `Bounties.csv` **Kind** |
+| What the scroll says | `Bounties.csv` **Quest Text** (blank = Description) |
+| Where it hangs | `Bounties.csv` **Pin X**, **Pin Y** (0-1, blank = rows) |
+| Cave, board, pinned scroll, open scroll art | `Tuning.csv` `adventure_board_background`, `adventure_board_art`, `adventure_board_pin_art`, `adventure_scroll_art` (blank = plain colours) |
+| Board and scroll size, unroll speed | `adventure_board_width/height/inset`, `adventure_scroll_width/height`, `adventure_scroll_unroll_seconds` |
+| Words | `Language.csv` `adventure_board_title`, `accept_contract`, `scroll_requirements`, `scroll_rewards` |
+
+**Isometric players.** The squad on the run is the squad you picked, drawn
+with the same isometric sheet each player wears in a match
+(`PitchSprites.csv`), with run, idle and fall. Name, tier, power and the
+stamina bar sit on the same plate as before. `adventure_iso_players` = false
+goes back to the old card sheet; `adventure_iso_player_scale` sizes them.
+
+**The art (PixelLab, 10 Oct).** Every picture is built from separate parts
+by a layer CSV, so you can move a part in a spreadsheet and rebuild it:
+
+```
+~/.venvs/sturmball/bin/python tools/compose_layers.py art_source/adventure_look/marsh_iso.csv
+```
+
+| Picture | Layer CSV | Game file | Aseprite |
+|---|---|---|---|
+| Beer cave | `art_source/adventure_look/beer_cave.csv` | `assets/adventure/board/beer_cave.png` | `art_source/aseprite/adventure/beer_cave.aseprite` |
+| Board (frame + cork) | `.../board.csv` | `assets/adventure/board/board.png` | `.../board.aseprite` |
+| Isometric Marsh | `.../marsh_iso.csv` | `assets/backgrounds/marsh_iso.png` | `.../marsh_iso.aseprite` |
+
+Single pictures: the pinned scroll `assets/adventure/board/pin.png`, the open
+scroll `scroll.png` (it unrolls in three pieces: `adventure_scroll_art_top`,
+`_bottom`, `_side`, `_foot`, `_zoom`), the Marsh enemies in
+`assets/adventure/enemies/` (AdventureEnemies.csv **Art**) and the ground
+drops in `assets/adventure/drops/` (Items.csv **Ground Art**). Every other
+candidate PixelLab gave is kept in `art_source/adventure_look/parts/` if you
+would rather have a different one.
+
+**The Marsh behind the run.** Biomes.csv: Background
+`res://assets/backgrounds/marsh_iso.png`, Parallax 0 (it stays still, so the
+picture never shows a seam; the grass stripes still move), and the new
+**Ground Alpha** 0.35 so the isometric field shows through the grass band.
+`adventure_backdrop_fit` blows a small picture up to fill the screen. Enemies
+and drops: `adventure_enemy_art_scale`, `adventure_drop_art_scale`.
+
+### The isometric field (adventure-look, 10 Oct: "full iso field")
+
+The run is played on an isometric board, like a 1980s Bavarian role-playing
+game: a dirt path through a meadow, marsh and bog water either side, reeds,
+willows, a sunken goal and will-o'-wisps going past. The party runs up and
+to the right; enemies come down the field and stand on it; drops lie on it.
+**The rules did not change** - the same run is only seen tilted
+(`src/adventure/iso_field.gd`).
+
+| To change | Where |
+|---|---|
+| The ground tiles, per biome and zone | `AdventureTiles.csv` (Zone: path, lane, edge, outside; Weight) |
+| The scenery going past | `AdventureDecor.csv` (Side, Out Min/Max, Gap, Scale) |
+| Off / on | `adventure_iso_field` |
+| Camera: where the party runs, how close the two sides look | `adventure_iso_party_x/y`, `adventure_iso_scale` |
+| Tile size and fit | `adventure_iso_tile_zoom`, `adventure_iso_tile_lift` |
+| Where things appear / walk in / are let go | `adventure_iso_spawn_x`, `adventure_iso_wave_x`, `adventure_iso_forget_x` |
+
+All four biomes have their own ground and scenery (11 Oct): the Marsh
+(path, meadow, mossy banks, bog water), the Cinder Wastes (ash, cinder path,
+cracked earth, black rock with lava cracks; dead trees, braziers, a burnt
+brewery chimney, a slag cart), the Hollowdeep (cave stone, mine path with
+rails, flagstones, black water; mine beams, glowing mushrooms, stalagmites,
+a mine cart) and the Frostreach (snow, trodden path, frosty grass, lake ice;
+firs, a snowman in a scarf, grumpy icy rocks, a beer sled). The tiles are
+FLAT (no block sides, no outline), so the ground shows no grid; one main
+tile per zone (the biggest Weight) keeps it calm. A new biome needs its own
+rows in the two CSVs (or `*` rows for all). Tiles: `assets/adventure/tiles/`,
+scenery: `assets/adventure/decor/`; every PixelLab candidate is kept in
+`art_source/adventure_look/parts/` (`flat_*` tiles).
+
+To look at one biome's field: `godot --path . --script res://tools/adventure_look_check.gd -- --biome=frostreach`
+(saves `art_source/drafts/adventure_look/screens/field_frostreach.png`).
+
+**Room to stand (11 Oct, Anthony).** Plates stay with their player. Every
+player gets room of their own ON SCREEN: while running a small room (names
+may cross, players never stand on each other: `adventure_run_width`,
+`_below`, `_gap`), and from the moment a wave is met a full room for figure
+and name plate, so nothing overlaps before or during the fight
+(`adventure_stand_width`, `_above`, `_below`, `_gap`, `_screen_top`,
+`_screen_bottom`). Nobody wanders while they stand; while running the
+wander is `adventure_drift_scale`. Plates draw above the figures. Players start
+a run on their own spot and walk briskly to their fight spot
+(`adventure_form_up_pace`). On the isometric field the path band is
+`adventure_iso_lane_height` deep (900) to give them that room. The Marsh
+King now carries a round football.
+
+**The ball (11 Oct).** A PixelLab football (`adventure_ball_art`), drawn
+`adventure_ball_art_size` pixels across (44), with a
+shadow; it rolls as it moves and draws above the name plates.
 
 ### How a fight goes
 
@@ -4506,7 +4719,7 @@ and the building you just used is still under your cursor.
 | **Achievements** | the root. Everything is unlocked here first. **The only door with no `Requires`** — a game whose unlock board is itself locked has nothing to aim at |
 | **Team Build** *(was the Talent Tree, round Y)* | three tabs: **Star Hall** (place your three Stars), **Your Teams** (create and edit sides) and **Talents** (the old talent tree, still behind `unlocked:Talent Tree`). **The Pub and every match wait on it** — see section 11e |
 | **Club House** | exhaustion and recovery. A player's `P:x` is how many fixtures they need |
-| **Dorms** | beds — how many players you may keep at all |
+| **Dorms** | rooms of beds — how many players you may keep at all, and where they rest |
 | **Trophy Room** | what you have won |
 | **Training Ground** | Ausbildung, or one of the five games that automate a Brewery section |
 | **Pub** | ten seats, ten drinks. Whoever is not in the room plays as a basic unit |
@@ -4578,6 +4791,30 @@ a full-screen one drifting apart.
 behind it eats clicks — without that you can press a building *through* the
 window and open a second one on top.
 
+### The beer hall frame round every building window (round AN)
+
+Anthony, 10 Oct: look C, **the beer hall**, on every building window. A
+carved wooden frame with hop vines and a Maß in each corner; the building's
+name on a **wooden sign** hanging over the top edge; a **beer mat** on the
+top-right corner that closes the window (Escape still does too). The title
+bar inside the window is gone, so every screen gets that height back.
+
+It is three `Theme.csv` rows and three `Tuning.csv` numbers:
+
+| row | |
+|---|---|
+| `building_window` | the frame. `Slice` 76 keeps the corner mugs whole; `Repeat` tile repeats the carved edges instead of stretching them; `Fill` is the dark inside; `Pad X` / `Pad Y` keep the screen inside the carving |
+| `building_title` | the sign. It stretches sideways to fit the name; `Font`, `Size` and `Text Colour` are the name's |
+| `building_close` | the beer mat |
+| `building_window_inset` (Tuning) | how far in the dark inside starts, so it stays under the carving |
+| `building_title_rise` (Tuning) | how much of the sign stands above the frame (0.55) |
+| `building_close_size` (Tuning) | how big the beer mat is |
+
+**Delete the `building_window` row and every building window goes back to
+the plain box.** The pictures are PixelLab (`assets/ui/building_*.png`),
+layered in `art_source/aseprite/building_window.aseprite`; the other two
+looks Anthony did not pick are in `art_source/pixellab/window_frame_draft/`.
+
 ### Visitors go in the gaps
 
 > *"The dialogue option for people to come by will still be possible, but
@@ -4598,16 +4835,73 @@ a visitor who is not there, and the Output panel says who is waiting outside.
 > there was no room. **A visitors file is now recognised by its `Portrait` or
 > `Once` column** — things only a person has.
 
-### `data/Dorms.csv`
+### `data/Dorms.csv` — the rooms (round AN, 10 Oct)
+
+One row per **room**, in the order they are bought. Each room is a tab
+(1, 2, 3 ...) on the Dorms screen with ten places for beds.
 
 | column | |
 |---|---|
-| `Beds` | **the TOTAL**, not what this row adds. Buying the Long House replaces the Lean-To rather than stacking on it, so reading down the column tells you the whole story of your squad size |
-| `Price` · `Currency` | from `Currencies.csv` |
+| `Price` · `Currency` | from `Currencies.csv`. `0` = yours from the first minute |
 | `Requires` | the ordinary condition language |
+| `Beds Included` | beds that come with the room. Every other place in it is a single bed, bought on the screen |
 
-**The first row has to be free.** A new game cannot buy its first bed, and
-the checker says so if the cheapest dorm costs anything.
+**The first row has to be free.** As shipped, Room 1 (10 beds) is the only
+free room (Anthony, 10 Oct, Q264): a new game keeps 10 players, which is 1
+recruit (`recruit_beds_kept` 9). Room 2 costs 100 coins. The numbers around
+it are in `Tuning.csv`:
+
+| row | |
+|---|---|
+| `dorm_beds_per_room` | beds one room holds (10) |
+| `dorm_max_rooms` | the most rooms (10); rows past it are ignored |
+| `dorm_bed_price` · `dorm_bed_currency` | one single bed (25 coins) |
+| `dorm_beer_rest_speedup` | fixtures a beer takes off a sleeper's rest (1). **Not on a button yet** |
+| `dorm_background` | the room picture every tab shows (the clubhouse cellar, Q263) |
+| `dorm_bed_art` · `dorm_bed_sleeper_art` | the empty bed and the bed with a sleeper (one sleeper picture for everybody, Q267) |
+
+### `data/DormsLayout.csv` — every piece of the Dorms screen
+
+One row per piece: its `Image`, where it goes (`X`, `Y`) and how big
+(`Scale` = screen pixels per picture pixel).
+
+| Part | what | X and Y are shares of |
+|---|---|---|
+| `pennant` | the room tabs (`Step` = the gap between pennants) | the screen |
+| `pennant_drop` | how much lower the room you are in hangs (`Y`) | the screen |
+| `number` | where the number sits in a pennant's circle | the pennant |
+| `status` | the one line on the wall | the screen |
+| `board` | the notice board shop | the screen |
+| `buy_bed` · `buy_room` | the camp bed and the key (their middle) | the board |
+| `bed_card` · `room_card` · `rest_card` | the price cards (middle, top) | the board |
+| `card` · `tag` · `mug_full` · `mug_empty` | the card, the luggage tag, the rest mugs | — |
+| `message` | where "bought" / "not enough money" shows for a few seconds | the screen |
+
+Keep the board on the wall, above the beds. The pieces are PixelLab
+(`art_source/pixellab/dorms_ui_draft/`, the picked ones in `full/`); the
+board's frame and its felt are two layers in
+`art_source/aseprite/dorms_notice_board.aseprite`.
+
+### `data/DormBeds.csv` — where each bed stands
+
+One row per bed place in a room, in the order beds are bought. The beds
+stand **on the floor of the room picture**, a little scattered, never on top
+of each other (Anthony, 10 Oct).
+
+| column | |
+|---|---|
+| `X` · `Y` | where the **foot** of the bed stands, as a share of the whole room picture: 0 = left / top, 1 = right / bottom |
+| `Size` | how wide the bed is, as a share of the picture's width. The back row is smaller, for depth |
+
+Moving a bed: remember it also has **Z Z Z** above it and its **rest bar**
+on the floor in front, so leave room for both. The spots are shares of the
+WHOLE picture, and the room fills the screen with the ceiling cut when the
+screen is wider - the floor is never cut. Open
+`art_source/aseprite/dorms_cellar.aseprite` to see the room with all ten beds
+in place.
+
+An old save that bought the Lean-To, the Long House or the Stone Wing gets
+the same number of beds in rooms, once, for free.
 
 ### `data/Trophies.csv`
 
@@ -4629,9 +4923,35 @@ pressing the button and the work being done.
 
 ### The Dorms are where everybody rests (round AN)
 
-Every tired player sleeps in the Dorms, whatever tired them out. The Dorms
-window lists **who is in bed, why, and how many fixtures to go**, then the
-beds you can buy. `data/Resting.csv` says what sends a player there:
+Every tired player sleeps in the Dorms, whatever tired them out.
+
+**The Dorms screen (Anthony, 10 Oct) — look A, the club noticeboard.** No
+boxes: the cellar fills the screen and everything is a thing in the room.
+
+- **The room tabs** are blue-and-white **pennants** on a string, one per
+  room; the room you are in hangs lower. Click one and the room slides
+  across. Each room is the cellar with its ten places standing on the floor
+  (`DormBeds.csv`).
+- **The shop** is the club's **notice board** on the wall: click the folded
+  camp bed for a single bed or the door key for the next room (a new
+  pennant). Each has a price card pinned under it, and the cards buy too.
+  Hover the key for **every room's price**. A **Rest day** card hangs under
+  the board while somebody is asleep.
+- **One line on the wall** says the room, how many are asleep and the beds.
+  The explaining is the **Head Coach's** box, the first time you come in
+  (`Guide.csv` `dorms_explain`, lines in `data/DormsDialogue.csv`). A **sleeper** has **Z Z Z** over
+  his head and a **rest bar** under his bed: one segment per fixture of his
+  rest (his power — power 1 is one game, power 5 five) — **a row of Maß
+  mugs** on the floor in front of his bed, one filling every fixture. He plays nothing — Adventure, Brewery or Match — until it is
+  full. **Hover** him: a brown **luggage tag** with his name and power. Click him
+  for why he is there.
+  A made bed is free. A **+ bed** patch of floor is empty: click it to buy a bed.
+
+Players keep the same bed every visit (by name). More asleep than beds? The
+rest sleep **on the floor** — they still rest — and the screen names them
+(Anthony, 10 Oct, Q266: leave it that way).
+
+`data/Resting.csv` says what sends a player there:
 
 | ID | when | out of the box |
 |---|---|---|
@@ -4665,6 +4985,14 @@ row: a **Wake** button for everybody in the Dorms, **Wake everybody**, and
 
 `tools/dorms_shot.gd` takes a picture of the Dorms, the Club House, the
 Training Ground, the Brewery and the Dev screen with a few players in bed.
+`tools/dorms_screen_shot.gd` takes the new Dorms screen: room 1, a hover,
+the slide to room 2, and room 3.
+
+**The art (Anthony, 10 Oct, Q263):** the clubhouse cellar, made again at
+full size (688 x 384) with its floor cleared for the beds
+(`art_source/pixellab/dorms_draft/bg_b_cellar_full.png`), bed a and sleeper c.
+The other drafts stay in that folder. The room with its beds is layered in
+`art_source/aseprite/dorms_cellar.aseprite`.
 
 ### The brewers (round AN)
 
@@ -4758,6 +5086,50 @@ building or machine says "the dorms key (buy it at the Club House)" or
 "Needs its key". The **Keys tab is back in the bag** (`inventory_tabs`).
 The test environment hands you every key.
 
+### The Club House and the Training Ground are pictures (round AN, 10 Oct)
+
+Like the Dorms, both are one PixelLab scene inside the beer hall window, and
+what you buy are **things in it**. Hover a thing: it lights up and a
+**luggage tag** says what it is and what it costs. Things on sale have a
+**price card** pinned under them (the card buys too); things you may not buy
+yet are grey with a **padlock**; things you own are in full colour. The
+**Head Coach** explains each room the first time (`Guide.csv`
+`clubhouse_explain` / `training_explain`, lines in `data/RoomsDialogue.csv`).
+
+**The Club House is the Vereinsheim bar** (Anthony's pick, look A):
+
+| thing | is |
+|---|---|
+| the keys on the **rack behind the bar** | the keys (`Upgrades.csv` Kind = key). A key you own is off its hook |
+| the **plaques** on the wall | the upgrades, each with its own painting |
+| the **wanted posters** on the cork board | the recruitment board: name, tier and power on each, a Sign card under it |
+| the **bell** | new faces on the board now (`recruit_board_reroll_cost`) |
+| the **Stammtisch sign** on the bar | your recruits - a paper list to release one |
+
+**The Training Ground is the old Turnhalle** (look B):
+
+| thing | is |
+|---|---|
+| the **handball goal**, the **vaulting horse**, the **climbing ropes** | Ausbildung (Keeper's, Long Legs, Cold Nerve) |
+| the **malt heap**, **grain mill**, **lauter tub**, **brew kettle**, **cellar barrels** | the five mini-games, one per Brewery section (a vat each) |
+| the **shirt**, **rucksack** and **brewer's apron** on the wall hooks | the roles: click one for a list of who could be trained for it |
+| the **blackboard** | the team sheet: every player, his role, and retraining (Quereinsteiger) |
+
+**Every place and picture is a CSV**: `data/ClubhouseLayout.csv` and
+`data/TrainingLayout.csv`, one row per thing - `Image`, `X` / `Y` (the
+thing's middle, as a share of the room picture) and `Scale` (1 = the room's
+own pixel size). The Club House has a row per key hook (`key_1` ...), per
+upgrade (`upgrade:<ID>`, with its own painting; a new upgrade without a row
+takes the next `upgrade_N` place as a pinned note with its name), per poster
+(`poster_1` ...), the `bell` and the `stammtisch`. The Training Ground has a
+row per training (`training:<ID>`), per role (`role:match`,
+`role:adventure`, `role:brewer`) and the `team_sheet`. A training with no
+row is not shown, so a new Training.csv row needs its row here. The rooms
+with every thing in place are layered in `art_source/aseprite/clubhouse.aseprite`
+and `training.aseprite`; the pieces are in `assets/clubhouse/` and
+`assets/training/` (all PixelLab), the other drafts in
+`art_source/pixellab/rooms_draft/`. `tools/rooms_shot.gd` takes pictures of both.
+
 ### The Club House sells upgrades (round AN)
 
 **An achievement only grants the right to buy an upgrade.** Earning it puts
@@ -4772,8 +5144,9 @@ one row per upgrade:
 | `Cost` · `Currency` | from `Currencies.csv` |
 | `Effect` | the ordinary effects language. `count:batches_cooling+1` is a vat, `count:tune_<any Tuning row>+n` raises a number, `unlock:x` opens a thing |
 
-Each upgrade is bought **once**. The window shows what is on sale first, then
-what is still locked (and which achievement opens it), then what you own.
+Each upgrade is bought **once**. In the bar (above), a plaque on sale has a
+price card, a locked one a padlock (hover it: which achievement opens it),
+and one you own hangs in full colour.
 The Achievements board says, under each achievement, which upgrade it puts
 on sale. The recruitment board is still in the Club House, under the
 upgrades.
@@ -7210,6 +7583,24 @@ tackle animation.
   south-west, west, north-west, north, north-east. **Frames**, **FPS** and
   **Loop** as in `Animations.csv`. **PixelLab** is the animation's name in
   the PixelLab export.
+  **Stand-in** (optional) is what a sheet plays instead while it has no
+  rows for this animation yet.
+
+**Drinking on the pitch** (10 Oct). When you use a drink from the bag on a
+player during a match, his figure plays `drink` once: he lifts a glass stein,
+gulps, wipes his mouth with his arm and tosses the empty stein away over his
+shoulder (Anthony's pick B, then "fix please": the stein no longer just
+vanishes). It is the `drink` row of `PitchAnims.csv` (rows 48-55, 17 frames);
+its FPS sets how long it lasts (10 = about 1.7 seconds). Every look in the
+game has it drawn: the ten Club looks and both looks of every other class.
+A new look without it plays its Stand-in (`cheer`) until it is drawn.
+`Tuning.csv`: `pitch_drink_stands_still` (true) stops him on the spot while
+he drinks (a player with the ball keeps running); `pitch_drink_faces_camera`
+(true) turns a player who faces away (north-west, north, north-east) round
+first, so the stein is always seen. To draw it for a new look: animate its
+PixelLab character with the same action, 16 frames, named `drink_toss`,
+download it, then rebuild the sheet with `tools/make_pitch_sheet.py`. Film
+it with `tools/drink_shot.gd`. Drafts: `art_source/pixellab/iso_players/drink_drafts/`.
 
 **Ten looks for The Club** (Anthony: no red nose, and people of different
 skin colours and backgrounds in the same comic style). Five men (`club_m1`-`m5`: light with brown hair,
@@ -7410,3 +7801,21 @@ The music is untouched.
 - **Licence:** the classic set is our own. The band set uses GeneralUser GS
   by S. Christian Collins, free for any use including commercial; a line
   in the game's credits is appreciated.
+
+## Conquests: a banner for a mode that is not built yet (round AN, 9 Oct)
+
+**The torn, old flag with the black infinity** hangs at the right end of the
+base's top row. It is **Conquests**, the Draft Mode: the replayable roguelite
+you described (a run into the realm of the Myths, a draft from your unlocks,
+players sacrificed to the infinite realm, a high score on the menu board).
+**Nothing of the mode is built.** Pressing the banner only opens a "not open
+yet" note. The idea is written up in `guides/CONQUESTS.md`.
+
+| To change | Where |
+|---|---|
+| The banner's name, the note's heading and words | `Language.csv` `conquests_button`, `conquests_title`, `conquests_soon` |
+| The banner picture | `art_source/pixellab/banners/cloths/conquests.png` (its own cloth) and `emblems/conquests.png`, then `tools/make_banners.py`. Both are stand-ins made by `tools/tear_cloth.py`; ArtOrders.csv `conquests_banner` is the PixelLab order |
+| Its own cloth for any other banner | drop `cloths/<name>.png` next to the shared `cloth.png` and run `make_banners.py` |
+
+It is left out of both tutorials, where the row is already full.
+`tools/conquests_shot.gd` presses it and photographs the note.

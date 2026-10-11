@@ -189,7 +189,7 @@ var zones: PitchZones = null
 var zones_enabled: bool = true
 ## Press radius as a fraction of pitch HEIGHT. A defender inside this of where
 ## the ball is going will charge it.
-var press_radius_fraction: float = 0.55
+var press_radius_fraction: float = 0.275
 ## ROUND AN: outside the ball's range nobody goes faster than this many times
 ## his walk. Tuning.csv far_from_ball_pace; 0 = off.
 var far_from_ball_pace: float = 1.2
@@ -200,10 +200,25 @@ var ball_chasers_per_side: int = 2
 ## the ball over being in empty space. Tuning.csv fresh_spot_ball_weight.
 var fresh_spot_ball_weight: float = 1.2
 ## ROUND AN: the ring round the ball a player showing for a pass stays on.
-var open_support_min: float = 190.0
-var open_support_max: float = 340.0
-var open_zone_margin: float = 0.0
-var mark_keep_off: float = 120.0
+var open_support_min: float = 270.0
+var open_support_max: float = 5000.0
+var open_zone_margin: float = 0.25
+var mark_keep_off: float = 200.0
+## ROUND AN (9 Oct): moving for an opening, and cutting the lane.
+var open_search_radius: float = 220.0
+var open_rethink_seconds: float = 0.7
+var mark_lane_cut: float = 100.0
+## ROUND AN (9 Oct): outside the ball's range a marker shadows his man.
+var mark_shadow_commitment: float = 0.6
+var open_switch_margin: float = 60.0
+## ROUND AN (11 Oct): spread the whole shape out.
+var shape_spread_x: float = 1.2
+var shape_spread_y: float = 1.25
+var shape_edge_margin: float = 0.05
+var open_mate_space_weight: float = 0.8
+## ROUND AN (9 Oct): name plates of players not involved with the ball, in
+## open play. Tuning.csv bystander_plate_alpha; 1 = off.
+var bystander_plate_alpha: float = 0.18
 ## Extra defenders from OTHER quarters allowed to join the press.
 var press_helpers: int = 2
 var press_speed: float = 92.0
@@ -744,6 +759,9 @@ func _physics_process(delta: float) -> void:
 		ball.set_corridor(_ball_corridor(), current_state == MatchState.PLAYING)
 
 	_move_the_scenery()
+	PlayerUnit.fade_bystander_plates = current_state == MatchState.PLAYING \
+		and not PlayerUnit.play_maker_live and bystander_plate_alpha < 1.0
+	PlayerUnit.bystander_plate_alpha = bystander_plate_alpha
 	_assign_roles()
 	# ROUND AD (C6): who touched the ball, who is at a mine.
 	if pitch_engines != null:
@@ -881,48 +899,64 @@ func _assign_roles() -> void:
 				unit.set_role(PlayerUnit.Role.PRESS, focus, press_speed)
 			else:
 				unit.set_role(PlayerUnit.Role.MARK,
-					_support_range(unit, _mark_point(unit), mark_keep_off), unit.walk_speed * 1.5)
+					_mark_or_shadow(unit), unit.walk_speed * 1.5)
 		else:
 			unit.set_role(PlayerUnit.Role.OPEN,
-				_support_range(unit, _keep_moving(unit, _open_point(unit))), unit.walk_speed * 1.6)
+				_keep_with_play(unit, _open_point(unit), open_support_min), unit.walk_speed * 1.6)
 
 	_pace_by_range(units, reach)
 
 
-## ============ SHOWING FOR THE PASS NEVER MEANS RUNNING AWAY  (round AN, 8 Oct) ============
+## ============ STAY WITH THE PLAY - BUT FROM YOUR OWN SPOT  (round AN, 8-9 Oct) ============
 ##
-## Anthony: "why would they turn away from the ball and run towards the edge
-## of the field for no reason?" The probe put most of it on OPEN: the spot a
-## player showed for the pass at was often further from the ball than he
-## already was, so he turned his back on the play and walked off.
+## 8 Oct: "why would they turn away from the ball and run towards the edge of
+## the field for no reason?" - the spot was further from the ball than the
+## player already was, so he walked off.
 ##
-## So the spot is kept on a ring round the ball: no closer than
-## `open_support_min` (room to receive), and NO FURTHER THAN HE ALREADY IS
-## (or `open_support_max`, whichever is nearer). He slides across or comes
-## toward the ball to get open; he never walks away from it to do so.
+## 9 Oct: the first fix kept everyone on a ring round the ball, NEVER further
+## than they already were. That is a ratchet: every step in was kept, so the
+## whole pitch slowly closed on the ball. "Don't have EVERYONE huddle in
+## groups ... 1 or 2 people on the person that has the ball, the rest are
+## waiting for a pass."
 ##
-## A MARKER gets the same ring with a smaller inside edge (`mark_keep_off`):
-## he stays with his man, but not by turning his back on the play and
-## following him off toward a corner of the pitch.
-func _support_range(unit: PlayerUnit, spot: Vector2, nearest := -1.0) -> Vector2:
+## So the cap is now "no further from the ball than he is, OR than his own
+## spot in the shape is" (the drift point, which slides with the ball) -
+## whichever is further. A player can drift back out to his place in the
+## shape; he is never sent past it. Plus: not closer than `nearest` to the
+## ball, and inside his own quarter (give or take `open_zone_margin`).
+## ============ OUTSIDE THE BALL'S RANGE, SHADOW YOUR MAN  (round AN, 9 Oct) ============
+##
+## Anthony: "If they are outside of the ball range ... have them chase the
+## person they should be watching / observing while the other is trying to
+## get open to get the ball passed to them."
+##
+## Inside the range a marker defends the zone and cuts the lane, as before.
+## Outside it he goes with his man: `mark_shadow_commitment` of the way from
+## his own place to goal-side of the man (zonal marking is 0.5), and NOT held
+## to his quarter - the quarter is what had the back rows leaning on an
+## invisible line while their man walked off.
+func _mark_or_shadow(unit: PlayerUnit) -> Vector2:
+	if unit.ball_in_range or mark_shadow_commitment <= 0.0:
+		return _keep_with_play(unit, _mark_point(unit), mark_keep_off)
+	return _keep_with_play(unit, _mark_point(unit, mark_shadow_commitment), mark_keep_off, false)
+
+
+func _keep_with_play(unit: PlayerUnit, spot: Vector2, nearest: float,
+		in_quarter := true) -> Vector2:
 	if ball == null or not is_instance_valid(ball) or open_support_max <= 0.0:
 		return spot
-	var least := open_support_min if nearest < 0.0 else nearest
 	var at := ball.global_position
 	var off := spot - at
 	var length := off.length()
 	if length < 0.001:
-		off = (unit.global_position - at)
+		off = unit.global_position - at
 		length = maxf(off.length(), 0.001)
 	var now := unit.global_position.distance_to(at)
-	var far := maxf(least, minf(open_support_max, now))
-	var want := clampf(length, least, far)
-	var out := at + off / length * want
-	# AND IN HIS OWN QUARTER (give or take `open_zone_margin` of it), so a
-	# Tier IV waiting for the ball holds the near edge of his quarter rather
-	# than walking out of it to meet the play.
+	var shape := _drift_point(unit).distance_to(at)
+	var far := maxf(nearest, minf(open_support_max, maxf(now, shape)))
+	var out := at + off / length * clampf(length, nearest, far)
 	var quarter := unit.tier_zone
-	if quarter.size.x > 1.0:
+	if in_quarter and quarter.size.x > 1.0:
 		var give := quarter.size.x * open_zone_margin
 		out.x = clampf(out.x, quarter.position.x - give, quarter.end.x + give)
 	return unit.leash_point(out)
@@ -1130,7 +1164,7 @@ func _converge_target(unit: PlayerUnit) -> Vector2:
 ##   * and the shoulder they stand off is decided by where the BALL is, which
 ##     means the marker shifts as play moves — the thing that reads as
 ##     defending rather than as standing.
-func _mark_point(unit: PlayerUnit) -> Vector2:
+func _mark_point(unit: PlayerUnit, commitment := -1.0) -> Vector2:
 	var man := unit.mark_target
 	if man == null or not is_instance_valid(man):
 		return _drift_point(unit)
@@ -1171,7 +1205,17 @@ func _mark_point(unit: PlayerUnit) -> Vector2:
 	# ROUND AN: from where the BLOCK is (the drift point, sliding with the
 	# ball), not the bare home slot - so a marker leans with the play instead
 	# of being dragged back toward an empty corner of his quarter.
-	spot = unit.home_position.lerp(spot, clampf(mark_commitment, 0.0, 1.0))
+	# ROUND AN (9 Oct): CUT THE LANE. The marker leans off his man toward the
+	# ball by `mark_lane_cut`, between him and the pass - which is what moves
+	# the man showing for it to look for another opening.
+	if ball != null and is_instance_valid(ball) and mark_lane_cut > 0.0:
+		var to_ball := ball.global_position - man.global_position
+		if to_ball.length() > 1.0:
+			spot += to_ball.normalized() * minf(mark_lane_cut, to_ball.length() * 0.5)
+	# From his own place in the shape (the drift point, sliding with the ball),
+	# not the bare home slot.
+	var commit := mark_commitment if commitment < 0.0 else commitment
+	spot = _drift_point(unit).lerp(spot, clampf(commit, 0.0, 1.0))
 
 	# Never parked: a slow wander on top of the marking spot, wider across
 	# than up and down so it does not fight the shoulder offset.
@@ -1328,41 +1372,89 @@ func _fresh_spot(unit: PlayerUnit) -> Vector2:
 	return best
 
 
+## ============ MOVING FOR AN OPENING  (round AN, 9 Oct) ============
+##
+## Anthony: "trying to move for an opening as the team that has the ball and
+## trying to defend as the team that needs the ball. It has to have a back
+## and forth that looks natural."
+##
+## A player showing for the pass looks at a handful of spots around HIS OWN
+## PLACE IN THE SHAPE (the drift point, sliding with the ball) and goes to the
+## one that is most open: away from defenders, with a clear lane for the ball
+## to reach him, not on top of a team-mate, and not too near the ball. He
+## keeps that choice for `open_rethink_seconds`, then looks again - by then
+## the defenders have moved to cut his lane (see _mark_point), so he moves
+## again. That is the back and forth.
 func _open_point(unit: PlayerUnit) -> Vector2:
-	var nearest_foe: PlayerUnit = null
-	var best := INF
+	var shape := _drift_point(unit)
+	var held := unit.open_spot != Vector2.INF \
+		and unit.open_spot.distance_to(shape) < open_search_radius * 1.5
+	# COMMIT TO A RUN (9 Oct). Doubled, the re-think made players turn round
+	# half way to one opening for another, and back - running on the spot.
+	# He now looks again only when the timer is up AND he has got there, or
+	# when twice the time has gone by.
+	if held:
+		var there := unit.global_position.distance_to(unit.open_spot) < 40.0
+		if _anim_clock < unit.open_until \
+				or (not there and _anim_clock < unit.open_until + open_rethink_seconds):
+			return unit.open_spot
+	var at := ball.global_position if ball != null and is_instance_valid(ball) else shape
+	var foes: Array[Vector2] = []
+	var mates: Array[Vector2] = []
 	for other in _all_units():
-		if other.is_enemy == unit.is_enemy:
+		if other == unit:
 			continue
-		var d := other.global_position.distance_to(unit.global_position)
-		if d < best:
-			best = d
-			nearest_foe = other
+		if other.is_enemy == unit.is_enemy:
+			mates.append(other.global_position)
+		else:
+			foes.append(other.global_position)
+	var forward := 1.0 if not unit.is_enemy else -1.0
+	var best := shape
+	var best_score := -INF
+	for ring in [0.0, 0.5, 1.0]:
+		for step in 8:
+			if ring == 0.0 and step > 0:
+				break
+			var p: Vector2 = shape + Vector2.from_angle(float(step) * TAU / 8.0) * open_search_radius * ring
+			# A little forward, the way this side attacks.
+			p.x += forward * open_break * 0.5
+			var score := _opening_score(p, at, shape, foes, mates)
+			if score > best_score:
+				best_score = score
+				best = p
+	# And only for a CLEARLY better one: the spot he has must lose by
+	# `open_switch_margin` before he gives it up.
+	if held and _opening_score(unit.open_spot, at, shape, foes, mates) + open_switch_margin >= best_score:
+		best = unit.open_spot
+	unit.open_spot = unit.leash_point(best)
+	var phase := float(int(unit.get_instance_id()) % 7) / 7.0
+	unit.open_until = _anim_clock + open_rethink_seconds * (0.75 + 0.5 * phase)
+	return unit.open_spot
 
-	# ROUND AN (Anthony, 8 Oct: "why would they turn away from the ball and
-	# run towards the edge of the field for no reason?"). Measured, showing
-	# for a pass was most of it: the spot was the player's HOME slot plus
-	# 230 px off his marker, 120 forward and 150 toward his touchline - so a
-	# man on the far side of the play ran further away from the ball to "get
-	# open". It now starts from where the block is (the drift point, which
-	# slides with the ball) and the breaks are smaller (Tuning.csv).
-	var spot := _drift_point(unit)
-	if nearest_foe != null and best < open_spread * 1.6:
-		spot += (unit.global_position - nearest_foe.global_position).normalized() * open_spread
 
-	# Forward, the way this side attacks.
-	spot.x += (1.0 if not unit.is_enemy else -1.0) * open_break
-
-	# AND WIDE. Whichever touchline this player is already nearer, pushed
-	# toward it — so a move has somebody on the wing to find.
-	var play := get_play_rect()
-	var middle := play.position.y + play.size.y * 0.5
-	var out := signf(unit.home_position.y - middle)
-	if is_zero_approx(out):
-		out = 1.0 if int(unit.get_instance_id()) % 2 == 0 else -1.0
-	spot.y += out * open_width
-
-	return unit.leash_point(spot)
+## How open a spot is: space from defenders, a clear lane from the ball, not
+## on a team-mate, not too near the ball, not far from his place in the shape.
+func _opening_score(p: Vector2, from_ball: Vector2, shape: Vector2, foes: Array[Vector2],
+		mates: Array[Vector2]) -> float:
+	var space := 220.0
+	var lane := 140.0
+	for f in foes:
+		space = minf(space, f.distance_to(p))
+		lane = minf(lane, Geometry2D.get_closest_point_to_segment(f, from_ball, p).distance_to(f))
+	var score := space + lane * 1.5
+	var nearest_mate := 400.0
+	for m in mates:
+		var d := m.distance_to(p)
+		nearest_mate = minf(nearest_mate, d)
+		if d < 110.0:
+			score -= (110.0 - d) * 2.0
+	# ROUND AN (11 Oct): ROOM FROM TEAM-MATES counts too, so a side fans out
+	# over the pitch instead of every man finding the same pocket.
+	score += minf(nearest_mate, 300.0) * open_mate_space_weight
+	var to_ball := p.distance_to(from_ball)
+	if to_ball < open_support_min:
+		score -= (open_support_min - to_ball) * 3.0
+	return score - p.distance_to(shape) * 0.4
 
 
 ## Where a surging unit runs to: its own slot, thrown forward toward the goal
@@ -1800,6 +1892,16 @@ func _apply_match_tuning() -> void:
 	open_support_max = db.tune_float("open_support_max", open_support_max)
 	open_zone_margin = db.tune_float("open_zone_margin", open_zone_margin)
 	mark_keep_off = db.tune_float("mark_keep_off", mark_keep_off)
+	open_search_radius = db.tune_float("open_search_radius", open_search_radius)
+	open_rethink_seconds = db.tune_float("open_rethink_seconds", open_rethink_seconds)
+	mark_lane_cut = db.tune_float("mark_lane_cut", mark_lane_cut)
+	mark_shadow_commitment = db.tune_float("mark_shadow_commitment", mark_shadow_commitment)
+	open_switch_margin = db.tune_float("open_switch_margin", open_switch_margin)
+	shape_spread_x = db.tune_float("shape_spread_x", shape_spread_x)
+	shape_spread_y = db.tune_float("shape_spread_y", shape_spread_y)
+	shape_edge_margin = db.tune_float("shape_edge_margin", shape_edge_margin)
+	open_mate_space_weight = db.tune_float("open_mate_space_weight", open_mate_space_weight)
+	bystander_plate_alpha = db.tune_float("bystander_plate_alpha", bystander_plate_alpha)
 	ball_roam_quarter_first = db.tune_int("ball_roam_quarter_first", ball_roam_quarter_first)
 	ball_roam_quarter_last = db.tune_int("ball_roam_quarter_last", ball_roam_quarter_last)
 	surge_advance = db.tune_float("surge_advance", surge_advance)
@@ -1859,6 +1961,8 @@ func _tune_ball() -> void:
 	ball.intercept_grace = db.tune_float("ball_intercept_grace", ball.intercept_grace)
 	ball.trail_seconds = db.tune_float("ball_trail_seconds", ball.trail_seconds)
 	ball.ring_radius = db.tune_float("ball_ring_radius", ball.ring_radius)
+	ball.carrier_marker_height = db.tune_float("ball_carrier_marker_height", ball.carrier_marker_height)
+	ball.carrier_marker_size = db.tune_float("ball_carrier_marker_size", ball.carrier_marker_size)
 	ball.corridor_return_speed = db.tune_float(
 		"ball_corridor_return_speed", ball.corridor_return_speed)
 
@@ -1898,6 +2002,13 @@ func _tune_unit(unit: PlayerUnit) -> void:
 	unit.still_threshold = db.tune_float("unit_still_threshold", unit.still_threshold)
 	unit.face_deadzone = db.tune_float("unit_face_deadzone", unit.face_deadzone)
 	unit.face_turn_hold = db.tune_float("unit_face_turn_hold", unit.face_turn_hold)
+	unit.run_burst = Vector2(db.tune_float("unit_run_burst_min", unit.run_burst.x),
+		db.tune_float("unit_run_burst_max", unit.run_burst.y))
+	unit.rest_seconds = Vector2(db.tune_float("unit_rest_min", unit.rest_seconds.x),
+		db.tune_float("unit_rest_max", unit.rest_seconds.y))
+	unit.stuck_window = db.tune_float("unit_stuck_window", unit.stuck_window)
+	unit.stuck_progress = db.tune_float("unit_stuck_progress", unit.stuck_progress)
+	unit.rest_skip_distance = db.tune_float("unit_rest_skip_distance", unit.rest_skip_distance)
 	unit.stand_below_speed = db.tune_float("unit_stand_below_speed", unit.stand_below_speed)
 	unit.walk_anim_floor = db.tune_float("unit_walk_anim_floor", unit.walk_anim_floor)
 
@@ -2881,6 +2992,24 @@ func default_layout(star_tier: String) -> Dictionary:
 	}
 
 
+## ============ A WIDER SHAPE  (round AN, Anthony 11 Oct) ============
+##
+## "Everyone is crowding in one spot the whole game, spread them out even
+## more." Every slot is pushed away from the centre spot by `shape_spread_x`
+## along the pitch and `shape_spread_y` across it (1 = the formation as
+## drawn), and kept `shape_edge_margin` of the pitch inside the lines.
+func _spread_slot(pos: Vector2) -> Vector2:
+	var rect := get_play_rect()
+	if rect.size.x <= 1.0 or (is_equal_approx(shape_spread_x, 1.0) and is_equal_approx(shape_spread_y, 1.0)):
+		return pos
+	var mid := rect.get_center()
+	var out := mid + (pos - mid) * Vector2(shape_spread_x, shape_spread_y)
+	var keep := rect.size * shape_edge_margin
+	out.x = clampf(out.x, rect.position.x + keep.x, rect.end.x - keep.x)
+	out.y = clampf(out.y, rect.position.y + keep.y, rect.end.y - keep.y)
+	return out
+
+
 func create_unit_instance(data: PlayerData, pos: Vector2, is_enemy: bool) -> PlayerUnit:
 	var unit := PLAYER_UNIT_SCENE.instantiate() as PlayerUnit
 	if unit == null:
@@ -2896,7 +3025,7 @@ func create_unit_instance(data: PlayerData, pos: Vector2, is_enemy: bool) -> Pla
 	unit.attack_dir = -1.0 if is_enemy else 1.0   # home defends the left goal
 	_tune_unit(unit)
 	units_container.add_child(unit)   # add first so @onready refs exist
-	unit.set_home(pos)                # then place and start roaming
+	unit.set_home(_spread_slot(pos))  # then place and start roaming
 	return unit
 
 
@@ -3024,6 +3153,7 @@ func spawn_cutaways() -> void:
 			duel_arena.name = "DuelArena"
 			add_child(duel_arena)
 			duel_arena.apply_tuning(db)
+			duel_arena.keeper_hit = _show_keeper_hits
 		else:
 			push_error("duel_arena.tscn did not instantiate as a DuelArena.")
 
@@ -3742,6 +3872,7 @@ func _lock_geometry() -> void:
 
 	if zone_overlay != null:
 		zone_overlay.intent_lines_alpha = maxf(0.0, db.tune_float("intent_lines_alpha", 0.55))
+		zone_overlay.intent_lines_chasers_only = db.tune_bool("intent_lines_chasers_only", true)
 		zone_overlay.tint = zones_enabled
 		zone_overlay.visible = zones_enabled or zone_overlay.intent_lines_alpha > 0.0
 		zone_overlay.units_source = _all_units
@@ -3972,11 +4103,16 @@ func trigger_playmaker_event() -> void:
 			if unit.is_star_player:
 				unit.is_playmaker = true
 	set_play_maker_live(true)
+	bags_shut = coach != null and coach.lesson_this_play_maker()
+	bag_open_for = null
 	print("PLAY MAKER!  Cycle %d, Round %d" % [current_cycle, rounds_this_cycle])
 	AudioDirector.fire(get_tree(), "play_maker",
 		{"cycle": str(current_cycle), "round": str(rounds_this_cycle)}, state)
 	Juice.fire(self, "play_maker", {})
-	_match_talk("play_maker")
+	# Awaited (round AN): the referee lesson stops the match here, before
+	# the PLAY MAKER call and the throw-in choice.
+	if coach != null and (_talk_box == null or not is_instance_valid(_talk_box)):
+		await coach.talk("play_maker")
 	await announce("PLAY MAKER!")
 
 	# WHOEVER TAKES THE THROW CHOOSES. That is the whole of what the coin
@@ -4707,6 +4843,10 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 	state.save_to_disk()
 
 	_redraw_offered_cards()
+	# ROUND AN (10 Oct): on the pitch he lifts it, gulps and wipes his mouth.
+	var drinker := unit_for_card(card, false)
+	if drinker != null:
+		drinker.play_drink()
 	# ROUND AN - PLAIN BEER: the lucky dip says what came out of the bottle.
 	var luck := ""
 	if String(brew.get("pool", "")) != "":
@@ -5424,6 +5564,12 @@ signal bag_opened(bag: InventoryScreen)
 signal item_used_on_card(card: PlayerData, entry: Dictionary)
 ## Item ids the bag shows on a card; empty = everything.
 var bag_only: Array = []
+## ROUND AN (Anthony, 10 Oct): "don't allow the player to pick beer for any
+## other". In a Tutorial Play Maker with a drinking lesson (MatchTalk.csv Do
+## drink_lesson) every bag button is grey except the one being taught.
+## Tuning.csv tutorial_bags_shut_in_lessons.
+var bags_shut := false
+var bag_open_for: PlayerData = null
 
 
 ## The pick guard (see _on_card_selected). Only in the Tutorial; a time in
@@ -5811,7 +5957,13 @@ func resolve_round() -> void:
 		# the list knows about theirs as well as yours.
 		var face_up: Array = revealed_by_tier.values()
 		face_up.append_array(enemy_revealed_by_tier.values())
+		var keeper_queue_before := abilities.pending_stamina_count()
 		abilities.resolve_duel_abilities(atk, attacker_is_enemy, def, "", face_up)
+		# ROUND AN: this duel's keeper drains, shown in the keeper's window
+		# when the ability's gold box goes off (Tuning keeper_drain_window).
+		_duel_keeper_hits = abilities.peek_pending_stamina(keeper_queue_before)
+		_duel_keeper_queue_before = keeper_queue_before
+		_duel_banks = {false: player_bank, true: enemy_bank}
 
 		# ROUND AB (C4): A CARD SWITCHED TO BEING THE DEFENDER. The duel turns
 		# round - it defends, the other card attacks, and the ball goes to
@@ -7461,6 +7613,7 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		"token": abilities.token_used(atk, attacker_is_enemy) if abilities != null else null,
 		"printed": atk.get_attack_power(),
 		"wins": attacker_wins,
+		"keeper_hits": _hits_from(atk, attacker_is_enemy),
 	}
 	var defender_side := {
 		"card": def,
@@ -7473,6 +7626,7 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 		"token": abilities.token_used(def, not attacker_is_enemy) if abilities != null else null,
 		"printed": def.get_defense_power(),
 		"wins": not attacker_wins,
+		"keeper_hits": _hits_from(def, not attacker_is_enemy),
 	}
 
 	# EVERYTHING ON THE PITCH STOPS while the cut-away is up.
@@ -7495,6 +7649,8 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 ## ROUND Z: what the card carries this match (counters, SWAN, TOKEN), and a
 ## SHOW button when an Emblem gives it a Reveal (Zepar's Swan).
 func _dress_card(card: PlayerCardUI, data: PlayerData) -> void:
+	if card != null:
+		card.set_bag_shut(bags_shut and data != bag_open_for)
 	if abilities == null or data == null or card == null:
 		return
 	card.set_marks(abilities.marks_for(data, false))
@@ -7995,6 +8151,78 @@ func _absorb_ability_news() -> void:
 # =============================================================
 #  ROUND AA - THE KEEPERS, AND ASKING YOU
 # =============================================================
+
+## ROUND AN (Anthony, 10 Oct): "With Koch's ability trigger, show the enemy
+## goalie window, deal the stamina, change the %, then go back to the cards."
+## The drains are still SPENT after the last duel, as before; this only shows
+## them at the moment the ability goes off. Tuning.csv keeper_drain_window:
+## tutorial (default), always or off. keeper_drain_step_seconds per step.
+var _duel_keeper_hits: Array = []
+var _duel_keeper_queue_before := 0
+var _duel_banks := {false: 0, true: 0}
+
+
+func _hits_from(card: PlayerData, side_is_enemy: bool) -> Array:
+	var out: Array = []
+	if not _keeper_drain_window_on():
+		return out
+	for hit in _duel_keeper_hits:
+		var h := hit as Dictionary
+		if h.get("source") == card and bool(h.get("source_is_enemy", false)) == side_is_enemy \
+				and int(h.get("delta", 0)) != 0:
+			out.append(h)
+	return out
+
+
+func _keeper_drain_window_on() -> bool:
+	match db.tune_text("keeper_drain_window", "tutorial").strip_edges().to_lower():
+		"always", "true", "yes":
+			return true
+		"tutorial":
+			return String(match_mode.get("id", "")) == "tutorial"
+	return false
+
+
+## The keeper's window for one card's drains, opened from the duel window.
+func _show_keeper_hits(hits: Array) -> void:
+	if shootout == null or hits.is_empty():
+		return
+	var queued := abilities.peek_pending_stamina(0)
+	for hit in hits:
+		var h := hit as Dictionary
+		var side := bool(h["enemy_side"])
+		var keeper: GoalieUnit = goalies.get(side)
+		if keeper == null:
+			continue
+		# What he has now, with every change queued before this one.
+		var before := keeper.current_stamina
+		for other in queued:
+			if other == h:
+				break
+			if bool((other as Dictionary)["enemy_side"]) == side:
+				before = clampi(before + int((other as Dictionary).get("delta", 0)), 0, keeper.max_stamina)
+		var after := clampi(before + int(h["delta"]), 0, keeper.max_stamina)
+		var source: PlayerData = h.get("source")
+		var ability: AbilityData = h.get("ability")
+		var shooter_side := bool(h.get("source_is_enemy", false))
+		# The % at the shot power his side has piled up so far, plus his own.
+		var power := int(_duel_banks.get(shooter_side, 0))
+		if source != null:
+			power += source.get_attack_power()
+		shootout.play_drain({
+			"title": ability.display_name.to_upper() if ability != null else "",
+			"card": source,
+			"shooter_is_player": not shooter_side,
+			"shot_power": power,
+			"keeper_data": keeper.data,
+			"before": before,
+			"after": after,
+			"keeper_max": keeper.max_stamina,
+			"chance_shift": keeper.chance_shift,
+			"seconds": db.tune_float("keeper_drain_step_seconds", 2.5),
+		})
+		await shootout.view_closed
+
 
 ## Everything abilities queued for the keepers: stamina, shields, and the
 ## shift on how likely each is to be beaten (phase C3).

@@ -54,6 +54,9 @@ var current_data: PlayerData
 ## True while AUTO is playing for you. A locked card cannot be clicked and
 ## is drawn faded, so it is obvious the game is choosing rather than you.
 var locked: bool = false
+## ROUND AN (Anthony, 10 Oct): the bag button is grey and does nothing. The
+## Tutorial's drinking lessons shut every bag but the one he is teaching.
+var bag_shut: bool = false
 
 var _face: Button
 ## The little flask, top left. Null when draft_brew_button is off.
@@ -155,7 +158,7 @@ func _add_brew_corner(_box: Vector2) -> void:
 	_flask.add_theme_stylebox_override("pressed", MenuSupport.panel_style(
 		MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
 	_flask.pressed.connect(func() -> void:
-		if current_data != null and not locked:
+		if current_data != null and not locked and not bag_shut:
 			brew_wanted.emit(current_data))
 	add_child(_flask)
 
@@ -311,6 +314,12 @@ func _add_glow() -> void:
 
 ## Called by main_scene whenever AUTO is switched on or off, and once when
 ## the card is created. Safe to call before setup_card(): it checks.
+## Grey the bag button out (true) or give it back (false).
+func set_bag_shut(is_shut: bool) -> void:
+	bag_shut = is_shut
+	_apply_lock()
+
+
 func set_locked(is_locked: bool) -> void:
 	locked = is_locked
 	_apply_lock()
@@ -326,8 +335,11 @@ func _apply_lock() -> void:
 	_face.mouse_filter = Control.MOUSE_FILTER_IGNORE if locked \
 		else Control.MOUSE_FILTER_STOP
 	if _flask != null and is_instance_valid(_flask):
-		_flask.disabled = locked
+		_flask.disabled = locked or bag_shut
 		_flask.visible = not locked
+		_flask.modulate = Color(0.45, 0.45, 0.45, 0.6) if bag_shut else Color(1, 1, 1, 1)
+		_flask.mouse_default_cursor_shape = Control.CURSOR_ARROW if bag_shut \
+			else Control.CURSOR_POINTING_HAND
 	if _show != null and is_instance_valid(_show):
 		_show.disabled = locked
 		_show.visible = not locked

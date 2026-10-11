@@ -86,6 +86,15 @@ var _pickups: Array[Node2D] = []
 var _foes: Array[Node2D] = []
 
 var _world: Node2D
+## adventure-look: the isometric field (iso_field.gd), or null for the flat
+## lane. Where things appear and are let go of moves with it.
+var _iso: IsoField = null
+var _spawn_x := SPAWN_X
+var _forget_x := -120.0
+## Where a wave's enemies start walking in from. On the isometric field it
+## is nearer than _spawn_x, so they reach their places before the fight.
+var _wave_x := SPAWN_X
+var _iso_seen := 0.0
 var _ball: Node2D
 var _ball_holder: int = 0
 var _pass_clock := 0.0
@@ -146,6 +155,10 @@ func _ready() -> void:
 func _read_scale() -> void:
 	LANE_TOP = db.tune_float("adventure_lane_top", 250.0)
 	LANE_HEIGHT = db.tune_float("adventure_lane_height", 540.0)
+	# adventure-look: ON THE ISOMETRIC FIELD the path band is deeper, so the
+	# players have room to stand well apart (adventure_iso_lane_height).
+	if db.tune_bool("adventure_iso_field", true):
+		LANE_HEIGHT = db.tune_float("adventure_iso_lane_height", 900.0)
 	LANE_BOTTOM = LANE_TOP + LANE_HEIGHT
 	AdventureWalker.RADIUS = db.tune_float("adventure_player_size", 26.0)
 	AdventureStrike.BALL_RADIUS = db.tune_float("adventure_ball_size", 7.0)
@@ -201,6 +214,9 @@ func _read_biome_look() -> void:
 	_stripe_colour = _colour(String(run.biome.get("stripe", "")), _stripe_colour)
 	_edge_colour = _colour(String(run.biome.get("edge", "")), _edge_colour)
 	_parallax = clampf(float(run.biome.get("parallax", 0.3)), 0.0, 1.0)
+	var see_through := float(run.biome.get("ground_alpha", 1.0))
+	_grass_colour.a = see_through
+	_stripe_colour.a = see_through
 
 
 ## "#213a26" -> a Color. Anything unreadable keeps the fallback rather than
@@ -248,6 +264,18 @@ func _build_world() -> void:
 		# Wider than the window, so sliding it never shows an edge.
 		_backdrop.offset_left = -art.get_width()
 		_backdrop.offset_right = art.get_width()
+		# adventure-look: A PIXELLAB PICTURE IS SMALL (688 x 384). Tuning
+		# adventure_backdrop_fit = true blows it up by whole pixels until it
+		# fills the screen top to bottom, so it reads as a place, not a strip.
+		if db.tune_bool("adventure_backdrop_fit", true):
+			var screen := get_viewport().get_visible_rect().size
+			var zoom := maxf(1.0, ceilf(screen.y / float(art.get_height())))
+			_backdrop.set_anchors_preset(Control.PRESET_TOP_LEFT)
+			_backdrop.scale = Vector2(zoom, zoom)
+			_backdrop.position = Vector2.ZERO
+			_backdrop.size = Vector2(screen.x / zoom + art.get_width() * 2.0,
+				float(art.get_height()))
+			_backdrop.position.y = (screen.y - art.get_height() * zoom) * 0.5
 		layer.add_child(_backdrop)
 	elif String(run.biome.get("art", "")).strip_edges() != "":
 		print("[adventure] Biomes.csv wants background '%s' — put that image in assets/backgrounds/ and it appears. Using the Sky colour until then."
@@ -266,9 +294,31 @@ func _build_world() -> void:
 	_ball.name = "Ball"
 	_ball.draw.connect(_draw_ball.bind(_ball))
 	_world.add_child(_ball)
+	# Above the name plates, which hang right where the ball is carried.
+	_ball.set_meta("float_on_top", true)
+	_ball.z_as_relative = false
+	_ball.z_index = 3100
+	_dress_ball()
+
+	# THE ISOMETRIC FIELD (Tuning adventure_iso_field). It tilts this world
+	# into the isometric view and lays the tiles; the rules are untouched.
+	_iso = IsoField.make(_world, db, String(run.biome.get("id", "")),
+		LANE_TOP, LANE_BOTTOM, PARTY_X, get_viewport().get_visible_rect().size)
+	if _iso != null:
+		_spawn_x = _iso.spawn_x
+		_forget_x = _iso.forget_x
+		_wave_x = db.tune_float("adventure_iso_wave_x", 1450.0)
+		_world.set_meta("upright", _iso.upright)
+		AdventureWalker.screen_basis = _iso.to_screen
+		_iso.stand_up()
+	else:
+		AdventureWalker.screen_basis = Transform2D.IDENTITY
 
 
 func _draw_ground(on: Node2D) -> void:
+	# On the isometric field the tiles are the ground.
+	if _iso != null and _iso.has_tiles():
+		return
 	# THE LANE. Everything the party does happens between these two lines,
 	# and the stripes slide with the run so the motion reads even with no art.
 	var lane := Rect2(Vector2(-400.0, LANE_TOP), Vector2(2800.0, LANE_HEIGHT))
@@ -290,8 +340,50 @@ func _draw_ground(on: Node2D) -> void:
 
 
 func _draw_ball(on: Node2D) -> void:
+	var art := on.get_node_or_null("Art") as Sprite2D
+	if art != null:
+		# Only its shadow on the grass; the PixelLab ball is the sprite.
+		var wide := art.texture.get_width() * art.scale.x
+		on.draw_circle(Vector2(0.0, wide * 0.42), wide * 0.42, Color(0, 0, 0, 0.28))
+		return
 	on.draw_circle(Vector2.ZERO, 7.0, Color(0.93, 0.93, 0.90))
 	on.draw_arc(Vector2.ZERO, 7.0, 0.0, TAU, 16, Color(0.25, 0.25, 0.25), 1.5, true)
+
+
+## ============ A BALL YOU CAN SEE (adventure-look, Anthony) ============
+##
+## The ball was a seven-pixel circle and could not be seen at all. It is the
+## PixelLab football in Tuning adventure_ball_art now, drawn
+## adventure_ball_art_size pixels across on screen (about as big as a
+## player's foot), with a shadow, and it rolls as it moves.
+func _dress_ball() -> void:
+	var art := MenuSupport.icon_texture(db.tune_text("adventure_ball_art", ""))
+	if art == null:
+		return
+	var sprite := Sprite2D.new()
+	sprite.name = "Art"
+	sprite.texture = art
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var wide := maxf(4.0, db.tune_float("adventure_ball_art_size", 44.0))
+	sprite.scale = Vector2.ONE * (wide / float(maxi(1, art.get_width())))
+	_ball.add_child(sprite)
+	_ball.queue_redraw()
+
+
+var _ball_was := Vector2.ZERO
+
+
+## Rolls the ball picture by how far it moved this frame.
+func _roll_ball() -> void:
+	if _ball == null:
+		return
+	var art := _ball.get_node_or_null("Art") as Sprite2D
+	if art == null:
+		return
+	var moved := _ball.position - _ball_was
+	_ball_was = _ball.position
+	if moved.length() > 0.01 and moved.length() < 400.0:
+		art.rotation += moved.length() * 0.09 * (1.0 if moved.x >= 0.0 else -1.0)
 
 
 # =============================================================
@@ -338,6 +430,12 @@ func _spawn_party() -> void:
 			_walkers.append(walker)
 			index += 1
 
+	# Now the whole party is known, every player starts ON their own spot
+	# (planned for all of them at once) rather than walking over to it.
+	_plan_run_spots()
+	for i in _walkers.size():
+		_walkers[i].place_at(_slot_for(i))
+
 	if _walkers.is_empty():
 		push_warning("[adventure] Nobody set off — no team was chosen. Go through the team builder first.")
 	else:
@@ -361,6 +459,14 @@ func _spawn_party() -> void:
 ##     adventure_party_rows      how many across the band. 5 out of the box
 ##     adventure_party_spacing   pixels between columns, back down the lane
 func _slot_for(index: int) -> Vector2:
+	if _run_spots.size() != _walkers.size():
+		_plan_run_spots()
+	if index >= 0 and index < _run_spots.size():
+		return _run_spots[index]
+	return _slot_for_flat(index)
+
+
+func _slot_for_flat(index: int) -> Vector2:
 	var lanes := maxi(1, db.tune_int("adventure_party_rows", 5))
 	var spacing := db.tune_float("adventure_party_spacing", 108.0)
 	var seat := index % lanes
@@ -382,10 +488,20 @@ func _stand_in_squad() -> Dictionary:
 	if classes.is_empty():
 		return squad
 
-	var roster := db.roster_for_class(classes[0])
+	# adventure-look: A DIFFERENT CLASS FOR EACH TIER, the Club first, so a
+	# run opened on its own shows the mix of isometric looks a real team has
+	# rather than one class's two faces.
+	if classes.has("Normal"):
+		classes.erase("Normal")
+		classes.push_front("Normal")
+	var i := 0
 	for tier in TierLadder.TIERS:
+		var roster := db.roster_for_class(classes[i % classes.size()])
 		var made := TierLadder.build(roster, tier, db, false)
+		if (made["cards"] as Array).is_empty():
+			made = TierLadder.build(db.roster_for_class(classes[0]), tier, db, false)
 		squad[tier] = made["cards"]
+		i += 1
 	return squad
 
 
@@ -449,7 +565,19 @@ func _process(delta: float) -> void:
 
 	if current_state == RunState.RUNNING:
 		_carry_pickups(delta)
+	# The isometric figures play their run cycle while the party runs and
+	# stand in idle to fight. See adventure_walker.gd.
+	for walker in _walkers:
+		if is_instance_valid(walker):
+			walker.jogging = current_state == RunState.RUNNING
 	_settle_walkers()
+
+	# The isometric board slides by however far the party came this frame,
+	# and everything on it is stood upright, front to back.
+	if _iso != null:
+		_iso.update(_travelled, _travelled - _iso_seen)
+		_iso_seen = _travelled
+	_roll_ball()
 
 	if _world != null:
 		var ground := _world.get_node_or_null("Ground")
@@ -493,7 +621,7 @@ func _scroll(delta: float) -> void:
 	# The background slides slower than the ground, which is what makes the
 	# lane read as near and the picture behind it as far away.
 	if _backdrop != null and _backdrop.texture != null:
-		var span := float(_backdrop.texture.get_width())
+		var span := float(_backdrop.texture.get_width()) * _backdrop.scale.x
 		if span > 1.0:
 			_backdrop.position.x = -fposmod(_travelled * _parallax, span)
 
@@ -585,13 +713,15 @@ func _drop_a_pickup() -> void:
 	# same two players collecting everything: an item near the top edge is
 	# reached by whoever happens to be drifting up there.
 	var pickup := Node2D.new()
-	pickup.position = Vector2(SPAWN_X,
+	pickup.position = Vector2(_spawn_x,
 		randf_range(LANE_TOP + 34.0, LANE_BOTTOM - 34.0))
 	pickup.set_meta("item", item_id)
 	pickup.set_meta("amount", amount)
 	pickup.set_meta("name", String(known["name"]) if not known.is_empty() else item_id)
 	pickup.set_meta("claimed", false)
 	pickup.set_meta("carriers", [] as Array)
+	_art_sprite(pickup, String(known.get("ground_art", "")) if not known.is_empty() else "",
+		db.tune_float("adventure_drop_art_scale", 2.0), 0.0, true)
 	pickup.draw.connect(_draw_pickup.bind(pickup))
 	_world.add_child(pickup)
 	_pickups.append(pickup)
@@ -600,6 +730,12 @@ func _drop_a_pickup() -> void:
 
 func _draw_pickup(on: Node2D) -> void:
 	var lit := not bool(on.get_meta("claimed", false))
+	# adventure-look: the item's isometric GROUND picture (Items.csv Ground
+	# Art), lying on the grass at adventure_drop_art_scale. Blank: a square.
+	var picture := on.get_node_or_null("Art") as Sprite2D
+	if picture != null:
+		picture.modulate = Color.WHITE if lit else Color(0.6, 0.6, 0.6, 0.7)
+		return
 	var tint := MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT_DIM
 	on.draw_rect(Rect2(Vector2(-9, -9), Vector2(18, 18)), tint.darkened(0.4), true)
 	on.draw_rect(Rect2(Vector2(-9, -9), Vector2(18, 18)), tint, false, 2.0)
@@ -614,7 +750,7 @@ func _carry_pickups(delta: float) -> void:
 			continue
 
 		# Off the left edge and never reached — it is gone.
-		if pickup.position.x < -120.0:
+		if pickup.position.x < _forget_x:
 			pickup.queue_free()
 			continue
 
@@ -683,14 +819,22 @@ func _settle_walkers() -> void:
 		var walker := _walkers[i]
 		if walker == null or not is_instance_valid(walker) or walker.fetching:
 			continue
+		walker.holding = current_state != RunState.RUNNING
 		if current_state == RunState.RUNNING:
 			walker.target = _slot_for(i)
 		else:
 			walker.target = _formation_slot(i)
 
 
-## Where the party stands to fight: a tighter block, further left.
+## Where the party stands to fight: a spot of their own (_plan_fight_spots),
+## or the old block when there is no plan.
 func _formation_slot(index: int) -> Vector2:
+	if index >= 0 and index < _fight_spots.size():
+		return _fight_spots[index]
+	return _formation_slot_flat(index)
+
+
+func _formation_slot_flat(index: int) -> Vector2:
 	var column := index / 4
 	var seat := index % 4
 	return Vector2(FORM_X - column * 72.0,
@@ -704,6 +848,7 @@ func _formation_slot(index: int) -> Vector2:
 func _begin_meeting() -> void:
 	current_state = RunState.MEETING
 	_meeting_clock = 0.0
+	_plan_fight_spots()
 
 	# DROP WHATEVER YOU WERE CHASING. A player half way to a pickup when a
 	# wave arrived used to keep walking towards it forever — the pickup was
@@ -746,18 +891,143 @@ func _spawn_wave() -> void:
 
 	for i in line_up.size():
 		var foe := Node2D.new()
-		foe.position = Vector2(SPAWN_X + i * 90.0,
+		foe.position = Vector2(_wave_x + i * 90.0,
 			LANE_TOP + LANE_HEIGHT * (0.16 + float(i % 3) * 0.30))
 		foe.set_meta("enemy", line_up[i])
 		foe.set_meta("home", Vector2(920.0 + (i / 3) * 96.0,
 			LANE_TOP + LANE_HEIGHT * (0.16 + float(i % 3) * 0.30)))
+		var boss_art := bool(line_up[i].get("boss", false))
+		_art_sprite(foe, String(line_up[i].get("art", "")),
+			db.tune_float("adventure_enemy_art_scale", 2.0) * (1.35 if boss_art else 1.0),
+			(26.0 if boss_art else 19.0) * 0.9)
 		foe.draw.connect(_draw_foe.bind(foe))
 		_world.add_child(foe)
+		if _iso != null:
+			# They come into view at the far end of the field: faded in, not
+			# popped in.
+			foe.modulate.a = 0.0
+			foe.create_tween().tween_property(foe, "modulate:a", 1.0, 0.35)
 		_foes.append(foe)
 
 	print("[adventure] Wave %d of %d — %d enemy(s)%s." % [
 		run.wave, run.waves(), line_up.size(),
 		"  (THE BOSS)" if boss_wave else ""])
+
+
+## ============ ROOM TO STAND FOR A FIGHT (adventure-look, Anthony) ============
+##
+## "Have them stand far enough from each other that they are not stacking
+## name plates or themselves." While the party runs, names may cross; once a
+## wave is met, every player gets a spot of their own.
+##
+## Each player takes up a box ON SCREEN: their figure above the feet and their
+## name plate below. The spots are handed out front and centre first, and a
+## spot is only taken if its box touches nobody else's. Nobody drifts while
+## they stand (the walker's `holding`), so the boxes stay clear.
+##
+## Tuning: adventure_stand_width, adventure_stand_above, adventure_stand_below
+## (the box), adventure_stand_gap (between boxes), adventure_stand_screen_top
+## and _bottom (the part of the screen the HUD leaves free).
+##
+## WHILE RUNNING the same is done with a smaller room (adventure_run_width,
+## adventure_run_below): the players never stand on each other, but their
+## names may cross, which is what Anthony asked for.
+var _fight_spots: Array[Vector2] = []
+var _run_spots: Array[Vector2] = []
+
+
+func _plan_fight_spots() -> void:
+	_fight_spots = _plan_spots(FORM_X,
+		db.tune_float("adventure_stand_width", 104.0),
+		db.tune_float("adventure_stand_below", 52.0),
+		db.tune_float("adventure_stand_gap", 6.0))
+
+
+func _plan_run_spots() -> void:
+	_run_spots = _plan_spots(PARTY_X,
+		db.tune_float("adventure_run_width", 70.0),
+		db.tune_float("adventure_run_below", 14.0),
+		db.tune_float("adventure_run_gap", 30.0))
+
+
+## Spots for the whole party around `centre_x`, so that no two players'
+## rooms (`wide` across, the figure above the feet, `below` under them,
+## `gap` between) touch on screen.
+func _plan_spots(centre_x: float, wide: float, below: float, gap: float) -> Array[Vector2]:
+	var result: Array[Vector2] = []
+	var count := _walkers.size()
+	if count == 0:
+		return result
+	var above := db.tune_float("adventure_stand_above", 104.0)
+	var screen := get_viewport().get_visible_rect().size
+	var top_free := db.tune_float("adventure_stand_screen_top", 140.0)
+	var bottom_free := screen.y - db.tune_float("adventure_stand_screen_bottom", 215.0)
+	var view := _iso.to_screen if _iso != null else Transform2D.IDENTITY
+	var room := Vector2(LANE_TOP + 40.0, LANE_BOTTOM - 40.0)
+	for walker in _walkers:
+		if is_instance_valid(walker):
+			room = walker.lane_room()
+			break
+
+	# Every spot on the grass in front of and behind the line, best first:
+	# near the front line and near the middle of the lane.
+	var middle := (room.x + room.y) * 0.5
+	var spots: Array = []
+	var x := centre_x + 500.0
+	while x >= centre_x - 1100.0:
+		var y := room.x
+		while y <= room.y:
+			spots.append(Vector2(x, y))
+			y += 12.0
+		x -= 12.0
+	spots.sort_custom(func(a, b):
+		return absf(a.x - centre_x) + absf(a.y - middle) * 0.6 \
+			< absf(b.x - centre_x) + absf(b.y - middle) * 0.6)
+
+	var taken: Array[Rect2] = []
+	for i in count:
+		var chosen := _formation_slot_flat(i) if centre_x == FORM_X else _slot_for_flat(i)
+		var found := false
+		for spot in spots:
+			var feet: Vector2 = view * (spot as Vector2)
+			var box := Rect2(feet.x - wide * 0.5, feet.y - above, wide, above + below)
+			if box.position.y < top_free or box.end.y > bottom_free \
+					or box.position.x < 8.0 or box.end.x > screen.x - 8.0:
+				continue
+			var clear := true
+			for other in taken:
+				if box.grow(gap * 0.5).intersects(other.grow(gap * 0.5)):
+					clear = false
+					break
+			if clear:
+				chosen = spot
+				taken.append(box)
+				found = true
+				break
+		if not found:
+			print("[adventure] No clear spot left for player %d - make adventure_stand_width / _gap smaller or the lane deeper." % (i + 1))
+		result.append(chosen)
+	return result
+
+
+## adventure-look: THE ISOMETRIC PICTURE of an enemy or a drop, as a child
+## Sprite2D called "Art". `feet` is how far below the node's spot its bottom
+## edge sits; `centred` puts it on the spot instead (a drop lying there).
+## A blank or missing picture adds nothing, and the old drawing is used.
+func _art_sprite(on: Node2D, art_name: String, zoom: float, feet: float,
+		centred: bool = false) -> void:
+	var art := MenuSupport.icon_texture(art_name)
+	if art == null:
+		return
+	var sprite := Sprite2D.new()
+	sprite.name = "Art"
+	sprite.texture = art
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.scale = Vector2(zoom, zoom)
+	sprite.centered = true
+	if not centred:
+		sprite.position = Vector2(0.0, feet - art.get_height() * zoom * 0.5)
+	on.add_child(sprite)
 
 
 func _draw_foe(on: Node2D) -> void:
@@ -769,8 +1039,17 @@ func _draw_foe(on: Node2D) -> void:
 	var size := 26.0 if boss else 19.0
 	var tint := Color(0.62, 0.28, 0.30) if boss else Color(0.45, 0.30, 0.36)
 
-	on.draw_circle(Vector2.ZERO, size, tint)
-	on.draw_arc(Vector2.ZERO, size, 0.0, TAU, 24, tint.lightened(0.35), 2.0, true)
+	# adventure-look: THE ISOMETRIC CREATURE when AdventureEnemies.csv Art
+	# names a picture that exists, standing with its feet on the spot and
+	# drawn adventure_enemy_art_scale times its own size (a boss bigger).
+	# No picture: the disc, as before.
+	if on.has_node("Art"):
+		# The picture is a Sprite2D child (see _art_sprite); only its
+		# shadow on the grass is drawn here.
+		on.draw_circle(Vector2(0.0, size * 0.55), size * 0.9, Color(0, 0, 0, 0.25))
+	else:
+		on.draw_circle(Vector2.ZERO, size, tint)
+		on.draw_arc(Vector2.ZERO, size, 0.0, TAU, 24, tint.lightened(0.35), 2.0, true)
 
 	# YOU PICK BY CLICKING THE THING ITSELF, so it has to show that it can be
 	# clicked and which one is chosen. A pale ring under the pointer, a solid
@@ -859,6 +1138,22 @@ func _run_encounter() -> void:
 		return
 	current_state = RunState.ENCOUNTER
 	_say("COMBAT")
+
+	# adventure-look: ANYBODY STILL WALKING IN gets to their place now. The
+	# walk-in has a time limit (adventure_meet_seconds); an enemy cut off by
+	# it used to stay half way and be fought out there.
+	var settle := create_tween().set_parallel(true)
+	var moved := false
+	for foe in _foes:
+		if is_instance_valid(foe) and foe.has_meta("home") \
+				and foe.position.distance_to(foe.get_meta("home")) > 6.0:
+			settle.tween_property(foe, "position", foe.get_meta("home") as Vector2, 0.35) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			moved = true
+	if moved:
+		await settle.finished
+	else:
+		settle.kill()
 
 	# Everything about the fight lives in adventure_encounter.gd. This scene
 	# only hands it the wave and waits to hear how it went.

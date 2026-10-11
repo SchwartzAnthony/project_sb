@@ -69,6 +69,16 @@ func play_maker_number() -> int:
 	return maxi(0, cycle - 1) * per + int(main.get("rounds_this_cycle"))
 
 
+## True when this Play Maker has a drinking lesson in it (a MatchTalk.csv row
+## for this mode and Round whose Do says drink_lesson), so every bag but the
+## one being taught is greyed. Tuning.csv tutorial_bags_shut_in_lessons.
+func lesson_this_play_maker() -> bool:
+	if not CardDatabase.get_db().tune_bool("tutorial_bags_shut_in_lessons", true):
+		return false
+	var mode: Dictionary = main.get("match_mode")
+	return MatchTalk.has_lesson(String(mode.get("id", "")), str(play_maker_number()))
+
+
 ## The coach stops the match here if MatchTalk.csv has a row for this moment.
 ## Await it to wait until he has finished (and the Do column has been done);
 ## call it without await and the match simply pauses underneath him.
@@ -113,6 +123,8 @@ func talk(event: String, facts: Dictionary = {}) -> void:
 			_busy = false
 			return
 
+	# A drinking lesson's card has its bag lit while he talks about it.
+	_open_lesson_bag(String(row.get("do", "")))
 	var box := MatchTalkBox.play(main, String(row["scene"]), state, true, groups)
 	if box != null:
 		main.set("_talk_box", box)
@@ -123,6 +135,19 @@ func talk(event: String, facts: Dictionary = {}) -> void:
 
 	await _do(String(row.get("do", "")))
 	_busy = false
+
+
+func _open_lesson_bag(do_text: String) -> void:
+	var at := do_text.find("drink_lesson:")
+	if at < 0:
+		return
+	var head := do_text.substr(at + 13).get_slice("=", 0).strip_edges()
+	var found := _controls_for("card:" + head)
+	if found.is_empty():
+		return
+	var target := found[0] as PlayerCardUI
+	main.set("bag_open_for", target.current_data)
+	target.set_bag_shut(false)
 
 
 ## A see-through sheet over everything that swallows clicks, up from the
@@ -195,6 +220,12 @@ func _controls_for(word: String) -> Array:
 		return []
 	if lower == "exhaust":
 		return [_exhaust_button]
+	# referee / referee:you / referee:them - the referee's bar (round AN).
+	if lower == "referee" or lower.begins_with("referee:"):
+		var bar = main.get("ref_bar")
+		if bar == null or not is_instance_valid(bar):
+			return []
+		return (bar as RefBar).spots(lower.substr(8) if lower.contains(":") else "")
 	# flask:first / flask:<name> - the bag button on that card (round AN).
 	if lower.begins_with("flask:"):
 		var on := _controls_for("card:" + word.substr(6))
@@ -412,6 +443,8 @@ func drink_lesson(spec: String) -> void:
 	var drinker := target.current_data
 
 	# Only his bag button works.
+	main.set("bag_open_for", drinker)
+	target.set_bag_shut(false)
 	_lock_all_but_flask(target)
 	var gold_layer := CanvasLayer.new()
 	gold_layer.name = "DrinkLessonGold"
@@ -451,6 +484,10 @@ func drink_lesson(spec: String) -> void:
 	main.disconnect("bag_opened", on_open)
 	gold_layer.queue_free()
 	main.set("bag_only", [])
+	# He has had his; his bag shuts with the rest.
+	main.set("bag_open_for", null)
+	if bool(main.get("bags_shut")) and is_instance_valid(target):
+		target.set_bag_shut(true)
 
 	# The drinking window, the match still frozen.
 	var tree := get_tree()

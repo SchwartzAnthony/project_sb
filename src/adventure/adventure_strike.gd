@@ -146,6 +146,24 @@ static func number(parent: Node2D, at: Vector2, text: String,
 	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	label.add_theme_constant_override("outline_size", 5)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# adventure-look: ON THE ISOMETRIC FIELD the number stands upright on a
+	# small holder at the spot, and floats straight up the screen.
+	if parent.has_meta("upright"):
+		var holder := Node2D.new()
+		var up: Transform2D = parent.get_meta("upright")
+		holder.transform = Transform2D(up.x, up.y, at)
+		holder.set_meta("float_on_top", true)
+		parent.add_child(holder)
+		label.position = Vector2(-20.0, -30.0)
+		holder.add_child(label)
+		var lift := label.create_tween()
+		lift.set_parallel(true)
+		lift.tween_property(label, "position", label.position + Vector2(0.0, -44.0), seconds)
+		lift.tween_property(label, "modulate:a", 0.0, seconds).set_delay(seconds * 0.45)
+		await lift.finished
+		if is_instance_valid(holder):
+			holder.queue_free()
+		return
 	parent.add_child(label)
 
 	var rise := label.create_tween()
