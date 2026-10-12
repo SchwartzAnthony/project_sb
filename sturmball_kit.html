@@ -180,7 +180,7 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
     <div class="lbl">Lines</div>
     <div class="legend" id="legend2"></div>
     <div class="lbl">How to</div>
-    <p class="hint"><b>Drag</b> a card to move it. <b>Drag</b> from the dot on a card's right edge onto another card to connect them; the builder tells you which CSV cell that writes. <b>Click</b> a line to remove it. <b>Play</b> runs a pretend season with the numbers on the right.</p>
+    <p class="hint"><b>Drag</b> a card to move it. <b>Drag</b> from the dot on a card's right edge onto another card to connect them; the builder tells you which CSV cell that writes. <b>Click</b> a card or line, then press <b>Delete</b> (or the red button) to remove it. <b>Play</b> runs a pretend season with the numbers on the right.</p>
   </aside>
   <section id="stage">
     <svg id="svg" aria-label="System board"><defs>
@@ -555,11 +555,26 @@ function inspect(){if(SELE)return inspectEdge(SELE);if(!SEL)return summary();con
   const io=(list,dir)=>list.map(e=>{const o=G.nodes.get(dir?e.to:e.from);return `<button class="lnk" data-go="${escA(o.id)}">${dir?"→":"←"} ${escH(o.label)} <i>${escH(e.label||ETYPES[e.type])}</i></button>`}).join("");
   if(n.ins.length)h+=`<div class="lbl" style="margin-top:16px">Comes from</div><div class="links">${io(n.ins,0)}</div>`;
   if(n.outs.length)h+=`<div class="lbl" style="margin-top:16px">Leads to</div><div class="links">${io(n.outs,1)}</div>`;
-  if(n.row&&["Achievements","Brews","Shop","Upgrades","Items"].includes(n.file))h+=`<div class="btnrow"><button class="btn bad" id="delRow">Delete this ${n.file=="Items"?"item":"row"}</button></div>`;
+  if(canDelete(n))h+=`<div class="btnrow"><button class="btn bad" id="delRow">Delete this card</button></div>`;
   R.innerHTML=h;
   R.querySelectorAll("[data-c]").forEach(inp=>inp.addEventListener("change",()=>{pushUndo();n.row[inp.dataset.c]=inp.value;changed(`${n.file}.csv ${n.row.ID}: ${inp.dataset.c} changed`)}));
   R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
-  const d=R.querySelector("#delRow");if(d)d.onclick=()=>{if(d.dataset.sure){pushUndo();FILES[n.file].rows=FILES[n.file].rows.filter(r=>r!==n.row);SEL=null;changed(`Deleted ${n.row.ID} from ${n.file}.csv`)}else{d.dataset.sure=1;d.textContent="Click again to delete"}}}
+  const d=R.querySelector("#delRow");if(d)d.onclick=()=>askDelete(n)}
+/* ---------- delete a card: its row goes, and every cell that pointed at it is cleaned ---------- */
+function canDelete(n){return !!n.row||n.kind=="unlock"}
+function refsTo(n){return n.ins.concat(n.outs).filter(e=>e.row&&e.row!==n.row)}
+function askDelete(n){if(!canDelete(n)){toast(n.kind=="stat"?"A score is counted by the game itself. Remove its lines instead.":"This card comes from game code, so there is nothing to delete.");return}
+  const old=$(".pop.del");if(old)old.remove();const refs=refsTo(n);const pop=document.createElement("div");pop.className="pop del";pop.style.right="12px";pop.style.top="56px";
+  const where=n.row?`its row in <b>${n.file}.csv</b>`:`the name <code>${escH(n.label)}</code>`;
+  pop.innerHTML=`<p><b>Delete ${escH(n.label)}?</b></p><p>This removes ${where}${refs.length?` and ${refs.length} line${refs.length>1?"s":""} that point${refs.length>1?"":"s"} to it in other rows`:""}. Undo brings it back.</p><div class="btnrow"><button class="btn bad" id="delYes">Delete</button><button class="btn ghost2" id="delNo">Keep it</button></div>`;
+  $("#stage").appendChild(pop);const y=pop.querySelector("#delYes");y.focus();
+  y.onclick=()=>{pop.remove();deleteNode(n)};pop.querySelector("#delNo").onclick=()=>pop.remove();
+  pop.addEventListener("keydown",e=>{if(e.key=="Escape")pop.remove()})}
+function deleteNode(n){pushUndo();
+  refsTo(n).forEach(e=>{if(e.whole)e.row[e.col]="";else delTok(e.row,e.col,e.token,e.sep)});
+  if(n.row){FILES[n.file].rows=FILES[n.file].rows.filter(r=>r!==n.row);
+    if(n.file=="Items"||n.file=="BreweryResources"){const id=n.row.ID;if(FILES.Drops)FILES.Drops.rows=FILES.Drops.rows.filter(d=>d.Item!==id)}}
+  SEL=null;SELE=null;changed(`Deleted ${n.label}`+(n.row?` from ${n.file}.csv`:""))}
 function inspectEdge(e){const a=G.nodes.get(e.from),b=G.nodes.get(e.to);
   let h=`<span class="kind" style="--k:var(--chalk-dim)">Line · ${ETYPES[e.type]}</span><h2>${escH(a.label)} → ${escH(b.label)}</h2>`;
   if(e.loot)h+=`<p class="hint">About <b>${escH(e.label.slice(1))}</b> per Adventure run, worked out from <b>Drops.csv</b> (table <code>${escH(e.table)}</code> plus the enemies of this place) and the run settings below.</p>`;
@@ -597,7 +612,9 @@ function rerun(){buildGraph();runSim();draw();inspect()}
 function updCount(){const n=changedFiles().length;const c=$("#chgCount");c.hidden=!n;c.textContent=n;$("#btnChanges").classList.toggle("hot",!!n)}
 let tt;function toast(m){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");$("#stage").appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,3200)}
 $("#btnUndo").onclick=undo;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key=="z"&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();undo()}
-  if(e.key=="Escape"){SEL=null;SELE=null;highlight();inspect()}});
+  if(e.key=="Escape"){SEL=null;SELE=null;highlight();inspect()}
+  if((e.key=="Delete"||e.key=="Backspace")&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)&&!$(".sheet")){
+    if(SELE){e.preventDefault();removeEdge(SELE)}else if(SEL){e.preventDefault();askDelete(G.nodes.get(SEL))}}});
 function undo(){const s=undoStack.pop();if(!s){toast("Nothing to undo");return}for(const n in s)FILES[n]=loadFile(n,s[n]);SEL=null;changed("Undone")}
 $("#btnLayout").onclick=()=>{POS[VIEW]={};lsSet(":pos",POS);draw();fit()};
 $("#btnChanges").onclick=()=>{const files=changedFiles();const sh=document.createElement("div");sh.className="sheet";
