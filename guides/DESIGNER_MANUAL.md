@@ -335,6 +335,10 @@ makers (brews, Merchant trades, upgrades, brewing machines), achievements,
 unlocks and buildings. Every card is a CSV row and every line is a CSV cell,
 so drawing a line writes the cell (it tells you which one first).
 
+It opens on **My board**, which starts empty: add new cards with the
+buttons on the left, or find a card the game already has and put it on your
+board. The **Examples** tabs show the whole game drawn out.
+
 Press **Play** and a pretend player plays day by day: cards light up on the
 day they open, and the right side lists dead ends (goals never reached,
 unlocks nothing hands out or nothing uses). Its numbers (win chance, runs a

@@ -55,6 +55,14 @@ aside{background:var(--slate-2);overflow:auto;min-width:0}
   repeating-linear-gradient(90deg, transparent 0 39px, #ffffff07 39px 40px), var(--slate);touch-action:none}
 #svg{width:100%;height:100%;display:block;cursor:grab}
 #svg.panning{cursor:grabbing}
+.empty{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));border:1px dashed var(--chalk-faint);border-radius:4px;padding:18px 20px;background:#18211dd9;color:var(--chalk-dim);font-size:14px;pointer-events:none}
+.empty h2{font:600 26px/1.1 var(--display);color:var(--beer);margin:0 0 8px}
+.empty p{margin:0 0 8px}.empty b{color:var(--chalk);font-weight:600}
+.tabsep{font:600 11px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:var(--chalk-faint);align-self:center;margin:0 4px 0 12px}
+#results{display:grid;gap:2px;margin-top:4px}
+#results button{display:flex;align-items:center;gap:6px;background:none;border:none;padding:4px 2px;text-align:left;font-size:13px;color:var(--chalk-dim)}
+#results button:hover{color:var(--chalk)}
+#results i{white-space:nowrap;font-style:normal;margin-left:auto;color:var(--beer);font:600 12px var(--ui)}
 .zoombar{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:4px}
 .zoombar button{width:32px;height:32px;background:var(--slate-2);border:1px solid var(--line);border-radius:3px;font-size:16px}
 .toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:var(--chalk);color:var(--slate);padding:8px 14px;border-radius:3px;font-weight:500;max-width:80%;box-shadow:0 6px 20px #0008}
@@ -171,7 +179,7 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
 <main>
   <aside id="left">
     <div class="lbl">Find a card</div>
-    <input id="search" type="search" placeholder="Brewery, reed, Treble…" autocomplete="off">
+    <input id="search" type="search" placeholder="Brewery, reed, Treble…" autocomplete="off"><div id="results"></div>
     <div class="lbl">Add to the board</div>
     <div id="adds"></div>
     <div class="lbl">Card shapes</div>
@@ -185,6 +193,7 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
     <svg id="svg" aria-label="System board"><defs>
       <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9z" fill="context-stroke"/></marker>
     </defs><g id="world"><g id="gEdges"></g><g id="gLabels"></g><g id="gNodes"></g><path id="ghost" class="ghost" d=""/></g></svg>
+    <div id="empty" class="empty" hidden><h2>Your board is empty</h2><p>Build your system here, one card at a time.</p><p><b>Add a new card</b> with the buttons on the left (a match mode, an Adventure place, an achievement…), or <b>find one the game already has</b> in "Find a card" and put it on your board.</p><p>When two cards on your board are already joined in the game's sheets, the line shows up by itself. Drag from a card's right-hand dot to draw new lines.</p><p class="hint">Not sure where to start? The <b>Examples</b> tabs show the whole game as I drew it.</p></div>
     <div class="zoombar"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Fit the board" title="Fit">⤢</button></div>
   </section>
   <aside id="right"></aside>
@@ -240,10 +249,11 @@ const KINDS={
   place:{label:"Building",desc:"A building on the base",color:"var(--chalk)",glyph:"house"}};
 const ETYPES={flow:"gives / makes",cost:"costs",unlock:"unlocks / needs it unlocked",reads:"checks a number",game:"counted by the game itself"};
 const VIEWS=[
-  {id:"all",name:"Whole game"},
-  {id:"path",name:"Unlock path",kinds:["play","adventure","stat","goal","unlock","place","maker"],makers:["upgrade"]},
-  {id:"loot",name:"Loot & money",kinds:["play","adventure","money","stuff","maker"],makers:["brew","shop","upgrade"]},
-  {id:"brewery",name:"Brewery",kinds:["stuff","maker","money"],makers:["brew","section","shop"]},
+  {id:"mine",name:"My board"},
+  {id:"all",name:"Whole game",ex:true},
+  {id:"path",name:"Unlock path",ex:true,kinds:["play","adventure","stat","goal","unlock","place","maker"],makers:["upgrade"]},
+  {id:"loot",name:"Loot & money",ex:true,kinds:["play","adventure","money","stuff","maker"],makers:["brew","shop","upgrade"]},
+  {id:"brewery",name:"Brewery",ex:true,kinds:["stuff","maker","money"],makers:["brew","section","shop"]},
   {id:"tables",name:"Tables"}];
 const MATCH_STATS=["matches_played","matches_won","goals","goals_by_star","clean_sheets","keeper_emptied","red_cards","goals_with_brew_fire"];
 const HIDDEN_MODES=["adventure","intro","intro2","intro_adventure","tutorial","tutorial_adventure","friendly_test","friendly_cycle"];
@@ -410,8 +420,11 @@ function nodeOpen(n,st,day){const r=n.row;switch(n.mk||n.kind){
 
 /* ---------- layout ---------- */
 const W=184,H=42,COLW=250,ROWH=58;
-let VIEW=lsGet(":view")||"path";let POS=lsGet(":pos")||{};
-function viewNodes(){const v=VIEWS.find(x=>x.id==VIEW)||VIEWS[0];const ids=new Set();
+let VIEW=lsGet(":view2")||"mine";let MINE=lsGet(":mine")||[];
+function saveMine(){lsSet(":mine",MINE)}
+function addMine(id,quiet){if(!MINE.includes(id)){MINE.push(id);saveMine()}if(VIEW!=="mine"){if(!quiet)toast(G.nodes.get(id).label+" is on My board");return}draw();goTo(id)}
+function dropMine(id){MINE=MINE.filter(x=>x!==id);saveMine();if(POS.mine)delete POS.mine[id];lsSet(":pos",POS);if(SEL===id)SEL=null;draw();inspect()}let POS=lsGet(":pos")||{};
+function viewNodes(){if(VIEW=="mine")return new Set(MINE.filter(id=>G.nodes.has(id)));const v=VIEWS.find(x=>x.id==VIEW)||VIEWS[0];const ids=new Set();
   G.nodes.forEach(n=>{if(!v.kinds)return ids.add(n.id);if(!v.kinds.includes(n.kind))return;if(n.kind=="maker"&&v.makers&&!v.makers.includes(n.mk))return;ids.add(n.id)});
   if(v.id=="brewery"){ // only stuff and unlocks that touch a brewery maker
     const keep=new Set();ids.forEach(id=>{const n=G.nodes.get(id);if(n.kind=="maker")keep.add(id)});
@@ -433,6 +446,9 @@ function autoLayout(ids){const rank={};const inV=e=>ids.has(e.from)&&ids.has(e.t
   Object.keys(cols).forEach(c=>{const list=cols[c];const off=(maxLen-list.length)*ROWH/2;list.forEach((id,i)=>out[id]={x:c*COLW,y:off+i*ROWH})});
   return out}
 function positions(ids){const p=POS[VIEW]=POS[VIEW]||{};const missing=[...ids].filter(id=>!p[id]);
+  if(VIEW=="mine"){const r=svg.getBoundingClientRect();const cx=(r.width/2-cam.x)/cam.k-W/2,cy=(r.height/2-cam.y)/cam.k-H/2;
+    missing.forEach((id,i)=>{let x=cx,y=cy,k=0;while(Object.values(p).some(q=>Math.abs(q.x-x)<W&&Math.abs(q.y-y)<H+6)&&k<40){y+=ROWH;k++;if(k%8==0){x+=COLW;y=cy}}p[id]={x:Math.round(x/10)*10,y:Math.round(y/10)*10}});
+    if(missing.length)lsSet(":pos",POS);return p}
   if(missing.length===ids.size||!Object.keys(p).length){Object.assign(p,autoLayout(ids))}
   else if(missing.length){const a=autoLayout(ids);let maxY=Math.max(0,...Object.values(p).map(v=>v.y));missing.forEach((id,i)=>p[id]={x:a[id].x,y:maxY+ROWH*(i+2)})}
   return p}
@@ -469,7 +485,8 @@ function draw(){IDS=viewNodes();P=positions(IDS);
     const port=el("circle",{class:"port",cx:W,cy:H/2,r:6},g);
     g.addEventListener("pointerdown",ev=>startNodeDrag(ev,n,ev.target===port));
     const ti=el("title",{},g);ti.textContent=n.label+" — "+k.label});
-  applyCam();paintDay();highlight()}
+  applyCam();paintDay();highlight();
+  $("#empty").hidden=!(VIEW=="mine"&&IDS.size===0);if(SIM)marks()}
 function applyCam(){world.setAttribute("transform",`translate(${cam.x},${cam.y}) scale(${cam.k})`);lsSet(":cam",cam)}
 function paintDay(){if(!SIM)return;const s=SIM.days[Math.min(DAY,SIM.days.length-1)];
   IDS.forEach(id=>{const n=G.nodes.get(id);const f=SIM.first[id];const on=f!=null&&f<=DAY;n._g.classList.toggle("open",on);n._g.classList.toggle("locked",!on);
@@ -556,20 +573,21 @@ function inspect(){if(SELE)return inspectEdge(SELE);if(!SEL)return summary();con
   const io=(list,dir)=>list.map(e=>{const o=G.nodes.get(dir?e.to:e.from);return `<button class="lnk" data-go="${escA(o.id)}">${dir?"→":"←"} ${escH(o.label)} <i>${escH(e.label||ETYPES[e.type])}</i></button>`}).join("");
   if(n.ins.length)h+=`<div class="lbl" style="margin-top:16px">Comes from</div><div class="links">${io(n.ins,0)}</div>`;
   if(n.outs.length)h+=`<div class="lbl" style="margin-top:16px">Leads to</div><div class="links">${io(n.outs,1)}</div>`;
-  if(canDelete(n))h+=`<div class="btnrow"><button class="btn bad" id="delRow">Delete this card</button></div>`;
+  h+=`<div class="btnrow">${MINE.includes(n.id)?`<button class="btn ghost2" id="mineBtn">Take off my board</button>`:`<button class="btn" id="mineBtn">Put on my board</button>`}${canDelete(n)?`<button class="btn bad" id="delRow">Delete this card</button>`:""}</div>`;
   R.innerHTML=h;
   R.querySelectorAll("[data-c]").forEach(inp=>inp.addEventListener("change",()=>{pushUndo();n.row[inp.dataset.c]=inp.value;changed(`${n.file}.csv ${n.row.ID}: ${inp.dataset.c} changed`)}));
   R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
-  const d=R.querySelector("#delRow");if(d)d.onclick=()=>askDelete(n)}
+  const d=R.querySelector("#delRow");if(d)d.onclick=()=>askDelete(n);
+  R.querySelector("#mineBtn").onclick=()=>{if(MINE.includes(n.id))dropMine(n.id);else{addMine(n.id);inspect()}}}
 /* ---------- delete a card: its row goes, and every cell that pointed at it is cleaned ---------- */
 function canDelete(n){return !!n.row||n.kind=="unlock"}
 function refsTo(n){return n.ins.concat(n.outs).filter(e=>e.row&&e.row!==n.row)}
-function askDelete(n){if(!canDelete(n)){toast(n.kind=="stat"?"A score is counted by the game itself. Remove its lines instead.":"This card comes from game code, so there is nothing to delete.");return}
+function askDelete(n){if(!canDelete(n)&&VIEW=="mine"){dropMine(n.id);return}if(!canDelete(n)){toast(n.kind=="stat"?"A score is counted by the game itself. Remove its lines instead.":"This card comes from game code, so there is nothing to delete.");return}
   const old=$(".pop.del");if(old)old.remove();const refs=refsTo(n);const pop=document.createElement("div");pop.className="pop del";pop.style.right="12px";pop.style.top="56px";
   const where=n.row?`its row in <b>${n.file}.csv</b>`:`the name <code>${escH(n.label)}</code>`;
-  pop.innerHTML=`<p><b>Delete ${escH(n.label)}?</b></p><p>This removes ${where}${refs.length?` and ${refs.length} line${refs.length>1?"s":""} that point${refs.length>1?"":"s"} to it in other rows`:""}. Undo brings it back.</p><div class="btnrow"><button class="btn bad" id="delYes">Delete</button><button class="btn ghost2" id="delNo">Keep it</button></div>`;
+  pop.innerHTML=`<p><b>Delete ${escH(n.label)}?</b></p><p>This removes ${where}${refs.length?` and ${refs.length} line${refs.length>1?"s":""} that point${refs.length>1?"":"s"} to it in other rows`:""}. Undo brings it back.</p><div class="btnrow"><button class="btn bad" id="delYes">Delete</button>${VIEW=="mine"?`<button class="btn ghost2" id="delOff">Only take it off my board</button>`:""}<button class="btn ghost2" id="delNo">Keep it</button></div>`;
   $("#stage").appendChild(pop);const y=pop.querySelector("#delYes");y.focus();
-  y.onclick=()=>{pop.remove();deleteNode(n)};pop.querySelector("#delNo").onclick=()=>pop.remove();
+  y.onclick=()=>{pop.remove();deleteNode(n)};const off=pop.querySelector("#delOff");if(off)off.onclick=()=>{pop.remove();dropMine(n.id)};pop.querySelector("#delNo").onclick=()=>pop.remove();
   pop.addEventListener("keydown",e=>{if(e.key=="Escape")pop.remove()})}
 function deleteNode(n){pushUndo();
   refsTo(n).forEach(e=>{if(e.whole)e.row[e.col]="";else delTok(e.row,e.col,e.token,e.sep)});
@@ -583,12 +601,13 @@ function inspectEdge(e){const a=G.nodes.get(e.from),b=G.nodes.get(e.to);
   else h+=`<p class="hint">This one comes from the game itself (every match counts goals, wins and so on), so there is no CSV cell to change.</p>`;
   R.innerHTML=h;const d=R.querySelector("#delE");if(d)d.onclick=()=>removeEdge(e)}
 function summary(){if(!SIM){R.innerHTML="";return}
-  const big=SIM.ev.filter(e=>e.big||e.t.endsWith(" unlocked")||e.t.endsWith(" beaten"));
-  let h=`<span class="kind" style="--k:var(--beer)">Pretend season</span><h2>What opens when</h2><p class="hint">The game played ${SIM_SET.days} days with the numbers below. Click a line to find the card.</p><ul class="list">`;
+  const mine=VIEW=="mine";const onB=id=>!mine||MINE.includes(id);
+  const big=SIM.ev.filter(e=>(e.big||e.t.endsWith(" unlocked")||e.t.endsWith(" beaten")||mine&&e.goal)&&onB(e.node));
+  let h=`<span class="kind" style="--k:var(--beer)">Pretend season</span><h2>What opens when</h2><p class="hint">${mine&&!MINE.length?"Once cards are on your board, this lists the day each one opens when a pretend player plays the game.":`The game played ${SIM_SET.days} days with the numbers below.${mine?" Only cards on your board are listed.":""} Click a line to find the card.`}</p><ul class="list">`;
   big.slice(0,40).forEach(e=>h+=`<li><span class="d">day ${e.day}</span><button class="lnk" data-go="${escA(e.node)}">${escH(e.t)}${e.why?` <i>${escH(e.why)}</i>`:""}</button></li>`);h+="</ul>";
   // dead ends
   const neverUsed=[],neverOn=[],noSource=[];
-  G.nodes.forEach(n=>{if(n.kind=="unlock"){if(!n.ins.length)noSource.push(n);else if(!n.outs.length)neverUsed.push(n)}
+  G.nodes.forEach(n=>{if(!onB(n.id))return;if(n.kind=="unlock"){if(!n.ins.length)noSource.push(n);else if(!n.outs.length)neverUsed.push(n)}
     if((n.kind=="place"||n.mk=="ach")&&SIM.first[n.id]==null)neverOn.push(n)});
   const chips=l=>l.map(n=>`<button class="lnk" data-go="${escA(n.id)}">${escH(n.label)}</button>`).join(", ");
   if(neverOn.length)h+=`<div class="warn"><b>Never reached in ${SIM_SET.days} days:</b> ${chips(neverOn)}</div>`;
@@ -601,7 +620,7 @@ function summary(){if(!SIM){R.innerHTML="";return}
   R.innerHTML=h;R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
   R.querySelectorAll("[data-k]").forEach(i=>i.addEventListener("change",()=>{SIM_SET[i.dataset.k]=i.type=="checkbox"?i.checked:i.tagName=="SELECT"?i.value:+i.value;lsSet(":sim",SIM_SET);rerun()}));
   $("#simReset").onclick=()=>{Object.assign(SIM_SET,SIM_DEF);lsSet(":sim",SIM_SET);rerun()}}
-function goTo(id){if(!IDS.has(id)){VIEW="all";lsSet(":view",VIEW);renderTabs();draw()}if(!IDS.has(id))return;
+function goTo(id){if(!IDS.has(id)&&VIEW!="mine"){VIEW="all";lsSet(":view2",VIEW);renderTabs();draw()}if(!IDS.has(id))return;
   SEL=id;SELE=null;const p=P[id],r=svg.getBoundingClientRect();cam.k=Math.max(cam.k,0.9);cam.x=r.width/2-(p.x+W/2)*cam.k;cam.y=r.height/2-(p.y+H/2)*cam.k;applyCam();highlight();inspect();
   if(SIM&&SIM.first[id]!=null){DAY=SIM.first[id];paintDay()}}
 function selectEdge(e){SELE=e;SEL=null;highlight();inspect()}
@@ -648,6 +667,8 @@ function askName(a){const pop=document.createElement("div");pop.className="pop";
   const go=()=>{const name=inp.value.trim();if(!name)return inp.focus();let id=name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ß/g,"ss").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
     while(F(a.file).some(r=>r.ID==id))id+="_2";pushUndo();const row=Object.assign(blank(a.file),a.make(id,name));FILES[a.file].rows.push(row);pop.remove();
     const pre={MatchModes:"mode:",Biomes:"biome:",Achievements:"ach:",Brews:"brew:",Shop:"shop:",Upgrades:"upg:",Items:"res:"}[a.file]+id;
+    if(!MINE.includes(pre)){MINE.push(pre);saveMine()}
+    if(VIEW=="mine"){changed(`Added ${name} to ${a.file}.csv`);if(G.nodes.has(pre))goTo(pre);return}
     changed(`Added ${name} to ${a.file}.csv`);
     if(!IDS.has(pre)&&G.nodes.has(pre)){VIEW="all";renderTabs();draw()}
     if(G.nodes.has(pre)&&P[pre]){const r=svg.getBoundingClientRect();P[pre].x=Math.round(((r.width/2-cam.x)/cam.k)/10)*10;P[pre].y=Math.round(((r.height/2-cam.y)/cam.k)/10)*10;lsSet(":pos",POS);draw();goTo(pre)}};
@@ -664,10 +685,10 @@ function tables(){let sh=$("#tblSheet");if(sh)sh.remove();sh=document.createElem
 const SRC_COUNT=/*__COUNT__*/132;
 
 /* ---------- tabs, legend, playback ---------- */
-function renderTabs(){$("#tabs").innerHTML=VIEWS.map(v=>`<button class="tab" role="tab" aria-selected="${v.id==VIEW}" data-v="${v.id}">${v.name}</button>`).join("");
+function renderTabs(){let seen=false;$("#tabs").innerHTML=VIEWS.map(v=>{let pre="";if(v.ex&&!seen){seen=true;pre=`<span class="tabsep">Examples</span>`}if(v.id=="tables")pre=`<span class="tabsep"></span>`;return pre+`<button class="tab" role="tab" aria-selected="${v.id==VIEW}" data-v="${v.id}">${v.name}</button>`}).join("");
   $("#tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{const v=b.dataset.v;const t=$("#tblSheet");if(t)t.remove();
     if(v=="tables"){VIEW_T=true;tables();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
-    const first=!POS[v];VIEW=v;lsSet(":view",v);SEL=null;SELE=null;renderTabs();draw();inspect();if(first)fit()})}
+    const first=!POS[v]&&v!="mine";VIEW=v;lsSet(":view2",v);SEL=null;SELE=null;renderTabs();draw();inspect();if(first)fit()})}
 let VIEW_T=false;
 function renderLegend(){$("#legend").innerHTML="";Object.entries(KINDS).forEach(([k,v])=>{const d=document.createElement("div");d.title=v.desc;
   const s=document.createElementNS(NS,"svg");s.setAttribute("width",22);s.setAttribute("height",22);glyph(s,k,11,11,v.color);d.appendChild(s);d.append(v.label);$("#legend").appendChild(d)});
@@ -676,9 +697,13 @@ let timer=null;$("#play").onclick=()=>{if(timer){clearInterval(timer);timer=null
   if(DAY>=SIM_SET.days)DAY=0;$("#play").textContent="❚❚";timer=setInterval(()=>{DAY++;paintDay();if(DAY>=SIM_SET.days){clearInterval(timer);timer=null;$("#play").textContent="▶"}},450)};
 $("#day").addEventListener("input",e=>{DAY=+e.target.value;paintDay()});
 function marks(){$("#day").max=SIM_SET.days;DAY=Math.min(DAY,SIM_SET.days);const m=$("#marks");m.innerHTML="";
-  SIM.ev.filter(e=>e.big||e.goal).forEach(e=>{const s=document.createElement("span");s.style.left=(e.day/SIM_SET.days*100)+"%";s.dataset.t="Day "+e.day+": "+e.t;s.onclick=()=>goTo(e.node);m.appendChild(s)})}
-$("#search").addEventListener("input",e=>{const q=e.target.value.trim().toLowerCase();if(q.length<2)return;
-  const hit=[...G.nodes.values()].find(n=>n.label.toLowerCase().includes(q)&&IDS.has(n.id))||[...G.nodes.values()].find(n=>n.label.toLowerCase().includes(q)||(n.sub||"").toLowerCase().includes(q));if(hit)goTo(hit.id)});
+  SIM.ev.filter(e=>(e.big||e.goal)&&(VIEW!="mine"||MINE.includes(e.node))).forEach(e=>{const s=document.createElement("span");s.style.left=(e.day/SIM_SET.days*100)+"%";s.dataset.t="Day "+e.day+": "+e.t;s.onclick=()=>goTo(e.node);m.appendChild(s)})}
+$("#search").addEventListener("input",e=>{const q=e.target.value.trim().toLowerCase();const box=$("#results");box.innerHTML="";if(q.length<2)return;
+  const hits=[...G.nodes.values()].filter(n=>n.label.toLowerCase().includes(q)||(n.sub||"").toLowerCase().includes(q)).slice(0,10);
+  if(!hits.length){box.innerHTML=`<span class="hint">Nothing called that yet. Add it with the buttons below.</span>`;return}
+  hits.forEach(n=>{const b=document.createElement("button");const s=document.createElementNS(NS,"svg");s.setAttribute("width",18);s.setAttribute("height",18);s.setAttribute("viewBox","0 0 22 22");glyph(s,n.kind,11,11,KINDS[n.kind].color);b.appendChild(s);
+    b.append(n.label);const i=document.createElement("i");i.textContent=VIEW=="mine"?(MINE.includes(n.id)?"on board":"+ add"):"show";b.appendChild(i);
+    b.onclick=()=>{if(VIEW=="mine"){addMine(n.id);e.target.dispatchEvent(new Event("input"))}else goTo(n.id)};box.appendChild(b)})});
 const _runSim=runSim;runSim=function(){_runSim();marks()};
 
 buildGraph();runSim();renderTabs();renderLegend();renderAdds();draw();inspect();updCount();
