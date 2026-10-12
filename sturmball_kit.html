@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<title>Sturmball System Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@600&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: a coach's slate tactics board. Canvas fills the screen, chalk nodes on green-black slate,
+   palette on the left, the selected card's CSV row on the right, the season playback along the bottom.
+   Deliberately one dark look (a chalkboard), in every viewer theme. */
+:root{
+  --slate:#18211d; --slate-2:#1f2a25; --slate-3:#2a3731; --line:#3a4a42;
+  --chalk:#ebe6d6; --chalk-dim:#a1ab9f; --chalk-faint:#6c776f;
+  --beer:#e6ad3c; --beer-soft:#e6ad3c33; --hops:#94c26c; --sky:#86b7d8; --clay:#d98a5c; --brick:#e0674f;
+  --display:"Grenze Gotisch","UnifrakturMaguntia",Georgia,serif;
+  --ui:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --cond:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--slate);color:var(--chalk);font:14px/1.4 var(--ui);overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--beer);outline-offset:2px}
+
+#app{display:grid;grid-template-rows:auto 1fr auto;height:100%}
+header{display:flex;align-items:center;gap:14px;padding:8px 16px;border-bottom:1px solid var(--line);background:var(--slate-2);flex-wrap:wrap}
+header h1{font:600 26px/1 var(--display);margin:0;color:var(--beer);letter-spacing:.5px;white-space:nowrap}
+.tabs{display:flex;gap:2px;flex-wrap:wrap}
+.tab{background:none;border:1px solid transparent;border-radius:3px;padding:5px 10px;color:var(--chalk-dim);font:500 14px var(--cond);letter-spacing:.06em;text-transform:uppercase}
+.tab:hover{color:var(--chalk)}
+.tab[aria-selected="true"]{color:var(--slate);background:var(--chalk)}
+.spacer{flex:1}
+.hbtn{background:var(--slate-3);border:1px solid var(--line);border-radius:3px;padding:5px 11px;font:500 13px var(--cond);letter-spacing:.05em;text-transform:uppercase}
+.hbtn:hover{border-color:var(--chalk-dim)}
+.hbtn.hot{border-color:var(--beer);color:var(--beer)}
+.count{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--beer);color:var(--slate);font:600 11px/16px var(--ui);text-align:center}
+
+main{position:relative;display:grid;grid-template-columns:200px 1fr 320px;min-height:0}
+aside{background:var(--slate-2);overflow:auto;min-width:0}
+#left{border-right:1px solid var(--line);padding:12px}
+#right{border-left:1px solid var(--line);padding:14px}
+.lbl{font:600 11px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:var(--chalk-faint);margin:14px 0 6px}
+.lbl:first-child{margin-top:0}
+.legend{display:grid;gap:5px}
+.legend div{display:flex;align-items:center;gap:8px;color:var(--chalk-dim);font-size:13px}
+.legend svg{flex:none}
+.addbtn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:1px dashed var(--line);border-radius:3px;padding:6px 8px;margin-bottom:5px;color:var(--chalk-dim)}
+.addbtn:hover{border-color:var(--beer);color:var(--chalk)}
+.hint{color:var(--chalk-faint);font-size:12.5px;line-height:1.45}
+.hint b{color:var(--chalk-dim);font-weight:600}
+#search{width:100%;box-sizing:border-box;background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:6px 8px}
+
+#stage{position:relative;overflow:hidden;background:
+  radial-gradient(circle at 30% 20%, #ffffff06, transparent 60%),
+  repeating-linear-gradient(0deg, transparent 0 39px, #ffffff07 39px 40px),
+  repeating-linear-gradient(90deg, transparent 0 39px, #ffffff07 39px 40px), var(--slate);touch-action:none}
+#svg{width:100%;height:100%;display:block;cursor:grab}
+#svg.panning{cursor:grabbing}
+.zoombar{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:4px}
+.zoombar button{width:32px;height:32px;background:var(--slate-2);border:1px solid var(--line);border-radius:3px;font-size:16px}
+.toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:var(--chalk);color:var(--slate);padding:8px 14px;border-radius:3px;font-weight:500;max-width:80%;box-shadow:0 6px 20px #0008}
+
+/* nodes */
+.node{cursor:pointer}
+.node .box{fill:var(--slate-2);stroke:var(--line);stroke-width:1.2}
+.node .name{fill:var(--chalk);font:500 13px var(--cond);letter-spacing:.02em}
+.node .sub{fill:var(--chalk-faint);font:10.5px var(--mono)}
+.node .val{fill:var(--slate);font:600 11px var(--ui);text-anchor:middle}
+.node .day{font:600 10px var(--ui);text-anchor:end}
+.node.open .box{stroke:var(--k);stroke-width:1.6}
+.node.locked{opacity:.5}
+.node.locked .box{stroke-dasharray:4 3}
+.node.sel .box{stroke:var(--chalk);stroke-width:2.4}
+.node .port{fill:var(--slate);stroke:var(--chalk-dim);stroke-width:1.2;opacity:0;cursor:crosshair}
+.node:hover .port,.node.sel .port{opacity:1}
+.node .port:hover{fill:var(--beer);stroke:var(--beer)}
+.dim .node:not(.near){opacity:.18}
+.dim .edge:not(.near){opacity:.07}
+.dim .elabel:not(.near){display:none}
+/* edges */
+.edge{fill:none;stroke-width:1.4;cursor:pointer}
+.edge.flow{stroke:#ebe6d6aa}
+.edge.cost{stroke:#d98a5cbb}
+.edge.unlock{stroke:#e6ad3ccc;stroke-dasharray:6 4}
+.edge.reads{stroke:#86b7d888;stroke-dasharray:2 4}
+.edge.game{stroke:#a1ab9f55;stroke-dasharray:1 5}
+.edge.sel{stroke-width:3}
+.edge.live.flow,.edge.live.cost{stroke-dasharray:3 9;animation:run 1s linear infinite}
+@keyframes run{to{stroke-dashoffset:-24}}
+@media (prefers-reduced-motion:reduce){.edge.live.flow,.edge.live.cost{animation:none;stroke-dasharray:none}}
+.hit{fill:none;stroke:transparent;stroke-width:10;cursor:pointer}
+.elabel{font:600 10.5px var(--ui);fill:var(--chalk);paint-order:stroke;stroke:var(--slate);stroke-width:4px;stroke-linejoin:round;pointer-events:none}
+.ghost{fill:none;stroke:var(--beer);stroke-width:2;stroke-dasharray:5 4;pointer-events:none}
+
+/* inspector */
+.kind{display:inline-flex;align-items:center;gap:6px;font:600 12px var(--cond);letter-spacing:.1em;text-transform:uppercase;color:var(--k)}
+#right h2{font:600 24px/1.1 var(--cond);margin:4px 0 2px;text-wrap:balance}
+.where{font:12px var(--mono);color:var(--chalk-faint);word-break:break-all}
+.state{display:inline-block;margin-top:8px;padding:2px 8px;border-radius:10px;font:600 12px var(--ui)}
+.state.ok{background:#94c26c26;color:var(--hops)}
+.state.no{background:#e0674f26;color:var(--brick)}
+.field{display:grid;gap:3px;margin-top:9px}
+.field label{font:600 11px var(--cond);letter-spacing:.1em;text-transform:uppercase;color:var(--chalk-faint)}
+.field input,.field textarea{background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:5px 7px;font:12.5px var(--mono);width:100%;box-sizing:border-box;resize:vertical}
+.field input:focus,.field textarea:focus{border-color:var(--beer);outline:none}
+.links{display:grid;gap:4px;margin-top:6px}
+.lnk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--chalk-dim);background:none;border:none;padding:2px 0;text-align:left}
+.lnk:hover{color:var(--chalk)}
+.lnk i{font-style:normal;font:11px var(--mono);color:var(--chalk-faint)}
+.list{margin:4px 0 0;padding:0;list-style:none;display:grid;gap:3px}
+.list li{display:grid;grid-template-columns:52px 1fr;gap:6px;font-size:13px;align-items:baseline}
+.list .d{font:600 12px var(--ui);color:var(--beer);font-variant-numeric:tabular-nums}
+.warn{border-left:3px solid var(--brick);padding:6px 9px;background:#e0674f14;margin-top:6px;font-size:13px;color:var(--chalk-dim)}
+.warn b{color:var(--chalk);font-weight:600}
+.sim{display:grid;grid-template-columns:1fr 64px;gap:6px 8px;align-items:center;font-size:13px;color:var(--chalk-dim)}
+.sim input[type=number]{background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:3px 5px;width:100%;box-sizing:border-box;font-variant-numeric:tabular-nums}
+.sim input[type=checkbox]{justify-self:start;accent-color:var(--beer)}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.btn{background:var(--chalk);color:var(--slate);border:none;border-radius:3px;padding:6px 12px;font:600 13px var(--cond);letter-spacing:.05em;text-transform:uppercase}
+.btn.ghost2{background:none;color:var(--chalk);border:1px solid var(--line)}
+.btn.bad{background:none;color:var(--brick);border:1px solid #e0674f66}
+
+/* playback bar */
+footer{display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;gap:12px;padding:8px 16px;border-top:1px solid var(--line);background:var(--slate-2)}
+#play{width:36px;height:36px;border-radius:50%;background:var(--beer);color:var(--slate);border:none;font-size:15px}
+#dayl{font:600 18px var(--cond);white-space:nowrap;font-variant-numeric:tabular-nums;min-width:74px}
+.track{position:relative;height:38px;min-width:0}
+#day{position:absolute;left:0;right:0;bottom:0;width:100%;margin:0;accent-color:var(--beer)}
+#marks{position:absolute;left:8px;right:8px;top:0;height:20px}
+#marks span{position:absolute;top:0;width:2px;height:14px;background:var(--beer);transform:translateX(-1px);cursor:pointer}
+#marks span:hover::after{content:attr(data-t);position:absolute;bottom:16px;left:0;white-space:nowrap;background:var(--chalk);color:var(--slate);font:600 11px var(--ui);padding:2px 6px;border-radius:2px}
+#pools{display:flex;gap:10px;font:600 13px var(--ui);font-variant-numeric:tabular-nums;color:var(--chalk-dim);white-space:nowrap}
+#pools b{color:var(--beer)}
+
+/* overlays */
+.sheet{position:absolute;inset:0;background:var(--slate);z-index:5;display:flex;flex-direction:column;min-height:0}
+.sheet .bar{display:flex;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.sheet .body{overflow:auto;padding:12px 16px;min-height:0;flex:1}
+table.grid{border-collapse:collapse;font:12.5px var(--mono)}
+table.grid th{position:sticky;top:0;background:var(--slate-3);text-align:left;padding:5px 8px;font:600 12px var(--cond);letter-spacing:.06em;color:var(--chalk-dim);white-space:nowrap}
+table.grid td{border-top:1px solid var(--line);padding:0}
+table.grid td input{background:none;border:none;padding:5px 8px;width:100%;min-width:90px;box-sizing:border-box;font:inherit}
+table.grid td input:focus{background:var(--slate-3);outline:1px solid var(--beer)}
+table.grid td.note input{color:var(--chalk-faint);min-width:220px}
+.chg{border:1px solid var(--line);border-radius:3px;padding:10px 12px;margin-bottom:10px}
+.chg h3{margin:0 0 4px;font:600 16px var(--cond)}
+.chg textarea{width:100%;box-sizing:border-box;height:90px;background:var(--slate-2);border:1px solid var(--line);font:11.5px var(--mono);margin-top:8px}
+.pop{position:absolute;z-index:6;background:var(--slate-2);border:1px solid var(--beer);border-radius:4px;padding:12px;width:290px;box-shadow:0 10px 30px #000a}
+.pop p{margin:0 0 8px;font-size:13px;color:var(--chalk-dim)}
+.pop code{font:12px var(--mono);color:var(--chalk)}
+.pop input{background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:5px 7px;width:100%;box-sizing:border-box}
+
+@media (max-width:900px){
+  main{grid-template-columns:1fr;grid-template-rows:1fr auto}
+  #left{display:none}
+  #right{border-left:none;border-top:1px solid var(--line);max-height:38vh}
+  footer{grid-template-columns:auto auto 1fr}
+  #pools{display:none}
+}
+</style>
+
+<div id="app">
+<header>
+  <h1>Sturmball System Builder</h1>
+  <nav class="tabs" id="tabs" aria-label="Views"></nav>
+  <span class="spacer"></span>
+  <button class="hbtn" id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
+  <button class="hbtn" id="btnLayout" title="Lay this view out again">Tidy up</button>
+  <button class="hbtn" id="btnChanges">Changes<span class="count" id="chgCount" hidden>0</span></button>
+</header>
+<main>
+  <aside id="left">
+    <div class="lbl">Find a card</div>
+    <input id="search" type="search" placeholder="Brewery, reed, Treble…" autocomplete="off">
+    <div class="lbl">Add to the board</div>
+    <div id="adds"></div>
+    <div class="lbl">Card shapes</div>
+    <div class="legend" id="legend"></div>
+    <div class="lbl">Lines</div>
+    <div class="legend" id="legend2"></div>
+    <div class="lbl">How to</div>
+    <p class="hint"><b>Drag</b> a card to move it. <b>Drag</b> from the dot on a card's right edge onto another card to connect them; the builder tells you which CSV cell that writes. <b>Click</b> a line to remove it. <b>Play</b> runs a pretend season with the numbers on the right.</p>
+  </aside>
+  <section id="stage">
+    <svg id="svg" aria-label="System board"><defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9z" fill="context-stroke"/></marker>
+    </defs><g id="world"><g id="gEdges"></g><g id="gLabels"></g><g id="gNodes"></g><path id="ghost" class="ghost" d=""/></g></svg>
+    <div class="zoombar"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Fit the board" title="Fit">⤢</button></div>
+  </section>
+  <aside id="right"></aside>
+</main>
+<footer>
+  <button id="play" aria-label="Play the pretend season">▶</button>
+  <div id="dayl">Day 0</div>
+  <div class="track"><div id="marks"></div><input id="day" type="range" min="0" max="40" value="0" aria-label="Day"></div>
+  <div id="pools"></div>
+</footer>
+</div>
+
+<script>
+const SRC = {"Achievements": "ID,Name,Description,Needs,Unlocks,Reward,Art,Hidden,Notes\nfirst_whistle,First Whistle,Play a match to the final whistle.,count:matches_played>=1,Club House,,,,\"THE ROOT OF EVERYTHING. Read the note at the top of achievement_book.gd: nothing in this game is available until an achievement hands it over. `Unlocks` is what this one hands over - a semicolon-separated list, in the same words the rest of the game uses. `Needs` is the ordinary condition language: count:x>=n, flag:y, unlocked:z, joined with semicolons.\"\nfirst_win,First Win,Win a match.,count:matches_won>=1,Dorms,count:coins+25,,,\"`Reward` is anything else that should happen, in the same words a Progression row's Do column uses. Coins, a flag, a story scene. THIS ROW SAID `give:coins+25` AND DID NOTHING FOR MONTHS - there is no `give` verb; it is `count:`. The loud-unknown-action guard added last round is what found it, on the first soak after it went in.\"\nthree_wins,Treble,Win three matches.,count:matches_won>=3,Trophy Room,count:coins+50,,,\ngoal_machine,Goal Machine,Score ten goals.,count:goals>=10,Training Ground,,,,\nsharp_shooter,Sharp Shooter,Score five goals with a Star Player.,count:goals_by_star>=5,Pub,,,,\"goals_by_star is a row of Stats.csv. If you point a Needs at a counter nothing counts, tools/achievement_check.gd says so and names it.\"\nbrewer,The First Brew,Score three times with a fire-brewed player.,count:goals_with_brew_fire>=3,Brewery;Malthouse,announce:The Brewery is open,,,Two unlocks from one achievement. The Brewery is the map; the Malthouse is its first section - a section has to be unlocked before you can work in it.\nkeeper_killer,Wall Breaker,Empty an opposing keeper's stamina five times.,count:keeper_emptied>=5,Traveling Tavern,,,,\nclean_sheet,Clean Sheet,Win a match without conceding.,count:clean_sheets>=1,Mill,,,,The Brewery's second section.\nten_matches,Regular,Play ten matches.,count:matches_played>=10,Lautering,,,,The third section.\nstar_collector,Star Collector,Own three Star Players of the same class.,flag:three_of_a_kind,Emblems,,,,\"THE GATE ON THE TALENT TREE. Three Stars of one class opens the Emblem section - but the Emblems have to be unlocked HERE first, which is what this row does. It waits on a FLAG rather than a counter because owning three of a kind is a fact about your squad, not a thing that happens; the team builder sets that flag when the tree lands. Until then this one is unearnable on purpose.\"\nseason_winner,Champions,Win a season.,flag:season_won,Trophy Case;Boiling,,,yes,Hidden = yes keeps it off the board until you earn it. Use it for endings and for anything that would spoil a surprise.\nnight_game,Under the Lights,Play five matches.,count:matches_played>=5,Floodlights,,,,\"Grants a Stadium.csv layer. Stadium layers test unlocked: like everything else, so an achievement is all it takes to switch one on.\"\nfull_house,Full House,Win five matches.,count:matches_won>=5,Full House,,,,Another Stadium layer - the crowd.\nthe_crown,The Crown,Win eight matches.,count:matches_won>=8,The Crown,,,,A competition on the season shelf. Seasons.csv has been waiting for somebody to hand this out since round F.\nscout_the_rivals,Know Your Rivals,Play three matches.,count:matches_played>=3,Rival Scouting,,,,Opens the Rivals class on the team-builder screen.\nmaster_brewer,Master Brewer,Score eight times with brewed players.,count:goals_with_brew_fire>=8,Master Brewer,,,,\"Your spreadsheets spell this three ways - Master Brewer, master_brewer and master brewer. That is FINE: unlock names are matched loosely (lowercase, letters and digits only), so all three are the same unlock. See section 4 of the manual.\"\nfirst_pour,First Pour,Pour a brew on a player at the Pub.,count:brews_poured>=1,Fire Brew;Water Brew,,,,\"The two starting recipes. A brew is a Brews.csv row and it tests unlocked: like everything else, so an achievement is the whole of what opens one.\"\nthe_cup,The Cup,Win six matches.,count:matches_won>=6,The Cup,,,,Another competition on the season shelf.\nice_house,Ice House,Keep three clean sheets.,count:clean_sheets>=3,Cooling,,,,The Brewery's fifth section - the cellar where a brew becomes a barrel.\nbottle_it,Bottle It,Win ten matches.,count:matches_won>=10,Bottling,,,,\"The sixth and last section. After this one the bottles go to the Pub, which is where the chain was always going.\"\nhard_man,Hard Man,Have a player sent off.,count:red_cards>=1,,announce:One way to be remembered.,,,\"A REWARD WITH NO UNLOCK. Perfectly legal - `Reward` on its own is enough, and this is the row to copy when you want an achievement that is only a moment. red_cards is a Stats.csv counter fed by the foul system.\"\nsecond_vat,A Second Vat,Keep five clean sheets.,count:clean_sheets>=5,,announce:A second vat is for sale at the Club House.,,,\"ROUND AN (Anthony): AN ACHIEVEMENT ONLY GRANTS THE RIGHT TO BUY AN UPGRADE. This row used to hand the vat over for free (count:batches_cooling+1); now it puts the vat on sale at the Club House - the row with Achievement = second_vat in data/Upgrades.csv. To hand an upgrade out FREE again, put its Effect back in Reward. THE SHAPE FOR THE WHOLE BREWERY: the basic foundation is free and everything that makes it bigger is earned. The Cooling cellar starts with ONE vat - its Batches column - and this Reward adds another. Copy this row for a third, or for batches_boiling, batches_malthouse, any section you like. No code and no new column, and the Brewery screen counts the vats for you.\"\nthird_vat,A Third Vat,Win fifteen matches.,count:matches_won>=15,,announce:A third vat is for sale at the Club House.,,,\"ROUND AN: puts the third vat on sale at the Club House (data/Upgrades.csv) instead of giving it. The same row again. tools/brewery_check.gd measures what each one is worth: one vat is 24 bottles a season, two is 48, three is 54 - because by then hops are the limit and the Traveling Brewer is the answer rather than a fourth vat.\"\nquereinsteiger,Quereinsteiger,Play twenty matches.,count:matches_played>=20,Quereinsteiger,announce:Quereinsteiger: the Training Ground can now retrain a player for a new role.,,,\"ROUND AN (Anthony, 8 Oct). Opens retraining at the Training Ground (Training.csv row quereinsteiger, Kind retrain). Twenty matches is a placeholder - move Needs to whatever should earn it.\"\n", "Progression": "ID,When,Requires,Do,Once,Notes\nwelcome_at_base,base_opened,flag:old_introduction,story:prologue,true,\"RETIRED ROUND AN (Anthony, 7 Oct: the introduction is now the Tutorial - see tutorial.gd, MatchTalk.csv). flag:old_introduction is never set, so this row never fires; delete that word to bring it back. Plays the prologue the FIRST time you open the base, not when the game launches. Delete this row if you want no story at all.\"\nfirst_win,match_ended,count:matches_won>=1,flag:first_win;announce:First win!,true,Sets a flag other content can test with  flag:first_win\nunlock_brewery,match_ended,count:goals_with_brew_fire>=3,unlock:Brewery;announce:The Brewery is open,true,YOUR EXAMPLE: score three times with fire-brewed players and the Brewery unlocks.\nunlock_pub,match_ended,unlocked:Brewery;count:matches_played>=5,unlock:Pub;announce:The Pub is open,true,Needs the Brewery first AND five matches. Chains one unlock off another.\nunlock_talents,match_ended,count:matches_played>=5,unlock:Talent Tree;announce:Talents unlocked,true,\"The talent tree is itself a building, unlocked later on\"\nveteran_badge,match_ended,count:matches_played>=10,flag:veteran,true,An achievement is just a flag. Nothing else needed.\ntalent_point,match_ended,unlocked:Talent Tree,count:talent_points+1,,One talent point after every match once the Training Ground is open. Delete this row and nothing earns points.\nseason_opening,match_started,count:season_match<=1,announce:Matchday 1. Eleven to go.,,Fires as the first fixture of a season kicks off. season_match is kept by Season.csv.\nfinal_day,match_started,count:season_match>=11,announce:THE FINAL,,Fires at kick-off of the last fixture.\nchampions,match_ended,flag:season_champion,announce:Champions. The season is yours.,true,season_champion is set by the season when you win the final. An achievement is still just a flag.\nsign_your_first_three,new_game,flag:old_introduction,sign:Hoffmann;sign:Schäfer;sign:Koch;flag:tutorial_match,true,\"RETIRED ROUND AN (Anthony, 7 Oct: the introduction is now the Tutorial - see tutorial.gd, MatchTalk.csv). flag:old_introduction is never set, so this row never fires; delete that word to bring it back. THE THREE YOU START WITH. Runs once, the first time a save is made. sign: adds a card to your squad by NAME - see squad_book.gd. NOTHING READS THE SQUAD until squad_ownership in Tuning.csv is TRUE, so this row is harmless today and becomes the opening of the game the day you turn that row on. flag:tutorial_match is what makes the first match the scripted one - see EnemyPlay.csv\"\nkick_off_first_match,base_opened,flag:old_introduction;flag:prologue_done;flag:tutorial_match,match:intro,true,\"RETIRED ROUND AN (Anthony, 7 Oct: the introduction is now the Tutorial - see tutorial.gd, MatchTalk.csv). flag:old_introduction is never set, so this row never fires; delete that word to bring it back. ROUND AN (your note). The prologue ends with Auf the Field! and comes back to the base: this row walks you straight onto the pitch for your first match. match:intro starts the intro row of MatchModes.csv, whose side is data/IntroSquad.csv. Once only - if you leave that match early, Play a match still gives you the same first match until it is played.\"\nsecond_match_is_over,match_ended,flag:old_introduction;flag:tutorial_match_2,flag:tutorial_match_2=false,true,\"RETIRED ROUND AN (Anthony, 7 Oct: the introduction is now the Tutorial - see tutorial.gd, MatchTalk.csv). flag:old_introduction is never set, so this row never fires; delete that word to bring it back. ROUND AN. The second intro match is done; from here Play a match is an ordinary friendly with your own team. It sits ABOVE first_match_is_over on purpose: rows run top to bottom, and below it would clear the flag the moment the first match set it. Put the next scene here (story:...) when it is written.\"\nfirst_match_is_over,match_ended,flag:old_introduction;flag:tutorial_match,flag:tutorial_match=false;flag:tutorial_match_2;story:star-intro,true,\"RETIRED ROUND AN (Anthony, 7 Oct: the introduction is now the Tutorial - see tutorial.gd, MatchTalk.csv). flag:old_introduction is never set, so this row never fires; delete that word to bring it back. ROUND AN (your note): after the first match you are sent back to the bar and meet the three Bergmännlein Stars - the star-intro scene in Dialogue.csv. The story comes back to the base, and flag:tutorial_match_2 sends you on to the second match (kick_off_second_match). The old after_first_match scene is still in Dialogue.csv, unused. The scripted match is done: clear the flag so the opposition goes back to its ordinary rules, and play the scene where you are taken to the base. Write that scene in Dialogue.csv - the row below is a skeleton\"\nkick_off_second_match,base_opened,flag:old_introduction;flag:tutorial_match_2,match:intro2,true,\"RETIRED ROUND AN (Anthony, 7 Oct: the introduction is now the Tutorial - see tutorial.gd, MatchTalk.csv). flag:old_introduction is never set, so this row never fires; delete that word to bring it back. ROUND AN (your note). star-intro ends with Another game! and comes back to the base: this row walks you straight into the second match - your first team, Koch and the three Bergmännlein Stars (MatchModes.csv intro2, data/IntroSquad2.csv).\"\nlearn_to_brew,match_ended,!flag:tutorial_match;!flag:tutorial_match_2;count:matches_played>=2,unlock:Brewery;unlock:Malthouse;flag:brewery_tour;announce:The Brewery is open;story:brewery-intro,true,\"ROUND AN (your note): also opens the Malthouse, so the first brew button works, and sets flag:brewery_tour, which opens the Brewery window when the scene comes back to the base (open_the_brewery). ROUND AN: plays the Brewer's scene (Dialogue.csv brewery-intro, in the brewery) as the Brewery opens; it comes back to the base. ROUND AN FIX: this never fired. Requires said flag:tutorial_match=false, which the condition language reads as a flag literally called 'tutorial_match=false' (write !flag:x for NOT), and When said story_ended, a moment nothing in the game reports. Now: at the final whistle of the SECOND intro match (both intro flags gone, two matches played) the Brewery opens. It sits below second_match_is_over on purpose, so that row clears the flag first. AND THE STORY MOVES ON. You have seen them pour a brew on a card, so now you may build the place that makes them. From here it is the ordinary chain: you need players, ingredients and money before the next thing opens\"\nopen_the_brewery,base_opened,flag:brewery_tour,window:brewery,true,\"ROUND AN (your note). After the Brewer's scene you are back at the base and the Brewery window opens by itself. What the Head Coach says in there, and which button lights up, is data/Guide.csv.\"\nmeet_the_merchant,base_opened,flag:intro_adventure;count:adventures_home>=1,unlock:Traveling Tavern;flag:met_merchant;window:brewer,true,ROUND AN (your note). Home from your first Adventure: the Traveling Merchant's wagon is open and his shop opens by itself. count:adventures_home goes up by one every time a run is carried home. His intro lines are data/Guide.csv shop_intro.\nharvest,match_ended,unlocked:Brewery,count:res_wheat+3;count:res_water+6;count:res_germs+3,,\"WHERE RAW MATERIALS COME FROM. A fixture pays the Brewery. The three numbers are BALANCED AGAINST EACH OTHER, not picked: a malt costs one wheat and one germ, so three of each is three malt a fixture and neither piles up uselessly. Water is doubled because three different sections want it. tools/brewery_check.gd plays ten fixtures through these exact rows and prints what is left over - if something is piling up, this row is why.\"\nharvest_win,match_ended,unlocked:Brewery;flag:won_last_match,count:res_hops+2;count:res_yeast+1,,\"AND WINNING PAYS BETTER. Hops and yeast are the two the chain runs out of last, so this is the row that makes a good season taste different. flag:won_last_match is set by the match.\"\n", "Buildings": "ID,Name,Description,Requires,Art,X,Y,Action,Map Art,Map Size,Name Offset,Sound,Door Sound,Notes\ntrophy_room,Trophy Room,\"Glass cases. Season trophies, and anything else you have been told to be proud of.\",unlocked:Trophy Room;count:trophy_room_key>=1,trophy,0.677,0.600,window:trophies,trophy,192x160,,bld_trophy,door_open,\"ROUND AN: needs its KEY too (trophy_room_key, bought at the Club House - data/Upgrades.csv). data/Trophies.csv. A trophy is a NAME AND A CONDITION - it does not have to come from a competition, so `three wins` is as good a trophy as a cup final.\"\nclub_house,Club House,\"Upgrades for the club, and the recruitment board. An achievement gives you the right to buy an upgrade; this is where you pay for it.\",unlocked:Club House,clubhouse,0.86,0.20,window:clubhouse,clubhouse,640x512,,bld_club_house,door_open,ROUND AN (Anthony): THE UPGRADE SHOP - data/Upgrades.csv. Resting moved to the Dorms. THE RECRUITMENT BOARD (round AH) is still here: data/RecruitBoard.csv.\ndorms,Dorms,\"Where every player rests - after a match, an Adventure or a brew - and how many players you may keep.\",unlocked:Dorms;count:dorms_key>=1,dorms,0.517,0.262,window:dorms,dorms,320x192,,bld_dorms,door_open,\"ROUND AN: needs its KEY too (dorms_key, bought at the Club House - data/Upgrades.csv). ROUND AN (Anthony): THE RESTING AREA FOR ALL PLAYERS - data/Resting.csv says what sends a player to bed and for how long, data/Recovery.csv how long by power. Beds are data/Dorms.csv: the first row is FREE and the rest are bought.\"\ntraining_ground,Training Ground,Ausbildung for the whole side — or one of the five games that automate a Brewery section.,unlocked:Training Ground;count:training_ground_key>=1,training,0.167,0.659,window:training,training,640x512,,bld_training,door_open,\"ROUND AN: needs its KEY too (training_ground_key, bought at the Club House - data/Upgrades.csv). data/Training.csv, and the Kind column splits it: `ausbildung` trains a number, `minigame` automates a Brewery section. A mini-game buys that section another vat today; the played game goes on top of it later.\"\npub,Pub,\"Ten seats, ten drinks, and a cheer. Whoever is not in the room plays as a basic unit.\",unlocked:Pub;count:pub_key>=1,pub,0.200,0.237,window:pub,pub,640x512,,bld_pub,door_open,\"ROUND AN: needs its KEY too (pub_key, bought at the Club House - data/Upgrades.csv). TONIGHT'S TEN. `pub_ten` in Tuning.csv turns the ten-seat room on; while it is off, everybody may drink.\"\nbrewery,Brewery,\"Six sections and a yard. Barley in at one end, bottles out at the other.\",unlocked:Brewery;count:brewery_key>=1,brewery,0.80,0.76,window:brewery,brewery,640x512,,bld_brewery,door_open,\"ROUND AN: needs its KEY too (brewery_key, bought at the Club House - data/Upgrades.csv). OPENS ITS OWN MAP inside the window. Each of the six sections is unlocked separately, and a section with player units in it will one day produce on its own after every match - the Batches column is where that foundation already sits.\"\ntraveling_brewer,The Traveling Tavern,\"A wagon, a horse and a man who knows exactly what you have run out of.\",unlocked:Traveling Tavern;count:tavern_key>=1,brewer,0.552,0.912,window:brewer,tavern,256x192,,bld_tavern,wagon_creak,\"ROUND AN: needs its KEY too (tavern_key, bought at the Club House - data/Upgrades.csv). ROUND AN: RENAMED from The Traveling Brewer (Anthony). Only the Name changed - the ID and the unlock it waits on (Traveling Brewer) are the same, so saves are untouched. HE IS THE PRESSURE VALVE ON THE BREWERY, and he sells one thing at a time at a premium. The money is data/Currencies.csv and every match mode has its own - a season match pays coins, a quick match pays marks, a cup tie pays silver.\"\n", "Upgrades": "ID,Name,Kind,Description,Achievement,Needs,Cost,Currency,Effect,Notes\nsecond_vat,A Second Vat,upgrade,A second lagering vat for the Cooling cellar.,second_vat,,250,coins,count:batches_cooling+1,\"ROUND AN (Anthony: an achievement only grants the RIGHT to buy an upgrade; you buy it at the Club House). ONE ROW PER UPGRADE. Achievement = the ID of a row of data/Achievements.csv - once that achievement is earned the upgrade is for sale. Blank = for sale from the start. Needs = any extra condition in the usual language (unlocked:x, count:x>=n). Cost and Currency use data/Currencies.csv. Effect is the ordinary effects language: count:batches_<section>+1 is a Brewery vat, count:tune_<any Tuning row>+n raises a number, unlock:x opens a thing. Each upgrade is bought once. WAS a free Reward on the A Second Vat achievement KIND (round AN): upgrade or key - the Club House lists the keys first, under KEYS.\"\nthird_vat,A Third Vat,upgrade,A third lagering vat for the Cooling cellar.,third_vat,,450,coins,count:batches_cooling+1,WAS a free Reward on the A Third Vat achievement.\nfeather_beds,Feather Beds,upgrade,Proper beds in the Dorms. Every player rests one fixture less (never less than one).,ten_matches,,300,coins,count:tune_rest_less+1,Raises rest_less in Tuning.csv by 1. Copy this row (with another Achievement) for a second step.\nphysio_table,The Physio's Table,upgrade,Every player starts an Adventure with one more stamina.,hard_man,,180,coins,count:tune_adventure_stamina_base+1,Raises adventure_stamina_base in Tuning.csv by 1.\nlucky_boots,Lucky Boots,upgrade,Everybody runs at a loose ball a little harder.,goal_machine,,220,coins,count:tune_unit_chase_speed+6,Raises unit_chase_speed in Tuning.csv by 6.\ndorms_key,Dorms Key,key,Opens the Dorms building.,,unlocked:Dorms,30,coins,count:dorms_key+1,\"THE KEYS (round AN, Anthony: to get into a building or to work a machine you BUY its key). Achievement is blank on a key: the RIGHT to buy it is Needs = unlocked:<name>, which is still handed out by the achievement that always opened that building (Achievements.csv Unlocks), so moving the unlock moves the key too. Effect gives the key, an item of data/Items.csv (Kind key, Tab keys) - it shows in the bag's Keys tab. The building's Requires (Buildings.csv) or the machine's Needs (BrewerySections.csv) asks count:<key>>=1. The Club House itself has no key: it is where keys are bought.\"\ntrophy_room_key,Trophy Room Key,key,Opens the Trophy Room building.,,unlocked:Trophy Room,50,coins,count:trophy_room_key+1,\ntraining_ground_key,Training Ground Key,key,Opens the Training Ground building.,,unlocked:Training Ground,60,coins,count:training_ground_key+1,\npub_key,Pub Key,key,Opens the Pub building.,,unlocked:Pub,60,coins,count:pub_key+1,\nbrewery_key,Brewery Key,key,Opens the Brewery building.,,unlocked:Brewery,80,coins,count:brewery_key+1,\ntavern_key,Traveling Tavern Key,key,Opens the Traveling Tavern building.,,unlocked:Traveling Tavern,80,coins,count:tavern_key+1,\nmalthouse_key,Steeping Tank Key,key,Opens the Steeping Tank in the Brewery.,,unlocked:Malthouse,40,coins,count:malthouse_key+1,\nmill_key,Grain Mill Key,key,Opens the Grain Mill in the Brewery.,,unlocked:Mill,50,coins,count:mill_key+1,\nlautering_key,Lauter Tun Key,key,Opens the Lauter Tun in the Brewery.,,unlocked:Lautering,60,coins,count:lautering_key+1,\nboiling_key,Brew Kettle Key,key,Opens the Brew Kettle in the Brewery.,,unlocked:Boiling,80,coins,count:boiling_key+1,\ncooling_key,Fermenting Vat Key,key,Opens the Fermenting Vat in the Brewery.,,unlocked:Cooling,90,coins,count:cooling_key+1,\nbottling_key,Bottling Machine Key,key,Opens the Bottling Machine in the Brewery.,,unlocked:Bottling,100,coins,count:bottling_key+1,\n", "Shop": "ID,Name,Sells,How Many,Price,Currency,Stock,Requires,Art,Notes\nhops_sack,A sack of hops,res:hops,6,45,coins,3,unlocked:Traveling Tavern,shop_hops.png,\"HE IS THE PRESSURE VALVE, and this is the row that proves it. tools/brewery_check.gd measures hops as the thing the Brewery runs out of - they only arrive when you WIN - so the Brewer sells them, dear. `Sells` is res:<id> for a Brewery material or brew:<id> for a recipe.\"\nyeast_jar,A jar of live yeast,res:yeast,4,50,coins,2,unlocked:Traveling Tavern,shop_yeast.png,The other thing the cellar runs dry of.\ngerm_tray,A tray of germs,res:germs,5,35,coins,3,unlocked:Traveling Tavern,shop_germs.png,The top of the chain. Cheapest of the three because it is the one you get most of from a fixture.\nspare_hammer,A spare hammer,res:hammer,1,120,coins,1,unlocked:Mill,shop_hammer.png,\"A TOOL, SO IT IS KEPT. You need one to work the Mill and you never need a second - which makes this row the one to look at if you ever lose one. Stock 1: he has exactly one.\"\nfire_recipe,The fire recipe,brew:fire,1,150,coins,1,unlocked:Brewery,shop_fire.png,\"SELLING A RECIPE rather than a material. brew:<id> unlocks that row of Brews.csv by name, exactly as a talent or an achievement would - the Pub can pour it from then on. Premium, because a talent point would have bought it for nothing.\"\nwater_recipe,The water recipe,brew:water,1,180,coins,1,unlocked:Brewery,shop_water.png,The same again for the cold side.\nmarsh_hops,Marsh-grown hops,res:hops,10,40,marks,2,unlocked:Traveling Tavern,shop_hops.png,\"PRICED IN MARKS, so only quick matches buy it - and it is the best hops deal in the game. That is what a second currency is FOR: it makes a mode worth playing rather than just available.\"\niron_boots,A pair of iron-shod boots,unlock:Iron Boots,1,260,coins,1,unlocked:Brewery,shop_boots.png,\"THE FORGE MOVED HERE. The base used to have four one-click recipe buildings - the Forge, the Still, the Reed Press and the Cold Cellar - and they were worked examples rather than rooms you asked for. The recipe pattern is not lost: a Buildings.csv row with a Requires that is a price check and an Action that is the trade still works exactly as it did, and the Notes on the old rows are quoted in the Designer Manual. This is where Iron Boots comes from now, so the Iron Shod talent still has a door.\"\ntrade_fire_brew,A bottle of Fire Brew,count:brew_fire+1,1,3,reed,3,unlocked:Traveling Tavern,brew_fire,\"ROUND AN (your note): the Traveling Merchant TRADES BEER for what you carried home. Sells count:brew_fire+1 = one Bottled Fire Brew (Items.csv) into your bag, used on a player in the draft. Price 3 Reed.\"\ntrade_water_brew,A bottle of Water Brew,count:brew_water+1,1,2,bog_iron,3,unlocked:Traveling Tavern,brew_water,ROUND AN. One Bottled Water Brew for 2 Bog Iron.\n", "Brews": "ID,Name,Description,Requires,For Class,Becomes,Element,Artwork,Attack Ability,Defend Ability,Cost,Permanent,Drinks,Inspiration,Pool,Notes\nfire,Fire Brew,Ash on the tongue. A river-singer learns to burn.,unlocked:Fire Brew,Lorelei,Brandteufel,Fire,,BRAND_SCORCH,BRAND_MASK_ATK,reed:6,true,,25,,YOUR EXAMPLE. A Lorelei counts as a Brandteufel for the match and gains two abilities. Feeds goals_with_brew_fire.\nwater,Water Brew,Cold and deep. The fire goes quiet and learns to listen.,unlocked:Water Brew,Brandteufel,Lorelei,Water,,LORE_SURGE,LORE_VEIL,reed:4|bog_iron:2,true,,25,,The mirror of the Fire Brew. Needs the Water Craft talent.\nkeeper,Keeper's Tonic,\"Thick, bitter, and it makes you very hard to move.\",,,,,,,KEEP_BULWARK,ash_glass:5|reed:3,,,20,,\"No Becomes and no For Class - anyone may drink it, nobody changes class, they just gain a defend ability. Permanent is blank so it always wears off.\"\nspirit_lorelei,Lorelei Team Spirit,\"Everyone drinks from the same cup. Whatever was in it, they are one side now.\",unlocked:Team Spirit Lorelei,Lorelei,,Water,,LORE_SURGE,LORE_VEIL,reed:10,true,,30,,\"THE TEAM SPIRIT, forged in the class tree when all three Lorelei nodes hold a Star. Note what it is: AN ORDINARY ROW OF THIS FILE. The tree unlocks the name in Requires and does nothing else, so you can rewrite the drink completely - the element, both abilities, the price, whether it is permanent - without touching a line of code.\"\nspirit_rauhnacht,Feuergeister Team Spirit,Ash in the cup and ash on the tongue. Nobody flinches.,unlocked:Team Spirit Rauhnacht-Feuergeister,Rauhnacht-Feuergeister,,Fire,,BRAND_SCORCH,BRAND_MASK_ATK,reed:10,true,,30,,The same for the other class. Its Requires is the name the tree unlocks - spelled exactly as ClassTree.spirit_unlock() builds it: the words Team Spirit and then the class name.\nturn_water,Rhine Water Lager,Cold from the river. Three of these and he hears her singing.,,Normal,Lorelei,Water,,,,reed:2,,3,15,,\"A TURNING BREW (round X). Drinks 3: three pours on a plain card and he becomes a Lorelei at his own tier and power, keeping his name. On the third the Pub asks which card he becomes - one per set. A different element in between starts the count again.\"\nturn_fire,Rauhnacht Smoke Beer,\"Smoked over the twelve nights. Three, and something answers.\",,Normal,Rauhnacht-Feuergeister,Fire,,,,ash_glass:2,,3,15,,Turning brew - fire. Same rules as turn_water.\nturn_earth,Miner's Dunkel,Black as the seam and twice as heavy.,,Normal,Bergmännlein,Earth,,,,bog_iron:2,,3,15,,Turning brew - earth. Same rules as turn_water.\nturn_air,Unken Weisse,\"Cloudy, cold, and it croaks a little.\",,Normal,Unkengeister,Air,,,,deep_salt:2,,3,15,,Turning brew - air. Same rules as turn_water.\nhelles,Helles,\"A clean, golden Mass. Nobody becomes anybody, they just start to sing.\",,,,,,,,,,,20,,\"ROUND AN - THE DRUNK METER. INSPIRATION is how much of the meter (DrunkLevels.csv) one of these fills, in %. Blank = 0. A row with no Becomes and no abilities is a PLAIN BEER: it only fills the meter, and it is the only thing a sober player can be given. Free, so a team can always start drinking. DRAFT.\"\nfestbier,Festbier,Stronger than it looks. Two of these and the Tuba sounds like the Rhine.,,,,,,,,reed:1,,,35,,\"A stronger plain beer, made from your own Brewery materials. DRAFT.\"\nplain_goalie,Plain Beer,Hits the back of the net. Or yours.,,,,,,PLAIN_GOALIE_ATK,PLAIN_GOALIE_DEF,,,,10,plain,\"ROUND AN - PLAIN BEER (Anthony, 8 Oct: plain beer gives random abilities that have one positive and then the opposite being negative). POOL = plain: these rows are never poured at the Pub; a basic beer from the bag (Items.csv small_bottle, large_bottle, keg: Use brew:pool:plain) picks ONE of them at random, among the rows whose Requires pass. Every row: a good ATTACK side and its opposite, bad, DEFEND side. This one is the tutorial's: 1 off the enemy keeper when he attacks, 1 off your own when he defends. It is the only one with a blank Requires, so it is the only one in the tutorial (the others need !flag:in_tutorial). POOL can name several pools, plain|keg: the keg (Kleiner Faß) draws from pool keg, so the tutorial can give it its own row (Pool keg, Requires flag:in_tutorial) while the bottles keep this one. keg_goalie is this pair for the keg outside the tutorial. Add a row to add a pair.\"\nplain_power,Plain Beer,\"Brave going forward, wobbly at the back.\",!flag:in_tutorial,,,,,PLAIN_POWER_ATK,PLAIN_POWER_DEF,,,,10,plain|keg,\"Plain beer pair: +1 power when he attacks, -1 when he defends.\"\nplain_keeper,Plain Beer,A round for your keeper. And one for theirs.,!flag:in_tutorial,,,,,PLAIN_KEEPER_ATK,PLAIN_KEEPER_DEF,,,,10,plain|keg,\"Plain beer pair: 1 stamina back to your keeper when he attacks, 1 back to theirs when he defends.\"\nkeg_goalie,Plain Beer,Hits the back of the net. Or yours.,!flag:in_tutorial,,,,,PLAIN_GOALIE_ATK,PLAIN_GOALIE_DEF,,,,10,keg,\"The goalie pair for the Kleiner Faß outside the tutorial (in the tutorial the keg is the Tutorial thread's kleiner_fass row, Pool keg).\"\nkleiner_fass,Kleiner Faß,\"A little barrel. Down it in one, spill half.\",flag:in_tutorial,,,,,TUT_FASS_COURAGE,TUT_FASS_COURAGE,,,,10,keg,\"ROUND AN - THE TUTORIAL (Anthony, 8 Oct): the Kleiner Faß (Items.csv keg, Use brew:pool:keg) the Head Coach hands a 0 Power player in cycle 2. Anyone may drink it; no class change. Drunk in a match it takes hold at once (Tuning.csv match_drink_takes_hold_at) and lasts the cycle (match_drink_lasts_cycle). POOL keg + REQUIRES flag:in_tutorial: in the tutorial this is the only keg row whose Requires pass, so the keg always gives it; outside the tutorial the keg is a plain beer gamble again.\"\nanstoss_helles,Anstoß Helles,The kick-off beer. Pass it on.,,,,,,COMBO_HELLES_ATK,COMBO_HELLES_DEF,,,,10,anstoss_helles,\"ROUND AN - THE TUTORIAL COMBO BEERS (Anthony, 8 Oct): one good side and one bad side. POOL is its own ID, so it is never poured at the Pub; Items.csv anstoss_helles (Use brew:pool:anstoss_helles) is the bottle. The tutorial gives three in cycle 2 round 3 (MatchTalk.csv tut_combo).\"\ndoppelpass_weisse,Doppelpass Weiße,Give and go. Mostly go.,,,,,,COMBO_WEISSE_ATK,COMBO_WEISSE_DEF,,,,10,doppelpass_weisse,\"ROUND AN - THE TUTORIAL COMBO BEERS (Anthony, 8 Oct): one good side and one bad side. POOL is its own ID, so it is never poured at the Pub; Items.csv doppelpass_weisse (Use brew:pool:doppelpass_weisse) is the bottle. The tutorial gives three in cycle 2 round 3 (MatchTalk.csv tut_combo).\"\nabstauber_dunkel,Abstauber Dunkel,For the one who just stands near the goal.,,,,,,COMBO_DUNKEL_ATK,COMBO_DUNKEL_DEF,,,,10,abstauber_dunkel,\"ROUND AN - THE TUTORIAL COMBO BEERS (Anthony, 8 Oct): one good side and one bad side. POOL is its own ID, so it is never poured at the Pub; Items.csv abstauber_dunkel (Use brew:pool:abstauber_dunkel) is the bottle. The tutorial gives three in cycle 2 round 3 (MatchTalk.csv tut_combo).\"\n", "Items": "ID,Name,Kind,Tab,Stack,Art,Use,Tags,Target,Requires,Inspiration,Description,Ground Art\nreed,Reed,material,resources,99,reed,,,,,,Cut from the marsh. The Brewery takes it by the armful.,res://assets/adventure/drops/reed.png\nbog_iron,Bog Iron,material,resources,99,bog_iron,,,,,,\"Heavy, rusted, and worth melting down.\",\nash_glass,Ash Glass,material,resources,99,ash_glass,,,,,,Fused in the burn. Sharp and light.,\ndeep_salt,Deep Salt,material,resources,99,deep_salt,,,,,,Scraped off the walls of the Hollowdeep.,\ncoins,Coins,currency,resources,999,coins,,,,,,What everyone takes.,res://assets/adventure/drops/coins.png\nsmelling_salts,Smelling Salts,kit,items,5,salts,revive,adventure_consume,downed,,,\"Brings one knocked-out player back on, at half stamina.\",\nfield_bandage,Field Bandage,kit,items,9,bandage,heal:6,adventure_consume,ally,,,Six stamina back to one player still standing.,\nteam_orange,Half-Time Orange,kit,items,5,orange,heal:3;all,,ally,,,Three stamina back to everyone still on their feet.,\nthrowing_stone,Throwing Stone,kit,items,9,stone,hit:4,adventure_consume,enemy,,,Four damage straight into whatever you are focusing.,\nrecipe_marsh_ale,Marsh Ale Recipe,recipe,keys,1,scroll,,,,,,Teaches the Brewery to pour Marsh Ale.,\nrecipe_cinder_stout,Cinder Stout Recipe,recipe,keys,1,scroll,,,,,,Teaches the Brewery to pour Cinder Stout.,\nrecipe_hollow_porter,Hollow Porter Recipe,recipe,keys,1,scroll,,,,,,Teaches the Brewery to pour Hollow Porter.,\nmarsh_key,Warden’s Key,key,keys,1,key,,,,,,\"Taken off the Reed Warden. The gate at the end of the marsh knows it. YOUR EXAMPLE OF A KEY - Kind is key, so it lands in the Keys tab (hidden since round AN - Tuning.csv inventory_tabs), it has no Use and it is never spent. Give one out with an On Win or a Drops row\",\nbrew_fire,Bottled Fire Brew,brew,items,9,brew_fire,brew:fire,match_consume,card,,15,\"Ash on the tongue. Used on one player during the draft: they count as a Brandteufel until the final whistle. YOUR EXAMPLE OF A MADE ITEM - the Brewery bottles it (see Buildings.csv), the bag carries it, and Use brew:fire names the row of Brews.csv it pours\",\nbrew_water,Bottled Water Brew,brew,items,9,brew_water,brew:water,match_consume,card,,15,Cold and deep. Used on one player during the draft: they count as a Lorelei until the final whistle. Bottled at the Cold Cellar,\nbrew_keeper,Bottled Keeper's Tonic,brew,items,9,brew_keeper,brew:keeper,match_consume,card,,10,\"Thick and bitter. Anyone may drink it - no class changes, they simply gain a defend ability for the match\",\ndorms_key,Dorms Key,key,keys,1,key,,,,,,\"ROUND AN (Anthony: you buy the keys for the buildings and the machines). Opens the building - Dorms. Bought at the Club House (data/Upgrades.csv, row dorms_key) once an achievement has unlocked Dorms. Never spent.\",\ntrophy_room_key,Trophy Room Key,key,keys,1,key,,,,,,\"ROUND AN (Anthony: you buy the keys for the buildings and the machines). Opens the building - Trophy Room. Bought at the Club House (data/Upgrades.csv, row trophy_room_key) once an achievement has unlocked Trophy Room. Never spent.\",\ntraining_ground_key,Training Ground Key,key,keys,1,key,,,,,,\"ROUND AN (Anthony: you buy the keys for the buildings and the machines). Opens the building - Training Ground. Bought at the Club House (data/Upgrades.csv, row training_ground_key) once an achievement has unlocked Training Ground. Never spent.\",\npub_key,Pub Key,key,keys,1,key,,,,,,\"ROUND AN (Anthony: you buy the keys for the buildings and the machines). Opens the building - Pub. Bought at the Club House (data/Upgrades.csv, row pub_key) once an achievement has unlocked Pub. Never spent.\",\nbrewery_key,Brewery Key,key,keys,1,key,,,,,,\"ROUND AN (Anthony: you buy the keys for the buildings and the machines). Opens the building - Brewery. Bought at the Club House (data/Upgrades.csv, row brewery_key) once an achievement has unlocked Brewery. Never spent.\",\ntavern_key,Traveling Tavern Key,key,keys,1,key,,,,,,\"ROUND AN (Anthony: you buy the keys for the buildings and the machines). Opens the building - Traveling Tavern. Bought at the Club House (data/Upgrades.csv, row tavern_key) once an achievement has unlocked Traveling Tavern. Never spent.\",\nmalthouse_key,Steeping Tank Key,key,keys,1,key,,,,,,\"ROUND AN (Anthony: you buy the keys for the buildings and the machines). Opens the machine in the Brewery - Malthouse. Bought at the Club House (data/Upgrades.csv, row malthouse_key) once an achievement has unlocked Malthouse. Never spent.\",\nmill_key,Grain Mill Key,key,keys,1,key,,,,,,\"ROUND AN (Anthony: you buy the keys for the buildings and the machines). Opens the machine in the Brewery - Mill. Bought at the Club House (data/Upgrades.csv, row mill_key) once an achievement has unlocked Mill. Never spent.\",\nlautering_key,Lauter Tun Key,key,keys,1,key,,,,,,\"ROUND AN (Anthony: you buy the keys for the buildings and the machines). Opens the machine in the Brewery - Lautering. Bought at the Club House (data/Upgrades.csv, row lautering_key) once an achievement has unlocked Lautering. Never spent.\",\nboiling_key,Brew Kettle Key,key,keys,1,key,,,,,,\"ROUND AN (Anthony: you buy the keys for the buildings and the machines). Opens the machine in the Brewery - Boiling. Bought at the Club House (data/Upgrades.csv, row boiling_key) once an achievement has unlocked Boiling. Never spent.\",\ncooling_key,Fermenting Vat Key,key,keys,1,key,,,,,,\"ROUND AN (Anthony: you buy the keys for the buildings and the machines). Opens the machine in the Brewery - Cooling. Bought at the Club House (data/Upgrades.csv, row cooling_key) once an achievement has unlocked Cooling. Never spent.\",\nbottling_key,Bottling Machine Key,key,keys,1,key,,,,,,\"ROUND AN (Anthony: you buy the keys for the buildings and the machines). Opens the machine in the Brewery - Bottling. Bought at the Club House (data/Upgrades.csv, row bottling_key) once an achievement has unlocked Bottling. Never spent.\",\nsmall_bottle,Small Bottle,brew,items,99,brew_keeper,brew:pool:plain,match_consume,card,,10,\"ROUND AN - ONE OF THE BASIC THREE BEERS (Anthony, 8 Oct). Plain beer from your own Brewery: one random ability with a good side when he attacks and a bad side when he defends (Brews.csv rows with Pool plain). Small, so it fills the drunk meter only a little (INSPIRATION 10%). Wears off at the final whistle. The Bottling Machine fills 6 from a barrel (BottleSizes.csv).\",\nlarge_bottle,Large Bottle,brew,items,99,brew_keeper,brew:pool:plain,match_consume,card,,20,\"ROUND AN - basic beer: the same plain beer gamble, more of it (20% of the meter). 3 from a barrel.\",\nkeg,Kleiner Faß,brew,items,99,brew_keeper,brew:pool:keg,match_consume,card,,35,\"ROUND AN - basic beer: a small keg, the same plain beer gamble and 35% of the meter. 1 from a barrel. USE brew:pool:keg: the Brews.csv rows whose Pool includes keg. In the tutorial that is the Kleiner Faß lesson's own row (cycle 2 round 1).\",\nanstoss_helles,Anstoß Helles,brew,items,99,brew_keeper,brew:pool:anstoss_helles,match_consume,card,,10,\"ROUND AN - A COMBO BEER (Anthony, 8 Oct). A small beer with one good side and one bad side: attacking, +1 power to your next player; defending, -1 power. Brews.csv anstoss_helles. The tutorial gives one of each in cycle 2 round 3.\",\ndoppelpass_weisse,Doppelpass Weiße,brew,items,99,brew_keeper,brew:pool:doppelpass_weisse,match_consume,card,,10,\"ROUND AN - A COMBO BEER (Anthony, 8 Oct). A small beer with one good side and one bad side: defending, +1 power to your next player; attacking, -1 power. Brews.csv doppelpass_weisse. The tutorial gives one of each in cycle 2 round 3.\",\nabstauber_dunkel,Abstauber Dunkel,brew,items,99,brew_keeper,brew:pool:abstauber_dunkel,match_consume,card,,10,\"ROUND AN - A COMBO BEER (Anthony, 8 Oct). A small beer with one good side and one bad side: attacking, +1 power; defending, 1 stamina off your own keeper. Brews.csv abstauber_dunkel. The tutorial gives one of each in cycle 2 round 3.\",\n", "BreweryResources": "ID,Name,Kind,Kept,Start,Icon,Counter,Notes\nwheat,Wheat,raw,no,10,res_wheat.png,,\"KIND says where it comes from. `raw` arrives from outside the brewery - a match reward, the Traveling Brewer, an adventure. `made` is produced by one of the six sections. `tool` is a piece of equipment.\"\nwater,Water,raw,no,20,res_water.png,,The one thing three different sections all want. Keep the Start high.\ngerms,Germs,raw,no,5,res_germs.png,,\nhops,Hops,raw,no,6,res_hops.png,,\nyeast,Yeast,raw,no,4,res_yeast.png,,\nhammer,Hammer,tool,yes,1,res_hammer.png,,\"KEPT = yes means it is NOT used up. You need to own one to work the Mill, and you still own it afterwards. That is the difference between equipment and an ingredient, and it is one cell.\"\nfilter,Filter,tool,yes,1,res_filter.png,,\nboiler,Boiler,tool,yes,1,res_boiler.png,,\nelement,Element,tool,yes,1,res_element.png,,\"The heat source. Kept, like the boiler - the Talent Tree is where a better one comes from.\"\nmalt,Malt,made,no,0,res_malt.png,,Made by the Malthouse.\nmash,Mash,made,no,0,res_mash.png,,Made by the Mill.\nwort,Wort,made,no,0,res_wort.png,,Made by Lautering.\nbrew,Brew,made,no,0,res_brew.png,,Made by Boiling & Hopping. This is the point of the whole map - everything before it is preparation and everything after it is storage.\nbarrel,Barrel,made,no,0,res_barrel.png,,Made by Cooling & Fermenting - and only after it has lagered.\nbottle,Bottle,made,no,0,res_bottle.png,small_bottle,\"ROUND AN: COUNTER = small_bottle, so a bottle is a Small Bottle in the bag (Items.csv). The Bottling Machine asks which size to fill (BottleSizes.csv); this is only used if that file has no rows for it. COUNTER blank = the resource is kept in res_<ID>, as before. Made by Bottling & Filling, several from one barrel. A bottle is what the Pub pours.\"\n", "BrewerySections": "Order,ID,Name,Worker,Needs,Takes,Makes,How Many,Batches,Wait Min,Wait Max,X,Y,Art,Size,Shift X,Shift Y,Notes\n1,malthouse,Steeping Tank,Maltster,unlocked:Malthouse;count:malthouse_key>=1,wheat:1;water:1;germs:1,malt,1,1,0,0,0.5,0.24,brewery_malthouse.png,288,,,\"ROUND AN: needs its KEY too (malthouse_key, bought at the Club House). ROUND AN (your sketch): a pyramid on the courtyard - one machine at the back, two in the middle, three at the front, each on its round wooden pallet (Tuning.csv brewery_pallet). SIZE is how big this machine is drawn in pixels (blank = Tuning.csv brewery_machine_size): 320 at the back, 384 in the middle, 448 at the front, so the yard has depth (384 = exactly 3x the 128-pixel picture, the crispest). ROUND AN (your picks): drawn as its machine, which IS the button (assets/brewery/brewery_malthouse.png, PixelLab; layered in art_source/aseprite/brewery/). Was called Malthouse; the unlock name in Needs is unchanged. THE ORDER COLUMN IS THE MAP. Section 1 is the first building you walk to. It also decides what may feed what: a section can only be given something an EARLIER section makes, or something raw - otherwise the chain cannot be started and tools/brewery_check.gd says so.\"\n2,mill,Grain Mill,Miller,unlocked:Mill;count:mill_key>=1,malt:1;water:1;hammer:1,mash,1,1,0,0,0.3,0.47,brewery_mill.png,320,,,\"ROUND AN: needs its KEY too (mill_key, bought at the Club House). ROUND AN (your picks): drawn as its machine, which IS the button (assets/brewery/brewery_mill.png, PixelLab; layered in art_source/aseprite/brewery/). Was called Mill; the unlock name in Needs is unchanged. The hammer is a tool, so it is needed but not spent. See the Kept column of BreweryResources.csv.\"\n3,lautering,Lauter Tun,Lauterer,unlocked:Lautering;count:lautering_key>=1,mash:1;filter:1,wort,1,1,0,0,0.7,0.47,brewery_lautering.png,320,,,\"ROUND AN: needs its KEY too (lautering_key, bought at the Club House). ROUND AN (your picks): drawn as its machine, which IS the button (assets/brewery/brewery_lautering.png, PixelLab; layered in art_source/aseprite/brewery/). Was called Lautering; the unlock name in Needs is unchanged. \"\n4,boiling,Brew Kettle,Brewer,unlocked:Boiling;count:boiling_key>=1,wort:1;hops:1;boiler:1;element:1,brew,1,1,0,0,0.84,0.72,brewery_boiling.png,384,-9,,\"ROUND AN: needs its KEY too (boiling_key, bought at the Club House). ROUND AN (your picks): drawn as its machine, which IS the button (assets/brewery/brewery_boiling.png, PixelLab; layered in art_source/aseprite/brewery/). Was called Boiling & Hopping; the unlock name in Needs is unchanged. Four things at once, which is why this is the section that runs you out of something. The mini-game you described - the circles that must all turn the same way round - goes on top of this row later and changes nothing underneath it.\"\n5,cooling,Fermenting Vat,Cellarman,unlocked:Cooling;count:cooling_key>=1,brew:1;yeast:1,barrel,1,1,1,3,0.5,0.74,brewery_cooling.png,384,,,\"ROUND AN: needs its KEY too (cooling_key, bought at the Club House). ROUND AN (your picks): drawn as its machine, which IS the button (assets/brewery/brewery_cooling.png, PixelLab; layered in art_source/aseprite/brewery/). Was called Cooling & Fermenting; the unlock name in Needs is unchanged. WAIT MIN and WAIT MAX are the lagering. The barrel is not yours the moment you press the button - it sits in the cellar for one to three turns, and a turn is a fixture. Set both to 0 and it is instant. BATCHES is how many vats the cellar has: ONE for free, and every one after that is unlocked. An achievement Reward of count:batches_cooling+1 adds a vat - see ice_house_two in Achievements.csv. That is the shape for the whole Brewery: the basic foundation is free and everything that makes it easier or bigger is earned.\"\n6,bottling,Bottling Machine,Bottler,unlocked:Bottling;count:bottling_key>=1,barrel:1,bottle,6,1,0,0,0.16,0.72,brewery_bottling.png,384,4,10,\"ROUND AN: needs its KEY too (bottling_key, bought at the Club House). ROUND AN (your picks): drawn as its machine, which IS the button (assets/brewery/brewery_bottling.png, PixelLab; layered in art_source/aseprite/brewery/). Was called Bottling & Filling; the unlock name in Needs is unchanged. HOW MANY is why this section exists: one barrel becomes six bottles. That number is the whole economy of the Pub - raise it and drinks are cheap, lower it and every bottle is a decision.\"\n", "Currencies": "ID,Name,Counter,Earned In,Win,Draw,Loss,Icon,Notes\ncoins,Coins,coins,season,40,15,5,coin.png,\"LEAGUE MONEY. `Earned In` is the MatchModes.csv id this currency is paid for - so a Quick Match never pays coins and a season match never pays marks. That separation is the whole point: \"\"currency from wins with separate currencies per mode\"\". Leave Earned In blank and it is paid in EVERY mode.\"\nmarks,Marsh Marks,marks,quick,25,10,3,mark.png,\"QUICK-MATCH MONEY. Earned nowhere else, so a shelf of things priced in marks can only be bought by playing quick matches - which is how a mode gets its own reason to exist.\"\ncup_silver,Cup Silver,cup_silver,cup,80,30,10,coin.png,\"A THIRD PURSE, and the row to copy. MatchModes.csv has five ids - season, friendly, quick, cup, adventure - and a currency names ONE of them. A friendly deliberately pays no money at all: it is played for materials, and giving it a purse would make the league pointless. Nothing is priced in cup silver yet; write a Shop.csv row and it is.\"\nreed,Reed,reed,adventure,0,0,0,reed,\"ROUND AN (your note: the Traveling Merchant trades beer for the resources you have). Reed carried home from an Adventure, spent as money at his shop. No match pays it - Win/Draw/Loss 0.\"\nbog_iron,Bog Iron,bog_iron,adventure,0,0,0,bog_iron,ROUND AN. The same for Bog Iron.\n", "MatchModes": "ID,Name,Records Season,Timer,Cycles,Rounds,Star Rotation,Opponent,Squad Per Tier,Scene,Requires,Rewards,Rewards On Win,Description,Replaces,Squad,Enemy Squad\nseason,Season Match,yes,90,3,3,yes,team,3,match,,,,\"The league. Ninety minutes against another side, three Stars rotating at STAR PLAYER SWITCH, and the result goes in the table.\",,,\nfriendly,Friendly,no,90,3,3,yes,scratch,3,match,,count:scrap+2,count:scrap+3;count:friendly_wins+1,\"PLAY A MATCH from the base. Not a fixture - a side put together on the spot at roughly your own level. Opponent = scratch is what does that; see scratch_team.gd and team_level.gd. You still collect, from the two Rewards columns.\",,,\nfriendly_test,Test Match,no,60,2,3,yes,scratch,3,match,,count:scrap+1,count:scrap+2;count:friendly_wins+1,\"ROUND AN - THE MATCH MAKER's Test Match (data/MatchMaker.csv; Anthony: matches are counted in cycles). Two Play Maker cycles, 30 minutes on the clock for each (60), so one Star swap at STAR PLAYER SWITCH. The Play Makers fit the shorter clock by themselves (main_scene.gd). Pays a little less than a Normal Match.\",,,\nfriendly_cycle,Quick Match,no,30,1,3,no,scratch,3,match,,count:scrap+1,count:scrap+1;count:friendly_wins+1,\"ROUND AN - THE MATCH MAKER's Quick Match (data/MatchMaker.csv). One Play Maker cycle: three rounds, one Star, 30 minutes on the clock. Not the old `quick` row above, which has no clock and is not on the Match Maker.\",,,\nquick,Quick Match,no,0,1,3,no,scratch,3,match,,count:scrap+1,count:scrap+2,\"A short one. No clock, one Star, a scratch opponent, nothing written to the season table.\",,,\ncup,Cup Tie,no,90,3,3,yes,team,3,match,unlocked:The Cup,,count:cup_wins+1,A full match that does not count towards the league. Unlocked with The Cup.,,,\nadventure,Adventure,no,0,1,4,no,biome,1,adventure,,,,\"A run into a biome. No clock, one Star, four tiers per encounter, and nothing is banked until you carry it home.\",,,\nintro,First Match,no,90,3,3,yes,squad,3,match,flag:tutorial_match,,,\"ROUND AN - YOUR FIRST MATCH. Plays while flag:tutorial_match is set (Progression.csv sets it on a new game and clears it at the final whistle). REPLACES: pressing Play a match (friendly) or starting a season, quick match or cup tie plays THIS instead. SQUAD: your side is data/IntroSquad.csv - Koch and eleven plain players with random names, no Stars, nobody has to be owned. Star Rotation yes swaps the other two of Koch's Tier in at the STAR PLAYER SWITCH. The prologue starts it on its own (Progression.csv kick_off_first_match, Do match:intro). ENEMY SQUAD (your note): the opposition is a squad CSV too - all plain players, no Stars, no brew. Opponent squad = take the side from that column.\",friendly;season;quick;cup,IntroSquad.csv,EnemyIntroSquad.csv\nintro2,Second Match,no,90,3,3,yes,squad,3,match,flag:tutorial_match_2,,,\"ROUND AN - YOUR SECOND MATCH, straight after the star-intro scene: the same first team (IntroSquad2.csv: same IDs as IntroSquad.csv = same players), Koch, and the three Bergmännlein Stars. Plays while flag:tutorial_match_2 is set (Progression.csv). Replaces the same buttons as intro. ENEMY SQUAD (your note): the opposition is a squad CSV too - plain players and three plain Stars that only give +1 to the next normal, non-elemental player. Opponent squad = take the side from that column.\",friendly;season;quick;cup,IntroSquad2.csv,EnemyIntroSquad2.csv\nintro_adventure,First Adventure,no,0,1,4,no,biome,1,adventure,flag:intro_adventure;count:adventures_home<1,,,\"ROUND AN - YOUR FIRST ADVENTURE (your note). While the Head Coach is sending you on your first run, the only team is your first team: data/IntroSquad2.csv (the same players as the second match, Koch and the three Bergmännlein Stars). No team to pick - pick a biome and a bounty on the board and you are off. Ends after one run carried home (count:adventures_home).\",adventure,IntroSquad2.csv,\ntutorial,Tutorial Match,no,90,3,3,yes,squad,3,match,,,,\"ROUND AN - THE TUTORIAL MATCH (Anthony, 7 Oct). Started by the Tutorial (the main menu button, or YES on a new save) straight after Pub Dialogue 1 - see tutorial.gd and Tuning.csv tutorial_first_scene / tutorial_match_mode. The Head Coach stops it again and again: every stop is a MatchTalk.csv row with Mode = tutorial. SQUAD: data/TutorialSquad.csv (Koch, a plain player and the Star, at Tier IV, and eleven plain players). FOUR CYCLES (8 Oct): Koch stays on as the Star for cycles 1-3 (TIME OUTs after 1 and 2, Do keep_star) and is swapped out at the switch after cycle 3. ENEMY SQUAD: all plain players. At full time the tutorial ends: the base (locked, Tuning.csv starting_team) or, from the main menu, the title screen. Nothing is written to the season table.\",,TutorialSquad.csv,EnemyIntroSquad.csv\ntutorial_adventure,The Brewer's Errand,no,0,1,4,no,biome,1,adventure,flag:tut_morning;count:adventures_played<1,,,\"ROUND AN - THE TUTORIAL'S FIRST ADVENTURE (\"\"the morning after\"\", Anthony 8 Oct). While the morning is on, any Adventure plays as this: your party is data/TutorialAdventureSquad.csv, four Adventure Players, one per Tier. Koch stops the run at its firsts: the MatchTalk.csv rows with Mode tutorial_adventure (adventure_talk.gd). count:adventures_played goes up when any run ends (home, fled or fallen), which ends it.\",adventure,TutorialAdventureSquad.csv,\n", "Biomes": "ID,Name,Order,Requires,Waves,Enemy Pool,Background,Parallax,Sky,Grass,Grass Stripe,Edge,Music,Drops,Difficulty,Description,Ground Alpha\nmarshlands,The Marshlands,1,,4,marsh,res://assets/backgrounds/marsh_iso.png,0,#12181c,#213a26,#1b2f1f,#3a5c3f,marsh_theme,marsh_ground,1,Wet and green. Reed grows thick here and something is always moving in it.,0.35\ncinderwastes,The Cinder Wastes,2,unlocked:Marsh King,5,cinder,bg_cinder,0.3,#1c1310,#4a3320,#3d2a1a,#7a5530,cinder_theme,cinder_ground,2,Ash underfoot and heat in the air. Nothing grows but the fires do.,\nhollowdeep,The Hollowdeep,3,unlocked:Ash Tyrant,6,hollow,bg_hollow,0.2,#0d0c14,#2a2438,#221d2e,#463c5c,hollow_theme,hollow_ground,3,Below the old works. The dark down here has weight to it.,\nfrostreach,The Frostreach,4,unlocked:Hollow Mother,6,frost,bg_frost,0.35,#101822,#28455e,#20384d,#4d7a9e,frost_theme,frost_ground,4,\"White over blue, and the wind never stops. An example of how a biome changes with four colours.\",\n", "AdventureEnemies": "ID,Name,Pool,Attack,Layers,Targeting,Element,Ability,Buff,Art,Drops,Weight,Boss,Description\nmire_grub,Mire Grub,marsh,1,Body:4,weakest,Water,,,res://assets/adventure/enemies/grub.png,grub_drops,10,no,Soft and slow. There are always more of them.\nreed_biter,Reed Biter,marsh,1,Body:6,weakest,Water,,,res://assets/adventure/enemies/biter.png,biter_drops,8,no,Fast in the shallows.\nbog_lurker,Bog Lurker,marsh,2,Hide:3:1|Body:6,weakest,Water,,,res://assets/adventure/enemies/lurker.png,lurker_drops,6,no,Its hide turns the first couple of hits.\nfen_stalker,Fen Stalker,marsh,2,Body:8,weakest,Water,,,res://assets/adventure/enemies/stalker.png,lurker_drops,4,no,Waits at the back and picks its moment.\nreed_warden,The Reed Warden,marsh,2,Bark:4:1|Body:8,weakest,Water,,1,res://assets/adventure/enemies/warden.png,warden_drops,0,yes,\"A small bounty and a good first kill. Two layers, and the bark only turns one point a hit.\"\nmarsh_king,The Marsh King,marsh,3,Crown:6:2|Weed:8:1|Body:12,weakest,Water,,1,res://assets/adventure/enemies/king.png,king_drops,0,yes,\"Three layers of him, and each one is harder than the last.\"\nash_pup,Ash Pup,cinder,1,Body:5,weakest,Fire,,,pup,pup_drops,10,no,Small and hot.\nslag_hound,Slag Hound,cinder,2,Slag:3:1|Body:6,weakest,Fire,,,hound,hound_drops,8,no,\nfurnace_husk,Furnace Husk,cinder,2,Plate:5:2|Body:8,strongest,Fire,,,husk,husk_drops,5,no,\"Goes for your best player, not your worst.\"\ncinder_shade,Cinder Shade,cinder,3,Body:9,weakest,Fire,,,shade,husk_drops,4,no,\nslag_walker,The Slag Walker,cinder,3,Plate:8:2|Body:10,weakest,Fire,,1,walker,walker_drops,0,yes,\nash_tyrant,The Ash Tyrant,cinder,4,Crust:10:2|Ember:10:1|Core:16,aoe,Fire,,1,tyrant,tyrant_drops,0,yes,Hits every standing player at once. Bring stamina.\nhollow_crawler,Hollow Crawler,hollow,2,Body:6,weakest,,,,crawler,crawler_drops,10,no,\nhollow_weaver,Hollow Weaver,hollow,2,Body:8,weakest,,,,weaver,crawler_drops,8,no,\"Spins in the dark. Nothing clever, just persistent.\"\ndeep_warden,Deep Warden,hollow,3,Shell:6:2|Body:9,lowest_stamina,,,,dwarden,dwarden_drops,6,no,Finishes what is already hurt.\ngloom_hulk,Gloom Hulk,hollow,3,Shell:8:2|Body:10,strongest,,,,hulk,dwarden_drops,4,no,\nhollow_mother,The Hollow Mother,hollow,5,Shell:12:2|Brood:12:1|Heart:20,aoe,,,1,mother,mother_drops,0,yes,\"The deepest thing down there, and the last one.\"\nfrost_nip,Frost Nip,frost,2,Body:7,weakest,,,,nip,crawler_drops,10,no,\nrime_shell,Rime Shell,frost,2,Rime:6:2|Body:8,weakest,,,,rime,dwarden_drops,7,no,\nglacier_maw,Glacier Maw,frost,4,Ice:10:2|Body:14,strongest,,,,maw,dwarden_drops,4,no,\n", "Drops": "Table,Item,Amount,Chance,Requires,Notes\nmarsh_ground,reed,1,1.0,,Picked up off the ground while the party runs.\nmarsh_ground,coins,2,0.5,,\ncinder_ground,ash_glass,1,1.0,,\ncinder_ground,coins,4,0.5,,\nhollow_ground,deep_salt,1,1.0,,\nhollow_ground,coins,6,0.5,,\ngrub_drops,reed,2,1.0,,Always two reed.\ngrub_drops,bog_iron,1,0.2,,One in five.\nbiter_drops,reed,3,1.0,,\nlurker_drops,bog_iron,2,0.6,,\nwarden_drops,reed,10,1.0,,\nwarden_drops,coins,25,1.0,,\nking_drops,recipe_marsh_ale,1,1.0,unlocked:Brewery,Only drops once you can actually brew.\nking_drops,bog_iron,12,1.0,,\nking_drops,coins,80,1.0,,\npup_drops,ash_glass,1,1.0,,\nhound_drops,ash_glass,2,0.7,,\nhusk_drops,bog_iron,3,0.5,,\nwalker_drops,bog_iron,10,1.0,,\nwalker_drops,coins,40,1.0,,\ntyrant_drops,recipe_cinder_stout,1,1.0,unlocked:Brewery,\ntyrant_drops,ash_glass,15,1.0,,\ntyrant_drops,coins,150,1.0,,\ncrawler_drops,deep_salt,1,1.0,,\ndwarden_drops,deep_salt,3,0.6,,\nmother_drops,recipe_hollow_porter,1,1.0,unlocked:Brewery,\nmother_drops,deep_salt,20,1.0,,\nmother_drops,coins,300,1.0,,\nfrost_ground,deep_salt,1,1.0,,Ground pickups in the Frostreach.\nfrost_ground,coins,5,0.5,,\nfrost_ground,smelling_salts,1,0.08,,A rare find. Brings somebody back on.\ngrub_drops,field_bandage,1,0.06,,\"The odd bandage, so the item menu is not empty on a first run.\"\nwarden_drops,smelling_salts,1,1.0,,The first boss always leaves one.\nking_drops,team_orange,2,1.0,,\ntyrant_drops,smelling_salts,2,1.0,,\nmother_drops,smelling_salts,3,1.0,,\n"};
+const SRC_STAMP = "7d42effd63";
+</script>
+<script>
+"use strict";
+/* ---------- CSV ---------- */
+function parseCSV(t){const out=[];let row=[],f="",q=false;for(let i=0;i<t.length;i++){const c=t[i];
+  if(q){if(c=='"'){if(t[i+1]=='"'){f+='"';i++}else q=false}else f+=c}
+  else if(c=='"')q=true;else if(c==','){row.push(f);f=""}else if(c=='\n'){row.push(f);out.push(row);row=[];f=""}else if(c!='\r')f+=c}
+  if(f!==""||row.length){row.push(f);out.push(row)}return out}
+function esc(v){v=v==null?"":String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function loadFile(name,text){const a=parseCSV(text.replace(/^﻿/,""));const cols=a[0]||[];
+  const rows=a.slice(1).filter(r=>r.some(x=>x!=="")).map(r=>{const o={};cols.forEach((c,i)=>o[c]=r[i]??"");return o});
+  return {name,cols,rows}}
+function toCSV(f){return [f.cols.map(esc).join(",")].concat(f.rows.map(r=>f.cols.map(c=>esc(r[c])).join(","))).join("\n")+"\n"}
+
+/* ---------- state ---------- */
+const FILES={};const ORIG={};
+for(const n in SRC){FILES[n]=loadFile(n,SRC[n]);ORIG[n]=toCSV(FILES[n])}
+const LS="sturmball-kit-v1";
+function lsGet(k){try{return JSON.parse(localStorage.getItem(LS+k)||"null")}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v))}catch(e){}}
+(function restore(){const saved=lsGet(":edits");if(!saved||saved.stamp!==SRC_STAMP)return;for(const n in saved.files)if(FILES[n])FILES[n]=loadFile(n,saved.files[n])})();
+const undoStack=[];
+function snapshot(){const s={};for(const n in FILES)s[n]=toCSV(FILES[n]);return s}
+function pushUndo(){undoStack.push(snapshot());if(undoStack.length>60)undoStack.shift()}
+function changedFiles(){return Object.keys(FILES).filter(n=>toCSV(FILES[n])!==ORIG[n])}
+function persist(){const f={};for(const n of changedFiles())f[n]=toCSV(FILES[n]);lsSet(":edits",{stamp:SRC_STAMP,files:f})}
+
+/* ---------- vocabulary ---------- */
+const KINDS={
+  play:{label:"Play",desc:"Where the player spends time: a match mode or an Adventure place",color:"var(--hops)",glyph:"play"},
+  stat:{label:"Score",desc:"A number the game counts (matches won, goals…)",color:"var(--sky)",glyph:"dot"},
+  money:{label:"Money",desc:"A purse: Coins, Marsh Marks…",color:"var(--beer)",glyph:"pool"},
+  stuff:{label:"Stuff",desc:"Things you carry: reed, hops, keys, bottles",color:"var(--chalk)",glyph:"pool"},
+  maker:{label:"Maker",desc:"Turns stuff into other stuff: a brew, a trade, an upgrade, a brewing machine",color:"var(--clay)",glyph:"tri"},
+  goal:{label:"Goal",desc:"An achievement or story moment that fires when its Needs are met",color:"var(--beer)",glyph:"diamond"},
+  unlock:{label:"Unlock",desc:"A name that gets switched on (Brewery, Fire Brew…)",color:"var(--beer)",glyph:"star"},
+  place:{label:"Building",desc:"A building on the base",color:"var(--chalk)",glyph:"house"}};
+const ETYPES={flow:"gives / makes",cost:"costs",unlock:"unlocks / needs it unlocked",reads:"checks a number",game:"counted by the game itself"};
+const VIEWS=[
+  {id:"all",name:"Whole game"},
+  {id:"path",name:"Unlock path",kinds:["play","stat","goal","unlock","place","maker"],makers:["upgrade"]},
+  {id:"loot",name:"Loot & money",kinds:["play","money","stuff","maker"],makers:["brew","shop","upgrade"]},
+  {id:"brewery",name:"Brewery",kinds:["stuff","maker","money"],makers:["brew","section","shop"]},
+  {id:"tables",name:"Tables"}];
+const MATCH_STATS=["matches_played","matches_won","goals","goals_by_star","clean_sheets","keeper_emptied","red_cards","goals_with_brew_fire"];
+const SHOWN_MODES=["season","friendly","quick","cup"];
+
+/* ---------- condition / action language (same words the game uses) ---------- */
+function toks(s,sep){return (s||"").split(sep||";").map(x=>x.trim()).filter(Boolean)}
+function parseCond(t){let m;let neg=false;if(t[0]=="!"){neg=true;t=t.slice(1)}
+  if((m=t.match(/^count:([\w]+)\s*(>=|<=|==|>|<|=)\s*(-?[\d.]+)$/)))return{k:"count",id:m[1],op:m[2],n:+m[3],neg};
+  if((m=t.match(/^unlocked:(.+)$/)))return{k:"unlocked",name:m[1].trim(),neg};
+  if((m=t.match(/^flag:(.+)$/)))return{k:"flag",name:m[1].trim(),neg};
+  return{k:"other",raw:t,neg}}
+function parseAct(t){let m;
+  if((m=t.match(/^count:([\w]+)\s*([+-])\s*([\d.]+)$/)))return{k:"count",id:m[1],n:(m[2]=="-"?-1:1)*+m[3]};
+  if((m=t.match(/^unlock:(.+)$/)))return{k:"unlock",name:m[1].trim()};
+  if((m=t.match(/^flag:(.+)$/)))return{k:"flag",name:m[1].trim()};
+  return{k:"other",raw:t}}
+function parseCost(s){return toks(s,/[|;]/).map(x=>{const [id,n]=x.split(":");return{id:id.trim(),n:+(n||1)}})}
+const F=n=>FILES[n]?FILES[n].rows:[];
+const nice=s=>s.replace(/_/g," ");
+
+/* ---------- graph from CSVs ---------- */
+let G={nodes:new Map(),edges:[]};
+function buildGraph(){
+  const N=new Map(),E=[];const resIds=new Set();
+  const add=(id,o)=>{if(!N.has(id))N.set(id,Object.assign({id,ins:[],outs:[]},o));return N.get(id)};
+  const resName={};
+  F("Currencies").forEach(r=>{resIds.add(r.ID);resName[r.ID]={kind:"money",row:r,file:"Currencies"}});
+  F("BreweryResources").forEach(r=>{resIds.add(r.ID);if(!resName[r.ID])resName[r.ID]={kind:"stuff",row:r,file:"BreweryResources"}});
+  F("Items").forEach(r=>{resIds.add(r.ID);if(!resName[r.ID]||resName[r.ID].file=="Currencies"&&!["coins","marks","cup_silver"].includes(r.ID))resName[r.ID]={kind:r.Kind=="currency"?"money":"stuff",row:r,file:"Items"}});
+  const numId=id=>{ // a counter: stuff/money if it is a thing you own, otherwise a score
+    if(resIds.has(id)){const m=resName[id];return add("res:"+id,{kind:m.kind,label:m.row.Name||nice(id),file:m.file,row:m.row,sub:id})}
+    return add("stat:"+id,{kind:"stat",label:nice(id),sub:"count:"+id,file:null})};
+  const feat=name=>add("feat:"+name,{kind:"unlock",label:name,sub:"unlocked:"+name,file:null});
+  const edge=(a,b,type,label,src)=>{if(!a||!b||a===b)return;E.push(Object.assign({from:a.id,to:b.id,type,label:label??""},src||{}))};
+  const conds=(node,file,row,col)=>toks(row[col]).forEach(t=>{const c=parseCond(t);const src={file,row,col,token:t,sep:";"};
+    if(c.k=="count"&&!c.neg&&/>/.test(c.op))edge(numId(c.id),node,"reads",c.op+c.n,src);
+    else if(c.k=="count"&&/>/.test(c.op))edge(numId(c.id),node,"reads","not "+c.op+c.n,src);
+    else if(c.k=="unlocked")edge(feat(c.name),node,"unlock",c.neg?"not":"",src);
+    else if(c.k=="flag"&&/^earned_/.test(c.name)&&!c.neg){const a=N.get("ach:"+c.name.slice(7));if(a)edge(a,node,"unlock","",src)}});
+  const acts=(node,file,row,col)=>toks(row[col]).forEach(t=>{const a=parseAct(t);const src={file,row,col,token:t,sep:";"};
+    if(a.k=="count")edge(node,numId(a.id),"flow",(a.n>0?"+":"")+a.n,src);
+    else if(a.k=="unlock")edge(node,feat(a.name),"unlock","",src)});
+
+  // play
+  const any=add("play:match",{kind:"play",label:"Every match",sub:"counted by game code",file:null});
+  MATCH_STATS.forEach(s=>edge(any,numId(s),"game",""));
+  F("MatchModes").filter(r=>SHOWN_MODES.includes(r.ID)).forEach(r=>{
+    const n=add("mode:"+r.ID,{kind:"play",label:r.Name,file:"MatchModes",row:r,sub:"MatchModes "+r.ID,mk:"mode"});
+    conds(n,"MatchModes",r,"Requires");acts(n,"MatchModes",r,"Rewards");acts(n,"MatchModes",r,"Rewards On Win");edge(n,any,"game","")});
+  F("Currencies").forEach(r=>{const m=N.get("mode:"+r["Earned In"]);const c=numId(r.ID);
+    if(m&&(+r.Win||+r.Draw||+r.Loss))edge(m,c,"flow",`W${r.Win} D${r.Draw} L${r.Loss}`,{file:"Currencies",row:r,col:"Earned In",token:r["Earned In"],whole:true})});
+  F("Biomes").forEach(r=>{const n=add("biome:"+r.ID,{kind:"play",label:r.Name,file:"Biomes",row:r,sub:"Adventure · "+r.Waves+" waves",mk:"biome"});
+    conds(n,"Biomes",r,"Requires");
+    const loot=expectedRun(r,null);for(const id in loot)edge(n,numId(id),"flow","~"+fmt(loot[id]),{file:"Drops",loot:true,table:r.Drops,item:id});
+    const boss=bossOf(r);if(boss)edge(n,feat(boss),"unlock","beat boss")});
+  // goals
+  F("Achievements").forEach(r=>add("ach:"+r.ID,{kind:"goal",label:r.Name,file:"Achievements",row:r,sub:"Achievements "+r.ID,mk:"ach"}));
+  F("Achievements").forEach(r=>{const n=N.get("ach:"+r.ID);conds(n,"Achievements",r,"Needs");
+    toks(r.Unlocks).forEach(u=>edge(n,feat(u),"unlock","",{file:"Achievements",row:r,col:"Unlocks",token:u,sep:";"}));acts(n,"Achievements",r,"Reward")});
+  F("Progression").filter(r=>/unlock:/.test(r.Do)).forEach(r=>{const n=add("story:"+r.ID,{kind:"goal",label:nice(r.ID),file:"Progression",row:r,sub:"Progression · story",mk:"story"});
+    conds(n,"Progression",r,"Requires");acts(n,"Progression",r,"Do")});
+  // makers
+  F("Upgrades").forEach(r=>{const n=add("upg:"+r.ID,{kind:"maker",label:r.Name,file:"Upgrades",row:r,sub:"Club House · "+r.Cost+" "+r.Currency,mk:"upgrade"});
+    if(r.Achievement){const a=N.get("ach:"+r.Achievement);if(a)edge(a,n,"unlock","may buy",{file:"Upgrades",row:r,col:"Achievement",token:r.Achievement,whole:true})}
+    conds(n,"Upgrades",r,"Needs");if(r.Currency&&+r.Cost)edge(numId(r.Currency),n,"cost",r.Cost,{file:"Upgrades",row:r,col:"Cost",token:r.Cost,whole:true});acts(n,"Upgrades",r,"Effect")});
+  F("Shop").forEach(r=>{const n=add("shop:"+r.ID,{kind:"maker",label:r.Name||nice(r.ID),file:"Shop",row:r,sub:"Merchant · "+r.Price+" "+r.Currency,mk:"shop"});
+    conds(n,"Shop",r,"Requires");if(r.Currency&&+r.Price)edge(numId(r.Currency),n,"cost",r.Price,{file:"Shop",row:r,col:"Price",token:r.Price,whole:true});
+    const s=r.Sells;let m;const src={file:"Shop",row:r,col:"Sells",token:s,whole:true};
+    if((m=s.match(/^res:(\w+)/)))edge(n,numId(m[1]),"flow","+"+(r["How Many"]||1),src);
+    else if((m=s.match(/^brew:(\w+)/))){const b=N.get("brew:"+m[1]);edge(n,b||feat("recipe "+m[1]),"unlock","recipe",src)}
+    else acts(n,"Shop",r,"Sells")});
+  F("Brews").filter(r=>r.Cost||r.Requires&&!/flag:/.test(r.Requires)).forEach(r=>{const n=add("brew:"+r.ID,{kind:"maker",label:r.Name,file:"Brews",row:r,sub:"Brew"+(r.Becomes?" → "+r.Becomes:""),mk:"brew"});
+    conds(n,"Brews",r,"Requires");parseCost(r.Cost).forEach(c=>edge(numId(c.id),n,"cost",c.n,{file:"Brews",row:r,col:"Cost",token:c.id+":"+c.n,sep:"|"}));
+    edge(n,numId("brews_poured"),"game","");if(resIds.has("brew_"+r.ID))edge(n,numId("brew_"+r.ID),"flow","+1")});
+  // the shop sells recipes before the brews are built in this pass; tie them up now
+  E.forEach(e=>{if(e.to.startsWith("feat:recipe ")){const b=N.get("brew:"+e.to.slice(12));if(b)e.to=b.id}});
+  F("BrewerySections").forEach(r=>{const n=add("sec:"+r.ID,{kind:"maker",label:r.Name,file:"BrewerySections",row:r,sub:"Brewery · "+r.Worker,mk:"section"});
+    conds(n,"BrewerySections",r,"Needs");
+    toks(r.Takes).forEach(t=>{const [id,k]=t.split(":");const tool=(F("BreweryResources").find(x=>x.ID==id)||{}).Kind=="tool";
+      edge(numId(id),n,tool?"reads":"cost",tool?"uses":k,{file:"BrewerySections",row:r,col:"Takes",token:t,sep:";"})});
+    if(r.Makes)edge(n,numId(r.Makes),"flow","+"+(r["How Many"]||1),{file:"BrewerySections",row:r,col:"Makes",token:r.Makes,whole:true})});
+  // places
+  F("Buildings").forEach(r=>{const n=add("bld:"+r.ID,{kind:"place",label:r.Name,file:"Buildings",row:r,sub:"Base building",mk:"building"});conds(n,"Buildings",r,"Requires")});
+  // a key is bought, the building checks it: show that one hop clearly
+  // wire up ins/outs
+  const seen=new Set();G={nodes:N,edges:[]};
+  E.forEach(e=>{const k=e.from+">"+e.to+">"+e.type+">"+(e.token||e.label);if(seen.has(k))return;seen.add(k);if(!N.has(e.from)||!N.has(e.to))return;
+    e.i=G.edges.length;G.edges.push(e);N.get(e.from).outs.push(e);N.get(e.to).ins.push(e)});
+}
+function fmt(x){return x>=10?Math.round(x):Math.round(x*10)/10}
+function bossOf(b){const pool=F("AdventureEnemies").filter(e=>e.Pool==b["Enemy Pool"]&&+e.Weight===0);if(!pool.length)return null;
+  pool.sort((x,y)=>(+y.Attack)-(+x.Attack));return pool[0].Name.replace(/^The /,"")}
+function dropTable(t,st){const o={};F("Drops").filter(d=>d.Table==t&&(!st||condOK(d.Requires,st))).forEach(d=>{o[d.Item]=(o[d.Item]||0)+(+d.Amount||0)*(+(d.Chance||1))});return o}
+function expectedRun(b,st){const P=SIM_SET;const o={};const addT=(t,mul)=>{const d=dropTable(t,st);for(const k in d)o[k]=(o[k]||0)+d[k]*mul};
+  const waves=+b.Waves||4;addT(b.Drops,waves);
+  const pool=F("AdventureEnemies").filter(e=>e.Pool==b["Enemy Pool"]);const reg=pool.filter(e=>+e.Weight>0);const W=reg.reduce((s,e)=>s+(+e.Weight),0)||1;
+  reg.forEach(e=>addT(e.Drops,waves*P.enemies*(+e.Weight)/W));pool.filter(e=>+e.Weight===0).forEach(e=>addT(e.Drops,P.bossWin));return o}
+
+/* ---------- pretend season ---------- */
+const SIM_DEF={days:40,matches:1,mode:"season",win:0.55,draw:0.15,goals:2,runs:1,enemies:3,bossWin:0.5,beatAfter:3,keys:true,upgrades:true,merchant:true,brews:1};
+const SIM_SET=Object.assign({},SIM_DEF,lsGet(":sim")||{});
+let SIM=null;
+function condOK(s,st){return toks(s).every(t=>{const c=parseCond(t);let v=true;
+  if(c.k=="count"){const x=st.c[c.id]||0;v={">=":x>=c.n-1e-9,">":x>c.n,"<=":x<=c.n,"<":x<c.n,"==":Math.abs(x-c.n)<1e-9,"=":Math.abs(x-c.n)<1e-9}[c.op]}
+  else if(c.k=="unlocked")v=st.u.has(c.name);else if(c.k=="flag")v=st.f.has(c.name);
+  return c.neg?!v:v})}
+function doActs(s,st,why,day){toks(s).forEach(t=>{const a=parseAct(t);if(a.k=="count")st.c[a.id]=(st.c[a.id]||0)+a.n;
+  else if(a.k=="unlock"&&!st.u.has(a.name)){st.u.add(a.name);st.ev.push({day,t:a.name+" unlocked",why,node:"feat:"+a.name})}
+  else if(a.k=="flag")st.f.add(a.name)})}
+function pay(st,cost){for(const c of cost)if((st.c[c.id]||0)<c.n-1e-9)return false;cost.forEach(c=>st.c[c.id]-=c.n);return true}
+function runSim(){const P=SIM_SET;const st={c:{},u:new Set(),f:new Set(),ev:[],done:new Set(),bought:new Set(),runs:{}};
+  F("BreweryResources").forEach(r=>st.c[r.ID]=+r.Start||0);
+  const days=[];const first={};
+  const mark=day=>{G.nodes.forEach(n=>{if(first[n.id]!=null)return;if(nodeOpen(n,st,day))first[n.id]=day})};
+  const triggers=day=>{let again=true,guard=0;while(again&&guard++<20){again=false;
+    F("Achievements").forEach(r=>{if(st.f.has("earned_"+r.ID)||!r.Needs)return;if(condOK(r.Needs,st)){st.f.add("earned_"+r.ID);again=true;
+      st.ev.push({day,t:r.Name+" earned",node:"ach:"+r.ID,goal:true});toks(r.Unlocks).forEach(u=>{if(!st.u.has(u)){st.u.add(u);st.ev.push({day,t:u+" unlocked",why:r.Name,node:"feat:"+u})}});doActs(r.Reward,st,r.Name,day)}});
+    F("Progression").forEach(r=>{if(st.done.has(r.ID)||!r.Do)return;if(r.Requires&&condOK(r.Requires,st)){st.done.add(r.ID);again=true;doActs(r.Do,st,"story: "+nice(r.ID),day)}})}};
+  const open=id=>{const b=F("Buildings").find(x=>x.ID==id);return b&&condOK(b.Requires,st)};
+  mark(0);days.push(snap(st));
+  for(let day=1;day<=P.days;day++){
+    for(let m=0;m<P.matches;m++){const mode=F("MatchModes").find(x=>x.ID==P.mode)||{ID:P.mode};
+      const w=P.win,d=P.draw,l=Math.max(0,1-w-d);st.c.matches_played=(st.c.matches_played||0)+1;st.c.matches_won=(st.c.matches_won||0)+w;
+      st.c.goals=(st.c.goals||0)+P.goals;st.c.goals_by_star=(st.c.goals_by_star||0)+P.goals*0.3;st.c.clean_sheets=(st.c.clean_sheets||0)+0.25;
+      st.c.keeper_emptied=(st.c.keeper_emptied||0)+0.5;st.c.red_cards=(st.c.red_cards||0)+0.05;
+      if((st.c.brewed_fire||0)>0)st.c.goals_with_brew_fire=(st.c.goals_with_brew_fire||0)+Math.min(P.goals*0.5,1);
+      F("Currencies").forEach(r=>{if(r["Earned In"]==mode.ID||!r["Earned In"])st.c[r.ID]=(st.c[r.ID]||0)+w*(+r.Win||0)+d*(+r.Draw||0)+l*(+r.Loss||0)});
+      doActs(mode.Rewards||"",st,mode.Name,day);toks(mode["Rewards On Win"]).forEach(t=>{const a=parseAct(t);if(a.k=="count")st.c[a.id]=(st.c[a.id]||0)+a.n*w});
+      triggers(day)}
+    for(let k=0;k<P.runs;k++){const bs=F("Biomes").filter(b=>condOK(b.Requires,st)).sort((a,b)=>(+b.Order)-(+a.Order));const b=bs[0];if(!b)break;
+      const loot=expectedRun(b,st);for(const id in loot)st.c[id]=(st.c[id]||0)+loot[id];st.c.adventures_played=(st.c.adventures_played||0)+1;st.c.adventures_home=(st.c.adventures_home||0)+1;st.f.add("intro_adventure");
+      st.runs[b.ID]=(st.runs[b.ID]||0)+1;const boss=bossOf(b);if(boss&&st.runs[b.ID]>=P.beatAfter&&!st.u.has(boss)){st.u.add(boss);st.ev.push({day,t:boss+" beaten",why:b.Name,node:"feat:"+boss})}
+      triggers(day)}
+    // shopping
+    const ups=F("Upgrades");
+    if(P.keys)F("Buildings").forEach(b=>{toks(b.Requires).forEach(t=>{const c=parseCond(t);if(c.k=="count"&&!condOK(t,st)){
+      const others=toks(b.Requires).filter(x=>x!==t).join(";");if(!condOK(others,st))return;const u=ups.find(x=>toks(x.Effect).some(e=>{const a=parseAct(e);return a.k=="count"&&a.id==c.id}));
+      if(u&&pay(st,[{id:u.Currency,n:+u.Cost}])){doActs(u.Effect,st,u.Name,day);st.bought.add(u.ID);st.ev.push({day,t:"Bought "+u.Name,node:"upg:"+u.ID})}}})});
+    if(P.upgrades)ups.forEach(u=>{if(st.bought.has(u.ID)||/_key$/.test(u.ID))return;if(u.Achievement&&!st.f.has("earned_"+u.Achievement))return;if(u.Needs&&!condOK(u.Needs,st))return;
+      if(pay(st,[{id:u.Currency,n:+u.Cost}])){st.bought.add(u.ID);doActs(u.Effect,st,u.Name,day);st.ev.push({day,t:"Bought "+u.Name,node:"upg:"+u.ID})}});
+    if(P.merchant)F("Shop").forEach(s=>{if(!condOK(s.Requires,st))return;const m=s.Sells.match(/^res:(\w+)/);if(!m)return;if((st.c[m[1]]||0)>=(+s["How Many"]||1))return;
+      if(pay(st,[{id:s.Currency,n:+s.Price}]))st.c[m[1]]=(st.c[m[1]]||0)+(+s["How Many"]||1)});
+    // brewing
+    if(open("brewery")){F("BrewerySections").forEach(s=>{if(!condOK(s.Needs,st))return;const take=toks(s.Takes).map(t=>{const [id,n]=t.split(":");return{id,n:+n||1}}).filter(t=>(F("BreweryResources").find(x=>x.ID==t.id)||{}).Kind!=="tool");
+      const tools=toks(s.Takes).map(t=>t.split(":")[0]).filter(id=>(F("BreweryResources").find(x=>x.ID==id)||{}).Kind=="tool");
+      if(tools.every(id=>(st.c[id]||0)>=1)&&pay(st,take))st.c[s.Makes]=(st.c[s.Makes]||0)+(+s["How Many"]||1)});
+      let made=0;const list=F("Brews").filter(b=>b.Cost&&condOK(b.Requires,st));for(let i=0;i<list.length&&made<P.brews;i++){const b=list[(i+day)%list.length];
+        if(pay(st,parseCost(b.Cost))){made++;st.c["brewed_"+b.ID]=(st.c["brewed_"+b.ID]||0)+1;st.c.brews_poured=(st.c.brews_poured||0)+1;if(st.c["brew_"+b.ID]!=null||F("Items").some(x=>x.ID=="brew_"+b.ID))st.c["brew_"+b.ID]=(st.c["brew_"+b.ID]||0)+1;
+          if(!st.c["firstbrew_"+b.ID]){st.c["firstbrew_"+b.ID]=1;st.ev.push({day,t:"First "+b.Name+" brewed",node:"brew:"+b.ID})}}}}
+    triggers(day);
+    F("Buildings").forEach(b=>{if(!st.done.has("bld:"+b.ID)&&condOK(b.Requires,st)){st.done.add("bld:"+b.ID);st.ev.push({day,t:b.Name+" opens",node:"bld:"+b.ID,big:true})}});
+    mark(day);days.push(snap(st))}
+  SIM={days,first,ev:st.ev}}
+function snap(st){return{c:Object.assign({},st.c),u:new Set(st.u),f:new Set(st.f)}}
+function nodeOpen(n,st,day){const r=n.row;switch(n.mk||n.kind){
+  case "mode":return condOK(r.Requires,st);case "biome":return condOK(r.Requires,st);
+  case "ach":return st.f.has("earned_"+r.ID);case "story":return condOK(r.Requires,st);
+  case "upgrade":return (!r.Achievement||st.f.has("earned_"+r.Achievement))&&condOK(r.Needs,st);
+  case "shop":return condOK(r.Requires,st);case "brew":return condOK(r.Requires,st);case "section":return condOK(r.Needs,st);
+  case "building":return condOK(r.Requires,st);
+  case "unlock":return st.u.has(n.label);
+  case "stat":case "money":case "stuff":return (st.c[n.id.split(":")[1]]||0)>0.0001;
+  case "play":return true}return true}
+
+/* ---------- layout ---------- */
+const W=184,H=42,COLW=250,ROWH=58;
+let VIEW=lsGet(":view")||"path";let POS=lsGet(":pos")||{};
+function viewNodes(){const v=VIEWS.find(x=>x.id==VIEW)||VIEWS[0];const ids=new Set();
+  G.nodes.forEach(n=>{if(!v.kinds)return ids.add(n.id);if(!v.kinds.includes(n.kind))return;if(n.kind=="maker"&&v.makers&&!v.makers.includes(n.mk))return;ids.add(n.id)});
+  if(v.id=="brewery"){ // only stuff and unlocks that touch a brewery maker
+    const keep=new Set();ids.forEach(id=>{const n=G.nodes.get(id);if(n.kind=="maker")keep.add(id)});
+    [...keep].forEach(id=>{const n=G.nodes.get(id);n.ins.concat(n.outs).forEach(e=>{keep.add(e.from);keep.add(e.to)})});
+    return new Set([...keep].filter(id=>ids.has(id)))}
+  if(v.id=="path"){[...ids].forEach(id=>{const n=G.nodes.get(id);if(n.mk=="upgrade"&&!/_key$/.test(n.row.ID)&&!n.row.Achievement)ids.delete(id)})}
+  // drop loners
+  return new Set([...ids].filter(id=>{const n=G.nodes.get(id);return n.ins.concat(n.outs).some(e=>ids.has(e.from)&&ids.has(e.to)&&e.from!==e.to)||n.kind=="goal"}))}
+function autoLayout(ids){const rank={};const inV=e=>ids.has(e.from)&&ids.has(e.to);
+  const visiting=new Set();const r=id=>{if(rank[id]!=null)return rank[id];if(visiting.has(id))return 0;visiting.add(id);
+    const n=G.nodes.get(id);let m=0;n.ins.filter(inV).forEach(e=>{if(e.type!="game"||true)m=Math.max(m,r(e.from)+1)});visiting.delete(id);return rank[id]=m};
+  ids.forEach(r);const cols={};ids.forEach(id=>{(cols[rank[id]]=cols[rank[id]]||[]).push(id)});
+  const order=Object.keys(KINDS);const y={};
+  Object.keys(cols).sort((a,b)=>a-b).forEach(c=>{const list=cols[c];
+    list.forEach(id=>{const n=G.nodes.get(id);const ps=n.ins.filter(inV).map(e=>y[e.from]).filter(v=>v!=null);n._b=ps.length?ps.reduce((a,b)=>a+b,0)/ps.length:order.indexOf(n.kind)*1000});
+    list.sort((a,b)=>G.nodes.get(a)._b-G.nodes.get(b)._b||G.nodes.get(a).label.localeCompare(G.nodes.get(b).label));
+    list.forEach((id,i)=>y[id]=i)});
+  const maxLen=Math.max(...Object.values(cols).map(l=>l.length));const out={};
+  Object.keys(cols).forEach(c=>{const list=cols[c];const off=(maxLen-list.length)*ROWH/2;list.forEach((id,i)=>out[id]={x:c*COLW,y:off+i*ROWH})});
+  return out}
+function positions(ids){const p=POS[VIEW]=POS[VIEW]||{};const missing=[...ids].filter(id=>!p[id]);
+  if(missing.length===ids.size||!Object.keys(p).length){Object.assign(p,autoLayout(ids))}
+  else if(missing.length){const a=autoLayout(ids);let maxY=Math.max(0,...Object.values(p).map(v=>v.y));missing.forEach((id,i)=>p[id]={x:a[id].x,y:maxY+ROWH*(i+2)})}
+  return p}
+
+/* ---------- drawing ---------- */
+const $=s=>document.querySelector(s);const svg=$("#svg"),world=$("#world");
+const NS="http://www.w3.org/2000/svg";const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+let cam=lsGet(":cam")||{x:40,y:40,k:0.7};let SEL=null,SELE=null,DAY=0,IDS=new Set(),P={};
+function glyph(g,kind,x,y,col){const s={fill:col,stroke:"none"};
+  switch(KINDS[kind].glyph){
+    case "play":return el("path",Object.assign({d:`M${x-6} ${y-8}L${x+8} ${y}L${x-6} ${y+8}z`},s),g);
+    case "dot":return el("circle",Object.assign({cx:x,cy:y,r:5},s),g);
+    case "pool":return el("circle",{cx:x,cy:y,r:10,fill:"none",stroke:col,"stroke-width":2},g);
+    case "tri":return el("path",Object.assign({d:`M${x-9} ${y-8}L${x+9} ${y}L${x-9} ${y+8}z`,fill:"none",stroke:col,"stroke-width":2}),g);
+    case "diamond":return el("path",Object.assign({d:`M${x} ${y-10}L${x+10} ${y}L${x} ${y+10}L${x-10} ${y}z`},s),g);
+    case "star":{let d="";for(let i=0;i<10;i++){const r=i%2?4:10,a=Math.PI/5*i-Math.PI/2;d+=(i?"L":"M")+(x+r*Math.cos(a)).toFixed(1)+" "+(y+r*Math.sin(a)).toFixed(1)}return el("path",Object.assign({d:d+"z"},s),g)}
+    case "house":return el("path",Object.assign({d:`M${x-9} ${y+8}V${y-2}L${x} ${y-10}L${x+9} ${y-2}V${y+8}z`,fill:"none",stroke:col,"stroke-width":2}),g)}}
+function edgePath(a,b){const x1=a.x+W,y1=a.y+H/2,x2=b.x,y2=b.y+H/2;const back=x2<x1+20;const dx=back?Math.max(80,Math.abs(x2-x1)/3):Math.max(40,(x2-x1)/2);
+  return{d:`M${x1} ${y1}C${x1+dx} ${y1+(back?60:0)},${x2-dx} ${y2+(back?60:0)},${x2} ${y2}`,mx:(x1+x2)/2,my:(y1+y2)/2+(back?45:0)}}
+function draw(){IDS=viewNodes();P=positions(IDS);
+  const gE=$("#gEdges"),gL=$("#gLabels"),gN=$("#gNodes");gE.innerHTML="";gL.innerHTML="";gN.innerHTML="";
+  G.edges.forEach(e=>{if(!IDS.has(e.from)||!IDS.has(e.to))return;const a=P[e.from],b=P[e.to];const p=edgePath(a,b);
+    e._p=el("path",{d:p.d,class:"edge "+e.type,"marker-end":"url(#arr)"},gE);const hit=el("path",{d:p.d,class:"hit"},gE);
+    hit.addEventListener("click",ev=>{ev.stopPropagation();selectEdge(e)});e._hit=hit;
+    e._l=el("text",{x:p.mx,y:p.my-4,class:"elabel","text-anchor":"middle"},gL);e._l.textContent=e.label||"";e._l.style.display="none"});
+  IDS.forEach(id=>{const n=G.nodes.get(id),p=P[id];const k=KINDS[n.kind];
+    const g=el("g",{class:"node",transform:`translate(${p.x},${p.y})`},gN);g.style.setProperty("--k",k.color);n._g=g;
+    el("rect",{class:"box",width:W,height:H,rx:n.kind=="goal"?14:3},g);glyph(g,n.kind,20,H/2,k.color);
+    const t=el("text",{x:38,y:17,class:"name"},g);t.textContent=n.label.length>22?n.label.slice(0,21)+"…":n.label;
+    const s=el("text",{x:38,y:32,class:"sub"},g);s.textContent=(n.sub||"").length>26?n.sub.slice(0,25)+"…":(n.sub||"");
+    n._val=el("text",{x:20,y:H/2+4,class:"val"},g);
+    n._day=el("text",{x:W-6,y:13,class:"day"},g);
+    const port=el("circle",{class:"port",cx:W,cy:H/2,r:6},g);
+    g.addEventListener("pointerdown",ev=>startNodeDrag(ev,n,ev.target===port));
+    const ti=el("title",{},g);ti.textContent=n.label+" — "+k.label});
+  applyCam();paintDay();highlight()}
+function applyCam(){world.setAttribute("transform",`translate(${cam.x},${cam.y}) scale(${cam.k})`);lsSet(":cam",cam)}
+function paintDay(){if(!SIM)return;const s=SIM.days[Math.min(DAY,SIM.days.length-1)];
+  IDS.forEach(id=>{const n=G.nodes.get(id);const f=SIM.first[id];const on=f!=null&&f<=DAY;n._g.classList.toggle("open",on);n._g.classList.toggle("locked",!on);
+    if(["money","stuff","stat"].includes(n.kind)){const v=s.c[id.split(":")[1]]||0;n._val.textContent=v?(v>=1000?Math.round(v/100)/10+"k":Math.floor(v)):""}
+    n._day.textContent=f==null?"never":"day "+f;n._day.setAttribute("fill",f==null?"var(--brick)":on?"var(--chalk-faint)":"var(--beer)")});
+  G.edges.forEach(e=>{if(!e._p)return;const f=SIM.first[e.from],t=SIM.first[e.to];e._p.classList.toggle("live",DAY>0&&f!=null&&f<=DAY&&(e.type=="flow"||e.type=="cost")&&(t!=null&&t<=DAY||e.type=="flow"))});
+  $("#dayl").textContent="Day "+DAY;$("#day").value=DAY;
+  const show=["coins","marks","reed","bog_iron","hops","matches_won"];$("#pools").innerHTML=show.map(id=>{const n=G.nodes.get("res:"+id)||G.nodes.get("stat:"+id);return `<span>${n?n.label:nice(id)} <b>${Math.floor(s.c[id]||0)}</b></span>`}).join("")}
+function highlight(){const near=new Set();const L=new Set();svg.classList.toggle("dim",!!(SEL||SELE));
+  if(SEL){near.add(SEL);const n=G.nodes.get(SEL);n.ins.concat(n.outs).forEach(e=>{near.add(e.from);near.add(e.to);L.add(e)})}
+  if(SELE){near.add(SELE.from);near.add(SELE.to);L.add(SELE)}
+  IDS.forEach(id=>{const n=G.nodes.get(id);n._g.classList.toggle("near",near.has(id));n._g.classList.toggle("sel",id===SEL)});
+  G.edges.forEach(e=>{if(!e._p)return;const on=L.has(e);e._p.classList.toggle("near",on);e._p.classList.toggle("sel",e===SELE);e._l.classList.toggle("near",on);e._l.style.display=(on||cam.k>1.15)&&e.label?"":"none"})}
+function redrawEdgesOf(id){const n=G.nodes.get(id);n.ins.concat(n.outs).forEach(e=>{if(!e._p)return;const p=edgePath(P[e.from],P[e.to]);e._p.setAttribute("d",p.d);e._hit.setAttribute("d",p.d);e._l.setAttribute("x",p.mx);e._l.setAttribute("y",p.my-4)})}
+
+/* ---------- pointer ---------- */
+let drag=null;
+function toWorld(ev){const r=svg.getBoundingClientRect();return{x:(ev.clientX-r.left-cam.x)/cam.k,y:(ev.clientY-r.top-cam.y)/cam.k}}
+function startNodeDrag(ev,n,fromPort){ev.stopPropagation();svg.setPointerCapture(ev.pointerId);const w=toWorld(ev);
+  drag=fromPort?{mode:"link",n,sx:P[n.id].x+W,sy:P[n.id].y+H/2}:{mode:"node",n,dx:w.x-P[n.id].x,dy:w.y-P[n.id].y,moved:false}}
+svg.addEventListener("pointerdown",ev=>{if(drag)return;svg.setPointerCapture(ev.pointerId);drag={mode:"pan",x:ev.clientX,y:ev.clientY,cx:cam.x,cy:cam.y,moved:false};svg.classList.add("panning")});
+svg.addEventListener("pointermove",ev=>{if(!drag)return;const w=toWorld(ev);
+  if(drag.mode=="pan"){cam.x=drag.cx+ev.clientX-drag.x;cam.y=drag.cy+ev.clientY-drag.y;if(Math.abs(ev.clientX-drag.x)+Math.abs(ev.clientY-drag.y)>3)drag.moved=true;applyCam()}
+  else if(drag.mode=="node"){const p=P[drag.n.id];p.x=Math.round((w.x-drag.dx)/10)*10;p.y=Math.round((w.y-drag.dy)/10)*10;drag.moved=true;drag.n._g.setAttribute("transform",`translate(${p.x},${p.y})`);redrawEdgesOf(drag.n.id)}
+  else if(drag.mode=="link"){$("#ghost").setAttribute("d",`M${drag.sx} ${drag.sy}L${w.x} ${w.y}`)}});
+svg.addEventListener("pointerup",ev=>{if(!drag)return;const d=drag;drag=null;svg.classList.remove("panning");
+  if(d.mode=="pan"&&!d.moved){SEL=null;SELE=null;highlight();inspect()}
+  if(d.mode=="node"){if(d.moved)lsSet(":pos",POS);else{SEL=d.n.id;SELE=null;highlight();inspect()}}
+  if(d.mode=="link"){$("#ghost").setAttribute("d","");const w=toWorld(ev);const hit=[...IDS].find(id=>{const p=P[id];return w.x>=p.x&&w.x<=p.x+W&&w.y>=p.y&&w.y<=p.y+H});
+    if(hit&&hit!==d.n.id)proposeLink(d.n,G.nodes.get(hit),ev)}});
+svg.addEventListener("wheel",ev=>{ev.preventDefault();const r=svg.getBoundingClientRect();zoomAt(ev.clientX-r.left,ev.clientY-r.top,Math.exp(-ev.deltaY*0.0015))},{passive:false});
+function zoomAt(px,py,f){const k=Math.min(2.5,Math.max(0.2,cam.k*f));cam.x=px-(px-cam.x)*k/cam.k;cam.y=py-(py-cam.y)*k/cam.k;cam.k=k;applyCam();highlight()}
+$("#zin").onclick=()=>{const r=svg.getBoundingClientRect();zoomAt(r.width/2,r.height/2,1.25)};
+$("#zout").onclick=()=>{const r=svg.getBoundingClientRect();zoomAt(r.width/2,r.height/2,0.8)};
+$("#zfit").onclick=fit;
+function fit(){const ps=[...IDS].map(id=>P[id]);if(!ps.length)return;const r=svg.getBoundingClientRect();
+  const x0=Math.min(...ps.map(p=>p.x)),x1=Math.max(...ps.map(p=>p.x))+W,y0=Math.min(...ps.map(p=>p.y)),y1=Math.max(...ps.map(p=>p.y))+H;
+  cam.k=Math.min(1.2,Math.max(0.2,Math.min((r.width-40)/(x1-x0),(r.height-40)/(y1-y0))));cam.x=(r.width-(x1-x0)*cam.k)/2-x0*cam.k;cam.y=(r.height-(y1-y0)*cam.k)/2-y0*cam.k;applyCam();highlight()}
+
+/* ---------- connecting cards = writing CSV cells ---------- */
+const id2=n=>n.id.split(":").slice(1).join(":");
+function linkRule(a,b){const ra=a.row,rb=b.row;
+  if((a.kind=="stuff"||a.kind=="money")&&b.mk=="brew")return{say:`<code>${id2(a)}:N</code> goes into <b>Brews.csv</b> → ${rb.ID} → Cost`,ask:"How many?",def:2,apply:n=>addTok(rb,"Cost",id2(a)+":"+n,"|","Brews")};
+  if((a.kind=="stuff"||a.kind=="money")&&b.mk=="section")return{say:`<code>${id2(a)}:N</code> goes into <b>BrewerySections.csv</b> → ${rb.ID} → Takes`,ask:"How many?",def:1,apply:n=>addTok(rb,"Takes",id2(a)+":"+n,";","BrewerySections")};
+  if(a.kind=="money"&&(b.mk=="shop"||b.mk=="upgrade")){const col=b.mk=="shop"?"Price":"Cost";return{say:`Sets <b>${b.file}.csv</b> → ${rb.ID} → Currency to <code>${id2(a)}</code> and ${col} to N`,ask:"Price?",def:rb[col]||50,apply:n=>{set(rb,"Currency",id2(a),b.file);set(rb,col,n,b.file)}}}
+  if(a.mk=="shop"&&(b.kind=="stuff"||b.kind=="money"))return{say:`Sets <b>Shop.csv</b> → ${ra.ID} → Sells to <code>res:${id2(b)}</code>, How Many N`,ask:"How many?",def:1,apply:n=>{set(ra,"Sells",(G.nodes.get("res:"+id2(b))&&F("BreweryResources").some(x=>x.ID==id2(b))?"res:":"count:")+id2(b)+(F("BreweryResources").some(x=>x.ID==id2(b))?"":"+"+n),"Shop");set(ra,"How Many",n,"Shop")}};
+  if(a.mk=="ach"&&b.kind=="unlock")return{say:`Adds <code>${b.label}</code> to <b>Achievements.csv</b> → ${ra.ID} → Unlocks`,apply:()=>addTok(ra,"Unlocks",b.label,";","Achievements")};
+  if(a.mk=="ach"&&b.mk=="ach")return{say:`Adds <code>flag:earned_${ra.ID}</code> to <b>Achievements.csv</b> → ${rb.ID} → Needs, so ${rb.Name} comes after ${ra.Name}`,apply:()=>addTok(rb,"Needs","flag:earned_"+ra.ID,";","Achievements")};
+  if(a.mk=="ach"&&b.mk=="upgrade")return{say:`Sets <b>Upgrades.csv</b> → ${rb.ID} → Achievement to <code>${ra.ID}</code> (earning it lets you buy the upgrade)`,apply:()=>set(rb,"Achievement",ra.ID,"Upgrades")};
+  if((a.kind=="stat"||a.kind=="money"||a.kind=="stuff")&&b.mk=="ach")return{say:`Adds <code>count:${id2(a)}>=N</code> to <b>Achievements.csv</b> → ${rb.ID} → Needs`,ask:"At least how many?",def:3,apply:n=>addTok(rb,"Needs",`count:${id2(a)}>=${n}`,";","Achievements")};
+  if((a.kind=="stat"||a.kind=="money"||a.kind=="stuff")&&b.row&&reqCol(b))return{say:`Adds <code>count:${id2(a)}>=N</code> to <b>${b.file}.csv</b> → ${rb.ID} → ${reqCol(b)}`,ask:"At least how many?",def:1,apply:n=>addTok(rb,reqCol(b),`count:${id2(a)}>=${n}`,";",b.file)};
+  if(a.kind=="unlock"&&b.row&&reqCol(b))return{say:`Adds <code>unlocked:${a.label}</code> to <b>${b.file}.csv</b> → ${rb.ID} → ${reqCol(b)}`,apply:()=>addTok(rb,reqCol(b),"unlocked:"+a.label,";",b.file)};
+  if(a.mk=="upgrade"&&(b.kind=="stuff"||b.kind=="stat"||b.kind=="money"))return{say:`Adds <code>count:${id2(b)}+N</code> to <b>Upgrades.csv</b> → ${ra.ID} → Effect`,ask:"How many?",def:1,apply:n=>addTok(ra,"Effect",`count:${id2(b)}+${n}`,";","Upgrades")};
+  if(a.mk=="ach"&&(b.kind=="stuff"||b.kind=="money"))return{say:`Adds <code>count:${id2(b)}+N</code> to <b>Achievements.csv</b> → ${ra.ID} → Reward`,ask:"How many?",def:25,apply:n=>addTok(ra,"Reward",`count:${id2(b)}+${n}`,";","Achievements")};
+  if(a.mk=="biome"&&(b.kind=="stuff"||b.kind=="money"))return{say:`Adds a row to <b>Drops.csv</b>: table <code>${ra.Drops}</code>, item <code>${id2(b)}</code>, Amount N, Chance 1.0 (picked up every wave)`,ask:"How many per wave?",def:1,apply:n=>{FILES.Drops.rows.push(Object.assign(blank("Drops"),{Table:ra.Drops,Item:id2(b),Amount:String(n),Chance:"1.0"}))}};
+  if(a.mk=="mode"&&b.kind=="money")return{say:`Sets <b>Currencies.csv</b> → ${id2(b)} → Earned In to <code>${ra.ID}</code>, paying N per win`,ask:"Paid per win?",def:30,apply:n=>{const c=F("Currencies").find(x=>x.ID==id2(b));if(c){set(c,"Earned In",ra.ID,"Currencies");set(c,"Win",n,"Currencies")}}};
+  return null}
+function reqCol(n){return {Brews:"Requires",Shop:"Requires",Biomes:"Requires",Buildings:"Requires",MatchModes:"Requires",Progression:"Requires",Upgrades:"Needs",BrewerySections:"Needs",Achievements:"Needs"}[n.file]}
+function blank(f){const o={};FILES[f].cols.forEach(c=>o[c]="");return o}
+function set(row,col,v){row[col]=String(v)}
+function addTok(row,col,tok,sep){const t=toks(row[col],sep=="|"?/[|]/:";");if(!t.includes(tok))t.push(tok);row[col]=t.join(sep)}
+function delTok(row,col,tok,sep){row[col]=toks(row[col],sep=="|"?/[|]/:";").filter(x=>x!==tok).join(sep)}
+function proposeLink(a,b,ev){const rule=linkRule(a,b);if(!rule){toast(`No CSV column joins ${a.label} to ${b.label} yet. Try the other direction.`);return}
+  const pop=document.createElement("div");pop.className="pop";const r=$("#stage").getBoundingClientRect();
+  pop.style.left=Math.min(r.width-300,Math.max(8,ev.clientX-r.left))+"px";pop.style.top=Math.min(r.height-200,Math.max(8,ev.clientY-r.top))+"px";
+  pop.innerHTML=`<p><b>${a.label}</b> → <b>${b.label}</b></p><p>${rule.say}</p>${rule.ask?`<div class="field"><label for="lnkN">${rule.ask}</label><input id="lnkN" type="number" value="${rule.def}"></div>`:""}<div class="btnrow"><button class="btn" id="lnkOk">Connect</button><button class="btn ghost2" id="lnkNo">Cancel</button></div>`;
+  $("#stage").appendChild(pop);const n=pop.querySelector("#lnkN");if(n)n.focus();
+  pop.querySelector("#lnkNo").onclick=()=>pop.remove();
+  pop.querySelector("#lnkOk").onclick=()=>{pushUndo();rule.apply(n?n.value:1);pop.remove();changed(`Connected ${a.label} → ${b.label}`)}}
+function removeEdge(e){if(!e.row){toast("This line comes from game code, not a CSV cell.");return}
+  pushUndo();if(e.whole){if(e.col=="Achievement"||e.col=="Earned In")e.row[e.col]="";else if(e.col=="Sells"||e.col=="Makes")e.row[e.col]="";else e.row[e.col]=""}
+  else delTok(e.row,e.col,e.token,e.sep);SELE=null;changed("Removed "+e.token+" from "+e.file+".csv")}
+
+/* ---------- inspector ---------- */
+const R=$("#right");
+function inspect(){if(SELE)return inspectEdge(SELE);if(!SEL)return summary();const n=G.nodes.get(SEL);const k=KINDS[n.kind];const f=SIM&&SIM.first[n.id];
+  let h=`<span class="kind" style="--k:${k.color}">${k.label}</span><h2>${escH(n.label)}</h2><div class="where">${n.file?n.file+".csv → "+escH(n.row.ID||n.row.Table||""):escH(n.sub||"")}</div>`;
+  h+=`<span class="state ${f==null?"no":"ok"}">${f==null?"Never reached in "+SIM_SET.days+" days":f===0?"Open from the start":"Reached on day "+f}</span>`;
+  if(n.row){h+=`<div class="lbl" style="margin-top:16px">${n.file}.csv row</div>`;
+    FILES[n.file].cols.forEach((c,i)=>{const v=n.row[c]||"";const long=c=="Notes"||c=="Description"||v.length>40;
+      h+=`<div class="field"><label for="f${i}">${escH(c)}</label>${long?`<textarea id="f${i}" data-c="${escA(c)}" rows="${c=="Notes"?3:2}">${escH(v)}</textarea>`:`<input id="f${i}" data-c="${escA(c)}" value="${escA(v)}">`}</div>`})}
+  else if(n.kind=="unlock")h+=`<p class="hint" style="margin-top:12px">An unlock is just a name. Anything that says <code>unlock:${escH(n.label)}</code> switches it on; anything that says <code>unlocked:${escH(n.label)}</code> waits for it.</p>`;
+  else if(n.kind=="stat")h+=`<p class="hint" style="margin-top:12px">A number the game keeps. CSVs check it with <code>count:${escH(id2(n))}>=N</code>.</p>`;
+  const io=(list,dir)=>list.map(e=>{const o=G.nodes.get(dir?e.to:e.from);return `<button class="lnk" data-go="${escA(o.id)}">${dir?"→":"←"} ${escH(o.label)} <i>${escH(e.label||ETYPES[e.type])}</i></button>`}).join("");
+  if(n.ins.length)h+=`<div class="lbl" style="margin-top:16px">Comes from</div><div class="links">${io(n.ins,0)}</div>`;
+  if(n.outs.length)h+=`<div class="lbl" style="margin-top:16px">Leads to</div><div class="links">${io(n.outs,1)}</div>`;
+  if(n.row&&["Achievements","Brews","Shop","Upgrades","Items"].includes(n.file))h+=`<div class="btnrow"><button class="btn bad" id="delRow">Delete this ${n.file=="Items"?"item":"row"}</button></div>`;
+  R.innerHTML=h;
+  R.querySelectorAll("[data-c]").forEach(inp=>inp.addEventListener("change",()=>{pushUndo();n.row[inp.dataset.c]=inp.value;changed(`${n.file}.csv ${n.row.ID}: ${inp.dataset.c} changed`)}));
+  R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
+  const d=R.querySelector("#delRow");if(d)d.onclick=()=>{if(d.dataset.sure){pushUndo();FILES[n.file].rows=FILES[n.file].rows.filter(r=>r!==n.row);SEL=null;changed(`Deleted ${n.row.ID} from ${n.file}.csv`)}else{d.dataset.sure=1;d.textContent="Click again to delete"}}}
+function inspectEdge(e){const a=G.nodes.get(e.from),b=G.nodes.get(e.to);
+  let h=`<span class="kind" style="--k:var(--chalk-dim)">Line · ${ETYPES[e.type]}</span><h2>${escH(a.label)} → ${escH(b.label)}</h2>`;
+  if(e.loot)h+=`<p class="hint">About <b>${escH(e.label.slice(1))}</b> per Adventure run, worked out from <b>Drops.csv</b> (table <code>${escH(e.table)}</code> plus the enemies of this place) and the run settings below.</p>`;
+  else if(e.row)h+=`<div class="where">${e.file}.csv → ${escH(e.row.ID||"")} → ${escH(e.col)}</div><p class="hint">Written as <code>${escH(e.token)}</code>.</p><div class="btnrow"><button class="btn bad" id="delE">Remove this line</button></div>`;
+  else h+=`<p class="hint">This one comes from the game itself (every match counts goals, wins and so on), so there is no CSV cell to change.</p>`;
+  R.innerHTML=h;const d=R.querySelector("#delE");if(d)d.onclick=()=>removeEdge(e)}
+function summary(){if(!SIM){R.innerHTML="";return}
+  const big=SIM.ev.filter(e=>e.big||e.t.endsWith(" unlocked")||e.t.endsWith(" beaten"));
+  let h=`<span class="kind" style="--k:var(--beer)">Pretend season</span><h2>What opens when</h2><p class="hint">The game played ${SIM_SET.days} days with the numbers below. Click a line to find the card.</p><ul class="list">`;
+  big.slice(0,40).forEach(e=>h+=`<li><span class="d">day ${e.day}</span><button class="lnk" data-go="${escA(e.node)}">${escH(e.t)}${e.why?` <i>${escH(e.why)}</i>`:""}</button></li>`);h+="</ul>";
+  // dead ends
+  const neverUsed=[],neverOn=[],noSource=[];
+  G.nodes.forEach(n=>{if(n.kind=="unlock"){if(!n.ins.length)noSource.push(n);else if(!n.outs.length)neverUsed.push(n)}
+    if((n.kind=="place"||n.mk=="ach")&&SIM.first[n.id]==null)neverOn.push(n)});
+  const chips=l=>l.map(n=>`<button class="lnk" data-go="${escA(n.id)}">${escH(n.label)}</button>`).join(", ");
+  if(neverOn.length)h+=`<div class="warn"><b>Never reached in ${SIM_SET.days} days:</b> ${chips(neverOn)}</div>`;
+  if(noSource.length)h+=`<div class="warn"><b>Waits for an unlock nothing hands out:</b> ${chips(noSource)}</div>`;
+  if(neverUsed.length)h+=`<div class="warn"><b>Unlocked, but nothing in these sheets uses it yet:</b> ${chips(neverUsed)}</div>`;
+  const S=SIM_SET;const num=(k,l,step)=>`<label for="s_${k}">${l}</label><input type="number" id="s_${k}" data-k="${k}" value="${S[k]}" step="${step||1}" min="0">`;
+  const chk=(k,l)=>`<label for="s_${k}">${l}</label><input type="checkbox" id="s_${k}" data-k="${k}" ${S[k]?"checked":""}>`;
+  h+=`<div class="lbl" style="margin-top:18px">How the pretend player plays</div><div class="sim">${num("days","Days to play")}${num("matches","Matches a day")}${num("win","Chance to win",0.05)}${num("draw","Chance to draw",0.05)}${num("goals","Goals a match",0.5)}${num("runs","Adventure runs a day")}${num("enemies","Enemies a wave")}${num("bossWin","Chance to beat a boss",0.1)}${num("beatAfter","Runs before a boss falls")}${num("brews","Brews a day")}${chk("keys","Buy keys when possible")}${chk("upgrades","Buy upgrades when possible")}${chk("merchant","Restock from the Merchant")}</div>
+  <div class="btnrow"><button class="btn ghost2" id="simReset">Reset numbers</button></div>`;
+  R.innerHTML=h;R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
+  R.querySelectorAll("[data-k]").forEach(i=>i.addEventListener("change",()=>{SIM_SET[i.dataset.k]=i.type=="checkbox"?i.checked:+i.value;lsSet(":sim",SIM_SET);rerun()}));
+  $("#simReset").onclick=()=>{Object.assign(SIM_SET,SIM_DEF);lsSet(":sim",SIM_SET);rerun()}}
+function goTo(id){if(!IDS.has(id)){VIEW="all";lsSet(":view",VIEW);renderTabs();draw()}if(!IDS.has(id))return;
+  SEL=id;SELE=null;const p=P[id],r=svg.getBoundingClientRect();cam.k=Math.max(cam.k,0.9);cam.x=r.width/2-(p.x+W/2)*cam.k;cam.y=r.height/2-(p.y+H/2)*cam.k;applyCam();highlight();inspect();
+  if(SIM&&SIM.first[id]!=null){DAY=SIM.first[id];paintDay()}}
+function selectEdge(e){SELE=e;SEL=null;highlight();inspect()}
+const escH=s=>String(s??"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));const escA=s=>escH(s).replace(/"/g,"&quot;");
+
+/* ---------- changes ---------- */
+function changed(msg){persist();buildGraph();runSim();if(SEL&&!G.nodes.has(SEL))SEL=null;SELE=null;draw();inspect();updCount();if(msg)toast(msg)}
+function rerun(){buildGraph();runSim();draw();inspect()}
+function updCount(){const n=changedFiles().length;const c=$("#chgCount");c.hidden=!n;c.textContent=n;$("#btnChanges").classList.toggle("hot",!!n)}
+let tt;function toast(m){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");$("#stage").appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,3200)}
+$("#btnUndo").onclick=undo;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key=="z"&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();undo()}
+  if(e.key=="Escape"){SEL=null;SELE=null;highlight();inspect()}});
+function undo(){const s=undoStack.pop();if(!s){toast("Nothing to undo");return}for(const n in s)FILES[n]=loadFile(n,s[n]);SEL=null;changed("Undone")}
+$("#btnLayout").onclick=()=>{POS[VIEW]={};lsSet(":pos",POS);draw();fit()};
+$("#btnChanges").onclick=()=>{const files=changedFiles();const sh=document.createElement("div");sh.className="sheet";
+  sh.innerHTML=`<div class="bar"><b style="font:600 18px var(--cond)">Changed sheets</b><span class="hint">Copy a sheet and paste it over the file in <code>data/</code>, or send it to Claude in the project chat.</span><span class="spacer"></span><button class="btn bad" id="chgReset">Throw away all changes</button><button class="btn ghost2" id="chgClose">Close</button></div><div class="body" id="chgBody"></div>`;
+  $("#stage").appendChild(sh);const b=sh.querySelector("#chgBody");
+  if(!files.length)b.innerHTML=`<p class="hint">No changes yet. Edit a card, connect two cards or add a new one, and the changed CSVs show up here.</p>`;
+  files.forEach(f=>{const o=FILES[f],old=loadFile(f,ORIG[f]);const oldS=new Set(old.rows.map(r=>JSON.stringify(r)));const newS=new Set(o.rows.map(r=>JSON.stringify(r)));
+    const added=o.rows.filter(r=>!oldS.has(JSON.stringify(r)));const gone=old.rows.filter(r=>!newS.has(JSON.stringify(r)));
+    const d=document.createElement("div");d.className="chg";d.innerHTML=`<h3>data/${f}.csv</h3><div class="hint">${added.length} row(s) new or changed${gone.length?`, ${gone.length} old version(s) replaced or removed`:""}: ${added.slice(0,8).map(r=>escH(r.ID||r.Table+"/"+r.Item)).join(", ")}</div><div class="btnrow"><button class="btn">Copy CSV</button></div><textarea readonly aria-label="${f}.csv">${escH(toCSV(o))}</textarea>`;
+    const ta=d.querySelector("textarea");d.querySelector(".btn").onclick=ev=>{const btn=ev.target;navigator.clipboard.writeText(ta.value).then(()=>btn.textContent="Copied").catch(()=>{ta.focus();ta.select();btn.textContent="Press Ctrl+C"})};b.appendChild(d)});
+  sh.querySelector("#chgClose").onclick=()=>sh.remove();
+  const rs=sh.querySelector("#chgReset");rs.onclick=()=>{if(!rs.dataset.sure){rs.dataset.sure=1;rs.textContent="Click again to throw away";return}pushUndo();for(const n in ORIG)FILES[n]=loadFile(n,ORIG[n]);sh.remove();changed("Back to the game's own CSVs")}};
+
+/* ---------- add new things ---------- */
+const ADDS=[
+  {k:"goal",t:"Achievement",file:"Achievements",make:(id,name)=>({ID:id,Name:name,Description:"",Needs:"count:matches_played>=1",Unlocks:""})},
+  {k:"maker",t:"Brew recipe",file:"Brews",make:(id,name)=>({ID:id,Name:name,Cost:"reed:1"})},
+  {k:"maker",t:"Merchant trade",file:"Shop",make:(id,name)=>({ID:id,Name:name,Sells:"res:hops","How Many":"1",Price:"10",Currency:"coins",Requires:"unlocked:Traveling Tavern"})},
+  {k:"maker",t:"Club House upgrade",file:"Upgrades",make:(id,name)=>({ID:id,Name:name,Kind:"upgrade",Cost:"100",Currency:"coins",Effect:"count:"+id+"+1"})},
+  {k:"stuff",t:"Material",file:"Items",make:(id,name)=>({ID:id,Name:name,Kind:"material",Tab:"resources",Stack:"99"})}];
+function renderAdds(){const box=$("#adds");box.innerHTML="";ADDS.forEach(a=>{const b=document.createElement("button");b.className="addbtn";
+  const s=document.createElementNS(NS,"svg");s.setAttribute("width",22);s.setAttribute("height",22);glyph(s,a.k,11,11,KINDS[a.k].color);b.appendChild(s);b.append("New "+a.t.toLowerCase());
+  b.onclick=()=>askName(a);box.appendChild(b)})}
+function askName(a){const pop=document.createElement("div");pop.className="pop";pop.style.left="12px";pop.style.top="12px";
+  pop.innerHTML=`<p>New ${a.t.toLowerCase()} in <b>${a.file}.csv</b></p><div class="field"><label for="newName">Name</label><input id="newName" placeholder="e.g. ${a.k=="goal"?"Derby Day":a.k=="stuff"?"Moor Peat":"Smoked Märzen"}"></div><div class="btnrow"><button class="btn" id="newOk">Add</button><button class="btn ghost2" id="newNo">Cancel</button></div>`;
+  $("#stage").appendChild(pop);const inp=pop.querySelector("#newName");inp.focus();
+  const go=()=>{const name=inp.value.trim();if(!name)return inp.focus();let id=name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ß/g,"ss").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
+    while(F(a.file).some(r=>r.ID==id))id+="_2";pushUndo();const row=Object.assign(blank(a.file),a.make(id,name));FILES[a.file].rows.push(row);pop.remove();
+    const pre={Achievements:"ach:",Brews:"brew:",Shop:"shop:",Upgrades:"upg:",Items:"res:"}[a.file]+id;
+    changed(`Added ${name} to ${a.file}.csv`);
+    if(!IDS.has(pre)&&G.nodes.has(pre)){VIEW="all";renderTabs();draw()}
+    if(G.nodes.has(pre)&&P[pre]){const r=svg.getBoundingClientRect();P[pre].x=Math.round(((r.width/2-cam.x)/cam.k)/10)*10;P[pre].y=Math.round(((r.height/2-cam.y)/cam.k)/10)*10;lsSet(":pos",POS);draw();goTo(pre)}};
+  pop.querySelector("#newOk").onclick=go;inp.addEventListener("keydown",e=>{if(e.key=="Enter")go();if(e.key=="Escape")pop.remove()});pop.querySelector("#newNo").onclick=()=>pop.remove()}
+
+/* ---------- tables view ---------- */
+let TBL=lsGet(":tbl")||"Achievements";
+function tables(){let sh=$("#tblSheet");if(sh)sh.remove();sh=document.createElement("div");sh.className="sheet";sh.id="tblSheet";
+  sh.innerHTML=`<div class="bar"><label for="tblPick" class="lbl" style="margin:0">Sheet</label><select id="tblPick">${Object.keys(FILES).sort().map(f=>`<option ${f==TBL?"selected":""}>${f}</option>`).join("")}</select><span class="hint">Every cell writes straight into data/${TBL}.csv. The full kit opens all ${SRC_COUNT} sheets here.</span></div><div class="body"><table class="grid" id="grid"></table></div>`;
+  $("#stage").appendChild(sh);const f=FILES[TBL];const t=sh.querySelector("#grid");
+  t.innerHTML=`<thead><tr>${f.cols.map(c=>`<th>${escH(c)}</th>`).join("")}</tr></thead><tbody>${f.rows.map((r,i)=>`<tr>${f.cols.map(c=>`<td class="${c=="Notes"?"note":""}"><input data-r="${i}" data-c="${escA(c)}" value="${escA(r[c])}" aria-label="${escA(c)}" title="${escA(r[c])}"></td>`).join("")}</tr>`).join("")}</tbody>`;
+  t.querySelectorAll("input").forEach(inp=>inp.addEventListener("change",()=>{pushUndo();f.rows[+inp.dataset.r][inp.dataset.c]=inp.value;persist();buildGraph();runSim();updCount();toast(`${TBL}.csv: ${inp.dataset.c} changed`)}));
+  sh.querySelector("#tblPick").onchange=e=>{TBL=e.target.value;lsSet(":tbl",TBL);tables()}}
+const SRC_COUNT=132;
+
+/* ---------- tabs, legend, playback ---------- */
+function renderTabs(){$("#tabs").innerHTML=VIEWS.map(v=>`<button class="tab" role="tab" aria-selected="${v.id==VIEW}" data-v="${v.id}">${v.name}</button>`).join("");
+  $("#tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{const v=b.dataset.v;const t=$("#tblSheet");if(t)t.remove();
+    if(v=="tables"){VIEW_T=true;tables();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
+    const first=!POS[v];VIEW=v;lsSet(":view",v);SEL=null;SELE=null;renderTabs();draw();inspect();if(first)fit()})}
+let VIEW_T=false;
+function renderLegend(){$("#legend").innerHTML="";Object.entries(KINDS).forEach(([k,v])=>{const d=document.createElement("div");d.title=v.desc;
+  const s=document.createElementNS(NS,"svg");s.setAttribute("width",22);s.setAttribute("height",22);glyph(s,k,11,11,v.color);d.appendChild(s);d.append(v.label);$("#legend").appendChild(d)});
+  $("#legend2").innerHTML=Object.entries(ETYPES).map(([k,v])=>`<div><svg width="30" height="10"><path class="edge ${k}" d="M2 5H28"/></svg>${v}</div>`).join("")}
+let timer=null;$("#play").onclick=()=>{if(timer){clearInterval(timer);timer=null;$("#play").textContent="▶";return}
+  if(DAY>=SIM_SET.days)DAY=0;$("#play").textContent="❚❚";timer=setInterval(()=>{DAY++;paintDay();if(DAY>=SIM_SET.days){clearInterval(timer);timer=null;$("#play").textContent="▶"}},450)};
+$("#day").addEventListener("input",e=>{DAY=+e.target.value;paintDay()});
+function marks(){$("#day").max=SIM_SET.days;DAY=Math.min(DAY,SIM_SET.days);const m=$("#marks");m.innerHTML="";
+  SIM.ev.filter(e=>e.big||e.goal).forEach(e=>{const s=document.createElement("span");s.style.left=(e.day/SIM_SET.days*100)+"%";s.dataset.t="Day "+e.day+": "+e.t;s.onclick=()=>goTo(e.node);m.appendChild(s)})}
+$("#search").addEventListener("input",e=>{const q=e.target.value.trim().toLowerCase();if(q.length<2)return;
+  const hit=[...G.nodes.values()].find(n=>n.label.toLowerCase().includes(q)&&IDS.has(n.id))||[...G.nodes.values()].find(n=>n.label.toLowerCase().includes(q)||(n.sub||"").toLowerCase().includes(q));if(hit)goTo(hit.id)});
+const _runSim=runSim;runSim=function(){_runSim();marks()};
+
+buildGraph();runSim();renderTabs();renderLegend();renderAdds();draw();inspect();updCount();
+if(!lsGet(":cam"))fit();
+</script>
+
+</body></html>

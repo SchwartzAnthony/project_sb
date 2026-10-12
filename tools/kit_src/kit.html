@@ -1,0 +1,663 @@
+<title>Sturmball System Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@600&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: a coach's slate tactics board. Canvas fills the screen, chalk nodes on green-black slate,
+   palette on the left, the selected card's CSV row on the right, the season playback along the bottom.
+   Deliberately one dark look (a chalkboard), in every viewer theme. */
+:root{
+  --slate:#18211d; --slate-2:#1f2a25; --slate-3:#2a3731; --line:#3a4a42;
+  --chalk:#ebe6d6; --chalk-dim:#a1ab9f; --chalk-faint:#6c776f;
+  --beer:#e6ad3c; --beer-soft:#e6ad3c33; --hops:#94c26c; --sky:#86b7d8; --clay:#d98a5c; --brick:#e0674f;
+  --display:"Grenze Gotisch","UnifrakturMaguntia",Georgia,serif;
+  --ui:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --cond:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--slate);color:var(--chalk);font:14px/1.4 var(--ui);overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--beer);outline-offset:2px}
+
+#app{display:grid;grid-template-rows:auto 1fr auto;height:100%}
+header{display:flex;align-items:center;gap:14px;padding:8px 16px;border-bottom:1px solid var(--line);background:var(--slate-2);flex-wrap:wrap}
+header h1{font:600 26px/1 var(--display);margin:0;color:var(--beer);letter-spacing:.5px;white-space:nowrap}
+.tabs{display:flex;gap:2px;flex-wrap:wrap}
+.tab{background:none;border:1px solid transparent;border-radius:3px;padding:5px 10px;color:var(--chalk-dim);font:500 14px var(--cond);letter-spacing:.06em;text-transform:uppercase}
+.tab:hover{color:var(--chalk)}
+.tab[aria-selected="true"]{color:var(--slate);background:var(--chalk)}
+.spacer{flex:1}
+.hbtn{background:var(--slate-3);border:1px solid var(--line);border-radius:3px;padding:5px 11px;font:500 13px var(--cond);letter-spacing:.05em;text-transform:uppercase}
+.hbtn:hover{border-color:var(--chalk-dim)}
+.hbtn.hot{border-color:var(--beer);color:var(--beer)}
+.count{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--beer);color:var(--slate);font:600 11px/16px var(--ui);text-align:center}
+
+main{position:relative;display:grid;grid-template-columns:200px 1fr 320px;min-height:0}
+aside{background:var(--slate-2);overflow:auto;min-width:0}
+#left{border-right:1px solid var(--line);padding:12px}
+#right{border-left:1px solid var(--line);padding:14px}
+.lbl{font:600 11px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:var(--chalk-faint);margin:14px 0 6px}
+.lbl:first-child{margin-top:0}
+.legend{display:grid;gap:5px}
+.legend div{display:flex;align-items:center;gap:8px;color:var(--chalk-dim);font-size:13px}
+.legend svg{flex:none}
+.addbtn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:1px dashed var(--line);border-radius:3px;padding:6px 8px;margin-bottom:5px;color:var(--chalk-dim)}
+.addbtn:hover{border-color:var(--beer);color:var(--chalk)}
+.hint{color:var(--chalk-faint);font-size:12.5px;line-height:1.45}
+.hint b{color:var(--chalk-dim);font-weight:600}
+#search{width:100%;box-sizing:border-box;background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:6px 8px}
+
+#stage{position:relative;overflow:hidden;background:
+  radial-gradient(circle at 30% 20%, #ffffff06, transparent 60%),
+  repeating-linear-gradient(0deg, transparent 0 39px, #ffffff07 39px 40px),
+  repeating-linear-gradient(90deg, transparent 0 39px, #ffffff07 39px 40px), var(--slate);touch-action:none}
+#svg{width:100%;height:100%;display:block;cursor:grab}
+#svg.panning{cursor:grabbing}
+.zoombar{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:4px}
+.zoombar button{width:32px;height:32px;background:var(--slate-2);border:1px solid var(--line);border-radius:3px;font-size:16px}
+.toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:var(--chalk);color:var(--slate);padding:8px 14px;border-radius:3px;font-weight:500;max-width:80%;box-shadow:0 6px 20px #0008}
+
+/* nodes */
+.node{cursor:pointer}
+.node .box{fill:var(--slate-2);stroke:var(--line);stroke-width:1.2}
+.node .name{fill:var(--chalk);font:500 13px var(--cond);letter-spacing:.02em}
+.node .sub{fill:var(--chalk-faint);font:10.5px var(--mono)}
+.node .val{fill:var(--slate);font:600 11px var(--ui);text-anchor:middle}
+.node .day{font:600 10px var(--ui);text-anchor:end}
+.node.open .box{stroke:var(--k);stroke-width:1.6}
+.node.locked{opacity:.5}
+.node.locked .box{stroke-dasharray:4 3}
+.node.sel .box{stroke:var(--chalk);stroke-width:2.4}
+.node .port{fill:var(--slate);stroke:var(--chalk-dim);stroke-width:1.2;opacity:0;cursor:crosshair}
+.node:hover .port,.node.sel .port{opacity:1}
+.node .port:hover{fill:var(--beer);stroke:var(--beer)}
+.dim .node:not(.near){opacity:.18}
+.dim .edge:not(.near){opacity:.07}
+.dim .elabel:not(.near){display:none}
+/* edges */
+.edge{fill:none;stroke-width:1.4;cursor:pointer}
+.edge.flow{stroke:#ebe6d6aa}
+.edge.cost{stroke:#d98a5cbb}
+.edge.unlock{stroke:#e6ad3ccc;stroke-dasharray:6 4}
+.edge.reads{stroke:#86b7d888;stroke-dasharray:2 4}
+.edge.game{stroke:#a1ab9f55;stroke-dasharray:1 5}
+.edge.sel{stroke-width:3}
+.edge.live.flow,.edge.live.cost{stroke-dasharray:3 9;animation:run 1s linear infinite}
+@keyframes run{to{stroke-dashoffset:-24}}
+@media (prefers-reduced-motion:reduce){.edge.live.flow,.edge.live.cost{animation:none;stroke-dasharray:none}}
+.hit{fill:none;stroke:transparent;stroke-width:10;cursor:pointer}
+.elabel{font:600 10.5px var(--ui);fill:var(--chalk);paint-order:stroke;stroke:var(--slate);stroke-width:4px;stroke-linejoin:round;pointer-events:none}
+.ghost{fill:none;stroke:var(--beer);stroke-width:2;stroke-dasharray:5 4;pointer-events:none}
+
+/* inspector */
+.kind{display:inline-flex;align-items:center;gap:6px;font:600 12px var(--cond);letter-spacing:.1em;text-transform:uppercase;color:var(--k)}
+#right h2{font:600 24px/1.1 var(--cond);margin:4px 0 2px;text-wrap:balance}
+.where{font:12px var(--mono);color:var(--chalk-faint);word-break:break-all}
+.state{display:inline-block;margin-top:8px;padding:2px 8px;border-radius:10px;font:600 12px var(--ui)}
+.state.ok{background:#94c26c26;color:var(--hops)}
+.state.no{background:#e0674f26;color:var(--brick)}
+.field{display:grid;gap:3px;margin-top:9px}
+.field label{font:600 11px var(--cond);letter-spacing:.1em;text-transform:uppercase;color:var(--chalk-faint)}
+.field input,.field textarea{background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:5px 7px;font:12.5px var(--mono);width:100%;box-sizing:border-box;resize:vertical}
+.field input:focus,.field textarea:focus{border-color:var(--beer);outline:none}
+.links{display:grid;gap:4px;margin-top:6px}
+.lnk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--chalk-dim);background:none;border:none;padding:2px 0;text-align:left}
+.lnk:hover{color:var(--chalk)}
+.lnk i{font-style:normal;font:11px var(--mono);color:var(--chalk-faint)}
+.list{margin:4px 0 0;padding:0;list-style:none;display:grid;gap:3px}
+.list li{display:grid;grid-template-columns:52px 1fr;gap:6px;font-size:13px;align-items:baseline}
+.list .d{font:600 12px var(--ui);color:var(--beer);font-variant-numeric:tabular-nums}
+.warn{border-left:3px solid var(--brick);padding:6px 9px;background:#e0674f14;margin-top:6px;font-size:13px;color:var(--chalk-dim)}
+.warn b{color:var(--chalk);font-weight:600}
+.sim{display:grid;grid-template-columns:1fr 64px;gap:6px 8px;align-items:center;font-size:13px;color:var(--chalk-dim)}
+.sim input[type=number]{background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:3px 5px;width:100%;box-sizing:border-box;font-variant-numeric:tabular-nums}
+.sim input[type=checkbox]{justify-self:start;accent-color:var(--beer)}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.btn{background:var(--chalk);color:var(--slate);border:none;border-radius:3px;padding:6px 12px;font:600 13px var(--cond);letter-spacing:.05em;text-transform:uppercase}
+.btn.ghost2{background:none;color:var(--chalk);border:1px solid var(--line)}
+.btn.bad{background:none;color:var(--brick);border:1px solid #e0674f66}
+
+/* playback bar */
+footer{display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;gap:12px;padding:8px 16px;border-top:1px solid var(--line);background:var(--slate-2)}
+#play{width:36px;height:36px;border-radius:50%;background:var(--beer);color:var(--slate);border:none;font-size:15px}
+#dayl{font:600 18px var(--cond);white-space:nowrap;font-variant-numeric:tabular-nums;min-width:74px}
+.track{position:relative;height:38px;min-width:0}
+#day{position:absolute;left:0;right:0;bottom:0;width:100%;margin:0;accent-color:var(--beer)}
+#marks{position:absolute;left:8px;right:8px;top:0;height:20px}
+#marks span{position:absolute;top:0;width:2px;height:14px;background:var(--beer);transform:translateX(-1px);cursor:pointer}
+#marks span:hover::after{content:attr(data-t);position:absolute;bottom:16px;left:0;white-space:nowrap;background:var(--chalk);color:var(--slate);font:600 11px var(--ui);padding:2px 6px;border-radius:2px}
+#pools{display:flex;gap:10px;font:600 13px var(--ui);font-variant-numeric:tabular-nums;color:var(--chalk-dim);white-space:nowrap}
+#pools b{color:var(--beer)}
+
+/* overlays */
+.sheet{position:absolute;inset:0;background:var(--slate);z-index:5;display:flex;flex-direction:column;min-height:0}
+.sheet .bar{display:flex;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.sheet .body{overflow:auto;padding:12px 16px;min-height:0;flex:1}
+table.grid{border-collapse:collapse;font:12.5px var(--mono)}
+table.grid th{position:sticky;top:0;background:var(--slate-3);text-align:left;padding:5px 8px;font:600 12px var(--cond);letter-spacing:.06em;color:var(--chalk-dim);white-space:nowrap}
+table.grid td{border-top:1px solid var(--line);padding:0}
+table.grid td input{background:none;border:none;padding:5px 8px;width:100%;min-width:90px;box-sizing:border-box;font:inherit}
+table.grid td input:focus{background:var(--slate-3);outline:1px solid var(--beer)}
+table.grid td.note input{color:var(--chalk-faint);min-width:220px}
+.chg{border:1px solid var(--line);border-radius:3px;padding:10px 12px;margin-bottom:10px}
+.chg h3{margin:0 0 4px;font:600 16px var(--cond)}
+.chg textarea{width:100%;box-sizing:border-box;height:90px;background:var(--slate-2);border:1px solid var(--line);font:11.5px var(--mono);margin-top:8px}
+.pop{position:absolute;z-index:6;background:var(--slate-2);border:1px solid var(--beer);border-radius:4px;padding:12px;width:290px;box-shadow:0 10px 30px #000a}
+.pop p{margin:0 0 8px;font-size:13px;color:var(--chalk-dim)}
+.pop code{font:12px var(--mono);color:var(--chalk)}
+.pop input{background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:5px 7px;width:100%;box-sizing:border-box}
+
+@media (max-width:900px){
+  main{grid-template-columns:1fr;grid-template-rows:1fr auto}
+  #left{display:none}
+  #right{border-left:none;border-top:1px solid var(--line);max-height:38vh}
+  footer{grid-template-columns:auto auto 1fr}
+  #pools{display:none}
+}
+</style>
+
+<div id="app">
+<header>
+  <h1>Sturmball System Builder</h1>
+  <nav class="tabs" id="tabs" aria-label="Views"></nav>
+  <span class="spacer"></span>
+  <button class="hbtn" id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
+  <button class="hbtn" id="btnLayout" title="Lay this view out again">Tidy up</button>
+  <button class="hbtn" id="btnChanges">Changes<span class="count" id="chgCount" hidden>0</span></button>
+</header>
+<main>
+  <aside id="left">
+    <div class="lbl">Find a card</div>
+    <input id="search" type="search" placeholder="Brewery, reed, Treble…" autocomplete="off">
+    <div class="lbl">Add to the board</div>
+    <div id="adds"></div>
+    <div class="lbl">Card shapes</div>
+    <div class="legend" id="legend"></div>
+    <div class="lbl">Lines</div>
+    <div class="legend" id="legend2"></div>
+    <div class="lbl">How to</div>
+    <p class="hint"><b>Drag</b> a card to move it. <b>Drag</b> from the dot on a card's right edge onto another card to connect them; the builder tells you which CSV cell that writes. <b>Click</b> a line to remove it. <b>Play</b> runs a pretend season with the numbers on the right.</p>
+  </aside>
+  <section id="stage">
+    <svg id="svg" aria-label="System board"><defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9z" fill="context-stroke"/></marker>
+    </defs><g id="world"><g id="gEdges"></g><g id="gLabels"></g><g id="gNodes"></g><path id="ghost" class="ghost" d=""/></g></svg>
+    <div class="zoombar"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Fit the board" title="Fit">⤢</button></div>
+  </section>
+  <aside id="right"></aside>
+</main>
+<footer>
+  <button id="play" aria-label="Play the pretend season">▶</button>
+  <div id="dayl">Day 0</div>
+  <div class="track"><div id="marks"></div><input id="day" type="range" min="0" max="40" value="0" aria-label="Day"></div>
+  <div id="pools"></div>
+</footer>
+</div>
+
+<script>
+const SRC = /*__DATA__*/{};
+const SRC_STAMP = "/*__STAMP__*/";
+</script>
+<script>
+"use strict";
+/* ---------- CSV ---------- */
+function parseCSV(t){const out=[];let row=[],f="",q=false;for(let i=0;i<t.length;i++){const c=t[i];
+  if(q){if(c=='"'){if(t[i+1]=='"'){f+='"';i++}else q=false}else f+=c}
+  else if(c=='"')q=true;else if(c==','){row.push(f);f=""}else if(c=='\n'){row.push(f);out.push(row);row=[];f=""}else if(c!='\r')f+=c}
+  if(f!==""||row.length){row.push(f);out.push(row)}return out}
+function esc(v){v=v==null?"":String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function loadFile(name,text){const a=parseCSV(text.replace(/^﻿/,""));const cols=a[0]||[];
+  const rows=a.slice(1).filter(r=>r.some(x=>x!=="")).map(r=>{const o={};cols.forEach((c,i)=>o[c]=r[i]??"");return o});
+  return {name,cols,rows}}
+function toCSV(f){return [f.cols.map(esc).join(",")].concat(f.rows.map(r=>f.cols.map(c=>esc(r[c])).join(","))).join("\n")+"\n"}
+
+/* ---------- state ---------- */
+const FILES={};const ORIG={};
+for(const n in SRC){FILES[n]=loadFile(n,SRC[n]);ORIG[n]=toCSV(FILES[n])}
+const LS="sturmball-kit-v1";
+function lsGet(k){try{return JSON.parse(localStorage.getItem(LS+k)||"null")}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v))}catch(e){}}
+(function restore(){const saved=lsGet(":edits");if(!saved||saved.stamp!==SRC_STAMP)return;for(const n in saved.files)if(FILES[n])FILES[n]=loadFile(n,saved.files[n])})();
+const undoStack=[];
+function snapshot(){const s={};for(const n in FILES)s[n]=toCSV(FILES[n]);return s}
+function pushUndo(){undoStack.push(snapshot());if(undoStack.length>60)undoStack.shift()}
+function changedFiles(){return Object.keys(FILES).filter(n=>toCSV(FILES[n])!==ORIG[n])}
+function persist(){const f={};for(const n of changedFiles())f[n]=toCSV(FILES[n]);lsSet(":edits",{stamp:SRC_STAMP,files:f})}
+
+/* ---------- vocabulary ---------- */
+const KINDS={
+  play:{label:"Play",desc:"Where the player spends time: a match mode or an Adventure place",color:"var(--hops)",glyph:"play"},
+  stat:{label:"Score",desc:"A number the game counts (matches won, goals…)",color:"var(--sky)",glyph:"dot"},
+  money:{label:"Money",desc:"A purse: Coins, Marsh Marks…",color:"var(--beer)",glyph:"pool"},
+  stuff:{label:"Stuff",desc:"Things you carry: reed, hops, keys, bottles",color:"var(--chalk)",glyph:"pool"},
+  maker:{label:"Maker",desc:"Turns stuff into other stuff: a brew, a trade, an upgrade, a brewing machine",color:"var(--clay)",glyph:"tri"},
+  goal:{label:"Goal",desc:"An achievement or story moment that fires when its Needs are met",color:"var(--beer)",glyph:"diamond"},
+  unlock:{label:"Unlock",desc:"A name that gets switched on (Brewery, Fire Brew…)",color:"var(--beer)",glyph:"star"},
+  place:{label:"Building",desc:"A building on the base",color:"var(--chalk)",glyph:"house"}};
+const ETYPES={flow:"gives / makes",cost:"costs",unlock:"unlocks / needs it unlocked",reads:"checks a number",game:"counted by the game itself"};
+const VIEWS=[
+  {id:"all",name:"Whole game"},
+  {id:"path",name:"Unlock path",kinds:["play","stat","goal","unlock","place","maker"],makers:["upgrade"]},
+  {id:"loot",name:"Loot & money",kinds:["play","money","stuff","maker"],makers:["brew","shop","upgrade"]},
+  {id:"brewery",name:"Brewery",kinds:["stuff","maker","money"],makers:["brew","section","shop"]},
+  {id:"tables",name:"Tables"}];
+const MATCH_STATS=["matches_played","matches_won","goals","goals_by_star","clean_sheets","keeper_emptied","red_cards","goals_with_brew_fire"];
+const SHOWN_MODES=["season","friendly","quick","cup"];
+
+/* ---------- condition / action language (same words the game uses) ---------- */
+function toks(s,sep){return (s||"").split(sep||";").map(x=>x.trim()).filter(Boolean)}
+function parseCond(t){let m;let neg=false;if(t[0]=="!"){neg=true;t=t.slice(1)}
+  if((m=t.match(/^count:([\w]+)\s*(>=|<=|==|>|<|=)\s*(-?[\d.]+)$/)))return{k:"count",id:m[1],op:m[2],n:+m[3],neg};
+  if((m=t.match(/^unlocked:(.+)$/)))return{k:"unlocked",name:m[1].trim(),neg};
+  if((m=t.match(/^flag:(.+)$/)))return{k:"flag",name:m[1].trim(),neg};
+  return{k:"other",raw:t,neg}}
+function parseAct(t){let m;
+  if((m=t.match(/^count:([\w]+)\s*([+-])\s*([\d.]+)$/)))return{k:"count",id:m[1],n:(m[2]=="-"?-1:1)*+m[3]};
+  if((m=t.match(/^unlock:(.+)$/)))return{k:"unlock",name:m[1].trim()};
+  if((m=t.match(/^flag:(.+)$/)))return{k:"flag",name:m[1].trim()};
+  return{k:"other",raw:t}}
+function parseCost(s){return toks(s,/[|;]/).map(x=>{const [id,n]=x.split(":");return{id:id.trim(),n:+(n||1)}})}
+const F=n=>FILES[n]?FILES[n].rows:[];
+const nice=s=>s.replace(/_/g," ");
+
+/* ---------- graph from CSVs ---------- */
+let G={nodes:new Map(),edges:[]};
+function buildGraph(){
+  const N=new Map(),E=[];const resIds=new Set();
+  const add=(id,o)=>{if(!N.has(id))N.set(id,Object.assign({id,ins:[],outs:[]},o));return N.get(id)};
+  const resName={};
+  F("Currencies").forEach(r=>{resIds.add(r.ID);resName[r.ID]={kind:"money",row:r,file:"Currencies"}});
+  F("BreweryResources").forEach(r=>{resIds.add(r.ID);if(!resName[r.ID])resName[r.ID]={kind:"stuff",row:r,file:"BreweryResources"}});
+  F("Items").forEach(r=>{resIds.add(r.ID);if(!resName[r.ID]||resName[r.ID].file=="Currencies"&&!["coins","marks","cup_silver"].includes(r.ID))resName[r.ID]={kind:r.Kind=="currency"?"money":"stuff",row:r,file:"Items"}});
+  const numId=id=>{ // a counter: stuff/money if it is a thing you own, otherwise a score
+    if(resIds.has(id)){const m=resName[id];return add("res:"+id,{kind:m.kind,label:m.row.Name||nice(id),file:m.file,row:m.row,sub:id})}
+    return add("stat:"+id,{kind:"stat",label:nice(id),sub:"count:"+id,file:null})};
+  const feat=name=>add("feat:"+name,{kind:"unlock",label:name,sub:"unlocked:"+name,file:null});
+  const edge=(a,b,type,label,src)=>{if(!a||!b||a===b)return;E.push(Object.assign({from:a.id,to:b.id,type,label:label??""},src||{}))};
+  const conds=(node,file,row,col)=>toks(row[col]).forEach(t=>{const c=parseCond(t);const src={file,row,col,token:t,sep:";"};
+    if(c.k=="count"&&!c.neg&&/>/.test(c.op))edge(numId(c.id),node,"reads",c.op+c.n,src);
+    else if(c.k=="count"&&/>/.test(c.op))edge(numId(c.id),node,"reads","not "+c.op+c.n,src);
+    else if(c.k=="unlocked")edge(feat(c.name),node,"unlock",c.neg?"not":"",src);
+    else if(c.k=="flag"&&/^earned_/.test(c.name)&&!c.neg){const a=N.get("ach:"+c.name.slice(7));if(a)edge(a,node,"unlock","",src)}});
+  const acts=(node,file,row,col)=>toks(row[col]).forEach(t=>{const a=parseAct(t);const src={file,row,col,token:t,sep:";"};
+    if(a.k=="count")edge(node,numId(a.id),"flow",(a.n>0?"+":"")+a.n,src);
+    else if(a.k=="unlock")edge(node,feat(a.name),"unlock","",src)});
+
+  // play
+  const any=add("play:match",{kind:"play",label:"Every match",sub:"counted by game code",file:null});
+  MATCH_STATS.forEach(s=>edge(any,numId(s),"game",""));
+  F("MatchModes").filter(r=>SHOWN_MODES.includes(r.ID)).forEach(r=>{
+    const n=add("mode:"+r.ID,{kind:"play",label:r.Name,file:"MatchModes",row:r,sub:"MatchModes "+r.ID,mk:"mode"});
+    conds(n,"MatchModes",r,"Requires");acts(n,"MatchModes",r,"Rewards");acts(n,"MatchModes",r,"Rewards On Win");edge(n,any,"game","")});
+  F("Currencies").forEach(r=>{const m=N.get("mode:"+r["Earned In"]);const c=numId(r.ID);
+    if(m&&(+r.Win||+r.Draw||+r.Loss))edge(m,c,"flow",`W${r.Win} D${r.Draw} L${r.Loss}`,{file:"Currencies",row:r,col:"Earned In",token:r["Earned In"],whole:true})});
+  F("Biomes").forEach(r=>{const n=add("biome:"+r.ID,{kind:"play",label:r.Name,file:"Biomes",row:r,sub:"Adventure · "+r.Waves+" waves",mk:"biome"});
+    conds(n,"Biomes",r,"Requires");
+    const loot=expectedRun(r,null);for(const id in loot)edge(n,numId(id),"flow","~"+fmt(loot[id]),{file:"Drops",loot:true,table:r.Drops,item:id});
+    const boss=bossOf(r);if(boss)edge(n,feat(boss),"unlock","beat boss")});
+  // goals
+  F("Achievements").forEach(r=>add("ach:"+r.ID,{kind:"goal",label:r.Name,file:"Achievements",row:r,sub:"Achievements "+r.ID,mk:"ach"}));
+  F("Achievements").forEach(r=>{const n=N.get("ach:"+r.ID);conds(n,"Achievements",r,"Needs");
+    toks(r.Unlocks).forEach(u=>edge(n,feat(u),"unlock","",{file:"Achievements",row:r,col:"Unlocks",token:u,sep:";"}));acts(n,"Achievements",r,"Reward")});
+  F("Progression").filter(r=>/unlock:/.test(r.Do)).forEach(r=>{const n=add("story:"+r.ID,{kind:"goal",label:nice(r.ID),file:"Progression",row:r,sub:"Progression · story",mk:"story"});
+    conds(n,"Progression",r,"Requires");acts(n,"Progression",r,"Do")});
+  // makers
+  F("Upgrades").forEach(r=>{const n=add("upg:"+r.ID,{kind:"maker",label:r.Name,file:"Upgrades",row:r,sub:"Club House · "+r.Cost+" "+r.Currency,mk:"upgrade"});
+    if(r.Achievement){const a=N.get("ach:"+r.Achievement);if(a)edge(a,n,"unlock","may buy",{file:"Upgrades",row:r,col:"Achievement",token:r.Achievement,whole:true})}
+    conds(n,"Upgrades",r,"Needs");if(r.Currency&&+r.Cost)edge(numId(r.Currency),n,"cost",r.Cost,{file:"Upgrades",row:r,col:"Cost",token:r.Cost,whole:true});acts(n,"Upgrades",r,"Effect")});
+  F("Shop").forEach(r=>{const n=add("shop:"+r.ID,{kind:"maker",label:r.Name||nice(r.ID),file:"Shop",row:r,sub:"Merchant · "+r.Price+" "+r.Currency,mk:"shop"});
+    conds(n,"Shop",r,"Requires");if(r.Currency&&+r.Price)edge(numId(r.Currency),n,"cost",r.Price,{file:"Shop",row:r,col:"Price",token:r.Price,whole:true});
+    const s=r.Sells;let m;const src={file:"Shop",row:r,col:"Sells",token:s,whole:true};
+    if((m=s.match(/^res:(\w+)/)))edge(n,numId(m[1]),"flow","+"+(r["How Many"]||1),src);
+    else if((m=s.match(/^brew:(\w+)/))){const b=N.get("brew:"+m[1]);edge(n,b||feat("recipe "+m[1]),"unlock","recipe",src)}
+    else acts(n,"Shop",r,"Sells")});
+  F("Brews").filter(r=>r.Cost||r.Requires&&!/flag:/.test(r.Requires)).forEach(r=>{const n=add("brew:"+r.ID,{kind:"maker",label:r.Name,file:"Brews",row:r,sub:"Brew"+(r.Becomes?" → "+r.Becomes:""),mk:"brew"});
+    conds(n,"Brews",r,"Requires");parseCost(r.Cost).forEach(c=>edge(numId(c.id),n,"cost",c.n,{file:"Brews",row:r,col:"Cost",token:c.id+":"+c.n,sep:"|"}));
+    edge(n,numId("brews_poured"),"game","");if(resIds.has("brew_"+r.ID))edge(n,numId("brew_"+r.ID),"flow","+1")});
+  // the shop sells recipes before the brews are built in this pass; tie them up now
+  E.forEach(e=>{if(e.to.startsWith("feat:recipe ")){const b=N.get("brew:"+e.to.slice(12));if(b)e.to=b.id}});
+  F("BrewerySections").forEach(r=>{const n=add("sec:"+r.ID,{kind:"maker",label:r.Name,file:"BrewerySections",row:r,sub:"Brewery · "+r.Worker,mk:"section"});
+    conds(n,"BrewerySections",r,"Needs");
+    toks(r.Takes).forEach(t=>{const [id,k]=t.split(":");const tool=(F("BreweryResources").find(x=>x.ID==id)||{}).Kind=="tool";
+      edge(numId(id),n,tool?"reads":"cost",tool?"uses":k,{file:"BrewerySections",row:r,col:"Takes",token:t,sep:";"})});
+    if(r.Makes)edge(n,numId(r.Makes),"flow","+"+(r["How Many"]||1),{file:"BrewerySections",row:r,col:"Makes",token:r.Makes,whole:true})});
+  // places
+  F("Buildings").forEach(r=>{const n=add("bld:"+r.ID,{kind:"place",label:r.Name,file:"Buildings",row:r,sub:"Base building",mk:"building"});conds(n,"Buildings",r,"Requires")});
+  // a key is bought, the building checks it: show that one hop clearly
+  // wire up ins/outs
+  const seen=new Set();G={nodes:N,edges:[]};
+  E.forEach(e=>{const k=e.from+">"+e.to+">"+e.type+">"+(e.token||e.label);if(seen.has(k))return;seen.add(k);if(!N.has(e.from)||!N.has(e.to))return;
+    e.i=G.edges.length;G.edges.push(e);N.get(e.from).outs.push(e);N.get(e.to).ins.push(e)});
+}
+function fmt(x){return x>=10?Math.round(x):Math.round(x*10)/10}
+function bossOf(b){const pool=F("AdventureEnemies").filter(e=>e.Pool==b["Enemy Pool"]&&+e.Weight===0);if(!pool.length)return null;
+  pool.sort((x,y)=>(+y.Attack)-(+x.Attack));return pool[0].Name.replace(/^The /,"")}
+function dropTable(t,st){const o={};F("Drops").filter(d=>d.Table==t&&(!st||condOK(d.Requires,st))).forEach(d=>{o[d.Item]=(o[d.Item]||0)+(+d.Amount||0)*(+(d.Chance||1))});return o}
+function expectedRun(b,st){const P=SIM_SET;const o={};const addT=(t,mul)=>{const d=dropTable(t,st);for(const k in d)o[k]=(o[k]||0)+d[k]*mul};
+  const waves=+b.Waves||4;addT(b.Drops,waves);
+  const pool=F("AdventureEnemies").filter(e=>e.Pool==b["Enemy Pool"]);const reg=pool.filter(e=>+e.Weight>0);const W=reg.reduce((s,e)=>s+(+e.Weight),0)||1;
+  reg.forEach(e=>addT(e.Drops,waves*P.enemies*(+e.Weight)/W));pool.filter(e=>+e.Weight===0).forEach(e=>addT(e.Drops,P.bossWin));return o}
+
+/* ---------- pretend season ---------- */
+const SIM_DEF={days:40,matches:1,mode:"season",win:0.55,draw:0.15,goals:2,runs:1,enemies:3,bossWin:0.5,beatAfter:3,keys:true,upgrades:true,merchant:true,brews:1};
+const SIM_SET=Object.assign({},SIM_DEF,lsGet(":sim")||{});
+let SIM=null;
+function condOK(s,st){return toks(s).every(t=>{const c=parseCond(t);let v=true;
+  if(c.k=="count"){const x=st.c[c.id]||0;v={">=":x>=c.n-1e-9,">":x>c.n,"<=":x<=c.n,"<":x<c.n,"==":Math.abs(x-c.n)<1e-9,"=":Math.abs(x-c.n)<1e-9}[c.op]}
+  else if(c.k=="unlocked")v=st.u.has(c.name);else if(c.k=="flag")v=st.f.has(c.name);
+  return c.neg?!v:v})}
+function doActs(s,st,why,day){toks(s).forEach(t=>{const a=parseAct(t);if(a.k=="count")st.c[a.id]=(st.c[a.id]||0)+a.n;
+  else if(a.k=="unlock"&&!st.u.has(a.name)){st.u.add(a.name);st.ev.push({day,t:a.name+" unlocked",why,node:"feat:"+a.name})}
+  else if(a.k=="flag")st.f.add(a.name)})}
+function pay(st,cost){for(const c of cost)if((st.c[c.id]||0)<c.n-1e-9)return false;cost.forEach(c=>st.c[c.id]-=c.n);return true}
+function runSim(){const P=SIM_SET;const st={c:{},u:new Set(),f:new Set(),ev:[],done:new Set(),bought:new Set(),runs:{}};
+  F("BreweryResources").forEach(r=>st.c[r.ID]=+r.Start||0);
+  const days=[];const first={};
+  const mark=day=>{G.nodes.forEach(n=>{if(first[n.id]!=null)return;if(nodeOpen(n,st,day))first[n.id]=day})};
+  const triggers=day=>{let again=true,guard=0;while(again&&guard++<20){again=false;
+    F("Achievements").forEach(r=>{if(st.f.has("earned_"+r.ID)||!r.Needs)return;if(condOK(r.Needs,st)){st.f.add("earned_"+r.ID);again=true;
+      st.ev.push({day,t:r.Name+" earned",node:"ach:"+r.ID,goal:true});toks(r.Unlocks).forEach(u=>{if(!st.u.has(u)){st.u.add(u);st.ev.push({day,t:u+" unlocked",why:r.Name,node:"feat:"+u})}});doActs(r.Reward,st,r.Name,day)}});
+    F("Progression").forEach(r=>{if(st.done.has(r.ID)||!r.Do)return;if(r.Requires&&condOK(r.Requires,st)){st.done.add(r.ID);again=true;doActs(r.Do,st,"story: "+nice(r.ID),day)}})}};
+  const open=id=>{const b=F("Buildings").find(x=>x.ID==id);return b&&condOK(b.Requires,st)};
+  mark(0);days.push(snap(st));
+  for(let day=1;day<=P.days;day++){
+    for(let m=0;m<P.matches;m++){const mode=F("MatchModes").find(x=>x.ID==P.mode)||{ID:P.mode};
+      const w=P.win,d=P.draw,l=Math.max(0,1-w-d);st.c.matches_played=(st.c.matches_played||0)+1;st.c.matches_won=(st.c.matches_won||0)+w;
+      st.c.goals=(st.c.goals||0)+P.goals;st.c.goals_by_star=(st.c.goals_by_star||0)+P.goals*0.3;st.c.clean_sheets=(st.c.clean_sheets||0)+0.25;
+      st.c.keeper_emptied=(st.c.keeper_emptied||0)+0.5;st.c.red_cards=(st.c.red_cards||0)+0.05;
+      if((st.c.brewed_fire||0)>0)st.c.goals_with_brew_fire=(st.c.goals_with_brew_fire||0)+Math.min(P.goals*0.5,1);
+      F("Currencies").forEach(r=>{if(r["Earned In"]==mode.ID||!r["Earned In"])st.c[r.ID]=(st.c[r.ID]||0)+w*(+r.Win||0)+d*(+r.Draw||0)+l*(+r.Loss||0)});
+      doActs(mode.Rewards||"",st,mode.Name,day);toks(mode["Rewards On Win"]).forEach(t=>{const a=parseAct(t);if(a.k=="count")st.c[a.id]=(st.c[a.id]||0)+a.n*w});
+      triggers(day)}
+    for(let k=0;k<P.runs;k++){const bs=F("Biomes").filter(b=>condOK(b.Requires,st)).sort((a,b)=>(+b.Order)-(+a.Order));const b=bs[0];if(!b)break;
+      const loot=expectedRun(b,st);for(const id in loot)st.c[id]=(st.c[id]||0)+loot[id];st.c.adventures_played=(st.c.adventures_played||0)+1;st.c.adventures_home=(st.c.adventures_home||0)+1;st.f.add("intro_adventure");
+      st.runs[b.ID]=(st.runs[b.ID]||0)+1;const boss=bossOf(b);if(boss&&st.runs[b.ID]>=P.beatAfter&&!st.u.has(boss)){st.u.add(boss);st.ev.push({day,t:boss+" beaten",why:b.Name,node:"feat:"+boss})}
+      triggers(day)}
+    // shopping
+    const ups=F("Upgrades");
+    if(P.keys)F("Buildings").forEach(b=>{toks(b.Requires).forEach(t=>{const c=parseCond(t);if(c.k=="count"&&!condOK(t,st)){
+      const others=toks(b.Requires).filter(x=>x!==t).join(";");if(!condOK(others,st))return;const u=ups.find(x=>toks(x.Effect).some(e=>{const a=parseAct(e);return a.k=="count"&&a.id==c.id}));
+      if(u&&pay(st,[{id:u.Currency,n:+u.Cost}])){doActs(u.Effect,st,u.Name,day);st.bought.add(u.ID);st.ev.push({day,t:"Bought "+u.Name,node:"upg:"+u.ID})}}})});
+    if(P.upgrades)ups.forEach(u=>{if(st.bought.has(u.ID)||/_key$/.test(u.ID))return;if(u.Achievement&&!st.f.has("earned_"+u.Achievement))return;if(u.Needs&&!condOK(u.Needs,st))return;
+      if(pay(st,[{id:u.Currency,n:+u.Cost}])){st.bought.add(u.ID);doActs(u.Effect,st,u.Name,day);st.ev.push({day,t:"Bought "+u.Name,node:"upg:"+u.ID})}});
+    if(P.merchant)F("Shop").forEach(s=>{if(!condOK(s.Requires,st))return;const m=s.Sells.match(/^res:(\w+)/);if(!m)return;if((st.c[m[1]]||0)>=(+s["How Many"]||1))return;
+      if(pay(st,[{id:s.Currency,n:+s.Price}]))st.c[m[1]]=(st.c[m[1]]||0)+(+s["How Many"]||1)});
+    // brewing
+    if(open("brewery")){F("BrewerySections").forEach(s=>{if(!condOK(s.Needs,st))return;const take=toks(s.Takes).map(t=>{const [id,n]=t.split(":");return{id,n:+n||1}}).filter(t=>(F("BreweryResources").find(x=>x.ID==t.id)||{}).Kind!=="tool");
+      const tools=toks(s.Takes).map(t=>t.split(":")[0]).filter(id=>(F("BreweryResources").find(x=>x.ID==id)||{}).Kind=="tool");
+      if(tools.every(id=>(st.c[id]||0)>=1)&&pay(st,take))st.c[s.Makes]=(st.c[s.Makes]||0)+(+s["How Many"]||1)});
+      let made=0;const list=F("Brews").filter(b=>b.Cost&&condOK(b.Requires,st));for(let i=0;i<list.length&&made<P.brews;i++){const b=list[(i+day)%list.length];
+        if(pay(st,parseCost(b.Cost))){made++;st.c["brewed_"+b.ID]=(st.c["brewed_"+b.ID]||0)+1;st.c.brews_poured=(st.c.brews_poured||0)+1;if(st.c["brew_"+b.ID]!=null||F("Items").some(x=>x.ID=="brew_"+b.ID))st.c["brew_"+b.ID]=(st.c["brew_"+b.ID]||0)+1;
+          if(!st.c["firstbrew_"+b.ID]){st.c["firstbrew_"+b.ID]=1;st.ev.push({day,t:"First "+b.Name+" brewed",node:"brew:"+b.ID})}}}}
+    triggers(day);
+    F("Buildings").forEach(b=>{if(!st.done.has("bld:"+b.ID)&&condOK(b.Requires,st)){st.done.add("bld:"+b.ID);st.ev.push({day,t:b.Name+" opens",node:"bld:"+b.ID,big:true})}});
+    mark(day);days.push(snap(st))}
+  SIM={days,first,ev:st.ev}}
+function snap(st){return{c:Object.assign({},st.c),u:new Set(st.u),f:new Set(st.f)}}
+function nodeOpen(n,st,day){const r=n.row;switch(n.mk||n.kind){
+  case "mode":return condOK(r.Requires,st);case "biome":return condOK(r.Requires,st);
+  case "ach":return st.f.has("earned_"+r.ID);case "story":return condOK(r.Requires,st);
+  case "upgrade":return (!r.Achievement||st.f.has("earned_"+r.Achievement))&&condOK(r.Needs,st);
+  case "shop":return condOK(r.Requires,st);case "brew":return condOK(r.Requires,st);case "section":return condOK(r.Needs,st);
+  case "building":return condOK(r.Requires,st);
+  case "unlock":return st.u.has(n.label);
+  case "stat":case "money":case "stuff":return (st.c[n.id.split(":")[1]]||0)>0.0001;
+  case "play":return true}return true}
+
+/* ---------- layout ---------- */
+const W=184,H=42,COLW=250,ROWH=58;
+let VIEW=lsGet(":view")||"path";let POS=lsGet(":pos")||{};
+function viewNodes(){const v=VIEWS.find(x=>x.id==VIEW)||VIEWS[0];const ids=new Set();
+  G.nodes.forEach(n=>{if(!v.kinds)return ids.add(n.id);if(!v.kinds.includes(n.kind))return;if(n.kind=="maker"&&v.makers&&!v.makers.includes(n.mk))return;ids.add(n.id)});
+  if(v.id=="brewery"){ // only stuff and unlocks that touch a brewery maker
+    const keep=new Set();ids.forEach(id=>{const n=G.nodes.get(id);if(n.kind=="maker")keep.add(id)});
+    [...keep].forEach(id=>{const n=G.nodes.get(id);n.ins.concat(n.outs).forEach(e=>{keep.add(e.from);keep.add(e.to)})});
+    return new Set([...keep].filter(id=>ids.has(id)))}
+  if(v.id=="path"){[...ids].forEach(id=>{const n=G.nodes.get(id);if(n.mk=="upgrade"&&!/_key$/.test(n.row.ID)&&!n.row.Achievement)ids.delete(id)})}
+  // drop loners
+  return new Set([...ids].filter(id=>{const n=G.nodes.get(id);return n.ins.concat(n.outs).some(e=>ids.has(e.from)&&ids.has(e.to)&&e.from!==e.to)||n.kind=="goal"}))}
+function autoLayout(ids){const rank={};const inV=e=>ids.has(e.from)&&ids.has(e.to);
+  const visiting=new Set();const r=id=>{if(rank[id]!=null)return rank[id];if(visiting.has(id))return 0;visiting.add(id);
+    const n=G.nodes.get(id);let m=0;n.ins.filter(inV).forEach(e=>{if(e.type!="game"||true)m=Math.max(m,r(e.from)+1)});visiting.delete(id);return rank[id]=m};
+  ids.forEach(r);const cols={};ids.forEach(id=>{(cols[rank[id]]=cols[rank[id]]||[]).push(id)});
+  const order=Object.keys(KINDS);const y={};
+  Object.keys(cols).sort((a,b)=>a-b).forEach(c=>{const list=cols[c];
+    list.forEach(id=>{const n=G.nodes.get(id);const ps=n.ins.filter(inV).map(e=>y[e.from]).filter(v=>v!=null);n._b=ps.length?ps.reduce((a,b)=>a+b,0)/ps.length:order.indexOf(n.kind)*1000});
+    list.sort((a,b)=>G.nodes.get(a)._b-G.nodes.get(b)._b||G.nodes.get(a).label.localeCompare(G.nodes.get(b).label));
+    list.forEach((id,i)=>y[id]=i)});
+  const maxLen=Math.max(...Object.values(cols).map(l=>l.length));const out={};
+  Object.keys(cols).forEach(c=>{const list=cols[c];const off=(maxLen-list.length)*ROWH/2;list.forEach((id,i)=>out[id]={x:c*COLW,y:off+i*ROWH})});
+  return out}
+function positions(ids){const p=POS[VIEW]=POS[VIEW]||{};const missing=[...ids].filter(id=>!p[id]);
+  if(missing.length===ids.size||!Object.keys(p).length){Object.assign(p,autoLayout(ids))}
+  else if(missing.length){const a=autoLayout(ids);let maxY=Math.max(0,...Object.values(p).map(v=>v.y));missing.forEach((id,i)=>p[id]={x:a[id].x,y:maxY+ROWH*(i+2)})}
+  return p}
+
+/* ---------- drawing ---------- */
+const $=s=>document.querySelector(s);const svg=$("#svg"),world=$("#world");
+const NS="http://www.w3.org/2000/svg";const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+let cam=lsGet(":cam")||{x:40,y:40,k:0.7};let SEL=null,SELE=null,DAY=0,IDS=new Set(),P={};
+function glyph(g,kind,x,y,col){const s={fill:col,stroke:"none"};
+  switch(KINDS[kind].glyph){
+    case "play":return el("path",Object.assign({d:`M${x-6} ${y-8}L${x+8} ${y}L${x-6} ${y+8}z`},s),g);
+    case "dot":return el("circle",Object.assign({cx:x,cy:y,r:5},s),g);
+    case "pool":return el("circle",{cx:x,cy:y,r:10,fill:"none",stroke:col,"stroke-width":2},g);
+    case "tri":return el("path",Object.assign({d:`M${x-9} ${y-8}L${x+9} ${y}L${x-9} ${y+8}z`,fill:"none",stroke:col,"stroke-width":2}),g);
+    case "diamond":return el("path",Object.assign({d:`M${x} ${y-10}L${x+10} ${y}L${x} ${y+10}L${x-10} ${y}z`},s),g);
+    case "star":{let d="";for(let i=0;i<10;i++){const r=i%2?4:10,a=Math.PI/5*i-Math.PI/2;d+=(i?"L":"M")+(x+r*Math.cos(a)).toFixed(1)+" "+(y+r*Math.sin(a)).toFixed(1)}return el("path",Object.assign({d:d+"z"},s),g)}
+    case "house":return el("path",Object.assign({d:`M${x-9} ${y+8}V${y-2}L${x} ${y-10}L${x+9} ${y-2}V${y+8}z`,fill:"none",stroke:col,"stroke-width":2}),g)}}
+function edgePath(a,b){const x1=a.x+W,y1=a.y+H/2,x2=b.x,y2=b.y+H/2;const back=x2<x1+20;const dx=back?Math.max(80,Math.abs(x2-x1)/3):Math.max(40,(x2-x1)/2);
+  return{d:`M${x1} ${y1}C${x1+dx} ${y1+(back?60:0)},${x2-dx} ${y2+(back?60:0)},${x2} ${y2}`,mx:(x1+x2)/2,my:(y1+y2)/2+(back?45:0)}}
+function draw(){IDS=viewNodes();P=positions(IDS);
+  const gE=$("#gEdges"),gL=$("#gLabels"),gN=$("#gNodes");gE.innerHTML="";gL.innerHTML="";gN.innerHTML="";
+  G.edges.forEach(e=>{if(!IDS.has(e.from)||!IDS.has(e.to))return;const a=P[e.from],b=P[e.to];const p=edgePath(a,b);
+    e._p=el("path",{d:p.d,class:"edge "+e.type,"marker-end":"url(#arr)"},gE);const hit=el("path",{d:p.d,class:"hit"},gE);
+    hit.addEventListener("click",ev=>{ev.stopPropagation();selectEdge(e)});e._hit=hit;
+    e._l=el("text",{x:p.mx,y:p.my-4,class:"elabel","text-anchor":"middle"},gL);e._l.textContent=e.label||"";e._l.style.display="none"});
+  IDS.forEach(id=>{const n=G.nodes.get(id),p=P[id];const k=KINDS[n.kind];
+    const g=el("g",{class:"node",transform:`translate(${p.x},${p.y})`},gN);g.style.setProperty("--k",k.color);n._g=g;
+    el("rect",{class:"box",width:W,height:H,rx:n.kind=="goal"?14:3},g);glyph(g,n.kind,20,H/2,k.color);
+    const t=el("text",{x:38,y:17,class:"name"},g);t.textContent=n.label.length>22?n.label.slice(0,21)+"…":n.label;
+    const s=el("text",{x:38,y:32,class:"sub"},g);s.textContent=(n.sub||"").length>26?n.sub.slice(0,25)+"…":(n.sub||"");
+    n._val=el("text",{x:20,y:H/2+4,class:"val"},g);
+    n._day=el("text",{x:W-6,y:13,class:"day"},g);
+    const port=el("circle",{class:"port",cx:W,cy:H/2,r:6},g);
+    g.addEventListener("pointerdown",ev=>startNodeDrag(ev,n,ev.target===port));
+    const ti=el("title",{},g);ti.textContent=n.label+" — "+k.label});
+  applyCam();paintDay();highlight()}
+function applyCam(){world.setAttribute("transform",`translate(${cam.x},${cam.y}) scale(${cam.k})`);lsSet(":cam",cam)}
+function paintDay(){if(!SIM)return;const s=SIM.days[Math.min(DAY,SIM.days.length-1)];
+  IDS.forEach(id=>{const n=G.nodes.get(id);const f=SIM.first[id];const on=f!=null&&f<=DAY;n._g.classList.toggle("open",on);n._g.classList.toggle("locked",!on);
+    if(["money","stuff","stat"].includes(n.kind)){const v=s.c[id.split(":")[1]]||0;n._val.textContent=v?(v>=1000?Math.round(v/100)/10+"k":Math.floor(v)):""}
+    n._day.textContent=f==null?"never":"day "+f;n._day.setAttribute("fill",f==null?"var(--brick)":on?"var(--chalk-faint)":"var(--beer)")});
+  G.edges.forEach(e=>{if(!e._p)return;const f=SIM.first[e.from],t=SIM.first[e.to];e._p.classList.toggle("live",DAY>0&&f!=null&&f<=DAY&&(e.type=="flow"||e.type=="cost")&&(t!=null&&t<=DAY||e.type=="flow"))});
+  $("#dayl").textContent="Day "+DAY;$("#day").value=DAY;
+  const show=["coins","marks","reed","bog_iron","hops","matches_won"];$("#pools").innerHTML=show.map(id=>{const n=G.nodes.get("res:"+id)||G.nodes.get("stat:"+id);return `<span>${n?n.label:nice(id)} <b>${Math.floor(s.c[id]||0)}</b></span>`}).join("")}
+function highlight(){const near=new Set();const L=new Set();svg.classList.toggle("dim",!!(SEL||SELE));
+  if(SEL){near.add(SEL);const n=G.nodes.get(SEL);n.ins.concat(n.outs).forEach(e=>{near.add(e.from);near.add(e.to);L.add(e)})}
+  if(SELE){near.add(SELE.from);near.add(SELE.to);L.add(SELE)}
+  IDS.forEach(id=>{const n=G.nodes.get(id);n._g.classList.toggle("near",near.has(id));n._g.classList.toggle("sel",id===SEL)});
+  G.edges.forEach(e=>{if(!e._p)return;const on=L.has(e);e._p.classList.toggle("near",on);e._p.classList.toggle("sel",e===SELE);e._l.classList.toggle("near",on);e._l.style.display=(on||cam.k>1.15)&&e.label?"":"none"})}
+function redrawEdgesOf(id){const n=G.nodes.get(id);n.ins.concat(n.outs).forEach(e=>{if(!e._p)return;const p=edgePath(P[e.from],P[e.to]);e._p.setAttribute("d",p.d);e._hit.setAttribute("d",p.d);e._l.setAttribute("x",p.mx);e._l.setAttribute("y",p.my-4)})}
+
+/* ---------- pointer ---------- */
+let drag=null;
+function toWorld(ev){const r=svg.getBoundingClientRect();return{x:(ev.clientX-r.left-cam.x)/cam.k,y:(ev.clientY-r.top-cam.y)/cam.k}}
+function startNodeDrag(ev,n,fromPort){ev.stopPropagation();svg.setPointerCapture(ev.pointerId);const w=toWorld(ev);
+  drag=fromPort?{mode:"link",n,sx:P[n.id].x+W,sy:P[n.id].y+H/2}:{mode:"node",n,dx:w.x-P[n.id].x,dy:w.y-P[n.id].y,moved:false}}
+svg.addEventListener("pointerdown",ev=>{if(drag)return;svg.setPointerCapture(ev.pointerId);drag={mode:"pan",x:ev.clientX,y:ev.clientY,cx:cam.x,cy:cam.y,moved:false};svg.classList.add("panning")});
+svg.addEventListener("pointermove",ev=>{if(!drag)return;const w=toWorld(ev);
+  if(drag.mode=="pan"){cam.x=drag.cx+ev.clientX-drag.x;cam.y=drag.cy+ev.clientY-drag.y;if(Math.abs(ev.clientX-drag.x)+Math.abs(ev.clientY-drag.y)>3)drag.moved=true;applyCam()}
+  else if(drag.mode=="node"){const p=P[drag.n.id];p.x=Math.round((w.x-drag.dx)/10)*10;p.y=Math.round((w.y-drag.dy)/10)*10;drag.moved=true;drag.n._g.setAttribute("transform",`translate(${p.x},${p.y})`);redrawEdgesOf(drag.n.id)}
+  else if(drag.mode=="link"){$("#ghost").setAttribute("d",`M${drag.sx} ${drag.sy}L${w.x} ${w.y}`)}});
+svg.addEventListener("pointerup",ev=>{if(!drag)return;const d=drag;drag=null;svg.classList.remove("panning");
+  if(d.mode=="pan"&&!d.moved){SEL=null;SELE=null;highlight();inspect()}
+  if(d.mode=="node"){if(d.moved)lsSet(":pos",POS);else{SEL=d.n.id;SELE=null;highlight();inspect()}}
+  if(d.mode=="link"){$("#ghost").setAttribute("d","");const w=toWorld(ev);const hit=[...IDS].find(id=>{const p=P[id];return w.x>=p.x&&w.x<=p.x+W&&w.y>=p.y&&w.y<=p.y+H});
+    if(hit&&hit!==d.n.id)proposeLink(d.n,G.nodes.get(hit),ev)}});
+svg.addEventListener("wheel",ev=>{ev.preventDefault();const r=svg.getBoundingClientRect();zoomAt(ev.clientX-r.left,ev.clientY-r.top,Math.exp(-ev.deltaY*0.0015))},{passive:false});
+function zoomAt(px,py,f){const k=Math.min(2.5,Math.max(0.2,cam.k*f));cam.x=px-(px-cam.x)*k/cam.k;cam.y=py-(py-cam.y)*k/cam.k;cam.k=k;applyCam();highlight()}
+$("#zin").onclick=()=>{const r=svg.getBoundingClientRect();zoomAt(r.width/2,r.height/2,1.25)};
+$("#zout").onclick=()=>{const r=svg.getBoundingClientRect();zoomAt(r.width/2,r.height/2,0.8)};
+$("#zfit").onclick=fit;
+function fit(){const ps=[...IDS].map(id=>P[id]);if(!ps.length)return;const r=svg.getBoundingClientRect();
+  const x0=Math.min(...ps.map(p=>p.x)),x1=Math.max(...ps.map(p=>p.x))+W,y0=Math.min(...ps.map(p=>p.y)),y1=Math.max(...ps.map(p=>p.y))+H;
+  cam.k=Math.min(1.2,Math.max(0.2,Math.min((r.width-40)/(x1-x0),(r.height-40)/(y1-y0))));cam.x=(r.width-(x1-x0)*cam.k)/2-x0*cam.k;cam.y=(r.height-(y1-y0)*cam.k)/2-y0*cam.k;applyCam();highlight()}
+
+/* ---------- connecting cards = writing CSV cells ---------- */
+const id2=n=>n.id.split(":").slice(1).join(":");
+function linkRule(a,b){const ra=a.row,rb=b.row;
+  if((a.kind=="stuff"||a.kind=="money")&&b.mk=="brew")return{say:`<code>${id2(a)}:N</code> goes into <b>Brews.csv</b> → ${rb.ID} → Cost`,ask:"How many?",def:2,apply:n=>addTok(rb,"Cost",id2(a)+":"+n,"|","Brews")};
+  if((a.kind=="stuff"||a.kind=="money")&&b.mk=="section")return{say:`<code>${id2(a)}:N</code> goes into <b>BrewerySections.csv</b> → ${rb.ID} → Takes`,ask:"How many?",def:1,apply:n=>addTok(rb,"Takes",id2(a)+":"+n,";","BrewerySections")};
+  if(a.kind=="money"&&(b.mk=="shop"||b.mk=="upgrade")){const col=b.mk=="shop"?"Price":"Cost";return{say:`Sets <b>${b.file}.csv</b> → ${rb.ID} → Currency to <code>${id2(a)}</code> and ${col} to N`,ask:"Price?",def:rb[col]||50,apply:n=>{set(rb,"Currency",id2(a),b.file);set(rb,col,n,b.file)}}}
+  if(a.mk=="shop"&&(b.kind=="stuff"||b.kind=="money"))return{say:`Sets <b>Shop.csv</b> → ${ra.ID} → Sells to <code>res:${id2(b)}</code>, How Many N`,ask:"How many?",def:1,apply:n=>{set(ra,"Sells",(G.nodes.get("res:"+id2(b))&&F("BreweryResources").some(x=>x.ID==id2(b))?"res:":"count:")+id2(b)+(F("BreweryResources").some(x=>x.ID==id2(b))?"":"+"+n),"Shop");set(ra,"How Many",n,"Shop")}};
+  if(a.mk=="ach"&&b.kind=="unlock")return{say:`Adds <code>${b.label}</code> to <b>Achievements.csv</b> → ${ra.ID} → Unlocks`,apply:()=>addTok(ra,"Unlocks",b.label,";","Achievements")};
+  if(a.mk=="ach"&&b.mk=="ach")return{say:`Adds <code>flag:earned_${ra.ID}</code> to <b>Achievements.csv</b> → ${rb.ID} → Needs, so ${rb.Name} comes after ${ra.Name}`,apply:()=>addTok(rb,"Needs","flag:earned_"+ra.ID,";","Achievements")};
+  if(a.mk=="ach"&&b.mk=="upgrade")return{say:`Sets <b>Upgrades.csv</b> → ${rb.ID} → Achievement to <code>${ra.ID}</code> (earning it lets you buy the upgrade)`,apply:()=>set(rb,"Achievement",ra.ID,"Upgrades")};
+  if((a.kind=="stat"||a.kind=="money"||a.kind=="stuff")&&b.mk=="ach")return{say:`Adds <code>count:${id2(a)}>=N</code> to <b>Achievements.csv</b> → ${rb.ID} → Needs`,ask:"At least how many?",def:3,apply:n=>addTok(rb,"Needs",`count:${id2(a)}>=${n}`,";","Achievements")};
+  if((a.kind=="stat"||a.kind=="money"||a.kind=="stuff")&&b.row&&reqCol(b))return{say:`Adds <code>count:${id2(a)}>=N</code> to <b>${b.file}.csv</b> → ${rb.ID} → ${reqCol(b)}`,ask:"At least how many?",def:1,apply:n=>addTok(rb,reqCol(b),`count:${id2(a)}>=${n}`,";",b.file)};
+  if(a.kind=="unlock"&&b.row&&reqCol(b))return{say:`Adds <code>unlocked:${a.label}</code> to <b>${b.file}.csv</b> → ${rb.ID} → ${reqCol(b)}`,apply:()=>addTok(rb,reqCol(b),"unlocked:"+a.label,";",b.file)};
+  if(a.mk=="upgrade"&&(b.kind=="stuff"||b.kind=="stat"||b.kind=="money"))return{say:`Adds <code>count:${id2(b)}+N</code> to <b>Upgrades.csv</b> → ${ra.ID} → Effect`,ask:"How many?",def:1,apply:n=>addTok(ra,"Effect",`count:${id2(b)}+${n}`,";","Upgrades")};
+  if(a.mk=="ach"&&(b.kind=="stuff"||b.kind=="money"))return{say:`Adds <code>count:${id2(b)}+N</code> to <b>Achievements.csv</b> → ${ra.ID} → Reward`,ask:"How many?",def:25,apply:n=>addTok(ra,"Reward",`count:${id2(b)}+${n}`,";","Achievements")};
+  if(a.mk=="biome"&&(b.kind=="stuff"||b.kind=="money"))return{say:`Adds a row to <b>Drops.csv</b>: table <code>${ra.Drops}</code>, item <code>${id2(b)}</code>, Amount N, Chance 1.0 (picked up every wave)`,ask:"How many per wave?",def:1,apply:n=>{FILES.Drops.rows.push(Object.assign(blank("Drops"),{Table:ra.Drops,Item:id2(b),Amount:String(n),Chance:"1.0"}))}};
+  if(a.mk=="mode"&&b.kind=="money")return{say:`Sets <b>Currencies.csv</b> → ${id2(b)} → Earned In to <code>${ra.ID}</code>, paying N per win`,ask:"Paid per win?",def:30,apply:n=>{const c=F("Currencies").find(x=>x.ID==id2(b));if(c){set(c,"Earned In",ra.ID,"Currencies");set(c,"Win",n,"Currencies")}}};
+  return null}
+function reqCol(n){return {Brews:"Requires",Shop:"Requires",Biomes:"Requires",Buildings:"Requires",MatchModes:"Requires",Progression:"Requires",Upgrades:"Needs",BrewerySections:"Needs",Achievements:"Needs"}[n.file]}
+function blank(f){const o={};FILES[f].cols.forEach(c=>o[c]="");return o}
+function set(row,col,v){row[col]=String(v)}
+function addTok(row,col,tok,sep){const t=toks(row[col],sep=="|"?/[|]/:";");if(!t.includes(tok))t.push(tok);row[col]=t.join(sep)}
+function delTok(row,col,tok,sep){row[col]=toks(row[col],sep=="|"?/[|]/:";").filter(x=>x!==tok).join(sep)}
+function proposeLink(a,b,ev){const rule=linkRule(a,b);if(!rule){toast(`No CSV column joins ${a.label} to ${b.label} yet. Try the other direction.`);return}
+  const pop=document.createElement("div");pop.className="pop";const r=$("#stage").getBoundingClientRect();
+  pop.style.left=Math.min(r.width-300,Math.max(8,ev.clientX-r.left))+"px";pop.style.top=Math.min(r.height-200,Math.max(8,ev.clientY-r.top))+"px";
+  pop.innerHTML=`<p><b>${a.label}</b> → <b>${b.label}</b></p><p>${rule.say}</p>${rule.ask?`<div class="field"><label for="lnkN">${rule.ask}</label><input id="lnkN" type="number" value="${rule.def}"></div>`:""}<div class="btnrow"><button class="btn" id="lnkOk">Connect</button><button class="btn ghost2" id="lnkNo">Cancel</button></div>`;
+  $("#stage").appendChild(pop);const n=pop.querySelector("#lnkN");if(n)n.focus();
+  pop.querySelector("#lnkNo").onclick=()=>pop.remove();
+  pop.querySelector("#lnkOk").onclick=()=>{pushUndo();rule.apply(n?n.value:1);pop.remove();changed(`Connected ${a.label} → ${b.label}`)}}
+function removeEdge(e){if(!e.row){toast("This line comes from game code, not a CSV cell.");return}
+  pushUndo();if(e.whole){if(e.col=="Achievement"||e.col=="Earned In")e.row[e.col]="";else if(e.col=="Sells"||e.col=="Makes")e.row[e.col]="";else e.row[e.col]=""}
+  else delTok(e.row,e.col,e.token,e.sep);SELE=null;changed("Removed "+e.token+" from "+e.file+".csv")}
+
+/* ---------- inspector ---------- */
+const R=$("#right");
+function inspect(){if(SELE)return inspectEdge(SELE);if(!SEL)return summary();const n=G.nodes.get(SEL);const k=KINDS[n.kind];const f=SIM&&SIM.first[n.id];
+  let h=`<span class="kind" style="--k:${k.color}">${k.label}</span><h2>${escH(n.label)}</h2><div class="where">${n.file?n.file+".csv → "+escH(n.row.ID||n.row.Table||""):escH(n.sub||"")}</div>`;
+  h+=`<span class="state ${f==null?"no":"ok"}">${f==null?"Never reached in "+SIM_SET.days+" days":f===0?"Open from the start":"Reached on day "+f}</span>`;
+  if(n.row){h+=`<div class="lbl" style="margin-top:16px">${n.file}.csv row</div>`;
+    FILES[n.file].cols.forEach((c,i)=>{const v=n.row[c]||"";const long=c=="Notes"||c=="Description"||v.length>40;
+      h+=`<div class="field"><label for="f${i}">${escH(c)}</label>${long?`<textarea id="f${i}" data-c="${escA(c)}" rows="${c=="Notes"?3:2}">${escH(v)}</textarea>`:`<input id="f${i}" data-c="${escA(c)}" value="${escA(v)}">`}</div>`})}
+  else if(n.kind=="unlock")h+=`<p class="hint" style="margin-top:12px">An unlock is just a name. Anything that says <code>unlock:${escH(n.label)}</code> switches it on; anything that says <code>unlocked:${escH(n.label)}</code> waits for it.</p>`;
+  else if(n.kind=="stat")h+=`<p class="hint" style="margin-top:12px">A number the game keeps. CSVs check it with <code>count:${escH(id2(n))}>=N</code>.</p>`;
+  const io=(list,dir)=>list.map(e=>{const o=G.nodes.get(dir?e.to:e.from);return `<button class="lnk" data-go="${escA(o.id)}">${dir?"→":"←"} ${escH(o.label)} <i>${escH(e.label||ETYPES[e.type])}</i></button>`}).join("");
+  if(n.ins.length)h+=`<div class="lbl" style="margin-top:16px">Comes from</div><div class="links">${io(n.ins,0)}</div>`;
+  if(n.outs.length)h+=`<div class="lbl" style="margin-top:16px">Leads to</div><div class="links">${io(n.outs,1)}</div>`;
+  if(n.row&&["Achievements","Brews","Shop","Upgrades","Items"].includes(n.file))h+=`<div class="btnrow"><button class="btn bad" id="delRow">Delete this ${n.file=="Items"?"item":"row"}</button></div>`;
+  R.innerHTML=h;
+  R.querySelectorAll("[data-c]").forEach(inp=>inp.addEventListener("change",()=>{pushUndo();n.row[inp.dataset.c]=inp.value;changed(`${n.file}.csv ${n.row.ID}: ${inp.dataset.c} changed`)}));
+  R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
+  const d=R.querySelector("#delRow");if(d)d.onclick=()=>{if(d.dataset.sure){pushUndo();FILES[n.file].rows=FILES[n.file].rows.filter(r=>r!==n.row);SEL=null;changed(`Deleted ${n.row.ID} from ${n.file}.csv`)}else{d.dataset.sure=1;d.textContent="Click again to delete"}}}
+function inspectEdge(e){const a=G.nodes.get(e.from),b=G.nodes.get(e.to);
+  let h=`<span class="kind" style="--k:var(--chalk-dim)">Line · ${ETYPES[e.type]}</span><h2>${escH(a.label)} → ${escH(b.label)}</h2>`;
+  if(e.loot)h+=`<p class="hint">About <b>${escH(e.label.slice(1))}</b> per Adventure run, worked out from <b>Drops.csv</b> (table <code>${escH(e.table)}</code> plus the enemies of this place) and the run settings below.</p>`;
+  else if(e.row)h+=`<div class="where">${e.file}.csv → ${escH(e.row.ID||"")} → ${escH(e.col)}</div><p class="hint">Written as <code>${escH(e.token)}</code>.</p><div class="btnrow"><button class="btn bad" id="delE">Remove this line</button></div>`;
+  else h+=`<p class="hint">This one comes from the game itself (every match counts goals, wins and so on), so there is no CSV cell to change.</p>`;
+  R.innerHTML=h;const d=R.querySelector("#delE");if(d)d.onclick=()=>removeEdge(e)}
+function summary(){if(!SIM){R.innerHTML="";return}
+  const big=SIM.ev.filter(e=>e.big||e.t.endsWith(" unlocked")||e.t.endsWith(" beaten"));
+  let h=`<span class="kind" style="--k:var(--beer)">Pretend season</span><h2>What opens when</h2><p class="hint">The game played ${SIM_SET.days} days with the numbers below. Click a line to find the card.</p><ul class="list">`;
+  big.slice(0,40).forEach(e=>h+=`<li><span class="d">day ${e.day}</span><button class="lnk" data-go="${escA(e.node)}">${escH(e.t)}${e.why?` <i>${escH(e.why)}</i>`:""}</button></li>`);h+="</ul>";
+  // dead ends
+  const neverUsed=[],neverOn=[],noSource=[];
+  G.nodes.forEach(n=>{if(n.kind=="unlock"){if(!n.ins.length)noSource.push(n);else if(!n.outs.length)neverUsed.push(n)}
+    if((n.kind=="place"||n.mk=="ach")&&SIM.first[n.id]==null)neverOn.push(n)});
+  const chips=l=>l.map(n=>`<button class="lnk" data-go="${escA(n.id)}">${escH(n.label)}</button>`).join(", ");
+  if(neverOn.length)h+=`<div class="warn"><b>Never reached in ${SIM_SET.days} days:</b> ${chips(neverOn)}</div>`;
+  if(noSource.length)h+=`<div class="warn"><b>Waits for an unlock nothing hands out:</b> ${chips(noSource)}</div>`;
+  if(neverUsed.length)h+=`<div class="warn"><b>Unlocked, but nothing in these sheets uses it yet:</b> ${chips(neverUsed)}</div>`;
+  const S=SIM_SET;const num=(k,l,step)=>`<label for="s_${k}">${l}</label><input type="number" id="s_${k}" data-k="${k}" value="${S[k]}" step="${step||1}" min="0">`;
+  const chk=(k,l)=>`<label for="s_${k}">${l}</label><input type="checkbox" id="s_${k}" data-k="${k}" ${S[k]?"checked":""}>`;
+  h+=`<div class="lbl" style="margin-top:18px">How the pretend player plays</div><div class="sim">${num("days","Days to play")}${num("matches","Matches a day")}${num("win","Chance to win",0.05)}${num("draw","Chance to draw",0.05)}${num("goals","Goals a match",0.5)}${num("runs","Adventure runs a day")}${num("enemies","Enemies a wave")}${num("bossWin","Chance to beat a boss",0.1)}${num("beatAfter","Runs before a boss falls")}${num("brews","Brews a day")}${chk("keys","Buy keys when possible")}${chk("upgrades","Buy upgrades when possible")}${chk("merchant","Restock from the Merchant")}</div>
+  <div class="btnrow"><button class="btn ghost2" id="simReset">Reset numbers</button></div>`;
+  R.innerHTML=h;R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
+  R.querySelectorAll("[data-k]").forEach(i=>i.addEventListener("change",()=>{SIM_SET[i.dataset.k]=i.type=="checkbox"?i.checked:+i.value;lsSet(":sim",SIM_SET);rerun()}));
+  $("#simReset").onclick=()=>{Object.assign(SIM_SET,SIM_DEF);lsSet(":sim",SIM_SET);rerun()}}
+function goTo(id){if(!IDS.has(id)){VIEW="all";lsSet(":view",VIEW);renderTabs();draw()}if(!IDS.has(id))return;
+  SEL=id;SELE=null;const p=P[id],r=svg.getBoundingClientRect();cam.k=Math.max(cam.k,0.9);cam.x=r.width/2-(p.x+W/2)*cam.k;cam.y=r.height/2-(p.y+H/2)*cam.k;applyCam();highlight();inspect();
+  if(SIM&&SIM.first[id]!=null){DAY=SIM.first[id];paintDay()}}
+function selectEdge(e){SELE=e;SEL=null;highlight();inspect()}
+const escH=s=>String(s??"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));const escA=s=>escH(s).replace(/"/g,"&quot;");
+
+/* ---------- changes ---------- */
+function changed(msg){persist();buildGraph();runSim();if(SEL&&!G.nodes.has(SEL))SEL=null;SELE=null;draw();inspect();updCount();if(msg)toast(msg)}
+function rerun(){buildGraph();runSim();draw();inspect()}
+function updCount(){const n=changedFiles().length;const c=$("#chgCount");c.hidden=!n;c.textContent=n;$("#btnChanges").classList.toggle("hot",!!n)}
+let tt;function toast(m){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");$("#stage").appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,3200)}
+$("#btnUndo").onclick=undo;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key=="z"&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();undo()}
+  if(e.key=="Escape"){SEL=null;SELE=null;highlight();inspect()}});
+function undo(){const s=undoStack.pop();if(!s){toast("Nothing to undo");return}for(const n in s)FILES[n]=loadFile(n,s[n]);SEL=null;changed("Undone")}
+$("#btnLayout").onclick=()=>{POS[VIEW]={};lsSet(":pos",POS);draw();fit()};
+$("#btnChanges").onclick=()=>{const files=changedFiles();const sh=document.createElement("div");sh.className="sheet";
+  sh.innerHTML=`<div class="bar"><b style="font:600 18px var(--cond)">Changed sheets</b><span class="hint">Copy a sheet and paste it over the file in <code>data/</code>, or send it to Claude in the project chat.</span><span class="spacer"></span><button class="btn bad" id="chgReset">Throw away all changes</button><button class="btn ghost2" id="chgClose">Close</button></div><div class="body" id="chgBody"></div>`;
+  $("#stage").appendChild(sh);const b=sh.querySelector("#chgBody");
+  if(!files.length)b.innerHTML=`<p class="hint">No changes yet. Edit a card, connect two cards or add a new one, and the changed CSVs show up here.</p>`;
+  files.forEach(f=>{const o=FILES[f],old=loadFile(f,ORIG[f]);const oldS=new Set(old.rows.map(r=>JSON.stringify(r)));const newS=new Set(o.rows.map(r=>JSON.stringify(r)));
+    const added=o.rows.filter(r=>!oldS.has(JSON.stringify(r)));const gone=old.rows.filter(r=>!newS.has(JSON.stringify(r)));
+    const d=document.createElement("div");d.className="chg";d.innerHTML=`<h3>data/${f}.csv</h3><div class="hint">${added.length} row(s) new or changed${gone.length?`, ${gone.length} old version(s) replaced or removed`:""}: ${added.slice(0,8).map(r=>escH(r.ID||r.Table+"/"+r.Item)).join(", ")}</div><div class="btnrow"><button class="btn">Copy CSV</button></div><textarea readonly aria-label="${f}.csv">${escH(toCSV(o))}</textarea>`;
+    const ta=d.querySelector("textarea");d.querySelector(".btn").onclick=ev=>{const btn=ev.target;navigator.clipboard.writeText(ta.value).then(()=>btn.textContent="Copied").catch(()=>{ta.focus();ta.select();btn.textContent="Press Ctrl+C"})};b.appendChild(d)});
+  sh.querySelector("#chgClose").onclick=()=>sh.remove();
+  const rs=sh.querySelector("#chgReset");rs.onclick=()=>{if(!rs.dataset.sure){rs.dataset.sure=1;rs.textContent="Click again to throw away";return}pushUndo();for(const n in ORIG)FILES[n]=loadFile(n,ORIG[n]);sh.remove();changed("Back to the game's own CSVs")}};
+
+/* ---------- add new things ---------- */
+const ADDS=[
+  {k:"goal",t:"Achievement",file:"Achievements",make:(id,name)=>({ID:id,Name:name,Description:"",Needs:"count:matches_played>=1",Unlocks:""})},
+  {k:"maker",t:"Brew recipe",file:"Brews",make:(id,name)=>({ID:id,Name:name,Cost:"reed:1"})},
+  {k:"maker",t:"Merchant trade",file:"Shop",make:(id,name)=>({ID:id,Name:name,Sells:"res:hops","How Many":"1",Price:"10",Currency:"coins",Requires:"unlocked:Traveling Tavern"})},
+  {k:"maker",t:"Club House upgrade",file:"Upgrades",make:(id,name)=>({ID:id,Name:name,Kind:"upgrade",Cost:"100",Currency:"coins",Effect:"count:"+id+"+1"})},
+  {k:"stuff",t:"Material",file:"Items",make:(id,name)=>({ID:id,Name:name,Kind:"material",Tab:"resources",Stack:"99"})}];
+function renderAdds(){const box=$("#adds");box.innerHTML="";ADDS.forEach(a=>{const b=document.createElement("button");b.className="addbtn";
+  const s=document.createElementNS(NS,"svg");s.setAttribute("width",22);s.setAttribute("height",22);glyph(s,a.k,11,11,KINDS[a.k].color);b.appendChild(s);b.append("New "+a.t.toLowerCase());
+  b.onclick=()=>askName(a);box.appendChild(b)})}
+function askName(a){const pop=document.createElement("div");pop.className="pop";pop.style.left="12px";pop.style.top="12px";
+  pop.innerHTML=`<p>New ${a.t.toLowerCase()} in <b>${a.file}.csv</b></p><div class="field"><label for="newName">Name</label><input id="newName" placeholder="e.g. ${a.k=="goal"?"Derby Day":a.k=="stuff"?"Moor Peat":"Smoked Märzen"}"></div><div class="btnrow"><button class="btn" id="newOk">Add</button><button class="btn ghost2" id="newNo">Cancel</button></div>`;
+  $("#stage").appendChild(pop);const inp=pop.querySelector("#newName");inp.focus();
+  const go=()=>{const name=inp.value.trim();if(!name)return inp.focus();let id=name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ß/g,"ss").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
+    while(F(a.file).some(r=>r.ID==id))id+="_2";pushUndo();const row=Object.assign(blank(a.file),a.make(id,name));FILES[a.file].rows.push(row);pop.remove();
+    const pre={Achievements:"ach:",Brews:"brew:",Shop:"shop:",Upgrades:"upg:",Items:"res:"}[a.file]+id;
+    changed(`Added ${name} to ${a.file}.csv`);
+    if(!IDS.has(pre)&&G.nodes.has(pre)){VIEW="all";renderTabs();draw()}
+    if(G.nodes.has(pre)&&P[pre]){const r=svg.getBoundingClientRect();P[pre].x=Math.round(((r.width/2-cam.x)/cam.k)/10)*10;P[pre].y=Math.round(((r.height/2-cam.y)/cam.k)/10)*10;lsSet(":pos",POS);draw();goTo(pre)}};
+  pop.querySelector("#newOk").onclick=go;inp.addEventListener("keydown",e=>{if(e.key=="Enter")go();if(e.key=="Escape")pop.remove()});pop.querySelector("#newNo").onclick=()=>pop.remove()}
+
+/* ---------- tables view ---------- */
+let TBL=lsGet(":tbl")||"Achievements";
+function tables(){let sh=$("#tblSheet");if(sh)sh.remove();sh=document.createElement("div");sh.className="sheet";sh.id="tblSheet";
+  sh.innerHTML=`<div class="bar"><label for="tblPick" class="lbl" style="margin:0">Sheet</label><select id="tblPick">${Object.keys(FILES).sort().map(f=>`<option ${f==TBL?"selected":""}>${f}</option>`).join("")}</select><span class="hint">Every cell writes straight into data/${TBL}.csv. The full kit opens all ${SRC_COUNT} sheets here.</span></div><div class="body"><table class="grid" id="grid"></table></div>`;
+  $("#stage").appendChild(sh);const f=FILES[TBL];const t=sh.querySelector("#grid");
+  t.innerHTML=`<thead><tr>${f.cols.map(c=>`<th>${escH(c)}</th>`).join("")}</tr></thead><tbody>${f.rows.map((r,i)=>`<tr>${f.cols.map(c=>`<td class="${c=="Notes"?"note":""}"><input data-r="${i}" data-c="${escA(c)}" value="${escA(r[c])}" aria-label="${escA(c)}" title="${escA(r[c])}"></td>`).join("")}</tr>`).join("")}</tbody>`;
+  t.querySelectorAll("input").forEach(inp=>inp.addEventListener("change",()=>{pushUndo();f.rows[+inp.dataset.r][inp.dataset.c]=inp.value;persist();buildGraph();runSim();updCount();toast(`${TBL}.csv: ${inp.dataset.c} changed`)}));
+  sh.querySelector("#tblPick").onchange=e=>{TBL=e.target.value;lsSet(":tbl",TBL);tables()}}
+const SRC_COUNT=/*__COUNT__*/132;
+
+/* ---------- tabs, legend, playback ---------- */
+function renderTabs(){$("#tabs").innerHTML=VIEWS.map(v=>`<button class="tab" role="tab" aria-selected="${v.id==VIEW}" data-v="${v.id}">${v.name}</button>`).join("");
+  $("#tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{const v=b.dataset.v;const t=$("#tblSheet");if(t)t.remove();
+    if(v=="tables"){VIEW_T=true;tables();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
+    const first=!POS[v];VIEW=v;lsSet(":view",v);SEL=null;SELE=null;renderTabs();draw();inspect();if(first)fit()})}
+let VIEW_T=false;
+function renderLegend(){$("#legend").innerHTML="";Object.entries(KINDS).forEach(([k,v])=>{const d=document.createElement("div");d.title=v.desc;
+  const s=document.createElementNS(NS,"svg");s.setAttribute("width",22);s.setAttribute("height",22);glyph(s,k,11,11,v.color);d.appendChild(s);d.append(v.label);$("#legend").appendChild(d)});
+  $("#legend2").innerHTML=Object.entries(ETYPES).map(([k,v])=>`<div><svg width="30" height="10"><path class="edge ${k}" d="M2 5H28"/></svg>${v}</div>`).join("")}
+let timer=null;$("#play").onclick=()=>{if(timer){clearInterval(timer);timer=null;$("#play").textContent="▶";return}
+  if(DAY>=SIM_SET.days)DAY=0;$("#play").textContent="❚❚";timer=setInterval(()=>{DAY++;paintDay();if(DAY>=SIM_SET.days){clearInterval(timer);timer=null;$("#play").textContent="▶"}},450)};
+$("#day").addEventListener("input",e=>{DAY=+e.target.value;paintDay()});
+function marks(){$("#day").max=SIM_SET.days;DAY=Math.min(DAY,SIM_SET.days);const m=$("#marks");m.innerHTML="";
+  SIM.ev.filter(e=>e.big||e.goal).forEach(e=>{const s=document.createElement("span");s.style.left=(e.day/SIM_SET.days*100)+"%";s.dataset.t="Day "+e.day+": "+e.t;s.onclick=()=>goTo(e.node);m.appendChild(s)})}
+$("#search").addEventListener("input",e=>{const q=e.target.value.trim().toLowerCase();if(q.length<2)return;
+  const hit=[...G.nodes.values()].find(n=>n.label.toLowerCase().includes(q)&&IDS.has(n.id))||[...G.nodes.values()].find(n=>n.label.toLowerCase().includes(q)||(n.sub||"").toLowerCase().includes(q));if(hit)goTo(hit.id)});
+const _runSim=runSim;runSim=function(){_runSim();marks()};
+
+buildGraph();runSim();renderTabs();renderLegend();renderAdds();draw();inspect();updCount();
+if(!lsGet(":cam"))fit();
+</script>

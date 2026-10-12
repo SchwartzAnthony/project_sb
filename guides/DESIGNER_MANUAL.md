@@ -326,6 +326,24 @@ write the export straight back). Rebuild the copy with
 `python3 tools/designer_src/build.py`; edit `tools/designer_src/designer.html`,
 never the built page.
 
+### Seeing the whole system: the Sturmball System Builder (first draft, 12 Oct)
+
+Double-click **`sturmball_kit.html`**, or open the online link
+https://claude.ai/artifact/PJESJhPwzzPdZLSFiMe2wC. It draws the game as a
+board of cards and lines: matches and Adventure places, money and stuff,
+makers (brews, Merchant trades, upgrades, brewing machines), achievements,
+unlocks and buildings. Every card is a CSV row and every line is a CSV cell,
+so drawing a line writes the cell (it tells you which one first).
+
+Press **Play** and a pretend player plays day by day: cards light up on the
+day they open, and the right side lists dead ends (goals never reached,
+unlocks nothing hands out or nothing uses). Its numbers (win chance, runs a
+day...) are on the right. *Changes* shows each changed sheet with a Copy
+button. Edits stay in your browser for now.
+
+Rebuild it with `python3 tools/kit_src/build.py` (add `--link FILE` for the
+online copy); edit `tools/kit_src/kit.html`, never the built page.
+
 ---
 
 ## 5. How the game reads a spreadsheet
