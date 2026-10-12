@@ -537,7 +537,7 @@ function draw(){IDS=viewNodes();P=positions(IDS);
   $("#empty").hidden=!(isBoard(VIEW)&&IDS.size===0&&!(GROUPS[VIEW]||[]).length);$("#emptyName").textContent=boardName(VIEW);if(SIM)marks()}
 function applyCam(){world.setAttribute("transform",`translate(${cam.x},${cam.y}) scale(${cam.k})`);lsSet(":cam",cam)}
 function paintDay(){if(!SIM)return;const s=SIM.days[Math.min(DAY,SIM.days.length-1)];
-  IDS.forEach(id=>{const n=G.nodes.get(id);const f=SIM.first[id];const on=f!=null&&f<=DAY;n._g.classList.toggle("open",on);n._g.classList.toggle("locked",!on);
+  IDS.forEach(id=>{const n=G.nodes.get(id);const f=SIM.first[id];const on=f!=null&&f<=DAY;const calm=isBoard(VIEW)&&DAY===0;n._g.classList.toggle("open",on);n._g.classList.toggle("locked",!on&&!calm);
     if(["money","stuff","stat"].includes(n.kind)){const v=s.c[id.split(":")[1]]||0;n._val.textContent=v?(v>=1000?Math.round(v/100)/10+"k":Math.floor(v)):""}
     n._day.textContent=f==null?"never":"day "+f;n._day.setAttribute("fill",f==null?"var(--brick)":on?"var(--chalk-faint)":"var(--beer)")});
   G.edges.forEach(e=>{if(!e._p)return;const f=SIM.first[e.from],t=SIM.first[e.to];e._p.classList.toggle("live",DAY>0&&f!=null&&f<=DAY&&(e.type=="flow"||e.type=="cost")&&(t!=null&&t<=DAY||e.type=="flow"))});
