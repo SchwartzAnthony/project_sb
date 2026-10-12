@@ -352,6 +352,16 @@ between two cards can still be written into a sheet when a column joins them
 machine's Needs). Every panel section folds up, and the Panel buttons hide
 the side panels for more room.
 
+**Your edits win, and can't break a sheet:** what you change in the System
+Builder is laid over the game's CSVs when Claude merges your save, even when
+the CSVs changed in the meantime (only the cells you touched are replaced).
+Every cell you type is checked first: numbers must be numbers, a Kind must be
+one the game knows, checks like `count:x>=3` or `unlocked:Pub` must be
+spelled right, and ingredients must exist. A wrong entry is refused with the
+reason. IDs the game already uses can't be renamed. Making something with
+the name of an existing card offers that card instead, and deleting
+something other rows use needs a second click that names them.
+
 **Brewing machines:** *New brewing machine* adds a Maker card (a row in
 BrewerySections.csv). A line from an ingredient INTO the machine writes its
 Takes (the input); a line from the machine OUT to an ingredient writes its

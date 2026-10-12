@@ -129,6 +129,7 @@ main.noleft #left,main.noright #right{display:none}
 @media (prefers-reduced-motion:reduce){.edge.live.flow,.edge.live.cost{animation:none;stroke-dasharray:none}}
 .hit{fill:none;stroke:transparent;stroke-width:10;cursor:pointer}
 .elabel{font:600 10.5px var(--ui);fill:var(--chalk);paint-order:stroke;stroke:var(--slate);stroke-width:4px;stroke-linejoin:round;pointer-events:none}
+input.badcell,textarea.badcell{outline:2px solid #d0533b;outline-offset:1px}
 .ghost{fill:none;stroke:var(--beer);stroke-width:2;stroke-dasharray:5 4;pointer-events:none}
 
 /* inspector */
@@ -269,12 +270,55 @@ const LS="sturmball-kit-v1";
 function lsGet(k){try{return JSON.parse(localStorage.getItem(LS+k)||"null")}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v))}catch(e){}if(typeof onStore=="function")onStore(k)}
 (function restore(){const saved=lsGet(":edits");if(!saved)return;const ok=saved.stamp===SRC_STAMP||OLD_STAMPS.includes(saved.stamp);
-  for(const n in saved.files){if(!FILES[n])continue;if(saved.base?saved.base[n]===textHash(ORIG[n]):ok)FILES[n]=loadFile(n,saved.files[n])}})();
+  for(const n in saved.files){if(!FILES[n])continue;if(saved.base?saved.base[n]===textHash(ORIG[n]):ok)FILES[n]=loadFile(n,saved.files[n]);else if(saved.orig&&saved.orig[n])FILES[n]=threeWay(n,saved.orig[n],saved.files[n],ORIG[n])}})();
 const undoStack=[];
 function snapshot(){const s={};for(const n in FILES)s[n]=toCSV(FILES[n]);if(typeof GROUPS!="undefined")s.__board=JSON.stringify({CARDS,GROUPS,NOTES});return s}
 function pushUndo(){undoStack.push(snapshot());if(undoStack.length>60)undoStack.shift()}
 function changedFiles(){return Object.keys(FILES).filter(n=>toCSV(FILES[n])!==ORIG[n])}
-function persist(){const f={},base={};for(const n of changedFiles()){f[n]=toCSV(FILES[n]);base[n]=textHash(ORIG[n])}lsSet(":edits",{stamp:SRC_STAMP,files:f,base})}
+function persist(){const f={},base={},orig={};for(const n of changedFiles()){f[n]=toCSV(FILES[n]);base[n]=textHash(ORIG[n]);orig[n]=ORIG[n]}lsSet(":edits",{stamp:SRC_STAMP,files:f,base,orig})}
+// Your edits win: what you changed (added rows, removed rows, changed cells) is laid over a newer copy of the sheet.
+// Cells you did not touch keep the newer copy's values, so changes made at home by Claude are kept too.
+function threeWay(n,baseT,mineT,curT){const b=loadFile(n,baseT),m=loadFile(n,mineT),c=loadFile(n,curT);
+  const key=r=>c.cols.includes("ID")?r.ID:c.cols.slice(0,2).map(x=>r[x]).join("|");
+  const bm=new Map(b.rows.map(r=>[key(r),r])),mm=new Map(m.rows.map(r=>[key(r),r]));
+  c.rows=c.rows.filter(r=>!(bm.has(key(r))&&!mm.has(key(r))));const cm=new Map(c.rows.map(r=>[key(r),r]));
+  m.rows.forEach(r=>{const k=key(r),o=bm.get(k),t=cm.get(k);
+    if(!o){if(t)c.cols.forEach(x=>{if(x in r)t[x]=r[x]});else{const nr={};c.cols.forEach(x=>nr[x]=r[x]??"");c.rows.push(nr)}return}
+    if(t)c.cols.forEach(x=>{if(x in r&&(r[x]??"")!==(o[x]??""))t[x]=r[x]})});
+  return c}
+
+/* ---------- guard rails: every cell you type is checked before it is kept ---------- */
+const RESFILES=["Items","BreweryResources","Currencies"];
+const isThing=id=>RESFILES.some(f=>FILES[f]&&FILES[f].rows.some(r=>r.ID==id));
+const COLINFO={},ENUMS={};
+for(const n in ORIG){const f=loadFile(n,ORIG[n]);COLINFO[n]={};f.cols.forEach(c=>{const v=f.rows.map(r=>r[c]||"");const full=v.filter(x=>x);
+  COLINFO[n][c]={num:full.length>0&&full.every(x=>/^-?\d+(\.\d+)?$/.test(x)),blank:full.length<v.length}})}
+["Upgrades.Kind","Items.Kind","Items.Tab","Items.Target","BreweryResources.Kind","BreweryResources.Kept","MatchModes.Records Season","MatchModes.Star Rotation","MatchModes.Opponent","MatchModes.Scene",
+ "AdventureEnemies.Boss","AdventureEnemies.Targeting","AdventureEnemies.Element","Progression.When","Progression.Once","Currencies.Earned In","Brews.Element","Brews.Permanent","Achievements.Hidden"].forEach(k=>{const [n,c]=k.split(".");
+  if(!ORIG[n])return;ENUMS[k]=[...new Set(loadFile(n,ORIG[n]).rows.map(r=>r[c]).filter(x=>x))].sort()});
+const origHas=(file,id)=>!!ORIG[file]&&loadFile(file,ORIG[file]).rows.some(r=>r.ID==id);
+function cellProblem(file,col,v,row){v=String(v??"");const ci=(COLINFO[file]||{})[col];
+  if(/[\r\n]/.test(v)&&!/^(Notes|Description)$/.test(col))return "Keep this on one line.";
+  if(col=="ID"&&FILES[file]&&FILES[file].cols.includes("ID")){if(!/^[a-z0-9_]+$/.test(v))return "An ID uses only small letters, numbers and _ (like basic_germs).";
+    if(FILES[file].rows.some(r=>r!==row&&r.ID==v))return `${file}.csv already has ${v}.`;
+    if(RESFILES.includes(file)&&!origHas(file,v)&&RESFILES.some(f=>f!=file&&FILES[f]&&FILES[f].rows.some(r=>r.ID==v)))return `${v} already exists in another sheet, so the game would mix them up.`}
+  if(!v)return ci&&!ci.blank?`${col} can't be empty.`:"";
+  if(ci&&ci.num&&!/^-?\d+(\.\d+)?$/.test(v))return `${col} must be a number.`;
+  const en=ENUMS[file+"."+col];if(en&&!en.includes(v))return `${col} must be one of: ${en.join(", ")}.`;
+  const toks=v.split(";").map(t=>t.trim());
+  if(/^(Needs|Requires)$/.test(col)){const bad=toks.find(t=>!/^(count:\w+(>=|<=|==|>|<)\d+|!?flag:\w+|unlocked:[^:;]+)$/.test(t));if(bad!==undefined)return `"${bad}" isn't a check the game knows. Use count:thing>=N, flag:name or unlocked:Name, joined with ;`}
+  if(/^(Effect|Rewards|Rewards On Win)$/.test(col)){const bad=toks.find(t=>!/^count:\w+[+-]\d+$/.test(t));if(bad!==undefined)return `"${bad}" should look like count:thing+N, joined with ;`}
+  if(file=="BrewerySections"&&col=="Takes")for(const t of toks){const m=t.match(/^(\w+):(\d+)$/);if(!m)return `"${t}" should look like wheat:1, joined with ;`;if(!FILES.BreweryResources.rows.some(r=>r.ID==m[1]))return `${m[1]} isn't a brewery ingredient (BreweryResources.csv).`}
+  if(file=="BrewerySections"&&col=="Makes"&&!FILES.BreweryResources.rows.some(r=>r.ID==v))return `${v} isn't a brewery ingredient (BreweryResources.csv).`;
+  if(file=="Brews"&&col=="Cost")for(const t of v.split("|")){const m=t.match(/^(\w+):(\d+)$/);if(!m)return `"${t}" should look like reed:2, joined with |`;if(!isThing(m[1]))return `${m[1]} isn't an item the game has.`}
+  if(col=="Currency"&&!isThing(v))return `${v} isn't a currency or item the game has.`;
+  if(file=="Drops"&&col=="Item"&&!isThing(v))return `${v} isn't an item the game has.`;
+  if(file=="Shop"&&col=="Sells"&&!/^(res|brew|unlock|count):\S/.test(v))return "Sells starts with res:, brew:, unlock: or count:.";
+  return ""}
+// one place every typed cell goes through: refuse it (and say why) or keep it
+function tryCell(inp,file,row,col){const v=inp.value;const why=cellProblem(file,col,v,row);
+  if(why){inp.classList.add("badcell");inp.value=row[col]||"";toast("Not kept: "+why);setTimeout(()=>inp.classList.remove("badcell"),2500);return false}
+  inp.classList.remove("badcell");return true}
 
 /* ---------- vocabulary ---------- */
 const KINDS={
@@ -630,7 +674,7 @@ function inspect(){if(SELG)return inspectGroup();if(SELN)return inspectNote();if
   h+=`<span class="state ${f==null?"no":"ok"}">${f==null?"Never reached in "+SIM_SET.days+" days":f===0?"Open from the start":"Reached on day "+f}</span>`;
   if(n.row){h+=`<div class="lbl" style="margin-top:16px">${n.file}.csv row</div>`;
     FILES[n.file].cols.forEach((c,i)=>{const v=n.row[c]||"";const long=c=="Notes"||c=="Description"||v.length>40;
-      h+=`<div class="field"><label for="f${i}">${escH(c)}</label>${long?`<textarea id="f${i}" data-c="${escA(c)}" rows="${c=="Notes"?3:2}">${escH(v)}</textarea>`:`<input id="f${i}" data-c="${escA(c)}" value="${escA(v)}">`}</div>`})}
+      h+=`<div class="field"><label for="f${i}">${escH(c)}</label>${long?`<textarea id="f${i}" data-c="${escA(c)}" rows="${c=="Notes"?3:2}">${escH(v)}</textarea>`:`<input id="f${i}" data-c="${escA(c)}" value="${escA(v)}"${c=="ID"&&origHas(n.file,v)?' readonly title="The game already uses this ID, so it stays as it is"':""}>`}</div>`})}
   else if(n.kind=="unlock")h+=`<p class="hint" style="margin-top:12px">An unlock is just a name. Anything that says <code>unlock:${escH(n.label)}</code> switches it on; anything that says <code>unlocked:${escH(n.label)}</code> waits for it.</p>`;
   else if(n.kind=="stat")h+=`<p class="hint" style="margin-top:12px">A number the game keeps. CSVs check it with <code>count:${escH(id2(n))}>=N</code>.</p>`;
   const io=(list,dir)=>list.map(e=>{const o=G.nodes.get(dir?e.to:e.from);return `<button class="lnk" data-go="${escA(o.id)}">${dir?"→":"←"} ${escH(o.label)} <i>${escH(e.label||ETYPES[e.type])}</i></button>`}).join("");
@@ -638,7 +682,7 @@ function inspect(){if(SELG)return inspectGroup();if(SELN)return inspectNote();if
   if(n.outs.length)h+=`<div class="lbl" style="margin-top:16px">Leads to</div><div class="links">${io(n.outs,1)}</div>`;
   h+=`<div class="btnrow">${isBoard(VIEW)?(cur().includes(n.id)?`<button class="btn ghost2" id="mineBtn">Take off this board</button>`:`<button class="btn" id="mineBtn">Put on this board</button>`):`<select id="putOn" class="btn ghost2" aria-label="Put on a board"><option value="">Put on a board…</option>${BOARDS.map(b=>`<option value="${b.id}">${escH(b.name)}${(CARDS[b.id]||[]).includes(n.id)?" ✓":""}</option>`).join("")}</select>`}${canDelete(n)?`<button class="btn bad" id="delRow">Delete this card</button>`:""}</div>`;
   R.innerHTML=h;
-  R.querySelectorAll("[data-c]").forEach(inp=>inp.addEventListener("change",()=>{pushUndo();n.row[inp.dataset.c]=inp.value;changed(`${n.file}.csv ${n.row.ID}: ${inp.dataset.c} changed`)}));
+  R.querySelectorAll("[data-c]").forEach(inp=>inp.addEventListener("change",()=>{if(!tryCell(inp,n.file,n.row,inp.dataset.c))return;pushUndo();n.row[inp.dataset.c]=inp.value;changed(`${n.file}.csv ${n.row.ID}: ${inp.dataset.c} changed`)}));
   R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
   const d=R.querySelector("#delRow");if(d)d.onclick=()=>askDelete(n);
   const mb=R.querySelector("#mineBtn");if(mb)mb.onclick=()=>{if(cur().includes(n.id))dropMine(n.id);else{addMine(n.id);inspect()}};
@@ -650,8 +694,10 @@ function askDelete(n){if(!canDelete(n)&&isBoard(VIEW)){dropMine(n.id);return}if(
   const old=$(".pop.del");if(old)old.remove();const refs=refsTo(n);const pop=document.createElement("div");pop.className="pop del";pop.style.right="12px";pop.style.top="56px";
   const where=n.row?`its row in <b>${n.file}.csv</b>`:`the name <code>${escH(n.label)}</code>`;
   pop.innerHTML=`<p><b>Delete ${escH(n.label)}?</b></p><p>This removes ${where}${refs.length?` and ${refs.length} line${refs.length>1?"s":""} that point${refs.length>1?"":"s"} to it in other rows`:""}. Undo brings it back.</p><div class="btnrow"><button class="btn bad" id="delYes">Delete</button>${isBoard(VIEW)?`<button class="btn ghost2" id="delOff">Only take it off this board</button>`:""}<button class="btn ghost2" id="delNo">Keep it</button></div>`;
-  $("#stage").appendChild(pop);const y=pop.querySelector("#delYes");y.focus();
-  y.onclick=()=>{pop.remove();deleteNode(n)};const off=pop.querySelector("#delOff");if(off)off.onclick=()=>{pop.remove();dropMine(n.id)};pop.querySelector("#delNo").onclick=()=>pop.remove();
+  $("#stage").appendChild(pop);const y=pop.querySelector("#delYes");(pop.querySelector("#delOff")||pop.querySelector("#delNo")).focus();
+  // deleting something other rows use takes a second click, and says what it touches
+  const users=[...new Set(refs.map(e=>{const o=G.nodes.get(e.from===n.id?e.to:e.from);return o?o.label:e.row.ID}))];
+  y.onclick=()=>{if(refs.length&&!y.dataset.sure){y.dataset.sure=1;y.textContent="Click again: also take it out of "+users.slice(0,4).join(", ")+(users.length>4?" and "+(users.length-4)+" more":"");return}pop.remove();deleteNode(n)};const off=pop.querySelector("#delOff");if(off)off.onclick=()=>{pop.remove();dropMine(n.id)};pop.querySelector("#delNo").onclick=()=>pop.remove();
   pop.addEventListener("keydown",e=>{if(e.key=="Escape")pop.remove()})}
 function deleteNode(n){pushUndo();
   refsTo(n).forEach(e=>{if(e.whole)e.row[e.col]="";else delTok(e.row,e.col,e.token,e.sep)});
@@ -729,8 +775,12 @@ function renderAdds(){const box=$("#adds");box.innerHTML="";ADDS.forEach(a=>{con
 function askName(a){const pop=document.createElement("div");pop.className="pop";pop.style.left="12px";pop.style.top="12px";
   pop.innerHTML=`<p>New ${a.t.toLowerCase()} in <b>${a.file}.csv</b></p><div class="field"><label for="newName">Name</label><input id="newName" placeholder="e.g. ${({goal:"Derby Day",stuff:"Moor Peat",play:"Village Derby",adventure:"The Hop Gardens"})[a.k]||(a.file=="BrewerySections"?"Mash Tun":"Smoked Märzen")}"></div><div class="btnrow"><button class="btn" id="newOk">Add</button><button class="btn ghost2" id="newNo">Cancel</button></div>`;
   $("#stage").appendChild(pop);const inp=pop.querySelector("#newName");inp.focus();
-  const go=()=>{const name=inp.value.trim();if(!name)return inp.focus();let id=name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ß/g,"ss").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
-    while(F(a.file).some(r=>r.ID==id))id+="_2";pushUndo();const row=Object.assign(blank(a.file),a.make(id,name));FILES[a.file].rows.push(row);pop.remove();
+  let sure=false;const go=()=>{const name=inp.value.trim();if(!name)return inp.focus();
+    const same=[...G.nodes.values()].find(x=>x.row&&x.label.trim().toLowerCase()==name.toLowerCase());
+    if(same&&!sure){sure=true;const p=pop.querySelector("p");p.innerHTML=`<b>${escH(same.label)}</b> is already in the game (${same.file}.csv). Use that one, so the game doesn't get two?`;
+      const ok=pop.querySelector("#newOk");ok.textContent="Make a second one anyway";ok.classList.add("ghost2");const use=document.createElement("button");use.className="btn";use.textContent="Use the game's "+same.label;
+      use.onclick=()=>{pop.remove();if(isBoard(VIEW)){addMine(same.id)}goTo(same.id)};ok.parentNode.insertBefore(use,ok);use.focus();return}let id=name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ß/g,"ss").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
+    while(F(a.file).some(r=>r.ID==id)||RESFILES.includes(a.file)&&isThing(id))id+="_2";pushUndo();const row=Object.assign(blank(a.file),a.make(id,name));FILES[a.file].rows.push(row);pop.remove();
     const pre={MatchModes:"mode:",Biomes:"biome:",Achievements:"ach:",Brews:"brew:",Shop:"shop:",Upgrades:"upg:",Items:"res:",BrewerySections:"sec:"}[a.file]+id;
     if(isBoard(VIEW)&&!cur().includes(pre)){cur().push(pre);saveMine()}
     if(isBoard(VIEW)){changed(`Added ${name} to ${a.file}.csv`);if(G.nodes.has(pre))goTo(pre);return}
@@ -744,8 +794,8 @@ let TBL=lsGet(":tbl")||"Achievements";
 function tables(){let sh=$("#tblSheet");if(sh)sh.remove();sh=document.createElement("div");sh.className="sheet";sh.id="tblSheet";
   sh.innerHTML=`<div class="bar"><label for="tblPick" class="lbl" style="margin:0">Sheet</label><select id="tblPick">${Object.keys(FILES).sort().map(f=>`<option ${f==TBL?"selected":""}>${f}</option>`).join("")}</select><span class="hint">Every cell writes straight into data/${TBL}.csv. The full kit opens all ${SRC_COUNT} sheets here.</span></div><div class="body"><table class="grid" id="grid"></table></div>`;
   $("#stage").appendChild(sh);const f=FILES[TBL];const t=sh.querySelector("#grid");
-  t.innerHTML=`<thead><tr>${f.cols.map(c=>`<th>${escH(c)}</th>`).join("")}</tr></thead><tbody>${f.rows.map((r,i)=>`<tr>${f.cols.map(c=>`<td class="${c=="Notes"?"note":""}"><input data-r="${i}" data-c="${escA(c)}" value="${escA(r[c])}" aria-label="${escA(c)}" title="${escA(r[c])}"></td>`).join("")}</tr>`).join("")}</tbody>`;
-  t.querySelectorAll("input").forEach(inp=>inp.addEventListener("change",()=>{pushUndo();f.rows[+inp.dataset.r][inp.dataset.c]=inp.value;persist();buildGraph();runSim();updCount();toast(`${TBL}.csv: ${inp.dataset.c} changed`)}));
+  t.innerHTML=`<thead><tr>${f.cols.map(c=>`<th>${escH(c)}</th>`).join("")}</tr></thead><tbody>${f.rows.map((r,i)=>`<tr>${f.cols.map(c=>`<td class="${c=="Notes"?"note":""}"><input data-r="${i}" data-c="${escA(c)}" value="${escA(r[c])}"${c=="ID"&&origHas(TBL,r[c])?" readonly":""} aria-label="${escA(c)}" title="${escA(r[c])}"></td>`).join("")}</tr>`).join("")}</tbody>`;
+  t.querySelectorAll("input").forEach(inp=>inp.addEventListener("change",()=>{if(!tryCell(inp,TBL,f.rows[+inp.dataset.r],inp.dataset.c))return;pushUndo();f.rows[+inp.dataset.r][inp.dataset.c]=inp.value;persist();buildGraph();runSim();updCount();toast(`${TBL}.csv: ${inp.dataset.c} changed`)}));
   sh.querySelector("#tblPick").onchange=e=>{TBL=e.target.value;lsSet(":tbl",TBL);tables()}}
 const SRC_COUNT=/*__COUNT__*/132;
 
@@ -868,14 +918,14 @@ $("#btnLeft").onclick=()=>{FOLD.__left=!FOLD.__left;lsSet(":fold",FOLD);panels()
 // the sheet edits, and the pretend player's numbers. Newest save wins.
 const SAVE_KEYS=[":cards",":pos",":edits",":sim",":groups",":notes",":mylinks"];
 let DB=null,saveTimer=null,saving=false,again=false,localAt=+(lsGet(":savedAt")||0),onlineAt=0,quiet=false;
-function collect(){const pos={};BOARDS.forEach(b=>{if(POS[b.id])pos[b.id]=POS[b.id]});const files={},base={};changedFiles().forEach(n=>{files[n]=toCSV(FILES[n]);base[n]=textHash(ORIG[n])});
-  return{app:"sturmball-system-builder",v:2,stamp:SRC_STAMP,savedAt:Date.now(),cards:CARDS,pos,groups:GROUPS,notes:NOTES,mylinks:MYLINKS,files,base,sim:SIM_SET}}
+function collect(){const pos={};BOARDS.forEach(b=>{if(POS[b.id])pos[b.id]=POS[b.id]});const files={},base={};const orig={};changedFiles().forEach(n=>{files[n]=toCSV(FILES[n]);base[n]=textHash(ORIG[n]);orig[n]=ORIG[n]});
+  return{app:"sturmball-system-builder",v:2,stamp:SRC_STAMP,savedAt:Date.now(),cards:CARDS,pos,groups:GROUPS,notes:NOTES,mylinks:MYLINKS,files,base,orig,sim:SIM_SET}}
 function applySave(st,why){if(!st||st.app!=="sturmball-system-builder")return toast("That is not a System Builder save.");
   quiet=true;CARDS=st.cards||{};GROUPS=st.groups||{};NOTES=st.notes||{};MYLINKS=st.mylinks||{};lsSet(":mylinks",MYLINKS);saveBoardBits();BOARDS.forEach(b=>{if(st.pos&&st.pos[b.id])POS[b.id]=st.pos[b.id];else delete POS[b.id]});Object.assign(SIM_SET,SIM_DEF,st.sim||{});
   // each sheet edit applies when it was made on the same copy of that sheet this page carries
   let note="";for(const n in ORIG)FILES[n]=loadFile(n,ORIG[n]);const older={};
   for(const n in (st.files||{})){if(!FILES[n])continue;const same=st.base?st.base[n]===textHash(ORIG[n]):(st.stamp===SRC_STAMP||OLD_STAMPS.includes(st.stamp));
-    if(same)FILES[n]=loadFile(n,st.files[n]);else older[n]=st.files[n]}
+    if(same)FILES[n]=loadFile(n,st.files[n]);else if(st.orig&&st.orig[n])FILES[n]=threeWay(n,st.orig[n],st.files[n],ORIG[n]);else older[n]=st.files[n]}
   if(Object.keys(older).length){lsSet(":olderEdits",older);note=" Edits to "+Object.keys(older).join(", ")+" were made on an older copy of the game, so they wait for Claude to merge."}
   saveMine();lsSet(":pos",POS);lsSet(":sim",SIM_SET);persist();quiet=false;localAt=st.savedAt||Date.now();lsSet(":savedAt",localAt);
   buildGraph();runSim();renderTabs();draw();inspect();updCount();toast(why+note)}
