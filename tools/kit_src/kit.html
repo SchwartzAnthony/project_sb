@@ -243,6 +243,7 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
 <script>
 const SRC = /*__DATA__*/{};
 const SRC_STAMP = "/*__STAMP__*/";
+const OLD_STAMPS = ["/*__OLDSTAMPS__*/"];
 </script>
 <script>
 "use strict";
@@ -255,6 +256,7 @@ function esc(v){v=v==null?"":String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/
 function loadFile(name,text){const a=parseCSV(text.replace(/^﻿/,""));const cols=a[0]||[];
   const rows=a.slice(1).filter(r=>r.some(x=>x!=="")).map(r=>{const o={};cols.forEach((c,i)=>o[c]=r[i]??"");return o});
   return {name,cols,rows}}
+function textHash(t){let h=5381;for(let i=0;i<t.length;i++)h=(h*33^t.charCodeAt(i))>>>0;return h.toString(36)}
 function toCSV(f){return [f.cols.map(esc).join(",")].concat(f.rows.map(r=>f.cols.map(c=>esc(r[c])).join(","))).join("\n")+"\n"}
 
 /* ---------- state ---------- */
@@ -263,12 +265,13 @@ for(const n in SRC){FILES[n]=loadFile(n,SRC[n]);ORIG[n]=toCSV(FILES[n])}
 const LS="sturmball-kit-v1";
 function lsGet(k){try{return JSON.parse(localStorage.getItem(LS+k)||"null")}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v))}catch(e){}if(typeof onStore=="function")onStore(k)}
-(function restore(){const saved=lsGet(":edits");if(!saved||saved.stamp!==SRC_STAMP)return;for(const n in saved.files)if(FILES[n])FILES[n]=loadFile(n,saved.files[n])})();
+(function restore(){const saved=lsGet(":edits");if(!saved)return;const ok=saved.stamp===SRC_STAMP||OLD_STAMPS.includes(saved.stamp);
+  for(const n in saved.files){if(!FILES[n])continue;if(saved.base?saved.base[n]===textHash(ORIG[n]):ok)FILES[n]=loadFile(n,saved.files[n])}})();
 const undoStack=[];
 function snapshot(){const s={};for(const n in FILES)s[n]=toCSV(FILES[n]);if(typeof GROUPS!="undefined")s.__board=JSON.stringify({CARDS,GROUPS,NOTES});return s}
 function pushUndo(){undoStack.push(snapshot());if(undoStack.length>60)undoStack.shift()}
 function changedFiles(){return Object.keys(FILES).filter(n=>toCSV(FILES[n])!==ORIG[n])}
-function persist(){const f={};for(const n of changedFiles())f[n]=toCSV(FILES[n]);lsSet(":edits",{stamp:SRC_STAMP,files:f})}
+function persist(){const f={},base={};for(const n of changedFiles()){f[n]=toCSV(FILES[n]);base[n]=textHash(ORIG[n])}lsSet(":edits",{stamp:SRC_STAMP,files:f,base})}
 
 /* ---------- vocabulary ---------- */
 const KINDS={
@@ -850,12 +853,15 @@ $("#btnLeft").onclick=()=>{FOLD.__left=!FOLD.__left;lsSet(":fold",FOLD);panels()
 // the sheet edits, and the pretend player's numbers. Newest save wins.
 const SAVE_KEYS=[":cards",":pos",":edits",":sim",":groups",":notes"];
 let DB=null,saveTimer=null,saving=false,again=false,localAt=+(lsGet(":savedAt")||0),onlineAt=0,quiet=false;
-function collect(){const pos={};BOARDS.forEach(b=>{if(POS[b.id])pos[b.id]=POS[b.id]});const files={};changedFiles().forEach(n=>files[n]=toCSV(FILES[n]));
-  return{app:"sturmball-system-builder",v:2,stamp:SRC_STAMP,savedAt:Date.now(),cards:CARDS,pos,groups:GROUPS,notes:NOTES,files,sim:SIM_SET}}
+function collect(){const pos={};BOARDS.forEach(b=>{if(POS[b.id])pos[b.id]=POS[b.id]});const files={},base={};changedFiles().forEach(n=>{files[n]=toCSV(FILES[n]);base[n]=textHash(ORIG[n])});
+  return{app:"sturmball-system-builder",v:2,stamp:SRC_STAMP,savedAt:Date.now(),cards:CARDS,pos,groups:GROUPS,notes:NOTES,files,base,sim:SIM_SET}}
 function applySave(st,why){if(!st||st.app!=="sturmball-system-builder")return toast("That is not a System Builder save.");
   quiet=true;CARDS=st.cards||{};GROUPS=st.groups||{};NOTES=st.notes||{};saveBoardBits();BOARDS.forEach(b=>{if(st.pos&&st.pos[b.id])POS[b.id]=st.pos[b.id];else delete POS[b.id]});Object.assign(SIM_SET,SIM_DEF,st.sim||{});
-  let note="";if(st.files&&Object.keys(st.files).length){if(st.stamp===SRC_STAMP){for(const n in ORIG)FILES[n]=loadFile(n,ORIG[n]);for(const n in st.files)if(FILES[n])FILES[n]=loadFile(n,st.files[n])}
-    else{lsSet(":olderEdits",st.files);note=" Its sheet edits were made on an older copy of the game, so they wait for Claude to merge."}}
+  // each sheet edit applies when it was made on the same copy of that sheet this page carries
+  let note="";for(const n in ORIG)FILES[n]=loadFile(n,ORIG[n]);const older={};
+  for(const n in (st.files||{})){if(!FILES[n])continue;const same=st.base?st.base[n]===textHash(ORIG[n]):(st.stamp===SRC_STAMP||OLD_STAMPS.includes(st.stamp));
+    if(same)FILES[n]=loadFile(n,st.files[n]);else older[n]=st.files[n]}
+  if(Object.keys(older).length){lsSet(":olderEdits",older);note=" Edits to "+Object.keys(older).join(", ")+" were made on an older copy of the game, so they wait for Claude to merge."}
   saveMine();lsSet(":pos",POS);lsSet(":sim",SIM_SET);persist();quiet=false;localAt=st.savedAt||Date.now();lsSet(":savedAt",localAt);
   buildGraph();runSim();renderTabs();draw();inspect();updCount();toast(why+note)}
 function onStore(k){if(quiet||!SAVE_KEYS.includes(k))return;localAt=Date.now();try{localStorage.setItem(LS+":savedAt",String(localAt))}catch(e){}

@@ -22,9 +22,14 @@ def build(link_out=None):
     body = open(os.path.join(ROOT, "tools", "kit_src", "kit.html"), encoding="utf-8").read()
     data = json.dumps(src, ensure_ascii=False).replace("</", "<\\/")
     stamp = hashlib.sha1(data.encode()).hexdigest()[:10]
+    # saves made before KitBoards.csv got its group/line columns carry this stamp;
+    # the game sheets were the same, so their edits still apply
+    old = dict(src); old["KitBoards"] = "Board,Card,X,Y,Notes\n"
+    old_stamp = hashlib.sha1(json.dumps(old, ensure_ascii=False).replace("</", "<\\/").encode()).hexdigest()[:10]
     count = len(glob.glob(os.path.join(ROOT, "data", "*.csv")))
     body = (body.replace("/*__DATA__*/{}", data).replace("/*__STAMP__*/", stamp)
-                .replace("/*__COUNT__*/132", str(count)))
+                .replace("/*__COUNT__*/132", str(count))
+                .replace('"/*__OLDSTAMPS__*/"', json.dumps(old_stamp)))
     if link_out:
         open(link_out, "w", encoding="utf-8").write(body)
         print("wrote", link_out)
