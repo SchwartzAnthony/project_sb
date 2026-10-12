@@ -205,7 +205,7 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
 .chg{border:1px solid var(--line);border-radius:3px;padding:10px 12px;margin-bottom:10px}
 .chg h3{margin:0 0 4px;font:600 16px var(--cond)}
 .chg textarea{width:100%;box-sizing:border-box;height:90px;background:var(--slate-2);border:1px solid var(--line);font:11.5px var(--mono);margin-top:8px}
-.pop{position:absolute;z-index:6;background:var(--slate-2);border:1px solid var(--beer);border-radius:4px;padding:12px;width:290px;box-shadow:0 10px 30px #000a}
+.pop{position:absolute;z-index:6;background:var(--slate-2);border:1px solid var(--beer);border-radius:4px;padding:12px;width:290px;box-shadow:0 10px 30px #000a;max-height:calc(100% - 16px);overflow:auto;box-sizing:border-box}
 .pop p{margin:0 0 8px;font-size:13px;color:var(--chalk-dim)}
 .pop code{font:12px var(--mono);color:var(--chalk)}
 .pop input{background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:5px 7px;width:100%;box-sizing:border-box}
@@ -677,9 +677,12 @@ function fit(){const ps=[...IDS].map(id=>P[id]);if(!ps.length)return;const r=svg
 
 /* ---------- connecting cards = writing CSV cells ---------- */
 const id2=n=>n.id.split(":").slice(1).join(":");
+// the pool a card pours: an item with Use brew:pool:X, or a brewery Bottle whose Counter is such an item
+function poolOf(a){if(!a||!a.row||a.kind!="stuff")return "";let m=(a.row.Use||"").match(/^brew:pool:(\w+)/);if(m)return m[1];
+  if(a.file=="BreweryResources"&&a.row.Counter){const it=F("Items").find(x=>x.ID==a.row.Counter);m=it&&(it.Use||"").match(/^brew:pool:(\w+)/);if(m)return m[1]}return ""}
 function linkRule(a,b){const ra=a.row,rb=b.row;
   if(elemOf(a)&&b.mk=="brew"){const w=elemOf(a);return{say:`<b>If</b> ${escH(a.label)} went into the Brew Kettle, ${escH(rb.Name)} can come out. Sets <b>Brews.csv</b> → ${rb.ID} → Element to <code>${w}</code>${rb.Element&&rb.Element!=w?` (it was ${escH(rb.Element)})`:""}.`,apply:()=>set(rb,"Element",w)}}
-  if(a.kind=="stuff"&&b.mk=="brew"&&a.row&&/^brew:pool:/.test(a.row.Use||"")){const pool=a.row.Use.split(":")[2];return{say:`Adds <code>${pool}</code> to <b>Brews.csv</b> → ${rb.ID} → Pool, so drinking a ${a.label} can pour ${rb.Name} (picked at random among the beers in that pool)`,apply:()=>addTok(rb,"Pool",pool,"|")}}
+  if(b.mk=="brew"&&poolOf(a)){const pool=poolOf(a);return{say:`Adds <code>${pool}</code> to <b>Brews.csv</b> → ${rb.ID} → Pool, so drinking a ${a.label} can pour ${rb.Name} (picked at random among the beers in that pool)`,apply:()=>addTok(rb,"Pool",pool,"|")}}
   if((a.kind=="stuff"||a.kind=="money")&&b.mk=="brew")return{say:`<code>${id2(a)}:N</code> goes into <b>Brews.csv</b> → ${rb.ID} → Cost`,ask:"How many?",def:2,apply:n=>addTok(rb,"Cost",id2(a)+":"+n,"|","Brews")};
   if((a.kind=="stuff"||a.kind=="money")&&b.mk=="section")return{say:`<code>${id2(a)}:N</code> goes into <b>BrewerySections.csv</b> → ${rb.ID} → Takes`,ask:"How many?",def:1,apply:n=>addTok(rb,"Takes",id2(a)+":"+n,";","BrewerySections")};
   if(a.mk=="brew"&&b.kind=="ability"){const col=!ra["Attack Ability"]?"Attack Ability":!ra["Defend Ability"]?"Defend Ability":"Attack Ability";return{say:`Sets <b>Brews.csv</b> → ${ra.ID} → ${col} to <code>${rb["Ability ID"]}</code> (${col=="Attack Ability"?"when he attacks":"when he defends"}). Change it to the other side in the beer's panel.`,apply:()=>set(ra,col,rb["Ability ID"])}}
@@ -789,6 +792,11 @@ function changed(msg){persist();buildGraph();runSim();if(SEL&&!G.nodes.has(SEL))
 function rerun(){buildGraph();runSim();draw();inspect()}
 function updCount(){const n=changedFiles().length;const c=$("#chgCount");c.hidden=!n;c.textContent=n;$("#btnChanges").classList.toggle("hot",!!n)}
 let tt;function toast(m){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");$("#stage").appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,3200)}
+// every pop-up box stays fully inside the board, so its buttons can always be reached
+new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.classList&&n.classList.contains("pop"))requestAnimationFrame(()=>fitPop(n))}))).observe($("#stage"),{childList:true});
+function fitPop(p){const r=$("#stage").getBoundingClientRect(),q=p.getBoundingClientRect();
+  if(q.bottom>r.bottom-8){p.style.bottom="";p.style.top=Math.max(8,r.height-q.height-8)+"px"}
+  if(q.right>r.right-8){p.style.right="";p.style.left=Math.max(8,r.width-q.width-8)+"px"}}
 $("#btnUndo").onclick=undo;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key=="z"&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();undo()}
   if(e.key=="Escape"){selectNone();highlight();inspect()}
   if((e.key=="Delete"||e.key=="Backspace")&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)&&!$(".sheet")){
@@ -943,7 +951,7 @@ const gmode=g=>g.mode||(g.random?"random":"all");
 function setGMode(g,m){g.mode=m;g.random=m=="random"}
 // a bottle (an item that pours "brew:pool:X") with a line into this group: which beers inside are in its pool
 function randomPools(g){const ids=groupInside(g);const beers=ids.map(id=>G.nodes.get(id)).filter(n=>n&&n.mk=="brew");
-  return curN().filter(n=>n.to=="grp:"+g.id).map(n=>G.nodes.get(n.from)).filter(a=>a&&a.row&&/^brew:pool:/.test(a.row.Use||"")).map(item=>{const pool=item.row.Use.split(":")[2];
+  return curN().filter(n=>n.to=="grp:"+g.id).map(n=>G.nodes.get(n.from)).filter(a=>poolOf(a)).map(item=>{const pool=poolOf(item);
     const inP=b=>(b.row.Pool||"").split("|").includes(pool);return{item,pool,inPool:beers.filter(inP),missing:beers.filter(b=>!inP(b))}})}
 function deleteGroup(id){pushUndo();GROUPS[VIEW]=curG().filter(g=>g.id!==id);NOTES[VIEW]=curN().filter(n=>n.from!=="grp:"+id&&n.to!=="grp:"+id);saveBoardBits();selectNone();draw();inspect();toast("Group deleted. Its cards stay on the board.")}
 function inspectNote(){const n=SELN;const a=endRect(n.from),b=endRect(n.to);
@@ -956,7 +964,7 @@ function deleteNote(n){pushUndo();NOTES[VIEW]=curN().filter(x=>x!==n);saveBoardB
 function proposeAny(from,to,ev){const a=G.nodes.get(from),b=G.nodes.get(to);let rule=a&&b?linkRule(a,b):null;
   // into a group: a bottle can pour one of the group's beers at random (every beer inside joins the bottle's pool)
   const tg=to.startsWith("grp:")?findGroup(to.slice(4)):null;
-  if(tg&&a&&a.row&&/^brew:pool:/.test(a.row.Use||"")){const pool=a.row.Use.split(":")[2];const beers=groupInside(tg).map(id=>G.nodes.get(id)).filter(n=>n&&n.mk=="brew");
+  if(tg&&poolOf(a)){const pool=poolOf(a);const beers=groupInside(tg).map(id=>G.nodes.get(id)).filter(n=>n&&n.mk=="brew");
     if(beers.length)rule={say:`🎲 One at random: the ${beers.length} beer(s) in <b>${escH(tg.label)}</b> join pool <code>${pool}</code> (Brews.csv → Pool), so drinking a ${escH(a.label)} pours one of them, picked at random.`,
       apply:()=>{beers.forEach(x=>addTok(x.row,"Pool",pool,"|"));setGMode(tg,"random");curN().push({id:"n"+Date.now().toString(36),from,to,label:"random"});saveBoardBits()},group:true}}
   if(tg&&elemOf(a)){const w=elemOf(a);const beers=groupInside(tg).map(id=>G.nodes.get(id)).filter(n=>n&&n.mk=="brew");
