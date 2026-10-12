@@ -1272,7 +1272,35 @@ function buildText(name){
   for (const row of (p ? p.added : [])) lines.push(f.header.map((_,c)=>csvCell(row[c] ?? "")).join(","));
   return lines.join(f.eol) + (f.trailing ? f.eol : "");
 }
-function saveLocal(){ try{ localStorage.setItem("sblab-patch", JSON.stringify(PATCH)); }catch(e){} }
+function saveLocal(){ try{ localStorage.setItem("sblab-patch", JSON.stringify(PATCH)); localStorage.setItem("sblab-patch-at", String(Date.now())); }catch(e){} pushPatch(); }
+/* ONLINE SAVE. Opened from its claude.ai link, the edits in progress are also
+   kept in the page's online store (work/patch), so another computer that opens
+   the link carries on with them. The newest copy wins. */
+let PATCH_T = null, PATCH_READY = false;
+function pushPatch(){
+  if (!DBH || !PATCH_READY) return; clearTimeout(PATCH_T);
+  PATCH_T = setTimeout(async ()=>{
+    try{ await DBH.doc("work/patch").set({json: JSON.stringify(PATCH), saved_at: Date.now(), build: BUILD_KEY}); setStatus("Edits saved online", "ok"); }
+    catch(e){ setStatus("Edits not saved online: " + (e.code || e.message || e), "bad"); }
+  }, 1500);
+}
+async function pullPatch(){
+  let localAt = 0; try{ localAt = +localStorage.getItem("sblab-patch-at") || 0; }catch(e){}
+  try{
+    const d = (await DBH.doc("work/patch").get()).data();
+    if (d && d.json && d.saved_at > localAt){
+      const p = JSON.parse(d.json); PATCH = {};
+      for (const [name, x] of Object.entries(p)){ if (!FLIST.some(f=>f.name===name)) continue; ensureFiles([name]); PATCH[name] = x; }
+      try{ localStorage.setItem("sblab-patch", JSON.stringify(PATCH)); localStorage.setItem("sblab-patch-at", String(d.saved_at)); }catch(e){}
+      PATCH_READY = true;
+      drawChanges(); applyEdits(); drawCardEditor(); drawGrid(); if (!$("#tab-tuning").hidden) drawTuning();
+      if (editedNames().length) setStatus("Picked up your edits from the online save", "ok");
+      return;
+    }
+  }catch(e){ setStatus("Online save is off: " + (e.code || e.message || e), "bad"); return; }
+  PATCH_READY = true;
+  if (localAt) pushPatch();
+}
 function edited(){
   saveLocal(); drawChanges();
   clearTimeout(APPLY_T); APPLY_T = setTimeout(applyEdits, 500);
@@ -1585,7 +1613,7 @@ function initEditor(){
   });
   $("#edits-pill").addEventListener("click", ()=>showTab("edit"));
   drawGrid(); drawCardEditor(); drawChanges();
-  (async ()=>{ try{ if (window.claude && window.claude.use) DBH = await window.claude.use("db"); }catch(e){ DBH = null; } offerSent(); })();
+  (async ()=>{ try{ if (window.claude && window.claude.use) DBH = await window.claude.use("db"); }catch(e){ DBH = null; } if (DBH) await pullPatch(); offerSent(); })();
 }
 /* The edits from last time, put back on when the page opens. Rows that no longer
    exist in this build are dropped and named. */
@@ -1603,7 +1631,8 @@ function restoreEdits(){
     PATCH[name] = p;
   }
   if (editedNames().length){
-    saveLocal(); drawChanges(); applyEdits(); drawCardEditor(); drawGrid();
+    try{ localStorage.setItem("sblab-patch", JSON.stringify(PATCH)); }catch(e){}   // not an edit: keep its save time
+    drawChanges(); applyEdits(); drawCardEditor(); drawGrid();
     setStatus(`Your edits from last time are back on (${editedNames().length} file${editedNames().length===1?"":"s"})${gone.length?"; no longer in the spreadsheets: "+gone.join(", "):""}.`, "ok");
   }
 }

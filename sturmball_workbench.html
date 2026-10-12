@@ -169,6 +169,7 @@ textarea.csv{width:100%;height:270px;font-family:var(--mono);font-size:12px;back
   <header id="bar">
     <h1>Sturmball <span>Workbench</span></h1>
     <div class="grow"></div>
+    <span id="cloud" hidden style="font-size:12px;color:var(--dim);border:1px solid var(--line);border-radius:10px;padding:2px 8px;white-space:nowrap"></span>
     <button class="btn" id="bNewClass">+ New class</button>
     <button class="btn" id="bLoad">Load CSVs</button>
     <button class="btn" id="bCheck">Check</button>
@@ -769,6 +770,8 @@ function boot(){
   DATA = SAMPLE ? JSON.parse(JSON.stringify(unseed())) : saved;
   CUR = Object.keys(DATA)[0] || null;
   paintRail(); paintTable(); check();
+  let at=0; try{ at=+localStorage.getItem("sturmball.savedAt")||0; }catch(e){}
+  startCloud(SAMPLE ? 0 : at);
 }
 function unseed(){
   const out = {};
@@ -776,9 +779,53 @@ function unseed(){
   return out;
 }
 function save(){
-  try{ localStorage.setItem("sturmball.v2", JSON.stringify(DATA)); }catch(e){}
+  try{ localStorage.setItem("sturmball.v2", JSON.stringify(DATA)); localStorage.setItem("sturmball.savedAt", String(Date.now())); }catch(e){}
+  pushCloud();
 }
-function saveHave(){ try{ localStorage.setItem("sturmball.have", JSON.stringify(HAVE)); }catch(e){} }
+function saveHave(){ try{ localStorage.setItem("sturmball.have", JSON.stringify(HAVE)); localStorage.setItem("sturmball.savedAt", String(Date.now())); }catch(e){} pushCloud(); }
+
+/* ---------- online save ----------
+   Opened from its claude.ai link, the Workbench also keeps the loaded
+   spreadsheets in the page's online store, so every computer that opens the
+   link sees the same work. The newest copy wins. sheets/<n> holds one file
+   each (a store document has a size limit); state/main lists them, with the
+   ticks and the time of the last save. */
+let DB=null, cloudT=null, SENT={};
+const sheetId=n=>n.replace(/[^A-Za-z0-9_\-.~]/g,"_");
+function cloudLabel(t,ok){ const c=$("#cloud"); if(!c) return; c.hidden=false; c.textContent=t; c.style.color=ok?"var(--pitch, inherit)":"var(--dim)"; }
+function pushCloud(){
+  if(!DB || SAMPLE) return; clearTimeout(cloudT); cloudLabel("Saving online…",true);
+  cloudT=setTimeout(async()=>{
+    const at=Date.now(), names=Object.keys(DATA), big=[];
+    try{
+      for(const n of names){ const j=JSON.stringify(DATA[n]); if(SENT[n]===j) continue;
+        if(j.length>240000){ big.push(n); continue; }
+        await DB.doc("sheets/"+sheetId(n)).set({name:n,json:j,savedAt:at}); SENT[n]=j; }
+      for(const n of Object.keys(SENT)) if(!(n in DATA)){ await DB.doc("sheets/"+sheetId(n)).delete(); delete SENT[n]; }
+      await DB.doc("state/main").set({names:names.filter(n=>!big.includes(n)),have:JSON.stringify(HAVE),savedAt:at});
+      cloudLabel(big.length?"Saved online, except "+big.join(", ")+" (too big)":"Saved online",!big.length);
+    }catch(e){ cloudLabel("Not saved online: "+(e.code||e.message||e),false); }
+  },1500);
+}
+async function startCloud(localAt){
+  try{ DB=window.claude&&window.claude.use?await window.claude.use("db"):null; }catch(e){ DB=null; }
+  if(!DB) return;
+  try{
+    const st=(await DB.doc("state/main").get()).data();
+    if(st && st.names && st.savedAt>(localAt||0)){
+      const got={};
+      for(const n of st.names){ const d=(await DB.doc("sheets/"+sheetId(n)).get()).data(); if(d&&d.json){ got[n]=JSON.parse(d.json); SENT[n]=d.json; } }
+      if(Object.keys(got).length){
+        DATA=got; SAMPLE=false; try{ HAVE=JSON.parse(st.have||"{}"); }catch(e){ HAVE={}; }
+        CUR=(CUR&&DATA[CUR])?CUR:Object.keys(DATA)[0];
+        try{ localStorage.setItem("sturmball.v2",JSON.stringify(DATA)); localStorage.setItem("sturmball.have",JSON.stringify(HAVE)); localStorage.setItem("sturmball.savedAt",String(st.savedAt)); }catch(e){}
+        paintRail(); paintTable(); check();
+      }
+      cloudLabel("Saved online",true);
+    } else if(localAt){ pushCloud(); }
+    else cloudLabel(SAMPLE?"Online save starts when you load CSVs":"Saved online",!SAMPLE);
+  }catch(e){ cloudLabel("Online save is off: "+(e.code||e.message||e),false); DB=null; }
+}
 
 /* ---------- CSV ---------- */
 function parseCSV(text){
