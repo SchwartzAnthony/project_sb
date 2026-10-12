@@ -133,6 +133,8 @@ main.helpon{grid-template-columns:1fr!important}main.helpon #left,main.helpon #r
 .hit{fill:none;stroke:transparent;stroke-width:10;cursor:pointer}
 .elabel{font:600 10.5px var(--ui);fill:var(--chalk);paint-order:stroke;stroke:var(--slate);stroke-width:4px;stroke-linejoin:round;pointer-events:none}
 input.badcell,textarea.badcell{outline:2px solid #d0533b;outline-offset:1px}
+.edge.note.random{stroke:var(--beer);stroke-dasharray:2 5;stroke-width:2.4;stroke-linecap:round}
+label.rnd{display:flex;gap:8px;align-items:center;margin-top:14px;font-size:13px;cursor:pointer}
 .ghost{fill:none;stroke:var(--beer);stroke-width:2;stroke-dasharray:5 4;pointer-events:none}
 
 /* inspector */
@@ -882,7 +884,7 @@ function drawGroups(){const L=$("#gGroups"),T=$("#gGroupTop");L.innerHTML="";T.i
     const e=mk(L),top=mk(T);top.classList.add("gtop");
     el("rect",{class:"gbox",width:g.w,height:g.h,rx:6},e);el("rect",{class:"ghead",width:g.w,height:26,rx:6},top);
     const grip=el("text",{class:"ggrip",x:8,y:18},top);grip.textContent="⠿";
-    const t=el("text",{class:"gname",x:24,y:18},top);t.textContent=g.label;const c=el("text",{class:"gcount",x:g.w-8,y:17,"text-anchor":"end"},top);const n=groupInside(g).length;c.textContent=n?n+" card"+(n>1?"s":""):"";
+    const t=el("text",{class:"gname",x:24,y:18},top);t.textContent=(g.random?"🎲 ":"")+g.label+(g.random?"  · one at random":"");const c=el("text",{class:"gcount",x:g.w-8,y:17,"text-anchor":"end"},top);const n=groupInside(g).length;c.textContent=n?n+" card"+(n>1?"s":""):"";
     const rs=el("path",{class:"grs",d:`M${g.w} ${g.h-14}L${g.w} ${g.h}L${g.w-14} ${g.h}z`},top);const port=el("circle",{class:"port",cx:g.w,cy:g.h/2,r:7},top);
     const ti=el("title",{},top);ti.textContent="Drag this bar to move "+g.label+" with its cards";
     const down=ev=>{ev.stopPropagation();svg.setPointerCapture(ev.pointerId);const w=toWorld(ev);
@@ -894,10 +896,10 @@ function notePath(a,b){const x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2;const b
   if(back){const s={x:a.x,y:a.y+a.h/2},t={x:b.x+b.w,y:b.y+b.h/2};if(t.x<s.x-20){const dx=Math.max(40,(s.x-t.x)/2);return{d:`M${s.x} ${s.y}C${s.x-dx} ${s.y},${t.x+dx} ${t.y},${t.x} ${t.y}`,mx:(s.x+t.x)/2,my:(s.y+t.y)/2}}}
   const dx=back?Math.max(80,Math.abs(x2-x1)/3):Math.max(40,(x2-x1)/2);return{d:`M${x1} ${y1}C${x1+dx} ${y1+(back?60:0)},${x2-dx} ${y2+(back?60:0)},${x2} ${y2}`,mx:(x1+x2)/2,my:(y1+y2)/2+(back?45:0)}}
 function drawNotes(){const L=$("#gNotes");L.innerHTML="";if(!isBoard(VIEW))return;
-  curN().forEach(n=>{const a=endRect(n.from),b=endRect(n.to);if(!a||!b)return;const p=notePath(a,b);const kind=/^in/i.test(n.label)?"input":/^out/i.test(n.label)?"output":"";
+  curN().forEach(n=>{const a=endRect(n.from),b=endRect(n.to);if(!a||!b)return;const p=notePath(a,b);const kind=/^in/i.test(n.label)?"input":/^out/i.test(n.label)?"output":/^random/i.test(n.label)?"random":"";
     el("path",{d:p.d,class:"edge note "+kind+(SELN&&SELN.id==n.id?" sel":""),"marker-end":"url(#arr)"},L);
     const hit=el("path",{d:p.d,class:"hit"},L);hit.addEventListener("click",ev=>{ev.stopPropagation();selectNone();SELN=n;highlight();inspect();drawNotes()});
-    if(n.label){const t=el("text",{x:p.mx,y:p.my-5,class:"nlabel","text-anchor":"middle"},L);t.textContent=n.label}})}
+    if(n.label){const t=el("text",{x:p.mx,y:p.my-5,class:"nlabel","text-anchor":"middle"},L);t.textContent=(kind=="random"?"🎲 ":"")+n.label}})}
 function newGroupAt(label){const r=svg.getBoundingClientRect();const x=Math.round(((r.width/2-cam.x)/cam.k-150)/10)*10,y=Math.round(((r.height/2-cam.y)/cam.k-110)/10)*10;
   pushUndo();const g={id:"g"+Date.now().toString(36),label,x,y,w:300,h:220,color:"chalk"};curG().push(g);saveBoardBits();selectNone();SELG=g.id;draw();inspect();toast(`Group "${label}" added. Drag cards into it.`)}
 $("#addGroup").onclick=()=>{if(!isBoard(VIEW)){toast("Groups go on your own boards. Pick one of the tabs first.");return}
@@ -914,10 +916,18 @@ function inspectGroup(){const g=findGroup(SELG);if(!g){SELG=null;return inspect(
   <div class="field"><label>Colour</label><div class="swatches">${Object.entries(GCOL).map(([k,c])=>`<button data-c="${k}" class="${g.color==k?"on":""}" style="background:${c}" aria-label="${k}"></button>`).join("")}</div></div>
   <div class="lbl" style="margin-top:16px">Cards inside (${inside.length})</div><div class="links">${inside.map(id=>`<button class="lnk" data-go="${escA(id)}">${escH(G.nodes.get(id).label)}</button>`).join("")||`<p class="hint">Drag cards into the box to put them in this group.</p>`}</div>`;
   if(lines.length)h+=`<div class="lbl" style="margin-top:16px">Lines</div><div class="links">${lines.map(n=>{const o=n.from=="grp:"+g.id?n.to:n.from;const r=endRect(o);return `<span class="lnk">${n.from=="grp:"+g.id?"→":"←"} ${escH(r?r.label:o)} <i>${escH(n.label)}</i></span>`}).join("")}</div>`;
+  h+=`<label class="rnd"><input type="checkbox" id="gRnd" ${g.random?"checked":""}><span><b>🎲 Random</b>: a line into this group gives <b>one</b> of its cards, picked at random</span></label>`;
+  const pools=randomPools(g);pools.forEach(x=>{h+=`<p class="hint" style="margin-top:8px">${escH(x.item.label)} pours one of <b>${x.inPool.length}</b> beers here (pool <code>${x.pool}</code>).${x.missing.length?` Not in the pool yet: ${x.missing.map(b=>escH(b.label)).join(", ")}.`:""}</p>${x.missing.length?`<div class="btnrow"><button class="btn" data-sync="${escA(x.item.id)}">Put ${x.missing.length} more in the pool</button></div>`:""}`});
   h+=`<p class="hint" style="margin-top:12px">Drag the box to move it with its cards, the corner to resize it, and the dot on its right edge to draw a line to a machine.</p><div class="btnrow"><button class="btn bad" id="gDel">Delete group</button></div><p class="hint">Deleting the group keeps its cards.</p>`;
   R.innerHTML=h;const lbl=R.querySelector("#gLbl");lbl.addEventListener("change",()=>{pushUndo();g.label=lbl.value.trim()||g.label;saveBoardBits();drawGroups();drawNotes();inspect()});
   R.querySelectorAll(".swatches button").forEach(b=>b.onclick=()=>{g.color=b.dataset.c;saveBoardBits();drawGroups();inspect()});
-  R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));R.querySelector("#gDel").onclick=()=>deleteGroup(g.id)}
+  R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));R.querySelector("#gDel").onclick=()=>deleteGroup(g.id);
+  R.querySelector("#gRnd").onchange=e=>{pushUndo();g.random=e.target.checked;saveBoardBits();drawGroups();drawNotes();inspect()};
+  R.querySelectorAll("[data-sync]").forEach(b=>b.onclick=()=>{const x=pools.find(x=>x.item.id==b.dataset.sync);pushUndo();x.missing.forEach(m=>addTok(m.row,"Pool",x.pool,"|"));changed(`${x.missing.length} more beer(s) can now come out of a ${x.item.label}`)})}
+// a bottle (an item that pours "brew:pool:X") with a line into this group: which beers inside are in its pool
+function randomPools(g){const ids=groupInside(g);const beers=ids.map(id=>G.nodes.get(id)).filter(n=>n&&n.mk=="brew");
+  return curN().filter(n=>n.to=="grp:"+g.id).map(n=>G.nodes.get(n.from)).filter(a=>a&&a.row&&/^brew:pool:/.test(a.row.Use||"")).map(item=>{const pool=item.row.Use.split(":")[2];
+    const inP=b=>(b.row.Pool||"").split("|").includes(pool);return{item,pool,inPool:beers.filter(inP),missing:beers.filter(b=>!inP(b))}})}
 function deleteGroup(id){pushUndo();GROUPS[VIEW]=curG().filter(g=>g.id!==id);NOTES[VIEW]=curN().filter(n=>n.from!=="grp:"+id&&n.to!=="grp:"+id);saveBoardBits();selectNone();draw();inspect();toast("Group deleted. Its cards stay on the board.")}
 function inspectNote(){const n=SELN;const a=endRect(n.from),b=endRect(n.to);
   let h=`<span class="kind" style="--k:var(--chalk-dim)">Line · your board only</span><h2>${escH(a?a.label:"?")} → ${escH(b?b.label:"?")}</h2>
@@ -926,19 +936,25 @@ function inspectNote(){const n=SELN;const a=endRect(n.from),b=endRect(n.to);
   R.innerHTML=h;const i=R.querySelector("#nLbl");const setL=v=>{pushUndo();n.label=v;saveBoardBits();drawNotes();inspect()};
   i.addEventListener("change",()=>setL(i.value.trim()));R.querySelectorAll(".chip").forEach(c=>c.onclick=()=>setL(c.dataset.l));R.querySelector("#nDel").onclick=()=>deleteNote(n)}
 function deleteNote(n){pushUndo();NOTES[VIEW]=curN().filter(x=>x!==n);saveBoardBits();selectNone();drawNotes();highlight();inspect();toast("Line removed")}
-function proposeAny(from,to,ev){const a=G.nodes.get(from),b=G.nodes.get(to);const rule=a&&b?linkRule(a,b):null;
+function proposeAny(from,to,ev){const a=G.nodes.get(from),b=G.nodes.get(to);let rule=a&&b?linkRule(a,b):null;
+  // into a group: a bottle can pour one of the group's beers at random (every beer inside joins the bottle's pool)
+  const tg=to.startsWith("grp:")?findGroup(to.slice(4)):null;
+  if(tg&&a&&a.row&&/^brew:pool:/.test(a.row.Use||"")){const pool=a.row.Use.split(":")[2];const beers=groupInside(tg).map(id=>G.nodes.get(id)).filter(n=>n&&n.mk=="brew");
+    if(beers.length)rule={say:`🎲 One at random: the ${beers.length} beer(s) in <b>${escH(tg.label)}</b> join pool <code>${pool}</code> (Brews.csv → Pool), so drinking a ${escH(a.label)} pours one of them, picked at random.`,
+      apply:()=>{beers.forEach(x=>addTok(x.row,"Pool",pool,"|"));tg.random=true;curN().push({id:"n"+Date.now().toString(36),from,to,label:"random"});saveBoardBits()},group:true}}
+  const randomInto=tg&&tg.random;
   if(!isBoard(VIEW)){if(rule)return proposeLink(a,b,ev);toast(`No CSV column joins ${(a||{}).label} to ${(b||{}).label} yet. Try the other direction.`);return}
-  const ra=endRect(from),rb=endRect(to);const def=from.startsWith("grp:")?"input":to.startsWith("grp:")?"output":"";
+  const ra=endRect(from),rb=endRect(to);const def=randomInto?"random":from.startsWith("grp:")?"input":to.startsWith("grp:")?"output":"";
   const pop=document.createElement("div");pop.className="pop";const r=$("#stage").getBoundingClientRect();
   pop.style.left=Math.min(r.width-300,Math.max(8,ev.clientX-r.left))+"px";pop.style.top=Math.min(r.height-260,Math.max(8,ev.clientY-r.top))+"px";
   pop.innerHTML=`<p><b>${escH(ra.label)}</b> → <b>${escH(rb.label)}</b></p>${rule?`<p>${rule.say}</p>${rule.ask?`<div class="field"><label for="lnkN">${rule.ask}</label><input id="lnkN" type="number" value="${rule.def}"></div>`:""}<div class="btnrow"><button class="btn" id="lnkOk">Connect in the game</button></div><p class="hint" style="margin-top:10px">Or only draw it on your board:</p>`:`<p>Draw a line on your board. It is a note and does not change the game's sheets.</p>`}
-  <div class="field"><label for="noteL">Label</label><input id="noteL" value="${def}" placeholder="input, output, needs…"></div><div class="chips">${["input","output","needs","makes","unlocks"].map(c=>`<button class="chip" data-l="${c}">${c}</button>`).join("")}</div>
+  <div class="field"><label for="noteL">Label</label><input id="noteL" value="${def}" placeholder="input, output, needs…"></div><div class="chips">${["input","output","random","needs","makes","unlocks"].map(c=>`<button class="chip" data-l="${c}">${c}</button>`).join("")}</div>${tg&&!rule?`<p class="hint">🎲 <b>random</b> means one card of the group comes out. ${tg.random?"":"It also switches the group to Random."} The game only picks at random for bottles and their beers so far; anything else stays a note until Claude wires it.</p>`:""}
   <div class="btnrow"><button class="btn ${rule?"ghost2":""}" id="noteOk">Draw board line</button><button class="btn ghost2" id="lnkNo">Cancel</button></div>`;
   $("#stage").appendChild(pop);const L=pop.querySelector("#noteL");pop.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{L.value=c.dataset.l});
   const n=pop.querySelector("#lnkN");(n||L).focus();
   pop.querySelector("#lnkNo").onclick=()=>pop.remove();
-  const ok=pop.querySelector("#lnkOk");if(ok)ok.onclick=()=>{pushUndo();rule.apply(n?n.value:1);if(isBoard(VIEW)){const L=MYLINKS[VIEW]=MYLINKS[VIEW]||[];if(!L.includes(from+">"+to))L.push(from+">"+to);lsSet(":mylinks",MYLINKS)}pop.remove();changed(`Connected ${a.label} → ${b.label}`)};
-  pop.querySelector("#noteOk").onclick=()=>{pushUndo();curN().push({id:"n"+Date.now().toString(36),from,to,label:L.value.trim()});saveBoardBits();pop.remove();drawNotes();toast("Line drawn on your board")}}
+  const ok=pop.querySelector("#lnkOk");if(ok)ok.onclick=()=>{pushUndo();rule.apply(n?n.value:1);if(isBoard(VIEW)&&!rule.group){const L=MYLINKS[VIEW]=MYLINKS[VIEW]||[];if(!L.includes(from+">"+to))L.push(from+">"+to);lsSet(":mylinks",MYLINKS)}pop.remove();changed(`Connected ${ra.label} → ${rb.label}`)};
+  pop.querySelector("#noteOk").onclick=()=>{pushUndo();curN().push({id:"n"+Date.now().toString(36),from,to,label:L.value.trim()});if(tg&&/^random$/i.test(L.value.trim()))tg.random=true;saveBoardBits();drawGroups();pop.remove();drawNotes();toast("Line drawn on your board")}}
 // a building can stand for what opens it: Pub -> a machine writes the Pub's unlock into the machine's needs
 const _linkRule=linkRule;linkRule=function(a,b){const r=_linkRule(a,b);if(r)return r;
   if(a.kind=="place"&&b.row&&reqCol(b)){const t=toks(a.row.Requires).find(x=>/^unlocked:/.test(x))||toks(a.row.Requires)[0];if(!t)return null;

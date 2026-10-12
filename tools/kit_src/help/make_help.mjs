@@ -137,9 +137,16 @@ await none();
 
 // group + a board-only note line
 await ev(() => { newGroupAt('Bottled beers');const g = curG()[0];Object.assign(g, { x: 680, y: 250, w: 480, h: 360 });
-  curN().push({ id: 'n1', from: 'res:small_bottle', to: 'grp:' + g.id, label: 'pours one' });saveBoardBits();selectNone();draw();drawGroups();drawNotes() });
+  saveBoardBits();selectNone();draw();drawGroups();drawNotes() });
 await view(30, 60, 0.8);await none();
 const gid = await ev(() => curG()[0].id);
+// make it a random group, then a line into it from the bottle
+await ev(gid => { selectNone();SELG = gid;highlight();inspect() }, gid);await p.click('#gRnd');await wait(120);
+await shot('random_group', [[1, await box('label.rnd')], [2, await box(`#gGroupTop .grp[data-id="${gid}"] .ghead`)]]);
+await none();
+{ const st = await box('#stage');await ev(([gid, x, y]) => proposeAny('res:small_bottle', 'grp:' + gid, { clientX: x, clientY: y }), [gid, st.x + 30, st.y + st.height - 330]) }
+await shot('random_line', [[3, await port('res:small_bottle')], [4, await box('.pop p:nth-of-type(2)')], [5, await box('#lnkOk')]]);
+await p.click('#lnkOk');await wait(150);await none();
 const gbar = await box(`#gGroupTop .grp[data-id="${gid}"] .ghead`);
 await shot('ex_group', [[1, gbar], [1, await box('#gNotes .nlabel')]]);
 await shot('group', [[1, await box('#addGroup')], [2, await card('brew:bottled_dunkles')], [3, gbar], [4, await box(`#gGroupTop .grp[data-id="${gid}"] .grs`)], [5, await box(`#gGroupTop .grp[data-id="${gid}"] .port`)]]);

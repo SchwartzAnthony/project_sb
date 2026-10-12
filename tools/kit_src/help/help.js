@@ -25,6 +25,8 @@ const HELP=[
   steps:["Pick a <b>New …</b> button and type a name.","The card appears on your board, with a new row in the sheet named in the box.","If the game already has something with that name, it offers you the game's one instead, so the game never gets two."]},
  {id:"groups",t:"Groups",img:["group"],
   steps:["<b>New group</b> draws a labelled box, like Ingredients or Bottled beers.","Drag cards into it.","Drag its <b>name bar</b> to move the box with every card in it.","Drag the corner to resize it.","Draw lines from the <b>dot on its right</b>. A group's lines are notes on your board only."]},
+ {id:"random",t:"Random groups: one of these comes out",img:["random_group","random_line"],lead:"A group can stand for \"one of these, picked at random\", like all the beer types a bottle can pour.",
+  steps:["Click the group and tick <b>🎲 Random</b>.","Its name bar now says <b>one at random</b>.","Draw a line from a card's dot into the group. The label is <b>random</b> and the line is dotted.","For a bottle and beers, the box says what it writes: every beer in the group joins the bottle's pool, so the game pours one of them at random.","<b>Connect in the game</b> writes it. Drag a new beer in later and the group's panel offers <b>Put … more in the pool</b>. For anything else (a machine, a merchant) the game can't pick at random yet, so the line stays a note until Claude wires it."]},
  {id:"delete",t:"Deleting",img:["delete"],
   steps:["Click a card and press Delete.","On a board, <b>Only take it off this board</b> is picked first. It never touches the game.","Really deleting something other rows use needs a second click that names them.","Undo (top bar or Ctrl+Z) brings anything back."]},
  {id:"play",t:"Play the pretend season",img:["play"],
@@ -51,7 +53,7 @@ const HELP=[
  {id:"ex7",t:"Step 7: only your beers in the bottle",img:["ex_remove"],
   steps:["Click the line Small Bottle → Plain Beer.","Press Delete (or Remove this line). That takes <code>plain</code> out of that beer's Pool, so the bottle stops pouring it. Do it for each Plain Beer you don't want."]},
  {id:"ex8",t:"Step 8: tidy it into a group, then check",img:["ex_group","ex_changes"],
-  steps:["<b>New group</b> <i>Bottled beers</i> and drag the beers in. A board line from Small Bottle to the group, labelled <i>pours one</i>, is a note for you.","<b>Changes</b> shows Brews.csv and Abilities.csv. When you're happy, at home write <b>merge my System Builder save</b>."]}
+  steps:["<b>New group</b> <i>Bottled beers</i>, drag the beers in and tick <b>🎲 Random</b>. A line from Small Bottle into the group (labelled <i>random</i>) says the bottle pours one of them, and keeps every beer in the group in its pool.","<b>Changes</b> shows Brews.csv and Abilities.csv. When you're happy, at home write <b>merge my System Builder save</b>."]}
 ];
 function help(){let sh=$("#helpSheet");if(sh)sh.remove();sh=document.createElement("div");sh.className="sheet";sh.id="helpSheet";
   const nav=HELP.map(h=>h.part?`<span class="hpart">${h.part}</span>`:`<a href="#h_${h.id}">${h.t}</a>`).join("");

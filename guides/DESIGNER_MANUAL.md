@@ -372,6 +372,11 @@ row of Abilities.csv an Ability card (red bolt). A line from a bottle to a beer
 adds the bottle's pool to the beer's Pool (it may be poured at random); a line
 from a beer to an ability fills its Attack Ability, then its Defend Ability.
 
+**Random groups:** tick 🎲 Random on a group and a line into it means "one
+of these, picked at random". From a bottle into a group of beers, Connect in
+the game puts every beer in the group into the bottle's pool (Brews.csv Pool).
+For anything else the game can't pick at random yet, so the line is a note.
+
 **Brewing machines:** *New brewing machine* adds a Maker card (a row in
 BrewerySections.csv). A line from an ingredient INTO the machine writes its
 Takes (the input); a line from the machine OUT to an ingredient writes its
