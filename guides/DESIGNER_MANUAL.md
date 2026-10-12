@@ -383,6 +383,14 @@ BrewerySections.csv). A line from an ingredient INTO the machine writes its
 Takes (the input); a line from the machine OUT to an ingredient writes its
 Makes and How Many (the output).
 
+**If this element, then this beer:** a card whose name ends in "Element"
+(Fire Element, Passion Element …) is an element. A line from it to a beer
+writes that beer's Element in Brews.csv (Fire, Passion …) and shows as a
+purple "if Fire" line: that beer only comes out when that element went into
+the Brew Kettle. A line onto a group of beers sets every beer in it. Beers
+with no Element come out whatever went in. The game still needs to remember
+the kettle's element; until that's wired, the lines are saved data only.
+
 **Saving:** the online link saves by itself, so the same boards are there on
 any PC. The double-clicked file saves in that browser; *Save* > *Download
 save file* / *Open a save file* moves work between the two. To bring the

@@ -16,7 +16,7 @@ const ev = (f, a) => p.evaluate(f, a);const wait = ms => p.waitForTimeout(ms);
 // ---- rings ----
 const box = async sel => { const r = await p.locator(sel).first().boundingBox(); if (!r) throw new Error('no ' + sel); return r };
 const card = id => ev(id => { const r = G.nodes.get(id)._g.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height } }, id);
-const line = (a, z) => ev(([a, z]) => { const e = G.edges.find(e => e.from == a && e.to == z && e._hit); const L = e._hit.getTotalLength(); const q = e._hit.getPointAtLength(L * 0.55); const m = e._hit.getScreenCTM(); const x = q.x * m.a + m.e, y = q.y * m.d + m.f; return { x: x - 14, y: y - 14, width: 28, height: 28 } }, [a, z]);
+const line = (a, z, f = 0.55) => ev(([a, z, f]) => { const e = G.edges.find(e => e.from == a && e.to == z && e._hit); const L = e._hit.getTotalLength(); const q = e._hit.getPointAtLength(L * f); const m = e._hit.getScreenCTM(); const x = q.x * m.a + m.e, y = q.y * m.d + m.f; return { x: x - 14, y: y - 14, width: 28, height: 28 } }, [a, z, f]);
 const port = id => ev(id => { const r = G.nodes.get(id)._g.getBoundingClientRect(); return { x: r.right - 13, y: r.y + r.height / 2 - 13, width: 26, height: 26 } }, id);
 const fbox = async col => { const l = p.locator(`#right [data-c="${col}"]`).first();await l.scrollIntoViewIfNeeded();await wait(50);return l.boundingBox() };
 const text = async (scope, t) => box(`${scope} :text("${t}")`);
@@ -174,4 +174,24 @@ await p.click('#svClose');
 await tab('tables');await wait(150);await p.selectOption('#tblPick', 'Brews');await wait(150);
 await shot('tables', [[1, await box('#tblPick')], [2, await box('#grid tbody tr:nth-child(2) td:nth-child(2) input')]]);
 
+
+// if this element, then this beer
+await tab('brewb');await wait(150);
+await ev(() => { cur().slice().forEach(id => dropMine(id));GROUPS[VIEW] = [];NOTES[VIEW] = [];saveBoardBits();draw() });
+await make('New material', 'Fire Element');await make('New material', 'Water Element');
+await make('random beer', 'Ember Helles');await make('random beer', 'River Dunkel');
+await put('res:fire_element', 60, 120);await put('res:water_element', 60, 190);await put('sec:boiling', 360, 330);
+await put('brew:ember_helles', 700, 120);await put('brew:river_dunkel', 700, 190);
+const gids = await ev(() => { newGroupAt('Elements');const a = curG()[curG().length - 1];Object.assign(a, { x: 30, y: 70, w: 230, h: 200 });setGMode(a, 'one');
+  newGroupAt('Produced Beer');const z = curG()[curG().length - 1];Object.assign(z, { x: 670, y: 70, w: 250, h: 200 });
+  curN().push({ id: 'nhelp1', from: 'grp:' + a.id, to: 'sec:boiling', label: 'input' });saveBoardBits();selectNone();draw();drawGroups();drawNotes();return [a.id, z.id] });
+await view(60, 80, 1);await none();
+await connect('res:fire_element', 'brew:ember_helles', false);
+await shot('if_line', [[1, await port('res:fire_element')], [1, await card('brew:ember_helles')], [2, await box('.pop p:nth-of-type(2)')], [3, await box('#lnkOk')]]);
+await p.click('#lnkOk');await wait(120);
+await connect('res:water_element', 'brew:river_dunkel');
+await none();
+await shot('if_board', [[1, await box(`#gGroupTop .grp[data-id="${gids[0]}"] .ghead`)], [2, await line('res:fire_element', 'brew:ember_helles', 0.3)], [2, await line('res:water_element', 'brew:river_dunkel', 0.3)]]);
+await ev(() => selectEdge(G.edges.find(e => e.from == 'res:fire_element' && e.to == 'brew:ember_helles')));await wait(80);
+await shot('if_panel', [[1, await line('res:fire_element', 'brew:ember_helles', 0.3)], [2, await box('#right .hint')]]);
 console.log('page errors', errs);await b.close();

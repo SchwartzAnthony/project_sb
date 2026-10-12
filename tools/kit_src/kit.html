@@ -126,6 +126,7 @@ main.helpon{grid-template-columns:1fr!important}main.helpon #left,main.helpon #r
 .edge.unlock{stroke:#e6ad3ccc;stroke-dasharray:6 4}
 .edge.reads{stroke:#86b7d888;stroke-dasharray:2 4}
 .edge.game{stroke:#a1ab9f55;stroke-dasharray:1 5}
+.edge.cond,.edge.note.cond{stroke:#c9a0e6;stroke-dasharray:8 3 2 3;stroke-width:2.2}
 .edge.sel{stroke-width:3}
 .edge.live.flow,.edge.live.cost{stroke-dasharray:3 9;animation:run 1s linear infinite}
 @keyframes run{to{stroke-dashoffset:-24}}
@@ -324,7 +325,7 @@ function cellProblem(file,col,v,row){v=String(v??"");const ci=(COLINFO[file]||{}
     if(RESFILES.includes(file)&&!origHas(file,v)&&RESFILES.some(f=>f!=file&&FILES[f]&&FILES[f].rows.some(r=>r.ID==v)))return `${v} already exists in another sheet, so the game would mix them up.`}
   if(!v)return ci&&!ci.blank?`${col} can't be empty.`:"";
   if(ci&&ci.num&&!/^-?\d+(\.\d+)?$/.test(v))return `${col} must be a number.`;
-  const en=ENUMS[file+"."+col];if(en&&!en.includes(v))return `${col} must be one of: ${en.join(", ")}.`;
+  let en=ENUMS[file+"."+col];if(file=="Brews"&&col=="Element"&&en)en=[...new Set([...en,...elemCards().map(c=>c.word)])].sort();if(en&&!en.includes(v))return `${col} must be one of: ${en.join(", ")}.`;
   const toks=v.split(";").map(t=>t.trim());
   if(/^(Needs|Requires)$/.test(col)){const bad=toks.find(t=>!/^(count:\w+(>=|<=|==|>|<)\d+|!?flag:\w+|unlocked:[^:;]+)$/.test(t));if(bad!==undefined)return `"${bad}" isn't a check the game knows. Use count:thing>=N, flag:name or unlocked:Name, joined with ;`}
   if(file!="Abilities"&&/^(Effect|Rewards|Rewards On Win)$/.test(col)){const bad=toks.find(t=>!/^count:\w+[+-]\d+$/.test(t));if(bad!==undefined)return `"${bad}" should look like count:thing+N, joined with ;`}
@@ -356,7 +357,7 @@ const KINDS={
   place:{label:"Building",desc:"A building on the base",color:"var(--chalk)",glyph:"house"},
   beer:{label:"Beer",desc:"A beer or brew a player drinks. Random beers share a Pool",color:"var(--beer)",glyph:"mug"},
   ability:{label:"Ability",desc:"What a beer or card does in a duel: +1 power, drain stamina…",color:"var(--brick)",glyph:"bolt"}};
-const ETYPES={flow:"gives / makes",cost:"costs",unlock:"unlocks / needs it unlocked",reads:"checks a number",game:"counted by the game itself"};
+const ETYPES={flow:"gives / makes",cost:"costs",unlock:"unlocks / needs it unlocked",reads:"checks a number",game:"counted by the game itself",cond:"only if (that element went into the Brew Kettle)"};
 const VIEWS=[
   {id:"whole",name:"Whole Game",board:true},
   {id:"ach",name:"Achievements / Unlock Path",board:true},
@@ -391,6 +392,11 @@ const nice=s=>s.replace(/_/g," ");
 
 /* ---------- graph from CSVs ---------- */
 let G={nodes:new Map(),edges:[]};
+// ELEMENTS: a card named "Fire Element" (Items or BreweryResources) is the element Fire.
+// An "if" line from it to a beer writes Brews.csv -> Element, so that beer only comes out when that element went into the Brew Kettle.
+function elemWord(label){const m=String(label||"").trim().match(/^(.+?)\s+element$/i);return m?m[1].charAt(0).toUpperCase()+m[1].slice(1):""}
+function elemCards(){const out=[];["Items","BreweryResources"].forEach(f=>(FILES[f]?FILES[f].rows:[]).forEach(r=>{const w=elemWord(r.Name);if(w)out.push({id:r.ID,file:f,word:w,name:r.Name})}));return out}
+const elemOf=n=>n&&n.kind=="stuff"&&n.row?elemWord(n.row.Name||n.label):"";
 function buildGraph(){
   const N=new Map(),E=[];const resIds=new Set();
   const add=(id,o)=>{if(!N.has(id))N.set(id,Object.assign({id,ins:[],outs:[]},o));return N.get(id)};
@@ -449,6 +455,8 @@ function buildGraph(){
   // a bottle that pours "brew:pool:X" gives one random beer whose Pool lists X
   F("Items").forEach(r=>{const m=(r.Use||"").match(/^brew:pool:(\w+)/);if(!m)return;const it=numId(r.ID);
     F("Brews").filter(b=>(b.Pool||"").split("|").includes(m[1])).forEach(b=>edge(it,N.get("brew:"+b.ID),"flow","random",{file:"Brews",row:b,col:"Pool",token:m[1],sep:"|"}))});
+  // an element card -> each beer whose Element is that element ("if Fire")
+  elemCards().forEach(c=>F("Brews").filter(b=>(b.Element||"").toLowerCase()==c.word.toLowerCase()).forEach(b=>edge(numId(c.id),N.get("brew:"+b.ID),"cond","if "+c.word,{file:"Brews",row:b,col:"Element",token:b.Element,whole:true})));
   // a brewery resource with a Counter lands in the bag as that item (bottle -> Small Bottle)
   F("BreweryResources").forEach(r=>{if(r.Counter&&r.Counter!==r.ID)edge(numId(r.ID),numId(r.Counter),"flow","is a",{file:"BreweryResources",row:r,col:"Counter",token:r.Counter,whole:true})});
   // the shop sells recipes before the brews are built in this pass; tie them up now
@@ -634,7 +642,7 @@ function highlight(){const near=new Set();const L=new Set();svg.classList.toggle
   if(SEL){near.add(SEL);const n=G.nodes.get(SEL);n.ins.concat(n.outs).forEach(e=>{near.add(e.from);near.add(e.to);L.add(e)})}
   if(SELE){near.add(SELE.from);near.add(SELE.to);L.add(SELE)}
   IDS.forEach(id=>{const n=G.nodes.get(id);n._g.classList.toggle("near",near.has(id));n._g.classList.toggle("sel",id===SEL)});
-  G.edges.forEach(e=>{if(!e._p)return;const on=L.has(e);e._p.classList.toggle("near",on);e._p.classList.toggle("sel",e===SELE);e._l.classList.toggle("near",on);e._l.style.display=(on||cam.k>1.15)&&e.label?"":"none"})}
+  G.edges.forEach(e=>{if(!e._p)return;const on=L.has(e);e._p.classList.toggle("near",on);e._p.classList.toggle("sel",e===SELE);e._l.classList.toggle("near",on);e._l.style.display=(on||cam.k>1.15||e.type=="cond")&&e.label?"":"none"})}
 function redrawEdgesOf(id){const n=G.nodes.get(id);n.ins.concat(n.outs).forEach(e=>{if(!e._p)return;const p=edgePath(P[e.from],P[e.to]);e._p.setAttribute("d",p.d);e._hit.setAttribute("d",p.d);e._l.setAttribute("x",p.mx);e._l.setAttribute("y",p.my-4)})}
 
 /* ---------- pointer ---------- */
@@ -670,6 +678,7 @@ function fit(){const ps=[...IDS].map(id=>P[id]);if(!ps.length)return;const r=svg
 /* ---------- connecting cards = writing CSV cells ---------- */
 const id2=n=>n.id.split(":").slice(1).join(":");
 function linkRule(a,b){const ra=a.row,rb=b.row;
+  if(elemOf(a)&&b.mk=="brew"){const w=elemOf(a);return{say:`<b>If</b> ${escH(a.label)} went into the Brew Kettle, ${escH(rb.Name)} can come out. Sets <b>Brews.csv</b> → ${rb.ID} → Element to <code>${w}</code>${rb.Element&&rb.Element!=w?` (it was ${escH(rb.Element)})`:""}.`,apply:()=>set(rb,"Element",w)}}
   if(a.kind=="stuff"&&b.mk=="brew"&&a.row&&/^brew:pool:/.test(a.row.Use||"")){const pool=a.row.Use.split(":")[2];return{say:`Adds <code>${pool}</code> to <b>Brews.csv</b> → ${rb.ID} → Pool, so drinking a ${a.label} can pour ${rb.Name} (picked at random among the beers in that pool)`,apply:()=>addTok(rb,"Pool",pool,"|")}}
   if((a.kind=="stuff"||a.kind=="money")&&b.mk=="brew")return{say:`<code>${id2(a)}:N</code> goes into <b>Brews.csv</b> → ${rb.ID} → Cost`,ask:"How many?",def:2,apply:n=>addTok(rb,"Cost",id2(a)+":"+n,"|","Brews")};
   if((a.kind=="stuff"||a.kind=="money")&&b.mk=="section")return{say:`<code>${id2(a)}:N</code> goes into <b>BrewerySections.csv</b> → ${rb.ID} → Takes`,ask:"How many?",def:1,apply:n=>addTok(rb,"Takes",id2(a)+":"+n,";","BrewerySections")};
@@ -744,6 +753,7 @@ function deleteNode(n){pushUndo();
   selectNone();changed(`Deleted ${n.label}`+(n.row?` from ${n.file}.csv`:""))}
 function inspectEdge(e){const a=G.nodes.get(e.from),b=G.nodes.get(e.to);
   let h=`<span class="kind" style="--k:var(--chalk-dim)">Line · ${ETYPES[e.type]}</span><h2>${escH(a.label)} → ${escH(b.label)}</h2>`;
+  if(e.type=="cond")h+=`<p class="hint"><b>If</b> ${escH(a.label)} went into the Brew Kettle, ${escH(b.label)} can come out of the bottle. Beers with no Element can come out whatever element went in. Saved in <b>Brews.csv</b> → Element. <b>Game note:</b> the brewery does not remember the kettle's element yet; Claude is wiring that in the game.</p>`;
   if(e.loot)h+=`<p class="hint">About <b>${escH(e.label.slice(1))}</b> per Adventure run, worked out from <b>Drops.csv</b> (table <code>${escH(e.table)}</code> plus the enemies of this place) and the run settings below.</p>`;
   else if(e.row)h+=`<div class="where">${e.file}.csv → ${escH(e.row.ID||"")} → ${escH(e.col)}</div><p class="hint">Written as <code>${escH(e.token)}</code>.</p><div class="btnrow"><button class="btn bad" id="delE">Remove this line</button></div>`;
   else h+=`<p class="hint">This one comes from the game itself (every match counts goals, wins and so on), so there is no CSV cell to change.</p>`;
@@ -896,7 +906,7 @@ function notePath(a,b){const x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2;const b
   if(back){const s={x:a.x,y:a.y+a.h/2},t={x:b.x+b.w,y:b.y+b.h/2};if(t.x<s.x-20){const dx=Math.max(40,(s.x-t.x)/2);return{d:`M${s.x} ${s.y}C${s.x-dx} ${s.y},${t.x+dx} ${t.y},${t.x} ${t.y}`,mx:(s.x+t.x)/2,my:(s.y+t.y)/2}}}
   const dx=back?Math.max(80,Math.abs(x2-x1)/3):Math.max(40,(x2-x1)/2);return{d:`M${x1} ${y1}C${x1+dx} ${y1+(back?60:0)},${x2-dx} ${y2+(back?60:0)},${x2} ${y2}`,mx:(x1+x2)/2,my:(y1+y2)/2+(back?45:0)}}
 function drawNotes(){const L=$("#gNotes");L.innerHTML="";if(!isBoard(VIEW))return;
-  curN().forEach(n=>{const a=endRect(n.from),b=endRect(n.to);if(!a||!b)return;const p=notePath(a,b);const kind=/^in/i.test(n.label)?"input":/^out/i.test(n.label)?"output":/^random/i.test(n.label)?"random":"";
+  curN().forEach(n=>{const a=endRect(n.from),b=endRect(n.to);if(!a||!b)return;const p=notePath(a,b);const kind=/^in/i.test(n.label)?"input":/^out/i.test(n.label)?"output":/^random/i.test(n.label)?"random":/^if\b/i.test(n.label)?"cond":"";
     el("path",{d:p.d,class:"edge note "+kind+(SELN&&SELN.id==n.id?" sel":""),"marker-end":"url(#arr)"},L);
     const hit=el("path",{d:p.d,class:"hit"},L);hit.addEventListener("click",ev=>{ev.stopPropagation();selectNone();SELN=n;highlight();inspect();drawNotes()});
     // a random group reads as "one of these" when it goes in, and "one comes out" when a line goes into it
@@ -949,6 +959,9 @@ function proposeAny(from,to,ev){const a=G.nodes.get(from),b=G.nodes.get(to);let 
   if(tg&&a&&a.row&&/^brew:pool:/.test(a.row.Use||"")){const pool=a.row.Use.split(":")[2];const beers=groupInside(tg).map(id=>G.nodes.get(id)).filter(n=>n&&n.mk=="brew");
     if(beers.length)rule={say:`🎲 One at random: the ${beers.length} beer(s) in <b>${escH(tg.label)}</b> join pool <code>${pool}</code> (Brews.csv → Pool), so drinking a ${escH(a.label)} pours one of them, picked at random.`,
       apply:()=>{beers.forEach(x=>addTok(x.row,"Pool",pool,"|"));setGMode(tg,"random");curN().push({id:"n"+Date.now().toString(36),from,to,label:"random"});saveBoardBits()},group:true}}
+  if(tg&&elemOf(a)){const w=elemOf(a);const beers=groupInside(tg).map(id=>G.nodes.get(id)).filter(n=>n&&n.mk=="brew");
+    if(beers.length)rule={say:`<b>If</b> ${escH(a.label)} went into the Brew Kettle, the ${beers.length} beer(s) in <b>${escH(tg.label)}</b> can come out${gmode(tg)=="random"?" (one of them, at random)":""}. Sets Element to <code>${w}</code> on each (Brews.csv).`,
+      apply:()=>{beers.forEach(x=>set(x.row,"Element",w));curN().push({id:"n"+Date.now().toString(36),from,to,label:"if "+w});saveBoardBits()},group:true}}
   const randomInto=tg&&gmode(tg)=="random";
   if(!isBoard(VIEW)){if(rule)return proposeLink(a,b,ev);toast(`No CSV column joins ${(a||{}).label} to ${(b||{}).label} yet. Try the other direction.`);return}
   const ra=endRect(from),rb=endRect(to);const def=randomInto?"random":from.startsWith("grp:")?"input":to.startsWith("grp:")?"output":"";
