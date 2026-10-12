@@ -42,6 +42,34 @@ aside{background:var(--slate-2);overflow:auto;min-width:0}
 #right{border-left:1px solid var(--line);padding:14px}
 .lbl{font:600 11px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:var(--chalk-faint);margin:14px 0 6px}
 .lbl:first-child{margin-top:0}
+details.sec{border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:8px}
+details.sec>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;font:600 11px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:var(--chalk-faint);padding:4px 0 6px}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec>summary::before{content:"▸";font-size:11px;transition:transform .15s}
+details.sec[open]>summary::before{transform:rotate(90deg)}
+details.sec>summary:hover{color:var(--chalk)}
+main.noleft{grid-template-columns:1fr 320px}main.noright{grid-template-columns:200px 1fr}main.noleft.noright{grid-template-columns:1fr}
+main.noleft #left,main.noright #right{display:none}
+.hbtn.ico{padding:5px 8px}
+/* groups and note lines (board only) */
+.grp .gbox{fill:var(--gc);fill-opacity:.07;stroke:var(--gc);stroke-opacity:.7;stroke-width:1.4;stroke-dasharray:7 5;cursor:move}
+.grp .ghead{fill:var(--gc);fill-opacity:.22;cursor:move}
+.grp .gname{fill:var(--chalk);font:600 15px var(--cond);letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
+.grp .gcount{fill:var(--chalk-faint);font:11px var(--ui);pointer-events:none}
+.grp .grs{fill:var(--gc);fill-opacity:.5;cursor:nwse-resize}
+.grp .port{fill:var(--slate);stroke:var(--chalk-dim);stroke-width:1.2;cursor:crosshair}
+.grp .port:hover{fill:var(--beer);stroke:var(--beer)}
+.grp.sel .gbox{stroke-opacity:1;stroke-width:2.4;stroke-dasharray:none}
+.dim .grp:not(.near){opacity:.35}
+.edge.note{stroke:#ebe6d6cc;stroke-width:1.6;stroke-dasharray:10 4}
+.edge.note.input{stroke:#94c26ccc}.edge.note.output{stroke:#e6ad3ccc}
+.nlabel{font:600 11.5px var(--cond);letter-spacing:.06em;text-transform:uppercase;fill:var(--chalk);paint-order:stroke;stroke:var(--slate);stroke-width:4px;stroke-linejoin:round;pointer-events:none}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.chip{background:none;border:1px solid var(--line);border-radius:12px;padding:2px 10px;font:500 12px var(--ui);color:var(--chalk-dim)}
+.chip:hover,.chip.on{border-color:var(--beer);color:var(--chalk)}
+.swatches{display:flex;gap:6px;margin-top:6px}
+.swatches button{width:22px;height:22px;border-radius:50%;border:2px solid transparent}
+.swatches button.on{border-color:var(--chalk)}
 .legend{display:grid;gap:5px}
 .legend div{display:flex;align-items:center;gap:8px;color:var(--chalk-dim);font-size:13px}
 .legend svg{flex:none}
@@ -174,6 +202,8 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
   <h1>Sturmball System Builder</h1>
   <nav class="tabs" id="tabs" aria-label="Views"></nav>
   <span class="spacer"></span>
+  <button class="hbtn ico" id="btnLeft" title="Show or hide the left panel" aria-label="Show or hide the left panel">⟨ Panel</button>
+  <button class="hbtn ico" id="btnRight" title="Show or hide the right panel" aria-label="Show or hide the right panel">Panel ⟩</button>
   <button class="hbtn" id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
   <button class="hbtn" id="btnLayout" title="Lay this view out again">Tidy up</button>
   <button class="hbtn" id="btnSave" title="Save, download or open your work">Save<span id="saveState" class="savest">…</span></button>
@@ -181,21 +211,22 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
 </header>
 <main>
   <aside id="left">
-    <div class="lbl">Find a card</div>
-    <input id="search" type="search" placeholder="Brewery, reed, Treble…" autocomplete="off"><div id="results"></div>
-    <div class="lbl">Add to the board</div>
-    <div id="adds"></div>
-    <div class="lbl">Card shapes</div>
-    <div class="legend" id="legend"></div>
-    <div class="lbl">Lines</div>
-    <div class="legend" id="legend2"></div>
-    <div class="lbl">How to</div>
-    <p class="hint"><b>Drag</b> a card to move it. <b>Drag</b> from the dot on a card's right edge onto another card to connect them; the builder tells you which CSV cell that writes. <b>Click</b> a card or line, then press <b>Delete</b> (or the red button) to remove it. <b>Play</b> runs a pretend season with the numbers on the right.</p>
+    <details class="sec" data-sec="find" open><summary>Find a card or group</summary>
+    <input id="search" type="search" placeholder="Ingredients, Pub, reed…" autocomplete="off" aria-label="Find a card or group"><div id="results"></div></details>
+    <details class="sec" data-sec="add" open><summary>Add to the board</summary>
+    <button class="addbtn" id="addGroup"><svg width="22" height="22"><rect x="2" y="4" width="18" height="14" rx="2" fill="none" stroke="var(--chalk-dim)" stroke-width="1.6" stroke-dasharray="3 2"/><rect x="2" y="4" width="18" height="4" fill="var(--chalk-dim)"/></svg>New group (a label like Ingredients)</button>
+    <div id="adds"></div></details>
+    <details class="sec" data-sec="shapes" open><summary>Card shapes</summary>
+    <div class="legend" id="legend"></div></details>
+    <details class="sec" data-sec="lines" open><summary>Lines</summary>
+    <div class="legend" id="legend2"></div></details>
+    <details class="sec" data-sec="how" open><summary>How to</summary>
+    <p class="hint"><b>Groups</b> are labelled boxes, such as Ingredients. Drag cards into one, then draw a line from the group to a machine and call it input or output. Groups and their lines live on your board only and never change the game's sheets. <b>Drag</b> a card to move it. <b>Drag</b> from the dot on a card's right edge onto another card to connect them; the builder tells you which CSV cell that writes. <b>Click</b> a card or line, then press <b>Delete</b> (or the red button) to remove it. <b>Play</b> runs a pretend season with the numbers on the right.</p></details>
   </aside>
   <section id="stage">
     <svg id="svg" aria-label="System board"><defs>
       <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9z" fill="context-stroke"/></marker>
-    </defs><g id="world"><g id="gEdges"></g><g id="gLabels"></g><g id="gNodes"></g><path id="ghost" class="ghost" d=""/></g></svg>
+    </defs><g id="world"><g id="gGroups"></g><g id="gEdges"></g><g id="gNotes"></g><g id="gLabels"></g><g id="gNodes"></g><path id="ghost" class="ghost" d=""/></g></svg>
     <div id="empty" class="empty" hidden><h2><span id="emptyName">This board</span> is empty</h2><p>Build your system here, one card at a time.</p><p><b>Add a new card</b> with the buttons on the left (a match mode, an Adventure place, an achievement…), or <b>find one the game already has</b> in "Find a card" and put it on this board.</p><p>When two cards on the board are already joined in the game's sheets, the line shows up by itself. Drag from a card's right-hand dot to draw new lines.</p><p class="hint">Not sure where to start? The <b>Example</b> tab shows the whole game as I drew it.</p></div>
     <div class="zoombar"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Fit the board" title="Fit">⤢</button></div>
   </section>
@@ -234,7 +265,7 @@ function lsGet(k){try{return JSON.parse(localStorage.getItem(LS+k)||"null")}catc
 function lsSet(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v))}catch(e){}if(typeof onStore=="function")onStore(k)}
 (function restore(){const saved=lsGet(":edits");if(!saved||saved.stamp!==SRC_STAMP)return;for(const n in saved.files)if(FILES[n])FILES[n]=loadFile(n,saved.files[n])})();
 const undoStack=[];
-function snapshot(){const s={};for(const n in FILES)s[n]=toCSV(FILES[n]);return s}
+function snapshot(){const s={};for(const n in FILES)s[n]=toCSV(FILES[n]);if(typeof GROUPS!="undefined")s.__board=JSON.stringify({CARDS,GROUPS,NOTES});return s}
 function pushUndo(){undoStack.push(snapshot());if(undoStack.length>60)undoStack.shift()}
 function changedFiles(){return Object.keys(FILES).filter(n=>toCSV(FILES[n])!==ORIG[n])}
 function persist(){const f={};for(const n of changedFiles())f[n]=toCSV(FILES[n]);lsSet(":edits",{stamp:SRC_STAMP,files:f})}
@@ -497,7 +528,8 @@ function draw(){IDS=viewNodes();P=positions(IDS);
     g.addEventListener("pointerdown",ev=>startNodeDrag(ev,n,ev.target===port));
     const ti=el("title",{},g);ti.textContent=n.label+" — "+k.label});
   applyCam();paintDay();highlight();
-  $("#empty").hidden=!(isBoard(VIEW)&&IDS.size===0);$("#emptyName").textContent=boardName(VIEW);if(SIM)marks()}
+  drawGroups();drawNotes();
+  $("#empty").hidden=!(isBoard(VIEW)&&IDS.size===0&&!(GROUPS[VIEW]||[]).length);$("#emptyName").textContent=boardName(VIEW);if(SIM)marks()}
 function applyCam(){world.setAttribute("transform",`translate(${cam.x},${cam.y}) scale(${cam.k})`);lsSet(":cam",cam)}
 function paintDay(){if(!SIM)return;const s=SIM.days[Math.min(DAY,SIM.days.length-1)];
   IDS.forEach(id=>{const n=G.nodes.get(id);const f=SIM.first[id];const on=f!=null&&f<=DAY;n._g.classList.toggle("open",on);n._g.classList.toggle("locked",!on);
@@ -506,7 +538,10 @@ function paintDay(){if(!SIM)return;const s=SIM.days[Math.min(DAY,SIM.days.length
   G.edges.forEach(e=>{if(!e._p)return;const f=SIM.first[e.from],t=SIM.first[e.to];e._p.classList.toggle("live",DAY>0&&f!=null&&f<=DAY&&(e.type=="flow"||e.type=="cost")&&(t!=null&&t<=DAY||e.type=="flow"))});
   $("#dayl").textContent="Day "+DAY;$("#day").value=DAY;
   const show=["coins","marks","reed","bog_iron","hops","matches_won"];$("#pools").innerHTML=show.map(id=>{const n=G.nodes.get("res:"+id)||G.nodes.get("stat:"+id);return `<span>${n?n.label:nice(id)} <b>${Math.floor(s.c[id]||0)}</b></span>`}).join("")}
-function highlight(){const near=new Set();const L=new Set();svg.classList.toggle("dim",!!(SEL||SELE));
+function highlight(){const near=new Set();const L=new Set();svg.classList.toggle("dim",!!(SEL||SELE||SELG||SELN));
+  if(SELG){groupInside(findGroup(SELG)).forEach(id=>near.add(id))}
+  document.querySelectorAll(".grp").forEach(g=>{g.classList.toggle("sel",g.dataset.id===SELG);g.classList.toggle("near",g.dataset.id===SELG||(SELN&&[SELN.from,SELN.to].includes("grp:"+g.dataset.id)))});
+  if(SELN){[SELN.from,SELN.to].forEach(x=>near.add(x))}
   if(SEL){near.add(SEL);const n=G.nodes.get(SEL);n.ins.concat(n.outs).forEach(e=>{near.add(e.from);near.add(e.to);L.add(e)})}
   if(SELE){near.add(SELE.from);near.add(SELE.to);L.add(SELE)}
   IDS.forEach(id=>{const n=G.nodes.get(id);n._g.classList.toggle("near",near.has(id));n._g.classList.toggle("sel",id===SEL)});
@@ -521,13 +556,18 @@ function startNodeDrag(ev,n,fromPort){ev.stopPropagation();svg.setPointerCapture
 svg.addEventListener("pointerdown",ev=>{if(drag)return;svg.setPointerCapture(ev.pointerId);drag={mode:"pan",x:ev.clientX,y:ev.clientY,cx:cam.x,cy:cam.y,moved:false};svg.classList.add("panning")});
 svg.addEventListener("pointermove",ev=>{if(!drag)return;const w=toWorld(ev);
   if(drag.mode=="pan"){cam.x=drag.cx+ev.clientX-drag.x;cam.y=drag.cy+ev.clientY-drag.y;if(Math.abs(ev.clientX-drag.x)+Math.abs(ev.clientY-drag.y)>3)drag.moved=true;applyCam()}
-  else if(drag.mode=="node"){const p=P[drag.n.id];p.x=Math.round((w.x-drag.dx)/10)*10;p.y=Math.round((w.y-drag.dy)/10)*10;drag.moved=true;drag.n._g.setAttribute("transform",`translate(${p.x},${p.y})`);redrawEdgesOf(drag.n.id)}
-  else if(drag.mode=="link"){$("#ghost").setAttribute("d",`M${drag.sx} ${drag.sy}L${w.x} ${w.y}`)}});
+  else if(drag.mode=="node"){const p=P[drag.n.id];p.x=Math.round((w.x-drag.dx)/10)*10;p.y=Math.round((w.y-drag.dy)/10)*10;drag.moved=true;drag.n._g.setAttribute("transform",`translate(${p.x},${p.y})`);redrawEdgesOf(drag.n.id);drawNotes()}
+  else if(drag.mode=="group"){const g=drag.g;const nx=Math.round((w.x-drag.dx)/10)*10,ny=Math.round((w.y-drag.dy)/10)*10;const ddx=nx-g.x,ddy=ny-g.y;if(ddx||ddy){drag.moved=true;g.x=nx;g.y=ny;
+    drag.inside.forEach(id=>{const q=P[id];q.x+=ddx;q.y+=ddy;const n=G.nodes.get(id);n._g.setAttribute("transform",`translate(${q.x},${q.y})`);redrawEdgesOf(id)});drawGroups();drawNotes()}}
+  else if(drag.mode=="gsize"){const g=drag.g;g.w=Math.max(160,Math.round((w.x-g.x)/10)*10);g.h=Math.max(90,Math.round((w.y-g.y)/10)*10);drag.moved=true;drawGroups();drawNotes()}
+  else if(drag.mode=="glink"||drag.mode=="link"){$("#ghost").setAttribute("d",`M${drag.sx} ${drag.sy}L${w.x} ${w.y}`)}});
 svg.addEventListener("pointerup",ev=>{if(!drag)return;const d=drag;drag=null;svg.classList.remove("panning");
-  if(d.mode=="pan"&&!d.moved){SEL=null;SELE=null;highlight();inspect()}
-  if(d.mode=="node"){if(d.moved)lsSet(":pos",POS);else{SEL=d.n.id;SELE=null;highlight();inspect()}}
-  if(d.mode=="link"){$("#ghost").setAttribute("d","");const w=toWorld(ev);const hit=[...IDS].find(id=>{const p=P[id];return w.x>=p.x&&w.x<=p.x+W&&w.y>=p.y&&w.y<=p.y+H});
-    if(hit&&hit!==d.n.id)proposeLink(d.n,G.nodes.get(hit),ev)}});
+  if(d.mode=="pan"&&!d.moved){selectNone();highlight();inspect()}
+  if(d.mode=="node"){if(d.moved)lsSet(":pos",POS);else{selectNone();SEL=d.n.id;highlight();inspect()}}
+  if(d.mode=="group"||d.mode=="gsize"){if(d.moved){saveBoardBits();lsSet(":pos",POS)}else{selectNone();SELG=d.g.id;highlight();inspect()}}
+  if(d.mode=="glink"||d.mode=="link"){$("#ghost").setAttribute("d","");const w=toWorld(ev);const to=hitAt(w);const from=d.mode=="link"?d.n.id:"grp:"+d.g.id;
+    if(to&&to!==from)proposeAny(from,to,ev);return}
+});
 svg.addEventListener("wheel",ev=>{ev.preventDefault();const r=svg.getBoundingClientRect();zoomAt(ev.clientX-r.left,ev.clientY-r.top,Math.exp(-ev.deltaY*0.0015))},{passive:false});
 function zoomAt(px,py,f){const k=Math.min(2.5,Math.max(0.2,cam.k*f));cam.x=px-(px-cam.x)*k/cam.k;cam.y=py-(py-cam.y)*k/cam.k;cam.k=k;applyCam();highlight()}
 $("#zin").onclick=()=>{const r=svg.getBoundingClientRect();zoomAt(r.width/2,r.height/2,1.25)};
@@ -573,7 +613,7 @@ function removeEdge(e){if(!e.row){toast("This line comes from game code, not a C
 
 /* ---------- inspector ---------- */
 const R=$("#right");
-function inspect(){if(SELE)return inspectEdge(SELE);if(!SEL)return summary();const n=G.nodes.get(SEL);const k=KINDS[n.kind];const f=SIM&&SIM.first[n.id];
+function inspect(){if(SELG)return inspectGroup();if(SELN)return inspectNote();if(SELE)return inspectEdge(SELE);if(!SEL)return summary();const n=G.nodes.get(SEL);const k=KINDS[n.kind];const f=SIM&&SIM.first[n.id];
   let h=`<span class="kind" style="--k:${k.color}">${k.label}</span><h2>${escH(n.label)}</h2><div class="where">${n.file?n.file+".csv → "+escH(n.row.ID||n.row.Table||""):escH(n.sub||"")}</div>`;
   h+=`<span class="state ${f==null?"no":"ok"}">${f==null?"Never reached in "+SIM_SET.days+" days":f===0?"Open from the start":"Reached on day "+f}</span>`;
   if(n.row){h+=`<div class="lbl" style="margin-top:16px">${n.file}.csv row</div>`;
@@ -605,7 +645,7 @@ function deleteNode(n){pushUndo();
   refsTo(n).forEach(e=>{if(e.whole)e.row[e.col]="";else delTok(e.row,e.col,e.token,e.sep)});
   if(n.row){FILES[n.file].rows=FILES[n.file].rows.filter(r=>r!==n.row);
     if(n.file=="Items"||n.file=="BreweryResources"){const id=n.row.ID;if(FILES.Drops)FILES.Drops.rows=FILES.Drops.rows.filter(d=>d.Item!==id)}}
-  SEL=null;SELE=null;changed(`Deleted ${n.label}`+(n.row?` from ${n.file}.csv`:""))}
+  selectNone();changed(`Deleted ${n.label}`+(n.row?` from ${n.file}.csv`:""))}
 function inspectEdge(e){const a=G.nodes.get(e.from),b=G.nodes.get(e.to);
   let h=`<span class="kind" style="--k:var(--chalk-dim)">Line · ${ETYPES[e.type]}</span><h2>${escH(a.label)} → ${escH(b.label)}</h2>`;
   if(e.loot)h+=`<p class="hint">About <b>${escH(e.label.slice(1))}</b> per Adventure run, worked out from <b>Drops.csv</b> (table <code>${escH(e.table)}</code> plus the enemies of this place) and the run settings below.</p>`;
@@ -627,15 +667,15 @@ function summary(){if(!SIM){R.innerHTML="";return}
   if(neverUsed.length)h+=`<div class="warn"><b>Unlocked, but nothing in these sheets uses it yet:</b> ${chips(neverUsed)}</div>`;
   const S=SIM_SET;const num=(k,l,step)=>`<label for="s_${k}">${l}</label><input type="number" id="s_${k}" data-k="${k}" value="${S[k]}" step="${step||1}" min="0">`;
   const chk=(k,l)=>`<label for="s_${k}">${l}</label><input type="checkbox" id="s_${k}" data-k="${k}" ${S[k]?"checked":""}>`;
-  h+=`<div class="lbl" style="margin-top:18px">How the pretend player plays</div><div class="sim"><label for="s_mode">Match mode played</label><select id="s_mode" data-k="mode" style="background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:3px">${F("MatchModes").filter(r=>!HIDDEN_MODES.includes(r.ID)).map(r=>`<option value="${escA(r.ID)}" ${r.ID==S.mode?"selected":""}>${escH(r.Name)}</option>`).join("")}</select>${num("days","Days to play")}${num("matches","Matches a day")}${num("win","Chance to win",0.05)}${num("draw","Chance to draw",0.05)}${num("goals","Goals a match",0.5)}${num("runs","Adventure runs a day")}${num("enemies","Enemies a wave")}${num("bossWin","Chance to beat a boss",0.1)}${num("beatAfter","Runs before a boss falls")}${num("brews","Brews a day")}${chk("keys","Buy keys when possible")}${chk("upgrades","Buy upgrades when possible")}${chk("merchant","Restock from the Merchant")}</div>
-  <div class="btnrow"><button class="btn ghost2" id="simReset">Reset numbers</button></div>`;
-  R.innerHTML=h;R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
+  h+=`<details class="sec" data-sec="simset" style="margin-top:14px"><summary>How the pretend player plays</summary><div class="sim"><label for="s_mode">Match mode played</label><select id="s_mode" data-k="mode" style="background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:3px">${F("MatchModes").filter(r=>!HIDDEN_MODES.includes(r.ID)).map(r=>`<option value="${escA(r.ID)}" ${r.ID==S.mode?"selected":""}>${escH(r.Name)}</option>`).join("")}</select>${num("days","Days to play")}${num("matches","Matches a day")}${num("win","Chance to win",0.05)}${num("draw","Chance to draw",0.05)}${num("goals","Goals a match",0.5)}${num("runs","Adventure runs a day")}${num("enemies","Enemies a wave")}${num("bossWin","Chance to beat a boss",0.1)}${num("beatAfter","Runs before a boss falls")}${num("brews","Brews a day")}${chk("keys","Buy keys when possible")}${chk("upgrades","Buy upgrades when possible")}${chk("merchant","Restock from the Merchant")}</div>
+  <div class="btnrow"><button class="btn ghost2" id="simReset">Reset numbers</button></div></details>`;
+  R.innerHTML=h;R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));wireSecs(R);
   R.querySelectorAll("[data-k]").forEach(i=>i.addEventListener("change",()=>{SIM_SET[i.dataset.k]=i.type=="checkbox"?i.checked:i.tagName=="SELECT"?i.value:+i.value;lsSet(":sim",SIM_SET);rerun()}));
   $("#simReset").onclick=()=>{Object.assign(SIM_SET,SIM_DEF);lsSet(":sim",SIM_SET);rerun()}}
 function goTo(id){if(!IDS.has(id)&&!isBoard(VIEW)){VIEW="all";lsSet(":view3",VIEW);renderTabs();draw()}if(!IDS.has(id))return;
-  SEL=id;SELE=null;const p=P[id],r=svg.getBoundingClientRect();cam.k=Math.max(cam.k,0.9);cam.x=r.width/2-(p.x+W/2)*cam.k;cam.y=r.height/2-(p.y+H/2)*cam.k;applyCam();highlight();inspect();
+  selectNone();SEL=id;const p=P[id],r=svg.getBoundingClientRect();cam.k=Math.max(cam.k,0.9);cam.x=r.width/2-(p.x+W/2)*cam.k;cam.y=r.height/2-(p.y+H/2)*cam.k;applyCam();highlight();inspect();
   if(SIM&&SIM.first[id]!=null){DAY=SIM.first[id];paintDay()}}
-function selectEdge(e){SELE=e;SEL=null;highlight();inspect()}
+function selectEdge(e){selectNone();SELE=e;highlight();inspect()}
 const escH=s=>String(s??"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));const escA=s=>escH(s).replace(/"/g,"&quot;");
 
 /* ---------- changes ---------- */
@@ -644,10 +684,10 @@ function rerun(){buildGraph();runSim();draw();inspect()}
 function updCount(){const n=changedFiles().length;const c=$("#chgCount");c.hidden=!n;c.textContent=n;$("#btnChanges").classList.toggle("hot",!!n)}
 let tt;function toast(m){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");$("#stage").appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,3200)}
 $("#btnUndo").onclick=undo;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key=="z"&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();undo()}
-  if(e.key=="Escape"){SEL=null;SELE=null;highlight();inspect()}
+  if(e.key=="Escape"){selectNone();highlight();inspect()}
   if((e.key=="Delete"||e.key=="Backspace")&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)&&!$(".sheet")){
-    if(SELE){e.preventDefault();removeEdge(SELE)}else if(SEL){e.preventDefault();askDelete(G.nodes.get(SEL))}}});
-function undo(){const s=undoStack.pop();if(!s){toast("Nothing to undo");return}for(const n in s)FILES[n]=loadFile(n,s[n]);SEL=null;changed("Undone")}
+    if(SELG){e.preventDefault();deleteGroup(SELG)}else if(SELN){e.preventDefault();deleteNote(SELN)}else if(SELE){e.preventDefault();removeEdge(SELE)}else if(SEL){e.preventDefault();askDelete(G.nodes.get(SEL))}}});
+function undo(){const s=undoStack.pop();if(!s){toast("Nothing to undo");return}for(const n in s){if(n=="__board"){const b=JSON.parse(s[n]);CARDS=b.CARDS;GROUPS=b.GROUPS;NOTES=b.NOTES;saveMine();saveBoardBits()}else FILES[n]=loadFile(n,s[n])}selectNone();changed("Undone")}
 $("#btnLayout").onclick=()=>{POS[VIEW]={};lsSet(":pos",POS);draw();fit()};
 $("#btnChanges").onclick=()=>{const files=changedFiles();const sh=document.createElement("div");sh.className="sheet";
   sh.innerHTML=`<div class="bar"><b style="font:600 18px var(--cond)">Changed sheets</b><span class="hint">Copy a sheet and paste it over the file in <code>data/</code>, or send it to Claude in the project chat.</span><span class="spacer"></span><button class="btn bad" id="chgReset">Throw away all changes</button><button class="btn ghost2" id="chgClose">Close</button></div><div class="body" id="chgBody"></div>`;
@@ -700,7 +740,7 @@ const SRC_COUNT=/*__COUNT__*/132;
 function renderTabs(){let seen=false;$("#tabs").innerHTML=VIEWS.map(v=>{if(v.old)return "";let pre="";if(v.ex&&!seen){seen=true;pre=`<span class="tabsep"></span>`}return pre+`<button class="tab" role="tab" aria-selected="${v.id==VIEW}" data-v="${v.id}">${v.name}</button>`}).join("");
   $("#tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{const v=b.dataset.v;const t=$("#tblSheet");if(t)t.remove();
     if(v=="tables"){VIEW_T=true;tables();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
-    const first=!POS[v]&&!isBoard(v);VIEW=v;lsSet(":view3",v);SEL=null;SELE=null;renderTabs();draw();inspect();if(first)fit()})}
+    const first=!POS[v]&&!isBoard(v);VIEW=v;lsSet(":view3",v);selectNone();renderTabs();draw();inspect();if(first)fit()})}
 let VIEW_T=false;
 function renderLegend(){$("#legend").innerHTML="";Object.entries(KINDS).forEach(([k,v])=>{const d=document.createElement("div");d.title=v.desc;
   const s=document.createElementNS(NS,"svg");s.setAttribute("width",22);s.setAttribute("height",22);glyph(s,k,11,11,v.color);d.appendChild(s);d.append(v.label);$("#legend").appendChild(d)});
@@ -711,22 +751,109 @@ $("#day").addEventListener("input",e=>{DAY=+e.target.value;paintDay()});
 function marks(){$("#day").max=SIM_SET.days;DAY=Math.min(DAY,SIM_SET.days);const m=$("#marks");m.innerHTML="";
   SIM.ev.filter(e=>(e.big||e.goal)&&(!isBoard(VIEW)||cur().includes(e.node))).forEach(e=>{const s=document.createElement("span");s.style.left=(e.day/SIM_SET.days*100)+"%";s.dataset.t="Day "+e.day+": "+e.t;s.onclick=()=>goTo(e.node);m.appendChild(s)})}
 $("#search").addEventListener("input",e=>{const q=e.target.value.trim().toLowerCase();const box=$("#results");box.innerHTML="";if(q.length<2)return;
-  const hits=[...G.nodes.values()].filter(n=>n.label.toLowerCase().includes(q)||(n.sub||"").toLowerCase().includes(q)).slice(0,10);
-  if(!hits.length){box.innerHTML=`<span class="hint">Nothing called that yet. Add it with the buttons below.</span>`;return}
+  const gh=[];BOARDS.forEach(b=>(GROUPS[b.id]||[]).forEach(g=>{if(g.label.toLowerCase().includes(q))gh.push({b,g})}));
+  gh.slice(0,6).forEach(({b,g})=>{const btn=document.createElement("button");btn.innerHTML=`<svg width="18" height="18" viewBox="0 0 22 22"><rect x="2" y="4" width="18" height="14" rx="2" fill="none" stroke="var(--chalk-dim)" stroke-width="1.6" stroke-dasharray="3 2"/></svg>`;
+    btn.append(g.label);const i=document.createElement("i");i.textContent=b.id==VIEW?"group":b.name;btn.appendChild(i);btn.onclick=()=>goToGroup(b.id,g.id);box.appendChild(btn)});
+  const hits=[...G.nodes.values()].filter(n=>n.label.toLowerCase().includes(q)||(n.sub||"").toLowerCase().includes(q)||(isBoard(VIEW)&&cur().includes(n.id)&&groupOf(n.id)&&groupOf(n.id).label.toLowerCase().includes(q))).slice(0,10);
+  if(!hits.length&&!gh.length){box.innerHTML=`<span class="hint">Nothing called that yet. Add it with the buttons below.</span>`;return}
   hits.forEach(n=>{const b=document.createElement("button");const s=document.createElementNS(NS,"svg");s.setAttribute("width",18);s.setAttribute("height",18);s.setAttribute("viewBox","0 0 22 22");glyph(s,n.kind,11,11,KINDS[n.kind].color);b.appendChild(s);
-    b.append(n.label);const i=document.createElement("i");i.textContent=isBoard(VIEW)?(cur().includes(n.id)?"on board":"+ add"):"show";b.appendChild(i);
+    b.append(n.label+(isBoard(VIEW)&&groupOf(n.id)?" · "+groupOf(n.id).label:""));const i=document.createElement("i");i.textContent=isBoard(VIEW)?(cur().includes(n.id)?"on board":"+ add"):"show";b.appendChild(i);
     b.onclick=()=>{if(isBoard(VIEW)){addMine(n.id);e.target.dispatchEvent(new Event("input"))}else goTo(n.id)};box.appendChild(b)})});
 const _runSim=runSim;runSim=function(){_runSim();marks()};
+
+/* ---------- groups and note lines: board-only drawing, never written to the game's sheets ---------- */
+let GROUPS=lsGet(":groups")||{},NOTES=lsGet(":notes")||{},SELG=null,SELN=null;
+const GCOL={chalk:"#ebe6d6",beer:"#e6ad3c",hops:"#94c26c",sky:"#86b7d8",clay:"#d98a5c",fern:"#5fc0a8"};
+function saveBoardBits(){lsSet(":groups",GROUPS);lsSet(":notes",NOTES)}
+function selectNone(){SEL=null;SELE=null;SELG=null;SELN=null}
+const curG=()=>GROUPS[VIEW]||(GROUPS[VIEW]=[]),curN=()=>NOTES[VIEW]||(NOTES[VIEW]=[]);
+function findGroup(id){return isBoard(VIEW)?curG().find(g=>g.id==id):null}
+function groupInside(g){if(!g)return[];return[...IDS].filter(id=>{const p=P[id];const cx=p.x+W/2,cy=p.y+H/2;return cx>g.x&&cx<g.x+g.w&&cy>g.y+26&&cy<g.y+g.h})}
+function groupOf(id){if(!isBoard(VIEW)||!P[id])return null;const p=P[id];const cx=p.x+W/2,cy=p.y+H/2;return curG().filter(g=>cx>g.x&&cx<g.x+g.w&&cy>g.y+26&&cy<g.y+g.h).sort((a,b)=>a.w*a.h-b.w*b.h)[0]||null}
+function endRect(ref){if(ref.startsWith("grp:")){const g=findGroup(ref.slice(4));return g?{x:g.x,y:g.y,w:g.w,h:g.h,label:g.label}:null}
+  if(!IDS.has(ref))return null;const p=P[ref];return{x:p.x,y:p.y,w:W,h:H,label:G.nodes.get(ref).label}}
+function hitAt(w){const n=[...IDS].find(id=>{const p=P[id];return w.x>=p.x&&w.x<=p.x+W&&w.y>=p.y&&w.y<=p.y+H});if(n)return n;
+  if(!isBoard(VIEW))return null;const g=curG().filter(g=>w.x>=g.x&&w.x<=g.x+g.w&&w.y>=g.y&&w.y<=g.y+g.h).sort((a,b)=>a.w*a.h-b.w*b.h)[0];return g?"grp:"+g.id:null}
+function drawGroups(){const L=$("#gGroups");L.innerHTML="";if(!isBoard(VIEW))return;
+  curG().forEach(g=>{const e=el("g",{class:"grp","data-id":g.id,transform:`translate(${g.x},${g.y})`},L);e.style.setProperty("--gc",GCOL[g.color]||GCOL.chalk);
+    const box=el("rect",{class:"gbox",width:g.w,height:g.h,rx:6},e);const head=el("rect",{class:"ghead",width:g.w,height:26,rx:6},e);
+    const t=el("text",{class:"gname",x:10,y:18},e);t.textContent=g.label;const c=el("text",{class:"gcount",x:g.w-8,y:17,"text-anchor":"end"},e);const n=groupInside(g).length;c.textContent=n?n+" card"+(n>1?"s":""):"";
+    const rs=el("path",{class:"grs",d:`M${g.w} ${g.h-14}L${g.w} ${g.h}L${g.w-14} ${g.h}z`},e);const port=el("circle",{class:"port",cx:g.w,cy:g.h/2,r:7},e);
+    const ti=el("title",{},e);ti.textContent=g.label+" (group)";
+    e.addEventListener("pointerdown",ev=>{ev.stopPropagation();svg.setPointerCapture(ev.pointerId);const w=toWorld(ev);
+      if(ev.target===port)drag={mode:"glink",g,sx:g.x+g.w,sy:g.y+g.h/2};
+      else if(ev.target===rs)drag={mode:"gsize",g,moved:false};
+      else drag={mode:"group",g,dx:w.x-g.x,dy:w.y-g.y,inside:groupInside(g),moved:false}})})}
+function notePath(a,b){const x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2;const back=x2<x1+20;
+  if(back){const s={x:a.x,y:a.y+a.h/2},t={x:b.x+b.w,y:b.y+b.h/2};if(t.x<s.x-20){const dx=Math.max(40,(s.x-t.x)/2);return{d:`M${s.x} ${s.y}C${s.x-dx} ${s.y},${t.x+dx} ${t.y},${t.x} ${t.y}`,mx:(s.x+t.x)/2,my:(s.y+t.y)/2}}}
+  const dx=back?Math.max(80,Math.abs(x2-x1)/3):Math.max(40,(x2-x1)/2);return{d:`M${x1} ${y1}C${x1+dx} ${y1+(back?60:0)},${x2-dx} ${y2+(back?60:0)},${x2} ${y2}`,mx:(x1+x2)/2,my:(y1+y2)/2+(back?45:0)}}
+function drawNotes(){const L=$("#gNotes");L.innerHTML="";if(!isBoard(VIEW))return;
+  curN().forEach(n=>{const a=endRect(n.from),b=endRect(n.to);if(!a||!b)return;const p=notePath(a,b);const kind=/^in/i.test(n.label)?"input":/^out/i.test(n.label)?"output":"";
+    el("path",{d:p.d,class:"edge note "+kind+(SELN&&SELN.id==n.id?" sel":""),"marker-end":"url(#arr)"},L);
+    const hit=el("path",{d:p.d,class:"hit"},L);hit.addEventListener("click",ev=>{ev.stopPropagation();selectNone();SELN=n;highlight();inspect();drawNotes()});
+    if(n.label){const t=el("text",{x:p.mx,y:p.my-5,class:"nlabel","text-anchor":"middle"},L);t.textContent=n.label}})}
+function newGroupAt(label){const r=svg.getBoundingClientRect();const x=Math.round(((r.width/2-cam.x)/cam.k-150)/10)*10,y=Math.round(((r.height/2-cam.y)/cam.k-110)/10)*10;
+  pushUndo();const g={id:"g"+Date.now().toString(36),label,x,y,w:300,h:220,color:"chalk"};curG().push(g);saveBoardBits();selectNone();SELG=g.id;draw();inspect();toast(`Group "${label}" added. Drag cards into it.`)}
+$("#addGroup").onclick=()=>{if(!isBoard(VIEW)){toast("Groups go on your own boards. Pick one of the tabs first.");return}
+  const pop=document.createElement("div");pop.className="pop";pop.style.left="12px";pop.style.top="12px";
+  pop.innerHTML=`<p>New group on <b>${escH(boardName(VIEW))}</b>. It is a label for your board only.</p><div class="field"><label for="gName">Label</label><input id="gName" placeholder="e.g. Ingredients"></div><div class="btnrow"><button class="btn" id="gOk">Add</button><button class="btn ghost2" id="gNo">Cancel</button></div>`;
+  $("#stage").appendChild(pop);const i=pop.querySelector("#gName");i.focus();const go=()=>{const v=i.value.trim();if(!v)return i.focus();pop.remove();newGroupAt(v)};
+  pop.querySelector("#gOk").onclick=go;pop.querySelector("#gNo").onclick=()=>pop.remove();i.addEventListener("keydown",e=>{if(e.key=="Enter")go();if(e.key=="Escape")pop.remove()})};
+function goToGroup(board,id){if(VIEW!==board){VIEW=board;lsSet(":view3",board);renderTabs();draw()}const g=findGroup(id);if(!g)return;const r=svg.getBoundingClientRect();
+  cam.k=Math.min(1.2,Math.max(0.3,Math.min((r.width-80)/g.w,(r.height-80)/g.h)));cam.x=r.width/2-(g.x+g.w/2)*cam.k;cam.y=r.height/2-(g.y+g.h/2)*cam.k;applyCam();selectNone();SELG=id;highlight();inspect()}
+function inspectGroup(){const g=findGroup(SELG);if(!g){SELG=null;return inspect()}const inside=groupInside(g);
+  const lines=curN().filter(n=>n.from=="grp:"+g.id||n.to=="grp:"+g.id);
+  let h=`<span class="kind" style="--k:var(--chalk-dim)">Group · your board only</span><h2>${escH(g.label)}</h2>
+  <div class="field"><label for="gLbl">Label</label><input id="gLbl" value="${escA(g.label)}"></div>
+  <div class="field"><label>Colour</label><div class="swatches">${Object.entries(GCOL).map(([k,c])=>`<button data-c="${k}" class="${g.color==k?"on":""}" style="background:${c}" aria-label="${k}"></button>`).join("")}</div></div>
+  <div class="lbl" style="margin-top:16px">Cards inside (${inside.length})</div><div class="links">${inside.map(id=>`<button class="lnk" data-go="${escA(id)}">${escH(G.nodes.get(id).label)}</button>`).join("")||`<p class="hint">Drag cards into the box to put them in this group.</p>`}</div>`;
+  if(lines.length)h+=`<div class="lbl" style="margin-top:16px">Lines</div><div class="links">${lines.map(n=>{const o=n.from=="grp:"+g.id?n.to:n.from;const r=endRect(o);return `<span class="lnk">${n.from=="grp:"+g.id?"→":"←"} ${escH(r?r.label:o)} <i>${escH(n.label)}</i></span>`}).join("")}</div>`;
+  h+=`<p class="hint" style="margin-top:12px">Drag the box to move it with its cards, the corner to resize it, and the dot on its right edge to draw a line to a machine.</p><div class="btnrow"><button class="btn bad" id="gDel">Delete group</button></div><p class="hint">Deleting the group keeps its cards.</p>`;
+  R.innerHTML=h;const lbl=R.querySelector("#gLbl");lbl.addEventListener("change",()=>{pushUndo();g.label=lbl.value.trim()||g.label;saveBoardBits();drawGroups();drawNotes();inspect()});
+  R.querySelectorAll(".swatches button").forEach(b=>b.onclick=()=>{g.color=b.dataset.c;saveBoardBits();drawGroups();inspect()});
+  R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));R.querySelector("#gDel").onclick=()=>deleteGroup(g.id)}
+function deleteGroup(id){pushUndo();GROUPS[VIEW]=curG().filter(g=>g.id!==id);NOTES[VIEW]=curN().filter(n=>n.from!=="grp:"+id&&n.to!=="grp:"+id);saveBoardBits();selectNone();draw();inspect();toast("Group deleted. Its cards stay on the board.")}
+function inspectNote(){const n=SELN;const a=endRect(n.from),b=endRect(n.to);
+  let h=`<span class="kind" style="--k:var(--chalk-dim)">Line · your board only</span><h2>${escH(a?a.label:"?")} → ${escH(b?b.label:"?")}</h2>
+  <div class="field"><label for="nLbl">Label</label><input id="nLbl" value="${escA(n.label)}" placeholder="input, output, needs…"></div><div class="chips">${["input","output","needs","makes","unlocks"].map(c=>`<button class="chip ${n.label==c?"on":""}" data-l="${c}">${c}</button>`).join("")}</div>
+  <p class="hint">This line is a note on your board. It does not change the game's sheets.</p><div class="btnrow"><button class="btn bad" id="nDel">Remove this line</button></div>`;
+  R.innerHTML=h;const i=R.querySelector("#nLbl");const setL=v=>{pushUndo();n.label=v;saveBoardBits();drawNotes();inspect()};
+  i.addEventListener("change",()=>setL(i.value.trim()));R.querySelectorAll(".chip").forEach(c=>c.onclick=()=>setL(c.dataset.l));R.querySelector("#nDel").onclick=()=>deleteNote(n)}
+function deleteNote(n){pushUndo();NOTES[VIEW]=curN().filter(x=>x!==n);saveBoardBits();selectNone();drawNotes();highlight();inspect();toast("Line removed")}
+function proposeAny(from,to,ev){const a=G.nodes.get(from),b=G.nodes.get(to);const rule=a&&b?linkRule(a,b):null;
+  if(!isBoard(VIEW)){if(rule)return proposeLink(a,b,ev);toast(`No CSV column joins ${(a||{}).label} to ${(b||{}).label} yet. Try the other direction.`);return}
+  const ra=endRect(from),rb=endRect(to);const def=from.startsWith("grp:")?"input":to.startsWith("grp:")?"output":"";
+  const pop=document.createElement("div");pop.className="pop";const r=$("#stage").getBoundingClientRect();
+  pop.style.left=Math.min(r.width-300,Math.max(8,ev.clientX-r.left))+"px";pop.style.top=Math.min(r.height-260,Math.max(8,ev.clientY-r.top))+"px";
+  pop.innerHTML=`<p><b>${escH(ra.label)}</b> → <b>${escH(rb.label)}</b></p>${rule?`<p>${rule.say}</p>${rule.ask?`<div class="field"><label for="lnkN">${rule.ask}</label><input id="lnkN" type="number" value="${rule.def}"></div>`:""}<div class="btnrow"><button class="btn" id="lnkOk">Connect in the game</button></div><p class="hint" style="margin-top:10px">Or only draw it on your board:</p>`:`<p>Draw a line on your board. It is a note and does not change the game's sheets.</p>`}
+  <div class="field"><label for="noteL">Label</label><input id="noteL" value="${def}" placeholder="input, output, needs…"></div><div class="chips">${["input","output","needs","makes","unlocks"].map(c=>`<button class="chip" data-l="${c}">${c}</button>`).join("")}</div>
+  <div class="btnrow"><button class="btn ${rule?"ghost2":""}" id="noteOk">Draw board line</button><button class="btn ghost2" id="lnkNo">Cancel</button></div>`;
+  $("#stage").appendChild(pop);const L=pop.querySelector("#noteL");pop.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{L.value=c.dataset.l});
+  const n=pop.querySelector("#lnkN");(n||L).focus();
+  pop.querySelector("#lnkNo").onclick=()=>pop.remove();
+  const ok=pop.querySelector("#lnkOk");if(ok)ok.onclick=()=>{pushUndo();rule.apply(n?n.value:1);pop.remove();changed(`Connected ${a.label} → ${b.label}`)};
+  pop.querySelector("#noteOk").onclick=()=>{pushUndo();curN().push({id:"n"+Date.now().toString(36),from,to,label:L.value.trim()});saveBoardBits();pop.remove();drawNotes();toast("Line drawn on your board")}}
+// a building can stand for what opens it: Pub -> a machine writes the Pub's unlock into the machine's needs
+const _linkRule=linkRule;linkRule=function(a,b){const r=_linkRule(a,b);if(r)return r;
+  if(a.kind=="place"&&b.row&&reqCol(b)){const t=toks(a.row.Requires).find(x=>/^unlocked:/.test(x))||toks(a.row.Requires)[0];if(!t)return null;
+    return{say:`Adds <code>${escH(t)}</code> (what opens the ${escH(a.label)}) to <b>${b.file}.csv</b> → ${escH(b.row.ID)} → ${reqCol(b)}`,apply:()=>addTok(b.row,reqCol(b),t,";",b.file)}}
+  return null};
+// remember which panels and sections are folded
+const FOLD=lsGet(":fold")||{};
+function wireSecs(root){root.querySelectorAll("details.sec").forEach(d=>{const k=d.dataset.sec;if(k in FOLD)d.open=FOLD[k];d.addEventListener("toggle",()=>{FOLD[k]=d.open;lsSet(":fold",FOLD)})})}
+wireSecs(document);
+function panels(){$("main").classList.toggle("noleft",!!FOLD.__left);$("main").classList.toggle("noright",!!FOLD.__right);$("#btnLeft").textContent=FOLD.__left?"⟩ Panel":"⟨ Panel";$("#btnRight").textContent=FOLD.__right?"Panel ⟨":"Panel ⟩"}
+$("#btnLeft").onclick=()=>{FOLD.__left=!FOLD.__left;lsSet(":fold",FOLD);panels()};$("#btnRight").onclick=()=>{FOLD.__right=!FOLD.__right;lsSet(":fold",FOLD);panels()};panels();
 
 /* ---------- saving: this browser, online (any PC), and save files ---------- */
 // One save holds everything Anthony made: the cards on each board, where they sit,
 // the sheet edits, and the pretend player's numbers. Newest save wins.
-const SAVE_KEYS=[":cards",":pos",":edits",":sim"];
+const SAVE_KEYS=[":cards",":pos",":edits",":sim",":groups",":notes"];
 let DB=null,saveTimer=null,saving=false,again=false,localAt=+(lsGet(":savedAt")||0),onlineAt=0,quiet=false;
 function collect(){const pos={};BOARDS.forEach(b=>{if(POS[b.id])pos[b.id]=POS[b.id]});const files={};changedFiles().forEach(n=>files[n]=toCSV(FILES[n]));
-  return{app:"sturmball-system-builder",v:1,stamp:SRC_STAMP,savedAt:Date.now(),cards:CARDS,pos,files,sim:SIM_SET}}
+  return{app:"sturmball-system-builder",v:2,stamp:SRC_STAMP,savedAt:Date.now(),cards:CARDS,pos,groups:GROUPS,notes:NOTES,files,sim:SIM_SET}}
 function applySave(st,why){if(!st||st.app!=="sturmball-system-builder")return toast("That is not a System Builder save.");
-  quiet=true;CARDS=st.cards||{};BOARDS.forEach(b=>{if(st.pos&&st.pos[b.id])POS[b.id]=st.pos[b.id];else delete POS[b.id]});Object.assign(SIM_SET,SIM_DEF,st.sim||{});
+  quiet=true;CARDS=st.cards||{};GROUPS=st.groups||{};NOTES=st.notes||{};saveBoardBits();BOARDS.forEach(b=>{if(st.pos&&st.pos[b.id])POS[b.id]=st.pos[b.id];else delete POS[b.id]});Object.assign(SIM_SET,SIM_DEF,st.sim||{});
   let note="";if(st.files&&Object.keys(st.files).length){if(st.stamp===SRC_STAMP){for(const n in ORIG)FILES[n]=loadFile(n,ORIG[n]);for(const n in st.files)if(FILES[n])FILES[n]=loadFile(n,st.files[n])}
     else{lsSet(":olderEdits",st.files);note=" Its sheet edits were made on an older copy of the game, so they wait for Claude to merge."}}
   saveMine();lsSet(":pos",POS);lsSet(":sim",SIM_SET);persist();quiet=false;localAt=st.savedAt||Date.now();lsSet(":savedAt",localAt);
@@ -761,8 +888,11 @@ $("#btnSave").onclick=()=>{const old=$("#saveSheet");if(old){old.remove();return
   f.onchange=()=>{const file=f.files[0];if(!file)return;file.text().then(t=>{let st;try{st=JSON.parse(t)}catch(e){return toast("That file could not be read as a save.")}pushUndo();applySave(st,"Opened "+file.name);onStore(":cards");sh.remove()})}};
 // boards that Claude merged into the game (data/KitBoards.csv) are the starting point when nothing newer is saved
 (function seedFromCSV(){if(localAt||!FILES.KitBoards)return;const rows=FILES.KitBoards.rows;if(!rows.length)return;quiet=true;
-  rows.forEach(r=>{if(!isBoard(r.Board)||!r.Card)return;(CARDS[r.Board]=CARDS[r.Board]||[]).push(r.Card);if(r.X!==""&&r.Y!==""){(POS[r.Board]=POS[r.Board]||{})[r.Card]={x:+r.X,y:+r.Y}}});
-  saveMine();lsSet(":pos",POS);quiet=false})();
+  rows.forEach(r=>{if(!isBoard(r.Board))return;const k=(r.Kind||"card").toLowerCase();
+    if(k=="group"){(GROUPS[r.Board]=GROUPS[r.Board]||[]).push({id:r.Card||("g"+Math.random().toString(36).slice(2,8)),label:r.Label||"Group",x:+r.X||0,y:+r.Y||0,w:+r.W||260,h:+r.H||200,color:r.Colour||"chalk"});return}
+    if(k=="line"){if(r.From&&r.To)(NOTES[r.Board]=NOTES[r.Board]||[]).push({id:"n"+Math.random().toString(36).slice(2,8),from:r.From,to:r.To,label:r.Label||""});return}
+    if(!r.Card)return;(CARDS[r.Board]=CARDS[r.Board]||[]).push(r.Card);if(r.X!==""&&r.Y!==""){(POS[r.Board]=POS[r.Board]||{})[r.Card]={x:+r.X,y:+r.Y}}});
+  saveMine();saveBoardBits();lsSet(":pos",POS);quiet=false})();
 
 
 buildGraph();runSim();renderTabs();renderLegend();renderAdds();draw();inspect();updCount();startOnline();

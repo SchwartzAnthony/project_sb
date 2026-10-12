@@ -341,6 +341,15 @@ Seasons / League. Add new cards with the buttons on the left, or find a card
 the game already has and put it on the board. The **Example** tab shows the
 whole game drawn out.
 
+**Groups and board lines:** *New group* draws a labelled box (Ingredients,
+say). Drag cards into it; dragging the box moves them all. Draw a line from
+the group's dot to a machine and label it input or output. Groups and these
+lines are notes on your board and never change the game's sheets; a line
+between two cards can still be written into a sheet when a column joins them
+(a building such as the Pub to a machine writes the Pub's unlock into the
+machine's Needs). Every panel section folds up, and the Panel buttons hide
+the side panels for more room.
+
 **Saving:** the online link saves by itself, so the same boards are there on
 any PC. The double-clicked file saves in that browser; *Save* > *Download
 save file* / *Open a save file* moves work between the two. To bring the
