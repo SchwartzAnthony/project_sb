@@ -560,7 +560,8 @@ let drag=null;
 function toWorld(ev){const r=svg.getBoundingClientRect();return{x:(ev.clientX-r.left-cam.x)/cam.k,y:(ev.clientY-r.top-cam.y)/cam.k}}
 function startNodeDrag(ev,n,fromPort){ev.stopPropagation();svg.setPointerCapture(ev.pointerId);const w=toWorld(ev);
   drag=fromPort?{mode:"link",n,sx:P[n.id].x+W,sy:P[n.id].y+H/2}:{mode:"node",n,dx:w.x-P[n.id].x,dy:w.y-P[n.id].y,moved:false}}
-svg.addEventListener("pointerdown",ev=>{if(drag)return;svg.setPointerCapture(ev.pointerId);drag={mode:"pan",x:ev.clientX,y:ev.clientY,cx:cam.x,cy:cam.y,moved:false};svg.classList.add("panning")});
+svg.addEventListener("pointerdown",ev=>{if(drag)return;if(ev.target.classList&&ev.target.classList.contains("hit"))return; // let line clicks reach their line
+svg.setPointerCapture(ev.pointerId);drag={mode:"pan",x:ev.clientX,y:ev.clientY,cx:cam.x,cy:cam.y,moved:false};svg.classList.add("panning")});
 svg.addEventListener("pointermove",ev=>{if(!drag)return;const w=toWorld(ev);
   if(drag.mode=="pan"){cam.x=drag.cx+ev.clientX-drag.x;cam.y=drag.cy+ev.clientY-drag.y;if(Math.abs(ev.clientX-drag.x)+Math.abs(ev.clientY-drag.y)>3)drag.moved=true;applyCam()}
   else if(drag.mode=="node"){const p=P[drag.n.id];p.x=Math.round((w.x-drag.dx)/10)*10;p.y=Math.round((w.y-drag.dy)/10)*10;drag.moved=true;drag.n._g.setAttribute("transform",`translate(${p.x},${p.y})`);redrawEdgesOf(drag.n.id);drawNotes()}
