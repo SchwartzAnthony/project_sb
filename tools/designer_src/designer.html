@@ -60,6 +60,8 @@ header.top h1{font-size:17px;margin:0 8px 0 0;letter-spacing:.3px}
 .spacer{flex:1}
 .source{font-size:12px;color:var(--dim);min-width:0;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:1100px){.source{display:none}}
+.cloud{font-size:12px;color:var(--dim);white-space:nowrap;border:1px solid var(--line);border-radius:10px;padding:2px 8px}
+.cloud.on{color:var(--pitch);border-color:var(--pitch)}
 .subbar{display:flex;align-items:center;gap:6px;padding:6px 12px;border-bottom:1px solid var(--line);background:var(--card);flex-wrap:wrap}
 .treetab{border-radius:14px;padding:3px 12px}
 .treetab.on{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
@@ -155,6 +157,7 @@ kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line);border-r
     <button data-view="brews">Brewery Recipes</button>
   </div>
   <div class="spacer"></div>
+  <span class="cloud" id="cloud" hidden></span>
   <span class="source" id="source"></span>
   <button id="btnLoad" title="Read the CSVs from your project_sb/data folder">Load game data…</button>
   <button id="btnOpen" title="Open a design you saved earlier">Open design…</button>
@@ -388,9 +391,45 @@ function changed(){ // call after every edit
   if(lastSnap) { UNDO.push(lastSnap); if(UNDO.length>80) UNDO.shift(); }
   lastSnap=s;
   try{ localStorage.setItem(STORE,JSON.stringify({savedAt:Date.now(),source:SOURCE,files:FILES,design:S})); }catch(e){}
+  pushCloud();
 }
 function undo(){ if(!UNDO.length){toast('Nothing to undo');return;} S=JSON.parse(UNDO.pop()); lastSnap=snap(); persistOnly(); renderAll(); }
-function persistOnly(){ try{ localStorage.setItem(STORE,JSON.stringify({savedAt:Date.now(),source:SOURCE,files:FILES,design:S})); }catch(e){} }
+function persistOnly(){ try{ localStorage.setItem(STORE,JSON.stringify({savedAt:Date.now(),source:SOURCE,files:FILES,design:S})); }catch(e){} pushCloud(); }
+
+/* ONLINE SAVE. Opened from its claude.ai link, the Designer also keeps the
+   design in the page's own online store, so every computer that opens the
+   link shows the same drawing. Whichever copy was changed last wins.
+   designs/main holds the design; designs/files holds the game data only when
+   it was loaded from a folder (the built-in copy ships with the page). */
+let DB=null, cloudT=null, cloudAt=0;
+function cloudLabel(t,on){ const c=document.getElementById('cloud'); c.hidden=false; c.textContent=t; c.classList.toggle('on',!!on); }
+function pushCloud(){
+  if(!DB) return; clearTimeout(cloudT); cloudLabel('Saving online…',true);
+  cloudT=setTimeout(async()=>{
+    const at=Date.now(), own=FILES!==GAME_DATA.files;
+    try{
+      if(own){ const fj=JSON.stringify(FILES); if(fj.length<240000) await DB.doc('designs/files').set({json:fj,savedAt:at}); }
+      await DB.doc('designs/main').set({design:JSON.stringify(S),source:SOURCE,ownFiles:own,savedAt:at});
+      cloudAt=at; cloudLabel('Saved online',true);
+    }catch(e){ cloudLabel('Not saved online: '+(e.code||e.message||e),false); }
+  },1200);
+}
+async function startCloud(localAt){
+  try{ DB=window.claude&&window.claude.use?await window.claude.use('db'):null; }catch(e){ DB=null; }
+  if(!DB) return;
+  try{
+    const d=(await DB.doc('designs/main').get()).data();
+    if(d&&d.design&&d.savedAt>(localAt||0)){
+      let files=GAME_DATA.files;
+      if(d.ownFiles){ const f=(await DB.doc('designs/files').get()).data(); if(f&&f.json) files=JSON.parse(f.json); }
+      FILES=files; SOURCE=d.source||'online save'; S=JSON.parse(d.design); STATS=table('Stats').rows; CAT=buildCatalogue();
+      UNDO.length=0; lastSnap=snap(); uSel=null; bSel=null; cloudAt=d.savedAt;
+      try{ localStorage.setItem(STORE,JSON.stringify({savedAt:d.savedAt,source:SOURCE,files:FILES,design:S})); }catch(e){}
+      renderAll(); fitU(); cloudLabel('Saved online',true); toast('Opened your online design');
+    } else if(localAt){ pushCloud(); }
+    else cloudLabel('Saved online',true);
+  }catch(e){ cloudLabel('Online save is off: '+(e.code||e.message||e),false); DB=null; }
+}
 
 // In-page questions. Browser pop-ups (prompt/confirm/alert) are switched off on
 // claude.ai link pages, so the Designer asks in its own little window instead.
@@ -1030,6 +1069,7 @@ function boot(){
   // First open: cards placed by the automatic layout may sit on each other.
   if(S.nodes.some(n=>n.fresh)){ S.trees.forEach(t=>{ const c=S.curTree; S.curTree=t.id; renderUnlocks(); unstack(t.id); S.curTree=c; }); lastSnap=snap(); renderUnlocks(); }
   requestAnimationFrame(fitU);
+  startCloud(saved&&saved.design&&saved.files?saved.savedAt:0);
 }
 boot();
 </script>
