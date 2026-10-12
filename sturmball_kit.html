@@ -10,7 +10,7 @@
 :root{
   --slate:#18211d; --slate-2:#1f2a25; --slate-3:#2a3731; --line:#3a4a42;
   --chalk:#ebe6d6; --chalk-dim:#a1ab9f; --chalk-faint:#6c776f;
-  --beer:#e6ad3c; --beer-soft:#e6ad3c33; --hops:#94c26c; --sky:#86b7d8; --clay:#d98a5c; --brick:#e0674f;
+  --beer:#e6ad3c; --beer-soft:#e6ad3c33; --hops:#94c26c; --fern:#5fc0a8; --sky:#86b7d8; --clay:#d98a5c; --brick:#e0674f;
   --display:"Grenze Gotisch","UnifrakturMaguntia",Georgia,serif;
   --ui:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
   --cond:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
@@ -114,6 +114,7 @@ aside{background:var(--slate-2);overflow:auto;min-width:0}
 .warn{border-left:3px solid var(--brick);padding:6px 9px;background:#e0674f14;margin-top:6px;font-size:13px;color:var(--chalk-dim)}
 .warn b{color:var(--chalk);font-weight:600}
 .sim{display:grid;grid-template-columns:1fr 64px;gap:6px 8px;align-items:center;font-size:13px;color:var(--chalk-dim)}
+.sim select{width:100%;min-width:0;grid-column:span 1}
 .sim input[type=number]{background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:3px 5px;width:100%;box-sizing:border-box;font-variant-numeric:tabular-nums}
 .sim input[type=checkbox]{justify-self:start;accent-color:var(--beer)}
 .btnrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
@@ -230,7 +231,8 @@ function persist(){const f={};for(const n of changedFiles())f[n]=toCSV(FILES[n])
 
 /* ---------- vocabulary ---------- */
 const KINDS={
-  play:{label:"Play",desc:"Where the player spends time: a match mode or an Adventure place",color:"var(--hops)",glyph:"play"},
+  play:{label:"Match",desc:"A match mode: Season, Friendly, Quick, Cup…",color:"var(--hops)",glyph:"play"},
+  adventure:{label:"Adventure",desc:"An Adventure place: Marshlands, Cinder Wastes…",color:"var(--fern)",glyph:"peaks"},
   stat:{label:"Score",desc:"A number the game counts (matches won, goals…)",color:"var(--sky)",glyph:"dot"},
   money:{label:"Money",desc:"A purse: Coins, Marsh Marks…",color:"var(--beer)",glyph:"pool"},
   stuff:{label:"Stuff",desc:"Things you carry: reed, hops, keys, bottles",color:"var(--chalk)",glyph:"pool"},
@@ -241,12 +243,12 @@ const KINDS={
 const ETYPES={flow:"gives / makes",cost:"costs",unlock:"unlocks / needs it unlocked",reads:"checks a number",game:"counted by the game itself"};
 const VIEWS=[
   {id:"all",name:"Whole game"},
-  {id:"path",name:"Unlock path",kinds:["play","stat","goal","unlock","place","maker"],makers:["upgrade"]},
-  {id:"loot",name:"Loot & money",kinds:["play","money","stuff","maker"],makers:["brew","shop","upgrade"]},
+  {id:"path",name:"Unlock path",kinds:["play","adventure","stat","goal","unlock","place","maker"],makers:["upgrade"]},
+  {id:"loot",name:"Loot & money",kinds:["play","adventure","money","stuff","maker"],makers:["brew","shop","upgrade"]},
   {id:"brewery",name:"Brewery",kinds:["stuff","maker","money"],makers:["brew","section","shop"]},
   {id:"tables",name:"Tables"}];
 const MATCH_STATS=["matches_played","matches_won","goals","goals_by_star","clean_sheets","keeper_emptied","red_cards","goals_with_brew_fire"];
-const SHOWN_MODES=["season","friendly","quick","cup"];
+const HIDDEN_MODES=["adventure","intro","intro2","intro_adventure","tutorial","tutorial_adventure","friendly_test","friendly_cycle"];
 
 /* ---------- condition / action language (same words the game uses) ---------- */
 function toks(s,sep){return (s||"").split(sep||";").map(x=>x.trim()).filter(Boolean)}
@@ -290,12 +292,12 @@ function buildGraph(){
   // play
   const any=add("play:match",{kind:"play",label:"Every match",sub:"counted by game code",file:null});
   MATCH_STATS.forEach(s=>edge(any,numId(s),"game",""));
-  F("MatchModes").filter(r=>SHOWN_MODES.includes(r.ID)).forEach(r=>{
+  F("MatchModes").filter(r=>!HIDDEN_MODES.includes(r.ID)).forEach(r=>{
     const n=add("mode:"+r.ID,{kind:"play",label:r.Name,file:"MatchModes",row:r,sub:"MatchModes "+r.ID,mk:"mode"});
     conds(n,"MatchModes",r,"Requires");acts(n,"MatchModes",r,"Rewards");acts(n,"MatchModes",r,"Rewards On Win");edge(n,any,"game","")});
   F("Currencies").forEach(r=>{const m=N.get("mode:"+r["Earned In"]);const c=numId(r.ID);
     if(m&&(+r.Win||+r.Draw||+r.Loss))edge(m,c,"flow",`W${r.Win} D${r.Draw} L${r.Loss}`,{file:"Currencies",row:r,col:"Earned In",token:r["Earned In"],whole:true})});
-  F("Biomes").forEach(r=>{const n=add("biome:"+r.ID,{kind:"play",label:r.Name,file:"Biomes",row:r,sub:"Adventure · "+r.Waves+" waves",mk:"biome"});
+  F("Biomes").forEach(r=>{const n=add("biome:"+r.ID,{kind:"adventure",label:r.Name,file:"Biomes",row:r,sub:"Adventure · "+r.Waves+" waves",mk:"biome"});
     conds(n,"Biomes",r,"Requires");
     const loot=expectedRun(r,null);for(const id in loot)edge(n,numId(id),"flow","~"+fmt(loot[id]),{file:"Drops",loot:true,table:r.Drops,item:id});
     const boss=bossOf(r);if(boss)edge(n,feat(boss),"unlock","beat boss")});
@@ -406,7 +408,7 @@ function nodeOpen(n,st,day){const r=n.row;switch(n.mk||n.kind){
   case "building":return condOK(r.Requires,st);
   case "unlock":return st.u.has(n.label);
   case "stat":case "money":case "stuff":return (st.c[n.id.split(":")[1]]||0)>0.0001;
-  case "play":return true}return true}
+  case "play":case "adventure":return true}return true}
 
 /* ---------- layout ---------- */
 const W=184,H=42,COLW=250,ROWH=58;
@@ -419,7 +421,7 @@ function viewNodes(){const v=VIEWS.find(x=>x.id==VIEW)||VIEWS[0];const ids=new S
     return new Set([...keep].filter(id=>ids.has(id)))}
   if(v.id=="path"){[...ids].forEach(id=>{const n=G.nodes.get(id);if(n.mk=="upgrade"&&!/_key$/.test(n.row.ID)&&!n.row.Achievement)ids.delete(id)})}
   // drop loners
-  return new Set([...ids].filter(id=>{const n=G.nodes.get(id);return n.ins.concat(n.outs).some(e=>ids.has(e.from)&&ids.has(e.to)&&e.from!==e.to)||n.kind=="goal"}))}
+  return new Set([...ids].filter(id=>{const n=G.nodes.get(id);return n.ins.concat(n.outs).some(e=>ids.has(e.from)&&ids.has(e.to)&&e.from!==e.to)||n.kind=="goal"||n.kind=="play"||n.kind=="adventure"}))}
 function autoLayout(ids){const rank={};const inV=e=>ids.has(e.from)&&ids.has(e.to);
   const visiting=new Set();const r=id=>{if(rank[id]!=null)return rank[id];if(visiting.has(id))return 0;visiting.add(id);
     const n=G.nodes.get(id);let m=0;n.ins.filter(inV).forEach(e=>{if(e.type!="game"||true)m=Math.max(m,r(e.from)+1)});visiting.delete(id);return rank[id]=m};
@@ -443,6 +445,7 @@ const NS="http://www.w3.org/2000/svg";const el=(t,a,p)=>{const e=document.create
 let cam=lsGet(":cam")||{x:40,y:40,k:0.7};let SEL=null,SELE=null,DAY=0,IDS=new Set(),P={};
 function glyph(g,kind,x,y,col){const s={fill:col,stroke:"none"};
   switch(KINDS[kind].glyph){
+    case "peaks":return el("path",Object.assign({d:`M${x-10} ${y+7}L${x-3} ${y-6}L${x+1} ${y}L${x+4} ${y-8}L${x+10} ${y+7}z`},s),g);
     case "play":return el("path",Object.assign({d:`M${x-6} ${y-8}L${x+8} ${y}L${x-6} ${y+8}z`},s),g);
     case "dot":return el("circle",Object.assign({cx:x,cy:y,r:5},s),g);
     case "pool":return el("circle",{cx:x,cy:y,r:10,fill:"none",stroke:col,"stroke-width":2},g);
@@ -595,10 +598,10 @@ function summary(){if(!SIM){R.innerHTML="";return}
   if(neverUsed.length)h+=`<div class="warn"><b>Unlocked, but nothing in these sheets uses it yet:</b> ${chips(neverUsed)}</div>`;
   const S=SIM_SET;const num=(k,l,step)=>`<label for="s_${k}">${l}</label><input type="number" id="s_${k}" data-k="${k}" value="${S[k]}" step="${step||1}" min="0">`;
   const chk=(k,l)=>`<label for="s_${k}">${l}</label><input type="checkbox" id="s_${k}" data-k="${k}" ${S[k]?"checked":""}>`;
-  h+=`<div class="lbl" style="margin-top:18px">How the pretend player plays</div><div class="sim">${num("days","Days to play")}${num("matches","Matches a day")}${num("win","Chance to win",0.05)}${num("draw","Chance to draw",0.05)}${num("goals","Goals a match",0.5)}${num("runs","Adventure runs a day")}${num("enemies","Enemies a wave")}${num("bossWin","Chance to beat a boss",0.1)}${num("beatAfter","Runs before a boss falls")}${num("brews","Brews a day")}${chk("keys","Buy keys when possible")}${chk("upgrades","Buy upgrades when possible")}${chk("merchant","Restock from the Merchant")}</div>
+  h+=`<div class="lbl" style="margin-top:18px">How the pretend player plays</div><div class="sim"><label for="s_mode">Match mode played</label><select id="s_mode" data-k="mode" style="background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:3px">${F("MatchModes").filter(r=>!HIDDEN_MODES.includes(r.ID)).map(r=>`<option value="${escA(r.ID)}" ${r.ID==S.mode?"selected":""}>${escH(r.Name)}</option>`).join("")}</select>${num("days","Days to play")}${num("matches","Matches a day")}${num("win","Chance to win",0.05)}${num("draw","Chance to draw",0.05)}${num("goals","Goals a match",0.5)}${num("runs","Adventure runs a day")}${num("enemies","Enemies a wave")}${num("bossWin","Chance to beat a boss",0.1)}${num("beatAfter","Runs before a boss falls")}${num("brews","Brews a day")}${chk("keys","Buy keys when possible")}${chk("upgrades","Buy upgrades when possible")}${chk("merchant","Restock from the Merchant")}</div>
   <div class="btnrow"><button class="btn ghost2" id="simReset">Reset numbers</button></div>`;
   R.innerHTML=h;R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
-  R.querySelectorAll("[data-k]").forEach(i=>i.addEventListener("change",()=>{SIM_SET[i.dataset.k]=i.type=="checkbox"?i.checked:+i.value;lsSet(":sim",SIM_SET);rerun()}));
+  R.querySelectorAll("[data-k]").forEach(i=>i.addEventListener("change",()=>{SIM_SET[i.dataset.k]=i.type=="checkbox"?i.checked:i.tagName=="SELECT"?i.value:+i.value;lsSet(":sim",SIM_SET);rerun()}));
   $("#simReset").onclick=()=>{Object.assign(SIM_SET,SIM_DEF);lsSet(":sim",SIM_SET);rerun()}}
 function goTo(id){if(!IDS.has(id)){VIEW="all";lsSet(":view",VIEW);renderTabs();draw()}if(!IDS.has(id))return;
   SEL=id;SELE=null;const p=P[id],r=svg.getBoundingClientRect();cam.k=Math.max(cam.k,0.9);cam.x=r.width/2-(p.x+W/2)*cam.k;cam.y=r.height/2-(p.y+H/2)*cam.k;applyCam();highlight();inspect();
@@ -630,6 +633,9 @@ $("#btnChanges").onclick=()=>{const files=changedFiles();const sh=document.creat
 
 /* ---------- add new things ---------- */
 const ADDS=[
+  {k:"play",t:"Match mode",file:"MatchModes",make:(id,name)=>({ID:id,Name:name,"Records Season":"no",Timer:"90",Cycles:"3",Rounds:"3","Star Rotation":"yes",Opponent:"scratch",Description:""})},
+  {k:"adventure",t:"Adventure place",file:"Biomes",make:(id,name)=>{const bs=F("Biomes").slice().sort((a,b)=>(+a.Order)-(+b.Order));const last=bs[bs.length-1]||{};const boss=last.ID?bossOf(last):null;
+    return {ID:id,Name:name,Order:String((+last.Order||0)+1),Requires:boss?"unlocked:"+boss:(last.Requires||""),Waves:"4","Enemy Pool":id,Drops:id+"_ground",Difficulty:String((+last.Difficulty||0)+1),Description:""}}},
   {k:"goal",t:"Achievement",file:"Achievements",make:(id,name)=>({ID:id,Name:name,Description:"",Needs:"count:matches_played>=1",Unlocks:""})},
   {k:"maker",t:"Brew recipe",file:"Brews",make:(id,name)=>({ID:id,Name:name,Cost:"reed:1"})},
   {k:"maker",t:"Merchant trade",file:"Shop",make:(id,name)=>({ID:id,Name:name,Sells:"res:hops","How Many":"1",Price:"10",Currency:"coins",Requires:"unlocked:Traveling Tavern"})},
@@ -639,11 +645,11 @@ function renderAdds(){const box=$("#adds");box.innerHTML="";ADDS.forEach(a=>{con
   const s=document.createElementNS(NS,"svg");s.setAttribute("width",22);s.setAttribute("height",22);glyph(s,a.k,11,11,KINDS[a.k].color);b.appendChild(s);b.append("New "+a.t.toLowerCase());
   b.onclick=()=>askName(a);box.appendChild(b)})}
 function askName(a){const pop=document.createElement("div");pop.className="pop";pop.style.left="12px";pop.style.top="12px";
-  pop.innerHTML=`<p>New ${a.t.toLowerCase()} in <b>${a.file}.csv</b></p><div class="field"><label for="newName">Name</label><input id="newName" placeholder="e.g. ${a.k=="goal"?"Derby Day":a.k=="stuff"?"Moor Peat":"Smoked Märzen"}"></div><div class="btnrow"><button class="btn" id="newOk">Add</button><button class="btn ghost2" id="newNo">Cancel</button></div>`;
+  pop.innerHTML=`<p>New ${a.t.toLowerCase()} in <b>${a.file}.csv</b></p><div class="field"><label for="newName">Name</label><input id="newName" placeholder="e.g. ${({goal:"Derby Day",stuff:"Moor Peat",play:"Village Derby",adventure:"The Hop Gardens"})[a.k]||"Smoked Märzen"}"></div><div class="btnrow"><button class="btn" id="newOk">Add</button><button class="btn ghost2" id="newNo">Cancel</button></div>`;
   $("#stage").appendChild(pop);const inp=pop.querySelector("#newName");inp.focus();
   const go=()=>{const name=inp.value.trim();if(!name)return inp.focus();let id=name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ß/g,"ss").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
     while(F(a.file).some(r=>r.ID==id))id+="_2";pushUndo();const row=Object.assign(blank(a.file),a.make(id,name));FILES[a.file].rows.push(row);pop.remove();
-    const pre={Achievements:"ach:",Brews:"brew:",Shop:"shop:",Upgrades:"upg:",Items:"res:"}[a.file]+id;
+    const pre={MatchModes:"mode:",Biomes:"biome:",Achievements:"ach:",Brews:"brew:",Shop:"shop:",Upgrades:"upg:",Items:"res:"}[a.file]+id;
     changed(`Added ${name} to ${a.file}.csv`);
     if(!IDS.has(pre)&&G.nodes.has(pre)){VIEW="all";renderTabs();draw()}
     if(G.nodes.has(pre)&&P[pre]){const r=svg.getBoundingClientRect();P[pre].x=Math.round(((r.width/2-cam.x)/cam.k)/10)*10;P[pre].y=Math.round(((r.height/2-cam.y)/cam.k)/10)*10;lsSet(":pos",POS);draw();goTo(pre)}};
