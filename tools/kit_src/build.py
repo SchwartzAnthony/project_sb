@@ -12,7 +12,7 @@ import json, os, sys, hashlib, glob
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SHEETS = ["Achievements", "Progression", "Buildings", "Upgrades", "Shop", "Brews", "Items",
           "BreweryResources", "BrewerySections", "Currencies", "MatchModes", "Biomes",
-          "AdventureEnemies", "Drops"]
+          "AdventureEnemies", "Drops", "KitBoards"]
 
 def build(link_out=None):
     src = {}

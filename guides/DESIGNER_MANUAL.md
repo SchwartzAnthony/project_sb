@@ -335,9 +335,18 @@ makers (brews, Merchant trades, upgrades, brewing machines), achievements,
 unlocks and buildings. Every card is a CSV row and every line is a CSV cell,
 so drawing a line writes the cell (it tells you which one first).
 
-It opens on **My board**, which starts empty: add new cards with the
-buttons on the left, or find a card the game already has and put it on your
-board. The **Examples** tabs show the whole game drawn out.
+It has seven boards that start empty: Whole Game, Achievements / Unlock
+Path, Loot & Money, Brewery, Consumables / Items, Adventure Board and
+Seasons / League. Add new cards with the buttons on the left, or find a card
+the game already has and put it on the board. The **Example** tab shows the
+whole game drawn out.
+
+**Saving:** the online link saves by itself, so the same boards are there on
+any PC. The double-clicked file saves in that browser; *Save* > *Download
+save file* / *Open a save file* moves work between the two. To bring the
+work into the game, tell Claude "merge my System Builder save": sheet edits
+go into the CSVs, the boards into `data/KitBoards.csv` (Board, Card, X, Y),
+which the double-clicked copy starts from.
 
 Press **Play** and a pretend player plays day by day: cards light up on the
 day they open, and the right side lists dead ends (goals never reached,

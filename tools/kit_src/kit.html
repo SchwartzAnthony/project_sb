@@ -32,6 +32,8 @@ header h1{font:600 26px/1 var(--display);margin:0;color:var(--beer);letter-spaci
 .hbtn{background:var(--slate-3);border:1px solid var(--line);border-radius:3px;padding:5px 11px;font:500 13px var(--cond);letter-spacing:.05em;text-transform:uppercase}
 .hbtn:hover{border-color:var(--chalk-dim)}
 .hbtn.hot{border-color:var(--beer);color:var(--beer)}
+.savest{margin-left:8px;font:500 11px var(--ui);letter-spacing:0;text-transform:none;color:var(--chalk-faint)}
+.savest.on{color:var(--hops)}.savest.bad{color:var(--brick)}
 .count{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--beer);color:var(--slate);font:600 11px/16px var(--ui);text-align:center}
 
 main{position:relative;display:grid;grid-template-columns:200px 1fr 320px;min-height:0}
@@ -174,6 +176,7 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
   <span class="spacer"></span>
   <button class="hbtn" id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
   <button class="hbtn" id="btnLayout" title="Lay this view out again">Tidy up</button>
+  <button class="hbtn" id="btnSave" title="Save, download or open your work">Save<span id="saveState" class="savest">…</span></button>
   <button class="hbtn" id="btnChanges">Changes<span class="count" id="chgCount" hidden>0</span></button>
 </header>
 <main>
@@ -193,7 +196,7 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
     <svg id="svg" aria-label="System board"><defs>
       <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9z" fill="context-stroke"/></marker>
     </defs><g id="world"><g id="gEdges"></g><g id="gLabels"></g><g id="gNodes"></g><path id="ghost" class="ghost" d=""/></g></svg>
-    <div id="empty" class="empty" hidden><h2>Your board is empty</h2><p>Build your system here, one card at a time.</p><p><b>Add a new card</b> with the buttons on the left (a match mode, an Adventure place, an achievement…), or <b>find one the game already has</b> in "Find a card" and put it on your board.</p><p>When two cards on your board are already joined in the game's sheets, the line shows up by itself. Drag from a card's right-hand dot to draw new lines.</p><p class="hint">Not sure where to start? The <b>Examples</b> tabs show the whole game as I drew it.</p></div>
+    <div id="empty" class="empty" hidden><h2><span id="emptyName">This board</span> is empty</h2><p>Build your system here, one card at a time.</p><p><b>Add a new card</b> with the buttons on the left (a match mode, an Adventure place, an achievement…), or <b>find one the game already has</b> in "Find a card" and put it on this board.</p><p>When two cards on the board are already joined in the game's sheets, the line shows up by itself. Drag from a card's right-hand dot to draw new lines.</p><p class="hint">Not sure where to start? The <b>Example</b> tab shows the whole game as I drew it.</p></div>
     <div class="zoombar"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Fit the board" title="Fit">⤢</button></div>
   </section>
   <aside id="right"></aside>
@@ -228,7 +231,7 @@ const FILES={};const ORIG={};
 for(const n in SRC){FILES[n]=loadFile(n,SRC[n]);ORIG[n]=toCSV(FILES[n])}
 const LS="sturmball-kit-v1";
 function lsGet(k){try{return JSON.parse(localStorage.getItem(LS+k)||"null")}catch(e){return null}}
-function lsSet(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v))}catch(e){}}
+function lsSet(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v))}catch(e){}if(typeof onStore=="function")onStore(k)}
 (function restore(){const saved=lsGet(":edits");if(!saved||saved.stamp!==SRC_STAMP)return;for(const n in saved.files)if(FILES[n])FILES[n]=loadFile(n,saved.files[n])})();
 const undoStack=[];
 function snapshot(){const s={};for(const n in FILES)s[n]=toCSV(FILES[n]);return s}
@@ -249,11 +252,17 @@ const KINDS={
   place:{label:"Building",desc:"A building on the base",color:"var(--chalk)",glyph:"house"}};
 const ETYPES={flow:"gives / makes",cost:"costs",unlock:"unlocks / needs it unlocked",reads:"checks a number",game:"counted by the game itself"};
 const VIEWS=[
-  {id:"mine",name:"My board"},
-  {id:"all",name:"Whole game",ex:true},
-  {id:"path",name:"Unlock path",ex:true,kinds:["play","adventure","stat","goal","unlock","place","maker"],makers:["upgrade"]},
-  {id:"loot",name:"Loot & money",ex:true,kinds:["play","adventure","money","stuff","maker"],makers:["brew","shop","upgrade"]},
-  {id:"brewery",name:"Brewery",ex:true,kinds:["stuff","maker","money"],makers:["brew","section","shop"]},
+  {id:"whole",name:"Whole Game",board:true},
+  {id:"ach",name:"Achievements / Unlock Path",board:true},
+  {id:"lootb",name:"Loot & Money",board:true},
+  {id:"brewb",name:"Brewery",board:true},
+  {id:"items",name:"Consumables / Items",board:true},
+  {id:"adv",name:"Adventure Board",board:true},
+  {id:"season",name:"Seasons / League",board:true},
+  {id:"all",name:"Example",ex:true},
+  {id:"path",name:"Unlock path",old:true,kinds:["play","adventure","stat","goal","unlock","place","maker"],makers:["upgrade"]},
+  {id:"loot",name:"Loot & money",old:true,kinds:["play","adventure","money","stuff","maker"],makers:["brew","shop","upgrade"]},
+  {id:"brewery",name:"Brewery",old:true,kinds:["stuff","maker","money"],makers:["brew","section","shop"]},
   {id:"tables",name:"Tables"}];
 const MATCH_STATS=["matches_played","matches_won","goals","goals_by_star","clean_sheets","keeper_emptied","red_cards","goals_with_brew_fire"];
 const HIDDEN_MODES=["adventure","intro","intro2","intro_adventure","tutorial","tutorial_adventure","friendly_test","friendly_cycle"];
@@ -420,11 +429,13 @@ function nodeOpen(n,st,day){const r=n.row;switch(n.mk||n.kind){
 
 /* ---------- layout ---------- */
 const W=184,H=42,COLW=250,ROWH=58;
-let VIEW=lsGet(":view2")||"mine";let MINE=lsGet(":mine")||[];
-function saveMine(){lsSet(":mine",MINE)}
-function addMine(id,quiet){if(!MINE.includes(id)){MINE.push(id);saveMine()}if(VIEW!=="mine"){if(!quiet)toast(G.nodes.get(id).label+" is on My board");return}draw();goTo(id)}
-function dropMine(id){MINE=MINE.filter(x=>x!==id);saveMine();if(POS.mine)delete POS.mine[id];lsSet(":pos",POS);if(SEL===id)SEL=null;draw();inspect()}let POS=lsGet(":pos")||{};
-function viewNodes(){if(VIEW=="mine")return new Set(MINE.filter(id=>G.nodes.has(id)));const v=VIEWS.find(x=>x.id==VIEW)||VIEWS[0];const ids=new Set();
+const BOARDS=VIEWS.filter(v=>v.board);const isBoard=v=>BOARDS.some(b=>b.id==v);const boardName=v=>(VIEWS.find(x=>x.id==v)||{}).name||v;
+let VIEW=lsGet(":view3");if(!VIEWS.some(v=>v.id==VIEW&&!v.old))VIEW="whole";let CARDS=lsGet(":cards")||{};
+const cur=()=>CARDS[VIEW]||(CARDS[VIEW]=[]);
+function saveMine(){lsSet(":cards",CARDS)}
+function addMine(id,quiet,board){board=board||VIEW;const l=CARDS[board]||(CARDS[board]=[]);if(!l.includes(id)){l.push(id);saveMine()}if(VIEW!==board){if(!quiet)toast(G.nodes.get(id).label+" is on "+boardName(board));return}draw();goTo(id)}
+function dropMine(id){CARDS[VIEW]=cur().filter(x=>x!==id);saveMine();if(POS[VIEW])delete POS[VIEW][id];lsSet(":pos",POS);if(SEL===id)SEL=null;draw();inspect()}let POS=lsGet(":pos")||{};
+function viewNodes(){if(isBoard(VIEW))return new Set(cur().filter(id=>G.nodes.has(id)));const v=VIEWS.find(x=>x.id==VIEW)||VIEWS[0];const ids=new Set();
   G.nodes.forEach(n=>{if(!v.kinds)return ids.add(n.id);if(!v.kinds.includes(n.kind))return;if(n.kind=="maker"&&v.makers&&!v.makers.includes(n.mk))return;ids.add(n.id)});
   if(v.id=="brewery"){ // only stuff and unlocks that touch a brewery maker
     const keep=new Set();ids.forEach(id=>{const n=G.nodes.get(id);if(n.kind=="maker")keep.add(id)});
@@ -446,7 +457,7 @@ function autoLayout(ids){const rank={};const inV=e=>ids.has(e.from)&&ids.has(e.t
   Object.keys(cols).forEach(c=>{const list=cols[c];const off=(maxLen-list.length)*ROWH/2;list.forEach((id,i)=>out[id]={x:c*COLW,y:off+i*ROWH})});
   return out}
 function positions(ids){const p=POS[VIEW]=POS[VIEW]||{};const missing=[...ids].filter(id=>!p[id]);
-  if(VIEW=="mine"){const r=svg.getBoundingClientRect();const cx=(r.width/2-cam.x)/cam.k-W/2,cy=(r.height/2-cam.y)/cam.k-H/2;
+  if(isBoard(VIEW)){const r=svg.getBoundingClientRect();const cx=(r.width/2-cam.x)/cam.k-W/2,cy=(r.height/2-cam.y)/cam.k-H/2;
     missing.forEach((id,i)=>{let x=cx,y=cy,k=0;while(Object.values(p).some(q=>Math.abs(q.x-x)<W&&Math.abs(q.y-y)<H+6)&&k<40){y+=ROWH;k++;if(k%8==0){x+=COLW;y=cy}}p[id]={x:Math.round(x/10)*10,y:Math.round(y/10)*10}});
     if(missing.length)lsSet(":pos",POS);return p}
   if(missing.length===ids.size||!Object.keys(p).length){Object.assign(p,autoLayout(ids))}
@@ -486,7 +497,7 @@ function draw(){IDS=viewNodes();P=positions(IDS);
     g.addEventListener("pointerdown",ev=>startNodeDrag(ev,n,ev.target===port));
     const ti=el("title",{},g);ti.textContent=n.label+" — "+k.label});
   applyCam();paintDay();highlight();
-  $("#empty").hidden=!(VIEW=="mine"&&IDS.size===0);if(SIM)marks()}
+  $("#empty").hidden=!(isBoard(VIEW)&&IDS.size===0);$("#emptyName").textContent=boardName(VIEW);if(SIM)marks()}
 function applyCam(){world.setAttribute("transform",`translate(${cam.x},${cam.y}) scale(${cam.k})`);lsSet(":cam",cam)}
 function paintDay(){if(!SIM)return;const s=SIM.days[Math.min(DAY,SIM.days.length-1)];
   IDS.forEach(id=>{const n=G.nodes.get(id);const f=SIM.first[id];const on=f!=null&&f<=DAY;n._g.classList.toggle("open",on);n._g.classList.toggle("locked",!on);
@@ -573,19 +584,20 @@ function inspect(){if(SELE)return inspectEdge(SELE);if(!SEL)return summary();con
   const io=(list,dir)=>list.map(e=>{const o=G.nodes.get(dir?e.to:e.from);return `<button class="lnk" data-go="${escA(o.id)}">${dir?"→":"←"} ${escH(o.label)} <i>${escH(e.label||ETYPES[e.type])}</i></button>`}).join("");
   if(n.ins.length)h+=`<div class="lbl" style="margin-top:16px">Comes from</div><div class="links">${io(n.ins,0)}</div>`;
   if(n.outs.length)h+=`<div class="lbl" style="margin-top:16px">Leads to</div><div class="links">${io(n.outs,1)}</div>`;
-  h+=`<div class="btnrow">${MINE.includes(n.id)?`<button class="btn ghost2" id="mineBtn">Take off my board</button>`:`<button class="btn" id="mineBtn">Put on my board</button>`}${canDelete(n)?`<button class="btn bad" id="delRow">Delete this card</button>`:""}</div>`;
+  h+=`<div class="btnrow">${isBoard(VIEW)?(cur().includes(n.id)?`<button class="btn ghost2" id="mineBtn">Take off this board</button>`:`<button class="btn" id="mineBtn">Put on this board</button>`):`<select id="putOn" class="btn ghost2" aria-label="Put on a board"><option value="">Put on a board…</option>${BOARDS.map(b=>`<option value="${b.id}">${escH(b.name)}${(CARDS[b.id]||[]).includes(n.id)?" ✓":""}</option>`).join("")}</select>`}${canDelete(n)?`<button class="btn bad" id="delRow">Delete this card</button>`:""}</div>`;
   R.innerHTML=h;
   R.querySelectorAll("[data-c]").forEach(inp=>inp.addEventListener("change",()=>{pushUndo();n.row[inp.dataset.c]=inp.value;changed(`${n.file}.csv ${n.row.ID}: ${inp.dataset.c} changed`)}));
   R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
   const d=R.querySelector("#delRow");if(d)d.onclick=()=>askDelete(n);
-  R.querySelector("#mineBtn").onclick=()=>{if(MINE.includes(n.id))dropMine(n.id);else{addMine(n.id);inspect()}}}
+  const mb=R.querySelector("#mineBtn");if(mb)mb.onclick=()=>{if(cur().includes(n.id))dropMine(n.id);else{addMine(n.id);inspect()}};
+  const po=R.querySelector("#putOn");if(po)po.onchange=()=>{if(po.value){addMine(n.id,false,po.value);inspect()}}}
 /* ---------- delete a card: its row goes, and every cell that pointed at it is cleaned ---------- */
 function canDelete(n){return !!n.row||n.kind=="unlock"}
 function refsTo(n){return n.ins.concat(n.outs).filter(e=>e.row&&e.row!==n.row)}
-function askDelete(n){if(!canDelete(n)&&VIEW=="mine"){dropMine(n.id);return}if(!canDelete(n)){toast(n.kind=="stat"?"A score is counted by the game itself. Remove its lines instead.":"This card comes from game code, so there is nothing to delete.");return}
+function askDelete(n){if(!canDelete(n)&&isBoard(VIEW)){dropMine(n.id);return}if(!canDelete(n)){toast(n.kind=="stat"?"A score is counted by the game itself. Remove its lines instead.":"This card comes from game code, so there is nothing to delete.");return}
   const old=$(".pop.del");if(old)old.remove();const refs=refsTo(n);const pop=document.createElement("div");pop.className="pop del";pop.style.right="12px";pop.style.top="56px";
   const where=n.row?`its row in <b>${n.file}.csv</b>`:`the name <code>${escH(n.label)}</code>`;
-  pop.innerHTML=`<p><b>Delete ${escH(n.label)}?</b></p><p>This removes ${where}${refs.length?` and ${refs.length} line${refs.length>1?"s":""} that point${refs.length>1?"":"s"} to it in other rows`:""}. Undo brings it back.</p><div class="btnrow"><button class="btn bad" id="delYes">Delete</button>${VIEW=="mine"?`<button class="btn ghost2" id="delOff">Only take it off my board</button>`:""}<button class="btn ghost2" id="delNo">Keep it</button></div>`;
+  pop.innerHTML=`<p><b>Delete ${escH(n.label)}?</b></p><p>This removes ${where}${refs.length?` and ${refs.length} line${refs.length>1?"s":""} that point${refs.length>1?"":"s"} to it in other rows`:""}. Undo brings it back.</p><div class="btnrow"><button class="btn bad" id="delYes">Delete</button>${isBoard(VIEW)?`<button class="btn ghost2" id="delOff">Only take it off this board</button>`:""}<button class="btn ghost2" id="delNo">Keep it</button></div>`;
   $("#stage").appendChild(pop);const y=pop.querySelector("#delYes");y.focus();
   y.onclick=()=>{pop.remove();deleteNode(n)};const off=pop.querySelector("#delOff");if(off)off.onclick=()=>{pop.remove();dropMine(n.id)};pop.querySelector("#delNo").onclick=()=>pop.remove();
   pop.addEventListener("keydown",e=>{if(e.key=="Escape")pop.remove()})}
@@ -601,9 +613,9 @@ function inspectEdge(e){const a=G.nodes.get(e.from),b=G.nodes.get(e.to);
   else h+=`<p class="hint">This one comes from the game itself (every match counts goals, wins and so on), so there is no CSV cell to change.</p>`;
   R.innerHTML=h;const d=R.querySelector("#delE");if(d)d.onclick=()=>removeEdge(e)}
 function summary(){if(!SIM){R.innerHTML="";return}
-  const mine=VIEW=="mine";const onB=id=>!mine||MINE.includes(id);
+  const mine=isBoard(VIEW);const onB=id=>!mine||cur().includes(id);
   const big=SIM.ev.filter(e=>(e.big||e.t.endsWith(" unlocked")||e.t.endsWith(" beaten")||mine&&e.goal)&&onB(e.node));
-  let h=`<span class="kind" style="--k:var(--beer)">Pretend season</span><h2>What opens when</h2><p class="hint">${mine&&!MINE.length?"Once cards are on your board, this lists the day each one opens when a pretend player plays the game.":`The game played ${SIM_SET.days} days with the numbers below.${mine?" Only cards on your board are listed.":""} Click a line to find the card.`}</p><ul class="list">`;
+  let h=`<span class="kind" style="--k:var(--beer)">Pretend season</span><h2>What opens when</h2><p class="hint">${mine&&!cur().length?"Once cards are on this board, this lists the day each one opens when a pretend player plays the game.":`The game played ${SIM_SET.days} days with the numbers below.${mine?" Only cards on this board are listed.":""} Click a line to find the card.`}</p><ul class="list">`;
   big.slice(0,40).forEach(e=>h+=`<li><span class="d">day ${e.day}</span><button class="lnk" data-go="${escA(e.node)}">${escH(e.t)}${e.why?` <i>${escH(e.why)}</i>`:""}</button></li>`);h+="</ul>";
   // dead ends
   const neverUsed=[],neverOn=[],noSource=[];
@@ -620,7 +632,7 @@ function summary(){if(!SIM){R.innerHTML="";return}
   R.innerHTML=h;R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
   R.querySelectorAll("[data-k]").forEach(i=>i.addEventListener("change",()=>{SIM_SET[i.dataset.k]=i.type=="checkbox"?i.checked:i.tagName=="SELECT"?i.value:+i.value;lsSet(":sim",SIM_SET);rerun()}));
   $("#simReset").onclick=()=>{Object.assign(SIM_SET,SIM_DEF);lsSet(":sim",SIM_SET);rerun()}}
-function goTo(id){if(!IDS.has(id)&&VIEW!="mine"){VIEW="all";lsSet(":view2",VIEW);renderTabs();draw()}if(!IDS.has(id))return;
+function goTo(id){if(!IDS.has(id)&&!isBoard(VIEW)){VIEW="all";lsSet(":view3",VIEW);renderTabs();draw()}if(!IDS.has(id))return;
   SEL=id;SELE=null;const p=P[id],r=svg.getBoundingClientRect();cam.k=Math.max(cam.k,0.9);cam.x=r.width/2-(p.x+W/2)*cam.k;cam.y=r.height/2-(p.y+H/2)*cam.k;applyCam();highlight();inspect();
   if(SIM&&SIM.first[id]!=null){DAY=SIM.first[id];paintDay()}}
 function selectEdge(e){SELE=e;SEL=null;highlight();inspect()}
@@ -667,8 +679,8 @@ function askName(a){const pop=document.createElement("div");pop.className="pop";
   const go=()=>{const name=inp.value.trim();if(!name)return inp.focus();let id=name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ß/g,"ss").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
     while(F(a.file).some(r=>r.ID==id))id+="_2";pushUndo();const row=Object.assign(blank(a.file),a.make(id,name));FILES[a.file].rows.push(row);pop.remove();
     const pre={MatchModes:"mode:",Biomes:"biome:",Achievements:"ach:",Brews:"brew:",Shop:"shop:",Upgrades:"upg:",Items:"res:"}[a.file]+id;
-    if(!MINE.includes(pre)){MINE.push(pre);saveMine()}
-    if(VIEW=="mine"){changed(`Added ${name} to ${a.file}.csv`);if(G.nodes.has(pre))goTo(pre);return}
+    if(isBoard(VIEW)&&!cur().includes(pre)){cur().push(pre);saveMine()}
+    if(isBoard(VIEW)){changed(`Added ${name} to ${a.file}.csv`);if(G.nodes.has(pre))goTo(pre);return}
     changed(`Added ${name} to ${a.file}.csv`);
     if(!IDS.has(pre)&&G.nodes.has(pre)){VIEW="all";renderTabs();draw()}
     if(G.nodes.has(pre)&&P[pre]){const r=svg.getBoundingClientRect();P[pre].x=Math.round(((r.width/2-cam.x)/cam.k)/10)*10;P[pre].y=Math.round(((r.height/2-cam.y)/cam.k)/10)*10;lsSet(":pos",POS);draw();goTo(pre)}};
@@ -685,10 +697,10 @@ function tables(){let sh=$("#tblSheet");if(sh)sh.remove();sh=document.createElem
 const SRC_COUNT=/*__COUNT__*/132;
 
 /* ---------- tabs, legend, playback ---------- */
-function renderTabs(){let seen=false;$("#tabs").innerHTML=VIEWS.map(v=>{let pre="";if(v.ex&&!seen){seen=true;pre=`<span class="tabsep">Examples</span>`}if(v.id=="tables")pre=`<span class="tabsep"></span>`;return pre+`<button class="tab" role="tab" aria-selected="${v.id==VIEW}" data-v="${v.id}">${v.name}</button>`}).join("");
+function renderTabs(){let seen=false;$("#tabs").innerHTML=VIEWS.map(v=>{if(v.old)return "";let pre="";if(v.ex&&!seen){seen=true;pre=`<span class="tabsep"></span>`}return pre+`<button class="tab" role="tab" aria-selected="${v.id==VIEW}" data-v="${v.id}">${v.name}</button>`}).join("");
   $("#tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{const v=b.dataset.v;const t=$("#tblSheet");if(t)t.remove();
     if(v=="tables"){VIEW_T=true;tables();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
-    const first=!POS[v]&&v!="mine";VIEW=v;lsSet(":view2",v);SEL=null;SELE=null;renderTabs();draw();inspect();if(first)fit()})}
+    const first=!POS[v]&&!isBoard(v);VIEW=v;lsSet(":view3",v);SEL=null;SELE=null;renderTabs();draw();inspect();if(first)fit()})}
 let VIEW_T=false;
 function renderLegend(){$("#legend").innerHTML="";Object.entries(KINDS).forEach(([k,v])=>{const d=document.createElement("div");d.title=v.desc;
   const s=document.createElementNS(NS,"svg");s.setAttribute("width",22);s.setAttribute("height",22);glyph(s,k,11,11,v.color);d.appendChild(s);d.append(v.label);$("#legend").appendChild(d)});
@@ -697,15 +709,62 @@ let timer=null;$("#play").onclick=()=>{if(timer){clearInterval(timer);timer=null
   if(DAY>=SIM_SET.days)DAY=0;$("#play").textContent="❚❚";timer=setInterval(()=>{DAY++;paintDay();if(DAY>=SIM_SET.days){clearInterval(timer);timer=null;$("#play").textContent="▶"}},450)};
 $("#day").addEventListener("input",e=>{DAY=+e.target.value;paintDay()});
 function marks(){$("#day").max=SIM_SET.days;DAY=Math.min(DAY,SIM_SET.days);const m=$("#marks");m.innerHTML="";
-  SIM.ev.filter(e=>(e.big||e.goal)&&(VIEW!="mine"||MINE.includes(e.node))).forEach(e=>{const s=document.createElement("span");s.style.left=(e.day/SIM_SET.days*100)+"%";s.dataset.t="Day "+e.day+": "+e.t;s.onclick=()=>goTo(e.node);m.appendChild(s)})}
+  SIM.ev.filter(e=>(e.big||e.goal)&&(!isBoard(VIEW)||cur().includes(e.node))).forEach(e=>{const s=document.createElement("span");s.style.left=(e.day/SIM_SET.days*100)+"%";s.dataset.t="Day "+e.day+": "+e.t;s.onclick=()=>goTo(e.node);m.appendChild(s)})}
 $("#search").addEventListener("input",e=>{const q=e.target.value.trim().toLowerCase();const box=$("#results");box.innerHTML="";if(q.length<2)return;
   const hits=[...G.nodes.values()].filter(n=>n.label.toLowerCase().includes(q)||(n.sub||"").toLowerCase().includes(q)).slice(0,10);
   if(!hits.length){box.innerHTML=`<span class="hint">Nothing called that yet. Add it with the buttons below.</span>`;return}
   hits.forEach(n=>{const b=document.createElement("button");const s=document.createElementNS(NS,"svg");s.setAttribute("width",18);s.setAttribute("height",18);s.setAttribute("viewBox","0 0 22 22");glyph(s,n.kind,11,11,KINDS[n.kind].color);b.appendChild(s);
-    b.append(n.label);const i=document.createElement("i");i.textContent=VIEW=="mine"?(MINE.includes(n.id)?"on board":"+ add"):"show";b.appendChild(i);
-    b.onclick=()=>{if(VIEW=="mine"){addMine(n.id);e.target.dispatchEvent(new Event("input"))}else goTo(n.id)};box.appendChild(b)})});
+    b.append(n.label);const i=document.createElement("i");i.textContent=isBoard(VIEW)?(cur().includes(n.id)?"on board":"+ add"):"show";b.appendChild(i);
+    b.onclick=()=>{if(isBoard(VIEW)){addMine(n.id);e.target.dispatchEvent(new Event("input"))}else goTo(n.id)};box.appendChild(b)})});
 const _runSim=runSim;runSim=function(){_runSim();marks()};
 
-buildGraph();runSim();renderTabs();renderLegend();renderAdds();draw();inspect();updCount();
+/* ---------- saving: this browser, online (any PC), and save files ---------- */
+// One save holds everything Anthony made: the cards on each board, where they sit,
+// the sheet edits, and the pretend player's numbers. Newest save wins.
+const SAVE_KEYS=[":cards",":pos",":edits",":sim"];
+let DB=null,saveTimer=null,saving=false,again=false,localAt=+(lsGet(":savedAt")||0),onlineAt=0,quiet=false;
+function collect(){const pos={};BOARDS.forEach(b=>{if(POS[b.id])pos[b.id]=POS[b.id]});const files={};changedFiles().forEach(n=>files[n]=toCSV(FILES[n]));
+  return{app:"sturmball-system-builder",v:1,stamp:SRC_STAMP,savedAt:Date.now(),cards:CARDS,pos,files,sim:SIM_SET}}
+function applySave(st,why){if(!st||st.app!=="sturmball-system-builder")return toast("That is not a System Builder save.");
+  quiet=true;CARDS=st.cards||{};BOARDS.forEach(b=>{if(st.pos&&st.pos[b.id])POS[b.id]=st.pos[b.id];else delete POS[b.id]});Object.assign(SIM_SET,SIM_DEF,st.sim||{});
+  let note="";if(st.files&&Object.keys(st.files).length){if(st.stamp===SRC_STAMP){for(const n in ORIG)FILES[n]=loadFile(n,ORIG[n]);for(const n in st.files)if(FILES[n])FILES[n]=loadFile(n,st.files[n])}
+    else{lsSet(":olderEdits",st.files);note=" Its sheet edits were made on an older copy of the game, so they wait for Claude to merge."}}
+  saveMine();lsSet(":pos",POS);lsSet(":sim",SIM_SET);persist();quiet=false;localAt=st.savedAt||Date.now();lsSet(":savedAt",localAt);
+  buildGraph();runSim();renderTabs();draw();inspect();updCount();toast(why+note)}
+function onStore(k){if(quiet||!SAVE_KEYS.includes(k))return;localAt=Date.now();try{localStorage.setItem(LS+":savedAt",String(localAt))}catch(e){}
+  showSave("Saving…");clearTimeout(saveTimer);saveTimer=setTimeout(pushOnline,1500)}
+async function pushOnline(){if(!DB){showSave("Saved in this browser",false);return}if(saving){again=true;return}saving=true;
+  try{const st=collect();st.savedAt=localAt;await DB.doc("kit/save").set({state:JSON.stringify(st),savedAt:localAt});onlineAt=localAt;showSave("Saved online "+clock(localAt),true)}
+  catch(e){showSave(e&&e.code=="quota_exceeded"?"Online save is full":"Online save failed, kept in this browser",false,true)}
+  saving=false;if(again){again=false;pushOnline()}}
+function clock(t){const d=new Date(t);return d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+function showSave(t,on,bad){const e=$("#saveState");e.textContent=t;e.classList.toggle("on",!!on);e.classList.toggle("bad",!!bad)}
+async function startOnline(){showSave(localAt?"Saved in this browser":"Nothing saved yet");
+  const use=window.claude&&window.claude.use;if(!use)return;try{DB=await window.claude.use("db")}catch(e){DB=null}
+  if(!DB){showSave(localAt?"Saved in this browser":"Nothing saved yet");return}
+  try{const snap=await DB.doc("kit/save").get();const d=snap.exists?snap.data():null;onlineAt=d?+d.savedAt||0:0;
+    if(d&&onlineAt>localAt)applySave(JSON.parse(d.state),"Loaded your online save from "+new Date(onlineAt).toLocaleString());
+    if(localAt>onlineAt)pushOnline();else showSave(onlineAt?"Saved online "+clock(onlineAt):"Online save ready",true)}
+  catch(e){showSave("Online save unavailable, saving in this browser",false,true)}}
+async function downloadSave(){const st=collect();st.savedAt=localAt||Date.now();const text=JSON.stringify(st,null,1);const name="sturmball_boards_"+new Date().toISOString().slice(0,10)+".json";
+  let dl=null;try{dl=window.claude&&window.claude.use?await window.claude.use("downloads"):null}catch(e){}
+  if(dl){try{await dl.save({filename:name,data:text});toast("Save file ready: "+name)}catch(e){toast("The download was cancelled.")}return}
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:"application/json"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+$("#btnSave").onclick=()=>{const old=$("#saveSheet");if(old){old.remove();return}const sh=document.createElement("div");sh.className="pop";sh.id="saveSheet";sh.style.right="12px";sh.style.top="12px";sh.style.width="330px";
+  const on=!!DB;sh.innerHTML=`<p><b>${on?"Your work saves online by itself":"Your work saves in this browser by itself"}</b></p>
+  <p>${on?"Open this same link on any PC and your boards, cards and sheet edits are there. ":"This copy is the file on your computer, so it cannot save online. Use a save file to move your work between here and the online link. "}${$("#saveState").textContent}.</p>
+  <p>At home, tell Claude in the thread: <code>merge my System Builder save</code>. Claude puts your sheet edits into the game's CSVs and your boards into <code>data/KitBoards.csv</code>, so the copy in project_sb shows them too.</p>
+  <div class="btnrow"><button class="btn" id="svDl">Download save file</button><button class="btn ghost2" id="svOpen">Open a save file</button><input type="file" id="svFile" accept=".json,application/json" hidden></div>
+  <div class="btnrow"><button class="btn ghost2" id="svClose">Close</button></div>`;
+  $("#stage").appendChild(sh);sh.querySelector("#svDl").onclick=downloadSave;sh.querySelector("#svClose").onclick=()=>sh.remove();
+  const f=sh.querySelector("#svFile");sh.querySelector("#svOpen").onclick=()=>f.click();
+  f.onchange=()=>{const file=f.files[0];if(!file)return;file.text().then(t=>{let st;try{st=JSON.parse(t)}catch(e){return toast("That file could not be read as a save.")}pushUndo();applySave(st,"Opened "+file.name);onStore(":cards");sh.remove()})}};
+// boards that Claude merged into the game (data/KitBoards.csv) are the starting point when nothing newer is saved
+(function seedFromCSV(){if(localAt||!FILES.KitBoards)return;const rows=FILES.KitBoards.rows;if(!rows.length)return;quiet=true;
+  rows.forEach(r=>{if(!isBoard(r.Board)||!r.Card)return;(CARDS[r.Board]=CARDS[r.Board]||[]).push(r.Card);if(r.X!==""&&r.Y!==""){(POS[r.Board]=POS[r.Board]||{})[r.Card]={x:+r.X,y:+r.Y}}});
+  saveMine();lsSet(":pos",POS);quiet=false})();
+
+
+buildGraph();runSim();renderTabs();renderLegend();renderAdds();draw();inspect();updCount();startOnline();
 if(!lsGet(":cam"))fit();
 </script>
