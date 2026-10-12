@@ -801,7 +801,7 @@ function ingredientIds(){
   items().filter(r=>r.Kind==='material').forEach(r=>add(r.ID));
   S.brews.forEach(b=>costOf(b).forEach(c=>add(c.id)));
   (S.extraIngs||[]).forEach(add);
-  return ids;
+  return ids.filter(id=>!(S.hiddenIngs||[]).includes(id));
 }
 function unlockerOf(name){ return S.nodes.filter(n=>n.unlocks.some(u=>norm(u)===norm(name))); }
 function brewUnlockName(b){ const m=/(?:^|;)\s*unlocked:([^;|]+)/.exec(b.Requires||''); return m?m[1].trim():''; }
@@ -853,9 +853,22 @@ function drawBEdges(){
   S.brews.forEach(b=>{ const bp=S.brewPos[b.ID]; if(!bp) return; costOf(b).forEach(c=>{
     const ip=S.ingPos[c.id], ie=ingEls[c.id]; if(!ip||!ie) return;
     const x1=ip.x+ING_W,y1=ip.y+ie.offsetHeight/2,x2=bp.x,y2=bp.y+22; const dx=Math.max(50,(x2-x1)/2);
-    const sel=bSel&&((bSel.kind==='brew'&&bSel.id===b.ID)||(bSel.kind==='ing'&&bSel.id===c.id));
-    svg.insertAdjacentHTML('beforeend',`<path class="e${sel?' sel':''}" d="M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}"/>${sel?`<text x="${x2-34}" y="${y2-6}">×${c.n}</text>`:''}`);
+    const sel=bSel&&((bSel.kind==='brew'&&bSel.id===b.ID)||(bSel.kind==='ing'&&bSel.id===c.id)||(bSel.kind==='edge'&&bSel.bid===b.ID&&bSel.iid===c.id));
+    const d=`M${x1},${y1} C${x1+dx},${y1} ${x2-dx},${y2} ${x2},${y2}`;
+    svg.insertAdjacentHTML('beforeend',`<path class="e${sel?' sel':''}" d="${d}"/><path class="hit" data-bid="${esc(b.ID)}" data-iid="${esc(c.id)}" d="${d}"/>${sel?`<text x="${x2-34}" y="${y2-6}">×${c.n}</text>`:''}`);
   }); });
+  svg.querySelectorAll('path.hit').forEach(h=>h.addEventListener('pointerdown',e=>{ e.stopPropagation(); bSel={kind:'edge',bid:h.dataset.bid,iid:h.dataset.iid}; renderBrews(); }));
+}
+/* Deleting on the brewery board, the same ways as in the Unlock Tree:
+   the Delete key or the red button in the side panel. */
+function removeBLink(){ const b=S.brews.find(x=>x.ID===bSel.bid); if(b) setCost(b,costOf(b).filter(c=>c.id!==bSel.iid)); bSel=null; changed(); renderBrews(); }
+async function deleteBrew(b){ if(!await yes('Remove “'+b.Name+'”?')) return; S.brews=S.brews.filter(x=>x!==b); delete S.brewPos[b.ID]; bSel=null; changed(); renderBrews(); }
+async function deleteIng(id){
+  const uses=S.brews.filter(b=>costOf(b).some(c=>c.id===id));
+  if(!await yes('Remove '+itemName(id)+' from the board?'+(uses.length?' It is also taken out of '+uses.length+' drink'+(uses.length>1?'s':'')+'.':'')+' (Items.csv itself is not changed.)')) return;
+  uses.forEach(b=>setCost(b,costOf(b).filter(c=>c.id!==id)));
+  S.extraIngs=(S.extraIngs||[]).filter(x=>x!==id); S.hiddenIngs=S.hiddenIngs||[]; if(!S.hiddenIngs.includes(id)) S.hiddenIngs.push(id);
+  delete S.ingPos[id]; bSel=null; changed(); renderBrews();
 }
 function classOptions(cur){ const cs=['',...table('ClassInfo').rows.map(r=>r.Class)]; if(cur&&!cs.includes(cur)) cs.push(cur); return cs.map(c=>`<option value="${esc(c)}"${c===cur?' selected':''}>${c?esc(c):'—'}</option>`).join(''); }
 function elementOptions(cur){ const es=['',...table('Elements').rows.map(r=>r['Display Name']||r.Element)]; if(cur&&!es.includes(cur)) es.push(cur); return es.map(c=>`<option value="${esc(c)}"${c===cur?' selected':''}>${c?esc(c):'—'}</option>`).join(''); }
@@ -866,9 +879,15 @@ function renderBSide(){
     const uses=S.brews.filter(b=>costOf(b).some(c=>c.id===id));
     side.innerHTML=`<h2>${esc(it.Name||id)}</h2><div class="hint">Items.csv <code>${esc(id)}</code>${it.Kind?' · '+esc(it.Kind):' · <span style="color:var(--warn)">not in Items.csv</span>'}</div>
       <p class="hint">${esc(it.Description||'')}</p><label>Used in</label><div class="list">${uses.map(b=>`<div>${esc(b.Name)} ×${costOf(b).find(c=>c.id===id).n}</div>`).join('')||'<span class="hint">No drink yet. Drag its dot onto a drink.</span>'}</div>
-      ${!uses.length&&(S.extraIngs||[]).includes(id)?'<div style="margin-top:12px"><button class="danger small" id="rmIng">Remove from the board</button></div>':''}`;
-    const rm=side.querySelector('#rmIng'); if(rm) rm.onclick=()=>{ S.extraIngs=S.extraIngs.filter(x=>x!==id); delete S.ingPos[id]; bSel=null; changed(); renderBrews(); };
+      <div style="margin-top:12px"><button class="danger small" id="rmIng">Remove from the board</button></div>`;
+    side.querySelector('#rmIng').onclick=()=>deleteIng(id);
     return;
+  }
+  if(bSel&&bSel.kind==='edge'){
+    const b=S.brews.find(x=>x.ID===bSel.bid), c=b&&costOf(b).find(x=>x.id===bSel.iid);
+    if(!b||!c){ bSel=null; return renderBSide(); }
+    side.innerHTML=`<h2>Link</h2><p class="hint">${esc(b.Name)} needs ${esc(itemName(c.id))} ×${c.n}.<br>In the CSV this is <code>${esc(c.id)}:${c.n}</code> in its Cost.</p><button class="danger" id="rmBLink">Remove this link</button>`;
+    side.querySelector('#rmBLink').onclick=removeBLink; return;
   }
   const b=bSel&&bSel.kind==='brew'&&S.brews.find(x=>x.ID===bSel.id);
   if(!b){ side.innerHTML=`<h2>Brewery recipes</h2><p class="hint">Every card on the right is a drink (a row of <b>Brews.csv</b>). Green pills on the left are ingredients (Items.csv). A line means the drink costs that ingredient.</p>
@@ -908,7 +927,7 @@ function renderBSide(){
   const go=side.querySelector('#bGoTree'); if(go) go.onclick=()=>{ const n=uSel&&uSel.kind==='node'&&node(uSel.id); if(!n){ toast('First click a step in the Unlock Tree, then come back'); return; } n.unlocks.push(un); changed(); renderBrews(); toast('“'+un+'” added to '+n.name); };
   side.querySelector('#bId').onchange=e=>{ const v=slug(e.target.value); if(!v||v===b.ID) return; if(S.brews.some(x=>x.ID===v)){ toast('That ID is taken'); return; } S.brewPos[v]=S.brewPos[b.ID]; delete S.brewPos[b.ID]; b.ID=v; bSel.id=v; changed(); renderBrews(); };
   side.querySelector('#bDup').onclick=()=>{ const id=uid(b.ID+'_copy',new Set(S.brews.map(x=>x.ID))); const c={...b,ID:id,Name:b.Name+' (copy)'}; S.brews.splice(S.brews.indexOf(b)+1,0,c); const p=S.brewPos[b.ID]; S.brewPos[id]={x:p.x+30,y:p.y+30}; bSel={kind:'brew',id}; changed(); renderBrews(); };
-  side.querySelector('#bDel').onclick=async()=>{ if(!await yes('Remove '+b.Name+'?')) return; S.brews=S.brews.filter(x=>x!==b); bSel=null; changed(); renderBrews(); };
+  side.querySelector('#bDel').onclick=()=>deleteBrew(b);
 }
 function fitB(){ const boxes=[]; document.querySelectorAll('#blayer .ing,#blayer .node').forEach(e=>boxes.push({x:e.offsetLeft,y:e.offsetTop,w:e.offsetWidth,h:e.offsetHeight})); BC.fit(boxes); }
 
@@ -1052,11 +1071,13 @@ function boot(){
     S.brews.push(blankRow(S.brewHeader,{ID:id,Name:n.trim(),Inspiration:'15'})); const ps=Object.values(S.brewPos); S.brewPos[id]={x:260,y:ps.length?Math.max(...ps.map(p=>p.y))+200:0}; bSel={kind:'brew',id}; changed(); renderBrews(); });
   on('btnAddIng',async()=>{ const have=ingredientIds(); const opts=items().filter(r=>!have.includes(r.ID)).map(r=>r.ID+'  ('+r.Name+')');
     const v=await ask('Items.csv ID of the ingredient to add to the board:\n'+opts.slice(0,30).join('\n')); if(!v) return; const id=v.split(/\s/)[0].trim(); if(!id) return;
-    S.extraIngs=S.extraIngs||[]; if(!have.includes(id)) S.extraIngs.push(id); const ys=Object.values(S.ingPos).map(p=>p.y); S.ingPos[id]={x:0,y:ys.length?Math.max(...ys)+90:0}; changed(); renderBrews(); });
+    S.extraIngs=S.extraIngs||[]; S.hiddenIngs=(S.hiddenIngs||[]).filter(x=>x!==id); if(!have.includes(id)) S.extraIngs.push(id); const ys=Object.values(S.ingPos).map(p=>p.y); S.ingPos[id]={x:0,y:ys.length?Math.max(...ys)+90:0}; changed(); renderBrews(); });
   document.addEventListener('keydown',e=>{
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){ e.preventDefault(); undo(); return; }
     if((e.key==='Delete'||e.key==='Backspace')&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){
       if(document.getElementById('view-unlocks').classList.contains('on')&&uSel){ e.preventDefault(); if(uSel.kind==='edge') removeSelEdge(); else deleteNode(node(uSel.id)); }
+      else if(document.getElementById('view-brews').classList.contains('on')&&bSel){ e.preventDefault();
+        if(bSel.kind==='edge') removeBLink(); else if(bSel.kind==='ing') deleteIng(bSel.id); else { const b=S.brews.find(x=>x.ID===bSel.id); if(b) deleteBrew(b); } }
     }
     if(e.key==='Escape') closePicker();
   });
