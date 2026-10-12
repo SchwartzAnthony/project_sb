@@ -12,7 +12,7 @@ import json, os, sys, hashlib, glob
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SHEETS = ["Achievements", "Progression", "Buildings", "Upgrades", "Shop", "Brews", "Items",
           "BreweryResources", "BrewerySections", "Currencies", "MatchModes", "Biomes",
-          "AdventureEnemies", "Drops", "KitBoards"]
+          "AdventureEnemies", "Drops", "Abilities", "KitBoards"]
 
 def build(link_out=None):
     src = {}
@@ -30,6 +30,13 @@ def build(link_out=None):
     body = (body.replace("/*__DATA__*/{}", data).replace("/*__STAMP__*/", stamp)
                 .replace("/*__COUNT__*/132", str(count))
                 .replace('"/*__OLDSTAMPS__*/"', json.dumps(old_stamp)))
+    # the Help tab: its text and pictures (pictures are made by tools/kit_src/help/make_help.mjs)
+    import base64
+    hdir = os.path.join(ROOT, "tools", "kit_src", "help")
+    imgs = {os.path.splitext(os.path.basename(p))[0]: "data:image/jpeg;base64," + base64.b64encode(open(p, "rb").read()).decode()
+            for p in sorted(glob.glob(os.path.join(hdir, "*.jpg")))}
+    body = (body.replace("/*__HELPIMG__*/{}", json.dumps(imgs))
+                .replace("/*__HELP__*/", open(os.path.join(hdir, "help.js"), encoding="utf-8").read()))
     if link_out:
         open(link_out, "w", encoding="utf-8").write(body)
         print("wrote", link_out)

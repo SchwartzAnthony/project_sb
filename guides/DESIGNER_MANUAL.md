@@ -362,6 +362,16 @@ reason. IDs the game already uses can't be renamed. Making something with
 the name of an existing card offers that card instead, and deleting
 something other rows use needs a second click that names them.
 
+**Help tab:** the System Builder's own Help tab shows every part in
+pictures with numbered steps, plus a worked example (random bottled beers:
+bottle, pool, beer, attack and defend abilities). Pictures are remade with
+`node tools/kit_src/help/make_help.mjs`, then `python3 tools/kit_src/build.py`.
+
+**Beers and abilities:** every row of Brews.csv is a Beer card (mug) and every
+row of Abilities.csv an Ability card (red bolt). A line from a bottle to a beer
+adds the bottle's pool to the beer's Pool (it may be poured at random); a line
+from a beer to an ability fills its Attack Ability, then its Defend Ability.
+
 **Brewing machines:** *New brewing machine* adds a Maker card (a row in
 BrewerySections.csv). A line from an ingredient INTO the machine writes its
 Takes (the input); a line from the machine OUT to an ingredient writes its

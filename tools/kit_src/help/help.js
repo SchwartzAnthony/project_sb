@@ -1,0 +1,65 @@
+/* The Help tab: a picture for every part of the System Builder, then a worked example.
+   Pictures live in tools/kit_src/help/*.jpg (made by make_help.mjs) and are packed in by build.py.
+   Each picture's numbered rings match the numbered steps next to it. */
+const HELP=[
+ {part:"How the System Builder works"},
+ {id:"idea",t:"The big idea",img:["idea"],lead:"Every card and every line is a piece of the game's own sheets (the CSV files in data/).",
+  steps:["A <b>card</b> is one row of a sheet. This beer is the row <code>plain_power</code> in Brews.csv.","A <b>line</b> is one cell that joins two rows. This one is the beer's Attack Ability.","Click a card and its whole row opens on the right. What you change here is what the game reads."]},
+ {id:"tabs",t:"The screen",img:["empty"],
+  steps:["<b>Your seven boards.</b> Each starts empty and only shows what you put on it.","<b>Find a card</b>: anything the game already has, plus your groups.","<b>Add to the board</b>: make something new (a match, a beer, an ability, a group…).","<b>Save</b> saves by itself. The button also downloads or opens a save file.","<b>Changes</b> lists every sheet you changed.","<b>Panel</b> buttons hide the side panels for more room. <b>Tables</b> and <b>Help</b> sit at the end of the tabs.","<b>Play</b> runs a pretend season, day by day."]},
+ {id:"shapes",t:"Card shapes",img:["shapes"],lead:"The shape tells you what kind of row a card is.",
+  steps:["<b>Match</b> (green arrow): a match mode. <b>Adventure</b> (mountains): an adventure place.","<b>Score</b> (blue dot): a number the game counts. <b>Money</b> and <b>Stuff</b> (rings): what you own and carry.","<b>Maker</b> (orange triangle): turns stuff into other stuff, like a brewing machine or a merchant trade.","<b>Goal</b> (diamond), <b>Unlock</b> (star) and <b>Building</b> (house).","<b>Beer</b> (mug): a beer a player drinks. <b>Ability</b> (red bolt): what it does in a duel."]},
+ {id:"find",t:"Putting the game's cards on a board",img:["search"],
+  steps:["Type part of a name.","<b>+ add</b> puts that card on the board you're on. <b>on board</b> means it's already there.","Drag a card by its body to move it. The board scrolls when you drag empty space."]},
+ {id:"lines",t:"Your lines and the game's lines",img:["lines_off","lines_on"],lead:"Left: Game lines off. Right: Game lines on.",
+  steps:["A board shows <b>only the lines you drew</b>, so nothing appears that you didn't make.","<b>Game lines: on</b> also shows the links the sheets already have between the cards on your board. Here the Bottle lands in the bag as a Small Bottle, and a Small Bottle pours one of three Plain Beers at random."]},
+ {id:"draw",t:"Drawing a line",img:["connect"],
+  steps:["Drag from the <b>dot on a card's right edge</b> to another card.","<b>Connect in the game</b> writes the cell it shows you, so the game will really do it.","<b>Draw board line</b> only draws a note with a label (input, output, needs…). The game never sees it."]},
+ {id:"line",t:"Reading and removing a line",img:["line_panel"],
+  steps:["Click a line.","The right panel says which sheet and which cell the line is.","<b>Remove this line</b> (or the Delete key) clears that cell. Undo brings it back."]},
+ {id:"card",t:"Editing a card",img:["card_panel"],
+  steps:["Click a card.","Each box is one column of its row. Type, then press Tab or click away to keep it.","IDs the game already uses are locked, so nothing that points at them can break.","Scroll down the panel to see its lines in and out, and the buttons to take it off the board or delete it."]},
+ {id:"guard",t:"Guard rails: you can't break a sheet",img:["guard"],lead:"Every cell you type is checked before it's kept.",
+  steps:["A wrong entry flashes red and goes back to what it was.","The message at the bottom says why and how to write it.","Checked: numbers must be numbers; a Kind, Trigger or Scope must be one the game knows; checks like <code>count:x&gt;=3</code> or <code>unlocked:Pub</code> must be spelled right; ingredients, items and abilities must exist."]},
+ {id:"new",t:"Making something new",img:["add_popup","dup"],
+  steps:["Pick a <b>New …</b> button and type a name.","The card appears on your board, with a new row in the sheet named in the box.","If the game already has something with that name, it offers you the game's one instead, so the game never gets two."]},
+ {id:"groups",t:"Groups",img:["group"],
+  steps:["<b>New group</b> draws a labelled box, like Ingredients or Bottled beers.","Drag cards into it.","Drag its <b>name bar</b> to move the box with every card in it.","Drag the corner to resize it.","Draw lines from the <b>dot on its right</b>. A group's lines are notes on your board only."]},
+ {id:"delete",t:"Deleting",img:["delete"],
+  steps:["Click a card and press Delete.","On a board, <b>Only take it off this board</b> is picked first. It never touches the game.","Really deleting something other rows use needs a second click that names them.","Undo (top bar or Ctrl+Z) brings anything back."]},
+ {id:"play",t:"Play the pretend season",img:["play"],
+  steps:["<b>Play</b> runs pretend days: matches, adventures, brewing, buying.","Drag the slider to any day.","Each card shows the day it's first reached. Greyed cards aren't reached yet on that day.","On the right, <b>How the pretend player plays</b> sets wins, goals, brews a day and so on."]},
+ {id:"save",t:"Saving, other PCs and merging",img:["save"],
+  steps:["On the link your work saves online by itself, at work and at home. A page left open picks up a newer save from another PC.","<b>Download a save file</b> and <b>Open a save file</b> carry it anywhere.","At home write <b>merge my System Builder save</b>. Claude puts it into the CSVs and runs the game's checks. <b>Your edits win</b>; cells you didn't touch keep any newer values."]},
+ {id:"tables",t:"Tables",img:["tables"],
+  steps:["Every sheet as a table. Pick the sheet here.","Type in any cell. The same guard rails apply."]},
+ {part:"Worked example: random bottled beers"},
+ {id:"ex0",t:"What we're building",img:["ex_final"],lead:"After bottling you get a plain bottle. Drinking it pours one beer at random, and the beer's name tells you its two sides. Built here in a scratch copy, so nothing went into your game.",
+  steps:["The <b>Bottling Machine</b> makes Bottles, and each Bottle is a <b>Small Bottle</b> in the bag.","A Small Bottle pours <b>one beer at random</b> from its pool.","Each beer has an <b>attack ability</b> (its good side) and a <b>defend ability</b> (its catch)."]},
+ {id:"ex1",t:"Step 1: put the chain on the Brewery board",img:["ex_chain"],
+  steps:["Find and <b>+ add</b>: Bottling Machine, Bottle, Small Bottle.","Turn <b>Game lines: on</b>. Bottle → <i>is a</i> → Small Bottle, and Small Bottle → <i>random</i> → the three Plain Beers the game already has."]},
+ {id:"ex2",t:"Step 2: make the two abilities for Helles",img:["ex_ability"],
+  steps:["<b>New ability</b>, name it <i>Helles: Basic Boost</i>.","Fill in its row: Trigger <code>on_attack</code>, Target <code>self</code>, Effect <code>add_attack</code>, Value <code>1</code>.","Make <i>Helles: Basic Slump</i> the same way: <code>on_defend</code>, <code>self</code>, <code>add_attack</code>, <code>-1</code>.","<b>\"If the last player was a basic unit\"</b> goes in the <b>If</b> box. The game's <code>last_player</code> check is planned but not switched on yet (AbilityTriggers.csv), so leave If empty and ask Claude to wire it."]},
+ {id:"ex3",t:"Step 3: make the beer",img:["ex_beer"],
+  steps:["<b>New random beer</b>. The game already has a <i>Helles</i> (the free beer that only fills the drunk meter), so the box offers that one. Name yours <i>Bottled Helles</i> instead.","The mug card appears. Its row is in Brews.csv with Pool <code>plain</code>."]},
+ {id:"ex4",t:"Step 4: let the bottle pour it",img:["ex_connect"],
+  steps:["Drag from Small Bottle's dot to Bottled Helles.","<b>Connect in the game</b> adds the bottle's pool to the beer's Pool, so it's now one of the beers picked at random."]},
+ {id:"ex5",t:"Step 5: give the beer its two sides",img:["ex_helles"],
+  steps:["Line from Bottled Helles to <i>Basic Boost</i>: the first line fills the <b>Attack Ability</b>.","Line to <i>Basic Slump</i>: the second fills the <b>Defend Ability</b>.","To swap them, change the two boxes in the beer's row."]},
+ {id:"ex6",t:"Step 6: Dunkles the same way",img:["ex_dunkles"],
+  steps:["Abilities: <i>Dunkles: Keeper's Thirst</i> = <code>on_attack</code>, <code>own_goalie</code>, <code>drain_stamina</code>, <code>1</code> (the catch).","<i>Dunkles: Their Keeper's Thirst</i> = <code>on_defend</code>, <code>enemy_goalie</code>, <code>drain_stamina</code>, <code>1</code> (the good side).","New random beer <i>Bottled Dunkles</i>, line from Small Bottle, then the two ability lines.","<b>Random which side is good?</b> Make a second row of the same beer with the two abilities swapped. The bottle picks one of the two."]},
+ {id:"ex7",t:"Step 7: only your beers in the bottle",img:["ex_remove"],
+  steps:["Click the line Small Bottle → Plain Beer.","Press Delete (or Remove this line). That takes <code>plain</code> out of that beer's Pool, so the bottle stops pouring it. Do it for each Plain Beer you don't want."]},
+ {id:"ex8",t:"Step 8: tidy it into a group, then check",img:["ex_group","ex_changes"],
+  steps:["<b>New group</b> <i>Bottled beers</i> and drag the beers in. A board line from Small Bottle to the group, labelled <i>pours one</i>, is a note for you.","<b>Changes</b> shows Brews.csv and Abilities.csv. When you're happy, at home write <b>merge my System Builder save</b>."]}
+];
+function help(){let sh=$("#helpSheet");if(sh)sh.remove();sh=document.createElement("div");sh.className="sheet";sh.id="helpSheet";
+  const nav=HELP.map(h=>h.part?`<span class="hpart">${h.part}</span>`:`<a href="#h_${h.id}">${h.t}</a>`).join("");
+  const secs=HELP.map(h=>h.part?`<h1 class="hparth">${h.part}</h1>`:`<section class="hsec" id="h_${h.id}"><h2>${h.t}</h2>${h.lead?`<p class="hlead">${h.lead}</p>`:""}
+    <div class="hrow"><div class="hpics">${h.img.map(i=>HELP_IMG[i]?`<img src="${HELP_IMG[i]}" alt="${escA(h.t)}">`:"").join("")}</div>
+    <ol class="hsteps">${h.steps.map(s=>`<li>${s}</li>`).join("")}</ol></div></section>`).join("");
+  sh.innerHTML=`<div class="bar"><b>Help</b><span class="hint">Every numbered ring in a picture matches the numbered step beside it. Click a picture to see it full size.</span></div><div class="body hbody"><nav class="hnav">${nav}</nav><div class="hmain">${secs}</div></div>`;
+  $("main").classList.add("helpon");$("#stage").appendChild(sh);
+  sh.querySelectorAll(".hnav a").forEach(a=>a.onclick=e=>{e.preventDefault();sh.querySelector(a.getAttribute("href")).scrollIntoView({block:"start"})});
+  // click a picture to see it full size
+  sh.querySelectorAll(".hpics img").forEach(i=>i.onclick=()=>{const z=document.createElement("div");z.className="hzoom";z.innerHTML=`<img src="${i.src}" alt="">`;z.onclick=()=>z.remove();document.body.appendChild(z)})}

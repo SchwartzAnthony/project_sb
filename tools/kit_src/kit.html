@@ -50,6 +50,9 @@ details.sec[open]>summary::before{transform:rotate(90deg)}
 details.sec>summary:hover{color:var(--chalk)}
 main.noleft{grid-template-columns:1fr 320px}main.noright{grid-template-columns:200px 1fr}main.noleft.noright{grid-template-columns:1fr}
 main.noleft #left,main.noright #right{display:none}
+main.helpon{grid-template-columns:1fr!important}main.helpon #left,main.helpon #right{display:none}
+.hzoom{position:fixed;inset:0;z-index:50;background:#0b0f0dee;display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}.hzoom img{max-width:100%;max-height:100%;border-radius:4px}
+.hpics img{cursor:zoom-in}
 .hbtn.ico{padding:5px 8px}
 /* groups and note lines (board only) */
 .grp .gbox{fill:var(--gc);fill-opacity:.07;stroke:var(--gc);stroke-opacity:.7;stroke-width:1.4;stroke-dasharray:7 5;cursor:move}
@@ -177,6 +180,19 @@ footer{display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;
 .sheet{position:absolute;inset:0;background:var(--slate);z-index:5;display:flex;flex-direction:column;min-height:0}
 .sheet .bar{display:flex;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .sheet .body{overflow:auto;padding:12px 16px;min-height:0;flex:1}
+.hbody{display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:start}
+.hnav{position:sticky;top:0;display:grid;gap:2px;font-size:13px}
+.hnav a{color:var(--chalk-dim);text-decoration:none;padding:3px 0}.hnav a:hover{color:var(--beer)}
+.hpart{font:600 11px var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--beer);margin:10px 0 4px}
+.hparth{font:700 22px var(--cond);color:var(--beer);letter-spacing:.04em;margin:8px 0 18px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.hsec{margin:0 0 40px;max-width:1200px}.hsec h2{font:600 18px var(--cond);letter-spacing:.04em;margin:0 0 6px;color:var(--chalk)}
+.hlead{color:var(--chalk-dim);margin:0 0 10px;max-width:70ch}
+.hrow{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(220px,1fr);gap:20px;align-items:start}
+.hpics{display:grid;gap:10px}.hpics img{width:100%;border:1px solid var(--line);border-radius:4px;display:block}
+.hsteps{margin:0;padding:0;list-style:none;counter-reset:s;display:grid;gap:10px;font-size:14px;line-height:1.45}
+.hsteps li{counter-increment:s;position:relative;padding-left:34px}
+.hsteps li::before{content:counter(s);position:absolute;left:0;top:-1px;width:24px;height:24px;border-radius:50%;background:var(--beer);color:#1b1a14;font:700 13px/24px var(--ui);text-align:center}
+@media (max-width:900px){.hbody{grid-template-columns:1fr}.hnav{position:static}.hrow{grid-template-columns:1fr}}
 table.grid{border-collapse:collapse;font:12.5px var(--mono)}
 table.grid th{position:sticky;top:0;background:var(--slate-3);text-align:left;padding:5px 8px;font:600 12px var(--cond);letter-spacing:.06em;color:var(--chalk-dim);white-space:nowrap}
 table.grid td{border-top:1px solid var(--line);padding:0}
@@ -231,7 +247,7 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
     <svg id="svg" aria-label="System board"><defs>
       <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9z" fill="context-stroke"/></marker>
     </defs><g id="world"><g id="gGroups"></g><g id="gEdges"></g><g id="gNotes"></g><g id="gLabels"></g><g id="gNodes"></g><g id="gGroupTop"></g><path id="ghost" class="ghost" d=""/></g></svg>
-    <div id="empty" class="empty" hidden><h2><span id="emptyName">This board</span> is empty</h2><p>Build your system here, one card at a time.</p><p><b>Add a new card</b> with the buttons on the left (a match mode, an Adventure place, an achievement…), or <b>find one the game already has</b> in "Find a card" and put it on this board.</p><p>When two cards on the board are already joined in the game's sheets, the line shows up by itself. Drag from a card's right-hand dot to draw new lines.</p><p class="hint">Not sure where to start? The <b>Example</b> tab shows the whole game as I drew it.</p></div>
+    <div id="empty" class="empty" hidden><h2><span id="emptyName">This board</span> is empty</h2><p>Build your system here, one card at a time.</p><p><b>Add a new card</b> with the buttons on the left (a match mode, an Adventure place, an achievement…), or <b>find one the game already has</b> in "Find a card" and put it on this board.</p><p>When two cards on the board are already joined in the game's sheets, the line shows up by itself. Drag from a card's right-hand dot to draw new lines.</p><p class="hint">Not sure where to start? The <b>Help</b> tab shows every part in pictures, with a worked example.</p></div>
     <div class="zoombar"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Fit the board" title="Fit">⤢</button></div>
   </section>
   <aside id="right"></aside>
@@ -279,7 +295,7 @@ function persist(){const f={},base={},orig={};for(const n of changedFiles()){f[n
 // Your edits win: what you changed (added rows, removed rows, changed cells) is laid over a newer copy of the sheet.
 // Cells you did not touch keep the newer copy's values, so changes made at home by Claude are kept too.
 function threeWay(n,baseT,mineT,curT){const b=loadFile(n,baseT),m=loadFile(n,mineT),c=loadFile(n,curT);
-  const key=r=>c.cols.includes("ID")?r.ID:c.cols.slice(0,2).map(x=>r[x]).join("|");
+  const k0=c.cols.includes("ID")?"ID":/ID$/.test(c.cols[0]||"")?c.cols[0]:null;const key=r=>k0?r[k0]:c.cols.slice(0,2).map(x=>r[x]).join("|");
   const bm=new Map(b.rows.map(r=>[key(r),r])),mm=new Map(m.rows.map(r=>[key(r),r]));
   c.rows=c.rows.filter(r=>!(bm.has(key(r))&&!mm.has(key(r))));const cm=new Map(c.rows.map(r=>[key(r),r]));
   m.rows.forEach(r=>{const k=key(r),o=bm.get(k),t=cm.get(k);
@@ -289,30 +305,35 @@ function threeWay(n,baseT,mineT,curT){const b=loadFile(n,baseT),m=loadFile(n,min
 
 /* ---------- guard rails: every cell you type is checked before it is kept ---------- */
 const RESFILES=["Items","BreweryResources","Currencies"];
+// the column that names a row: ID in most sheets, "Ability ID" in Abilities.csv
+const idCol=file=>{const c=FILES[file]?FILES[file].cols:[];return c.includes("ID")?"ID":/ID$/.test(c[0]||"")?c[0]:null};
 const isThing=id=>RESFILES.some(f=>FILES[f]&&FILES[f].rows.some(r=>r.ID==id));
 const COLINFO={},ENUMS={};
 for(const n in ORIG){const f=loadFile(n,ORIG[n]);COLINFO[n]={};f.cols.forEach(c=>{const v=f.rows.map(r=>r[c]||"");const full=v.filter(x=>x);
   COLINFO[n][c]={num:full.length>0&&full.every(x=>/^-?\d+(\.\d+)?$/.test(x)),blank:full.length<v.length}})}
 ["Upgrades.Kind","Items.Kind","Items.Tab","Items.Target","BreweryResources.Kind","BreweryResources.Kept","MatchModes.Records Season","MatchModes.Star Rotation","MatchModes.Opponent","MatchModes.Scene",
- "AdventureEnemies.Boss","AdventureEnemies.Targeting","AdventureEnemies.Element","Progression.When","Progression.Once","Currencies.Earned In","Brews.Element","Brews.Permanent","Achievements.Hidden"].forEach(k=>{const [n,c]=k.split(".");
+ "AdventureEnemies.Boss","AdventureEnemies.Targeting","AdventureEnemies.Element","Progression.When","Progression.Once","Currencies.Earned In","Abilities.Trigger","Abilities.Scope","Brews.Element","Brews.Permanent","Achievements.Hidden"].forEach(k=>{const [n,c]=k.split(".");
   if(!ORIG[n])return;ENUMS[k]=[...new Set(loadFile(n,ORIG[n]).rows.map(r=>r[c]).filter(x=>x))].sort()});
-const origHas=(file,id)=>!!ORIG[file]&&loadFile(file,ORIG[file]).rows.some(r=>r.ID==id);
+const origHas=(file,id)=>!!ORIG[file]&&!!idCol(file)&&loadFile(file,ORIG[file]).rows.some(r=>r[idCol(file)]==id);
 function cellProblem(file,col,v,row){v=String(v??"");const ci=(COLINFO[file]||{})[col];
   if(/[\r\n]/.test(v)&&!/^(Notes|Description)$/.test(col))return "Keep this on one line.";
-  if(col=="ID"&&FILES[file]&&FILES[file].cols.includes("ID")){if(!/^[a-z0-9_]+$/.test(v))return "An ID uses only small letters, numbers and _ (like basic_germs).";
-    if(FILES[file].rows.some(r=>r!==row&&r.ID==v))return `${file}.csv already has ${v}.`;
+  if(col==idCol(file)){if(file=="Abilities"?!/^[A-Z0-9_]+$/.test(v):!/^[a-z0-9_]+$/.test(v))return file=="Abilities"?"An ability ID uses only CAPITALS, numbers and _ (like HELLES_ATK).":"An ID uses only small letters, numbers and _ (like basic_germs).";
+    if(FILES[file].rows.some(r=>r!==row&&r[col]==v))return `${file}.csv already has ${v}.`;
     if(RESFILES.includes(file)&&!origHas(file,v)&&RESFILES.some(f=>f!=file&&FILES[f]&&FILES[f].rows.some(r=>r.ID==v)))return `${v} already exists in another sheet, so the game would mix them up.`}
   if(!v)return ci&&!ci.blank?`${col} can't be empty.`:"";
   if(ci&&ci.num&&!/^-?\d+(\.\d+)?$/.test(v))return `${col} must be a number.`;
   const en=ENUMS[file+"."+col];if(en&&!en.includes(v))return `${col} must be one of: ${en.join(", ")}.`;
   const toks=v.split(";").map(t=>t.trim());
   if(/^(Needs|Requires)$/.test(col)){const bad=toks.find(t=>!/^(count:\w+(>=|<=|==|>|<)\d+|!?flag:\w+|unlocked:[^:;]+)$/.test(t));if(bad!==undefined)return `"${bad}" isn't a check the game knows. Use count:thing>=N, flag:name or unlocked:Name, joined with ;`}
-  if(/^(Effect|Rewards|Rewards On Win)$/.test(col)){const bad=toks.find(t=>!/^count:\w+[+-]\d+$/.test(t));if(bad!==undefined)return `"${bad}" should look like count:thing+N, joined with ;`}
+  if(file!="Abilities"&&/^(Effect|Rewards|Rewards On Win)$/.test(col)){const bad=toks.find(t=>!/^count:\w+[+-]\d+$/.test(t));if(bad!==undefined)return `"${bad}" should look like count:thing+N, joined with ;`}
   if(file=="BrewerySections"&&col=="Takes")for(const t of toks){const m=t.match(/^(\w+):(\d+)$/);if(!m)return `"${t}" should look like wheat:1, joined with ;`;if(!FILES.BreweryResources.rows.some(r=>r.ID==m[1]))return `${m[1]} isn't a brewery ingredient (BreweryResources.csv).`}
   if(file=="BrewerySections"&&col=="Makes"&&!FILES.BreweryResources.rows.some(r=>r.ID==v))return `${v} isn't a brewery ingredient (BreweryResources.csv).`;
   if(file=="Brews"&&col=="Cost")for(const t of v.split("|")){const m=t.match(/^(\w+):(\d+)$/);if(!m)return `"${t}" should look like reed:2, joined with |`;if(!isThing(m[1]))return `${m[1]} isn't an item the game has.`}
   if(col=="Currency"&&!isThing(v))return `${v} isn't a currency or item the game has.`;
   if(file=="Drops"&&col=="Item"&&!isThing(v))return `${v} isn't an item the game has.`;
+  if(file=="Brews"&&/Ability$/.test(col)&&!F("Abilities").some(r=>r["Ability ID"]==v))return `${v} isn't in Abilities.csv. Make it with New ability first.`;
+  if(file=="Brews"&&col=="Pool"&&!v.split("|").every(x=>/^[a-z0-9_]+$/.test(x)))return "Pool names use small letters, numbers and _, several joined with |.";
+  if(file=="Abilities"&&/^(Effect|Target)$/.test(col)){const known=new Set(loadFile("Abilities",ORIG.Abilities).rows.map(r=>(r[col]||"").split(":")[0]));if(!known.has(v.split(":")[0]))return `${col} must start with one the game knows: ${[...known].filter(x=>x).sort().join(", ")}.`}
   if(file=="Shop"&&col=="Sells"&&!/^(res|brew|unlock|count):\S/.test(v))return "Sells starts with res:, brew:, unlock: or count:.";
   return ""}
 // one place every typed cell goes through: refuse it (and say why) or keep it
@@ -330,7 +351,9 @@ const KINDS={
   maker:{label:"Maker",desc:"Turns stuff into other stuff: a brew, a trade, an upgrade, a brewing machine",color:"var(--clay)",glyph:"tri"},
   goal:{label:"Goal",desc:"An achievement or story moment that fires when its Needs are met",color:"var(--beer)",glyph:"diamond"},
   unlock:{label:"Unlock",desc:"A name that gets switched on (Brewery, Fire Brew…)",color:"var(--beer)",glyph:"star"},
-  place:{label:"Building",desc:"A building on the base",color:"var(--chalk)",glyph:"house"}};
+  place:{label:"Building",desc:"A building on the base",color:"var(--chalk)",glyph:"house"},
+  beer:{label:"Beer",desc:"A beer or brew a player drinks. Random beers share a Pool",color:"var(--beer)",glyph:"mug"},
+  ability:{label:"Ability",desc:"What a beer or card does in a duel: +1 power, drain stamina…",color:"var(--brick)",glyph:"bolt"}};
 const ETYPES={flow:"gives / makes",cost:"costs",unlock:"unlocks / needs it unlocked",reads:"checks a number",game:"counted by the game itself"};
 const VIEWS=[
   {id:"whole",name:"Whole Game",board:true},
@@ -344,7 +367,7 @@ const VIEWS=[
   {id:"path",name:"Unlock path",old:true,kinds:["play","adventure","stat","goal","unlock","place","maker"],makers:["upgrade"]},
   {id:"loot",name:"Loot & money",old:true,kinds:["play","adventure","money","stuff","maker"],makers:["brew","shop","upgrade"]},
   {id:"brewery",name:"Brewery",old:true,kinds:["stuff","maker","money"],makers:["brew","section","shop"]},
-  {id:"tables",name:"Tables"}];
+  {id:"tables",name:"Tables"},{id:"help",name:"Help"}];
 const MATCH_STATS=["matches_played","matches_won","goals","goals_by_star","clean_sheets","keeper_emptied","red_cards","goals_with_brew_fire"];
 const HIDDEN_MODES=["adventure","intro","intro2","intro_adventure","tutorial","tutorial_adventure","friendly_test","friendly_cycle"];
 
@@ -415,9 +438,17 @@ function buildGraph(){
     if((m=s.match(/^res:(\w+)/)))edge(n,numId(m[1]),"flow","+"+(r["How Many"]||1),src);
     else if((m=s.match(/^brew:(\w+)/))){const b=N.get("brew:"+m[1]);edge(n,b||feat("recipe "+m[1]),"unlock","recipe",src)}
     else acts(n,"Shop",r,"Sells")});
-  F("Brews").filter(r=>r.Cost||r.Requires&&!/flag:/.test(r.Requires)).forEach(r=>{const n=add("brew:"+r.ID,{kind:"maker",label:r.Name,file:"Brews",row:r,sub:"Brew"+(r.Becomes?" → "+r.Becomes:""),mk:"brew"});
+  const ability=id=>{const r=F("Abilities").find(x=>x["Ability ID"]==id);return add("abl:"+id,{kind:"ability",label:r?r.Name:id,file:r?"Abilities":null,row:r||null,sub:r?`${r.Trigger} · ${r.Effect} ${r.Value}`:"ability (not in Abilities.csv yet)"})};
+  F("Abilities").forEach(r=>ability(r["Ability ID"]));
+  F("Brews").forEach(r=>{const n=add("brew:"+r.ID,{kind:"beer",label:r.Name,file:"Brews",row:r,sub:r.Pool?"Random beer · pool "+r.Pool:"Brew"+(r.Becomes?" → "+r.Becomes:""),mk:"brew"});
+    ["Attack Ability","Defend Ability"].forEach(c=>{if(r[c])edge(n,ability(r[c]),"reads",c=="Attack Ability"?"attack":"defend",{file:"Brews",row:r,col:c,token:r[c],whole:true})});
     conds(n,"Brews",r,"Requires");parseCost(r.Cost).forEach(c=>edge(numId(c.id),n,"cost",c.n,{file:"Brews",row:r,col:"Cost",token:c.id+":"+c.n,sep:"|"}));
     edge(n,numId("brews_poured"),"game","");if(resIds.has("brew_"+r.ID))edge(n,numId("brew_"+r.ID),"flow","+1")});
+  // a bottle that pours "brew:pool:X" gives one random beer whose Pool lists X
+  F("Items").forEach(r=>{const m=(r.Use||"").match(/^brew:pool:(\w+)/);if(!m)return;const it=numId(r.ID);
+    F("Brews").filter(b=>(b.Pool||"").split("|").includes(m[1])).forEach(b=>edge(it,N.get("brew:"+b.ID),"flow","random",{file:"Brews",row:b,col:"Pool",token:m[1],sep:"|"}))});
+  // a brewery resource with a Counter lands in the bag as that item (bottle -> Small Bottle)
+  F("BreweryResources").forEach(r=>{if(r.Counter&&r.Counter!==r.ID)edge(numId(r.ID),numId(r.Counter),"flow","is a",{file:"BreweryResources",row:r,col:"Counter",token:r.Counter,whole:true})});
   // the shop sells recipes before the brews are built in this pass; tie them up now
   E.forEach(e=>{if(e.to.startsWith("feat:recipe ")){const b=N.get("brew:"+e.to.slice(12));if(b)e.to=b.id}});
   F("BrewerySections").forEach(r=>{const n=add("sec:"+r.ID,{kind:"maker",label:r.Name,file:"BrewerySections",row:r,sub:"Brewery · "+r.Worker,mk:"section"});
@@ -561,6 +592,8 @@ function glyph(g,kind,x,y,col){const s={fill:col,stroke:"none"};
     case "tri":return el("path",Object.assign({d:`M${x-9} ${y-8}L${x+9} ${y}L${x-9} ${y+8}z`,fill:"none",stroke:col,"stroke-width":2}),g);
     case "diamond":return el("path",Object.assign({d:`M${x} ${y-10}L${x+10} ${y}L${x} ${y+10}L${x-10} ${y}z`},s),g);
     case "star":{let d="";for(let i=0;i<10;i++){const r=i%2?4:10,a=Math.PI/5*i-Math.PI/2;d+=(i?"L":"M")+(x+r*Math.cos(a)).toFixed(1)+" "+(y+r*Math.sin(a)).toFixed(1)}return el("path",Object.assign({d:d+"z"},s),g)}
+    case "mug":return el("path",{d:`M${x-8} ${y-8}H${x+4}V${y+8}H${x-8}zM${x+4} ${y-4}H${x+9}V${y+3}H${x+4}`,fill:"none",stroke:col,"stroke-width":2,"stroke-linejoin":"round"},g);
+    case "bolt":return el("path",Object.assign({d:`M${x+2} ${y-10}L${x-7} ${y+2}H${x}L${x-2} ${y+10}L${x+7} ${y-2}H${x}z`},s),g);
     case "house":return el("path",Object.assign({d:`M${x-9} ${y+8}V${y-2}L${x} ${y-10}L${x+9} ${y-2}V${y+8}z`,fill:"none",stroke:col,"stroke-width":2}),g)}}
 function edgePath(a,b){const x1=a.x+W,y1=a.y+H/2,x2=b.x,y2=b.y+H/2;const back=x2<x1+20;const dx=back?Math.max(80,Math.abs(x2-x1)/3):Math.max(40,(x2-x1)/2);
   return{d:`M${x1} ${y1}C${x1+dx} ${y1+(back?60:0)},${x2-dx} ${y2+(back?60:0)},${x2} ${y2}`,mx:(x1+x2)/2,my:(y1+y2)/2+(back?45:0)}}
@@ -635,8 +668,11 @@ function fit(){const ps=[...IDS].map(id=>P[id]);if(!ps.length)return;const r=svg
 /* ---------- connecting cards = writing CSV cells ---------- */
 const id2=n=>n.id.split(":").slice(1).join(":");
 function linkRule(a,b){const ra=a.row,rb=b.row;
+  if(a.kind=="stuff"&&b.mk=="brew"&&a.row&&/^brew:pool:/.test(a.row.Use||"")){const pool=a.row.Use.split(":")[2];return{say:`Adds <code>${pool}</code> to <b>Brews.csv</b> → ${rb.ID} → Pool, so drinking a ${a.label} can pour ${rb.Name} (picked at random among the beers in that pool)`,apply:()=>addTok(rb,"Pool",pool,"|")}}
   if((a.kind=="stuff"||a.kind=="money")&&b.mk=="brew")return{say:`<code>${id2(a)}:N</code> goes into <b>Brews.csv</b> → ${rb.ID} → Cost`,ask:"How many?",def:2,apply:n=>addTok(rb,"Cost",id2(a)+":"+n,"|","Brews")};
   if((a.kind=="stuff"||a.kind=="money")&&b.mk=="section")return{say:`<code>${id2(a)}:N</code> goes into <b>BrewerySections.csv</b> → ${rb.ID} → Takes`,ask:"How many?",def:1,apply:n=>addTok(rb,"Takes",id2(a)+":"+n,";","BrewerySections")};
+  if(a.mk=="brew"&&b.kind=="ability"){const col=!ra["Attack Ability"]?"Attack Ability":!ra["Defend Ability"]?"Defend Ability":"Attack Ability";return{say:`Sets <b>Brews.csv</b> → ${ra.ID} → ${col} to <code>${rb["Ability ID"]}</code> (${col=="Attack Ability"?"when he attacks":"when he defends"}). Change it to the other side in the beer's panel.`,apply:()=>set(ra,col,rb["Ability ID"])}}
+  if(a.kind=="stuff"&&b.kind=="stuff"&&a.file=="BreweryResources"&&b.file=="Items")return{say:`Sets <b>BreweryResources.csv</b> → ${ra.ID} → Counter to <code>${rb.ID}</code>, so each ${a.label} lands in the bag as a ${b.label}`,apply:()=>set(ra,"Counter",rb.ID)};
   if(a.mk=="section"&&b.kind=="stuff")return{say:`Sets <b>BrewerySections.csv</b> → ${ra.ID} → Makes to <code>${id2(b)}</code>, How Many N (its output)`,ask:"How many each batch?",def:1,apply:n=>{set(ra,"Makes",id2(b),"BrewerySections");set(ra,"How Many",n,"BrewerySections")}};
   if(a.kind=="money"&&(b.mk=="shop"||b.mk=="upgrade")){const col=b.mk=="shop"?"Price":"Cost";return{say:`Sets <b>${b.file}.csv</b> → ${rb.ID} → Currency to <code>${id2(a)}</code> and ${col} to N`,ask:"Price?",def:rb[col]||50,apply:n=>{set(rb,"Currency",id2(a),b.file);set(rb,col,n,b.file)}}}
   if(a.mk=="shop"&&(b.kind=="stuff"||b.kind=="money"))return{say:`Sets <b>Shop.csv</b> → ${ra.ID} → Sells to <code>res:${id2(b)}</code>, How Many N`,ask:"How many?",def:1,apply:n=>{set(ra,"Sells",(G.nodes.get("res:"+id2(b))&&F("BreweryResources").some(x=>x.ID==id2(b))?"res:":"count:")+id2(b)+(F("BreweryResources").some(x=>x.ID==id2(b))?"":"+"+n),"Shop");set(ra,"How Many",n,"Shop")}};
@@ -670,11 +706,11 @@ function removeEdge(e){if(!e.row){toast("This line comes from game code, not a C
 /* ---------- inspector ---------- */
 const R=$("#right");
 function inspect(){if(SELG)return inspectGroup();if(SELN)return inspectNote();if(SELE)return inspectEdge(SELE);if(!SEL)return summary();const n=G.nodes.get(SEL);const k=KINDS[n.kind];const f=SIM&&SIM.first[n.id];
-  let h=`<span class="kind" style="--k:${k.color}">${k.label}</span><h2>${escH(n.label)}</h2><div class="where">${n.file?n.file+".csv → "+escH(n.row.ID||n.row.Table||""):escH(n.sub||"")}</div>`;
+  let h=`<span class="kind" style="--k:${k.color}">${k.label}</span><h2>${escH(n.label)}</h2><div class="where">${n.file?n.file+".csv → "+escH(n.row[idCol(n.file)]||n.row.Table||""):escH(n.sub||"")}</div>`;
   h+=`<span class="state ${f==null?"no":"ok"}">${f==null?"Never reached in "+SIM_SET.days+" days":f===0?"Open from the start":"Reached on day "+f}</span>`;
   if(n.row){h+=`<div class="lbl" style="margin-top:16px">${n.file}.csv row</div>`;
     FILES[n.file].cols.forEach((c,i)=>{const v=n.row[c]||"";const long=c=="Notes"||c=="Description"||v.length>40;
-      h+=`<div class="field"><label for="f${i}">${escH(c)}</label>${long?`<textarea id="f${i}" data-c="${escA(c)}" rows="${c=="Notes"?3:2}">${escH(v)}</textarea>`:`<input id="f${i}" data-c="${escA(c)}" value="${escA(v)}"${c=="ID"&&origHas(n.file,v)?' readonly title="The game already uses this ID, so it stays as it is"':""}>`}</div>`})}
+      h+=`<div class="field"><label for="f${i}">${escH(c)}</label>${long?`<textarea id="f${i}" data-c="${escA(c)}" rows="${c=="Notes"?3:2}">${escH(v)}</textarea>`:`<input id="f${i}" data-c="${escA(c)}" value="${escA(v)}"${c==idCol(n.file)&&origHas(n.file,v)?' readonly title="The game already uses this ID, so it stays as it is"':""}>`}</div>`})}
   else if(n.kind=="unlock")h+=`<p class="hint" style="margin-top:12px">An unlock is just a name. Anything that says <code>unlock:${escH(n.label)}</code> switches it on; anything that says <code>unlocked:${escH(n.label)}</code> waits for it.</p>`;
   else if(n.kind=="stat")h+=`<p class="hint" style="margin-top:12px">A number the game keeps. CSVs check it with <code>count:${escH(id2(n))}>=N</code>.</p>`;
   const io=(list,dir)=>list.map(e=>{const o=G.nodes.get(dir?e.to:e.from);return `<button class="lnk" data-go="${escA(o.id)}">${dir?"→":"←"} ${escH(o.label)} <i>${escH(e.label||ETYPES[e.type])}</i></button>`}).join("");
@@ -682,7 +718,7 @@ function inspect(){if(SELG)return inspectGroup();if(SELN)return inspectNote();if
   if(n.outs.length)h+=`<div class="lbl" style="margin-top:16px">Leads to</div><div class="links">${io(n.outs,1)}</div>`;
   h+=`<div class="btnrow">${isBoard(VIEW)?(cur().includes(n.id)?`<button class="btn ghost2" id="mineBtn">Take off this board</button>`:`<button class="btn" id="mineBtn">Put on this board</button>`):`<select id="putOn" class="btn ghost2" aria-label="Put on a board"><option value="">Put on a board…</option>${BOARDS.map(b=>`<option value="${b.id}">${escH(b.name)}${(CARDS[b.id]||[]).includes(n.id)?" ✓":""}</option>`).join("")}</select>`}${canDelete(n)?`<button class="btn bad" id="delRow">Delete this card</button>`:""}</div>`;
   R.innerHTML=h;
-  R.querySelectorAll("[data-c]").forEach(inp=>inp.addEventListener("change",()=>{if(!tryCell(inp,n.file,n.row,inp.dataset.c))return;pushUndo();n.row[inp.dataset.c]=inp.value;changed(`${n.file}.csv ${n.row.ID}: ${inp.dataset.c} changed`)}));
+  R.querySelectorAll("[data-c]").forEach(inp=>inp.addEventListener("change",()=>{if(!tryCell(inp,n.file,n.row,inp.dataset.c))return;pushUndo();n.row[inp.dataset.c]=inp.value;changed(`${n.file}.csv ${n.row[idCol(n.file)]||""}: ${inp.dataset.c} changed`)}));
   R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
   const d=R.querySelector("#delRow");if(d)d.onclick=()=>askDelete(n);
   const mb=R.querySelector("#mineBtn");if(mb)mb.onclick=()=>{if(cur().includes(n.id))dropMine(n.id);else{addMine(n.id);inspect()}};
@@ -753,7 +789,7 @@ $("#btnChanges").onclick=()=>{const files=changedFiles();const sh=document.creat
   if(!files.length)b.innerHTML=`<p class="hint">No changes yet. Edit a card, connect two cards or add a new one, and the changed CSVs show up here.</p>`;
   files.forEach(f=>{const o=FILES[f],old=loadFile(f,ORIG[f]);const oldS=new Set(old.rows.map(r=>JSON.stringify(r)));const newS=new Set(o.rows.map(r=>JSON.stringify(r)));
     const added=o.rows.filter(r=>!oldS.has(JSON.stringify(r)));const gone=old.rows.filter(r=>!newS.has(JSON.stringify(r)));
-    const d=document.createElement("div");d.className="chg";d.innerHTML=`<h3>data/${f}.csv</h3><div class="hint">${added.length} row(s) new or changed${gone.length?`, ${gone.length} old version(s) replaced or removed`:""}: ${added.slice(0,8).map(r=>escH(r.ID||r.Table+"/"+r.Item)).join(", ")}</div><div class="btnrow"><button class="btn">Copy CSV</button></div><textarea readonly aria-label="${f}.csv">${escH(toCSV(o))}</textarea>`;
+    const d=document.createElement("div");d.className="chg";d.innerHTML=`<h3>data/${f}.csv</h3><div class="hint">${added.length} row(s) new or changed${gone.length?`, ${gone.length} old version(s) replaced or removed`:""}: ${added.slice(0,8).map(r=>escH(r.ID||r["Ability ID"]||r.Table+"/"+r.Item)).join(", ")}</div><div class="btnrow"><button class="btn">Copy CSV</button></div><textarea readonly aria-label="${f}.csv">${escH(toCSV(o))}</textarea>`;
     const ta=d.querySelector("textarea");d.querySelector(".btn").onclick=ev=>{const btn=ev.target;navigator.clipboard.writeText(ta.value).then(()=>btn.textContent="Copied").catch(()=>{ta.focus();ta.select();btn.textContent="Press Ctrl+C"})};b.appendChild(d)});
   sh.querySelector("#chgClose").onclick=()=>sh.remove();
   const rs=sh.querySelector("#chgReset");rs.onclick=()=>{if(!rs.dataset.sure){rs.dataset.sure=1;rs.textContent="Click again to throw away";return}pushUndo();for(const n in ORIG)FILES[n]=loadFile(n,ORIG[n]);sh.remove();changed("Back to the game's own CSVs")}};
@@ -764,7 +800,9 @@ const ADDS=[
   {k:"adventure",t:"Adventure place",file:"Biomes",make:(id,name)=>{const bs=F("Biomes").slice().sort((a,b)=>(+a.Order)-(+b.Order));const last=bs[bs.length-1]||{};const boss=last.ID?bossOf(last):null;
     return {ID:id,Name:name,Order:String((+last.Order||0)+1),Requires:boss?"unlocked:"+boss:(last.Requires||""),Waves:"4","Enemy Pool":id,Drops:id+"_ground",Difficulty:String((+last.Difficulty||0)+1),Description:""}}},
   {k:"goal",t:"Achievement",file:"Achievements",make:(id,name)=>({ID:id,Name:name,Description:"",Needs:"count:matches_played>=1",Unlocks:""})},
-  {k:"maker",t:"Brew recipe",file:"Brews",make:(id,name)=>({ID:id,Name:name,Cost:"reed:1"})},
+  {k:"beer",t:"Brew recipe",file:"Brews",make:(id,name)=>({ID:id,Name:name,Cost:"reed:1"})},
+  {k:"beer",t:"Random beer",file:"Brews",make:(id,name)=>({ID:id,Name:name,Inspiration:"10",Pool:"plain",Notes:"Made in the System Builder: one of the random plain beers. Give it an attack and a defend ability."})},
+  {k:"ability",t:"Ability",file:"Abilities",make:(id,name)=>({"Ability ID":id.toUpperCase(),Name:name,Trigger:"on_attack",Target:"self",Effect:"add_power",Value:"1",Scope:"duel",Notes:"Made in the System Builder."})},
   {k:"maker",t:"Brewing machine",file:"BrewerySections",make:(id,name)=>{const ss=F("BrewerySections");return {Order:String(ss.reduce((m,r)=>Math.max(m,+r.Order||0),0)+1),ID:id,Name:name,Worker:"",Needs:"",Takes:"",Makes:"","How Many":"1",Batches:"1","Wait Min":"0","Wait Max":"0",Notes:"Made in the System Builder. Draw lines IN from what it takes and OUT to what it makes."}}},
   {k:"maker",t:"Merchant trade",file:"Shop",make:(id,name)=>({ID:id,Name:name,Sells:"res:hops","How Many":"1",Price:"10",Currency:"coins",Requires:"unlocked:Traveling Tavern"})},
   {k:"maker",t:"Club House upgrade",file:"Upgrades",make:(id,name)=>({ID:id,Name:name,Kind:"upgrade",Cost:"100",Currency:"coins",Effect:"count:"+id+"+1"})},
@@ -780,8 +818,8 @@ function askName(a){const pop=document.createElement("div");pop.className="pop";
     if(same&&!sure){sure=true;const p=pop.querySelector("p");p.innerHTML=`<b>${escH(same.label)}</b> is already in the game (${same.file}.csv). Use that one, so the game doesn't get two?`;
       const ok=pop.querySelector("#newOk");ok.textContent="Make a second one anyway";ok.classList.add("ghost2");const use=document.createElement("button");use.className="btn";use.textContent="Use the game's "+same.label;
       use.onclick=()=>{pop.remove();if(isBoard(VIEW)){addMine(same.id)}goTo(same.id)};ok.parentNode.insertBefore(use,ok);use.focus();return}let id=name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ß/g,"ss").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
-    while(F(a.file).some(r=>r.ID==id)||RESFILES.includes(a.file)&&isThing(id))id+="_2";pushUndo();const row=Object.assign(blank(a.file),a.make(id,name));FILES[a.file].rows.push(row);pop.remove();
-    const pre={MatchModes:"mode:",Biomes:"biome:",Achievements:"ach:",Brews:"brew:",Shop:"shop:",Upgrades:"upg:",Items:"res:",BrewerySections:"sec:"}[a.file]+id;
+    if(a.file=="Abilities")id=id.toUpperCase();while(F(a.file).some(r=>r[idCol(a.file)]==id)||RESFILES.includes(a.file)&&isThing(id))id+="_2";pushUndo();const row=Object.assign(blank(a.file),a.make(id,name));FILES[a.file].rows.push(row);pop.remove();
+    const pre={MatchModes:"mode:",Biomes:"biome:",Achievements:"ach:",Brews:"brew:",Shop:"shop:",Upgrades:"upg:",Items:"res:",BrewerySections:"sec:",Abilities:"abl:"}[a.file]+id;
     if(isBoard(VIEW)&&!cur().includes(pre)){cur().push(pre);saveMine()}
     if(isBoard(VIEW)){changed(`Added ${name} to ${a.file}.csv`);if(G.nodes.has(pre))goTo(pre);return}
     changed(`Added ${name} to ${a.file}.csv`);
@@ -794,7 +832,7 @@ let TBL=lsGet(":tbl")||"Achievements";
 function tables(){let sh=$("#tblSheet");if(sh)sh.remove();sh=document.createElement("div");sh.className="sheet";sh.id="tblSheet";
   sh.innerHTML=`<div class="bar"><label for="tblPick" class="lbl" style="margin:0">Sheet</label><select id="tblPick">${Object.keys(FILES).sort().map(f=>`<option ${f==TBL?"selected":""}>${f}</option>`).join("")}</select><span class="hint">Every cell writes straight into data/${TBL}.csv. The full kit opens all ${SRC_COUNT} sheets here.</span></div><div class="body"><table class="grid" id="grid"></table></div>`;
   $("#stage").appendChild(sh);const f=FILES[TBL];const t=sh.querySelector("#grid");
-  t.innerHTML=`<thead><tr>${f.cols.map(c=>`<th>${escH(c)}</th>`).join("")}</tr></thead><tbody>${f.rows.map((r,i)=>`<tr>${f.cols.map(c=>`<td class="${c=="Notes"?"note":""}"><input data-r="${i}" data-c="${escA(c)}" value="${escA(r[c])}"${c=="ID"&&origHas(TBL,r[c])?" readonly":""} aria-label="${escA(c)}" title="${escA(r[c])}"></td>`).join("")}</tr>`).join("")}</tbody>`;
+  t.innerHTML=`<thead><tr>${f.cols.map(c=>`<th>${escH(c)}</th>`).join("")}</tr></thead><tbody>${f.rows.map((r,i)=>`<tr>${f.cols.map(c=>`<td class="${c=="Notes"?"note":""}"><input data-r="${i}" data-c="${escA(c)}" value="${escA(r[c])}"${c==idCol(TBL)&&origHas(TBL,r[c])?" readonly":""} aria-label="${escA(c)}" title="${escA(r[c])}"></td>`).join("")}</tr>`).join("")}</tbody>`;
   t.querySelectorAll("input").forEach(inp=>inp.addEventListener("change",()=>{if(!tryCell(inp,TBL,f.rows[+inp.dataset.r],inp.dataset.c))return;pushUndo();f.rows[+inp.dataset.r][inp.dataset.c]=inp.value;persist();buildGraph();runSim();updCount();toast(`${TBL}.csv: ${inp.dataset.c} changed`)}));
   sh.querySelector("#tblPick").onchange=e=>{TBL=e.target.value;lsSet(":tbl",TBL);tables()}}
 const SRC_COUNT=/*__COUNT__*/132;
@@ -802,6 +840,8 @@ const SRC_COUNT=/*__COUNT__*/132;
 /* ---------- tabs, legend, playback ---------- */
 function renderTabs(){let seen=false;$("#tabs").innerHTML=VIEWS.map(v=>{if(v.old)return "";let pre="";if(v.ex&&!seen){seen=true;pre=`<span class="tabsep"></span>`}return pre+`<button class="tab" role="tab" aria-selected="${v.id==VIEW}" data-v="${v.id}">${v.name}</button>`}).join("");
   $("#tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{const v=b.dataset.v;const t=$("#tblSheet");if(t)t.remove();
+    if(v=="help"){help();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
+    {const h=$("#helpSheet");if(h)h.remove();$("main").classList.remove("helpon")}
     if(v=="tables"){VIEW_T=true;tables();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
     const first=!POS[v]&&!isBoard(v);VIEW=v;lsSet(":view3",v);selectNone();renderTabs();draw();inspect();if(first)fit()})}
 let VIEW_T=false;
@@ -971,4 +1011,6 @@ $("#btnSave").onclick=()=>{const old=$("#saveSheet");if(old){old.remove();return
 
 buildGraph();runSim();renderTabs();renderLegend();renderAdds();draw();inspect();updCount();startOnline();
 if(!lsGet(":cam"))fit();
+const HELP_IMG=/*__HELPIMG__*/{};
+/*__HELP__*/
 </script>
