@@ -141,8 +141,8 @@ await ev(() => { newGroupAt('Bottled beers');const g = curG()[0];Object.assign(g
 await view(30, 60, 0.8);await none();
 const gid = await ev(() => curG()[0].id);
 // make it a random group, then a line into it from the bottle
-await ev(gid => { selectNone();SELG = gid;highlight();inspect() }, gid);await p.click('#gRnd');await wait(120);
-await shot('random_group', [[1, await box('label.rnd')], [2, await box(`#gGroupTop .grp[data-id="${gid}"] .ghead`)]]);
+await ev(gid => { selectNone();SELG = gid;highlight();inspect() }, gid);await p.click('[data-gm=random]');await wait(120);
+await shot('random_group', [[1, await box('.gmodes')], [2, await box(`#gGroupTop .grp[data-id="${gid}"] .ghead`)]]);
 await none();
 { const st = await box('#stage');await ev(([gid, x, y]) => proposeAny('res:small_bottle', 'grp:' + gid, { clientX: x, clientY: y }), [gid, st.x + 30, st.y + st.height - 330]) }
 await shot('random_line', [[3, await port('res:small_bottle')], [4, await box('.pop p:nth-of-type(2)')], [5, await box('#lnkOk')]]);
