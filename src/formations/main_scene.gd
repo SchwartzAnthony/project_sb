@@ -4903,6 +4903,7 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 		announce("%s is too sober for it to work yet." % NamePlate.short_name(card), 1.5)
 		print("[brew] Drunk, but not yet: " + sober)
 
+	BreweryBook.open_bottle(item_id, state)     # its kettle element goes with it
 	state.add_count(item_id, -1)
 	# THE BOTTLE FILLS THE DRUNK METER by its own Inspiration (Items.csv),
 	# or the brew's if it has none - a bought bottle can be weaker.

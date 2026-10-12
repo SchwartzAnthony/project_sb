@@ -199,10 +199,11 @@ static func chance_now(state: GameState, db: CardDatabase) -> Dictionary:
 ##     "chance"   the % it had
 ##     "spoiled"  true = it failed: the inputs are gone, nothing was made
 ##     "rest"     how many fixtures he is in the Dorms for now
+## `pick` is the element card put into the Brew Kettle (see BreweryBook.work).
 static func work(section_id: String, state: GameState, db: CardDatabase,
-		roll: int = -1, output: Dictionary = {}) -> Dictionary:
+		roll: int = -1, output: Dictionary = {}, pick: String = "") -> Dictionary:
 	if not on(db):
-		var plain := BreweryBook.work(section_id, state, false, output)
+		var plain := BreweryBook.work(section_id, state, false, output, pick)
 		plain["brewer"] = ""
 		plain["chance"] = 100
 		plain["spoiled"] = false
@@ -213,7 +214,7 @@ static func work(section_id: String, state: GameState, db: CardDatabase,
 	var chance := success_for(efficiency(who, state)) if who != "" else success_alone()
 	var dice := roll if roll >= 0 else randi_range(1, 100)
 	var spoiled := dice > chance
-	var out := BreweryBook.work(section_id, state, spoiled, output)
+	var out := BreweryBook.work(section_id, state, spoiled, output, pick)
 	out["brewer"] = who
 	out["chance"] = chance
 	out["spoiled"] = spoiled and bool(out["ok"])

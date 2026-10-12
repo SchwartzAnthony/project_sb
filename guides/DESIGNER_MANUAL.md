@@ -5578,6 +5578,30 @@ sound events `brew_game_hit`, `brew_game_won` and `brew_game_lost` for
 - Add a pair: an attack and a defend row in `Abilities.csv`, and a
   `Brews.csv` row with Pool `plain`.
 
+### If this element, then this beer (12 Oct)
+
+> *"I have the one pick element, so I need an 'if' this element then this
+> beer output."*
+
+- **The Brew Kettle asks WHICH ELEMENT** before its game: Fire, Water,
+  Earth, Air or Passion. One card owned = no question.
+- The five cards are `Items.csv` rows: `fire` (Fire Element),
+  `water_element`, `earth_element`, `air_element`, `no_element` (Passion
+  Element). **The card's Name says the element**: "Fire Element" is Fire.
+- `BreweryResources.csv` row `element` has a new **One Of** column listing
+  them with `|`. The Kettle's Takes `element:1` means "pick one of these".
+  **Start** = how many of EACH card a save gets (once; older saves too).
+  **Kept** = yes: the card is not used up. Set it to `no` to spend one per brew.
+- The element rides along: brew, barrel in the cellar, bottle in the bag.
+  Hanna says it when she bottles: "6 Small Bottle (Water)".
+- **A bottle only gives the beers of its Pool whose `Brews.csv` Element is
+  that element, or blank.** A blank-Element beer comes out whatever went in.
+  If nothing in the pool fits, any beer of the pool comes out.
+- A bottle with no element (bought, a reward) gives any beer of its pool.
+- Set it in the System Builder: a line from an element card to a beer writes
+  that beer's Element. Note: Element is also what a drinker counts as for the
+  match (as with the Fire Brew), so a Fire plain beer makes him Fire.
+
 ### The tutorial Brewery (round AN)
 
 In cycle 2 round 2 of the tutorial match the beer is gone and the Head Coach
@@ -5652,6 +5676,8 @@ itself (a cycle and a round) are with the Tutorial thread.
 | `Kind` | `raw` comes from outside the brewery · `made` is produced by a section · `tool` is equipment |
 | `Kept` | **`yes` means it is not used up.** You need a Hammer to work the Mill and you still have it afterwards. That is the whole difference between equipment and an ingredient, and it is one cell |
 | `Start` | what a new game begins with |
+| `Counter` | the save counter it lives in. Blank = `res_<ID>` |
+| `One Of` | cards separated by `|`: the player picks ONE (the Brew Kettle's element). See "If this element, then this beer" |
 | `Icon` · `Notes` | |
 
 ### Where the materials live
