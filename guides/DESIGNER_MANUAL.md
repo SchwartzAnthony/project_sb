@@ -342,13 +342,19 @@ the game already has and put it on the board. The **Example** tab shows the
 whole game drawn out.
 
 **Groups and board lines:** *New group* draws a labelled box (Ingredients,
-say). Drag cards into it; dragging the box moves them all. Draw a line from
+say). Drag cards into it; dragging its name bar (it sits on top of the cards)
+moves them all. Draw a line from
 the group's dot to a machine and label it input or output. Groups and these
 lines are notes on your board and never change the game's sheets; a line
 between two cards can still be written into a sheet when a column joins them
 (a building such as the Pub to a machine writes the Pub's unlock into the
 machine's Needs). Every panel section folds up, and the Panel buttons hide
 the side panels for more room.
+
+**Brewing machines:** *New brewing machine* adds a Maker card (a row in
+BrewerySections.csv). A line from an ingredient INTO the machine writes its
+Takes (the input); a line from the machine OUT to an ingredient writes its
+Makes and How Many (the output).
 
 **Saving:** the online link saves by itself, so the same boards are there on
 any PC. The double-clicked file saves in that browser; *Save* > *Download

@@ -54,11 +54,13 @@ main.noleft #left,main.noright #right{display:none}
 /* groups and note lines (board only) */
 .grp .gbox{fill:var(--gc);fill-opacity:.07;stroke:var(--gc);stroke-opacity:.7;stroke-width:1.4;stroke-dasharray:7 5;cursor:move}
 .grp .ghead{fill:var(--gc);fill-opacity:.22;cursor:move}
+.grp .ggrip{fill:var(--chalk-dim);font:14px var(--ui);pointer-events:none}
 .grp .gname{fill:var(--chalk);font:600 15px var(--cond);letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
 .grp .gcount{fill:var(--chalk-faint);font:11px var(--ui);pointer-events:none}
 .grp .grs{fill:var(--gc);fill-opacity:.5;cursor:nwse-resize}
 .grp .port{fill:var(--slate);stroke:var(--chalk-dim);stroke-width:1.2;cursor:crosshair}
 .grp .port:hover{fill:var(--beer);stroke:var(--beer)}
+.grp.sel .ghead{fill-opacity:.4}
 .grp.sel .gbox{stroke-opacity:1;stroke-width:2.4;stroke-dasharray:none}
 .dim .grp:not(.near){opacity:.35}
 .edge.note{stroke:#ebe6d6cc;stroke-width:1.6;stroke-dasharray:10 4}
@@ -226,7 +228,7 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
   <section id="stage">
     <svg id="svg" aria-label="System board"><defs>
       <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9z" fill="context-stroke"/></marker>
-    </defs><g id="world"><g id="gGroups"></g><g id="gEdges"></g><g id="gNotes"></g><g id="gLabels"></g><g id="gNodes"></g><path id="ghost" class="ghost" d=""/></g></svg>
+    </defs><g id="world"><g id="gGroups"></g><g id="gEdges"></g><g id="gNotes"></g><g id="gLabels"></g><g id="gNodes"></g><g id="gGroupTop"></g><path id="ghost" class="ghost" d=""/></g></svg>
     <div id="empty" class="empty" hidden><h2><span id="emptyName">This board</span> is empty</h2><p>Build your system here, one card at a time.</p><p><b>Add a new card</b> with the buttons on the left (a match mode, an Adventure place, an achievement…), or <b>find one the game already has</b> in "Find a card" and put it on this board.</p><p>When two cards on the board are already joined in the game's sheets, the line shows up by itself. Drag from a card's right-hand dot to draw new lines.</p><p class="hint">Not sure where to start? The <b>Example</b> tab shows the whole game as I drew it.</p></div>
     <div class="zoombar"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Fit the board" title="Fit">⤢</button></div>
   </section>
@@ -585,6 +587,7 @@ const id2=n=>n.id.split(":").slice(1).join(":");
 function linkRule(a,b){const ra=a.row,rb=b.row;
   if((a.kind=="stuff"||a.kind=="money")&&b.mk=="brew")return{say:`<code>${id2(a)}:N</code> goes into <b>Brews.csv</b> → ${rb.ID} → Cost`,ask:"How many?",def:2,apply:n=>addTok(rb,"Cost",id2(a)+":"+n,"|","Brews")};
   if((a.kind=="stuff"||a.kind=="money")&&b.mk=="section")return{say:`<code>${id2(a)}:N</code> goes into <b>BrewerySections.csv</b> → ${rb.ID} → Takes`,ask:"How many?",def:1,apply:n=>addTok(rb,"Takes",id2(a)+":"+n,";","BrewerySections")};
+  if(a.mk=="section"&&b.kind=="stuff")return{say:`Sets <b>BrewerySections.csv</b> → ${ra.ID} → Makes to <code>${id2(b)}</code>, How Many N (its output)`,ask:"How many each batch?",def:1,apply:n=>{set(ra,"Makes",id2(b),"BrewerySections");set(ra,"How Many",n,"BrewerySections")}};
   if(a.kind=="money"&&(b.mk=="shop"||b.mk=="upgrade")){const col=b.mk=="shop"?"Price":"Cost";return{say:`Sets <b>${b.file}.csv</b> → ${rb.ID} → Currency to <code>${id2(a)}</code> and ${col} to N`,ask:"Price?",def:rb[col]||50,apply:n=>{set(rb,"Currency",id2(a),b.file);set(rb,col,n,b.file)}}}
   if(a.mk=="shop"&&(b.kind=="stuff"||b.kind=="money"))return{say:`Sets <b>Shop.csv</b> → ${ra.ID} → Sells to <code>res:${id2(b)}</code>, How Many N`,ask:"How many?",def:1,apply:n=>{set(ra,"Sells",(G.nodes.get("res:"+id2(b))&&F("BreweryResources").some(x=>x.ID==id2(b))?"res:":"count:")+id2(b)+(F("BreweryResources").some(x=>x.ID==id2(b))?"":"+"+n),"Shop");set(ra,"How Many",n,"Shop")}};
   if(a.mk=="ach"&&b.kind=="unlock")return{say:`Adds <code>${b.label}</code> to <b>Achievements.csv</b> → ${ra.ID} → Unlocks`,apply:()=>addTok(ra,"Unlocks",b.label,";","Achievements")};
@@ -710,6 +713,7 @@ const ADDS=[
     return {ID:id,Name:name,Order:String((+last.Order||0)+1),Requires:boss?"unlocked:"+boss:(last.Requires||""),Waves:"4","Enemy Pool":id,Drops:id+"_ground",Difficulty:String((+last.Difficulty||0)+1),Description:""}}},
   {k:"goal",t:"Achievement",file:"Achievements",make:(id,name)=>({ID:id,Name:name,Description:"",Needs:"count:matches_played>=1",Unlocks:""})},
   {k:"maker",t:"Brew recipe",file:"Brews",make:(id,name)=>({ID:id,Name:name,Cost:"reed:1"})},
+  {k:"maker",t:"Brewing machine",file:"BrewerySections",make:(id,name)=>{const ss=F("BrewerySections");return {Order:String(ss.reduce((m,r)=>Math.max(m,+r.Order||0),0)+1),ID:id,Name:name,Worker:"",Needs:"",Takes:"",Makes:"","How Many":"1",Batches:"1","Wait Min":"0","Wait Max":"0",Notes:"Made in the System Builder. Draw lines IN from what it takes and OUT to what it makes."}}},
   {k:"maker",t:"Merchant trade",file:"Shop",make:(id,name)=>({ID:id,Name:name,Sells:"res:hops","How Many":"1",Price:"10",Currency:"coins",Requires:"unlocked:Traveling Tavern"})},
   {k:"maker",t:"Club House upgrade",file:"Upgrades",make:(id,name)=>({ID:id,Name:name,Kind:"upgrade",Cost:"100",Currency:"coins",Effect:"count:"+id+"+1"})},
   {k:"stuff",t:"Material",file:"Items",make:(id,name)=>({ID:id,Name:name,Kind:"material",Tab:"resources",Stack:"99"})}];
@@ -717,11 +721,11 @@ function renderAdds(){const box=$("#adds");box.innerHTML="";ADDS.forEach(a=>{con
   const s=document.createElementNS(NS,"svg");s.setAttribute("width",22);s.setAttribute("height",22);glyph(s,a.k,11,11,KINDS[a.k].color);b.appendChild(s);b.append("New "+a.t.toLowerCase());
   b.onclick=()=>askName(a);box.appendChild(b)})}
 function askName(a){const pop=document.createElement("div");pop.className="pop";pop.style.left="12px";pop.style.top="12px";
-  pop.innerHTML=`<p>New ${a.t.toLowerCase()} in <b>${a.file}.csv</b></p><div class="field"><label for="newName">Name</label><input id="newName" placeholder="e.g. ${({goal:"Derby Day",stuff:"Moor Peat",play:"Village Derby",adventure:"The Hop Gardens"})[a.k]||"Smoked Märzen"}"></div><div class="btnrow"><button class="btn" id="newOk">Add</button><button class="btn ghost2" id="newNo">Cancel</button></div>`;
+  pop.innerHTML=`<p>New ${a.t.toLowerCase()} in <b>${a.file}.csv</b></p><div class="field"><label for="newName">Name</label><input id="newName" placeholder="e.g. ${({goal:"Derby Day",stuff:"Moor Peat",play:"Village Derby",adventure:"The Hop Gardens"})[a.k]||(a.file=="BrewerySections"?"Mash Tun":"Smoked Märzen")}"></div><div class="btnrow"><button class="btn" id="newOk">Add</button><button class="btn ghost2" id="newNo">Cancel</button></div>`;
   $("#stage").appendChild(pop);const inp=pop.querySelector("#newName");inp.focus();
   const go=()=>{const name=inp.value.trim();if(!name)return inp.focus();let id=name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ß/g,"ss").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
     while(F(a.file).some(r=>r.ID==id))id+="_2";pushUndo();const row=Object.assign(blank(a.file),a.make(id,name));FILES[a.file].rows.push(row);pop.remove();
-    const pre={MatchModes:"mode:",Biomes:"biome:",Achievements:"ach:",Brews:"brew:",Shop:"shop:",Upgrades:"upg:",Items:"res:"}[a.file]+id;
+    const pre={MatchModes:"mode:",Biomes:"biome:",Achievements:"ach:",Brews:"brew:",Shop:"shop:",Upgrades:"upg:",Items:"res:",BrewerySections:"sec:"}[a.file]+id;
     if(isBoard(VIEW)&&!cur().includes(pre)){cur().push(pre);saveMine()}
     if(isBoard(VIEW)){changed(`Added ${name} to ${a.file}.csv`);if(G.nodes.has(pre))goTo(pre);return}
     changed(`Added ${name} to ${a.file}.csv`);
@@ -777,16 +781,19 @@ function endRect(ref){if(ref.startsWith("grp:")){const g=findGroup(ref.slice(4))
   if(!IDS.has(ref))return null;const p=P[ref];return{x:p.x,y:p.y,w:W,h:H,label:G.nodes.get(ref).label}}
 function hitAt(w){const n=[...IDS].find(id=>{const p=P[id];return w.x>=p.x&&w.x<=p.x+W&&w.y>=p.y&&w.y<=p.y+H});if(n)return n;
   if(!isBoard(VIEW))return null;const g=curG().filter(g=>w.x>=g.x&&w.x<=g.x+g.w&&w.y>=g.y&&w.y<=g.y+g.h).sort((a,b)=>a.w*a.h-b.w*b.h)[0];return g?"grp:"+g.id:null}
-function drawGroups(){const L=$("#gGroups");L.innerHTML="";if(!isBoard(VIEW))return;
-  curG().forEach(g=>{const e=el("g",{class:"grp","data-id":g.id,transform:`translate(${g.x},${g.y})`},L);e.style.setProperty("--gc",GCOL[g.color]||GCOL.chalk);
-    const box=el("rect",{class:"gbox",width:g.w,height:g.h,rx:6},e);const head=el("rect",{class:"ghead",width:g.w,height:26,rx:6},e);
-    const t=el("text",{class:"gname",x:10,y:18},e);t.textContent=g.label;const c=el("text",{class:"gcount",x:g.w-8,y:17,"text-anchor":"end"},e);const n=groupInside(g).length;c.textContent=n?n+" card"+(n>1?"s":""):"";
-    const rs=el("path",{class:"grs",d:`M${g.w} ${g.h-14}L${g.w} ${g.h}L${g.w-14} ${g.h}z`},e);const port=el("circle",{class:"port",cx:g.w,cy:g.h/2,r:7},e);
-    const ti=el("title",{},e);ti.textContent=g.label+" (group)";
-    e.addEventListener("pointerdown",ev=>{ev.stopPropagation();svg.setPointerCapture(ev.pointerId);const w=toWorld(ev);
+function drawGroups(){const L=$("#gGroups"),T=$("#gGroupTop");L.innerHTML="";T.innerHTML="";if(!isBoard(VIEW))return;
+  curG().forEach(g=>{const mk=lay=>{const e=el("g",{class:"grp","data-id":g.id,transform:`translate(${g.x},${g.y})`},lay);e.style.setProperty("--gc",GCOL[g.color]||GCOL.chalk);return e};
+    const e=mk(L),top=mk(T);top.classList.add("gtop");
+    el("rect",{class:"gbox",width:g.w,height:g.h,rx:6},e);el("rect",{class:"ghead",width:g.w,height:26,rx:6},top);
+    const grip=el("text",{class:"ggrip",x:8,y:18},top);grip.textContent="⠿";
+    const t=el("text",{class:"gname",x:24,y:18},top);t.textContent=g.label;const c=el("text",{class:"gcount",x:g.w-8,y:17,"text-anchor":"end"},top);const n=groupInside(g).length;c.textContent=n?n+" card"+(n>1?"s":""):"";
+    const rs=el("path",{class:"grs",d:`M${g.w} ${g.h-14}L${g.w} ${g.h}L${g.w-14} ${g.h}z`},top);const port=el("circle",{class:"port",cx:g.w,cy:g.h/2,r:7},top);
+    const ti=el("title",{},top);ti.textContent="Drag this bar to move "+g.label+" with its cards";
+    const down=ev=>{ev.stopPropagation();svg.setPointerCapture(ev.pointerId);const w=toWorld(ev);
       if(ev.target===port)drag={mode:"glink",g,sx:g.x+g.w,sy:g.y+g.h/2};
       else if(ev.target===rs)drag={mode:"gsize",g,moved:false};
-      else drag={mode:"group",g,dx:w.x-g.x,dy:w.y-g.y,inside:groupInside(g),moved:false}})})}
+      else drag={mode:"group",g,dx:w.x-g.x,dy:w.y-g.y,inside:groupInside(g),moved:false}};
+    e.addEventListener("pointerdown",down);top.addEventListener("pointerdown",down)})}
 function notePath(a,b){const x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2;const back=x2<x1+20;
   if(back){const s={x:a.x,y:a.y+a.h/2},t={x:b.x+b.w,y:b.y+b.h/2};if(t.x<s.x-20){const dx=Math.max(40,(s.x-t.x)/2);return{d:`M${s.x} ${s.y}C${s.x-dx} ${s.y},${t.x+dx} ${t.y},${t.x} ${t.y}`,mx:(s.x+t.x)/2,my:(s.y+t.y)/2}}}
   const dx=back?Math.max(80,Math.abs(x2-x1)/3):Math.max(40,(x2-x1)/2);return{d:`M${x1} ${y1}C${x1+dx} ${y1+(back?60:0)},${x2-dx} ${y2+(back?60:0)},${x2} ${y2}`,mx:(x1+x2)/2,my:(y1+y2)/2+(back?45:0)}}
