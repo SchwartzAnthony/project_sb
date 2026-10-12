@@ -338,8 +338,9 @@ so drawing a line writes the cell (it tells you which one first).
 It has seven boards that start empty: Whole Game, Achievements / Unlock
 Path, Loot & Money, Brewery, Consumables / Items, Adventure Board and
 Seasons / League. Add new cards with the buttons on the left, or find a card
-the game already has and put it on the board. The **Example** tab shows the
-whole game drawn out.
+the game already has and put it on the board. A board shows only the lines
+you drew; **Game lines: on** also shows the links the game's sheets already
+have between your cards.
 
 **Groups and board lines:** *New group* draws a labelled box (Ingredients,
 say). Drag cards into it; dragging its name bar (it sits on top of the cards)

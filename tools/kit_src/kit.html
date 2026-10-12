@@ -208,6 +208,7 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
   <button class="hbtn ico" id="btnRight" title="Show or hide the right panel" aria-label="Show or hide the right panel">Panel ⟩</button>
   <button class="hbtn" id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
   <button class="hbtn" id="btnLayout" title="Lay this view out again">Tidy up</button>
+  <button class="hbtn" id="btnGameLines" title="Show or hide the lines the game already has between your cards">Game lines: off</button>
   <button class="hbtn" id="btnSave" title="Save, download or open your work">Save<span id="saveState" class="savest">…</span></button>
   <button class="hbtn" id="btnChanges">Changes<span class="count" id="chgCount" hidden>0</span></button>
 </header>
@@ -295,7 +296,7 @@ const VIEWS=[
   {id:"items",name:"Consumables / Items",board:true},
   {id:"adv",name:"Adventure Board",board:true},
   {id:"season",name:"Seasons / League",board:true},
-  {id:"all",name:"Example",ex:true},
+  {id:"all",name:"Example",old:true},
   {id:"path",name:"Unlock path",old:true,kinds:["play","adventure","stat","goal","unlock","place","maker"],makers:["upgrade"]},
   {id:"loot",name:"Loot & money",old:true,kinds:["play","adventure","money","stuff","maker"],makers:["brew","shop","upgrade"]},
   {id:"brewery",name:"Brewery",old:true,kinds:["stuff","maker","money"],makers:["brew","section","shop"]},
@@ -466,6 +467,7 @@ function nodeOpen(n,st,day){const r=n.row;switch(n.mk||n.kind){
 /* ---------- layout ---------- */
 const W=184,H=42,COLW=250,ROWH=58;
 const BOARDS=VIEWS.filter(v=>v.board);const isBoard=v=>BOARDS.some(b=>b.id==v);const boardName=v=>(VIEWS.find(x=>x.id==v)||{}).name||v;
+let MYLINKS=lsGet(":mylinks")||{},GAMELINES=!!lsGet(":gamelines");const myLink=e=>(MYLINKS[VIEW]||[]).includes(e.from+">"+e.to);
 let VIEW=lsGet(":view3");if(!VIEWS.some(v=>v.id==VIEW&&!v.old))VIEW="whole";let CARDS=lsGet(":cards")||{};
 const cur=()=>CARDS[VIEW]||(CARDS[VIEW]=[]);
 function saveMine(){lsSet(":cards",CARDS)}
@@ -516,9 +518,10 @@ function glyph(g,kind,x,y,col){const s={fill:col,stroke:"none"};
     case "house":return el("path",Object.assign({d:`M${x-9} ${y+8}V${y-2}L${x} ${y-10}L${x+9} ${y-2}V${y+8}z`,fill:"none",stroke:col,"stroke-width":2}),g)}}
 function edgePath(a,b){const x1=a.x+W,y1=a.y+H/2,x2=b.x,y2=b.y+H/2;const back=x2<x1+20;const dx=back?Math.max(80,Math.abs(x2-x1)/3):Math.max(40,(x2-x1)/2);
   return{d:`M${x1} ${y1}C${x1+dx} ${y1+(back?60:0)},${x2-dx} ${y2+(back?60:0)},${x2} ${y2}`,mx:(x1+x2)/2,my:(y1+y2)/2+(back?45:0)}}
-function draw(){IDS=viewNodes();P=positions(IDS);
+function draw(){gameLinesBtn();IDS=viewNodes();P=positions(IDS);
   const gE=$("#gEdges"),gL=$("#gLabels"),gN=$("#gNodes");gE.innerHTML="";gL.innerHTML="";gN.innerHTML="";
-  G.edges.forEach(e=>{if(!IDS.has(e.from)||!IDS.has(e.to))return;const a=P[e.from],b=P[e.to];const p=edgePath(a,b);
+  G.edges.forEach(e=>{if(!IDS.has(e.from)||!IDS.has(e.to))return;if(isBoard(VIEW)&&!GAMELINES&&!myLink(e))return; // on your boards: only lines you drew, unless Game lines is on
+const a=P[e.from],b=P[e.to];const p=edgePath(a,b);
     e._p=el("path",{d:p.d,class:"edge "+e.type,"marker-end":"url(#arr)"},gE);const hit=el("path",{d:p.d,class:"hit"},gE);
     hit.addEventListener("click",ev=>{ev.stopPropagation();selectEdge(e)});e._hit=hit;
     e._l=el("text",{x:p.mx,y:p.my-4,class:"elabel","text-anchor":"middle"},gL);e._l.textContent=e.label||"";e._l.style.display="none"});
@@ -842,7 +845,7 @@ function proposeAny(from,to,ev){const a=G.nodes.get(from),b=G.nodes.get(to);cons
   $("#stage").appendChild(pop);const L=pop.querySelector("#noteL");pop.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{L.value=c.dataset.l});
   const n=pop.querySelector("#lnkN");(n||L).focus();
   pop.querySelector("#lnkNo").onclick=()=>pop.remove();
-  const ok=pop.querySelector("#lnkOk");if(ok)ok.onclick=()=>{pushUndo();rule.apply(n?n.value:1);pop.remove();changed(`Connected ${a.label} → ${b.label}`)};
+  const ok=pop.querySelector("#lnkOk");if(ok)ok.onclick=()=>{pushUndo();rule.apply(n?n.value:1);if(isBoard(VIEW)){const L=MYLINKS[VIEW]=MYLINKS[VIEW]||[];if(!L.includes(from+">"+to))L.push(from+">"+to);lsSet(":mylinks",MYLINKS)}pop.remove();changed(`Connected ${a.label} → ${b.label}`)};
   pop.querySelector("#noteOk").onclick=()=>{pushUndo();curN().push({id:"n"+Date.now().toString(36),from,to,label:L.value.trim()});saveBoardBits();pop.remove();drawNotes();toast("Line drawn on your board")}}
 // a building can stand for what opens it: Pub -> a machine writes the Pub's unlock into the machine's needs
 const _linkRule=linkRule;linkRule=function(a,b){const r=_linkRule(a,b);if(r)return r;
@@ -854,17 +857,19 @@ const FOLD=lsGet(":fold")||{};
 function wireSecs(root){root.querySelectorAll("details.sec").forEach(d=>{const k=d.dataset.sec;if(k in FOLD)d.open=FOLD[k];d.addEventListener("toggle",()=>{FOLD[k]=d.open;lsSet(":fold",FOLD)})})}
 wireSecs(document);
 function panels(){$("main").classList.toggle("noleft",!!FOLD.__left);$("main").classList.toggle("noright",!!FOLD.__right);$("#btnLeft").textContent=FOLD.__left?"⟩ Panel":"⟨ Panel";$("#btnRight").textContent=FOLD.__right?"Panel ⟨":"Panel ⟩"}
+function gameLinesBtn(){$("#btnGameLines").textContent="Game lines: "+(GAMELINES?"on":"off");$("#btnGameLines").style.display=isBoard(VIEW)?"":"none"}
+$("#btnGameLines").onclick=()=>{GAMELINES=!GAMELINES;lsSet(":gamelines",GAMELINES);gameLinesBtn();draw();toast(GAMELINES?"Showing every line the game already has between your cards":"Showing only the lines you drew")};
 $("#btnLeft").onclick=()=>{FOLD.__left=!FOLD.__left;lsSet(":fold",FOLD);panels()};$("#btnRight").onclick=()=>{FOLD.__right=!FOLD.__right;lsSet(":fold",FOLD);panels()};panels();
 
 /* ---------- saving: this browser, online (any PC), and save files ---------- */
 // One save holds everything Anthony made: the cards on each board, where they sit,
 // the sheet edits, and the pretend player's numbers. Newest save wins.
-const SAVE_KEYS=[":cards",":pos",":edits",":sim",":groups",":notes"];
+const SAVE_KEYS=[":cards",":pos",":edits",":sim",":groups",":notes",":mylinks"];
 let DB=null,saveTimer=null,saving=false,again=false,localAt=+(lsGet(":savedAt")||0),onlineAt=0,quiet=false;
 function collect(){const pos={};BOARDS.forEach(b=>{if(POS[b.id])pos[b.id]=POS[b.id]});const files={},base={};changedFiles().forEach(n=>{files[n]=toCSV(FILES[n]);base[n]=textHash(ORIG[n])});
-  return{app:"sturmball-system-builder",v:2,stamp:SRC_STAMP,savedAt:Date.now(),cards:CARDS,pos,groups:GROUPS,notes:NOTES,files,base,sim:SIM_SET}}
+  return{app:"sturmball-system-builder",v:2,stamp:SRC_STAMP,savedAt:Date.now(),cards:CARDS,pos,groups:GROUPS,notes:NOTES,mylinks:MYLINKS,files,base,sim:SIM_SET}}
 function applySave(st,why){if(!st||st.app!=="sturmball-system-builder")return toast("That is not a System Builder save.");
-  quiet=true;CARDS=st.cards||{};GROUPS=st.groups||{};NOTES=st.notes||{};saveBoardBits();BOARDS.forEach(b=>{if(st.pos&&st.pos[b.id])POS[b.id]=st.pos[b.id];else delete POS[b.id]});Object.assign(SIM_SET,SIM_DEF,st.sim||{});
+  quiet=true;CARDS=st.cards||{};GROUPS=st.groups||{};NOTES=st.notes||{};MYLINKS=st.mylinks||{};lsSet(":mylinks",MYLINKS);saveBoardBits();BOARDS.forEach(b=>{if(st.pos&&st.pos[b.id])POS[b.id]=st.pos[b.id];else delete POS[b.id]});Object.assign(SIM_SET,SIM_DEF,st.sim||{});
   // each sheet edit applies when it was made on the same copy of that sheet this page carries
   let note="";for(const n in ORIG)FILES[n]=loadFile(n,ORIG[n]);const older={};
   for(const n in (st.files||{})){if(!FILES[n])continue;const same=st.base?st.base[n]===textHash(ORIG[n]):(st.stamp===SRC_STAMP||OLD_STAMPS.includes(st.stamp));
