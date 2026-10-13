@@ -20,15 +20,33 @@ built in Godot 4.7 by Anthony, a designer who doesn't code.
 - Style references: `art_source/style_refs/stammtisch/board_characters.png`
   (people and creatures) and `board_places.png` (places and objects).
   The full style guide is `guides/ART_STYLE.md`.
-- **PixelLab ONLY for all game art** (Anthony, 6 Oct 2026): characters,
-  buttons, frames, backgrounds, everything. Not OpenAI, Ludo.ai or
-  hand-drawn. Use `create_image_pro` (largest sizes: 688x384, 384x688,
-  512x512), with `board_characters.png` as the style image for people.
+- **NEW ART PIPELINE (Anthony, 13 Oct 2026): all existing art is placeholder.**
+  The new look comes from Anthony's own Midjourney pictures
+  (`/mnt/project-files/art_tool/references/`), Marcinelle school at its core.
+  PixelLab is no longer used for new art. Generators run on fal.ai (key only
+  in the cloud environment, never in chat):
+  - **Seedream 4 edit** (`fal-ai/bytedance/seedream/v4/edit`, ~$0.03) for
+    first drafts, with his pictures as style references.
+  - **Sunburst** (`openai/gpt-image-2.5/sunburst/edit`, ~$0.04-0.06) for
+    spot fixes, new poses and see-through stickers. It refuses artist and
+    comic names: the style comes only from reference pictures.
+  - **Ask Anthony before every paid job** and quote his approving words in
+    the job spec. Tiny test first. Log the cost on the Art Desk.
+- **Character rules:** `/mnt/project-files/art_tool/characters/rules.json`
+  plus his notes on the Art Desk. Every edit of a character sends its model
+  sheet and these rules. Finished sets: Head Coach, Hanna, Koch
+  (`/mnt/project-files/art_tool/characters/<name>/`).
+- **Art Desk** (https://claude.ai/artifact/L3TBrS1q71nwZ2DxsAUCGL, source
+  `/mnt/project-files/art_tool/desk/`): Stickers, Parts, Animate, Sketch and
+  Jobs & money. Paid or game-side work waits in its Jobs list until Anthony
+  says "run my jobs" in the thread.
+- The art bible below the new pipeline still names the style; the PixelLab
+  rules that follow describe the placeholder art only.
 - **Every image stays in layers.** Generate each part separately (background,
   buildings, crowd, action, sign, hero ...), save one PNG per part, and write
   a layered `.aseprite` file with `tools/make_aseprite.py` so Anthony can edit
   it in Aseprite. Never hand over only a flattened picture.
-- PixelLab quirk: background removal punches holes in white areas (e.g. a
+- (Placeholder art) PixelLab quirk: background removal punches holes in white areas (e.g. a
   blank sign's middle). Ask for a coloured fill there.
 - Python tools on the Deck run with `~/.venvs/sturmball/bin/python` (Pillow and
   numpy live there; SteamOS's own Python has no pip).

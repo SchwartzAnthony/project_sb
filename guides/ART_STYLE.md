@@ -1,4 +1,35 @@
-# THE ART STYLE: Stammtisch-Comic (round AM)
+# THE ART STYLE
+
+## The new look (13 Oct 2026): this replaces everything below
+
+You wiped the old look on 13 Oct. Everything in the game today is
+placeholder art. The new style comes from **your own Midjourney pictures**,
+with Marcinelle school comics (Spirou, Dupuis) at its core: big wild eyes,
+thick bold ink lines, cartoon faces with huge expressions, detail in clothes,
+hair and shoes.
+
+- **Who draws:** fal.ai. Seedream 4 makes first drafts from your pictures
+  (about 3 cents each). Sunburst fixes spots, makes new poses and see-through
+  stickers (about 4 to 6 cents). PixelLab is no longer used for new art.
+- **Nothing is paid without your OK** in the thread. Every job is logged in
+  the Art Desk's "Jobs & money" tab with its cost.
+- **Characters:** pick one of 8 options as the model sheet, then moods,
+  side view and poses from it. Finished: Head Coach, Hanna, Koch. Each has
+  "watch for" rules (Jobs & money tab) that go with every edit.
+- **The Art Desk** (https://claude.ai/artifact/L3TBrS1q71nwZ2DxsAUCGL):
+  - **Stickers:** build backgrounds from a grass tile and stickers.
+  - **Parts:** cut parts out, paint, recolour. "Fix this spot" asks for a
+    paid redraw of only the part you circle.
+  - **Animate:** puppet pieces, turning points, keyframes, sprite sheet.
+  - **Sketch:** draw or photograph a sketch; it comes back in our style.
+  - **Jobs & money:** waiting jobs, the fal.ai balance, character rules.
+  - "Send to game" on a sticker, scene or animation asks Claude to put it in
+    the right game folder and CSV.
+- **Say "run my jobs"** in the art thread to start everything waiting.
+
+---
+
+# THE OLD ART STYLE: Stammtisch-Comic (round AM, placeholder now)
 
 ## PixelLab only, always in layers (round AN, your decision)
 

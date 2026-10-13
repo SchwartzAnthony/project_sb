@@ -4413,6 +4413,12 @@ drawn either — the same condition language as everywhere else.
 
 ## 8b2. The look — Marcinelle, in pixels
 
+> **13 Oct 2026: the look is being redone.** Everything below describes the
+> placeholder art. The new style, the fal.ai pipeline and the Art Desk are
+> in `guides/ART_STYLE.md` (top section). New art reaches the game through
+> the Art Desk's "Send to game" button: Claude puts each picture in the
+> folder from "Where art and audio go" and fills in its CSV row.
+
 > *"1970's-1990's european comic style reminiscent of Asterix & Obelix,
 > Motomania, Smart & Clever, Kleiner Arschloch. I believe this art style is
 > called MARCINELLE SCHOOL COMICS. The entire theme: Bavarian mythological
