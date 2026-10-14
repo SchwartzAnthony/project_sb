@@ -391,6 +391,12 @@ the Brew Kettle. A line onto a group of beers sets every beer in it. Beers
 with no Element come out whatever went in. The game still needs to remember
 the kettle's element; until that's wired, the lines are saved data only.
 
+**Compare (Achievements board):** the *Compare* button switches between your
+own board and the game's achievements as they are now (Achievements.csv:
+needs on the left, unlocks and rewards on the right). The panel lists what is
+only in the game, only on your board and on both, and can put the missing ones
+on your board without touching what is there.
+
 **Pick lists:** a column that only takes certain words (Trigger, Target,
 Effect, Scope, If, Element …) has a *Pick* button listing every word the game
 knows and what it does (from Keywords.csv and AbilityTriggers.csv). To take

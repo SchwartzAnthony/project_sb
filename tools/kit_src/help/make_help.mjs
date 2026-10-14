@@ -200,4 +200,10 @@ await ev(() => { POS[VIEW]['abl:HELLES_SLUMP'] = { x: 360, y: 500 };lsSet(':pos'
 await p.click('#right [data-pick="Effect"]');await wait(100);await p.fill('.pk-q', 'attack');await wait(120);
 await p.locator('#right .picker').scrollIntoViewIfNeeded();await wait(80);
 await shot('pick', [[1, await box('#right [data-pick="Effect"]')], [2, await box('#right .pk-q')], [3, await box('.pk-opt:has-text("add_attack") button:has-text("Take away")')]]);
+
+// compare: the game's achievements next to your own board
+await none();await tab('ach');await wait(150);
+await ev(() => { CARDS.ach = ['ach:first_win', 'ach:treble'];saveMine();draw() });
+await p.click('#btnCompare');await wait(300);await none();await ev(() => fit());await wait(200);
+await shot('compare', [[1, await box('#btnCompare')], [2, await box('#right h2')], [3, await box('#cmpAdd')]]);
 console.log('page errors', errs);await b.close();

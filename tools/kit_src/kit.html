@@ -125,6 +125,7 @@ main.helpon{grid-template-columns:1fr!important}main.helpon #left,main.helpon #r
 .edge.cost{stroke:#d98a5cbb}
 .edge.unlock{stroke:#e6ad3ccc;stroke-dasharray:6 4}
 .edge.reads{stroke:#86b7d888;stroke-dasharray:2 4}
+#btnCompare.on{background:var(--beer);color:var(--slate)}
 .edge.game{stroke:#a1ab9f55;stroke-dasharray:1 5}
 .edge.cond,.edge.note.cond{stroke:#c9a0e6;stroke-dasharray:8 3 2 3;stroke-width:2.2}
 .edge.sel{stroke-width:3}
@@ -237,6 +238,7 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
   <button class="hbtn ico" id="btnRight" title="Show or hide the right panel" aria-label="Show or hide the right panel">Panel ⟩</button>
   <button class="hbtn" id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
   <button class="hbtn" id="btnLayout" title="Lay this view out again">Tidy up</button>
+  <button class="hbtn" id="btnCompare" title="Switch between your own board and what the game has now">Compare</button>
   <button class="hbtn" id="btnGameLines" title="Show or hide the lines the game already has between your cards">Game lines: off</button>
   <button class="hbtn" id="btnSave" title="Save, download or open your work">Save<span id="saveState" class="savest">…</span></button>
   <button class="hbtn" id="btnChanges">Changes<span class="count" id="chgCount" hidden>0</span></button>
@@ -380,6 +382,8 @@ const VIEWS=[
   {id:"adv",name:"Adventure Board",board:true},
   {id:"season",name:"Seasons / League",board:true},
   {id:"all",name:"Example",old:true},
+  // the game's own achievements, read from Achievements.csv - the other side of the Achievements board's Compare button
+  {id:"achgame",name:"Achievements (the game's)",cmp:"ach",kinds:["goal"],makers:["ach"]},
   {id:"path",name:"Unlock path",old:true,kinds:["play","adventure","stat","goal","unlock","place","maker"],makers:["upgrade"]},
   {id:"loot",name:"Loot & money",old:true,kinds:["play","adventure","money","stuff","maker"],makers:["brew","shop","upgrade"]},
   {id:"brewery",name:"Brewery",old:true,kinds:["stuff","maker","money"],makers:["brew","section","shop"]},
@@ -574,7 +578,9 @@ function saveMine(){lsSet(":cards",CARDS)}
 function addMine(id,quiet,board){board=board||VIEW;const l=CARDS[board]||(CARDS[board]=[]);if(!l.includes(id)){l.push(id);saveMine()}if(VIEW!==board){if(!quiet)toast(G.nodes.get(id).label+" is on "+boardName(board));return}draw();goTo(id)}
 function dropMine(id){CARDS[VIEW]=cur().filter(x=>x!==id);saveMine();if(POS[VIEW])delete POS[VIEW][id];lsSet(":pos",POS);if(SEL===id)SEL=null;draw();inspect()}let POS=lsGet(":pos")||{};
 function viewNodes(){if(isBoard(VIEW))return new Set(cur().filter(id=>G.nodes.has(id)));const v=VIEWS.find(x=>x.id==VIEW)||VIEWS[0];const ids=new Set();
-  G.nodes.forEach(n=>{if(!v.kinds)return ids.add(n.id);if(!v.kinds.includes(n.kind))return;if(n.kind=="maker"&&v.makers&&!v.makers.includes(n.mk))return;ids.add(n.id)});
+  G.nodes.forEach(n=>{if(!v.kinds)return ids.add(n.id);if(!v.kinds.includes(n.kind))return;if(n.kind=="maker"&&v.makers&&!v.makers.includes(n.mk))return;if(v.cmp&&v.makers&&!v.makers.includes(n.mk))return;ids.add(n.id)});
+  // the achievements plus what each one needs (left) and what it unlocks or gives (right)
+  if(v.cmp){const out=new Set(ids);ids.forEach(id=>{const n=G.nodes.get(id);n.ins.forEach(e=>out.add(e.from));n.outs.forEach(e=>out.add(e.to))});return out}
   if(v.id=="brewery"){ // only stuff and unlocks that touch a brewery maker
     const keep=new Set();ids.forEach(id=>{const n=G.nodes.get(id);if(n.kind=="maker")keep.add(id)});
     [...keep].forEach(id=>{const n=G.nodes.get(id);n.ins.concat(n.outs).forEach(e=>{keep.add(e.from);keep.add(e.to)})});
@@ -806,6 +812,17 @@ function inspectEdge(e){const a=G.nodes.get(e.from),b=G.nodes.get(e.to);
   else h+=`<p class="hint">This one comes from the game itself (every match counts goals, wins and so on), so there is no CSV cell to change.</p>`;
   R.innerHTML=h;const d=R.querySelector("#delE");if(d)d.onclick=()=>removeEdge(e)}
 function summary(){if(!SIM){R.innerHTML="";return}
+  if(cmpOf(VIEW)||cmpView(VIEW)=="achgame"){const mineB=cmpOf(VIEW)||VIEW;const mineIds=new Set(CARDS[mineB]||[]);const game=F("Achievements").map(r=>"ach:"+r.ID);
+    const both=game.filter(id=>mineIds.has(id)),onlyGame=game.filter(id=>!mineIds.has(id)),onlyMine=[...mineIds].filter(id=>G.nodes.has(id)&&!game.includes(id));
+    const L=(list)=>list.map(id=>`<button class="lnk" data-go="${escA(id)}">${escH(G.nodes.get(id).label)}</button>`).join("")||`<p class="hint">none</p>`;
+    let h=`<span class="kind" style="--k:var(--beer)">Compare</span><h2>Your board and the game</h2><p class="hint">The game has <b>${game.length}</b> achievements (Achievements.csv). <b>${both.length}</b> of them are on your board.${cmpOf(VIEW)?" Left: what each one needs. Middle: the achievements. Right: what each one unlocks or gives.":""}</p>${onlyGame.length?`<div class="btnrow"><button class="btn" id="cmpAdd">Put the ${onlyGame.length} missing ones on my board</button></div><p class="hint">Adds cards only. Nothing on your board is moved or removed.</p>`:""}`;
+    h+=`<div class="lbl" style="margin-top:14px">Only in the game (${onlyGame.length})</div><div class="links">${L(onlyGame)}</div>`;
+    h+=`<div class="lbl" style="margin-top:14px">Only on your board (${onlyMine.length})</div><div class="links">${L(onlyMine)}</div>`;
+    h+=`<div class="lbl" style="margin-top:14px">On both (${both.length})</div><div class="links">${L(both)}</div>`;
+    R.innerHTML=h;const ca=R.querySelector("#cmpAdd");if(ca)ca.onclick=()=>{pushUndo();const l=CARDS[mineB]||(CARDS[mineB]=[]);const gp=POS[cmpView(mineB)]||{};const mp=POS[mineB]=POS[mineB]||{};
+      // same places as on the game's view, below anything already on the board
+      const dy=Math.max(0,...Object.values(mp).map(v=>v.y+ROWH*2));onlyGame.forEach(id=>{l.push(id);if(gp[id]&&!mp[id])mp[id]={x:gp[id].x,y:gp[id].y+dy}});saveMine();lsSet(":pos",POS);draw();inspect();toast(`${onlyGame.length} achievement(s) put on your board`)};
+    R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{const id=b.dataset.go;if(!IDS.has(id)){const to=cmpOf(VIEW)||cmpView(VIEW);VIEW=to;lsSet(":view3",to);renderTabs();draw()}goTo(id)});return}
   const mine=isBoard(VIEW);const onB=id=>!mine||cur().includes(id);
   const big=SIM.ev.filter(e=>(e.big||e.t.endsWith(" unlocked")||e.t.endsWith(" beaten")||mine&&e.goal)&&onB(e.node));
   let h=`<span class="kind" style="--k:var(--beer)">Pretend season</span><h2>What opens when</h2><p class="hint">${mine&&!cur().length?"Once cards are on this board, this lists the day each one opens when a pretend player plays the game.":`The game played ${SIM_SET.days} days with the numbers below.${mine?" Only cards on this board are listed.":""} Click a line to find the card.`}</p><ul class="list">`;
@@ -902,7 +919,7 @@ function tables(){let sh=$("#tblSheet");if(sh)sh.remove();sh=document.createElem
 const SRC_COUNT=/*__COUNT__*/132;
 
 /* ---------- tabs, legend, playback ---------- */
-function renderTabs(){let seen=false;$("#tabs").innerHTML=VIEWS.map(v=>{if(v.old)return "";let pre="";if(v.ex&&!seen){seen=true;pre=`<span class="tabsep"></span>`}return pre+`<button class="tab" role="tab" aria-selected="${v.id==VIEW}" data-v="${v.id}">${v.name}</button>`}).join("");
+function renderTabs(){let seen=false;$("#tabs").innerHTML=VIEWS.map(v=>{if(v.old||v.cmp)return "";let pre="";if(v.ex&&!seen){seen=true;pre=`<span class="tabsep"></span>`}return pre+`<button class="tab" role="tab" aria-selected="${v.id==VIEW||cmpOf(VIEW)==v.id}" data-v="${v.id}">${v.name}</button>`}).join("");
   $("#tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{const v=b.dataset.v;const t=$("#tblSheet");if(t)t.remove();
     if(v=="help"){help();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
     {const h=$("#helpSheet");if(h)h.remove();$("main").classList.remove("helpon")}
@@ -1037,7 +1054,13 @@ const FOLD=lsGet(":fold")||{};
 function wireSecs(root){root.querySelectorAll("details.sec").forEach(d=>{const k=d.dataset.sec;if(k in FOLD)d.open=FOLD[k];d.addEventListener("toggle",()=>{FOLD[k]=d.open;lsSet(":fold",FOLD)})})}
 wireSecs(document);
 function panels(){$("main").classList.toggle("noleft",!!FOLD.__left);$("main").classList.toggle("noright",!!FOLD.__right);$("#btnLeft").textContent=FOLD.__left?"⟩ Panel":"⟨ Panel";$("#btnRight").textContent=FOLD.__right?"Panel ⟨":"Panel ⟩"}
-function gameLinesBtn(){$("#btnGameLines").textContent="Game lines: "+(GAMELINES?"on":"off");$("#btnGameLines").style.display=isBoard(VIEW)?"":"none"}
+// THE COMPARE BUTTON (Anthony, 14 Oct): "let me toggle between my own and the current one"
+const cmpOf=v=>(VIEWS.find(x=>x.id==v)||{}).cmp||"";const cmpView=v=>(VIEWS.find(x=>x.cmp==v)||{}).id||"";
+function compareBtn(){const b=$("#btnCompare");const mine=cmpView(VIEW),game=cmpOf(VIEW);b.style.display=mine||game?"":"none";
+  b.textContent=game?"Showing: the game's ⇄ switch to mine":"Showing: mine ⇄ switch to the game's";b.classList.toggle("on",!!game)}
+$("#btnCompare").onclick=()=>{const to=cmpView(VIEW)||cmpOf(VIEW);if(!to)return;const first=!POS[to];VIEW=to;lsSet(":view3",to);selectNone();renderTabs();draw();inspect();if(first)fit();
+  toast(cmpOf(VIEW)?"The game's achievements as they are now. Nothing you do on your board changes this view.":"Your own board")}
+function gameLinesBtn(){compareBtn();$("#btnGameLines").textContent="Game lines: "+(GAMELINES?"on":"off");$("#btnGameLines").style.display=isBoard(VIEW)?"":"none"}
 $("#btnGameLines").onclick=()=>{GAMELINES=!GAMELINES;lsSet(":gamelines",GAMELINES);gameLinesBtn();draw();toast(GAMELINES?"Showing every line the game already has between your cards":"Showing only the lines you drew")};
 $("#btnLeft").onclick=()=>{FOLD.__left=!FOLD.__left;lsSet(":fold",FOLD);panels()};$("#btnRight").onclick=()=>{FOLD.__right=!FOLD.__right;lsSet(":fold",FOLD);panels()};panels();
 
