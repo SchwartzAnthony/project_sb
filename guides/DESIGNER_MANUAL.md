@@ -391,6 +391,12 @@ the Brew Kettle. A line onto a group of beers sets every beer in it. Beers
 with no Element come out whatever went in. The game still needs to remember
 the kettle's element; until that's wired, the lines are saved data only.
 
+**Pick lists:** a column that only takes certain words (Trigger, Target,
+Effect, Scope, If, Element …) has a *Pick* button listing every word the game
+knows and what it does (from Keywords.csv and AbilityTriggers.csv). To take
+something away, pick an effect's *Take away*: `add_attack` with Value `-1`
+means lose 1 attack. There is no separate `remove_attack`.
+
 **Saving:** the online link saves by itself, so the same boards are there on
 any PC. The double-clicked file saves in that browser; *Save* > *Download
 save file* / *Open a save file* moves work between the two. To bring the

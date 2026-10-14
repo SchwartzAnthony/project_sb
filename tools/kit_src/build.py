@@ -27,6 +27,9 @@ def build(link_out=None):
     old = dict(src); old["KitBoards"] = "Board,Card,X,Y,Notes\n"
     old_stamp = hashlib.sha1(json.dumps(old, ensure_ascii=False).replace("</", "<\\/").encode()).hexdigest()[:10]
     count = len(glob.glob(os.path.join(ROOT, "data", "*.csv")))
+    # word lists the pickers read (never edited here): Keywords.csv and AbilityTriggers.csv
+    ref = {r: open(os.path.join(ROOT, "data", r + ".csv"), encoding="utf-8").read() for r in ["Keywords", "AbilityTriggers"]}
+    body = body.replace("/*__REF__*/{}", json.dumps(ref, ensure_ascii=False).replace("</", "<\\/"))
     body = (body.replace("/*__DATA__*/{}", data).replace("/*__STAMP__*/", stamp)
                 .replace("/*__COUNT__*/132", str(count))
                 .replace('"/*__OLDSTAMPS__*/"', json.dumps(old_stamp)))
