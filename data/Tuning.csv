@@ -661,3 +661,4 @@ dorm_bed_sleeper_art,res://assets/dorms/bed_sleeper.png,"ROUND AN. THE PICTURE O
 building_window_inset,30,"ROUND AN (look C, the beer hall frame). How far in from the frame's outer edge the dark inside starts, in pixels, so it stays tucked under the carving (Theme.csv building_window Fill)"
 building_title_rise,0.55,"ROUND AN. How much of the name sign stands ABOVE the top edge of a building window, as a share of the sign's height. 0 = it hangs inside, 1 = it sits on top"
 building_close_size,76,"ROUND AN. How big the beer mat that closes a building window is, in pixels"
+foul_pct_per_bar_segment,10,"THE REFEREE'S BAR AND THE FOUL % ARE TIED (Anthony, 14 Oct). How many % of foul chance one segment of the bar is worth when an ABILITY changes either: foul_heat +1 also gives +10% foul chance, foul_chance +10% also lights one more segment. Minus values lower both. 0 unties them (each ability then changes only its own one)"

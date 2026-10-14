@@ -54,3 +54,34 @@ func test_foul_heat_with_target_side_lands_on_your_own_bar() -> void:
 func test_the_card_text_says_whose_fouls() -> void:
 	assert_string_contains(_ability("foulchance", "side", -5)._what_words(), "you")
 	assert_string_contains(_ability("foulchance", "opponent", 5)._what_words(), "they")
+
+
+# ============ THE BAR AND THE % ARE TIED (Tuning foul_pct_per_bar_segment) ============
+
+func test_foul_chance_also_moves_the_bar() -> void:
+	var e := _engine()
+	var per := CardDatabase.get_db().tune_float("foul_pct_per_bar_segment", 0.0)
+	assert_gt(per, 0.0, "tied out of the box")
+	e._referee_effect(_ability("foulchance", "opponent", 20), null, false)
+	assert_almost_eq(float(e._heat_add[true]), 20.0 / per, 0.001)
+
+
+func test_foul_heat_also_moves_the_percent() -> void:
+	var e := _engine()
+	var per := CardDatabase.get_db().tune_float("foul_pct_per_bar_segment", 0.0)
+	e._referee_effect(_ability("foulheat", "opponent", 1), null, false)
+	assert_almost_eq(e.foul_shift(true), per, 0.001)
+
+
+func test_lowering_your_own_fouls_lowers_your_bar_but_never_below_empty() -> void:
+	var db := CardDatabase.get_db()
+	var e := _engine()
+	e._referee_effect(_ability("foulchance", "side", -30), null, false)
+	assert_lt(float(e._heat_add[false]), 0.0)
+	Referee.clear_heat()
+	Referee.add_heat(false, 2.0, db)
+	Referee.add_heat(false, e.take_heat(false), db)
+	assert_gte(Referee.heat(false, db), 0.0)
+	Referee.add_heat(false, -10.0, db)
+	assert_eq(Referee.heat(false, db), 0.0)
+	Referee.clear_heat()

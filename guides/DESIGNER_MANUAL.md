@@ -2565,6 +2565,12 @@ the OTHER side. Give them **Target `side`** to change YOUR side's fouls
 instead. A minus Value lowers it: `foul_chance`, Target `side`, Value `-10`
 = your side is 10% less likely to foul.
 
+**The bar and the % are tied** (14 Oct): when an ability changes one, it
+changes the other too. Tuning.csv `foul_pct_per_bar_segment` (10) says what
+one segment is worth: `foul_heat` +1 also gives +10% foul chance, and
+`foul_chance` +10% also lights one more segment. Minus values lower both, and
+the bar never goes below empty. Set it to 0 to untie them.
+
 **`add_card_chance`** (round X) is the first effect that reaches the referee
 — see section 7g. **And one honest note:** the 108 set cards' Attack and
 Defend columns are *prose*. A card only does something in a match when its
