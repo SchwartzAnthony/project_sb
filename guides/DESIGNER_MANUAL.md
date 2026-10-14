@@ -326,6 +326,87 @@ write the export straight back). Rebuild the copy with
 `python3 tools/designer_src/build.py`; edit `tools/designer_src/designer.html`,
 never the built page.
 
+### Seeing the whole system: the Sturmball System Builder (first draft, 12 Oct)
+
+Double-click **`sturmball_kit.html`**, or open the online link
+https://claude.ai/artifact/PJESJhPwzzPdZLSFiMe2wC. It draws the game as a
+board of cards and lines: matches and Adventure places, money and stuff,
+makers (brews, Merchant trades, upgrades, brewing machines), achievements,
+unlocks and buildings. Every card is a CSV row and every line is a CSV cell,
+so drawing a line writes the cell (it tells you which one first).
+
+It has seven boards that start empty: Whole Game, Achievements / Unlock
+Path, Loot & Money, Brewery, Consumables / Items, Adventure Board and
+Seasons / League. Add new cards with the buttons on the left, or find a card
+the game already has and put it on the board. A board shows only the lines
+you drew; **Game lines: on** also shows the links the game's sheets already
+have between your cards.
+
+**Groups and board lines:** *New group* draws a labelled box (Ingredients,
+say). Drag cards into it; dragging its name bar (it sits on top of the cards)
+moves them all. Draw a line from
+the group's dot to a machine and label it input or output. Groups and these
+lines are notes on your board and never change the game's sheets; a line
+between two cards can still be written into a sheet when a column joins them
+(a building such as the Pub to a machine writes the Pub's unlock into the
+machine's Needs). Every panel section folds up, and the Panel buttons hide
+the side panels for more room.
+
+**Your edits win, and can't break a sheet:** what you change in the System
+Builder is laid over the game's CSVs when Claude merges your save, even when
+the CSVs changed in the meantime (only the cells you touched are replaced).
+Every cell you type is checked first: numbers must be numbers, a Kind must be
+one the game knows, checks like `count:x>=3` or `unlocked:Pub` must be
+spelled right, and ingredients must exist. A wrong entry is refused with the
+reason. IDs the game already uses can't be renamed. Making something with
+the name of an existing card offers that card instead, and deleting
+something other rows use needs a second click that names them.
+
+**Help tab:** the System Builder's own Help tab shows every part in
+pictures with numbered steps, plus a worked example (random bottled beers:
+bottle, pool, beer, attack and defend abilities). Pictures are remade with
+`node tools/kit_src/help/make_help.mjs`, then `python3 tools/kit_src/build.py`.
+
+**Beers and abilities:** every row of Brews.csv is a Beer card (mug) and every
+row of Abilities.csv an Ability card (red bolt). A line from a bottle to a beer
+adds the bottle's pool to the beer's Pool (it may be poured at random); a line
+from a beer to an ability fills its Attack Ability, then its Defend Ability.
+
+**What a group means:** a group stands for All of these, ☝ One of these
+(any one, you pick) or 🎲 One at random, and its lines read that way. With
+🎲, a line into it means "one of these, picked at random". From a bottle into a group of beers, Connect in
+the game puts every beer in the group into the bottle's pool (Brews.csv Pool).
+For anything else the game can't pick at random yet, so the line is a note.
+
+**Brewing machines:** *New brewing machine* adds a Maker card (a row in
+BrewerySections.csv). A line from an ingredient INTO the machine writes its
+Takes (the input); a line from the machine OUT to an ingredient writes its
+Makes and How Many (the output).
+
+**If this element, then this beer:** a card whose name ends in "Element"
+(Fire Element, Passion Element …) is an element. A line from it to a beer
+writes that beer's Element in Brews.csv (Fire, Passion …) and shows as a
+purple "if Fire" line: that beer only comes out when that element went into
+the Brew Kettle. A line onto a group of beers sets every beer in it. Beers
+with no Element come out whatever went in. The game still needs to remember
+the kettle's element; until that's wired, the lines are saved data only.
+
+**Saving:** the online link saves by itself, so the same boards are there on
+any PC. The double-clicked file saves in that browser; *Save* > *Download
+save file* / *Open a save file* moves work between the two. To bring the
+work into the game, tell Claude "merge my System Builder save": sheet edits
+go into the CSVs, the boards into `data/KitBoards.csv` (Board, Card, X, Y),
+which the double-clicked copy starts from.
+
+Press **Play** and a pretend player plays day by day: cards light up on the
+day they open, and the right side lists dead ends (goals never reached,
+unlocks nothing hands out or nothing uses). Its numbers (win chance, runs a
+day...) are on the right. *Changes* shows each changed sheet with a Copy
+button. Edits stay in your browser for now.
+
+Rebuild it with `python3 tools/kit_src/build.py` (add `--link FILE` for the
+online copy); edit `tools/kit_src/kit.html`, never the built page.
+
 ---
 
 ## 5. How the game reads a spreadsheet

@@ -1,0 +1,1060 @@
+<title>Sturmball System Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@600&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Layout: a coach's slate tactics board. Canvas fills the screen, chalk nodes on green-black slate,
+   palette on the left, the selected card's CSV row on the right, the season playback along the bottom.
+   Deliberately one dark look (a chalkboard), in every viewer theme. */
+:root{
+  --slate:#18211d; --slate-2:#1f2a25; --slate-3:#2a3731; --line:#3a4a42;
+  --chalk:#ebe6d6; --chalk-dim:#a1ab9f; --chalk-faint:#6c776f;
+  --beer:#e6ad3c; --beer-soft:#e6ad3c33; --hops:#94c26c; --fern:#5fc0a8; --sky:#86b7d8; --clay:#d98a5c; --brick:#e0674f;
+  --display:"Grenze Gotisch","UnifrakturMaguntia",Georgia,serif;
+  --ui:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --cond:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--slate);color:var(--chalk);font:14px/1.4 var(--ui);overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--beer);outline-offset:2px}
+
+#app{display:grid;grid-template-rows:auto 1fr auto;height:100%}
+header{display:flex;align-items:center;gap:14px;padding:8px 16px;border-bottom:1px solid var(--line);background:var(--slate-2);flex-wrap:wrap}
+header h1{font:600 26px/1 var(--display);margin:0;color:var(--beer);letter-spacing:.5px;white-space:nowrap}
+.tabs{display:flex;gap:2px;flex-wrap:wrap}
+.tab{background:none;border:1px solid transparent;border-radius:3px;padding:5px 10px;color:var(--chalk-dim);font:500 14px var(--cond);letter-spacing:.06em;text-transform:uppercase}
+.tab:hover{color:var(--chalk)}
+.tab[aria-selected="true"]{color:var(--slate);background:var(--chalk)}
+.spacer{flex:1}
+.hbtn{background:var(--slate-3);border:1px solid var(--line);border-radius:3px;padding:5px 11px;font:500 13px var(--cond);letter-spacing:.05em;text-transform:uppercase}
+.hbtn:hover{border-color:var(--chalk-dim)}
+.hbtn.hot{border-color:var(--beer);color:var(--beer)}
+.savest{margin-left:8px;font:500 11px var(--ui);letter-spacing:0;text-transform:none;color:var(--chalk-faint)}
+.savest.on{color:var(--hops)}.savest.bad{color:var(--brick)}
+.count{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--beer);color:var(--slate);font:600 11px/16px var(--ui);text-align:center}
+
+main{position:relative;display:grid;grid-template-columns:200px 1fr 320px;min-height:0}
+aside{background:var(--slate-2);overflow:auto;min-width:0}
+#left{border-right:1px solid var(--line);padding:12px}
+#right{border-left:1px solid var(--line);padding:14px}
+.lbl{font:600 11px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:var(--chalk-faint);margin:14px 0 6px}
+.lbl:first-child{margin-top:0}
+details.sec{border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:8px}
+details.sec>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:6px;font:600 11px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:var(--chalk-faint);padding:4px 0 6px}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec>summary::before{content:"▸";font-size:11px;transition:transform .15s}
+details.sec[open]>summary::before{transform:rotate(90deg)}
+details.sec>summary:hover{color:var(--chalk)}
+main.noleft{grid-template-columns:1fr 320px}main.noright{grid-template-columns:200px 1fr}main.noleft.noright{grid-template-columns:1fr}
+main.noleft #left,main.noright #right{display:none}
+main.helpon{grid-template-columns:1fr!important}main.helpon #left,main.helpon #right{display:none}
+.hzoom{position:fixed;inset:0;z-index:50;background:#0b0f0dee;display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}.hzoom img{max-width:100%;max-height:100%;border-radius:4px}
+.hpics img{cursor:zoom-in}
+.hbtn.ico{padding:5px 8px}
+/* groups and note lines (board only) */
+.grp .gbox{fill:var(--gc);fill-opacity:.07;stroke:var(--gc);stroke-opacity:.7;stroke-width:1.4;stroke-dasharray:7 5;cursor:move}
+.grp .ghead{fill:var(--gc);fill-opacity:.22;cursor:move}
+.grp .ggrip{fill:var(--chalk-dim);font:14px var(--ui);pointer-events:none}
+.grp .gname{fill:var(--chalk);font:600 15px var(--cond);letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
+.grp .gcount{fill:var(--chalk-faint);font:11px var(--ui);pointer-events:none}
+.grp .grs{fill:var(--gc);fill-opacity:.5;cursor:nwse-resize}
+.grp .port{fill:var(--slate);stroke:var(--chalk-dim);stroke-width:1.2;cursor:crosshair}
+.grp .port:hover{fill:var(--beer);stroke:var(--beer)}
+.grp.sel .ghead{fill-opacity:.4}
+.grp.sel .gbox{stroke-opacity:1;stroke-width:2.4;stroke-dasharray:none}
+.dim .grp:not(.near){opacity:.35}
+.edge.note{stroke:#ebe6d6cc;stroke-width:1.6;stroke-dasharray:10 4}
+.edge.note.input{stroke:#94c26ccc}.edge.note.output{stroke:#e6ad3ccc}
+.nlabel{font:600 11.5px var(--cond);letter-spacing:.06em;text-transform:uppercase;fill:var(--chalk);paint-order:stroke;stroke:var(--slate);stroke-width:4px;stroke-linejoin:round;pointer-events:none}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.chip{background:none;border:1px solid var(--line);border-radius:12px;padding:2px 10px;font:500 12px var(--ui);color:var(--chalk-dim)}
+.chip:hover,.chip.on{border-color:var(--beer);color:var(--chalk)}
+.swatches{display:flex;gap:6px;margin-top:6px}
+.swatches button{width:22px;height:22px;border-radius:50%;border:2px solid transparent}
+.swatches button.on{border-color:var(--chalk)}
+.legend{display:grid;gap:5px}
+.legend div{display:flex;align-items:center;gap:8px;color:var(--chalk-dim);font-size:13px}
+.legend svg{flex:none}
+.addbtn{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:1px dashed var(--line);border-radius:3px;padding:6px 8px;margin-bottom:5px;color:var(--chalk-dim)}
+.addbtn:hover{border-color:var(--beer);color:var(--chalk)}
+.hint{color:var(--chalk-faint);font-size:12.5px;line-height:1.45}
+.hint b{color:var(--chalk-dim);font-weight:600}
+#search{width:100%;box-sizing:border-box;background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:6px 8px}
+
+#stage{position:relative;overflow:hidden;background:
+  radial-gradient(circle at 30% 20%, #ffffff06, transparent 60%),
+  repeating-linear-gradient(0deg, transparent 0 39px, #ffffff07 39px 40px),
+  repeating-linear-gradient(90deg, transparent 0 39px, #ffffff07 39px 40px), var(--slate);touch-action:none}
+#svg{width:100%;height:100%;display:block;cursor:grab}
+#svg.panning{cursor:grabbing}
+.empty{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));border:1px dashed var(--chalk-faint);border-radius:4px;padding:18px 20px;background:#18211dd9;color:var(--chalk-dim);font-size:14px;pointer-events:none}
+.empty h2{font:600 26px/1.1 var(--display);color:var(--beer);margin:0 0 8px}
+.empty p{margin:0 0 8px}.empty b{color:var(--chalk);font-weight:600}
+.tabsep{font:600 11px var(--cond);letter-spacing:.12em;text-transform:uppercase;color:var(--chalk-faint);align-self:center;margin:0 4px 0 12px}
+#results{display:grid;gap:2px;margin-top:4px}
+#results button{display:flex;align-items:center;gap:6px;background:none;border:none;padding:4px 2px;text-align:left;font-size:13px;color:var(--chalk-dim)}
+#results button:hover{color:var(--chalk)}
+#results i{white-space:nowrap;font-style:normal;margin-left:auto;color:var(--beer);font:600 12px var(--ui)}
+.zoombar{position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:4px}
+.zoombar button{width:32px;height:32px;background:var(--slate-2);border:1px solid var(--line);border-radius:3px;font-size:16px}
+.toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:var(--chalk);color:var(--slate);padding:8px 14px;border-radius:3px;font-weight:500;max-width:80%;box-shadow:0 6px 20px #0008}
+
+/* nodes */
+.node{cursor:pointer}
+.node .box{fill:var(--slate-2);stroke:var(--line);stroke-width:1.2}
+.node .name{fill:var(--chalk);font:500 13px var(--cond);letter-spacing:.02em}
+.node .sub{fill:var(--chalk-faint);font:10.5px var(--mono)}
+.node .val{fill:var(--slate);font:600 11px var(--ui);text-anchor:middle}
+.node .day{font:600 10px var(--ui);text-anchor:end}
+.node.open .box{stroke:var(--k);stroke-width:1.6}
+.node.locked{opacity:.5}
+.node.locked .box{stroke-dasharray:4 3}
+.node.sel .box{stroke:var(--chalk);stroke-width:2.4}
+.node .port{fill:var(--slate);stroke:var(--chalk-dim);stroke-width:1.2;opacity:0;cursor:crosshair}
+.node:hover .port,.node.sel .port{opacity:1}
+.node .port:hover{fill:var(--beer);stroke:var(--beer)}
+.dim .node:not(.near){opacity:.18}
+.dim .edge:not(.near){opacity:.07}
+.dim .elabel:not(.near){display:none}
+/* edges */
+.edge{fill:none;stroke-width:1.4;cursor:pointer}
+.edge.flow{stroke:#ebe6d6aa}
+.edge.cost{stroke:#d98a5cbb}
+.edge.unlock{stroke:#e6ad3ccc;stroke-dasharray:6 4}
+.edge.reads{stroke:#86b7d888;stroke-dasharray:2 4}
+.edge.game{stroke:#a1ab9f55;stroke-dasharray:1 5}
+.edge.cond,.edge.note.cond{stroke:#c9a0e6;stroke-dasharray:8 3 2 3;stroke-width:2.2}
+.edge.sel{stroke-width:3}
+.edge.live.flow,.edge.live.cost{stroke-dasharray:3 9;animation:run 1s linear infinite}
+@keyframes run{to{stroke-dashoffset:-24}}
+@media (prefers-reduced-motion:reduce){.edge.live.flow,.edge.live.cost{animation:none;stroke-dasharray:none}}
+.hit{fill:none;stroke:transparent;stroke-width:10;cursor:pointer}
+.elabel{font:600 10.5px var(--ui);fill:var(--chalk);paint-order:stroke;stroke:var(--slate);stroke-width:4px;stroke-linejoin:round;pointer-events:none}
+input.badcell,textarea.badcell{outline:2px solid #d0533b;outline-offset:1px}
+.edge.note.random{stroke:var(--beer);stroke-dasharray:2 5;stroke-width:2.4;stroke-linecap:round}
+.gmodes{display:grid;gap:6px;margin-top:6px}.gmodes .chip{display:flex;justify-content:space-between;align-items:center;text-align:left;padding:7px 10px}.gmodes .chip i{font-style:normal;color:var(--chalk-faint);font-size:12px}.gmodes .chip.on{border-color:var(--beer);color:var(--beer)}
+.ghost{fill:none;stroke:var(--beer);stroke-width:2;stroke-dasharray:5 4;pointer-events:none}
+
+/* inspector */
+.kind{display:inline-flex;align-items:center;gap:6px;font:600 12px var(--cond);letter-spacing:.1em;text-transform:uppercase;color:var(--k)}
+#right h2{font:600 24px/1.1 var(--cond);margin:4px 0 2px;text-wrap:balance}
+.where{font:12px var(--mono);color:var(--chalk-faint);word-break:break-all}
+.state{display:inline-block;margin-top:8px;padding:2px 8px;border-radius:10px;font:600 12px var(--ui)}
+.state.ok{background:#94c26c26;color:var(--hops)}
+.state.no{background:#e0674f26;color:var(--brick)}
+.field{display:grid;gap:3px;margin-top:9px}
+.field label{font:600 11px var(--cond);letter-spacing:.1em;text-transform:uppercase;color:var(--chalk-faint)}
+.field input,.field textarea{background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:5px 7px;font:12.5px var(--mono);width:100%;box-sizing:border-box;resize:vertical}
+.field input:focus,.field textarea:focus{border-color:var(--beer);outline:none}
+.links{display:grid;gap:4px;margin-top:6px}
+.lnk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--chalk-dim);background:none;border:none;padding:2px 0;text-align:left}
+.lnk:hover{color:var(--chalk)}
+.lnk i{font-style:normal;font:11px var(--mono);color:var(--chalk-faint)}
+.list{margin:4px 0 0;padding:0;list-style:none;display:grid;gap:3px}
+.list li{display:grid;grid-template-columns:52px 1fr;gap:6px;font-size:13px;align-items:baseline}
+.list .d{font:600 12px var(--ui);color:var(--beer);font-variant-numeric:tabular-nums}
+.warn{border-left:3px solid var(--brick);padding:6px 9px;background:#e0674f14;margin-top:6px;font-size:13px;color:var(--chalk-dim)}
+.warn b{color:var(--chalk);font-weight:600}
+.sim{display:grid;grid-template-columns:1fr 64px;gap:6px 8px;align-items:center;font-size:13px;color:var(--chalk-dim)}
+.sim select{width:100%;min-width:0;grid-column:span 1}
+.sim input[type=number]{background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:3px 5px;width:100%;box-sizing:border-box;font-variant-numeric:tabular-nums}
+.sim input[type=checkbox]{justify-self:start;accent-color:var(--beer)}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.btn{background:var(--chalk);color:var(--slate);border:none;border-radius:3px;padding:6px 12px;font:600 13px var(--cond);letter-spacing:.05em;text-transform:uppercase}
+.btn.ghost2{background:none;color:var(--chalk);border:1px solid var(--line)}
+.btn.bad{background:none;color:var(--brick);border:1px solid #e0674f66}
+
+/* playback bar */
+footer{display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;gap:12px;padding:8px 16px;border-top:1px solid var(--line);background:var(--slate-2)}
+#play{width:36px;height:36px;border-radius:50%;background:var(--beer);color:var(--slate);border:none;font-size:15px}
+#dayl{font:600 18px var(--cond);white-space:nowrap;font-variant-numeric:tabular-nums;min-width:74px}
+.track{position:relative;height:38px;min-width:0}
+#day{position:absolute;left:0;right:0;bottom:0;width:100%;margin:0;accent-color:var(--beer)}
+#marks{position:absolute;left:8px;right:8px;top:0;height:20px}
+#marks span{position:absolute;top:0;width:2px;height:14px;background:var(--beer);transform:translateX(-1px);cursor:pointer}
+#marks span:hover::after{content:attr(data-t);position:absolute;bottom:16px;left:0;white-space:nowrap;background:var(--chalk);color:var(--slate);font:600 11px var(--ui);padding:2px 6px;border-radius:2px}
+#pools{display:flex;gap:10px;font:600 13px var(--ui);font-variant-numeric:tabular-nums;color:var(--chalk-dim);white-space:nowrap}
+#pools b{color:var(--beer)}
+
+/* overlays */
+.sheet{position:absolute;inset:0;background:var(--slate);z-index:5;display:flex;flex-direction:column;min-height:0}
+.sheet .bar{display:flex;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.sheet .body{overflow:auto;padding:12px 16px;min-height:0;flex:1}
+.hbody{display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:start}
+.hnav{position:sticky;top:0;display:grid;gap:2px;font-size:13px}
+.hnav a{color:var(--chalk-dim);text-decoration:none;padding:3px 0}.hnav a:hover{color:var(--beer)}
+.hpart{font:600 11px var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--beer);margin:10px 0 4px}
+.hparth{font:700 22px var(--cond);color:var(--beer);letter-spacing:.04em;margin:8px 0 18px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.hsec{margin:0 0 40px;max-width:1200px}.hsec h2{font:600 18px var(--cond);letter-spacing:.04em;margin:0 0 6px;color:var(--chalk)}
+.hlead{color:var(--chalk-dim);margin:0 0 10px;max-width:70ch}
+.hrow{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(220px,1fr);gap:20px;align-items:start}
+.hpics{display:grid;gap:10px}.hpics img{width:100%;border:1px solid var(--line);border-radius:4px;display:block}
+.hsteps{margin:0;padding:0;list-style:none;counter-reset:s;display:grid;gap:10px;font-size:14px;line-height:1.45}
+.hsteps li{counter-increment:s;position:relative;padding-left:34px}
+.hsteps li::before{content:counter(s);position:absolute;left:0;top:-1px;width:24px;height:24px;border-radius:50%;background:var(--beer);color:#1b1a14;font:700 13px/24px var(--ui);text-align:center}
+@media (max-width:900px){.hbody{grid-template-columns:1fr}.hnav{position:static}.hrow{grid-template-columns:1fr}}
+table.grid{border-collapse:collapse;font:12.5px var(--mono)}
+table.grid th{position:sticky;top:0;background:var(--slate-3);text-align:left;padding:5px 8px;font:600 12px var(--cond);letter-spacing:.06em;color:var(--chalk-dim);white-space:nowrap}
+table.grid td{border-top:1px solid var(--line);padding:0}
+table.grid td input{background:none;border:none;padding:5px 8px;width:100%;min-width:90px;box-sizing:border-box;font:inherit}
+table.grid td input:focus{background:var(--slate-3);outline:1px solid var(--beer)}
+table.grid td.note input{color:var(--chalk-faint);min-width:220px}
+.chg{border:1px solid var(--line);border-radius:3px;padding:10px 12px;margin-bottom:10px}
+.chg h3{margin:0 0 4px;font:600 16px var(--cond)}
+.chg textarea{width:100%;box-sizing:border-box;height:90px;background:var(--slate-2);border:1px solid var(--line);font:11.5px var(--mono);margin-top:8px}
+.pop{position:absolute;z-index:6;background:var(--slate-2);border:1px solid var(--beer);border-radius:4px;padding:12px;width:290px;box-shadow:0 10px 30px #000a;max-height:calc(100% - 16px);overflow:auto;box-sizing:border-box}
+.pop p{margin:0 0 8px;font-size:13px;color:var(--chalk-dim)}
+.pop code{font:12px var(--mono);color:var(--chalk)}
+.pop input{background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:5px 7px;width:100%;box-sizing:border-box}
+
+@media (max-width:900px){
+  main{grid-template-columns:1fr;grid-template-rows:1fr auto}
+  #left{display:none}
+  #right{border-left:none;border-top:1px solid var(--line);max-height:38vh}
+  footer{grid-template-columns:auto auto 1fr}
+  #pools{display:none}
+}
+</style>
+
+<div id="app">
+<header>
+  <h1>Sturmball System Builder</h1>
+  <nav class="tabs" id="tabs" aria-label="Views"></nav>
+  <span class="spacer"></span>
+  <button class="hbtn ico" id="btnLeft" title="Show or hide the left panel" aria-label="Show or hide the left panel">⟨ Panel</button>
+  <button class="hbtn ico" id="btnRight" title="Show or hide the right panel" aria-label="Show or hide the right panel">Panel ⟩</button>
+  <button class="hbtn" id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
+  <button class="hbtn" id="btnLayout" title="Lay this view out again">Tidy up</button>
+  <button class="hbtn" id="btnGameLines" title="Show or hide the lines the game already has between your cards">Game lines: off</button>
+  <button class="hbtn" id="btnSave" title="Save, download or open your work">Save<span id="saveState" class="savest">…</span></button>
+  <button class="hbtn" id="btnChanges">Changes<span class="count" id="chgCount" hidden>0</span></button>
+</header>
+<main>
+  <aside id="left">
+    <details class="sec" data-sec="find" open><summary>Find a card or group</summary>
+    <input id="search" type="search" placeholder="Ingredients, Pub, reed…" autocomplete="off" aria-label="Find a card or group"><div id="results"></div></details>
+    <details class="sec" data-sec="add" open><summary>Add to the board</summary>
+    <button class="addbtn" id="addGroup"><svg width="22" height="22"><rect x="2" y="4" width="18" height="14" rx="2" fill="none" stroke="var(--chalk-dim)" stroke-width="1.6" stroke-dasharray="3 2"/><rect x="2" y="4" width="18" height="4" fill="var(--chalk-dim)"/></svg>New group (a label like Ingredients)</button>
+    <div id="adds"></div></details>
+    <details class="sec" data-sec="shapes" open><summary>Card shapes</summary>
+    <div class="legend" id="legend"></div></details>
+    <details class="sec" data-sec="lines" open><summary>Lines</summary>
+    <div class="legend" id="legend2"></div></details>
+    <details class="sec" data-sec="how" open><summary>How to</summary>
+    <p class="hint"><b>Groups</b> are labelled boxes, such as Ingredients. Drag cards into one, then draw a line from the group to a machine and call it input or output. Groups and their lines live on your board only and never change the game's sheets. <b>Drag</b> a card to move it. <b>Drag</b> from the dot on a card's right edge onto another card to connect them; the builder tells you which CSV cell that writes. <b>Click</b> a card or line, then press <b>Delete</b> (or the red button) to remove it. <b>Play</b> runs a pretend season with the numbers on the right.</p></details>
+  </aside>
+  <section id="stage">
+    <svg id="svg" aria-label="System board"><defs>
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 1 L9 5 L0 9z" fill="context-stroke"/></marker>
+    </defs><g id="world"><g id="gGroups"></g><g id="gEdges"></g><g id="gNotes"></g><g id="gLabels"></g><g id="gNodes"></g><g id="gGroupTop"></g><path id="ghost" class="ghost" d=""/></g></svg>
+    <div id="empty" class="empty" hidden><h2><span id="emptyName">This board</span> is empty</h2><p>Build your system here, one card at a time.</p><p><b>Add a new card</b> with the buttons on the left (a match mode, an Adventure place, an achievement…), or <b>find one the game already has</b> in "Find a card" and put it on this board.</p><p>When two cards on the board are already joined in the game's sheets, the line shows up by itself. Drag from a card's right-hand dot to draw new lines.</p><p class="hint">Not sure where to start? The <b>Help</b> tab shows every part in pictures, with a worked example.</p></div>
+    <div class="zoombar"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Fit the board" title="Fit">⤢</button></div>
+  </section>
+  <aside id="right"></aside>
+</main>
+<footer>
+  <button id="play" aria-label="Play the pretend season">▶</button>
+  <div id="dayl">Day 0</div>
+  <div class="track"><div id="marks"></div><input id="day" type="range" min="0" max="40" value="0" aria-label="Day"></div>
+  <div id="pools"></div>
+</footer>
+</div>
+
+<script>
+const SRC = /*__DATA__*/{};
+const SRC_STAMP = "/*__STAMP__*/";
+const OLD_STAMPS = ["/*__OLDSTAMPS__*/"];
+</script>
+<script>
+"use strict";
+/* ---------- CSV ---------- */
+function parseCSV(t){const out=[];let row=[],f="",q=false;for(let i=0;i<t.length;i++){const c=t[i];
+  if(q){if(c=='"'){if(t[i+1]=='"'){f+='"';i++}else q=false}else f+=c}
+  else if(c=='"')q=true;else if(c==','){row.push(f);f=""}else if(c=='\n'){row.push(f);out.push(row);row=[];f=""}else if(c!='\r')f+=c}
+  if(f!==""||row.length){row.push(f);out.push(row)}return out}
+function esc(v){v=v==null?"":String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}
+function loadFile(name,text){const a=parseCSV(text.replace(/^﻿/,""));const cols=a[0]||[];
+  const rows=a.slice(1).filter(r=>r.some(x=>x!=="")).map(r=>{const o={};cols.forEach((c,i)=>o[c]=r[i]??"");return o});
+  return {name,cols,rows}}
+function textHash(t){let h=5381;for(let i=0;i<t.length;i++)h=(h*33^t.charCodeAt(i))>>>0;return h.toString(36)}
+function toCSV(f){return [f.cols.map(esc).join(",")].concat(f.rows.map(r=>f.cols.map(c=>esc(r[c])).join(","))).join("\n")+"\n"}
+
+/* ---------- state ---------- */
+const FILES={};const ORIG={};
+for(const n in SRC){FILES[n]=loadFile(n,SRC[n]);ORIG[n]=toCSV(FILES[n])}
+const LS="sturmball-kit-v1";
+function lsGet(k){try{return JSON.parse(localStorage.getItem(LS+k)||"null")}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v))}catch(e){}if(typeof onStore=="function")onStore(k)}
+(function restore(){const saved=lsGet(":edits");if(!saved)return;const ok=saved.stamp===SRC_STAMP||OLD_STAMPS.includes(saved.stamp);
+  for(const n in saved.files){if(!FILES[n])continue;if(saved.base?saved.base[n]===textHash(ORIG[n]):ok)FILES[n]=loadFile(n,saved.files[n]);else if(saved.orig&&saved.orig[n])FILES[n]=threeWay(n,saved.orig[n],saved.files[n],ORIG[n])}})();
+const undoStack=[];
+function snapshot(){const s={};for(const n in FILES)s[n]=toCSV(FILES[n]);if(typeof GROUPS!="undefined")s.__board=JSON.stringify({CARDS,GROUPS,NOTES});return s}
+function pushUndo(){undoStack.push(snapshot());if(undoStack.length>60)undoStack.shift()}
+function changedFiles(){return Object.keys(FILES).filter(n=>toCSV(FILES[n])!==ORIG[n])}
+function persist(){const f={},base={},orig={};for(const n of changedFiles()){f[n]=toCSV(FILES[n]);base[n]=textHash(ORIG[n]);orig[n]=ORIG[n]}lsSet(":edits",{stamp:SRC_STAMP,files:f,base,orig})}
+// Your edits win: what you changed (added rows, removed rows, changed cells) is laid over a newer copy of the sheet.
+// Cells you did not touch keep the newer copy's values, so changes made at home by Claude are kept too.
+function threeWay(n,baseT,mineT,curT){const b=loadFile(n,baseT),m=loadFile(n,mineT),c=loadFile(n,curT);
+  const k0=c.cols.includes("ID")?"ID":/ID$/.test(c.cols[0]||"")?c.cols[0]:null;const key=r=>k0?r[k0]:c.cols.slice(0,2).map(x=>r[x]).join("|");
+  const bm=new Map(b.rows.map(r=>[key(r),r])),mm=new Map(m.rows.map(r=>[key(r),r]));
+  c.rows=c.rows.filter(r=>!(bm.has(key(r))&&!mm.has(key(r))));const cm=new Map(c.rows.map(r=>[key(r),r]));
+  m.rows.forEach(r=>{const k=key(r),o=bm.get(k),t=cm.get(k);
+    if(!o){if(t)c.cols.forEach(x=>{if(x in r)t[x]=r[x]});else{const nr={};c.cols.forEach(x=>nr[x]=r[x]??"");c.rows.push(nr)}return}
+    if(t)c.cols.forEach(x=>{if(x in r&&(r[x]??"")!==(o[x]??""))t[x]=r[x]})});
+  return c}
+
+/* ---------- guard rails: every cell you type is checked before it is kept ---------- */
+const RESFILES=["Items","BreweryResources","Currencies"];
+// the column that names a row: ID in most sheets, "Ability ID" in Abilities.csv
+const idCol=file=>{const c=FILES[file]?FILES[file].cols:[];return c.includes("ID")?"ID":/ID$/.test(c[0]||"")?c[0]:null};
+const isThing=id=>RESFILES.some(f=>FILES[f]&&FILES[f].rows.some(r=>r.ID==id));
+const COLINFO={},ENUMS={};
+for(const n in ORIG){const f=loadFile(n,ORIG[n]);COLINFO[n]={};f.cols.forEach(c=>{const v=f.rows.map(r=>r[c]||"");const full=v.filter(x=>x);
+  COLINFO[n][c]={num:full.length>0&&full.every(x=>/^-?\d+(\.\d+)?$/.test(x)),blank:full.length<v.length}})}
+["Upgrades.Kind","Items.Kind","Items.Tab","Items.Target","BreweryResources.Kind","BreweryResources.Kept","MatchModes.Records Season","MatchModes.Star Rotation","MatchModes.Opponent","MatchModes.Scene",
+ "AdventureEnemies.Boss","AdventureEnemies.Targeting","AdventureEnemies.Element","Progression.When","Progression.Once","Currencies.Earned In","Abilities.Trigger","Abilities.Scope","Brews.Element","Brews.Permanent","Achievements.Hidden"].forEach(k=>{const [n,c]=k.split(".");
+  if(!ORIG[n])return;ENUMS[k]=[...new Set(loadFile(n,ORIG[n]).rows.map(r=>r[c]).filter(x=>x))].sort()});
+const origHas=(file,id)=>!!ORIG[file]&&!!idCol(file)&&loadFile(file,ORIG[file]).rows.some(r=>r[idCol(file)]==id);
+function cellProblem(file,col,v,row){v=String(v??"");const ci=(COLINFO[file]||{})[col];
+  if(/[\r\n]/.test(v)&&!/^(Notes|Description)$/.test(col))return "Keep this on one line.";
+  if(col==idCol(file)){if(file=="Abilities"?!/^[A-Z0-9_]+$/.test(v):!/^[a-z0-9_]+$/.test(v))return file=="Abilities"?"An ability ID uses only CAPITALS, numbers and _ (like HELLES_ATK).":"An ID uses only small letters, numbers and _ (like basic_germs).";
+    if(FILES[file].rows.some(r=>r!==row&&r[col]==v))return `${file}.csv already has ${v}.`;
+    if(RESFILES.includes(file)&&!origHas(file,v)&&RESFILES.some(f=>f!=file&&FILES[f]&&FILES[f].rows.some(r=>r.ID==v)))return `${v} already exists in another sheet, so the game would mix them up.`}
+  if(!v)return ci&&!ci.blank?`${col} can't be empty.`:"";
+  if(ci&&ci.num&&!/^-?\d+(\.\d+)?$/.test(v))return `${col} must be a number.`;
+  let en=ENUMS[file+"."+col];if(file=="Brews"&&col=="Element"&&en)en=[...new Set([...en,...elemCards().map(c=>c.word)])].sort();if(en&&!en.includes(v))return `${col} must be one of: ${en.join(", ")}.`;
+  const toks=v.split(";").map(t=>t.trim());
+  if(/^(Needs|Requires)$/.test(col)){const bad=toks.find(t=>!/^(count:\w+(>=|<=|==|>|<)\d+|!?flag:\w+|unlocked:[^:;]+)$/.test(t));if(bad!==undefined)return `"${bad}" isn't a check the game knows. Use count:thing>=N, flag:name or unlocked:Name, joined with ;`}
+  if(file!="Abilities"&&/^(Effect|Rewards|Rewards On Win)$/.test(col)){const bad=toks.find(t=>!/^count:\w+[+-]\d+$/.test(t));if(bad!==undefined)return `"${bad}" should look like count:thing+N, joined with ;`}
+  if(file=="BrewerySections"&&col=="Takes")for(const t of toks){const m=t.match(/^(\w+):(\d+)$/);if(!m)return `"${t}" should look like wheat:1, joined with ;`;if(!FILES.BreweryResources.rows.some(r=>r.ID==m[1]))return `${m[1]} isn't a brewery ingredient (BreweryResources.csv).`}
+  if(file=="BrewerySections"&&col=="Makes"&&!FILES.BreweryResources.rows.some(r=>r.ID==v))return `${v} isn't a brewery ingredient (BreweryResources.csv).`;
+  if(file=="Brews"&&col=="Cost")for(const t of v.split("|")){const m=t.match(/^(\w+):(\d+)$/);if(!m)return `"${t}" should look like reed:2, joined with |`;if(!isThing(m[1]))return `${m[1]} isn't an item the game has.`}
+  if(col=="Currency"&&!isThing(v))return `${v} isn't a currency or item the game has.`;
+  if(file=="Drops"&&col=="Item"&&!isThing(v))return `${v} isn't an item the game has.`;
+  if(file=="Brews"&&/Ability$/.test(col)&&!F("Abilities").some(r=>r["Ability ID"]==v))return `${v} isn't in Abilities.csv. Make it with New ability first.`;
+  if(file=="Brews"&&col=="Pool"&&!v.split("|").every(x=>/^[a-z0-9_]+$/.test(x)))return "Pool names use small letters, numbers and _, several joined with |.";
+  if(file=="Abilities"&&/^(Effect|Target)$/.test(col)){const known=new Set(loadFile("Abilities",ORIG.Abilities).rows.map(r=>(r[col]||"").split(":")[0]));if(!known.has(v.split(":")[0]))return `${col} must start with one the game knows: ${[...known].filter(x=>x).sort().join(", ")}.`}
+  if(file=="Shop"&&col=="Sells"&&!/^(res|brew|unlock|count):\S/.test(v))return "Sells starts with res:, brew:, unlock: or count:.";
+  return ""}
+// one place every typed cell goes through: refuse it (and say why) or keep it
+function tryCell(inp,file,row,col){const v=inp.value;const why=cellProblem(file,col,v,row);
+  if(why){inp.classList.add("badcell");inp.value=row[col]||"";toast("Not kept: "+why);setTimeout(()=>inp.classList.remove("badcell"),2500);return false}
+  inp.classList.remove("badcell");return true}
+
+/* ---------- vocabulary ---------- */
+const KINDS={
+  play:{label:"Match",desc:"A match mode: Season, Friendly, Quick, Cup…",color:"var(--hops)",glyph:"play"},
+  adventure:{label:"Adventure",desc:"An Adventure place: Marshlands, Cinder Wastes…",color:"var(--fern)",glyph:"peaks"},
+  stat:{label:"Score",desc:"A number the game counts (matches won, goals…)",color:"var(--sky)",glyph:"dot"},
+  money:{label:"Money",desc:"A purse: Coins, Marsh Marks…",color:"var(--beer)",glyph:"pool"},
+  stuff:{label:"Stuff",desc:"Things you carry: reed, hops, keys, bottles",color:"var(--chalk)",glyph:"pool"},
+  maker:{label:"Maker",desc:"Turns stuff into other stuff: a brew, a trade, an upgrade, a brewing machine",color:"var(--clay)",glyph:"tri"},
+  goal:{label:"Goal",desc:"An achievement or story moment that fires when its Needs are met",color:"var(--beer)",glyph:"diamond"},
+  unlock:{label:"Unlock",desc:"A name that gets switched on (Brewery, Fire Brew…)",color:"var(--beer)",glyph:"star"},
+  place:{label:"Building",desc:"A building on the base",color:"var(--chalk)",glyph:"house"},
+  beer:{label:"Beer",desc:"A beer or brew a player drinks. Random beers share a Pool",color:"var(--beer)",glyph:"mug"},
+  ability:{label:"Ability",desc:"What a beer or card does in a duel: +1 power, drain stamina…",color:"var(--brick)",glyph:"bolt"}};
+const ETYPES={flow:"gives / makes",cost:"costs",unlock:"unlocks / needs it unlocked",reads:"checks a number",game:"counted by the game itself",cond:"only if (that element went into the Brew Kettle)"};
+const VIEWS=[
+  {id:"whole",name:"Whole Game",board:true},
+  {id:"ach",name:"Achievements / Unlock Path",board:true},
+  {id:"lootb",name:"Loot & Money",board:true},
+  {id:"brewb",name:"Brewery",board:true},
+  {id:"items",name:"Consumables / Items",board:true},
+  {id:"adv",name:"Adventure Board",board:true},
+  {id:"season",name:"Seasons / League",board:true},
+  {id:"all",name:"Example",old:true},
+  {id:"path",name:"Unlock path",old:true,kinds:["play","adventure","stat","goal","unlock","place","maker"],makers:["upgrade"]},
+  {id:"loot",name:"Loot & money",old:true,kinds:["play","adventure","money","stuff","maker"],makers:["brew","shop","upgrade"]},
+  {id:"brewery",name:"Brewery",old:true,kinds:["stuff","maker","money"],makers:["brew","section","shop"]},
+  {id:"tables",name:"Tables"},{id:"help",name:"Help"}];
+const MATCH_STATS=["matches_played","matches_won","goals","goals_by_star","clean_sheets","keeper_emptied","red_cards","goals_with_brew_fire"];
+const HIDDEN_MODES=["adventure","intro","intro2","intro_adventure","tutorial","tutorial_adventure","friendly_test","friendly_cycle"];
+
+/* ---------- condition / action language (same words the game uses) ---------- */
+function toks(s,sep){return (s||"").split(sep||";").map(x=>x.trim()).filter(Boolean)}
+function parseCond(t){let m;let neg=false;if(t[0]=="!"){neg=true;t=t.slice(1)}
+  if((m=t.match(/^count:([\w]+)\s*(>=|<=|==|>|<|=)\s*(-?[\d.]+)$/)))return{k:"count",id:m[1],op:m[2],n:+m[3],neg};
+  if((m=t.match(/^unlocked:(.+)$/)))return{k:"unlocked",name:m[1].trim(),neg};
+  if((m=t.match(/^flag:(.+)$/)))return{k:"flag",name:m[1].trim(),neg};
+  return{k:"other",raw:t,neg}}
+function parseAct(t){let m;
+  if((m=t.match(/^count:([\w]+)\s*([+-])\s*([\d.]+)$/)))return{k:"count",id:m[1],n:(m[2]=="-"?-1:1)*+m[3]};
+  if((m=t.match(/^unlock:(.+)$/)))return{k:"unlock",name:m[1].trim()};
+  if((m=t.match(/^flag:(.+)$/)))return{k:"flag",name:m[1].trim()};
+  return{k:"other",raw:t}}
+function parseCost(s){return toks(s,/[|;]/).map(x=>{const [id,n]=x.split(":");return{id:id.trim(),n:+(n||1)}})}
+const F=n=>FILES[n]?FILES[n].rows:[];
+const nice=s=>s.replace(/_/g," ");
+
+/* ---------- graph from CSVs ---------- */
+let G={nodes:new Map(),edges:[]};
+// ELEMENTS: a card named "Fire Element" (Items or BreweryResources) is the element Fire.
+// An "if" line from it to a beer writes Brews.csv -> Element, so that beer only comes out when that element went into the Brew Kettle.
+function elemWord(label){const m=String(label||"").trim().match(/^(.+?)\s+element$/i);return m?m[1].charAt(0).toUpperCase()+m[1].slice(1):""}
+function elemCards(){const out=[];["Items","BreweryResources"].forEach(f=>(FILES[f]?FILES[f].rows:[]).forEach(r=>{const w=elemWord(r.Name);if(w)out.push({id:r.ID,file:f,word:w,name:r.Name})}));return out}
+const elemOf=n=>n&&n.kind=="stuff"&&n.row?elemWord(n.row.Name||n.label):"";
+function buildGraph(){
+  const N=new Map(),E=[];const resIds=new Set();
+  const add=(id,o)=>{if(!N.has(id))N.set(id,Object.assign({id,ins:[],outs:[]},o));return N.get(id)};
+  const resName={};
+  F("Currencies").forEach(r=>{resIds.add(r.ID);resName[r.ID]={kind:"money",row:r,file:"Currencies"}});
+  F("BreweryResources").forEach(r=>{resIds.add(r.ID);if(!resName[r.ID])resName[r.ID]={kind:"stuff",row:r,file:"BreweryResources"}});
+  F("Items").forEach(r=>{resIds.add(r.ID);if(!resName[r.ID]||resName[r.ID].file=="Currencies"&&!["coins","marks","cup_silver"].includes(r.ID))resName[r.ID]={kind:r.Kind=="currency"?"money":"stuff",row:r,file:"Items"}});
+  const numId=id=>{ // a counter: stuff/money if it is a thing you own, otherwise a score
+    if(resIds.has(id)){const m=resName[id];return add("res:"+id,{kind:m.kind,label:m.row.Name||nice(id),file:m.file,row:m.row,sub:id})}
+    return add("stat:"+id,{kind:"stat",label:nice(id),sub:"count:"+id,file:null})};
+  const feat=name=>add("feat:"+name,{kind:"unlock",label:name,sub:"unlocked:"+name,file:null});
+  const edge=(a,b,type,label,src)=>{if(!a||!b||a===b)return;E.push(Object.assign({from:a.id,to:b.id,type,label:label??""},src||{}))};
+  const conds=(node,file,row,col)=>toks(row[col]).forEach(t=>{const c=parseCond(t);const src={file,row,col,token:t,sep:";"};
+    if(c.k=="count"&&!c.neg&&/>/.test(c.op))edge(numId(c.id),node,"reads",c.op+c.n,src);
+    else if(c.k=="count"&&/>/.test(c.op))edge(numId(c.id),node,"reads","not "+c.op+c.n,src);
+    else if(c.k=="unlocked")edge(feat(c.name),node,"unlock",c.neg?"not":"",src);
+    else if(c.k=="flag"&&/^earned_/.test(c.name)&&!c.neg){const a=N.get("ach:"+c.name.slice(7));if(a)edge(a,node,"unlock","",src)}});
+  const acts=(node,file,row,col)=>toks(row[col]).forEach(t=>{const a=parseAct(t);const src={file,row,col,token:t,sep:";"};
+    if(a.k=="count")edge(node,numId(a.id),"flow",(a.n>0?"+":"")+a.n,src);
+    else if(a.k=="unlock")edge(node,feat(a.name),"unlock","",src)});
+
+  // play
+  const any=add("play:match",{kind:"play",label:"Every match",sub:"counted by game code",file:null});
+  MATCH_STATS.forEach(s=>edge(any,numId(s),"game",""));
+  F("MatchModes").filter(r=>!HIDDEN_MODES.includes(r.ID)).forEach(r=>{
+    const n=add("mode:"+r.ID,{kind:"play",label:r.Name,file:"MatchModes",row:r,sub:"MatchModes "+r.ID,mk:"mode"});
+    conds(n,"MatchModes",r,"Requires");acts(n,"MatchModes",r,"Rewards");acts(n,"MatchModes",r,"Rewards On Win");edge(n,any,"game","")});
+  F("Currencies").forEach(r=>{const m=N.get("mode:"+r["Earned In"]);const c=numId(r.ID);
+    if(m&&(+r.Win||+r.Draw||+r.Loss))edge(m,c,"flow",`W${r.Win} D${r.Draw} L${r.Loss}`,{file:"Currencies",row:r,col:"Earned In",token:r["Earned In"],whole:true})});
+  F("Biomes").forEach(r=>{const n=add("biome:"+r.ID,{kind:"adventure",label:r.Name,file:"Biomes",row:r,sub:"Adventure · "+r.Waves+" waves",mk:"biome"});
+    conds(n,"Biomes",r,"Requires");
+    const loot=expectedRun(r,null);for(const id in loot)edge(n,numId(id),"flow","~"+fmt(loot[id]),{file:"Drops",loot:true,table:r.Drops,item:id});
+    const boss=bossOf(r);if(boss)edge(n,feat(boss),"unlock","beat boss")});
+  // goals
+  F("Achievements").forEach(r=>add("ach:"+r.ID,{kind:"goal",label:r.Name,file:"Achievements",row:r,sub:"Achievements "+r.ID,mk:"ach"}));
+  F("Achievements").forEach(r=>{const n=N.get("ach:"+r.ID);conds(n,"Achievements",r,"Needs");
+    toks(r.Unlocks).forEach(u=>edge(n,feat(u),"unlock","",{file:"Achievements",row:r,col:"Unlocks",token:u,sep:";"}));acts(n,"Achievements",r,"Reward")});
+  F("Progression").filter(r=>/unlock:/.test(r.Do)).forEach(r=>{const n=add("story:"+r.ID,{kind:"goal",label:nice(r.ID),file:"Progression",row:r,sub:"Progression · story",mk:"story"});
+    conds(n,"Progression",r,"Requires");acts(n,"Progression",r,"Do")});
+  // makers
+  F("Upgrades").forEach(r=>{const n=add("upg:"+r.ID,{kind:"maker",label:r.Name,file:"Upgrades",row:r,sub:"Club House · "+r.Cost+" "+r.Currency,mk:"upgrade"});
+    if(r.Achievement){const a=N.get("ach:"+r.Achievement);if(a)edge(a,n,"unlock","may buy",{file:"Upgrades",row:r,col:"Achievement",token:r.Achievement,whole:true})}
+    conds(n,"Upgrades",r,"Needs");if(r.Currency&&+r.Cost)edge(numId(r.Currency),n,"cost",r.Cost,{file:"Upgrades",row:r,col:"Cost",token:r.Cost,whole:true});acts(n,"Upgrades",r,"Effect")});
+  F("Shop").forEach(r=>{const n=add("shop:"+r.ID,{kind:"maker",label:r.Name||nice(r.ID),file:"Shop",row:r,sub:"Merchant · "+r.Price+" "+r.Currency,mk:"shop"});
+    conds(n,"Shop",r,"Requires");if(r.Currency&&+r.Price)edge(numId(r.Currency),n,"cost",r.Price,{file:"Shop",row:r,col:"Price",token:r.Price,whole:true});
+    const s=r.Sells;let m;const src={file:"Shop",row:r,col:"Sells",token:s,whole:true};
+    if((m=s.match(/^res:(\w+)/)))edge(n,numId(m[1]),"flow","+"+(r["How Many"]||1),src);
+    else if((m=s.match(/^brew:(\w+)/))){const b=N.get("brew:"+m[1]);edge(n,b||feat("recipe "+m[1]),"unlock","recipe",src)}
+    else acts(n,"Shop",r,"Sells")});
+  const ability=id=>{const r=F("Abilities").find(x=>x["Ability ID"]==id);return add("abl:"+id,{kind:"ability",label:r?r.Name:id,file:r?"Abilities":null,row:r||null,sub:r?`${r.Trigger} · ${r.Effect} ${r.Value}`:"ability (not in Abilities.csv yet)"})};
+  F("Abilities").forEach(r=>ability(r["Ability ID"]));
+  F("Brews").forEach(r=>{const n=add("brew:"+r.ID,{kind:"beer",label:r.Name,file:"Brews",row:r,sub:r.Pool?"Random beer · pool "+r.Pool:"Brew"+(r.Becomes?" → "+r.Becomes:""),mk:"brew"});
+    ["Attack Ability","Defend Ability"].forEach(c=>{if(r[c])edge(n,ability(r[c]),"reads",c=="Attack Ability"?"attack":"defend",{file:"Brews",row:r,col:c,token:r[c],whole:true})});
+    conds(n,"Brews",r,"Requires");parseCost(r.Cost).forEach(c=>edge(numId(c.id),n,"cost",c.n,{file:"Brews",row:r,col:"Cost",token:c.id+":"+c.n,sep:"|"}));
+    edge(n,numId("brews_poured"),"game","");if(resIds.has("brew_"+r.ID))edge(n,numId("brew_"+r.ID),"flow","+1")});
+  // a bottle that pours "brew:pool:X" gives one random beer whose Pool lists X
+  F("Items").forEach(r=>{const m=(r.Use||"").match(/^brew:pool:(\w+)/);if(!m)return;const it=numId(r.ID);
+    F("Brews").filter(b=>(b.Pool||"").split("|").includes(m[1])).forEach(b=>edge(it,N.get("brew:"+b.ID),"flow","random",{file:"Brews",row:b,col:"Pool",token:m[1],sep:"|"}))});
+  // an element card -> each beer whose Element is that element ("if Fire")
+  elemCards().forEach(c=>F("Brews").filter(b=>(b.Element||"").toLowerCase()==c.word.toLowerCase()).forEach(b=>edge(numId(c.id),N.get("brew:"+b.ID),"cond","if "+c.word,{file:"Brews",row:b,col:"Element",token:b.Element,whole:true})));
+  // a brewery resource with a Counter lands in the bag as that item (bottle -> Small Bottle)
+  F("BreweryResources").forEach(r=>{if(r.Counter&&r.Counter!==r.ID)edge(numId(r.ID),numId(r.Counter),"flow","is a",{file:"BreweryResources",row:r,col:"Counter",token:r.Counter,whole:true})});
+  // the shop sells recipes before the brews are built in this pass; tie them up now
+  E.forEach(e=>{if(e.to.startsWith("feat:recipe ")){const b=N.get("brew:"+e.to.slice(12));if(b)e.to=b.id}});
+  F("BrewerySections").forEach(r=>{const n=add("sec:"+r.ID,{kind:"maker",label:r.Name,file:"BrewerySections",row:r,sub:"Brewery · "+r.Worker,mk:"section"});
+    conds(n,"BrewerySections",r,"Needs");
+    toks(r.Takes).forEach(t=>{const [id,k]=t.split(":");const tool=(F("BreweryResources").find(x=>x.ID==id)||{}).Kind=="tool";
+      edge(numId(id),n,tool?"reads":"cost",tool?"uses":k,{file:"BrewerySections",row:r,col:"Takes",token:t,sep:";"})});
+    if(r.Makes)edge(n,numId(r.Makes),"flow","+"+(r["How Many"]||1),{file:"BrewerySections",row:r,col:"Makes",token:r.Makes,whole:true})});
+  // places
+  F("Buildings").forEach(r=>{const n=add("bld:"+r.ID,{kind:"place",label:r.Name,file:"Buildings",row:r,sub:"Base building",mk:"building"});conds(n,"Buildings",r,"Requires")});
+  // every item and ingredient gets a card, even one nothing uses yet
+  F("BreweryResources").forEach(r=>numId(r.ID));F("Items").forEach(r=>numId(r.ID));
+  // a key is bought, the building checks it: show that one hop clearly
+  // wire up ins/outs
+  const seen=new Set();G={nodes:N,edges:[]};
+  E.forEach(e=>{const k=e.from+">"+e.to+">"+e.type+">"+(e.token||e.label);if(seen.has(k))return;seen.add(k);if(!N.has(e.from)||!N.has(e.to))return;
+    e.i=G.edges.length;G.edges.push(e);N.get(e.from).outs.push(e);N.get(e.to).ins.push(e)});
+}
+function fmt(x){return x>=10?Math.round(x):Math.round(x*10)/10}
+function bossOf(b){const pool=F("AdventureEnemies").filter(e=>e.Pool==b["Enemy Pool"]&&+e.Weight===0);if(!pool.length)return null;
+  pool.sort((x,y)=>(+y.Attack)-(+x.Attack));return pool[0].Name.replace(/^The /,"")}
+function dropTable(t,st){const o={};F("Drops").filter(d=>d.Table==t&&(!st||condOK(d.Requires,st))).forEach(d=>{o[d.Item]=(o[d.Item]||0)+(+d.Amount||0)*(+(d.Chance||1))});return o}
+function expectedRun(b,st){const P=SIM_SET;const o={};const addT=(t,mul)=>{const d=dropTable(t,st);for(const k in d)o[k]=(o[k]||0)+d[k]*mul};
+  const waves=+b.Waves||4;addT(b.Drops,waves);
+  const pool=F("AdventureEnemies").filter(e=>e.Pool==b["Enemy Pool"]);const reg=pool.filter(e=>+e.Weight>0);const W=reg.reduce((s,e)=>s+(+e.Weight),0)||1;
+  reg.forEach(e=>addT(e.Drops,waves*P.enemies*(+e.Weight)/W));pool.filter(e=>+e.Weight===0).forEach(e=>addT(e.Drops,P.bossWin));return o}
+
+/* ---------- pretend season ---------- */
+const SIM_DEF={days:40,matches:1,mode:"season",win:0.55,draw:0.15,goals:2,runs:1,enemies:3,bossWin:0.5,beatAfter:3,keys:true,upgrades:true,merchant:true,brews:1};
+const SIM_SET=Object.assign({},SIM_DEF,lsGet(":sim")||{});
+let SIM=null;
+function condOK(s,st){return toks(s).every(t=>{const c=parseCond(t);let v=true;
+  if(c.k=="count"){const x=st.c[c.id]||0;v={">=":x>=c.n-1e-9,">":x>c.n,"<=":x<=c.n,"<":x<c.n,"==":Math.abs(x-c.n)<1e-9,"=":Math.abs(x-c.n)<1e-9}[c.op]}
+  else if(c.k=="unlocked")v=st.u.has(c.name);else if(c.k=="flag")v=st.f.has(c.name);
+  return c.neg?!v:v})}
+function doActs(s,st,why,day){toks(s).forEach(t=>{const a=parseAct(t);if(a.k=="count")st.c[a.id]=(st.c[a.id]||0)+a.n;
+  else if(a.k=="unlock"&&!st.u.has(a.name)){st.u.add(a.name);st.ev.push({day,t:a.name+" unlocked",why,node:"feat:"+a.name})}
+  else if(a.k=="flag")st.f.add(a.name)})}
+function pay(st,cost){for(const c of cost)if((st.c[c.id]||0)<c.n-1e-9)return false;cost.forEach(c=>st.c[c.id]-=c.n);return true}
+function runSim(){const P=SIM_SET;const st={c:{},u:new Set(),f:new Set(),ev:[],done:new Set(),bought:new Set(),runs:{}};
+  F("BreweryResources").forEach(r=>st.c[r.ID]=+r.Start||0);
+  const days=[];const first={};
+  const mark=day=>{G.nodes.forEach(n=>{if(first[n.id]!=null)return;if(nodeOpen(n,st,day))first[n.id]=day})};
+  const triggers=day=>{let again=true,guard=0;while(again&&guard++<20){again=false;
+    F("Achievements").forEach(r=>{if(st.f.has("earned_"+r.ID)||!r.Needs)return;if(condOK(r.Needs,st)){st.f.add("earned_"+r.ID);again=true;
+      st.ev.push({day,t:r.Name+" earned",node:"ach:"+r.ID,goal:true});toks(r.Unlocks).forEach(u=>{if(!st.u.has(u)){st.u.add(u);st.ev.push({day,t:u+" unlocked",why:r.Name,node:"feat:"+u})}});doActs(r.Reward,st,r.Name,day)}});
+    F("Progression").forEach(r=>{if(st.done.has(r.ID)||!r.Do)return;if(r.Requires&&condOK(r.Requires,st)){st.done.add(r.ID);again=true;doActs(r.Do,st,"story: "+nice(r.ID),day)}})}};
+  const open=id=>{const b=F("Buildings").find(x=>x.ID==id);return b&&condOK(b.Requires,st)};
+  mark(0);days.push(snap(st));
+  for(let day=1;day<=P.days;day++){
+    for(let m=0;m<P.matches;m++){const mode=F("MatchModes").find(x=>x.ID==P.mode)||{ID:P.mode};
+      const w=P.win,d=P.draw,l=Math.max(0,1-w-d);st.c.matches_played=(st.c.matches_played||0)+1;st.c.matches_won=(st.c.matches_won||0)+w;
+      st.c.goals=(st.c.goals||0)+P.goals;st.c.goals_by_star=(st.c.goals_by_star||0)+P.goals*0.3;st.c.clean_sheets=(st.c.clean_sheets||0)+0.25;
+      st.c.keeper_emptied=(st.c.keeper_emptied||0)+0.5;st.c.red_cards=(st.c.red_cards||0)+0.05;
+      if((st.c.brewed_fire||0)>0)st.c.goals_with_brew_fire=(st.c.goals_with_brew_fire||0)+Math.min(P.goals*0.5,1);
+      F("Currencies").forEach(r=>{if(r["Earned In"]==mode.ID||!r["Earned In"])st.c[r.ID]=(st.c[r.ID]||0)+w*(+r.Win||0)+d*(+r.Draw||0)+l*(+r.Loss||0)});
+      doActs(mode.Rewards||"",st,mode.Name,day);toks(mode["Rewards On Win"]).forEach(t=>{const a=parseAct(t);if(a.k=="count")st.c[a.id]=(st.c[a.id]||0)+a.n*w});
+      triggers(day)}
+    for(let k=0;k<P.runs;k++){const bs=F("Biomes").filter(b=>condOK(b.Requires,st)).sort((a,b)=>(+b.Order)-(+a.Order));const b=bs[0];if(!b)break;
+      const loot=expectedRun(b,st);for(const id in loot)st.c[id]=(st.c[id]||0)+loot[id];st.c.adventures_played=(st.c.adventures_played||0)+1;st.c.adventures_home=(st.c.adventures_home||0)+1;st.f.add("intro_adventure");
+      st.runs[b.ID]=(st.runs[b.ID]||0)+1;const boss=bossOf(b);if(boss&&st.runs[b.ID]>=P.beatAfter&&!st.u.has(boss)){st.u.add(boss);st.ev.push({day,t:boss+" beaten",why:b.Name,node:"feat:"+boss})}
+      triggers(day)}
+    // shopping
+    const ups=F("Upgrades");
+    if(P.keys)F("Buildings").forEach(b=>{toks(b.Requires).forEach(t=>{const c=parseCond(t);if(c.k=="count"&&!condOK(t,st)){
+      const others=toks(b.Requires).filter(x=>x!==t).join(";");if(!condOK(others,st))return;const u=ups.find(x=>toks(x.Effect).some(e=>{const a=parseAct(e);return a.k=="count"&&a.id==c.id}));
+      if(u&&pay(st,[{id:u.Currency,n:+u.Cost}])){doActs(u.Effect,st,u.Name,day);st.bought.add(u.ID);st.ev.push({day,t:"Bought "+u.Name,node:"upg:"+u.ID})}}})});
+    if(P.upgrades)ups.forEach(u=>{if(st.bought.has(u.ID)||/_key$/.test(u.ID))return;if(u.Achievement&&!st.f.has("earned_"+u.Achievement))return;if(u.Needs&&!condOK(u.Needs,st))return;
+      if(pay(st,[{id:u.Currency,n:+u.Cost}])){st.bought.add(u.ID);doActs(u.Effect,st,u.Name,day);st.ev.push({day,t:"Bought "+u.Name,node:"upg:"+u.ID})}});
+    if(P.merchant)F("Shop").forEach(s=>{if(!condOK(s.Requires,st))return;const m=s.Sells.match(/^res:(\w+)/);if(!m)return;if((st.c[m[1]]||0)>=(+s["How Many"]||1))return;
+      if(pay(st,[{id:s.Currency,n:+s.Price}]))st.c[m[1]]=(st.c[m[1]]||0)+(+s["How Many"]||1)});
+    // brewing
+    if(open("brewery")){F("BrewerySections").forEach(s=>{if(!condOK(s.Needs,st))return;const take=toks(s.Takes).map(t=>{const [id,n]=t.split(":");return{id,n:+n||1}}).filter(t=>(F("BreweryResources").find(x=>x.ID==t.id)||{}).Kind!=="tool");
+      const tools=toks(s.Takes).map(t=>t.split(":")[0]).filter(id=>(F("BreweryResources").find(x=>x.ID==id)||{}).Kind=="tool");
+      if(tools.every(id=>(st.c[id]||0)>=1)&&pay(st,take))st.c[s.Makes]=(st.c[s.Makes]||0)+(+s["How Many"]||1)});
+      let made=0;const list=F("Brews").filter(b=>b.Cost&&condOK(b.Requires,st));for(let i=0;i<list.length&&made<P.brews;i++){const b=list[(i+day)%list.length];
+        if(pay(st,parseCost(b.Cost))){made++;st.c["brewed_"+b.ID]=(st.c["brewed_"+b.ID]||0)+1;st.c.brews_poured=(st.c.brews_poured||0)+1;if(st.c["brew_"+b.ID]!=null||F("Items").some(x=>x.ID=="brew_"+b.ID))st.c["brew_"+b.ID]=(st.c["brew_"+b.ID]||0)+1;
+          if(!st.c["firstbrew_"+b.ID]){st.c["firstbrew_"+b.ID]=1;st.ev.push({day,t:"First "+b.Name+" brewed",node:"brew:"+b.ID})}}}}
+    triggers(day);
+    F("Buildings").forEach(b=>{if(!st.done.has("bld:"+b.ID)&&condOK(b.Requires,st)){st.done.add("bld:"+b.ID);st.ev.push({day,t:b.Name+" opens",node:"bld:"+b.ID,big:true})}});
+    mark(day);days.push(snap(st))}
+  SIM={days,first,ev:st.ev}}
+function snap(st){return{c:Object.assign({},st.c),u:new Set(st.u),f:new Set(st.f)}}
+function nodeOpen(n,st,day){const r=n.row;switch(n.mk||n.kind){
+  case "mode":return condOK(r.Requires,st);case "biome":return condOK(r.Requires,st);
+  case "ach":return st.f.has("earned_"+r.ID);case "story":return condOK(r.Requires,st);
+  case "upgrade":return (!r.Achievement||st.f.has("earned_"+r.Achievement))&&condOK(r.Needs,st);
+  case "shop":return condOK(r.Requires,st);case "brew":return condOK(r.Requires,st);case "section":return condOK(r.Needs,st);
+  case "building":return condOK(r.Requires,st);
+  case "unlock":return st.u.has(n.label);
+  case "stat":case "money":case "stuff":return (st.c[n.id.split(":")[1]]||0)>0.0001;
+  case "play":case "adventure":return true}return true}
+
+/* ---------- layout ---------- */
+const W=184,H=42,COLW=250,ROWH=58;
+const BOARDS=VIEWS.filter(v=>v.board);const isBoard=v=>BOARDS.some(b=>b.id==v);const boardName=v=>(VIEWS.find(x=>x.id==v)||{}).name||v;
+let MYLINKS=lsGet(":mylinks")||{},GAMELINES=!!lsGet(":gamelines");const myLink=e=>(MYLINKS[VIEW]||[]).includes(e.from+">"+e.to);
+let VIEW=lsGet(":view3");if(!VIEWS.some(v=>v.id==VIEW&&!v.old))VIEW="whole";let CARDS=lsGet(":cards")||{};
+const cur=()=>CARDS[VIEW]||(CARDS[VIEW]=[]);
+function saveMine(){lsSet(":cards",CARDS)}
+function addMine(id,quiet,board){board=board||VIEW;const l=CARDS[board]||(CARDS[board]=[]);if(!l.includes(id)){l.push(id);saveMine()}if(VIEW!==board){if(!quiet)toast(G.nodes.get(id).label+" is on "+boardName(board));return}draw();goTo(id)}
+function dropMine(id){CARDS[VIEW]=cur().filter(x=>x!==id);saveMine();if(POS[VIEW])delete POS[VIEW][id];lsSet(":pos",POS);if(SEL===id)SEL=null;draw();inspect()}let POS=lsGet(":pos")||{};
+function viewNodes(){if(isBoard(VIEW))return new Set(cur().filter(id=>G.nodes.has(id)));const v=VIEWS.find(x=>x.id==VIEW)||VIEWS[0];const ids=new Set();
+  G.nodes.forEach(n=>{if(!v.kinds)return ids.add(n.id);if(!v.kinds.includes(n.kind))return;if(n.kind=="maker"&&v.makers&&!v.makers.includes(n.mk))return;ids.add(n.id)});
+  if(v.id=="brewery"){ // only stuff and unlocks that touch a brewery maker
+    const keep=new Set();ids.forEach(id=>{const n=G.nodes.get(id);if(n.kind=="maker")keep.add(id)});
+    [...keep].forEach(id=>{const n=G.nodes.get(id);n.ins.concat(n.outs).forEach(e=>{keep.add(e.from);keep.add(e.to)})});
+    return new Set([...keep].filter(id=>ids.has(id)))}
+  if(v.id=="path"){[...ids].forEach(id=>{const n=G.nodes.get(id);if(n.mk=="upgrade"&&!/_key$/.test(n.row.ID)&&!n.row.Achievement)ids.delete(id)})}
+  // drop loners
+  return new Set([...ids].filter(id=>{const n=G.nodes.get(id);return n.ins.concat(n.outs).some(e=>ids.has(e.from)&&ids.has(e.to)&&e.from!==e.to)||n.kind=="goal"||n.kind=="play"||n.kind=="adventure"}))}
+function autoLayout(ids){const rank={};const inV=e=>ids.has(e.from)&&ids.has(e.to);
+  const visiting=new Set();const r=id=>{if(rank[id]!=null)return rank[id];if(visiting.has(id))return 0;visiting.add(id);
+    const n=G.nodes.get(id);let m=0;n.ins.filter(inV).forEach(e=>{if(e.type!="game"||true)m=Math.max(m,r(e.from)+1)});visiting.delete(id);return rank[id]=m};
+  ids.forEach(r);const cols={};ids.forEach(id=>{(cols[rank[id]]=cols[rank[id]]||[]).push(id)});
+  const order=Object.keys(KINDS);const y={};
+  Object.keys(cols).sort((a,b)=>a-b).forEach(c=>{const list=cols[c];
+    list.forEach(id=>{const n=G.nodes.get(id);const ps=n.ins.filter(inV).map(e=>y[e.from]).filter(v=>v!=null);n._b=ps.length?ps.reduce((a,b)=>a+b,0)/ps.length:order.indexOf(n.kind)*1000});
+    list.sort((a,b)=>G.nodes.get(a)._b-G.nodes.get(b)._b||G.nodes.get(a).label.localeCompare(G.nodes.get(b).label));
+    list.forEach((id,i)=>y[id]=i)});
+  const maxLen=Math.max(...Object.values(cols).map(l=>l.length));const out={};
+  Object.keys(cols).forEach(c=>{const list=cols[c];const off=(maxLen-list.length)*ROWH/2;list.forEach((id,i)=>out[id]={x:c*COLW,y:off+i*ROWH})});
+  return out}
+function positions(ids){const p=POS[VIEW]=POS[VIEW]||{};const missing=[...ids].filter(id=>!p[id]);
+  if(isBoard(VIEW)){const r=svg.getBoundingClientRect();const cx=(r.width/2-cam.x)/cam.k-W/2,cy=(r.height/2-cam.y)/cam.k-H/2;
+    missing.forEach((id,i)=>{let x=cx,y=cy,k=0;while(Object.values(p).some(q=>Math.abs(q.x-x)<W&&Math.abs(q.y-y)<H+6)&&k<40){y+=ROWH;k++;if(k%8==0){x+=COLW;y=cy}}p[id]={x:Math.round(x/10)*10,y:Math.round(y/10)*10}});
+    if(missing.length)lsSet(":pos",POS);return p}
+  if(missing.length===ids.size||!Object.keys(p).length){Object.assign(p,autoLayout(ids))}
+  else if(missing.length){const a=autoLayout(ids);let maxY=Math.max(0,...Object.values(p).map(v=>v.y));missing.forEach((id,i)=>p[id]={x:a[id].x,y:maxY+ROWH*(i+2)})}
+  return p}
+
+/* ---------- drawing ---------- */
+const $=s=>document.querySelector(s);const svg=$("#svg"),world=$("#world");
+const NS="http://www.w3.org/2000/svg";const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+let cam=lsGet(":cam")||{x:40,y:40,k:0.7};let SEL=null,SELE=null,DAY=0,IDS=new Set(),P={};
+function glyph(g,kind,x,y,col){const s={fill:col,stroke:"none"};
+  switch(KINDS[kind].glyph){
+    case "peaks":return el("path",Object.assign({d:`M${x-10} ${y+7}L${x-3} ${y-6}L${x+1} ${y}L${x+4} ${y-8}L${x+10} ${y+7}z`},s),g);
+    case "play":return el("path",Object.assign({d:`M${x-6} ${y-8}L${x+8} ${y}L${x-6} ${y+8}z`},s),g);
+    case "dot":return el("circle",Object.assign({cx:x,cy:y,r:5},s),g);
+    case "pool":return el("circle",{cx:x,cy:y,r:10,fill:"none",stroke:col,"stroke-width":2},g);
+    case "tri":return el("path",Object.assign({d:`M${x-9} ${y-8}L${x+9} ${y}L${x-9} ${y+8}z`,fill:"none",stroke:col,"stroke-width":2}),g);
+    case "diamond":return el("path",Object.assign({d:`M${x} ${y-10}L${x+10} ${y}L${x} ${y+10}L${x-10} ${y}z`},s),g);
+    case "star":{let d="";for(let i=0;i<10;i++){const r=i%2?4:10,a=Math.PI/5*i-Math.PI/2;d+=(i?"L":"M")+(x+r*Math.cos(a)).toFixed(1)+" "+(y+r*Math.sin(a)).toFixed(1)}return el("path",Object.assign({d:d+"z"},s),g)}
+    case "mug":return el("path",{d:`M${x-8} ${y-8}H${x+4}V${y+8}H${x-8}zM${x+4} ${y-4}H${x+9}V${y+3}H${x+4}`,fill:"none",stroke:col,"stroke-width":2,"stroke-linejoin":"round"},g);
+    case "bolt":return el("path",Object.assign({d:`M${x+2} ${y-10}L${x-7} ${y+2}H${x}L${x-2} ${y+10}L${x+7} ${y-2}H${x}z`},s),g);
+    case "house":return el("path",Object.assign({d:`M${x-9} ${y+8}V${y-2}L${x} ${y-10}L${x+9} ${y-2}V${y+8}z`,fill:"none",stroke:col,"stroke-width":2}),g)}}
+function edgePath(a,b){const x1=a.x+W,y1=a.y+H/2,x2=b.x,y2=b.y+H/2;const back=x2<x1+20;const dx=back?Math.max(80,Math.abs(x2-x1)/3):Math.max(40,(x2-x1)/2);
+  return{d:`M${x1} ${y1}C${x1+dx} ${y1+(back?60:0)},${x2-dx} ${y2+(back?60:0)},${x2} ${y2}`,mx:(x1+x2)/2,my:(y1+y2)/2+(back?45:0)}}
+function draw(){gameLinesBtn();IDS=viewNodes();P=positions(IDS);
+  const gE=$("#gEdges"),gL=$("#gLabels"),gN=$("#gNodes");gE.innerHTML="";gL.innerHTML="";gN.innerHTML="";
+  G.edges.forEach(e=>{if(!IDS.has(e.from)||!IDS.has(e.to))return;if(isBoard(VIEW)&&!GAMELINES&&!myLink(e))return; // on your boards: only lines you drew, unless Game lines is on
+const a=P[e.from],b=P[e.to];const p=edgePath(a,b);
+    e._p=el("path",{d:p.d,class:"edge "+e.type,"marker-end":"url(#arr)"},gE);const hit=el("path",{d:p.d,class:"hit"},gE);
+    hit.addEventListener("click",ev=>{ev.stopPropagation();selectEdge(e)});e._hit=hit;
+    e._l=el("text",{x:p.mx,y:p.my-4,class:"elabel","text-anchor":"middle"},gL);e._l.textContent=e.label||"";e._l.style.display="none"});
+  IDS.forEach(id=>{const n=G.nodes.get(id),p=P[id];const k=KINDS[n.kind];
+    const g=el("g",{class:"node",transform:`translate(${p.x},${p.y})`},gN);g.style.setProperty("--k",k.color);n._g=g;
+    el("rect",{class:"box",width:W,height:H,rx:n.kind=="goal"?14:3},g);glyph(g,n.kind,20,H/2,k.color);
+    const t=el("text",{x:38,y:17,class:"name"},g);t.textContent=n.label.length>22?n.label.slice(0,21)+"…":n.label;
+    const s=el("text",{x:38,y:32,class:"sub"},g);s.textContent=(n.sub||"").length>26?n.sub.slice(0,25)+"…":(n.sub||"");
+    n._val=el("text",{x:20,y:H/2+4,class:"val"},g);
+    n._day=el("text",{x:W-6,y:13,class:"day"},g);
+    const port=el("circle",{class:"port",cx:W,cy:H/2,r:6},g);
+    g.addEventListener("pointerdown",ev=>startNodeDrag(ev,n,ev.target===port));
+    const ti=el("title",{},g);ti.textContent=n.label+" — "+k.label});
+  applyCam();paintDay();highlight();
+  drawGroups();drawNotes();
+  $("#empty").hidden=!(isBoard(VIEW)&&IDS.size===0&&!(GROUPS[VIEW]||[]).length);$("#emptyName").textContent=boardName(VIEW);if(SIM)marks()}
+function applyCam(){world.setAttribute("transform",`translate(${cam.x},${cam.y}) scale(${cam.k})`);lsSet(":cam",cam)}
+function paintDay(){if(!SIM)return;const s=SIM.days[Math.min(DAY,SIM.days.length-1)];
+  IDS.forEach(id=>{const n=G.nodes.get(id);const f=SIM.first[id];const on=f!=null&&f<=DAY;const calm=isBoard(VIEW)&&DAY===0;n._g.classList.toggle("open",on);n._g.classList.toggle("locked",!on&&!calm);
+    if(["money","stuff","stat"].includes(n.kind)){const v=s.c[id.split(":")[1]]||0;n._val.textContent=v?(v>=1000?Math.round(v/100)/10+"k":Math.floor(v)):""}
+    n._day.textContent=f==null?"never":"day "+f;n._day.setAttribute("fill",f==null?"var(--brick)":on?"var(--chalk-faint)":"var(--beer)")});
+  G.edges.forEach(e=>{if(!e._p)return;const f=SIM.first[e.from],t=SIM.first[e.to];e._p.classList.toggle("live",DAY>0&&f!=null&&f<=DAY&&(e.type=="flow"||e.type=="cost")&&(t!=null&&t<=DAY||e.type=="flow"))});
+  $("#dayl").textContent="Day "+DAY;$("#day").value=DAY;
+  const show=["coins","marks","reed","bog_iron","hops","matches_won"];$("#pools").innerHTML=show.map(id=>{const n=G.nodes.get("res:"+id)||G.nodes.get("stat:"+id);return `<span>${n?n.label:nice(id)} <b>${Math.floor(s.c[id]||0)}</b></span>`}).join("")}
+function highlight(){const near=new Set();const L=new Set();svg.classList.toggle("dim",!!(SEL||SELE||SELG||SELN));
+  if(SELG){groupInside(findGroup(SELG)).forEach(id=>near.add(id))}
+  document.querySelectorAll(".grp").forEach(g=>{g.classList.toggle("sel",g.dataset.id===SELG);g.classList.toggle("near",g.dataset.id===SELG||(SELN&&[SELN.from,SELN.to].includes("grp:"+g.dataset.id)))});
+  if(SELN){[SELN.from,SELN.to].forEach(x=>near.add(x))}
+  if(SEL){near.add(SEL);const n=G.nodes.get(SEL);n.ins.concat(n.outs).forEach(e=>{near.add(e.from);near.add(e.to);L.add(e)})}
+  if(SELE){near.add(SELE.from);near.add(SELE.to);L.add(SELE)}
+  IDS.forEach(id=>{const n=G.nodes.get(id);n._g.classList.toggle("near",near.has(id));n._g.classList.toggle("sel",id===SEL)});
+  G.edges.forEach(e=>{if(!e._p)return;const on=L.has(e);e._p.classList.toggle("near",on);e._p.classList.toggle("sel",e===SELE);e._l.classList.toggle("near",on);e._l.style.display=(on||cam.k>1.15||e.type=="cond")&&e.label?"":"none"})}
+function redrawEdgesOf(id){const n=G.nodes.get(id);n.ins.concat(n.outs).forEach(e=>{if(!e._p)return;const p=edgePath(P[e.from],P[e.to]);e._p.setAttribute("d",p.d);e._hit.setAttribute("d",p.d);e._l.setAttribute("x",p.mx);e._l.setAttribute("y",p.my-4)})}
+
+/* ---------- pointer ---------- */
+let drag=null;
+function toWorld(ev){const r=svg.getBoundingClientRect();return{x:(ev.clientX-r.left-cam.x)/cam.k,y:(ev.clientY-r.top-cam.y)/cam.k}}
+function startNodeDrag(ev,n,fromPort){ev.stopPropagation();svg.setPointerCapture(ev.pointerId);const w=toWorld(ev);
+  drag=fromPort?{mode:"link",n,sx:P[n.id].x+W,sy:P[n.id].y+H/2}:{mode:"node",n,dx:w.x-P[n.id].x,dy:w.y-P[n.id].y,moved:false}}
+svg.addEventListener("pointerdown",ev=>{if(drag)return;if(ev.target.classList&&ev.target.classList.contains("hit"))return; // let line clicks reach their line
+svg.setPointerCapture(ev.pointerId);drag={mode:"pan",x:ev.clientX,y:ev.clientY,cx:cam.x,cy:cam.y,moved:false};svg.classList.add("panning")});
+svg.addEventListener("pointermove",ev=>{if(!drag)return;const w=toWorld(ev);
+  if(drag.mode=="pan"){cam.x=drag.cx+ev.clientX-drag.x;cam.y=drag.cy+ev.clientY-drag.y;if(Math.abs(ev.clientX-drag.x)+Math.abs(ev.clientY-drag.y)>3)drag.moved=true;applyCam()}
+  else if(drag.mode=="node"){const p=P[drag.n.id];p.x=Math.round((w.x-drag.dx)/10)*10;p.y=Math.round((w.y-drag.dy)/10)*10;drag.moved=true;drag.n._g.setAttribute("transform",`translate(${p.x},${p.y})`);redrawEdgesOf(drag.n.id);drawNotes()}
+  else if(drag.mode=="group"){const g=drag.g;const nx=Math.round((w.x-drag.dx)/10)*10,ny=Math.round((w.y-drag.dy)/10)*10;const ddx=nx-g.x,ddy=ny-g.y;if(ddx||ddy){drag.moved=true;g.x=nx;g.y=ny;
+    drag.inside.forEach(id=>{const q=P[id];q.x+=ddx;q.y+=ddy;const n=G.nodes.get(id);n._g.setAttribute("transform",`translate(${q.x},${q.y})`);redrawEdgesOf(id)});drawGroups();drawNotes()}}
+  else if(drag.mode=="gsize"){const g=drag.g;g.w=Math.max(160,Math.round((w.x-g.x)/10)*10);g.h=Math.max(90,Math.round((w.y-g.y)/10)*10);drag.moved=true;drawGroups();drawNotes()}
+  else if(drag.mode=="glink"||drag.mode=="link"){$("#ghost").setAttribute("d",`M${drag.sx} ${drag.sy}L${w.x} ${w.y}`)}});
+svg.addEventListener("pointerup",ev=>{if(!drag)return;const d=drag;drag=null;svg.classList.remove("panning");
+  if(d.mode=="pan"&&!d.moved){selectNone();highlight();inspect()}
+  if(d.mode=="node"){if(d.moved)lsSet(":pos",POS);else{selectNone();SEL=d.n.id;highlight();inspect()}}
+  if(d.mode=="group"||d.mode=="gsize"){if(d.moved){saveBoardBits();lsSet(":pos",POS)}else{selectNone();SELG=d.g.id;highlight();inspect()}}
+  if(d.mode=="glink"||d.mode=="link"){$("#ghost").setAttribute("d","");const w=toWorld(ev);const to=hitAt(w);const from=d.mode=="link"?d.n.id:"grp:"+d.g.id;
+    if(to&&to!==from)proposeAny(from,to,ev);return}
+});
+svg.addEventListener("wheel",ev=>{ev.preventDefault();const r=svg.getBoundingClientRect();zoomAt(ev.clientX-r.left,ev.clientY-r.top,Math.exp(-ev.deltaY*0.0015))},{passive:false});
+function zoomAt(px,py,f){const k=Math.min(2.5,Math.max(0.2,cam.k*f));cam.x=px-(px-cam.x)*k/cam.k;cam.y=py-(py-cam.y)*k/cam.k;cam.k=k;applyCam();highlight()}
+$("#zin").onclick=()=>{const r=svg.getBoundingClientRect();zoomAt(r.width/2,r.height/2,1.25)};
+$("#zout").onclick=()=>{const r=svg.getBoundingClientRect();zoomAt(r.width/2,r.height/2,0.8)};
+$("#zfit").onclick=fit;
+function fit(){const ps=[...IDS].map(id=>P[id]);if(!ps.length)return;const r=svg.getBoundingClientRect();
+  const x0=Math.min(...ps.map(p=>p.x)),x1=Math.max(...ps.map(p=>p.x))+W,y0=Math.min(...ps.map(p=>p.y)),y1=Math.max(...ps.map(p=>p.y))+H;
+  cam.k=Math.min(1.2,Math.max(0.2,Math.min((r.width-40)/(x1-x0),(r.height-40)/(y1-y0))));cam.x=(r.width-(x1-x0)*cam.k)/2-x0*cam.k;cam.y=(r.height-(y1-y0)*cam.k)/2-y0*cam.k;applyCam();highlight()}
+
+/* ---------- connecting cards = writing CSV cells ---------- */
+const id2=n=>n.id.split(":").slice(1).join(":");
+// the pool a card pours: an item with Use brew:pool:X, or a brewery Bottle whose Counter is such an item
+function poolOf(a){if(!a||!a.row||a.kind!="stuff")return "";let m=(a.row.Use||"").match(/^brew:pool:(\w+)/);if(m)return m[1];
+  if(a.file=="BreweryResources"&&a.row.Counter){const it=F("Items").find(x=>x.ID==a.row.Counter);m=it&&(it.Use||"").match(/^brew:pool:(\w+)/);if(m)return m[1]}return ""}
+function linkRule(a,b){const ra=a.row,rb=b.row;
+  if(elemOf(a)&&b.mk=="brew"){const w=elemOf(a);return{say:`<b>If</b> ${escH(a.label)} went into the Brew Kettle, ${escH(rb.Name)} can come out. Sets <b>Brews.csv</b> → ${rb.ID} → Element to <code>${w}</code>${rb.Element&&rb.Element!=w?` (it was ${escH(rb.Element)})`:""}.`,apply:()=>set(rb,"Element",w)}}
+  if(b.mk=="brew"&&poolOf(a)){const pool=poolOf(a);return{say:`Adds <code>${pool}</code> to <b>Brews.csv</b> → ${rb.ID} → Pool, so drinking a ${a.label} can pour ${rb.Name} (picked at random among the beers in that pool)`,apply:()=>addTok(rb,"Pool",pool,"|")}}
+  if((a.kind=="stuff"||a.kind=="money")&&b.mk=="brew")return{say:`<code>${id2(a)}:N</code> goes into <b>Brews.csv</b> → ${rb.ID} → Cost`,ask:"How many?",def:2,apply:n=>addTok(rb,"Cost",id2(a)+":"+n,"|","Brews")};
+  if((a.kind=="stuff"||a.kind=="money")&&b.mk=="section")return{say:`<code>${id2(a)}:N</code> goes into <b>BrewerySections.csv</b> → ${rb.ID} → Takes`,ask:"How many?",def:1,apply:n=>addTok(rb,"Takes",id2(a)+":"+n,";","BrewerySections")};
+  if(a.mk=="brew"&&b.kind=="ability"){const col=!ra["Attack Ability"]?"Attack Ability":!ra["Defend Ability"]?"Defend Ability":"Attack Ability";return{say:`Sets <b>Brews.csv</b> → ${ra.ID} → ${col} to <code>${rb["Ability ID"]}</code> (${col=="Attack Ability"?"when he attacks":"when he defends"}). Change it to the other side in the beer's panel.`,apply:()=>set(ra,col,rb["Ability ID"])}}
+  if(a.kind=="stuff"&&b.kind=="stuff"&&a.file=="BreweryResources"&&b.file=="Items")return{say:`Sets <b>BreweryResources.csv</b> → ${ra.ID} → Counter to <code>${rb.ID}</code>, so each ${a.label} lands in the bag as a ${b.label}`,apply:()=>set(ra,"Counter",rb.ID)};
+  if(a.mk=="section"&&b.kind=="stuff")return{say:`Sets <b>BrewerySections.csv</b> → ${ra.ID} → Makes to <code>${id2(b)}</code>, How Many N (its output)`,ask:"How many each batch?",def:1,apply:n=>{set(ra,"Makes",id2(b),"BrewerySections");set(ra,"How Many",n,"BrewerySections")}};
+  if(a.kind=="money"&&(b.mk=="shop"||b.mk=="upgrade")){const col=b.mk=="shop"?"Price":"Cost";return{say:`Sets <b>${b.file}.csv</b> → ${rb.ID} → Currency to <code>${id2(a)}</code> and ${col} to N`,ask:"Price?",def:rb[col]||50,apply:n=>{set(rb,"Currency",id2(a),b.file);set(rb,col,n,b.file)}}}
+  if(a.mk=="shop"&&(b.kind=="stuff"||b.kind=="money"))return{say:`Sets <b>Shop.csv</b> → ${ra.ID} → Sells to <code>res:${id2(b)}</code>, How Many N`,ask:"How many?",def:1,apply:n=>{set(ra,"Sells",(G.nodes.get("res:"+id2(b))&&F("BreweryResources").some(x=>x.ID==id2(b))?"res:":"count:")+id2(b)+(F("BreweryResources").some(x=>x.ID==id2(b))?"":"+"+n),"Shop");set(ra,"How Many",n,"Shop")}};
+  if(a.mk=="ach"&&b.kind=="unlock")return{say:`Adds <code>${b.label}</code> to <b>Achievements.csv</b> → ${ra.ID} → Unlocks`,apply:()=>addTok(ra,"Unlocks",b.label,";","Achievements")};
+  if(a.mk=="ach"&&b.mk=="ach")return{say:`Adds <code>flag:earned_${ra.ID}</code> to <b>Achievements.csv</b> → ${rb.ID} → Needs, so ${rb.Name} comes after ${ra.Name}`,apply:()=>addTok(rb,"Needs","flag:earned_"+ra.ID,";","Achievements")};
+  if(a.mk=="ach"&&b.mk=="upgrade")return{say:`Sets <b>Upgrades.csv</b> → ${rb.ID} → Achievement to <code>${ra.ID}</code> (earning it lets you buy the upgrade)`,apply:()=>set(rb,"Achievement",ra.ID,"Upgrades")};
+  if((a.kind=="stat"||a.kind=="money"||a.kind=="stuff")&&b.mk=="ach")return{say:`Adds <code>count:${id2(a)}>=N</code> to <b>Achievements.csv</b> → ${rb.ID} → Needs`,ask:"At least how many?",def:3,apply:n=>addTok(rb,"Needs",`count:${id2(a)}>=${n}`,";","Achievements")};
+  if((a.kind=="stat"||a.kind=="money"||a.kind=="stuff")&&b.row&&reqCol(b))return{say:`Adds <code>count:${id2(a)}>=N</code> to <b>${b.file}.csv</b> → ${rb.ID} → ${reqCol(b)}`,ask:"At least how many?",def:1,apply:n=>addTok(rb,reqCol(b),`count:${id2(a)}>=${n}`,";",b.file)};
+  if(a.kind=="unlock"&&b.row&&reqCol(b))return{say:`Adds <code>unlocked:${a.label}</code> to <b>${b.file}.csv</b> → ${rb.ID} → ${reqCol(b)}`,apply:()=>addTok(rb,reqCol(b),"unlocked:"+a.label,";",b.file)};
+  if(a.mk=="upgrade"&&(b.kind=="stuff"||b.kind=="stat"||b.kind=="money"))return{say:`Adds <code>count:${id2(b)}+N</code> to <b>Upgrades.csv</b> → ${ra.ID} → Effect`,ask:"How many?",def:1,apply:n=>addTok(ra,"Effect",`count:${id2(b)}+${n}`,";","Upgrades")};
+  if(a.mk=="ach"&&(b.kind=="stuff"||b.kind=="money"))return{say:`Adds <code>count:${id2(b)}+N</code> to <b>Achievements.csv</b> → ${ra.ID} → Reward`,ask:"How many?",def:25,apply:n=>addTok(ra,"Reward",`count:${id2(b)}+${n}`,";","Achievements")};
+  if(a.mk=="biome"&&(b.kind=="stuff"||b.kind=="money"))return{say:`Adds a row to <b>Drops.csv</b>: table <code>${ra.Drops}</code>, item <code>${id2(b)}</code>, Amount N, Chance 1.0 (picked up every wave)`,ask:"How many per wave?",def:1,apply:n=>{FILES.Drops.rows.push(Object.assign(blank("Drops"),{Table:ra.Drops,Item:id2(b),Amount:String(n),Chance:"1.0"}))}};
+  if(a.mk=="mode"&&b.kind=="money")return{say:`Sets <b>Currencies.csv</b> → ${id2(b)} → Earned In to <code>${ra.ID}</code>, paying N per win`,ask:"Paid per win?",def:30,apply:n=>{const c=F("Currencies").find(x=>x.ID==id2(b));if(c){set(c,"Earned In",ra.ID,"Currencies");set(c,"Win",n,"Currencies")}}};
+  return null}
+function reqCol(n){return {Brews:"Requires",Shop:"Requires",Biomes:"Requires",Buildings:"Requires",MatchModes:"Requires",Progression:"Requires",Upgrades:"Needs",BrewerySections:"Needs",Achievements:"Needs"}[n.file]}
+function blank(f){const o={};FILES[f].cols.forEach(c=>o[c]="");return o}
+function set(row,col,v){row[col]=String(v)}
+function addTok(row,col,tok,sep){const t=toks(row[col],sep=="|"?/[|]/:";");if(!t.includes(tok))t.push(tok);row[col]=t.join(sep)}
+function delTok(row,col,tok,sep){row[col]=toks(row[col],sep=="|"?/[|]/:";").filter(x=>x!==tok).join(sep)}
+function proposeLink(a,b,ev){const rule=linkRule(a,b);if(!rule){toast(`No CSV column joins ${a.label} to ${b.label} yet. Try the other direction.`);return}
+  const pop=document.createElement("div");pop.className="pop";const r=$("#stage").getBoundingClientRect();
+  pop.style.left=Math.min(r.width-300,Math.max(8,ev.clientX-r.left))+"px";pop.style.top=Math.min(r.height-200,Math.max(8,ev.clientY-r.top))+"px";
+  pop.innerHTML=`<p><b>${a.label}</b> → <b>${b.label}</b></p><p>${rule.say}</p>${rule.ask?`<div class="field"><label for="lnkN">${rule.ask}</label><input id="lnkN" type="number" value="${rule.def}"></div>`:""}<div class="btnrow"><button class="btn" id="lnkOk">Connect</button><button class="btn ghost2" id="lnkNo">Cancel</button></div>`;
+  $("#stage").appendChild(pop);const n=pop.querySelector("#lnkN");if(n)n.focus();
+  pop.querySelector("#lnkNo").onclick=()=>pop.remove();
+  pop.querySelector("#lnkOk").onclick=()=>{pushUndo();rule.apply(n?n.value:1);pop.remove();changed(`Connected ${a.label} → ${b.label}`)}}
+function removeEdge(e){if(!e.row){toast("This line comes from game code, not a CSV cell.");return}
+  pushUndo();if(e.whole){if(e.col=="Achievement"||e.col=="Earned In")e.row[e.col]="";else if(e.col=="Sells"||e.col=="Makes")e.row[e.col]="";else e.row[e.col]=""}
+  else delTok(e.row,e.col,e.token,e.sep);SELE=null;changed("Removed "+e.token+" from "+e.file+".csv")}
+
+/* ---------- inspector ---------- */
+const R=$("#right");
+function inspect(){if(SELG)return inspectGroup();if(SELN)return inspectNote();if(SELE)return inspectEdge(SELE);if(!SEL)return summary();const n=G.nodes.get(SEL);const k=KINDS[n.kind];const f=SIM&&SIM.first[n.id];
+  let h=`<span class="kind" style="--k:${k.color}">${k.label}</span><h2>${escH(n.label)}</h2><div class="where">${n.file?n.file+".csv → "+escH(n.row[idCol(n.file)]||n.row.Table||""):escH(n.sub||"")}</div>`;
+  h+=`<span class="state ${f==null?"no":"ok"}">${f==null?"Never reached in "+SIM_SET.days+" days":f===0?"Open from the start":"Reached on day "+f}</span>`;
+  if(n.row){h+=`<div class="lbl" style="margin-top:16px">${n.file}.csv row</div>`;
+    FILES[n.file].cols.forEach((c,i)=>{const v=n.row[c]||"";const long=c=="Notes"||c=="Description"||v.length>40;
+      h+=`<div class="field"><label for="f${i}">${escH(c)}</label>${long?`<textarea id="f${i}" data-c="${escA(c)}" rows="${c=="Notes"?3:2}">${escH(v)}</textarea>`:`<input id="f${i}" data-c="${escA(c)}" value="${escA(v)}"${c==idCol(n.file)&&origHas(n.file,v)?' readonly title="The game already uses this ID, so it stays as it is"':""}>`}</div>`})}
+  else if(n.kind=="unlock")h+=`<p class="hint" style="margin-top:12px">An unlock is just a name. Anything that says <code>unlock:${escH(n.label)}</code> switches it on; anything that says <code>unlocked:${escH(n.label)}</code> waits for it.</p>`;
+  else if(n.kind=="stat")h+=`<p class="hint" style="margin-top:12px">A number the game keeps. CSVs check it with <code>count:${escH(id2(n))}>=N</code>.</p>`;
+  const io=(list,dir)=>list.map(e=>{const o=G.nodes.get(dir?e.to:e.from);return `<button class="lnk" data-go="${escA(o.id)}">${dir?"→":"←"} ${escH(o.label)} <i>${escH(e.label||ETYPES[e.type])}</i></button>`}).join("");
+  if(n.ins.length)h+=`<div class="lbl" style="margin-top:16px">Comes from</div><div class="links">${io(n.ins,0)}</div>`;
+  if(n.outs.length)h+=`<div class="lbl" style="margin-top:16px">Leads to</div><div class="links">${io(n.outs,1)}</div>`;
+  h+=`<div class="btnrow">${isBoard(VIEW)?(cur().includes(n.id)?`<button class="btn ghost2" id="mineBtn">Take off this board</button>`:`<button class="btn" id="mineBtn">Put on this board</button>`):`<select id="putOn" class="btn ghost2" aria-label="Put on a board"><option value="">Put on a board…</option>${BOARDS.map(b=>`<option value="${b.id}">${escH(b.name)}${(CARDS[b.id]||[]).includes(n.id)?" ✓":""}</option>`).join("")}</select>`}${canDelete(n)?`<button class="btn bad" id="delRow">Delete this card</button>`:""}</div>`;
+  R.innerHTML=h;
+  R.querySelectorAll("[data-c]").forEach(inp=>inp.addEventListener("change",()=>{if(!tryCell(inp,n.file,n.row,inp.dataset.c))return;pushUndo();n.row[inp.dataset.c]=inp.value;changed(`${n.file}.csv ${n.row[idCol(n.file)]||""}: ${inp.dataset.c} changed`)}));
+  R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
+  const d=R.querySelector("#delRow");if(d)d.onclick=()=>askDelete(n);
+  const mb=R.querySelector("#mineBtn");if(mb)mb.onclick=()=>{if(cur().includes(n.id))dropMine(n.id);else{addMine(n.id);inspect()}};
+  const po=R.querySelector("#putOn");if(po)po.onchange=()=>{if(po.value){addMine(n.id,false,po.value);inspect()}}}
+/* ---------- delete a card: its row goes, and every cell that pointed at it is cleaned ---------- */
+function canDelete(n){return !!n.row||n.kind=="unlock"}
+function refsTo(n){return n.ins.concat(n.outs).filter(e=>e.row&&e.row!==n.row)}
+function askDelete(n){if(!canDelete(n)&&isBoard(VIEW)){dropMine(n.id);return}if(!canDelete(n)){toast(n.kind=="stat"?"A score is counted by the game itself. Remove its lines instead.":"This card comes from game code, so there is nothing to delete.");return}
+  const old=$(".pop.del");if(old)old.remove();const refs=refsTo(n);const pop=document.createElement("div");pop.className="pop del";pop.style.right="12px";pop.style.top="56px";
+  const where=n.row?`its row in <b>${n.file}.csv</b>`:`the name <code>${escH(n.label)}</code>`;
+  pop.innerHTML=`<p><b>Delete ${escH(n.label)}?</b></p><p>This removes ${where}${refs.length?` and ${refs.length} line${refs.length>1?"s":""} that point${refs.length>1?"":"s"} to it in other rows`:""}. Undo brings it back.</p><div class="btnrow"><button class="btn bad" id="delYes">Delete</button>${isBoard(VIEW)?`<button class="btn ghost2" id="delOff">Only take it off this board</button>`:""}<button class="btn ghost2" id="delNo">Keep it</button></div>`;
+  $("#stage").appendChild(pop);const y=pop.querySelector("#delYes");(pop.querySelector("#delOff")||pop.querySelector("#delNo")).focus();
+  // deleting something other rows use takes a second click, and says what it touches
+  const users=[...new Set(refs.map(e=>{const o=G.nodes.get(e.from===n.id?e.to:e.from);return o?o.label:e.row.ID}))];
+  y.onclick=()=>{if(refs.length&&!y.dataset.sure){y.dataset.sure=1;y.textContent="Click again: also take it out of "+users.slice(0,4).join(", ")+(users.length>4?" and "+(users.length-4)+" more":"");return}pop.remove();deleteNode(n)};const off=pop.querySelector("#delOff");if(off)off.onclick=()=>{pop.remove();dropMine(n.id)};pop.querySelector("#delNo").onclick=()=>pop.remove();
+  pop.addEventListener("keydown",e=>{if(e.key=="Escape")pop.remove()})}
+function deleteNode(n){pushUndo();
+  refsTo(n).forEach(e=>{if(e.whole)e.row[e.col]="";else delTok(e.row,e.col,e.token,e.sep)});
+  if(n.row){FILES[n.file].rows=FILES[n.file].rows.filter(r=>r!==n.row);
+    if(n.file=="Items"||n.file=="BreweryResources"){const id=n.row.ID;if(FILES.Drops)FILES.Drops.rows=FILES.Drops.rows.filter(d=>d.Item!==id)}}
+  selectNone();changed(`Deleted ${n.label}`+(n.row?` from ${n.file}.csv`:""))}
+function inspectEdge(e){const a=G.nodes.get(e.from),b=G.nodes.get(e.to);
+  let h=`<span class="kind" style="--k:var(--chalk-dim)">Line · ${ETYPES[e.type]}</span><h2>${escH(a.label)} → ${escH(b.label)}</h2>`;
+  if(e.type=="cond")h+=`<p class="hint"><b>If</b> ${escH(a.label)} went into the Brew Kettle, ${escH(b.label)} can come out of the bottle. Beers with no Element can come out whatever element went in. Saved in <b>Brews.csv</b> → Element. <b>Game note:</b> the brewery does not remember the kettle's element yet; Claude is wiring that in the game.</p>`;
+  if(e.loot)h+=`<p class="hint">About <b>${escH(e.label.slice(1))}</b> per Adventure run, worked out from <b>Drops.csv</b> (table <code>${escH(e.table)}</code> plus the enemies of this place) and the run settings below.</p>`;
+  else if(e.row)h+=`<div class="where">${e.file}.csv → ${escH(e.row.ID||"")} → ${escH(e.col)}</div><p class="hint">Written as <code>${escH(e.token)}</code>.</p><div class="btnrow"><button class="btn bad" id="delE">Remove this line</button></div>`;
+  else h+=`<p class="hint">This one comes from the game itself (every match counts goals, wins and so on), so there is no CSV cell to change.</p>`;
+  R.innerHTML=h;const d=R.querySelector("#delE");if(d)d.onclick=()=>removeEdge(e)}
+function summary(){if(!SIM){R.innerHTML="";return}
+  const mine=isBoard(VIEW);const onB=id=>!mine||cur().includes(id);
+  const big=SIM.ev.filter(e=>(e.big||e.t.endsWith(" unlocked")||e.t.endsWith(" beaten")||mine&&e.goal)&&onB(e.node));
+  let h=`<span class="kind" style="--k:var(--beer)">Pretend season</span><h2>What opens when</h2><p class="hint">${mine&&!cur().length?"Once cards are on this board, this lists the day each one opens when a pretend player plays the game.":`The game played ${SIM_SET.days} days with the numbers below.${mine?" Only cards on this board are listed.":""} Click a line to find the card.`}</p><ul class="list">`;
+  big.slice(0,40).forEach(e=>h+=`<li><span class="d">day ${e.day}</span><button class="lnk" data-go="${escA(e.node)}">${escH(e.t)}${e.why?` <i>${escH(e.why)}</i>`:""}</button></li>`);h+="</ul>";
+  // dead ends
+  const neverUsed=[],neverOn=[],noSource=[];
+  G.nodes.forEach(n=>{if(!onB(n.id))return;if(n.kind=="unlock"){if(!n.ins.length)noSource.push(n);else if(!n.outs.length)neverUsed.push(n)}
+    if((n.kind=="place"||n.mk=="ach")&&SIM.first[n.id]==null)neverOn.push(n)});
+  const chips=l=>l.map(n=>`<button class="lnk" data-go="${escA(n.id)}">${escH(n.label)}</button>`).join(", ");
+  if(neverOn.length)h+=`<div class="warn"><b>Never reached in ${SIM_SET.days} days:</b> ${chips(neverOn)}</div>`;
+  if(noSource.length)h+=`<div class="warn"><b>Waits for an unlock nothing hands out:</b> ${chips(noSource)}</div>`;
+  if(neverUsed.length)h+=`<div class="warn"><b>Unlocked, but nothing in these sheets uses it yet:</b> ${chips(neverUsed)}</div>`;
+  const S=SIM_SET;const num=(k,l,step)=>`<label for="s_${k}">${l}</label><input type="number" id="s_${k}" data-k="${k}" value="${S[k]}" step="${step||1}" min="0">`;
+  const chk=(k,l)=>`<label for="s_${k}">${l}</label><input type="checkbox" id="s_${k}" data-k="${k}" ${S[k]?"checked":""}>`;
+  h+=`<details class="sec" data-sec="simset" style="margin-top:14px"><summary>How the pretend player plays</summary><div class="sim"><label for="s_mode">Match mode played</label><select id="s_mode" data-k="mode" style="background:var(--slate);border:1px solid var(--line);border-radius:3px;padding:3px">${F("MatchModes").filter(r=>!HIDDEN_MODES.includes(r.ID)).map(r=>`<option value="${escA(r.ID)}" ${r.ID==S.mode?"selected":""}>${escH(r.Name)}</option>`).join("")}</select>${num("days","Days to play")}${num("matches","Matches a day")}${num("win","Chance to win",0.05)}${num("draw","Chance to draw",0.05)}${num("goals","Goals a match",0.5)}${num("runs","Adventure runs a day")}${num("enemies","Enemies a wave")}${num("bossWin","Chance to beat a boss",0.1)}${num("beatAfter","Runs before a boss falls")}${num("brews","Brews a day")}${chk("keys","Buy keys when possible")}${chk("upgrades","Buy upgrades when possible")}${chk("merchant","Restock from the Merchant")}</div>
+  <div class="btnrow"><button class="btn ghost2" id="simReset">Reset numbers</button></div></details>`;
+  R.innerHTML=h;R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));wireSecs(R);
+  R.querySelectorAll("[data-k]").forEach(i=>i.addEventListener("change",()=>{SIM_SET[i.dataset.k]=i.type=="checkbox"?i.checked:i.tagName=="SELECT"?i.value:+i.value;lsSet(":sim",SIM_SET);rerun()}));
+  $("#simReset").onclick=()=>{Object.assign(SIM_SET,SIM_DEF);lsSet(":sim",SIM_SET);rerun()}}
+function goTo(id){if(!IDS.has(id)&&!isBoard(VIEW)){VIEW="all";lsSet(":view3",VIEW);renderTabs();draw()}if(!IDS.has(id))return;
+  selectNone();SEL=id;const p=P[id],r=svg.getBoundingClientRect();cam.k=Math.max(cam.k,0.9);cam.x=r.width/2-(p.x+W/2)*cam.k;cam.y=r.height/2-(p.y+H/2)*cam.k;applyCam();highlight();inspect();
+  if(SIM&&SIM.first[id]!=null){DAY=SIM.first[id];paintDay()}}
+function selectEdge(e){selectNone();SELE=e;highlight();inspect()}
+const escH=s=>String(s??"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));const escA=s=>escH(s).replace(/"/g,"&quot;");
+
+/* ---------- changes ---------- */
+function changed(msg){persist();buildGraph();runSim();if(SEL&&!G.nodes.has(SEL))SEL=null;SELE=null;draw();inspect();updCount();if(msg)toast(msg)}
+function rerun(){buildGraph();runSim();draw();inspect()}
+function updCount(){const n=changedFiles().length;const c=$("#chgCount");c.hidden=!n;c.textContent=n;$("#btnChanges").classList.toggle("hot",!!n)}
+let tt;function toast(m){let t=$(".toast");if(!t){t=document.createElement("div");t.className="toast";t.setAttribute("role","status");$("#stage").appendChild(t)}t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,3200)}
+// every pop-up box stays fully inside the board, so its buttons can always be reached
+new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.classList&&n.classList.contains("pop"))requestAnimationFrame(()=>fitPop(n))}))).observe($("#stage"),{childList:true});
+function fitPop(p){const r=$("#stage").getBoundingClientRect(),q=p.getBoundingClientRect();
+  if(q.bottom>r.bottom-8){p.style.bottom="";p.style.top=Math.max(8,r.height-q.height-8)+"px"}
+  if(q.right>r.right-8){p.style.right="";p.style.left=Math.max(8,r.width-q.width-8)+"px"}}
+$("#btnUndo").onclick=undo;document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key=="z"&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();undo()}
+  if(e.key=="Escape"){selectNone();highlight();inspect()}
+  if((e.key=="Delete"||e.key=="Backspace")&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)&&!$(".sheet")){
+    if(SELG){e.preventDefault();deleteGroup(SELG)}else if(SELN){e.preventDefault();deleteNote(SELN)}else if(SELE){e.preventDefault();removeEdge(SELE)}else if(SEL){e.preventDefault();askDelete(G.nodes.get(SEL))}}});
+function undo(){const s=undoStack.pop();if(!s){toast("Nothing to undo");return}for(const n in s){if(n=="__board"){const b=JSON.parse(s[n]);CARDS=b.CARDS;GROUPS=b.GROUPS;NOTES=b.NOTES;saveMine();saveBoardBits()}else FILES[n]=loadFile(n,s[n])}selectNone();changed("Undone")}
+$("#btnLayout").onclick=()=>{POS[VIEW]={};lsSet(":pos",POS);draw();fit()};
+$("#btnChanges").onclick=()=>{const files=changedFiles();const sh=document.createElement("div");sh.className="sheet";
+  sh.innerHTML=`<div class="bar"><b style="font:600 18px var(--cond)">Changed sheets</b><span class="hint">Copy a sheet and paste it over the file in <code>data/</code>, or send it to Claude in the project chat.</span><span class="spacer"></span><button class="btn bad" id="chgReset">Throw away all changes</button><button class="btn ghost2" id="chgClose">Close</button></div><div class="body" id="chgBody"></div>`;
+  $("#stage").appendChild(sh);const b=sh.querySelector("#chgBody");
+  if(!files.length)b.innerHTML=`<p class="hint">No changes yet. Edit a card, connect two cards or add a new one, and the changed CSVs show up here.</p>`;
+  files.forEach(f=>{const o=FILES[f],old=loadFile(f,ORIG[f]);const oldS=new Set(old.rows.map(r=>JSON.stringify(r)));const newS=new Set(o.rows.map(r=>JSON.stringify(r)));
+    const added=o.rows.filter(r=>!oldS.has(JSON.stringify(r)));const gone=old.rows.filter(r=>!newS.has(JSON.stringify(r)));
+    const d=document.createElement("div");d.className="chg";d.innerHTML=`<h3>data/${f}.csv</h3><div class="hint">${added.length} row(s) new or changed${gone.length?`, ${gone.length} old version(s) replaced or removed`:""}: ${added.slice(0,8).map(r=>escH(r.ID||r["Ability ID"]||r.Table+"/"+r.Item)).join(", ")}</div><div class="btnrow"><button class="btn">Copy CSV</button></div><textarea readonly aria-label="${f}.csv">${escH(toCSV(o))}</textarea>`;
+    const ta=d.querySelector("textarea");d.querySelector(".btn").onclick=ev=>{const btn=ev.target;navigator.clipboard.writeText(ta.value).then(()=>btn.textContent="Copied").catch(()=>{ta.focus();ta.select();btn.textContent="Press Ctrl+C"})};b.appendChild(d)});
+  sh.querySelector("#chgClose").onclick=()=>sh.remove();
+  const rs=sh.querySelector("#chgReset");rs.onclick=()=>{if(!rs.dataset.sure){rs.dataset.sure=1;rs.textContent="Click again to throw away";return}pushUndo();for(const n in ORIG)FILES[n]=loadFile(n,ORIG[n]);sh.remove();changed("Back to the game's own CSVs")}};
+
+/* ---------- add new things ---------- */
+const ADDS=[
+  {k:"play",t:"Match mode",file:"MatchModes",make:(id,name)=>({ID:id,Name:name,"Records Season":"no",Timer:"90",Cycles:"3",Rounds:"3","Star Rotation":"yes",Opponent:"scratch",Description:""})},
+  {k:"adventure",t:"Adventure place",file:"Biomes",make:(id,name)=>{const bs=F("Biomes").slice().sort((a,b)=>(+a.Order)-(+b.Order));const last=bs[bs.length-1]||{};const boss=last.ID?bossOf(last):null;
+    return {ID:id,Name:name,Order:String((+last.Order||0)+1),Requires:boss?"unlocked:"+boss:(last.Requires||""),Waves:"4","Enemy Pool":id,Drops:id+"_ground",Difficulty:String((+last.Difficulty||0)+1),Description:""}}},
+  {k:"goal",t:"Achievement",file:"Achievements",make:(id,name)=>({ID:id,Name:name,Description:"",Needs:"count:matches_played>=1",Unlocks:""})},
+  {k:"beer",t:"Brew recipe",file:"Brews",make:(id,name)=>({ID:id,Name:name,Cost:"reed:1"})},
+  {k:"beer",t:"Random beer",file:"Brews",make:(id,name)=>({ID:id,Name:name,Inspiration:"10",Pool:"plain",Notes:"Made in the System Builder: one of the random plain beers. Give it an attack and a defend ability."})},
+  {k:"ability",t:"Ability",file:"Abilities",make:(id,name)=>({"Ability ID":id.toUpperCase(),Name:name,Trigger:"on_attack",Target:"self",Effect:"add_power",Value:"1",Scope:"duel",Notes:"Made in the System Builder."})},
+  {k:"maker",t:"Brewing machine",file:"BrewerySections",make:(id,name)=>{const ss=F("BrewerySections");return {Order:String(ss.reduce((m,r)=>Math.max(m,+r.Order||0),0)+1),ID:id,Name:name,Worker:"",Needs:"",Takes:"",Makes:"","How Many":"1",Batches:"1","Wait Min":"0","Wait Max":"0",Notes:"Made in the System Builder. Draw lines IN from what it takes and OUT to what it makes."}}},
+  {k:"maker",t:"Merchant trade",file:"Shop",make:(id,name)=>({ID:id,Name:name,Sells:"res:hops","How Many":"1",Price:"10",Currency:"coins",Requires:"unlocked:Traveling Tavern"})},
+  {k:"maker",t:"Club House upgrade",file:"Upgrades",make:(id,name)=>({ID:id,Name:name,Kind:"upgrade",Cost:"100",Currency:"coins",Effect:"count:"+id+"+1"})},
+  {k:"stuff",t:"Material",file:"Items",make:(id,name)=>({ID:id,Name:name,Kind:"material",Tab:"resources",Stack:"99"})}];
+function renderAdds(){const box=$("#adds");box.innerHTML="";ADDS.forEach(a=>{const b=document.createElement("button");b.className="addbtn";
+  const s=document.createElementNS(NS,"svg");s.setAttribute("width",22);s.setAttribute("height",22);glyph(s,a.k,11,11,KINDS[a.k].color);b.appendChild(s);b.append("New "+a.t.toLowerCase());
+  b.onclick=()=>askName(a);box.appendChild(b)})}
+function askName(a){const pop=document.createElement("div");pop.className="pop";pop.style.left="12px";pop.style.top="12px";
+  pop.innerHTML=`<p>New ${a.t.toLowerCase()} in <b>${a.file}.csv</b></p><div class="field"><label for="newName">Name</label><input id="newName" placeholder="e.g. ${({goal:"Derby Day",stuff:"Moor Peat",play:"Village Derby",adventure:"The Hop Gardens"})[a.k]||(a.file=="BrewerySections"?"Mash Tun":"Smoked Märzen")}"></div><div class="btnrow"><button class="btn" id="newOk">Add</button><button class="btn ghost2" id="newNo">Cancel</button></div>`;
+  $("#stage").appendChild(pop);const inp=pop.querySelector("#newName");inp.focus();
+  let sure=false;const go=()=>{const name=inp.value.trim();if(!name)return inp.focus();
+    const same=[...G.nodes.values()].find(x=>x.row&&x.label.trim().toLowerCase()==name.toLowerCase());
+    if(same&&!sure){sure=true;const p=pop.querySelector("p");p.innerHTML=`<b>${escH(same.label)}</b> is already in the game (${same.file}.csv). Use that one, so the game doesn't get two?`;
+      const ok=pop.querySelector("#newOk");ok.textContent="Make a second one anyway";ok.classList.add("ghost2");const use=document.createElement("button");use.className="btn";use.textContent="Use the game's "+same.label;
+      use.onclick=()=>{pop.remove();if(isBoard(VIEW)){addMine(same.id)}goTo(same.id)};ok.parentNode.insertBefore(use,ok);use.focus();return}let id=name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ß/g,"ss").replace(/[^a-z0-9]+/g,"_").replace(/^_|_$/g,"");
+    if(a.file=="Abilities")id=id.toUpperCase();while(F(a.file).some(r=>r[idCol(a.file)]==id)||RESFILES.includes(a.file)&&isThing(id))id+="_2";pushUndo();const row=Object.assign(blank(a.file),a.make(id,name));FILES[a.file].rows.push(row);pop.remove();
+    const pre={MatchModes:"mode:",Biomes:"biome:",Achievements:"ach:",Brews:"brew:",Shop:"shop:",Upgrades:"upg:",Items:"res:",BrewerySections:"sec:",Abilities:"abl:"}[a.file]+id;
+    if(isBoard(VIEW)&&!cur().includes(pre)){cur().push(pre);saveMine()}
+    if(isBoard(VIEW)){changed(`Added ${name} to ${a.file}.csv`);if(G.nodes.has(pre))goTo(pre);return}
+    changed(`Added ${name} to ${a.file}.csv`);
+    if(!IDS.has(pre)&&G.nodes.has(pre)){VIEW="all";renderTabs();draw()}
+    if(G.nodes.has(pre)&&P[pre]){const r=svg.getBoundingClientRect();P[pre].x=Math.round(((r.width/2-cam.x)/cam.k)/10)*10;P[pre].y=Math.round(((r.height/2-cam.y)/cam.k)/10)*10;lsSet(":pos",POS);draw();goTo(pre)}};
+  pop.querySelector("#newOk").onclick=go;inp.addEventListener("keydown",e=>{if(e.key=="Enter")go();if(e.key=="Escape")pop.remove()});pop.querySelector("#newNo").onclick=()=>pop.remove()}
+
+/* ---------- tables view ---------- */
+let TBL=lsGet(":tbl")||"Achievements";
+function tables(){let sh=$("#tblSheet");if(sh)sh.remove();sh=document.createElement("div");sh.className="sheet";sh.id="tblSheet";
+  sh.innerHTML=`<div class="bar"><label for="tblPick" class="lbl" style="margin:0">Sheet</label><select id="tblPick">${Object.keys(FILES).sort().map(f=>`<option ${f==TBL?"selected":""}>${f}</option>`).join("")}</select><span class="hint">Every cell writes straight into data/${TBL}.csv. The full kit opens all ${SRC_COUNT} sheets here.</span></div><div class="body"><table class="grid" id="grid"></table></div>`;
+  $("#stage").appendChild(sh);const f=FILES[TBL];const t=sh.querySelector("#grid");
+  t.innerHTML=`<thead><tr>${f.cols.map(c=>`<th>${escH(c)}</th>`).join("")}</tr></thead><tbody>${f.rows.map((r,i)=>`<tr>${f.cols.map(c=>`<td class="${c=="Notes"?"note":""}"><input data-r="${i}" data-c="${escA(c)}" value="${escA(r[c])}"${c==idCol(TBL)&&origHas(TBL,r[c])?" readonly":""} aria-label="${escA(c)}" title="${escA(r[c])}"></td>`).join("")}</tr>`).join("")}</tbody>`;
+  t.querySelectorAll("input").forEach(inp=>inp.addEventListener("change",()=>{if(!tryCell(inp,TBL,f.rows[+inp.dataset.r],inp.dataset.c))return;pushUndo();f.rows[+inp.dataset.r][inp.dataset.c]=inp.value;persist();buildGraph();runSim();updCount();toast(`${TBL}.csv: ${inp.dataset.c} changed`)}));
+  sh.querySelector("#tblPick").onchange=e=>{TBL=e.target.value;lsSet(":tbl",TBL);tables()}}
+const SRC_COUNT=/*__COUNT__*/132;
+
+/* ---------- tabs, legend, playback ---------- */
+function renderTabs(){let seen=false;$("#tabs").innerHTML=VIEWS.map(v=>{if(v.old)return "";let pre="";if(v.ex&&!seen){seen=true;pre=`<span class="tabsep"></span>`}return pre+`<button class="tab" role="tab" aria-selected="${v.id==VIEW}" data-v="${v.id}">${v.name}</button>`}).join("");
+  $("#tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{const v=b.dataset.v;const t=$("#tblSheet");if(t)t.remove();
+    if(v=="help"){help();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
+    {const h=$("#helpSheet");if(h)h.remove();$("main").classList.remove("helpon")}
+    if(v=="tables"){VIEW_T=true;tables();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
+    const first=!POS[v]&&!isBoard(v);VIEW=v;lsSet(":view3",v);selectNone();renderTabs();draw();inspect();if(first)fit()})}
+let VIEW_T=false;
+function renderLegend(){$("#legend").innerHTML="";Object.entries(KINDS).forEach(([k,v])=>{const d=document.createElement("div");d.title=v.desc;
+  const s=document.createElementNS(NS,"svg");s.setAttribute("width",22);s.setAttribute("height",22);glyph(s,k,11,11,v.color);d.appendChild(s);d.append(v.label);$("#legend").appendChild(d)});
+  $("#legend2").innerHTML=Object.entries(ETYPES).map(([k,v])=>`<div><svg width="30" height="10"><path class="edge ${k}" d="M2 5H28"/></svg>${v}</div>`).join("")}
+let timer=null;$("#play").onclick=()=>{if(timer){clearInterval(timer);timer=null;$("#play").textContent="▶";return}
+  if(DAY>=SIM_SET.days)DAY=0;$("#play").textContent="❚❚";timer=setInterval(()=>{DAY++;paintDay();if(DAY>=SIM_SET.days){clearInterval(timer);timer=null;$("#play").textContent="▶"}},450)};
+$("#day").addEventListener("input",e=>{DAY=+e.target.value;paintDay()});
+function marks(){$("#day").max=SIM_SET.days;DAY=Math.min(DAY,SIM_SET.days);const m=$("#marks");m.innerHTML="";
+  SIM.ev.filter(e=>(e.big||e.goal)&&(!isBoard(VIEW)||cur().includes(e.node))).forEach(e=>{const s=document.createElement("span");s.style.left=(e.day/SIM_SET.days*100)+"%";s.dataset.t="Day "+e.day+": "+e.t;s.onclick=()=>goTo(e.node);m.appendChild(s)})}
+$("#search").addEventListener("input",e=>{const q=e.target.value.trim().toLowerCase();const box=$("#results");box.innerHTML="";if(q.length<2)return;
+  const gh=[];BOARDS.forEach(b=>(GROUPS[b.id]||[]).forEach(g=>{if(g.label.toLowerCase().includes(q))gh.push({b,g})}));
+  gh.slice(0,6).forEach(({b,g})=>{const btn=document.createElement("button");btn.innerHTML=`<svg width="18" height="18" viewBox="0 0 22 22"><rect x="2" y="4" width="18" height="14" rx="2" fill="none" stroke="var(--chalk-dim)" stroke-width="1.6" stroke-dasharray="3 2"/></svg>`;
+    btn.append(g.label);const i=document.createElement("i");i.textContent=b.id==VIEW?"group":b.name;btn.appendChild(i);btn.onclick=()=>goToGroup(b.id,g.id);box.appendChild(btn)});
+  const hits=[...G.nodes.values()].filter(n=>n.label.toLowerCase().includes(q)||(n.sub||"").toLowerCase().includes(q)||(isBoard(VIEW)&&cur().includes(n.id)&&groupOf(n.id)&&groupOf(n.id).label.toLowerCase().includes(q))).slice(0,10);
+  if(!hits.length&&!gh.length){box.innerHTML=`<span class="hint">Nothing called that yet. Add it with the buttons below.</span>`;return}
+  hits.forEach(n=>{const b=document.createElement("button");const s=document.createElementNS(NS,"svg");s.setAttribute("width",18);s.setAttribute("height",18);s.setAttribute("viewBox","0 0 22 22");glyph(s,n.kind,11,11,KINDS[n.kind].color);b.appendChild(s);
+    b.append(n.label+(isBoard(VIEW)&&groupOf(n.id)?" · "+groupOf(n.id).label:""));const i=document.createElement("i");i.textContent=isBoard(VIEW)?(cur().includes(n.id)?"on board":"+ add"):"show";b.appendChild(i);
+    b.onclick=()=>{if(isBoard(VIEW)){addMine(n.id);e.target.dispatchEvent(new Event("input"))}else goTo(n.id)};box.appendChild(b)})});
+const _runSim=runSim;runSim=function(){_runSim();marks()};
+
+/* ---------- groups and note lines: board-only drawing, never written to the game's sheets ---------- */
+let GROUPS=lsGet(":groups")||{},NOTES=lsGet(":notes")||{},SELG=null,SELN=null;
+const GCOL={chalk:"#ebe6d6",beer:"#e6ad3c",hops:"#94c26c",sky:"#86b7d8",clay:"#d98a5c",fern:"#5fc0a8"};
+function saveBoardBits(){lsSet(":groups",GROUPS);lsSet(":notes",NOTES)}
+function selectNone(){SEL=null;SELE=null;SELG=null;SELN=null}
+const curG=()=>GROUPS[VIEW]||(GROUPS[VIEW]=[]),curN=()=>NOTES[VIEW]||(NOTES[VIEW]=[]);
+function findGroup(id){return isBoard(VIEW)?curG().find(g=>g.id==id):null}
+function groupInside(g){if(!g)return[];return[...IDS].filter(id=>{const p=P[id];const cx=p.x+W/2,cy=p.y+H/2;return cx>g.x&&cx<g.x+g.w&&cy>g.y+26&&cy<g.y+g.h})}
+function groupOf(id){if(!isBoard(VIEW)||!P[id])return null;const p=P[id];const cx=p.x+W/2,cy=p.y+H/2;return curG().filter(g=>cx>g.x&&cx<g.x+g.w&&cy>g.y+26&&cy<g.y+g.h).sort((a,b)=>a.w*a.h-b.w*b.h)[0]||null}
+function endRect(ref){if(ref.startsWith("grp:")){const g=findGroup(ref.slice(4));return g?{x:g.x,y:g.y,w:g.w,h:g.h,label:g.label}:null}
+  if(!IDS.has(ref))return null;const p=P[ref];return{x:p.x,y:p.y,w:W,h:H,label:G.nodes.get(ref).label}}
+function hitAt(w){const n=[...IDS].find(id=>{const p=P[id];return w.x>=p.x&&w.x<=p.x+W&&w.y>=p.y&&w.y<=p.y+H});if(n)return n;
+  if(!isBoard(VIEW))return null;const g=curG().filter(g=>w.x>=g.x&&w.x<=g.x+g.w&&w.y>=g.y&&w.y<=g.y+g.h).sort((a,b)=>a.w*a.h-b.w*b.h)[0];return g?"grp:"+g.id:null}
+function drawGroups(){const L=$("#gGroups"),T=$("#gGroupTop");L.innerHTML="";T.innerHTML="";if(!isBoard(VIEW))return;
+  curG().forEach(g=>{const mk=lay=>{const e=el("g",{class:"grp","data-id":g.id,transform:`translate(${g.x},${g.y})`},lay);e.style.setProperty("--gc",GCOL[g.color]||GCOL.chalk);return e};
+    const e=mk(L),top=mk(T);top.classList.add("gtop");
+    el("rect",{class:"gbox",width:g.w,height:g.h,rx:6},e);el("rect",{class:"ghead",width:g.w,height:26,rx:6},top);
+    const grip=el("text",{class:"ggrip",x:8,y:18},top);grip.textContent="⠿";
+    const t=el("text",{class:"gname",x:24,y:18},top);t.textContent=({random:"🎲 ",one:"☝ "}[gmode(g)]||"")+g.label;const c=el("text",{class:"gcount",x:g.w-8,y:17,"text-anchor":"end"},top);const n=groupInside(g).length;c.textContent=gmode(g)!="all"?"one of "+n:n?n+" card"+(n>1?"s":""):"";
+    const rs=el("path",{class:"grs",d:`M${g.w} ${g.h-14}L${g.w} ${g.h}L${g.w-14} ${g.h}z`},top);const port=el("circle",{class:"port",cx:g.w,cy:g.h/2,r:7},top);
+    const ti=el("title",{},top);ti.textContent="Drag this bar to move "+g.label+" with its cards";
+    const down=ev=>{ev.stopPropagation();svg.setPointerCapture(ev.pointerId);const w=toWorld(ev);
+      if(ev.target===port)drag={mode:"glink",g,sx:g.x+g.w,sy:g.y+g.h/2};
+      else if(ev.target===rs)drag={mode:"gsize",g,moved:false};
+      else drag={mode:"group",g,dx:w.x-g.x,dy:w.y-g.y,inside:groupInside(g),moved:false}};
+    e.addEventListener("pointerdown",down);top.addEventListener("pointerdown",down)})}
+function notePath(a,b){const x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2;const back=x2<x1+20;
+  if(back){const s={x:a.x,y:a.y+a.h/2},t={x:b.x+b.w,y:b.y+b.h/2};if(t.x<s.x-20){const dx=Math.max(40,(s.x-t.x)/2);return{d:`M${s.x} ${s.y}C${s.x-dx} ${s.y},${t.x+dx} ${t.y},${t.x} ${t.y}`,mx:(s.x+t.x)/2,my:(s.y+t.y)/2}}}
+  const dx=back?Math.max(80,Math.abs(x2-x1)/3):Math.max(40,(x2-x1)/2);return{d:`M${x1} ${y1}C${x1+dx} ${y1+(back?60:0)},${x2-dx} ${y2+(back?60:0)},${x2} ${y2}`,mx:(x1+x2)/2,my:(y1+y2)/2+(back?45:0)}}
+function drawNotes(){const L=$("#gNotes");L.innerHTML="";if(!isBoard(VIEW))return;
+  curN().forEach(n=>{const a=endRect(n.from),b=endRect(n.to);if(!a||!b)return;const p=notePath(a,b);const kind=/^in/i.test(n.label)?"input":/^out/i.test(n.label)?"output":/^random/i.test(n.label)?"random":/^if\b/i.test(n.label)?"cond":"";
+    el("path",{d:p.d,class:"edge note "+kind+(SELN&&SELN.id==n.id?" sel":""),"marker-end":"url(#arr)"},L);
+    const hit=el("path",{d:p.d,class:"hit"},L);hit.addEventListener("click",ev=>{ev.stopPropagation();selectNone();SELN=n;highlight();inspect();drawNotes()});
+    // a random group reads as "one of these" when it goes in, and "one comes out" when a line goes into it
+    const gOf=r=>r&&r.startsWith("grp:")?findGroup(r.slice(4)):null;const gf=gOf(n.from),gt=gOf(n.to);
+    const extra=n.label&&!/^(random|one)$/i.test(n.label)?" · "+n.label:"";
+    const txt=gf&&gmode(gf)=="random"?"🎲 one of these, at random"+extra:gf&&gmode(gf)=="one"?"☝ one of these"+extra:gt&&gmode(gt)=="random"?"🎲 one comes out, at random"+extra:gt&&gmode(gt)=="one"?"☝ one of these comes out"+extra:(kind=="random"?"🎲 ":"")+n.label;
+    if(txt){const t=el("text",{x:p.mx,y:p.my-5,class:"nlabel","text-anchor":"middle"},L);t.textContent=txt}})}
+function newGroupAt(label){const r=svg.getBoundingClientRect();const x=Math.round(((r.width/2-cam.x)/cam.k-150)/10)*10,y=Math.round(((r.height/2-cam.y)/cam.k-110)/10)*10;
+  pushUndo();const g={id:"g"+Date.now().toString(36),label,x,y,w:300,h:220,color:"chalk"};curG().push(g);saveBoardBits();selectNone();SELG=g.id;draw();inspect();toast(`Group "${label}" added. Drag cards into it.`)}
+$("#addGroup").onclick=()=>{if(!isBoard(VIEW)){toast("Groups go on your own boards. Pick one of the tabs first.");return}
+  const pop=document.createElement("div");pop.className="pop";pop.style.left="12px";pop.style.top="12px";
+  pop.innerHTML=`<p>New group on <b>${escH(boardName(VIEW))}</b>. It is a label for your board only.</p><div class="field"><label for="gName">Label</label><input id="gName" placeholder="e.g. Ingredients"></div><div class="btnrow"><button class="btn" id="gOk">Add</button><button class="btn ghost2" id="gNo">Cancel</button></div>`;
+  $("#stage").appendChild(pop);const i=pop.querySelector("#gName");i.focus();const go=()=>{const v=i.value.trim();if(!v)return i.focus();pop.remove();newGroupAt(v)};
+  pop.querySelector("#gOk").onclick=go;pop.querySelector("#gNo").onclick=()=>pop.remove();i.addEventListener("keydown",e=>{if(e.key=="Enter")go();if(e.key=="Escape")pop.remove()})};
+function goToGroup(board,id){if(VIEW!==board){VIEW=board;lsSet(":view3",board);renderTabs();draw()}const g=findGroup(id);if(!g)return;const r=svg.getBoundingClientRect();
+  cam.k=Math.min(1.2,Math.max(0.3,Math.min((r.width-80)/g.w,(r.height-80)/g.h)));cam.x=r.width/2-(g.x+g.w/2)*cam.k;cam.y=r.height/2-(g.y+g.h/2)*cam.k;applyCam();selectNone();SELG=id;highlight();inspect()}
+function inspectGroup(){const g=findGroup(SELG);if(!g){SELG=null;return inspect()}const inside=groupInside(g);
+  const lines=curN().filter(n=>n.from=="grp:"+g.id||n.to=="grp:"+g.id);
+  let h=`<span class="kind" style="--k:var(--chalk-dim)">Group · your board only</span><h2>${escH(g.label)}</h2>
+  <div class="field"><label for="gLbl">Label</label><input id="gLbl" value="${escA(g.label)}"></div>
+  <div class="field"><label>Colour</label><div class="swatches">${Object.entries(GCOL).map(([k,c])=>`<button data-c="${k}" class="${g.color==k?"on":""}" style="background:${c}" aria-label="${k}"></button>`).join("")}</div></div>
+  <div class="lbl" style="margin-top:16px">Cards inside (${inside.length})</div><div class="links">${inside.map(id=>`<button class="lnk" data-go="${escA(id)}">${escH(G.nodes.get(id).label)}</button>`).join("")||`<p class="hint">Drag cards into the box to put them in this group.</p>`}</div>`;
+  if(lines.length)h+=`<div class="lbl" style="margin-top:16px">Lines</div><div class="links">${lines.map(n=>{const o=n.from=="grp:"+g.id?n.to:n.from;const r=endRect(o);return `<span class="lnk">${n.from=="grp:"+g.id?"→":"←"} ${escH(r?r.label:o)} <i>${escH(n.label)}</i></span>`}).join("")}</div>`;
+  h+=`<div class="lbl" style="margin-top:16px">This group means</div><div class="gmodes">${[["all","All of these","every card in it"],["one","☝ One of these","any one, you pick"],["random","🎲 One at random","one, picked at random"]].map(([k,t,d])=>`<button class="chip ${gmode(g)==k?"on":""}" data-gm="${k}" title="${d}"><b>${t}</b><i>${d}</i></button>`).join("")}</div>`;
+  const pools=randomPools(g);pools.forEach(x=>{h+=`<p class="hint" style="margin-top:8px">${escH(x.item.label)} pours one of <b>${x.inPool.length}</b> beers here (pool <code>${x.pool}</code>).${x.missing.length?` Not in the pool yet: ${x.missing.map(b=>escH(b.label)).join(", ")}.`:""}</p>${x.missing.length?`<div class="btnrow"><button class="btn" data-sync="${escA(x.item.id)}">Put ${x.missing.length} more in the pool</button></div>`:""}`});
+  h+=`<p class="hint" style="margin-top:12px">Drag the box to move it with its cards, the corner to resize it, and the dot on its right edge to draw a line to a machine.</p><div class="btnrow"><button class="btn bad" id="gDel">Delete group</button></div><p class="hint">Deleting the group keeps its cards.</p>`;
+  R.innerHTML=h;const lbl=R.querySelector("#gLbl");lbl.addEventListener("change",()=>{pushUndo();g.label=lbl.value.trim()||g.label;saveBoardBits();drawGroups();drawNotes();inspect()});
+  R.querySelectorAll(".swatches button").forEach(b=>b.onclick=()=>{g.color=b.dataset.c;saveBoardBits();drawGroups();inspect()});
+  R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));R.querySelector("#gDel").onclick=()=>deleteGroup(g.id);
+  R.querySelectorAll("[data-gm]").forEach(b=>b.onclick=()=>{pushUndo();setGMode(g,b.dataset.gm);saveBoardBits();drawGroups();drawNotes();inspect()});
+  R.querySelectorAll("[data-sync]").forEach(b=>b.onclick=()=>{const x=pools.find(x=>x.item.id==b.dataset.sync);pushUndo();x.missing.forEach(m=>addTok(m.row,"Pool",x.pool,"|"));changed(`${x.missing.length} more beer(s) can now come out of a ${x.item.label}`)})}
+// what a group stands for: all of its cards, one of them (you pick), or one at random
+const gmode=g=>g.mode||(g.random?"random":"all");
+function setGMode(g,m){g.mode=m;g.random=m=="random"}
+// a bottle (an item that pours "brew:pool:X") with a line into this group: which beers inside are in its pool
+function randomPools(g){const ids=groupInside(g);const beers=ids.map(id=>G.nodes.get(id)).filter(n=>n&&n.mk=="brew");
+  return curN().filter(n=>n.to=="grp:"+g.id).map(n=>G.nodes.get(n.from)).filter(a=>poolOf(a)).map(item=>{const pool=poolOf(item);
+    const inP=b=>(b.row.Pool||"").split("|").includes(pool);return{item,pool,inPool:beers.filter(inP),missing:beers.filter(b=>!inP(b))}})}
+function deleteGroup(id){pushUndo();GROUPS[VIEW]=curG().filter(g=>g.id!==id);NOTES[VIEW]=curN().filter(n=>n.from!=="grp:"+id&&n.to!=="grp:"+id);saveBoardBits();selectNone();draw();inspect();toast("Group deleted. Its cards stay on the board.")}
+function inspectNote(){const n=SELN;const a=endRect(n.from),b=endRect(n.to);
+  let h=`<span class="kind" style="--k:var(--chalk-dim)">Line · your board only</span><h2>${escH(a?a.label:"?")} → ${escH(b?b.label:"?")}</h2>
+  <div class="field"><label for="nLbl">Label</label><input id="nLbl" value="${escA(n.label)}" placeholder="input, output, needs…"></div><div class="chips">${["input","output","needs","makes","unlocks"].map(c=>`<button class="chip ${n.label==c?"on":""}" data-l="${c}">${c}</button>`).join("")}</div>
+  <p class="hint">This line is a note on your board. It does not change the game's sheets.</p><div class="btnrow"><button class="btn bad" id="nDel">Remove this line</button></div>`;
+  R.innerHTML=h;const i=R.querySelector("#nLbl");const setL=v=>{pushUndo();n.label=v;saveBoardBits();drawNotes();inspect()};
+  i.addEventListener("change",()=>setL(i.value.trim()));R.querySelectorAll(".chip").forEach(c=>c.onclick=()=>setL(c.dataset.l));R.querySelector("#nDel").onclick=()=>deleteNote(n)}
+function deleteNote(n){pushUndo();NOTES[VIEW]=curN().filter(x=>x!==n);saveBoardBits();selectNone();drawNotes();highlight();inspect();toast("Line removed")}
+function proposeAny(from,to,ev){const a=G.nodes.get(from),b=G.nodes.get(to);let rule=a&&b?linkRule(a,b):null;
+  // into a group: a bottle can pour one of the group's beers at random (every beer inside joins the bottle's pool)
+  const tg=to.startsWith("grp:")?findGroup(to.slice(4)):null;
+  if(tg&&poolOf(a)){const pool=poolOf(a);const beers=groupInside(tg).map(id=>G.nodes.get(id)).filter(n=>n&&n.mk=="brew");
+    if(beers.length)rule={say:`🎲 One at random: the ${beers.length} beer(s) in <b>${escH(tg.label)}</b> join pool <code>${pool}</code> (Brews.csv → Pool), so drinking a ${escH(a.label)} pours one of them, picked at random.`,
+      apply:()=>{beers.forEach(x=>addTok(x.row,"Pool",pool,"|"));setGMode(tg,"random");curN().push({id:"n"+Date.now().toString(36),from,to,label:"random"});saveBoardBits()},group:true}}
+  if(tg&&elemOf(a)){const w=elemOf(a);const beers=groupInside(tg).map(id=>G.nodes.get(id)).filter(n=>n&&n.mk=="brew");
+    if(beers.length)rule={say:`<b>If</b> ${escH(a.label)} went into the Brew Kettle, the ${beers.length} beer(s) in <b>${escH(tg.label)}</b> can come out${gmode(tg)=="random"?" (one of them, at random)":""}. Sets Element to <code>${w}</code> on each (Brews.csv).`,
+      apply:()=>{beers.forEach(x=>set(x.row,"Element",w));curN().push({id:"n"+Date.now().toString(36),from,to,label:"if "+w});saveBoardBits()},group:true}}
+  const randomInto=tg&&gmode(tg)=="random";
+  if(!isBoard(VIEW)){if(rule)return proposeLink(a,b,ev);toast(`No CSV column joins ${(a||{}).label} to ${(b||{}).label} yet. Try the other direction.`);return}
+  const ra=endRect(from),rb=endRect(to);const def=randomInto?"random":from.startsWith("grp:")?"input":to.startsWith("grp:")?"output":"";
+  const pop=document.createElement("div");pop.className="pop";const r=$("#stage").getBoundingClientRect();
+  pop.style.left=Math.min(r.width-300,Math.max(8,ev.clientX-r.left))+"px";pop.style.top=Math.min(r.height-260,Math.max(8,ev.clientY-r.top))+"px";
+  pop.innerHTML=`<p><b>${escH(ra.label)}</b> → <b>${escH(rb.label)}</b></p>${rule?`<p>${rule.say}</p>${rule.ask?`<div class="field"><label for="lnkN">${rule.ask}</label><input id="lnkN" type="number" value="${rule.def}"></div>`:""}<div class="btnrow"><button class="btn" id="lnkOk">Connect in the game</button></div><p class="hint" style="margin-top:10px">Or only draw it on your board:</p>`:`<p>Draw a line on your board. It is a note and does not change the game's sheets.</p>`}
+  <div class="field"><label for="noteL">Label</label><input id="noteL" value="${def}" placeholder="input, output, needs…"></div><div class="chips">${["input","output","one","random","needs","makes","unlocks"].map(c=>`<button class="chip" data-l="${c}">${c}</button>`).join("")}</div>${tg&&!rule?`<p class="hint">☝ <b>one</b> means one card of the group (you pick); 🎲 <b>random</b> means one picked at random. Either also sets what the group means. The game only picks at random for bottles and their beers so far; anything else stays a note until Claude wires it.</p>`:""}
+  <div class="btnrow"><button class="btn ${rule?"ghost2":""}" id="noteOk">Draw board line</button><button class="btn ghost2" id="lnkNo">Cancel</button></div>`;
+  $("#stage").appendChild(pop);const L=pop.querySelector("#noteL");pop.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{L.value=c.dataset.l});
+  const n=pop.querySelector("#lnkN");(n||L).focus();
+  pop.querySelector("#lnkNo").onclick=()=>pop.remove();
+  const ok=pop.querySelector("#lnkOk");if(ok)ok.onclick=()=>{pushUndo();rule.apply(n?n.value:1);if(isBoard(VIEW)&&!rule.group){const L=MYLINKS[VIEW]=MYLINKS[VIEW]||[];if(!L.includes(from+">"+to))L.push(from+">"+to);lsSet(":mylinks",MYLINKS)}pop.remove();changed(`Connected ${ra.label} → ${rb.label}`)};
+  pop.querySelector("#noteOk").onclick=()=>{pushUndo();curN().push({id:"n"+Date.now().toString(36),from,to,label:L.value.trim()});if(tg&&/^random$/i.test(L.value.trim()))setGMode(tg,"random");if(tg&&/^one$/i.test(L.value.trim()))setGMode(tg,"one");saveBoardBits();drawGroups();pop.remove();drawNotes();toast("Line drawn on your board")}}
+// a building can stand for what opens it: Pub -> a machine writes the Pub's unlock into the machine's needs
+const _linkRule=linkRule;linkRule=function(a,b){const r=_linkRule(a,b);if(r)return r;
+  if(a.kind=="place"&&b.row&&reqCol(b)){const t=toks(a.row.Requires).find(x=>/^unlocked:/.test(x))||toks(a.row.Requires)[0];if(!t)return null;
+    return{say:`Adds <code>${escH(t)}</code> (what opens the ${escH(a.label)}) to <b>${b.file}.csv</b> → ${escH(b.row.ID)} → ${reqCol(b)}`,apply:()=>addTok(b.row,reqCol(b),t,";",b.file)}}
+  return null};
+// remember which panels and sections are folded
+const FOLD=lsGet(":fold")||{};
+function wireSecs(root){root.querySelectorAll("details.sec").forEach(d=>{const k=d.dataset.sec;if(k in FOLD)d.open=FOLD[k];d.addEventListener("toggle",()=>{FOLD[k]=d.open;lsSet(":fold",FOLD)})})}
+wireSecs(document);
+function panels(){$("main").classList.toggle("noleft",!!FOLD.__left);$("main").classList.toggle("noright",!!FOLD.__right);$("#btnLeft").textContent=FOLD.__left?"⟩ Panel":"⟨ Panel";$("#btnRight").textContent=FOLD.__right?"Panel ⟨":"Panel ⟩"}
+function gameLinesBtn(){$("#btnGameLines").textContent="Game lines: "+(GAMELINES?"on":"off");$("#btnGameLines").style.display=isBoard(VIEW)?"":"none"}
+$("#btnGameLines").onclick=()=>{GAMELINES=!GAMELINES;lsSet(":gamelines",GAMELINES);gameLinesBtn();draw();toast(GAMELINES?"Showing every line the game already has between your cards":"Showing only the lines you drew")};
+$("#btnLeft").onclick=()=>{FOLD.__left=!FOLD.__left;lsSet(":fold",FOLD);panels()};$("#btnRight").onclick=()=>{FOLD.__right=!FOLD.__right;lsSet(":fold",FOLD);panels()};panels();
+
+/* ---------- saving: this browser, online (any PC), and save files ---------- */
+// One save holds everything Anthony made: the cards on each board, where they sit,
+// the sheet edits, and the pretend player's numbers. Newest save wins.
+const SAVE_KEYS=[":cards",":pos",":edits",":sim",":groups",":notes",":mylinks"];
+let DB=null,saveTimer=null,saving=false,again=false,localAt=+(lsGet(":savedAt")||0),onlineAt=0,quiet=false;
+function collect(){const pos={};BOARDS.forEach(b=>{if(POS[b.id])pos[b.id]=POS[b.id]});const files={},base={};const orig={};changedFiles().forEach(n=>{files[n]=toCSV(FILES[n]);base[n]=textHash(ORIG[n]);orig[n]=ORIG[n]});
+  return{app:"sturmball-system-builder",v:2,stamp:SRC_STAMP,savedAt:Date.now(),cards:CARDS,pos,groups:GROUPS,notes:NOTES,mylinks:MYLINKS,files,base,orig,sim:SIM_SET}}
+function applySave(st,why){if(!st||st.app!=="sturmball-system-builder")return toast("That is not a System Builder save.");
+  quiet=true;CARDS=st.cards||{};GROUPS=st.groups||{};NOTES=st.notes||{};MYLINKS=st.mylinks||{};lsSet(":mylinks",MYLINKS);saveBoardBits();BOARDS.forEach(b=>{if(st.pos&&st.pos[b.id])POS[b.id]=st.pos[b.id];else delete POS[b.id]});Object.assign(SIM_SET,SIM_DEF,st.sim||{});
+  // each sheet edit applies when it was made on the same copy of that sheet this page carries
+  let note="";for(const n in ORIG)FILES[n]=loadFile(n,ORIG[n]);const older={};
+  for(const n in (st.files||{})){if(!FILES[n])continue;const same=st.base?st.base[n]===textHash(ORIG[n]):(st.stamp===SRC_STAMP||OLD_STAMPS.includes(st.stamp));
+    if(same)FILES[n]=loadFile(n,st.files[n]);else if(st.orig&&st.orig[n])FILES[n]=threeWay(n,st.orig[n],st.files[n],ORIG[n]);else older[n]=st.files[n]}
+  if(Object.keys(older).length){lsSet(":olderEdits",older);note=" Edits to "+Object.keys(older).join(", ")+" were made on an older copy of the game, so they wait for Claude to merge."}
+  saveMine();lsSet(":pos",POS);lsSet(":sim",SIM_SET);persist();quiet=false;localAt=st.savedAt||Date.now();lsSet(":savedAt",localAt);
+  buildGraph();runSim();renderTabs();draw();inspect();updCount();toast(why+note)}
+function onStore(k){if(quiet||!SAVE_KEYS.includes(k))return;localAt=Date.now();try{localStorage.setItem(LS+":savedAt",String(localAt))}catch(e){}
+  showSave("Saving…");clearTimeout(saveTimer);saveTimer=setTimeout(pushOnline,1500)}
+async function pushOnline(){if(!DB){showSave("Saved in this browser",false);return}if(saving){again=true;return}saving=true;
+  try{const st=collect();st.savedAt=localAt;await DB.doc("kit/save").set({state:JSON.stringify(st),savedAt:localAt});onlineAt=localAt;showSave("Saved online "+clock(localAt),true)}
+  catch(e){showSave(e&&e.code=="quota_exceeded"?"Online save is full":"Online save failed, kept in this browser",false,true)}
+  saving=false;if(again){again=false;pushOnline()}}
+function clock(t){const d=new Date(t);return d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}
+function showSave(t,on,bad){const e=$("#saveState");e.textContent=t;e.classList.toggle("on",!!on);e.classList.toggle("bad",!!bad)}
+// another window or PC saved something newer: take it, unless this page has edits still to send
+setInterval(async()=>{if(!DB||saving||localAt>onlineAt)return;try{const snap=await DB.doc("kit/save").get();const d=snap.exists?snap.data():null;const t=d?+d.savedAt||0:0;
+  if(t>onlineAt&&localAt<=onlineAt){onlineAt=t;applySave(JSON.parse(d.state),"Loaded a newer save made in another window");showSave("Saved online "+clock(t),true)}}catch(e){}},15000);
+async function startOnline(){showSave(localAt?"Saved in this browser":"Nothing saved yet");
+  const use=window.claude&&window.claude.use;if(!use)return;try{DB=await window.claude.use("db")}catch(e){DB=null}
+  if(!DB){showSave(localAt?"Saved in this browser":"Nothing saved yet");return}
+  try{const snap=await DB.doc("kit/save").get();const d=snap.exists?snap.data():null;onlineAt=d?+d.savedAt||0:0;
+    if(d&&onlineAt>localAt)applySave(JSON.parse(d.state),"Loaded your online save from "+new Date(onlineAt).toLocaleString());
+    if(localAt>onlineAt)pushOnline();else showSave(onlineAt?"Saved online "+clock(onlineAt):"Online save ready",true)}
+  catch(e){showSave("Online save unavailable, saving in this browser",false,true)}}
+async function downloadSave(){const st=collect();st.savedAt=localAt||Date.now();const text=JSON.stringify(st,null,1);const name="sturmball_boards_"+new Date().toISOString().slice(0,10)+".json";
+  let dl=null;try{dl=window.claude&&window.claude.use?await window.claude.use("downloads"):null}catch(e){}
+  if(dl){try{await dl.save({filename:name,data:text});toast("Save file ready: "+name)}catch(e){toast("The download was cancelled.")}return}
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:"application/json"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+$("#btnSave").onclick=()=>{const old=$("#saveSheet");if(old){old.remove();return}const sh=document.createElement("div");sh.className="pop";sh.id="saveSheet";sh.style.right="12px";sh.style.top="12px";sh.style.width="330px";
+  const on=!!DB;sh.innerHTML=`<p><b>${on?"Your work saves online by itself":"Your work saves in this browser by itself"}</b></p>
+  <p>${on?"Open this same link on any PC and your boards, cards and sheet edits are there. ":"This copy is the file on your computer, so it cannot save online. Use a save file to move your work between here and the online link. "}${$("#saveState").textContent}.</p>
+  <p>At home, tell Claude in the thread: <code>merge my System Builder save</code>. Claude puts your sheet edits into the game's CSVs and your boards into <code>data/KitBoards.csv</code>, so the copy in project_sb shows them too.</p>
+  <div class="btnrow"><button class="btn" id="svDl">Download save file</button><button class="btn ghost2" id="svOpen">Open a save file</button><input type="file" id="svFile" accept=".json,application/json" hidden></div>
+  <div class="btnrow"><button class="btn ghost2" id="svClose">Close</button></div>`;
+  $("#stage").appendChild(sh);sh.querySelector("#svDl").onclick=downloadSave;sh.querySelector("#svClose").onclick=()=>sh.remove();
+  const f=sh.querySelector("#svFile");sh.querySelector("#svOpen").onclick=()=>f.click();
+  f.onchange=()=>{const file=f.files[0];if(!file)return;file.text().then(t=>{let st;try{st=JSON.parse(t)}catch(e){return toast("That file could not be read as a save.")}pushUndo();applySave(st,"Opened "+file.name);onStore(":cards");sh.remove()})}};
+// boards that Claude merged into the game (data/KitBoards.csv) are the starting point when nothing newer is saved
+(function seedFromCSV(){if(localAt||!FILES.KitBoards)return;const rows=FILES.KitBoards.rows;if(!rows.length)return;quiet=true;
+  rows.forEach(r=>{if(!isBoard(r.Board))return;const k=(r.Kind||"card").toLowerCase();
+    if(k=="group"){(GROUPS[r.Board]=GROUPS[r.Board]||[]).push({id:r.Card||("g"+Math.random().toString(36).slice(2,8)),label:r.Label||"Group",x:+r.X||0,y:+r.Y||0,w:+r.W||260,h:+r.H||200,color:r.Colour||"chalk"});return}
+    if(k=="line"){if(r.From&&r.To)(NOTES[r.Board]=NOTES[r.Board]||[]).push({id:"n"+Math.random().toString(36).slice(2,8),from:r.From,to:r.To,label:r.Label||""});return}
+    if(!r.Card)return;(CARDS[r.Board]=CARDS[r.Board]||[]).push(r.Card);if(r.X!==""&&r.Y!==""){(POS[r.Board]=POS[r.Board]||{})[r.Card]={x:+r.X,y:+r.Y}}});
+  saveMine();saveBoardBits();lsSet(":pos",POS);quiet=false})();
+
+
+buildGraph();runSim();renderTabs();renderLegend();renderAdds();draw();inspect();updCount();startOnline();
+if(!lsGet(":cam"))fit();
+const HELP_IMG=/*__HELPIMG__*/{};
+/*__HELP__*/
+</script>
