@@ -634,7 +634,7 @@ static func card_face(card: PlayerData, db: CardDatabase, box: Vector2,
 	var stat_size := int(clampf(box.x * 0.095, 12.0, 24.0))
 
 	var name_label := Label.new()
-	name_label.text = card.player_name
+	name_label.text = card.shown_name()
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.add_theme_font_size_override("font_size", name_size)

@@ -224,3 +224,14 @@ func test_the_lent_card_is_random_among_the_sets_and_holds_all_match() -> void:
 		assert_eq(BrewDB.class_card_for(drinker, beer, fresh), lent, "the same card all match")
 		seen[lent.player_name] = true
 	assert_gt(seen.size(), 1, "a random one of the sets")
+
+
+func test_a_lent_card_shows_as_name_and_card_name() -> void:
+	var drinker := PlayerData.new()
+	drinker.player_name = "Johannes"
+	assert_eq(drinker.shown_name(), "Johannes")
+	drinker.brew_alias = "Tobias"
+	assert_eq(drinker.shown_name(), "Johannes : (Tobias)")
+	assert_eq(NamePlate.short_name(drinker), "Johannes : (Tobias)")
+	drinker.clear_brew()
+	assert_eq(drinker.shown_name(), "Johannes")

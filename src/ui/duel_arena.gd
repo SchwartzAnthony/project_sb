@@ -677,7 +677,7 @@ func _dress(key: String, data: Dictionary) -> void:
 	if nodes["role"]:
 		(nodes["role"] as Label).text = "ATTACKER" if is_attacker else "DEFENDER"
 	if nodes["name"]:
-		(nodes["name"] as Label).text = card.player_name if card != null else "—"
+		(nodes["name"] as Label).text = card.shown_name() if card != null else "—"
 	if nodes["power"]:
 		var label: Label = nodes["power"]
 		label.text = "?"

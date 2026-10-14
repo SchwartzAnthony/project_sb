@@ -5670,6 +5670,7 @@ sound events `brew_game_hit`, `brew_game_won` and `brew_game_lost` for
 - **Play as the class card.** A beer with a `Becomes` class and BOTH
   abilities blank lends the drinker that class's card at his own Tier and
   Power for the match: its Attack and Defend abilities (and art) are his.
+  His name shows as "Johannes : (Tobias)" while he plays as that card.
   When several cards fit (Belial, Haures, Valefor) one is picked at random
   for each new beer. All of today's classes are "Set I"; later sets of four
   element classes will need an ingredient or item of their own to brew

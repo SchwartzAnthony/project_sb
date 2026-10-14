@@ -529,6 +529,7 @@ func apply_one(card: PlayerData, state: GameState) -> bool:
 			card.brew_element = role.element
 		if card.brew_artwork == null:
 			card.brew_artwork = role.artwork
+		card.brew_alias = role.player_name
 	_applied.append(card)
 	return true
 
