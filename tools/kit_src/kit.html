@@ -925,7 +925,7 @@ const SRC_COUNT=/*__COUNT__*/132;
     different variants of the passion brews. The player that drinks a fire/water/etc. swaps to that class card
     and their attack and defend abilities are then there."
    ElementOdds.csv is editable here. The class cards are read-only (Unit_Set_*.csv). A beer with a Becomes and
-   no abilities of its own lends the drinker the class card at his Tier and Power (the first set). */
+   no abilities of its own lends the drinker a class card at his Tier and Power (a random one when several sets fit). */
 function clsCards(){const out=[];for(const n in REF){if(!n.startsWith("Unit_Set_"))continue;
   loadFile(n,REF[n]).rows.forEach(r=>{const g=k=>{for(const c in r)if(c.trim()==k)return (r[c]||"").trim();return ""};
     if(g("Player Type").toLowerCase()=="star")return;

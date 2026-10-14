@@ -369,6 +369,8 @@ static func pour(card: PlayerData, entry: Dictionary, permanent: bool,
 		}, state)
 		return
 
+	# A new beer, a new roll for the class card he plays as (class_card_for).
+	state.set_text(LENT_PREFIX + key, "")
 	if permanent and bool(entry["permanent"]) and state.is_unlocked(PERMANENT_UNLOCK):
 		state.set_text(PERM_PREFIX + key, brew_id)
 		state.set_text(TEMP_PREFIX + key, "")
@@ -514,23 +516,33 @@ func apply_one(card: PlayerData, state: GameState) -> bool:
 	card.brew_attack_ability = String(entry["attack"])
 	card.brew_defend_ability = String(entry["defend"])
 	card.brew_artwork = _artwork_for(card, entry)
-	# HE PLAYS AS THE CLASS CARD (Anthony, 14 Oct): "the player that drinks a
-	# fire/water/etc. swaps to that class card, and its attack and defend
-	# abilities are then there." A Becomes with BOTH abilities blank borrows
-	# the class's card at his Tier and Power (the first set) for the match.
-	var role := class_card_for(card, entry)
+	# HE PLAYS AS THE CLASS CARD (Anthony, 14 Oct): "a player who drinks
+	# either of the elemental beers turns to the card. A Stephan who is Tier
+	# III P:3 will always turn to a Tier III P:3 version of that elemental card
+	# (or if there are more than one, a random one)." A Becomes with BOTH
+	# abilities blank borrows that card for the match: abilities, element, art.
+	var role := class_card_for(card, entry, state)
 	if role != null:
 		card.brew_attack_ability = role.attack_ability_id
 		card.brew_defend_ability = role.defend_ability_id
 		if card.brew_element == "":
 			card.brew_element = role.element
+		if card.brew_artwork == null:
+			card.brew_artwork = role.artwork
 	_applied.append(card)
 	return true
 
 
+## Remembers which card he was lent, so the random pick holds all match:
+##     lent_<name> = "<brew id>|<card name>"
+const LENT_PREFIX := "lent_"
+
+
 ## The class card a brew with a Becomes and no abilities of its own lends
-## him: that class at his Tier and Power, first set first. null = none.
-static func class_card_for(card: PlayerData, entry: Dictionary) -> PlayerData:
+## him: a card of that class at his Tier and Power, at random when several
+## sets have one (Belial, Haures, Valefor). The pick is kept in the save for
+## as long as he is on that brew. null = none.
+static func class_card_for(card: PlayerData, entry: Dictionary, state: GameState = null) -> PlayerData:
 	if card == null or entry.is_empty() or TransformBook.is_turning(entry):
 		return null
 	if String(entry.get("becomes", "")).strip_edges() == "":
@@ -539,7 +551,19 @@ static func class_card_for(card: PlayerData, entry: Dictionary) -> PlayerData:
 			or String(entry.get("defend", "")).strip_edges() != "":
 		return null
 	var found := TransformBook.choices(card, entry, CardDatabase.get_db())
-	return found[0] if not found.is_empty() else null
+	if found.is_empty():
+		return null
+	var brew_id := String(entry.get("id", ""))
+	if state != null:
+		var kept := state.text(LENT_PREFIX + card_key(card)).split("|")
+		if kept.size() == 2 and kept[0] == brew_id:
+			for one in found:
+				if one.player_name == kept[1]:
+					return one
+	var role: PlayerData = found[randi() % found.size()]
+	if state != null:
+		state.set_text(LENT_PREFIX + card_key(card), "%s|%s" % [brew_id, role.player_name])
+	return role
 
 
 static func restore_all() -> void:

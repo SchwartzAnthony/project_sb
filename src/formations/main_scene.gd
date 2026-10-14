@@ -4912,6 +4912,7 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 	# Cost, which is what the Brewery already took to make it — so the overlay
 	# is laid on directly rather than going through the Pub's till.
 	state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(card), brew_id)
+	state.set_text(BrewDB.LENT_PREFIX + BrewDB.card_key(card), "")     # a new class card roll
 	BrewDB.get_db().apply_all(db, state)
 	# The card on the table may not be one of the database's players (the
 	# tutorial side): lay it on him directly too.

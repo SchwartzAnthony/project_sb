@@ -195,3 +195,32 @@ func test_a_class_beer_with_no_abilities_lends_the_class_card() -> void:
 	assert_eq(lent.base_power_left, drinker.base_power_left)
 	beer["attack"] = "BRAND_SCORCH"
 	assert_null(BrewDB.class_card_for(drinker, beer), "a beer with its own ability keeps it")
+
+
+func test_the_lent_card_is_random_among_the_sets_and_holds_all_match() -> void:
+	var db := CardDatabase.get_db()
+	var drinker := PlayerData.new()
+	drinker.player_name = "Test Stephan"
+	drinker.unit_type = "Normal"
+	var beer := {"id": "test_lorelei", "becomes": "Lorelei", "attack": "", "defend": "", "drinks": 0}
+	# a Tier and Power where more than one set has a Lorelei card
+	var options: Array[PlayerData] = []
+	for tier_text in ["I", "II", "III", "IV"]:
+		for power in 6:
+			drinker.tier = tier_text
+			drinker.base_power_left = power
+			options = TransformBook.choices(drinker, beer, db)
+			if options.size() > 1:
+				break
+		if options.size() > 1:
+			break
+	assert_gt(options.size(), 1, "some Tier and Power has a card in several sets")
+	var seen: Dictionary = {}
+	for i in 60:
+		var fresh := GameState.new()
+		var lent := BrewDB.class_card_for(drinker, beer, fresh)
+		assert_eq(lent.get_tier_clean(), drinker.get_tier_clean())
+		assert_eq(lent.base_power_left, drinker.base_power_left)
+		assert_eq(BrewDB.class_card_for(drinker, beer, fresh), lent, "the same card all match")
+		seen[lent.player_name] = true
+	assert_gt(seen.size(), 1, "a random one of the sets")

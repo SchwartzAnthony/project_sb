@@ -5669,8 +5669,11 @@ sound events `brew_game_hit`, `brew_game_won` and `brew_game_lost` for
   beer only 1 time in 5.)
 - **Play as the class card.** A beer with a `Becomes` class and BOTH
   abilities blank lends the drinker that class's card at his own Tier and
-  Power (the first set) for the match: its Attack and Defend abilities are
-  his. He still needs to be drunk enough (DrunkLevels.csv `brews`). A beer
+  Power for the match: its Attack and Defend abilities (and art) are his.
+  When several cards fit (Belial, Haures, Valefor) one is picked at random
+  for each new beer. All of today's classes are "Set I"; later sets of four
+  element classes will need an ingredient or item of their own to brew
+  (Anthony, 14 Oct: not built yet). He still needs to be drunk enough (DrunkLevels.csv `brews`). A beer
   with its own abilities keeps them; a beer with Drinks still turns him for
   good after that many.
 - `godot --headless --script res://tools/brewery_sim.gd` brews one batch
