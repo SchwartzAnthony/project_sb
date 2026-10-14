@@ -3,7 +3,7 @@ reed,Reed,material,resources,99,reed,,,,,,Cut from the marsh. The Brewery takes 
 bog_iron,Bog Iron,material,resources,99,bog_iron,,,,,,"Heavy, rusted, and worth melting down.",
 ash_glass,Ash Glass,material,resources,99,ash_glass,,,,,,Fused in the burn. Sharp and light.,
 deep_salt,Deep Salt,material,resources,99,deep_salt,,,,,,Scraped off the walls of the Hollowdeep.,
-coins,Coins,currency,resources,999,coins,,,,,,What everyone takes.,res://assets/adventure/drops/coins.png
+coins,Groschen,currency,resources,999,coins,,,,,,What everyone takes.,res://assets/adventure/drops/coins.png
 smelling_salts,Smelling Salts,kit,items,5,salts,revive,adventure_consume,downed,,,"Brings one knocked-out player back on, at half stamina.",
 field_bandage,Field Bandage,kit,items,9,bandage,heal:6,adventure_consume,ally,,,Six stamina back to one player still standing.,
 team_orange,Half-Time Orange,kit,items,5,orange,heal:3;all,,ally,,,Three stamina back to everyone still on their feet.,

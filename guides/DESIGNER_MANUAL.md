@@ -5937,6 +5937,8 @@ presses the real Pub buttons and takes the pictures.
 
 ### `data/Currencies.csv`
 
+**The league money is called Groschen** (Anthony, 14 Oct 2026). Players see the `Name` column; the ID and counter stay `coins`, so every `count:coins+50`, price and save keeps working. Rename it here and every screen follows.
+
 | column | |
 |---|---|
 | `ID` · `Name` | |

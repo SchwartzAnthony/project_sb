@@ -151,6 +151,12 @@ static func currency(id_text: String) -> Dictionary:
 	return {}
 
 
+## The name players see for a currency (Currencies.csv Name), e.g. "Groschen".
+static func money_name(id_text: String = "coins") -> String:
+	var one := currency(id_text)
+	return String(one.get("name", id_text)) if not one.is_empty() else id_text
+
+
 static func _squash(text: String) -> String:
 	var out := ""
 	for i in text.length():

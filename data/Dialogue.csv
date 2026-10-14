@@ -31,7 +31,7 @@ heatwave_talk,chose,Heatwave Brandteufel,heatwave,left,,,,,,,Then go. I'll watch
 heatwave_talk,end,,,,,,,,,,"The pub door swings open onto the floodlights, bright and very loud. You walk out into them.",,,count:chapter=1;flag:prologue_done,,,,,,,,,,,,,
 brewery_open,start,The Brewer,,left,,,,,,,So you found the reed beds. Bring me forty of it and I will show you what a Fire Brew really does.,,,count:reed>=40,,,,,,,,,,,,,
 after_first_match,open,,,,,,,,,,THE SCENE AFTER THE FIRST MATCH. They poured something on one of their players and it changed what he was. Somebody at the base knows how that is done.,base,,,,,,,,,,,,,,,
-after_first_match,base,The Brewer,brewer,left,,,,,,,"Fire Brew. Reed, heat and patience. I can teach you - but you will need players to drink it, ingredients to brew it, and coin for the rest. Go and find all three.",,,unlock:Brewery,,,,,,,,,,,,,
+after_first_match,base,The Brewer,brewer,left,,,,,,,"Fire Brew. Reed, heat and patience. I can teach you - but you will need players to drink it, ingredients to brew it, and Groschen for the rest. Go and find all three.",,,unlock:Brewery,,,,,,,,,,,,,
 season_opening,open,,,,,,,,,,"THE SEASON INTRODUCES ITSELF. Named in the Story column of Seasons.csv, played once, the first time you open that competition.",coach,,,,,,,,,,,,,,,
 season_opening,coach,The Head Coach,,right,,,,,,,"Eleven fixtures, and then us. Write the side at the top of the pyramid into this scene so the last match has a face on it from the first.",,,,,,,,,,,,,,,,
 star-intro,open,Head Coach,coach,left,happy,,,bar,,,Great Game!,,,,,,,,,,,,,,,

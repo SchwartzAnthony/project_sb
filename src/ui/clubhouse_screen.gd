@@ -42,7 +42,7 @@ func _status_words() -> String:
 				keys += 1
 			else:
 				wares += 1
-	return "KEYS %d for sale    UPGRADES %d for sale    %d coins" % [keys, wares, ShopBook.purse("coins", state)]
+	return "KEYS %d for sale    UPGRADES %d for sale    %d %s" % [keys, wares, ShopBook.purse("coins", state), ShopBook.money_name()]
 
 
 func _fill() -> void:
@@ -158,12 +158,12 @@ func _fill_recruits() -> void:
 	if reroll > 0:
 		var coins := ShopBook.purse("coins", state)
 		thing("bell", null, "open" if coins >= reroll else "dim",
-			["Ring for new faces", "%d coins - the board fills again now" % reroll],
+			["Ring for new faces", "%d %s - the board fills again now" % [reroll, ShopBook.money_name()]],
 			func() -> void:
 				if coins >= reroll:
 					say(RecruitBoard.reroll(state, db))
 				else:
-					tell("New faces cost %d coins." % reroll, false))
+					tell("New faces cost %d %s." % [reroll, ShopBook.money_name()], false))
 
 	var mine := RecruitBook.names(state)
 	thing("stammtisch", null, "open", ["Your recruits", "%d at the Stammtisch" % mine.size(),
