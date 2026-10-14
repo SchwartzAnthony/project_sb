@@ -1153,6 +1153,11 @@ func _keeper_effect(ability: AbilityData, source: PlayerData, keeper_is_enemy: b
 func _referee_effect(ability: AbilityData, source: PlayerData, source_is_enemy: bool) -> void:
 	var name_text := source.player_name if source != null else "?"
 	var against := not source_is_enemy
+	# Target `side` = YOUR OWN side (Anthony, 14 Oct: "increase and decrease
+	# your own and/or enemy foul %"). Any other Target keeps the old rule:
+	# it lands on the other side. A minus Value lowers it.
+	if CardDatabase._normalise(ability.target) == "side" and ability.effect != "foulcoinflip":
+		against = source_is_enemy
 	match ability.effect:
 		"foulheat":
 			_heat_add[against] = float(_heat_add[against]) + float(ability.value)

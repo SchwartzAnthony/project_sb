@@ -2560,6 +2560,11 @@ they replaced walk back on.
 | `Cost` | **round Z.** `ore:3` - paid from your side's Ore pool before it goes off |
 | `Ask` | **round AA.** `yes` - you are asked first |
 
+**Fouls on your own side** (14 Oct): `foul_chance` and `foul_heat` land on
+the OTHER side. Give them **Target `side`** to change YOUR side's fouls
+instead. A minus Value lowers it: `foul_chance`, Target `side`, Value `-10`
+= your side is 10% less likely to foul.
+
 **`add_card_chance`** (round X) is the first effect that reaches the referee
 — see section 7g. **And one honest note:** the 108 set cards' Attack and
 Defend columns are *prose*. A card only does something in a match when its
