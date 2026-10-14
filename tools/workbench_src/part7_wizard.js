@@ -215,7 +215,7 @@ function wizDraw(){
     <footer>${back}<div style="flex:1"></div><span id="wSay" style="color:#e07a2c;font-size:12.6px"></span>${next}</footer>
   </div>`;
 
-  $("#wShut").onclick = ()=>{ if(confirm("Close the wizard? Nothing is written until you press the last button.")) host.remove(); };
+  $("#wShut").onclick = async()=>{ if(await yes("Close the wizard? Nothing is written until you press the last button.")) host.remove(); };
   if($("#wBack")) $("#wBack").onclick = ()=>{ wizRead(); WIZ.step--; wizDraw(); };
   if($("#wNext")) $("#wNext").onclick = ()=>{
     wizRead();

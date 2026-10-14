@@ -1,3 +1,27 @@
+/* ---------- in-page questions ----------
+   Browser pop-ups (prompt/confirm/alert) are switched off on claude.ai link
+   pages, so the Workbench asks in its own small window instead. */
+function askBox(msg,def,withInput,okText,noText){
+  return new Promise(res=>{
+    const v=document.createElement("div"); v.id="askveil";
+    v.style.cssText="position:fixed;inset:0;background:rgba(10,12,16,.62);z-index:90;display:flex;align-items:center;justify-content:center;padding:18px";
+    v.innerHTML=`<div class="panel" role="dialog" aria-modal="true" style="max-width:460px;width:100%"><p style="margin:0;white-space:pre-wrap"></p>
+      ${withInput?'<input id="askIn" type="text" style="width:100%;margin-top:10px">':''}
+      <div style="display:flex;gap:8px;margin-top:12px"><button class="btn key" id="askOk"></button>${noText?'<button class="btn" id="askNo"></button>':''}</div></div>`;
+    v.querySelector("p").textContent=msg; v.querySelector("#askOk").textContent=okText;
+    if(noText) v.querySelector("#askNo").textContent=noText;
+    const inp=v.querySelector("#askIn"); if(inp) inp.value=def||"";
+    const done=x=>{ v.remove(); res(x); };
+    v.querySelector("#askOk").onclick=()=>done(withInput?inp.value:true);
+    if(noText) v.querySelector("#askNo").onclick=()=>done(withInput?null:false);
+    v.addEventListener("keydown",e=>{ e.stopPropagation(); if(e.key==="Enter") v.querySelector("#askOk").click(); if(e.key==="Escape") done(withInput?null:false); });
+    document.body.appendChild(v); (inp||v.querySelector("#askOk")).focus();
+  });
+}
+const ask=(msg,def)=>askBox(msg,def,true,"OK","Cancel");
+const yes=msg=>askBox(msg,"",false,"Yes","No");
+const say=msg=>askBox(msg,"",false,"OK",null);
+
 /* ============================================================
    THE SCHEMA — what every file is, and what its columns mean.
    Adding a file here teaches the workbench about it; the editor

@@ -14,6 +14,8 @@ function boot(){
   DATA = SAMPLE ? JSON.parse(JSON.stringify(unseed())) : saved;
   CUR = Object.keys(DATA)[0] || null;
   paintRail(); paintTable(); check();
+  let at=0; try{ at=+localStorage.getItem("sturmball.savedAt")||0; }catch(e){}
+  startCloud(SAMPLE ? 0 : at);
 }
 function unseed(){
   const out = {};
@@ -21,9 +23,53 @@ function unseed(){
   return out;
 }
 function save(){
-  try{ localStorage.setItem("sturmball.v2", JSON.stringify(DATA)); }catch(e){}
+  try{ localStorage.setItem("sturmball.v2", JSON.stringify(DATA)); localStorage.setItem("sturmball.savedAt", String(Date.now())); }catch(e){}
+  pushCloud();
 }
-function saveHave(){ try{ localStorage.setItem("sturmball.have", JSON.stringify(HAVE)); }catch(e){} }
+function saveHave(){ try{ localStorage.setItem("sturmball.have", JSON.stringify(HAVE)); localStorage.setItem("sturmball.savedAt", String(Date.now())); }catch(e){} pushCloud(); }
+
+/* ---------- online save ----------
+   Opened from its claude.ai link, the Workbench also keeps the loaded
+   spreadsheets in the page's online store, so every computer that opens the
+   link sees the same work. The newest copy wins. sheets/<n> holds one file
+   each (a store document has a size limit); state/main lists them, with the
+   ticks and the time of the last save. */
+let DB=null, cloudT=null, SENT={};
+const sheetId=n=>n.replace(/[^A-Za-z0-9_\-.~]/g,"_");
+function cloudLabel(t,ok){ const c=$("#cloud"); if(!c) return; c.hidden=false; c.textContent=t; c.style.color=ok?"var(--pitch, inherit)":"var(--dim)"; }
+function pushCloud(){
+  if(!DB || SAMPLE) return; clearTimeout(cloudT); cloudLabel("Saving online…",true);
+  cloudT=setTimeout(async()=>{
+    const at=Date.now(), names=Object.keys(DATA), big=[];
+    try{
+      for(const n of names){ const j=JSON.stringify(DATA[n]); if(SENT[n]===j) continue;
+        if(j.length>240000){ big.push(n); continue; }
+        await DB.doc("sheets/"+sheetId(n)).set({name:n,json:j,savedAt:at}); SENT[n]=j; }
+      for(const n of Object.keys(SENT)) if(!(n in DATA)){ await DB.doc("sheets/"+sheetId(n)).delete(); delete SENT[n]; }
+      await DB.doc("state/main").set({names:names.filter(n=>!big.includes(n)),have:JSON.stringify(HAVE),savedAt:at});
+      cloudLabel(big.length?"Saved online, except "+big.join(", ")+" (too big)":"Saved online",!big.length);
+    }catch(e){ cloudLabel("Not saved online: "+(e.code||e.message||e),false); }
+  },1500);
+}
+async function startCloud(localAt){
+  try{ DB=window.claude&&window.claude.use?await window.claude.use("db"):null; }catch(e){ DB=null; }
+  if(!DB) return;
+  try{
+    const st=(await DB.doc("state/main").get()).data();
+    if(st && st.names && st.savedAt>(localAt||0)){
+      const got={};
+      for(const n of st.names){ const d=(await DB.doc("sheets/"+sheetId(n)).get()).data(); if(d&&d.json){ got[n]=JSON.parse(d.json); SENT[n]=d.json; } }
+      if(Object.keys(got).length){
+        DATA=got; SAMPLE=false; try{ HAVE=JSON.parse(st.have||"{}"); }catch(e){ HAVE={}; }
+        CUR=(CUR&&DATA[CUR])?CUR:Object.keys(DATA)[0];
+        try{ localStorage.setItem("sturmball.v2",JSON.stringify(DATA)); localStorage.setItem("sturmball.have",JSON.stringify(HAVE)); localStorage.setItem("sturmball.savedAt",String(st.savedAt)); }catch(e){}
+        paintRail(); paintTable(); check();
+      }
+      cloudLabel("Saved online",true);
+    } else if(localAt){ pushCloud(); }
+    else cloudLabel(SAMPLE?"Online save starts when you load CSVs":"Saved online",!SAMPLE);
+  }catch(e){ cloudLabel("Online save is off: "+(e.code||e.message||e),false); DB=null; }
+}
 
 /* ---------- CSV ---------- */
 function parseCSV(text){
@@ -118,8 +164,8 @@ function paintTable(){
     const inputs=wrap.querySelectorAll("tbody tr:last-child input,tbody tr:last-child select");
     if(inputs[0]) inputs[0].focus();
   },"key");
-  mk("+ Column",()=>{
-    const n=prompt("New column name (write it the way a person would — \"Max Stamina\"):");
+  mk("+ Column",async()=>{
+    const n=await ask("New column name (write it the way a person would — \"Max Stamina\"):");
     if(!n) return; d.headers.push(n); d.rows.forEach(r=>r.push("")); save(); paintTable();
   });
   mk("Copy this file",()=>showExport(CUR));
@@ -142,7 +188,7 @@ function paintTable(){
     const tools=document.createElement("td"); tools.className="rowtools";
     tools.innerHTML='<button class="ico" title="Duplicate">⧉</button><button class="ico del" title="Delete">✕</button>';
     tools.children[0].onclick=()=>{d.rows.splice(ri+1,0,row.slice());save();paintTable();check();paintRail();};
-    tools.children[1].onclick=()=>{if(confirm("Delete this row?")){d.rows.splice(ri,1);save();paintTable();check();paintRail();}};
+    tools.children[1].onclick=async()=>{if(await yes("Delete this row?")){d.rows.splice(ri,1);save();paintTable();check();paintRail();}};
     tr.appendChild(tools);
     const n=document.createElement("td"); n.className="rn"; n.textContent=ri+2; tr.appendChild(n);
 
@@ -256,10 +302,10 @@ function paintBoard(){
       lines.push("");
     });
     const text=lines.join("\n");
-    navigator.clipboard.writeText(text).then(()=>alert("The list is on your clipboard."),
-      ()=>alert(text));
+    navigator.clipboard.writeText(text).then(()=>say("The list is on your clipboard."),
+      ()=>say(text));
   },"key");
-  mk("Untick everything",()=>{ if(confirm("Clear every tick on this page?")){ Object.keys(HAVE).forEach(k=>{ if(k.indexOf("art:")!==0) delete HAVE[k]; }); saveHave(); paintTable(); paintRail(); } });
+  mk("Untick everything",async()=>{ if(await yes("Clear every tick on this page?")){ Object.keys(HAVE).forEach(k=>{ if(k.indexOf("art:")!==0) delete HAVE[k]; }); saveHave(); paintTable(); paintRail(); } });
 
   const wants=assetWants();
   const wrap=$("#wrap"); wrap.innerHTML="";
@@ -364,11 +410,11 @@ function paintWords(){
 
   $("#tools").innerHTML="";
   const mk=(t,fn,cls)=>{const b=document.createElement("button");b.className="btn sm "+(cls||"");b.textContent=t;b.onclick=fn;$("#tools").appendChild(b);return b;};
-  mk("+ Ask for a keyword",()=>{
-    if(!DATA["Keywords.csv"]){ alert("Load your data folder first — Keywords.csv is the file this writes to."); return; }
-    const word=prompt("The word itself, as you would write it in a spreadsheet cell:");
+  mk("+ Ask for a keyword",async()=>{
+    if(!DATA["Keywords.csv"]){ say("Load your data folder first — Keywords.csv is the file this writes to."); return; }
+    const word=await ask("The word itself, as you would write it in a spreadsheet cell:");
     if(!word) return;
-    const what=prompt("What should it do? One clear sentence — this is the specification.");
+    const what=await ask("What should it do? One clear sentence — this is the specification.");
     const d=DATA["Keywords.csv"];
     const r=d.headers.map(h=>{
       if(h==="Keyword") return word;
