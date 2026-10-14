@@ -388,8 +388,13 @@ Makes and How Many (the output).
 writes that beer's Element in Brews.csv (Fire, Passion …) and shows as a
 purple "if Fire" line: that beer only comes out when that element went into
 the Brew Kettle. A line onto a group of beers sets every beer in it. Beers
-with no Element come out whatever went in. The game still needs to remember
-the kettle's element; until that's wired, the lines are saved data only.
+with no Element only come out of bottles with no element (bought, a reward).
+
+**Classes & Element Odds tab:** the odds table (ElementOdds.csv: how many
+element cards go in, and what % of the bottles come out that element) with a
+bar per row you can retype. Below it, each class: the beers that turn a
+drinker into it, a button that sets Becomes on that element's beers when none
+do yet, and the class cards he can become (read only).
 
 **Compare (Achievements board):** the *Compare* button switches between your
 own board and the game's achievements as they are now (Achievements.csv:
@@ -5644,13 +5649,32 @@ sound events `brew_game_hit`, `brew_game_won` and `brew_game_lost` for
 - `BreweryResources.csv` row `element` has a new **One Of** column listing
   them with `|`. The Kettle's Takes `element:1` means "pick one of these".
   **Start** = how many of EACH card a save gets (once; older saves too).
-  **Kept** = yes: the card is not used up. Set it to `no` to spend one per brew.
+  **Kept** = no: the cards put in are spent (with yes, 6 would be free).
 - The element rides along: brew, barrel in the cellar, bottle in the bag.
   Hanna says it when she bottles: "6 Small Bottle (Water)".
 - **A bottle only gives the beers of its Pool whose `Brews.csv` Element is
   that element, or blank.** A blank-Element beer comes out whatever went in.
   If nothing in the pool fits, any beer of the pool comes out.
 - A bottle with no element (bought, a reward) gives any beer of its pool.
+- **More cards, more element bottles (Anthony, 14 Oct).** After the element
+  the Kettle asks HOW MANY cards (up to the last row of
+  `data/ElementOdds.csv`, 6). Every bottle rolls on its own against that
+  table: 1 card 20%, 2 cards 36%, 3 52%, 4 68%, 5 84%, 6 100%. A miss is
+  the element in `Tuning.csv` `element_miss_becomes` (passion), so it pours a
+  Passion beer. Hanna says the result: "6 Small Bottle (2 Fire, 4 Passion)".
+  The cards are spent now (`Kept` = no, `Start` = 6 of each).
+- **A Fire bottle pours only Fire beers.** Beers with a blank Element come
+  out only when the pool has none of that element. (Before 14 Oct blank beers
+  joined every element's draw, which is why one Fire batch poured its Fire
+  beer only 1 time in 5.)
+- **Play as the class card.** A beer with a `Becomes` class and BOTH
+  abilities blank lends the drinker that class's card at his own Tier and
+  Power (the first set) for the match: its Attack and Defend abilities are
+  his. He still needs to be drunk enough (DrunkLevels.csv `brews`). A beer
+  with its own abilities keeps them; a beer with Drinks still turns him for
+  good after that many.
+- `godot --headless --script res://tools/brewery_sim.gd` brews one batch
+  per element with 1 card and with 6, and prints what the bottles pour.
 - Set it in the System Builder: a line from an element card to a beer writes
   that beer's Element. Note: Element is also what a drinker counts as for the
   match (as with the Fire Brew), so a Fire plain beer makes him Fire.

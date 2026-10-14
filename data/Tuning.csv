@@ -662,3 +662,4 @@ building_window_inset,30,"ROUND AN (look C, the beer hall frame). How far in fro
 building_title_rise,0.55,"ROUND AN. How much of the name sign stands ABOVE the top edge of a building window, as a share of the sign's height. 0 = it hangs inside, 1 = it sits on top"
 building_close_size,76,"ROUND AN. How big the beer mat that closes a building window is, in pixels"
 foul_pct_per_bar_segment,10,"THE REFEREE'S BAR AND THE FOUL % ARE TIED (Anthony, 14 Oct). How many % of foul chance one segment of the bar is worth when an ABILITY changes either: foul_heat +1 also gives +10% foul chance, foul_chance +10% also lights one more segment. Minus values lower both. 0 unties them (each ability then changes only its own one)"
+element_miss_becomes,passion,"MORE CARDS, MORE ELEMENT BOTTLES (Anthony, 14 Oct). When a bottle misses its element roll (data/ElementOdds.csv), it becomes this element instead: a Passion bottle, which pours one of the Passion beers in Brews.csv."

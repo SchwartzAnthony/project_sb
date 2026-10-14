@@ -12,7 +12,7 @@ import json, os, sys, hashlib, glob
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 SHEETS = ["Achievements", "Progression", "Buildings", "Upgrades", "Shop", "Brews", "Items",
           "BreweryResources", "BrewerySections", "Currencies", "MatchModes", "Biomes",
-          "AdventureEnemies", "Drops", "Abilities", "KitBoards"]
+          "AdventureEnemies", "Drops", "Abilities", "KitBoards", "ElementOdds"]
 
 def build(link_out=None):
     src = {}
@@ -29,6 +29,9 @@ def build(link_out=None):
     count = len(glob.glob(os.path.join(ROOT, "data", "*.csv")))
     # word lists the pickers read (never edited here): Keywords.csv and AbilityTriggers.csv
     ref = {r: open(os.path.join(ROOT, "data", r + ".csv"), encoding="utf-8").read() for r in ["Keywords", "AbilityTriggers"]}
+    # the class cards for the Classes tab (read-only): data/Unit_Set_*.csv
+    for p in sorted(glob.glob(os.path.join(ROOT, "data", "Unit_Set_*.csv"))):
+        ref[os.path.splitext(os.path.basename(p))[0]] = open(p, encoding="utf-8").read()
     body = body.replace("/*__REF__*/{}", json.dumps(ref, ensure_ascii=False).replace("</", "<\\/"))
     body = (body.replace("/*__DATA__*/{}", data).replace("/*__STAMP__*/", stamp)
                 .replace("/*__COUNT__*/132", str(count))

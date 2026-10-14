@@ -9,7 +9,8 @@ extends SceneTree
 #
 #      godot --headless --script res://tools/brewery_sim.gd
 #
-#  For every element card the Brew Kettle takes (BreweryResources.csv, the
+#  For every element card the Brew Kettle takes, with 1 card and with the
+#  most (data/ElementOdds.csv) (BreweryResources.csv, the
 #  One Of row): a new game, every section open, the starting stock, then
 #  each machine in order through the same call the Brewery screen makes
 #  after a mini-game - BrewerBook.work() with the game WON. The cellar is
@@ -40,8 +41,10 @@ func _initialize() -> void:
 	print("=== THE BREWERY, ONE BATCH PER ELEMENT ===")
 	for problem in BreweryBook.problems():
 		print("  ! %s" % problem)
+	var counts := [1, BreweryBook.max_element_cards()]
 	for card in cards:
-		_one_batch(String(card), kettle, sections, db, brews)
+		for many_cards in counts:
+			_one_batch(String(card), int(many_cards), kettle, sections, db, brews)
 	quit(0)
 
 
@@ -57,14 +60,16 @@ func _open_everything(state: GameState, sections: Array[Dictionary]) -> void:
 					state.set_count(bits[0], maxi(state.count(bits[0]), int(bits[1])))
 
 
-func _one_batch(card: String, kettle: String, sections: Array[Dictionary],
+func _one_batch(card: String, many_cards: int, kettle: String, sections: Array[Dictionary],
 		db: CardDatabase, brews: BrewDB) -> void:
 	var state := GameState.new()
 	BreweryBook.stock_a_new_game(state)
 	_open_everything(state, sections)
+	state.set_count(BreweryBook.counter_for(card), BreweryBook.max_element_cards())
 	var element := BreweryBook.element_of_card(card)
 	print("")
-	print("--- %s (element: %s) ---" % [BreweryBook.card_name(card), element])
+	print("--- %d x %s (element: %s, %d%% a bottle) ---" % [many_cards, BreweryBook.card_name(card),
+		element, BreweryBook.element_chance(many_cards)])
 	var bottle_item := ""
 	for one in sections:
 		var id_text := String(one["id"])
@@ -73,7 +78,7 @@ func _one_batch(card: String, kettle: String, sections: Array[Dictionary],
 		if not sizes.is_empty():
 			output = {"counter": sizes[0]["item"], "many": sizes[0]["many"]}
 		# roll 0 = the mini-game was WON (brewery_screen.gd does the same)
-		var result := BrewerBook.work(id_text, state, db, 0, output, card if id_text == kettle else "")
+		var result := BrewerBook.work(id_text, state, db, 0, output, card if id_text == kettle else "", many_cards)
 		if not bool(result["ok"]):
 			print("  %-18s STOPPED: %s" % [one["name"], result["why"]])
 			return
@@ -114,7 +119,7 @@ func _one_batch(card: String, kettle: String, sections: Array[Dictionary],
 	print("  Opened them: %s" % ", ".join(opened))
 	var tally := {}
 	for i in POURS:
-		var beer := brews.pick_from_pool(pool, state, element)
+		var beer := brews.pick_from_pool(pool, state, "%s@%d" % [element, many_cards])
 		tally[beer] = int(tally.get(beer, 0)) + 1
 	print("  Odds over %d bottles of this element:" % POURS)
 	var keys := tally.keys()

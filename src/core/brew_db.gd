@@ -218,12 +218,19 @@ func available_for(state: GameState) -> Array[Dictionary]:
 ##
 ## IF THIS ELEMENT, THEN THIS BEER (Anthony, 12 Oct). `element` is the one
 ## that went into the Brew Kettle for this bottle (BreweryBook.bottle_element).
-## Only rows whose Element is that element, or blank, can come out. A bottle
-## with no element (bought, a reward) picks from the whole pool as before.
+## A bottle with no element (bought, a reward) picks from the whole pool.
+##
+## ROUND AN (Anthony, 14 Oct): a Fire bottle pours a FIRE beer. Rows with a
+## blank Element only come out when the pool has none of that element.
 func pick_from_pool(pool: String, state: GameState, element: String = "") -> String:
 	var key := pool.strip_edges().to_lower()
+	# A batch that never reached the Bottling Machine still says "fire@3":
+	# it rolls here (BreweryBook.roll_bottle).
+	if element.contains("@"):
+		element = BreweryBook.roll_bottle(element)
 	var wanted := CardDatabase._normalise(element)
-	var choices: Array[String] = []
+	var exact: Array[String] = []
+	var blank: Array[String] = []
 	var any_element: Array[String] = []
 	for entry in brews:
 		# A row can sit in several pools: plain|keg.
@@ -233,8 +240,13 @@ func pick_from_pool(pool: String, state: GameState, element: String = "") -> Str
 			continue
 		any_element.append(String(entry["id"]))
 		var own := CardDatabase._normalise(String(entry.get("element", "")))
-		if wanted == "" or own == "" or own == wanted:
-			choices.append(String(entry["id"]))
+		if own == "":
+			blank.append(String(entry["id"]))
+		elif own == wanted:
+			exact.append(String(entry["id"]))
+	var choices := any_element if wanted == "" else exact
+	if choices.is_empty():
+		choices = blank
 	if choices.is_empty():
 		# Nothing in this pool fits that element: better any beer than none.
 		choices = any_element
@@ -502,8 +514,32 @@ func apply_one(card: PlayerData, state: GameState) -> bool:
 	card.brew_attack_ability = String(entry["attack"])
 	card.brew_defend_ability = String(entry["defend"])
 	card.brew_artwork = _artwork_for(card, entry)
+	# HE PLAYS AS THE CLASS CARD (Anthony, 14 Oct): "the player that drinks a
+	# fire/water/etc. swaps to that class card, and its attack and defend
+	# abilities are then there." A Becomes with BOTH abilities blank borrows
+	# the class's card at his Tier and Power (the first set) for the match.
+	var role := class_card_for(card, entry)
+	if role != null:
+		card.brew_attack_ability = role.attack_ability_id
+		card.brew_defend_ability = role.defend_ability_id
+		if card.brew_element == "":
+			card.brew_element = role.element
 	_applied.append(card)
 	return true
+
+
+## The class card a brew with a Becomes and no abilities of its own lends
+## him: that class at his Tier and Power, first set first. null = none.
+static func class_card_for(card: PlayerData, entry: Dictionary) -> PlayerData:
+	if card == null or entry.is_empty() or TransformBook.is_turning(entry):
+		return null
+	if String(entry.get("becomes", "")).strip_edges() == "":
+		return null
+	if String(entry.get("attack", "")).strip_edges() != "" \
+			or String(entry.get("defend", "")).strip_edges() != "":
+		return null
+	var found := TransformBook.choices(card, entry, CardDatabase.get_db())
+	return found[0] if not found.is_empty() else null
 
 
 static func restore_all() -> void:

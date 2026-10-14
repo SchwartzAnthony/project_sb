@@ -94,6 +94,24 @@ const STOCKED_FLAG := "brewery_stocked"
 ## When a bottle is opened, its beer is picked only from the Brews.csv pool
 ## rows whose Element is that element, or blank. See BrewDB.pick_from_pool().
 const ELEMENTS_PREFIX := "brew_elements_"
+##
+## ============ MORE CARDS, MORE ELEMENT BOTTLES (Anthony, 14 Oct) ============
+##
+## "You add as many elements as possible to increase the % chance of getting
+##  that. 1 fire element has a 20% chance for a fire bottle, adding all 6
+##  gives all bottles a 100%. When the chance misses it just becomes
+##  different variants of the passion brews."
+##
+## The kettle takes 1 to N cards of ONE element (N = the last row of
+## data/ElementOdds.csv). The batch carries "fire@3" - the element and how
+## many cards went in. At the Bottling Machine EVERY bottle rolls on its own
+## against ElementOdds.csv: a hit is a Fire bottle, a miss is the element in
+## Tuning.csv `element_miss_becomes` (passion). After that each bottle in the
+## bag is plainly "fire" or "passion". A word with no "@" (an older save) is
+## a sure thing.
+const ODDS_FILE := "res://data/ElementOdds.csv"
+## The bottle rolls. Tests seed it: BreweryBook.dice.seed = 1
+static var dice := RandomNumberGenerator.new()
 
 static var _resources: Array[Dictionary] = []
 static var _sections: Array[Dictionary] = []
@@ -406,6 +424,60 @@ static func stock_a_new_game(state: GameState) -> void:
 #  IF THIS ELEMENT, THEN THIS BEER  (round AN, 12 Oct)
 # =============================================================
 
+## % chance a bottle comes out the element, for each number of cards put in.
+## [20, 36, 52, 68, 84, 100] = 1 card 20%, 6 cards 100%.
+static func element_odds() -> Array[int]:
+	var out: Array[int] = []
+	var rows := MenuSupport.read_csv(ODDS_FILE)
+	rows.sort_custom(func(a, b): return MenuSupport.field_int(a, "Cards", 0) < MenuSupport.field_int(b, "Cards", 0))
+	for row in rows:
+		var cards := MenuSupport.field_int(row, "Cards", 0)
+		if cards <= 0:
+			continue
+		while out.size() < cards:
+			out.append(clampi(MenuSupport.field_int(row, "Chance", 100), 0, 100))
+	return out
+
+
+## The most element cards the kettle takes at once. No odds file = 1.
+static func max_element_cards() -> int:
+	return maxi(1, element_odds().size())
+
+
+## % chance per bottle with this many cards in. 0 cards = a sure thing.
+static func element_chance(cards: int) -> int:
+	if cards <= 0:
+		return 100
+	var odds := element_odds()
+	if odds.is_empty():
+		return 100
+	return odds[mini(cards, odds.size()) - 1]
+
+
+## What a bottle becomes when its roll misses (Tuning.csv element_miss_becomes).
+static func element_miss() -> String:
+	return CardDatabase.get_db().tune_text("element_miss_becomes", "passion").strip_edges().to_lower()
+
+
+## "fire@3" -> {"element": "fire", "cards": 3}. "fire" -> cards 0 (sure).
+static func split_tag(tag: String) -> Dictionary:
+	var bits := tag.split("@")
+	var cards := 0
+	if bits.size() > 1 and String(bits[1]).is_valid_int():
+		cards = int(String(bits[1]))
+	return {"element": String(bits[0]).strip_edges().to_lower(), "cards": cards}
+
+
+## One bottle's roll: the element, or the miss element.
+static func roll_bottle(tag: String) -> String:
+	var bits := split_tag(tag)
+	var element := String(bits["element"])
+	if element == "":
+		return ""
+	if dice.randi_range(1, 100) <= element_chance(int(bits["cards"])):
+		return element
+	return element_miss()
+
 ## The One Of row a section takes (the Brew Kettle's `element`), or {}.
 static func choice_taken(section_id: String) -> Dictionary:
 	var one := section(section_id)
@@ -488,6 +560,19 @@ static func _push_element(counter: String, element: String, many: int, state: Ga
 		list.insert(0, "")
 	for i in many:
 		list.append(element)
+	_write_elements(counter, list, state)
+
+
+## The same for things that each carry their own element (rolled bottles).
+static func _push_elements(counter: String, words: Array[String], state: GameState) -> void:
+	if state == null or words.is_empty():
+		return
+	var list := elements_on(counter, state)
+	if list.is_empty() and words.all(func(w): return w == ""):
+		return
+	while list.size() < state.count(counter):
+		list.insert(0, "")
+	list.append_array(words)
 	_write_elements(counter, list, state)
 
 
@@ -696,7 +781,7 @@ static func can_work(section_id: String, state: GameState) -> bool:
 ## card in the Brew Kettle. Blank or not owned = the first card you own. The
 ## result's "element" says which element the batch carries.
 static func work(section_id: String, state: GameState, spoiled: bool = false,
-		output: Dictionary = {}, pick: String = "") -> Dictionary:
+		output: Dictionary = {}, pick: String = "", pick_many: int = 1) -> Dictionary:
 	var out: Dictionary = {"ok": false, "why": "", "made": "", "many": 0,
 		"waiting": false, "turns": 0}
 	var one := section(section_id)
@@ -725,6 +810,12 @@ static func work(section_id: String, state: GameState, spoiled: bool = false,
 			if chosen == "" or String(choice["id"]) == pick.to_lower():
 				chosen = String(choice["id"])
 		element = element_of_card(chosen)
+	var cards_in := 0
+	if chosen != "":
+		var takes_many := int(one["takes"].get(String(group["id"]), 1))
+		cards_in = clampi(maxi(pick_many, takes_many), takes_many,
+			maxi(takes_many, mini(max_element_cards(), state.count(counter_for(chosen)))))
+		element = "%s@%d" % [element, cards_in]
 
 	# ---- spend it, except the tools ----
 	for id_text in one["takes"]:
@@ -732,7 +823,7 @@ static func work(section_id: String, state: GameState, spoiled: bool = false,
 		var many_taken := int(one["takes"][id_text])
 		if not res.is_empty() and not (res["one_of"] as Array).is_empty():
 			if not bool(res["kept"]) and chosen != "":
-				state.add_count(counter_for(chosen), -many_taken)
+				state.add_count(counter_for(chosen), -cards_in)
 			continue
 		if not res.is_empty() and bool(res["kept"]):
 			continue     # equipment. Needed, not used up.
@@ -743,13 +834,20 @@ static func work(section_id: String, state: GameState, spoiled: bool = false,
 			if element == "":
 				element = carried
 		add_stock(String(id_text), -many_taken, state)
-	out["element"] = element
+	out["element"] = String(split_tag(element)["element"])
+	out["cards"] = int(split_tag(element)["cards"])
+	out["element_chance"] = element_chance(out["cards"]) if element != "" else 0
 
 	var makes := String(one["makes"])
 	var many := int(one["how_many"])
 	out["ok"] = true
 	if not output.is_empty() and not spoiled:
-		_push_element(String(output["counter"]), element, int(output["many"]), state)
+		# THE BOTTLES ROLL, one by one (ElementOdds.csv).
+		var bottles: Array[String] = []
+		for i in int(output["many"]):
+			bottles.append(roll_bottle(element))
+		_push_elements(String(output["counter"]), bottles, state)
+		out["bottles"] = bottles
 		state.add_count(String(output["counter"]), int(output["many"]))
 		out["made"] = String(output["counter"])
 		out["many"] = int(output["many"])

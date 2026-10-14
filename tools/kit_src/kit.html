@@ -189,6 +189,8 @@ footer{display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;
 .hnav a{color:var(--chalk-dim);text-decoration:none;padding:3px 0}.hnav a:hover{color:var(--beer)}
 .hpart{font:600 11px var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--beer);margin:10px 0 4px}
 .hparth{font:700 22px var(--cond);color:var(--beer);letter-spacing:.04em;margin:8px 0 18px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.obar{display:flex;align-items:center;gap:10px;margin:6px 0}.obar .on{width:70px;font:600 14px var(--cond)}.otrack{flex:0 0 260px;height:14px;border-radius:7px;background:rgba(255,255,255,.08);overflow:hidden}.ofill{display:block;height:100%;background:var(--beer)}.oin{width:52px}.opc{color:var(--chalk-dim);font-size:13px}
+.chip{display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;border-radius:10px;background:rgba(230,173,60,.18);color:var(--chalk)}.warn{color:#e88}.cfix{margin:4px 0 10px}.ctab{margin-top:6px}.ctab td.note{max-width:340px;white-space:normal}
 .hsec{margin:0 0 40px;max-width:1200px}.hsec h2{font:600 18px var(--cond);letter-spacing:.04em;margin:0 0 6px;color:var(--chalk)}
 .hlead{color:var(--chalk-dim);margin:0 0 10px;max-width:70ch}
 .hrow{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(220px,1fr);gap:20px;align-items:start}
@@ -387,7 +389,7 @@ const VIEWS=[
   {id:"path",name:"Unlock path",old:true,kinds:["play","adventure","stat","goal","unlock","place","maker"],makers:["upgrade"]},
   {id:"loot",name:"Loot & money",old:true,kinds:["play","adventure","money","stuff","maker"],makers:["brew","shop","upgrade"]},
   {id:"brewery",name:"Brewery",old:true,kinds:["stuff","maker","money"],makers:["brew","section","shop"]},
-  {id:"tables",name:"Tables"},{id:"help",name:"Help"}];
+  {id:"classes",name:"Classes & Element Odds"},{id:"tables",name:"Tables"},{id:"help",name:"Help"}];
 const MATCH_STATS=["matches_played","matches_won","goals","goals_by_star","clean_sheets","keeper_emptied","red_cards","goals_with_brew_fire"];
 const HIDDEN_MODES=["adventure","intro","intro2","intro_adventure","tutorial","tutorial_adventure","friendly_test","friendly_cycle"];
 
@@ -918,9 +920,48 @@ function tables(){let sh=$("#tblSheet");if(sh)sh.remove();sh=document.createElem
   sh.querySelector("#tblPick").onchange=e=>{TBL=e.target.value;lsSet(":tbl",TBL);tables()}}
 const SRC_COUNT=/*__COUNT__*/132;
 
+/* ---------- classes & element odds (Anthony, 14 Oct) ----------
+   "You add as many elements as possible to increase the % chance ... When the chance misses it just becomes
+    different variants of the passion brews. The player that drinks a fire/water/etc. swaps to that class card
+    and their attack and defend abilities are then there."
+   ElementOdds.csv is editable here. The class cards are read-only (Unit_Set_*.csv). A beer with a Becomes and
+   no abilities of its own lends the drinker the class card at his Tier and Power (the first set). */
+function clsCards(){const out=[];for(const n in REF){if(!n.startsWith("Unit_Set_"))continue;
+  loadFile(n,REF[n]).rows.forEach(r=>{const g=k=>{for(const c in r)if(c.trim()==k)return (r[c]||"").trim();return ""};
+    if(g("Player Type").toLowerCase()=="star")return;
+    out.push({cls:g("Unit Type"),name:g("Name"),set:g("Set Name"),tier:g("Tier"),power:g("Base Power"),el:g("Element"),atk:g("Attack"),def:g("Defend")})})}
+  return out}
+const TIERN={I:1,II:2,III:3,IV:4,V:5};
+function classes(){let sh=$("#clsSheet");if(sh)sh.remove();sh=document.createElement("div");sh.className="sheet";sh.id="clsSheet";
+  const odds=FILES.ElementOdds,brews=FILES.Brews,cards=clsCards();
+  const cls=[...new Set(cards.map(c=>c.cls))];
+  const miss="Passion";
+  const bars=(odds?odds.rows:[]).map((r,i)=>`<div class="obar"><span class="on">${escH(r.Cards)} card${r.Cards=="1"?"":"s"}</span><span class="otrack"><span class="ofill" style="width:${Math.max(0,Math.min(100,+r.Chance||0))}%"></span></span><input class="oin" data-r="${i}" value="${escA(r.Chance)}" aria-label="Chance with ${escA(r.Cards)} cards"><span class="opc">% of the bottles are the element</span></div>`).join("");
+  const secs=cls.map(c=>{const mine=cards.filter(x=>x.cls==c).sort((a,b)=>(TIERN[a.tier]||9)-(TIERN[b.tier]||9)||(+a.power)-(+b.power)||a.set.localeCompare(b.set));
+    const el=(mine[0]||{}).el||"";const elW=el?el[0]+el.slice(1).toLowerCase():"";
+    const turn=brews.rows.filter(r=>(r.Becomes||"").trim().toLowerCase()==c.toLowerCase());
+    const could=brews.rows.filter(r=>(r.Element||"").toLowerCase()==elW.toLowerCase()&&!(r.Becomes||"").trim()&&!(r["Attack Ability"]||"").trim()&&!(r["Defend Ability"]||"").trim()&&(r.Pool||"").trim());
+    const tl=turn.map(r=>`<span class="chip">${escH(r.Name)}${r.Drinks?` · after ${escH(r.Drinks)} drinks, for good`:(r["Attack Ability"]||r["Defend Ability"])?" · keeps its own abilities":" · plays as the class card for the match"}</span>`).join("")||`<span class="warn">No beer turns a player into ${escH(c)} yet.</span>`;
+    const fix=could.length?`<button class="cfix" data-c="${escA(c)}" data-ids="${escA(could.map(r=>r.ID).join("|"))}">Make ${escH(could.map(r=>r.Name).join(", "))} turn the drinker into ${escH(c)}</button>`:"";
+    const rows=mine.map(x=>`<tr><td>${escH(x.tier)}</td><td>${escH(x.power)}</td><td>${escH(x.name)}</td><td>${escH(x.set)}</td><td class="note">${escH(x.atk)}</td><td class="note">${escH(x.def)}</td></tr>`).join("");
+    return `<section class="hsec"><h2>${escH(c)} <span class="hint">${escH(elW)}</span></h2>
+      <p>Beers that make a drinker play as ${escH(c)}: ${tl}</p>${fix}
+      <table class="grid ctab"><thead><tr><th>Tier</th><th>Power</th><th>Card</th><th>Set</th><th>Attack</th><th>Defend</th></tr></thead><tbody>${rows}</tbody></table></section>`}).join("");
+  sh.innerHTML=`<div class="bar"><b>Classes &amp; Element Odds</b><span class="hint">How many element cards go in the Brew Kettle decides how many bottles come out that element. A drinker of an element beer plays as that class's card at his own Tier and Power.</span></div>
+   <div class="body hbody" style="display:block"><div class="hmain" style="max-width:1100px">
+   <section class="hsec" id="oddsSec"><h2>Element odds (ElementOdds.csv)</h2><p>Every bottle rolls on its own: small, large or keg. A miss is a <b>${miss}</b> bottle, which pours one of the Passion beers.</p>${bars}</section>${secs}</div></div>`;
+  $("main").classList.add("helpon");$("#stage").appendChild(sh);
+  sh.querySelectorAll(".oin").forEach(inp=>inp.addEventListener("change",()=>{const row=odds.rows[+inp.dataset.r];
+    if(!/^\d+$/.test(inp.value.trim())||+inp.value>100){toast("A chance is a whole number from 0 to 100.");inp.value=row.Chance;return}
+    pushUndo();row.Chance=inp.value.trim();changed(`ElementOdds.csv: ${row.Cards} card(s) = ${row.Chance}%`);inp.closest(".obar").querySelector(".ofill").style.width=Math.min(100,+row.Chance)+"%"}));
+  sh.querySelectorAll(".cfix").forEach(btn=>btn.onclick=()=>{pushUndo();const ids=btn.dataset.ids.split("|");
+    brews.rows.forEach(r=>{if(ids.includes(r.ID))r.Becomes=btn.dataset.c});changed(`Brews.csv: ${ids.length} beer(s) now turn the drinker into ${btn.dataset.c}`);classes()})}
+
 /* ---------- tabs, legend, playback ---------- */
 function renderTabs(){let seen=false;$("#tabs").innerHTML=VIEWS.map(v=>{if(v.old||v.cmp)return "";let pre="";if(v.ex&&!seen){seen=true;pre=`<span class="tabsep"></span>`}return pre+`<button class="tab" role="tab" aria-selected="${v.id==VIEW||cmpOf(VIEW)==v.id}" data-v="${v.id}">${v.name}</button>`}).join("");
   $("#tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{const v=b.dataset.v;const t=$("#tblSheet");if(t)t.remove();
+    {const c=$("#clsSheet");if(c)c.remove()}
+    if(v=="classes"){{const h=$("#helpSheet");if(h)h.remove()}classes();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
     if(v=="help"){help();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
     {const h=$("#helpSheet");if(h)h.remove();$("main").classList.remove("helpon")}
     if(v=="tables"){VIEW_T=true;tables();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
