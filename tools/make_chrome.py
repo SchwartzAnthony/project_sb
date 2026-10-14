@@ -253,7 +253,7 @@ def main():
 
     # ============ ROUND X: THE PIXELLAB ART IS IN ============
     #
-    # assets/ui/ now holds the PixelLab chrome, cut by tools/cut_chrome.py.
+    # assets/ui/ now holds the PixelLab chrome, (placeholder until the new art replaces it).
     # Running this would paint the placeholders straight over it. So it
     # refuses, unless you ask for the placeholders on purpose:
     #
@@ -261,7 +261,7 @@ def main():
     #
     if os.path.isdir(os.path.join(HERE, "art_source", "pixellab")) and "--placeholders" not in sys.argv:
         print("assets/ui/ holds the PixelLab chrome now (see art_source/pixellab/).")
-        print("To redo it from the PixelLab sheets:   python3 tools/cut_chrome.py")
+        print("New chrome comes from the Art Desk now (guides/ART_STYLE.md).")
         print("To go back to these drawn placeholders: python3 tools/make_chrome.py --placeholders")
         return 0
 

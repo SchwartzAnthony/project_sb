@@ -29,7 +29,7 @@ extends CanvasLayer
 #
 #  Until `ref_default.png` is drawn he is a dark panel with a whistle glyph
 #  on it. The window works from the first minute, and the drawing can come
-#  whenever it comes — the art order for it is in data/ArtOrders.csv.
+#  whenever it comes — it will come from the Art Desk (guides/ART_STYLE.md).
 # =============================================================
 
 const SLIDE := 0.18          ## seconds he takes to walk on

@@ -4494,6 +4494,12 @@ drawn either — the same condition language as everywhere else.
 
 ## 8b2. The look — Marcinelle, in pixels
 
+> **13 Oct 2026: the look is being redone.** Everything below describes the
+> placeholder art. The new style, the fal.ai pipeline and the Art Desk are
+> in `guides/ART_STYLE.md` (top section). New art reaches the game through
+> the Art Desk's "Send to game" button: Claude puts each picture in the
+> folder from "Where art and audio go" and fills in its CSV row.
+
 > *"1970's-1990's european comic style reminiscent of Asterix & Obelix,
 > Motomania, Smart & Clever, Kleiner Arschloch. I believe this art style is
 > called MARCINELLE SCHOOL COMICS. The entire theme: Bavarian mythological
@@ -4541,69 +4547,12 @@ matters.
 **The text is cream, not white.** Pure white on this ground is a hole, and
 the comics this is drawn from print on paper, never on light.
 
-### `data/ArtOrders.csv` — the work order
+### The old work orders (removed 14 Oct 2026)
 
-Fourteen assets, in the order to make them, each with the exact PixelLab
-tool, the exact prompt, the exact size and what to do with the result.
-
-**Order 1 is the panel, and nothing else starts until it is right.** Every
-box in the game is drawn from it, and the result is then passed as
-`style_image` to all thirteen below — that is what makes fourteen separate
-generations read as one game rather than fourteen.
-
-**Since round AH the file has a `Phase` column** and 21 orders — the art
-phases you asked for:
-
-| Phase | what | orders |
-|---|---|---|
-| **pass 1** | the chrome: panel, window, button ×3, slot, bars — **done** | 1–7 |
-| **A1** | **the pitch first**, then the title wallpaper and the base yard | 11, 8, 10 |
-| **A2** | the referee, the twelve emblems | 12, 13 |
-| **A3** | menu plaques, a display font | 9, 14 |
-| **A4** | the units: each class's three sets, the Basic Team (the recruits wear it), the twelve Stars | 15–20 |
-| **A5** | the icons in `data/ICONS_WANTED.csv` | 21 |
-
-**`python3 tools/art_status.py`** checks every file these name — and every
-`Artwork` the cards name — against `assets/`, and writes
-`guides/ART_STATUS.md`: done, missing, and the next order to make. As of
-round AH, 30 of the 31 unit Artwork files are missing (the units are
-stand-ins), which is why A4 exists.
-
-**PixelLab runs through your computer.** Its tools reach this session only
-while the chat is linked to your computer through the desktop app.
-
-### Round X — orders 1 to 7 are done
-
-PixelLab's UI tool does not hand back one 96 x 96 tile. It hands back a
-**whole sheet of panels** in the style you asked for. So three new columns
-in ArtOrders.csv say how each game file is cut from a sheet:
-
-| column | |
-|---|---|
-| `Status` | what happened to the order |
-| `Sheet` | the PNG in `art_source/pixellab/` it is cut from |
-| `Cut` | `x y width height corner` — which piece, and how big its corners are |
-| `Finish` | what is done to it afterwards (below) |
-
-```
-python3 tools/cut_chrome.py
-```
-
-writes all eight chrome files from those three columns. **That is the loop
-from now on:** regenerate a sheet in PixelLab, save it over the old one in
-`art_source/pixellab/`, fix its `Cut` if the piece moved, run the script.
-(`art_source/` has a `.gdignore`, so Godot never imports the big sheets.)
-
-**What each order needed, and why:**
-
-| order | finish | why |
-|---|---|---|
-| panel | `light` | **every screen tints the panel with its own colour, and tinting multiplies** — dark walnut came out nearly black. Black ink is kept; wood and brass are lifted so each screen's colour lands. The *mid-size* plaque was used, because the big ornate one's gold flourish ran 60px into each corner, past the 28px slice |
-| window | `dark-centre` | PixelLab drew the opening cream; it is painted the window colour |
-| button | `plain-button` | the big plaque at the top of the sheet; its scrollwork is cut at the 26px corner |
-| hover, pressed | `lit:button`, `pressed:button` | **not generated** — made from the button itself, so they are certainly the same plaque |
-| slot | `reduce` | the UI tool *painted* the beer mat rather than pixelling it, so it is shrunk to 96 x 96 and snapped to the palette. A Pixel-model retry lost the lozenges |
-| bars | `bar-back`, `bar-fill` | it drew a lovely rack of steins, but a rounded rack cut to 32 x 32 became a blob — so both tiles are built from its colours: an oak track, and foam over amber |
+`data/ArtOrders.csv`, `tools/art_status.py` and `tools/cut_chrome.py` made
+the PixelLab chrome and tracked what art was missing. The new art comes from
+the Art Desk (`guides/ART_STYLE.md`), so they are gone. The chrome they cut
+stays in `assets/ui/` as placeholder art.
 
 **`tools/make_chrome.py` now refuses to run** while the PixelLab art is in,
 so it can never paint the placeholders over it by accident.
@@ -6266,8 +6215,8 @@ that is already up. Faces: `heatwave`, `brewer`, `hoffmann`, `schaefer`,
 
 **Making more.** PixelLab `create_image_pro`, 512×512 with a transparent
 background and `art_source/style_refs/stammtisch/board_characters.png` as the
-style image, prompt from `tools/art_prompt.gd -- pixellab "a waist-up
-visual-novel dialogue portrait of one character, facing right ..."`. A room
+style image. (Placeholder art: new portraits come from the Art Desk, see
+`guides/ART_STYLE.md`.) A room
 is 688×384, one call per layer. The PixelLab originals are in
 `art_source/pixellab/story/`, the layered files in
 `art_source/aseprite/story/` (`bar.aseprite`, `cast.aseprite`: one layer per
@@ -6416,12 +6365,6 @@ xvfb-run godot --rendering-driver opengl3 --resolution 1920x1080 \
 **Presses the real Pub buttons** — the Rhine Water Lager, then Müller three
 times — photographs the "who does he become?" question, presses the first
 set, and photographs the result. A broken button fails the run.
-
-```
-python3 tools/cut_chrome.py
-```
-Cuts the PixelLab sheets in `art_source/pixellab/` into the eight chrome
-files, following the Sheet / Cut / Finish columns of ArtOrders.csv. See 8b2.
 
 ```
 godot --headless --script res://tools/adventure_soak.gd
@@ -7041,7 +6984,6 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | stop a class's cards being listed in the Pub | `pub_hidden_classes` in `Tuning.csv` (`Rivals`) |
 | let the player keep more recruits | buy a dorm, or lower `recruit_beds_kept` in `Tuning.csv` |
 | make one class stronger in one tier | `tier_power_<class>_<tier>` in `Tuning.csv`, e.g. `tier_power_unkengeister_IV` |
-| see what art is still missing, and what to make next | `python3 tools/art_status.py` -> `guides/ART_STATUS.md` |
 | go back to the old flat free-kick bonus | `free_kicks` 0 in `Tuning.csv` |
 | make a weak class's Tier IV Star stronger | `star_power_tier_IV` in `Tuning.csv` (a row per tier) |
 | make Buer never fight below his printed power | `count_power_floor` 1 in `Tuning.csv` |
@@ -7060,8 +7002,7 @@ helper adds a node for you, say so in a comment above it, in capitals.
 | **make the referee stricter** | a row of `Referee.csv`, then `referee_id` in Tuning.csv. Run `referee_check` to see what it did |
 | **change how a button feels** | three rows of `Motion.csv` — `button_hover`, `button_press`, `button_release` |
 | **unlock every unit to test with** | `dev_mode` TRUE in Tuning.csv, then the DEV section of the pause menu |
-| **make the art** | `data/ArtOrders.csv`, in order. Do number 1 first and pass it as the style image to the rest |
-| **redo a piece of chrome from a new PixelLab sheet** | save it over the sheet in `art_source/pixellab/`, fix its `Cut` in ArtOrders.csv, run `python3 tools/cut_chrome.py` |
+| **make new art** | the Art Desk, see `guides/ART_STYLE.md`. Paid jobs wait until you say "run my jobs" |
 | **recruit a named player** | `recruit:I0` in any Effects / Do / Action / Reward. `named_recruits` TRUE for him to show |
 | **add or remove names** | `data/Names.csv` |
 | **make a new turning brew** | a Brews.csv row with For Class `Normal`, a Becomes, an Element and a number in `Drinks` |
@@ -7291,12 +7232,8 @@ character.**
 
 **ROUND AN: the art bible and a new title background.**
 - **The art bible:** one sentence of style words, the `art_bible` row of
-  `data/ArtStyle.csv`. It ends every PixelLab prompt. See
-  `guides/ART_STYLE.md`.
-- **The prompt builder,** `tools/art_prompt.gd`, writes a full prompt from
-  `ArtStyle.csv`, so the style words never drift:
-  `godot --headless --path . --script res://tools/art_prompt.gd -- pixellab "Lorelei siren"`
-  (or `-- openai "..."`).
+  `data/ArtStyle.csv`. Rewritten 14 Oct 2026 for the new look; see
+  `guides/ART_STYLE.md`. (The PixelLab prompt builder was removed then.)
 - **New title background:** `01_title_bg_b.png` (Pixelate.csv `title_bg_b`):
   the bumpy pitch, the Oktoberfest meadow, the beer town, a spooky bog and a
   sunset over the Alps. The other one is `01_title_bg_a.png` (the beer town by
