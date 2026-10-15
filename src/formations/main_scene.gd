@@ -2273,6 +2273,18 @@ func _full_time() -> void:
 	facts["scored"] = str(player_score)
 	facts["conceded"] = str(enemy_score)
 	facts["margin"] = str(player_score - enemy_score)
+	# WHICH MODE, AND WHO PLAYED (Anthony, 15 Oct): "win 3 season games",
+	# "win with 3 or more Lorelei", "a clean win with 4 different classes".
+	# mode=season, class_lorelei>=3 and classes>=4 in Stats.csv When.
+	facts["mode"] = String(match_mode.get("id", MatchMode.DEFAULT_ID))
+	var per_class := {}
+	for card in _squad_that_played():
+		var kind := String((card as PlayerData).active_unit_type()).strip_edges()
+		if kind != "":
+			per_class[kind] = int(per_class.get(kind, 0)) + 1
+	for kind in per_class.keys():
+		facts["class_" + String(kind).to_lower().replace(" ", "_").replace("-", "_")] = str(per_class[kind])
+	facts["classes"] = str(per_class.size())
 	_report("match_ended", facts)
 
 	# ============ THE REFEREE'S NOTEBOOK ============

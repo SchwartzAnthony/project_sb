@@ -7,6 +7,7 @@ lucky_boots,Lucky Boots,upgrade,Everybody runs at a loose ball a little harder.,
 dorms_key,Dorms Key,key,Opens the Dorms building.,,unlocked:Dorms,30,coins,count:dorms_key+1,"THE KEYS (round AN, Anthony: to get into a building or to work a machine you BUY its key). Achievement is blank on a key: the RIGHT to buy it is Needs = unlocked:<name>, which is still handed out by the achievement that always opened that building (Achievements.csv Unlocks), so moving the unlock moves the key too. Effect gives the key, an item of data/Items.csv (Kind key, Tab keys) - it shows in the bag's Keys tab. The building's Requires (Buildings.csv) or the machine's Needs (BrewerySections.csv) asks count:<key>>=1. The Club House itself has no key: it is where keys are bought."
 trophy_room_key,Trophy Room Key,key,Opens the Trophy Room building.,,unlocked:Trophy Room,50,coins,count:trophy_room_key+1,
 training_ground_key,Training Ground Key,key,Opens the Training Ground building.,,unlocked:Training Ground,60,coins,count:training_ground_key+1,
+pub_key,Pub Key,key,Opens the Pub building.,,unlocked:Pub,60,coins,count:pub_key+1,
 brewery_key,Brewery Key,key,Opens the Brewery building.,,unlocked:Brewery,80,coins,count:brewery_key+1,
 tavern_key,Traveling Tavern Key,key,Opens the Traveling Tavern building.,,unlocked:Traveling Tavern,80,coins,count:tavern_key+1,
 malthouse_key,Steeping Tank Key,key,Opens the Steeping Tank in the Brewery.,,unlocked:Malthouse,40,coins,count:malthouse_key+1,

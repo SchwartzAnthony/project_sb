@@ -57,3 +57,7 @@ ore_spent_total,ore_spent,,{amount},Abilities,Ore spent,ROUND Z. All the Ore you
 tokens_made,token_made,,,Abilities,Tokens made,ROUND Z. Rose / Swan Unit tokens.
 swans_made,swan_made,,,Abilities,Swans made,ROUND Z.
 counters_placed_{kind},counter_placed,,,Abilities,Counters placed,"ROUND Z. One counter per kind: counters_placed_burn, counters_placed_song..."
+season_matches,match_ended,mode=season,,Match,Season games played,Anthony 15 Oct: one League/Season game for the Training Ground.
+season_wins,match_ended,result=win;mode=season,,Match,Season games won,Anthony 15 Oct: win 3 Season games (Brew Kettle).
+wins_with_3_lorelei,match_ended,result=win;class_lorelei>=3,,Match,Wins with 3+ Lorelei,Anthony 15 Oct: Lauter Tun.
+clean_wins_4_classes,match_ended,result=win;conceded=0;classes>=4,,Match,Clean wins with 4 classes,"Anthony 15 Oct: Fermenting Vat. classes counts every different class on your side that played, plain players included."

@@ -720,6 +720,8 @@ func _work(section_id: String) -> void:
 			String(section.get("name", section_id)), guided)
 		var won: bool = await view.finished
 		_playing = false
+		# Counted win or lose (Anthony, 15 Oct: "play all brewery mini-games").
+		state.add_count("minigames_played_%s" % section_id, 1)
 		if not is_inside_tree():
 			return
 		roll = 0 if won else 101
