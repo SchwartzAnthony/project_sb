@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    
+  </defs>
+
+  <!-- copper brew chimney behind the side wing -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#d9773a" d="M842 660 L846 330 C 846 318, 900 318, 904 330 L908 660 Z"/>
+  <path fill="#a8552a" d="M884 324 L904 330 L908 660 L888 660 Z"/>
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#e8894a" d="M826 330 C 826 296, 924 296, 924 330 C 924 352, 826 352, 826 330 Z"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#d9773a" d="M842 420 C 860 432, 892 432, 906 420"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="none" d="M842 520 C 860 532, 892 532, 906 520"/>
+  <!-- steam puff -->
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#ffffff" d="M850 290 C 820 280, 826 240, 858 244 C 856 206, 906 196, 918 226 C 944 210, 976 236, 958 262 C 978 278, 958 304, 934 296 C 918 312, 870 312, 850 290 Z"/>
+
+  <!-- grass base so the cut-out stands on something -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#46b03c" d="M60 1004 C 60 960, 140 950, 200 958 C 400 950, 700 950, 960 958 C 1000 960, 1010 1004, 990 1010 C 700 1016, 300 1016, 60 1004 Z"/>
+  <path fill="#3a9a33" d="M80 1004 C 300 1000, 700 1000, 980 1004 C 990 1008, 700 1012, 300 1012 C 200 1012, 100 1010, 80 1004 Z"/>
+  <!-- side wing (brew house) -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#f4f1ea" d="M730 640 L930 650 L940 960 L730 960 Z"/>
+  <path fill="#d8d6cf" d="M900 652 L930 650 L940 960 L908 960 Z"/>
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#d6402e" d="M700 660 C 760 600, 820 570, 846 560 C 880 590, 930 620, 966 668 C 900 664, 790 660, 700 660 Z"/>
+  <path fill="#a82d22" d="M846 560 C 880 590, 930 620, 966 668 C 940 667, 920 666, 900 665 C 880 630, 864 600, 846 560 Z"/>
+  <!-- side wing window -->
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#4a7fbf" d="M790 720 C 790 700, 860 700, 860 720 L860 800 L790 800 Z"/>
+  <path stroke="#141414" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M825 706 L825 800 M790 752 L860 752"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#d6402e" d="M778 800 L872 800 L866 830 L784 830 Z"/>
+  <g stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#ff5a8a"><circle cx="800" cy="796" r="11"/><circle cx="826" cy="792" r="11"/><circle cx="852" cy="796" r="11"/></g>
+
+  <!-- main house walls: slightly leaning, comic -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#f4f1ea" d="M200 540 L770 532 C 760 680, 776 820, 760 960 L214 960 C 196 820, 214 680, 200 540 Z"/>
+  <path fill="#d8d6cf" d="M726 534 L770 532 L760 960 L716 960 Z"/>
+  <!-- half-timbering on the upper floor -->
+  <g fill="#6b3d1f" stroke="#141414" stroke-width="8" stroke-linejoin="round">
+    <path d="M204 600 L768 594 L768 620 L204 626 Z"/>
+    <path d="M206 740 L766 734 L766 760 L206 766 Z"/>
+    <path d="M226 548 L252 548 L252 740 L226 740 Z"/>
+    <path d="M470 540 L496 540 L496 736 L470 736 Z"/>
+    <path d="M712 536 L738 536 L738 736 L712 736 Z"/>
+    <path d="M252 626 L290 626 L470 736 L430 738 Z"/>
+    <path d="M470 626 L430 626 L252 738 L290 740 Z"/>
+    <path d="M496 624 L536 624 L712 734 L672 736 Z"/>
+    <path d="M712 622 L672 622 L496 736 L536 736 Z"/>
+  </g>
+
+  <!-- roof: big red gable with a slight sag, overhanging eaves -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#d6402e" d="M130 574 C 240 430, 360 250, 500 136 C 520 132, 520 146, 512 156 C 620 270, 750 430, 842 566 C 800 556, 760 562, 720 552 C 640 544, 560 556, 486 546 C 400 540, 330 556, 260 552 C 210 552, 170 566, 130 574 Z"/>
+  <path fill="#a82d22" d="M512 156 C 620 270, 750 430, 842 566 C 800 556, 770 560, 740 554 C 650 420, 570 300, 512 156 Z"/>
+  <!-- a few tile rows (scallops), not hatching -->
+  <g stroke="#141414" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="8">
+    <path d="M300 400 c 20 18, 40 18, 60 0 c 20 18, 40 18, 60 0 c 20 18, 40 18, 60 0 c 20 18, 40 18, 60 0 c 20 18, 40 18, 60 0"/>
+    <path d="M220 490 c 20 18, 40 18, 60 0 c 20 18, 40 18, 60 0 c 20 18, 40 18, 60 0 c 20 18, 40 18, 60 0 c 20 18, 40 18, 60 0 c 20 18, 40 18, 60 0 c 20 18, 40 18, 60 0 c 20 18, 40 18, 60 0"/>
+    <path d="M390 300 c 20 18, 40 18, 60 0 c 20 18, 40 18, 60 0 c 20 18, 40 18, 60 0"/>
+  </g>
+  <!-- gable attic window -->
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#f4f1ea" d="M440 330 C 440 280, 532 280, 532 330 L532 420 L440 420 Z"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#4a7fbf" d="M456 336 C 456 300, 516 300, 516 336 L516 404 L456 404 Z"/>
+  <path stroke="#141414" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M486 300 L486 404"/>
+
+  <!-- upper windows with green shutters and flower boxes -->
+  <g id="win">
+    <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#2f8a3a" d="M300 640 L330 640 L330 716 L300 716 Z"/>
+    <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#2f8a3a" d="M400 640 L430 640 L430 716 L400 716 Z"/>
+    <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#4a7fbf" d="M330 640 L400 640 L400 716 L330 716 Z"/>
+    <path stroke="#141414" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="7" d="M365 640 L365 716 M330 676 L400 676"/>
+    <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#d6402e" d="M318 716 L412 716 L406 740 L324 740 Z"/>
+    <g stroke="#141414" stroke-linejoin="round" stroke-linecap="round" stroke-width="7" fill="#ff5a8a"><circle cx="336" cy="712" r="10"/><circle cx="364" cy="706" r="10"/><circle cx="392" cy="712" r="10"/></g>
+    <g fill="#ffd23a"><circle cx="350" cy="708" r="4"/><circle cx="378" cy="708" r="4"/></g>
+  </g>
+  <use href="#win" x="240"/>
+
+  <!-- ground floor: arched door and one window -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#7a4524" d="M400 960 L400 850 C 400 790, 520 790, 520 850 L520 960 Z"/>
+  <path fill="#5a3218" d="M470 800 C 500 806, 520 826, 520 850 L520 960 L470 960 Z"/>
+  <path stroke="#141414" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M440 812 L440 960 M480 806 L480 960"/>
+  <circle cx="500" cy="890" r="9" fill="#e8b830" stroke="#141414" stroke-width="6"/>
+  <!-- brewery sign: a hanging stein emblem on a bracket -->
+  <path stroke="#141414" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M540 776 L540 800 M540 790 L640 790 L640 806"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#f2b632" d="M612 806 L668 806 L664 870 L616 870 Z"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="none" d="M668 820 C 690 820, 690 856, 666 856"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#ffffff" d="M606 812 C 598 790, 626 786, 632 796 C 640 782, 668 786, 672 806 Z"/>
+  <!-- right ground-floor window -->
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#2f8a3a" d="M590 880 L616 880 L616 940 L590 940 Z"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#2f8a3a" d="M680 880 L706 880 L706 940 L680 940 Z"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#4a7fbf" d="M616 880 L680 880 L680 940 L616 940 Z"/>
+  <!-- left ground-floor window -->
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#2f8a3a" d="M240 830 L266 830 L266 900 L240 900 Z"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#2f8a3a" d="M334 830 L360 830 L360 900 L334 900 Z"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#4a7fbf" d="M266 830 L334 830 L334 900 L266 900 Z"/>
+  <path stroke="#141414" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="7" d="M300 830 L300 900"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#d6402e" d="M256 900 L344 900 L338 922 L262 922 Z"/>
+  <g stroke="#141414" stroke-linejoin="round" stroke-linecap="round" stroke-width="7" fill="#ff5a8a"><circle cx="276" cy="896" r="10"/><circle cx="300" cy="891" r="10"/><circle cx="324" cy="896" r="10"/></g>
+
+  <g transform="translate(-60 20)"><!-- big wooden barrel lying by the door on a trestle -->
+  
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#b5713a" d="M130 860 C 130 800, 170 780, 260 780 L330 780 C 400 780, 400 960, 330 960 L260 960 C 170 960, 130 920, 130 860 Z"/>
+  <path fill="#8a5228" d="M140 900 C 150 940, 190 960, 260 960 L330 960 C 300 950, 290 920, 290 900 Z"/>
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#c9844a" d="M330 780 C 380 780, 400 830, 400 870 C 400 920, 380 960, 330 960 C 290 960, 270 920, 270 870 C 270 820, 290 780, 330 780 Z"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="none" d="M300 870 C 300 830, 315 806, 335 806 C 358 806, 372 836, 372 870 C 372 906, 358 934, 335 934 C 315 934, 300 908, 300 870 Z"/>
+  <circle cx="336" cy="870" r="12" fill="#6b3d1f" stroke="#141414" stroke-width="7"/>
+  <!-- iron hoops -->
+  <path stroke="#141414" stroke-linejoin="round" stroke-linecap="round" fill="none" stroke-width="12" d="M180 790 C 166 830, 166 912, 180 952"/>
+  <path stroke="#141414" stroke-linejoin="round" stroke-linecap="round" fill="none" stroke-width="12" d="M236 782 C 222 830, 222 910, 236 958"/>
+<path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#6b3d1f" d="M150 990 L210 950 L240 990 Z"/><path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#6b3d1f" d="M300 990 L330 958 L380 990 Z"/></g>
+</svg>

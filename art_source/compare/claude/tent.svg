@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<defs><style>
+.k { stroke:#141414; stroke-width:14; stroke-linejoin:round; stroke-linecap:round; }
+.k2 { stroke:#141414; stroke-width:10; stroke-linejoin:round; stroke-linecap:round; }
+.k3 { stroke:#141414; stroke-width:6; stroke-linejoin:round; }
+.ln { stroke:#141414; stroke-width:7; stroke-linecap:round; fill:none; }
+</style>
+<clipPath id="roofL"><path d="M60 560 C 120 470, 200 380, 290 300 C 330 340, 380 420, 420 480 L420 560 Z"/></clipPath>
+<clipPath id="roofR"><path d="M604 480 C 644 420, 694 340, 734 300 C 824 380, 904 470, 964 560 L604 560 Z"/></clipPath>
+<clipPath id="roofC"><path d="M220 560 C 300 420, 420 260, 512 160 C 604 260, 724 420, 804 560 Z"/></clipPath>
+</defs>
+
+<!-- poles behind the roof with pennant strings -->
+<path class="k" fill="#8a5228" d="M282 310 L298 310 L298 170 L282 170 Z"/>
+<path class="k" fill="#8a5228" d="M726 310 L742 310 L742 170 L726 170 Z"/>
+<path class="k" fill="#8a5228" d="M504 170 L520 170 L520 40 L504 40 Z"/>
+<path class="k2" fill="#2a6fd0" d="M298 172 C 340 160, 360 190, 400 176 L392 214 C 360 226, 336 200, 298 210 Z"/>
+<path class="k2" fill="#ffffff" d="M742 172 C 784 160, 804 190, 844 176 L836 214 C 804 226, 780 200, 742 210 Z"/>
+<path class="k2" fill="#ffffff" d="M520 44 C 562 32, 582 62, 622 48 L614 86 C 582 98, 558 72, 520 82 Z"/>
+<path class="k3" fill="#2a6fd0" d="M520 64 C 562 52, 582 82, 618 66 L614 86 C 582 98, 558 72, 520 82 Z"/>
+<circle cx="290" cy="166" r="14" class="k2" fill="#e8b830"/><circle cx="734" cy="166" r="14" class="k2" fill="#e8b830"/><circle cx="512" cy="36" r="14" class="k2" fill="#e8b830"/>
+
+<!-- tent walls -->
+<path class="k" fill="#ffffff" d="M90 560 L934 560 L944 930 L80 930 Z"/>
+<g fill="#2a6fd0">
+  <path d="M150 560 L210 560 L212 930 L146 930 Z"/><path d="M330 560 L390 560 L392 930 L326 930 Z"/>
+  <path d="M634 560 L694 560 L698 930 L632 930 Z"/><path d="M814 560 L874 560 L878 930 L812 930 Z"/>
+</g>
+<path fill="#c9d6e6" d="M90 560 L934 560 L935 600 L89 600 Z" opacity="1"/>
+<path class="k" fill="none" d="M90 560 L934 560 L944 930 L80 930 Z"/>
+
+<!-- side roofs -->
+<path class="k" fill="#ffffff" d="M60 560 C 120 470, 200 380, 290 300 C 330 340, 380 420, 420 480 L420 560 Z"/>
+<g clip-path="url(#roofL)"><path d="M290 300 L20 600 L64 600 Z" fill="#2a6fd0"/><path d="M290 300 L108 600 L152 600 Z" fill="#2a6fd0"/><path d="M290 300 L196 600 L240 600 Z" fill="#2a6fd0"/><path d="M290 300 L284 600 L328 600 Z" fill="#2a6fd0"/><path d="M290 300 L372 600 L416 600 Z" fill="#2a6fd0"/></g>
+<path class="k" fill="none" d="M60 560 C 120 470, 200 380, 290 300 C 330 340, 380 420, 420 480 L420 560 Z"/>
+<path class="k" fill="#ffffff" d="M604 480 C 644 420, 694 340, 734 300 C 824 380, 904 470, 964 560 L604 560 Z"/>
+<g clip-path="url(#roofR)"><path d="M734 300 L560 600 L604 600 Z" fill="#2a6fd0"/><path d="M734 300 L648 600 L692 600 Z" fill="#2a6fd0"/><path d="M734 300 L736 600 L780 600 Z" fill="#2a6fd0"/><path d="M734 300 L824 600 L868 600 Z" fill="#2a6fd0"/><path d="M734 300 L912 600 L956 600 Z" fill="#2a6fd0"/></g>
+<path class="k" fill="none" d="M604 480 C 644 420, 694 340, 734 300 C 824 380, 904 470, 964 560 L604 560 Z"/>
+
+<!-- centre gable roof -->
+<path class="k" fill="#ffffff" d="M220 560 C 300 420, 420 260, 512 160 C 604 260, 724 420, 804 560 Z"/>
+<g clip-path="url(#roofC)"><path d="M512 160 L180 600 L227 600 Z" fill="#2a6fd0"/><path d="M512 160 L275 600 L322 600 Z" fill="#2a6fd0"/><path d="M512 160 L370 600 L417 600 Z" fill="#2a6fd0"/><path d="M512 160 L465 600 L512 600 Z" fill="#2a6fd0"/><path d="M512 160 L559 600 L607 600 Z" fill="#2a6fd0"/><path d="M512 160 L654 600 L702 600 Z" fill="#2a6fd0"/><path d="M512 160 L749 600 L797 600 Z" fill="#2a6fd0"/></g>
+
+<path class="k" fill="none" d="M220 560 C 300 420, 420 260, 512 160 C 604 260, 724 420, 804 560 Z"/>
+
+<!-- scalloped valance along the eaves -->
+<path class="k2" fill="#2a6fd0" d="M56 560 L132 560 L132 590 C 124 636, 64 636, 56 590 Z"/><path class="k2" fill="#ffffff" d="M132 560 L208 560 L208 590 C 200 636, 140 636, 132 590 Z"/><path class="k2" fill="#2a6fd0" d="M208 560 L284 560 L284 590 C 276 636, 216 636, 208 590 Z"/><path class="k2" fill="#ffffff" d="M284 560 L360 560 L360 590 C 352 636, 292 636, 284 590 Z"/><path class="k2" fill="#2a6fd0" d="M360 560 L436 560 L436 590 C 428 636, 368 636, 360 590 Z"/><path class="k2" fill="#ffffff" d="M436 560 L512 560 L512 590 C 504 636, 444 636, 436 590 Z"/><path class="k2" fill="#2a6fd0" d="M512 560 L588 560 L588 590 C 580 636, 520 636, 512 590 Z"/><path class="k2" fill="#ffffff" d="M588 560 L664 560 L664 590 C 656 636, 596 636, 588 590 Z"/><path class="k2" fill="#2a6fd0" d="M664 560 L740 560 L740 590 C 732 636, 672 636, 664 590 Z"/><path class="k2" fill="#ffffff" d="M740 560 L816 560 L816 590 C 808 636, 748 636, 740 590 Z"/><path class="k2" fill="#2a6fd0" d="M816 560 L892 560 L892 590 C 884 636, 824 636, 816 590 Z"/><path class="k2" fill="#ffffff" d="M892 560 L968 560 L968 590 C 960 636, 900 636, 892 590 Z"/>
+
+<!-- pennant strings between poles -->
+<path class="ln" d="M298 250 Q 405.0 340 512 140"/><path class="k3" fill="#2a6fd0" d="M313 270 L345 270 L329 310 Z"/><path class="k3" fill="#ffffff" d="M343 278 L375 278 L359 318 Z"/><path class="k3" fill="#2a6fd0" d="M374 274 L406 274 L390 314 Z"/><path class="k3" fill="#ffffff" d="M404 258 L436 258 L420 298 Z"/><path class="k3" fill="#2a6fd0" d="M435 231 L467 231 L451 271 Z"/><path class="k3" fill="#ffffff" d="M465 191 L497 191 L481 231 Z"/>
+<path class="ln" d="M512 140 Q 619.0 340 726 250"/><path class="k3" fill="#2a6fd0" d="M527 191 L559 191 L543 231 Z"/><path class="k3" fill="#ffffff" d="M557 231 L589 231 L573 271 Z"/><path class="k3" fill="#2a6fd0" d="M588 258 L620 258 L604 298 Z"/><path class="k3" fill="#ffffff" d="M618 274 L650 274 L634 314 Z"/><path class="k3" fill="#2a6fd0" d="M649 278 L681 278 L665 318 Z"/><path class="k3" fill="#ffffff" d="M679 270 L711 270 L695 310 Z"/>
+
+<!-- entrance: wooden portal, dark inside, garland -->
+<path class="k" fill="#8a5228" d="M372 930 L372 720 C 372 640, 652 640, 652 720 L652 930 Z"/>
+<path class="k" fill="#3a2a40" d="M412 930 L412 740 C 412 690, 612 690, 612 740 L612 930 Z"/>
+<path fill="#e8b830" d="M430 930 L440 760 L470 760 L466 930 Z M560 930 L556 770 L586 770 L594 930 Z" opacity="0.9"/>
+<!-- garland of green leaves over the portal -->
+<path fill="none" stroke="#141414" stroke-width="30" stroke-linecap="round" d="M360 730 C 420 790, 604 790, 664 730"/>
+<path fill="none" stroke="#2f8a3a" stroke-width="16" stroke-linecap="round" d="M360 730 C 420 790, 604 790, 664 730"/>
+<g class="k3" fill="#d6402e"><circle cx="420" cy="772" r="11"/><circle cx="512" cy="788" r="11"/><circle cx="604" cy="772" r="11"/></g>
+<!-- pretzels over the entrance -->
+<g transform="translate(512 640) scale(0.9)">
+<path fill="none" stroke="#141414" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" d="M-40 50 C -90 40, -90 -40, -40 -45 C 0 -50, 10 -10, 0 10 C -10 30, -30 40, 40 52 M40 50 C 90 40, 90 -40, 40 -45 C 0 -50, -10 -10, 0 10 C 10 30, 30 40, -40 52"/>
+<path fill="none" stroke="#b5672a" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" d="M-40 50 C -90 40, -90 -40, -40 -45 C 0 -50, 10 -10, 0 10 C -10 30, -30 40, 40 52 M40 50 C 90 40, 90 -40, 40 -45 C 0 -50, -10 -10, 0 10 C 10 30, 30 40, -40 52"/>
+<g fill="#ffffff"><circle cx="-58" cy="-20" r="4"/><circle cx="54" cy="-14" r="4"/><circle cx="-30" cy="-44" r="4"/><circle cx="34" cy="-42" r="4"/></g></g>
+<g transform="translate(392 662) scale(0.55)">
+<path fill="none" stroke="#141414" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" d="M-40 50 C -90 40, -90 -40, -40 -45 C 0 -50, 10 -10, 0 10 C -10 30, -30 40, 40 52 M40 50 C 90 40, 90 -40, 40 -45 C 0 -50, -10 -10, 0 10 C 10 30, 30 40, -40 52"/>
+<path fill="none" stroke="#b5672a" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" d="M-40 50 C -90 40, -90 -40, -40 -45 C 0 -50, 10 -10, 0 10 C -10 30, -30 40, 40 52 M40 50 C 90 40, 90 -40, 40 -45 C 0 -50, -10 -10, 0 10 C 10 30, 30 40, -40 52"/>
+<g fill="#ffffff"><circle cx="-58" cy="-20" r="4"/><circle cx="54" cy="-14" r="4"/><circle cx="-30" cy="-44" r="4"/><circle cx="34" cy="-42" r="4"/></g></g>
+<g transform="translate(632 662) scale(0.55)">
+<path fill="none" stroke="#141414" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" d="M-40 50 C -90 40, -90 -40, -40 -45 C 0 -50, 10 -10, 0 10 C -10 30, -30 40, 40 52 M40 50 C 90 40, 90 -40, 40 -45 C 0 -50, -10 -10, 0 10 C 10 30, 30 40, -40 52"/>
+<path fill="none" stroke="#b5672a" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" d="M-40 50 C -90 40, -90 -40, -40 -45 C 0 -50, 10 -10, 0 10 C -10 30, -30 40, 40 52 M40 50 C 90 40, 90 -40, 40 -45 C 0 -50, -10 -10, 0 10 C 10 30, 30 40, -40 52"/>
+<g fill="#ffffff"><circle cx="-58" cy="-20" r="4"/><circle cx="54" cy="-14" r="4"/><circle cx="-30" cy="-44" r="4"/><circle cx="34" cy="-42" r="4"/></g></g>
+<!-- hearts / lebkuchen on side walls -->
+<path class="k2" fill="#b5672a" d="M250 700 C 220 670, 250 640, 270 664 C 290 640, 320 670, 290 700 L270 724 Z"/>
+<path class="k2" fill="#b5672a" d="M754 700 C 724 670, 754 640, 774 664 C 794 640, 824 670, 794 700 L774 724 Z"/>
+<!-- grass base -->
+<path class="k" fill="#46b03c" d="M40 950 C 40 916, 120 914, 200 920 C 400 912, 700 912, 920 920 C 990 920, 996 960, 970 966 C 700 974, 300 974, 40 966 Z"/>
+</svg>
