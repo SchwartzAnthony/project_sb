@@ -41,11 +41,23 @@ func _initialize() -> void:
 	print("=== THE BREWERY, ONE BATCH PER ELEMENT ===")
 	for problem in BreweryBook.problems():
 		print("  ! %s" % problem)
-	var counts := [1, BreweryBook.max_element_cards()]
+	# EVERY COUNT FROM 1 TO THE MOST (Anthony, 15 Oct: "each at different %").
+	var counts := range(1, BreweryBook.max_element_cards() + 1)
 	for card in cards:
 		for many_cards in counts:
 			_one_batch(String(card), int(many_cards), kettle, sections, db, brews)
+	print("")
+	print("=== SUMMARY: share of bottles that came out as the element's own beer ===")
+	print("  %-18s %s" % ["cards in the kettle", "  ".join(counts.map(func(n): return "%5d" % n))])
+	for card in cards:
+		var line: Array[String] = []
+		for many_cards in counts:
+			line.append("%4d%%" % int(_summary.get("%s@%d" % [card, many_cards], 0)))
+		print("  %-18s %s" % [BreweryBook.card_name(String(card)), "  ".join(line)])
 	quit(0)
+
+
+var _summary := {}
 
 
 func _open_everything(state: GameState, sections: Array[Dictionary]) -> void:
@@ -122,6 +134,11 @@ func _one_batch(card: String, many_cards: int, kettle: String, sections: Array[D
 		var beer := brews.pick_from_pool(pool, state, "%s@%d" % [element, many_cards])
 		tally[beer] = int(tally.get(beer, 0)) + 1
 	print("  Odds over %d bottles of this element:" % POURS)
+	var own := 0
+	for beer in tally.keys():
+		if String(brews.find(String(beer)).get("element", "")).to_lower() == element.to_lower():
+			own += int(tally[beer])
+	_summary["%s@%d" % [card, many_cards]] = roundi(100.0 * own / POURS)
 	var keys := tally.keys()
 	keys.sort_custom(func(a, b): return int(tally[a]) > int(tally[b]))
 	for beer in keys:
