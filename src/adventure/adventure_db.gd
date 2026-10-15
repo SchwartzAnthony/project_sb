@@ -537,6 +537,20 @@ func bag(state: GameState) -> Dictionary:
 		copy["held"] = held
 		(out[tab_of(entry)] as Array).append(copy)
 
+	# THE BREWERY STORE IS IN THE BAG TOO (Anthony, 15 Oct: "Wheat and all of
+	# the resources we collect should be in the inventory").
+	for res in BreweryBook.resources():
+		var counter := BreweryBook.counter_for(String(res["id"]))
+		if items.has(CardDatabase._normalise(counter)):
+			continue        # already an Items.csv row (the bottles)
+		var held := state.count(counter)
+		if held <= 0:
+			continue
+		(out["resources"] as Array).append({"id": counter, "name": String(res["name"]),
+			"kind": String(res["kind"]), "art": String(res["icon"]), "use": "", "tags": "",
+			"description": String(res.get("description", "")), "held": held,
+			"sell": int(res.get("sell", 0))})
+
 	for tab in TABS:
 		(out[tab] as Array).sort_custom(func(a, b) -> bool:
 			return String(a.get("name", "")).naturalnocasecmp_to(String(b.get("name", ""))) < 0)

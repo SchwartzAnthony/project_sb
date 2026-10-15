@@ -161,6 +161,8 @@ static func _load() -> void:
 			# ROUND AN (12 Oct): `fire|water_element|...` = the player picks
 			# ONE of these cards. Empty for an ordinary resource.
 			"one_of": _list_of(MenuSupport.field(row, "One Of")),
+			# What the Traveling Merchant pays for one, in Groschen. Blank = 0.
+			"sell": maxi(0, MenuSupport.field_int(row, "Sell Price", 0)),
 		})
 
 	var section_ids: Dictionary = {}

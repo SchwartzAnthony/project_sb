@@ -253,6 +253,14 @@ static func sellable(state: GameState) -> Array[Dictionary]:
 		if price > 0 and have > 0:
 			out.append({"id": String(entry["id"]), "name": String(entry["name"]),
 				"have": have, "price": price})
+	# The Brewery store too (BreweryResources.csv Sell Price).
+	for res in BreweryBook.resources():
+		var res_price := int(res.get("sell", 0))
+		var res_counter := BreweryBook.counter_for(String(res["id"]))
+		var res_have := state.count(res_counter)
+		if res_price > 0 and res_have > 0:
+			out.append({"id": res_counter, "name": String(res["name"]),
+				"have": res_have, "price": res_price})
 	out.sort_custom(func(a, b): return String(a["name"]) < String(b["name"]))
 	return out
 
@@ -261,6 +269,10 @@ static func sellable(state: GameState) -> Array[Dictionary]:
 static func sell(item_id: String, state: GameState, many: int = 1) -> Dictionary:
 	var adb := AdventureDB.get_db()
 	var entry := adb.item(item_id) if adb != null else {}
+	if entry.is_empty():
+		for res in BreweryBook.resources():
+			if BreweryBook.counter_for(String(res["id"])) == item_id.strip_edges().to_lower():
+				entry = {"id": item_id, "name": res["name"], "sell": res.get("sell", 0)}
 	if state == null or entry.is_empty() or int(entry.get("sell", 0)) <= 0:
 		return {"ok": false, "why": "he does not buy that"}
 	var have := state.count(String(entry["id"]))

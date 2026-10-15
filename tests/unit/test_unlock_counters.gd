@@ -44,3 +44,18 @@ func test_clean_win_with_four_classes() -> void:
 	assert_eq(state.count("clean_wins_4_classes"), 0, "only three classes")
 	_end({"result": "win", "conceded": "0", "mode": "season", "classes": "4"})
 	assert_eq(state.count("clean_wins_4_classes"), 1)
+
+
+func test_all_stars_of_a_class_played() -> void:
+	var entry: ClassBook.ClassEntry = null
+	for key in ClassBook.classes():
+		var one: ClassBook.ClassEntry = ClassBook.classes()[key]
+		if one.stars.size() >= 2:
+			entry = one
+			break
+	assert_not_null(entry, "a class with Stars")
+	var flag := "all_stars_played_" + entry.unit_type
+	ClassTree.note_stars_played([entry.stars[0]], state)
+	assert_false(state.has_flag(flag), "one Star is not all of them")
+	ClassTree.note_stars_played(entry.stars.slice(1), state)
+	assert_true(state.has_flag(flag))

@@ -211,9 +211,14 @@ func _rebuild_brews() -> void:
 		child.queue_free()
 
 	var pourable := brews.available_for(state)
+	# YOUR OWN BOTTLES (Anthony, 15 Oct): "The pub is a place to make the
+	# players drink the bottles we have made" - and here it lasts the whole
+	# next match, not just one cycle as on the pitch.
+	for bottle in _bottles():
+		pourable.append(bottle)
 	if pourable.is_empty():
 		var empty := Label.new()
-		empty.text = "Nothing on tap yet.\n\nBrews are unlocked by the Brewing talents at the Training Ground."
+		empty.text = "Nothing on tap yet.\n\nBottle a batch at the Brewery and bring it here."
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.add_theme_font_size_override("font_size", 15)
 		empty.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
@@ -222,6 +227,28 @@ func _rebuild_brews() -> void:
 
 	for entry in pourable:
 		_brew_list.add_child(_make_brew_button(entry))
+
+
+## Every bottle in the bag that pours a beer (Items.csv Use brew:pool:...).
+func _bottles() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var adb := AdventureDB.get_db()
+	if adb == null:
+		return out
+	for key in adb.items.keys():
+		var item: Dictionary = adb.items[key]
+		var held := state.count(String(item["id"]))
+		if held <= 0 or not String(item["use"]).begins_with("brew:pool:"):
+			continue
+		if not DialogueGrammar.test(String(item["requires"]), state):
+			continue
+		out.append({"id": "bottle:" + String(item["id"]), "bottle": item,
+			"name": "%s  x%d" % [item["name"], held],
+			"description": "Opened at the table. Whatever beer is inside lasts him the whole next match.",
+			# the keys every Pub check reads, so a bottle passes them all
+			"for_class": "", "becomes": "", "attack": "", "defend": "", "permanent": false,
+			"cost": {}, "drinks": 0, "inspiration": 0, "pool": "bottle", "requires": ""})
+	return out
 
 
 func _make_brew_button(entry: Dictionary) -> Control:
@@ -271,6 +298,10 @@ func _make_brew_button(entry: Dictionary) -> Control:
 
 ## "Lorelei becomes Brandteufel · 2 abilities · can be permanent"
 func _summary(entry: Dictionary) -> String:
+	if entry.has("bottle"):
+		var els := BreweryBook.elements_on(String(entry["bottle"]["id"]), state)
+		return "from your Brewery%s · lasts the whole next match" % (
+			"" if els.is_empty() else " · next one: " + String(els[0]).capitalize())
 	var bits: PackedStringArray = []
 
 	var for_class := String(entry["for_class"]).strip_edges()
@@ -517,6 +548,9 @@ func _on_card_right_click(event: InputEvent, card: PlayerData) -> void:
 
 
 func _on_card(card: PlayerData) -> void:
+	if _selected.has("bottle"):
+		_pour_bottle(card)
+		return
 	# A TURNING BREW IS ITS OWN THING - a count towards a change for good,
 	# not an overlay - so it is handled before anything below can take a
 	# one-match brew off by accident.
@@ -569,6 +603,51 @@ func _on_card(card: PlayerData) -> void:
 	if sober != "" and DrunkBook.refusal(card, _selected, state) != "":
 		_detail.text += "  He is too sober for it to work yet (it needs %d%%)." % DrunkBook.threshold("brews")
 	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
+	_rebuild_cards()
+	var after := DrunkBook.level_of(card, state)
+	_cheer(card, {"after": after,
+		"new_level": String(before.get("id", "")) != String(after.get("id", ""))})
+
+
+## A bottle from the Brewery, opened at the Pub: the same lucky dip as on the
+## pitch, but it stays on him until the final whistle of the next match.
+func _pour_bottle(card: PlayerData) -> void:
+	if not PubBook.allowed(card, state, cards):
+		_detail.text = "%s is not in the room. Right-click to give them a seat." % card.player_name
+		return
+	var item: Dictionary = _selected["bottle"]
+	var item_id := String(item["id"])
+	if state.count(item_id) <= 0:
+		_detail.text = "No %s left." % item["name"]
+		return
+	if BrewDB.brew_id_for(card, state) != "":
+		_detail.text = "%s already has a beer for the next match. Click him with nothing picked to take it off." % card.player_name
+		return
+	var brew_id := AdventureDB.brew_in_use(item, state)
+	var brew := brews.find(brew_id)
+	if brew.is_empty():
+		_detail.text = "That bottle is empty - no beer in Brews.csv fits it."
+		return
+	if not BrewDB.suits(brew, card):
+		_detail.text = "%s cannot drink that." % card.player_name
+		return
+	var before := DrunkBook.level_of(card, state)
+	BreweryBook.open_bottle(item_id, state)
+	state.add_count(item_id, -1)
+	DrunkBook.drink(card, brew, state, item)
+	if not DrunkBook.is_plain(brew):
+		state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(card), brew_id)
+		state.set_text(BrewDB.LENT_PREFIX + BrewDB.card_key(card), "")
+	brews.apply_all(cards, state)
+	_pour_sound(card)
+	state.save_to_disk()
+	_detail.text = "%s opens a %s: %s. It lasts the whole next match." % [
+		card.player_name, item["name"], brew.get("name", brew_id)]
+	if DrunkBook.refusal(card, brew, state) != "":
+		_detail.text += "  He is too sober for it to work yet (it needs %d%%)." % DrunkBook.threshold("brews")
+	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
+	_selected = {}
+	_rebuild_brews()
 	_rebuild_cards()
 	var after := DrunkBook.level_of(card, state)
 	_cheer(card, {"after": after,

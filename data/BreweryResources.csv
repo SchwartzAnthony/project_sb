@@ -1,9 +1,9 @@
-ID,Name,Kind,Kept,Start,Icon,Counter,One Of,Notes
-wheat,Wheat,raw,no,10,res_wheat.png,,,"KIND says where it comes from. `raw` arrives from outside the brewery - a match reward, the Traveling Brewer, an adventure. `made` is produced by one of the six sections. `tool` is a piece of equipment."
-water,Water,raw,no,20,res_water.png,,,The one thing three different sections all want. Keep the Start high.
-germs,Germs,raw,no,5,res_germs.png,,,
-hops,Hops,raw,no,6,res_hops.png,,,
-yeast,Yeast,raw,no,4,res_yeast.png,,,
+ID,Name,Kind,Kept,Start,Icon,Counter,One Of,Notes,Sell Price
+wheat,Wheat,raw,no,10,res_wheat.png,,,"KIND says where it comes from. `raw` arrives from outside the brewery - a match reward, the Traveling Brewer, an adventure. `made` is produced by one of the six sections. `tool` is a piece of equipment.",1
+water,Water,raw,no,20,res_water.png,,,The one thing three different sections all want. Keep the Start high.,1
+germs,Germs,raw,no,5,res_germs.png,,,,2
+hops,Hops,raw,no,6,res_hops.png,,,,4
+yeast,Yeast,raw,no,4,res_yeast.png,,,,4
 hammer,Hammer,tool,yes,1,res_hammer.png,,,"KEPT = yes means it is NOT used up. You need to own one to work the Mill, and you still own it afterwards. That is the difference between equipment and an ingredient, and it is one cell."
 filter,Filter,tool,yes,1,res_filter.png,,,
 boiler,Boiler,tool,yes,1,res_boiler.png,,,

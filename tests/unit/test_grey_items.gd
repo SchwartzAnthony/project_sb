@@ -42,3 +42,30 @@ func test_a_normal_item_is_not_bought() -> void:
 	state.set_count("field_bandage", 3)
 	assert_false(bool(ShopBook.sell("field_bandage", state)["ok"]))
 	assert_eq(state.count("field_bandage"), 3)
+
+
+func test_wheat_sells_at_the_merchant() -> void:
+	var state := GameState.new()
+	state.set_count("res_wheat", 3)
+	state.set_count("coins", 0)
+	var ids := ShopBook.sellable(state).map(func(one): return String(one["id"]))
+	assert_has(ids, "res_wheat")
+	assert_true(bool(ShopBook.sell("res_wheat", state, 0)["ok"]))
+	assert_eq(state.count("res_wheat"), 0)
+	assert_gt(state.count("coins"), 0)
+
+
+func test_collected_never_goes_down() -> void:
+	var state := GameState.new()
+	state.add_count("res_wheat", 20)
+	state.add_count("res_wheat", -15)
+	state.add_count("res_wheat", 12)
+	assert_eq(state.count("res_wheat"), 17)
+	assert_eq(state.count("collected_res_wheat"), 32)
+
+
+func test_the_brewery_store_is_in_the_bag() -> void:
+	var state := GameState.new()
+	state.set_count("res_hops", 4)
+	var names: Array = AdventureDB.get_db().bag(state)["resources"].map(func(one): return String(one["name"]))
+	assert_has(names, "Hops")

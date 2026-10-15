@@ -2286,6 +2286,7 @@ func _full_time() -> void:
 		facts["class_" + String(kind).to_lower().replace(" ", "_").replace("-", "_")] = str(per_class[kind])
 	facts["classes"] = str(per_class.size())
 	_report("match_ended", facts)
+	ClassTree.note_stars_played(_squad_that_played(), state)
 
 	# ============ THE REFEREE'S NOTEBOOK ============
 	#
