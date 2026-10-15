@@ -593,8 +593,17 @@ func _fill_windows() -> void:
 	for res in BreweryBook.resources():
 		var kind := String(res["kind"])
 		var row := _material_row if kind == "made" else _resource_row
-		if row != null:
-			row.add_child(_stock_tile(res))
+		if row == null:
+			continue
+		# A One Of row (the element) shows each of its cards on its own tile.
+		if not (res["one_of"] as Array).is_empty():
+			for member in res["one_of"]:
+				var tile := res.duplicate()
+				tile["id"] = String(member)
+				tile["name"] = BreweryBook.card_name(String(member))
+				row.add_child(_stock_tile(tile))
+			continue
+		row.add_child(_stock_tile(res))
 
 
 func _stock_tile(res: Dictionary) -> Control:
@@ -643,6 +652,24 @@ func _work(section_id: String) -> void:
 	# cannot be lost and the Brewer's own hand is on it.
 	# ============ WHICH SIZE (round AN, BottleSizes.csv) ============
 	# Small bottles, large bottles or a keg. One size offered = no question.
+	# ============ WHICH ELEMENT (12 Oct, the Brew Kettle) ============
+	# "If this element, then this beer": the card you put in decides which
+	# beers can come out of the bottle. One card owned = no question.
+	var pick := ""
+	var elements := BreweryBook.choices_for(section_id, state)
+	if elements.size() == 1:
+		pick = String(elements[0]["id"])
+	elif elements.size() > 1:
+		var names: Array[String] = []
+		for choice in elements:
+			names.append("%s (%d)" % [choice["name"], int(choice["have"])])
+		_playing = true
+		var chosen: int = await ChoiceWindow.ask(self, "WHICH ELEMENT?",
+			"The element you put in decides which beer comes out of the bottle.", names)
+		_playing = false
+		if chosen < 0 or not is_inside_tree():
+			return
+		pick = String(elements[chosen]["id"])
 	var output := {}
 	var sizes := BreweryBook.sizes_for(section_id, state)
 	if sizes.size() == 1:
@@ -677,7 +704,7 @@ func _work(section_id: String) -> void:
 		roll = 0 if won else 101
 		if not won and not BrewerBook.on(cards):
 			# No brewers in this game: the mini-game alone spoils it.
-			BreweryBook.work(section_id, state, true)
+			BreweryBook.work(section_id, state, true, {}, pick)
 			_say("SPOILED. The batch went wrong and the ingredients are gone.", false)
 			state.save_to_disk()
 			_rebuild()
@@ -685,7 +712,7 @@ func _work(section_id: String) -> void:
 	if guided:
 		remove_meta(Guide.ONLY_META)
 	# ROUND AN: a BREWER works it — see brewer_book.gd and data/Brewers.csv.
-	var result := BrewerBook.work(section_id, state, cards, roll, output)
+	var result := BrewerBook.work(section_id, state, cards, roll, output, pick)
 	if not bool(result["ok"]):
 		_say(String(result["why"]), false)
 		_rebuild()
@@ -696,6 +723,8 @@ func _work(section_id: String) -> void:
 	if bool(result.get("item", false)):
 		# A bottle size: an Items.csv item, straight into the bag.
 		made_text = String(AdventureDB.get_db().item(String(result["made"])).get("name", made_text))
+	if String(result.get("element", "")) != "" and not bool(result.get("spoiled", false)):
+		made_text += " (%s)" % String(result["element"]).capitalize()
 	var who := String(result.get("brewer", ""))
 	var crew := ("%s (%d%%)" % [who, int(result["chance"])]) if who != "" \
 		else "Nobody free to brew it (%d%%)" % int(result.get("chance", 100))

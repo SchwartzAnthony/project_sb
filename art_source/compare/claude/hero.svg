@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1536" width="1024" height="1536">
+  <defs>
+    
+  </defs>
+
+  <!-- ===== BACK ARM: hand on hip, elbow out ===== -->
+  <path fill="none" stroke="#141414" stroke-linecap="round" stroke-linejoin="round" stroke-width="70" d="M430 690 C 360 720, 300 770, 290 820 C 300 870, 360 890, 410 900"/>
+  <path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#f0a07c" stroke-width="44" d="M430 690 C 360 720, 300 770, 290 820 C 300 870, 360 890, 410 900"/>
+  <!-- rolled red sleeve on back arm -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#c8302a" d="M380 680 C 400 650, 460 650, 470 690 C 460 740, 400 760, 360 740 C 340 720, 360 690, 380 680 Z"/>
+
+  <!-- ===== STANDING LEG (back) ===== -->
+  <path fill="none" stroke="#141414" stroke-linecap="round" stroke-linejoin="round" stroke-width="64" d="M450 1040 C 430 1120, 410 1180, 400 1250 C 392 1310, 392 1360, 396 1400"/>
+  <path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#f0a07c" stroke-width="38" d="M450 1040 C 430 1120, 410 1180, 400 1250"/>
+  <!-- knee sock -->
+  <path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#e9e6df" stroke-width="40" d="M402 1250 C 394 1310, 392 1360, 396 1400"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#2f8a3a" d="M372 1236 C 390 1226, 418 1228, 432 1240 L428 1270 C 414 1260, 390 1258, 370 1266 Z"/>
+  <!-- standing boot: clunky Haferlschuh -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#5a3218" d="M350 1400 C 360 1376, 420 1372, 440 1394 C 480 1400, 530 1420, 548 1450 C 556 1474, 540 1488, 510 1488 L340 1488 C 320 1488, 318 1460, 330 1440 C 334 1420, 340 1406, 350 1400 Z"/>
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#2a1a10" d="M326 1476 L552 1476 C 560 1490, 552 1504, 536 1504 L330 1504 C 316 1504, 314 1488, 326 1476 Z"/>
+  <path stroke="#141414" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="8" d="M430 1408 C 446 1420, 470 1426, 494 1428"/>
+  <path fill="#7a4a24" d="M470 1430 C 500 1434, 530 1444, 540 1460 C 520 1450, 496 1446, 470 1446 Z"/>
+
+  <!-- ===== FOOTBALL ===== -->
+  <circle stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" cx="700" cy="1384" r="124" fill="#ffffff"/>
+  <path fill="#d8dde3" d="M600 1440 C 640 1500, 760 1510, 812 1430 C 790 1480, 700 1520, 640 1490 C 620 1480, 606 1462, 600 1440 Z"/>
+  <g fill="#141414">
+    <path d="M700 1350 L736 1376 L722 1418 L678 1418 L664 1376 Z"/>
+    <path d="M600 1330 C 610 1300, 630 1280, 650 1272 L660 1300 L634 1336 Z"/>
+    <path d="M790 1310 C 806 1330, 818 1356, 822 1380 L792 1384 L770 1344 Z"/>
+    <path d="M640 1494 L660 1462 L700 1468 L716 1505 C 690 1510, 660 1505, 640 1494 Z"/>
+    <path d="M590 1420 L618 1418 L630 1456 C 612 1446, 598 1436, 590 1420 Z"/>
+  </g>
+  <g stroke="#141414" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="6">
+    <path d="M700 1350 L700 1300 M736 1376 L780 1360 M722 1418 L750 1460 M678 1418 L652 1458 M664 1376 L624 1360"/>
+  </g>
+  <circle stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" cx="700" cy="1384" r="124" fill="none"/>
+
+  <!-- ===== RAISED LEG: boot planted on the ball ===== -->
+  <path fill="none" stroke="#141414" stroke-linecap="round" stroke-linejoin="round" stroke-width="64" d="M520 1030 C 580 1060, 640 1090, 660 1130 C 676 1170, 676 1200, 672 1230"/>
+  <path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#f0a07c" stroke-width="38" d="M520 1030 C 580 1060, 640 1090, 660 1130"/>
+  <path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#e9e6df" stroke-width="40" d="M662 1134 C 676 1170, 676 1200, 672 1230"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#2f8a3a" d="M636 1124 C 654 1110, 684 1112, 694 1130 L688 1156 C 674 1144, 650 1144, 636 1152 Z"/>
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#5a3218" d="M626 1226 C 636 1202, 696 1198, 716 1220 C 760 1224, 820 1236, 840 1262 C 848 1286, 830 1298, 800 1296 L622 1292 C 602 1290, 600 1266, 612 1248 C 614 1238, 618 1230, 626 1226 Z"/>
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#2a1a10" d="M606 1282 L844 1286 C 852 1300, 842 1312, 826 1312 L610 1308 C 596 1306, 594 1292, 606 1282 Z"/>
+  <!-- studs -->
+  <g stroke="#141414" stroke-linejoin="round" stroke-linecap="round" stroke-width="6" fill="#bfc6cd"><path d="M640 1308 L652 1308 L650 1322 L642 1322 Z"/><path d="M720 1310 L732 1310 L730 1324 L722 1324 Z"/><path d="M800 1310 L812 1310 L810 1324 L802 1324 Z"/></g>
+  <path stroke="#141414" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="8" d="M712 1228 C 728 1240, 752 1246, 776 1248"/>
+  <path fill="#7a4a24" d="M760 1252 C 790 1256, 820 1266, 830 1280 C 810 1272, 786 1268, 760 1268 Z"/>
+
+  <!-- ===== LEDERHOSEN ===== -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#7a4a24" d="M392 890 C 450 902, 540 902, 572 884 C 590 940, 600 1000, 600 1056 C 580 1074, 540 1080, 510 1066 L494 1000 L478 1066 C 450 1080, 410 1076, 396 1060 C 386 1000, 384 940, 392 890 Z"/>
+  <path fill="#5a3218" d="M560 892 C 580 950, 590 1000, 592 1054 C 576 1064, 556 1068, 540 1064 C 546 1010, 548 950, 560 892 Z"/>
+  <!-- front flap with stitching and horn buttons -->
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#8a5a2c" d="M440 900 C 470 904, 520 904, 548 898 L544 990 C 510 1000, 474 1000, 444 990 Z"/>
+  <g stroke="#141414" stroke-linejoin="round" stroke-linecap="round" stroke-width="6" fill="#e8dcc0"><circle cx="452" cy="914" r="9"/><circle cx="536" cy="912" r="9"/><circle cx="452" cy="978" r="9"/><circle cx="536" cy="976" r="9"/></g>
+  <!-- leg cuffs -->
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#5a3218" d="M396 1040 C 420 1052, 460 1054, 482 1044 L478 1068 C 450 1080, 414 1078, 396 1064 Z"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#5a3218" d="M512 1046 C 540 1056, 580 1054, 600 1040 L600 1060 C 580 1076, 540 1080, 510 1068 Z"/>
+
+  <!-- ===== TORSO: skinny, red shirt ===== -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#d8392f" d="M402 668 C 440 646, 520 640, 556 660 C 570 720, 576 820, 572 892 C 520 912, 440 910, 392 892 C 388 820, 392 730, 402 668 Z"/>
+  <path fill="#a82820" d="M540 662 C 560 720, 566 820, 564 888 C 548 894, 530 898, 514 900 C 526 820, 530 740, 540 662 Z"/>
+  <!-- collar -->
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#ffffff" d="M440 654 L478 700 L500 650 Z"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#ffffff" d="M500 650 L520 698 L548 660 Z"/>
+  <!-- suspenders with the cross bar -->
+  <path fill="none" stroke="#141414" stroke-linecap="round" stroke-linejoin="round" stroke-width="40" d="M440 668 L446 900 M528 664 L536 896"/>
+  <path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#7a4a24" stroke-width="22" d="M440 668 L446 900 M528 664 L536 896"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#3f9a48" d="M428 760 C 460 750, 510 748, 548 756 L546 800 C 510 792, 460 794, 430 804 Z"/>
+  <path stroke="#141414" stroke-linejoin="round" stroke-linecap="round" stroke-width="6" fill="#f2c94c" d="M488 762 C 500 770, 500 786, 488 792 C 476 786, 476 770, 488 762 Z"/>
+
+  <!-- ===== NECK: long and gangly ===== -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#f0a07c" d="M462 590 C 466 620, 464 650, 456 676 C 480 690, 512 688, 528 672 C 520 640, 520 610, 526 586 Z"/>
+  <path stroke="#141414" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="8" d="M500 630 C 512 636, 512 648, 502 652"/>
+
+  <!-- ===== RAISED ARM with the stein ===== -->
+  <path fill="none" stroke="#141414" stroke-linecap="round" stroke-linejoin="round" stroke-width="66" d="M550 680 C 640 664, 760 650, 806 590 C 846 530, 836 430, 812 330"/>
+  <path fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#f0a07c" stroke-width="40" d="M550 680 C 640 664, 760 650, 806 590 C 846 530, 836 430, 812 330"/>
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#d8392f" d="M512 652 C 540 630, 600 626, 616 660 C 612 700, 570 720, 530 712 C 504 700, 498 670, 512 652 Z"/>
+
+  <g transform="translate(90 -40)">
+<!-- stein: glass Mass with handle, foaming over -->
+  <path stroke="#141414" stroke-linejoin="round" stroke-linecap="round" fill="none" stroke-width="40" d="M690 230 C 630 230, 626 340, 690 340"/>
+  <path fill="none" stroke="#dfe9ef" stroke-width="20" stroke-linecap="round" d="M690 230 C 630 230, 626 340, 690 340"/>
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#f2b632" d="M684 170 L880 170 L868 400 C 840 414, 724 414, 698 400 Z"/>
+  <path fill="#d8902a" d="M840 176 L880 170 L868 400 C 858 404, 846 407, 834 408 Z"/>
+  <path fill="#ffe08a" d="M712 210 L736 210 L734 380 L716 380 Z"/>
+  <path stroke="#141414" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="8" d="M760 250 L760 360 M808 250 L808 360"/>
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="none" d="M684 170 L880 170 L868 400 C 840 414, 724 414, 698 400 Z"/>
+  <!-- foam head spilling over -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#ffffff" d="M664 186 C 640 150, 664 110, 704 120 C 708 80, 760 64, 790 92 C 810 60, 870 66, 878 108 C 914 108, 930 150, 900 176 C 906 196, 892 214, 876 206 C 872 236, 852 252, 846 226 C 840 206, 800 204, 772 206 C 760 230, 740 250, 732 216 C 704 214, 690 226, 680 206 C 676 216, 660 212, 664 186 Z"/>
+  <path fill="#dfe6ee" d="M680 196 C 700 186, 740 188, 760 196 C 790 186, 840 186, 880 194 C 876 206, 872 208, 866 204 C 858 220, 850 228, 846 220 C 836 200, 800 198, 770 200 C 760 214, 744 222, 736 208 C 712 206, 696 214, 684 204 Z"/>
+  <!-- foam blobs flying -->
+  <g stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#ffffff"><circle cx="900" cy="60" r="14"/><circle cx="620" cy="100" r="13"/></g>
+  <!-- beer drops -->
+  <g stroke="#141414" stroke-linejoin="round" stroke-linecap="round" stroke-width="6" fill="#f2b632"><path d="M600 160 C 610 176, 614 190, 604 194 C 594 190, 594 176, 600 160 Z"/></g>
+
+  <!-- big hand gripping the handle -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#f0a07c" d="M664 330 C 650 300, 660 262, 692 258 C 720 250, 750 262, 752 290 C 760 310, 752 340, 730 350 C 714 380, 678 384, 666 360 C 656 352, 656 340, 664 330 Z"/>
+  <path stroke="#141414" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="8" d="M694 266 C 716 266, 732 278, 736 296 M690 296 C 712 296, 728 306, 732 322 M688 326 C 706 326, 720 334, 724 346"/>
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#f0a07c" d="M668 300 C 648 296, 640 316, 654 328 C 666 334, 680 326, 680 314 Z"/>
+
+  </g>
+  <!-- ===== HEAD ===== -->
+  <!-- wild hair behind the head -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#3a2614" d="M440 300 C 400 260, 340 270, 330 300 C 300 300, 270 330, 300 350 C 260 370, 270 410, 320 400 C 290 440, 320 470, 360 450 C 350 490, 390 510, 410 480 L440 400 Z"/>
+  <path fill="#24170c" d="M330 420 C 340 440, 360 446, 380 440 C 376 460, 392 474, 410 470 L430 420 Z"/>
+  <!-- big ear -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#f0a07c" d="M428 420 C 380 380, 330 400, 340 460 C 348 510, 400 524, 432 500 Z"/>
+  <path stroke="#141414" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="8" d="M410 440 C 380 430, 366 456, 380 480 C 392 492, 408 486, 412 474"/>
+  <!-- head shape: long egg with a big chin -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#f0a07c" d="M420 360 C 420 290, 480 250, 552 262 C 624 274, 650 340, 644 410 C 660 480, 644 560, 600 596 C 556 624, 480 616, 450 576 C 420 540, 414 460, 420 360 Z"/>
+  <path fill="#d9805e" d="M438 470 C 444 540, 470 590, 520 604 C 480 612, 448 590, 436 556 C 426 520, 426 490, 438 470 Z"/>
+  <!-- stubble shadow on the chin, flat -->
+  <path fill="#e08a68" d="M500 560 C 540 600, 600 600, 630 556 C 624 580, 604 604, 560 608 C 530 608, 510 590, 500 560 Z"/>
+
+  <!-- eyes: big white ovals, small pupils looking up at the beer -->
+  <ellipse stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" cx="538" cy="368" rx="36" ry="50" fill="#ffffff"/>
+  <ellipse stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" cx="608" cy="362" rx="30" ry="46" fill="#ffffff"/>
+  <circle cx="556" cy="346" r="11" fill="#141414"/>
+  <circle cx="624" cy="340" r="10" fill="#141414"/>
+  <!-- eyebrows, raised -->
+  <path stroke="#141414" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="14" d="M506 300 C 520 286, 548 282, 566 292"/>
+  <path stroke="#141414" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="14" d="M590 292 C 604 280, 628 282, 640 296"/>
+
+  <!-- mouth: huge gap-tooth grin -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#7a1a1a" d="M474 500 C 500 590, 620 610, 668 520 C 630 540, 540 540, 474 500 Z"/>
+  <path fill="#e8606a" d="M520 560 C 550 590, 610 590, 636 560 C 612 572, 560 574, 520 560 Z"/>
+  <path stroke="#141414" stroke-linejoin="round" stroke-linecap="round" stroke-width="7" fill="#ffffff" d="M532 524 L566 530 L564 560 L536 556 Z"/>
+  <path stroke="#141414" stroke-linejoin="round" stroke-linecap="round" stroke-width="7" fill="#ffffff" d="M590 532 L622 530 L620 556 L592 560 Z"/>
+  <path stroke="#141414" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="8" d="M470 494 C 466 486, 470 478, 480 476"/>
+
+  <!-- the potato nose: huge, bulbous, pointing right -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#f07868" d="M576 404 C 600 380, 680 380, 724 420 C 770 460, 750 520, 700 520 C 680 540, 630 540, 612 520 C 580 530, 556 506, 566 480 C 548 460, 556 420, 576 404 Z"/>
+  <path fill="#d45a4c" d="M612 520 C 640 510, 690 512, 712 504 C 700 520, 690 524, 700 520 C 680 540, 630 540, 612 520 Z"/>
+  <ellipse cx="684" cy="430" rx="18" ry="10" fill="#ffffff" transform="rotate(20 684 430)"/>
+  <path stroke="#141414" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="7" d="M632 506 C 640 498, 652 498, 658 504"/>
+
+  <!-- ===== HAT: green Tyrolean with a feather ===== -->
+  <!-- feather: broad, curved, dark tip -->
+  <path fill="#f4f1ea" stroke="#141414" stroke-width="14" stroke-linejoin="round" d="M450 240 C 420 200, 380 150, 330 110 C 300 86, 280 70, 268 60 C 300 64, 340 80, 370 104 C 390 96, 404 104, 400 120 C 430 150, 450 196, 464 236 Z"/>
+  <path fill="#3a2614" stroke="#141414" stroke-width="10" stroke-linejoin="round" d="M268 60 C 296 64, 326 76, 350 94 C 330 104, 306 96, 290 84 C 280 76, 272 68, 268 60 Z"/>
+  <path fill="none" stroke="#141414" stroke-width="7" stroke-linecap="round" d="M300 78 C 360 120, 410 180, 452 236"/>
+  <!-- crown with pinched top -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#3f8f3a" d="M436 280 C 430 220, 440 170, 476 150 C 500 160, 520 162, 540 150 C 590 160, 612 220, 612 270 Z"/>
+  <path fill="#2c6e2a" d="M560 158 C 592 180, 606 226, 612 270 L580 272 C 584 230, 576 190, 560 158 Z"/>
+  <path stroke="#141414" stroke-linecap="round" stroke-linejoin="round" fill="none" stroke-width="8" d="M506 158 C 510 190, 508 220, 500 240"/>
+  <!-- hat band (rope) -->
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#1f4a1f" d="M432 262 C 490 250, 560 250, 616 256 L616 284 C 560 276, 490 278, 432 292 Z"/>
+  <g fill="#f2c94c" stroke="#141414" stroke-linejoin="round" stroke-linecap="round" stroke-width="6"><circle cx="452" cy="276" r="8"/><circle cx="476" cy="272" r="8"/></g>
+  <!-- brim, tilted, upturned at the back -->
+  <path stroke="#141414" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" fill="#3f8f3a" d="M380 286 C 370 260, 390 248, 420 270 C 480 300, 580 290, 650 266 C 690 254, 700 272, 680 290 C 620 330, 470 334, 380 286 Z"/>
+  <path fill="#2c6e2a" d="M420 300 C 500 324, 610 316, 676 290 C 640 318, 500 330, 420 300 Z"/>
+
+  <!-- tufts of wild hair poking out under the hat -->
+  <path stroke="#141414" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#3a2614" d="M430 300 C 410 320, 404 340, 420 356 C 430 340, 440 330, 452 322 C 448 340, 452 356, 466 362 C 466 340, 476 320, 490 310 Z"/>
+</svg>

@@ -303,9 +303,9 @@ function paintArt(){
       out.push("");
     });
     const text=out.join("\n");
-    navigator.clipboard.writeText(text).then(()=>alert("The work list is on your clipboard."),()=>alert(text));
+    navigator.clipboard.writeText(text).then(()=>say("The work list is on your clipboard."),()=>say(text));
   },"key");
-  mk("Untick everything",()=>{ if(confirm("Clear every art tick?")){
+  mk("Untick everything",async()=>{ if(await yes("Clear every art tick?")){
     Object.keys(HAVE).forEach(k=>{ if(k.indexOf("art:")===0) delete HAVE[k]; });
     saveHave(); paintTable(); paintRail(); } });
 

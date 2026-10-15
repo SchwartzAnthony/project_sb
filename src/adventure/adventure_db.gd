@@ -588,7 +588,9 @@ static func brew_in_use(entry: Dictionary, state: GameState = null) -> String:
 	# ROUND AN - PLAIN BEER: brew:pool:plain picks one Brews.csv row whose
 	# Pool is plain, at random, every time a bottle is opened.
 	if brew_id.begins_with("pool:"):
-		return BrewDB.get_db().pick_from_pool(brew_id.substr(5), state)
+		# ...and only the beers of the element its Brew Kettle was given.
+		return BrewDB.get_db().pick_from_pool(brew_id.substr(5), state,
+			BreweryBook.bottle_element(String(entry.get("id", "")), state))
 	return brew_id
 
 

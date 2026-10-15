@@ -215,15 +215,29 @@ func available_for(state: GameState) -> Array[Dictionary]:
 
 ## ROUND AN - PLAIN BEER. One row of the pool, at random, among those whose
 ## Requires pass. "" when the pool is empty.
-func pick_from_pool(pool: String, state: GameState) -> String:
+##
+## IF THIS ELEMENT, THEN THIS BEER (Anthony, 12 Oct). `element` is the one
+## that went into the Brew Kettle for this bottle (BreweryBook.bottle_element).
+## Only rows whose Element is that element, or blank, can come out. A bottle
+## with no element (bought, a reward) picks from the whole pool as before.
+func pick_from_pool(pool: String, state: GameState, element: String = "") -> String:
 	var key := pool.strip_edges().to_lower()
+	var wanted := CardDatabase._normalise(element)
 	var choices: Array[String] = []
+	var any_element: Array[String] = []
 	for entry in brews:
 		# A row can sit in several pools: plain|keg.
 		if not String(entry.get("pool", "")).split("|").has(key):
 			continue
-		if DialogueGrammar.test(String(entry["requires"]), state):
+		if not DialogueGrammar.test(String(entry["requires"]), state):
+			continue
+		any_element.append(String(entry["id"]))
+		var own := CardDatabase._normalise(String(entry.get("element", "")))
+		if wanted == "" or own == "" or own == wanted:
 			choices.append(String(entry["id"]))
+	if choices.is_empty():
+		# Nothing in this pool fits that element: better any beer than none.
+		choices = any_element
 	if choices.is_empty():
 		return ""
 	return choices[randi() % choices.size()]

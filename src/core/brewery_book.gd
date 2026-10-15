@@ -75,6 +75,25 @@ const BATCHES_PREFIX := "batches_"
 ## Set the first time the opening stock is handed out, so it is handed out
 ## exactly once per save. See stock_a_new_game().
 const STOCKED_FLAG := "brewery_stocked"
+## ============ IF THIS ELEMENT, THEN THIS BEER (Anthony, 12 Oct) ============
+##
+## "I have the one pick element, so I need an 'if' this element then this
+## beer output."
+##
+## A BreweryResources.csv row with a `One Of` column is not one thing but a
+## choice: `element` lists the five element cards (Items.csv fire,
+## water_element, earth_element, air_element, no_element). The Brew Kettle
+## takes `element:1`, so the player picks ONE of the cards they own.
+##
+## The card's Name says which element it is: "Fire Element" is Fire,
+## "Passion Element" is Passion (the same rule the System Builder uses). That
+## word rides along with the batch - brew, barrel in the cellar, bottle in the
+## bag - kept as one readable line per counter:
+##     brew_elements_brew         = "fire,fire,water"   (oldest first)
+##     brew_elements_small_bottle = "fire,fire,fire,fire,fire,fire"
+## When a bottle is opened, its beer is picked only from the Brews.csv pool
+## rows whose Element is that element, or blank. See BrewDB.pick_from_pool().
+const ELEMENTS_PREFIX := "brew_elements_"
 
 static var _resources: Array[Dictionary] = []
 static var _sections: Array[Dictionary] = []
@@ -121,6 +140,9 @@ static func _load() -> void:
 			# A bag item's ID here makes the resource THAT item: the bottles
 			# the Bottling Machine fills is a small_bottle in the bag.
 			"counter": MenuSupport.field(row, "Counter").strip_edges().to_lower(),
+			# ROUND AN (12 Oct): `fire|water_element|...` = the player picks
+			# ONE of these cards. Empty for an ordinary resource.
+			"one_of": _list_of(MenuSupport.field(row, "One Of")),
 		})
 
 	var section_ids: Dictionary = {}
@@ -172,6 +194,16 @@ static func _load() -> void:
 		print("[brewery] %d section(s), %d resource(s)." % [_sections.size(), _resources.size()])
 	for problem in _problems:
 		print("[brewery] %s" % problem)
+
+
+## "fire|water_element" -> ["fire", "water_element"]
+static func _list_of(text: String) -> Array[String]:
+	var out: Array[String] = []
+	for part in text.split("|", false):
+		var clean := String(part).strip_edges().to_lower()
+		if clean != "" and not out.has(clean):
+			out.append(clean)
+	return out
 
 
 ## "wheat:1;water:1;germs:1" -> {"wheat": 1, "water": 1, "germs": 1}
@@ -240,6 +272,15 @@ static func _check_the_chain() -> void:
 		if int(section["wait_max"]) < int(section["wait_min"]):
 			_problems.append("%s has Wait Max below Wait Min." % label)
 
+	# A One Of card must be a bag item (Items.csv) or a resource row.
+	var item_ids: Dictionary = {}
+	for row in MenuSupport.read_csv("res://data/Items.csv"):
+		item_ids[MenuSupport.field(row, "ID").strip_edges().to_lower()] = true
+	for res in _resources:
+		for member in res["one_of"]:
+			if not known.has(member) and not item_ids.has(member):
+				_problems.append("'%s' has '%s' in its One Of, which is not a row of Items.csv or BreweryResources.csv." % [res["id"], member])
+
 	# A raw resource nobody starts with and nothing makes is a dead end.
 	for res in _resources:
 		if String(res["kind"]) == "made" or bool(res["kept"]):
@@ -295,15 +336,32 @@ static func counter_for(id_text: String) -> String:
 	# bottle is the bag's small_bottle.
 	_load()
 	var key := id_text.to_lower()
+	var is_row := false
 	for res in _resources:
-		if String(res["id"]) == key and String(res.get("counter", "")) != "":
+		if String(res["id"]) != key:
+			continue
+		is_row = true
+		if String(res.get("counter", "")) != "":
 			return String(res["counter"])
+	# A One Of card that is not a resource row is a bag item: its own ID.
+	if not is_row:
+		for res in _resources:
+			if (res["one_of"] as Array).has(key):
+				return key
 	return COUNTER_PREFIX + key
 
 
+## How many you have. For a One Of row (the element), every card of it you
+## own added up.
 static func stock(id_text: String, state: GameState) -> int:
 	if state == null:
 		return 0
+	var res := resource(id_text)
+	if not res.is_empty() and not (res["one_of"] as Array).is_empty():
+		var total := 0
+		for member in res["one_of"]:
+			total += state.count(counter_for(String(member)))
+		return total
 	return state.count(counter_for(id_text))
 
 
@@ -320,13 +378,147 @@ static func add_stock(id_text: String, many: int, state: GameState) -> void:
 ## spend your last germ, walk out of the Brewery, walk back in, and it hands
 ## you five more. A flag is the difference between "you start with this" and
 ## "this is free".
+##
+## A One Of row's Start is given as that many of EACH of its cards, and it has
+## its own flag, so a save made before the row existed still gets them once.
 static func stock_a_new_game(state: GameState) -> void:
-	if state == null or state.has_flag(STOCKED_FLAG):
+	if state == null:
 		return
-	state.set_flag(STOCKED_FLAG, true)
+	if not state.has_flag(STOCKED_FLAG):
+		state.set_flag(STOCKED_FLAG, true)
+		for res in resources():
+			if int(res["start"]) > 0 and (res["one_of"] as Array).is_empty():
+				state.set_count(counter_for(String(res["id"])), int(res["start"]))
 	for res in resources():
-		if int(res["start"]) > 0:
-			state.set_count(counter_for(String(res["id"])), int(res["start"]))
+		if (res["one_of"] as Array).is_empty() or int(res["start"]) <= 0:
+			continue
+		var flag := STOCKED_FLAG + "_" + String(res["id"])
+		if state.has_flag(flag):
+			continue
+		state.set_flag(flag, true)
+		for member in res["one_of"]:
+			var counter := counter_for(String(member))
+			if state.count(counter) <= 0:
+				state.set_count(counter, int(res["start"]))
+
+
+# =============================================================
+#  IF THIS ELEMENT, THEN THIS BEER  (round AN, 12 Oct)
+# =============================================================
+
+## The One Of row a section takes (the Brew Kettle's `element`), or {}.
+static func choice_taken(section_id: String) -> Dictionary:
+	var one := section(section_id)
+	if one.is_empty():
+		return {}
+	for id_text in one["takes"]:
+		var res := resource(String(id_text))
+		if not res.is_empty() and not (res["one_of"] as Array).is_empty():
+			return res
+	return {}
+
+
+## The display name of a One Of card: its resource row, else its Items.csv row.
+static func card_name(card_id: String) -> String:
+	var res := resource(card_id)
+	if not res.is_empty():
+		return String(res["name"])
+	for row in MenuSupport.read_csv("res://data/Items.csv"):
+		if MenuSupport.field(row, "ID").strip_edges().to_lower() == card_id.to_lower():
+			return MenuSupport.field(row, "Name", card_id).strip_edges()
+	return card_id
+
+
+## WHICH ELEMENT A CARD IS. "Fire Element" -> "fire", "Passion Element" ->
+## "passion". A name that does not end in Element is the whole name.
+static func element_of_card(card_id: String) -> String:
+	var name_text := card_name(card_id).strip_edges()
+	if name_text.to_lower().ends_with(" element"):
+		name_text = name_text.substr(0, name_text.length() - 8)
+	return name_text.strip_edges().to_lower()
+
+
+## The cards the player could put in right now: [{"id", "name", "element",
+## "have"}], only the ones they own at least `many` of.
+static func choices_for(section_id: String, state: GameState) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var group := choice_taken(section_id)
+	if group.is_empty() or state == null:
+		return out
+	var many := int(section(section_id)["takes"].get(String(group["id"]), 1))
+	for member in group["one_of"]:
+		var have := state.count(counter_for(String(member)))
+		if have >= many:
+			out.append({"id": String(member), "name": card_name(String(member)),
+				"element": element_of_card(String(member)), "have": have})
+	return out
+
+
+## The elements riding on a counter, oldest first. "" = made with none.
+static func elements_on(counter: String, state: GameState) -> Array[String]:
+	var out: Array[String] = []
+	if state == null:
+		return out
+	for piece in state.text(ELEMENTS_PREFIX + counter.to_lower()).split(",", true):
+		out.append(String(piece).strip_edges().to_lower())
+	if out.size() == 1 and out[0] == "":
+		out.clear()
+	# Bottles can leave the bag in other ways (sold, given away). Never keep
+	# more elements than there are things - the oldest go first.
+	var held := state.count(counter)
+	while out.size() > maxi(0, held):
+		out.remove_at(0)
+	return out
+
+
+static func _write_elements(counter: String, list: Array[String], state: GameState) -> void:
+	state.set_text(ELEMENTS_PREFIX + counter.to_lower(), ",".join(list))
+
+
+## Call BEFORE the counter goes up: remembers `many` new things of `element`.
+static func _push_element(counter: String, element: String, many: int, state: GameState) -> void:
+	if state == null or many <= 0:
+		return
+	var list := elements_on(counter, state)
+	if element == "" and list.is_empty():
+		return     # nothing to remember, and nothing older to keep in line
+	# Things already held that came with no element (bought, a reward) stay
+	# in front, as blanks, so the new ones line up behind them.
+	while list.size() < state.count(counter):
+		list.insert(0, "")
+	for i in many:
+		list.append(element)
+	_write_elements(counter, list, state)
+
+
+## Call BEFORE the counter goes down: the element of the oldest one.
+static func _pop_element(counter: String, state: GameState) -> String:
+	var list := elements_on(counter, state)
+	if list.is_empty():
+		return ""
+	var held := state.count(counter)
+	# Older untagged ones in front of the list are used up first.
+	if held > list.size():
+		return ""
+	var first := list[0]
+	list.remove_at(0)
+	_write_elements(counter, list, state)
+	return first
+
+
+## THE ELEMENT OF THE NEXT BOTTLE OF THIS ITEM you would open. Does not use it.
+static func bottle_element(item_id: String, state: GameState) -> String:
+	if state == null or item_id == "":
+		return ""
+	var list := elements_on(item_id, state)
+	if list.is_empty() or state.count(item_id) > list.size():
+		return ""
+	return list[0]
+
+
+## A bottle of this item was opened: forget its element.
+static func open_bottle(item_id: String, state: GameState) -> String:
+	return _pop_element(item_id, state)
 
 
 ## WHICH ACHIEVEMENT OPENS THIS SECTION, as {"name", "description"}.
@@ -436,9 +628,12 @@ static func jobs(section_id: String, state: GameState) -> Array[Dictionary]:
 		var colon := clean.find(":")
 		if colon <= 0:
 			continue
+		var bits := clean.split(":")
 		out.append({
-			"many": maxi(0, int(clean.substr(0, colon))),
-			"turns": maxi(0, int(clean.substr(colon + 1))),
+			"many": maxi(0, int(bits[0])),
+			"turns": maxi(0, int(bits[1])),
+			# ROUND AN (12 Oct): the element the batch was brewed with.
+			"element": String(bits[2]).strip_edges().to_lower() if bits.size() > 2 else "",
 		})
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return int(a["turns"]) < int(b["turns"]))
@@ -450,7 +645,9 @@ static func _write_jobs(section_id: String, list: Array, state: GameState) -> vo
 		return
 	var parts: Array[String] = []
 	for job in list:
-		parts.append("%d:%d" % [int(job["many"]), int(job["turns"])])
+		var element := String(job.get("element", ""))
+		parts.append("%d:%d:%s" % [int(job["many"]), int(job["turns"]), element] if element != ""
+			else "%d:%d" % [int(job["many"]), int(job["turns"])])
 	state.set_text(JOBS_PREFIX + section_id.to_lower(), "|".join(parts))
 
 
@@ -494,8 +691,12 @@ static func can_work(section_id: String, state: GameState) -> bool:
 ## puts that many of that item in the bag instead of the section's Makes -
 ## the Bottling Machine filling small bottles, large bottles or a keg. Only
 ## for a machine with no lagering wait (BottleSizes.csv).
+##
+## `pick` (round AN, 12 Oct): the card put in for a One Of take - the element
+## card in the Brew Kettle. Blank or not owned = the first card you own. The
+## result's "element" says which element the batch carries.
 static func work(section_id: String, state: GameState, spoiled: bool = false,
-		output: Dictionary = {}) -> Dictionary:
+		output: Dictionary = {}, pick: String = "") -> Dictionary:
 	var out: Dictionary = {"ok": false, "why": "", "made": "", "many": 0,
 		"waiting": false, "turns": 0}
 	var one := section(section_id)
@@ -515,17 +716,40 @@ static func work(section_id: String, state: GameState, spoiled: bool = false,
 		out["why"] = "not enough: " + ", ".join(short)
 		return out
 
+	# ---- the element card put in (a One Of take) ----
+	var element := ""
+	var group := choice_taken(section_id)
+	var chosen := ""
+	if not group.is_empty():
+		for choice in choices_for(section_id, state):
+			if chosen == "" or String(choice["id"]) == pick.to_lower():
+				chosen = String(choice["id"])
+		element = element_of_card(chosen)
+
 	# ---- spend it, except the tools ----
 	for id_text in one["takes"]:
 		var res := resource(String(id_text))
+		var many_taken := int(one["takes"][id_text])
+		if not res.is_empty() and not (res["one_of"] as Array).is_empty():
+			if not bool(res["kept"]) and chosen != "":
+				state.add_count(counter_for(chosen), -many_taken)
+			continue
 		if not res.is_empty() and bool(res["kept"]):
 			continue     # equipment. Needed, not used up.
-		add_stock(String(id_text), -int(one["takes"][id_text]), state)
+		# What went in before carries its element on (brew -> barrel -> bottle).
+		var counter := counter_for(String(id_text))
+		for i in many_taken:
+			var carried := _pop_element(counter, state)
+			if element == "":
+				element = carried
+		add_stock(String(id_text), -many_taken, state)
+	out["element"] = element
 
 	var makes := String(one["makes"])
 	var many := int(one["how_many"])
 	out["ok"] = true
 	if not output.is_empty() and not spoiled:
+		_push_element(String(output["counter"]), element, int(output["many"]), state)
 		state.add_count(String(output["counter"]), int(output["many"]))
 		out["made"] = String(output["counter"])
 		out["many"] = int(output["many"])
@@ -543,11 +767,12 @@ static func work(section_id: String, state: GameState, spoiled: bool = false,
 	if int(one["wait_max"]) > 0:
 		wait = randi_range(int(one["wait_min"]), int(one["wait_max"]))
 	if wait <= 0:
+		_push_element(counter_for(makes), element, many, state)
 		add_stock(makes, many, state)
 		return out
 
 	var list := jobs(section_id, state)
-	list.append({"many": many, "turns": wait})
+	list.append({"many": many, "turns": wait, "element": element})
 	_write_jobs(section_id, list, state)
 	out["waiting"] = true
 	out["turns"] = wait
@@ -574,15 +799,18 @@ static func advance_turn(state: GameState) -> Array[Dictionary]:
 		# however many vats you had unlocked.
 		var still_going: Array[Dictionary] = []
 		var out_now := 0
+		var counter := counter_for(String(one["makes"]))
 		for job in list:
 			var left := int(job["turns"]) - 1
 			if left > 0:
-				still_going.append({"many": int(job["many"]), "turns": left})
+				still_going.append({"many": int(job["many"]), "turns": left,
+					"element": String(job.get("element", ""))})
 			else:
+				_push_element(counter, String(job.get("element", "")), int(job["many"]), state)
+				state.add_count(counter, int(job["many"]))
 				out_now += int(job["many"])
 		_write_jobs(id_text, still_going, state)
 		if out_now > 0:
-			add_stock(String(one["makes"]), out_now, state)
 			came_out.append({"section": one["name"], "made": one["makes"], "many": out_now})
 	return came_out
 
