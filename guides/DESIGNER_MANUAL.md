@@ -5939,6 +5939,8 @@ presses the real Pub buttons and takes the pictures.
 
 **Old brewing removed, grey items (Anthony, 15 Oct 2026).** The old recipe brews (Fire Brew, Water Brew, Keeper's Tonic, the Team Spirits, the four turning brews, Helles, Festbier) are gone from Brews.csv, and so are the recipe and Fire Brew rows of Shop.csv. Beer now only comes from the Brewery machines and your bottle pools. The old items (Reed, Bog Iron, Ash Glass, Deep Salt, the three recipes and the three old bottles) are `Kind` **grey**. Items.csv `Sell Price` is what the Traveling Merchant pays for one, in Groschen; his screen lists them under HE BUYS with Sell 1 / Sell all. Blank = he does not buy it.
 
+**Dead ends removed (Anthony, 15 Oct 2026).** The achievements First Pour, The First Brew and Master Brewer are gone; Sharp Shooter unlocks nothing for now. The Pub building, its key and its unlock rows are gone (the tutorial's "to the pub" time-out scene in a match is separate and stays). The Team Spirit is hidden in the Class Tree: it shows only when ClassTree.csv names a Spirit Brew.
+
 **The league money is called Groschen** (Anthony, 14 Oct 2026). Players see the `Name` column; the ID and counter stay `coins`, so every `count:coins+50`, price and save keeps working. Rename it here and every screen follows.
 
 | column | |

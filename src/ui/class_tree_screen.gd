@@ -194,7 +194,9 @@ func _column_for(entry: ClassBook.ClassEntry) -> Control:
 	column.add_child(_emblem_block(entry))
 
 	# ---- the team spirit ----
-	column.add_child(_spirit_block(who))
+	# Gone (Anthony, 15 Oct) while ClassTree.csv names no Spirit Brew.
+	if String(ClassTree.costs_for(who).get("brew", "")) != "":
+		column.add_child(_spirit_block(who))
 	return frame
 
 

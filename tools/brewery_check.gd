@@ -279,6 +279,13 @@ func _who_grants(thing: String) -> String:
 		for handed in row["unlocks"]:
 			if _squash(String(handed)) == want:
 				return String(row["name"])
+	# A Progression.csv row can hand it over too (learn_to_brew opens the
+	# Malthouse after the second match).
+	for row in MenuSupport.read_csv("res://data/Progression.csv"):
+		for action in MenuSupport.field(row, "Do").split(";", false):
+			var a := String(action).strip_edges()
+			if a.to_lower().begins_with("unlock:") and _squash(a.substr(7)) == want:
+				return "Progression %s" % MenuSupport.field(row, "ID")
 	return ""
 
 
