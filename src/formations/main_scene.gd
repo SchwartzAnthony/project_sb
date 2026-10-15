@@ -383,6 +383,8 @@ var enemy_star_bundle: Array[PlayerData] = []
 var available_player_stars: Array[PlayerData] = []
 var available_enemy_stars: Array[PlayerData] = []
 var active_player_star: PlayerData = null
+## The Star picked before kick-off: their Emblem is the Main one (15 Oct).
+var main_star: PlayerData = null
 var active_enemy_star: PlayerData = null
 var player_star_tier: String = ""
 var enemy_star_tier: String = ""
@@ -2478,6 +2480,8 @@ func _on_start_draft_pressed() -> void:
 
 func _resolve_kickoff_star(chosen: PlayerData) -> void:
 	active_player_star = chosen
+	main_star = chosen
+	EmblemBook.set_main(chosen, state)
 
 	# The tier comes from the CLASS, not from the card you happened to click.
 	# Those are the same thing on good data; on a class whose Stars straddle
@@ -2529,6 +2533,8 @@ func _apply_team_selection(picked: TeamSelection) -> void:
 	_plain_side = picked.plain
 	chosen_regulars = picked.regulars
 	active_player_star = picked.active_star
+	main_star = picked.active_star
+	EmblemBook.set_main(picked.active_star, state)
 	player_star_tier = picked.star_tier
 	player_star_bundle = picked.star_bundle.duplicate()
 	available_player_stars = picked.star_bundle.duplicate()
@@ -7865,6 +7871,17 @@ func _goal_mouth(keeper_is_enemy: bool) -> Vector2:
 ## point of "they place their emblem when they come into the field".
 func _my_cards() -> Array[PlayerData]:
 	var out: Array[PlayerData] = []
+	# THE MAIN EMBLEM (Anthony, 15 Oct): the Star picked before kick-off keeps
+	# their Emblem on the bar all match, on the field or off it. Any other
+	# Star on the field adds a Temporary one. EmblemBook explains the rules.
+	if EmblemBook.main_on() and main_star != null:
+		if EmblemBook.class_open(main_star.active_unit_type(), state):
+			out.append(main_star)
+		var now := active_player_star
+		if now != null and now != main_star \
+				and EmblemBook.class_open(now.active_unit_type(), state):
+			out.append(now)
+		return out
 	# ROUND AA: AN EMBLEM IS ON THE FIELD ONLY WHILE ITS STAR IS. "When the
 	# star player leaves, it takes their emblem with them and the new star
 	# player brings their own." `emblem_follows_star` FALSE puts back all three.
@@ -7896,6 +7913,7 @@ func _open_emblem_bar() -> void:
 	# ROUND AB: A NEW MATCH, A NEW RACE. Nothing reset the Emblems between
 	# matches before, so a count could carry over in the save.
 	EmblemBook.new_match(state)
+	EmblemBook.set_main(main_star, state)
 	# ROUND AC (your Q063): THE AI RACES TOO. Its counters live in a save of
 	# their own that is never written to disk - a fresh one every match.
 	enemy_race = GameState.new()

@@ -2454,6 +2454,17 @@ Ultimate does nothing. A goal no longer resets them (`emblem_reset_on_goal`
 false); a Star that comes back brings its Emblem back as it was. The other
 side's Emblem is shown too, marked THEIRS (`emblem_show_enemy`).
 
+**Main and Temporary Emblems (Anthony, 15 Oct).** The Star you pick before
+kick-off is the **Main**. Its Emblem is on the bar all match, on the field or
+off it. It is the only one that can turn Ultimate, and once it has, it stays
+Ultimate (a goal does not reset it). Any other Star brings a **Temporary**
+Emblem while it is on the field: Basic side only, and it leaves with them.
+A class's Emblems only show once its "<Class> Emblems" unlock is earned (all
+three of its Stars have played), and only when an achievement in
+Achievements.csv hands that unlock out. Tuning: `emblem_main_star` (FALSE =
+the old race), `emblems_need_unlock` (FALSE = no gate). Test:
+tests/unit/test_main_emblem.gd.
+
 **AUTO menu (Q040):** switching AUTO on asks which questions AUTO should also
 answer for you - spend Ore, Swans, the Rose pick, the side that stays up
 (`auto_menu`). **One window for all the side choices** of a round (Q037).
