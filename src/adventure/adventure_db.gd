@@ -294,6 +294,9 @@ func _read_items(rows: Array, columns: Dictionary, where: String) -> void:
 			# ROUND AN - THE DRUNK METER. How much of it a bottled brew fills,
 			# in %. Blank = the brew's own Inspiration. See drunk_book.gd.
 			"inspiration": _cell(row, columns, "inspiration"),
+			# GREY ITEMS (Anthony, 15 Oct): what the Traveling Merchant pays
+			# for one, in Groschen. Blank or 0 = he does not buy it.
+			"sell": maxi(0, _int(_cell(row, columns, "sellprice"), 0)),
 			"where": "%s row %d" % [where, i + 1],
 		}
 

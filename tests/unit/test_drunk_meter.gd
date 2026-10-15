@@ -27,8 +27,32 @@ func before_each() -> void:
 			break
 
 
+	# OLD BREWS GONE (Anthony, 15 Oct): the recipe brews left Brews.csv, so
+	# the meter is tested on stand-in rows made here.
+	_stand_in("helles", {"inspiration": 20})
+	_stand_in("fire", {"for_class": "Lorelei", "becomes": "Brandteufel", "element": "Fire",
+		"attack": "BRAND_SCORCH", "defend": "BRAND_MASK_ATK", "permanent": true, "inspiration": 25})
+	_stand_in("turn_earth", {"for_class": "Normal", "becomes": "Bergmännlein", "element": "Earth",
+		"drinks": 3, "inspiration": 15})
+
+
+func _stand_in(id_text: String, fields: Dictionary) -> void:
+	if not brews.find(id_text).is_empty():
+		return
+	var entry := {"id": id_text, "name": id_text, "description": "", "requires": "",
+		"for_class": "", "becomes": "", "element": "", "artwork": "", "attack": "",
+		"defend": "", "permanent": false, "cost": {}, "drinks": 0, "inspiration": 0,
+		"pool": "", "where": "test stand-in"}
+	entry.merge(fields, true)
+	brews.brews.append(entry)
+
+
 func after_each() -> void:
 	BrewDB.restore_all()
+	for id_text in ["helles", "fire", "turn_earth"]:
+		var entry := brews.find(id_text)
+		if String(entry.get("where", "")) == "test stand-in":
+			brews.brews.erase(entry)
 
 
 func test_the_spreadsheets_are_clean() -> void:

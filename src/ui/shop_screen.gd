@@ -228,9 +228,42 @@ func _rebuild() -> void:
 		nothing.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		nothing.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 		_cart.add_child(nothing)
-		return
 	for entry in offered:
 		_cart.add_child(_cart_row(entry))
+	_add_sell_rows()
+
+
+## GREY ITEMS (Anthony, 15 Oct): the Merchant buys them for Groschen.
+func _add_sell_rows() -> void:
+	var goods := ShopBook.sellable(state)
+	if goods.is_empty():
+		return
+	_cart.add_child(MenuSupport.heading("HE BUYS", 18, MenuSupport.COLOUR_TEXT_DIM))
+	for one in goods:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		var words := Label.new()
+		words.text = "%s  x%d  -  %d %s each" % [one["name"], int(one["have"]),
+			int(one["price"]), ShopBook.money_name()]
+		words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		words.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
+		row.add_child(words)
+		for many in [1, 0]:
+			var button := Button.new()
+			button.text = "Sell 1" if many == 1 else "Sell all"
+			button.custom_minimum_size = Vector2(110.0, 36.0)
+			button.add_theme_stylebox_override("focus", MenuSupport.focus_style())
+			button.pressed.connect(_sell.bind(String(one["id"]), int(many)))
+			row.add_child(button)
+		_cart.add_child(row)
+
+
+func _sell(item_id: String, many: int) -> void:
+	var result := ShopBook.sell(item_id, state, many)
+	_status.text = String(result["why"])
+	if bool(result["ok"]):
+		state.save_to_disk()
+	_rebuild()
 
 
 func _purse_tile(money: Dictionary) -> Control:
