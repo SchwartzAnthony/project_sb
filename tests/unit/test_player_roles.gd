@@ -92,18 +92,18 @@ func test_the_stars_tier_is_never_short_of_rested_players() -> void:
 # Stars, and all nine plain players are Match players so the first team
 # is ready at once. (8 Oct had four Adventure players.) ----
 
-func test_the_starting_team_csv_is_three_stars_and_nine_match_players() -> void:
-	var roles := {}
+func test_the_starting_team_csv_has_three_plain_tier_two_stars() -> void:
 	var stars := 0
+	var match_players := 0
 	for row in MenuSupport.read_csv("res://data/" + db.tune_text("starting_team", "StartingTeam.csv")):
-		if MenuSupport.field(row, "Class").strip_edges() == "" and MenuSupport.field(row, "Name") != "":
+		if MenuSupport.field(row, "Star").strip_edges().to_lower() == "yes":
 			stars += 1
 			assert_eq(MenuSupport.field(row, "Tier"), "II", "the Stars are Tier II")
-			continue
-		var r := MenuSupport.field(row, "Role").strip_edges().to_lower()
-		roles[r] = int(roles.get(r, 0)) + 1
+			assert_eq(MenuSupport.field(row, "Class"), "Normal", "plain, no element")
+		if MenuSupport.field(row, "Role").strip_edges().to_lower() == "match":
+			match_players += 1
 	assert_eq(stars, 3)
-	assert_eq(int(roles.get("match", 0)), 9, str(roles))
+	assert_eq(match_players, 12)
 
 
 func test_the_starting_team_role_column_is_used() -> void:
@@ -152,13 +152,13 @@ func test_a_locked_match_player_cannot_slip_into_the_brewery() -> void:
 	assert_false(BrewerBook.is_brewer("Resi", state))
 
 
-func test_a_fresh_games_starting_team_is_nine_match_players() -> void:
+func test_a_fresh_games_starting_team_is_twelve_match_players() -> void:
 	SquadSheet.selection_from(db.tune_text("starting_team", "StartingTeam.csv"), db, state, true)
 	var count := {}
 	for name_text in RecruitBook.names(state):
 		var r := PlayerRoles.role(name_text, state, db)
 		count[r] = int(count.get(r, 0)) + 1
-	assert_eq(int(count.get(PlayerRoles.MATCH, 0)), 9, str(count))
+	assert_eq(int(count.get(PlayerRoles.MATCH, 0)), 12, str(count))
 	assert_eq(int(count.get(PlayerRoles.ADVENTURE, 0)), 0, str(count))
 
 
@@ -171,6 +171,31 @@ func test_a_fresh_game_can_play_a_match_at_once() -> void:
 	var now := TeamBuild.status(state, db)
 	assert_true(bool(now["ok"]), String(now["why"]))
 	assert_eq(int(now["players"]), 12)
+	assert_eq(String(now["class"]), "Normal")
+	# The Tier II Stars are your own plain players, with no abilities.
+	var book := TeamRoster.load_all()
+	var pick := book.to_selection(book.teams[0], db)
+	assert_eq(pick.star_bundle.size(), 3)
+	for star in pick.star_bundle:
+		assert_true(star.is_star())
+		assert_eq(star.get_tier_clean(), "II")
+		assert_eq(star.attack_ability_id, "")
+		assert_eq(star.defend_ability_id, "")
+		assert_true(RecruitBook.is_recruit(star.player_name, state), star.player_name)
 	RecruitBook.remove_all(db)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TeamRoster.SAVE_PATH))
 	TeamRoster.SAVE_PATH = was
+
+
+func test_the_six_pack_is_six_passion_bottles() -> void:
+	DialogueGrammar.apply("bottle:small_bottle=6@passion", state)
+	assert_eq(state.count("small_bottle"), 6)
+	assert_eq(BreweryBook.elements_on("small_bottle", state).count("passion"), 6)
+	assert_true(DialogueGrammar.complaints("bottle:small_bottle=6@passion", true).is_empty())
+
+
+func test_the_first_opponents_beer_rule_waits_on_its_flag() -> void:
+	var when := CardDatabase._normalise("flag:enemy_has_beer")
+	assert_false(EnemyPlay._matches(when, {"state": state}))
+	state.set_flag("enemy_has_beer", true)
+	assert_true(EnemyPlay._matches(when, {"state": state}))

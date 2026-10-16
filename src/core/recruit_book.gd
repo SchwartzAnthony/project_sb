@@ -164,6 +164,24 @@ static func enlist(name_text: String, tier: String, power: int, gender: String,
 	print("[recruits] %s joins the base: Tier %s, Power %d." % [name_text, tier, power])
 
 
+## ============ A PLAIN STAR (Anthony, 16 Oct) ============
+##
+## "Basic no-elemental star players ... it really shouldn't be possible to
+## have any abilities." One of your own players who plays as a Star: no
+## class, no element, no abilities. Kept as a flag beside his slot, so an
+## older save simply has none.
+const STAR_PREFIX := "recruit_star_"
+
+
+static func make_star(name_text: String, state: GameState) -> void:
+	if state != null and name_text != "":
+		state.set_flag(STAR_PREFIX + CardDatabase._normalise(name_text), true)
+
+
+static func is_plain_star(name_text: String, state: GameState) -> bool:
+	return state != null and state.has_flag(STAR_PREFIX + CardDatabase._normalise(name_text))
+
+
 ## He leaves the base for good. Everything about him goes, and his name is
 ## free for the next man. Called by `release:` - so releasing a card that is
 ## NOT a recruit is exactly what it always was.
@@ -177,6 +195,7 @@ static func release(name_text: String, state: GameState) -> void:
 			kept.append(held)
 	state.set_text(KEY, "|".join(kept))
 	state.set_text(PREFIX + wanted, "")
+	state.set_flag(STAR_PREFIX + wanted, false)
 	TransformBook.forget_player(name_text, state)
 	PlayerRoles.forget(name_text, state)
 	NameBook.give_back(name_text, state)
@@ -212,6 +231,10 @@ static func cards(state: GameState, db: CardDatabase) -> Array[PlayerData]:
 			card.base_power_right = card.base_power_left
 			card.element = "None"
 		card.player_name = name_text
+		if is_plain_star(name_text, state):
+			card.player_type = "Star"
+			card.attack_ability_id = ""
+			card.defend_ability_id = ""
 		# ROUND AN: a recruit with a gender wears that gender's sprite.
 		if slot.size() >= 3 and String(slot[2]) != "":
 			# The look saved with the player, else the first of that gender.

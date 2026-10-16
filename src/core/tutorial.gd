@@ -182,19 +182,30 @@ static func give_starting_team(state: GameState) -> void:
 static func make_ready(picked: TeamSelection, state: GameState, db: CardDatabase) -> void:
 	if picked == null or picked.plain or picked.star_bundle.is_empty():
 		return
-	for star in picked.star_bundle:
-		var placed := ClassTree.place_star(picked.unit_type, ClassTree._set_of(star), star, state, db)
-		if not bool(placed["ok"]):
-			push_warning("[tutorial] %s: %s" % [star.player_name, placed["why"]])
+	# Every node of the class's Star Hall gets one of the team's Stars (the
+	# plain Normal class has one node, BASIC).
+	var waiting: Array[PlayerData] = picked.star_bundle.duplicate()
+	for node in ClassTree.nodes_for(picked.unit_type, state):
+		if bool(node["filled"]):
+			continue
+		for star in waiting:
+			var placed := ClassTree.place_star(picked.unit_type, String(node["set_id"]), star, state, db)
+			if bool(placed["ok"]):
+				waiting.erase(star)
+				break
 	var entry := TeamRoster.blank(picked.unit_type, picked.star_tier, PlayerRoles.MATCH)
 	entry["name"] = Loc.text("starting_team_name", "First XI")
 	var chosen: Dictionary = {}
 	for tier in picked.regulars.keys():
 		chosen[tier] = picked.regulars[tier]
 	TeamRoster.set_cards(entry, chosen)
+	var star_names: Array = []
+	for star in picked.star_bundle:
+		star_names.append(star.player_name)
+	entry["stars"] = star_names
 	var book := TeamRoster.load_all()
 	book.put(entry)
 	book.save()
 	state.save_to_disk()
-	print("[tutorial] %s Stars in the Star Hall, '%s' saved as a Match Team." % [
-		picked.unit_type, entry["name"]])
+	print("[tutorial] %s Stars %s in the Star Hall, '%s' saved as a Match Team." % [
+		picked.unit_type, star_names, entry["name"]])

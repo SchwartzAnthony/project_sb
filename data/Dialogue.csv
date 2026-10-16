@@ -170,3 +170,7 @@ tut-brewery-skip,barrel,Hanna,hanna,right,happy,,,,,,"That takes days, so here i
 tut-brewery-skip,bottle,Hanna,hanna,right,happy,,,,,,"Last, the Bottling Machine. Today we fill small bottles: stop them under the tap.",,,,,,,,,,,,,,,
 tut-brewery-done,bottles,Hanna,hanna,right,happy,,,,,,"Six small bottles of plain beer, straight into your bag.",,,,,,,,,,,,,,,
 tut-brewery-done,danke,Head Coach,coach,left,happy,,,,,,"Danke, Hanna! Back to the pitch.",,,,,,,,,,,,,,,
+head-coach-welcome,one,Head Coach,coach,left,happy,,,,,,Welcome to Sturmbrew!,,,,,,,,,,,,,,,
+head-coach-welcome,two,Head Coach,coach,left,happy,,,,,,"Before you can really start, you need to play your first match.",,,,,,,,,,,,,,,
+head-coach-welcome,three,Head Coach,coach,left,happy,,,,,,"Since you have nothing really, let us start you with a six pack!",,,bottle:small_bottle=6@passion,,,,,,,,,,,,
+head-coach-welcome,four,Head Coach,coach,left,happy,,,,,,Win your first match to start with your Head Coach career!,,,,,,,,,,,,,,,

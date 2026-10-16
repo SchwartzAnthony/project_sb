@@ -674,3 +674,4 @@ banner_inventory_needs,,"ROUND AN (Anthony, 16 Oct). Blank = the Inventory banne
 banner_play_needs,,"ROUND AN (Anthony, 16 Oct). Blank = the Play a Match banner is always open"
 banner_teams_needs,,"ROUND AN (Anthony, 16 Oct). Blank = the Your Teams banner is always open"
 brewery_start_stock,false,"ROUND AN (Anthony, 16 Oct: do not give anything when the Brewery is unlocked). true = the first visit to the Brewery hands out each row's Start in BreweryResources.csv, as before. Tools and tests still use the Start numbers"
+enemy_first_match_beers,3,"ROUND AN (Anthony, 16 Oct). How many beers the opponent has in your FIRST match (no match played yet). They pour one per pick until they run out (EnemyPlay.csv enemy_beer). 0 = none"

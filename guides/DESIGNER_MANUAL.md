@@ -2455,13 +2455,20 @@ false); a Star that comes back brings its Emblem back as it was. The other
 side's Emblem is shown too, marked THEIRS (`emblem_show_enemy`).
 
 **A fresh game (Anthony, 16 Oct).**
-- **Starting team** (StartingTeam.csv): 12 players, three per Tier. The Tier
-  II three are the Unkengeister Stars (Vassago, Glasya-Labolas, Caim); the
-  other nine are plain Match players with random names. The Stars are put in
-  the Star Hall for free and the twelve are saved as the Match Team **First
-  XI**, so Play a Match goes straight to the Match Maker (Tuning
-  `starting_team_ready`). Your own players may play in a team of any class
-  (`own_players_in_every_team`).
+- **Starting team** (StartingTeam.csv): 12 of your own players, three per
+  Tier, random names, all Match players. The Tier II three are **plain Stars**
+  (column Star = yes): Normal class, no element, no abilities. One of them
+  stands in the Star Hall's BASIC node and the twelve are saved as the Match
+  Team **First XI** (the team's "stars" list), so Play a Match goes straight
+  to the Match Maker (Tuning `starting_team_ready`).
+- **The Head Coach's welcome** (Guide.csv `head_coach_welcome`, Dialogue.csv
+  `head-coach-welcome`): after the Tutorial or a No, four lines at the base.
+  Line three's Effect `bottle:small_bottle=6@passion` gives six Small Bottles,
+  each a random Passion beer when opened. New effect word: `bottle:item=N@element`.
+- **The first opponent's beers**: in your first match the other side has
+  Tuning `enemy_first_match_beers` (3) beers. EnemyPlay.csv `enemy_beer`
+  pours a random plain-pool beer on their pick (`brew:pool:plain`) and you see
+  him drink it, until they run out.
 - **Banners** are grey until they can be used: Tuning `banner_<id>_needs`
   (achievements, inventory, play, teams blank = always open). Adventure:
   `count:matches_played>=1`, and pressing it early says "Adventure opens

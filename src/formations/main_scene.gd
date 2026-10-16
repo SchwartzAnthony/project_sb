@@ -2522,6 +2522,7 @@ func _resolve_kickoff_star(chosen: PlayerData) -> void:
 	# one of it per match whichever way the side was chosen.
 	_open_emblem_bar()
 	_open_ref_bar()
+	_arm_enemy_beers()
 	_report("match_started", _facts_for(null))
 	_advance_progression("match_started")
 
@@ -2571,6 +2572,7 @@ func _apply_team_selection(picked: TeamSelection) -> void:
 	# one of it per match whichever way the side was chosen.
 	_open_emblem_bar()
 	_open_ref_bar()
+	_arm_enemy_beers()
 	_report("match_started", _facts_for(null))
 	_advance_progression("match_started")
 
@@ -5808,6 +5810,34 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 	round_enemy_picks.append(chosen_card)
 
 
+## ============ THE FIRST OPPONENT'S BEERS (Anthony, 16 Oct) ============
+##
+## "During the first initial battle, the enemy player will have 3 beer that
+## they will also use and activate on their turns." In your first match
+## (nothing played yet) they get Tuning.csv enemy_first_match_beers beers.
+## The flag below lets EnemyPlay.csv's `enemy_beer` row fire; each pour
+## spends one, and the flag goes when they run out.
+const ENEMY_BEER_FLAG := "enemy_has_beer"
+const ENEMY_BEERS_LEFT := "enemy_beers_left"
+
+
+func _arm_enemy_beers() -> void:
+	var many := db.tune_int("enemy_first_match_beers", 3)
+	if state.count("matches_played") > 0 or Tutorial.active(get_tree()) \
+			or TutorialBase.active(get_tree()):
+		many = 0
+	state.set_count(ENEMY_BEERS_LEFT, many)
+	state.set_flag(ENEMY_BEER_FLAG, many > 0)
+
+
+func _enemy_beer_spent() -> void:
+	if not state.has_flag(ENEMY_BEER_FLAG):
+		return
+	state.add_count(ENEMY_BEERS_LEFT, -1)
+	if state.count(ENEMY_BEERS_LEFT) <= 0:
+		state.set_flag(ENEMY_BEER_FLAG, false)
+
+
 ## ============ A SCRIPTED THING THE OTHER SIDE DOES ============
 ##
 ## `brew:<id>` pours a brew on the card they have just taken, exactly the way
@@ -5820,6 +5850,10 @@ func _enemy_does(term: String, card: PlayerData) -> void:
 	var rest := term.substr(colon + 1).strip_edges() if colon > 0 else ""
 
 	if kind == "brew":
+		# brew:pool:plain - a random beer out of that pool (Anthony, 16 Oct:
+		# the first opponent's three beers).
+		if rest.to_lower().begins_with("pool:"):
+			rest = BrewDB.get_db().pick_from_pool(rest.substr(5), state)
 		var brew := BrewDB.get_db().find(rest)
 		if brew.is_empty():
 			push_warning("[enemy] Do said brew:%s but Brews.csv has no such row." % rest)
@@ -5831,9 +5865,16 @@ func _enemy_does(term: String, card: PlayerData) -> void:
 		state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(card), rest)
 		BrewDB.get_db().apply_all(db, state)
 		_redraw_offered_cards()
+		# ...and you see him drink it, the same as when you give yours one.
+		var drinker := unit_for_card(card, true)
+		if drinker != null:
+			drinker.play_drink()
+		AudioDirector.fire(get_tree(), "brew_drunk", {"where": "pitch", "brew": rest,
+			"class": card.unit_type, "tier": card.get_tier_clean()}, state)
 		announce("They pour %s on %s." % [brew.get("name", rest),
 			NamePlate.short_name(card)], 1.8)
 		print("[enemy] %s drinks %s." % [card.player_name, rest])
+		_enemy_beer_spent()
 		return
 
 	if kind == "announce":
