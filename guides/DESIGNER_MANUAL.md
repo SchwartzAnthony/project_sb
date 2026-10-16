@@ -2523,6 +2523,8 @@ side's Emblem is shown too, marked THEIRS (`emblem_show_enemy`).
   good or two bad can land together).
 - A card with an element beer on him says "Can become a Water Star" when his Tier fits.
 - **The Pub shows only your own players** (Tuning `pub_own_players_only`). Later (Anthony): just the 12 of your team, with a toggle to the Adventure side.
+- **Start with 1 Adventure player and 1 apprentice brewer** (StartingTeam.csv rows p13 Role adventure, p14 Role brewer; Anthony 16 Oct). They join the base but never the Match Team; the three roles stay apart for good. A brewer row is made a brewer at once (his Power is his efficiency).
+- **Play a Match pays Groschen** (MatchModes.csv first_match, friendly, friendly_test, friendly_cycle): Rewards `count:coins+25` every match, Rewards On Win another +25, so a win is 50 and a loss 25 (a draw is 25 too).
 - **Fixed (16 Oct)**: Stats.csv counted `matches_played` twice per match (two rows), so "after 3 matches" came after 2. One row now. Progression.csv `learn_to_brew` (the Brewery, Malthouse and Hanna's brewery-intro) fired after the FIRST match; it now waits for 3 wins, the same moment as Treble.
 - **Fixed**: the final whistle used to wipe every save text starting "brew":
   barrels in the cellar, bottle elements and the brewer list. Now only poured beers wear off.

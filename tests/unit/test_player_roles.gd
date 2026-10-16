@@ -152,14 +152,21 @@ func test_a_locked_match_player_cannot_slip_into_the_brewery() -> void:
 	assert_false(BrewerBook.is_brewer("Resi", state))
 
 
-func test_a_fresh_games_starting_team_is_twelve_match_players() -> void:
-	SquadSheet.selection_from(db.tune_text("starting_team", "StartingTeam.csv"), db, state, true)
+## Anthony, 16 Oct: twelve Match players, one Adventure player and one
+## apprentice brewer - the three kept apart.
+func test_a_fresh_game_has_twelve_match_players_one_adventurer_one_brewer() -> void:
+	var picked := SquadSheet.selection_from(db.tune_text("starting_team", "StartingTeam.csv"), db, state, true)
 	var count := {}
 	for name_text in RecruitBook.names(state):
 		var r := PlayerRoles.role(name_text, state, db)
 		count[r] = int(count.get(r, 0)) + 1
 	assert_eq(int(count.get(PlayerRoles.MATCH, 0)), 12, str(count))
-	assert_eq(int(count.get(PlayerRoles.ADVENTURE, 0)), 0, str(count))
+	assert_eq(int(count.get(PlayerRoles.ADVENTURE, 0)), 1, str(count))
+	assert_eq(BrewerBook.names(state).size(), 1, "one apprentice brewer")
+	var on_the_side := picked.star_bundle.size()
+	for tier in picked.regulars.keys():
+		on_the_side += (picked.regulars[tier] as Array).size()
+	assert_eq(on_the_side, 12, "only the Match players field the first team")
 
 
 func test_a_fresh_game_can_play_a_match_at_once() -> void:

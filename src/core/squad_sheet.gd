@@ -113,6 +113,11 @@ static func selection_from(file_name: String, db: CardDatabase,
 					# ...as a plain Star when the row says Star (Anthony, 16 Oct).
 					if _yes(MenuSupport.field(row, "Star")):
 						RecruitBook.make_star(name_text, state)
+					# ...or as the apprentice brewer (Anthony, 16 Oct: "one
+					# apprentice brewer who can be used early on").
+					if MenuSupport.field(row, "Role").strip_edges().to_lower() == PlayerRoles.BREWER:
+						BrewerBook.make(name_text, state)
+						PlayerRoles.set_role(name_text, PlayerRoles.NEW, state)
 		used_names.append(name_text)
 		card.player_name = name_text
 
@@ -132,6 +137,11 @@ static func selection_from(file_name: String, db: CardDatabase,
 		if card.artwork == null:
 			problems.append("[squad] %s: no sprite found for %s." % [path.get_file(), name_text])
 
+		# AN ADVENTURE PLAYER OR A BREWER joins the base but never this side:
+		# the three are kept apart for good (Anthony, 16 Oct).
+		var row_role := MenuSupport.field(row, "Role").strip_edges().to_lower()
+		if row_role == PlayerRoles.ADVENTURE or row_role == PlayerRoles.BREWER:
+			continue
 		cards.append(card)
 		if lead == null and _yes(MenuSupport.field(row, "Lead")):
 			lead = card
