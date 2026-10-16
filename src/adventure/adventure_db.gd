@@ -637,13 +637,15 @@ func usable_items(state: GameState) -> Array[Dictionary]:
 
 ## Roll a drop table. Returns item id -> amount, so it can be handed
 ## straight to GameState as counters.
-func roll(table: String, state: GameState) -> Dictionary:
+## `bonus` is added to every row's Chance - the further into a map, the
+## likelier (Anthony, 16 Oct merge; Tuning adventure_drop_rise_per_wave).
+func roll(table: String, state: GameState, bonus: float = 0.0) -> Dictionary:
 	var out: Dictionary = {}
 	for row in (drops.get(CardDatabase._normalise(table), []) as Array):
 		var entry: Dictionary = row
 		if not DialogueGrammar.test(String(entry["requires"]), state):
 			continue
-		if randf() > float(entry["chance"]):
+		if randf() > minf(1.0, float(entry["chance"]) + bonus):
 			continue
 		var key := String(entry["item"])
 		out[key] = int(out.get(key, 0)) + int(entry["amount"])

@@ -19,6 +19,8 @@ func before_each() -> void:
 	BaseRooms.forget()
 	state = GameState.new()
 	state.set_count("coins", 2000)
+	# Beds are for sale after Extra Beds (Anthony's board, 16 Oct merge).
+	state.unlock("Extra Beds")
 	_was_on = db.tuning.get("recovery", null)
 	db.tuning["recovery"] = "true"
 

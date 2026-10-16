@@ -597,8 +597,11 @@ func _build_board() -> void:
 
 	# A SINGLE BED - the folded camp bed.
 	var places_left := BaseRooms.bed_places(state) - BaseRooms.beds(state)
-	var bed_ok := places_left > 0 and _can_pay(_bed_price(), _bed_currency())
-	var bed_why := "" if bed_ok else ("Every room is full - buy a room first." if places_left <= 0
+	var bed_ok := places_left > 0 and _can_pay(_bed_price(), _bed_currency()) \
+		and BaseRooms.beds_for_sale(state)
+	var bed_why := "" if bed_ok else (
+		DialogueGrammar.describe(db.tune_text("dorm_bed_needs", "")) if not BaseRooms.beds_for_sale(state)
+		else "Every room is full - buy a room first." if places_left <= 0
 		else "Not enough money for a bed.")
 	_board_item("buy_bed", ["A single bed: %s" % _bed_price_words(),
 		"%d empty place(s) in your rooms" % places_left], bed_ok, bed_why, _buy_bed)

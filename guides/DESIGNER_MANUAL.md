@@ -2483,6 +2483,25 @@ side's Emblem is shown too, marked THEIRS (`emblem_show_enemy`).
   Start column in BreweryResources.csv is now only used by the Tutorial's own
   save and the brewery tools.
 
+**Your System Builder save in the game (merged 16 Oct, save v414).**
+- Came in: Achievements (17 new, 11 changed), your 12 beers (Brews.csv; kept
+  out of the Tutorial with Requires `!flag:in_tutorial`), the map order (Eyes
+  in the Hills first; the Marshlands need `unlocked:Hill Watcher`), bosses
+  Hill Watcher and Frost Wight (AdventureEnemies.csv), Drops, the 16 BASIC
+  abilities, BrewerySections and KitBoards.csv.
+- **Boss jobs** (Bounties.csv `hill_watcher`, `frost_wight`) so the two new
+  bosses can be fought; beating one unlocks its name, which opens the next map.
+- **Not a Scratch**: coming home with nobody knocked out adds
+  `count:adventures_flawless+1`.
+- **Drops rise through a map**: Tuning `adventure_drop_rise_per_wave` (0.1)
+  is added to every drop Chance per wave after the first.
+- **Beds**: the Dorms only sell beds once Tuning `dorm_bed_needs`
+  (`unlocked:Extra Beds`) passes.
+- The Tutorial's morning adds `unlock:Hill Watcher`
+  (`tutorial_morning_effects`) so its Marshlands walk still opens.
+- Not built yet: the Reversal Keg, the Element Converter, Conquest mode.
+  Versteckter Dunkles has no abilities yet.
+
 **Main and Temporary Emblems (Anthony, 15 Oct).** The Star you pick before
 kick-off is the **Main**. Its Emblem is on the bar all match, on the field or
 off it. It is the only one that can turn Ultimate, and once it has, it stays

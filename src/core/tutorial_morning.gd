@@ -52,7 +52,7 @@ static func begin(tree: SceneTree, played: Array) -> void:
 		state.set_flag(FLAG)
 		# What the base needs for the morning (Tuning.csv
 		# tutorial_morning_effects): the Dorms and their key.
-		var effects := db.tune_text("tutorial_morning_effects", "unlock:Dorms;count:dorms_key=1")
+		var effects := db.tune_text("tutorial_morning_effects", "unlock:Dorms;count:dorms_key=1;unlock:Hill Watcher")
 		if effects != "":
 			DialogueGrammar.apply(effects, state)
 		# The Head Coach shows them the Dorms himself, so the "New at the

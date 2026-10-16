@@ -48,6 +48,10 @@ var stamina: Dictionary = {}
 ## Cards that have reached 0 and are out for the rest of the run.
 var knocked_out: Array[PlayerData] = []
 
+## Was anybody knocked out at any point this run, even if revived since?
+## Feeds count:adventures_flawless (Anthony's Not a Scratch, 16 Oct merge).
+var anyone_knocked_out := false
+
 ## ============ WHO HAS ALREADY HAD A GO ============
 ##
 ## THE SAME RULE AS A LEAGUE MATCH. A player who takes a turn is spent, and
@@ -265,6 +269,7 @@ func hurt(card: PlayerData, amount: int, db: CardDatabase) -> bool:
 	stamina[card] = maxi(0, left)
 	if left <= 0 and not knocked_out.has(card):
 		knocked_out.append(card)
+		anyone_knocked_out = true
 		# OUT OF THE ROTATION TOO, permanently. See `spent` at the top: this
 		# is what makes losing somebody cost you a tier slot next fight
 		# rather than only costing you this round.
