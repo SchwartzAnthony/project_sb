@@ -275,6 +275,7 @@ func _build_exits() -> void:
 	to_achievements.tooltip_text = "Everything in this game is unlocked here first."
 	to_achievements.pressed.connect(func() -> void:
 		_carry_out(Progression.run_actions("window:achievements", state)))
+	_grey_unless_open(to_achievements, "achievements")
 	row.add_child(to_achievements)
 
 	# THE BAG, WHERE YOU ARE STANDING. Everything you have carried home is in
@@ -288,6 +289,7 @@ func _build_exits() -> void:
 	to_bag.tooltip_text = "Everything you are carrying: what you can use, what you can spend, and what you are holding on to."
 	to_bag.pressed.connect(func() -> void:
 		InventoryScreen.open(self, state, InventoryScreen.Use.NOTHING))
+	_grey_unless_open(to_bag, "inventory")
 	row.add_child(to_bag)
 
 	# THE STADIUM FLAG IS GONE (round AN, Anthony: "remove the soccer field
@@ -305,6 +307,9 @@ func _build_exits() -> void:
 			return
 		state.save_to_disk()
 		ScenePaths.go_to(get_tree(), ScenePaths.SEASON_PICKER))
+	# Grey until the first Season opens, but it still opens the Season page,
+	# which says how many wins are left (Anthony, 16 Oct).
+	_grey_unless_open(to_season, "season")
 	row.add_child(to_season)
 
 	# PLAY A MATCH IS NOT THE SEASON. It is a friendly against a side put
@@ -323,6 +328,7 @@ func _build_exits() -> void:
 			_play_match("friendly")
 			return
 		MatchMaker.open(self, state, _play_match))
+	_grey_unless_open(to_match, "play")
 	row.add_child(to_match)
 
 	# ADVENTURE FROM THE BASE. This is where you are standing when you realise
@@ -332,8 +338,13 @@ func _build_exits() -> void:
 	var to_adventure := _exit("adventure|⛰", "Adventure", EXIT_SIZE)
 	to_adventure.tooltip_text = "The Bounty Board. Pick a biome and a boss, then set off for materials and recipes."
 	to_adventure.pressed.connect(func() -> void:
+		# Closed until the first match is over (Anthony, 16 Oct).
+		if not _banner_open("adventure"):
+			_detail.text = Loc.text("banner_locked_adventure", "Adventure opens after your first match.")
+			return
 		state.save_to_disk()
 		ScenePaths.go_to(get_tree(), ScenePaths.BOUNTY_BOARD))
+	_grey_unless_open(to_adventure, "adventure")
 	row.add_child(to_adventure)
 
 	var to_teams := _exit("teams|⚑", "Your teams", EXIT_SIZE)
@@ -345,6 +356,7 @@ func _build_exits() -> void:
 		var opened := BaseWindow.open(self, "Team Build", ScenePaths.TEAM_BUILD)
 		if opened != null:
 			opened.closed.connect(_rebuild))
+	_grey_unless_open(to_teams, "teams")
 	row.add_child(to_teams)
 
 	# CONQUESTS, THE DRAFT MODE THAT IS NOT BUILT YET (Anthony, 9 Oct: "add
@@ -377,6 +389,24 @@ func _build_exits() -> void:
 		row.add_child(skip)
 
 	_same_thread_size(row)
+
+
+## ============ GREY UNTIL THERE IS SOMETHING IN IT (Anthony, 16 Oct) ============
+##
+## "Have all the banners be greyed out until there is something in them or
+## the player can use them." Tuning.csv banner_<id>_needs holds the words
+## (the same as a Requires column); blank = always open. Both tutorials
+## leave every banner as it was.
+func _banner_open(id_text: String) -> bool:
+	if TutorialBase.active(get_tree()) or Tutorial.active(get_tree()):
+		return true
+	var needs := CardDatabase.get_db().tune_text("banner_%s_needs" % id_text, "").strip_edges()
+	return needs == "" or DialogueGrammar.test(needs, state)
+
+
+func _grey_unless_open(banner: Control, id_text: String) -> void:
+	if not _banner_open(id_text):
+		banner.modulate = Color(0.45, 0.45, 0.5)
 
 
 ## The Conquests banner's note: the mode is not open yet. Words in

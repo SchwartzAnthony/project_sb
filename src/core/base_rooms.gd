@@ -272,9 +272,21 @@ static func current_dorm(state: GameState) -> Dictionary:
 
 
 ## Buy one SINGLE BED. Returns {"ok", "why"}.
+## Anthony's Achievements board (16 Oct merge): single beds are for sale only
+## once Extra Beds is unlocked (Full House). Tuning.csv dorm_bed_needs, blank =
+## always.
+static func beds_for_sale(state: GameState) -> bool:
+	var db := _db()
+	var needs := db.tune_text("dorm_bed_needs", "").strip_edges() if db != null else ""
+	return needs == "" or DialogueGrammar.test(needs, state)
+
+
 static func buy_bed(state: GameState) -> Dictionary:
 	if state == null:
 		return {"ok": false, "why": "no save"}
+	if not beds_for_sale(state):
+		var db0 := _db()
+		return {"ok": false, "why": DialogueGrammar.describe(db0.tune_text("dorm_bed_needs", ""))}
 	if beds(state) >= bed_places(state):
 		var nxt := next_room(state)
 		return {"ok": false, "why": "every room is full - buy %s first" % nxt["name"]

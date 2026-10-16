@@ -62,6 +62,55 @@ extends RefCounted
 const ASCENDED := "emblem_ascended"        ## text: which Emblem turned over
 const FLIPPED_PREFIX := "emblem_flipped_"  ## flag: this one turned over
 const BLOCKED_PREFIX := "emblem_blocked_"  ## flag: it turned over AFTER another - its Ultimate does nothing (round AB)
+const MAIN := "emblem_main"                ## text: the Main Emblem's id (Anthony, 15 Oct)
+
+
+# =============================================================
+#  THE MAIN EMBLEM  (Anthony, 15 Oct)
+#
+#  "The Main Emblem of the chosen Star Unit at the start will be persistent
+#   the whole game ... Temporary Emblems are there for when the player is out
+#   only a short time ... The Main is always there and once Ultimate will
+#   always have that Ultimate form." And: only the Main one turns Ultimate.
+#
+#  The Star you pick before kick-off is the Main. Its Emblem is on the bar
+#  all match, on the field or off it, and is the only one that can turn
+#  over. Any other Star brings a Temporary Emblem while on the field: it
+#  works on its Basic side and leaves with them. `emblem_main_star` FALSE in
+#  Tuning.csv puts back the old race.
+# =============================================================
+
+static func main_on() -> bool:
+	return _tuned_bool("emblem_main_star", true)
+
+
+## Pick the Main Emblem for this match (the Star chosen before kick-off).
+static func set_main(card: PlayerData, state: GameState) -> void:
+	if state == null:
+		return
+	var badge := for_star(card)
+	state.set_text(MAIN, badge.id if badge != null else "")
+
+
+static func is_main(badge: ClassBook.Emblem, state: GameState) -> bool:
+	if badge == null or state == null or not main_on():
+		return false
+	var main_id := state.text(MAIN, "")
+	return main_id != "" and _key(main_id) == _key(badge.id)
+
+
+## A class's Emblems only come onto the field once "<Class> Emblems" is
+## unlocked (Achievements.csv) - and only if some achievement hands it out,
+## so a game without those rows plays exactly as before.
+static func class_open(unit_type: String, state: GameState) -> bool:
+	if state == null or not _tuned_bool("emblems_need_unlock", true):
+		return true
+	var want := _key(unit_type + " Emblems")
+	for row in AchievementBook.rows():
+		for handed in row["unlocks"]:
+			if _key(String(handed)) == want:
+				return state.is_unlocked(unit_type + " Emblems")
+	return true
 
 
 static func _key(text: String) -> String:
@@ -258,7 +307,11 @@ static func settle(squad: Array, state: GameState) -> ClassBook.Emblem:
 	if state == null or not _on():
 		return null
 	var racing := _tuned_bool("emblem_race", true)
+	var main_mode := main_on() and state.text(MAIN, "") != ""
 	for badge in on_the_field(squad):
+		# Only the Main Emblem turns over; a Temporary one stays Basic.
+		if main_mode and not is_main(badge, state):
+			continue
 		if not bool(progress(badge, state)["done"]):
 			continue
 		if state.has_flag(FLIPPED_PREFIX + _key(badge.id)):
@@ -334,6 +387,9 @@ static func reset_after_goal(state: GameState) -> void:
 	if state == null or not _on():
 		return
 	if not _tuned_bool("emblem_reset_on_goal", true):
+		return
+	# "Once Ultimate will always have that Ultimate form" - the Main keeps it.
+	if main_on() and state.text(MAIN, "") != "" and ascended(state) != "":
 		return
 	print("[emblems] a goal — every Emblem back to its Basic side.")
 	state.set_text(ASCENDED, "")

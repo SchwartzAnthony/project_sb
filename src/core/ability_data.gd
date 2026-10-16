@@ -549,8 +549,8 @@ func _what_words() -> String:
 		"goaliechance": return "%+d%% to beat %s" % [value, who]
 		"goalieshield": return "+%d shield on %s" % [value, who]
 		"removeshields": return "every shield off %s" % who
-		"foulheat": return "+%d on the referee's bar against them" % value
-		"foulchance": return "+%d%% that they commit a foul" % value
+		"foulheat": return "%+d on the referee's bar against %s" % [value, "your side" if CardDatabase._normalise(target) == "side" else "them"]
+		"foulchance": return "%+d%% that %s commit a foul" % [value, "you" if CardDatabase._normalise(target) == "side" else "they"]
 		"foulcoinflip": return "your next foul is a coin toss"
 		"switchtodefender": return "%s switches to being the defender" % who
 		"alwaysdefending": return "%s always counts as defending" % who

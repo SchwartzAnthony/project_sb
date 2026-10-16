@@ -119,7 +119,7 @@ static func enter(tree: SceneTree) -> Array[String]:
 	# 3. Money.
 	var coins := db.tune_int("test_env_coins", 99999)
 	state.set_count("coins", coins)
-	said.append("%d coins" % coins)
+	said.append("%d %s" % [coins, ShopBook.money_name()])
 
 	# 4. Every Star Hall node filled with its own Star (a match needs them).
 	state.set_count(ClassTree.POINTS, maxi(state.count(ClassTree.POINTS), 99999))

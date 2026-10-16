@@ -49,9 +49,9 @@ func _status_words() -> String:
 	for who in RecruitBook.names(state):
 		if PlayerRoles.role(who, state, db) == PlayerRoles.NEW:
 			waiting += 1
-	return "AUSBILDUNG %d of %d    MINI-GAMES %d of %d    %d player(s) waiting for a role    %d coins" % [
+	return "AUSBILDUNG %d of %d    MINI-GAMES %d of %d    %d player(s) waiting for a role    %d %s" % [
 		counts["ausbildung"][0], counts["ausbildung"][1], counts["minigame"][0], counts["minigame"][1],
-		waiting, ShopBook.purse("coins", state)]
+		waiting, ShopBook.purse("coins", state), ShopBook.money_name()]
 
 
 func _fill() -> void:

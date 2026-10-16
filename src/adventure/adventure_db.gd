@@ -294,6 +294,9 @@ func _read_items(rows: Array, columns: Dictionary, where: String) -> void:
 			# ROUND AN - THE DRUNK METER. How much of it a bottled brew fills,
 			# in %. Blank = the brew's own Inspiration. See drunk_book.gd.
 			"inspiration": _cell(row, columns, "inspiration"),
+			# GREY ITEMS (Anthony, 15 Oct): what the Traveling Merchant pays
+			# for one, in Groschen. Blank or 0 = he does not buy it.
+			"sell": maxi(0, _int(_cell(row, columns, "sellprice"), 0)),
 			"where": "%s row %d" % [where, i + 1],
 		}
 
@@ -316,6 +319,10 @@ func _read_drops(rows: Array, columns: Dictionary, where: String) -> void:
 			"amount": maxi(0, _int(_cell(row, columns, "amount"), 1)),
 			"chance": clampf(_float(_cell(row, columns, "chance"), 1.0), 0.0, 1.0),
 			"requires": _cell(row, columns, "requires"),
+			# Next Time x (Anthony, 16 Oct: "100% first time then 50% on
+			# second time, etc."): the Chance is multiplied by this once for
+			# every earlier win over this table. Blank = always the same.
+			"next_time": _float(_cell(row, columns, "nexttimex"), 1.0),
 			"where": "%s row %d" % [where, i + 1],
 		})
 
@@ -534,6 +541,20 @@ func bag(state: GameState) -> Dictionary:
 		copy["held"] = held
 		(out[tab_of(entry)] as Array).append(copy)
 
+	# THE BREWERY STORE IS IN THE BAG TOO (Anthony, 15 Oct: "Wheat and all of
+	# the resources we collect should be in the inventory").
+	for res in BreweryBook.resources():
+		var counter := BreweryBook.counter_for(String(res["id"]))
+		if items.has(CardDatabase._normalise(counter)):
+			continue        # already an Items.csv row (the bottles)
+		var held := state.count(counter)
+		if held <= 0:
+			continue
+		(out["resources"] as Array).append({"id": counter, "name": String(res["name"]),
+			"kind": String(res["kind"]), "art": String(res["icon"]), "use": "", "tags": "",
+			"description": String(res.get("description", "")), "held": held,
+			"sell": int(res.get("sell", 0))})
+
 	for tab in TABS:
 		(out[tab] as Array).sort_custom(func(a, b) -> bool:
 			return String(a.get("name", "")).naturalnocasecmp_to(String(b.get("name", ""))) < 0)
@@ -620,16 +641,31 @@ func usable_items(state: GameState) -> Array[Dictionary]:
 
 ## Roll a drop table. Returns item id -> amount, so it can be handed
 ## straight to GameState as counters.
-func roll(table: String, state: GameState) -> Dictionary:
+## `bonus` is added to every row's Chance - the further into a map, the
+## likelier (Anthony, 16 Oct merge; Tuning adventure_drop_rise_per_wave).
+func roll(table: String, state: GameState, bonus: float = 0.0) -> Dictionary:
 	var out: Dictionary = {}
-	for row in (drops.get(CardDatabase._normalise(table), []) as Array):
+	var rows: Array = drops.get(CardDatabase._normalise(table), [])
+	# How often this table has been rolled before (a boss: how often beaten).
+	var times_key := "drops_rolled_" + CardDatabase._normalise(table)
+	var before := state.count(times_key) if state != null else 0
+	var counts := false
+	for row in rows:
 		var entry: Dictionary = row
 		if not DialogueGrammar.test(String(entry["requires"]), state):
 			continue
-		if randf() > float(entry["chance"]):
+		var chance := minf(1.0, float(entry["chance"]) + bonus)
+		var next_time := float(entry.get("next_time", 1.0))
+		if next_time != 1.0:
+			counts = true
+			# a fading drop ignores the per-wave rise: 100%, 50%, 25% ...
+			chance = float(entry["chance"]) * pow(next_time, before)
+		if randf() > chance:
 			continue
 		var key := String(entry["item"])
 		out[key] = int(out.get(key, 0)) + int(entry["amount"])
+	if counts and state != null:
+		state.add_count(times_key, 1)
 	return out
 
 

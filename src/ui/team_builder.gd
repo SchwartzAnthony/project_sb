@@ -735,8 +735,18 @@ func _update_status() -> void:
 		if gap != "":
 			missing.append(gap)
 
+	# ANY SIZE (Anthony, 16 Oct): an Adventure Team goes with 1 or more.
+	if TeamRoster.any_size(entry, db):
+		var many := 0
+		for tier in ALL_TIERS:
+			many += _slotted(tier).size()
+		missing.clear()
+		if many == 0:
+			missing.append("Put at least one Adventure player in")
 	if missing.is_empty():
 		_status.text = "%s is ready — 1 Star + 9 regulars, one of every power." % _final_name()
+		if TeamRoster.any_size(entry, db):
+			_status.text = "%s is ready to set off." % _final_name()
 		_status.add_theme_color_override("font_color", Color(0.55, 0.85, 0.6))
 		_lock_button.disabled = false
 		_save_button.disabled = false
@@ -920,8 +930,9 @@ func _on_save_only() -> void:
 func _on_lock_in() -> void:
 	if selection == null or selection.unit_type == "":
 		return
+	var any := TeamRoster.any_size(entry, db)
 	for tier in ALL_TIERS:
-		if tier == selection.star_tier:
+		if any or tier == selection.star_tier:
 			continue
 		if not TierLadder.legal(_slotted(tier), tier, db):
 			_update_status()
@@ -929,7 +940,16 @@ func _on_lock_in() -> void:
 
 	var flat := _save_team()
 	selection.regulars = flat
-	if not selection.is_complete(ALL_TIERS, PER_TIER):
+	if any:
+		var many := 0
+		for tier in flat.keys():
+			many += (flat[tier] as Array).size()
+		if many == 0:
+			_update_status()
+			return
+		selection.star_bundle.clear()
+		selection.active_star = null
+	elif not selection.is_complete(ALL_TIERS, PER_TIER):
 		_update_status()
 		return
 

@@ -507,6 +507,30 @@ static func may_field(card: PlayerData, unit_type: String,
 
 ## The unlock a Team Spirit hands over. Its Brews.csv row asks for exactly
 ## this in its Requires column.
+## EVERY STAR OF A CLASS HAS PLAYED (Anthony, 15 Oct: "they need to have
+## been played at some point"). After a match: flag star_played_<name> for
+## each Star who played, and all_stars_played_<class> once every Star of
+## that class has. Achievements.csv reads the second one.
+static func note_stars_played(squad: Array, state: GameState) -> void:
+	if state == null:
+		return
+	for card in squad:
+		var star := card as PlayerData
+		if star != null and star.is_star():
+			state.set_flag("star_played_" + star.player_name, true)
+	for key in ClassBook.classes():
+		var entry: ClassBook.ClassEntry = ClassBook.classes()[key]
+		if entry.stars.is_empty():
+			continue
+		var all := true
+		for star in entry.stars:
+			if star != null and not state.has_flag("star_played_" + star.player_name):
+				all = false
+				break
+		if all:
+			state.set_flag("all_stars_played_" + entry.unit_type, true)
+
+
 static func spirit_unlock(unit_type: String) -> String:
 	return "Team Spirit %s" % unit_type
 

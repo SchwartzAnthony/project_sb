@@ -125,6 +125,16 @@ func _build_ui() -> void:
 	_permanent.disabled = not state.is_unlocked(BrewDB.PERMANENT_UNLOCK)
 	header.add_child(_permanent)
 
+	# MIX DRINK (Anthony, 16 Oct): a Star Element + a bottle of that element
+	# = a Star Elemental Brew. See star_brew_book.gd.
+	var mix := Button.new()
+	mix.name = "MixDrink"
+	mix.text = Loc.text("pub_mix_button", "Mix drink")
+	mix.add_theme_font_size_override("font_size", 16)
+	mix.custom_minimum_size = Vector2(150, 44)
+	mix.pressed.connect(_mix_drink)
+	header.add_child(mix)
+
 	var back := MenuSupport.icon_button("◇", "Back to the base", Vector2(190, 44))
 	back.add_theme_font_size_override("font_size", 16)
 	back.add_theme_stylebox_override("normal",
@@ -211,9 +221,16 @@ func _rebuild_brews() -> void:
 		child.queue_free()
 
 	var pourable := brews.available_for(state)
+	# YOUR OWN BOTTLES (Anthony, 15 Oct): "The pub is a place to make the
+	# players drink the bottles we have made" - and here it lasts the whole
+	# next match, not just one cycle as on the pitch.
+	for bottle in _bottles():
+		pourable.append(bottle)
+	for star_brew in _star_brews():
+		pourable.append(star_brew)
 	if pourable.is_empty():
 		var empty := Label.new()
-		empty.text = "Nothing on tap yet.\n\nBrews are unlocked by the Brewing talents at the Training Ground."
+		empty.text = "Nothing on tap yet.\n\nBottle a batch at the Brewery and bring it here."
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.add_theme_font_size_override("font_size", 15)
 		empty.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
@@ -222,6 +239,73 @@ func _rebuild_brews() -> void:
 
 	for entry in pourable:
 		_brew_list.add_child(_make_brew_button(entry))
+
+
+## Every bottle in the bag that pours a beer (Items.csv Use brew:pool:...).
+func _bottles() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var adb := AdventureDB.get_db()
+	if adb == null:
+		return out
+	for key in adb.items.keys():
+		var item: Dictionary = adb.items[key]
+		var held := state.count(String(item["id"]))
+		if held <= 0 or not String(item["use"]).begins_with("brew:pool:"):
+			continue
+		if not DialogueGrammar.test(String(item["requires"]), state):
+			continue
+		out.append({"id": "bottle:" + String(item["id"]), "bottle": item,
+			"name": "%s  x%d" % [item["name"], held],
+			"description": "Opened at the table. Whatever beer is inside lasts him the whole next match.",
+			# the keys every Pub check reads, so a bottle passes them all
+			"for_class": "", "becomes": "", "attack": "", "defend": "", "permanent": false,
+			"cost": {}, "drinks": 0, "inspiration": 0, "pool": "bottle", "requires": ""})
+	return out
+
+
+## Every Star Elemental Brew in the bag (Items.csv Use star_brew:<element>).
+func _star_brews() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for element in StarBrewBook.ELEMENTS:
+		var item := StarBrewBook.item_for("star_brew", element)
+		if item.is_empty() or state.count(String(item["id"])) <= 0:
+			continue
+		var tier := StarBrewBook.star_tier(element, cards)
+		out.append({"id": "star:" + element, "star": element,
+			"name": "%s  x%d" % [item["name"], state.count(String(item["id"]))],
+			"description": "%s %s" % [item.get("description", ""),
+				("Only Tier %s." % tier) if tier != "" else "Any Tier."],
+			"for_class": "", "becomes": "", "attack": "", "defend": "", "permanent": false,
+			"cost": {}, "drinks": 0, "inspiration": 0, "pool": "star", "requires": ""})
+	return out
+
+
+## MIX DRINK: pick which Star Element to mix. Each line says what it needs.
+func _mix_drink() -> void:
+	var options: Array[String] = []
+	var details: Array[String] = []
+	var elements: Array[String] = []
+	for element in StarBrewBook.ELEMENTS:
+		var star := StarBrewBook.item_for("star_element", element)
+		if star.is_empty():
+			continue
+		elements.append(element)
+		options.append("%s (x%d) + %s bottle" % [star["name"], state.count(String(star["id"])),
+			element.capitalize()])
+		var no := StarBrewBook.mix_refusal(element, state)
+		details.append(no if no != "" else "Ready to mix.")
+	var picked: int = await ChoiceWindow.ask(self,
+		Loc.text("pub_mix_title", "MIX DRINK"),
+		Loc.text("pub_mix_text", "A Star Element and a bottle of the same element make a Star Elemental Brew. Whoever drinks it is a Star for good, if he has the right Tier."),
+		options, details)
+	if picked < 0 or picked >= elements.size():
+		return
+	var made := StarBrewBook.mix(elements[picked], state)
+	_detail.text = String(made["why"])
+	if bool(made["ok"]):
+		state.save_to_disk()
+	_rebuild_brews()
+	_rebuild_cards()
 
 
 func _make_brew_button(entry: Dictionary) -> Control:
@@ -271,6 +355,16 @@ func _make_brew_button(entry: Dictionary) -> Control:
 
 ## "Lorelei becomes Brandteufel · 2 abilities · can be permanent"
 func _summary(entry: Dictionary) -> String:
+	if entry.has("star"):
+		var element := String(entry["star"])
+		var klass := StarBrewBook.class_for(element)
+		var tier := StarBrewBook.star_tier(element, cards)
+		return "%s becomes a %s Star for good" % [("Tier " + tier) if tier != "" else "Any Tier",
+			klass if klass != "" else "plain"]
+	if entry.has("bottle"):
+		var els := BreweryBook.elements_on(String(entry["bottle"]["id"]), state)
+		return "from your Brewery%s · lasts the whole next match" % (
+			"" if els.is_empty() else " · next one: " + String(els[0]).capitalize())
 	var bits: PackedStringArray = []
 
 	var for_class := String(entry["for_class"]).strip_edges()
@@ -341,8 +435,15 @@ func _rebuild_cards() -> void:
 	for piece in cards.tune_text("pub_hidden_classes", "Rivals").split(",", false):
 		hidden.append(CardDatabase._normalise(String(piece)))
 	for card in cards.players:
-		if card.is_star():
-			continue          # Stars keep their own printed abilities
+		# ONLY YOUR OWN PLAYERS (Anthony, 16 Oct: "Show only what the player
+		# has"). Tuning pub_own_players_only false shows every card again.
+		if cards.tune_bool("pub_own_players_only", true) \
+				and not RecruitBook.is_recruit(card.player_name, state):
+			continue
+		# Stars keep their own printed abilities - all but a PLAIN Star, who
+		# drinks Passion beers and Star Brews (Anthony, 16 Oct).
+		if card.is_star() and not StarBrewBook.is_plain(card, state):
+			continue
 		if hidden.has(CardDatabase._normalise(card.unit_type)):
 			continue
 		_card_grid.add_child(_make_card(card))
@@ -357,6 +458,8 @@ func _make_card(card: PlayerData) -> Control:
 	var pourable := seated and not _selected.is_empty() and BrewDB.suits(_selected, card) \
 		and BrewDB.can_afford(_selected, state) \
 		and TransformBook.refusal(card, _selected, state, cards) == ""
+	if _selected.has("star"):
+		pourable = seated and StarBrewBook.refusal(card, String(_selected["star"]), state, cards) == ""
 
 	var button := Button.new()
 	button.custom_minimum_size = CARD_SIZE
@@ -420,6 +523,17 @@ func _make_card(card: PlayerData) -> Control:
 		footer.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(footer)
+
+	# ONCE HE HAS AN ELEMENT, the card says if he can become its Star
+	# (Anthony, 16 Oct). A plain Star says so, and how many Passion beers.
+	var star_line := StarBrewBook.hint(card, state, cards)
+	if StarBrewBook.is_plain(card, state):
+		var mix_count := StarBrewBook.mix_of(card, state).size()
+		star_line = "T%s Plain Star%s" % [card.get_tier_clean(),
+			(" (%d)" % mix_count) if mix_count > 0 else ""]
+	if star_line != "" and beers["element"] == "":
+		footer.text = star_line
+		footer.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
 
 	if DrunkBook.on():
 		box.add_child(_make_meter(card))
@@ -517,6 +631,16 @@ func _on_card_right_click(event: InputEvent, card: PlayerData) -> void:
 
 
 func _on_card(card: PlayerData) -> void:
+	if _selected.has("star"):
+		_pour_star_brew(card)
+		return
+	# A PLAIN STAR takes only Passion bottles, and keeps every one of them.
+	if StarBrewBook.is_plain(card, state):
+		_pour_for_plain_star(card)
+		return
+	if _selected.has("bottle"):
+		_pour_bottle(card)
+		return
 	# A TURNING BREW IS ITS OWN THING - a count towards a change for good,
 	# not an overlay - so it is handled before anything below can take a
 	# one-match brew off by accident.
@@ -569,6 +693,113 @@ func _on_card(card: PlayerData) -> void:
 	if sober != "" and DrunkBook.refusal(card, _selected, state) != "":
 		_detail.text += "  He is too sober for it to work yet (it needs %d%%)." % DrunkBook.threshold("brews")
 	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
+	_rebuild_cards()
+	var after := DrunkBook.level_of(card, state)
+	_cheer(card, {"after": after,
+		"new_level": String(before.get("id", "")) != String(after.get("id", ""))})
+
+
+## A bottle from the Brewery, opened at the Pub: the same lucky dip as on the
+## pitch, but it stays on him until the final whistle of the next match.
+func _pour_bottle(card: PlayerData) -> void:
+	if not PubBook.allowed(card, state, cards):
+		_detail.text = "%s is not in the room. Right-click to give them a seat." % card.player_name
+		return
+	var item: Dictionary = _selected["bottle"]
+	var item_id := String(item["id"])
+	if state.count(item_id) <= 0:
+		_detail.text = "No %s left." % item["name"]
+		return
+	if BrewDB.brew_id_for(card, state) != "":
+		_detail.text = "%s already has a beer for the next match. Click him with nothing picked to take it off." % card.player_name
+		return
+	var brew_id := AdventureDB.brew_in_use(item, state)
+	var brew := brews.find(brew_id)
+	if brew.is_empty():
+		_detail.text = "That bottle is empty - no beer in Brews.csv fits it."
+		return
+	if not BrewDB.suits(brew, card):
+		_detail.text = "%s cannot drink that." % card.player_name
+		return
+	var before := DrunkBook.level_of(card, state)
+	BreweryBook.open_bottle(item_id, state)
+	state.add_count(item_id, -1)
+	DrunkBook.drink(card, brew, state, item)
+	if not DrunkBook.is_plain(brew):
+		state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(card), brew_id)
+		state.set_text(BrewDB.LENT_PREFIX + BrewDB.card_key(card), "")
+	brews.apply_all(cards, state)
+	_pour_sound(card)
+	state.save_to_disk()
+	_detail.text = "%s opens a %s: %s. It lasts the whole next match." % [
+		card.player_name, item["name"], brew.get("name", brew_id)]
+	if DrunkBook.refusal(card, brew, state) != "":
+		_detail.text += "  He is too sober for it to work yet (it needs %d%%)." % DrunkBook.threshold("brews")
+	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
+	_selected = {}
+	_rebuild_brews()
+	_rebuild_cards()
+	var after := DrunkBook.level_of(card, state)
+	_cheer(card, {"after": after,
+		"new_level": String(before.get("id", "")) != String(after.get("id", ""))})
+
+
+## A Star Elemental Brew: he is a Star for good, or the line says why not.
+func _pour_star_brew(card: PlayerData) -> void:
+	if not PubBook.allowed(card, state, cards):
+		_detail.text = "%s is not in the room. Right-click to give them a seat." % card.player_name
+		return
+	var drank := StarBrewBook.drink(card, String(_selected["star"]), state, cards)
+	_detail.text = String(drank["why"])
+	if not bool(drank["ok"]):
+		return
+	TransformBook.apply_all(cards, state)
+	brews.apply_all(cards, state)
+	_pour_sound(card)
+	state.save_to_disk()
+	_selected = {}
+	_rebuild_brews()
+	_rebuild_cards()
+	_cheer(card, {"after": DrunkBook.level_of(card, state), "new_level": true})
+
+
+## A plain Star and a Passion bottle: the beer joins his others. At every
+## pick in the match his attack and defend are rolled from all of them.
+func _pour_for_plain_star(card: PlayerData) -> void:
+	if not PubBook.allowed(card, state, cards):
+		_detail.text = "%s is not in the room. Right-click to give them a seat." % card.player_name
+		return
+	if _selected.is_empty():
+		_detail.text = "Pick a Passion bottle on the left first."
+		return
+	if not _selected.has("bottle"):
+		_detail.text = "%s is a plain Star. He only drinks Passion bottles and Star Brews." % card.player_name
+		return
+	var item: Dictionary = _selected["bottle"]
+	var item_id := String(item["id"])
+	if state.count(item_id) <= 0:
+		_detail.text = "No %s left." % item["name"]
+		return
+	if BreweryBook.bottle_element(item_id, state) != "passion":
+		_detail.text = "%s is a plain Star. The next %s is not a Passion beer." % [card.player_name, item["name"]]
+		return
+	var brew_id := AdventureDB.brew_in_use(item, state)
+	var brew := brews.find(brew_id)
+	if brew.is_empty():
+		_detail.text = "That bottle is empty - no beer in Brews.csv fits it."
+		return
+	var before := DrunkBook.level_of(card, state)
+	BreweryBook.open_bottle(item_id, state)
+	state.add_count(item_id, -1)
+	DrunkBook.drink(card, brew, state, item)
+	StarBrewBook.add_passion(card, brew_id, state)
+	brews.apply_all(cards, state)
+	_pour_sound(card)
+	state.save_to_disk()
+	_detail.text = "%s drinks a %s: %s. At every pick his attack and defend are rolled from his %d Passion beer(s)." % [
+		card.player_name, item["name"], brew.get("name", brew_id), StarBrewBook.mix_of(card, state).size()]
+	_detail.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
+	_rebuild_brews()
 	_rebuild_cards()
 	var after := DrunkBook.level_of(card, state)
 	_cheer(card, {"after": after,

@@ -88,17 +88,22 @@ func test_the_stars_tier_is_never_short_of_rested_players() -> void:
 		db.tuning["recovery"] = was
 
 
-# ---- round AN, Anthony 8 Oct: some Adventure players to start with, and a
-# role is for good until Quereinsteiger ----
+# ---- round AN, Anthony 16 Oct: twelve to start, the Tier II three are
+# Stars, and all nine plain players are Match players so the first team
+# is ready at once. (8 Oct had four Adventure players.) ----
 
-func test_the_starting_team_csv_has_adventure_players() -> void:
-	var roles := {}
+func test_the_starting_team_csv_has_three_plain_tier_two_stars() -> void:
+	var stars := 0
+	var match_players := 0
 	for row in MenuSupport.read_csv("res://data/" + db.tune_text("starting_team", "StartingTeam.csv")):
-		var r := MenuSupport.field(row, "Role").strip_edges().to_lower()
-		if r != "":
-			roles[r] = int(roles.get(r, 0)) + 1
-	assert_gt(int(roles.get("adventure", 0)), 0, "a fresh game needs Adventure Players")
-	assert_gt(int(roles.get("match", 0)), 0)
+		if MenuSupport.field(row, "Star").strip_edges().to_lower() == "yes":
+			stars += 1
+			assert_eq(MenuSupport.field(row, "Tier"), "II", "the Stars are Tier II")
+			assert_eq(MenuSupport.field(row, "Class"), "Normal", "plain, no element")
+		if MenuSupport.field(row, "Role").strip_edges().to_lower() == "match":
+			match_players += 1
+	assert_eq(stars, 3)
+	assert_eq(match_players, 12)
 
 
 func test_the_starting_team_role_column_is_used() -> void:
@@ -147,11 +152,94 @@ func test_a_locked_match_player_cannot_slip_into_the_brewery() -> void:
 	assert_false(BrewerBook.is_brewer("Resi", state))
 
 
-func test_a_fresh_games_starting_team_has_adventure_players() -> void:
-	SquadSheet.selection_from(db.tune_text("starting_team", "StartingTeam.csv"), db, state, true)
+## Anthony, 16 Oct: twelve Match players, one Adventure player and one
+## apprentice brewer - the three kept apart.
+func test_a_fresh_game_has_twelve_match_players_one_adventurer_one_brewer() -> void:
+	var picked := SquadSheet.selection_from(db.tune_text("starting_team", "StartingTeam.csv"), db, state, true)
 	var count := {}
 	for name_text in RecruitBook.names(state):
 		var r := PlayerRoles.role(name_text, state, db)
 		count[r] = int(count.get(r, 0)) + 1
-	assert_eq(int(count.get(PlayerRoles.ADVENTURE, 0)), 4, str(count))
-	assert_eq(int(count.get(PlayerRoles.MATCH, 0)), 8, str(count))
+	assert_eq(int(count.get(PlayerRoles.MATCH, 0)), 12, str(count))
+	assert_eq(int(count.get(PlayerRoles.ADVENTURE, 0)), 1, str(count))
+	assert_eq(BrewerBook.names(state).size(), 1, "one apprentice brewer")
+	var on_the_side := picked.star_bundle.size()
+	for tier in picked.regulars.keys():
+		on_the_side += (picked.regulars[tier] as Array).size()
+	assert_eq(on_the_side, 12, "only the Match players field the first team")
+
+
+func test_a_fresh_game_can_play_a_match_at_once() -> void:
+	var was := TeamRoster.SAVE_PATH
+	TeamRoster.SAVE_PATH = "user://test_fresh_teams.json"
+	var picked := SquadSheet.selection_from(db.tune_text("starting_team", "StartingTeam.csv"), db, state, true)
+	RecruitBook.apply_all(db, state)
+	Tutorial.make_ready(picked, state, db)
+	var now := TeamBuild.status(state, db)
+	assert_true(bool(now["ok"]), String(now["why"]))
+	assert_eq(int(now["players"]), 12)
+	assert_eq(String(now["class"]), "Normal")
+	# The Tier II Stars are your own plain players, with no abilities.
+	var book := TeamRoster.load_all()
+	var pick := book.to_selection(book.teams[0], db)
+	assert_eq(pick.star_bundle.size(), 3)
+	for star in pick.star_bundle:
+		assert_true(star.is_star())
+		assert_eq(star.get_tier_clean(), "II")
+		assert_eq(star.attack_ability_id, "")
+		assert_eq(star.defend_ability_id, "")
+		assert_true(RecruitBook.is_recruit(star.player_name, state), star.player_name)
+	RecruitBook.remove_all(db)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TeamRoster.SAVE_PATH))
+	TeamRoster.SAVE_PATH = was
+
+
+func test_the_six_pack_is_six_passion_bottles() -> void:
+	DialogueGrammar.apply("bottle:small_bottle=6@passion", state)
+	assert_eq(state.count("small_bottle"), 6)
+	assert_eq(BreweryBook.elements_on("small_bottle", state).count("passion"), 6)
+	assert_true(DialogueGrammar.complaints("bottle:small_bottle=6@passion", true).is_empty())
+
+
+func test_the_first_opponents_beer_rule_waits_on_its_flag() -> void:
+	var when := CardDatabase._normalise("flag:enemy_has_beer")
+	assert_false(EnemyPlay._matches(when, {"state": state}))
+	state.set_flag("enemy_has_beer", true)
+	assert_true(EnemyPlay._matches(when, {"state": state}))
+
+
+func test_the_first_match_is_against_a_side_with_no_abilities() -> void:
+	assert_eq(MatchMode.stand_in_for("friendly", state), "first_match")
+	var picked := SquadSheet.selection_from("EnemyIntroSquad.csv", db, state, false)
+	for tier in picked.regulars.keys():
+		for card in picked.regulars[tier]:
+			assert_eq((card as PlayerData).attack_ability_id, "", card.player_name)
+			assert_eq((card as PlayerData).defend_ability_id, "", card.player_name)
+	state.set_count("matches_played", 1)
+	assert_eq(MatchMode.stand_in_for("friendly", state), "friendly")
+
+
+## Anthony, 16 Oct (decision card: Any size): an Adventure Team sets off
+## with 1 or more Adventure players, no Star needed.
+func test_a_new_game_has_a_one_player_adventure_team_ready() -> void:
+	var was := TeamRoster.SAVE_PATH
+	TeamRoster.SAVE_PATH = "user://test_adventure_teams.json"
+	if FileAccess.file_exists(TeamRoster.SAVE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(TeamRoster.SAVE_PATH))
+	SquadSheet.selection_from(db.tune_text("starting_team", "StartingTeam.csv"), db, state, true)
+	Tutorial.make_adventure_team(state, db)
+	var book := TeamRoster.load_all()
+	var team: Dictionary = {}
+	for entry in book.teams:
+		if String(entry["kind"]) == PlayerRoles.ADVENTURE:
+			team = entry
+	assert_false(team.is_empty(), "an Adventure Team was saved")
+	assert_eq(book.head_count(team, db), 1)
+	assert_eq(book.trouble(team, db, 1), "", "one player is enough")
+	var picked := book.to_selection(team, db)
+	assert_null(picked.active_star, "no Star needed")
+	team["cards"] = {}
+	assert_ne(book.trouble(team, db, 1), "", "nobody at all is not")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TeamRoster.SAVE_PATH))
+	TeamRoster.SAVE_PATH = was
+	RecruitBook.remove_all(db)

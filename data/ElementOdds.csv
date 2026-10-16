@@ -1,0 +1,7 @@
+Cards,Chance,Notes
+1,20,"ROUND AN (Anthony, 14 Oct): ""You add as many elements as possible to increase the % chance of getting that. 1 fire element has a 20% chance for a fire bottle, adding all 6 gives all bottles a 100%."" CARDS = how many element cards of ONE element go into the Brew Kettle. CHANCE = the % chance EACH bottle comes out that element (every bottle rolls on its own, small or large or keg). A miss becomes Tuning.csv element_miss_becomes (passion). The last row is the most cards the kettle takes."
+2,36,
+3,52,
+4,68,
+5,84,
+6,100,

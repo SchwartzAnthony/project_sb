@@ -36,3 +36,19 @@ COMBO_WEISSE_ATK,Fumbled Pass,on_attack,self,add_power,-1,duel,,,,,"ROUND AN - T
 COMBO_WEISSE_DEF,One-Two,on_defend,next_ally,add_power,1,duel,,,,,"ROUND AN - THE TUTORIAL COMBO BEERS (Anthony, 8 Oct): one good side and one bad side. Doppelpass Weiße, good side: when it defends, +1 power to the next player of yours who duels."
 COMBO_DUNKEL_ATK,Tap-In,on_attack,self,add_power,1,duel,,,,,"ROUND AN - THE TUTORIAL COMBO BEERS (Anthony, 8 Oct): one good side and one bad side. Abstauber Dunkel, good side: +1 power when it attacks."
 COMBO_DUNKEL_DEF,Sleepy Keeper,on_defend,own_goalie,drain_stamina,1,duel,,,,,"ROUND AN - THE TUTORIAL COMBO BEERS (Anthony, 8 Oct): one good side and one bad side. Abstauber Dunkel, bad side: 1 stamina off your own keeper when it defends."
+BASIC_ATTACK_INCREASE,Basic Attack Increase,on_attack,self,add_power,1,duel,,,,,Made in the System Builder.
+BASIC_ATTACK_DECREASE,Basic Attack Decrease,on_attack,self,add_power,-1,duel,,,,,Made in the System Builder.
+BASIC_STAMINA_GAIN,Basic Stamina Gain,on_attack,own_goalie,restore_stamina,1,duel,,,,,Made in the System Builder.
+BASIC_STAMINA_LOSS,Basic Stamina Loss,on_attack,own_goalie,drain_stamina,1,duel,,,,,Made in the System Builder.
+BASIC_NEGATIVE_COUNTER,Basic Negative Counter,on_attack,self,add_counter,-1,duel,,,,,Made in the System Builder.
+BASIC_NEGATIVE_COUNTER_ENEMY,Basic Negative Counter Enemy,on_attack,opponent,add_counter,-1,duel,,,,,Made in the System Builder.
+BASIC_ENEMY_DECREASE,Basic Enemy Decrease,on_attack,opponent,add_power,-1,duel,,,,,Made in the System Builder.
+BASIC_ENEMY_INCREASE,Basic Enemy Increase,on_attack,opponent,add_power,1,duel,,,,,Made in the System Builder.
+BASIC_STAMINA_RESTORE_SELF,Basic Stamina Drain Self,on_attack,self,restore_stamina,1,duel,,,,,Made in the System Builder.
+BASIC_STAMINA_RESTORE,Basic Stamina Restore,on_attack,own_goalie,restore_stamina,1,duel,,,,,Made in the System Builder.
+BASIC_STAMINA_RESTORE_ENEMY,Basic Stamina Restore Enemy,on_attack,enemy_goalie,restore_stamina,1,duel,,,,,Made in the System Builder.
+BASIC_PRIORITY_INCREASE,Basic Priority Increase,on_attack,next_ally,change_priority,1,duel,,,,,Made in the System Builder.
+BASIC_PRIORITY_DECREASE,Basic Priority Decrease,on_attack,next_ally,change_priority,-1,duel,,,,,Made in the System Builder.
+BASIC_ENEMY_PRIORITY_INCREASE,Basic Enemy Priority Increase,on_attack,next_enemy,change_priority,1,duel,,,,,Made in the System Builder.
+BASIC_ENEMY_PRIORITY_DECREASE,Basic Enemy Priority Decrease,on_attack,next_enemy,change_priority,-1,duel,,,,,Made in the System Builder.
+BASIC_FOUL_CHANCE_INCREASE,Basic Foul Chance Increase,on_attack,self,add_power,1,duel,,,,,Made in the System Builder.

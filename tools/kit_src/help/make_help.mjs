@@ -178,20 +178,32 @@ await shot('tables', [[1, await box('#tblPick')], [2, await box('#grid tbody tr:
 // if this element, then this beer
 await tab('brewb');await wait(150);
 await ev(() => { cur().slice().forEach(id => dropMine(id));GROUPS[VIEW] = [];NOTES[VIEW] = [];saveBoardBits();draw() });
-await make('New material', 'Fire Element');await make('New material', 'Water Element');
 await make('random beer', 'Ember Helles');await make('random beer', 'River Dunkel');
-await put('res:fire_element', 60, 120);await put('res:water_element', 60, 190);await put('sec:boiling', 360, 330);
+await put('res:fire', 60, 120);await put('res:water_element', 60, 190);await put('sec:boiling', 360, 330);
 await put('brew:ember_helles', 700, 120);await put('brew:river_dunkel', 700, 190);
 const gids = await ev(() => { newGroupAt('Elements');const a = curG()[curG().length - 1];Object.assign(a, { x: 30, y: 70, w: 230, h: 200 });setGMode(a, 'one');
   newGroupAt('Produced Beer');const z = curG()[curG().length - 1];Object.assign(z, { x: 670, y: 70, w: 250, h: 200 });
   curN().push({ id: 'nhelp1', from: 'grp:' + a.id, to: 'sec:boiling', label: 'input' });saveBoardBits();selectNone();draw();drawGroups();drawNotes();return [a.id, z.id] });
 await view(60, 80, 1);await none();
-await connect('res:fire_element', 'brew:ember_helles', false);
-await shot('if_line', [[1, await port('res:fire_element')], [1, await card('brew:ember_helles')], [2, await box('.pop p:nth-of-type(2)')], [3, await box('#lnkOk')]]);
+await connect('res:fire', 'brew:ember_helles', false);
+await shot('if_line', [[1, await port('res:fire')], [1, await card('brew:ember_helles')], [2, await box('.pop p:nth-of-type(2)')], [3, await box('#lnkOk')]]);
 await p.click('#lnkOk');await wait(120);
 await connect('res:water_element', 'brew:river_dunkel');
 await none();
-await shot('if_board', [[1, await box(`#gGroupTop .grp[data-id="${gids[0]}"] .ghead`)], [2, await line('res:fire_element', 'brew:ember_helles', 0.3)], [2, await line('res:water_element', 'brew:river_dunkel', 0.3)]]);
-await ev(() => selectEdge(G.edges.find(e => e.from == 'res:fire_element' && e.to == 'brew:ember_helles')));await wait(80);
-await shot('if_panel', [[1, await line('res:fire_element', 'brew:ember_helles', 0.3)], [2, await box('#right .hint')]]);
+await shot('if_board', [[1, await box(`#gGroupTop .grp[data-id="${gids[0]}"] .ghead`)], [2, await line('res:fire', 'brew:ember_helles', 0.3)], [2, await line('res:water_element', 'brew:river_dunkel', 0.3)]]);
+await ev(() => selectEdge(G.edges.find(e => e.from == 'res:fire' && e.to == 'brew:ember_helles')));await wait(80);
+await shot('if_panel', [[1, await line('res:fire', 'brew:ember_helles', 0.3)], [2, await box('#right .hint')]]);
+
+// pick lists: the words a column takes
+await none();await make('New ability', 'Helles Slump');
+await ev(() => { POS[VIEW]['abl:HELLES_SLUMP'] = { x: 360, y: 500 };lsSet(':pos', POS);draw();selectNone();SEL = 'abl:HELLES_SLUMP';highlight();inspect() });
+await p.click('#right [data-pick="Effect"]');await wait(100);await p.fill('.pk-q', 'attack');await wait(120);
+await p.locator('#right .picker').scrollIntoViewIfNeeded();await wait(80);
+await shot('pick', [[1, await box('#right [data-pick="Effect"]')], [2, await box('#right .pk-q')], [3, await box('.pk-opt:has-text("add_attack") button:has-text("Take away")')]]);
+
+// compare: the game's achievements next to your own board
+await none();await tab('ach');await wait(150);
+await ev(() => { CARDS.ach = ['ach:first_win', 'ach:treble'];saveMine();draw() });
+await p.click('#btnCompare');await wait(300);await none();await ev(() => fit());await wait(200);
+await shot('compare', [[1, await box('#btnCompare')], [2, await box('#right h2')], [3, await box('#cmpAdd')]]);
 console.log('page errors', errs);await b.close();

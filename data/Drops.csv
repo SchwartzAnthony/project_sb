@@ -1,37 +1,58 @@
-Table,Item,Amount,Chance,Requires,Notes
-marsh_ground,reed,1,1.0,,Picked up off the ground while the party runs.
-marsh_ground,coins,2,0.5,,
-cinder_ground,ash_glass,1,1.0,,
-cinder_ground,coins,4,0.5,,
-hollow_ground,deep_salt,1,1.0,,
-hollow_ground,coins,6,0.5,,
-grub_drops,reed,2,1.0,,Always two reed.
-grub_drops,bog_iron,1,0.2,,One in five.
-biter_drops,reed,3,1.0,,
-lurker_drops,bog_iron,2,0.6,,
-warden_drops,reed,10,1.0,,
-warden_drops,coins,25,1.0,,
-king_drops,recipe_marsh_ale,1,1.0,unlocked:Brewery,Only drops once you can actually brew.
-king_drops,bog_iron,12,1.0,,
-king_drops,coins,80,1.0,,
-pup_drops,ash_glass,1,1.0,,
-hound_drops,ash_glass,2,0.7,,
-husk_drops,bog_iron,3,0.5,,
-walker_drops,bog_iron,10,1.0,,
-walker_drops,coins,40,1.0,,
-tyrant_drops,recipe_cinder_stout,1,1.0,unlocked:Brewery,
-tyrant_drops,ash_glass,15,1.0,,
-tyrant_drops,coins,150,1.0,,
-crawler_drops,deep_salt,1,1.0,,
-dwarden_drops,deep_salt,3,0.6,,
-mother_drops,recipe_hollow_porter,1,1.0,unlocked:Brewery,
-mother_drops,deep_salt,20,1.0,,
-mother_drops,coins,300,1.0,,
-frost_ground,deep_salt,1,1.0,,Ground pickups in the Frostreach.
-frost_ground,coins,5,0.5,,
-frost_ground,smelling_salts,1,0.08,,A rare find. Brings somebody back on.
-grub_drops,field_bandage,1,0.06,,"The odd bandage, so the item menu is not empty on a first run."
-warden_drops,smelling_salts,1,1.0,,The first boss always leaves one.
-king_drops,team_orange,2,1.0,,
-tyrant_drops,smelling_salts,2,1.0,,
-mother_drops,smelling_salts,3,1.0,,
+Table,Item,Amount,Chance,Requires,Next Time x,Notes
+marsh_ground,reed,1,1.0,,,Picked up off the ground while the party runs.
+marsh_ground,coins,2,0.5,,,
+cinder_ground,ash_glass,1,1.0,,,
+cinder_ground,coins,4,0.5,,,
+hollow_ground,deep_salt,1,1.0,,,
+hollow_ground,coins,6,0.5,,,
+grub_drops,reed,2,1.0,,,Always two reed.
+grub_drops,bog_iron,1,0.2,,,One in five.
+biter_drops,reed,3,1.0,,,
+lurker_drops,bog_iron,2,0.6,,,
+warden_drops,reed,10,1.0,,,
+warden_drops,coins,25,1.0,,,
+king_drops,recipe_marsh_ale,1,1.0,unlocked:Brewery,,Only drops once you can actually brew.
+king_drops,bog_iron,12,1.0,,,
+king_drops,coins,80,1.0,,,
+pup_drops,ash_glass,1,1.0,,,
+hound_drops,ash_glass,2,0.7,,,
+husk_drops,bog_iron,3,0.5,,,
+walker_drops,bog_iron,10,1.0,,,
+walker_drops,coins,40,1.0,,,
+tyrant_drops,recipe_cinder_stout,1,1.0,unlocked:Brewery,,
+tyrant_drops,ash_glass,15,1.0,,,
+tyrant_drops,coins,150,1.0,,,
+crawler_drops,deep_salt,1,1.0,,,
+dwarden_drops,deep_salt,3,0.6,,,
+mother_drops,recipe_hollow_porter,1,1.0,unlocked:Brewery,,
+mother_drops,deep_salt,20,1.0,,,
+mother_drops,coins,300,1.0,,,
+frost_ground,deep_salt,1,1.0,,,Ground pickups in the Frostreach.
+frost_ground,coins,5,0.5,,,
+frost_ground,smelling_salts,1,0.08,,,A rare find. Brings somebody back on.
+grub_drops,field_bandage,1,0.06,,,"The odd bandage, so the item menu is not empty on a first run."
+warden_drops,smelling_salts,1,1.0,,,The first boss always leaves one.
+king_drops,team_orange,2,1.0,,,
+tyrant_drops,smelling_salts,2,1.0,,,
+mother_drops,smelling_salts,3,1.0,,,
+watcher_drops,no_element,3,1.0,,,Anthony 14 Oct: the boss drops 3 element cards for sure
+watcher_drops,no_element,1,0.3,,,and a 30% chance of one more
+king_drops,water_element,3,1.0,,,Anthony 14 Oct: the boss drops 3 element cards for sure
+king_drops,water_element,1,0.3,,,and a 30% chance of one more
+tyrant_drops,fire,3,1.0,,,Anthony 14 Oct: the boss drops 3 element cards for sure
+tyrant_drops,fire,1,0.3,,,and a 30% chance of one more
+mother_drops,earth_element,3,1.0,,,Anthony 14 Oct: the boss drops 3 element cards for sure
+mother_drops,earth_element,1,0.3,,,and a 30% chance of one more
+wight_drops,air_element,3,1.0,,,Anthony 14 Oct: the boss drops 3 element cards for sure
+wight_drops,air_element,1,0.3,,,and a 30% chance of one more
+watcher_drops,reed,6,0.6,,,
+watcher_drops,coins,40,1.0,,,
+wight_drops,deep_salt,15,0.6,,,
+wight_drops,coins,400,1.0,,,
+hills_ground,reed,1,0.5,,,Ground pickups on Eyes in the Hills
+hills_ground,coins,2,0.5,,,
+watcher_drops,star_passion_element,1,1.0,,0.5,"Anthony 16 Oct: the map boss drops its Star Element, 100% the first time, then half as likely every win (Next Time x 0.5)."
+king_drops,star_water_element,1,1.0,,0.5,"Anthony 16 Oct: the map boss drops its Star Element, 100% the first time, then half as likely every win (Next Time x 0.5)."
+tyrant_drops,star_fire_element,1,1.0,,0.5,"Anthony 16 Oct: the map boss drops its Star Element, 100% the first time, then half as likely every win (Next Time x 0.5)."
+mother_drops,star_earth_element,1,1.0,,0.5,"Anthony 16 Oct: the map boss drops its Star Element, 100% the first time, then half as likely every win (Next Time x 0.5)."
+wight_drops,star_air_element,1,1.0,,0.5,"Anthony 16 Oct: the map boss drops its Star Element, 100% the first time, then half as likely every win (Next Time x 0.5)."

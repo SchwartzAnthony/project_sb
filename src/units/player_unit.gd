@@ -220,7 +220,7 @@ func update_display() -> void:
 	# reads them still works — but they are hidden, because the plate is
 	# drawn in _draw() instead. See name_plate.gd.
 	if name_label:
-		name_label.text = data.player_name
+		name_label.text = data.shown_name()
 		name_label.visible = false
 	if stats_label:
 		stats_label.text = "T%s  %d/%d" % [

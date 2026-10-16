@@ -388,8 +388,25 @@ Makes and How Many (the output).
 writes that beer's Element in Brews.csv (Fire, Passion …) and shows as a
 purple "if Fire" line: that beer only comes out when that element went into
 the Brew Kettle. A line onto a group of beers sets every beer in it. Beers
-with no Element come out whatever went in. The game still needs to remember
-the kettle's element; until that's wired, the lines are saved data only.
+with no Element only come out of bottles with no element (bought, a reward).
+
+**Classes & Element Odds tab:** the odds table (ElementOdds.csv: how many
+element cards go in, and what % of the bottles come out that element) with a
+bar per row you can retype. Below it, each class: the beers that turn a
+drinker into it, a button that sets Becomes on that element's beers when none
+do yet, and the class cards he can become (read only).
+
+**Compare (Achievements board):** the *Compare* button switches between your
+own board and the game's achievements as they are now (Achievements.csv:
+needs on the left, unlocks and rewards on the right). The panel lists what is
+only in the game, only on your board and on both, and can put the missing ones
+on your board without touching what is there.
+
+**Pick lists:** a column that only takes certain words (Trigger, Target,
+Effect, Scope, If, Element …) has a *Pick* button listing every word the game
+knows and what it does (from Keywords.csv and AbilityTriggers.csv). To take
+something away, pick an effect's *Take away*: `add_attack` with Value `-1`
+means lose 1 attack. There is no separate `remove_attack`.
 
 **Saving:** the online link saves by itself, so the same boards are there on
 any PC. The double-clicked file saves in that browser; *Save* > *Download
@@ -2437,6 +2454,93 @@ Ultimate does nothing. A goal no longer resets them (`emblem_reset_on_goal`
 false); a Star that comes back brings its Emblem back as it was. The other
 side's Emblem is shown too, marked THEIRS (`emblem_show_enemy`).
 
+**A fresh game (Anthony, 16 Oct).**
+- **Starting team** (StartingTeam.csv): 12 of your own players, three per
+  Tier, random names, all Match players. The Tier II three are **plain Stars**
+  (column Star = yes): Normal class, no element, no abilities. One of them
+  stands in the Star Hall's BASIC node and the twelve are saved as the Match
+  Team **First XI** (the team's "stars" list), so Play a Match goes straight
+  to the Match Maker (Tuning `starting_team_ready`).
+- **The Head Coach's welcome** (Guide.csv `head_coach_welcome`, Dialogue.csv
+  `head-coach-welcome`): after the Tutorial or a No, four lines at the base.
+  Line three's Effect `bottle:small_bottle=6@passion` gives six Small Bottles,
+  each a random Passion beer when opened. New effect word: `bottle:item=N@element`.
+- **Your first match** (MatchModes.csv `first_match`, Anthony 16 Oct): while no
+  match has been played, Play a Match plays this instead. Your team against
+  EnemyIntroSquad.csv, plain players with **no abilities until they drink**.
+- **The first opponent's beers**: in your first match the other side has
+  Tuning `enemy_first_match_beers` (3) beers. EnemyPlay.csv `enemy_beer`
+  pours a random plain-pool beer on their pick (`brew:pool:plain`) and you see
+  him drink it, until they run out.
+- **Banners** are grey until they can be used: Tuning `banner_<id>_needs`
+  (achievements, inventory, play, teams blank = always open). Adventure:
+  `count:matches_played>=1`, and pressing it early says "Adventure opens
+  after your first match." Season: `count:friendly_wins>=10`.
+- **Season**: the County League (Seasons.csv) needs 10 wins in Play a Match.
+  Its tile and the footer show "Wins in Play a Match: 3 of 10. Win 7 more..."
+  (Language.csv `season_wins_needed`).
+- **Brewery**: opening it gives nothing (`brewery_start_stock` false). The
+  Start column in BreweryResources.csv is now only used by the Tutorial's own
+  save and the brewery tools.
+
+**Your System Builder save in the game (merged 16 Oct, save v414).**
+- Came in: Achievements (17 new, 11 changed), your 12 beers (Brews.csv; kept
+  out of the Tutorial with Requires `!flag:in_tutorial`), the map order (Eyes
+  in the Hills first; the Marshlands need `unlocked:Hill Watcher`), bosses
+  Hill Watcher and Frost Wight (AdventureEnemies.csv), Drops, the 16 BASIC
+  abilities, BrewerySections and KitBoards.csv.
+- **Boss jobs** (Bounties.csv `hill_watcher`, `frost_wight`) so the two new
+  bosses can be fought; beating one unlocks its name, which opens the next map.
+- **Not a Scratch**: coming home with nobody knocked out adds
+  `count:adventures_flawless+1`.
+- **Drops rise through a map**: Tuning `adventure_drop_rise_per_wave` (0.1)
+  is added to every drop Chance per wave after the first.
+- **Beds**: the Dorms only sell beds once Tuning `dorm_bed_needs`
+  (`unlocked:Extra Beds`) passes.
+- The Tutorial's morning adds `unlock:Hill Watcher`
+  (`tutorial_morning_effects`) so its Marshlands walk still opens.
+- Not built yet: the Reversal Keg, the Element Converter, Conquest mode.
+  Versteckter Dunkles has no abilities yet.
+
+**Star Elemental Brews (Anthony, 16 Oct).** How a player becomes a Star for good.
+- **Star Elements** (Items.csv `star_<element>_element`, Use `star_element:<element>`)
+  drop from the map bosses: Hill Watcher Passion, Marsh King Water, Ash Tyrant
+  Fire, Hollow Mother Earth, Frost Wight Air (Drops.csv). New Drops column
+  **Next Time x**: 0.5 = 100% the first win, then 50%, 25% ... (counter
+  `drops_rolled_<table>`). A fading row ignores the per-wave rise.
+- **Pub, Mix drink**: a Star Element + a bag bottle of the same element (from the
+  Brewery) = one **Star Brew** (Items.csv `star_<element>_brew`, Use
+  `star_brew:<element>`). Passion needs a Passion bottle whose pool has a Passion
+  beer with abilities.
+- **Drinking a Star Brew** at the Pub: only the class's Star Tier (ClassInfo.csv
+  Star Tier: Lorelei/Water II, Unkengeister/Air II, Bergmännlein/Earth III,
+  Rauhnacht/Fire IV; Passion = every Tier, Tuning `star_passion_tier` blank). He keeps his
+  name and becomes a Star of that class with the Star card's abilities at his
+  Power (nearest Power if none matches). The wrong Tier can never drink it.
+- **Passion** makes a **plain Star** (no class). A plain Star shows in the Pub,
+  drinks only Passion bottles, and keeps all of them for the next match: at every
+  pick his attack and defend are rolled at random from all their abilities (two
+  good or two bad can land together).
+- A card with an element beer on him says "Can become a Water Star" when his Tier fits.
+- **The Pub shows only your own players** (Tuning `pub_own_players_only`). Later (Anthony): just the 12 of your team, with a toggle to the Adventure side.
+- **Start with 1 Adventure player and 1 apprentice brewer** (StartingTeam.csv rows p13 Role adventure, p14 Role brewer; Anthony 16 Oct). They join the base but never the Match Team; the three roles stay apart for good. A brewer row is made a brewer at once (his Power is his efficiency).
+- **An Adventure Team of any size** (Anthony 16 Oct, Tuning `adventure_any_size`): it sets off with 1 or more Adventure players, no full ladder, no Star. A new game saves its Adventure players as the Adventure Team "First Adventurers" (Language `starting_adventure_team_name`). Empty tiers still make the enemies hit twice (`adventure_walkover_multiplier`), so one player alone is knocked out in the first fight of Eyes in the Hills.
+- **Play a Match pays Groschen** (MatchModes.csv first_match, friendly, friendly_test, friendly_cycle): Rewards `count:coins+25` every match, Rewards On Win another +25, so a win is 50 and a loss 25 (a draw is 25 too).
+- **Fixed (16 Oct)**: Stats.csv counted `matches_played` twice per match (two rows), so "after 3 matches" came after 2. One row now. Progression.csv `learn_to_brew` (the Brewery, Malthouse and Hanna's brewery-intro) fired after the FIRST match; it now waits for 3 wins, the same moment as Treble.
+- **Fixed**: the final whistle used to wipe every save text starting "brew":
+  barrels in the cellar, bottle elements and the brewer list. Now only poured beers wear off.
+
+**Main and Temporary Emblems (Anthony, 15 Oct).** The Star you pick before
+kick-off is the **Main**. Its Emblem is on the bar all match, on the field or
+off it. It is the only one that can turn Ultimate, and once it has, it stays
+Ultimate (a goal does not reset it). Any other Star brings a **Temporary**
+Emblem while it is on the field: Basic side only, and it leaves with them.
+A class's Emblems only show once its "<Class> Emblems" unlock is earned (all
+three of its Stars have played), and only when an achievement in
+Achievements.csv hands that unlock out. Tuning: `emblem_main_star` (FALSE =
+the old race), `emblems_need_unlock` (FALSE = no gate). Test:
+tests/unit/test_main_emblem.gd.
+
 **AUTO menu (Q040):** switching AUTO on asks which questions AUTO should also
 answer for you - spend Ore, Swans, the Rose pick, the side that stays up
 (`auto_menu`). **One window for all the side choices** of a round (Q037).
@@ -2553,6 +2657,17 @@ they replaced walk back on.
 | `If` | **round Y.** Conditions that must all be true - see above |
 | `Cost` | **round Z.** `ore:3` - paid from your side's Ore pool before it goes off |
 | `Ask` | **round AA.** `yes` - you are asked first |
+
+**Fouls on your own side** (14 Oct): `foul_chance` and `foul_heat` land on
+the OTHER side. Give them **Target `side`** to change YOUR side's fouls
+instead. A minus Value lowers it: `foul_chance`, Target `side`, Value `-10`
+= your side is 10% less likely to foul.
+
+**The bar and the % are tied** (14 Oct): when an ability changes one, it
+changes the other too. Tuning.csv `foul_pct_per_bar_segment` (10) says what
+one segment is worth: `foul_heat` +1 also gives +10% foul chance, and
+`foul_chance` +10% also lights one more segment. Minus values lower both, and
+the bar never goes below empty. Set it to 0 to untie them.
 
 **`add_card_chance`** (round X) is the first effect that reaches the referee
 — see section 7g. **And one honest note:** the 108 set cards' Attack and
@@ -5621,13 +5736,36 @@ sound events `brew_game_hit`, `brew_game_won` and `brew_game_lost` for
 - `BreweryResources.csv` row `element` has a new **One Of** column listing
   them with `|`. The Kettle's Takes `element:1` means "pick one of these".
   **Start** = how many of EACH card a save gets (once; older saves too).
-  **Kept** = yes: the card is not used up. Set it to `no` to spend one per brew.
+  **Kept** = no: the cards put in are spent (with yes, 6 would be free).
 - The element rides along: brew, barrel in the cellar, bottle in the bag.
   Hanna says it when she bottles: "6 Small Bottle (Water)".
 - **A bottle only gives the beers of its Pool whose `Brews.csv` Element is
   that element, or blank.** A blank-Element beer comes out whatever went in.
   If nothing in the pool fits, any beer of the pool comes out.
 - A bottle with no element (bought, a reward) gives any beer of its pool.
+- **More cards, more element bottles (Anthony, 14 Oct).** After the element
+  the Kettle asks HOW MANY cards (up to the last row of
+  `data/ElementOdds.csv`, 6). Every bottle rolls on its own against that
+  table: 1 card 20%, 2 cards 36%, 3 52%, 4 68%, 5 84%, 6 100%. A miss is
+  the element in `Tuning.csv` `element_miss_becomes` (passion), so it pours a
+  Passion beer. Hanna says the result: "6 Small Bottle (2 Fire, 4 Passion)".
+  The cards are spent now (`Kept` = no, `Start` = 6 of each).
+- **A Fire bottle pours only Fire beers.** Beers with a blank Element come
+  out only when the pool has none of that element. (Before 14 Oct blank beers
+  joined every element's draw, which is why one Fire batch poured its Fire
+  beer only 1 time in 5.)
+- **Play as the class card.** A beer with a `Becomes` class and BOTH
+  abilities blank lends the drinker that class's card at his own Tier and
+  Power for the match: its Attack and Defend abilities (and art) are his.
+  His name shows as "Johannes : (Tobias)" while he plays as that card.
+  When several cards fit (Belial, Haures, Valefor) one is picked at random
+  for each new beer. All of today's classes are "Set I"; later sets of four
+  element classes will need an ingredient or item of their own to brew
+  (Anthony, 14 Oct: not built yet). He still needs to be drunk enough (DrunkLevels.csv `brews`). A beer
+  with its own abilities keeps them; a beer with Drinks still turns him for
+  good after that many.
+- `godot --headless --script res://tools/brewery_sim.gd` brews one batch
+  per element with 1 card and with 6, and prints what the bottles pour.
 - Set it in the System Builder: a line from an element card to a beer writes
   that beer's Element. Note: Element is also what a drinker counts as for the
   match (as with the Fire Brew), so a Fire plain beer makes him Fire.
@@ -5885,6 +6023,16 @@ when you design the star abilities. The most exact row wins.
 presses the real Pub buttons and takes the pictures.
 
 ### `data/Currencies.csv`
+
+**Old brewing removed, grey items (Anthony, 15 Oct 2026).** The old recipe brews (Fire Brew, Water Brew, Keeper's Tonic, the Team Spirits, the four turning brews, Helles, Festbier) are gone from Brews.csv, and so are the recipe and Fire Brew rows of Shop.csv. Beer now only comes from the Brewery machines and your bottle pools. The old items (Reed, Bog Iron, Ash Glass, Deep Salt, the three recipes and the three old bottles) are `Kind` **grey**. Items.csv `Sell Price` is what the Traveling Merchant pays for one, in Groschen; his screen lists them under HE BUYS with Sell 1 / Sell all. Blank = he does not buy it.
+
+**Resources, the Pub and Stars played (Anthony, 15 Oct 2026).** Every Brewery resource you gain also adds to `collected_res_<id>`, which spending never lowers (`count:collected_res_wheat>=30`). The Brewery store now shows in the inventory's Resources tab, and BreweryResources.csv `Sell Price` lets the Traveling Merchant buy it. The Pub lists your bottles (Items.csv Use `brew:pool:...`): opened there, the beer lasts the whole next match instead of one cycle. After every match each Star who played gets `flag:star_played_<name>`, and once every Star of a class has played, `flag:all_stars_played_<class>` is set.
+
+**Brewery and building unlocks (Anthony, 15 Oct 2026).** A finished match now reports `mode` (the MatchModes.csv id), `class_<class>` (how many of that class played, e.g. `class_lorelei`) and `classes` (how many different classes played, plain players included) to Stats.csv. New counters: `season_matches`, `season_wins`, `wins_with_3_lorelei`, `clean_wins_4_classes`, and `minigames_played_<section>` (+1 every Brewery mini-game, won or lost). The achievements that use them live on the System Builder Achievements board until the next "merge my System Builder save". The Pub building is back; it opens with The Whole Brewery.
+
+**Dead ends removed (Anthony, 15 Oct 2026).** The achievements First Pour, The First Brew and Master Brewer are gone; Sharp Shooter unlocks nothing for now. The Pub building, its key and its unlock rows are gone (the tutorial's "to the pub" time-out scene in a match is separate and stays). The Team Spirit is hidden in the Class Tree: it shows only when ClassTree.csv names a Spirit Brew.
+
+**The league money is called Groschen** (Anthony, 14 Oct 2026). Players see the `Name` column; the ID and counter stay `coins`, so every `count:coins+50`, price and save keeps working. Rename it here and every screen follows.
 
 | column | |
 |---|---|

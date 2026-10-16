@@ -92,7 +92,10 @@ func _ready() -> void:
 	state = GameState.fetch(get_tree())
 	# YOUR OPENING STOCK, ONCE PER SAVE. It leaves a flag behind, so walking
 	# out and back in is not a refill — see brewery_book.gd.
-	BreweryBook.stock_a_new_game(state)
+	# Off in a real save (brewery_start_stock); the Tutorial's own save
+	# still gets it, so its brewing lesson has something to brew with.
+	BreweryBook.stock_a_new_game(state,
+		Tutorial.active(get_tree()) or TutorialBase.active(get_tree()))
 
 	_build_chrome()
 	_rebuild()
@@ -670,6 +673,27 @@ func _work(section_id: String) -> void:
 		if chosen < 0 or not is_inside_tree():
 			return
 		pick = String(elements[chosen]["id"])
+	# ============ HOW MANY CARDS (14 Oct, data/ElementOdds.csv) ============
+	# More cards of the element, more bottles of it. One card owned = no question.
+	var pick_many := 1
+	if pick != "":
+		var have := 0
+		for choice in elements:
+			if String(choice["id"]) == pick:
+				have = int(choice["have"])
+		var most := mini(have, BreweryBook.max_element_cards())
+		if most > 1:
+			var counts: Array[String] = []
+			for n in range(1, most + 1):
+				counts.append("%d card%s - %d%% of the bottles" % [n, "" if n == 1 else "s",
+					BreweryBook.element_chance(n)])
+			_playing = true
+			var how_many: int = await ChoiceWindow.ask(self, "HOW MANY %s?" % BreweryBook.card_name(pick).to_upper(),
+				"Each bottle rolls on its own. A miss is a %s bottle." % BreweryBook.element_miss().capitalize(), counts)
+			_playing = false
+			if how_many < 0 or not is_inside_tree():
+				return
+			pick_many = how_many + 1
 	var output := {}
 	var sizes := BreweryBook.sizes_for(section_id, state)
 	if sizes.size() == 1:
@@ -699,6 +723,8 @@ func _work(section_id: String) -> void:
 			String(section.get("name", section_id)), guided)
 		var won: bool = await view.finished
 		_playing = false
+		# Counted win or lose (Anthony, 15 Oct: "play all brewery mini-games").
+		state.add_count("minigames_played_%s" % section_id, 1)
 		if not is_inside_tree():
 			return
 		roll = 0 if won else 101
@@ -712,7 +738,7 @@ func _work(section_id: String) -> void:
 	if guided:
 		remove_meta(Guide.ONLY_META)
 	# ROUND AN: a BREWER works it — see brewer_book.gd and data/Brewers.csv.
-	var result := BrewerBook.work(section_id, state, cards, roll, output, pick)
+	var result := BrewerBook.work(section_id, state, cards, roll, output, pick, pick_many)
 	if not bool(result["ok"]):
 		_say(String(result["why"]), false)
 		_rebuild()
@@ -723,8 +749,23 @@ func _work(section_id: String) -> void:
 	if bool(result.get("item", false)):
 		# A bottle size: an Items.csv item, straight into the bag.
 		made_text = String(AdventureDB.get_db().item(String(result["made"])).get("name", made_text))
-	if String(result.get("element", "")) != "" and not bool(result.get("spoiled", false)):
-		made_text += " (%s)" % String(result["element"]).capitalize()
+	if result.has("bottles") and not bool(result.get("spoiled", false)):
+		# "6 Small Bottle (4 Fire, 2 Passion)"
+		var tally := {}
+		var order: Array[String] = []
+		for one_bottle in result["bottles"]:
+			if not tally.has(one_bottle):
+				order.append(String(one_bottle))
+			tally[one_bottle] = int(tally.get(one_bottle, 0)) + 1
+		var parts: Array[String] = []
+		for word in order:
+			if word != "":
+				parts.append("%d %s" % [tally[word], word.capitalize()])
+		if not parts.is_empty():
+			made_text += " (%s)" % ", ".join(parts)
+	elif String(result.get("element", "")) != "" and not bool(result.get("spoiled", false)):
+		made_text += " (%s%s)" % [String(result["element"]).capitalize(),
+			", %d%% a bottle" % int(result["element_chance"]) if int(result.get("cards", 0)) > 0 else ""]
 	var who := String(result.get("brewer", ""))
 	var crew := ("%s (%d%%)" % [who, int(result["chance"])]) if who != "" \
 		else "Nobody free to brew it (%d%%)" % int(result.get("chance", 100))

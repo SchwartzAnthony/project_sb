@@ -423,7 +423,7 @@ func _build_players_row() -> void:
 	power_pick.custom_minimum_size = Vector2(90, 28)
 	sign_row.add_child(power_pick)
 	var sign_it := _small_button("Sign a new player", 150.0)
-	sign_it.tooltip_text = "A plain player joins your base with a random name. Free - no coins, no bed check."
+	sign_it.tooltip_text = "A plain player joins your base with a random name. Free - no Groschen, no bed check."
 	sign_it.pressed.connect(func() -> void:
 		var tier := ["I", "II", "III", "IV"][tier_pick.selected] as String
 		_after(_dev_sign(tier, int(power_pick.value))))

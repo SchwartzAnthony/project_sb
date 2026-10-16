@@ -383,6 +383,8 @@ var enemy_star_bundle: Array[PlayerData] = []
 var available_player_stars: Array[PlayerData] = []
 var available_enemy_stars: Array[PlayerData] = []
 var active_player_star: PlayerData = null
+## The Star picked before kick-off: their Emblem is the Main one (15 Oct).
+var main_star: PlayerData = null
 var active_enemy_star: PlayerData = null
 var player_star_tier: String = ""
 var enemy_star_tier: String = ""
@@ -2273,7 +2275,20 @@ func _full_time() -> void:
 	facts["scored"] = str(player_score)
 	facts["conceded"] = str(enemy_score)
 	facts["margin"] = str(player_score - enemy_score)
+	# WHICH MODE, AND WHO PLAYED (Anthony, 15 Oct): "win 3 season games",
+	# "win with 3 or more Lorelei", "a clean win with 4 different classes".
+	# mode=season, class_lorelei>=3 and classes>=4 in Stats.csv When.
+	facts["mode"] = String(match_mode.get("id", MatchMode.DEFAULT_ID))
+	var per_class := {}
+	for card in _squad_that_played():
+		var kind := String((card as PlayerData).active_unit_type()).strip_edges()
+		if kind != "":
+			per_class[kind] = int(per_class.get(kind, 0)) + 1
+	for kind in per_class.keys():
+		facts["class_" + String(kind).to_lower().replace(" ", "_").replace("-", "_")] = str(per_class[kind])
+	facts["classes"] = str(per_class.size())
 	_report("match_ended", facts)
+	ClassTree.note_stars_played(_squad_that_played(), state)
 
 	# ============ THE REFEREE'S NOTEBOOK ============
 	#
@@ -2465,6 +2480,8 @@ func _on_start_draft_pressed() -> void:
 
 func _resolve_kickoff_star(chosen: PlayerData) -> void:
 	active_player_star = chosen
+	main_star = chosen
+	EmblemBook.set_main(chosen, state)
 
 	# The tier comes from the CLASS, not from the card you happened to click.
 	# Those are the same thing on good data; on a class whose Stars straddle
@@ -2505,6 +2522,7 @@ func _resolve_kickoff_star(chosen: PlayerData) -> void:
 	# one of it per match whichever way the side was chosen.
 	_open_emblem_bar()
 	_open_ref_bar()
+	_arm_enemy_beers()
 	_report("match_started", _facts_for(null))
 	_advance_progression("match_started")
 
@@ -2516,6 +2534,8 @@ func _apply_team_selection(picked: TeamSelection) -> void:
 	_plain_side = picked.plain
 	chosen_regulars = picked.regulars
 	active_player_star = picked.active_star
+	main_star = picked.active_star
+	EmblemBook.set_main(picked.active_star, state)
 	player_star_tier = picked.star_tier
 	player_star_bundle = picked.star_bundle.duplicate()
 	available_player_stars = picked.star_bundle.duplicate()
@@ -2552,6 +2572,7 @@ func _apply_team_selection(picked: TeamSelection) -> void:
 	# one of it per match whichever way the side was chosen.
 	_open_emblem_bar()
 	_open_ref_bar()
+	_arm_enemy_beers()
 	_report("match_started", _facts_for(null))
 	_advance_progression("match_started")
 
@@ -4655,6 +4676,11 @@ func start_next_draft_phase() -> void:
 	# Round Z: the Emblems are known before the first card is offered, so an
 	# Emblem's Reveal is on the cards from the first draft.
 	_arm_abilities()
+	# A PLAIN STAR'S PASSION BEERS (Anthony, 16 Oct): every pick his attack
+	# and defend are rolled again from all of them - what the card shows is
+	# what he plays with.
+	for own in db.players:
+		StarBrewBook.roll(own, state)
 
 	# ============ AND IT STAYS ON SCREEN ============
 	#
@@ -4912,6 +4938,7 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 	# Cost, which is what the Brewery already took to make it — so the overlay
 	# is laid on directly rather than going through the Pub's till.
 	state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(card), brew_id)
+	state.set_text(BrewDB.LENT_PREFIX + BrewDB.card_key(card), "")     # a new class card roll
 	BrewDB.get_db().apply_all(db, state)
 	# The card on the table may not be one of the database's players (the
 	# tutorial side): lay it on him directly too.
@@ -5788,6 +5815,34 @@ func _enemy_pick_for_tier(tier_key: String) -> void:
 	round_enemy_picks.append(chosen_card)
 
 
+## ============ THE FIRST OPPONENT'S BEERS (Anthony, 16 Oct) ============
+##
+## "During the first initial battle, the enemy player will have 3 beer that
+## they will also use and activate on their turns." In your first match
+## (nothing played yet) they get Tuning.csv enemy_first_match_beers beers.
+## The flag below lets EnemyPlay.csv's `enemy_beer` row fire; each pour
+## spends one, and the flag goes when they run out.
+const ENEMY_BEER_FLAG := "enemy_has_beer"
+const ENEMY_BEERS_LEFT := "enemy_beers_left"
+
+
+func _arm_enemy_beers() -> void:
+	var many := db.tune_int("enemy_first_match_beers", 3)
+	if state.count("matches_played") > 0 or Tutorial.active(get_tree()) \
+			or TutorialBase.active(get_tree()):
+		many = 0
+	state.set_count(ENEMY_BEERS_LEFT, many)
+	state.set_flag(ENEMY_BEER_FLAG, many > 0)
+
+
+func _enemy_beer_spent() -> void:
+	if not state.has_flag(ENEMY_BEER_FLAG):
+		return
+	state.add_count(ENEMY_BEERS_LEFT, -1)
+	if state.count(ENEMY_BEERS_LEFT) <= 0:
+		state.set_flag(ENEMY_BEER_FLAG, false)
+
+
 ## ============ A SCRIPTED THING THE OTHER SIDE DOES ============
 ##
 ## `brew:<id>` pours a brew on the card they have just taken, exactly the way
@@ -5800,6 +5855,10 @@ func _enemy_does(term: String, card: PlayerData) -> void:
 	var rest := term.substr(colon + 1).strip_edges() if colon > 0 else ""
 
 	if kind == "brew":
+		# brew:pool:plain - a random beer out of that pool (Anthony, 16 Oct:
+		# the first opponent's three beers).
+		if rest.to_lower().begins_with("pool:"):
+			rest = BrewDB.get_db().pick_from_pool(rest.substr(5), state)
 		var brew := BrewDB.get_db().find(rest)
 		if brew.is_empty():
 			push_warning("[enemy] Do said brew:%s but Brews.csv has no such row." % rest)
@@ -5810,10 +5869,21 @@ func _enemy_does(term: String, card: PlayerData) -> void:
 			return
 		state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(card), rest)
 		BrewDB.get_db().apply_all(db, state)
+		# A squad card (the first opponent) is not one of the database's
+		# players: lay the beer on him directly too, so it gives him its
+		# abilities.
+		BrewDB.get_db().apply_one(card, state)
 		_redraw_offered_cards()
+		# ...and you see him drink it, the same as when you give yours one.
+		var drinker := unit_for_card(card, true)
+		if drinker != null:
+			drinker.play_drink()
+		AudioDirector.fire(get_tree(), "brew_drunk", {"where": "pitch", "brew": rest,
+			"class": card.unit_type, "tier": card.get_tier_clean()}, state)
 		announce("They pour %s on %s." % [brew.get("name", rest),
 			NamePlate.short_name(card)], 1.8)
 		print("[enemy] %s drinks %s." % [card.player_name, rest])
+		_enemy_beer_spent()
 		return
 
 	if kind == "announce":
@@ -7851,6 +7921,17 @@ func _goal_mouth(keeper_is_enemy: bool) -> Vector2:
 ## point of "they place their emblem when they come into the field".
 func _my_cards() -> Array[PlayerData]:
 	var out: Array[PlayerData] = []
+	# THE MAIN EMBLEM (Anthony, 15 Oct): the Star picked before kick-off keeps
+	# their Emblem on the bar all match, on the field or off it. Any other
+	# Star on the field adds a Temporary one. EmblemBook explains the rules.
+	if EmblemBook.main_on() and main_star != null:
+		if EmblemBook.class_open(main_star.active_unit_type(), state):
+			out.append(main_star)
+		var now := active_player_star
+		if now != null and now != main_star \
+				and EmblemBook.class_open(now.active_unit_type(), state):
+			out.append(now)
+		return out
 	# ROUND AA: AN EMBLEM IS ON THE FIELD ONLY WHILE ITS STAR IS. "When the
 	# star player leaves, it takes their emblem with them and the new star
 	# player brings their own." `emblem_follows_star` FALSE puts back all three.
@@ -7882,6 +7963,7 @@ func _open_emblem_bar() -> void:
 	# ROUND AB: A NEW MATCH, A NEW RACE. Nothing reset the Emblems between
 	# matches before, so a count could carry over in the save.
 	EmblemBook.new_match(state)
+	EmblemBook.set_main(main_star, state)
 	# ROUND AC (your Q063): THE AI RACES TOO. Its counters live in a save of
 	# their own that is never written to disk - a fresh one every match.
 	enemy_race = GameState.new()

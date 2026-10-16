@@ -365,10 +365,11 @@ static func short_name(card: PlayerData) -> String:
 		return ""
 	var full := card.player_name.strip_edges()
 	var klass := card.unit_type.strip_edges()
+	var alias := " : (%s)" % card.brew_alias if card.brew_alias.strip_edges() != "" else ""
 	if klass == "" or full.to_lower() == klass.to_lower():
-		return full
+		return full + alias
 	if full.to_lower().ends_with(" " + klass.to_lower()):
 		var cut := full.substr(0, full.length() - klass.length() - 1).strip_edges()
 		if cut != "":
-			return cut
-	return full
+			return cut + alias
+	return full + alias

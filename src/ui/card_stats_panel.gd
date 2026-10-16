@@ -91,7 +91,7 @@ func show_card(card: PlayerData, near: Vector2) -> void:
 	# Back to the normal width; _place widens it again if it does not fit.
 	custom_minimum_size = Vector2(WIDTH, 0)
 	reset_size()
-	_title.text = card.player_name
+	_title.text = card.shown_name()
 
 	# active_unit_type() rather than unit_type: a brewed card COUNTS AS its
 	# new class, and that is what everything in combat reads, so that is what

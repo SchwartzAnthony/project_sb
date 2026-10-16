@@ -1,13 +1,15 @@
-ID,Tier,Power,Name,Class,Gender,Artwork,Lead,Role,Notes
-p1,I,0,,Normal,,,,match,"THE STARTING TEAM (round AN, Anthony 7 Oct): the base after the tutorial, or after saying No to it - a full team of random plain players and nothing else. Twelve rows, three per Tier, one of each Power on the ladder. Random names, made once per save. They are new people: nothing from the tutorial is kept (Anthony, 8 Oct). Tuning.csv starting_team names this file. ROLE (Anthony, 8 Oct: the starting team of a fresh game includes some Adventure players): match or adventure, what he arrives as. Blank = starting_team_role in Tuning.csv. Four Adventure Players, one per Tier, so the first Adventure Team can be built straight away."
-p2,I,1,,Normal,,,,adventure,
-p3,I,2,,Normal,,,,match,
-p4,II,1,,Normal,,,,match,
-p5,II,2,,Normal,,,,adventure,
-p6,II,3,,Normal,,,,match,
-p7,III,2,,Normal,,,,match,
-p8,III,3,,Normal,,,,adventure,
-p9,III,4,,Normal,,,,match,
-p10,IV,3,,Normal,,,,match,
-p11,IV,4,,Normal,,,,adventure,
-p12,IV,5,,Normal,,,,match,
+ID,Tier,Power,Name,Class,Gender,Artwork,Lead,Role,Star,Notes
+p1,I,0,,Normal,,,,match,,"THE STARTING TEAM (Anthony, 16 Oct): a fresh game gets 12 of your own players, three per Tier, with random names. The Tier II three are PLAIN STARS (Star = yes): Normal class, no element, no abilities - they only become Lorelei, Unkengeister and so on by being upgraded. Tutorial.give_starting_team puts a Star in the Star Hall and saves the twelve as a ready Match Team, First XI (Tuning starting_team_ready), so the first match can be played at once. ROLE: match or adventure; blank = starting_team_role in Tuning.csv. All twelve are Match players, because the first team needs every one of them. Tuning.csv starting_team names this file."
+p2,I,1,,Normal,,,,match,,
+p3,I,2,,Normal,,,,match,,
+p4,II,1,,Normal,,,yes,match,yes,
+p5,II,2,,Normal,,,,match,yes,
+p6,II,3,,Normal,,,,match,yes,
+p7,III,2,,Normal,,,,match,,
+p8,III,3,,Normal,,,,match,,
+p9,III,4,,Normal,,,,match,,
+p10,IV,3,,Normal,,,,match,,
+p11,IV,4,,Normal,,,,match,,
+p12,IV,5,,Normal,,,,match,,
+p13,I,2,,Normal,,,,adventure,,"Anthony 16 Oct: one Adventure Player to start with, so Eyes in the Hills can be played. Not in the Match Team. Tier and Power are Claude's pick"
+p14,I,1,,Normal,,,,brewer,,"Anthony 16 Oct: one apprentice brewer who can be used early on. His Power is his efficiency at a Brewery machine. Tier and Power are Claude's pick"

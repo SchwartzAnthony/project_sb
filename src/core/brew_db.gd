@@ -218,12 +218,19 @@ func available_for(state: GameState) -> Array[Dictionary]:
 ##
 ## IF THIS ELEMENT, THEN THIS BEER (Anthony, 12 Oct). `element` is the one
 ## that went into the Brew Kettle for this bottle (BreweryBook.bottle_element).
-## Only rows whose Element is that element, or blank, can come out. A bottle
-## with no element (bought, a reward) picks from the whole pool as before.
+## A bottle with no element (bought, a reward) picks from the whole pool.
+##
+## ROUND AN (Anthony, 14 Oct): a Fire bottle pours a FIRE beer. Rows with a
+## blank Element only come out when the pool has none of that element.
 func pick_from_pool(pool: String, state: GameState, element: String = "") -> String:
 	var key := pool.strip_edges().to_lower()
+	# A batch that never reached the Bottling Machine still says "fire@3":
+	# it rolls here (BreweryBook.roll_bottle).
+	if element.contains("@"):
+		element = BreweryBook.roll_bottle(element)
 	var wanted := CardDatabase._normalise(element)
-	var choices: Array[String] = []
+	var exact: Array[String] = []
+	var blank: Array[String] = []
 	var any_element: Array[String] = []
 	for entry in brews:
 		# A row can sit in several pools: plain|keg.
@@ -233,8 +240,13 @@ func pick_from_pool(pool: String, state: GameState, element: String = "") -> Str
 			continue
 		any_element.append(String(entry["id"]))
 		var own := CardDatabase._normalise(String(entry.get("element", "")))
-		if wanted == "" or own == "" or own == wanted:
-			choices.append(String(entry["id"]))
+		if own == "":
+			blank.append(String(entry["id"]))
+		elif own == wanted:
+			exact.append(String(entry["id"]))
+	var choices := any_element if wanted == "" else exact
+	if choices.is_empty():
+		choices = blank
 	if choices.is_empty():
 		# Nothing in this pool fits that element: better any beer than none.
 		choices = any_element
@@ -357,6 +369,8 @@ static func pour(card: PlayerData, entry: Dictionary, permanent: bool,
 		}, state)
 		return
 
+	# A new beer, a new roll for the class card he plays as (class_card_for).
+	state.set_text(LENT_PREFIX + key, "")
 	if permanent and bool(entry["permanent"]) and state.is_unlocked(PERMANENT_UNLOCK):
 		state.set_text(PERM_PREFIX + key, brew_id)
 		state.set_text(TEMP_PREFIX + key, "")
@@ -434,13 +448,29 @@ static func clear_temporary(state: GameState) -> int:
 		var name_key := String(key)
 		# Keys are stripped to letters and digits, so a temporary brew starts
 		# "brew" and a permanent one starts "perm" — no overlap.
-		if name_key.begins_with("brew") or name_key.begins_with(CYCLE_DRINK.replace("_", "")):
+		# 16 Oct: ONLY a poured brew. The Brewery keeps texts that start
+		# "brew" too (brew_jobs_, brew_elements_, brewers), and they were
+		# wiped at every final whistle - barrels, bottle elements and the
+		# brewer list gone. A poured brew's value is a Brews.csv ID.
+		if name_key.begins_with(CYCLE_DRINK.replace("_", "")):
+			doomed.append(name_key)
+		elif name_key.begins_with("brew") and _is_poured_brew(name_key, state):
 			doomed.append(name_key)
 	for key in doomed:
 		state.texts.erase(key)
-	if not doomed.is_empty():
-		print("[brews] %d one-match brew(s) wore off." % doomed.size())
-	return doomed.size()
+	# A plain Star's Passion beers wear off too (star_brew_book.gd).
+	var mixes := StarBrewBook.clear_all(state)
+	if not doomed.is_empty() or mixes > 0:
+		print("[brews] %d one-match brew(s) wore off." % (doomed.size() + mixes))
+	return doomed.size() + mixes
+
+
+static func _is_poured_brew(name_key: String, state: GameState) -> bool:
+	for kept in ["brewjobs", "brewelements", "brewers"]:
+		if name_key.begins_with(kept):
+			return false
+	var value := String(state.texts.get(name_key, "")).strip_edges()
+	return value != "" and (get_db() == null or not get_db().find(value).is_empty())
 
 
 # =============================================================
@@ -484,6 +514,11 @@ func apply_one(card: PlayerData, state: GameState) -> bool:
 	if TransformBook.is_turning(poured):
 		return false          # a turning brew is a count, never an overlay
 	if brew_id == "":
+		# A PLAIN STAR'S PASSION BEERS (Anthony, 16 Oct): a random attack and
+		# defend out of all of them. The match rolls again at every pick.
+		if StarBrewBook.roll(card, state):
+			_applied.append(card)
+			return true
 		return false
 	var entry := find(brew_id)
 	if entry.is_empty():
@@ -502,8 +537,55 @@ func apply_one(card: PlayerData, state: GameState) -> bool:
 	card.brew_attack_ability = String(entry["attack"])
 	card.brew_defend_ability = String(entry["defend"])
 	card.brew_artwork = _artwork_for(card, entry)
+	# HE PLAYS AS THE CLASS CARD (Anthony, 14 Oct): "a player who drinks
+	# either of the elemental beers turns to the card. A Stephan who is Tier
+	# III P:3 will always turn to a Tier III P:3 version of that elemental card
+	# (or if there are more than one, a random one)." A Becomes with BOTH
+	# abilities blank borrows that card for the match: abilities, element, art.
+	var role := class_card_for(card, entry, state)
+	if role != null:
+		card.brew_attack_ability = role.attack_ability_id
+		card.brew_defend_ability = role.defend_ability_id
+		if card.brew_element == "":
+			card.brew_element = role.element
+		if card.brew_artwork == null:
+			card.brew_artwork = role.artwork
+		card.brew_alias = role.player_name
 	_applied.append(card)
 	return true
+
+
+## Remembers which card he was lent, so the random pick holds all match:
+##     lent_<name> = "<brew id>|<card name>"
+const LENT_PREFIX := "lent_"
+
+
+## The class card a brew with a Becomes and no abilities of its own lends
+## him: a card of that class at his Tier and Power, at random when several
+## sets have one (Belial, Haures, Valefor). The pick is kept in the save for
+## as long as he is on that brew. null = none.
+static func class_card_for(card: PlayerData, entry: Dictionary, state: GameState = null) -> PlayerData:
+	if card == null or entry.is_empty() or TransformBook.is_turning(entry):
+		return null
+	if String(entry.get("becomes", "")).strip_edges() == "":
+		return null
+	if String(entry.get("attack", "")).strip_edges() != "" \
+			or String(entry.get("defend", "")).strip_edges() != "":
+		return null
+	var found := TransformBook.choices(card, entry, CardDatabase.get_db())
+	if found.is_empty():
+		return null
+	var brew_id := String(entry.get("id", ""))
+	if state != null:
+		var kept := state.text(LENT_PREFIX + card_key(card)).split("|")
+		if kept.size() == 2 and kept[0] == brew_id:
+			for one in found:
+				if one.player_name == kept[1]:
+					return one
+	var role: PlayerData = found[randi() % found.size()]
+	if state != null:
+		state.set_text(LENT_PREFIX + card_key(card), "%s|%s" % [brew_id, role.player_name])
+	return role
 
 
 static func restore_all() -> void:

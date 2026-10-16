@@ -125,6 +125,7 @@ main.helpon{grid-template-columns:1fr!important}main.helpon #left,main.helpon #r
 .edge.cost{stroke:#d98a5cbb}
 .edge.unlock{stroke:#e6ad3ccc;stroke-dasharray:6 4}
 .edge.reads{stroke:#86b7d888;stroke-dasharray:2 4}
+#btnCompare.on{background:var(--beer);color:var(--slate)}
 .edge.game{stroke:#a1ab9f55;stroke-dasharray:1 5}
 .edge.cond,.edge.note.cond{stroke:#c9a0e6;stroke-dasharray:8 3 2 3;stroke-width:2.2}
 .edge.sel{stroke-width:3}
@@ -188,6 +189,8 @@ footer{display:grid;grid-template-columns:auto auto 1fr auto;align-items:center;
 .hnav a{color:var(--chalk-dim);text-decoration:none;padding:3px 0}.hnav a:hover{color:var(--beer)}
 .hpart{font:600 11px var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--beer);margin:10px 0 4px}
 .hparth{font:700 22px var(--cond);color:var(--beer);letter-spacing:.04em;margin:8px 0 18px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.obar{display:flex;align-items:center;gap:10px;margin:6px 0}.obar .on{width:70px;font:600 14px var(--cond)}.otrack{flex:0 0 260px;height:14px;border-radius:7px;background:rgba(255,255,255,.08);overflow:hidden}.ofill{display:block;height:100%;background:var(--beer)}.oin{width:52px}.opc{color:var(--chalk-dim);font-size:13px}
+.chip{display:inline-block;margin:2px 6px 2px 0;padding:2px 8px;border-radius:10px;background:rgba(230,173,60,.18);color:var(--chalk)}.warn{color:#e88}.cfix{margin:4px 0 10px}.ctab{margin-top:6px}.ctab td.note{max-width:340px;white-space:normal}
 .hsec{margin:0 0 40px;max-width:1200px}.hsec h2{font:600 18px var(--cond);letter-spacing:.04em;margin:0 0 6px;color:var(--chalk)}
 .hlead{color:var(--chalk-dim);margin:0 0 10px;max-width:70ch}
 .hrow{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(220px,1fr);gap:20px;align-items:start}
@@ -205,6 +208,15 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
 .chg{border:1px solid var(--line);border-radius:3px;padding:10px 12px;margin-bottom:10px}
 .chg h3{margin:0 0 4px;font:600 16px var(--cond)}
 .chg textarea{width:100%;box-sizing:border-box;height:90px;background:var(--slate-2);border:1px solid var(--line);font:11.5px var(--mono);margin-top:8px}
+.pkbtn{float:right;font:600 10px var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--beer);background:none;border:1px solid var(--beer);border-radius:3px;padding:1px 6px;cursor:pointer}
+.picker{border:1px solid var(--beer);border-radius:4px;padding:8px;margin:-4px 0 12px;background:var(--slate)}
+.picker .pk-q{width:100%;box-sizing:border-box;margin-bottom:6px}
+.pk-list{max-height:320px;overflow:auto}
+.pk-opt{border-bottom:1px solid var(--line);padding:6px 2px}
+.pk-opt.planned{opacity:.6}
+.pk-w code{font:600 12px var(--mono);color:var(--chalk)}.pk-w i{font-size:11px;color:var(--chalk-dim)}
+.pk-d{font-size:12px;color:var(--chalk-dim);margin-top:2px}.pk-e{font-size:11px;color:var(--chalk-dim);font-style:italic}
+.pk-opt .btnrow{margin-top:4px}.pk-opt .btn{padding:2px 8px;font-size:11px}
 .pop{position:absolute;z-index:6;background:var(--slate-2);border:1px solid var(--beer);border-radius:4px;padding:12px;width:290px;box-shadow:0 10px 30px #000a;max-height:calc(100% - 16px);overflow:auto;box-sizing:border-box}
 .pop p{margin:0 0 8px;font-size:13px;color:var(--chalk-dim)}
 .pop code{font:12px var(--mono);color:var(--chalk)}
@@ -228,6 +240,7 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
   <button class="hbtn ico" id="btnRight" title="Show or hide the right panel" aria-label="Show or hide the right panel">Panel ⟩</button>
   <button class="hbtn" id="btnUndo" title="Undo (Ctrl+Z)">Undo</button>
   <button class="hbtn" id="btnLayout" title="Lay this view out again">Tidy up</button>
+  <button class="hbtn" id="btnCompare" title="Switch between your own board and what the game has now">Compare</button>
   <button class="hbtn" id="btnGameLines" title="Show or hide the lines the game already has between your cards">Game lines: off</button>
   <button class="hbtn" id="btnSave" title="Save, download or open your work">Save<span id="saveState" class="savest">…</span></button>
   <button class="hbtn" id="btnChanges">Changes<span class="count" id="chgCount" hidden>0</span></button>
@@ -265,6 +278,8 @@ table.grid td.note input{color:var(--chalk-faint);min-width:220px}
 
 <script>
 const SRC = /*__DATA__*/{};
+// reference word lists for the pickers (read-only): Keywords.csv and AbilityTriggers.csv
+const REF = /*__REF__*/{};
 const SRC_STAMP = "/*__STAMP__*/";
 const OLD_STAMPS = ["/*__OLDSTAMPS__*/"];
 </script>
@@ -336,7 +351,9 @@ function cellProblem(file,col,v,row){v=String(v??"");const ci=(COLINFO[file]||{}
   if(file=="Drops"&&col=="Item"&&!isThing(v))return `${v} isn't an item the game has.`;
   if(file=="Brews"&&/Ability$/.test(col)&&!F("Abilities").some(r=>r["Ability ID"]==v))return `${v} isn't in Abilities.csv. Make it with New ability first.`;
   if(file=="Brews"&&col=="Pool"&&!v.split("|").every(x=>/^[a-z0-9_]+$/.test(x)))return "Pool names use small letters, numbers and _, several joined with |.";
-  if(file=="Abilities"&&/^(Effect|Target)$/.test(col)){const known=new Set(loadFile("Abilities",ORIG.Abilities).rows.map(r=>(r[col]||"").split(":")[0]));if(!known.has(v.split(":")[0]))return `${col} must start with one the game knows: ${[...known].filter(x=>x).sort().join(", ")}.`}
+  if(file=="Abilities"&&/^(Effect|Target|Trigger)$/.test(col)){const known=new Set([...loadFile("Abilities",ORIG.Abilities).rows.map(r=>(r[col]||"").split(":")[0]),...pickOpts(file,col).map(o=>o.word.split(":")[0])]);const w=v.split(":")[0];
+    if(!known.has(w)){const m=w.match(/^(remove|lose|take|minus|sub|subtract|reduce)_(.+)$/);if(m&&known.has("add_"+m[2]))return `To take away, use add_${m[2]} with a minus Value (like -1). The Pick button has a "take away" choice.`;
+      return `"${w}" isn't a word the game knows. Use the Pick button next to ${col} to choose one.`}}
   if(file=="Shop"&&col=="Sells"&&!/^(res|brew|unlock|count):\S/.test(v))return "Sells starts with res:, brew:, unlock: or count:.";
   return ""}
 // one place every typed cell goes through: refuse it (and say why) or keep it
@@ -367,10 +384,12 @@ const VIEWS=[
   {id:"adv",name:"Adventure Board",board:true},
   {id:"season",name:"Seasons / League",board:true},
   {id:"all",name:"Example",old:true},
+  // the game's own achievements, read from Achievements.csv - the other side of the Achievements board's Compare button
+  {id:"achgame",name:"Achievements (the game's)",cmp:"ach",kinds:["goal"],makers:["ach"]},
   {id:"path",name:"Unlock path",old:true,kinds:["play","adventure","stat","goal","unlock","place","maker"],makers:["upgrade"]},
   {id:"loot",name:"Loot & money",old:true,kinds:["play","adventure","money","stuff","maker"],makers:["brew","shop","upgrade"]},
   {id:"brewery",name:"Brewery",old:true,kinds:["stuff","maker","money"],makers:["brew","section","shop"]},
-  {id:"tables",name:"Tables"},{id:"help",name:"Help"}];
+  {id:"classes",name:"Classes & Element Odds"},{id:"tables",name:"Tables"},{id:"help",name:"Help"}];
 const MATCH_STATS=["matches_played","matches_won","goals","goals_by_star","clean_sheets","keeper_emptied","red_cards","goals_with_brew_fire"];
 const HIDDEN_MODES=["adventure","intro","intro2","intro_adventure","tutorial","tutorial_adventure","friendly_test","friendly_cycle"];
 
@@ -561,7 +580,9 @@ function saveMine(){lsSet(":cards",CARDS)}
 function addMine(id,quiet,board){board=board||VIEW;const l=CARDS[board]||(CARDS[board]=[]);if(!l.includes(id)){l.push(id);saveMine()}if(VIEW!==board){if(!quiet)toast(G.nodes.get(id).label+" is on "+boardName(board));return}draw();goTo(id)}
 function dropMine(id){CARDS[VIEW]=cur().filter(x=>x!==id);saveMine();if(POS[VIEW])delete POS[VIEW][id];lsSet(":pos",POS);if(SEL===id)SEL=null;draw();inspect()}let POS=lsGet(":pos")||{};
 function viewNodes(){if(isBoard(VIEW))return new Set(cur().filter(id=>G.nodes.has(id)));const v=VIEWS.find(x=>x.id==VIEW)||VIEWS[0];const ids=new Set();
-  G.nodes.forEach(n=>{if(!v.kinds)return ids.add(n.id);if(!v.kinds.includes(n.kind))return;if(n.kind=="maker"&&v.makers&&!v.makers.includes(n.mk))return;ids.add(n.id)});
+  G.nodes.forEach(n=>{if(!v.kinds)return ids.add(n.id);if(!v.kinds.includes(n.kind))return;if(n.kind=="maker"&&v.makers&&!v.makers.includes(n.mk))return;if(v.cmp&&v.makers&&!v.makers.includes(n.mk))return;ids.add(n.id)});
+  // the achievements plus what each one needs (left) and what it unlocks or gives (right)
+  if(v.cmp){const out=new Set(ids);ids.forEach(id=>{const n=G.nodes.get(id);n.ins.forEach(e=>out.add(e.from));n.outs.forEach(e=>out.add(e.to))});return out}
   if(v.id=="brewery"){ // only stuff and unlocks that touch a brewery maker
     const keep=new Set();ids.forEach(id=>{const n=G.nodes.get(id);if(n.kind=="maker")keep.add(id)});
     [...keep].forEach(id=>{const n=G.nodes.get(id);n.ins.concat(n.outs).forEach(e=>{keep.add(e.from);keep.add(e.to)})});
@@ -717,6 +738,35 @@ function removeEdge(e){if(!e.row){toast("This line comes from game code, not a C
   pushUndo();if(e.whole){if(e.col=="Achievement"||e.col=="Earned In")e.row[e.col]="";else if(e.col=="Sells"||e.col=="Makes")e.row[e.col]="";else e.row[e.col]=""}
   else delTok(e.row,e.col,e.token,e.sep);SELE=null;changed("Removed "+e.token+" from "+e.file+".csv")}
 
+/* ---------- pickers: the words a column takes, with what each one does ---------- */
+const PICKFAM={"Abilities.Effect":"ability effect","Abilities.Target":"ability target","Abilities.Scope":"ability scope","Abilities.If":"ability condition","Abilities.Cost":"ability cost","Abilities.Max":"ability max","Abilities.Ask":"ability ask"};
+let REFROWS=null;function refRows(n){REFROWS=REFROWS||{};if(!REFROWS[n])REFROWS[n]=REF[n]?loadFile(n,REF[n]).rows:[];return REFROWS[n]}
+function pickOpts(file,col){const k=file+"."+col;
+  if(k=="Abilities.Trigger")return refRows("AbilityTriggers").map(r=>({word:r.ID,what:(r.Name?r.Name+": ":"")+(r["Fires When"]||""),ex:"",live:(r.Status||"live")=="live"}));
+  if(PICKFAM[k])return refRows("Keywords").filter(r=>r.Family==PICKFAM[k]).map(r=>({word:r.Keyword,what:r["What It Does"]||"",ex:r.Example||"",live:(r.Status||"live")=="live"}));
+  if(ENUMS[k]){let en=ENUMS[k];if(k=="Brews.Element")en=[...new Set([...en,...elemCards().map(c=>c.word)])].sort();return en.map(w=>({word:w,what:"",ex:"",live:true}))}
+  return []}
+const MULTI={"Abilities.If":";"};
+// "add_attack" and friends can also take away: a minus Value
+const canMinus=w=>/^add_(attack|defense|power|shot_power|card_chance|power_per|counter)/.test(w)||/^(goalie_chance|change_priority|weapon)$/.test(w);
+function openPicker(n,col,anchor){const old=R.querySelector(".picker");if(old){const same=old.dataset.c==col;old.remove();if(same)return}
+  const opts=pickOpts(n.file,col);const box=document.createElement("div");box.className="picker";box.dataset.c=col;
+  box.innerHTML=`<input class="pk-q" placeholder="Search ${escA(col)}…" aria-label="Search"><div class="pk-list"></div><p class="hint">${MULTI[n.file+"."+col]?"Each pick is added (joined with ;). ":""}Words marked <i>not built yet</i> are allowed but do nothing in the game yet.</p>`;
+  anchor.closest(".field").after(box);const list=box.querySelector(".pk-list"),q=box.querySelector(".pk-q");
+  const draw=()=>{const t=q.value.trim().toLowerCase();list.innerHTML="";opts.filter(o=>!t||(o.word+" "+o.what).toLowerCase().includes(t)).forEach(o=>{
+    const d=document.createElement("div");d.className="pk-opt"+(o.live?"":" planned");
+    d.innerHTML=`<div class="pk-w"><code>${escH(o.word)}</code>${o.live?"":" <i>not built yet</i>"}</div>${o.what?`<div class="pk-d">${escH(o.what)}</div>`:""}${o.ex?`<div class="pk-e">e.g. ${escH(o.ex)}</div>`:""}<div class="btnrow"></div>`;
+    const row=d.querySelector(".btnrow");const b=(t,f,cls)=>{const x=document.createElement("button");x.className="btn "+(cls||"");x.textContent=t;x.onclick=f;row.appendChild(x)};
+    if(n.file=="Abilities"&&col=="Effect"&&canMinus(o.word)){b("+ Add",()=>pickSet(n,col,o.word,1));b("− Take away",()=>pickSet(n,col,o.word,-1),"ghost2")}
+    else b("Use this",()=>pickSet(n,col,o.word,0));list.appendChild(d)})};
+  q.oninput=draw;draw();q.focus()}
+function pickSet(n,col,word,sign){const k=n.file+"."+col;let v=word;const ph=/<[^>]+>/.test(word);if(ph)v=word.replace(/<[^>]+>.*$/,"");
+  if(MULTI[k]&&n.row[col])v=n.row[col]+MULTI[k]+v;
+  if(ph){const inp=R.querySelector(`[data-c="${col}"]`);inp.value=v;inp.focus();R.querySelector(".picker").remove();toast(`Type the rest after the colon (${word}), then press Tab.`);return}
+  const why=cellProblem(n.file,col,v,n.row);if(why){toast("Not kept: "+why);return}
+  pushUndo();n.row[col]=v;let msg=`${n.file}.csv ${n.row[idCol(n.file)]||""}: ${col} is now ${v}`;
+  if(sign&&"Value" in n.row){const cur=Math.abs(+n.row.Value||1);n.row.Value=String(sign*cur);msg+=`, Value ${n.row.Value}`+(sign<0?" (takes away)":"")}
+  changed(msg)}
 /* ---------- inspector ---------- */
 const R=$("#right");
 function inspect(){if(SELG)return inspectGroup();if(SELN)return inspectNote();if(SELE)return inspectEdge(SELE);if(!SEL)return summary();const n=G.nodes.get(SEL);const k=KINDS[n.kind];const f=SIM&&SIM.first[n.id];
@@ -724,7 +774,8 @@ function inspect(){if(SELG)return inspectGroup();if(SELN)return inspectNote();if
   h+=`<span class="state ${f==null?"no":"ok"}">${f==null?"Never reached in "+SIM_SET.days+" days":f===0?"Open from the start":"Reached on day "+f}</span>`;
   if(n.row){h+=`<div class="lbl" style="margin-top:16px">${n.file}.csv row</div>`;
     FILES[n.file].cols.forEach((c,i)=>{const v=n.row[c]||"";const long=c=="Notes"||c=="Description"||v.length>40;
-      h+=`<div class="field"><label for="f${i}">${escH(c)}</label>${long?`<textarea id="f${i}" data-c="${escA(c)}" rows="${c=="Notes"?3:2}">${escH(v)}</textarea>`:`<input id="f${i}" data-c="${escA(c)}" value="${escA(v)}"${c==idCol(n.file)&&origHas(n.file,v)?' readonly title="The game already uses this ID, so it stays as it is"':""}>`}</div>`})}
+      const pk=pickOpts(n.file,c).length?`<button class="pkbtn" data-pick="${escA(c)}" title="Show the words this column takes">Pick ▾</button>`:"";
+      h+=`<div class="field"><label for="f${i}">${escH(c)}${pk}</label>${long?`<textarea id="f${i}" data-c="${escA(c)}" rows="${c=="Notes"?3:2}">${escH(v)}</textarea>`:`<input id="f${i}" data-c="${escA(c)}" value="${escA(v)}"${c==idCol(n.file)&&origHas(n.file,v)?' readonly title="The game already uses this ID, so it stays as it is"':""}>`}</div>`})}
   else if(n.kind=="unlock")h+=`<p class="hint" style="margin-top:12px">An unlock is just a name. Anything that says <code>unlock:${escH(n.label)}</code> switches it on; anything that says <code>unlocked:${escH(n.label)}</code> waits for it.</p>`;
   else if(n.kind=="stat")h+=`<p class="hint" style="margin-top:12px">A number the game keeps. CSVs check it with <code>count:${escH(id2(n))}>=N</code>.</p>`;
   const io=(list,dir)=>list.map(e=>{const o=G.nodes.get(dir?e.to:e.from);return `<button class="lnk" data-go="${escA(o.id)}">${dir?"→":"←"} ${escH(o.label)} <i>${escH(e.label||ETYPES[e.type])}</i></button>`}).join("");
@@ -732,6 +783,7 @@ function inspect(){if(SELG)return inspectGroup();if(SELN)return inspectNote();if
   if(n.outs.length)h+=`<div class="lbl" style="margin-top:16px">Leads to</div><div class="links">${io(n.outs,1)}</div>`;
   h+=`<div class="btnrow">${isBoard(VIEW)?(cur().includes(n.id)?`<button class="btn ghost2" id="mineBtn">Take off this board</button>`:`<button class="btn" id="mineBtn">Put on this board</button>`):`<select id="putOn" class="btn ghost2" aria-label="Put on a board"><option value="">Put on a board…</option>${BOARDS.map(b=>`<option value="${b.id}">${escH(b.name)}${(CARDS[b.id]||[]).includes(n.id)?" ✓":""}</option>`).join("")}</select>`}${canDelete(n)?`<button class="btn bad" id="delRow">Delete this card</button>`:""}</div>`;
   R.innerHTML=h;
+  R.querySelectorAll("[data-pick]").forEach(b=>b.onclick=ev=>{ev.preventDefault();openPicker(n,b.dataset.pick,b)});
   R.querySelectorAll("[data-c]").forEach(inp=>inp.addEventListener("change",()=>{if(!tryCell(inp,n.file,n.row,inp.dataset.c))return;pushUndo();n.row[inp.dataset.c]=inp.value;changed(`${n.file}.csv ${n.row[idCol(n.file)]||""}: ${inp.dataset.c} changed`)}));
   R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTo(b.dataset.go));
   const d=R.querySelector("#delRow");if(d)d.onclick=()=>askDelete(n);
@@ -762,6 +814,17 @@ function inspectEdge(e){const a=G.nodes.get(e.from),b=G.nodes.get(e.to);
   else h+=`<p class="hint">This one comes from the game itself (every match counts goals, wins and so on), so there is no CSV cell to change.</p>`;
   R.innerHTML=h;const d=R.querySelector("#delE");if(d)d.onclick=()=>removeEdge(e)}
 function summary(){if(!SIM){R.innerHTML="";return}
+  if(cmpOf(VIEW)||cmpView(VIEW)=="achgame"){const mineB=cmpOf(VIEW)||VIEW;const mineIds=new Set(CARDS[mineB]||[]);const game=F("Achievements").map(r=>"ach:"+r.ID);
+    const both=game.filter(id=>mineIds.has(id)),onlyGame=game.filter(id=>!mineIds.has(id)),onlyMine=[...mineIds].filter(id=>G.nodes.has(id)&&!game.includes(id));
+    const L=(list)=>list.map(id=>`<button class="lnk" data-go="${escA(id)}">${escH(G.nodes.get(id).label)}</button>`).join("")||`<p class="hint">none</p>`;
+    let h=`<span class="kind" style="--k:var(--beer)">Compare</span><h2>Your board and the game</h2><p class="hint">The game has <b>${game.length}</b> achievements (Achievements.csv). <b>${both.length}</b> of them are on your board.${cmpOf(VIEW)?" Left: what each one needs. Middle: the achievements. Right: what each one unlocks or gives.":""}</p>${onlyGame.length?`<div class="btnrow"><button class="btn" id="cmpAdd">Put the ${onlyGame.length} missing ones on my board</button></div><p class="hint">Adds cards only. Nothing on your board is moved or removed.</p>`:""}`;
+    h+=`<div class="lbl" style="margin-top:14px">Only in the game (${onlyGame.length})</div><div class="links">${L(onlyGame)}</div>`;
+    h+=`<div class="lbl" style="margin-top:14px">Only on your board (${onlyMine.length})</div><div class="links">${L(onlyMine)}</div>`;
+    h+=`<div class="lbl" style="margin-top:14px">On both (${both.length})</div><div class="links">${L(both)}</div>`;
+    R.innerHTML=h;const ca=R.querySelector("#cmpAdd");if(ca)ca.onclick=()=>{pushUndo();const l=CARDS[mineB]||(CARDS[mineB]=[]);const gp=POS[cmpView(mineB)]||{};const mp=POS[mineB]=POS[mineB]||{};
+      // same places as on the game's view, below anything already on the board
+      const dy=Math.max(0,...Object.values(mp).map(v=>v.y+ROWH*2));onlyGame.forEach(id=>{l.push(id);if(gp[id]&&!mp[id])mp[id]={x:gp[id].x,y:gp[id].y+dy}});saveMine();lsSet(":pos",POS);draw();inspect();toast(`${onlyGame.length} achievement(s) put on your board`)};
+    R.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{const id=b.dataset.go;if(!IDS.has(id)){const to=cmpOf(VIEW)||cmpView(VIEW);VIEW=to;lsSet(":view3",to);renderTabs();draw()}goTo(id)});return}
   const mine=isBoard(VIEW);const onB=id=>!mine||cur().includes(id);
   const big=SIM.ev.filter(e=>(e.big||e.t.endsWith(" unlocked")||e.t.endsWith(" beaten")||mine&&e.goal)&&onB(e.node));
   let h=`<span class="kind" style="--k:var(--beer)">Pretend season</span><h2>What opens when</h2><p class="hint">${mine&&!cur().length?"Once cards are on this board, this lists the day each one opens when a pretend player plays the game.":`The game played ${SIM_SET.days} days with the numbers below.${mine?" Only cards on this board are listed.":""} Click a line to find the card.`}</p><ul class="list">`;
@@ -857,9 +920,48 @@ function tables(){let sh=$("#tblSheet");if(sh)sh.remove();sh=document.createElem
   sh.querySelector("#tblPick").onchange=e=>{TBL=e.target.value;lsSet(":tbl",TBL);tables()}}
 const SRC_COUNT=/*__COUNT__*/132;
 
+/* ---------- classes & element odds (Anthony, 14 Oct) ----------
+   "You add as many elements as possible to increase the % chance ... When the chance misses it just becomes
+    different variants of the passion brews. The player that drinks a fire/water/etc. swaps to that class card
+    and their attack and defend abilities are then there."
+   ElementOdds.csv is editable here. The class cards are read-only (Unit_Set_*.csv). A beer with a Becomes and
+   no abilities of its own lends the drinker a class card at his Tier and Power (a random one when several sets fit). */
+function clsCards(){const out=[];for(const n in REF){if(!n.startsWith("Unit_Set_"))continue;
+  loadFile(n,REF[n]).rows.forEach(r=>{const g=k=>{for(const c in r)if(c.trim()==k)return (r[c]||"").trim();return ""};
+    if(g("Player Type").toLowerCase()=="star")return;
+    out.push({cls:g("Unit Type"),name:g("Name"),set:g("Set Name"),tier:g("Tier"),power:g("Base Power"),el:g("Element"),atk:g("Attack"),def:g("Defend")})})}
+  return out}
+const TIERN={I:1,II:2,III:3,IV:4,V:5};
+function classes(){let sh=$("#clsSheet");if(sh)sh.remove();sh=document.createElement("div");sh.className="sheet";sh.id="clsSheet";
+  const odds=FILES.ElementOdds,brews=FILES.Brews,cards=clsCards();
+  const cls=[...new Set(cards.map(c=>c.cls))];
+  const miss="Passion";
+  const bars=(odds?odds.rows:[]).map((r,i)=>`<div class="obar"><span class="on">${escH(r.Cards)} card${r.Cards=="1"?"":"s"}</span><span class="otrack"><span class="ofill" style="width:${Math.max(0,Math.min(100,+r.Chance||0))}%"></span></span><input class="oin" data-r="${i}" value="${escA(r.Chance)}" aria-label="Chance with ${escA(r.Cards)} cards"><span class="opc">% of the bottles are the element</span></div>`).join("");
+  const secs=cls.map(c=>{const mine=cards.filter(x=>x.cls==c).sort((a,b)=>(TIERN[a.tier]||9)-(TIERN[b.tier]||9)||(+a.power)-(+b.power)||a.set.localeCompare(b.set));
+    const el=(mine[0]||{}).el||"";const elW=el?el[0]+el.slice(1).toLowerCase():"";
+    const turn=brews.rows.filter(r=>(r.Becomes||"").trim().toLowerCase()==c.toLowerCase());
+    const could=brews.rows.filter(r=>(r.Element||"").toLowerCase()==elW.toLowerCase()&&!(r.Becomes||"").trim()&&!(r["Attack Ability"]||"").trim()&&!(r["Defend Ability"]||"").trim()&&(r.Pool||"").trim());
+    const tl=turn.map(r=>`<span class="chip">${escH(r.Name)}${r.Drinks?` · after ${escH(r.Drinks)} drinks, for good`:(r["Attack Ability"]||r["Defend Ability"])?" · keeps its own abilities":" · plays as the class card for the match"}</span>`).join("")||`<span class="warn">No beer turns a player into ${escH(c)} yet.</span>`;
+    const fix=could.length?`<button class="cfix" data-c="${escA(c)}" data-ids="${escA(could.map(r=>r.ID).join("|"))}">Make ${escH(could.map(r=>r.Name).join(", "))} turn the drinker into ${escH(c)}</button>`:"";
+    const rows=mine.map(x=>`<tr><td>${escH(x.tier)}</td><td>${escH(x.power)}</td><td>${escH(x.name)}</td><td>${escH(x.set)}</td><td class="note">${escH(x.atk)}</td><td class="note">${escH(x.def)}</td></tr>`).join("");
+    return `<section class="hsec"><h2>${escH(c)} <span class="hint">${escH(elW)}</span></h2>
+      <p>Beers that make a drinker play as ${escH(c)}: ${tl}</p>${fix}
+      <table class="grid ctab"><thead><tr><th>Tier</th><th>Power</th><th>Card</th><th>Set</th><th>Attack</th><th>Defend</th></tr></thead><tbody>${rows}</tbody></table></section>`}).join("");
+  sh.innerHTML=`<div class="bar"><b>Classes &amp; Element Odds</b><span class="hint">How many element cards go in the Brew Kettle decides how many bottles come out that element. A drinker of an element beer plays as that class's card at his own Tier and Power.</span></div>
+   <div class="body hbody" style="display:block"><div class="hmain" style="max-width:1100px">
+   <section class="hsec" id="oddsSec"><h2>Element odds (ElementOdds.csv)</h2><p>Every bottle rolls on its own: small, large or keg. A miss is a <b>${miss}</b> bottle, which pours one of the Passion beers.</p>${bars}</section>${secs}</div></div>`;
+  $("main").classList.add("helpon");$("#stage").appendChild(sh);
+  sh.querySelectorAll(".oin").forEach(inp=>inp.addEventListener("change",()=>{const row=odds.rows[+inp.dataset.r];
+    if(!/^\d+$/.test(inp.value.trim())||+inp.value>100){toast("A chance is a whole number from 0 to 100.");inp.value=row.Chance;return}
+    pushUndo();row.Chance=inp.value.trim();changed(`ElementOdds.csv: ${row.Cards} card(s) = ${row.Chance}%`);inp.closest(".obar").querySelector(".ofill").style.width=Math.min(100,+row.Chance)+"%"}));
+  sh.querySelectorAll(".cfix").forEach(btn=>btn.onclick=()=>{pushUndo();const ids=btn.dataset.ids.split("|");
+    brews.rows.forEach(r=>{if(ids.includes(r.ID))r.Becomes=btn.dataset.c});changed(`Brews.csv: ${ids.length} beer(s) now turn the drinker into ${btn.dataset.c}`);classes()})}
+
 /* ---------- tabs, legend, playback ---------- */
-function renderTabs(){let seen=false;$("#tabs").innerHTML=VIEWS.map(v=>{if(v.old)return "";let pre="";if(v.ex&&!seen){seen=true;pre=`<span class="tabsep"></span>`}return pre+`<button class="tab" role="tab" aria-selected="${v.id==VIEW}" data-v="${v.id}">${v.name}</button>`}).join("");
+function renderTabs(){let seen=false;$("#tabs").innerHTML=VIEWS.map(v=>{if(v.old||v.cmp)return "";let pre="";if(v.ex&&!seen){seen=true;pre=`<span class="tabsep"></span>`}return pre+`<button class="tab" role="tab" aria-selected="${v.id==VIEW||cmpOf(VIEW)==v.id}" data-v="${v.id}">${v.name}</button>`}).join("");
   $("#tabs").querySelectorAll(".tab").forEach(b=>b.onclick=()=>{const v=b.dataset.v;const t=$("#tblSheet");if(t)t.remove();
+    {const c=$("#clsSheet");if(c)c.remove()}
+    if(v=="classes"){{const h=$("#helpSheet");if(h)h.remove()}classes();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
     if(v=="help"){help();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
     {const h=$("#helpSheet");if(h)h.remove();$("main").classList.remove("helpon")}
     if(v=="tables"){VIEW_T=true;tables();$("#tabs").querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));return}
@@ -993,7 +1095,13 @@ const FOLD=lsGet(":fold")||{};
 function wireSecs(root){root.querySelectorAll("details.sec").forEach(d=>{const k=d.dataset.sec;if(k in FOLD)d.open=FOLD[k];d.addEventListener("toggle",()=>{FOLD[k]=d.open;lsSet(":fold",FOLD)})})}
 wireSecs(document);
 function panels(){$("main").classList.toggle("noleft",!!FOLD.__left);$("main").classList.toggle("noright",!!FOLD.__right);$("#btnLeft").textContent=FOLD.__left?"⟩ Panel":"⟨ Panel";$("#btnRight").textContent=FOLD.__right?"Panel ⟨":"Panel ⟩"}
-function gameLinesBtn(){$("#btnGameLines").textContent="Game lines: "+(GAMELINES?"on":"off");$("#btnGameLines").style.display=isBoard(VIEW)?"":"none"}
+// THE COMPARE BUTTON (Anthony, 14 Oct): "let me toggle between my own and the current one"
+const cmpOf=v=>(VIEWS.find(x=>x.id==v)||{}).cmp||"";const cmpView=v=>(VIEWS.find(x=>x.cmp==v)||{}).id||"";
+function compareBtn(){const b=$("#btnCompare");const mine=cmpView(VIEW),game=cmpOf(VIEW);b.style.display=mine||game?"":"none";
+  b.textContent=game?"Showing: the game's ⇄ switch to mine":"Showing: mine ⇄ switch to the game's";b.classList.toggle("on",!!game)}
+$("#btnCompare").onclick=()=>{const to=cmpView(VIEW)||cmpOf(VIEW);if(!to)return;const first=!POS[to];VIEW=to;lsSet(":view3",to);selectNone();renderTabs();draw();inspect();if(first)fit();
+  toast(cmpOf(VIEW)?"The game's achievements as they are now. Nothing you do on your board changes this view.":"Your own board")}
+function gameLinesBtn(){compareBtn();$("#btnGameLines").textContent="Game lines: "+(GAMELINES?"on":"off");$("#btnGameLines").style.display=isBoard(VIEW)?"":"none"}
 $("#btnGameLines").onclick=()=>{GAMELINES=!GAMELINES;lsSet(":gamelines",GAMELINES);gameLinesBtn();draw();toast(GAMELINES?"Showing every line the game already has between your cards":"Showing only the lines you drew")};
 $("#btnLeft").onclick=()=>{FOLD.__left=!FOLD.__left;lsSet(":fold",FOLD);panels()};$("#btnRight").onclick=()=>{FOLD.__right=!FOLD.__right;lsSet(":fold",FOLD);panels()};panels();
 

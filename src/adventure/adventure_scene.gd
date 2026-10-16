@@ -701,11 +701,17 @@ func _pass_the_ball(delta: float) -> void:
 #  collect one. They break formation, touch it, and fall back in.
 # =============================================================
 
+## ROUND AN (Anthony, 16 Oct merge): drops get likelier wave by wave.
+func _drop_rise() -> float:
+	var per := CardDatabase.get_db().tune_float("adventure_drop_rise_per_wave", 0.1)
+	return maxf(0.0, per * float(maxi(0, run.wave - 1)))
+
+
 func _drop_a_pickup() -> void:
 	var table := String(run.biome.get("drops", ""))
 	if table.strip_edges() == "":
 		return
-	var rolled := adventure.roll(table, state)
+	var rolled := adventure.roll(table, state, _drop_rise())
 	if rolled.is_empty():
 		return
 
@@ -1547,7 +1553,7 @@ func _win_encounter() -> void:
 		if not is_instance_valid(foe):
 			continue
 		var entry: Dictionary = foe.get_meta("enemy", {})
-		var rolled := adventure.roll(String(entry.get("drops", "")), state)
+		var rolled := adventure.roll(String(entry.get("drops", "")), state, _drop_rise())
 		for key in rolled.keys():
 			loot[key] = int(loot.get(key, 0)) + int(rolled[key])
 		foe.queue_free()
@@ -1709,6 +1715,9 @@ func _go_home(claimed_bounty: bool, destination: String = ScenePaths.BASE) -> vo
 	# ROUND AN: a run carried home is counted - count:adventures_home is what
 	# sends you to the Traveling Merchant after your first one (Progression.csv).
 	DialogueGrammar.apply("count:adventures_home+1", state)
+	# NOT A SCRATCH (Anthony's Achievements board): home with nobody knocked out.
+	if not run.anyone_knocked_out:
+		DialogueGrammar.apply("count:adventures_flawless+1", state)
 	_party_to_dorms()
 	state.save_to_disk()
 	AdventureRun.clear(get_tree())

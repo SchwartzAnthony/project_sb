@@ -1119,6 +1119,14 @@ func take_heat(side_is_enemy: bool) -> float:
 	return n
 
 
+## + % on that side's foul chance: for the match, or until the next fouls.
+func _shift_foul(side_is_enemy: bool, pct: float, scope: String) -> void:
+	if scope == "match":
+		_foul_shift_match[side_is_enemy] = float(_foul_shift_match[side_is_enemy]) + pct
+	else:
+		_foul_shift_round[side_is_enemy] = float(_foul_shift_round[side_is_enemy]) + pct
+
+
 ## Spend that side's coin flip, if it has one (Manfred).
 func use_coin_flip(side_is_enemy: bool) -> bool:
 	if int(_coin_flips.get(side_is_enemy, 0)) <= 0:
@@ -1153,16 +1161,27 @@ func _keeper_effect(ability: AbilityData, source: PlayerData, keeper_is_enemy: b
 func _referee_effect(ability: AbilityData, source: PlayerData, source_is_enemy: bool) -> void:
 	var name_text := source.player_name if source != null else "?"
 	var against := not source_is_enemy
+	# Target `side` = YOUR OWN side (Anthony, 14 Oct: "increase and decrease
+	# your own and/or enemy foul %"). Any other Target keeps the old rule:
+	# it lands on the other side. A minus Value lowers it.
+	if CardDatabase._normalise(ability.target) == "side" and ability.effect != "foulcoinflip":
+		against = source_is_enemy
+	# THE BAR AND THE % ARE ONE THING (Anthony, 14 Oct: "the referee bar
+	# should be tied to the % so when changing one it should change the
+	# other"). Tuning.csv foul_pct_per_bar_segment says how many % one
+	# segment is worth; 0 unties them again.
+	var per_seg := db.tune_float("foul_pct_per_bar_segment", 0.0) if db != null else 0.0
 	match ability.effect:
 		"foulheat":
 			_heat_add[against] = float(_heat_add[against]) + float(ability.value)
-			log_lines.append("      %s: +%d on the referee's bar against the %s side" % [
+			if per_seg != 0.0:
+				_shift_foul(against, float(ability.value) * per_seg, ability.scope)
+			log_lines.append("      %s: %+d on the referee's bar against the %s side" % [
 				name_text, ability.value, "away" if against else "home"])
 		"foulchance":
-			if ability.scope == "match":
-				_foul_shift_match[against] = float(_foul_shift_match[against]) + float(ability.value)
-			else:
-				_foul_shift_round[against] = float(_foul_shift_round[against]) + float(ability.value)
+			_shift_foul(against, float(ability.value), ability.scope)
+			if per_seg != 0.0:
+				_heat_add[against] = float(_heat_add[against]) + float(ability.value) / per_seg
 			log_lines.append("      %s: the %s side is %+d%% likelier to foul (now %+.0f%%)" % [
 				name_text, "away" if against else "home", ability.value, foul_shift(against)])
 		"foulcoinflip":

@@ -93,7 +93,7 @@ static func complaints(expression: String, is_effect: bool) -> Array[String]:
 			out.append("'%s' — nothing after the colon" % term)
 			continue
 
-		var allowed := ["flag", "count", "unlock", "set", "clear", "sign", "release", "recruit"] if is_effect \
+		var allowed := ["flag", "count", "unlock", "set", "clear", "sign", "release", "recruit", "bottle"] if is_effect \
 			else ["flag", "count", "unlocked", "is"]
 		if not allowed.has(kind):
 			out.append("'%s' — '%s' is not one of %s" % [term, kind, ", ".join(allowed)])
@@ -101,6 +101,10 @@ static func complaints(expression: String, is_effect: bool) -> Array[String]:
 
 		if kind == "recruit" and RecruitBook.parse(rest.split("=")[0]).is_empty():
 			out.append("'%s' — expected a tier and a power, e.g. recruit:I0 or recruit:III3=Johannes" % term)
+			continue
+
+		if kind == "bottle" and not rest.contains("="):
+			out.append("'%s' — expected bottle:item=how many@element, e.g. bottle:small_bottle=6@passion" % term)
 			continue
 
 		if kind == "count":
@@ -282,6 +286,21 @@ static func _apply_one(term: String, state: GameState) -> void:
 			SquadBook.release(rest, state)
 			# A RECRUIT LEAVES THE BASE ENTIRELY: his name is free again.
 			RecruitBook.release(rest, state)
+		"bottle":
+			# ============ BOTTLES WITH AN ELEMENT (Anthony, 16 Oct) ============
+			# bottle:small_bottle=6@passion - six of that item, each tagged
+			# with the element, so opening one pours a random beer of that
+			# element from its pool (the Head Coach's six-pack).
+			var spec := rest.split("=", true, 1)
+			if spec.size() < 2:
+				return
+			var amount_and_element := String(spec[1]).split("@", true, 1)
+			var many := int(String(amount_and_element[0]).strip_edges())
+			var element := String(amount_and_element[1]).strip_edges().to_lower() \
+				if amount_and_element.size() > 1 else ""
+			var item := String(spec[0]).strip_edges()
+			BreweryBook._push_element(item, element, many, state)
+			state.add_count(item, many)
 		"recruit":
 			# A PLAIN PLAYER WITH A NAME OF HIS OWN. recruit:I0, recruit:I0=Johannes.
 			# See recruit_book.gd - nothing shows until `named_recruits` is on.

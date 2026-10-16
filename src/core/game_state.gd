@@ -142,6 +142,12 @@ func add_count(counter_name: String, delta: int) -> void:
 		return
 	counters[key] = count(key) + delta
 	history.append("%s %+d -> %d" % [key, delta, counters[key]])
+	# EVERYTHING EVER COLLECTED (Anthony, 15 Oct: "collect 30 wheat"). A
+	# Brewery resource keeps a second counter that spending never lowers:
+	# count:collected_res_wheat>=30.
+	if delta > 0 and counter_name.strip_edges().to_lower().begins_with("res_"):
+		var total := _key("collected_" + counter_name.strip_edges())
+		counters[total] = count(total) + delta
 
 
 func set_count(counter_name: String, value: int) -> void:

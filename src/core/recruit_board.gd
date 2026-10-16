@@ -206,7 +206,7 @@ static func reroll(state: GameState, db: CardDatabase) -> Dictionary:
 		return {"ok": false, "why": "Filling the board again is switched off (recruit_board_reroll_cost)."}
 	var cur := ShopBook.currency("coins")
 	if cur.is_empty() or state.count(String(cur["counter"])) < cost:
-		return {"ok": false, "why": "Not enough coins: a new board costs %d." % cost}
+		return {"ok": false, "why": "Not enough %s: a new board costs %d." % [String(cur.get("name", "Groschen")), cost]}
 	state.add_count(String(cur["counter"]), -cost)
 	refill(state, db)
 	return {"ok": true, "why": "New faces on the board."}

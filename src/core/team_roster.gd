@@ -101,12 +101,32 @@ static func _tidy(entry: Dictionary) -> Dictionary:
 		"star_tier": String(entry.get("star_tier", "")),
 		"kind": PlayerRoles.team_kind_clean(String(entry.get("kind", "match"))),
 		"cards": entry.get("cards", {}) as Dictionary,
+		"stars": entry.get("stars", []) as Array,
 	}
 
 
 # =============================================================
 #  MAKING AND CHANGING
 # =============================================================
+
+## ============ AN ADVENTURE TEAM OF ANY SIZE (Anthony, 16 Oct) ============
+##
+## "Any size": an Adventure Team sets off with 1 or more Adventure players -
+## no full ladder, no Star needed. Tuning adventure_any_size false brings back
+## the full side.
+static func any_size(entry: Dictionary, db: CardDatabase) -> bool:
+	return db != null and db.tune_bool("adventure_any_size", true) \
+		and PlayerRoles.team_kind_clean(String(entry.get("kind", "match"))) == PlayerRoles.ADVENTURE
+
+
+## How many players the team fields, every tier together.
+func head_count(entry: Dictionary, db: CardDatabase) -> int:
+	var n := 0
+	var built := cards_for(entry, db)
+	for tier in built.keys():
+		n += (built[tier] as Array).size()
+	return n
+
 
 static func blank(unit_type: String, star_tier: String, kind: String = "match") -> Dictionary:
 	return {
@@ -204,6 +224,8 @@ func trouble(entry: Dictionary, db: CardDatabase, per_tier: int = 3) -> String:
 		return ""
 	if db.roster_for_class(String(entry["class"])).is_empty():
 		return "Its class (%s) is no longer in your CSVs." % entry["class"]
+	if any_size(entry, db):
+		return "" if head_count(entry, db) > 0 else "It has no Adventure players in it."
 
 	var built := cards_for(entry, db)
 	var short_of: Array[String] = []
@@ -242,6 +264,15 @@ func resting(entry: Dictionary, db: CardDatabase, state: GameState,
 		return ""
 
 	var built := cards_for(entry, db)
+	if any_size(entry, db):
+		# Any size: it can go while one of them is fit.
+		var resting_names: Array[String] = []
+		for tier in built.keys():
+			for card in built[tier]:
+				if not RecoveryBook.is_tired(card, state):
+					return ""
+				resting_names.append(NamePlate.short_name(card))
+		return "Everybody is resting: %s" % ", ".join(resting_names)
 	var tired: Array[String] = []
 	var short_of: Array[String] = []
 	for tier in TierLadder.TIERS:
@@ -380,6 +411,18 @@ static func badge(entry: Dictionary, size: float) -> Control:
 #  CARRYING THE CHOSEN TEAM INTO A MATCH
 # =============================================================
 
+## The Stars a team names in its "stars" list, found among the cards.
+func _named_stars(entry: Dictionary, db: CardDatabase) -> Array[PlayerData]:
+	var out: Array[PlayerData] = []
+	for name_text in (entry.get("stars", []) as Array):
+		var want := CardDatabase._normalise(String(name_text))
+		for card in db.players:
+			if card.is_star() and CardDatabase._normalise(card.player_name) == want:
+				out.append(card)
+				break
+	return out
+
+
 ## Turn a saved team into the TeamSelection the match already understands,
 ## so nothing downstream had to change.
 func to_selection(entry: Dictionary, db: CardDatabase) -> TeamSelection:
@@ -389,6 +432,14 @@ func to_selection(entry: Dictionary, db: CardDatabase) -> TeamSelection:
 	pick.unit_type = String(entry["class"])
 	pick.star_tier = String(entry["star_tier"])
 	pick.star_bundle = db.star_ladder_for_class(pick.unit_type)
+	# An any-size Adventure Team takes only the Stars it names - none is fine.
+	if any_size(entry, db):
+		pick.star_bundle = _named_stars(entry, db)
+	# A team that names its own Stars (the starting team's plain Tier II
+	# Stars, Anthony 16 Oct) fields exactly those.
+	var own := _named_stars(entry, db)
+	if not own.is_empty():
+		pick.star_bundle = own
 	pick.active_star = pick.star_bundle[0] if not pick.star_bundle.is_empty() else null
 	pick.regulars = cards_for(entry, db)
 	pick.regulars.erase(pick.star_tier)

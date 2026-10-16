@@ -151,6 +151,12 @@ static func currency(id_text: String) -> Dictionary:
 	return {}
 
 
+## The name players see for a currency (Currencies.csv Name), e.g. "Groschen".
+static func money_name(id_text: String = "coins") -> String:
+	var one := currency(id_text)
+	return String(one.get("name", id_text)) if not one.is_empty() else id_text
+
+
 static func _squash(text: String) -> String:
 	var out := ""
 	for i in text.length():
@@ -224,6 +230,61 @@ static func on_offer(state: GameState) -> Array[Dictionary]:
 		if DialogueGrammar.test(String(entry["requires"]), state):
 			out.append(entry)
 	return out
+
+
+# =============================================================
+#  SELLING GREY ITEMS  (Anthony, 15 Oct)
+#
+#  "Make all old items into grey items, and they can be sold at the
+#   Traveling Merchant." Items.csv `Sell Price` is what he pays for one, in
+#  Groschen (the coins counter). Blank = he does not buy it.
+# =============================================================
+
+## Every item you hold that the Merchant buys: [{id, name, have, price}].
+static func sellable(state: GameState) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var adb := AdventureDB.get_db()
+	if adb == null or state == null:
+		return out
+	for key in adb.items.keys():
+		var entry: Dictionary = adb.items[key]
+		var price := int(entry.get("sell", 0))
+		var have := state.count(String(entry["id"]))
+		if price > 0 and have > 0:
+			out.append({"id": String(entry["id"]), "name": String(entry["name"]),
+				"have": have, "price": price})
+	# The Brewery store too (BreweryResources.csv Sell Price).
+	for res in BreweryBook.resources():
+		var res_price := int(res.get("sell", 0))
+		var res_counter := BreweryBook.counter_for(String(res["id"]))
+		var res_have := state.count(res_counter)
+		if res_price > 0 and res_have > 0:
+			out.append({"id": res_counter, "name": String(res["name"]),
+				"have": res_have, "price": res_price})
+	out.sort_custom(func(a, b): return String(a["name"]) < String(b["name"]))
+	return out
+
+
+## Sell `many` of one item (all you have when many <= 0).
+static func sell(item_id: String, state: GameState, many: int = 1) -> Dictionary:
+	var adb := AdventureDB.get_db()
+	var entry := adb.item(item_id) if adb != null else {}
+	if entry.is_empty():
+		for res in BreweryBook.resources():
+			if BreweryBook.counter_for(String(res["id"])) == item_id.strip_edges().to_lower():
+				entry = {"id": item_id, "name": res["name"], "sell": res.get("sell", 0)}
+	if state == null or entry.is_empty() or int(entry.get("sell", 0)) <= 0:
+		return {"ok": false, "why": "he does not buy that"}
+	var have := state.count(String(entry["id"]))
+	if have <= 0:
+		return {"ok": false, "why": "you have none"}
+	var n := have if many <= 0 else mini(many, have)
+	var money := currency("coins")
+	var counter := String(money.get("counter", "coins"))
+	var paid := n * int(entry["sell"])
+	state.add_count(String(entry["id"]), -n)
+	state.add_count(counter, paid)
+	return {"ok": true, "why": "Sold %d %s for %d %s." % [n, entry["name"], paid, money_name()]}
 
 
 ## Buy one. Returns {"ok": bool, "why": String}.

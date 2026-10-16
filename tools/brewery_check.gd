@@ -99,7 +99,7 @@ func _initialize() -> void:
 	print("")
 	print("  === THE WALK: a new game, every section open ===")
 	var state := GameState.new()
-	BreweryBook.stock_a_new_game(state)
+	BreweryBook.stock_a_new_game(state, true)
 	for one in sections:
 		for thing in _unlocks_named(String(one["needs"])):
 			state.unlock(thing)
@@ -177,7 +177,7 @@ func _initialize() -> void:
 	print("")
 	print("  === A SEASON: %d fixtures, playing the real Progression rows ===" % SEASON)
 	var live := GameState.new()
-	BreweryBook.stock_a_new_game(live)
+	BreweryBook.stock_a_new_game(live, true)
 	for one in sections:
 		for thing in _unlocks_named(String(one["needs"])):
 			live.unlock(thing)
@@ -279,6 +279,13 @@ func _who_grants(thing: String) -> String:
 		for handed in row["unlocks"]:
 			if _squash(String(handed)) == want:
 				return String(row["name"])
+	# A Progression.csv row can hand it over too (learn_to_brew opens the
+	# Malthouse after the second match).
+	for row in MenuSupport.read_csv("res://data/Progression.csv"):
+		for action in MenuSupport.field(row, "Do").split(";", false):
+			var a := String(action).strip_edges()
+			if a.to_lower().begins_with("unlock:") and _squash(a.substr(7)) == want:
+				return "Progression %s" % MenuSupport.field(row, "ID")
 	return ""
 
 
@@ -334,7 +341,7 @@ func _who_eats(id_text: String, sections: Array) -> String:
 ## section that lagers. Returns how many of the last section's output it made.
 func _play_a_season(sections: Array, extra: int) -> int:
 	var live := GameState.new()
-	BreweryBook.stock_a_new_game(live)
+	BreweryBook.stock_a_new_game(live, true)
 	for one in sections:
 		for thing in _unlocks_named(String(one["needs"])):
 			live.unlock(thing)

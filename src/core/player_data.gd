@@ -146,6 +146,9 @@ func set_id() -> String:
 @export var brew_attack_ability: String = ""
 @export var brew_defend_ability: String = ""
 @export var brew_artwork: Texture2D
+## The name of the class card a beer lends him (Anthony, 14 Oct: "keep the
+## name and give the player the secondary name as Name : (Name)").
+@export var brew_alias: String = ""
 
 ## WHAT THEY COUNT AS AFTER DRINKING IT, out of the Element column of
 ## Brews.csv. Blank means the brew does not change their element.
@@ -160,6 +163,14 @@ func set_id() -> String:
 ## DrunkBook.apply_all, never saved on the card. See drunk_book.gd.
 var drunk_star: bool = false
 var drunk_ability: String = ""
+
+
+## His name as shown: "Johannes : (Tobias)" while he plays as a lent class
+## card, otherwise just "Johannes". Saves and lookups keep using player_name.
+func shown_name() -> String:
+	if brew_alias.strip_edges() == "":
+		return player_name
+	return "%s : (%s)" % [player_name, brew_alias]
 
 
 func is_brewed() -> bool:
@@ -211,6 +222,7 @@ func clear_brew() -> void:
 	brew_defend_ability = ""
 	brew_element = ""
 	brew_artwork = null
+	brew_alias = ""
 
 
 # --- Backwards compatibility --------------------------------
