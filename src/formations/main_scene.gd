@@ -4676,6 +4676,11 @@ func start_next_draft_phase() -> void:
 	# Round Z: the Emblems are known before the first card is offered, so an
 	# Emblem's Reveal is on the cards from the first draft.
 	_arm_abilities()
+	# A PLAIN STAR'S PASSION BEERS (Anthony, 16 Oct): every pick his attack
+	# and defend are rolled again from all of them - what the card shows is
+	# what he plays with.
+	for own in db.players:
+		StarBrewBook.roll(own, state)
 
 	# ============ AND IT STAYS ON SCREEN ============
 	#

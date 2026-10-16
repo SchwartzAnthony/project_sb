@@ -448,13 +448,29 @@ static func clear_temporary(state: GameState) -> int:
 		var name_key := String(key)
 		# Keys are stripped to letters and digits, so a temporary brew starts
 		# "brew" and a permanent one starts "perm" — no overlap.
-		if name_key.begins_with("brew") or name_key.begins_with(CYCLE_DRINK.replace("_", "")):
+		# 16 Oct: ONLY a poured brew. The Brewery keeps texts that start
+		# "brew" too (brew_jobs_, brew_elements_, brewers), and they were
+		# wiped at every final whistle - barrels, bottle elements and the
+		# brewer list gone. A poured brew's value is a Brews.csv ID.
+		if name_key.begins_with(CYCLE_DRINK.replace("_", "")):
+			doomed.append(name_key)
+		elif name_key.begins_with("brew") and _is_poured_brew(name_key, state):
 			doomed.append(name_key)
 	for key in doomed:
 		state.texts.erase(key)
-	if not doomed.is_empty():
-		print("[brews] %d one-match brew(s) wore off." % doomed.size())
-	return doomed.size()
+	# A plain Star's Passion beers wear off too (star_brew_book.gd).
+	var mixes := StarBrewBook.clear_all(state)
+	if not doomed.is_empty() or mixes > 0:
+		print("[brews] %d one-match brew(s) wore off." % (doomed.size() + mixes))
+	return doomed.size() + mixes
+
+
+static func _is_poured_brew(name_key: String, state: GameState) -> bool:
+	for kept in ["brewjobs", "brewelements", "brewers"]:
+		if name_key.begins_with(kept):
+			return false
+	var value := String(state.texts.get(name_key, "")).strip_edges()
+	return value != "" and (get_db() == null or not get_db().find(value).is_empty())
 
 
 # =============================================================
@@ -498,6 +514,11 @@ func apply_one(card: PlayerData, state: GameState) -> bool:
 	if TransformBook.is_turning(poured):
 		return false          # a turning brew is a count, never an overlay
 	if brew_id == "":
+		# A PLAIN STAR'S PASSION BEERS (Anthony, 16 Oct): a random attack and
+		# defend out of all of them. The match rolls again at every pick.
+		if StarBrewBook.roll(card, state):
+			_applied.append(card)
+			return true
 		return false
 	var entry := find(brew_id)
 	if entry.is_empty():

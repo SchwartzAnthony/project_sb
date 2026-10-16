@@ -319,6 +319,10 @@ func _read_drops(rows: Array, columns: Dictionary, where: String) -> void:
 			"amount": maxi(0, _int(_cell(row, columns, "amount"), 1)),
 			"chance": clampf(_float(_cell(row, columns, "chance"), 1.0), 0.0, 1.0),
 			"requires": _cell(row, columns, "requires"),
+			# Next Time x (Anthony, 16 Oct: "100% first time then 50% on
+			# second time, etc."): the Chance is multiplied by this once for
+			# every earlier win over this table. Blank = always the same.
+			"next_time": _float(_cell(row, columns, "nexttimex"), 1.0),
 			"where": "%s row %d" % [where, i + 1],
 		})
 
@@ -641,14 +645,27 @@ func usable_items(state: GameState) -> Array[Dictionary]:
 ## likelier (Anthony, 16 Oct merge; Tuning adventure_drop_rise_per_wave).
 func roll(table: String, state: GameState, bonus: float = 0.0) -> Dictionary:
 	var out: Dictionary = {}
-	for row in (drops.get(CardDatabase._normalise(table), []) as Array):
+	var rows: Array = drops.get(CardDatabase._normalise(table), [])
+	# How often this table has been rolled before (a boss: how often beaten).
+	var times_key := "drops_rolled_" + CardDatabase._normalise(table)
+	var before := state.count(times_key) if state != null else 0
+	var counts := false
+	for row in rows:
 		var entry: Dictionary = row
 		if not DialogueGrammar.test(String(entry["requires"]), state):
 			continue
-		if randf() > minf(1.0, float(entry["chance"]) + bonus):
+		var chance := minf(1.0, float(entry["chance"]) + bonus)
+		var next_time := float(entry.get("next_time", 1.0))
+		if next_time != 1.0:
+			counts = true
+			# a fading drop ignores the per-wave rise: 100%, 50%, 25% ...
+			chance = float(entry["chance"]) * pow(next_time, before)
+		if randf() > chance:
 			continue
 		var key := String(entry["item"])
 		out[key] = int(out.get(key, 0)) + int(entry["amount"])
+	if counts and state != null:
+		state.add_count(times_key, 1)
 	return out
 
 

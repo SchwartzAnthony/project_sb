@@ -2502,6 +2502,29 @@ side's Emblem is shown too, marked THEIRS (`emblem_show_enemy`).
 - Not built yet: the Reversal Keg, the Element Converter, Conquest mode.
   Versteckter Dunkles has no abilities yet.
 
+**Star Elemental Brews (Anthony, 16 Oct).** How a player becomes a Star for good.
+- **Star Elements** (Items.csv `star_<element>_element`, Use `star_element:<element>`)
+  drop from the map bosses: Hill Watcher Passion, Marsh King Water, Ash Tyrant
+  Fire, Hollow Mother Earth, Frost Wight Air (Drops.csv). New Drops column
+  **Next Time x**: 0.5 = 100% the first win, then 50%, 25% ... (counter
+  `drops_rolled_<table>`). A fading row ignores the per-wave rise.
+- **Pub, Mix drink**: a Star Element + a bag bottle of the same element (from the
+  Brewery) = one **Star Brew** (Items.csv `star_<element>_brew`, Use
+  `star_brew:<element>`). Passion needs a Passion bottle whose pool has a Passion
+  beer with abilities.
+- **Drinking a Star Brew** at the Pub: only the class's Star Tier (ClassInfo.csv
+  Star Tier: Lorelei/Water II, Unkengeister/Air II, Bergmännlein/Earth III,
+  Rauhnacht/Fire IV; Passion = Tuning `star_passion_tier`, II). He keeps his
+  name and becomes a Star of that class with the Star card's abilities at his
+  Power (nearest Power if none matches). The wrong Tier can never drink it.
+- **Passion** makes a **plain Star** (no class). A plain Star shows in the Pub,
+  drinks only Passion bottles, and keeps all of them for the next match: at every
+  pick his attack and defend are rolled at random from all their abilities (two
+  good or two bad can land together).
+- A card with an element beer on him says "Can become a Water Star" when his Tier fits.
+- **Fixed**: the final whistle used to wipe every save text starting "brew":
+  barrels in the cellar, bottle elements and the brewer list. Now only poured beers wear off.
+
 **Main and Temporary Emblems (Anthony, 15 Oct).** The Star you pick before
 kick-off is the **Main**. Its Emblem is on the bar all match, on the field or
 off it. It is the only one that can turn Ultimate, and once it has, it stays

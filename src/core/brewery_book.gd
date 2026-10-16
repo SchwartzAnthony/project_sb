@@ -599,6 +599,24 @@ static func _pop_element(counter: String, state: GameState) -> String:
 	return first
 
 
+## Take ONE bottle of this element out of the bag, wherever it sits in the
+## line (Mix drink at the Pub, Anthony 16 Oct). The count goes down too.
+## False = there is none of that element.
+static func take_bottle_of(counter: String, element: String, state: GameState) -> bool:
+	var list := elements_on(counter, state)
+	var at := list.find(element.to_lower())
+	if at < 0:
+		return false
+	# Untagged ones held in front of the list keep their place.
+	while list.size() < state.count(counter):
+		list.insert(0, "")
+		at += 1
+	list.remove_at(at)
+	_write_elements(counter, list, state)
+	state.add_count(counter, -1)
+	return true
+
+
 ## THE ELEMENT OF THE NEXT BOTTLE OF THIS ITEM you would open. Does not use it.
 static func bottle_element(item_id: String, state: GameState) -> String:
 	if state == null or item_id == "":
