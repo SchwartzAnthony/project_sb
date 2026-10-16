@@ -677,4 +677,5 @@ brewery_start_stock,false,"ROUND AN (Anthony, 16 Oct: do not give anything when 
 enemy_first_match_beers,3,"ROUND AN (Anthony, 16 Oct). How many beers the opponent has in your FIRST match (no match played yet). They pour one per pick until they run out (EnemyPlay.csv enemy_beer). 0 = none"
 dorm_bed_needs,unlocked:Extra Beds,"ROUND AN (Anthony's Achievements board, merged 16 Oct). Single beds at the Dorms are only for sale once this is true - Extra Beds comes from Full House (5 wins). Blank = always for sale. Rooms are not affected"
 adventure_drop_rise_per_wave,0.1,"ROUND AN (Anthony's Adventure board, merged 16 Oct: as they progress through the map the chance of ingredients goes up). Added to every enemy drop chance for each wave already behind you: 0.1 = +10% per wave. 0 = the same chance all the way through"
-star_passion_tier,II,"Anthony 16 Oct. The Tier a Star Passion Brew needs: a player of this Tier who drinks it is a plain Star for good (Claude's default II, the same Tier as the starting team's plain Stars; asked him)"
+star_passion_tier,,"Anthony 16 Oct: the Tier a Star Passion Brew needs. Blank = every Tier (his answer: All Tiers can). Write a Tier (I, II, III, IV) to limit it"
+pub_own_players_only,true,"Anthony 16 Oct: the Pub shows only your own players (Show only what the player has). false = every card in the game, as before"

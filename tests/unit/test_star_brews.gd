@@ -156,3 +156,10 @@ func test_a_star_card_shows_when_he_can_become_one() -> void:
 	card.brew_element = "Fire"
 	assert_eq(StarBrewBook.hint(card, state, db), "", "Fire needs Tier IV")
 	card.brew_element = ""
+
+
+func test_every_tier_can_become_a_plain_star() -> void:
+	for tier in ["I", "IV"]:
+		var card := _recruit("Test Passion " + tier, tier, 1)
+		state.add_count("star_passion_brew", 1)
+		assert_true(bool(StarBrewBook.drink(card, "passion", state, db)["ok"]), "Tier %s (All Tiers can)" % tier)

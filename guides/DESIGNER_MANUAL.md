@@ -2514,7 +2514,7 @@ side's Emblem is shown too, marked THEIRS (`emblem_show_enemy`).
   beer with abilities.
 - **Drinking a Star Brew** at the Pub: only the class's Star Tier (ClassInfo.csv
   Star Tier: Lorelei/Water II, Unkengeister/Air II, Bergmännlein/Earth III,
-  Rauhnacht/Fire IV; Passion = Tuning `star_passion_tier`, II). He keeps his
+  Rauhnacht/Fire IV; Passion = every Tier, Tuning `star_passion_tier` blank). He keeps his
   name and becomes a Star of that class with the Star card's abilities at his
   Power (nearest Power if none matches). The wrong Tier can never drink it.
 - **Passion** makes a **plain Star** (no class). A plain Star shows in the Pub,
@@ -2522,6 +2522,7 @@ side's Emblem is shown too, marked THEIRS (`emblem_show_enemy`).
   pick his attack and defend are rolled at random from all their abilities (two
   good or two bad can land together).
 - A card with an element beer on him says "Can become a Water Star" when his Tier fits.
+- **The Pub shows only your own players** (Tuning `pub_own_players_only`). Later (Anthony): just the 12 of your team, with a toggle to the Adventure side.
 - **Fixed**: the final whistle used to wipe every save text starting "brew":
   barrels in the cellar, bottle elements and the brewer list. Now only poured beers wear off.
 

@@ -273,7 +273,8 @@ func _star_brews() -> Array[Dictionary]:
 		var tier := StarBrewBook.star_tier(element, cards)
 		out.append({"id": "star:" + element, "star": element,
 			"name": "%s  x%d" % [item["name"], state.count(String(item["id"]))],
-			"description": "%s Only Tier %s." % [item.get("description", ""), tier],
+			"description": "%s %s" % [item.get("description", ""),
+				("Only Tier %s." % tier) if tier != "" else "Any Tier."],
 			"for_class": "", "becomes": "", "attack": "", "defend": "", "permanent": false,
 			"cost": {}, "drinks": 0, "inspiration": 0, "pool": "star", "requires": ""})
 	return out
@@ -357,7 +358,8 @@ func _summary(entry: Dictionary) -> String:
 	if entry.has("star"):
 		var element := String(entry["star"])
 		var klass := StarBrewBook.class_for(element)
-		return "Tier %s becomes a %s Star for good" % [StarBrewBook.star_tier(element, cards),
+		var tier := StarBrewBook.star_tier(element, cards)
+		return "%s becomes a %s Star for good" % [("Tier " + tier) if tier != "" else "Any Tier",
 			klass if klass != "" else "plain"]
 	if entry.has("bottle"):
 		var els := BreweryBook.elements_on(String(entry["bottle"]["id"]), state)
@@ -433,6 +435,11 @@ func _rebuild_cards() -> void:
 	for piece in cards.tune_text("pub_hidden_classes", "Rivals").split(",", false):
 		hidden.append(CardDatabase._normalise(String(piece)))
 	for card in cards.players:
+		# ONLY YOUR OWN PLAYERS (Anthony, 16 Oct: "Show only what the player
+		# has"). Tuning pub_own_players_only false shows every card again.
+		if cards.tune_bool("pub_own_players_only", true) \
+				and not RecruitBook.is_recruit(card.player_name, state):
+			continue
 		# Stars keep their own printed abilities - all but a PLAIN Star, who
 		# drinks Passion beers and Star Brews (Anthony, 16 Oct).
 		if card.is_star() and not StarBrewBook.is_plain(card, state):

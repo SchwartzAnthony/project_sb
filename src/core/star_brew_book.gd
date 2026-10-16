@@ -30,8 +30,8 @@ extends RefCounted
 #    ClassInfo   Element + Star Tier: which class an element makes, and the
 #                ONE Tier that may drink it. Lorelei (Water) II, Unkengeister
 #                (Air) II, Bergmannlein (Earth) III, Rauhnacht (Fire) IV.
-#    Tuning      star_passion_tier: the Tier a Star Passion Brew needs (II,
-#                the same Tier as the starting team's plain Stars).
+#    Tuning      star_passion_tier: the Tier a Star Passion Brew needs. Blank =
+#                every Tier (Anthony, 16 Oct: "All Tiers can").
 #
 #  ============ IN THE SAVE ============
 #
@@ -89,7 +89,7 @@ static func class_for(element: String) -> String:
 ## The one Tier that can drink this element's Star Brew. "" = nobody can.
 static func star_tier(element: String, db: CardDatabase) -> String:
 	if element.to_lower() == "passion":
-		return db.tune_text("star_passion_tier", "II") if db != null else "II"
+		return db.tune_text("star_passion_tier", "") if db != null else ""
 	var klass := class_for(element)
 	if klass == "" or db == null:
 		return ""
@@ -107,7 +107,8 @@ static func refusal(card: PlayerData, element: String, state: GameState, db: Car
 		return "No class has the %s element yet, so there is no %s Star to become." % [
 			element.capitalize(), element.capitalize()]
 	var tier := star_tier(element, db)
-	if tier == "" or card.get_tier_clean() != tier:
+	var any_tier := element.to_lower() == "passion" and tier == ""
+	if not any_tier and (tier == "" or card.get_tier_clean() != tier):
 		return "%s is Tier %s. Only a Tier %s player can become a %s Star." % [
 			card.player_name, card.get_tier_clean(), tier, element.capitalize()]
 	if element.to_lower() == "passion":
