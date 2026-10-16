@@ -168,3 +168,33 @@ static func give_starting_team(state: GameState) -> void:
 		file, RecruitBook.names(state).size()])
 	if picked == null:
 		push_warning("[tutorial] %s could not make a team." % file)
+		return
+	if db.tune_bool("starting_team_ready", true):
+		make_ready(picked, state, db)
+
+
+## ============ READY TO PLAY AT ONCE (Anthony, 16 Oct) ============
+##
+## "Basic star players for Tier 2 so that the player can start a game right
+## away." The starting team's Stars stand in the Star Hall (free - they are
+## the first three) and the twelve are saved as a Match Team, so Play a Match
+## goes straight to the pitch instead of to Team Build.
+static func make_ready(picked: TeamSelection, state: GameState, db: CardDatabase) -> void:
+	if picked == null or picked.plain or picked.star_bundle.is_empty():
+		return
+	for star in picked.star_bundle:
+		var placed := ClassTree.place_star(picked.unit_type, ClassTree._set_of(star), star, state, db)
+		if not bool(placed["ok"]):
+			push_warning("[tutorial] %s: %s" % [star.player_name, placed["why"]])
+	var entry := TeamRoster.blank(picked.unit_type, picked.star_tier, PlayerRoles.MATCH)
+	entry["name"] = Loc.text("starting_team_name", "First XI")
+	var chosen: Dictionary = {}
+	for tier in picked.regulars.keys():
+		chosen[tier] = picked.regulars[tier]
+	TeamRoster.set_cards(entry, chosen)
+	var book := TeamRoster.load_all()
+	book.put(entry)
+	book.save()
+	state.save_to_disk()
+	print("[tutorial] %s Stars in the Star Hall, '%s' saved as a Match Team." % [
+		picked.unit_type, entry["name"]])

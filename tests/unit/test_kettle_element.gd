@@ -15,7 +15,7 @@ var _was: Dictionary = {}
 func before_each() -> void:
 	state = GameState.new()
 	BreweryBook.forget()
-	BreweryBook.stock_a_new_game(state)
+	BreweryBook.stock_a_new_game(state, true)
 	Progression.run_actions("unlock:Boiling;unlock:Cooling;unlock:Bottling;"
 		+ "count:boiling_key+1;count:cooling_key+1;count:bottling_key+1", state)
 
@@ -47,10 +47,10 @@ func test_every_save_gets_one_of_each_element_card() -> void:
 func test_an_old_save_still_gets_the_cards_once() -> void:
 	var old := GameState.new()
 	old.set_flag(BreweryBook.STOCKED_FLAG, true)     # stocked before 12 Oct
-	BreweryBook.stock_a_new_game(old)
+	BreweryBook.stock_a_new_game(old, true)
 	assert_eq(old.count("fire"), 6)
 	old.set_count("fire", 0)
-	BreweryBook.stock_a_new_game(old)
+	BreweryBook.stock_a_new_game(old, true)
 	assert_eq(old.count("fire"), 0, "handed out once, not every visit")
 
 

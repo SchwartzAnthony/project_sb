@@ -92,7 +92,10 @@ func _ready() -> void:
 	state = GameState.fetch(get_tree())
 	# YOUR OPENING STOCK, ONCE PER SAVE. It leaves a flag behind, so walking
 	# out and back in is not a refill — see brewery_book.gd.
-	BreweryBook.stock_a_new_game(state)
+	# Off in a real save (brewery_start_stock); the Tutorial's own save
+	# still gets it, so its brewing lesson has something to brew with.
+	BreweryBook.stock_a_new_game(state,
+		Tutorial.active(get_tree()) or TutorialBase.active(get_tree()))
 
 	_build_chrome()
 	_rebuild()

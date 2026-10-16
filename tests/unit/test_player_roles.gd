@@ -88,17 +88,22 @@ func test_the_stars_tier_is_never_short_of_rested_players() -> void:
 		db.tuning["recovery"] = was
 
 
-# ---- round AN, Anthony 8 Oct: some Adventure players to start with, and a
-# role is for good until Quereinsteiger ----
+# ---- round AN, Anthony 16 Oct: twelve to start, the Tier II three are
+# Stars, and all nine plain players are Match players so the first team
+# is ready at once. (8 Oct had four Adventure players.) ----
 
-func test_the_starting_team_csv_has_adventure_players() -> void:
+func test_the_starting_team_csv_is_three_stars_and_nine_match_players() -> void:
 	var roles := {}
+	var stars := 0
 	for row in MenuSupport.read_csv("res://data/" + db.tune_text("starting_team", "StartingTeam.csv")):
+		if MenuSupport.field(row, "Class").strip_edges() == "" and MenuSupport.field(row, "Name") != "":
+			stars += 1
+			assert_eq(MenuSupport.field(row, "Tier"), "II", "the Stars are Tier II")
+			continue
 		var r := MenuSupport.field(row, "Role").strip_edges().to_lower()
-		if r != "":
-			roles[r] = int(roles.get(r, 0)) + 1
-	assert_gt(int(roles.get("adventure", 0)), 0, "a fresh game needs Adventure Players")
-	assert_gt(int(roles.get("match", 0)), 0)
+		roles[r] = int(roles.get(r, 0)) + 1
+	assert_eq(stars, 3)
+	assert_eq(int(roles.get("match", 0)), 9, str(roles))
 
 
 func test_the_starting_team_role_column_is_used() -> void:
@@ -147,11 +152,25 @@ func test_a_locked_match_player_cannot_slip_into_the_brewery() -> void:
 	assert_false(BrewerBook.is_brewer("Resi", state))
 
 
-func test_a_fresh_games_starting_team_has_adventure_players() -> void:
+func test_a_fresh_games_starting_team_is_nine_match_players() -> void:
 	SquadSheet.selection_from(db.tune_text("starting_team", "StartingTeam.csv"), db, state, true)
 	var count := {}
 	for name_text in RecruitBook.names(state):
 		var r := PlayerRoles.role(name_text, state, db)
 		count[r] = int(count.get(r, 0)) + 1
-	assert_eq(int(count.get(PlayerRoles.ADVENTURE, 0)), 4, str(count))
-	assert_eq(int(count.get(PlayerRoles.MATCH, 0)), 8, str(count))
+	assert_eq(int(count.get(PlayerRoles.MATCH, 0)), 9, str(count))
+	assert_eq(int(count.get(PlayerRoles.ADVENTURE, 0)), 0, str(count))
+
+
+func test_a_fresh_game_can_play_a_match_at_once() -> void:
+	var was := TeamRoster.SAVE_PATH
+	TeamRoster.SAVE_PATH = "user://test_fresh_teams.json"
+	var picked := SquadSheet.selection_from(db.tune_text("starting_team", "StartingTeam.csv"), db, state, true)
+	RecruitBook.apply_all(db, state)
+	Tutorial.make_ready(picked, state, db)
+	var now := TeamBuild.status(state, db)
+	assert_true(bool(now["ok"]), String(now["why"]))
+	assert_eq(int(now["players"]), 12)
+	RecruitBook.remove_all(db)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TeamRoster.SAVE_PATH))
+	TeamRoster.SAVE_PATH = was

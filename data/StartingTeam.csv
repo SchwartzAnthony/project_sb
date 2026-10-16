@@ -1,13 +1,13 @@
 ID,Tier,Power,Name,Class,Gender,Artwork,Lead,Role,Notes
-p1,I,0,,Normal,,,,match,"THE STARTING TEAM (round AN, Anthony 7 Oct): the base after the tutorial, or after saying No to it - a full team of random plain players and nothing else. Twelve rows, three per Tier, one of each Power on the ladder. Random names, made once per save. They are new people: nothing from the tutorial is kept (Anthony, 8 Oct). Tuning.csv starting_team names this file. ROLE (Anthony, 8 Oct: the starting team of a fresh game includes some Adventure players): match or adventure, what he arrives as. Blank = starting_team_role in Tuning.csv. Four Adventure Players, one per Tier, so the first Adventure Team can be built straight away."
-p2,I,1,,Normal,,,,adventure,
+p1,I,0,,Normal,,,,match,"THE STARTING TEAM (Anthony, 16 Oct): a fresh game gets 12 players, three per Tier, and the Tier II three are basic Star Players, so the first match can be played straight away. A row with a Name and no Class is that real Star card (Star Players.csv). Tutorial.give_starting_team places the Stars in the Star Hall for free and saves a ready Match Team (Tuning starting_team_ready). Plain rows get random names, made once per save, and join your base. ROLE: match or adventure; blank = starting_team_role in Tuning.csv. All nine plain players are Match players, because the first team needs all of them. Tuning.csv starting_team names this file. Was (8 Oct): twelve plain players, four of them Adventure players."
+p2,I,1,,Normal,,,,match,
 p3,I,2,,Normal,,,,match,
-p4,II,1,,Normal,,,,match,
-p5,II,2,,Normal,,,,adventure,
-p6,II,3,,Normal,,,,match,
+vassago,II,1,Vassago,,,,yes,match,
+glasya_labolas,II,2,Glasya-Labolas,,,,,match,
+caim,II,3,Caim,,,,,match,
 p7,III,2,,Normal,,,,match,
-p8,III,3,,Normal,,,,adventure,
+p8,III,3,,Normal,,,,match,
 p9,III,4,,Normal,,,,match,
 p10,IV,3,,Normal,,,,match,
-p11,IV,4,,Normal,,,,adventure,
+p11,IV,4,,Normal,,,,match,
 p12,IV,5,,Normal,,,,match,

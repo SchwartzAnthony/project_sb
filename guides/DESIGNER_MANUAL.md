@@ -2454,6 +2454,25 @@ Ultimate does nothing. A goal no longer resets them (`emblem_reset_on_goal`
 false); a Star that comes back brings its Emblem back as it was. The other
 side's Emblem is shown too, marked THEIRS (`emblem_show_enemy`).
 
+**A fresh game (Anthony, 16 Oct).**
+- **Starting team** (StartingTeam.csv): 12 players, three per Tier. The Tier
+  II three are the Unkengeister Stars (Vassago, Glasya-Labolas, Caim); the
+  other nine are plain Match players with random names. The Stars are put in
+  the Star Hall for free and the twelve are saved as the Match Team **First
+  XI**, so Play a Match goes straight to the Match Maker (Tuning
+  `starting_team_ready`). Your own players may play in a team of any class
+  (`own_players_in_every_team`).
+- **Banners** are grey until they can be used: Tuning `banner_<id>_needs`
+  (achievements, inventory, play, teams blank = always open). Adventure:
+  `count:matches_played>=1`, and pressing it early says "Adventure opens
+  after your first match." Season: `count:friendly_wins>=10`.
+- **Season**: the County League (Seasons.csv) needs 10 wins in Play a Match.
+  Its tile and the footer show "Wins in Play a Match: 3 of 10. Win 7 more..."
+  (Language.csv `season_wins_needed`).
+- **Brewery**: opening it gives nothing (`brewery_start_stock` false). The
+  Start column in BreweryResources.csv is now only used by the Tutorial's own
+  save and the brewery tools.
+
 **Main and Temporary Emblems (Anthony, 15 Oct).** The Star you pick before
 kick-off is the **Main**. Its Emblem is on the bar all match, on the field or
 off it. It is the only one that can turn Ultimate, and once it has, it stays

@@ -109,3 +109,6 @@ adventure_board_title,THE SOCCER & TRAINING BOARD,DAS FUSSBALL- & TRAININGSBRETT
 accept_contract,Accept Contract,Vertrag annehmen,"adventure-look. The button on an unrolled scroll that takes the job"
 scroll_requirements,YOU NEED,DU BRAUCHST,"adventure-look. The heading over what a job needs, on the unrolled scroll"
 scroll_rewards,REWARD,BELOHNUNG,"adventure-look. The heading over what a job pays, on the unrolled scroll"
+starting_team_name,First XI,Erste Elf,"ROUND AN (16 Oct). The name of the Match Team a fresh game starts with"
+banner_locked_adventure,Adventure opens after your first match.,Das Abenteuer öffnet nach deinem ersten Spiel.,"ROUND AN (16 Oct). The line under the base when the grey Adventure banner is pressed"
+season_wins_needed,"Wins in Play a Match: %d of %d. Win %d more to unlock the Season.","Siege in Freundschaftsspielen: %d von %d. Noch %d Siege bis zur Saison.","ROUND AN (16 Oct). On the Season page while the first Season is locked. The three numbers are: your wins, the wins needed, how many are left"

@@ -176,7 +176,7 @@ func test_the_tutorial_brewery_steps_line_up() -> void:
 		assert_true(dialogue.scene_names().has(scene), "Dialogue.csv has %s" % scene)
 	# Step 1's Then opens both machines, step 2 hands over the barrel.
 	state.set_flag("tut_brewery", true)
-	BreweryBook.stock_a_new_game(state)
+	BreweryBook.stock_a_new_game(state, true)
 	Progression.run_actions("unlock:Malthouse;unlock:Bottling;count:malthouse_key+1;count:bottling_key+1", state)
 	assert_true(BreweryBook.can_work("malthouse", state))
 	assert_true(BrewerBook.work("malthouse", state, CardDatabase.get_db(), 0)["ok"])

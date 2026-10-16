@@ -571,6 +571,14 @@ func roster_for_class(unit_type: String) -> Array[PlayerData]:
 			continue
 		if card.unit_type.strip_edges().to_lower() == wanted:
 			out.append(card)
+	# YOUR OWN PLAYERS PLAY FOR ANY CLASS (Anthony, 16 Oct: the starting team
+	# is Tier II Stars plus your nine plain players). The named players on
+	# your base join every class's list. `own_players_in_every_team` FALSE in
+	# Tuning.csv keeps a team to its own class's cards.
+	if tune_bool("own_players_in_every_team", true):
+		for card in RecruitBook._added:
+			if not out.has(card):
+				out.append(card)
 	return out
 
 

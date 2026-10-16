@@ -75,7 +75,7 @@ func _open_everything(state: GameState, sections: Array[Dictionary]) -> void:
 func _one_batch(card: String, many_cards: int, kettle: String, sections: Array[Dictionary],
 		db: CardDatabase, brews: BrewDB) -> void:
 	var state := GameState.new()
-	BreweryBook.stock_a_new_game(state)
+	BreweryBook.stock_a_new_game(state, true)
 	_open_everything(state, sections)
 	state.set_count(BreweryBook.counter_for(card), BreweryBook.max_element_cards())
 	var element := BreweryBook.element_of_card(card)

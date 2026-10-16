@@ -81,6 +81,9 @@ static func status(state: GameState, db: CardDatabase) -> Dictionary:
 	var out := {"ok": true, "why": "", "team": "", "players": 0, "stars": 0, "of": 3, "class": ""}
 	if not on(db) or state == null:
 		return out
+	# Your own named players must be in the card list before a team that
+	# uses them can count as whole (the starting team is made of them).
+	TransformBook.apply_all(db, state)
 	var book := TeamRoster.load_all()
 	var best: Dictionary = {}
 	var best_score := -1

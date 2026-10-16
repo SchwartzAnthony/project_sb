@@ -113,6 +113,9 @@ func _build() -> void:
 		ScenePaths.go_back(get_tree(), ScenePaths.BASE))
 	footer.add_child(MenuSupport.footer_gap(_detail))
 	page.add_child(footer)
+	# While the first Season is still locked, the footer says how far off it is.
+	if not book.seasons.is_empty():
+		_detail.text = _wins_line(book.seasons[0])
 
 
 func _fill() -> void:
@@ -297,6 +300,9 @@ func _tile(entry: Dictionary) -> Control:
 	var under := Label.new()
 	if not open_now:
 		under.text = "🔒  " + why
+		var wins := _wins_line(entry)
+		if wins != "":
+			under.text = "🔒  " + wins
 		under.add_theme_color_override("font_color", Color(0.86, 0.62, 0.45))
 	elif playing:
 		under.text = "You are playing this"
@@ -320,6 +326,26 @@ func _tile(entry: Dictionary) -> Control:
 	if open_now:
 		button.pressed.connect(_enter.bind(entry))
 	return button
+
+
+## ============ HOW MANY WINS TO GO (Anthony, 16 Oct) ============
+##
+## "On the Season page, show the amount of wins the player has, and show
+## them that they need x amount until Season is unlocked." For a locked
+## Season whose Requires is count:friendly_wins>=N. "" otherwise.
+func _wins_line(entry: Dictionary) -> String:
+	if SeasonBook.locked_reason(entry, state) == "":
+		return ""
+	for part in String(entry.get("requires", "")).split(";", false):
+		var clean := String(part).strip_edges().to_lower().replace(" ", "")
+		if not clean.begins_with("count:friendly_wins>="):
+			continue
+		var need := int(clean.get_slice(">=", 1))
+		var have := mini(state.count("friendly_wins"), need)
+		return Loc.text("season_wins_needed",
+			"Wins in Play a Match: %d of %d. Win %d more to unlock the Season.") % [
+			have, need, need - have]
+	return ""
 
 
 func _enter(entry: Dictionary) -> void:

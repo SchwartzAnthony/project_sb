@@ -401,8 +401,14 @@ static func add_stock(id_text: String, many: int, state: GameState) -> void:
 ##
 ## A One Of row's Start is given as that many of EACH of its cards, and it has
 ## its own flag, so a save made before the row existed still gets them once.
-static func stock_a_new_game(state: GameState) -> void:
+##
+## ROUND AN (Anthony, 16 Oct: "do not give anything to the player when the
+## Brewery is unlocked"): only while Tuning.csv brewery_start_stock is true.
+## Tools and tests pass `force` to stock a throwaway save anyway.
+static func stock_a_new_game(state: GameState, force := false) -> void:
 	if state == null:
+		return
+	if not force and not CardDatabase.get_db().tune_bool("brewery_start_stock", false):
 		return
 	if not state.has_flag(STOCKED_FLAG):
 		state.set_flag(STOCKED_FLAG, true)
