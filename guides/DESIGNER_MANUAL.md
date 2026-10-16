@@ -2523,6 +2523,7 @@ side's Emblem is shown too, marked THEIRS (`emblem_show_enemy`).
   good or two bad can land together).
 - A card with an element beer on him says "Can become a Water Star" when his Tier fits.
 - **The Pub shows only your own players** (Tuning `pub_own_players_only`). Later (Anthony): just the 12 of your team, with a toggle to the Adventure side.
+- **Fixed (16 Oct)**: Stats.csv counted `matches_played` twice per match (two rows), so "after 3 matches" came after 2. One row now. Progression.csv `learn_to_brew` (the Brewery, Malthouse and Hanna's brewery-intro) fired after the FIRST match; it now waits for 3 wins, the same moment as Treble.
 - **Fixed**: the final whistle used to wipe every save text starting "brew":
   barrels in the cellar, bottle elements and the brewer list. Now only poured beers wear off.
 
