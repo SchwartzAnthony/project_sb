@@ -61,7 +61,7 @@ func _initialize() -> void:
 	var state := GameState.fetch(self)
 	_check(_scene_name().contains("base"), "NO stays at the base")
 	_check(RecruitBook.names(state).size() == 12, "NO: the base has the full starting team (%d)" % RecruitBook.names(state).size())
-	_check(state.unlocks.is_empty(), "NO: nothing is unlocked (%s)" % str(state.unlocks))
+	_check(_only_star_hall(state), "NO: nothing is unlocked but the starting Stars' node (%s)" % str(state.unlocks))
 	await _shot_one("no_base")
 
 	# ---- 2. YES ----
@@ -101,7 +101,7 @@ func _initialize() -> void:
 	_check(not Tutorial.active(self), "the tutorial is over")
 	state = GameState.fetch(self)
 	_check(RecruitBook.names(state).size() == 12, "the base has the full starting team (%d)" % RecruitBook.names(state).size())
-	_check(state.unlocks.is_empty(), "nothing is unlocked (%s)" % str(state.unlocks))
+	_check(_only_star_hall(state), "nothing is unlocked but the starting Stars' node (%s)" % str(state.unlocks))
 	# NOTHING FROM THE TUTORIAL REACHES YOUR GAME (Anthony, 8 Oct).
 	_check(GameState.SAVE_PATH == DIR + "/story_yes.json", "your own save is back")
 	_check(not FileAccess.file_exists(Tutorial.SEALED_SAVE), "the tutorial's save is thrown away")
@@ -530,3 +530,12 @@ func _drink_lesson(scene: Node) -> void:
 		_check(first.current_data.active_attack_ability() == "PLAIN_GOALIE_ATK"
 			and first.current_data.active_defend_ability() == "PLAIN_GOALIE_DEF",
 			"after the bottle the Power 1 has the plain beer's goalie pair (hit or miss)")
+
+
+## Anthony, 16 Oct: the starting team's plain Stars stand in the Star Hall,
+## which opens the Normal class's BASIC node. Nothing else may be open.
+func _only_star_hall(state: GameState) -> bool:
+	for key in state.unlocks.keys():
+		if String(key) != "normalbasic":
+			return false
+	return true

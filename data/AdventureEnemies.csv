@@ -19,3 +19,5 @@ hollow_mother,The Hollow Mother,hollow,5,Shell:12:2|Brood:12:1|Heart:20,aoe,,,1,
 frost_nip,Frost Nip,frost,2,Body:7,weakest,,,,nip,crawler_drops,10,no,
 rime_shell,Rime Shell,frost,2,Rime:6:2|Body:8,weakest,,,,rime,dwarden_drops,7,no,
 glacier_maw,Glacier Maw,frost,4,Ice:10:2|Body:14,strongest,,,,maw,dwarden_drops,4,no,
+hill_watcher,The Hill Watcher,marsh,2,Cloak:6:1|Body:10,weakest,,,1,,watcher_drops,0,yes,PLACEHOLDER boss of Eyes in the Hills (Passion). Beating him opens the Marshlands.
+frost_wight,The Frost Wight,frost,6,Rime:14:2|Gale:12:1|Body:24,weakest,Air,,1,,wight_drops,0,yes,PLACEHOLDER boss of the Frostreach (Air). Beating him opens Conquest.

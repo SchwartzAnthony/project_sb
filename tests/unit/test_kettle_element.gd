@@ -10,12 +10,22 @@ extends GutTest
 
 var state: GameState
 var _was: Dictionary = {}
+var _pools: Dictionary = {}
+
+## The tests below are about the three plain beers. Anthony's own beers
+## (his System Builder save, merged 16 Oct) sit in the plain pool too, so they
+## step out of it while these run.
+const TEST_BEERS := ["plain_goalie", "plain_power", "plain_keeper", "keg_goalie", "kleiner_fass"]
 
 
 func before_each() -> void:
 	state = GameState.new()
 	BreweryBook.forget()
 	BreweryBook.stock_a_new_game(state, true)
+	for entry in BrewDB.get_db().brews:
+		if not TEST_BEERS.has(String(entry["id"])) and String(entry.get("pool", "")) != "":
+			_pools[String(entry["id"])] = entry["pool"]
+			entry["pool"] = ""
 	Progression.run_actions("unlock:Boiling;unlock:Cooling;unlock:Bottling;"
 		+ "count:boiling_key+1;count:cooling_key+1;count:bottling_key+1", state)
 
@@ -25,6 +35,9 @@ func after_each() -> void:
 	for id_text in _was:
 		BrewDB.get_db().find(String(id_text))["element"] = _was[id_text]
 	_was.clear()
+	for id_text in _pools:
+		BrewDB.get_db().find(String(id_text))["pool"] = _pools[id_text]
+	_pools.clear()
 
 
 func _set_element(brew_id: String, element: String) -> void:

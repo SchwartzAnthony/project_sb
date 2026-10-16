@@ -35,3 +35,19 @@ warden_drops,smelling_salts,1,1.0,,The first boss always leaves one.
 king_drops,team_orange,2,1.0,,
 tyrant_drops,smelling_salts,2,1.0,,
 mother_drops,smelling_salts,3,1.0,,
+watcher_drops,no_element,3,1.0,,Anthony 14 Oct: the boss drops 3 element cards for sure
+watcher_drops,no_element,1,0.3,,and a 30% chance of one more
+king_drops,water_element,3,1.0,,Anthony 14 Oct: the boss drops 3 element cards for sure
+king_drops,water_element,1,0.3,,and a 30% chance of one more
+tyrant_drops,fire,3,1.0,,Anthony 14 Oct: the boss drops 3 element cards for sure
+tyrant_drops,fire,1,0.3,,and a 30% chance of one more
+mother_drops,earth_element,3,1.0,,Anthony 14 Oct: the boss drops 3 element cards for sure
+mother_drops,earth_element,1,0.3,,and a 30% chance of one more
+wight_drops,air_element,3,1.0,,Anthony 14 Oct: the boss drops 3 element cards for sure
+wight_drops,air_element,1,0.3,,and a 30% chance of one more
+watcher_drops,reed,6,0.6,,
+watcher_drops,coins,40,1.0,,
+wight_drops,deep_salt,15,0.6,,
+wight_drops,coins,400,1.0,,
+hills_ground,reed,1,0.5,,Ground pickups on Eyes in the Hills
+hills_ground,coins,2,0.5,,
