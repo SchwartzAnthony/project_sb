@@ -5864,6 +5864,10 @@ func _enemy_does(term: String, card: PlayerData) -> void:
 			return
 		state.set_text(BrewDB.TEMP_PREFIX + BrewDB.card_key(card), rest)
 		BrewDB.get_db().apply_all(db, state)
+		# A squad card (the first opponent) is not one of the database's
+		# players: lay the beer on him directly too, so it gives him its
+		# abilities.
+		BrewDB.get_db().apply_one(card, state)
 		_redraw_offered_cards()
 		# ...and you see him drink it, the same as when you give yours one.
 		var drinker := unit_for_card(card, true)

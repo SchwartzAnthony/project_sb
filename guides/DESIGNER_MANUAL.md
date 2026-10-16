@@ -2465,6 +2465,9 @@ side's Emblem is shown too, marked THEIRS (`emblem_show_enemy`).
   `head-coach-welcome`): after the Tutorial or a No, four lines at the base.
   Line three's Effect `bottle:small_bottle=6@passion` gives six Small Bottles,
   each a random Passion beer when opened. New effect word: `bottle:item=N@element`.
+- **Your first match** (MatchModes.csv `first_match`, Anthony 16 Oct): while no
+  match has been played, Play a Match plays this instead. Your team against
+  EnemyIntroSquad.csv, plain players with **no abilities until they drink**.
 - **The first opponent's beers**: in your first match the other side has
   Tuning `enemy_first_match_beers` (3) beers. EnemyPlay.csv `enemy_beer`
   pours a random plain-pool beer on their pick (`brew:pool:plain`) and you see

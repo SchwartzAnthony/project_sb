@@ -199,3 +199,14 @@ func test_the_first_opponents_beer_rule_waits_on_its_flag() -> void:
 	assert_false(EnemyPlay._matches(when, {"state": state}))
 	state.set_flag("enemy_has_beer", true)
 	assert_true(EnemyPlay._matches(when, {"state": state}))
+
+
+func test_the_first_match_is_against_a_side_with_no_abilities() -> void:
+	assert_eq(MatchMode.stand_in_for("friendly", state), "first_match")
+	var picked := SquadSheet.selection_from("EnemyIntroSquad.csv", db, state, false)
+	for tier in picked.regulars.keys():
+		for card in picked.regulars[tier]:
+			assert_eq((card as PlayerData).attack_ability_id, "", card.player_name)
+			assert_eq((card as PlayerData).defend_ability_id, "", card.player_name)
+	state.set_count("matches_played", 1)
+	assert_eq(MatchMode.stand_in_for("friendly", state), "friendly")
