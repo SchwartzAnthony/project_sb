@@ -679,3 +679,4 @@ dorm_bed_needs,unlocked:Extra Beds,"ROUND AN (Anthony's Achievements board, merg
 adventure_drop_rise_per_wave,0.1,"ROUND AN (Anthony's Adventure board, merged 16 Oct: as they progress through the map the chance of ingredients goes up). Added to every enemy drop chance for each wave already behind you: 0.1 = +10% per wave. 0 = the same chance all the way through"
 star_passion_tier,,"Anthony 16 Oct: the Tier a Star Passion Brew needs. Blank = every Tier (his answer: All Tiers can). Write a Tier (I, II, III, IV) to limit it"
 pub_own_players_only,true,"Anthony 16 Oct: the Pub shows only your own players (Show only what the player has). false = every card in the game, as before"
+adventure_any_size,true,"Anthony 16 Oct (decision card: Any size). An Adventure Team may set off with 1 or more Adventure players, no full ladder and no Star needed. false = the full side (a Star + one per Tier) as before"

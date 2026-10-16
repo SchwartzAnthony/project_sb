@@ -217,3 +217,29 @@ func test_the_first_match_is_against_a_side_with_no_abilities() -> void:
 			assert_eq((card as PlayerData).defend_ability_id, "", card.player_name)
 	state.set_count("matches_played", 1)
 	assert_eq(MatchMode.stand_in_for("friendly", state), "friendly")
+
+
+## Anthony, 16 Oct (decision card: Any size): an Adventure Team sets off
+## with 1 or more Adventure players, no Star needed.
+func test_a_new_game_has_a_one_player_adventure_team_ready() -> void:
+	var was := TeamRoster.SAVE_PATH
+	TeamRoster.SAVE_PATH = "user://test_adventure_teams.json"
+	if FileAccess.file_exists(TeamRoster.SAVE_PATH):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(TeamRoster.SAVE_PATH))
+	SquadSheet.selection_from(db.tune_text("starting_team", "StartingTeam.csv"), db, state, true)
+	Tutorial.make_adventure_team(state, db)
+	var book := TeamRoster.load_all()
+	var team: Dictionary = {}
+	for entry in book.teams:
+		if String(entry["kind"]) == PlayerRoles.ADVENTURE:
+			team = entry
+	assert_false(team.is_empty(), "an Adventure Team was saved")
+	assert_eq(book.head_count(team, db), 1)
+	assert_eq(book.trouble(team, db, 1), "", "one player is enough")
+	var picked := book.to_selection(team, db)
+	assert_null(picked.active_star, "no Star needed")
+	team["cards"] = {}
+	assert_ne(book.trouble(team, db, 1), "", "nobody at all is not")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TeamRoster.SAVE_PATH))
+	TeamRoster.SAVE_PATH = was
+	RecruitBook.remove_all(db)

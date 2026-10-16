@@ -171,6 +171,7 @@ static func give_starting_team(state: GameState) -> void:
 		return
 	if db.tune_bool("starting_team_ready", true):
 		make_ready(picked, state, db)
+		make_adventure_team(state, db)
 
 
 ## ============ READY TO PLAY AT ONCE (Anthony, 16 Oct) ============
@@ -209,3 +210,37 @@ static func make_ready(picked: TeamSelection, state: GameState, db: CardDatabase
 	state.save_to_disk()
 	print("[tutorial] %s Stars %s in the Star Hall, '%s' saved as a Match Team." % [
 		picked.unit_type, star_names, entry["name"]])
+
+
+## THE FIRST ADVENTURE TEAM (Anthony, 16 Oct: one Adventure player to start,
+## and an Adventure Team of any size). Every Adventure player of the starting
+## team, saved as a ready Adventure Team, no Star. Nothing when there is none.
+static func make_adventure_team(state: GameState, db: CardDatabase) -> void:
+	RecruitBook.apply_all(db, state)
+	var chosen: Dictionary = {}
+	var many := 0
+	for name_text in RecruitBook.names(state):
+		if PlayerRoles.role(name_text, state, db) != PlayerRoles.ADVENTURE:
+			continue
+		var tier := BrewerBook.tier(name_text, state)
+		if tier == "":
+			continue
+		if not chosen.has(tier):
+			chosen[tier] = []
+		for card in db.players:
+			if card.player_name == name_text:
+				(chosen[tier] as Array).append(card)
+				many += 1
+				break
+	if many == 0:
+		return
+	# No Star tier: every tier is for his Adventure players.
+	var entry := TeamRoster.blank("Normal", "", PlayerRoles.ADVENTURE)
+	entry["name"] = Loc.text("starting_adventure_team_name", "First Adventurers")
+	TeamRoster.set_cards(entry, chosen)
+	entry["stars"] = []
+	var book := TeamRoster.load_all()
+	book.put(entry)
+	book.save()
+	print("[tutorial] '%s' saved as an Adventure Team (%d player%s)." % [
+		entry["name"], many, "" if many == 1 else "s"])
