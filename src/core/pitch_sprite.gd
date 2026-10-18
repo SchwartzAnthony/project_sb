@@ -40,6 +40,9 @@ extends RefCounted
 const SPRITES_PATH := "res://data/PitchSprites.csv"
 const ANIMS_PATH := "res://data/PitchAnims.csv"
 const SHEET_DIR := "res://assets/players/pitch/"
+## Drawn players (18 Oct 2026): per-sheet frame size, lift, size and smooth
+## scaling. A sheet with no row here is a pixel sheet and uses Tuning.csv.
+const SHEETS_PATH := "res://data/PitchSheets.csv"
 
 ## The order of the 8 direction rows under each animation's First Row.
 const DIRECTIONS: Array[String] = ["east", "south-east", "south", "south-west",
@@ -47,6 +50,7 @@ const DIRECTIONS: Array[String] = ["east", "south-east", "south", "south-west",
 
 static var _wears: Dictionary = {}
 static var _anims: Dictionary = {}
+static var _sheets: Array[Dictionary] = []
 static var _loaded := false
 
 
@@ -61,6 +65,18 @@ static func _load() -> void:
 	_loaded = true
 	_wears = {}
 	_anims = {}
+	_sheets = []
+	for row in MenuSupport.read_csv(SHEETS_PATH):
+		var pattern := MenuSupport.field(row, "Sheet").strip_edges().to_lower()
+		if pattern == "":
+			continue
+		_sheets.append({
+			"pattern": pattern,
+			"cell": MenuSupport.field_float(row, "Cell", 0.0),
+			"lift": MenuSupport.field_float(row, "Lift", -1.0),
+			"size": MenuSupport.field_float(row, "Size", 1.0),
+			"smooth": MenuSupport.field(row, "Smooth", "false").strip_edges().to_lower() == "true",
+		})
 	for row in MenuSupport.read_csv(SPRITES_PATH):
 		var who := MenuSupport.field(row, "Wears").strip_edges()
 		var sheets := MenuSupport.field(row, "Pitch Sheet").strip_edges()
@@ -107,6 +123,39 @@ static func sheet_for(card: PlayerData, pick: int = 0) -> Texture2D:
 			continue
 		return load(paths[absi(pick) % paths.size()]) as Texture2D
 	return null
+
+
+## How a pitch sheet is cut and drawn: {cell, lift, size, smooth}.
+## cell = frame size in the sheet, lift = its pixels the figure is lifted,
+## size = extra scale next to a pixel player, smooth = drawn art (no hard
+## pixels). From data/PitchSheets.csv, else Tuning.csv like a pixel sheet.
+static func look_of(sheet: Texture2D) -> Dictionary:
+	_load()
+	var db := CardDatabase.get_db()
+	var out := {
+		"cell": maxf(1.0, db.tune_float("pitch_sheet_cell", 72.0)) if db != null else 72.0,
+		"lift": db.tune_float("pitch_sprite_lift", 0.0) if db != null else 0.0,
+		"size": 1.0,
+		"smooth": false,
+	}
+	if sheet == null:
+		return out
+	var file_name := sheet.resource_path.get_file().to_lower()
+	for row in _sheets:
+		if file_name.match(String(row["pattern"])) or file_name.get_basename().match(String(row["pattern"])):
+			if float(row["cell"]) > 0.0:
+				out["cell"] = float(row["cell"])
+			if float(row["lift"]) >= 0.0:
+				out["lift"] = float(row["lift"])
+			out["size"] = maxf(0.05, float(row["size"]))
+			out["smooth"] = bool(row["smooth"])
+			break
+	return out
+
+
+## True for a drawn (not pixel) sheet: scale it smoothly.
+static func is_smooth(sheet: Texture2D) -> bool:
+	return sheet != null and bool(look_of(sheet)["smooth"])
 
 
 ## {row, frames, fps, loop} for an animation, or {} if PitchAnims.csv has none.
@@ -169,8 +218,7 @@ static func window_spec(sheet: Texture2D, anim_name: String, direction: int = 1)
 		row = anim("idle")
 		if row.is_empty():
 			return null
-	var db := CardDatabase.get_db()
-	var cell := db.tune_float("pitch_sheet_cell", 72.0) if db != null else 72.0
+	var cell := float(look_of(sheet)["cell"])
 	var spec := AnimSpec.new()
 	spec.name = wanted
 	spec.sheet_columns = maxi(1, int(sheet.get_width() / cell))

@@ -46,3 +46,17 @@ func test_drink_has_a_stand_in_until_it_is_drawn() -> void:
 	var stand_in := String(drink["stand_in"])
 	assert_true(stand_in == "" or PitchSprite.has_anim(stand_in),
 		"the Stand-in '%s' is an animation too" % stand_in)
+
+
+func test_drawn_sheets_have_their_own_cell_and_smooth_scaling() -> void:
+	# Drawn players (18 Oct 2026): data/PitchSheets.csv drawn_* rows.
+	PitchSprite.reload()
+	var drawn := load("res://assets/players/pitch/drawn_thomas_light.webp") as Texture2D
+	assert_not_null(drawn, "the drawn Thomas sheet is built")
+	var look := PitchSprite.look_of(drawn)
+	assert_eq(float(look["cell"]), 112.0, "drawn sheets use 112 pixel frames")
+	assert_true(PitchSprite.is_smooth(drawn), "drawn sheets scale smoothly")
+	var pixel := load("res://assets/players/pitch/club_m1.png") as Texture2D
+	assert_false(PitchSprite.is_smooth(pixel), "pixel sheets keep hard pixels")
+	assert_eq(float(PitchSprite.look_of(pixel)["cell"]), 72.0, "pixel sheets use Tuning pitch_sheet_cell")
+	assert_eq(int(drawn.get_width() / 112.0), 9, "9 frames across, like the widest move")

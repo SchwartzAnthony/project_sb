@@ -179,7 +179,8 @@ func setup(player: PlayerData, walk_speed: float = 260.0,
 	if _art != null:
 		_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		_art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_art.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS \
+				if _iso and PitchSprite.is_smooth(_sheet) else CanvasItem.TEXTURE_FILTER_NEAREST
 
 		# ============ WHY THE PLAYERS WERE TINY ============
 		#
