@@ -7874,9 +7874,9 @@ the same sheets. The women and the other classes are still pixel looks.
 this new art style as well"). Lorelei, Rauhnacht-Feuergeister, Bergmännlein
 and Unkengeister now wear one drawn look each, in their own colours (no skin
 tones): `assets/players/pitch/drawn_class_<class>.webp`.
-- **Drawn so far:** run and kick facing left and right, and standing facing
-  the camera. Tackle, fall and cheer are not drawn yet, so they hold the last
-  picture for now. Their Stars and the women are still pixel.
+- **Drawn so far:** run, kick, tackle, fall and cheer facing left and right,
+  and standing facing the camera: the moves their pixel sheets had, without
+  the drink (Anthony, 18 Oct). Their Stars and the women are still pixel.
 - Frames: `art_source/drawn_classes/<class>/`, 144 x 144 (bigger than the
   Club men's 112, so a kicking foot, a beard or a water splash is never cut
   off). `data/PitchSheets.csv` row `drawn_class_*` keeps them standing and
