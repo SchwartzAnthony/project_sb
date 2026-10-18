@@ -1,5 +1,5 @@
 """Cut drawn menu pictures off their key colour and size them like the old menu layers.
-usage: python3 menu_cut.py land|sign|ribbons_tr|ribbons_bl|board in.png out.png"""
+usage: python3 menu_cut.py land|sign|ribbons_tr|ribbons_bl|board|clouds in.png out.png"""
 import sys
 import numpy as np
 from PIL import Image
@@ -34,6 +34,12 @@ elif kind == 'board':
     # fit into the old pixel board's box on its 384x384 picture
     out = Image.new('RGBA', (384, 384))
     out.alpha_composite(fit_box(key(im, MAG), (66, 27, 318, 352)), (66, 27))
+    out.save(dst)
+elif kind == 'clouds':
+    # a 1536x512 strip: scale to the layer's width, top of a 1376x768 layer
+    k = key(im, MAG).resize((1376, 459), Image.LANCZOS)
+    out = Image.new('RGBA', (1376, 768))
+    out.alpha_composite(k)
     out.save(dst)
 elif kind == 'land':
     key(im, (255, 0, 255)).resize((1376, 768), Image.LANCZOS).save(dst)
