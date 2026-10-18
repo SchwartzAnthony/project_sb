@@ -7870,6 +7870,21 @@ the same sheets. The women and the other classes are still pixel looks.
   per move per direction), cut into frames for free
   (art_tool/thomas_video/move_cut.py).
 
+**Drawn elemental classes (18 Oct 2026)** (Anthony: "I want to have them use
+this new art style as well"). Lorelei, Rauhnacht-Feuergeister, Bergmännlein
+and Unkengeister now wear one drawn look each, in their own colours (no skin
+tones): `assets/players/pitch/drawn_class_<class>.webp`.
+- **Drawn so far:** run and kick facing left and right, and standing facing
+  the camera. Tackle, fall and cheer are not drawn yet, so they hold the last
+  picture for now. Their Stars and the women are still pixel.
+- Frames: `art_source/drawn_classes/<class>/`, 144 x 144 (bigger than the
+  Club men's 112, so a kicking foot, a beard or a water splash is never cut
+  off). `data/PitchSheets.csv` row `drawn_class_*` keeps them standing and
+  sized like the Club men. The same tool builds them.
+- The video clips are made on a flat green (magenta for the toad) backdrop
+  and keyed out, so white beards and water splashes stay
+  (art_tool/thomas_video/key_cut.py, class_prep.py).
+
 **The other classes** (two looks each, same style): Rivals (stubbly man,
 woman with a ponytail; grey and blue), Lorelei (water spirits: a woman of living
 water, a river nymph with scales; teal), Rauhnacht-Feuergeister (flame figure, charcoal with a Perchten

@@ -6,7 +6,8 @@
 #
 #  Reads every look in art_source/drawn_players/<look>/, frames named
 #  <animation>_<direction>_<NN>.png (direction w, sw, s, nw, n, e, se, ne),
-#  each one a 112 x 112 cell with the feet on the same line.
+#  each one a square cell (112 x 112 for the Club men, 144 for the classes)
+#  with the feet on the same line.
 #  Writes assets/players/pitch/drawn_<look>_<tone>.webp for every tone in
 #  data/SkinTones.csv, laid out like data/PitchAnims.csv (First Row, then
 #  the 8 direction rows). The frame size and placement of these sheets are in
@@ -18,6 +19,11 @@
 #  An animation with no frames at all is left out, so the game plays its
 #  Stand-in (PitchAnims.csv).
 #  At the end it prints the Pitch Sheet list for data/PitchSprites.csv.
+#
+#  The elemental classes (Lorelei, Feuergeister, Bergmaennlein, Unkengeister)
+#  live in art_source/drawn_classes/<class>/ the same way, but keep their own
+#  colours: one sheet each, assets/players/pitch/drawn_class_<class>.webp, no skin
+#  tones.
 # =============================================================
 import csv
 import glob
@@ -29,8 +35,8 @@ from PIL import Image, ImageOps
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(HERE, "art_source/drawn_players")
+CLASSES = os.path.join(HERE, "art_source/drawn_classes")
 OUT = os.path.join(HERE, "assets/players/pitch")
-CELL = 112
 ORDER = ["e", "se", "s", "sw", "w", "nw", "n", "ne"]          # PitchAnims.csv row order
 BORROW = {"e": ("w", True), "se": ("sw", True), "ne": ("nw", True),
           "sw": ("w", False), "nw": ("w", False), "s": ("sw", False), "n": ("nw", False)}
@@ -93,31 +99,39 @@ def direction(anim, d):
     return next(iter(anim.values()))
 
 
+def build(folder, look, tones, anims):
+    have = frames_of(folder)
+    rows = [a for a in anims if a["Animation"] in have]
+    last = max(int(a["First Row"]) + 8 for a in rows)
+    cols = max(int(a["Frames"]) for a in rows)
+    cell = next(iter(next(iter(have.values())).values()))[0].width     # 112 for the Club men, 144 for the classes
+    names = []
+    for tone in tones:
+        light, colour = float(tone["Lightness"] or 1), float(tone["Colour"] or 1)
+        sheet = Image.new("RGBA", (cols * cell, last * cell), (0, 0, 0, 0))
+        for a in rows:
+            want = int(a["Frames"])
+            for k, d in enumerate(ORDER):
+                fr = direction(have[a["Animation"]], d)
+                for i in range(want):
+                    f = fr[int(i * len(fr) / want)]
+                    sheet.alpha_composite(recolour(f, light, colour), (i * cell, (int(a["First Row"]) + k) * cell))
+        name = f"drawn_{look}_{tone['Tone']}.webp" if tone["Tone"] else f"drawn_class_{look}.webp"
+        sheet.save(os.path.join(OUT, name), quality=90, method=6)
+        names.append(name)
+        print(name, sheet.size, "moves:", ", ".join(a["Animation"] for a in rows))
+    return names
+
+
 def main():
     anims = read_csv("PitchAnims.csv")
     tones = read_csv("SkinTones.csv")
     names = []
     for folder in sorted(glob.glob(os.path.join(SRC, "*/"))):
-        look = os.path.basename(folder.rstrip("/"))
-        have = frames_of(folder)
-        rows = [a for a in anims if a["Animation"] in have]
-        last = max(int(a["First Row"]) + 8 for a in rows)
-        cols = max(int(a["Frames"]) for a in rows)
-        for tone in tones:
-            light, colour = float(tone["Lightness"] or 1), float(tone["Colour"] or 1)
-            sheet = Image.new("RGBA", (cols * CELL, last * CELL), (0, 0, 0, 0))
-            for a in rows:
-                want = int(a["Frames"])
-                for k, d in enumerate(ORDER):
-                    fr = direction(have[a["Animation"]], d)
-                    for i in range(want):
-                        f = fr[int(i * len(fr) / want)]
-                        sheet.alpha_composite(recolour(f, light, colour), (i * CELL, (int(a["First Row"]) + k) * CELL))
-            name = f"drawn_{look}_{tone['Tone']}.webp"
-            sheet.save(os.path.join(OUT, name), quality=90, method=6)
-            names.append(name)
-            print(name, sheet.size, "moves:", ", ".join(a["Animation"] for a in rows))
+        names += build(folder, os.path.basename(folder.rstrip("/")), tones, anims)
     print("\nPitch Sheet for data/PitchSprites.csv:\n" + "|".join(names))
+    for folder in sorted(glob.glob(os.path.join(CLASSES, "*/"))):
+        build(folder, os.path.basename(folder.rstrip("/")), [{"Tone": "", "Lightness": "1", "Colour": "1"}], anims)
 
 
 if __name__ == "__main__":
