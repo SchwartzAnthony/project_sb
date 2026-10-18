@@ -470,7 +470,7 @@ add with the same columns.**
 | `Attack` / `Defend` | the printed card text. Flavour, not rules |
 | `Artwork` | a file in `assets/`. The whole spritesheet; `Animations.csv` says how to slice it |
 | `Level`, `Stufe`, `Tool`, `Card Number`, `Card Date`, `Set Name`, `Created by` | card-collection metadata |
-| `Attack Ability` / `Defend Ability` | **optional.** An ID from Abilities.csv. See `example_unit_csv_with_ability_columns.csv` |
+| `Attack Ability` / `Defend Ability` | **optional.** An ID from Abilities.csv. See `BasicTeam.csv` |
 
 **`data/ClassInfo.csv`** declares which classes exist:
 
@@ -1509,7 +1509,7 @@ added to the duel.
 | `draft_reveal_words` | what the button says. `SHOW`. `PLAY IT OPEN` and `CALL IT` both fit |
 
 Two worked examples are in Abilities.csv, and both are on cards in
-`example_unit_csv_with_ability_columns.csv` so you can see the button in a
+`BasicTeam.csv` so you can see the button in a
 real match:
 
 ```

@@ -28,7 +28,7 @@ func test_every_image_in_the_file_exists() -> void:
 
 
 func test_speaker_finds_a_face_without_a_portrait_cell() -> void:
-	var row := art.portrait_for("", "Heatwave Brandteufel")
+	var row := art.portrait_for("", "Heatwave")
 	assert_string_contains(String(row.get("image", "")), "heatwave")
 	assert_eq(art.portrait_for("", "Nobody At All"), {})
 

@@ -1,5 +1,5 @@
 ID,Kind,Speaker,Mood,View,Image,Faces,Front,Scale,Notes
-heatwave,portrait,Heatwave Brandteufel,,front,res://assets/story/portraits/heatwave_front.png,,,,"ROUND AN. Looking at the player. Every face here is PixelLab create_image_pro; the originals are in art_source/pixellab/story/portraits/, the layered file is art_source/aseprite/story/cast.aseprite."
+heatwave,portrait,Heatwave,,front,res://assets/story/portraits/heatwave_front.png,,,,"ROUND AN. Looking at the player. Every face here is PixelLab create_image_pro; the originals are in art_source/pixellab/story/portraits/, the layered file is art_source/aseprite/story/cast.aseprite."
 heatwave,portrait,,,side,res://assets/story/portraits/heatwave.png,right,,,ROUND AN. Talking to someone else in the scene (a Dialogue line with View = side).
 brewer,portrait,The Brewer,,front,res://assets/story/portraits/brewer_front.png,,,,ROUND AN. Also his face on the base (assets/portraits/brewer.png).
 brewer,portrait,,,side,res://assets/story/portraits/brewer.png,right,,,ROUND AN.
