@@ -7846,6 +7846,29 @@ their random name) and keeps it, so skin colour, hair colour and style vary. All
 approved player, so they match. Add a look: draw it, build its sheet, add
 its file to the right row of `PitchSprites.csv` with `|`.
 
+**Drawn players (18 Oct 2026)** (Anthony: "replace them both in match and
+adventure mode" with the drawn look, not pixel art). The men of The Club now
+wear drawn sheets: **Thomas**, **fat with an afro**, **skinny with a mullet**
+and **muscular with a quiff**, each in **5 skin tones** (light, pale, tan,
+brown, dark), so 20 looks picked at random by name and kept. Adventure uses
+the same sheets. The women and the other classes are still pixel looks.
+- Their frames are in `art_source/drawn_players/<look>/`, named
+  `<animation>_<direction>_<NN>.png` (w, sw, s, nw, n; 112 x 112, feet on the
+  same line). `tools/make_drawn_pitch_sheet.py` builds
+  `assets/players/pitch/drawn_<look>_<tone>.webp` from them, one per row of
+  `data/SkinTones.csv`, and prints the list for `PitchSprites.csv`.
+  A missing direction borrows one (east = west mirrored, and so on).
+- `data/PitchSheets.csv` says how a drawn sheet is cut: **Cell** (frame
+  size), **Lift**, **Size** (1 = 1.3 times a pixel player, your pick) and
+  **Smooth** (no hard pixels). Sheets with no row there are pixel sheets.
+- **Drawn so far:** the run (Thomas in all 8 directions, the other three
+  facing left and right) and Thomas standing facing left and right. The
+  rest are **free stand-ins** until they are drawn: standing = a held run
+  frame with a breath, kick = the run, tackle = a lean back, fall = a
+  tip-over, cheer = a hop. No drink rows yet, so they play cheer.
+  The pictures come from short video clips (Kling on fal.ai, about $0.33
+  per move per direction), cut into loops.
+
 **The other classes** (two looks each, same style): Rivals (stubbly man,
 woman with a ponytail; grey and blue), Lorelei (water spirits: a woman of living
 water, a river nymph with scales; teal), Rauhnacht-Feuergeister (flame figure, charcoal with a Perchten

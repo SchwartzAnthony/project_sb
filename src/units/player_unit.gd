@@ -315,13 +315,17 @@ func _apply_artwork() -> void:
 	pitch_sheet = pitch != null
 	if pitch_sheet:
 		var db := CardDatabase.get_db()
-		var cell := 72.0
-		var scale_by := 1.0
-		var lift := 0.0
-		if db != null:
-			cell = maxf(1.0, db.tune_float("pitch_sheet_cell", cell))
-			scale_by = db.tune_float("pitch_sprite_scale", scale_by)
-			lift = db.tune_float("pitch_sprite_lift", lift)
+		# Drawn players (18 Oct): each sheet's own frame size, lift and size
+		# (PitchSheets.csv). A drawn sheet is scaled so its frame covers the
+		# same ground as a 72-pixel frame, times its Size.
+		var sheet_look := PitchSprite.look_of(pitch)
+		var cell: float = sheet_look["cell"]
+		var lift: float = sheet_look["lift"]
+		var scale_by := db.tune_float("pitch_sprite_scale", 1.0) if db != null else 1.0
+		var pixel_cell := maxf(1.0, db.tune_float("pitch_sheet_cell", 72.0)) if db != null else 72.0
+		scale_by *= pixel_cell / cell * float(sheet_look["size"])
+		artwork.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS \
+				if bool(sheet_look["smooth"]) else CanvasItem.TEXTURE_FILTER_PARENT_NODE
 		artwork.texture = pitch
 		artwork.hframes = maxi(1, int(pitch.get_width() / cell))
 		artwork.vframes = maxi(1, int(pitch.get_height() / cell))

@@ -142,8 +142,12 @@ func _hover(fight: AdventureEncounter, which: int) -> void:
 func _pick_a_real_team() -> void:
 	var db := CardDatabase.get_db()
 	var wanted := ""
+	# ADVENTURE_SHOT_CLASS=Normal shows The Club (the drawn players) instead.
+	var want_class := OS.get_environment("ADVENTURE_SHOT_CLASS").strip_edges().to_lower()
+	if want_class == "":
+		want_class = "lorelei"
 	for card in db.players:
-		if card.unit_type.strip_edges().to_lower() == "lorelei":
+		if card.unit_type.strip_edges().to_lower() == want_class:
 			wanted = card.unit_type
 			break
 	if wanted == "":
