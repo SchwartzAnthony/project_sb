@@ -172,9 +172,38 @@ func _build_title() -> Label:
 	if not row.is_empty():
 		title.add_theme_color_override("font_color", gold)
 		title.add_theme_constant_override("outline_size", 14)
+		# 18 Oct 2026: Motion Settings can colour the letters and their
+		# outline, e.g. colour=#f5b83d; outline=#2a1608; outline_size=14
+		var look: Dictionary = row["settings"]
+		if Color.html_is_valid(String(look.get("colour", ""))):
+			title.add_theme_color_override("font_color", Color.html(String(look["colour"])))
+		if Color.html_is_valid(String(look.get("outline", ""))):
+			_add_title_outline(title, Color.html(String(look["outline"])),
+					MenuMotion.number(look, "outline_size", 6.0))
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(title)
 	return title
+
+
+## The title font is a bitmap font, which Godot cannot outline, so the
+## outline is copies of the word in the outline colour, nudged out in a ring
+## behind it. thickness = how far out (pixels).
+func _add_title_outline(title: Label, colour: Color, thickness: float) -> void:
+	title.add_theme_constant_override("outline_size", 0)
+	for i in 16:
+		var angle := TAU * float(i) / 16.0
+		var copy := Label.new()
+		copy.text = title.text
+		copy.horizontal_alignment = title.horizontal_alignment
+		copy.add_theme_font_size_override("font_size", title_font_size)
+		copy.add_theme_color_override("font_color", colour)
+		copy.add_theme_constant_override("outline_size", 0)
+		copy.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		copy.set_anchors_preset(Control.PRESET_FULL_RECT)
+		copy.position = Vector2(cos(angle), sin(angle)) * thickness
+		copy.show_behind_parent = true
+		copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		title.add_child(copy)
 
 
 ## A quiet line at the bottom telling you what the CSVs actually loaded.

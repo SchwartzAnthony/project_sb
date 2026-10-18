@@ -7126,6 +7126,10 @@ sky, the bird and the button plank.
 - The pale-blue ribbon was taken out (`ribbon_fix.py`) and the paper tabs on
   the board painted out. The four buttons in `MenuConfig.csv` are now 250 x 64
   at x 971, y 720/792/864/936, so they sit inside the board's light panel.
+- The bottom-left ribbons row was taken out (Anthony). The title is 96 high so
+  it stays inside the sign's frame. The title row's Motion Settings can colour
+  it: `colour=#f5b83d; outline=#000000; outline_size=5` (the font is a bitmap
+  font, so the outline is copies of the word drawn round it).
 
 One row per thing on it. No file, no rows: it looks as it did before.
 
