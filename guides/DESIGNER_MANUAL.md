@@ -7112,6 +7112,18 @@ helper adds a node for you, say so in a comment above it, in capitals.
 
 ### `data/MainMenu.csv` — what the title screen looks like
 
+**Drawn title screen (18 Oct 2026)** (Anthony: "redo the main Menu so that it
+isn't pixel art"). The village, the two ribbon bunches, the notice board and
+the hanging sign are now drawn in the comic style, in the same places and
+sizes as the pixel pictures, so every Motion still works. Still pixel: the
+sky, the clouds, the bird and the button plank.
+- Made with Sunburst from the pixel pictures (art_tool/rounds/r73, r74), on a
+  flat magenta or green backdrop, then cut out and fitted to the old places
+  with `art_source/drawn_menu/menu_cut.py` (land, sign, ribbons_tr,
+  ribbons_bl, board).
+- The title row's Y went from 187 to 165, so STURMBALL sits in the middle of
+  the drawn sign.
+
 One row per thing on it. No file, no rows: it looks as it did before.
 
 | column | |
