@@ -7861,13 +7861,15 @@ the same sheets. The women and the other classes are still pixel looks.
 - `data/PitchSheets.csv` says how a drawn sheet is cut: **Cell** (frame
   size), **Lift**, **Size** (1 = 1.3 times a pixel player, your pick) and
   **Smooth** (no hard pixels). Sheets with no row there are pixel sheets.
-- **Drawn so far:** the run (Thomas in all 8 directions, the other three
-  facing left and right) and Thomas standing facing left and right. The
-  rest are **free stand-ins** until they are drawn: standing = a held run
-  frame with a breath, kick = the run, tackle = a lean back, fall = a
-  tip-over, cheer = a hop. No drink rows yet, so they play cheer.
-  The pictures come from short video clips (Kling on fal.ai, about $0.33
-  per move per direction), cut into loops.
+- **Drawn so far (18 Oct, your pick "Every look, sides"):** every move facing
+  left and right for all 4 looks: stand, run, kick, tackle, fall, cheer and
+  drink. Thomas has no drink (his rules: young, no beer pictures), so he
+  plays cheer instead. The 3 new looks also stand facing the camera.
+  Running in the other directions is drawn for Thomas only; every other
+  move borrows the side view when a player faces up or down the pitch.
+  The pictures come from short video clips (Kling on fal.ai, about $0.28
+  per move per direction), cut into frames for free
+  (art_tool/thomas_video/move_cut.py).
 
 **The other classes** (two looks each, same style): Rivals (stubbly man,
 woman with a ponytail; grey and blue), Lorelei (water spirits: a woman of living
