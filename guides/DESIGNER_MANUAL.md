@@ -7123,6 +7123,9 @@ sky, the clouds, the bird and the button plank.
   ribbons_bl, board).
 - The title row's Y went from 187 to 165, so STURMBALL sits in the middle of
   the drawn sign.
+- The pale-blue ribbon was taken out (`ribbon_fix.py`) and the paper tabs on
+  the board painted out. The four buttons in `MenuConfig.csv` are now 250 x 64
+  at x 971, y 720/792/864/936, so they sit inside the board's light panel.
 
 One row per thing on it. No file, no rows: it looks as it did before.
 
