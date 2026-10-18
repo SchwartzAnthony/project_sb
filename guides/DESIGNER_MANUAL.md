@@ -7861,10 +7861,9 @@ the same sheets. The women and the other classes are still pixel looks.
 - `data/PitchSheets.csv` says how a drawn sheet is cut: **Cell** (frame
   size), **Lift**, **Size** (1 = 1.3 times a pixel player, your pick) and
   **Smooth** (no hard pixels). Sheets with no row there are pixel sheets.
-- **Drawn so far (18 Oct, your pick "Every look, sides"):** every move facing
-  left and right for all 4 looks: stand, run, kick, tackle, fall, cheer and
-  drink. Thomas has no drink (his rules: young, no beer pictures), so he
-  plays cheer instead. The 3 new looks also stand facing the camera.
+- **Drawn so far (18 Oct):** stand, run, kick, tackle, fall and cheer facing
+  left and right for all 4 looks (the 3 new looks also stand facing the
+  camera). No drink (Anthony: drinking taken out), so a drink plays cheer.
   Running in the other directions is drawn for Thomas only; every other
   move borrows the side view when a player faces up or down the pitch.
   The pictures come from short video clips (Kling on fal.ai, about $0.28
