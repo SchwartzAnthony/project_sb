@@ -1,0 +1,6 @@
+Tone,Lightness,Colour,Notes
+light,1.0,1.0,"DRAWN PLAYERS (Anthony, 18 Oct: random skin tones too). tools/make_drawn_pitch_sheet.py makes one pitch sheet per drawn look and per tone here: drawn_<look>_<tone>.png. Lightness = how light the skin is (1 = as drawn). Colour = how strong its colour is (1 = as drawn). Add a row and run the tool to get a new tone. Free: no new pictures are made."
+pale,1.06,0.7,
+tan,0.86,1.05,
+brown,0.66,1.1,
+dark,0.46,1.15,

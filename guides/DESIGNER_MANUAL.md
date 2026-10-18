@@ -7846,6 +7846,45 @@ their random name) and keeps it, so skin colour, hair colour and style vary. All
 approved player, so they match. Add a look: draw it, build its sheet, add
 its file to the right row of `PitchSprites.csv` with `|`.
 
+**Drawn players (18 Oct 2026)** (Anthony: "replace them both in match and
+adventure mode" with the drawn look, not pixel art). The men of The Club now
+wear drawn sheets: **Thomas**, **fat with an afro**, **skinny with a mullet**
+and **muscular with a quiff**, each in **5 skin tones** (light, pale, tan,
+brown, dark), so 20 looks picked at random by name and kept. Adventure uses
+the same sheets. The women and the other classes are still pixel looks.
+- Their frames are in `art_source/drawn_players/<look>/`, named
+  `<animation>_<direction>_<NN>.png` (w, sw, s, nw, n; 112 x 112, feet on the
+  same line). `tools/make_drawn_pitch_sheet.py` builds
+  `assets/players/pitch/drawn_<look>_<tone>.webp` from them, one per row of
+  `data/SkinTones.csv`, and prints the list for `PitchSprites.csv`.
+  A missing direction borrows one (east = west mirrored, and so on).
+- `data/PitchSheets.csv` says how a drawn sheet is cut: **Cell** (frame
+  size), **Lift**, **Size** (1 = 1.3 times a pixel player, your pick) and
+  **Smooth** (no hard pixels). Sheets with no row there are pixel sheets.
+- **Drawn so far (18 Oct):** stand, run, kick, tackle, fall and cheer facing
+  left and right for all 4 looks (the 3 new looks also stand facing the
+  camera). No drink (Anthony: drinking taken out), so a drink plays cheer.
+  Running in the other directions is drawn for Thomas only; every other
+  move borrows the side view when a player faces up or down the pitch.
+  The pictures come from short video clips (Kling on fal.ai, about $0.28
+  per move per direction), cut into frames for free
+  (art_tool/thomas_video/move_cut.py).
+
+**Drawn elemental classes (18 Oct 2026)** (Anthony: "I want to have them use
+this new art style as well"). Lorelei, Rauhnacht-Feuergeister, Bergmännlein
+and Unkengeister now wear one drawn look each, in their own colours (no skin
+tones): `assets/players/pitch/drawn_class_<class>.webp`.
+- **Drawn so far:** run, kick, tackle, fall and cheer facing left and right,
+  and standing facing the camera: the moves their pixel sheets had, without
+  the drink (Anthony, 18 Oct). Their Stars and the women are still pixel.
+- Frames: `art_source/drawn_classes/<class>/`, 144 x 144 (bigger than the
+  Club men's 112, so a kicking foot, a beard or a water splash is never cut
+  off). `data/PitchSheets.csv` row `drawn_class_*` keeps them standing and
+  sized like the Club men. The same tool builds them.
+- The video clips are made on a flat green (magenta for the toad) backdrop
+  and keyed out, so white beards and water splashes stay
+  (art_tool/thomas_video/key_cut.py, class_prep.py).
+
 **The other classes** (two looks each, same style): Rivals (stubbly man,
 woman with a ponytail; grey and blue), Lorelei (water spirits: a woman of living
 water, a river nymph with scales; teal), Rauhnacht-Feuergeister (flame figure, charcoal with a Perchten

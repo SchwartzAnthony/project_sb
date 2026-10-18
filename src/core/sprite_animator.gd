@@ -37,6 +37,7 @@ var _index: int = 0
 var _clock: float = 0.0
 var _playing: bool = false
 var _finished_sent: bool = false
+var _smooth: bool = false
 
 
 func _init() -> void:
@@ -59,6 +60,10 @@ func play(new_sheet: Texture2D, new_spec: AnimSpec) -> void:
 		texture = null
 		return
 
+	# Drawn players (18 Oct): smooth scaling, not hard pixels.
+	_smooth = PitchSprite.is_smooth(sheet)
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS if _smooth \
+			else CanvasItem.TEXTURE_FILTER_NEAREST
 	_crop = _crop_for(sheet, spec)
 	_atlas = AtlasTexture.new()
 	_atlas.atlas = sheet
@@ -115,7 +120,13 @@ func _show_frame(index: int) -> void:
 func fit_into(box: Vector2, max_zoom: int = 8) -> void:
 	if _crop.size.x <= 0 or _crop.size.y <= 0:
 		return
-	var zoom := int(floor(minf(box.x / float(_crop.size.x), box.y / float(_crop.size.y))))
+	var fit := minf(box.x / float(_crop.size.x), box.y / float(_crop.size.y))
+	if _smooth:
+		# A drawn figure fills the box at any zoom, smaller or bigger.
+		custom_minimum_size = Vector2(_crop.size) * minf(fit, float(max_zoom))
+		size = custom_minimum_size
+		return
+	var zoom := int(floor(fit))
 	zoom = clampi(zoom, 1, max_zoom)
 	custom_minimum_size = Vector2(_crop.size) * zoom
 	size = custom_minimum_size

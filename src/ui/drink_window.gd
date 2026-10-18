@@ -100,7 +100,7 @@ func _ready() -> void:
 	# The PixelLab drink, when his sheet has it.
 	_pitch = PitchSprite.window_sheet(card) if card != null else null
 	_drink = PitchSprite.anim("drink")
-	_cell = db.tune_float("pitch_sheet_cell", 72.0) if db != null else 72.0
+	_cell = float(PitchSprite.look_of(_pitch)["cell"])
 	if _pitch != null and not _drink.is_empty() \
 			and _pitch.get_height() >= (int(_drink["row"]) + 8) * _cell:
 		_hero.size = Vector2(240, 240)

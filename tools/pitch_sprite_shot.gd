@@ -11,7 +11,7 @@ extends SceneTree
 #      godot --path . --resolution 1920x1080 --script res://tools/pitch_sprite_shot.gd
 #
 #  Frames land in user://pitch_shot/. A tool, not part of the game.
-#  PITCH_SHOT_SECONDS, PITCH_SHOT_WAIT and PITCH_SHOT_SHEET change what it does.
+#  PITCH_SHOT_SECONDS, PITCH_SHOT_WAIT, PITCH_SHOT_SHEET and PITCH_SHOT_CLASS change what it does.
 # =============================================================
 
 var _scene: Node
@@ -79,7 +79,8 @@ func _initialize() -> void:
 
 func _pick_the_club() -> void:
 	var db := CardDatabase.get_db()
-	var wanted := "Normal"
+	# PITCH_SHOT_CLASS=Lorelei plays that class instead of The Club.
+	var wanted := OS.get_environment("PITCH_SHOT_CLASS") if OS.get_environment("PITCH_SHOT_CLASS") != "" else "Normal"
 	var roster := db.roster_for_class(wanted)
 	var picked := TeamSelection.new()
 	picked.unit_type = wanted
