@@ -90,10 +90,11 @@ const MUG_SHEET := "res://data/SaveMugs.csv"
 var _table: Control
 var _art: Dictionary = {}
 var _spots: Array[Vector2] = []
-var _mat_up := 62.0
-var _mat_size := 17
-var _menu_x := 250.0
-var _menu_size := 24
+var _name_gap := 18.0
+var _name_size := 22
+var _menu_gap := 14.0
+var _menu_width := 300.0
+var _menu_size := 22
 var _open_slot := 0
 
 
@@ -106,11 +107,12 @@ func _read_mugs() -> void:
 			"slot":
 				_spots.append(Vector2(MenuSupport.field_float(row, "X", 960.0),
 					MenuSupport.field_float(row, "Y", 900.0)))
-			"mat_text":
-				_mat_up = MenuSupport.field_float(row, "Y", _mat_up)
-				_mat_size = int(MenuSupport.field_float(row, "Size", _mat_size))
+			"name_text":
+				_name_gap = MenuSupport.field_float(row, "Y", _name_gap)
+				_name_size = int(MenuSupport.field_float(row, "Size", _name_size))
 			"menu":
-				_menu_x = MenuSupport.field_float(row, "X", _menu_x)
+				_menu_width = MenuSupport.field_float(row, "X", _menu_width)
+				_menu_gap = MenuSupport.field_float(row, "Y", _menu_gap)
 				_menu_size = int(MenuSupport.field_float(row, "Size", _menu_size))
 	if _spots.is_empty():
 		for i in range(SaveSlots.count()):
@@ -148,20 +150,26 @@ func _mug(about: Dictionary) -> Control:
 	mug.mouse_exited.connect(func() -> void: mug.modulate = Color(1, 1, 1))
 	mug.pressed.connect(_toggle.bind(slot))
 
-	# The save's name and matches, written on its beer mat.
-	var mat := Label.new()
-	mat.text = "Slot %d  ·  %s" % [slot, String(about["line"]).get_slice("   ·   ", 0) if used else "Empty"]
-	mat.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mat.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	mat.add_theme_font_size_override("font_size", _mat_size)
-	mat.add_theme_color_override("font_color", Color("3a2412"))
-	# Painted on the mat: no plate of its own behind the words.
-	mat.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-	mat.set_meta(TextScale.FITTED_META, true)
-	mat.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	mat.size = Vector2(size.x, _mat_size * 1.6)
-	mat.position = Vector2(0.0, size.y - _mat_up - mat.size.y * 0.5)
-	mug.add_child(mat)
+	# Closed: the save's name and matches on the table under the mug, on a
+	# see-through dark backing. Open: its choices take that place.
+	if not is_open:
+		var name_line := Label.new()
+		name_line.text = "Slot %d  ·  %s" % [slot, String(about["line"]).get_slice("   ·   ", 0) if used else "Empty"]
+		name_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_line.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_line.add_theme_font_size_override("font_size", _name_size)
+		name_line.add_theme_color_override("font_color", Color("f6ead0"))
+		var backing := StyleBoxFlat.new()
+		backing.bg_color = Color(0, 0, 0, 0.55)
+		backing.set_corner_radius_all(8)
+		backing.content_margin_left = 14
+		backing.content_margin_right = 14
+		name_line.add_theme_stylebox_override("normal", backing)
+		name_line.set_meta(TextScale.FITTED_META, true)
+		name_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		name_line.size = Vector2(_menu_width, _name_size * 2.0)
+		name_line.position = Vector2((size.x - _menu_width) * 0.5, size.y + _name_gap)
+		mug.add_child(name_line)
 
 	if is_open:
 		mug.add_child(_choices(slot, used, mug))
@@ -175,12 +183,12 @@ func _toggle(slot: int) -> void:
 	_fill()
 
 
-## Play, Profile Settings and Delete beside the open mug. An empty slot only
-## has Play, which starts a new game there.
+## Play, Profile Settings and Delete under the open mug (Anthony: "have the
+## options be on the bottom"). An empty slot only has Play, which starts a
+## new game there.
 func _choices(slot: int, used: bool, mug: Control) -> Control:
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 10)
-	var width := 280.0
+	column.add_theme_constant_override("separation", 6)
 	var words: Array = [["play", "Play"]]
 	if used:
 		words.append(["profile_settings", "Profile Settings"])
@@ -188,7 +196,7 @@ func _choices(slot: int, used: bool, mug: Control) -> Control:
 	for pair in words:
 		var button := Button.new()
 		button.text = Loc.text(String(pair[0]), String(pair[1]))
-		button.custom_minimum_size = Vector2(width, 64)
+		button.custom_minimum_size = Vector2(_menu_width, _menu_size * 2.5)
 		button.add_theme_font_size_override("font_size", _menu_size)
 		column.add_child(button)
 		match String(pair[0]):
@@ -198,11 +206,7 @@ func _choices(slot: int, used: bool, mug: Control) -> Control:
 				button.pressed.connect(_profile_settings.bind(slot))
 			"delete":
 				button.pressed.connect(_confirm_delete.bind(slot, null))
-	var tall := words.size() * 74.0
-	var right := mug.position.x + mug.size.x * 0.5 + _menu_x + width * 0.5 <= 1900.0
-	var middle := mug.size.x * 0.5
-	column.position = Vector2(middle + _menu_x - width * 0.5 if right else middle - _menu_x - width * 0.5,
-		mug.size.y * 0.4 - tall * 0.5)
+	column.position = Vector2((mug.size.x - _menu_width) * 0.5, mug.size.y + _menu_gap)
 	return column
 
 

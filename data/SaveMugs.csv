@@ -5,5 +5,5 @@ closed_empty,res://assets/ui/save/mugs/mug_closed_empty.png,,,,An empty slot: an
 slot,,412,900,,"Slot 1: X = the middle of its beer mat, Y = the bottom of the mat, on 1920 x 1080. One row per slot, in order; more slots than rows are not shown."
 slot,,960,900,,Slot 2.
 slot,,1475,900,,Slot 3. The football (ScreenLook.csv) leans on this one.
-mat_text,,,33,15,"The save's slot and matches, written on the front of its beer mat: Y = how far up from the bottom of the mat, Size = the font size."
-menu,,250,,24,"The choices beside an open mug (Play, Profile Settings, Delete): X = how far from the mug's middle, Size = the font size. They go on the right, or on the left if there is no room."
+name_text,,,18,22,"Under a closed mug: its slot and matches on a see-through dark backing. Y = the gap below the mug, Size = the font size."
+menu,,300,14,22,"Under an open mug (Anthony: options on the bottom): Play, Profile Settings, Delete. X = the button width, Y = the gap below the mug, Size = the font size."
