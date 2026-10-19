@@ -12,5 +12,5 @@ slot,background,res://assets/ui/save/drawn/01_room.png,,,,,,,,,,,"ROUND AN: the 
 slot,picture,res://assets/ui/save/drawn/02_cabinet.png,550,503,,,1,,,,,,"Layer 2: the green trophy cabinet against the back wall, feet on the floor line."
 slot,picture,res://assets/ui/save/drawn/03_scarves.png,972,291,,,1,,,,,,"Layer 3: a rail of three club scarves on the back wall (no pennants: Anthony found the old row too crowded)."
 slot,picture,res://assets/ui/save/drawn/03_scarves.png,1410,291,,,1,yes,,,,,Layer 3: the same scarf rail mirrored.
-slot,shade,,960,560,1080,620,,,#140c06a8,,,,A see-through dark box behind the save tiles.
-slot,button,res://assets/menu/button_plank.png,,,,,,,#f6ead0,menu_hover,menu_click,menu_back,Every plain button on the save screen becomes the oak plank with the menu sounds.
+slot,shade,,967,572,1045,335,,,#140c06a8,,,,"A see-through dark box behind the save tiles (19 Oct: made smaller to just hug the tiles and Settings, Anthony)."
+slot,button,res://assets/menu/button_plank_drawn.png,,,,,1,,#f6ead0,menu_hover,menu_click,menu_back,Every plain button on the save screen becomes the oak plank with the menu sounds.

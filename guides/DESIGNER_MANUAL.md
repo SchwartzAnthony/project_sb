@@ -7139,7 +7139,7 @@ One row per thing on it. No file, no rows: it looks as it did before.
 
 | column | |
 |---|---|
-| `Part` | `background` (the wallpaper — the first row wins), `layer` (a whole-screen picture drawn like the wallpaper, stacked in row order — round AN), `title` (the big word), `picture` (anything standing on it — any number of rows) |
+| `Part` | `background` (the wallpaper — the first row wins), `layer` (a whole-screen picture drawn like the wallpaper, stacked in row order — round AN), `title` (the big word), `picture` (anything standing on it — any number of rows), `shade` (a see-through dark box: `Text` = its colour like `#140c06a8`, `X`/`Y` = centre, `Width`/`Height` = size; 19 Oct, the one behind the buttons inside the notice board) |
 | `Image` | the file. A picture may be a **strip**: `Frames` pictures side by side, all the same width |
 | `Text` | the title's word (`STURMBALL`) |
 | `X`, `Y` | the **centre**, on a 1920 × 1080 screen |
@@ -7677,6 +7677,17 @@ front), all **behind** the screen's own buttons and text:
 Plain buttons become planks. Tick boxes, sliders and drop-downs keep their
 own look so they still read as what they are. The plank keeps its corners
 at any button size; only its middle stretches.
+
+**Drawn save screen (19 Oct 2026, Anthony: "redraw, but have it look better,
+so not as cluttered").** The `slot` rows now use `assets/ui/save/drawn/`: an
+empty panelled room with one clean perspective (r78), the green trophy
+cabinet standing on the floor by the back wall (r79), and one rail of three
+scarves shown twice (r81, no pennants). The animal trophies are left out for
+now. The dark box behind the save boxes is smaller (1045 x 335), and every
+button, the save boxes included, is the drawn plank from the title screen
+(`button_plank_drawn.png`, `Scale` 1 = drawn smooth at its own size; blank or
+2 = a pixel plank drawn at 2x). The old pixel layers stay in
+`assets/ui/save/pixellab/`.
 
 The paintings are in `art_source/openai/settings_layers/` and
 `art_source/openai/save_layers/`; their `Pixelate.csv` rows are

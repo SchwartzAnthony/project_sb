@@ -179,12 +179,15 @@ static func _dress(button: Button, row: Dictionary) -> void:
 
 	var plank := picture(MenuSupport.field(row, "Image").strip_edges())
 	if plank != null:
-		# The plank is pixel art: draw it at 2x and keep its corners, stretch
-		# only its middle, so it fits a button of any size.
+		# Keep the plank's corners, stretch only its middle, so it fits a
+		# button of any size. Scale = how big its pixels are drawn (blank = 2,
+		# for pixel planks); a drawn plank uses 1 and is drawn smooth.
+		var plank_scale := MenuSupport.field_float(row, "Scale", 2.0)
 		var big := plank.get_image()
 		if big != null:
 			big = big.duplicate()
-			big.resize(big.get_width() * 2, big.get_height() * 2, Image.INTERPOLATE_NEAREST)
+			if plank_scale != 1.0:
+				big.resize(int(big.get_width() * plank_scale), int(big.get_height() * plank_scale), Image.INTERPOLATE_NEAREST)
 			var tex := ImageTexture.create_from_image(big)
 			var edge := float(big.get_height()) * 0.32
 			var looks := {"normal": Color(1, 1, 1), "hover": Color(1.2, 1.14, 1.02),
@@ -199,7 +202,7 @@ static func _dress(button: Button, row: Dictionary) -> void:
 				style.texture_margin_bottom = edge
 				style.modulate_color = looks[state]
 				button.add_theme_stylebox_override(state, style)
-			button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if plank_scale != 1.0 else CanvasItem.TEXTURE_FILTER_LINEAR
 		# The icon half of a two-part button gets no box of its own on wood.
 		for part in button.find_children("*", "PanelContainer", true, false):
 			(part as PanelContainer).add_theme_stylebox_override("panel", StyleBoxEmpty.new())
