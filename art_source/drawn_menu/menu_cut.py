@@ -50,6 +50,12 @@ elif kind == 'board':
         for x in range(x0, x1):
             if v[x - x0] < 450 and good:
                 a[y, x] = a[y, min(good, key=lambda g: abs(g - x))]
+    # take off the beer mug hanging on the right post (Anthony, 19 Oct):
+    # clear it right of the post and put the left post's wood, mirrored,
+    # where the mug covered the right post
+    a[730:905, 868:1000, 3] = 0
+    left = a[760:942, 1188 - 868:1188 - 800][:, ::-1]
+    a[760:942, 800:868] = left
     Image.fromarray(a).save(dst)
 elif kind == 'plank':
     # the button plank, made at the buttons' own size (MenuConfig 250 x 64),
