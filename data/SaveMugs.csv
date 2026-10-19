@@ -1,9 +1,9 @@
 Part,Image,X,Y,Size,Notes
-closed_full,res://assets/ui/save/mugs/mug_closed_full.png,,,,"19 Oct 2026 (Anthony): THE SAVES ARE BEER MUGS on the table (Choose a Save). A save in use, lid closed. Pictures are stored at the size they show (r95, drawn on fal at the beer tent's table height)."
+closed_full,res://assets/ui/save/mugs/mug_closed_full.png,,,,"19 Oct 2026 (Anthony): THE SAVES ARE BEER MUGS on the table (Choose a Save). A save in use, lid closed. Pictures are stored at the size they show (r96, comic glass drawn on fal at the beer tent's table height; all three stand in one line)."
 open_full,res://assets/ui/save/mugs/mug_open_full.png,,,,The save you clicked: its lid flips open and its choices appear beside it.
 closed_empty,res://assets/ui/save/mugs/mug_closed_empty.png,,,,An empty slot: an empty glass. Clicking it shows Play (a new game).
-slot,,688,830,,"Slot 1: X = the middle of the mug, Y = the bottom of the mug, on 1920 x 1080. One row per slot, in order; more slots than rows are not shown."
-slot,,1078,830,,Slot 2.
-slot,,1475,830,,Slot 3. The football (ScreenLook.csv) leans on this one.
-name_text,,,16,22,"Under a closed mug: its slot and matches on a see-through dark backing. Y = the gap below the mug, Size = the font size."
-menu,,300,12,20,"Under an open mug (Anthony: options on the bottom): Play, Profile Settings, Delete. X = the button width, Y = the gap below the mug, Size = the font size."
+slot,,570,845,,"Slot 1: X = the middle of the mug, Y = the bottom of the mug, on 1920 x 1080. One row per slot, in order; more slots than rows are not shown."
+slot,,960,845,,Slot 2.
+slot,,1350,845,,Slot 3.
+name_text,,,14,22,"Under a closed mug: its slot and matches on a see-through dark backing. Y = the gap below the mug, Size = the font size."
+menu,,280,8,18,"Under an open mug (Anthony: options on the bottom): Play, Profile Settings, Delete. X = the button width, Y = the gap below the mug, Size = the font size."
