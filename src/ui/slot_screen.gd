@@ -92,9 +92,10 @@ var _art: Dictionary = {}
 var _spots: Array[Vector2] = []
 var _name_gap := 18.0
 var _name_size := 22
+var _name_width := 300.0
 var _menu_gap := 14.0
-var _menu_width := 300.0
-var _menu_size := 22
+var _menu_space := 8.0
+var _menu_size := 20
 var _open_slot := 0
 
 
@@ -111,7 +112,7 @@ func _read_mugs() -> void:
 				_name_gap = MenuSupport.field_float(row, "Y", _name_gap)
 				_name_size = int(MenuSupport.field_float(row, "Size", _name_size))
 			"menu":
-				_menu_width = MenuSupport.field_float(row, "X", _menu_width)
+				_menu_space = MenuSupport.field_float(row, "X", _menu_space)
 				_menu_gap = MenuSupport.field_float(row, "Y", _menu_gap)
 				_menu_size = int(MenuSupport.field_float(row, "Size", _menu_size))
 	if _spots.is_empty():
@@ -167,8 +168,8 @@ func _mug(about: Dictionary) -> Control:
 		name_line.add_theme_stylebox_override("normal", backing)
 		name_line.set_meta(TextScale.FITTED_META, true)
 		name_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		name_line.size = Vector2(_menu_width, _name_size * 2.0)
-		name_line.position = Vector2((size.x - _menu_width) * 0.5, size.y + _name_gap)
+		name_line.size = Vector2(_name_width, _name_size * 2.0)
+		name_line.position = Vector2((size.x - _name_width) * 0.5, size.y + _name_gap)
 		mug.add_child(name_line)
 
 	if is_open:
@@ -183,12 +184,12 @@ func _toggle(slot: int) -> void:
 	_fill()
 
 
-## Play, Profile Settings and Delete under the open mug (Anthony: "have the
-## options be on the bottom"). An empty slot only has Play, which starts a
+## Play, Profile Settings and Delete in one row under the open mug (Anthony:
+## "have the options be on the bottom"). An empty slot only has Play, which starts a
 ## new game there.
 func _choices(slot: int, used: bool, mug: Control) -> Control:
-	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 6)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", int(_menu_space))
 	var words: Array = [["play", "Play"]]
 	if used:
 		words.append(["profile_settings", "Profile Settings"])
@@ -196,9 +197,9 @@ func _choices(slot: int, used: bool, mug: Control) -> Control:
 	for pair in words:
 		var button := Button.new()
 		button.text = Loc.text(String(pair[0]), String(pair[1]))
-		button.custom_minimum_size = Vector2(_menu_width, _menu_size * 2.5)
+		button.custom_minimum_size = Vector2(0, _menu_size * 2.5)
 		button.add_theme_font_size_override("font_size", _menu_size)
-		column.add_child(button)
+		row.add_child(button)
 		match String(pair[0]):
 			"play":
 				button.pressed.connect(_play.bind(slot))
@@ -206,8 +207,11 @@ func _choices(slot: int, used: bool, mug: Control) -> Control:
 				button.pressed.connect(_profile_settings.bind(slot))
 			"delete":
 				button.pressed.connect(_confirm_delete.bind(slot, null))
-	column.position = Vector2((mug.size.x - _menu_width) * 0.5, mug.size.y + _menu_gap)
-	return column
+	# One row, centred under the mug once it knows its own width.
+	row.resized.connect(func() -> void:
+		row.position = Vector2((mug.size.x - row.size.x) * 0.5, mug.size.y + _menu_gap))
+	row.position = Vector2(0.0, mug.size.y + _menu_gap)
+	return row
 
 
 ## This save's own settings: the Settings screen, reading and writing
