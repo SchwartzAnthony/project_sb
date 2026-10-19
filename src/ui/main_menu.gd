@@ -562,6 +562,8 @@ func _on_action(action: String) -> void:
 			ScenePaths.go_to(get_tree(), ScenePaths.for_name(argument))
 		"open_settings", "settings":
 			state.save_to_disk()
+			# The title screen's Settings are the General settings (19 Oct).
+			GameSettings.editing_slot = 0
 			ScenePaths.go_to(get_tree(), ScenePaths.SETTINGS)
 		"quit_game":
 			get_tree().quit()

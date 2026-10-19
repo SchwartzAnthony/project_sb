@@ -8,9 +8,7 @@ settings,picture,res://assets/ui/settings/pixellab/03_barrel_dwarf_right.png,169
 settings,shade,,960,545,1440,1030,,,#140c06b8,,,,"A see-through dark box behind the settings, so every word stays readable on the painting. The last two hex digits are how solid it is (00 = invisible, ff = solid)."
 settings,margin,,,,250,24,,,,,,,"The settings sit 250 pixels in from the left and right edges, so the barrels show either side."
 settings,button,res://assets/menu/button_plank.png,,,,,,,#f6ead0,menu_hover,menu_click,menu_back,"EVERY plain button on this screen becomes the title screen's oak plank with its sounds. Back / Close / Quit buttons play the Back Sound. Tick boxes, sliders and drop-downs keep their own look."
-slot,background,res://assets/ui/save/drawn/01_room.png,,,,,,,,,,,"ROUND AN: the drawn trophy room (Anthony 19 Oct: calmer, correct perspective). Layer 1: the empty panelled room, 1920x1080. Old pixel layers stay in assets/ui/save/pixellab/."
-slot,picture,res://assets/ui/save/drawn/02_cabinet.png,550,503,,,1,,,,,,"Layer 2: the green trophy cabinet against the back wall, feet on the floor line."
-slot,picture,res://assets/ui/save/drawn/03_scarves.png,972,291,,,1,,,,,,"Layer 3: a rail of three club scarves on the back wall (no pennants: Anthony found the old row too crowded)."
-slot,picture,res://assets/ui/save/drawn/03_scarves.png,1410,291,,,1,yes,,,,,Layer 3: the same scarf rail mirrored.
-slot,shade,,967,572,1045,335,,,#140c06a8,,,,"A see-through dark box behind the save tiles (19 Oct: made smaller to just hug the tiles and Settings, Anthony)."
+slot,background,res://assets/ui/save/mugs/beer_hall.png,,,,,,,,,,,"19 Oct 2026 (Anthony): THE SAVE SCREEN = AN EMPTY BEER HALL with a table and the saves as beer mugs (data/SaveMugs.csv). Layer 1: the hall (r84-r91, drawn on fal), 1920 x 1080."
+slot,picture,res://assets/ui/save/mugs/table.png,960,602,1920,1080,1,,,,,,"Layer 2: the long wooden table the mugs stand on (r89, darkened to fit the hall's browns)."
+slot,picture,res://assets/ui/save/mugs/ball.png,1712,788,,,1,,,,,,"Layer 3: the scuffed football leaning on the last mug (Anthony)."
 slot,button,res://assets/menu/button_plank_drawn.png,,,,,1,,#f6ead0,menu_hover,menu_click,menu_back,Every plain button on the save screen becomes the oak plank with the menu sounds.

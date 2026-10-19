@@ -7648,7 +7648,7 @@ pictures with OpenAI, and its `download_file` tool saves any Ludo or PixelLab
 result straight into the project. It's set up in `claude_desktop_config.json`
 as `openai-images`, and your key lives only there.
 
-## 16e. Settings and the save screen: the Beer Keller and the trophy room (round AL)
+## 16e. Settings and the save screen: the Beer Keller and the beer mugs (round AL, mugs round AN)
 
 Both screens now have painted backgrounds in the title screen's style, made
 of layers like the title screen. Every button on them is the oak plank,
@@ -7678,16 +7678,34 @@ Plain buttons become planks. Tick boxes, sliders and drop-downs keep their
 own look so they still read as what they are. The plank keeps its corners
 at any button size; only its middle stretches.
 
-**Drawn save screen (19 Oct 2026, Anthony: "redraw, but have it look better,
-so not as cluttered").** The `slot` rows now use `assets/ui/save/drawn/`: an
-empty panelled room with one clean perspective (r78), the green trophy
-cabinet standing on the floor by the back wall (r79), and one rail of three
-scarves shown twice (r81, no pennants). The animal trophies are left out for
-now. The dark box behind the save boxes is smaller (1045 x 335), and every
-button, the save boxes included, is the drawn plank from the title screen
+**Beer mug save screen (19 Oct 2026, Anthony: "Three different beer mugs
+(that are the save file) large on a table").** The `slot` rows now draw a
+drawn beer hall (`assets/ui/save/mugs/beer_hall.png`, r91: no bar, no people),
+then a massive table (`table.png`) and a football leaning on the last mug
+(`ball.png`). Every button is the drawn plank from the title screen
 (`button_plank_drawn.png`, `Scale` 1 = drawn smooth at its own size; blank or
 2 = a pixel plank drawn at 2x). The old pixel layers stay in
 `assets/ui/save/pixellab/`.
+
+The three mugs ARE the save files, set in **`data/SaveMugs.csv`**:
+
+| Part | what it sets |
+|---|---|
+| `closed_full`, `open_full`, `closed_empty` | Image = the mug pictures: a full foaming mug is a used save, an empty glass is an empty slot, the open lid shows when you click a used mug |
+| `slot` (one row per save, top = slot 1) | X, Y = where the bottom middle of the mug's beer mat stands on the 1920 x 1080 screen |
+| `mat_text` | Y = how far up from the mug's bottom the "Slot 1 · 3 matches" line sits on the beer mat; Size = its letter size |
+| `menu` | X = how far right of the mug the choices stand (they go left if there is no room); Size = letter size |
+
+**Click a mug:** its lid opens and Play / Profile Settings / Delete appear
+beside it (an empty mug offers only Play, which starts a new game). Click it
+again to close it.
+
+**Profile Settings vs General Settings.** Each save keeps its own settings in
+`user://slotN/settings.json`; Profile Settings change only that save. The
+title screen's Settings are now the **General Settings**
+(`user://settings.json`): what every NEW save starts with (copied the first
+time the save is opened). Saving General Settings shows the note in
+`Tuning.csv` `general_settings_saved_note`.
 
 The paintings are in `art_source/openai/settings_layers/` and
 `art_source/openai/save_layers/`; their `Pixelate.csv` rows are

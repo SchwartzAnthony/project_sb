@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://btje5m8duwpq6"
-path="res://.godot/imported/01_room.png-d979fd9b285429fe22afcd35cfb2bb30.ctex"
+uid="uid://b4dnr8o7m1guk"
+path="res://.godot/imported/mug_open_full.png-a58edf643deb83df683268e4ee169bad.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/save/drawn/01_room.png"
-dest_files=["res://.godot/imported/01_room.png-d979fd9b285429fe22afcd35cfb2bb30.ctex"]
+source_file="res://assets/ui/save/mugs/mug_open_full.png"
+dest_files=["res://.godot/imported/mug_open_full.png-a58edf643deb83df683268e4ee169bad.ctex"]
 
 [params]
 

@@ -797,6 +797,14 @@ static func tuned(key: String, fallback: float) -> float:
 	return book.tune_float(key, fallback)
 
 
+## The same for words out of Tuning.csv.
+static func tuned_text(key: String, fallback: String) -> String:
+	var book := CardDatabase.get_db()
+	if book == null:
+		return fallback
+	return book.tune_text(key, fallback)
+
+
 static func dialog(on: Node, title: String, under: String = "",
 		width: float = 460.0) -> CanvasLayer:
 	var layer := CanvasLayer.new()

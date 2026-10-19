@@ -178,7 +178,7 @@ func _build() -> void:
 	footer.add_child(_note)
 
 	var where := Label.new()
-	where.text = "Saved in %s" % ProjectSettings.globalize_path(GameSettings.SAVE_PATH)
+	where.text = "Saved in %s" % ProjectSettings.globalize_path(GameSettings.current_path())
 	where.add_theme_font_size_override("font_size", _fs(11))
 	where.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	footer.add_child(where)
@@ -710,7 +710,11 @@ func _save() -> void:
 		return
 	_saved = GameSettings.save_some(settings, keys)
 	_refresh_save()
-	_say("Saved.")
+	if GameSettings.editing_slot == 0:
+		_say(MenuSupport.tuned_text("general_settings_saved_note",
+			"Saved. These General Settings are only what a new save starts with. To change a save's own settings, open it from the Save Menu."))
+	else:
+		_say("Saved.")
 
 
 ## Put back what settings.json says, for every setting not saved.
@@ -767,6 +771,10 @@ func _leave() -> void:
 
 func _go() -> void:
 	_settled = true
+	# Back to the save being played, with its own settings in effect.
+	if GameSettings.editing_slot >= 0:
+		GameSettings.editing_slot = -1
+		GameSettings.apply(get_tree(), true)
 	if as_overlay:
 		closed.emit()
 		var layer := get_parent()

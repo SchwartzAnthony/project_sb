@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bo7fcdvriqmwf"
-path="res://.godot/imported/03_scarves.png-634bc062e88e51f8b558b59e13189440.ctex"
+uid="uid://bhvsikuho550l"
+path="res://.godot/imported/ball.png-3257b6740e708bfd6eaa6a0cb36d9c29.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/save/drawn/03_scarves.png"
-dest_files=["res://.godot/imported/03_scarves.png-634bc062e88e51f8b558b59e13189440.ctex"]
+source_file="res://assets/ui/save/mugs/ball.png"
+dest_files=["res://.godot/imported/ball.png-3257b6740e708bfd6eaa6a0cb36d9c29.ctex"]
 
 [params]
 

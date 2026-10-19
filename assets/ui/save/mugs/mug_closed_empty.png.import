@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bguultkfw4bt0"
-path="res://.godot/imported/02_cabinet.png-f8693c32df9a3969c723a3a1487c32de.ctex"
+uid="uid://by6kdljtwsk4o"
+path="res://.godot/imported/mug_closed_empty.png-9c245647dd0a624f383224417a4d48e5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/save/drawn/02_cabinet.png"
-dest_files=["res://.godot/imported/02_cabinet.png-f8693c32df9a3969c723a3a1487c32de.ctex"]
+source_file="res://assets/ui/save/mugs/mug_closed_empty.png"
+dest_files=["res://.godot/imported/mug_closed_empty.png-9c245647dd0a624f383224417a4d48e5.ctex"]
 
 [params]
 

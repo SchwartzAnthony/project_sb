@@ -40,6 +40,44 @@ extends RefCounted
 const SAVE_PATH := "user://settings.json"
 const APPLIED_KEY := "cw_settings_applied"
 
+## ============ GENERAL SETTINGS AND PROFILE SETTINGS (19 Oct 2026) ============
+##
+## Anthony: each save (profile) keeps its own settings. user://settings.json
+## is now the GENERAL settings: what every new profile starts with, and what
+## the title screen uses before a save is picked. A profile's own copy is
+## user://slotN/settings.json, made from the General settings the first time
+## that slot is played (SaveSlots.choose).
+##
+##   active_slot   the save being played (0 = none yet: General)
+##   editing_slot  which file the Settings screen reads and writes:
+##                 0 = General (title screen's Settings), N = that save's
+##                 Profile Settings (its beer mug), -1 = the save being played
+static var active_slot := 0
+static var editing_slot := -1
+
+
+## Where a slot's settings live. 0 = the General settings.
+static func path_for(slot: int) -> String:
+	if slot <= 0:
+		return SAVE_PATH
+	return "user://slot%d/settings.json" % slot
+
+
+## The file load_all() and save_all() use right now.
+static func current_path() -> String:
+	return path_for(editing_slot if editing_slot >= 0 else active_slot)
+
+
+## A new profile starts as a copy of the General settings.
+static func start_profile(slot: int) -> void:
+	var own := path_for(slot)
+	if slot <= 0 or FileAccess.file_exists(own):
+		return
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(own.get_base_dir()))
+	if FileAccess.file_exists(SAVE_PATH):
+		DirAccess.copy_absolute(ProjectSettings.globalize_path(SAVE_PATH),
+			ProjectSettings.globalize_path(own))
+
 const SCREEN_MODES: Array[String] = ["windowed", "fullscreen", "borderless"]
 const RESOLUTIONS: Array[String] = [
 	"1280x720", "1600x900", "1920x1080", "2560x1440", "3840x2160",
@@ -140,9 +178,13 @@ static func defaults() -> Dictionary:
 
 static func load_all() -> Dictionary:
 	var settings := defaults()
-	if not FileAccess.file_exists(SAVE_PATH):
+	var path := current_path()
+	# A profile that has never saved its own copy uses the General settings.
+	if not FileAccess.file_exists(path):
+		path = SAVE_PATH
+	if not FileAccess.file_exists(path):
 		return settings
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		return settings
 	var raw := file.get_as_text()
@@ -150,7 +192,7 @@ static func load_all() -> Dictionary:
 
 	var parsed: Variant = JSON.parse_string(raw)
 	if not (parsed is Dictionary):
-		push_warning("[settings] %s is not readable — using the defaults." % SAVE_PATH)
+		push_warning("[settings] %s is not readable — using the defaults." % path)
 		return settings
 	# Merge rather than replace, so a value the file has never heard of takes
 	# its default instead of coming back as null.
@@ -160,9 +202,11 @@ static func load_all() -> Dictionary:
 
 
 static func save_all(settings: Dictionary) -> void:
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var path := current_path()
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(path.get_base_dir()))
+	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
-		push_warning("[settings] Could not write %s — your settings will not be kept." % SAVE_PATH)
+		push_warning("[settings] Could not write %s — your settings will not be kept." % path)
 		return
 	file.store_string(JSON.stringify(settings, "\t"))
 	file.close()

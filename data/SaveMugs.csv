@@ -1,0 +1,9 @@
+Part,Image,X,Y,Size,Notes
+closed_full,res://assets/ui/save/mugs/mug_closed_full.png,,,,"19 Oct 2026 (Anthony): THE SAVES ARE BEER MUGS on the table (Choose a Save). A save in use, lid closed. Pictures are stored at the size they show (r89, drawn on fal)."
+open_full,res://assets/ui/save/mugs/mug_open_full.png,,,,The save you clicked: its lid flips open and its choices appear beside it.
+closed_empty,res://assets/ui/save/mugs/mug_closed_empty.png,,,,An empty slot: an empty glass. Clicking it shows Play (a new game).
+slot,,412,900,,"Slot 1: X = the middle of its beer mat, Y = the bottom of the mat, on 1920 x 1080. One row per slot, in order; more slots than rows are not shown."
+slot,,960,900,,Slot 2.
+slot,,1475,900,,Slot 3. The football (ScreenLook.csv) leans on this one.
+mat_text,,,30,18,"The save's slot and matches, written on the front of its beer mat: Y = how far up from the bottom of the mat, Size = the font size."
+menu,,250,,24,"The choices beside an open mug (Play, Profile Settings, Delete): X = how far from the mug's middle, Size = the font size. They go on the right, or on the left if there is no room."
