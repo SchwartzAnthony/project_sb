@@ -7681,7 +7681,7 @@ at any button size; only its middle stretches.
 **Beer mug save screen (19 Oct 2026, Anthony: "Three different beer mugs
 (that are the save file) large on a table").** The `slot` rows now draw a
 drawn beer hall (`assets/ui/save/mugs/beer_hall.png`, r91: no bar, no people),
-then a massive table (`table.png`) and a football leaning on the last mug
+then a massive table (`table.png`, r92: its planks run to the same far point as the floorboards) and a football leaning on the last mug
 (`ball.png`). Every button is the drawn plank from the title screen
 (`button_plank_drawn.png`, `Scale` 1 = drawn smooth at its own size; blank or
 2 = a pixel plank drawn at 2x). The old pixel layers stay in

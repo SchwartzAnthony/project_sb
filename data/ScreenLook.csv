@@ -9,6 +9,6 @@ settings,shade,,960,545,1440,1030,,,#140c06b8,,,,"A see-through dark box behind 
 settings,margin,,,,250,24,,,,,,,"The settings sit 250 pixels in from the left and right edges, so the barrels show either side."
 settings,button,res://assets/menu/button_plank.png,,,,,,,#f6ead0,menu_hover,menu_click,menu_back,"EVERY plain button on this screen becomes the title screen's oak plank with its sounds. Back / Close / Quit buttons play the Back Sound. Tick boxes, sliders and drop-downs keep their own look."
 slot,background,res://assets/ui/save/mugs/beer_hall.png,,,,,,,,,,,"19 Oct 2026 (Anthony): THE SAVE SCREEN = AN EMPTY BEER HALL with a table and the saves as beer mugs (data/SaveMugs.csv). Layer 1: the hall (r84-r91, drawn on fal), 1920 x 1080."
-slot,picture,res://assets/ui/save/mugs/table.png,960,602,1920,1080,1,,,,,,"Layer 2: the long wooden table the mugs stand on (r89, darkened to fit the hall's browns)."
+slot,picture,res://assets/ui/save/mugs/table.png,960,540,1920,1080,1,,,,,,"Layer 2: the long wooden table the mugs stand on (r92: planks run to the same far point as the floorboards)."
 slot,picture,res://assets/ui/save/mugs/ball.png,1712,788,,,1,,,,,,"Layer 3: the scuffed football leaning on the last mug (Anthony)."
 slot,button,res://assets/menu/button_plank_drawn.png,,,,,1,,#f6ead0,menu_hover,menu_click,menu_back,Every plain button on the save screen becomes the oak plank with the menu sounds.
