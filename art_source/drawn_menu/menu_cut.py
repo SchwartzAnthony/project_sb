@@ -31,10 +31,26 @@ if kind in ('ribbons_tr', 'ribbons_bl'):
     out.alpha_composite(key(im, MAG).resize((box[2] - box[0], box[3] - box[1]), Image.LANCZOS), box[:2])
     out.save(dst)
 elif kind == 'board':
-    # fit into the old pixel board's box on its 384x384 picture
-    out = Image.new('RGBA', (384, 384))
-    out.alpha_composite(fit_box(key(im, MAG), (66, 27, 318, 352)), (66, 27))
-    out.save(dst)
+    # fit into the old pixel board's box (66,27,318,352 on 384x384), but at the
+    # size it shows on screen (1188) so it stays sharp (Anthony, 19 Oct)
+    S = 1188 / 384
+    box = tuple(round(v * S) for v in (66, 27, 318, 352))
+    out = Image.new('RGBA', (1188, 1188))
+    out.alpha_composite(fit_box(key(im, MAG), box), box[:2])
+    # paint out the paper tabs and their pins along the panel top
+    # (Anthony, 18 Oct): copy plain panel wood from lower down over them
+    x0, x1 = round(124 * S), round(257 * S)
+    out.paste(out.crop((x0, round(166 * S), x1, round(186 * S))), (x0, round(131 * S)))
+    a = np.asarray(out).copy()
+    med = [np.median(a[y, x0:x1, :3].astype(int).sum(1)) for y in range(len(a))]
+    top = next(y for y in range(round(120 * S), len(a)) if med[y] > 500)
+    for y in range(top, round(140 * S)):
+        v = a[y, x0:x1, :3].astype(int).sum(1)
+        good = [x for x in range(x0, x1) if v[x - x0] >= 450]
+        for x in range(x0, x1):
+            if v[x - x0] < 450 and good:
+                a[y, x] = a[y, min(good, key=lambda g: abs(g - x))]
+    Image.fromarray(a).save(dst)
 elif kind == 'clouds':
     # a 1536x512 strip: scale to the layer's width, top of a 1376x768 layer
     k = key(im, MAG).resize((1376, 459), Image.LANCZOS)
