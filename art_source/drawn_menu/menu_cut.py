@@ -59,11 +59,12 @@ elif kind == 'board':
     Image.fromarray(a).save(dst)
 elif kind == 'bird':
     # three 512 poses side by side (wings up, wings down, sitting) -> a strip
-    # of three 128 frames, about the size the bird shows on screen (126)
+    # of three 256 frames, the size the bird shows on screen (252; Anthony
+    # 19 Oct: twice as big)
     k = key(im, MAG)
-    out = Image.new('RGBA', (384, 128))
+    out = Image.new('RGBA', (768, 256))
     for i in range(3):
-        out.alpha_composite(k.crop((i * 512, 0, i * 512 + 512, 512)).resize((128, 128), Image.LANCZOS), (i * 128, 0))
+        out.alpha_composite(k.crop((i * 512, 0, i * 512 + 512, 512)).resize((256, 256), Image.LANCZOS), (i * 256, 0))
     out.save(dst)
 elif kind == 'plank':
     # the button plank, made at the buttons' own size (MenuConfig 250 x 64),
