@@ -9,5 +9,5 @@ settings,shade,,960,545,1440,1030,,,#140c06b8,,,,"A see-through dark box behind 
 settings,margin,,,,250,24,,,,,,,"The settings sit 250 pixels in from the left and right edges, so the barrels show either side."
 settings,button,res://assets/menu/button_plank.png,,,,,,,#f6ead0,menu_hover,menu_click,menu_back,"EVERY plain button on this screen becomes the title screen's oak plank with its sounds. Back / Close / Quit buttons play the Back Sound. Tick boxes, sliders and drop-downs keep their own look."
 slot,background,res://assets/ui/save/mugs/beer_tent.png,,,,,,,,,,,"19 Oct 2026 (Anthony): THE SAVE SCREEN = A BEER TENT seen from table height, like his photo, with the saves as beer mugs on the long table (data/SaveMugs.csv). r94-r95, drawn on fal, 1920 x 1080."
-slot,picture,res://assets/ui/save/mugs/ball.png,1700,750,,,1,,,,,,"Layer 2: the scuffed football leaning on the last mug (Anthony)."
+slot,picture,res://assets/ui/save/mugs/ball.png,160,690,,,0.65,,,,,,"Layer 2: the scuffed football by the bench on the left (Anthony 19 Oct 15:11: ""move the soccer ball to the other side of the bench"")."
 slot,button,res://assets/menu/button_plank_drawn.png,,,,,1,,#f6ead0,menu_hover,menu_click,menu_back,Every plain button on the save screen becomes the oak plank with the menu sounds.
