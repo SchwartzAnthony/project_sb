@@ -7681,7 +7681,7 @@ at any button size; only its middle stretches.
 **Beer mug save screen (19 Oct 2026, Anthony: "Three different beer mugs
 (that are the save file) large on a table").** The `slot` rows draw a beer
 tent seen from table height, like his photo (`assets/ui/save/mugs/beer_tent.png`,
-r94-r97: one continuous long table running into the tent under strings of lights, neat
+r94-r98: one continuous long table and an even green garland at the back running into the tent under strings of lights, neat
 flags, the lights' yellow cast taken out for free), and a football on the
 bench on the left (`ball.png`). Every button is the drawn plank
 from the title screen (`button_plank_drawn.png`, `Scale` 1 = drawn smooth at
