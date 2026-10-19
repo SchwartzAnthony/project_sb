@@ -93,8 +93,8 @@ var _spots: Array[Vector2] = []
 var _name_gap := 18.0
 var _name_size := 22
 var _name_width := 300.0
-var _menu_gap := 14.0
-var _menu_space := 8.0
+var _menu_width := 230.0
+var _menu_up := 200.0
 var _menu_size := 20
 var _open_slot := 0
 
@@ -103,7 +103,7 @@ func _read_mugs() -> void:
 	for row in MenuSupport.read_csv(MUG_SHEET):
 		var part := MenuSupport.field(row, "Part").strip_edges().to_lower()
 		match part:
-			"closed_full", "open_full", "closed_empty":
+			"closed_full", "open_full", "closed_empty", "open_empty":
 				_art[part] = Look.picture(MenuSupport.field(row, "Image").strip_edges())
 			"slot":
 				_spots.append(Vector2(MenuSupport.field_float(row, "X", 960.0),
@@ -112,8 +112,8 @@ func _read_mugs() -> void:
 				_name_gap = MenuSupport.field_float(row, "Y", _name_gap)
 				_name_size = int(MenuSupport.field_float(row, "Size", _name_size))
 			"menu":
-				_menu_space = MenuSupport.field_float(row, "X", _menu_space)
-				_menu_gap = MenuSupport.field_float(row, "Y", _menu_gap)
+				_menu_width = MenuSupport.field_float(row, "X", _menu_width)
+				_menu_up = MenuSupport.field_float(row, "Y", _menu_up)
 				_menu_size = int(MenuSupport.field_float(row, "Size", _menu_size))
 	if _spots.is_empty():
 		for i in range(SaveSlots.count()):
@@ -135,6 +135,8 @@ func _mug(about: Dictionary) -> Control:
 	var key := "closed_empty"
 	if used:
 		key = "open_full" if is_open else "closed_full"
+	elif is_open and _art.get("open_empty") != null:
+		key = "open_empty"
 	var texture: Texture2D = _art.get(key)
 
 	var mug := TextureButton.new()
@@ -151,26 +153,25 @@ func _mug(about: Dictionary) -> Control:
 	mug.mouse_exited.connect(func() -> void: mug.modulate = Color(1, 1, 1))
 	mug.pressed.connect(_toggle.bind(slot))
 
-	# Closed: the save's name and matches on the table under the mug, on a
-	# see-through dark backing. Open: its choices take that place.
-	if not is_open:
-		var name_line := Label.new()
-		name_line.text = "Slot %d  ·  %s" % [slot, String(about["line"]).get_slice("   ·   ", 0) if used else "Empty"]
-		name_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_line.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		name_line.add_theme_font_size_override("font_size", _name_size)
-		name_line.add_theme_color_override("font_color", Color("f6ead0"))
-		var backing := StyleBoxFlat.new()
-		backing.bg_color = Color(0, 0, 0, 0.55)
-		backing.set_corner_radius_all(8)
-		backing.content_margin_left = 14
-		backing.content_margin_right = 14
-		name_line.add_theme_stylebox_override("normal", backing)
-		name_line.set_meta(TextScale.FITTED_META, true)
-		name_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		name_line.size = Vector2(_name_width, _name_size * 2.0)
-		name_line.position = Vector2((size.x - _name_width) * 0.5, size.y + _name_gap)
-		mug.add_child(name_line)
+	# The save's name and matches on the table under the mug, on a see-through
+	# dark backing.
+	var name_line := Label.new()
+	name_line.text = "Slot %d  ·  %s" % [slot, String(about["line"]).get_slice("   ·   ", 0) if used else "Empty"]
+	name_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_line.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_line.add_theme_font_size_override("font_size", _name_size)
+	name_line.add_theme_color_override("font_color", Color("f6ead0"))
+	var backing := StyleBoxFlat.new()
+	backing.bg_color = Color(0, 0, 0, 0.55)
+	backing.set_corner_radius_all(8)
+	backing.content_margin_left = 14
+	backing.content_margin_right = 14
+	name_line.add_theme_stylebox_override("normal", backing)
+	name_line.set_meta(TextScale.FITTED_META, true)
+	name_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_line.size = Vector2(_name_width, _name_size * 2.0)
+	name_line.position = Vector2((size.x - _name_width) * 0.5, size.y + _name_gap)
+	mug.add_child(name_line)
 
 	if is_open:
 		mug.add_child(_choices(slot, used, mug))
@@ -184,12 +185,12 @@ func _toggle(slot: int) -> void:
 	_fill()
 
 
-## Play, Profile Settings and Delete in one row under the open mug (Anthony:
-## "have the options be on the bottom"). An empty slot only has Play, which starts a
-## new game there.
+## Play, Profile Settings and Delete on the open mug's glass, one above the
+## other (Anthony: "when pressing on the mug, it opens like that"). An empty
+## slot only has Play, which starts a new game there.
 func _choices(slot: int, used: bool, mug: Control) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", int(_menu_space))
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 8)
 	var words: Array = [["play", "Play"]]
 	if used:
 		words.append(["profile_settings", "Profile Settings"])
@@ -197,9 +198,9 @@ func _choices(slot: int, used: bool, mug: Control) -> Control:
 	for pair in words:
 		var button := Button.new()
 		button.text = Loc.text(String(pair[0]), String(pair[1]))
-		button.custom_minimum_size = Vector2(0, _menu_size * 2.5)
+		button.custom_minimum_size = Vector2(_menu_width, _menu_size * 2.5)
 		button.add_theme_font_size_override("font_size", _menu_size)
-		row.add_child(button)
+		column.add_child(button)
 		match String(pair[0]):
 			"play":
 				button.pressed.connect(_play.bind(slot))
@@ -207,11 +208,12 @@ func _choices(slot: int, used: bool, mug: Control) -> Control:
 				button.pressed.connect(_profile_settings.bind(slot))
 			"delete":
 				button.pressed.connect(_confirm_delete.bind(slot, null))
-	# One row, centred under the mug once it knows its own width.
-	row.resized.connect(func() -> void:
-		row.position = Vector2((mug.size.x - row.size.x) * 0.5, mug.size.y + _menu_gap))
-	row.position = Vector2(0.0, mug.size.y + _menu_gap)
-	return row
+	# Centred on the glass (the picture's middle is the middle of the glass),
+	# its middle _menu_up above the mug's bottom.
+	column.resized.connect(func() -> void:
+		column.position = Vector2((mug.size.x - _menu_width) * 0.5, mug.size.y - _menu_up - column.size.y * 0.5))
+	column.position = Vector2((mug.size.x - _menu_width) * 0.5, mug.size.y - _menu_up)
+	return column
 
 
 ## This save's own settings: the Settings screen, reading and writing
