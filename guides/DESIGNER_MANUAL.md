@@ -7681,10 +7681,11 @@ at any button size; only its middle stretches.
 **Beer mug save screen (19 Oct 2026, Anthony: "Three different beer mugs
 (that are the save file) large on a table").** The `slot` rows draw a beer
 tent seen from table height, like his photo (`assets/ui/save/mugs/beer_tent.png`,
-r94-r100: one continuous long table running into the tent under strings of
-lights, one bench and table on each side with a little Bavarian food and beer,
+r94-r99: one continuous long table running into the tent under strings of
+lights, one bench and table on each side with bare tables (the r100 food was
+taken off at Anthony's ask; that picture stays in `art_tool/rounds/r100`),
 an even green garland at the back, neat flags, the lights' yellow cast taken
-out for free; `beer_tent_no_food.png` is the same tent without the food), and
+out for free; `beer_tent_no_food.png` is the same picture), and
 a football on the bench on the left (`ball.png`). Every button is the drawn plank
 from the title screen (`button_plank_drawn.png`, `Scale` 1 = drawn smooth at
 its own size; blank or 2 = a pixel plank drawn at 2x). The old pixel layers
@@ -7694,7 +7695,7 @@ The three mugs ARE the save files, set in **`data/SaveMugs.csv`**:
 
 | Part | what it sets |
 |---|---|
-| `closed_full`, `open_full`, `closed_empty`, `open_empty` | Image = the mug pictures, all one mug at one size (r96 master, r101-r102 the other states, lined up for free): full = a used save, empty = an empty slot, the open lid shows when you click it |
+| `closed_full`, `open_full`, `closed_empty`, `open_empty` | Image = the mug pictures, all one mug at one size (r96 master, r101-r102 the other states, lined up for free): full = a used save, empty = an empty slot, the open lid shows when you click it. The open lid is the closed lid tipped up at its hinge, so it is the same size (free) |
 | `slot` (one row per save, top = slot 1) | X, Y = the bottom middle of the mug on the 1920 x 1080 screen |
 | `name_text` | under a closed mug, "Slot 1 · 3 matches" on a see-through dark backing: Y = the gap below the mug, Size = letter size |
 | `menu` | on the open mug's glass, one above the other (Anthony): X = button width, Y = how far above the mug's bottom their middle sits, Size = letter size |
