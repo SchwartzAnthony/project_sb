@@ -148,7 +148,6 @@ func _mug(about: Dictionary) -> Control:
 	var size := Vector2(texture.get_size()) if texture != null else Vector2(320, 420)
 	mug.size = size
 	mug.position = Vector2(spot.x - size.x * 0.5, spot.y - size.y)
-	mug.tooltip_text = "Slot %d: %s" % [slot, String(about["line"])]
 	mug.mouse_entered.connect(func() -> void: mug.modulate = Color(1.12, 1.08, 1.0))
 	mug.mouse_exited.connect(func() -> void: mug.modulate = Color(1, 1, 1))
 	mug.pressed.connect(_toggle.bind(slot))
