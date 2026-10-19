@@ -1,5 +1,5 @@
 """Cut drawn menu pictures off their key colour and size them like the old menu layers.
-usage: python3 menu_cut.py land|sign|ribbons_tr|ribbons_bl|board|clouds|plank in.png out.png"""
+usage: python3 menu_cut.py land|sign|ribbons_tr|ribbons_bl|board|clouds|plank|bird in.png out.png"""
 import sys
 import numpy as np
 from PIL import Image
@@ -57,6 +57,14 @@ elif kind == 'board':
     left = a[760:942, 1188 - 868:1188 - 800][:, ::-1]
     a[760:942, 800:868] = left
     Image.fromarray(a).save(dst)
+elif kind == 'bird':
+    # three 512 poses side by side (wings up, wings down, sitting) -> a strip
+    # of three 128 frames, about the size the bird shows on screen (126)
+    k = key(im, MAG)
+    out = Image.new('RGBA', (384, 128))
+    for i in range(3):
+        out.alpha_composite(k.crop((i * 512, 0, i * 512 + 512, 512)).resize((128, 128), Image.LANCZOS), (i * 128, 0))
+    out.save(dst)
 elif kind == 'plank':
     # the button plank, made at the buttons' own size (MenuConfig 250 x 64),
     # since the game draws it over the whole button with no smoothing
