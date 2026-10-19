@@ -2,7 +2,7 @@
 usage: python3 menu_cut.py land|sign|ribbons_tr|ribbons_bl|board|clouds|plank|bird in.png out.png"""
 import sys
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 def key(im, col, soft=60, hard=140):
     a = np.asarray(im.convert('RGB')).astype(np.float32)
@@ -78,16 +78,46 @@ elif kind == 'clouds':
     out.save(dst)
 elif kind == 'land':
     key(im, (255, 0, 255)).resize((1376, 768), Image.LANCZOS).save(dst)
-else:
-    # the board came out taller/wider than the pixel one: stretch the ropes down and
-    # fit the board back into the old board box (x 39-664, y 745-935 on 704x940), so the
-    # STURMBALL title sits on it like before
-    k = key(im, (0, 255, 0)).resize((704, 940), Image.LANCZOS)
+elif kind == 'sign':
+    # Built at the size it shows on screen (MainMenu.csv 1161 x 1586) so it is
+    # sharp (19 Oct). The board came out taller/wider than the pixel one, so
+    # the ropes are stretched down and the board fitted into the old board box
+    # (x 31-656, y 745-935 on the old 688 x 940), so STURMBALL sits on it.
+    W, H = 1161, 1586
+    S = W / 688
+    bx0, by0, bx1, by1 = (round(v * S) for v in (31, 745, 656, 935))
+    k = key(im, (0, 255, 0))
     a = np.asarray(k)[..., 3]
     rows = np.where((a > 128).sum(1) > 300)[0]
     top, bot = rows[0], rows[-1] + 1
     cols = np.where(a[top:bot].max(0) > 128)[0]
-    out = Image.new('RGBA', (704, 940))
-    out.alpha_composite(k.crop((0, 0, 704, top)).resize((704, 745), Image.LANCZOS))
-    out.alpha_composite(k.crop((cols[0], top, cols[-1] + 1, bot)).resize((664 - 39, 935 - 745), Image.LANCZOS), (39, 745))
-    out.crop((8, 0, 696, 940)).save(dst)
+    out = Image.new('RGBA', (W, H))
+    # ropes only: stop a few rows above the board, so its top ink line is not
+    # stretched out sideways (the stray line Anthony saw top left, 19 Oct)
+    ropes = k.crop((0, 0, k.width, top - 4))
+    rx = round(8 * k.width / 704)  # the old picture was cut 8 px in from the left
+    ropes = ropes.crop((rx, 0, k.width - rx, ropes.height))
+    out.alpha_composite(ropes.resize((W, by0 + 6), Image.LANCZOS))
+    board = k.crop((cols[0], top, cols[-1] + 1, bot))
+    board = np.asarray(board).copy()
+    # clean the scribbles off the two blue-and-white bands: inside a band's
+    # rows, every pixel that is neither blue nor white takes the colour that
+    # is most of what is around it
+    r, g, b = (board[..., c].astype(int) for c in range(3))
+    blue = (b > 150) & (r < 120)
+    white = (r > 190) & (g > 190) & (b > 190)
+    band_rows = np.where((blue | white).mean(1) > 0.6)[0]
+
+    def spread(m):
+        return np.asarray(Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.BoxBlur(8))).astype(int)
+
+    near_blue, near_white = spread(blue), spread(white)
+    odd = ~(blue | white)
+    odd[np.setdiff1d(np.arange(len(board)), band_rows)] = False
+    # keep the bands' own ink edges: only pixels well inside blue/white
+    odd &= (near_blue + near_white) > 110
+    board[odd & (near_blue >= near_white), :3] = (16, 120, 220)
+    board[odd & (near_blue < near_white), :3] = (240, 240, 240)
+    board = Image.fromarray(board).resize((bx1 - bx0, by1 - by0), Image.LANCZOS)
+    out.alpha_composite(board, (bx0, by0))
+    out.save(dst)

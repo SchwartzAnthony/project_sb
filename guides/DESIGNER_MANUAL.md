@@ -7131,6 +7131,9 @@ poses, shown 252 big). Only the plain sky colour is left from the pixel menu. Th
   it stays inside the sign's frame. The title row's Motion Settings can colour
   it: `colour=#f5b83d; outline=#000000; outline_size=5` (the font is a bitmap
   font, so the outline is copies of the word drawn round it).
+- The sign and the notice board are stored at the size they show on screen,
+  and `Tuning.csv` `menu_smooth_pictures` 1 draws the menu pictures smooth, so
+  the swinging sign has no stair-step lines (Anthony, 19 Oct).
 
 One row per thing on it. No file, no rows: it looks as it did before.
 

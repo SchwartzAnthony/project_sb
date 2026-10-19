@@ -661,3 +661,4 @@ dorm_bed_sleeper_art,res://assets/dorms/bed_sleeper.png,"ROUND AN. THE PICTURE O
 building_window_inset,30,"ROUND AN (look C, the beer hall frame). How far in from the frame's outer edge the dark inside starts, in pixels, so it stays tucked under the carving (Theme.csv building_window Fill)"
 building_title_rise,0.55,"ROUND AN. How much of the name sign stands ABOVE the top edge of a building window, as a share of the sign's height. 0 = it hangs inside, 1 = it sits on top"
 building_close_size,76,"ROUND AN. How big the beer mat that closes a building window is, in pixels"
+menu_smooth_pictures,1,"1 = the title screen pictures are drawn smooth (they are drawn art now, 19 Oct 2026), so the swinging sign has no stair-step lines. 0 = the old sharp pixel look."

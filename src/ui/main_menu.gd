@@ -206,6 +206,15 @@ func _add_title_outline(title: Label, colour: Color, thickness: float) -> void:
 		title.add_child(copy)
 
 
+## The title screen art is drawn now, not pixel art (19 Oct 2026): smooth
+## filtering keeps the swinging sign and the scaled layers free of stair-step
+## lines. Tuning.csv menu_smooth_pictures 0 = the old sharp pixel look.
+func _menu_filter() -> CanvasItem.TextureFilter:
+	if MenuSupport.tuned("menu_smooth_pictures", 1.0) > 0.5:
+		return CanvasItem.TEXTURE_FILTER_LINEAR
+	return CanvasItem.TEXTURE_FILTER_NEAREST
+
+
 ## A quiet line at the bottom telling you what the CSVs actually loaded.
 ## If a class is missing from the game, this is the first place to look.
 func _build_footer() -> void:
@@ -325,7 +334,7 @@ func _build_pictures() -> void:
 			layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			layer.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			layer.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-			layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			layer.texture_filter = _menu_filter()
 			layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			add_child(layer)
 			MenuMotion.apply_to_layer(layer, String(entry["motion"]), entry["settings"])
@@ -340,7 +349,7 @@ func _build_pictures() -> void:
 		art.texture = atlas
 		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		art.texture_filter = _menu_filter()
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		# ROUND AL: Scale = draw the picture at a whole multiple of its own
 		# pixels (2 = every layer the same pixel size). Width/Height win if set.
@@ -455,7 +464,7 @@ func _make_button(label: String, art_path: String, box: Vector2, label_on_art: b
 			button.add_theme_color_override("font_pressed_color", Color("e8d7b0"))
 			button.add_theme_color_override("font_outline_color", Color("2a1608"))
 			button.add_theme_constant_override("outline_size", 7)
-			button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			button.texture_filter = _menu_filter()
 			return button
 	if art_path != "" and ResourceLoader.exists(art_path):
 		var texture := load(art_path)
