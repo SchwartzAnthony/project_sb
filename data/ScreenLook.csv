@@ -8,12 +8,9 @@ settings,picture,res://assets/ui/settings/pixellab/03_barrel_dwarf_right.png,169
 settings,shade,,960,545,1440,1030,,,#140c06b8,,,,"A see-through dark box behind the settings, so every word stays readable on the painting. The last two hex digits are how solid it is (00 = invisible, ff = solid)."
 settings,margin,,,,250,24,,,,,,,"The settings sit 250 pixels in from the left and right edges, so the barrels show either side."
 settings,button,res://assets/menu/button_plank.png,,,,,,,#f6ead0,menu_hover,menu_click,menu_back,"EVERY plain button on this screen becomes the title screen's oak plank with its sounds. Back / Close / Quit buttons play the Back Sound. Tick boxes, sliders and drop-downs keep their own look."
-slot,background,res://assets/ui/save/pixellab/01_trophy_hall.png,,,,,,,,,,,ROUND AN: all layers repainted by PixelLab (assets/ui/save/pixellab/). ROUND AL. THE SAVE SCREEN = THE TROPHY ROOM. Layer 1: the panelled hall (Pixelate.csv trophy_1_hall).
-slot,picture,res://assets/ui/save/pixellab/04_pennants_top.png,240,265,,,2,,,,,,"Layer 2: pennants and scarves along the rail - four pieces across the top, every second one flipped."
-slot,picture,res://assets/ui/save/pixellab/04_pennants_top.png,680,265,,,2,yes,,,,,Layer 2: pennants.
-slot,picture,res://assets/ui/save/pixellab/04_pennants_top.png,1240,265,,,2,,,,,,Layer 2: pennants.
-slot,picture,res://assets/ui/save/pixellab/04_pennants_top.png,1680,265,,,2,yes,,,,,Layer 2: pennants.
-slot,picture,res://assets/ui/save/pixellab/02_cabinet_left.png,250,640,,,2,,,,,,"Layer 3: the trophy cabinet - cups, the golden stein, the creature emblems - left."
-slot,picture,res://assets/ui/save/pixellab/03_creature_trophies_right.png,1670,620,,,2,,,,,,"Layer 4: one mounted trophy for each class - the Unkengeist toad king, a Rauhnacht fire spirit, the Lorelei swan and harp, the Bergmaennlein hood and pickaxe, a bog lurker - right."
+slot,background,res://assets/ui/save/drawn/01_room.png,,,,,,,,,,,"ROUND AN: the drawn trophy room (Anthony 19 Oct: calmer, correct perspective). Layer 1: the empty panelled room, 1920x1080. Old pixel layers stay in assets/ui/save/pixellab/."
+slot,picture,res://assets/ui/save/drawn/02_cabinet.png,550,503,,,1,,,,,,"Layer 2: the green trophy cabinet against the back wall, feet on the floor line."
+slot,picture,res://assets/ui/save/drawn/03_scarves.png,972,291,,,1,,,,,,"Layer 3: a rail of three club scarves on the back wall (no pennants: Anthony found the old row too crowded)."
+slot,picture,res://assets/ui/save/drawn/03_scarves.png,1410,291,,,1,yes,,,,,Layer 3: the same scarf rail mirrored.
 slot,shade,,960,560,1080,620,,,#140c06a8,,,,A see-through dark box behind the save tiles.
 slot,button,res://assets/menu/button_plank.png,,,,,,,#f6ead0,menu_hover,menu_click,menu_back,Every plain button on the save screen becomes the oak plank with the menu sounds.
