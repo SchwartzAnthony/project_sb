@@ -2,8 +2,8 @@ Part,Image,X,Y,Size,Notes
 closed_full,res://assets/ui/save/mugs/mug_closed_full.png,,,,"19 Oct 2026 (Anthony): THE SAVES ARE BEER MUGS on the table (Choose a Save). A save in use, lid closed. Pictures are stored at the size they show (r96, comic glass drawn on fal at the beer tent's table height; all three stand in one line)."
 open_full,res://assets/ui/save/mugs/mug_open_full.png,,,,The save you clicked: its lid flips open and its choices appear beside it.
 closed_empty,res://assets/ui/save/mugs/mug_closed_empty.png,,,,An empty slot: an empty glass. Clicking it shows Play (a new game).
-slot,,695,950,,"Slot 1: X = the middle of the mug, Y = the bottom of the mug, on 1920 x 1080. One row per slot, in order; more slots than rows are not shown."
-slot,,1085,950,,Slot 2.
-slot,,1475,950,,Slot 3.
+slot,,565,950,,"Slot 1: X = the middle of the mug, Y = the bottom of the mug, on 1920 x 1080. One row per slot, in order; more slots than rows are not shown."
+slot,,955,950,,Slot 2.
+slot,,1345,950,,Slot 3.
 name_text,,,14,22,"Under a closed mug: its slot and matches on a see-through dark backing. Y = the gap below the mug, Size = the font size."
 menu,,8,10,18,"Under an open mug (Anthony: options on the bottom): Play, Profile Settings, Delete in one row. X = the space between the buttons, Y = the gap below the mug, Size = the font size."
