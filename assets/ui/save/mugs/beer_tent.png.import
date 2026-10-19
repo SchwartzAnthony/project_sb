@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dn4nlbdj8i7mw"
-path="res://.godot/imported/beer_hall.png-c7895d04492958d0767ebe53e06ca156.ctex"
+uid="uid://d31216j3cavlr"
+path="res://.godot/imported/beer_tent.png-3896de00ca4065983473a97607fd07d7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/save/mugs/beer_hall.png"
-dest_files=["res://.godot/imported/beer_hall.png-c7895d04492958d0767ebe53e06ca156.ctex"]
+source_file="res://assets/ui/save/mugs/beer_tent.png"
+dest_files=["res://.godot/imported/beer_tent.png-3896de00ca4065983473a97607fd07d7.ctex"]
 
 [params]
 
