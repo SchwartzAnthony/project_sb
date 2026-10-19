@@ -7694,13 +7694,13 @@ The three mugs ARE the save files, set in **`data/SaveMugs.csv`**:
 
 | Part | what it sets |
 |---|---|
-| `closed_full`, `open_full`, `closed_empty` | Image = the mug pictures (r96 comic glass; r99 empty mug = the same glass as the full one): a full mug is a used save, an empty glass is an empty slot, the open lid shows when you click a used mug |
+| `closed_full`, `open_full`, `closed_empty`, `open_empty` | Image = the mug pictures, all one mug at one size (r96 master, r101-r102 the other states, lined up for free): full = a used save, empty = an empty slot, the open lid shows when you click it |
 | `slot` (one row per save, top = slot 1) | X, Y = the bottom middle of the mug on the 1920 x 1080 screen |
 | `name_text` | under a closed mug, "Slot 1 · 3 matches" on a see-through dark backing: Y = the gap below the mug, Size = letter size |
-| `menu` | under an open mug (Anthony: "have the options be on the bottom"): X = button width, Y = gap below the mug, Size = letter size |
+| `menu` | on the open mug's glass, one above the other (Anthony): X = button width, Y = how far above the mug's bottom their middle sits, Size = letter size |
 
 **Click a mug:** its lid opens and Play / Profile Settings / Delete appear
-under it (an empty mug offers only Play, which starts a new game). Click it
+on its glass (an empty mug offers only Play, which starts a new game). Click it
 again to close it.
 
 **Profile Settings vs General Settings.** Each save keeps its own settings in
