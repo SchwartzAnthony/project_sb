@@ -7114,9 +7114,10 @@ helper adds a node for you, say so in a comment above it, in capitals.
 
 **Drawn title screen (18 Oct 2026)** (Anthony: "redo the main Menu so that it
 isn't pixel art"). The village, the two ribbon bunches, the notice board and
-the hanging sign, and the drifting clouds (r75), are now drawn in the comic style, in the same places and
+the hanging sign, the drifting clouds (r75) and the button plank (r76), are now drawn in the comic style, in the same places and
 sizes as the pixel pictures, so every Motion still works. Still pixel: the
-sky, the bird and the button plank.
+sky and the bird. The buttons use the drawn plank
+`assets/menu/button_plank_drawn.png` (r76, made at the buttons' 250 x 64).
 - Made with Sunburst from the pixel pictures (art_tool/rounds/r73, r74), on a
   flat magenta or green backdrop, then cut out and fitted to the old places
   with `art_source/drawn_menu/menu_cut.py` (land, sign, ribbons_tr,
