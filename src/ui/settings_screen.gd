@@ -194,11 +194,6 @@ func _build() -> void:
 	_note.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	footer.add_child(_note)
 
-	var where := Label.new()
-	where.text = "Saved in %s" % ProjectSettings.globalize_path(GameSettings.current_path())
-	where.add_theme_font_size_override("font_size", _fs(11))
-	where.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	footer.add_child(where)
 
 
 ## ROUND AN: every word on this screen is `settings_text_scale` (Tuning.csv)

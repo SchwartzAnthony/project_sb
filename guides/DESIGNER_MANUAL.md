@@ -7735,6 +7735,8 @@ title screen's Settings are now the **General Settings**
 time the save is opened). Saving General Settings shows the note in
 `Tuning.csv` `general_settings_saved_note`.
 
+**Settings, 20 Oct 2026 (Anthony).** The "Saved in ..." line under the panel is gone. The gnome sits lower, the backs of his knees on the barrel's front rim (free edit of `barrel_gnome.png`, scripts `art_tool/settings_screen/seg2.py` + `move.py`).
+
 **Long buttons (Anthony, 20 Oct 2026).** A button wider than the plank picture repeats the plank's middle instead of pulling it wide, so the stitching and grain stay their drawn size (every screen that uses a ScreenLook `button` row). On Settings, "Put every key back" and "List the missing words" are their own size at the right, and the language buttons are as wide as a setting's value.
 
 **Settings layout (Anthony, 20 Oct 2026, from his picture of another game's settings).** The tabs are a list down the left with Back and Save at its bottom; the chosen tab is bright and the rest dimmed. The tab's settings sit in one panel on the right under the tab's name: a choice is `<  value  >`, an on/off is an On and an Off button (the one not in use dimmed), with any note in small words under the setting's name. Nothing was added or removed, only laid out anew. Sizes: `settings_tab_width`, `settings_column_gap`, `settings_tab_dim`, `settings_value_width` in Tuning.csv; the dark box is the `settings,shade` row of ScreenLook.csv (now only behind the right panel). Photos of every tab: `tools/settings_tabs_shot.gd`.
