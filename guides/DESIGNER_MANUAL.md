@@ -4426,7 +4426,7 @@ picture and see-through everywhere but the building, so it lies over the
 background in the same place on any screen. Only the building takes the
 click (not the sky, trees or bushes in front). `<Village Art>_hover.png`, if
 there, is shown while the mouse is on it: the building brighter with a warm
-golden glow hugging its outline all the way round (roof, walls, the bush line in front), kept tight so it does not spread into the mountains. **The church with the copper kettle
+golden glow hugging its outline all the way round (roof, walls, and along the bushes in front on the church side of their black ink line), kept tight so it does not spread into the mountains. **The church with the copper kettle
 is the Brewery** (`brewery_church`). The other buildings keep their old
 bird's-eye pictures at their old spots until each is drawn for the village.
 Cut-outs are made by `art_tool/base/brewery_hover/make_game_pieces.py`.
