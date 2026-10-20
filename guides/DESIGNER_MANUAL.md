@@ -7712,7 +7712,7 @@ Settings screen, which uses the same sign since 20 Oct 2026 instead of its old
 written title; its page and dark box start below the sign). Any screen can use
 it: `SignHeader.make(words)` in code. Since 20 Oct 2026 the Settings background is the
 drawn cellar `assets/ui/settings/drawn/01_cellar.png` (r108/r109, no ceiling beams); the
-old pixel barrels and gnome are removed (Anthony 20 Oct); one drawn barrel (`drawn/barrel.png`, r111, redrawn to match the cellar) stands on the floor by the left wall. `tools/settings_bare_shot.gd` photographs
+old pixel barrels and gnome are removed (Anthony 20 Oct); one drawn barrel (`drawn/barrel.png`, r111) stands on the floor by the left wall, with a gnome and his beer sitting on it staring at the player (`drawn/barrel_gnome.png`, r112, the one in use). `tools/settings_bare_shot.gd` photographs
 the Settings background on its own.
 
 The three mugs ARE the save files, set in **`data/SaveMugs.csv`**:
