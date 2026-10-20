@@ -7666,7 +7666,7 @@ front), all **behind** the screen's own buttons and text:
 | column | |
 |---|---|
 | `Screen` | `settings` or `slot` (any screen that calls `Look.install(self, "<word>")` in its `_ready`) |
-| `Part` | `background` (fills the screen); `picture` (a layer); `shade` (a see-through dark box so the text stays readable); `margin` (`Width` = how far the content sits in from the left and right, `Height` = from the top and bottom); `button` (how every button looks and sounds) |
+| `Part` | `background` (fills the screen); `picture` (a layer); `shade` (a see-through dark box so the text stays readable); `margin` (`Width` = how far the content sits in from the left and right, `Height` = from the top and bottom; fill `X` / `Y` to set the left / top on their own, then `Width` is the right and `Height` the bottom, e.g. Settings 440 / 40 / 25 / 25 so the page sits right of the sign); `button` (how every button looks and sounds) |
 | `Image` | the picture |
 | `X`, `Y` | the centre, on 1920 × 1080 |
 | `Width`, `Height` | blank = the picture's pixels × `Scale` |
@@ -7712,7 +7712,7 @@ Settings screen, which uses the same sign since 20 Oct 2026 instead of its old
 written title; its page and dark box start below the sign). Any screen can use
 it: `SignHeader.make(words)` in code. Since 20 Oct 2026 the Settings background is the
 drawn cellar `assets/ui/settings/drawn/01_cellar.png` (r108/r109, no ceiling beams); the
-pixel barrels and gnome rows in `data/ScreenLook.csv` are still the old ones. `tools/settings_bare_shot.gd` photographs
+old pixel barrels and gnome are removed (Anthony 20 Oct). `tools/settings_bare_shot.gd` photographs
 the Settings background on its own.
 
 The three mugs ARE the save files, set in **`data/SaveMugs.csv`**:

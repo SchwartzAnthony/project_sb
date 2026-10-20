@@ -21,7 +21,9 @@ extends RefCounted
 #             shade        a see-through dark box (Colour) behind the menu
 #             margin       Width = how far the screen's content sits in from
 #                          the left and right edges, Height = from the top
-#                          and bottom, so the painted layers show round it
+#                          and bottom, so the painted layers show round it.
+#                          X / Y filled = the left / top on their own
+#                          (Width is then the right, Height the bottom)
 #             button       how EVERY button looks: Image = the plank,
 #                          Colour = the text colour, and the three sounds
 #    Image    the picture (res://...)
@@ -69,15 +71,18 @@ static func install(screen: Control, screen_id: String) -> void:
 			"margin":
 				# Pull the screen's content in from the edges so the painted
 				# layers show round it: Width = left and right, Height = top
-				# and bottom, in pixels.
+				# and bottom, in pixels. X / Y, when filled, are the left and
+				# top on their own (then Width = right, Height = bottom).
 				for box in screen.get_children():
 					if box is MarginContainer:
 						var side := MenuSupport.field_float(row, "Width", 40.0)
 						var top := MenuSupport.field_float(row, "Height", 24.0)
-						for key in ["margin_left", "margin_right"]:
-							(box as MarginContainer).add_theme_constant_override(key, int(side))
-						for key in ["margin_top", "margin_bottom"]:
-							(box as MarginContainer).add_theme_constant_override(key, int(top))
+						var left := MenuSupport.field_float(row, "X", side)
+						var high := MenuSupport.field_float(row, "Y", top)
+						var edges := {"margin_left": left, "margin_right": side,
+							"margin_top": high, "margin_bottom": top}
+						for key in edges:
+							(box as MarginContainer).add_theme_constant_override(key, int(edges[key]))
 			_:
 				print("[look] ScreenLook.csv: Part '%s' is not background, picture, shade, margin or button." % part)
 		if node != null:
