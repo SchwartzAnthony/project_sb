@@ -205,6 +205,10 @@ static func _dress(button: Button, row: Dictionary) -> void:
 				style.texture_margin_right = edge
 				style.texture_margin_top = edge
 				style.texture_margin_bottom = edge
+				# A long button (Anthony 20 Oct 2026, "Put every key back")
+				# repeats the plank's middle instead of pulling it wide, so the
+				# stitching and the grain stay their drawn size.
+				style.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_TILE_FIT
 				style.modulate_color = looks[state]
 				button.add_theme_stylebox_override(state, style)
 			button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if plank_scale != 1.0 else CanvasItem.TEXTURE_FILTER_LINEAR

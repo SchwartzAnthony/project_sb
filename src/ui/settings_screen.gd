@@ -285,6 +285,8 @@ func _build_keys() -> void:
 		GameKeys.reset_all(get_tree())
 		_say("Every key is back to what Keys.csv says.")
 		_rebuild())
+	# Its own size at the right, not pulled across the panel (Anthony 20 Oct).
+	reset.size_flags_horizontal = Control.SIZE_SHRINK_END
 	_body.add_child(reset)
 
 
@@ -481,8 +483,7 @@ func _build_language() -> void:
 	for language in Loc.languages():
 		var lit := language == Loc.current()
 		var button := MenuSupport.icon_button("", language,
-			Vector2(0, 46))
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			Vector2(MenuSupport.tuned("settings_value_width", 230.0), 46))
 		button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
 			MenuSupport.COLOUR_SLOT_EMPTY if lit else MenuSupport.COLOUR_PANEL,
 			MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT_DIM))
@@ -507,6 +508,7 @@ func _build_language() -> void:
 	listing.pressed.connect(func() -> void:
 		Loc.report()
 		_say("Printed to the Output panel."))
+	listing.size_flags_horizontal = Control.SIZE_SHRINK_END
 	_body.add_child(listing)
 
 
