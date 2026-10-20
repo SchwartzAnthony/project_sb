@@ -116,3 +116,26 @@ func test_vibration_switch_turns_rumble_off() -> void:
 	settings["pad_vibration"] = true
 	GameSettings.preview(get_tree(), settings, "pad_vibration")
 	assert_true(Rumble.on)
+
+
+## Anthony 20 Oct 2026: General Settings can be saved into a save's own
+## Profile Settings. Slot 9 is used so no real save is touched.
+func test_general_settings_save_into_one_profile() -> void:
+	var path := GameSettings.path_for(9)
+	var had := FileAccess.file_exists(path)
+	var old := FileAccess.get_file_as_string(path) if had else ""
+	var settings := GameSettings.load_all()
+	settings["palette"] = "tritanopia"
+	GameSettings.save_to_profile(9, settings, ["palette"])
+	assert_eq(GameSettings.editing_slot, -1, "the screen's own file is put back")
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	assert_true(parsed is Dictionary, "slot 9 got its own settings file")
+	if parsed is Dictionary:
+		assert_eq(String((parsed as Dictionary).get("palette", "")), "tritanopia")
+	if had:
+		var file := FileAccess.open(path, FileAccess.WRITE)
+		file.store_string(old)
+		file.close()
+	else:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path.get_base_dir()))

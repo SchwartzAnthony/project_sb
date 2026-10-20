@@ -703,18 +703,82 @@ func _refresh_save() -> void:
 	_save_button.tooltip_text = ("Not saved yet: " + _unsaved_words()) if waiting else "Nothing to save."
 
 
-func _save() -> void:
+## `after` runs once the settings are written (Back's "Save" uses it).
+func _save(after: Callable = Callable()) -> void:
 	var keys := unsaved()
 	if keys.is_empty():
 		_say("Nothing to save.")
+		if after.is_valid():
+			after.call()
 		return
+	if GameSettings.editing_slot == 0 and not _used_saves().is_empty():
+		_ask_which_saves(keys, after)
+		return
+	_write(keys, [])
+	if after.is_valid():
+		after.call()
+
+
+## Write the General (or this save's) settings, then copy them into the
+## saves picked in the "for which saves?" box.
+func _write(keys: Array, saves: Array) -> void:
 	_saved = GameSettings.save_some(settings, keys)
+	for slot in saves:
+		GameSettings.save_to_profile(int(slot), settings, keys)
 	_refresh_save()
-	if GameSettings.editing_slot == 0:
+	if GameSettings.editing_slot != 0:
+		_say("Saved.")
+	elif saves.is_empty():
 		_say(MenuSupport.tuned_text("general_settings_saved_note",
 			"Saved. These General Settings are only what a new save starts with. To change a save's own settings, open it from the Save Menu."))
 	else:
-		_say("Saved.")
+		_say(MenuSupport.tuned_text("general_settings_saved_to_saves",
+			"Saved for new saves and for: %s.") % ", ".join(saves.map(
+				func(slot: int) -> String: return "Save %d" % slot)))
+
+
+## The saves that have been played (empty mugs start from General anyway).
+func _used_saves() -> Array:
+	var used: Array = []
+	for slot in range(1, SaveSlots.count() + 1):
+		if bool(SaveSlots.describe(slot).get("used", false)):
+			used.append(slot)
+	return used
+
+
+## ANTHONY 20 OCT 2026: "Add a 'save to profile' in the general settings,
+## after a player hits save or ask them if it is for all profiles."
+## Saving the General Settings asks which saves they are for. They always
+## become what NEW saves start with; the player can also put them into one
+## save's Profile Settings, or into every save.
+func _ask_which_saves(keys: Array, after: Callable) -> void:
+	var used := _used_saves()
+	var window := MenuSupport.dialog(self,
+		MenuSupport.tuned_text("general_settings_ask_title", "SAVE FOR WHICH SAVES?"),
+		MenuSupport.tuned_text("general_settings_ask_note",
+			"These settings are always what a new save starts with. Put them into your saves too?"),
+		520.0)
+	var column: VBoxContainer = window.get_meta("column")
+	var choices: Array = [[MenuSupport.tuned_text("general_settings_ask_new_only",
+		"Only new saves"), []]]
+	for slot in used:
+		choices.append(["Save %d  (%s)" % [slot, String(SaveSlots.describe(slot).get("line", ""))], [slot]])
+	if used.size() > 1:
+		choices.append([MenuSupport.tuned_text("general_settings_ask_all",
+			"All saves"), used])
+	for choice in choices:
+		var button := MenuSupport.icon_button("save|✓", String(choice[0]), Vector2(440, 50))
+		var saves: Array = choice[1]
+		button.pressed.connect(func() -> void:
+			window.queue_free()
+			_write(keys, saves)
+			if after.is_valid():
+				after.call())
+		column.add_child(button)
+	var stay := MenuSupport.icon_button("←", "Cancel", Vector2(440, 50))
+	stay.pressed.connect(func() -> void:
+		window.queue_free())
+	column.add_child(stay)
 
 
 ## Put back what settings.json says, for every setting not saved.
@@ -742,8 +806,7 @@ func _leave() -> void:
 		rule = book.tune_text("settings_unsaved_on_leave", "ask").to_lower()
 	match rule:
 		"save":
-			_save()
-			_go()
+			_save(_go)
 			return
 		"discard":
 			_undo_unsaved()
@@ -755,8 +818,8 @@ func _leave() -> void:
 	var column: VBoxContainer = window.get_meta("column")
 	var keep := MenuSupport.icon_button("save|✓", "Save", Vector2(300, 50))
 	keep.pressed.connect(func() -> void:
-		_save()
-		_go())
+		window.queue_free()
+		_save(_go))
 	column.add_child(keep)
 	var drop := MenuSupport.icon_button("✕", "Don't save", Vector2(300, 50))
 	drop.pressed.connect(func() -> void:

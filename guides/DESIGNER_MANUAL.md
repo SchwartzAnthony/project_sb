@@ -7735,6 +7735,14 @@ title screen's Settings are now the **General Settings**
 time the save is opened). Saving General Settings shows the note in
 `Tuning.csv` `general_settings_saved_note`.
 
+**Save to profile (Anthony, 20 Oct 2026).** Pressing Save in the General
+Settings, when at least one save has been played, opens a box "SAVE FOR WHICH
+SAVES?": **Only new saves** (just the General Settings), one button per
+played save (also writes into that save's Profile Settings), **All saves**
+(when two or more are played) and **Cancel**. Its words are `Tuning.csv`
+`general_settings_ask_*` and `general_settings_saved_to_saves`.
+`tools/general_save_shot.gd` photographs the box.
+
 The paintings are in `art_source/openai/settings_layers/` and
 `art_source/openai/save_layers/`; their `Pixelate.csv` rows are
 `keller_...` and `trophy_...`.

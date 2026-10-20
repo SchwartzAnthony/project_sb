@@ -256,6 +256,18 @@ static func preview(tree: SceneTree, settings: Dictionary, key: String) -> void:
 ## what is already there. The key bindings and the language save themselves
 ## the moment they change, so the Settings screen's Save must not write an
 ## older copy of them back over the file.
+## Write these settings into one save's own Profile Settings as well
+## (Anthony 20 Oct 2026: General Settings ask "for which profile?" on Save).
+## A profile with no file of its own yet starts from the General settings.
+static func save_to_profile(slot: int, settings: Dictionary, keys: Array) -> void:
+	if slot <= 0:
+		return
+	var was := editing_slot
+	editing_slot = slot
+	save_some(settings, keys)
+	editing_slot = was
+
+
 static func save_some(settings: Dictionary, keys: Array) -> Dictionary:
 	var on_disk := load_all()
 	for key in keys:
