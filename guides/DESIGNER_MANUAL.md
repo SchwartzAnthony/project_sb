@@ -7714,8 +7714,8 @@ The three mugs ARE the save files, set in **`data/SaveMugs.csv`**:
 | Part | what it sets |
 |---|---|
 | `closed_full`, `open_full`, `closed_empty`, `open_empty` | Image = the mug pictures, all one mug at one size, cut from one hand-drawn sheet (r104, Anthony 20 Oct: "more drawn rather than so AI looking"; the beer was painted in where the handle meets the full mugs, free): full = a used save, empty = an empty slot, the open lid shows when you click it. The open lid is the closed lid (knob, dome and rim) tipped up at its hinge, and its thumb knob is the closed one, so both are the same size open and closed (free, `art_tool/save_screen/lid2.py`). The older glossy mugs stay in `art_tool/rounds/r96`-`r102` |
-| `slot` (one row per save, top = slot 1) | X, Y = the bottom middle of the mug on the 1920 x 1080 screen |
-| `name_text` | under a closed mug, "Slot 1 · 3 matches" on a see-through dark backing: Y = the gap below the mug, Size = letter size |
+| `slot` (one row per save, top = slot 1) | X, Y = the bottom middle of the mug on the 1920 x 1080 screen; Image = the button plank for that mug's choices, Colour = the coaster under it (Anthony 20 Oct: slot 1 blue, 2 red, 3 green; planks `assets/menu/button_plank_blue/red/green.png`, free recolours of the drawn plank) |
+| `name_text` | under a closed mug, "Slot 1 · 3 matches" on a coaster in the slot's colour: Y = the gap below the mug, Size = letter size |
 | `menu` | on the open mug's glass, one above the other (Anthony): X = button width, Y = how far above the mug's bottom their middle sits, Size = letter size |
 
 **Click a mug:** its lid opens and Play / Profile Settings / Delete appear

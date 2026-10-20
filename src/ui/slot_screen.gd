@@ -88,6 +88,10 @@ const MUG_SHEET := "res://data/SaveMugs.csv"
 var _table: Control
 var _art: Dictionary = {}
 var _spots: Array[Vector2] = []
+## Per slot (20 Oct 2026, Anthony: 1 blue, 2 red, 3 green): the plank for its
+## buttons and the colour of the coaster under its mug.
+var _planks: Array[String] = []
+var _coasters: Array[Color] = []
 var _name_gap := 18.0
 var _name_size := 22
 var _name_width := 300.0
@@ -106,6 +110,8 @@ func _read_mugs() -> void:
 			"slot":
 				_spots.append(Vector2(MenuSupport.field_float(row, "X", 960.0),
 					MenuSupport.field_float(row, "Y", 900.0)))
+				_planks.append(MenuSupport.field(row, "Image").strip_edges())
+				_coasters.append(Color.from_string(MenuSupport.field(row, "Colour").strip_edges(), Color(0, 0, 0, 0.55)))
 			"name_text":
 				_name_gap = MenuSupport.field_float(row, "Y", _name_gap)
 				_name_size = int(MenuSupport.field_float(row, "Size", _name_size))
@@ -158,9 +164,12 @@ func _mug(about: Dictionary) -> Control:
 	name_line.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	name_line.add_theme_font_size_override("font_size", _name_size)
 	name_line.add_theme_color_override("font_color", Color("f6ead0"))
+	# The coaster under the mug, in this slot's colour with a cream edge.
 	var backing := StyleBoxFlat.new()
-	backing.bg_color = Color(0, 0, 0, 0.55)
-	backing.set_corner_radius_all(8)
+	backing.bg_color = _coasters[slot - 1] if slot <= _coasters.size() else Color(0, 0, 0, 0.55)
+	backing.set_corner_radius_all(14)
+	backing.set_border_width_all(3)
+	backing.border_color = Color("f6ead0")
 	backing.content_margin_left = 14
 	backing.content_margin_right = 14
 	name_line.add_theme_stylebox_override("normal", backing)
@@ -198,6 +207,7 @@ func _choices(slot: int, used: bool, mug: Control) -> Control:
 		button.custom_minimum_size = Vector2(_menu_width, _menu_size * 2.5)
 		button.add_theme_font_size_override("font_size", _menu_size)
 		column.add_child(button)
+		_paint(button, slot)
 		match String(pair[0]):
 			"play":
 				button.pressed.connect(_play.bind(slot))
@@ -211,6 +221,20 @@ func _choices(slot: int, used: bool, mug: Control) -> Control:
 		column.position = Vector2((mug.size.x - _menu_width) * 0.5, mug.size.y - _menu_up - column.size.y * 0.5))
 	column.position = Vector2((mug.size.x - _menu_width) * 0.5, mug.size.y - _menu_up)
 	return column
+
+
+## This slot's own plank (SaveMugs.csv slot row Image) on a choice button,
+## with everything else as the screen's plank row in ScreenLook.csv.
+func _paint(button: Button, slot: int) -> void:
+	if slot > _planks.size() or _planks[slot - 1] == "":
+		return
+	for row in MenuSupport.read_csv("res://data/ScreenLook.csv"):
+		if MenuSupport.field(row, "Screen").strip_edges() == "slot" \
+				and MenuSupport.field(row, "Part").strip_edges().to_lower() == "button":
+			var own := row.duplicate()
+			own[MenuSupport.normalise("Image")] = _planks[slot - 1]
+			Look._dress(button, own)
+			return
 
 
 ## This save's own settings: the Settings screen, reading and writing
