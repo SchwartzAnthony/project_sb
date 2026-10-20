@@ -29,6 +29,12 @@ var _label: Label
 var _outline := 10
 var _outline_colour := Color("2a1608")
 var _rects: Array[TextureRect] = []
+var _backing_reach := 22.0
+var _backing_colour := Color(0, 0, 0, 0.63)
+var _backing: Panel
+## The comic font is a picture font with no outline of its own, so the ink
+## edge is the same words drawn dark, nudged out in eight directions.
+var _edges: Array[Label] = []
 
 
 ## A header for the screen, with this text on the board.
@@ -62,6 +68,11 @@ func _read() -> void:
 				var edge := MenuSupport.field(row, "Colour").strip_edges()
 				if edge != "":
 					_outline_colour = Color(edge)
+			"backing":
+				_backing_reach = MenuSupport.field_float(row, "Size", _backing_reach)
+				var shade := MenuSupport.field(row, "Colour").strip_edges()
+				if shade != "":
+					_backing_colour = Color(shade)
 			"padding":
 				_text_end = MenuSupport.field_float(row, "X", _text_end)
 				_gap = MenuSupport.field_float(row, "Y", _gap)
@@ -84,9 +95,6 @@ func _build(words: String) -> void:
 	var face := ThemeBook.font(String(ThemeBook.row_for("heading").get("font", "")))
 	if face != null:
 		label.add_theme_font_override("font", face)
-	if _outline > 0:
-		label.add_theme_constant_override("outline_size", _outline)
-		label.add_theme_color_override("font_outline_color", _outline_colour)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.set_meta(TextScale.FITTED_META, true)
@@ -94,6 +102,14 @@ func _build(words: String) -> void:
 	label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_label = label
+	if _backing_colour.a > 0.0:
+		_backing = Panel.new()
+		_backing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var box := StyleBoxFlat.new()
+		box.bg_color = _backing_colour
+		box.set_corner_radius_all(int(_backing_reach))
+		_backing.add_theme_stylebox_override("panel", box)
+		add_child(_backing)
 	for texture in [left, middle, right]:
 		var piece := TextureRect.new()
 		piece.texture = texture
@@ -103,6 +119,12 @@ func _build(words: String) -> void:
 		piece.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(piece)
 		_rects.append(piece)
+	if _outline > 0:
+		for i in range(8):
+			var edge := label.duplicate() as Label
+			edge.add_theme_color_override("font_color", _outline_colour)
+			add_child(edge)
+			_edges.append(edge)
 	add_child(label)
 	position = Vector2(_left, _top)
 	_layout()
@@ -135,4 +157,14 @@ func _layout() -> void:
 	var finish := (left.get_width() + middle_width + _text_end) * scale_by
 	_label.position = Vector2(start, _text_middle * scale_by - _label.get_minimum_size().y * 0.5)
 	_label.size = Vector2(finish - start, _label.get_minimum_size().y)
+	var nudge := float(_outline) * 0.5
+	for i in range(_edges.size()):
+		var turn := TAU * float(i) / float(_edges.size())
+		_edges[i].position = _label.position + Vector2(cos(turn), sin(turn)) * nudge
+		_edges[i].size = _label.size
 	size = Vector2(x * scale_by, _height)
+	if _backing != null:
+		# Not past the screen's left edge: the wall plate sits there.
+		var reach := _backing_reach
+		_backing.position = Vector2(-minf(reach, _left), -minf(reach, _top))
+		_backing.size = size - _backing.position + Vector2(reach, reach)
