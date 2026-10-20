@@ -7690,6 +7690,25 @@ from the title screen (`button_plank_drawn.png`, `Scale` 1 = drawn smooth at
 its own size; blank or 2 = a pixel plank drawn at 2x). The old pixel layers
 stay in `assets/ui/save/pixellab/`.
 
+**The menu header (20 Oct 2026, Anthony): a hanging tavern sign.** The
+screen's name hangs at the top left on an oak board under an iron wall bracket
+(r106 idea 1, drawn blank in r107), written in the game's heading font. It is
+three pictures in `assets/ui/header/`: left (wall plate, left chain), middle
+(plain bar and board) and right (right chain, board end, bar tip). Only the
+middle stretches, so a longer name or another language makes the sign wider:
+no new art per language. Set in **`data/MenuHeader.csv`**:
+
+| Part | what it sets |
+|---|---|
+| `left`, `middle`, `right` | Image = the three pieces |
+| `sign` | X = left edge (0 = the plate touches the screen's left), Y = top, Size = height in pixels |
+| `text` | Size = letter size, Colour = letter colour; X = where the writing space starts in the left piece, Y = the board's middle (pixels of the drawing) |
+| `outline` | Size = the dark edge round the letters (0 = none), Colour = its colour |
+| `padding` | X = where the writing space ends in the right piece, Y = the gap kept at both ends of the board |
+
+The words come from `data/Language.csv` (`choose_a_save`). Any screen can use
+it: `SignHeader.make(words)` in code.
+
 The three mugs ARE the save files, set in **`data/SaveMugs.csv`**:
 
 | Part | what it sets |

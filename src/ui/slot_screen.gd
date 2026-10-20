@@ -64,7 +64,8 @@ func _build() -> void:
 	page.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(page)
 
-	page.add_child(MenuSupport.heading("CHOOSE A SAVE", 34, MenuSupport.COLOUR_ACCENT))
+	# 20 Oct 2026: the name hangs on the tavern sign (data/MenuHeader.csv).
+	add_child(SignHeader.make(Loc.text("choose_a_save", "CHOOSE A SAVE")))
 
 	var gap := Control.new()
 	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
