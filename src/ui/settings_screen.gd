@@ -97,9 +97,10 @@ func _ready() -> void:
 	_build()
 	# ROUND AL: the Beer Keller behind it and plank buttons - data/ScreenLook.csv
 	Look.install(self, "settings")
-	# ROUND AN: a see-through black plate behind words that sit straight on
-	# the cellar painting (text_backdrop_alpha in Tuning.csv).
-	TextBackdrop.watch(self)
+	# No see-through plate behind each line any more (Anthony 20 Oct 2026:
+	# the dark bars made the list hard to read); the one dark box in
+	# data/ScreenLook.csv sits behind the whole page instead.
+	set_meta(TextBackdrop.NO_PLATES, true)
 
 	var opening := "Keys"
 	if get_tree().has_meta(TAB_KEY):
@@ -142,7 +143,7 @@ func _build() -> void:
 
 	for name_text in TABS:
 		var button := MenuSupport.icon_button(
-			_tab_icon(name_text), name_text, Vector2(210, 52))
+			"", name_text, Vector2(210, 52))
 		button.pressed.connect(_show_tab.bind(name_text))
 		tabs.add_child(button)
 		_tab_buttons[name_text] = button
@@ -188,17 +189,6 @@ func _build() -> void:
 ## times the size it was written at - "hard to read" was the note.
 func _fs(written: int) -> int:
 	return int(round(written * MenuSupport.tuned("settings_text_scale", 1.25)))
-
-
-func _tab_icon(name_text: String) -> String:
-	match name_text:
-		"Keys":        return "keys|⌨"
-		"Screen":      return "screen|▭"
-		"Sound":       return "sound|♪"
-		"Colour":      return "colour|◐"
-		"Controller":  return "controller|✛"
-		"Language":    return "language|文"
-	return "◇"
 
 
 func _show_tab(name_text: String) -> void:
@@ -271,7 +261,7 @@ func _build_keys() -> void:
 		for action in GameKeys.in_group(group):
 			_body.add_child(_key_row(action))
 
-	var reset := MenuSupport.icon_button("↺", "Put every key back", Vector2(280, 50))
+	var reset := MenuSupport.icon_button("", "Put every key back", Vector2(280, 50))
 	reset.pressed.connect(func() -> void:
 		GameKeys.reset_all(get_tree())
 		_say("Every key is back to what Keys.csv says.")
@@ -289,18 +279,11 @@ func _key_row(action: String) -> Control:
 	label.add_theme_font_size_override("font_size", _fs(16))
 	row.add_child(label)
 
+	# The controller button for this job is shown on the Controller tab, not
+	# here (Anthony 20 Oct 2026).
 	var entry: Dictionary = GameKeys.actions.get(action, {})
-	var pad_text := String(entry.get("button", ""))
-	if pad_text != "":
-		var pad := Label.new()
-		pad.text = "controller: %s" % pad_text
-		pad.custom_minimum_size = Vector2(200, 0)
-		pad.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		pad.add_theme_font_size_override("font_size", _fs(13))
-		pad.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-		row.add_child(pad)
 
-	var button := MenuSupport.icon_button("⌨", GameKeys.label_for(action), Vector2(220, 46))
+	var button := MenuSupport.icon_button("", GameKeys.label_for(action), Vector2(220, 46))
 	button.tooltip_text = String(entry.get("notes", ""))
 	button.pressed.connect(func() -> void:
 		_listening = action
@@ -478,7 +461,7 @@ func _build_language() -> void:
 
 	for language in Loc.languages():
 		var lit := language == Loc.current()
-		var button := MenuSupport.icon_button("●" if lit else "○", language,
+		var button := MenuSupport.icon_button("", language,
 			Vector2(0, 46))
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
@@ -500,7 +483,7 @@ func _build_language() -> void:
 	_body.add_child(_hint(
 		"Play through a screen, then press the button below. Every word the game asked for that has no row yet is printed to the Output panel, already formatted to paste into the spreadsheet."))
 
-	var listing := MenuSupport.icon_button("≡", "List the missing words",
+	var listing := MenuSupport.icon_button("", "List the missing words",
 		Vector2(300, 48))
 	listing.pressed.connect(func() -> void:
 		Loc.report()
@@ -592,7 +575,7 @@ func _switch_row(label_text: String, key: String, note: String) -> Control:
 	row.add_child(label)
 
 	var on := bool(settings.get(key, true))
-	var button := MenuSupport.icon_button("✓" if on else "✕",
+	var button := MenuSupport.icon_button("",
 		"On" if on else "Off", Vector2(180, 44))
 	button.pressed.connect(func() -> void:
 		_change(key, not on)

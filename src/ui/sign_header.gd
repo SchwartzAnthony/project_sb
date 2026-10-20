@@ -16,6 +16,7 @@ const SHEET := "res://data/MenuHeader.csv"
 const Look := preload("res://src/ui/screen_look.gd")
 
 var _pieces: Dictionary = {}
+var _paths: Dictionary = {}
 var _left := 0.0
 var _top := 8.0
 var _height := 170.0
@@ -29,9 +30,12 @@ var _label: Label
 var _outline := 10
 var _outline_colour := Color("2a1608")
 var _rects: Array[TextureRect] = []
-var _backing_reach := 22.0
+var _backing_reach := 60.0
 var _backing_colour := Color(0, 0, 0, 0.63)
-var _backing: Panel
+## The dark aura behind the sign: one soft shadow picture per piece
+## (sign_<part>_aura.png, made by art_tool/menu/header_aura.py), padded by
+## _backing_reach pixels of the drawing on the piece's outer sides.
+var _auras: Array[TextureRect] = []
 ## The comic font is a picture font with no outline of its own, so the ink
 ## edge is the same words drawn dark, nudged out in eight directions.
 var _edges: Array[Label] = []
@@ -51,7 +55,8 @@ func _read() -> void:
 		var part := MenuSupport.field(row, "Part").strip_edges().to_lower()
 		match part:
 			"left", "middle", "right":
-				_pieces[part] = Look.picture(MenuSupport.field(row, "Image").strip_edges())
+				_paths[part] = MenuSupport.field(row, "Image").strip_edges()
+				_pieces[part] = Look.picture(_paths[part])
 			"sign":
 				_left = MenuSupport.field_float(row, "X", _left)
 				_top = MenuSupport.field_float(row, "Y", _top)
@@ -103,13 +108,22 @@ func _build(words: String) -> void:
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_label = label
 	if _backing_colour.a > 0.0:
-		_backing = Panel.new()
-		_backing.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var box := StyleBoxFlat.new()
-		box.bg_color = _backing_colour
-		box.set_corner_radius_all(int(_backing_reach))
-		_backing.add_theme_stylebox_override("panel", box)
-		add_child(_backing)
+		# Anthony 20 Oct 2026: not a box, an aura hugging the board and bar.
+		for part in ["left", "middle", "right"]:
+			var aura_path := String(_paths.get(part, "")).get_basename() + "_aura.png"
+			var aura_texture := Look.picture(aura_path)
+			if aura_texture == null:
+				continue
+			var aura := TextureRect.new()
+			aura.texture = aura_texture
+			aura.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			aura.stretch_mode = TextureRect.STRETCH_SCALE
+			aura.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+			aura.modulate = _backing_colour
+			aura.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			aura.set_meta("part", part)
+			add_child(aura)
+			_auras.append(aura)
 	for texture in [left, middle, right]:
 		var piece := TextureRect.new()
 		piece.texture = texture
@@ -163,8 +177,12 @@ func _layout() -> void:
 		_edges[i].position = _label.position + Vector2(cos(turn), sin(turn)) * nudge
 		_edges[i].size = _label.size
 	size = Vector2(x * scale_by, _height)
-	if _backing != null:
-		# Not past the screen's left edge: the wall plate sits there.
-		var reach := _backing_reach
-		_backing.position = Vector2(-minf(reach, _left), -minf(reach, _top))
-		_backing.size = size - _backing.position + Vector2(reach, reach)
+	# Each aura is its piece grown by the reach on its outer sides only.
+	var reach := _backing_reach * scale_by
+	for aura in _auras:
+		var i := ["left", "middle", "right"].find(String(aura.get_meta("part")))
+		var piece: TextureRect = _rects[i]
+		var grow_left := reach if i == 0 else 0.0
+		var grow_right := reach if i == 2 else 0.0
+		aura.position = piece.position - Vector2(grow_left, reach)
+		aura.size = piece.size + Vector2(grow_left + grow_right, reach * 2.0)

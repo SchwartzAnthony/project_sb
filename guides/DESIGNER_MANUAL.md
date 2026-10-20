@@ -7704,7 +7704,7 @@ no new art per language. Set in **`data/MenuHeader.csv`**:
 | `sign` | X = left edge (0 = the plate touches the screen's left), Y = top, Size = height in pixels |
 | `text` | Size = letter size, Colour = letter colour; X = where the writing space starts in the left piece, Y = the board's middle (pixels of the drawing) |
 | `outline` | Size = the dark ink edge round the letters (0 = none), Colour = its colour |
-| `backing` | the see-through black box behind the sign so it stands out (Anthony 20 Oct): Size = how far it reaches past the sign, Colour's last two digits = how solid |
+| `backing` | the dark aura that hugs the board, chains and iron bracket so the sign stands out (Anthony 20 Oct; it was a box). The pictures are `sign_<part>_aura.png`, made by `art_tool/menu/header_aura.py`; Size = how far they are padded past each piece (60, must match the script), Colour's last two digits = how solid |
 | `padding` | X = where the writing space ends in the right piece, Y = the gap kept at both ends of the board |
 
 The words come from `data/Language.csv` (`choose_a_save`, and `settings` on the
@@ -7734,6 +7734,8 @@ title screen's Settings are now the **General Settings**
 (`user://settings.json`): what every NEW save starts with (copied the first
 time the save is opened). Saving General Settings shows the note in
 `Tuning.csv` `general_settings_saved_note`.
+
+**Settings page (Anthony, 20 Oct 2026).** No gold icons on its buttons except Back and Save (`MenuSupport.icon_button` with an empty icon); no dark plate behind each line (the screen sets `TextBackdrop.NO_PLATES`, the one dark box behind the page stays); the Keys tab no longer lists the controller button, which the Controller tab shows.
 
 **Save to profile (Anthony, 20 Oct 2026).** Pressing Save in the General
 Settings, when at least one save has been played, opens a box "SAVE FOR WHICH
