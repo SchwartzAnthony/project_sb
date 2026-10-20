@@ -1,5 +1,5 @@
 Part,Image,X,Y,Size,Notes
-closed_full,res://assets/ui/save/mugs/mug_closed_full.png,,,,"19 Oct 2026 (Anthony): THE SAVES ARE BEER MUGS on the table (Choose a Save). A save in use, lid closed. Pictures are stored at the size they show (r96, comic glass drawn on fal at the beer tent's table height; all three stand in one line)."
+closed_full,res://assets/ui/save/mugs/mug_closed_full.png,,,,"19 Oct 2026 (Anthony): THE SAVES ARE BEER MUGS on the table (Choose a Save). A save in use, lid closed. Pictures are stored at the size they show (r104 hand-drawn sheet of all four states, his pick 20 Oct; cut out and lined up for free; all three stand in one line)."
 open_full,res://assets/ui/save/mugs/mug_open_full.png,,,,The save you clicked: its lid flips open and its choices appear beside it.
 closed_empty,res://assets/ui/save/mugs/mug_closed_empty.png,,,,An empty slot: an empty glass. Clicking it shows Play (a new game).
 open_empty,res://assets/ui/save/mugs/mug_open_empty.png,,,,"An empty slot you clicked: its lid opens and Play appears on the glass. Blank = it stays closed."
