@@ -7707,8 +7707,11 @@ no new art per language. Set in **`data/MenuHeader.csv`**:
 | `backing` | the see-through black box behind the sign so it stands out (Anthony 20 Oct): Size = how far it reaches past the sign, Colour's last two digits = how solid |
 | `padding` | X = where the writing space ends in the right piece, Y = the gap kept at both ends of the board |
 
-The words come from `data/Language.csv` (`choose_a_save`). Any screen can use
-it: `SignHeader.make(words)` in code.
+The words come from `data/Language.csv` (`choose_a_save`, and `settings` on the
+Settings screen, which uses the same sign since 20 Oct 2026 instead of its old
+written title; its page and dark box start below the sign). Any screen can use
+it: `SignHeader.make(words)` in code. `tools/settings_bare_shot.gd` photographs
+the Settings background on its own.
 
 The three mugs ARE the save files, set in **`data/SaveMugs.csv`**:
 

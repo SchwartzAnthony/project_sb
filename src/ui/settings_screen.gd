@@ -36,6 +36,9 @@ const Look := preload("res://src/ui/screen_look.gd")
 #  the moment you change them, as they always have.
 # =============================================================
 
+# How much room the page leaves at its top for the hanging sign.
+const SIGN_ROOM := 232
+
 const TABS: Array[String] = ["Keys", "Screen", "Sound", "Colour", "Controller", "Language"]
 
 ## What the screen shows, and what is in effect right now.
@@ -129,12 +132,17 @@ func _build() -> void:
 	margin.add_theme_constant_override("margin_top", 24)
 	margin.add_theme_constant_override("margin_bottom", 24)
 	add_child(margin)
+	add_child(SignHeader.make(Loc.text("settings", "Settings").to_upper()))
 
 	var page := VBoxContainer.new()
 	page.add_theme_constant_override("separation", 14)
 	margin.add_child(page)
 
-	page.add_child(MenuSupport.heading("SETTINGS", 34, MenuSupport.COLOUR_ACCENT))
+	# 20 Oct 2026 (Anthony): the screen's name is on the hanging tavern sign,
+	# like the save screen, so the page starts below it.
+	var under_sign := Control.new()
+	under_sign.custom_minimum_size = Vector2(0, SIGN_ROOM)
+	page.add_child(under_sign)
 
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", 8)
