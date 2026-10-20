@@ -52,6 +52,7 @@ var _settled: bool = false
 var _tab: String = "Keys"
 var _tab_buttons: Dictionary = {}
 var _body: VBoxContainer
+var _title: Label
 var _note: Label
 
 ## The action waiting for a key press, or "" when nothing is.
@@ -132,21 +133,44 @@ func _build() -> void:
 	add_child(margin)
 	add_child(SignHeader.make(Loc.text("settings", "Settings").to_upper()))
 
-	var page := VBoxContainer.new()
-	page.add_theme_constant_override("separation", 14)
-	margin.add_child(page)
+	# ANTHONY 20 OCT 2026 (his picture of a game's settings): the tabs are a
+	# list down the left with Back and Save under them, and the chosen tab's
+	# settings sit in one panel on the right, one short line each.
+	var split := HBoxContainer.new()
+	split.add_theme_constant_override("separation", int(MenuSupport.tuned("settings_column_gap", 30.0)))
+	margin.add_child(split)
 
-
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 8)
-	page.add_child(tabs)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 10)
+	column.custom_minimum_size = Vector2(MenuSupport.tuned("settings_tab_width", 300.0), 0)
+	split.add_child(column)
 
 	for name_text in TABS:
 		var button := MenuSupport.icon_button(
-			"", name_text, Vector2(210, 52))
+			"", name_text, Vector2(MenuSupport.tuned("settings_tab_width", 300.0), 56))
 		button.pressed.connect(_show_tab.bind(name_text))
-		tabs.add_child(button)
+		column.add_child(button)
 		_tab_buttons[name_text] = button
+
+	var gap := Control.new()
+	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(gap)
+
+	var back := MenuSupport.icon_button("back|←", "Back", Vector2(MenuSupport.tuned("settings_tab_width", 300.0), 54))
+	back.pressed.connect(_leave)
+	column.add_child(back)
+
+	_save_button = MenuSupport.icon_button("save|✓", "Save", Vector2(MenuSupport.tuned("settings_tab_width", 300.0), 54))
+	_save_button.pressed.connect(_save)
+	column.add_child(_save_button)
+
+	var page := VBoxContainer.new()
+	page.add_theme_constant_override("separation", 12)
+	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	split.add_child(page)
+
+	_title = MenuSupport.heading("", _fs(24), MenuSupport.COLOUR_ACCENT)
+	page.add_child(_title)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -155,20 +179,12 @@ func _build() -> void:
 
 	_body = VBoxContainer.new()
 	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_body.add_theme_constant_override("separation", 10)
+	_body.add_theme_constant_override("separation", 6)
 	scroll.add_child(_body)
 
 	var footer := HBoxContainer.new()
 	footer.add_theme_constant_override("separation", 12)
 	page.add_child(footer)
-
-	var back := MenuSupport.icon_button("back|←", "Back", Vector2(170, 54))
-	back.pressed.connect(_leave)
-	footer.add_child(back)
-
-	_save_button = MenuSupport.icon_button("save|✓", "Save", Vector2(170, 54))
-	_save_button.pressed.connect(_save)
-	footer.add_child(_save_button)
 
 	_note = Label.new()
 	_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -196,12 +212,14 @@ func _show_tab(name_text: String) -> void:
 	_listening = ""
 	if get_tree() != null:
 		get_tree().set_meta(TAB_KEY, name_text)
+	# The chosen tab is bright, the others dimmed (the plank stays the same).
+	var dim := MenuSupport.tuned("settings_tab_dim", 0.55)
 	for key in _tab_buttons.keys():
 		var button := _tab_buttons[key] as Button
 		var lit := String(key) == name_text
-		button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
-			MenuSupport.COLOUR_SLOT_EMPTY if lit else MenuSupport.COLOUR_PANEL,
-			MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT_DIM))
+		button.modulate = Color(1, 1, 1) if lit else Color(dim, dim, dim)
+	if _title != null:
+		_title.text = name_text.to_upper()
 	_rebuild()
 
 
@@ -220,6 +238,7 @@ func _repaint() -> void:
 			continue
 		child.queue_free()
 	_tab_buttons.clear()
+	_title = null
 	_body = null
 	_note = null
 	_save_button = null
@@ -501,7 +520,7 @@ func _build_language() -> void:
 func _row() -> HBoxContainer:
 	var frame := HBoxContainer.new()
 	frame.add_theme_constant_override("separation", 10)
-	frame.custom_minimum_size = Vector2(0, 52)
+	frame.custom_minimum_size = Vector2(0, 50)
 	return frame
 
 
@@ -520,77 +539,94 @@ func _choice_row(label_text: String, key: String, choices: Array,
 		zero_word: String = "") -> Control:
 	_names[key] = label_text
 	var row := _row()
+	row.add_child(_name_label(label_text))
 
-	var label := Label.new()
-	label.text = label_text
-	label.custom_minimum_size = Vector2(220, 0)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", _fs(16))
-	row.add_child(label)
-
+	# < value >  (Anthony 20 Oct 2026, the layout of his picture): the arrows
+	# step through the same choices the row always had.
 	var now: Variant = settings.get(key, choices[0])
-	for choice in choices:
-		var shown := GameSettings.pretty(str(choice))
+	var at := 0
+	for i in range(choices.size()):
+		if str(choices[i]) == str(now):
+			at = i
+	var shown_of := func(choice: Variant) -> String:
 		if zero_word != "" and str(choice) == "0":
-			shown = zero_word
-		var button := Button.new()
-		button.text = shown
-		button.custom_minimum_size = Vector2(0, 44)
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.focus_mode = Control.FOCUS_NONE
-		var lit := str(now) == str(choice)
-		button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
-			MenuSupport.COLOUR_SLOT_EMPTY if lit else MenuSupport.COLOUR_PANEL,
-			MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT_DIM))
-		button.add_theme_stylebox_override("hover",
-			MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+			return zero_word
+		return GameSettings.pretty(str(choice))
+
+	var value := Label.new()
+	value.text = shown_of.call(choices[at])
+	value.custom_minimum_size = Vector2(MenuSupport.tuned("settings_value_width", 230.0), 0)
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	value.add_theme_font_size_override("font_size", _fs(16))
+	value.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
+
+	for step in [-1, 1]:
+		var button := MenuSupport.icon_button("", "<" if step < 0 else ">", Vector2(60, 44))
+		var to: int = at + int(step)
+		button.disabled = to < 0 or to >= choices.size()
 		button.pressed.connect(func() -> void:
+			var choice: Variant = choices[to]
 			_change(key, choice)
-			_say("%s: %s" % [label_text, shown])
-			# A NEW PALETTE REPAINTS THIS SCREEN IN PLACE.
-			#
-			# It used to reload the whole scene, which had two faults you
-			# spotted: the window resized (because reloading re-applied the
-			# screen settings) and you were dropped back on the first tab.
-			# Rebuilding the screen's own chrome does the same job without
-			# touching the window and without losing your place.
+			_say("%s: %s" % [label_text, shown_of.call(choice)])
+			# A NEW PALETTE REPAINTS THIS SCREEN IN PLACE (it used to reload
+			# the scene, which resized the window and lost your tab).
 			if key == "palette":
 				_repaint()
 				return
 			_rebuild())
-		row.add_child(button)
+		if step < 0:
+			row.add_child(button)
+			row.add_child(value)
+		else:
+			row.add_child(button)
 
 	return row
+
+
+## The setting's name on the left of its line, with room for the rest.
+func _name_label(label_text: String, note: String = "") -> Control:
+	var label := Label.new()
+	label.text = label_text
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", _fs(16))
+	if note == "":
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		return label
+	# A short note under the name, in smaller words.
+	var stack := VBoxContainer.new()
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	stack.add_theme_constant_override("separation", 0)
+	stack.add_child(label)
+	var small := Label.new()
+	small.text = note
+	small.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	small.add_theme_font_size_override("font_size", _fs(12))
+	small.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+	stack.add_child(small)
+	return stack
 
 
 func _switch_row(label_text: String, key: String, note: String) -> Control:
 	_names[key] = label_text
 	var row := _row()
+	row.add_child(_name_label(label_text, note))
 
-	var label := Label.new()
-	label.text = label_text
-	label.custom_minimum_size = Vector2(220, 0)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", _fs(16))
-	row.add_child(label)
-
+	# On / Off side by side, the one in use bright (his picture's layout).
 	var on := bool(settings.get(key, true))
-	var button := MenuSupport.icon_button("",
-		"On" if on else "Off", Vector2(180, 44))
-	button.pressed.connect(func() -> void:
-		_change(key, not on)
-		_say("%s: %s" % [label_text, "on" if not on else "off"])
-		_rebuild())
-	row.add_child(button)
-
-	var hint := Label.new()
-	hint.text = note
-	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint.add_theme_font_size_override("font_size", _fs(13))
-	hint.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	row.add_child(hint)
+	var dim := MenuSupport.tuned("settings_tab_dim", 0.55)
+	for want in [true, false]:
+		var button := MenuSupport.icon_button("", "On" if want else "Off", Vector2(120, 44))
+		var lit: bool = want == on
+		button.modulate = Color(1, 1, 1) if lit else Color(dim, dim, dim)
+		button.pressed.connect(func() -> void:
+			if want == on:
+				return
+			_change(key, want)
+			_say("%s: %s" % [label_text, "on" if want else "off"])
+			_rebuild())
+		row.add_child(button)
 
 	return row
 
@@ -601,7 +637,7 @@ func _slider_row(label_text: String, key: String, fallback: float = 0.8) -> Cont
 
 	var label := Label.new()
 	label.text = label_text
-	label.custom_minimum_size = Vector2(220, 0)
+	label.custom_minimum_size = Vector2(320, 0)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", _fs(16))
 	row.add_child(label)

@@ -7735,6 +7735,8 @@ title screen's Settings are now the **General Settings**
 time the save is opened). Saving General Settings shows the note in
 `Tuning.csv` `general_settings_saved_note`.
 
+**Settings layout (Anthony, 20 Oct 2026, from his picture of another game's settings).** The tabs are a list down the left with Back and Save at its bottom; the chosen tab is bright and the rest dimmed. The tab's settings sit in one panel on the right under the tab's name: a choice is `<  value  >`, an on/off is an On and an Off button (the one not in use dimmed), with any note in small words under the setting's name. Nothing was added or removed, only laid out anew. Sizes: `settings_tab_width`, `settings_column_gap`, `settings_tab_dim`, `settings_value_width` in Tuning.csv; the dark box is the `settings,shade` row of ScreenLook.csv (now only behind the right panel). Photos of every tab: `tools/settings_tabs_shot.gd`.
+
 **Settings page (Anthony, 20 Oct 2026).** No gold icons on its buttons except Back and Save (`MenuSupport.icon_button` with an empty icon); no dark plate behind each line (the screen sets `TextBackdrop.NO_PLATES`, the one dark box behind the page stays); the Keys tab no longer lists the controller button, which the Controller tab shows.
 
 **Save to profile (Anthony, 20 Oct 2026).** Pressing Save in the General
