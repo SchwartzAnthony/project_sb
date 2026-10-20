@@ -4076,6 +4076,36 @@ the **cycle** comes round, meaning every tier has fielded everybody it has.
 So a fight is one long build with a reset in the middle, and "do I spend my
 last Fire now or hold the tier open" is the decision you are actually making.
 
+#### The bar of icons across the top — OFF since 20 Oct 2026
+
+Anthony asked for it gone: the run screen should show the players and the
+enemies. **It is switched off, not deleted.** `adventure_trait_bar` in
+Tuning.csv is `false`; set it back to `true` and the bar returns exactly as it
+was. The pile, the breakpoints and the combos all still work underneath; only
+the picture of them is hidden. The code is `src/adventure/trait_bar.gd`.
+
+What the bar showed, so it can come back:
+
+- **One tile per icon** in AdventureTraits.csv, left to right by `Order`
+  (the eight the run carries). An icon you have none of was still shown,
+  greyed, reading `0/2`.
+- **On each tile:** the picture (the `Icon` of the highest breakpoint
+  reached, so it changed as you climbed; a coloured letter if no file),
+  the name, `have/next` (e.g. `3/4`), then the breakpoint you are on and a
+  short "what it does" (`+4 shot`, `-2 taken`, `+3 hp`, `revive 1`, a spawn
+  name, `5 dmg`). Not reached yet: `at 2:` and the first breakpoint's name.
+- **Three looks:** lit (a breakpoint reached, full colour), previewing (the
+  card under the mouse would move it: bright edge) and grey.
+- **Pointing at a card** in the choice window made the icons that player
+  carries blink, and their count read `2→3`, so you saw a card's worth
+  before clicking. Nothing changed until you clicked.
+- **Tooltip:** the whole ladder for that icon, reached steps ticked, with
+  each breakpoint's Description and `(once)` where it fires once.
+- **Where:** across the top, `adventure_trait_bar_top` 22 px down, clear of
+  the biome name (`adventure_trait_bar_left` 260) and the `carrying` line
+  (`adventure_trait_bar_right` 240); tiles `adventure_trait_tile_width` wide,
+  eight to a line. `adventure_choice_top` (130) keeps the card window under it.
+
 #### `data/AdventureTraits.csv` — what the icons are
 
 | Column | |
@@ -4802,7 +4832,8 @@ juice_slowmo            false stops the slow-motion dips only
 juice_slowmo_depth      0.35 = a third speed. 1.0 = no dip
 juice_flash_strength    how bright a full-screen flash is. 0 = none
 
-adventure_trait_bar     false hides the row of icons (the pile still works)
+adventure_trait_bar     false hides the row of icons (the pile still works).
+                        OFF since 20 Oct 2026, see "The bar of icons across the top"
 adventure_enemy_combos  false and the enemies get no combos at all
 adventure_stretcher     false and the fallen are not carried off
 adventure_buildup       false skips both build-up windows entirely
