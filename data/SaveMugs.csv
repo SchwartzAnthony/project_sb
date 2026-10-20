@@ -3,8 +3,8 @@ closed_full,res://assets/ui/save/mugs/mug_closed_full.png,,,,,"19 Oct 2026 (Anth
 open_full,res://assets/ui/save/mugs/mug_open_full.png,,,,,The save you clicked: its lid flips open and its choices appear beside it.
 closed_empty,res://assets/ui/save/mugs/mug_closed_empty.png,,,,,An empty slot: an empty glass. Clicking it shows Play (a new game).
 open_empty,res://assets/ui/save/mugs/mug_open_empty.png,,,,,An empty slot you clicked: its lid opens and Play appears on the glass. Blank = it stays closed.
-slot,res://assets/menu/button_plank_blue.png,565,950,,#2a5aa8,"Slot 1: X = the middle of the mug, Y = the bottom of the mug, on 1920 x 1080. One row per slot, in order; more slots than rows are not shown. Image = the button plank for this mug's choices, Colour = the coaster under it (Anthony 20 Oct: slot 1 blue, 2 red, 3 green)."
-slot,res://assets/menu/button_plank_red.png,955,950,,#962824,Slot 2.
-slot,res://assets/menu/button_plank_green.png,1345,950,,#2c6046,Slot 3.
+slot,,565,950,,#2a5aa8,"Slot 1: X = the middle of the mug, Y = the bottom of the mug, on 1920 x 1080. One row per slot, in order; more slots than rows are not shown. Image = a button plank for this mug's choices only (blank = the screen's plank in ScreenLook.csv), Colour = the coaster under it (Anthony 20 Oct: slot 1 blue, 2 red, 3 green; all buttons the blue wooden plank)."
+slot,,955,950,,#962824,Slot 2.
+slot,,1345,950,,#2c6046,Slot 3.
 name_text,,,14,22,,"Under each mug: its slot and matches on a coaster in that slot's colour (slot row Colour) with a cream edge. Y = the gap below the mug, Size = the font size."
 menu,,290,215,20,,"The choices of an open mug (Anthony: on the glass, one above the other): Play, Profile Settings, Delete. X = the button width, Y = how far above the mug's bottom their middle sits, Size = the font size."
