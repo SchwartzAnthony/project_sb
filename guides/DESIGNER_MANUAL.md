@@ -7710,7 +7710,9 @@ no new art per language. Set in **`data/MenuHeader.csv`**:
 The words come from `data/Language.csv` (`choose_a_save`, and `settings` on the
 Settings screen, which uses the same sign since 20 Oct 2026 instead of its old
 written title; its page and dark box start below the sign). Any screen can use
-it: `SignHeader.make(words)` in code. `tools/settings_bare_shot.gd` photographs
+it: `SignHeader.make(words)` in code. Since 20 Oct 2026 the Settings background is the
+drawn cellar `assets/ui/settings/drawn/01_cellar.png` (r108/r109, no ceiling beams); the
+pixel barrels and gnome rows in `data/ScreenLook.csv` are still the old ones. `tools/settings_bare_shot.gd` photographs
 the Settings background on its own.
 
 The three mugs ARE the save files, set in **`data/SaveMugs.csv`**:
