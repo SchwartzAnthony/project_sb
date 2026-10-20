@@ -7685,9 +7685,7 @@ r105, redrawn 20 Oct in the same rough hand-drawn style as the mugs at
 Anthony's ask, "the background is now too high definition": one continuous
 long table running into the tent under strings of lights, one bench and table
 on each side, bare tables, green garland at the back, blue-and-white flags;
-the older detailed tents r94-r100 stay in `art_tool/rounds/`). A see-through
-black box sits behind the mugs and their names (`slot,shade` row: X/Y = centre,
-Width/Height = size, Colour's last two digits = how solid; Anthony 20 Oct). The football was taken off (Anthony: "too detailed"). Every button is the drawn plank
+the older detailed tents r94-r100 stay in `art_tool/rounds/`). The football was taken off (Anthony: "too detailed"). Every button is the drawn plank
 from the title screen (`button_plank_drawn.png`, `Scale` 1 = drawn smooth at
 its own size; blank or 2 = a pixel plank drawn at 2x). The old pixel layers
 stay in `assets/ui/save/pixellab/`.
