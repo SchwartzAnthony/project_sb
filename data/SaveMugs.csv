@@ -7,4 +7,4 @@ slot,,565,950,,"Slot 1: X = the middle of the mug, Y = the bottom of the mug, on
 slot,,955,950,,Slot 2.
 slot,,1345,950,,Slot 3.
 name_text,,,14,22,"Under each mug: its slot and matches on a see-through dark backing. Y = the gap below the mug, Size = the font size."
-menu,,230,215,20,"The choices of an open mug (Anthony: on the glass, one above the other): Play, Profile Settings, Delete. X = the button width, Y = how far above the mug's bottom their middle sits, Size = the font size."
+menu,,290,215,20,"The choices of an open mug (Anthony: on the glass, one above the other): Play, Profile Settings, Delete. X = the button width, Y = how far above the mug's bottom their middle sits, Size = the font size."
