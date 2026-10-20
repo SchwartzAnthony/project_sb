@@ -7681,13 +7681,11 @@ at any button size; only its middle stretches.
 **Beer mug save screen (19 Oct 2026, Anthony: "Three different beer mugs
 (that are the save file) large on a table").** The `slot` rows draw a beer
 tent seen from table height, like his photo (`assets/ui/save/mugs/beer_tent.png`,
-r94-r99: one continuous long table running into the tent under strings of
-lights, one bench and table on each side with bare tables (the r100 food was
-taken off at Anthony's ask; that picture stays in `art_tool/rounds/r100`),
-an even green garland at the back, neat flags, the lights' yellow cast taken
-out for free; the roof's green canvas evened out to flat panels for free
-(`art_tool/save_screen/roof.py`); `beer_tent_no_food.png` is the r99 picture
-before that). The football was taken off (Anthony: "too detailed"). Every button is the drawn plank
+r105, redrawn 20 Oct in the same rough hand-drawn style as the mugs at
+Anthony's ask, "the background is now too high definition": one continuous
+long table running into the tent under strings of lights, one bench and table
+on each side, bare tables, green garland at the back, blue-and-white flags;
+the older detailed tents r94-r100 stay in `art_tool/rounds/`). The football was taken off (Anthony: "too detailed"). Every button is the drawn plank
 from the title screen (`button_plank_drawn.png`, `Scale` 1 = drawn smooth at
 its own size; blank or 2 = a pixel plank drawn at 2x). The old pixel layers
 stay in `assets/ui/save/pixellab/`.
