@@ -65,9 +65,6 @@ func _build() -> void:
 	margin.add_child(page)
 
 	page.add_child(MenuSupport.heading("CHOOSE A SAVE", 34, MenuSupport.COLOUR_ACCENT))
-	page.add_child(MenuSupport.heading(
-		"Each mug is its own game: its own progress, its own teams and its own settings. Click one.",
-		18, MenuSupport.COLOUR_TEXT_DIM))
 
 	var gap := Control.new()
 	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
