@@ -7686,7 +7686,7 @@ Anthony's ask, "the background is now too high definition": one continuous
 long table running into the tent under strings of lights, one bench and table
 on each side, bare tables, green garland at the back, blue-and-white flags;
 the older detailed tents r94-r100 stay in `art_tool/rounds/`). The football was taken off (Anthony: "too detailed"). Every button is the drawn plank
-from the title screen (`button_plank_drawn.png`, `Scale` 1 = drawn smooth at
+from the title screen, navy blue since 20 Oct 2026 with the blue-and-white edge, on every menu (`button_plank_drawn.png`, `Scale` 1 = drawn smooth at
 its own size; blank or 2 = a pixel plank drawn at 2x). The old pixel layers
 stay in `assets/ui/save/pixellab/`.
 
