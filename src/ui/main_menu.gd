@@ -472,10 +472,10 @@ func _make_button(label: String, art_path: String, box: Vector2, label_on_art: b
 				box_style.modulate_color = states[state]
 				button.add_theme_stylebox_override(state, box_style)
 			button.add_theme_font_size_override("font_size", 26)
-			button.add_theme_color_override("font_color", Color("f6ead0"))
+			button.add_theme_color_override("font_color", Color("ffffff"))
 			button.add_theme_color_override("font_hover_color", Color("ffd36a"))
 			button.add_theme_color_override("font_focus_color", Color("ffd36a"))
-			button.add_theme_color_override("font_pressed_color", Color("e8d7b0"))
+			button.add_theme_color_override("font_pressed_color", Color("dddddd"))
 			button.add_theme_color_override("font_outline_color", Color("2a1608"))
 			button.add_theme_constant_override("outline_size", 7)
 			button.texture_filter = _menu_filter()

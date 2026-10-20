@@ -7139,7 +7139,7 @@ One row per thing on it. No file, no rows: it looks as it did before.
 
 | column | |
 |---|---|
-| `Part` | `background` (the wallpaper — the first row wins), `layer` (a whole-screen picture drawn like the wallpaper, stacked in row order — round AN), `title` (the big word), `picture` (anything standing on it — any number of rows), `shade` (a see-through dark box: `Text` = its colour like `#140c06a8`, `X`/`Y` = centre, `Width`/`Height` = size; 19 Oct, the one behind the buttons inside the notice board) |
+| `Part` | `background` (the wallpaper — the first row wins), `layer` (a whole-screen picture drawn like the wallpaper, stacked in row order — round AN), `title` (the big word), `picture` (anything standing on it — any number of rows), `shade` (a see-through dark box: `Text` = its colour like `#140c06a8`, `X`/`Y` = centre, `Width`/`Height` = size; 19 Oct; the one behind the title buttons was removed 20 Oct, when Anthony made the notice board's panel plain white) |
 | `Image` | the file. A picture may be a **strip**: `Frames` pictures side by side, all the same width |
 | `Text` | the title's word (`STURMBALL`) |
 | `X`, `Y` | the **centre**, on a 1920 × 1080 screen |
@@ -7671,7 +7671,7 @@ front), all **behind** the screen's own buttons and text:
 | `X`, `Y` | the centre, on 1920 × 1080 |
 | `Width`, `Height` | blank = the picture's pixels × `Scale` |
 | `Scale`, `Flip` | as in `MainMenu.csv`: 2 for every layer; `yes` mirrors it |
-| `Colour` | shade: `#RRGGBBAA`, where the last two digits are how solid it is (00–ff). Button: the text colour |
+| `Colour` | shade: `#RRGGBBAA`, where the last two digits are how solid it is (00–ff). Button: the text colour (white `#ffffff` on every menu since 20 Oct 2026, Anthony; the title buttons are white too) |
 | `Hover Sound`, `Press Sound`, `Back Sound` | `Audio.csv` rows. Buttons that say Back, Close, Quit or Cancel play the Back Sound |
 
 Plain buttons become planks. Tick boxes, sliders and drop-downs keep their
