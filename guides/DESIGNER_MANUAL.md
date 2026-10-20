@@ -4417,6 +4417,21 @@ fuses the layers into `assets/base/background.png` and writes
 `art_source/aseprite/base_town.aseprite` with **every part on its own layer**,
 for editing in Aseprite.
 
+**The village base (20 Oct 2026).** Tuning `base_background` picks the
+picture behind the base: `village` = the drawn Bavarian village
+(`assets/base/village.png`), `background` = the old bird's-eye town map.
+On the village, a building with Buildings.csv `Village Art` is part of the
+picture: its cut-out in `assets/base/map/` is exactly the size of the village
+picture and see-through everywhere but the building, so it lies over the
+background in the same place on any screen. Only the building takes the
+click (not the sky, trees or bushes in front). `<Village Art>_hover.png`, if
+there, is shown while the mouse is on it: the building brighter with a warm
+golden glow that goes only into the sky. **The church with the copper kettle
+is the Brewery** (`brewery_church`). The other buildings keep their old
+bird's-eye pictures at their old spots until each is drawn for the village.
+Cut-outs are made by `art_tool/base/brewery_hover/make_game_pieces.py`.
+Check it with `tools/village_brewery_shot.gd`.
+
 **The buildings are pictures on the map, and the picture is the button.**
 Buildings.csv `Map Art` names a picture in `assets/base/map/` (PixelLab, the
 same bird's-eye view as the map); `Map Size` is how big it is drawn,

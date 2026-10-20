@@ -178,6 +178,9 @@ func _load_csv(path: String) -> void:
 			entry["map_art"] = _cell(row, columns, "mapart")
 			entry["map_size"] = _cell(row, columns, "mapsize")
 			entry["name_offset"] = _cell(row, columns, "nameoffset")
+			# The building as part of the village picture (Tuning
+			# base_background = village): a cut-out the size of that picture.
+			entry["village_art"] = _cell(row, columns, "villageart")
 			entry["sound"] = _cell(row, columns, "sound")
 			entry["door_sound"] = _cell(row, columns, "doorsound")
 			buildings.append(entry)

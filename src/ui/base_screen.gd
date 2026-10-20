@@ -56,6 +56,8 @@ var steps: Progression
 
 var _world: Control
 var _detail: Label
+## Which picture is behind the base (Tuning `base_background`).
+var _background := "background"
 
 
 func _ready() -> void:
@@ -128,14 +130,22 @@ func _build_chrome() -> void:
 	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(fill)
 
-	var art := _find_texture("background", BACKGROUND_DIRS)
+	# `base_background` in Tuning.csv: "background" is the town map,
+	# "village" the eye-level village (its buildings use Village Art).
+	_background = db.tune_text("base_background", "background").strip_edges()
+	var art := _find_texture(_background, BACKGROUND_DIRS)
+	if art == null:
+		_background = "background"
+		art = _find_texture(_background, BACKGROUND_DIRS)
 	if art != null:
 		var backdrop := TextureRect.new()
 		backdrop.texture = art
 		backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		backdrop.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		# The pixel town map stays crisp; the drawn village is smoothed.
+		backdrop.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST \
+			if _background == "background" else CanvasItem.TEXTURE_FILTER_LINEAR
 		backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(backdrop)
 
@@ -446,7 +456,7 @@ func _rebuild() -> void:
 	for entry in base.buildings_for(state):
 		var plaque := _make_building(entry)
 		_world.add_child(plaque)
-		_taken.append(Rect2(plaque.position, plaque.size))
+		_taken.append(plaque.get_meta("taken", Rect2(plaque.position, plaque.size)))
 
 	# ============ AND THEN THE VISITORS, INTO WHATEVER IS LEFT ============
 	#
@@ -626,6 +636,12 @@ func _make_building(entry: Dictionary) -> Control:
 	var unlocked := bool(entry["unlocked"])
 	var name_text := String(entry["name"])
 
+	# On the village, a building with Village Art is that part of the picture.
+	if _background == "village":
+		var village_art := _find_texture(String(entry.get("village_art", "")), MAP_ART_DIRS)
+		if village_art != null:
+			return _make_village_building(entry, village_art)
+
 	# A building that has its town-map picture IS that picture: no plaque.
 	var map_art := _find_texture(String(entry.get("map_art", "")), MAP_ART_DIRS)
 	if map_art != null:
@@ -740,6 +756,85 @@ func _make_map_building(entry: Dictionary, art: Texture2D) -> Control:
 	# Set here, not by TextBackdrop.give(): that skips words inside a Button,
 	# and this button has no panel of its own to read them on.
 	label.add_theme_stylebox_override("normal", TextBackdrop.plate())
+
+	button.pressed.connect(_on_building.bind(entry))
+	return button
+
+
+## THE BUILDING AS PART OF THE VILLAGE PICTURE (20 Oct 2026, Anthony: the
+## brewery church). Buildings.csv `Village Art` is a cut-out exactly the size
+## of the village background, see-through everywhere but the building, so it
+## lies over the background like the background itself. Only the building's
+## own pixels take the click. `<Village Art>_hover.png` (the building lit up
+## with a golden glow) is shown while the mouse is on it.
+func _make_village_building(entry: Dictionary, art: Texture2D) -> Control:
+	var unlocked := bool(entry["unlocked"])
+	var name_text := String(entry["name"])
+	var area := _world.size
+	if area.x < 2.0 or area.y < 2.0:
+		area = get_viewport_rect().size
+
+	var button := MapBuilding.new()
+	button.covered = true
+	button.use_picture(art)
+	button.tooltip_text = String(entry["description"])
+	var flat := StyleBoxEmpty.new()
+	for look in ["normal", "hover", "pressed", "focus", "disabled"]:
+		button.add_theme_stylebox_override(look, flat)
+	button.position = Vector2.ZERO
+	button.size = area
+
+	var picture := TextureRect.new()
+	picture.texture = art
+	picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	picture.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# At rest it matches the background under the base_map_shade sheet.
+	var dim := 1.0 - clampf(db.tune_float("base_map_shade", 0.30), 0.0, 1.0)
+	var resting := Color(dim, dim, dim, 1.0) if unlocked else Color(0.35, 0.35, 0.40, 1.0)
+	picture.modulate = resting
+	button.add_child(picture)
+	var lit := _find_texture(String(entry["village_art"]) + "_hover", MAP_ART_DIRS)
+	button.mouse_entered.connect(func() -> void:
+		if lit != null and unlocked:
+			picture.texture = lit
+			picture.modulate = Color.WHITE
+		else:
+			picture.modulate = resting * Color(1.25, 1.25, 1.25, 1.0))
+	button.mouse_exited.connect(func() -> void:
+		picture.texture = art
+		picture.modulate = resting)
+
+	# Where the building is on screen: its drawn pixels, mapped the way the
+	# background is drawn (covered, centred).
+	var used := Rect2(button.get_mask_used_rect())
+	var picture_size := Vector2(art.get_size())
+	var scale := maxf(area.x / picture_size.x, area.y / picture_size.y)
+	var offset := (area - picture_size * scale) * 0.5
+	var on_screen := Rect2(offset + used.position * scale, used.size * scale)
+	button.set_meta("taken", on_screen)
+
+	var label := Label.new()
+	label.text = name_text if unlocked else name_text + "  (locked)"
+	label.add_theme_font_size_override("font_size", 15)
+	label.add_theme_color_override("font_color",
+		MenuSupport.COLOUR_TEXT if unlocked else MenuSupport.COLOUR_TEXT_DIM)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_stylebox_override("normal", TextBackdrop.plate())
+	button.add_child(label)
+	# Under the building's middle, nudged by Buildings.csv `Name Offset`.
+	var at := Vector2(on_screen.get_center().x, on_screen.end.y)
+	var nudge := String(entry.get("name_offset", "")).split(",")
+	if nudge.size() == 2 and nudge[0].strip_edges().is_valid_float() \
+			and nudge[1].strip_edges().is_valid_float():
+		at += Vector2(float(nudge[0]), float(nudge[1]))
+	at.y = minf(at.y, area.y - 140.0)
+	var centre_label := func() -> void:
+		label.position = at - Vector2(label.size.x * 0.5, label.size.y)
+	label.resized.connect(centre_label)
+	centre_label.call()
 
 	button.pressed.connect(_on_building.bind(entry))
 	return button
