@@ -4348,6 +4348,12 @@ have on a bottle cap. Rows in `data/CardFace.csv`:
 | `inventory_columns` | coasters in a row |
 | `inventory_text_size` | the size of the words |
 
+**Long words scroll (23 Oct 2026).** When a description does not fit the
+info box (the Kleiner Faß did not), the box scrolls instead of growing: mouse
+wheel, a drag, or the thin ink bar on its right, which only shows when it is
+needed. Pointing at another thing starts its words at the top again. Check:
+`tools/info_scroll_shot.gd`.
+
 | Tab | What goes on it |
 |---|---|
 | **Items** | things you **use** — brews, bandages, smelling salts. **The only clickable tab** |
