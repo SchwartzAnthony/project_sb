@@ -3156,8 +3156,8 @@ size on both sides:
   over). Click again: the Ultimate side. Click again: it shuts.
 - **The symbol** is the picture named in the `Emblem` column of the
   `<Class> Emblems.csv` files (for example `Gremory_Emblem.png`), put in
-  `assets/icons/`. Gremory's rose is drawn (r188); an Emblem with no picture
-  shows its first letter.
+  `assets/icons/`. All 12 are drawn (r188 rose, r189 the other 11); an Emblem
+  with no picture shows its first letter.
 
 `data/CardFace.csv` rows `emblem_template` (false = the old dark boxes),
 `emblem_size`, `emblem_left_top`, `emblem_right_top`, `emblem_pentagon`,
