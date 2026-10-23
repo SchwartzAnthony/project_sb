@@ -326,8 +326,20 @@ static func apply(tree: SceneTree, force: bool = false) -> void:
 #  so it fills the right monitor on a two-monitor desk.
 # =============================================================
 
+## The window settings last put into effect. Opening a save re-applies its
+## settings; when its window settings are the same as the ones already in
+## effect the window is left alone (Anthony 23 Oct 2026: "The screen shrunk
+## when I started a new game" - every new save re-made the window).
+static var _screen_applied := ""
+
+
 static func _apply_screen(settings: Dictionary) -> void:
 	var wanted := String(settings.get("screen_mode", "windowed"))
+	var signature := "%s|%s|%s|%s" % [wanted, settings.get("resolution", ""),
+		settings.get("vsync", true), settings.get("max_fps", 0)]
+	if signature == _screen_applied:
+		return
+	_screen_applied = signature
 
 	# ---- one known starting point ----
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
@@ -348,6 +360,13 @@ static func _apply_screen(settings: Dictionary) -> void:
 			DisplayServer.window_set_position(corner)
 		_:
 			var box2 := size_from_text(String(settings.get("resolution", "1920x1080")))
+			# Never bigger than the screen it is on (the Steam Deck's screen
+			# is 1280 x 800, smaller than the 1920 x 1080 the game starts at).
+			var fits := DisplayServer.screen_get_usable_rect(
+				DisplayServer.window_get_current_screen()).size
+			if fits.x > 0 and fits.y > 0 and (box2.x > fits.x or box2.y > fits.y):
+				var by := minf(float(fits.x) / float(box2.x), float(fits.y) / float(box2.y))
+				box2 = Vector2i(int(box2.x * by), int(box2.y * by))
 			if box2.x > 0 and box2.y > 0:
 				DisplayServer.window_set_size(box2)
 			# CENTRED. Coming back from fullscreen leaves the window wherever
