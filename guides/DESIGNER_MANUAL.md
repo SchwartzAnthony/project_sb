@@ -595,6 +595,12 @@ on a blue-white diamond ribbon, the power in a round cap at the right end.
 
 ## 6c. The beer mat card — how every player card looks (23 Oct 2026)
 
+**Twice as big (23 Oct 2026, Anthony).** The cards you pick from in a match
+are 440 x 580 (Tuning.csv `card_width` / `card_height`, were 220 x 290).
+The Head Coach in the on-field talk box is cut to his drawing and drawn
+`match_talk_portrait_height` (212) tall, so his hair sits just under the
+box's top edge.
+
 Every player card (the match pick, the team builder, the Adventure fight) is
 a worn Bavarian beer mat. You chose it from your collector card photo.
 
@@ -4305,6 +4311,14 @@ used, rather than hiding it or letting it do nothing.
 Drops: `Table`, `Item`, `Amount`, `Chance` (0–1), `Requires`. One table is
 several rows sharing a `Table` name.
 
+### QUESTION WINDOWS (23 Oct 2026)
+
+Every question the game asks (the Tutorial offer on a new game, spend this,
+pick that) opens in the inventory's look: the cream beer mat panel, the
+title on the wooden board (no bar, no chains), ink words and blue wooden
+plank buttons. `data/CardFace.csv` `choice_style` (`old` = the old dark
+window) and `choice_header_lift` (how far above the window the board sits).
+
 ### THE INVENTORY — one bag, three tabs
 
 The same window opens from the base, the Bounty Board, an Adventure fight and
@@ -7245,6 +7259,17 @@ helper adds a node for you, say so in a comment above it, in capitals.
 ## 16b. The title screen, sounds and music (round AI)
 
 ### `data/MainMenu.csv` — what the title screen looks like
+
+**23 Oct 2026: the title screen shows the new village** (the base picture,
+softened by `art_tool/menu/village_title/soften.py`, file
+`assets/menu/village/title_village_soft.png`). The maypole, ribbon and cloud
+rows are gone. The sign, the button board and the bird stay.
+
+**The window and a save (23 Oct 2026).** Opening a save puts its own
+settings into effect, but the window is only re-made when its screen
+settings (mode, resolution, vsync, frame cap) differ from the ones already
+in use, and a windowed size never grows past the screen (the Steam Deck's
+screen is 1280 x 800).
 
 **Drawn title screen (18 Oct 2026)** (Anthony: "redo the main Menu so that it
 isn't pixel art"). The village, the two ribbon bunches, the notice board and
