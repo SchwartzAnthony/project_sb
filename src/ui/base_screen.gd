@@ -166,15 +166,10 @@ func _build_chrome() -> void:
 	_world.resized.connect(_rebuild)
 
 	var in_tutorial := TutorialBase.active(get_tree())
-	var title := MenuSupport.heading(
-		"TUTORIAL BASE" if in_tutorial else "THE BASE",
-		34, MenuSupport.COLOUR_ACCENT)
-	# Only as wide as its words, so its see-through plate (TextBackdrop)
-	# hugs the title instead of running across the town map.
-	title.position = Vector2(40.0, 26.0)
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(title)
-	TextBackdrop.give(title)
+	# 23 Oct 2026 (Anthony): the name hangs on the tavern sign like every
+	# other screen's (data/MenuHeader.csv).
+	add_child(SignHeader.make(Loc.text("tutorial_base", "TUTORIAL BASE") if in_tutorial
+		else Loc.text("the_base", "THE BASE")))
 
 	# The line that explains whatever you last clicked.
 	# Centred at the bottom and only as wide as its words, on a see-through

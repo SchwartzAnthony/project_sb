@@ -1,4 +1,5 @@
 Scene,Node ID,Speaker,Portrait,Side,Mood,View,Animation,Background,Music,Sound,Text,Next,Requires,Effects,Choice 1 Text,Choice 1 Next,Choice 1 Requires,Choice 1 Effects,Choice 2 Text,Choice 2 Next,Choice 2 Requires,Choice 2 Effects,Choice 3 Text,Choice 3 Next,Choice 3 Requires,Choice 3 Effects
+tut-base-welcome,welcome,Head Coach,coach,left,happy,,,village,,,"Ah Coach! You are here, glad you could make it",prologue/open,,,,,,,,,,,,,,
 prologue,open,,,,,,,bar,,,Three players wait at the Stammtisch.,,,,,,,,,,,,,,,
 prologue,servus,Head Coach,coach,left,happy,,,,,,"Servus, Trainer! Sit down.",,,,,,,,,,,,,,,
 prologue,put_down,Head Coach,coach,left,mad,side,,,,,"Put that down, Koch! You should already be drunk enough!",,,,,,,,,,,,,,,

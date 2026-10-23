@@ -11,6 +11,7 @@ extends SceneTree
 # =============================================================
 
 const SHOTS := [
+	["tut-base-welcome", "welcome"],
 	["prologue", "open"],
 	["prologue", "servus"],
 	["prologue", "still_cold"],

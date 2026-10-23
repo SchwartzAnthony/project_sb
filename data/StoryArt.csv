@@ -35,6 +35,7 @@ merchant,portrait,The Traveling Merchant,,front,res://assets/story/portraits/mer
 merchant,portrait,,,side,res://assets/story/portraits/merchant_side.png,left,,,ROUND AN. Talking to someone in the scene. Drawn looking LEFT.
 bar,background,,,,res://assets/story/backgrounds/bar_room.png,,,,"ROUND AN. THE BAR, layer 1 (back): the inside of the Wirtshaus. Rows with the same ID are stacked, first row at the back. Layered file: art_source/aseprite/story/bar.aseprite"
 bar,background,,,,res://assets/story/backgrounds/bar_regulars.png,,,,ROUND AN. The bar layer 2: the regulars at the Stammtisch. Delete this row for an empty pub.
+village,background,,,,res://assets/base/village.png,,,,"23 Oct 2026 (Anthony). The village base picture as a story background: the Tutorial now opens here (Dialogue.csv tut-base-welcome)."
 brewery,background,,,,res://assets/story/backgrounds/brewery_room.png,,,,"ROUND AN. THE BREWERY, layer 1 (back): the empty brewhouse, white walls and timber beams (your pick: draft 3). Also the picture behind the Brewery screen on the base (Tuning.csv brewery_background). Layered file: art_source/aseprite/story/brewery.aseprite"
 brewery,background,,,,res://assets/story/backgrounds/brewery_equipment.png,,,,"ROUND AN. The brewery layer 2: copper kettle, gauges, mash tun and the tall silo with its ladder (the equipment from draft 4)."
 brewery,background,,,,res://assets/story/backgrounds/brewery_barrels.png,,,,ROUND AN. The brewery layer 3: barrels and hop sacks. Delete this row for a tidier floor.
