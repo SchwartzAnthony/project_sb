@@ -4313,6 +4313,25 @@ you have in the corner, and pointing at one writes what it is in the panel
 underneath. Nothing is labelled, because forty labelled tiles is a wall of
 words and forty pictures is a bag.
 
+**The beer mat look (23 Oct 2026, Anthony picked mock-up A).** The window is
+the cream panel of the beer mat cards. INVENTORY is written on the wooden
+sign board alone, with no iron bar and no chains (`data/MenuHeaderBoard.csv`,
+pieces `assets/ui/header/board_*.png` cut out by
+`art_tool/menu/board_only.py`). The tabs and Close are the blue wooden
+planks. Every thing lies on a round Bavarian beer coaster, with how many you
+have on a bottle cap. Rows in `data/CardFace.csv`:
+
+| Row | What it does |
+|---|---|
+| `inventory_style` | `mat` = this look; `old` = the old dark window |
+| `inventory_window` | the window's width,height |
+| `inventory_edge` | how much of the panel's drawn edge stays unstretched |
+| `inventory_header_lift` | how far above the window the board sits |
+| `inventory_coaster` | how wide a coaster is |
+| `inventory_icon` | how big the picture is on its coaster |
+| `inventory_columns` | coasters in a row |
+| `inventory_text_size` | the size of the words |
+
 | Tab | What goes on it |
 |---|---|
 | **Items** | things you **use** — brews, bandages, smelling salts. **The only clickable tab** |

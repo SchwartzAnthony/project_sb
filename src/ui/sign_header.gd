@@ -41,17 +41,19 @@ var _auras: Array[TextureRect] = []
 var _edges: Array[Label] = []
 
 
-## A header for the screen, with this text on the board.
-static func make(words: String) -> SignHeader:
+## A header for the screen, with this text on the board. `sheet` picks
+## another set of pieces: data/MenuHeaderBoard.csv is the board alone, with
+## no iron bar and no chains (Anthony 23 Oct 2026, for the inventory).
+static func make(words: String, sheet: String = SHEET) -> SignHeader:
 	var sign := SignHeader.new()
 	sign.name = "SignHeader"
-	sign._read()
+	sign._read(sheet)
 	sign._build(words)
 	return sign
 
 
-func _read() -> void:
-	for row in MenuSupport.read_csv(SHEET):
+func _read(sheet: String = SHEET) -> void:
+	for row in MenuSupport.read_csv(sheet):
 		var part := MenuSupport.field(row, "Part").strip_edges().to_lower()
 		match part:
 			"left", "middle", "right":
@@ -165,7 +167,8 @@ func _layout() -> void:
 	for i in range(3):
 		var piece: TextureRect = _rects[i]
 		piece.position = Vector2(x * scale_by, 0)
-		piece.size = Vector2(float(widths[i]) * scale_by, _height)
+		# One pixel of overlap, so no see-through hairline shows at a seam.
+		piece.size = Vector2(float(widths[i]) * scale_by + (1.0 if i < 2 else 0.0), _height)
 		x += float(widths[i])
 	var start := _text_start * scale_by
 	var finish := (left.get_width() + middle_width + _text_end) * scale_by
