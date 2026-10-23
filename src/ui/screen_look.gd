@@ -21,7 +21,9 @@ extends RefCounted
 #             shade        a see-through dark box (Colour) behind the menu
 #             margin       Width = how far the screen's content sits in from
 #                          the left and right edges, Height = from the top
-#                          and bottom, so the painted layers show round it
+#                          and bottom, so the painted layers show round it.
+#                          X / Y filled = the left / top on their own
+#                          (Width is then the right, Height the bottom)
 #             button       how EVERY button looks: Image = the plank,
 #                          Colour = the text colour, and the three sounds
 #    Image    the picture (res://...)
@@ -69,15 +71,18 @@ static func install(screen: Control, screen_id: String) -> void:
 			"margin":
 				# Pull the screen's content in from the edges so the painted
 				# layers show round it: Width = left and right, Height = top
-				# and bottom, in pixels.
+				# and bottom, in pixels. X / Y, when filled, are the left and
+				# top on their own (then Width = right, Height = bottom).
 				for box in screen.get_children():
 					if box is MarginContainer:
 						var side := MenuSupport.field_float(row, "Width", 40.0)
 						var top := MenuSupport.field_float(row, "Height", 24.0)
-						for key in ["margin_left", "margin_right"]:
-							(box as MarginContainer).add_theme_constant_override(key, int(side))
-						for key in ["margin_top", "margin_bottom"]:
-							(box as MarginContainer).add_theme_constant_override(key, int(top))
+						var left := MenuSupport.field_float(row, "X", side)
+						var high := MenuSupport.field_float(row, "Y", top)
+						var edges := {"margin_left": left, "margin_right": side,
+							"margin_top": high, "margin_bottom": top}
+						for key in edges:
+							(box as MarginContainer).add_theme_constant_override(key, int(edges[key]))
 			_:
 				print("[look] ScreenLook.csv: Part '%s' is not background, picture, shade, margin or button." % part)
 		if node != null:
@@ -179,12 +184,15 @@ static func _dress(button: Button, row: Dictionary) -> void:
 
 	var plank := picture(MenuSupport.field(row, "Image").strip_edges())
 	if plank != null:
-		# The plank is pixel art: draw it at 2x and keep its corners, stretch
-		# only its middle, so it fits a button of any size.
+		# Keep the plank's corners, stretch only its middle, so it fits a
+		# button of any size. Scale = how big its pixels are drawn (blank = 2,
+		# for pixel planks); a drawn plank uses 1 and is drawn smooth.
+		var plank_scale := MenuSupport.field_float(row, "Scale", 2.0)
 		var big := plank.get_image()
 		if big != null:
 			big = big.duplicate()
-			big.resize(big.get_width() * 2, big.get_height() * 2, Image.INTERPOLATE_NEAREST)
+			if plank_scale != 1.0:
+				big.resize(int(big.get_width() * plank_scale), int(big.get_height() * plank_scale), Image.INTERPOLATE_NEAREST)
 			var tex := ImageTexture.create_from_image(big)
 			var edge := float(big.get_height()) * 0.32
 			var looks := {"normal": Color(1, 1, 1), "hover": Color(1.2, 1.14, 1.02),
@@ -197,9 +205,13 @@ static func _dress(button: Button, row: Dictionary) -> void:
 				style.texture_margin_right = edge
 				style.texture_margin_top = edge
 				style.texture_margin_bottom = edge
+				# A long button (Anthony 20 Oct 2026, "Put every key back")
+				# repeats the plank's middle instead of pulling it wide, so the
+				# stitching and the grain stay their drawn size.
+				style.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_TILE_FIT
 				style.modulate_color = looks[state]
 				button.add_theme_stylebox_override(state, style)
-			button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if plank_scale != 1.0 else CanvasItem.TEXTURE_FILTER_LINEAR
 		# The icon half of a two-part button gets no box of its own on wood.
 		for part in button.find_children("*", "PanelContainer", true, false):
 			(part as PanelContainer).add_theme_stylebox_override("panel", StyleBoxEmpty.new())

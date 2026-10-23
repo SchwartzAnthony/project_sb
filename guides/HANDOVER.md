@@ -199,10 +199,9 @@ which set answers for which Star, and the code no longer assumes they share a
 name. Emblem rows are named `"Gremory's Emblem"`; the code finds them by
 either name (`ClassEntry.aliases`). **Never make him rename.**
 
-Also present: `Normal` (BasicTeam, Stars Tier IV), `Rivals` (locked), and
-**`Brandteufel`** in `example_unit_csv_with_ability_columns.csv`. Brandteufel
-is probably the retired ancestor of Rauhnacht-Feuergeister. **Unresolved —
-ask him.**
+Also present: `Normal` (BasicTeam, Stars Tier IV) and `Rivals` (locked).
+**Brandteufel is gone** (Anthony, 18 Oct 2026): its five league sides play as
+Rauhnacht-Feuergeister, and Heatwave is just "Heatwave".
 
 ---
 
@@ -336,7 +335,6 @@ Fonts fail offline, which is fine.
   file (`SOUNDS_WANTED.csv`). Four buildings have no art. `recovery` is OFF on
   purpose (needs six players per tier).
 - `data/tutorial/*.translation` — delete them.
-- Brandteufel: is it still a class?
 
 ---
 

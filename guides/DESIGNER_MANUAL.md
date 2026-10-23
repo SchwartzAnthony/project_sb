@@ -470,7 +470,7 @@ add with the same columns.**
 | `Attack` / `Defend` | the printed card text. Flavour, not rules |
 | `Artwork` | a file in `assets/`. The whole spritesheet; `Animations.csv` says how to slice it |
 | `Level`, `Stufe`, `Tool`, `Card Number`, `Card Date`, `Set Name`, `Created by` | card-collection metadata |
-| `Attack Ability` / `Defend Ability` | **optional.** An ID from Abilities.csv. See `example_unit_csv_with_ability_columns.csv` |
+| `Attack Ability` / `Defend Ability` | **optional.** An ID from Abilities.csv. See `BasicTeam.csv` |
 
 **`data/ClassInfo.csv`** declares which classes exist:
 
@@ -585,6 +585,46 @@ tier and power), and `names_held` — the list `NameBook` checks before it
 hands a name out. Code: `src/core/name_book.gd`, `src/core/recruit_book.gd`.
 
 ---
+
+### The name under each player: the Bavarian ribbon (23 Oct 2026)
+
+You picked idea D: the Tier in small letters on top, the name in a cream box
+on a blue-white diamond ribbon, the power in a round cap at the right end.
+`data/CardFace.csv` `plate_style` (`ribbon` or `dark` for the old window),
+`plate_blue`. The code is `src/units/name_plate.gd`.
+
+## 6c. The beer mat card — how every player card looks (23 Oct 2026)
+
+Every player card (the match pick, the team builder, the Adventure fight) is
+a worn Bavarian beer mat. You chose it from your collector card photo.
+
+- The player **runs in the window**, the same run he does on the pitch
+  (his own pitch sheet from `data/PitchSprites.csv`, looping). A player with
+  no pitch sheet shows his old portrait there.
+- His **name** is in the cream centre panel, centred. No signature (23 Oct).
+- The **wooden plank** at the bottom says **ITEMS**. In the match it is the
+  button that opens the item bag for that player (it used to be the flask
+  icon). On other screens the plank is empty.
+- A small **Tier window** at the top centre says TIER I to TIER IV.
+- The **number** in the bottle cap is his power (`cap_number`).
+- The Star mark sits top right in the window for Stars.
+
+All of it is in **`data/CardFace.csv`**:
+
+| Key | What it does |
+|---|---|
+| `enabled` | `true` = beer mat card; `false` = the old dark card |
+| `frame` | the card picture (in `assets/cards/`); `signature` is empty now |
+| `window`, `plank`, `cap`, `sign` | where each part is, as `x,y,w,h` shares of the frame (0 to 1) |
+| `runner_height`, `runner_feet`, `runner_speed` | how big the runner is, where his feet are, how fast he runs |
+| `cap_number` | `power` or `card_number` |
+| `text_nudge_x`, `text_nudge_y` | small moves so the comic font's letters look centred |
+| `ink` | the colour of the name and number |
+| `tier_window`, `tier_window_spot`, `tier_text` | the Tier window at the top: on/off, where, what it says |
+| `items_button`, `items_text` | the ITEMS plank in the match (`false` = old flask icon) |
+
+The empty frame is `art_tool/rounds/r187/out/r187-beermat-empty.png`; the
+card tool for pictures and GIFs is `art_tool/cards/beermat_card.py`.
 
 ## 7. The league match
 
@@ -1509,7 +1549,7 @@ added to the duel.
 | `draft_reveal_words` | what the button says. `SHOW`. `PLAY IT OPEN` and `CALL IT` both fit |
 
 Two worked examples are in Abilities.csv, and both are on cards in
-`example_unit_csv_with_ability_columns.csv` so you can see the button in a
+`BasicTeam.csv` so you can see the button in a
 real match:
 
 ```
@@ -3099,6 +3139,32 @@ broken.
 
 ## 7f. The Emblems — three on the pitch, one may ascend
 
+### The Emblem template on the pitch (23 Oct 2026)
+
+From your sketch, every Emblem on the pitch uses the one template, the same
+size on both sides:
+
+- **Yours** sits top left under the speed buttons; **theirs** sits top right
+  under the clock (no "THEIRS" label any more). **Theirs is red**: the blue
+  of the panel, the pentagon and the circle turn red
+  (`assets/shaders/blue_to_red.gdshader`).
+- The **name** is along the top, the Emblem's **symbol** is in the pentagon in
+  the middle, and a small **circle** on the middle of the left side shows how far along it is
+  (for example 1/3).
+- The box is the cream panel from the beer mat card.
+- **Click it** once: it opens with its text (the Basic side and what turns it
+  over). Click again: the Ultimate side. Click again: it shuts.
+- **The symbol** is the picture named in the `Emblem` column of the
+  `<Class> Emblems.csv` files (for example `Gremory_Emblem.png`), put in
+  `assets/icons/`. All 12 are drawn (r188 rose, r189 the other 11); an Emblem
+  with no picture shows its first letter.
+
+`data/CardFace.csv` rows `emblem_template` (false = the old dark boxes),
+`emblem_size`, `emblem_left_top`, `emblem_right_top`, `emblem_pentagon`,
+`emblem_cap`, `emblem_text_size` and `emblem_text_margin` (room round the
+open text so it stays clear of the blue corners).
+
+
 > **ROUND Z: the Basic side PLAYS.** A new column in each Emblems file,
 > **`Basic Ability`**, names rows of `Abilities.csv` (the `EMB_` rows at the
 > bottom). While the Emblem is on the field, every card of that side that
@@ -4247,6 +4313,25 @@ you have in the corner, and pointing at one writes what it is in the panel
 underneath. Nothing is labelled, because forty labelled tiles is a wall of
 words and forty pictures is a bag.
 
+**The beer mat look (23 Oct 2026, Anthony picked mock-up A).** The window is
+the cream panel of the beer mat cards. INVENTORY is written on the wooden
+sign board alone, with no iron bar and no chains (`data/MenuHeaderBoard.csv`,
+pieces `assets/ui/header/board_*.png` cut out by
+`art_tool/menu/board_only.py`). The tabs and Close are the blue wooden
+planks. Every thing lies on a round Bavarian beer coaster, with how many you
+have on a bottle cap. Rows in `data/CardFace.csv`:
+
+| Row | What it does |
+|---|---|
+| `inventory_style` | `mat` = this look; `old` = the old dark window |
+| `inventory_window` | the window's width,height |
+| `inventory_edge` | how much of the panel's drawn edge stays unstretched |
+| `inventory_header_lift` | how far above the window the board sits |
+| `inventory_coaster` | how wide a coaster is |
+| `inventory_icon` | how big the picture is on its coaster |
+| `inventory_columns` | coasters in a row |
+| `inventory_text_size` | the size of the words |
+
 | Tab | What goes on it |
 |---|---|
 | **Items** | things you **use** — brews, bandages, smelling salts. **The only clickable tab** |
@@ -4314,6 +4399,34 @@ the same line that has always cleared them.
 ---
 
 ## 8b. `data/Stadium.csv` — the pitch and the village round it
+
+**23 Oct (your ask): matches are played in the drawn village, seen
+straight on.** "Remove the shed with the trophy … remove the old soccer
+barriers (not the fence and stone barrier) / Redraw the grass and lines /
+switch matches to this village with the straight-on pitch."
+
+- The ground is the drawn village from above (r182) with the trophy hut
+  painted over with trees: `art_source/drawn_pitch/village_from_above.png`.
+- `data/PitchView.csv` now points at it (`background`), lays the lines
+  straight on its grass (`corner_top_left` 580,580, `corner_top_right`
+  2516,580, `corner_bottom_left` 580,1284), shows a little village round the
+  wide shot (`wide_shot_margin` 0.3) and has no ad boards (`boards_image`
+  blank). The stone wall and white fence are part of the picture.
+- The lines are new: cream with a black ink edge, a little hand-wobbly, the
+  centre circle and penalty arcs drawn as ovals because the pitch is seen at a
+  slant, small drawn goals, and flat mowing stripes over the village's own
+  drawn grass. The stripes stop at the white lines (RUNOFF 0 in the script,
+  your ask 23 Oct), so none run outside the pitch. They are `assets/field/soccerfield_village.png`
+  (`PitchView.csv pitch_image`), made by `tools/make_village_pitch.py`.
+  Move a corner in the CSV and run it again so the lines follow.
+- `smooth_pictures` true draws both smoothed, as drawn art should be.
+- The grass inside the wall is a sharper drawing of the same grass (r183,
+  your "Yes please do that", $0.04): `art_source/drawn_pitch/pitch_grass.png`,
+  laid over the village grass with its colours matched and a soft edge, so it
+  stays crisp when the camera zooms in. `GRASS` blank in the script = the
+  village's own grass.
+- The old diagonal pixel town is still there: the old values are in the
+  `background` and `boards_image` notes.
 
 **Round AN (your ask, 6 Oct): the white lines are the edge of the player
 zones, and outside them is the village.**
@@ -4417,6 +4530,21 @@ fuses the layers into `assets/base/background.png` and writes
 `art_source/aseprite/base_town.aseprite` with **every part on its own layer**,
 for editing in Aseprite.
 
+**The village base (20 Oct 2026).** Tuning `base_background` picks the
+picture behind the base: `village` = the drawn Bavarian village
+(`assets/base/village.png`), `background` = the old bird's-eye town map.
+On the village, a building with Buildings.csv `Village Art` is part of the
+picture: its cut-out in `assets/base/map/` is exactly the size of the village
+picture and see-through everywhere but the building, so it lies over the
+background in the same place on any screen. Only the building takes the
+click (not the sky, trees or bushes in front). `<Village Art>_hover.png`, if
+there, is shown while the mouse is on it: the building brighter with a warm
+golden glow hugging its outline all the way round (roof, walls, and along the bushes in front on their black ink line), kept tight so it does not spread into the mountains. **The church with the copper kettle
+is the Brewery** (`brewery_church`). The other buildings keep their old
+bird's-eye pictures at their old spots until each is drawn for the village.
+Cut-outs are made by `art_tool/base/brewery_hover/make_game_pieces.py`.
+Check it with `tools/village_brewery_shot.gd`.
+
 **The buildings are pictures on the map, and the picture is the button.**
 Buildings.csv `Map Art` names a picture in `assets/base/map/` (PixelLab, the
 same bird's-eye view as the map); `Map Size` is how big it is drawn,
@@ -4467,6 +4595,12 @@ and then its `Door Sound` (`door_open`, a wooden door creaking open)
 **Name Offset** in Buildings.csv (`x,y` in screen pixels) moves a building's
 name off the bottom middle of its picture, e.g. the Club House's, so the
 Trophy Room hut in front of it keeps its own name.
+
+**The village buttons (23 Oct 2026)**: the village picture (assets/base/village.png) now has the drawn Pub right of the brewery. Like the brewery church, it is a button: Buildings.csv `Village Art` = `pub_inn` (assets/base/map/pub_inn.png = only its pixels, pub_inn_hover.png = lit up with a gold edge). The pitch is a button too: the new row `play_field` ("Play a match", Action `play:friendly`, Village Art `village_field`). Clicking the grass does what the Play a match flag did (the Match Maker), and while that row is on the base the flag is not on the top row. The pieces are made by /mnt/project-files/art_tool/base/village_buttons/make_pieces.py. The Dorms is drawn in too (the white block far left, behind the tree, chapel and houses): Village Art `dorms_block`, lit up on hover the same way. The Brewer visitor is off the base for now: his Visitors.csv `Requires` is `flag:brewer_on_base`; put `unlocked:Brewery` back to bring him back. Later the same day the whole picture was redrawn (r172): the new wooden Club House chalet in the middle (Village Art `clubhouse_chalet`), the low houses and little chapel under the Dorms and Club House all together as the Training Ground (`training_houses`), and the wooden Trophy hut with the gold cup in the field corner between the stone wall and the fence (`trophy_hut`). Every building on the base now lights up yellow on hover. The Dorms and Club House name tags are lifted onto their own building with `Name Offset` so the houses in front do not hide them. Pieces: /mnt/project-files/art_tool/base/village_buttons/make_masks_r172.py, then make_pieces_r172.py. The base's name now hangs on the tavern sign like the other screens (data/MenuHeader.csv; Language.csv `the_base`, `tutorial_base`). THE TUTORIAL NOW STARTS ON THE BASE (23 Oct 2026, Anthony): Tuning.csv `tutorial_first_scene` = `tut-base-welcome`, one Dialogue.csv line over the village picture (StoryArt.csv background `village`): the Head Coach says "Ah Coach! You are here, glad you could make it", and its Next `prologue/open` carries on into Pub Dialogue 1 and the tutorial match as before. Put `prologue` back in `tutorial_first_scene` to open in the pub again. THE NEW INTRODUCTION (23 Oct, Anthony): the welcome is now four lines ("Welcome to Sturmball!" ... "let us get a drink at the Pub"), and it ends ON THE BASE itself, in the tutorial's own save: everything is greyed out except the Pub, which glows (Guide.csv row `tut_intro_pub`, Highlight `Pub`, Only `true`; the tutorial save is given the Pub by Tuning.csv `tutorial_start_effects`). Press the Pub and Tuning.csv `tutorial_pub_scene` plays: Dialogue.csv `tut-pub-arrive` ("Ah, nothing beats a nice cold beer!", "Ah Koch! My prodigy"), whose last line's Next `prologue/put_down` carries on into the pub scene as before, then the tutorial match. `tutorial_pub_building` names which Buildings.csv row is the Pub. Blank `tutorial_pub_scene` = no base walk: the welcome goes straight on to the match. A Guide.csv row with Only `true` now works on the base too: every other button is greyed and cannot be pressed (the End tutorial button stays), and a drawn building glows instead of getting a ring. After "Ah Koch! My prodigy" Koch slides in from the right and the Head Coach moves to the left, facing the middle (Anthony, 23 Oct): Dialogue.csv has a new column, `Joins`: who steps on stage as a line shows WITHOUT speaking, written Portrait:Side:Mood (here `koch:right:drunk` on prologue/put_down), several separated by ;. Check: tools/tutorial_check.gd. Later the same day (Anthony): every sign's dark edge is half as thick (MenuHeader.csv `backing` Size 30, pictures remade by art_tool/menu/header_aura.py), and THE DRAWN HEAD COACH is in: the story faces in assets/story/portraits/coach_*.png are now his drawn happy, sad, drunk and mad fronts and his happy side (cut out by art_tool/characters/coach/game/cut_portraits.py). His side faces (happy, sad, drunk, mad) are drawn half-turned, semi front/side like the old pixel ones (r173-r174, Anthony's pick). The pub in the story is empty now (Anthony, 23 Oct): StoryArt.csv no longer stacks the regulars layer (assets/story/backgrounds/bar_regulars.png, still there) on the bar room; add the row `bar,background,,,,res://assets/story/backgrounds/bar_regulars.png` under the bar room to bring them back. The room itself is redrawn in our comic style (assets/story/backgrounds/bar_room_drawn.png, r175), with three beer garden table sets in three different woods in the middle of the floor (r176); the old pixel room is still bar_room.png. His cut-outs have the white between his hair strands and the pale rim round his outline taken out, and each picture is padded at the top to the shape of a person's spot on the story screen, so he stands on its bottom edge just behind the text box instead of floating above it (same script). All eight faces were then redrawn a little zoomed out (r177-r178, Anthony: "Redraw all 7"), so his shoulders, arms and hands are inside the picture and his sides no longer end in a straight cut; each is cut off through the blue-white diamonds, where the text box hides the edge. The faces before that are kept in art_tool/characters/coach/before_r178/. THE DRAWN KOCH is in too (23 Oct, Anthony: "Replace the old koch with the new one please", then "as clean and same size as the head coach"): all eight of his faces (happy, sad, drunk, mad, each front and half-turned side) are redrawn clean like the Head Coach (r179-r180). Both men's faces are now cut and sized by ONE script, art_tool/characters/story_faces.py: each picture is cut 800 px below the top of his head and shrunk to the same width, so both men stand at the same size in every mood. Koch's plain face is his happy one. ONE SET OF COLOURS (23 Oct, Anthony: the colours must not change from scene to scene): the same script shifts every face's skin, hair and clothes to that man's happy front colours, and the person listening in a conversation is no longer greyed out (Tuning.csv `story_listener_dim` 1; 0.55 brings back the grey). His mad faces now have normal skin instead of a red face (r181, Anthony's pick). His silhouette and Bergmännlein faces (the transformation) are unchanged. Check: tools/village_buttons_shot.gd.
+
+**On Base (Buildings.csv, 23 Oct 2026)**: write `no` and that building is not drawn on the base, but it still exists (its key, window, unlocks and Club House sale all still work). Blank = drawn. The Traveling Tavern is `no` for now (Anthony's ask); empty the cell to bring the wagon back.
+
+**Heatwave is off the base for now** (23 Oct 2026): his Visitors.csv `Requires` is `flag:heatwave_on_base`, a flag nothing sets, so he is not drawn. Visitors still work as before. Empty that cell to bring him back.
 
 **Visitors greet you**: Visitors.csv `Sound` is played when you click them -
 the Brewer's grunting "Servus" (`visitor_brewer`), Heatwave's cocky "Hah!"
@@ -7112,11 +7246,34 @@ helper adds a node for you, say so in a comment above it, in capitals.
 
 ### `data/MainMenu.csv` — what the title screen looks like
 
+**Drawn title screen (18 Oct 2026)** (Anthony: "redo the main Menu so that it
+isn't pixel art"). The village, the two ribbon bunches, the notice board and
+the hanging sign, the drifting clouds (r75), the button plank (r76) and the bird (r77), are now drawn in the comic style, in the same places and
+sizes as the pixel pictures, so every Motion still works. The bird is drawn too (r77, three 256
+poses, shown 252 big). Only the plain sky colour is left from the pixel menu. The buttons use the drawn plank
+`assets/menu/button_plank_drawn.png` (r76, made at the buttons' 250 x 64).
+- Made with Sunburst from the pixel pictures (art_tool/rounds/r73, r74), on a
+  flat magenta or green backdrop, then cut out and fitted to the old places
+  with `art_source/drawn_menu/menu_cut.py` (land, sign, ribbons_tr,
+  ribbons_bl, board).
+- The title row's Y went from 187 to 165, so STURMBALL sits in the middle of
+  the drawn sign.
+- The pale-blue ribbon was taken out (`ribbon_fix.py`) and the paper tabs on
+  the board painted out. The four buttons in `MenuConfig.csv` are now 250 x 64
+  at x 971, y 720/792/864/936, so they sit inside the board's light panel.
+- The bottom-left ribbons row was taken out (Anthony). The title is 96 high so
+  it stays inside the sign's frame. The title row's Motion Settings can colour
+  it: `colour=#f5b83d; outline=#000000; outline_size=5` (the font is a bitmap
+  font, so the outline is copies of the word drawn round it).
+- The sign and the notice board are stored at the size they show on screen,
+  and `Tuning.csv` `menu_smooth_pictures` 1 draws the menu pictures smooth, so
+  the swinging sign has no stair-step lines (Anthony, 19 Oct).
+
 One row per thing on it. No file, no rows: it looks as it did before.
 
 | column | |
 |---|---|
-| `Part` | `background` (the wallpaper — the first row wins), `layer` (a whole-screen picture drawn like the wallpaper, stacked in row order — round AN), `title` (the big word), `picture` (anything standing on it — any number of rows) |
+| `Part` | `background` (the wallpaper — the first row wins), `layer` (a whole-screen picture drawn like the wallpaper, stacked in row order — round AN), `title` (the big word), `picture` (anything standing on it — any number of rows), `shade` (a see-through dark box: `Text` = its colour like `#140c06a8`, `X`/`Y` = centre, `Width`/`Height` = size; 19 Oct; the one behind the title buttons was removed 20 Oct, when Anthony made the notice board's panel plain white) |
 | `Image` | the file. A picture may be a **strip**: `Frames` pictures side by side, all the same width |
 | `Text` | the title's word (`STURMBALL`) |
 | `X`, `Y` | the **centre**, on a 1920 × 1080 screen |
@@ -7625,7 +7782,7 @@ pictures with OpenAI, and its `download_file` tool saves any Ludo or PixelLab
 result straight into the project. It's set up in `claude_desktop_config.json`
 as `openai-images`, and your key lives only there.
 
-## 16e. Settings and the save screen: the Beer Keller and the trophy room (round AL)
+## 16e. Settings and the save screen: the Beer Keller and the beer mugs (round AL, mugs round AN)
 
 Both screens now have painted backgrounds in the title screen's style, made
 of layers like the title screen. Every button on them is the oak plank,
@@ -7643,17 +7800,90 @@ front), all **behind** the screen's own buttons and text:
 | column | |
 |---|---|
 | `Screen` | `settings` or `slot` (any screen that calls `Look.install(self, "<word>")` in its `_ready`) |
-| `Part` | `background` (fills the screen); `picture` (a layer); `shade` (a see-through dark box so the text stays readable); `margin` (`Width` = how far the content sits in from the left and right, `Height` = from the top and bottom); `button` (how every button looks and sounds) |
+| `Part` | `background` (fills the screen); `picture` (a layer); `shade` (a see-through dark box so the text stays readable); `margin` (`Width` = how far the content sits in from the left and right, `Height` = from the top and bottom; fill `X` / `Y` to set the left / top on their own, then `Width` is the right and `Height` the bottom, e.g. Settings 440 / 40 / 25 / 25 so the page sits right of the sign); `button` (how every button looks and sounds) |
 | `Image` | the picture |
 | `X`, `Y` | the centre, on 1920 × 1080 |
 | `Width`, `Height` | blank = the picture's pixels × `Scale` |
 | `Scale`, `Flip` | as in `MainMenu.csv`: 2 for every layer; `yes` mirrors it |
-| `Colour` | shade: `#RRGGBBAA`, where the last two digits are how solid it is (00–ff). Button: the text colour |
+| `Colour` | shade: `#RRGGBBAA`, where the last two digits are how solid it is (00–ff). Button: the text colour (white `#ffffff` on every menu since 20 Oct 2026, Anthony; the title buttons are white too) |
 | `Hover Sound`, `Press Sound`, `Back Sound` | `Audio.csv` rows. Buttons that say Back, Close, Quit or Cancel play the Back Sound |
 
 Plain buttons become planks. Tick boxes, sliders and drop-downs keep their
 own look so they still read as what they are. The plank keeps its corners
 at any button size; only its middle stretches.
+
+**Beer mug save screen (19 Oct 2026, Anthony: "Three different beer mugs
+(that are the save file) large on a table").** The `slot` rows draw a beer
+tent seen from table height, like his photo (`assets/ui/save/mugs/beer_tent.png`,
+r105, redrawn 20 Oct in the same rough hand-drawn style as the mugs at
+Anthony's ask, "the background is now too high definition": one continuous
+long table running into the tent under strings of lights, one bench and table
+on each side, bare tables, green garland at the back, blue-and-white flags;
+the older detailed tents r94-r100 stay in `art_tool/rounds/`). The football was taken off (Anthony: "too detailed"). Every button is the drawn plank
+from the title screen, blue wood since 20 Oct 2026 with the blue-and-white edge, on every menu and every mug (`button_plank_drawn.png`, `Scale` 1 = drawn smooth at
+its own size; blank or 2 = a pixel plank drawn at 2x). The old pixel layers
+stay in `assets/ui/save/pixellab/`.
+
+**The menu header (20 Oct 2026, Anthony): a hanging tavern sign.** The
+screen's name hangs at the top left on an oak board under an iron wall bracket
+(r106 idea 1, drawn blank in r107, with a thick black ink edge added for free), written in the game's heading font. It is
+three pictures in `assets/ui/header/`: left (wall plate, left chain), middle
+(plain bar and board) and right (right chain, board end, bar tip). Only the
+middle stretches, so a longer name or another language makes the sign wider:
+no new art per language. Set in **`data/MenuHeader.csv`**:
+
+| Part | what it sets |
+|---|---|
+| `left`, `middle`, `right` | Image = the three pieces |
+| `sign` | X = left edge (0 = the plate touches the screen's left), Y = top, Size = height in pixels |
+| `text` | Size = letter size, Colour = letter colour; X = where the writing space starts in the left piece, Y = the board's middle (pixels of the drawing) |
+| `outline` | Size = the dark ink edge round the letters (0 = none), Colour = its colour |
+| `backing` | the dark aura that hugs the board, chains and iron bracket so the sign stands out (Anthony 20 Oct; it was a box). The pictures are `sign_<part>_aura.png`, made by `art_tool/menu/header_aura.py`; Size = how far they are padded past each piece (60, must match the script), Colour's last two digits = how solid |
+| `padding` | X = where the writing space ends in the right piece, Y = the gap kept at both ends of the board |
+
+The words come from `data/Language.csv` (`choose_a_save`, and `settings` on the
+Settings screen, which uses the same sign since 20 Oct 2026 instead of its old
+written title; its page and dark box start below the sign). Any screen can use
+it: `SignHeader.make(words)` in code. Since 20 Oct 2026 the Settings background is the
+drawn cellar `assets/ui/settings/drawn/01_cellar.png` (r108/r109, no ceiling beams); the
+old pixel barrels and gnome are removed (Anthony 20 Oct); one drawn barrel (`drawn/barrel.png`, r111) stands on the floor by the left wall, with a gnome and his beer sitting on it staring at the player (`drawn/barrel_gnome.png`, r112, redrawn rougher in r113, the one in use). `tools/settings_bare_shot.gd` photographs
+the Settings background on its own.
+
+The three mugs ARE the save files, set in **`data/SaveMugs.csv`**:
+
+| Part | what it sets |
+|---|---|
+| `closed_full`, `open_full`, `closed_empty`, `open_empty` | Image = the mug pictures, all one mug at one size, cut from one hand-drawn sheet (r104, Anthony 20 Oct: "more drawn rather than so AI looking"; the beer was painted in where the handle meets the full mugs, free): full = a used save, empty = an empty slot, the open lid shows when you click it. The open lid is the closed lid (knob, dome and rim) tipped up at its hinge, and its thumb knob is the closed one, so both are the same size open and closed (free, `art_tool/save_screen/lid2.py`). The older glossy mugs stay in `art_tool/rounds/r96`-`r102` |
+| `slot` (one row per save, top = slot 1) | X, Y = the bottom middle of the mug on the 1920 x 1080 screen; Image = a plank for that mug's choices only (blank = the screen's plank), Colour = the coaster under it (Anthony 20 Oct: slot 1 blue, 2 red, 3 green) |
+| `name_text` | under a closed mug, "Slot 1 · 3 matches" on a coaster in the slot's colour: Y = the gap below the mug, Size = letter size |
+| `menu` | on the open mug's glass, one above the other (Anthony): X = button width, Y = how far above the mug's bottom their middle sits, Size = letter size |
+
+**Click a mug:** its lid opens and Play / Profile Settings / Delete appear
+on its glass (an empty mug offers only Play, which starts a new game). Click it
+again to close it.
+
+**Profile Settings vs General Settings.** Each save keeps its own settings in
+`user://slotN/settings.json`; Profile Settings change only that save. The
+title screen's Settings are now the **General Settings**
+(`user://settings.json`): what every NEW save starts with (copied the first
+time the save is opened). Saving General Settings shows the note in
+`Tuning.csv` `general_settings_saved_note`.
+
+**Settings, 20 Oct 2026 (Anthony).** The "Saved in ..." line under the panel is gone. The gnome sits lower, the backs of his knees on the barrel's front rim (free edit of `barrel_gnome.png`, scripts `art_tool/settings_screen/seg2.py` + `move.py`).
+
+**Long buttons (Anthony, 20 Oct 2026).** A button wider than the plank picture repeats the plank's middle instead of pulling it wide, so the stitching and grain stay their drawn size (every screen that uses a ScreenLook `button` row). On Settings, "Put every key back" and "List the missing words" are their own size at the right, and the language buttons are as wide as a setting's value.
+
+**Settings layout (Anthony, 20 Oct 2026, from his picture of another game's settings).** The tabs are a list down the left with Back and Save at its bottom; the chosen tab is bright and the rest dimmed. The tab's settings sit in one panel on the right under the tab's name: a choice is `<  value  >`, an on/off is an On and an Off button (the one not in use dimmed), with any note in small words under the setting's name. Nothing was added or removed, only laid out anew. Sizes: `settings_tab_width`, `settings_column_gap`, `settings_tab_dim`, `settings_value_width` in Tuning.csv; the dark box is the `settings,shade` row of ScreenLook.csv (now only behind the right panel). Photos of every tab: `tools/settings_tabs_shot.gd`.
+
+**Settings page (Anthony, 20 Oct 2026).** No gold icons on its buttons except Back and Save (`MenuSupport.icon_button` with an empty icon); no dark plate behind each line (the screen sets `TextBackdrop.NO_PLATES`, the one dark box behind the page stays); the Keys tab no longer lists the controller button, which the Controller tab shows.
+
+**Save to profile (Anthony, 20 Oct 2026).** Pressing Save in the General
+Settings, when at least one save has been played, opens a box "SAVE FOR WHICH
+SAVES?": **Only new saves** (just the General Settings), one button per
+played save (also writes into that save's Profile Settings), **All saves**
+(when two or more are played) and **Cancel**. Its words are `Tuning.csv`
+`general_settings_ask_*` and `general_settings_saved_to_saves`.
+`tools/general_save_shot.gd` photographs the box.
 
 The paintings are in `art_source/openai/settings_layers/` and
 `art_source/openai/save_layers/`; their `Pixelate.csv` rows are
@@ -7851,7 +8081,7 @@ adventure mode" with the drawn look, not pixel art). The men of The Club now
 wear drawn sheets: **Thomas**, **fat with an afro**, **skinny with a mullet**
 and **muscular with a quiff**, each in **5 skin tones** (light, pale, tan,
 brown, dark), so 20 looks picked at random by name and kept. Adventure uses
-the same sheets. The women and the other classes are still pixel looks.
+the same sheets. (The women are drawn too since 23 Oct; see below.)
 - Their frames are in `art_source/drawn_players/<look>/`, named
   `<animation>_<direction>_<NN>.png` (w, sw, s, nw, n; 112 x 112, feet on the
   same line). `tools/make_drawn_pitch_sheet.py` builds
@@ -7876,7 +8106,7 @@ and Unkengeister now wear one drawn look each, in their own colours (no skin
 tones): `assets/players/pitch/drawn_class_<class>.webp`.
 - **Drawn so far:** run, kick, tackle, fall and cheer facing left and right,
   and standing facing the camera: the moves their pixel sheets had, without
-  the drink (Anthony, 18 Oct). Their Stars and the women are still pixel.
+  the drink (Anthony, 18 Oct). Their Stars wear the same drawn look.
 - Frames: `art_source/drawn_classes/<class>/`, 144 x 144 (bigger than the
   Club men's 112, so a kicking foot, a beard or a water splash is never cut
   off). `data/PitchSheets.csv` row `drawn_class_*` keeps them standing and
@@ -7884,6 +8114,21 @@ tones): `assets/players/pitch/drawn_class_<class>.webp`.
 - The video clips are made on a flat green (magenta for the toad) backdrop
   and keyed out, so white beards and water splashes stay
   (art_tool/thomas_video/key_cut.py, class_prep.py).
+
+**Drawn club women and Rival man (23 Oct 2026)** (Anthony: "Women too", for
+the tutorial). The five club women (blonde ponytail, long braids, bob, afro
+puffs, ginger with freckles) and the stubbly Rival man now play drawn, one
+sheet each in their own colours: `drawn_class_woman_*.webp` and
+`drawn_class_rival_man_stubble.webp` (`PitchSprites.csv` rows
+`class_Normal_female*` and `Rivals`).
+- **Drawn so far:** run and kick facing left and right, and standing facing
+  the camera (cut from the end of the kick clip; the blonde stands still).
+  Tackle, fall and cheer hold the standing picture until their own clips
+  are made (about $0.84 per player).
+- Every Rival wears the man for now. The drawn Rival woman (r184) is only a
+  still picture.
+- Stills r184, clips r185; cut with key_cut.py and people_prep.py into
+  `art_source/drawn_classes/<name>/`.
 
 **The other classes** (two looks each, same style): Rivals (stubbly man,
 woman with a ponytail; grey and blue), Lorelei (water spirits: a woman of living

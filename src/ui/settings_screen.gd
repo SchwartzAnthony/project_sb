@@ -52,6 +52,7 @@ var _settled: bool = false
 var _tab: String = "Keys"
 var _tab_buttons: Dictionary = {}
 var _body: VBoxContainer
+var _title: Label
 var _note: Label
 
 ## The action waiting for a key press, or "" when nothing is.
@@ -97,9 +98,10 @@ func _ready() -> void:
 	_build()
 	# ROUND AL: the Beer Keller behind it and plank buttons - data/ScreenLook.csv
 	Look.install(self, "settings")
-	# ROUND AN: a see-through black plate behind words that sit straight on
-	# the cellar painting (text_backdrop_alpha in Tuning.csv).
-	TextBackdrop.watch(self)
+	# No see-through plate behind each line any more (Anthony 20 Oct 2026:
+	# the dark bars made the list hard to read); the one dark box in
+	# data/ScreenLook.csv sits behind the whole page instead.
+	set_meta(TextBackdrop.NO_PLATES, true)
 
 	var opening := "Keys"
 	if get_tree().has_meta(TAB_KEY):
@@ -129,23 +131,46 @@ func _build() -> void:
 	margin.add_theme_constant_override("margin_top", 24)
 	margin.add_theme_constant_override("margin_bottom", 24)
 	add_child(margin)
+	add_child(SignHeader.make(Loc.text("settings", "Settings").to_upper()))
 
-	var page := VBoxContainer.new()
-	page.add_theme_constant_override("separation", 14)
-	margin.add_child(page)
+	# ANTHONY 20 OCT 2026 (his picture of a game's settings): the tabs are a
+	# list down the left with Back and Save under them, and the chosen tab's
+	# settings sit in one panel on the right, one short line each.
+	var split := HBoxContainer.new()
+	split.add_theme_constant_override("separation", int(MenuSupport.tuned("settings_column_gap", 30.0)))
+	margin.add_child(split)
 
-	page.add_child(MenuSupport.heading("SETTINGS", 34, MenuSupport.COLOUR_ACCENT))
-
-	var tabs := HBoxContainer.new()
-	tabs.add_theme_constant_override("separation", 8)
-	page.add_child(tabs)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 10)
+	column.custom_minimum_size = Vector2(MenuSupport.tuned("settings_tab_width", 300.0), 0)
+	split.add_child(column)
 
 	for name_text in TABS:
 		var button := MenuSupport.icon_button(
-			_tab_icon(name_text), name_text, Vector2(210, 52))
+			"", name_text, Vector2(MenuSupport.tuned("settings_tab_width", 300.0), 56))
 		button.pressed.connect(_show_tab.bind(name_text))
-		tabs.add_child(button)
+		column.add_child(button)
 		_tab_buttons[name_text] = button
+
+	var gap := Control.new()
+	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_child(gap)
+
+	var back := MenuSupport.icon_button("back|←", "Back", Vector2(MenuSupport.tuned("settings_tab_width", 300.0), 54))
+	back.pressed.connect(_leave)
+	column.add_child(back)
+
+	_save_button = MenuSupport.icon_button("save|✓", "Save", Vector2(MenuSupport.tuned("settings_tab_width", 300.0), 54))
+	_save_button.pressed.connect(_save)
+	column.add_child(_save_button)
+
+	var page := VBoxContainer.new()
+	page.add_theme_constant_override("separation", 12)
+	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	split.add_child(page)
+
+	_title = MenuSupport.heading("", _fs(24), MenuSupport.COLOUR_ACCENT)
+	page.add_child(_title)
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -154,20 +179,12 @@ func _build() -> void:
 
 	_body = VBoxContainer.new()
 	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_body.add_theme_constant_override("separation", 10)
+	_body.add_theme_constant_override("separation", 6)
 	scroll.add_child(_body)
 
 	var footer := HBoxContainer.new()
 	footer.add_theme_constant_override("separation", 12)
 	page.add_child(footer)
-
-	var back := MenuSupport.icon_button("back|←", "Back", Vector2(170, 54))
-	back.pressed.connect(_leave)
-	footer.add_child(back)
-
-	_save_button = MenuSupport.icon_button("save|✓", "Save", Vector2(170, 54))
-	_save_button.pressed.connect(_save)
-	footer.add_child(_save_button)
 
 	_note = Label.new()
 	_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -177,11 +194,6 @@ func _build() -> void:
 	_note.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	footer.add_child(_note)
 
-	var where := Label.new()
-	where.text = "Saved in %s" % ProjectSettings.globalize_path(GameSettings.SAVE_PATH)
-	where.add_theme_font_size_override("font_size", _fs(11))
-	where.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	footer.add_child(where)
 
 
 ## ROUND AN: every word on this screen is `settings_text_scale` (Tuning.csv)
@@ -190,28 +202,19 @@ func _fs(written: int) -> int:
 	return int(round(written * MenuSupport.tuned("settings_text_scale", 1.25)))
 
 
-func _tab_icon(name_text: String) -> String:
-	match name_text:
-		"Keys":        return "keys|⌨"
-		"Screen":      return "screen|▭"
-		"Sound":       return "sound|♪"
-		"Colour":      return "colour|◐"
-		"Controller":  return "controller|✛"
-		"Language":    return "language|文"
-	return "◇"
-
-
 func _show_tab(name_text: String) -> void:
 	_tab = name_text
 	_listening = ""
 	if get_tree() != null:
 		get_tree().set_meta(TAB_KEY, name_text)
+	# The chosen tab is bright, the others dimmed (the plank stays the same).
+	var dim := MenuSupport.tuned("settings_tab_dim", 0.55)
 	for key in _tab_buttons.keys():
 		var button := _tab_buttons[key] as Button
 		var lit := String(key) == name_text
-		button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
-			MenuSupport.COLOUR_SLOT_EMPTY if lit else MenuSupport.COLOUR_PANEL,
-			MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT_DIM))
+		button.modulate = Color(1, 1, 1) if lit else Color(dim, dim, dim)
+	if _title != null:
+		_title.text = name_text.to_upper()
 	_rebuild()
 
 
@@ -230,6 +233,7 @@ func _repaint() -> void:
 			continue
 		child.queue_free()
 	_tab_buttons.clear()
+	_title = null
 	_body = null
 	_note = null
 	_save_button = null
@@ -271,11 +275,13 @@ func _build_keys() -> void:
 		for action in GameKeys.in_group(group):
 			_body.add_child(_key_row(action))
 
-	var reset := MenuSupport.icon_button("↺", "Put every key back", Vector2(280, 50))
+	var reset := MenuSupport.icon_button("", "Put every key back", Vector2(280, 50))
 	reset.pressed.connect(func() -> void:
 		GameKeys.reset_all(get_tree())
 		_say("Every key is back to what Keys.csv says.")
 		_rebuild())
+	# Its own size at the right, not pulled across the panel (Anthony 20 Oct).
+	reset.size_flags_horizontal = Control.SIZE_SHRINK_END
 	_body.add_child(reset)
 
 
@@ -289,18 +295,11 @@ func _key_row(action: String) -> Control:
 	label.add_theme_font_size_override("font_size", _fs(16))
 	row.add_child(label)
 
+	# The controller button for this job is shown on the Controller tab, not
+	# here (Anthony 20 Oct 2026).
 	var entry: Dictionary = GameKeys.actions.get(action, {})
-	var pad_text := String(entry.get("button", ""))
-	if pad_text != "":
-		var pad := Label.new()
-		pad.text = "controller: %s" % pad_text
-		pad.custom_minimum_size = Vector2(200, 0)
-		pad.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		pad.add_theme_font_size_override("font_size", _fs(13))
-		pad.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-		row.add_child(pad)
 
-	var button := MenuSupport.icon_button("⌨", GameKeys.label_for(action), Vector2(220, 46))
+	var button := MenuSupport.icon_button("", GameKeys.label_for(action), Vector2(220, 46))
 	button.tooltip_text = String(entry.get("notes", ""))
 	button.pressed.connect(func() -> void:
 		_listening = action
@@ -478,9 +477,8 @@ func _build_language() -> void:
 
 	for language in Loc.languages():
 		var lit := language == Loc.current()
-		var button := MenuSupport.icon_button("●" if lit else "○", language,
-			Vector2(0, 46))
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var button := MenuSupport.icon_button("", language,
+			Vector2(MenuSupport.tuned("settings_value_width", 230.0), 46))
 		button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
 			MenuSupport.COLOUR_SLOT_EMPTY if lit else MenuSupport.COLOUR_PANEL,
 			MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT_DIM))
@@ -500,11 +498,12 @@ func _build_language() -> void:
 	_body.add_child(_hint(
 		"Play through a screen, then press the button below. Every word the game asked for that has no row yet is printed to the Output panel, already formatted to paste into the spreadsheet."))
 
-	var listing := MenuSupport.icon_button("≡", "List the missing words",
+	var listing := MenuSupport.icon_button("", "List the missing words",
 		Vector2(300, 48))
 	listing.pressed.connect(func() -> void:
 		Loc.report()
 		_say("Printed to the Output panel."))
+	listing.size_flags_horizontal = Control.SIZE_SHRINK_END
 	_body.add_child(listing)
 
 
@@ -518,7 +517,7 @@ func _build_language() -> void:
 func _row() -> HBoxContainer:
 	var frame := HBoxContainer.new()
 	frame.add_theme_constant_override("separation", 10)
-	frame.custom_minimum_size = Vector2(0, 52)
+	frame.custom_minimum_size = Vector2(0, 50)
 	return frame
 
 
@@ -537,77 +536,94 @@ func _choice_row(label_text: String, key: String, choices: Array,
 		zero_word: String = "") -> Control:
 	_names[key] = label_text
 	var row := _row()
+	row.add_child(_name_label(label_text))
 
-	var label := Label.new()
-	label.text = label_text
-	label.custom_minimum_size = Vector2(220, 0)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", _fs(16))
-	row.add_child(label)
-
+	# < value >  (Anthony 20 Oct 2026, the layout of his picture): the arrows
+	# step through the same choices the row always had.
 	var now: Variant = settings.get(key, choices[0])
-	for choice in choices:
-		var shown := GameSettings.pretty(str(choice))
+	var at := 0
+	for i in range(choices.size()):
+		if str(choices[i]) == str(now):
+			at = i
+	var shown_of := func(choice: Variant) -> String:
 		if zero_word != "" and str(choice) == "0":
-			shown = zero_word
-		var button := Button.new()
-		button.text = shown
-		button.custom_minimum_size = Vector2(0, 44)
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.focus_mode = Control.FOCUS_NONE
-		var lit := str(now) == str(choice)
-		button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
-			MenuSupport.COLOUR_SLOT_EMPTY if lit else MenuSupport.COLOUR_PANEL,
-			MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT_DIM))
-		button.add_theme_stylebox_override("hover",
-			MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+			return zero_word
+		return GameSettings.pretty(str(choice))
+
+	var value := Label.new()
+	value.text = shown_of.call(choices[at])
+	value.custom_minimum_size = Vector2(MenuSupport.tuned("settings_value_width", 230.0), 0)
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	value.add_theme_font_size_override("font_size", _fs(16))
+	value.add_theme_color_override("font_color", MenuSupport.COLOUR_ACCENT)
+
+	for step in [-1, 1]:
+		var button := MenuSupport.icon_button("", "<" if step < 0 else ">", Vector2(60, 44))
+		var to: int = at + int(step)
+		button.disabled = to < 0 or to >= choices.size()
 		button.pressed.connect(func() -> void:
+			var choice: Variant = choices[to]
 			_change(key, choice)
-			_say("%s: %s" % [label_text, shown])
-			# A NEW PALETTE REPAINTS THIS SCREEN IN PLACE.
-			#
-			# It used to reload the whole scene, which had two faults you
-			# spotted: the window resized (because reloading re-applied the
-			# screen settings) and you were dropped back on the first tab.
-			# Rebuilding the screen's own chrome does the same job without
-			# touching the window and without losing your place.
+			_say("%s: %s" % [label_text, shown_of.call(choice)])
+			# A NEW PALETTE REPAINTS THIS SCREEN IN PLACE (it used to reload
+			# the scene, which resized the window and lost your tab).
 			if key == "palette":
 				_repaint()
 				return
 			_rebuild())
-		row.add_child(button)
+		if step < 0:
+			row.add_child(button)
+			row.add_child(value)
+		else:
+			row.add_child(button)
 
 	return row
+
+
+## The setting's name on the left of its line, with room for the rest.
+func _name_label(label_text: String, note: String = "") -> Control:
+	var label := Label.new()
+	label.text = label_text
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", _fs(16))
+	if note == "":
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		return label
+	# A short note under the name, in smaller words.
+	var stack := VBoxContainer.new()
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	stack.add_theme_constant_override("separation", 0)
+	stack.add_child(label)
+	var small := Label.new()
+	small.text = note
+	small.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	small.add_theme_font_size_override("font_size", _fs(12))
+	small.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+	stack.add_child(small)
+	return stack
 
 
 func _switch_row(label_text: String, key: String, note: String) -> Control:
 	_names[key] = label_text
 	var row := _row()
+	row.add_child(_name_label(label_text, note))
 
-	var label := Label.new()
-	label.text = label_text
-	label.custom_minimum_size = Vector2(220, 0)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", _fs(16))
-	row.add_child(label)
-
+	# On / Off side by side, the one in use bright (his picture's layout).
 	var on := bool(settings.get(key, true))
-	var button := MenuSupport.icon_button("✓" if on else "✕",
-		"On" if on else "Off", Vector2(180, 44))
-	button.pressed.connect(func() -> void:
-		_change(key, not on)
-		_say("%s: %s" % [label_text, "on" if not on else "off"])
-		_rebuild())
-	row.add_child(button)
-
-	var hint := Label.new()
-	hint.text = note
-	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint.add_theme_font_size_override("font_size", _fs(13))
-	hint.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	row.add_child(hint)
+	var dim := MenuSupport.tuned("settings_tab_dim", 0.55)
+	for want in [true, false]:
+		var button := MenuSupport.icon_button("", "On" if want else "Off", Vector2(120, 44))
+		var lit: bool = want == on
+		button.modulate = Color(1, 1, 1) if lit else Color(dim, dim, dim)
+		button.pressed.connect(func() -> void:
+			if want == on:
+				return
+			_change(key, want)
+			_say("%s: %s" % [label_text, "on" if want else "off"])
+			_rebuild())
+		row.add_child(button)
 
 	return row
 
@@ -618,7 +634,7 @@ func _slider_row(label_text: String, key: String, fallback: float = 0.8) -> Cont
 
 	var label := Label.new()
 	label.text = label_text
-	label.custom_minimum_size = Vector2(220, 0)
+	label.custom_minimum_size = Vector2(320, 0)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", _fs(16))
 	row.add_child(label)
@@ -703,14 +719,82 @@ func _refresh_save() -> void:
 	_save_button.tooltip_text = ("Not saved yet: " + _unsaved_words()) if waiting else "Nothing to save."
 
 
-func _save() -> void:
+## `after` runs once the settings are written (Back's "Save" uses it).
+func _save(after: Callable = Callable()) -> void:
 	var keys := unsaved()
 	if keys.is_empty():
 		_say("Nothing to save.")
+		if after.is_valid():
+			after.call()
 		return
+	if GameSettings.editing_slot == 0 and not _used_saves().is_empty():
+		_ask_which_saves(keys, after)
+		return
+	_write(keys, [])
+	if after.is_valid():
+		after.call()
+
+
+## Write the General (or this save's) settings, then copy them into the
+## saves picked in the "for which saves?" box.
+func _write(keys: Array, saves: Array) -> void:
 	_saved = GameSettings.save_some(settings, keys)
+	for slot in saves:
+		GameSettings.save_to_profile(int(slot), settings, keys)
 	_refresh_save()
-	_say("Saved.")
+	if GameSettings.editing_slot != 0:
+		_say("Saved.")
+	elif saves.is_empty():
+		_say(MenuSupport.tuned_text("general_settings_saved_note",
+			"Saved. These General Settings are only what a new save starts with. To change a save's own settings, open it from the Save Menu."))
+	else:
+		_say(MenuSupport.tuned_text("general_settings_saved_to_saves",
+			"Saved for new saves and for: %s.") % ", ".join(saves.map(
+				func(slot: int) -> String: return "Save %d" % slot)))
+
+
+## The saves that have been played (empty mugs start from General anyway).
+func _used_saves() -> Array:
+	var used: Array = []
+	for slot in range(1, SaveSlots.count() + 1):
+		if bool(SaveSlots.describe(slot).get("used", false)):
+			used.append(slot)
+	return used
+
+
+## ANTHONY 20 OCT 2026: "Add a 'save to profile' in the general settings,
+## after a player hits save or ask them if it is for all profiles."
+## Saving the General Settings asks which saves they are for. They always
+## become what NEW saves start with; the player can also put them into one
+## save's Profile Settings, or into every save.
+func _ask_which_saves(keys: Array, after: Callable) -> void:
+	var used := _used_saves()
+	var window := MenuSupport.dialog(self,
+		MenuSupport.tuned_text("general_settings_ask_title", "SAVE FOR WHICH SAVES?"),
+		MenuSupport.tuned_text("general_settings_ask_note",
+			"These settings are always what a new save starts with. Put them into your saves too?"),
+		520.0)
+	var column: VBoxContainer = window.get_meta("column")
+	var choices: Array = [[MenuSupport.tuned_text("general_settings_ask_new_only",
+		"Only new saves"), []]]
+	for slot in used:
+		choices.append(["Save %d  (%s)" % [slot, String(SaveSlots.describe(slot).get("line", ""))], [slot]])
+	if used.size() > 1:
+		choices.append([MenuSupport.tuned_text("general_settings_ask_all",
+			"All saves"), used])
+	for choice in choices:
+		var button := MenuSupport.icon_button("save|✓", String(choice[0]), Vector2(440, 50))
+		var saves: Array = choice[1]
+		button.pressed.connect(func() -> void:
+			window.queue_free()
+			_write(keys, saves)
+			if after.is_valid():
+				after.call())
+		column.add_child(button)
+	var stay := MenuSupport.icon_button("←", "Cancel", Vector2(440, 50))
+	stay.pressed.connect(func() -> void:
+		window.queue_free())
+	column.add_child(stay)
 
 
 ## Put back what settings.json says, for every setting not saved.
@@ -738,8 +822,7 @@ func _leave() -> void:
 		rule = book.tune_text("settings_unsaved_on_leave", "ask").to_lower()
 	match rule:
 		"save":
-			_save()
-			_go()
+			_save(_go)
 			return
 		"discard":
 			_undo_unsaved()
@@ -751,8 +834,8 @@ func _leave() -> void:
 	var column: VBoxContainer = window.get_meta("column")
 	var keep := MenuSupport.icon_button("save|✓", "Save", Vector2(300, 50))
 	keep.pressed.connect(func() -> void:
-		_save()
-		_go())
+		window.queue_free()
+		_save(_go))
 	column.add_child(keep)
 	var drop := MenuSupport.icon_button("✕", "Don't save", Vector2(300, 50))
 	drop.pressed.connect(func() -> void:
@@ -767,6 +850,10 @@ func _leave() -> void:
 
 func _go() -> void:
 	_settled = true
+	# Back to the save being played, with its own settings in effect.
+	if GameSettings.editing_slot >= 0:
+		GameSettings.editing_slot = -1
+		GameSettings.apply(get_tree(), true)
 	if as_overlay:
 		closed.emit()
 		var layer := get_parent()

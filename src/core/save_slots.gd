@@ -87,6 +87,12 @@ static func choose(tree: SceneTree, slot: int) -> void:
 
 	GameState.SAVE_PATH = state_path(slot)
 	TeamRoster.SAVE_PATH = teams_path(slot)
+	# 19 Oct 2026: each save has its own settings, first copied from the
+	# General settings. Put this save's settings into effect.
+	GameSettings.start_profile(slot)
+	GameSettings.active_slot = slot
+	GameSettings.editing_slot = -1
+	GameSettings.apply(tree, true)
 
 	GameState.forget(tree)
 	TeamSelection.clear(tree)
@@ -150,7 +156,7 @@ static func describe(slot: int) -> Dictionary:
 ## Wipe a slot. The player is asked twice by the screen before this is
 ## called — there is no undo.
 static func erase(slot: int) -> void:
-	for path in [state_path(slot), teams_path(slot)]:
+	for path in [state_path(slot), teams_path(slot), GameSettings.path_for(slot)]:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
 	print("[slots] Slot %d cleared." % slot)

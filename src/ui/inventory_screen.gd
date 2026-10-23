@@ -123,6 +123,9 @@ func _build() -> void:
 	# land on the screen behind it.
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(dim)
+	if mat_look():
+		_build_mat(dim)
+		return
 
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_CENTER)
@@ -209,6 +212,260 @@ func _build() -> void:
 	column.add_child(centre)
 
 
+# =============================================================
+#  THE BEER MAT LOOK  (Anthony 23 Oct 2026, mock-up A)
+#
+#  "The first one is great! Lets use that one": the window is the cream
+#  panel of the beer mat cards, the name is on the wooden sign board (only
+#  the board: "just have the board and not the metal bar and chains"), the
+#  tabs and Close are the blue wooden planks of every menu, and each thing
+#  lies on a round Bavarian beer coaster with how many you have on a bottle
+#  cap. Sizes are data/CardFace.csv inventory_ rows; inventory_style old
+#  brings back the dark window.
+# =============================================================
+
+## A round beer coaster: blue rim with white diamonds, cream middle with a
+## red ring, ink edge. Lit = pointed at (a gold ring).
+class Coaster:
+	extends Control
+	var lit := false
+	var ink := Color(0.1, 0.07, 0.04)
+	var blue := Color(0.16, 0.43, 0.78)
+
+	func _draw() -> void:
+		var r := minf(size.x, size.y) / 2.0
+		var centre := size / 2.0
+		draw_circle(centre, r, blue)
+		var count := 28
+		var mid := r * 0.86
+		var s := r * 0.075
+		for k in count:
+			var a := TAU * float(k) / float(count)
+			var at := centre + Vector2(cos(a), sin(a)) * mid
+			draw_colored_polygon(PackedVector2Array([at + Vector2(0, -s), at + Vector2(s, 0),
+				at + Vector2(0, s), at + Vector2(-s, 0)]), Color(0.97, 0.97, 0.97))
+		draw_circle(centre, r * 0.78, Color(0.96, 0.92, 0.82))
+		draw_arc(centre, r * 0.78, 0.0, TAU, 64, Color(0.78, 0.16, 0.16), maxf(2.0, r * 0.04), true)
+		draw_arc(centre, r - 2.0, 0.0, TAU, 64, ink, maxf(3.0, r * 0.05), true)
+		if lit:
+			draw_arc(centre, r - 1.0, 0.0, TAU, 64, Color(0.95, 0.75, 0.2), maxf(4.0, r * 0.07), true)
+
+
+## The bottle cap with the count on it.
+class Cap:
+	extends Control
+	var ink := Color(0.1, 0.07, 0.04)
+
+	func _draw() -> void:
+		var r := minf(size.x, size.y) / 2.0
+		var centre := size / 2.0
+		draw_circle(centre, r, Color(0.78, 0.63, 0.27))
+		draw_circle(centre, r * 0.74, Color(0.96, 0.92, 0.82))
+		draw_arc(centre, r - 1.5, 0.0, TAU, 40, ink, maxf(2.0, r * 0.14), true)
+
+
+## The beer mat look is on (CardFace.csv inventory_style mat).
+static func mat_look() -> bool:
+	return BeerMatCard.value("inventory_style", "mat").strip_edges().to_lower() == "mat"
+
+
+static func _pair(key: String, fallback: Vector2) -> Vector2:
+	var parts := BeerMatCard.value(key, "").split(",")
+	if parts.size() == 2:
+		return Vector2(float(parts[0]), float(parts[1]))
+	return fallback
+
+
+## The cream panel of the beer mat card, stretched to `box`, its drawn edge
+## `edge` pixels wide (drawn at scale `scale`).
+static func _mat(box: Vector2, edge: int, scale: float) -> NinePatchRect:
+	var frame_tex := load(BeerMatCard.value("frame")) as Texture2D
+	var patch := NinePatchRect.new()
+	patch.texture = frame_tex
+	var full := frame_tex.get_size()
+	var parts := BeerMatCard.value("sign").split(",")
+	if parts.size() == 4:
+		patch.region_rect = Rect2(Vector2(float(parts[0]), float(parts[1])) * full,
+			Vector2(float(parts[2]), float(parts[3])) * full)
+	patch.patch_margin_left = edge
+	patch.patch_margin_right = edge
+	patch.patch_margin_top = edge
+	patch.patch_margin_bottom = edge
+	patch.size = box / scale
+	patch.scale = Vector2(scale, scale)
+	patch.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	patch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return patch
+
+
+## Every button the blue wooden plank, with the menu sounds (ScreenLook).
+static func _plank(button: Button) -> void:
+	var row := {MenuSupport.normalise("Image"): "res://assets/menu/button_plank_drawn.png",
+		MenuSupport.normalise("Scale"): "1", MenuSupport.normalise("Colour"): "#ffffff"}
+	ScreenLook._dress(button, row)
+
+
+func _ink_label(words: String, text_size: int) -> Label:
+	var ink := Color.from_string(BeerMatCard.value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
+	var label := Label.new()
+	label.text = words
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_size_override("font_size", text_size)
+	label.add_theme_color_override("font_color", ink)
+	label.add_theme_constant_override("outline_size", 0)
+	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+	label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	return label
+
+
+func _build_mat(dim: Control) -> void:
+	var box := _pair("inventory_window", Vector2(820, 680))
+	var edge := int(BeerMatCard.number("inventory_edge", 60.0))
+	var text_size := int(BeerMatCard.number("inventory_text_size", 18.0))
+
+	var window := Control.new()
+	window.set_anchors_preset(Control.PRESET_CENTER)
+	window.offset_left = -box.x / 2.0
+	window.offset_right = box.x / 2.0
+	window.offset_top = -box.y / 2.0 + 30.0
+	window.offset_bottom = box.y / 2.0 + 30.0
+	window.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.add_child(window)
+	window.add_child(_mat(box, edge, 0.9))
+
+	var pad := MarginContainer.new()
+	pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side in ["margin_left", "margin_right"]:
+		pad.add_theme_constant_override(side, 70)
+	pad.add_theme_constant_override("margin_top", 62)
+	pad.add_theme_constant_override("margin_bottom", 28)
+	window.add_child(pad)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 14)
+	pad.add_child(column)
+
+	_title_line = _ink_label(subtitle, text_size)
+	_title_line.visible = subtitle != ""
+	column.add_child(_title_line)
+
+	var tabs := HBoxContainer.new()
+	tabs.alignment = BoxContainer.ALIGNMENT_CENTER
+	tabs.add_theme_constant_override("separation", 14)
+	column.add_child(tabs)
+	if not shown_tabs().has(_tab):
+		_tab = shown_tabs()[0]
+	for key in shown_tabs():
+		var button := Button.new()
+		button.text = String(TAB_WORDS[key])
+		button.custom_minimum_size = Vector2(190, 52)
+		button.add_theme_font_size_override("font_size", 22)
+		button.pressed.connect(_show_tab.bind(key))
+		_plank(button)
+		tabs.add_child(button)
+		_tab_buttons[key] = button
+
+	var scroller := ScrollContainer.new()
+	scroller.custom_minimum_size = Vector2(0, 250)
+	scroller.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroller.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	column.add_child(scroller)
+	var centre_grid := CenterContainer.new()
+	centre_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroller.add_child(centre_grid)
+	_grid = GridContainer.new()
+	_grid.columns = int(BeerMatCard.number("inventory_columns", 4.0))
+	_grid.add_theme_constant_override("h_separation", 20)
+	_grid.add_theme_constant_override("v_separation", 16)
+	centre_grid.add_child(_grid)
+
+	# The info box: a smaller piece of the same cream panel.
+	var shelf := Control.new()
+	shelf.custom_minimum_size = Vector2(0, 110)
+	column.add_child(shelf)
+	var shelf_mat := _mat(Vector2(box.x - 140.0, 110.0), edge, 0.6)
+	shelf.add_child(shelf_mat)
+	_words = _ink_label("", text_size)
+	_words.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_words.position = Vector2(50, 14)
+	_words.size = Vector2(box.x - 240.0, 82)
+	shelf.add_child(_words)
+	shelf.resized.connect(func() -> void:
+		shelf_mat.size = shelf.size / shelf_mat.scale.x
+		_words.size = Vector2(shelf.size.x - 100.0, shelf.size.y - 28.0))
+
+	var close_button := Button.new()
+	close_button.text = Loc.text("close", "Close").to_upper()
+	close_button.custom_minimum_size = Vector2(230, 60)
+	close_button.add_theme_font_size_override("font_size", 26)
+	close_button.pressed.connect(close)
+	_plank(close_button)
+	var centre := CenterContainer.new()
+	centre.add_child(close_button)
+	column.add_child(centre)
+
+	# The name on the wooden board, centred on the window's top edge.
+	var sign := SignHeader.make(Loc.text("inventory", "Inventory").to_upper(),
+		"res://data/MenuHeaderBoard.csv")
+	window.add_child(sign)
+	var lift := BeerMatCard.number("inventory_header_lift", 82.0)
+	var centre_sign := func() -> void:
+		sign.position = Vector2((box.x - sign.size.x) / 2.0, -lift)
+	sign.resized.connect(centre_sign)
+	centre_sign.call()
+
+
+## One thing on its coaster, with how many on a bottle cap.
+func _coaster_tile(entry: Dictionary, usable: bool) -> Button:
+	var d := BeerMatCard.number("inventory_coaster", 150.0)
+	var button := Button.new()
+	button.custom_minimum_size = Vector2(d, d)
+	button.focus_mode = Control.FOCUS_ALL
+	for state_name in ["normal", "hover", "pressed", "focus", "disabled"]:
+		button.add_theme_stylebox_override(state_name, StyleBoxEmpty.new())
+	var mat := Coaster.new()
+	mat.size = Vector2(d, d)
+	mat.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(mat)
+	var ink := Color.from_string(BeerMatCard.value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
+	var picture := MenuSupport.icon_texture(String(entry.get("art", "")))
+	var icon_side := d * BeerMatCard.number("inventory_icon", 0.56)
+	var spot := Rect2(Vector2(d - icon_side, d - icon_side) / 2.0, Vector2(icon_side, icon_side))
+	if picture != null:
+		var art := TextureRect.new()
+		art.texture = picture
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		# Old small pixel icons stay sharp; drawn ones are drawn smooth.
+		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if picture.get_width() <= 96 \
+			else CanvasItem.TEXTURE_FILTER_LINEAR
+		art.position = spot.position
+		art.size = spot.size
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		button.add_child(art)
+	else:
+		BeerMatCard.add_label(button, _glyph_for(entry), spot, ink, 0.8)
+	var held := int(entry.get("held", 1))
+	var cap := Cap.new()
+	var cap_d := d * 0.27
+	cap.size = Vector2(cap_d, cap_d)
+	cap.position = Vector2(d * 0.86 - cap_d / 2.0, d * 0.82 - cap_d / 2.0)
+	cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(cap)
+	BeerMatCard.add_label(button, str(held), Rect2(cap.position + cap.size * 0.22, cap.size * 0.56), ink, 0.85)
+	# Somewhere things can be used, the ones that cannot are greyed.
+	if mode != Use.NOTHING and not usable:
+		button.modulate = Color(0.6, 0.6, 0.6, 0.9)
+	button.mouse_entered.connect(func() -> void:
+		mat.lit = true
+		mat.queue_redraw())
+	button.mouse_exited.connect(func() -> void:
+		mat.lit = false
+		mat.queue_redraw())
+	return button
+
+
 ## The tabs the window shows, in order: Tuning.csv `inventory_tabs`, words
 ## from AdventureDB.TABS split by `;`. Never empty - a blank or misspelt row
 ## shows all three, so the bag can never open with nothing to click.
@@ -243,7 +500,11 @@ func _show_tab(which: String) -> void:
 
 	for key in _tab_buttons.keys():
 		# The tab you are on is the lit one. Two looks, no third state.
-		MenuSupport.paint_tab(_tab_buttons[key] as Button, String(key) == _tab)
+		if mat_look():
+			(_tab_buttons[key] as Button).modulate = Color.WHITE if String(key) == _tab \
+				else Color(0.62, 0.62, 0.72)
+		else:
+			MenuSupport.paint_tab(_tab_buttons[key] as Button, String(key) == _tab)
 
 	for child in _grid.get_children():
 		child.queue_free()
@@ -279,8 +540,12 @@ func _nothing_here() -> String:
 func _tile(entry: Dictionary) -> Button:
 	var usable := _can_use(entry)
 	var tint := MenuSupport.COLOUR_ACCENT if usable else MenuSupport.COLOUR_TEXT_DIM
-	var button := MenuSupport.slot_button(String(entry.get("art", "")),
-		_glyph_for(entry), int(entry.get("held", 1)), Vector2(84, 84), tint)
+	var button: Button
+	if mat_look():
+		button = _coaster_tile(entry, usable)
+	else:
+		button = MenuSupport.slot_button(String(entry.get("art", "")),
+			_glyph_for(entry), int(entry.get("held", 1)), Vector2(84, 84), tint)
 
 	# ============ THE DESCRIPTION IS ON HOVER, NOT ON THE TILE ============
 	#
