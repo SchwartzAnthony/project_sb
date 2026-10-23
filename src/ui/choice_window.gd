@@ -137,22 +137,28 @@ func _frame_box(title: String, body: String) -> VBoxContainer:
 	frame.add_theme_stylebox_override("panel", MenuSupport.styled(
 		"window", "", MenuSupport.COLOUR_BACKGROUND, MenuSupport.COLOUR_ACCENT))
 	centre.add_child(frame)
+	var mat := _mat_look(frame, title)
 	var pad := MarginContainer.new()
 	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
 		pad.add_theme_constant_override(side, 22)
+	if mat:
+		_mat_margins(pad)
 	frame.add_child(pad)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
 	pad.add_child(box)
-	box.add_child(MenuSupport.heading(title, 24, MenuSupport.COLOUR_ACCENT))
+	if not mat:
+		box.add_child(MenuSupport.heading(title, 24, MenuSupport.COLOUR_ACCENT))
 	if body != "":
 		var words := Label.new()
 		words.text = body
 		words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		words.custom_minimum_size = Vector2(620.0, 0.0)
 		words.add_theme_font_size_override("font_size", 16)
-		words.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
+		words.add_theme_color_override("font_color", _ink() if mat else MenuSupport.COLOUR_TEXT)
 		box.add_child(words)
+	if mat:
+		_plank_all.call_deferred(box)
 	return box
 
 
@@ -173,23 +179,29 @@ func _build(title: String, body: String, options: Array[String], details: Array[
 	frame.add_theme_stylebox_override("panel", MenuSupport.styled(
 		"window", "", MenuSupport.COLOUR_BACKGROUND, MenuSupport.COLOUR_ACCENT))
 	centre.add_child(frame)
+	var mat := _mat_look(frame, title)
 
 	var pad := MarginContainer.new()
 	for side in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
 		pad.add_theme_constant_override(side, 22)
+	if mat:
+		_mat_margins(pad)
 	frame.add_child(pad)
 
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 12)
 	pad.add_child(box)
 
-	box.add_child(MenuSupport.heading(title, 24, MenuSupport.COLOUR_ACCENT))
+	if not mat:
+		box.add_child(MenuSupport.heading(title, 24, MenuSupport.COLOUR_ACCENT))
 	var words := Label.new()
 	words.text = body
 	words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	words.custom_minimum_size = Vector2(516.0, 0.0)
 	words.add_theme_font_size_override("font_size", 17)
-	words.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
+	words.add_theme_color_override("font_color", _ink() if mat else MenuSupport.COLOUR_TEXT)
+	if mat:
+		words.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(words)
 
 	for i in options.size():
@@ -206,10 +218,70 @@ func _build(title: String, body: String, options: Array[String], details: Array[
 			note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			note.custom_minimum_size = Vector2(516.0, 0.0)
 			note.add_theme_font_size_override("font_size", 13)
-			note.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+			note.add_theme_color_override("font_color", _ink() if mat else MenuSupport.COLOUR_TEXT_DIM)
 			box.add_child(note)
+		if mat:
+			InventoryScreen._plank(button)
+			button.custom_minimum_size.y = 56.0
 		if i == 0:
 			button.call_deferred("grab_focus")
+
+
+# =============================================================
+#  THE BEER MAT LOOK  (Anthony 23 Oct 2026: "need a new window design with
+#  our new art please", for the Tutorial question)
+#
+#  Every question window is the inventory's look: the cream beer mat panel,
+#  the title on the wooden sign board (no bar, no chains), ink words and the
+#  blue wooden plank buttons. data/CardFace.csv choice_style: mat = this,
+#  old = the old dark window.
+# =============================================================
+
+static func mat_on() -> bool:
+	return BeerMatCard.value("choice_style", "mat").strip_edges().to_lower() == "mat"
+
+
+func _ink() -> Color:
+	return Color.from_string(BeerMatCard.value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
+
+
+## Puts the cream panel behind `frame` and the board with `title` on its
+## top edge. False (and nothing done) when choice_style is old.
+func _mat_look(frame: PanelContainer, title: String) -> bool:
+	if not mat_on():
+		return false
+	frame.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	var holder := Control.new()
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(holder)
+	var edge := int(BeerMatCard.number("inventory_edge", 60.0))
+	var patch := InventoryScreen._mat(Vector2(560, 300), edge, 0.9)
+	holder.add_child(patch)
+	var sign := SignHeader.make(title, "res://data/MenuHeaderBoard.csv")
+	holder.add_child(sign)
+	var lift := BeerMatCard.number("choice_header_lift", 82.0)
+	var fit := func() -> void:
+		patch.size = holder.size / patch.scale.x
+		sign.position = Vector2((holder.size.x - sign.size.x) / 2.0, -lift)
+	holder.resized.connect(fit)
+	sign.resized.connect(fit)
+	return true
+
+
+## Room inside the panel's drawn edge, and under the board.
+static func _mat_margins(pad: MarginContainer) -> void:
+	pad.add_theme_constant_override("margin_left", 60)
+	pad.add_theme_constant_override("margin_right", 60)
+	pad.add_theme_constant_override("margin_top", 70)
+	pad.add_theme_constant_override("margin_bottom", 44)
+
+
+## Every plain button in the window becomes the blue wooden plank.
+func _plank_all(node: Node) -> void:
+	if node is Button and node.get_class() == "Button":
+		InventoryScreen._plank(node as Button)
+	for child in node.get_children():
+		_plank_all(child)
 
 
 func _pick(index: int) -> void:

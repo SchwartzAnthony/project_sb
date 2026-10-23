@@ -149,6 +149,7 @@ var _band := Rect2()
 var _name_box := Rect2()
 var _cap_at := Vector2.ZERO
 var _cap_r := 0.0
+var _cap_star := false
 static var _diamonds: ImageTexture = null
 
 
@@ -171,6 +172,14 @@ static func diamond_tile() -> ImageTexture:
 			image.set_pixel(x, y, blue if dx + dy <= side / 2.0 else Color(0.97, 0.97, 0.97))
 	_diamonds = ImageTexture.create_from_image(image)
 	return _diamonds
+
+
+## ROUND AN (Anthony, 23 Oct 2026): "remove all the stars and turn the power
+## circle into a star circle". A Star Player has no badge over their head any
+## more; the power cap on the ribbon is a star instead of a circle. -1 asks the
+## card (card.shows_star()); the pitch sets 0 or 1 from the unit, because a
+## Star card standing in a plain side is not a Star there.
+var star := -1
 
 
 static func make() -> NamePlate:
@@ -363,7 +372,9 @@ func _place_ribbon(card: PlayerData, middle: float, top: float, name_size: int,
 		label.add_theme_color_override("font_color", ink)
 		label.add_theme_constant_override("shadow_outline_size", 0)
 		label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
-	_tier_label.text = "TIER %s%s" % [card.get_tier_clean(), " ★" if card.shows_star() else ""]
+	_cap_star = card.shows_star() if star < 0 else star == 1
+	# No star in the words either: the star cap says it.
+	_tier_label.text = "TIER %s" % card.get_tier_clean()
 	_tier_label.add_theme_font_size_override("font_size", maxi(7, stat_size - 2))
 	_tier_label.add_theme_color_override("font_color", Color(0.98, 0.95, 0.86) if not down else ink)
 	_power_label.text = str(card.get_attack_power())
@@ -398,6 +409,30 @@ func _place_ribbon(card: PlayerData, middle: float, top: float, name_size: int,
 		_fill.size.x = _bar.size.x * clampf(fraction, 0.0, 1.0)
 
 
+## The power cap of a Star Player: a fat gold star with a thick ink edge, big
+## enough that the number still sits inside it. CardFace.csv star_cap_gold
+## sets the gold, star_cap_size how much bigger than the round cap it is.
+func _draw_star_cap(ink: Color, fade: float) -> void:
+	var gold := Color.from_string(BeerMatCard.value("star_cap_gold", "#f2c23a"), Color(0.95, 0.76, 0.23))
+	var outer := _cap_r * maxf(1.0, BeerMatCard.value("star_cap_size", "1.45").to_float())
+	var inner := outer * 0.6
+	var points := PackedVector2Array()
+	for i in 10:
+		var r: float = outer if i % 2 == 0 else inner
+		var a: float = -PI * 0.5 + float(i) * PI / 5.0
+		points.append(_cap_at + Vector2(cos(a), sin(a)) * r)
+	var indices := Geometry2D.triangulate_polygon(points)
+	var colour := Color(gold.r, gold.g, gold.b, fade)
+	var i := 0
+	while i + 2 < indices.size():
+		draw_colored_polygon(PackedVector2Array([points[indices[i]],
+			points[indices[i + 1]], points[indices[i + 2]]]), colour)
+		i += 3
+	var edge := points.duplicate()
+	edge.append(points[0])
+	draw_polyline(edge, ink, 2.5, true)
+
+
 ## A cross over a fallen player. The caller says where the middle of them is,
 ## because only the caller knows whether they are standing or lying down.
 func mark_down(middle: Vector2, span: float) -> void:
@@ -428,9 +463,12 @@ func _draw() -> void:
 		draw_rect(_band, ink, false, 2.0)
 		draw_rect(_name_box, Color(0.965, 0.925, 0.82, fade), true)
 		draw_rect(_name_box, ink, false, 1.5)
-		draw_circle(_cap_at, _cap_r, Color(0.965, 0.925, 0.82, fade))
-		draw_arc(_cap_at, _cap_r - 1.5, 0.0, TAU, 32, Color(0.72, 0.55, 0.25, fade), 3.0, true)
-		draw_arc(_cap_at, _cap_r, 0.0, TAU, 32, ink, 1.5, true)
+		if _cap_star:
+			_draw_star_cap(ink, fade)
+		else:
+			draw_circle(_cap_at, _cap_r, Color(0.965, 0.925, 0.82, fade))
+			draw_arc(_cap_at, _cap_r - 1.5, 0.0, TAU, 32, Color(0.72, 0.55, 0.25, fade), 3.0, true)
+			draw_arc(_cap_at, _cap_r, 0.0, TAU, 32, ink, 1.5, true)
 	if _panel.size.x > 0.0:
 		draw_rect(_panel, Color(0.06, 0.07, 0.10, 0.78), true)
 		draw_rect(_panel, Color(_tint.r, _tint.g, _tint.b,

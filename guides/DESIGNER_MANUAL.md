@@ -595,6 +595,12 @@ on a blue-white diamond ribbon, the power in a round cap at the right end.
 
 ## 6c. The beer mat card — how every player card looks (23 Oct 2026)
 
+**Twice as big (23 Oct 2026, Anthony).** The cards you pick from in a match
+are 440 x 580 (Tuning.csv `card_width` / `card_height`, were 220 x 290).
+The Head Coach in the on-field talk box is cut to his drawing and drawn
+`match_talk_portrait_height` (212) tall, so his hair sits just under the
+box's top edge.
+
 Every player card (the match pick, the team builder, the Adventure fight) is
 a worn Bavarian beer mat. You chose it from your collector card photo.
 
@@ -2465,7 +2471,7 @@ res://tools/lab/lab_cli.gd -- '{"cmd":"meta"}'`.
 | you said | now |
 |---|---|
 | the foul text is unreadable | the referee's bar sits on dark see-through glass, no border, bigger white text (`ref_bar_glass`, `ref_bar_text_size`) |
-| can't read the hover window | it opens BELOW the card, on its own layer above the banner, and never over the referee's bar (`hover_panel_layer`, `hover_panel_keep_bottom`). If there is not room under the card it goes wide and short instead of covering the card (`hover_panel_wide_width`). It also says the card's text and what the game does with it |
+| can't read the hover window | it opens BELOW the card, on its own layer above the banner, and never over the referee's bar (`hover_panel_layer`, `hover_panel_keep_bottom`). If there is not room under the card it opens BESIDE the card, on the side with more room; only if that does not fit either does it go wide and short (`hover_panel_wide_width`). Its width is `hover_panel_width` (700) and its word size `hover_panel_text_size` (21; the name and numbers grow with it). It also says the card's text and what the game does with it |
 | kicked across the whole field | the ball goes from his own feet over the touchline NEAREST to him (`throw_in_drift`) |
 | no Emblem, feels like an old build | a build stamp bottom-left of every match (`build_stamp`) and an `[emblems] the bar shows ...` line in the Output panel. Also fixed: Emblems were never reset between matches |
 | variety for PLAY MAKER | a proposal in Questions Q060 |
@@ -3704,7 +3710,7 @@ moment, with the same score, clock and exhaust. Then the row's **Do** runs:
 | `inspire:Koch=75` | his inspiration in % on the drunk meter (`DrunkLevels.csv`): 75 after cycle 1 (past Inspired, so his star ability wakes up), 90 after cycle 2 |
 | `drink_lesson:first=keg@barrel@tut-fass-after@abilities\|-\|card` | the drinking lesson. `<card>=<item>@<barrel or bottle>@<scene>@<gold>`. The item goes in the bag if it is missing; only that card's bag button works and his bag shows only that item; gold on the button, then on the item. When he drinks: the drinking window (his PixelLab stein drink from his pitch sheet, then the burp; `Tuning.csv drink_window_seconds`), then his card comes up big as with show_card and the scene plays. Only he can be picked after |
 | `give:anstoss_helles+doppelpass_weisse+abstauber_dunkel` | puts one of each into the bag (`item=3` for more). A drink_lesson can then name several items with `+`: the bag shows those, gold on each, and any one will do |
-| `say:tut-after-brewery@-\|-\|flask:first` | plays that Dialogue.csv scene, gold per line after `@` (the Highlight words) |
+| `say:tut-after-brewery@-\|flask:first` | plays that Dialogue.csv scene, gold per line after `@` (the Highlight words) |
 | `brewery:tut_brewery` | a TIME OUT at the Brewery (round AN): the match freezes, that flag is set and the Brewery opens over it; `Guide.csv` rows that need the flag lead the way, and one whose Then is `goto:back` ends it. See "The tutorial Brewery" |
 
 **Time passes: a fade to black** (Anthony, 9 Oct). A Dialogue.csv line
@@ -4307,6 +4313,14 @@ used, rather than hiding it or letting it do nothing.
 Drops: `Table`, `Item`, `Amount`, `Chance` (0–1), `Requires`. One table is
 several rows sharing a `Table` name.
 
+### QUESTION WINDOWS (23 Oct 2026)
+
+Every question the game asks (the Tutorial offer on a new game, spend this,
+pick that) opens in the inventory's look: the cream beer mat panel, the
+title on the wooden board (no bar, no chains), ink words and blue wooden
+plank buttons. `data/CardFace.csv` `choice_style` (`old` = the old dark
+window) and `choice_header_lift` (how far above the window the board sits).
+
 ### THE INVENTORY — one bag, three tabs
 
 The same window opens from the base, the Bounty Board, an Adventure fight and
@@ -4333,6 +4347,12 @@ have on a bottle cap. Rows in `data/CardFace.csv`:
 | `inventory_icon` | how big the picture is on its coaster |
 | `inventory_columns` | coasters in a row |
 | `inventory_text_size` | the size of the words |
+
+**Long words scroll (23 Oct 2026).** When a description does not fit the
+info box (the Kleiner Faß did not), the box scrolls instead of growing: mouse
+wheel, a drag, or the thin ink bar on its right, which only shows when it is
+needed. Pointing at another thing starts its words at the top again. Check:
+`tools/info_scroll_shot.gd`.
 
 | Tab | What goes on it |
 |---|---|
@@ -7247,6 +7267,17 @@ helper adds a node for you, say so in a comment above it, in capitals.
 ## 16b. The title screen, sounds and music (round AI)
 
 ### `data/MainMenu.csv` — what the title screen looks like
+
+**23 Oct 2026: the title screen shows the new village** (the base picture,
+softened by `art_tool/menu/village_title/soften.py`, file
+`assets/menu/village/title_village_soft.png`). The maypole, ribbon and cloud
+rows are gone. The sign, the button board and the bird stay.
+
+**The window and a save (23 Oct 2026).** Opening a save puts its own
+settings into effect, but the window is only re-made when its screen
+settings (mode, resolution, vsync, frame cap) differ from the ones already
+in use, and a windowed size never grows past the screen (the Steam Deck's
+screen is 1280 x 800).
 
 **Drawn title screen (18 Oct 2026)** (Anthony: "redo the main Menu so that it
 isn't pixel art"). The village, the two ribbon bunches, the notice board and
