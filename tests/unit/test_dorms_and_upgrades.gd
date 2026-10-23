@@ -246,6 +246,10 @@ func test_a_shift_sends_the_brewer_to_the_dorms_and_a_bad_roll_spoils_it() -> vo
 func test_every_building_but_the_club_house_needs_its_key() -> void:
 	for entry in BaseDB.get_db().buildings:
 		var needs := String(entry["requires"])
+		# The pitch (23 Oct 2026) is the Play a match flag drawn into the
+		# village, not a building: it was never behind a key.
+		if String(entry["action"]).begins_with("play:"):
+			continue
 		if String(entry["id"]) == "club_house":
 			assert_false(needs.contains("_key"), "the Club House is where keys are bought")
 		else:

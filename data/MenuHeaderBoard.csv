@@ -1,0 +1,9 @@
+Part,Image,X,Y,Size,Colour,Notes
+left,res://assets/ui/header/board_left.png,,,,,"23 Oct 2026 (Anthony, for the inventory): ""just have the board and not the metal bar and chains"". The same tavern sign as MenuHeader.csv with only its wooden board: cut free by art_tool/menu/board_only.py (padlocks covered with the wood beside them, wall plate gone). The board's left end."
+middle,res://assets/ui/header/board_middle.png,,,,,"The plain middle of the board. Only this piece stretches sideways, so a longer name makes the board wider."
+right,res://assets/ui/header/board_right.png,,,,,"The board's right end."
+sign,,0,0,120,,"Size = the board's height in pixels on the 1920 x 1080 screen. The inventory centres it on the top edge of its window (CardFace.csv inventory_header_lift says how far up it sits). X, Y are not used there."
+text,,120,185,46,#f6ead0,"The name on the board: Size = letter size, Colour = letter colour. X = where the writing space starts inside the left piece, Y = the middle of the board, both in pixels of the drawn picture (it is 373 high)."
+padding,,490,40,,,"X = where the writing space ends inside the right piece, Y = the gap kept between the words and the board's ends, in pixels of the drawn picture."
+outline,,,,10,#120a04,"A dark ink edge round the letters: Size = how thick (0 = none), Colour = its colour."
+backing,,,,30,#000000b0,"The dark aura hugging the board: board_<part>_aura.png, made by art_tool/menu/header_aura.py with the word board. Size = how far those pictures are padded (30, must match the script), Colour = its colour; last two digits = how solid (00 = none)."

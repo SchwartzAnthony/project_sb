@@ -1,7 +1,13 @@
-Scene,Node ID,Speaker,Portrait,Side,Mood,View,Animation,Background,Music,Sound,Text,Next,Requires,Effects,Choice 1 Text,Choice 1 Next,Choice 1 Requires,Choice 1 Effects,Choice 2 Text,Choice 2 Next,Choice 2 Requires,Choice 2 Effects,Choice 3 Text,Choice 3 Next,Choice 3 Requires,Choice 3 Effects
+Scene,Node ID,Speaker,Portrait,Side,Mood,View,Animation,Background,Music,Sound,Text,Next,Requires,Effects,Choice 1 Text,Choice 1 Next,Choice 1 Requires,Choice 1 Effects,Choice 2 Text,Choice 2 Next,Choice 2 Requires,Choice 2 Effects,Choice 3 Text,Choice 3 Next,Choice 3 Requires,Choice 3 Effects,Joins
+tut-base-welcome,welcome,Head Coach,coach,left,happy,,,village,,,Welcome to Sturmball!,,,,,,,,,,,,,,,
+tut-base-welcome,orientation,Head Coach,coach,left,happy,,,,,,I am glad you have been able to make it to your orientation.,,,,,,,,,,,,,,,
+tut-base-welcome,prepared,Head Coach,coach,left,happy,,,,,,"A lot of head coaches just waltz in and learn as they go, but I like you. Coming in prepared!",,,,,,,,,,,,,,,
+tut-base-welcome,to_the_pub,Head Coach,coach,left,happy,,,,,,Before we get too far into everything let us get a drink at the Pub,,,,,,,,,,,,,,,
+tut-pub-arrive,cold_beer,Head Coach,coach,left,happy,,,bar,,,"Ah, nothing beats a nice cold beer!",,,,,,,,,,,,,,,
+tut-pub-arrive,prodigy,Head Coach,coach,left,happy,side,,,,,Ah Koch! My prodigy,prologue/put_down,,,,,,,,,,,,,,
 prologue,open,,,,,,,bar,,,Three players wait at the Stammtisch.,,,,,,,,,,,,,,,
 prologue,servus,Head Coach,coach,left,happy,,,,,,"Servus, Trainer! Sit down.",,,,,,,,,,,,,,,
-prologue,put_down,Head Coach,coach,left,mad,side,,,,,"Put that down, Koch! You should already be drunk enough!",,,,,,,,,,,,,,,
+prologue,put_down,Head Coach,coach,left,mad,side,,,,,"Put that down, Koch! You should already be drunk enough!",,,,,,,,,,,,,,,,koch:right:drunk
 prologue,still_cold,Koch,koch,right,sad,side,,,,,But this is cold.,,,,,,,,,,,,,,,
 prologue,finish_up,Head Coach,coach,left,mad,side,,,,,Fine! But finish up. We need to show our new trainee how to become a good new coach for our town.,,,,,,,,,,,,,,,
 prologue,beuterdorf,Head Coach,coach,left,happy,,,,,,"I will be leaving soon to help another town, Beuterdorf, and we need as many people as possible.",,,,,,,,,,,,,,,

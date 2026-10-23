@@ -247,12 +247,16 @@ static func icon_button(icon: String, label: String,
 	button.add_child(row)
 
 	# --- the icon half ---
+	# No icon (an empty string): the words get the whole button (Anthony
+	# 20 Oct 2026: no gold icons on the Settings buttons but Back and Save).
+	var has_icon := icon.strip_edges() != ""
 	var box := PanelContainer.new()
 	box.custom_minimum_size = Vector2(inner.y, 0)
 	box.clip_contents = true
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_theme_stylebox_override("panel", _half_style())
-	row.add_child(box)
+	if has_icon:
+		row.add_child(box)
 	# A plain Control between the panel and the picture: its size never
 	# depends on what is in it, so the picture can never stretch the button.
 	var holder := Control.new()
@@ -275,8 +279,10 @@ static func icon_button(icon: String, label: String,
 		art_name = icon.substr(0, bar).strip_edges()
 		glyph_text = icon.substr(bar + 1).strip_edges()
 
-	var art := icon_texture(art_name)
-	if art != null:
+	var art := icon_texture(art_name) if has_icon else null
+	if not has_icon:
+		box.queue_free()
+	elif art != null:
 		var rect := TextureRect.new()
 		rect.texture = art
 		rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -316,7 +322,7 @@ static func icon_button(icon: String, label: String,
 	text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	text.clip_text = true
-	var words_room := Vector2(inner.x - inner.y - 8.0, inner.y)
+	var words_room := Vector2(inner.x - (inner.y if has_icon else 0.0) - 8.0, inner.y)
 	text.add_theme_font_size_override("font_size", _fit_font_size(label,
 		int(tuned("button_text_size", 18.0)), words_room))
 	text.set_meta(TextScale.FITTED_META, true)
@@ -615,6 +621,10 @@ static func card_face(card: PlayerData, db: CardDatabase, box: Vector2,
 		panel_style(COLOUR_LOCKED, COLOUR_TEXT_DIM))
 	if card == null:
 		return button
+	# 23 Oct 2026: the beer mat card (data/CardFace.csv, beer_mat_card.gd).
+	if BeerMatCard.enabled():
+		BeerMatCard.dress(button, card, db, box, extra)
+		return button
 
 	var box_in := VBoxContainer.new()
 	box_in.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -795,6 +805,14 @@ static func tuned(key: String, fallback: float) -> float:
 	if book == null:
 		return fallback
 	return book.tune_float(key, fallback)
+
+
+## The same for words out of Tuning.csv.
+static func tuned_text(key: String, fallback: String) -> String:
+	var book := CardDatabase.get_db()
+	if book == null:
+		return fallback
+	return book.tune_text(key, fallback)
 
 
 static func dialog(on: Node, title: String, under: String = "",

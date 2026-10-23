@@ -293,13 +293,18 @@ func _read_look() -> void:
 						_pictures.append({"is_title": true, "motion": entry["motion"]})
 			"picture":
 				_pictures.append(entry)
+			"shade":
+				# ROUND AN: a see-through dark box (Colour = Text column,
+				# e.g. #140c06a8) at X/Y/Width/Height, behind the buttons.
+				entry["is_shade"] = true
+				_pictures.append(entry)
 			"layer":
 				# ROUND AN: a whole-screen picture drawn like the wallpaper
 				# (covering the screen), stacked in row order.
 				entry["is_layer"] = true
 				_pictures.append(entry)
 			_:
-				print("[menu] MainMenu.csv: Part '%s' is not background, title, layer or picture - skipping it." % part)
+				print("[menu] MainMenu.csv: Part '%s' is not background, title, layer, picture or shade - skipping it." % part)
 
 
 func _build_pictures() -> void:
@@ -322,6 +327,15 @@ func _build_pictures() -> void:
 				title.size = Vector2(box, tall)
 				title.position = Vector2(float(row.get("x", 960.0)) - box * 0.5,
 					float(row.get("y", 0.0)) - tall * 0.5) - last_art.position
+			continue
+		if entry.has("is_shade"):
+			var shade := ColorRect.new()
+			var text := String(entry["text"])
+			shade.color = Color.from_string(text if text != "" else "#140c06a8", Color(0, 0, 0, 0.6))
+			shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			shade.size = Vector2(float(entry["width"]), float(entry["height"]))
+			shade.position = Vector2(float(entry["x"]), float(entry["y"])) - shade.size * 0.5
+			add_child(shade)
 			continue
 		var path := String(entry["image"])
 		var sheet := _picture(path)
@@ -458,10 +472,10 @@ func _make_button(label: String, art_path: String, box: Vector2, label_on_art: b
 				box_style.modulate_color = states[state]
 				button.add_theme_stylebox_override(state, box_style)
 			button.add_theme_font_size_override("font_size", 26)
-			button.add_theme_color_override("font_color", Color("f6ead0"))
+			button.add_theme_color_override("font_color", Color("ffffff"))
 			button.add_theme_color_override("font_hover_color", Color("ffd36a"))
 			button.add_theme_color_override("font_focus_color", Color("ffd36a"))
-			button.add_theme_color_override("font_pressed_color", Color("e8d7b0"))
+			button.add_theme_color_override("font_pressed_color", Color("dddddd"))
 			button.add_theme_color_override("font_outline_color", Color("2a1608"))
 			button.add_theme_constant_override("outline_size", 7)
 			button.texture_filter = _menu_filter()
@@ -548,6 +562,8 @@ func _on_action(action: String) -> void:
 			ScenePaths.go_to(get_tree(), ScenePaths.for_name(argument))
 		"open_settings", "settings":
 			state.save_to_disk()
+			# The title screen's Settings are the General settings (19 Oct).
+			GameSettings.editing_slot = 0
 			ScenePaths.go_to(get_tree(), ScenePaths.SETTINGS)
 		"quit_game":
 			get_tree().quit()

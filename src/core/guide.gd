@@ -42,6 +42,8 @@ const DONE_PREFIX := "guide_done_"
 ## Set on the screen while an Only row's button is waiting to be pressed:
 ## the words of that button.
 const ONLY_META := "guide_only"
+## On a button that lights itself up for a Highlight: a Callable that does it.
+const GLOW_META := "guide_glow"
 
 static var _rows: Array[Dictionary] = []
 static var _loaded := false
@@ -121,6 +123,8 @@ static func _play(host: Control, row: Dictionary, state: GameState) -> void:
 	var words := String(row["highlight"])
 	if bool(row["only"]) and words.strip_edges() != "":
 		host.set_meta(ONLY_META, words.strip_edges())
+		if host.has_method("apply_guide_only"):
+			host.call("apply_guide_only")
 	# Lit after the redraw has built the new buttons.
 	await host.get_tree().process_frame
 	if is_instance_valid(host):
@@ -190,6 +194,10 @@ static func highlight(host: Node, words: String) -> Control:
 	if target == null:
 		print("[guide] No button saying '%s' on this screen to light up." % words)
 		return null
+	# A drawn building on the village lights itself up (base_screen.gd).
+	if target.has_meta(GLOW_META):
+		(target.get_meta(GLOW_META) as Callable).call()
+		return target
 	var ring := Panel.new()
 	ring.name = "GuideHighlight"
 	var style := StyleBoxFlat.new()
@@ -226,7 +234,7 @@ static func _find_kind(node: Node, kind_name: String) -> bool:
 
 
 static func _find_button(node: Node, words: String) -> Control:
-	if node is BaseButton and _says(node, words):
+	if node is BaseButton and says(node, words):
 		return node as Control
 	for child in node.get_children():
 		var hit := _find_button(child, words)
@@ -237,7 +245,7 @@ static func _find_button(node: Node, words: String) -> Control:
 
 ## A button "says" the words when its own text, its tooltip or any label
 ## inside it does (the base's banners carry their words on a label).
-static func _says(node: Node, words: String) -> bool:
+static func says(node: Node, words: String) -> bool:
 	if node is Button and (node as Button).text.to_lower().contains(words):
 		return true
 	if node is Control and (node as Control).tooltip_text.to_lower().begins_with(words):

@@ -8,8 +8,9 @@ const Look := preload("res://src/ui/screen_look.gd")
 # =============================================================
 #  WHICH SAVE ARE YOU PLAYING?
 #
-#  Start on the title screen opens this: one tile per slot, showing what is
-#  in it and when it was last played. Picking one starts the game on it.
+#  Start on the title screen opens this: one beer mug per slot on a table
+#  (19 Oct 2026). Clicking a mug opens its lid and shows Play, Profile
+#  Settings and Delete. Layout and pictures: data/SaveMugs.csv.
 #
 #  How many tiles there are is `slot_count` in Tuning.csv. Nothing else.
 #
@@ -18,10 +19,7 @@ const Look := preload("res://src/ui/screen_look.gd")
 #  see the header of save_slots.gd for why.
 # =============================================================
 
-const TILE := Vector2(320.0, 210.0)
-
 var state: GameState
-var _list: HBoxContainer
 var _detail: Label
 
 
@@ -38,14 +36,23 @@ func _ready() -> void:
 
 func _build() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_read_mugs()
 
 	var bg := ColorRect.new()
 	bg.color = MenuSupport.COLOUR_BACKGROUND
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 
+	# 19 Oct 2026: the saves are beer mugs standing on the table (the table
+	# itself is a ScreenLook.csv picture behind them).
+	_table = Control.new()
+	_table.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_table.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_table)
+
 	var margin := MarginContainer.new()
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for side in ["margin_left", "margin_right"]:
 		margin.add_theme_constant_override(side, 40)
 	margin.add_theme_constant_override("margin_top", 28)
@@ -54,20 +61,16 @@ func _build() -> void:
 
 	var page := VBoxContainer.new()
 	page.add_theme_constant_override("separation", 16)
+	page.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.add_child(page)
 
-	page.add_child(MenuSupport.heading("CHOOSE A SAVE", 34, MenuSupport.COLOUR_ACCENT))
-	page.add_child(MenuSupport.heading(
-		"Each one is its own game — its own progress, its own teams. Your settings are shared between them.",
-		18, MenuSupport.COLOUR_TEXT_DIM))
+	# 20 Oct 2026: the name hangs on the tavern sign (data/MenuHeader.csv).
+	add_child(SignHeader.make(Loc.text("choose_a_save", "CHOOSE A SAVE")))
 
-	var centre := CenterContainer.new()
-	centre.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page.add_child(centre)
-
-	_list = HBoxContainer.new()
-	_list.add_theme_constant_override("separation", 18)
-	centre.add_child(_list)
+	var gap := Control.new()
+	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	page.add_child(gap)
 
 	_detail = Label.new()
 	var footer := MenuSupport.footer_bar(self, func() -> void:
@@ -76,127 +79,178 @@ func _build() -> void:
 	page.add_child(footer)
 
 
+# =============================================================
+#  THE MUGS - data/SaveMugs.csv
+# =============================================================
+
+const MUG_SHEET := "res://data/SaveMugs.csv"
+
+var _table: Control
+var _art: Dictionary = {}
+var _spots: Array[Vector2] = []
+## Per slot (20 Oct 2026, Anthony: 1 blue, 2 red, 3 green): the plank for its
+## buttons and the colour of the coaster under its mug.
+var _planks: Array[String] = []
+var _coasters: Array[Color] = []
+var _name_gap := 18.0
+var _name_size := 22
+var _name_width := 300.0
+var _menu_width := 230.0
+var _menu_up := 200.0
+var _menu_size := 20
+var _open_slot := 0
+
+
+func _read_mugs() -> void:
+	for row in MenuSupport.read_csv(MUG_SHEET):
+		var part := MenuSupport.field(row, "Part").strip_edges().to_lower()
+		match part:
+			"closed_full", "open_full", "closed_empty", "open_empty":
+				_art[part] = Look.picture(MenuSupport.field(row, "Image").strip_edges())
+			"slot":
+				_spots.append(Vector2(MenuSupport.field_float(row, "X", 960.0),
+					MenuSupport.field_float(row, "Y", 900.0)))
+				_planks.append(MenuSupport.field(row, "Image").strip_edges())
+				_coasters.append(Color.from_string(MenuSupport.field(row, "Colour").strip_edges(), Color(0, 0, 0, 0.55)))
+			"name_text":
+				_name_gap = MenuSupport.field_float(row, "Y", _name_gap)
+				_name_size = int(MenuSupport.field_float(row, "Size", _name_size))
+			"menu":
+				_menu_width = MenuSupport.field_float(row, "X", _menu_width)
+				_menu_up = MenuSupport.field_float(row, "Y", _menu_up)
+				_menu_size = int(MenuSupport.field_float(row, "Size", _menu_size))
+	if _spots.is_empty():
+		for i in range(SaveSlots.count()):
+			_spots.append(Vector2(960.0 + (i - (SaveSlots.count() - 1) * 0.5) * 520.0, 900.0))
+
+
 func _fill() -> void:
-	for child in _list.get_children():
+	for child in _table.get_children():
 		child.queue_free()
-	for slot in range(1, SaveSlots.count() + 1):
-		_list.add_child(_tile(SaveSlots.describe(slot)))
+	for slot in range(1, mini(SaveSlots.count(), _spots.size()) + 1):
+		_table.add_child(_mug(SaveSlots.describe(slot)))
 
 
-func _tile(about: Dictionary) -> Control:
+func _mug(about: Dictionary) -> Control:
 	var slot := int(about["slot"])
 	var used := bool(about["used"])
-
-	var frame := VBoxContainer.new()
-	frame.add_theme_constant_override("separation", 6)
-
-	var button := MenuSupport.icon_button("save|▤", "", TILE)
-	# The two-part face is right for a toolbar and wrong for a big tile, so
-	# the tile builds its own contents. Everything else about it — the
-	# colours, the hover, the focus box — is still the shared style.
-	for child in button.get_children():
-		child.queue_free()
-
-	# ROUND AN: the words sit inside the frame, not on it. They used to fill
-	# the whole tile, so "last played" was printed over the bottom border.
-	var column := VBoxContainer.new()
-	column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var pad := MenuSupport.tuned("save_tile_padding", 18.0)
-	column.offset_left = pad
-	column.offset_top = pad
-	column.offset_right = -pad
-	column.offset_bottom = -pad
-	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.add_theme_constant_override("separation", 10)
-	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	button.add_child(column)
-
-	var title := MenuSupport.heading("Slot %d" % slot, 26,
-		MenuSupport.COLOUR_TEXT if used else MenuSupport.COLOUR_TEXT_DIM)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(title)
-
-	var line := Label.new()
-	line.text = String(about["line"])
-	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	# One line, stepping down a size if it would not fit the tile.
-	line.add_theme_font_size_override("font_size", MenuSupport._fit_font_size(line.text,
-		int(MenuSupport.tuned("save_tile_text_size", 20.0)), Vector2(TILE.x - pad * 2.0 - 8.0, 999.0)))
-	line.set_meta(TextScale.FITTED_META, true)
-	line.add_theme_color_override("font_color",
-		MenuSupport.COLOUR_ACCENT if used else MenuSupport.COLOUR_TEXT_DIM)
-	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(line)
-
-	# `played_at`, not `when` — see the note in save_slots.gd. `when` is a
-	# Godot keyword and naming a variable that is a parse error.
-	if String(about["played_at"]) != "":
-		var stamp := Label.new()
-		stamp.text = "last played  " + String(about["played_at"])
-		stamp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		stamp.add_theme_font_size_override("font_size", int(MenuSupport.tuned("save_tile_small_size", 15.0)))
-		stamp.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-		stamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		column.add_child(stamp)
-
-	button.pressed.connect(_play.bind(slot))
-	frame.add_child(button)
-
-	# ============ ERASING IS NOT A MAIN BUTTON ============
-	#
-	# It used to be the second button on every filled tile, the same size as
-	# PLAY and directly under it — so the destructive action sat where your
-	# hand already was, and the only thing between you and losing a save was
-	# pressing the same button twice.
-	#
-	# It is behind a cog now. The cog opens that slot's own window, the
-	# window holds Delete Profile, and Delete Profile asks Yes or No. Three
-	# deliberate steps, and Close gets you out at any point.
+	var spot := _spots[slot - 1]
+	var is_open := slot == _open_slot
+	var key := "closed_empty"
 	if used:
-		var cog := MenuSupport.icon_button("settings|⚙",
-			Loc.text("settings", "Settings"), Vector2(TILE.x, 56))
-		cog.tooltip_text = "What to do with this save, including deleting it."
-		cog.pressed.connect(_open_slot_settings.bind(slot, about))
-		frame.add_child(cog)
+		key = "open_full" if is_open else "closed_full"
+	elif is_open and _art.get("open_empty") != null:
+		key = "open_empty"
+	var texture: Texture2D = _art.get(key)
 
-	return frame
+	var mug := TextureButton.new()
+	mug.name = "Mug%d" % slot
+	mug.texture_normal = texture
+	mug.ignore_texture_size = true
+	mug.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	mug.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	var size := Vector2(texture.get_size()) if texture != null else Vector2(320, 420)
+	mug.size = size
+	mug.position = Vector2(spot.x - size.x * 0.5, spot.y - size.y)
+	mug.mouse_entered.connect(func() -> void: mug.modulate = Color(1.12, 1.08, 1.0))
+	mug.mouse_exited.connect(func() -> void: mug.modulate = Color(1, 1, 1))
+	mug.pressed.connect(_toggle.bind(slot))
+
+	# The save's name and matches on the table under the mug, on a see-through
+	# dark backing.
+	var name_line := Label.new()
+	name_line.text = "Slot %d  ·  %s" % [slot, String(about["line"]).get_slice("   ·   ", 0) if used else "Empty"]
+	name_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_line.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_line.add_theme_font_size_override("font_size", _name_size)
+	name_line.add_theme_color_override("font_color", Color("f6ead0"))
+	# The coaster under the mug, in this slot's colour with a cream edge.
+	var backing := StyleBoxFlat.new()
+	backing.bg_color = _coasters[slot - 1] if slot <= _coasters.size() else Color(0, 0, 0, 0.55)
+	backing.set_corner_radius_all(14)
+	backing.set_border_width_all(3)
+	backing.border_color = Color("f6ead0")
+	backing.content_margin_left = 14
+	backing.content_margin_right = 14
+	name_line.add_theme_stylebox_override("normal", backing)
+	name_line.set_meta(TextScale.FITTED_META, true)
+	name_line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_line.size = Vector2(_name_width, _name_size * 2.0)
+	name_line.position = Vector2((size.x - _name_width) * 0.5, size.y + _name_gap)
+	mug.add_child(name_line)
+
+	if is_open:
+		mug.add_child(_choices(slot, used, mug))
+	return mug
+
+
+## Click a mug: it opens and shows its choices. Click it again (or another
+## mug) and it closes.
+func _toggle(slot: int) -> void:
+	_open_slot = 0 if _open_slot == slot else slot
+	_fill()
+
+
+## Play, Profile Settings and Delete on the open mug's glass, one above the
+## other (Anthony: "when pressing on the mug, it opens like that"). An empty
+## slot only has Play, which starts a new game there.
+func _choices(slot: int, used: bool, mug: Control) -> Control:
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 8)
+	var words: Array = [["play", "Play"]]
+	if used:
+		words.append(["profile_settings", "Profile Settings"])
+		words.append(["delete", "Delete"])
+	for pair in words:
+		var button := Button.new()
+		button.text = Loc.text(String(pair[0]), String(pair[1]))
+		button.custom_minimum_size = Vector2(_menu_width, _menu_size * 2.5)
+		button.add_theme_font_size_override("font_size", _menu_size)
+		column.add_child(button)
+		_paint(button, slot)
+		match String(pair[0]):
+			"play":
+				button.pressed.connect(_play.bind(slot))
+			"profile_settings":
+				button.pressed.connect(_profile_settings.bind(slot))
+			"delete":
+				button.pressed.connect(_confirm_delete.bind(slot, null))
+	# Centred on the glass (the picture's middle is the middle of the glass),
+	# its middle _menu_up above the mug's bottom.
+	column.resized.connect(func() -> void:
+		column.position = Vector2((mug.size.x - _menu_width) * 0.5, mug.size.y - _menu_up - column.size.y * 0.5))
+	column.position = Vector2((mug.size.x - _menu_width) * 0.5, mug.size.y - _menu_up)
+	return column
+
+
+## This slot's own plank (SaveMugs.csv slot row Image) on a choice button,
+## with everything else as the screen's plank row in ScreenLook.csv.
+func _paint(button: Button, slot: int) -> void:
+	if slot > _planks.size() or _planks[slot - 1] == "":
+		return
+	for row in MenuSupport.read_csv("res://data/ScreenLook.csv"):
+		if MenuSupport.field(row, "Screen").strip_edges() == "slot" \
+				and MenuSupport.field(row, "Part").strip_edges().to_lower() == "button":
+			var own := row.duplicate()
+			own[MenuSupport.normalise("Image")] = _planks[slot - 1]
+			Look._dress(button, own)
+			return
+
+
+## This save's own settings: the Settings screen, reading and writing
+## user://slotN/settings.json.
+func _profile_settings(slot: int) -> void:
+	GameSettings.start_profile(slot)
+	GameSettings.editing_slot = slot
+	ScenePaths.go_to(get_tree(), ScenePaths.SETTINGS)
 
 
 # =============================================================
-#  ONE SAVE'S OWN WINDOW
+#  DELETING A SAVE
 # =============================================================
 
-## Opened by the cog on a filled tile. Everything that is about this save
-## rather than about playing it lives here, which today is one thing and
-## will not stay one thing.
-func _open_slot_settings(slot: int, about: Dictionary) -> void:
-	var window := MenuSupport.dialog(self,
-		"SLOT %d" % slot, String(about.get("line", "")))
-	var column: VBoxContainer = window.get_meta("column")
-
-	var gone := MenuSupport.icon_button("✕",
-		Loc.text("delete_profile", "Delete Profile"), Vector2(0, 52))
-	gone.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	gone.add_theme_stylebox_override("normal", MenuSupport.panel_style(
-		MenuSupport.COLOUR_PANEL, Color(0.92, 0.45, 0.42)))
-	gone.pressed.connect(func() -> void:
-		_confirm_delete(slot, window))
-	column.add_child(gone)
-
-	var close := MenuSupport.icon_button("↩", Loc.text("close", "Close"),
-		Vector2(0, 52))
-	close.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	close.pressed.connect(func() -> void:
-		if is_instance_valid(window):
-			window.queue_free())
-	column.add_child(close)
-
-
-## Yes or No, and No comes back to the slot's settings window rather than
-## dumping you out to the shelf — you asked to look at this save, not to
-## leave it.
-func _confirm_delete(slot: int, parent_window: CanvasLayer) -> void:
+## Yes or No. No leaves the mug open, so you are back where you were.
+func _confirm_delete(slot: int, parent_window: Variant) -> void:
 	var ask := MenuSupport.dialog(self,
 		Loc.text("are_you_sure", "Are you sure?"),
 		"Slot %d and everything in it — the teams, the unlocks, the season — is gone for good. There is no undo." % slot)
@@ -215,8 +269,9 @@ func _confirm_delete(slot: int, parent_window: CanvasLayer) -> void:
 		print("[slots] Slot %d erased." % slot)
 		if is_instance_valid(ask):
 			ask.queue_free()
-		if is_instance_valid(parent_window):
-			parent_window.queue_free()
+		if parent_window is CanvasLayer and is_instance_valid(parent_window):
+			(parent_window as CanvasLayer).queue_free()
+		_open_slot = 0
 		_detail.text = "Slot %d is empty." % slot
 		_fill())
 	row.add_child(yes)
