@@ -28,6 +28,12 @@ const COACH := [
 	["drunk", "side", "left"], ["mad", "side", "right"],
 ]
 
+## Koch's faces the story uses, the same way.
+const KOCH := [
+	["", "front", "right"], ["happy", "side", "right"], ["sad", "side", "right"],
+	["drunk", "side", "right"], ["mad", "side", "right"],
+]
+
 
 func _initialize() -> void:
 	await process_frame
@@ -53,20 +59,32 @@ func _initialize() -> void:
 		var file := "user://story_%d_%s.png" % [n + 1, shot[1]]
 		root.get_texture().get_image().save_png(file)
 		print("[story_shot] ", ProjectSettings.globalize_path(file))
-	for n in COACH.size():
-		var face: Array = COACH[n]
-		var line := DialogueLine.new()
-		line.scene = "story_shot"
-		line.id = "coach_%s_%s" % [face[0], face[1]]
-		line.speaker = "The Head Coach"
-		line.mood = face[0]
-		line.view = face[1]
-		line.side = face[2]
-		line.text = "(%s, %s) Welcome to the club, Trainer. Sit down, have a beer." % [face[0], face[1]]
-		view._show(line)
-		for i in 8:
-			await process_frame
-		var file := "user://story_coach_%s_%s.png" % [face[0], face[1]]
-		root.get_texture().get_image().save_png(file)
-		print("[story_shot] ", ProjectSettings.globalize_path(file))
+	for face in COACH:
+		await _face(view, "coach", "The Head Coach", "", face)
+	var clear := DialogueLine.new()
+	clear.leaves = "all"
+	clear.text = "..."
+	view._show(clear)
+	for i in 8:
+		await process_frame
+	for face in KOCH:
+		await _face(view, "koch", "Koch", "koch", face)
 	quit(0)
+
+
+func _face(view: DialogueView, who: String, speaker: String, portrait: String, face: Array) -> void:
+	var line := DialogueLine.new()
+	line.scene = "story_shot"
+	line.id = "%s_%s_%s" % [who, face[0], face[1]]
+	line.speaker = speaker
+	line.portrait = portrait
+	line.mood = face[0]
+	line.view = face[1]
+	line.side = face[2]
+	line.text = "(%s, %s) Welcome to the club, Trainer. Sit down, have a beer." % [face[0], face[1]]
+	view._show(line)
+	for i in 8:
+		await process_frame
+	var file := "user://story_%s_%s_%s.png" % [who, face[0], face[1]]
+	root.get_texture().get_image().save_png(file)
+	print("[story_shot] ", ProjectSettings.globalize_path(file))
