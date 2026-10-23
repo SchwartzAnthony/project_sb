@@ -170,8 +170,14 @@ func _ready() -> void:
 func _refresh_star_badge() -> void:
 	if Engine.is_editor_hint() or not is_node_ready():
 		return
+	# ROUND AN (23 Oct 2026): no star over a Star's head on the pitch any
+	# more; the power cap on their ribbon is a star instead (name_plate.gd).
+	# Tuning star_badge_on_pitch = true brings the floating badge back.
+	queue_redraw()
+	var db_on := CardDatabase.get_db()
+	var floating := db_on != null and db_on.tune_bool("star_badge_on_pitch", false)
 
-	if not is_star_player:
+	if not is_star_player or not floating:
 		if _star_badge != null:
 			_star_badge.visible = false
 		return
@@ -300,6 +306,7 @@ func _draw() -> void:
 		if plate_hidden:
 			_plate.visible = false
 		else:
+			_plate.star = 1 if is_star_player or data.drunk_star else 0
 			_plate.place(NamePlate.edges(_box, at, frame), data, -1.0, is_exhausted)
 
 
