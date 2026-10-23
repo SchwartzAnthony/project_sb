@@ -69,7 +69,7 @@ const DATA_DIR := "res://data/"
 ## loud, not silent; see the check in _validate() below, which now says so.
 ## ROUND AN: `match:<mode>` starts a match of that MatchModes.csv row, from
 ## the base. `match:intro` is how the prologue walks you onto the pitch.
-const DEFERRED: Array[String] = ["story", "goto", "announce", "window", "match"]
+const DEFERRED: Array[String] = ["story", "goto", "announce", "window", "match", "play"]
 ## CSVs with a When and a Do column that are read by something else.
 const NOT_PROGRESSION: Array[String] = ["MatchTalk.csv"]
 ## Flag prefix used to remember that a once-only row has fired.

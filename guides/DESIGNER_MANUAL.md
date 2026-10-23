@@ -4483,6 +4483,8 @@ and then its `Door Sound` (`door_open`, a wooden door creaking open)
 name off the bottom middle of its picture, e.g. the Club House's, so the
 Trophy Room hut in front of it keeps its own name.
 
+**The village buttons (23 Oct 2026)**: the village picture (assets/base/village.png) now has the drawn Pub right of the brewery. Like the brewery church, it is a button: Buildings.csv `Village Art` = `pub_inn` (assets/base/map/pub_inn.png = only its pixels, pub_inn_hover.png = lit up with a gold edge). The pitch is a button too: the new row `play_field` ("Play a match", Action `play:friendly`, Village Art `village_field`). Clicking the grass does what the Play a match flag did (the Match Maker), and while that row is on the base the flag is not on the top row. The pieces are made by /mnt/project-files/art_tool/base/village_buttons/make_pieces.py. The Brewer visitor is off the base for now: his Visitors.csv `Requires` is `flag:brewer_on_base`; put `unlocked:Brewery` back to bring him back. Check: tools/village_buttons_shot.gd.
+
 **On Base (Buildings.csv, 23 Oct 2026)**: write `no` and that building is not drawn on the base, but it still exists (its key, window, unlocks and Club House sale all still work). Blank = drawn. The Traveling Tavern is `no` for now (Anthony's ask); empty the cell to bring the wagon back.
 
 **Heatwave is off the base for now** (23 Oct 2026): his Visitors.csv `Requires` is `flag:heatwave_on_base`, a flag nothing sets, so he is not drawn. Visitors still work as before. Empty that cell to bring him back.

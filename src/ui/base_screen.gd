@@ -322,18 +322,15 @@ func _build_exits() -> void:
 	# for playing it — the `friendly` row of MatchModes.csv says both, through
 	# its Opponent column and its two Rewards columns. The league is behind
 	# "The season" next door.
-	var to_match := _exit("play|▶", "Play a match", EXIT_SIZE)
-	to_match.tooltip_text = "A friendly against a side at your own level. Nothing goes in the table, but you still come away with something."
-	to_match.pressed.connect(func() -> void:
-		# ROUND AN (Anthony): the flag opens THE MATCH MAKER first - a 3, 2
-		# or 1 cycle match, data/MatchMaker.csv. Not while a story match
-		# stands in for the friendly (the first match of a new game): that
-		# one has its own length, so it starts straight away as before.
-		if MatchMode.stand_in_for("friendly", state) != "friendly":
-			_play_match("friendly")
-			return
-		MatchMaker.open(self, state, _play_match))
-	row.add_child(to_match)
+	# 23 Oct 2026 (Anthony): "have the field itself be Play a match from the
+	# flag and remove the flag from the top". So the flag only hangs here
+	# while no building on the base does it (a Buildings.csv row with the
+	# Action `play:friendly` that is On Base - the drawn pitch).
+	if not _base_has_play_button():
+		var to_match := _exit("play|▶", "Play a match", EXIT_SIZE)
+		to_match.tooltip_text = "A friendly against a side at your own level. Nothing goes in the table, but you still come away with something."
+		to_match.pressed.connect(_press_play_match)
+		row.add_child(to_match)
 
 	# ADVENTURE FROM THE BASE. This is where you are standing when you realise
 	# you need materials and the buildings that would make them are not built
@@ -387,6 +384,30 @@ func _build_exits() -> void:
 		row.add_child(skip)
 
 	_same_thread_size(row)
+
+
+## PLAY A MATCH: the flag, or the drawn pitch (Action `play:friendly`).
+## ROUND AN (Anthony): it opens THE MATCH MAKER first - a 3, 2 or 1 cycle
+## match, data/MatchMaker.csv. Not while a story match stands in for the
+## friendly (the first match of a new game): that one has its own length,
+## so it starts straight away as before.
+func _press_play_match() -> void:
+	if MatchMode.stand_in_for("friendly", state) != "friendly":
+		_play_match("friendly")
+		return
+	MatchMaker.open(self, state, _play_match)
+
+
+## True when a building on the base plays a match (Action `play:...`), so
+## the Play a match flag is not needed on the top row.
+func _base_has_play_button() -> bool:
+	if base == null or state == null:
+		return false
+	for entry in base.buildings_for(state):
+		if bool(entry.get("on_base", true)) \
+				and String(entry["action"]).strip_edges().to_lower().begins_with("play:"):
+			return true
+	return false
 
 
 ## The Conquests banner's note: the mode is not open yet. Words in
@@ -1024,6 +1045,11 @@ func _carry_out(actions: Array[Dictionary]) -> void:
 			"goto":
 				state.save_to_disk()
 				ScenePaths.go_to(get_tree(), ScenePaths.for_name(value))
+				return
+			"play":
+				# 23 Oct 2026: `play:friendly` is what the Play a match flag
+				# did - the drawn pitch on the village base uses it.
+				_press_play_match()
 				return
 			"match":
 				# ROUND AN: `match:intro` starts that MatchModes.csv row. A
