@@ -34,7 +34,9 @@ func test_speaker_finds_a_face_without_a_portrait_cell() -> void:
 
 
 func test_the_bar_has_layers() -> void:
-	assert_gte(art.background_layers("bar").size(), 2, "the bar is a room plus the regulars")
+	# 23 Oct 2026 (Anthony): the pub is empty now, so the bar is its room
+	# layer only; the regulars' row can come back on top of it.
+	assert_gte(art.background_layers("bar").size(), 1, "the bar has its room")
 
 
 func test_every_intro_line_has_a_face_or_is_narration() -> void:

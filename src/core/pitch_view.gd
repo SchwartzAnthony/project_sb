@@ -78,6 +78,11 @@ static func enabled() -> bool:
 		and ResourceLoader.exists(value("background"))
 
 
+## smooth_pictures: drawn art is drawn smoothed; the old pixel town sharp.
+static func smooth() -> bool:
+	return value("smooth_pictures", "false").to_lower() == "true"
+
+
 ## The white lines of the flat pitch, in match (world) coordinates, worked out
 ## from the pitch sprite and where the lines sit in its picture.
 static func line_rect(pitch_rect: Rect2) -> Rect2:

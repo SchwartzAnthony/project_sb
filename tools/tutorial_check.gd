@@ -10,8 +10,9 @@ extends SceneTree
 #    1. a brand-new save opens the base and asks "do the Tutorial?" - NO:
 #       the base gets the starting team (twelve plain players) and nothing
 #       is unlocked
-#    2. another brand-new save - YES: Pub Dialogue 1 plays, then the
-#       tutorial match starts by itself
+#    2. another brand-new save - YES: the Head Coach's welcome, then the
+#       base with only the Pub to press (23 Oct); the Pub plays Pub
+#       Dialogue 1, then the tutorial match starts by itself
 #    3. the match, on AUTO: every Head Coach stop in MatchTalk.csv must turn
 #       up (the kick-off, the Tier I / II / IV cards, the five duel moments,
 #       the shot, the exhaust, the TIME OUT in the pub, Koch the Star, the
@@ -76,6 +77,8 @@ func _initialize() -> void:
 	var tutorial_names: Array[String] = []
 	await create_timer(1.0, true, false, true).timeout
 	await _shot_one("prologue")
+	await _read_story(90.0)
+	await _walk_into_pub()
 	await _read_story(90.0)
 	var scene := await _wait_for_match(40.0)
 	_check(scene != null, "after the pub, the tutorial match opens by itself")
@@ -410,6 +413,41 @@ func _read_story(seconds: float) -> void:
 				view.call("_on_choice", choices[0])
 				continue
 		view.call("_advance")
+
+
+## THE BASE WALK (23 Oct): only the Pub can be pressed. Press it.
+func _walk_into_pub() -> void:
+	if CardDatabase.get_db().tune_text("tutorial_pub_scene", "") == "":
+		return
+	var base := await _wait_for_scene("base", 20.0)
+	_check(base != "", "the welcome ends on the base")
+	await create_timer(1.0, true, false, true).timeout
+	await _shot_one("base_only_pub")
+	var open: Array[String] = []
+	var pub: BaseButton = null
+	for button in _buttons(current_scene):
+		if button.disabled or not button.is_visible_in_tree():
+			continue
+		if button.has_meta(BaseScreen.KEEP_LIT):
+			continue
+		if Guide.says(button, "pub"):
+			pub = button
+		else:
+			open.append(button.tooltip_text if button.tooltip_text != "" else str(button.name))
+	_check(pub != null, "the Pub can be pressed")
+	_check(open.is_empty(), "every other button is greyed (%s)" % str(open))
+	if pub != null:
+		pub.emit_signal("pressed")
+	_check(await _wait_for_scene("dialogue", 20.0) != "", "the Pub plays Pub Dialogue 1")
+
+
+func _buttons(node: Node) -> Array[BaseButton]:
+	var found: Array[BaseButton] = []
+	for child in node.get_children():
+		if child is BaseButton:
+			found.append(child as BaseButton)
+		found.append_array(_buttons(child))
+	return found
 
 
 func _wait_for_match(seconds: float) -> Node:

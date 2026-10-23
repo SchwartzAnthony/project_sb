@@ -22,6 +22,8 @@ extends Control
 #  before drawing anything.
 # =============================================================
 
+## A button the Guide never greys (the way out of the Tutorial).
+const KEEP_LIT := "guide_keep_lit"
 const BACKGROUND_DIRS: Array[String] = ["res://assets/base/", "res://assets/backgrounds/"]
 const BUILDING_DIRS: Array[String] = ["res://assets/base/", "res://assets/buildings/", "res://assets/"]
 const MAP_ART_DIRS: Array[String] = ["res://assets/base/map/"]
@@ -56,6 +58,8 @@ var steps: Progression
 
 var _world: Control
 var _detail: Label
+## Which picture is behind the base (Tuning `base_background`).
+var _background := "background"
 
 
 func _ready() -> void:
@@ -128,14 +132,22 @@ func _build_chrome() -> void:
 	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(fill)
 
-	var art := _find_texture("background", BACKGROUND_DIRS)
+	# `base_background` in Tuning.csv: "background" is the town map,
+	# "village" the eye-level village (its buildings use Village Art).
+	_background = db.tune_text("base_background", "background").strip_edges()
+	var art := _find_texture(_background, BACKGROUND_DIRS)
+	if art == null:
+		_background = "background"
+		art = _find_texture(_background, BACKGROUND_DIRS)
 	if art != null:
 		var backdrop := TextureRect.new()
 		backdrop.texture = art
 		backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		backdrop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		backdrop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		backdrop.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		# The pixel town map stays crisp; the drawn village is smoothed.
+		backdrop.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST \
+			if _background == "background" else CanvasItem.TEXTURE_FILTER_LINEAR
 		backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(backdrop)
 
@@ -156,15 +168,10 @@ func _build_chrome() -> void:
 	_world.resized.connect(_rebuild)
 
 	var in_tutorial := TutorialBase.active(get_tree())
-	var title := MenuSupport.heading(
-		"TUTORIAL BASE" if in_tutorial else "THE BASE",
-		34, MenuSupport.COLOUR_ACCENT)
-	# Only as wide as its words, so its see-through plate (TextBackdrop)
-	# hugs the title instead of running across the town map.
-	title.position = Vector2(40.0, 26.0)
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(title)
-	TextBackdrop.give(title)
+	# 23 Oct 2026 (Anthony): the name hangs on the tavern sign like every
+	# other screen's (data/MenuHeader.csv).
+	add_child(SignHeader.make(Loc.text("tutorial_base", "TUTORIAL BASE") if in_tutorial
+		else Loc.text("the_base", "THE BASE")))
 
 	# The line that explains whatever you last clicked.
 	# Centred at the bottom and only as wide as its words, on a see-through
@@ -312,18 +319,15 @@ func _build_exits() -> void:
 	# for playing it — the `friendly` row of MatchModes.csv says both, through
 	# its Opponent column and its two Rewards columns. The league is behind
 	# "The season" next door.
-	var to_match := _exit("play|▶", "Play a match", EXIT_SIZE)
-	to_match.tooltip_text = "A friendly against a side at your own level. Nothing goes in the table, but you still come away with something."
-	to_match.pressed.connect(func() -> void:
-		# ROUND AN (Anthony): the flag opens THE MATCH MAKER first - a 3, 2
-		# or 1 cycle match, data/MatchMaker.csv. Not while a story match
-		# stands in for the friendly (the first match of a new game): that
-		# one has its own length, so it starts straight away as before.
-		if MatchMode.stand_in_for("friendly", state) != "friendly":
-			_play_match("friendly")
-			return
-		MatchMaker.open(self, state, _play_match))
-	row.add_child(to_match)
+	# 23 Oct 2026 (Anthony): "have the field itself be Play a match from the
+	# flag and remove the flag from the top". So the flag only hangs here
+	# while no building on the base does it (a Buildings.csv row with the
+	# Action `play:friendly` that is On Base - the drawn pitch).
+	if not _base_has_play_button():
+		var to_match := _exit("play|▶", "Play a match", EXIT_SIZE)
+		to_match.tooltip_text = "A friendly against a side at your own level. Nothing goes in the table, but you still come away with something."
+		to_match.pressed.connect(_press_play_match)
+		row.add_child(to_match)
 
 	# ADVENTURE FROM THE BASE. This is where you are standing when you realise
 	# you need materials and the buildings that would make them are not built
@@ -374,9 +378,34 @@ func _build_exits() -> void:
 		skip.tooltip_text = "Finish the Tutorial now. Nothing from it is kept."
 		skip.pressed.connect(func() -> void:
 			Tutorial.finish(get_tree()))
+		skip.set_meta(KEEP_LIT, true)
 		row.add_child(skip)
 
 	_same_thread_size(row)
+
+
+## PLAY A MATCH: the flag, or the drawn pitch (Action `play:friendly`).
+## ROUND AN (Anthony): it opens THE MATCH MAKER first - a 3, 2 or 1 cycle
+## match, data/MatchMaker.csv. Not while a story match stands in for the
+## friendly (the first match of a new game): that one has its own length,
+## so it starts straight away as before.
+func _press_play_match() -> void:
+	if MatchMode.stand_in_for("friendly", state) != "friendly":
+		_play_match("friendly")
+		return
+	MatchMaker.open(self, state, _play_match)
+
+
+## True when a building on the base plays a match (Action `play:...`), so
+## the Play a match flag is not needed on the top row.
+func _base_has_play_button() -> bool:
+	if base == null or state == null:
+		return false
+	for entry in base.buildings_for(state):
+		if bool(entry.get("on_base", true)) \
+				and String(entry["action"]).strip_edges().to_lower().begins_with("play:"):
+			return true
+	return false
 
 
 ## The Conquests banner's note: the mode is not open yet. Words in
@@ -434,6 +463,7 @@ func _rebuild() -> void:
 	# ROUND AN: the Head Coach's Guide.csv rows for the base, once the yard
 	# is drawn (and again after any window over it closes).
 	(func() -> void: Guide.check(self, "base", state)).call_deferred()
+	(func() -> void: apply_guide_only()).call_deferred()
 	for child in _world.get_children():
 		child.queue_free()
 
@@ -444,9 +474,11 @@ func _rebuild() -> void:
 	# around them.
 	_taken.clear()
 	for entry in base.buildings_for(state):
+		if not bool(entry.get("on_base", true)):
+			continue
 		var plaque := _make_building(entry)
 		_world.add_child(plaque)
-		_taken.append(Rect2(plaque.position, plaque.size))
+		_taken.append(plaque.get_meta("taken", Rect2(plaque.position, plaque.size)))
 
 	# ============ AND THEN THE VISITORS, INTO WHATEVER IS LEFT ============
 	#
@@ -498,7 +530,8 @@ func _visitor_spots() -> Array[Dictionary]:
 		return out
 	var here: Dictionary = {}
 	for entry in base.buildings_for(state):
-		here[String(entry["id"])] = true
+		if bool(entry.get("on_base", true)):
+			here[String(entry["id"])] = true
 	var file := FileAccess.open(SPOTS_FILE, FileAccess.READ)
 	var header := file.get_csv_line()
 	var col: Dictionary = {}
@@ -626,6 +659,12 @@ func _make_building(entry: Dictionary) -> Control:
 	var unlocked := bool(entry["unlocked"])
 	var name_text := String(entry["name"])
 
+	# On the village, a building with Village Art is that part of the picture.
+	if _background == "village":
+		var village_art := _find_texture(String(entry.get("village_art", "")), MAP_ART_DIRS)
+		if village_art != null:
+			return _make_village_building(entry, village_art)
+
 	# A building that has its town-map picture IS that picture: no plaque.
 	var map_art := _find_texture(String(entry.get("map_art", "")), MAP_ART_DIRS)
 	if map_art != null:
@@ -745,6 +784,98 @@ func _make_map_building(entry: Dictionary, art: Texture2D) -> Control:
 	return button
 
 
+## THE BUILDING AS PART OF THE VILLAGE PICTURE (20 Oct 2026, Anthony: the
+## brewery church). Buildings.csv `Village Art` is a cut-out exactly the size
+## of the village background, see-through everywhere but the building, so it
+## lies over the background like the background itself. Only the building's
+## own pixels take the click. `<Village Art>_hover.png` (the building lit up
+## with a golden glow) is shown while the mouse is on it.
+func _make_village_building(entry: Dictionary, art: Texture2D) -> Control:
+	var unlocked := bool(entry["unlocked"])
+	var name_text := String(entry["name"])
+	var area := _world.size
+	if area.x < 2.0 or area.y < 2.0:
+		area = get_viewport_rect().size
+
+	var button := MapBuilding.new()
+	button.covered = true
+	button.use_picture(art)
+	button.tooltip_text = String(entry["description"])
+	var flat := StyleBoxEmpty.new()
+	for look in ["normal", "hover", "pressed", "focus", "disabled"]:
+		button.add_theme_stylebox_override(look, flat)
+	button.position = Vector2.ZERO
+	button.size = area
+
+	var picture := TextureRect.new()
+	picture.texture = art
+	picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	picture.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# At rest it matches the background under the base_map_shade sheet.
+	var dim := 1.0 - clampf(db.tune_float("base_map_shade", 0.30), 0.0, 1.0)
+	var resting := Color(dim, dim, dim, 1.0) if unlocked else Color(0.35, 0.35, 0.40, 1.0)
+	picture.modulate = resting
+	button.add_child(picture)
+	var lit := _find_texture(String(entry["village_art"]) + "_hover", MAP_ART_DIRS)
+	button.mouse_entered.connect(func() -> void:
+		if lit != null and unlocked:
+			picture.texture = lit
+			picture.modulate = Color.WHITE
+		else:
+			picture.modulate = resting * Color(1.25, 1.25, 1.25, 1.0))
+	# GUIDE GLOW (round AN): a Guide.csv Highlight on a drawn building lights
+	# its own picture, pulsing, instead of a ring round the whole screen.
+	var glowing := {"on": false}
+	button.set_meta(Guide.GLOW_META, func() -> void:
+		glowing["on"] = true
+		if lit != null:
+			picture.texture = lit
+		picture.modulate = Color.WHITE
+		var pulse := picture.create_tween().set_loops()
+		pulse.tween_property(picture, "modulate", Color(1.3, 1.3, 1.1, 1.0), 0.5)
+		pulse.tween_property(picture, "modulate", Color.WHITE, 0.5))
+	button.mouse_exited.connect(func() -> void:
+		if glowing["on"]:
+			return
+		picture.texture = art
+		picture.modulate = resting)
+
+	# Where the building is on screen: its drawn pixels, mapped the way the
+	# background is drawn (covered, centred).
+	var used := Rect2(button.get_mask_used_rect())
+	var picture_size := Vector2(art.get_size())
+	var scale := maxf(area.x / picture_size.x, area.y / picture_size.y)
+	var offset := (area - picture_size * scale) * 0.5
+	var on_screen := Rect2(offset + used.position * scale, used.size * scale)
+	button.set_meta("taken", on_screen)
+
+	var label := Label.new()
+	label.text = name_text if unlocked else name_text + "  (locked)"
+	label.add_theme_font_size_override("font_size", 15)
+	label.add_theme_color_override("font_color",
+		MenuSupport.COLOUR_TEXT if unlocked else MenuSupport.COLOUR_TEXT_DIM)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_stylebox_override("normal", TextBackdrop.plate())
+	button.add_child(label)
+	# Under the building's middle, nudged by Buildings.csv `Name Offset`.
+	var at := Vector2(on_screen.get_center().x, on_screen.end.y)
+	var nudge := String(entry.get("name_offset", "")).split(",")
+	if nudge.size() == 2 and nudge[0].strip_edges().is_valid_float() \
+			and nudge[1].strip_edges().is_valid_float():
+		at += Vector2(float(nudge[0]), float(nudge[1]))
+	at.y = minf(at.y, area.y - 140.0)
+	var centre_label := func() -> void:
+		label.position = at - Vector2(label.size.x * 0.5, label.size.y)
+	label.resized.connect(centre_label)
+	centre_label.call()
+
+	button.pressed.connect(_on_building.bind(entry))
+	return button
+
+
 func _make_visitor(entry: Dictionary) -> Control:
 	var button := Button.new()
 	button.tooltip_text = "Talk to %s" % entry["name"]
@@ -794,6 +925,27 @@ func _make_visitor(entry: Dictionary) -> Control:
 	return button
 
 
+## GUIDE ONLY (round AN, Anthony 23 Oct: "Everything is greyed out except
+## for the pub"). While a Guide.csv row with Only true waits for its button,
+## every other button on the base is greyed and cannot be pressed. The way
+## out of the Tutorial stays.
+func apply_guide_only() -> void:
+	if not has_meta(Guide.ONLY_META):
+		return
+	var words := String(get_meta(Guide.ONLY_META)).to_lower()
+	_grey_all_but(self, words)
+
+
+func _grey_all_but(node: Node, words: String) -> void:
+	for child in node.get_children():
+		if child is BaseButton:
+			if not child.has_meta(KEEP_LIT) and not Guide.says(child, words):
+				(child as BaseButton).disabled = true
+				(child as CanvasItem).modulate = Color(0.4, 0.4, 0.45, 1.0)
+			continue
+		_grey_all_but(child, words)
+
+
 # =============================================================
 #  CLICKING
 # =============================================================
@@ -810,6 +962,13 @@ func _on_building(entry: Dictionary) -> void:
 	var description := String(entry["description"])
 	_detail.text = description if description != "" else name_text
 	_play_building_sounds(entry)
+
+	# A Guide.csv Only row's button has been pressed: the base is free again.
+	if has_meta(Guide.ONLY_META):
+		remove_meta(Guide.ONLY_META)
+	# ROUND AN: the Tutorial's walk into the Pub plays its scene instead.
+	if Tutorial.walk_into_pub(get_tree(), state, String(entry["id"])):
+		return
 
 	var action := String(entry["action"])
 	if action.strip_edges() == "":
@@ -926,6 +1085,11 @@ func _carry_out(actions: Array[Dictionary]) -> void:
 			"goto":
 				state.save_to_disk()
 				ScenePaths.go_to(get_tree(), ScenePaths.for_name(value))
+				return
+			"play":
+				# 23 Oct 2026: `play:friendly` is what the Play a match flag
+				# did - the drawn pitch on the village base uses it.
+				_press_play_match()
 				return
 			"match":
 				# ROUND AN: `match:intro` starts that MatchModes.csv row. A

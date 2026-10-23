@@ -437,7 +437,7 @@ func _fade_black(on: bool) -> void:
 #      (their front face), whatever the line's Side and View say
 #    - two or more stand at their own Side (left / centre / right). The
 #      speaker shows the line's Mood and View; the others turn to the room
-#      (their side face) and are dimmed, so you can see who is talking
+#      (their side face); Tuning.csv story_listener_dim can grey them
 #    - a newcomer on a Side that is taken pushes the old one off
 #  Nobody pops: they slide in from their edge, slide over when the stage
 #  fills or empties, and slide out again (transition_time).
@@ -446,7 +446,6 @@ func _fade_black(on: bool) -> void:
 const STAGE_X := {"left": 0.04, "centre": 0.34, "right": 0.64}
 const OFFSTAGE_X := {"left": -0.36, "centre": 0.34, "right": 1.04}
 const STAGE_WIDTH := 0.32
-const DIMMED := Color(0.55, 0.55, 0.6, 1.0)
 
 
 func _apply_portrait(line: DialogueLine) -> void:
@@ -458,6 +457,23 @@ func _apply_portrait(line: DialogueLine) -> void:
 			if name_key == "all" or name_key == key \
 					or name_key == CardDatabase._normalise(String(actor["speaker"])):
 				_exit(key)
+
+	# Joins: Portrait:Side:Mood - on stage without saying anything.
+	for who in line.joins.split(";", false):
+		var bits := String(who).split(":")
+		var join := DialogueLine.new()
+		join.portrait = bits[0].strip_edges()
+		join.side = bits[1].strip_edges().to_lower() if bits.size() > 1 else "right"
+		if not STAGE_X.has(join.side):
+			join.side = "right"
+		join.mood = bits[2].strip_edges().to_lower() if bits.size() > 2 else ""
+		var join_key := CardDatabase._normalise(join.portrait)
+		if join_key == "" or _cast.has(join_key):
+			continue
+		for key in _cast.keys():
+			if String(_cast[key]["side"]) == join.side:
+				_exit(key)
+		_enter(join_key, join)
 
 	var speaker_key := ""
 	var row := _art.portrait_for(line.portrait, line.speaker, line.mood, line.view)
@@ -509,7 +525,11 @@ func _arrange(line: DialogueLine, speaker_key: String) -> void:
 
 		var tint := Color.WHITE
 		if not alone and speaker_key != "" and not speaking:
-			tint = DIMMED
+			# Tuning.csv story_listener_dim: 1 = the listener keeps his own
+			# colours (Anthony, 23 Oct: the colours must not change from
+			# scene to scene); lower greys him out.
+			var dim := clampf(MenuSupport.tuned("story_listener_dim", 1.0), 0.0, 1.0)
+			tint = Color(dim, dim, minf(1.0, dim + 0.05), 1.0)
 		_move(actor["node"], STAGE_X[side], tint)
 
 

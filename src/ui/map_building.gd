@@ -18,6 +18,10 @@ const ALPHA_HIT := 0.1
 
 var _mask: Image
 
+## True for a cut-out drawn over the whole background (the village base):
+## the picture covers the button like the background does, edges cropped.
+var covered := false
+
 
 ## The picture whose pixels decide what is clickable.
 func use_picture(texture: Texture2D) -> void:
@@ -32,9 +36,15 @@ func _has_point(point: Vector2) -> bool:
 	if _mask == null:
 		return true
 	var picture := Vector2(_mask.get_size())
-	var scale := minf(size.x / picture.x, size.y / picture.y)
+	var scale := maxf(size.x / picture.x, size.y / picture.y) if covered \
+		else minf(size.x / picture.x, size.y / picture.y)
 	var offset := (size - picture * scale) * 0.5
 	var at := (point - offset) / scale
 	if at.x < 0.0 or at.y < 0.0 or at.x >= picture.x or at.y >= picture.y:
 		return false
 	return _mask.get_pixel(int(at.x), int(at.y)).a > ALPHA_HIT
+
+
+## The part of the picture that is drawn (not see-through), in picture pixels.
+func get_mask_used_rect() -> Rect2i:
+	return _mask.get_used_rect() if _mask != null else Rect2i()

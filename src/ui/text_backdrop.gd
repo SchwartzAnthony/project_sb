@@ -24,6 +24,8 @@ extends RefCounted
 
 const DEFAULT_ALPHA := 0.55
 const DEFAULT_PAD := 6.0
+## Set this meta on a screen to keep plates off every word inside it.
+const NO_PLATES := "no_text_backdrop"
 
 
 static func alpha() -> float:
@@ -120,6 +122,10 @@ static func _has_own_backdrop(control: Control) -> bool:
 	var up := control.get_parent()
 	while up != null:
 		if up is Button or up is Panel or up is PanelContainer or up is NamePlate:
+			return true
+		# A screen that sets this meta has its own dark box behind the
+		# whole page (Settings, Anthony 20 Oct 2026), so no plate per line.
+		if up.has_meta(NO_PLATES):
 			return true
 		up = up.get_parent()
 	return false

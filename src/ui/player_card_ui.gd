@@ -161,6 +161,33 @@ func _add_brew_corner(_box: Vector2) -> void:
 		if current_data != null and not locked and not bag_shut:
 			brew_wanted.emit(current_data))
 	add_child(_flask)
+	_items_on_plank()
+
+
+## 23 Oct (Anthony): on the beer mat card the bag is the wooden plank at the
+## bottom, with the word ITEMS on it, instead of the flask in the corner.
+## Same button, same bag; data/CardFace.csv items_button = false undoes it.
+func _items_on_plank() -> void:
+	if _face == null or not _face.has_meta("plank_rect"):
+		return
+	if BeerMatCard.value("items_button", "true").to_lower() != "true":
+		return
+	var plank: Rect2 = _face.get_meta("plank_rect")
+	_flask.text = ""
+	_flask.custom_minimum_size = Vector2.ZERO
+	_flask.position = plank.position
+	_flask.size = plank.size
+	var ink := Color.from_string(BeerMatCard.value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
+	var lit := StyleBoxFlat.new()
+	lit.bg_color = Color(1, 0.95, 0.7, 0.28)
+	lit.set_corner_radius_all(int(plank.size.y * 0.3))
+	for state in ["normal", "focus", "disabled"]:
+		_flask.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+	_flask.add_theme_stylebox_override("hover", lit)
+	_flask.add_theme_stylebox_override("pressed", lit)
+	# The word is written like the name: same ink, centred on the plank.
+	BeerMatCard.write(_flask, BeerMatCard.value("items_text", "ITEMS"),
+		Rect2(Vector2.ZERO, plank.size), ink)
 
 
 ## ============ SHOW — PLAYING A CARD FACE UP ============
