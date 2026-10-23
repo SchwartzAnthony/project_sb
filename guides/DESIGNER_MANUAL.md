@@ -594,9 +594,13 @@ a worn Bavarian beer mat. You chose it from your collector card photo.
 - The player **runs in the window**, the same run he does on the pitch
   (his own pitch sheet from `data/PitchSprites.csv`, looping). A player with
   no pitch sheet shows his old portrait there.
-- His **name** is on the wooden plank at the bottom, centred.
+- His **name** is in the cream centre panel, over the small signature.
+- The **wooden plank** at the bottom says **ITEMS**. In the match it is the
+  button that opens the item bag for that player (it used to be the flask
+  icon). On other screens the plank is empty.
+- A small **Tier window** at the top centre says TIER I to TIER IV.
 - The **number** in the bottle cap is his power (`cap_number`).
-- The **signature** is the same scribble on every card.
+- The **signature** is the same scribble on every card, under the name.
 - The Star mark sits top right in the window for Stars.
 
 All of it is in **`data/CardFace.csv`**:
@@ -610,7 +614,8 @@ All of it is in **`data/CardFace.csv`**:
 | `cap_number` | `power` or `card_number` |
 | `text_lift` | lifts the name and number to look centred |
 | `ink` | the colour of the name and number |
-| `tier_badge` | a small Tier tag in the window (off until you say) |
+| `tier_window`, `tier_window_spot`, `tier_text` | the Tier window at the top: on/off, where, what it says |
+| `items_button`, `items_text` | the ITEMS plank in the match (`false` = old flask icon) |
 
 The empty frame is `art_tool/rounds/r187/out/r187-beermat-empty.png`; the
 card tool for pictures and GIFs is `art_tool/cards/beermat_card.py`.

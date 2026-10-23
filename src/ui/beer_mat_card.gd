@@ -79,27 +79,32 @@ static func dress(button: Button, card: PlayerData, db: CardDatabase, box: Vecto
 
 	_add_runner(button, card, db, frame)
 
+	var ink := Color.from_string(value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
+	# 23 Oct (Anthony): the name sits in the centre panel, over the same
+	# scribble every card has; the plank below is the ITEMS button
+	# (PlayerCardUI puts it there, see plank_rect).
+	var panel := _area("sign", frame)
 	var sign_tex := load(value("signature")) as Texture2D if ResourceLoader.exists(value("signature")) else null
 	if sign_tex != null:
-		var panel := _area("sign", frame)
 		var scribble := TextureRect.new()
 		scribble.texture = sign_tex
 		scribble.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		scribble.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		scribble.position = panel.position + panel.size * Vector2(0.12, 0.1)
-		scribble.size = panel.size * Vector2(0.76, 0.8)
+		scribble.position = panel.position + panel.size * Vector2(0.2, 0.5)
+		scribble.size = panel.size * Vector2(0.6, 0.42)
 		scribble.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		button.add_child(scribble)
-
-	var ink := Color.from_string(value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
-	_add_text(button, card.player_name.to_upper(), _area("plank", frame), ink)
+	var name_area := Rect2(panel.position + panel.size * Vector2(0.06, 0.12),
+		panel.size * Vector2(0.88, 0.42))
+	_add_text(button, card.player_name.to_upper(), name_area, ink, 0.9)
+	button.set_meta("plank_rect", _area("plank", frame))
 	var shown := card.card_number if value("cap_number", "power") == "card_number" \
 		else card.get_attack_power()
 	_add_text(button, str(shown), _area("cap", frame), ink, 0.9)
+	if value("tier_window", "true").to_lower() == "true":
+		_add_tier_window(button, card, frame, frame_tex, ink)
 
 	var window := _area("window", frame)
-	if value("tier_badge", "false").to_lower() == "true":
-		_add_tag(button, "T" + card.get_tier_clean(), window.position + Vector2(4, 4), frame.size.y * 0.05)
 	if extra != "":
 		_add_tag(button, extra, Vector2(window.position.x + 4, window.end.y - frame.size.y * 0.075),
 			frame.size.y * 0.045)
@@ -151,6 +156,42 @@ static func _add_runner(button: Button, card: PlayerData, db: CardDatabase, fram
 	runner.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if bool(look.get("smooth", false)) \
 		else CanvasItem.TEXTURE_FILTER_NEAREST
 	clip.add_child(runner)
+
+
+## The small window at the top centre with the Tier: a piece of the centre
+## panel's own picture (cream, blue and red edge), stretched like a sign.
+static func _add_tier_window(button: Button, card: PlayerData, frame: Rect2,
+		frame_tex: Texture2D, ink: Color) -> void:
+	var spot := _area("tier_window_spot", frame)
+	var patch := NinePatchRect.new()
+	patch.texture = frame_tex
+	var full := frame_tex.get_size()
+	var parts := value("sign").split(",")
+	if parts.size() == 4:
+		patch.region_rect = Rect2(Vector2(float(parts[0]), float(parts[1])) * full,
+			Vector2(float(parts[2]), float(parts[3])) * full)
+	var edge := int(number("tier_window_edge", 34.0))
+	patch.patch_margin_left = edge
+	patch.patch_margin_right = edge
+	patch.patch_margin_top = edge
+	patch.patch_margin_bottom = edge
+	patch.position = spot.position
+	patch.size = spot.size
+	patch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# The picture's edge is drawn at the panel's own size; shrink the whole
+	# window so the edge keeps its thickness on a small card.
+	var shrink := clampf(spot.size.y / (patch.region_rect.size.y * 0.5), 0.05, 1.0)
+	patch.size = spot.size / shrink
+	patch.scale = Vector2(shrink, shrink)
+	button.add_child(patch)
+	var words := value("tier_text", "TIER {tier}").replace("{tier}", card.get_tier_clean())
+	_add_text(button, words, Rect2(spot.position + spot.size * Vector2(0.1, 0.12),
+		spot.size * Vector2(0.8, 0.76)), ink, 0.9)
+
+
+## Writes `text` in the card's ink, centred in `area` of `button`.
+static func write(button: Button, text: String, area: Rect2, ink: Color) -> void:
+	_add_text(button, text, area, ink)
 
 
 static func _add_text(button: Button, text: String, area: Rect2, ink: Color,
