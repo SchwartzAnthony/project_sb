@@ -53,7 +53,7 @@ INK_W = 3                          # ink each side of the cream
 WOBBLE = 1.6                       # how far a hand-drawn line wanders
 STRIPES = 12                       # mowing stripes between the goal lines
 STRIPE = (20, 50, 5, 46)           # the darker stripe, see-through
-RUNOFF = 40                        # stripes reach this far past the lines
+RUNOFF = 0                         # stripes reach this far past the lines (0 = they stop at the white lines, Anthony 23 Oct)
 NET = (243, 232, 212, 200)
 SS = 2                             # drawn at x2, then smoothed down
 
@@ -156,7 +156,7 @@ def main():
 
     # Mowing stripes, flat and see-through so the drawn grass shows.
     band = (R - L) / STRIPES
-    for i in range(-1, STRIPES + 1):
+    for i in range(STRIPES):
         if i % 2:
             continue
         x0 = max(L - RUNOFF, L + i * band)

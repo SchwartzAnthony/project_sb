@@ -4330,7 +4330,8 @@ switch matches to this village with the straight-on pitch."
 - The lines are new: cream with a black ink edge, a little hand-wobbly, the
   centre circle and penalty arcs drawn as ovals because the pitch is seen at a
   slant, small drawn goals, and flat mowing stripes over the village's own
-  drawn grass. They are `assets/field/soccerfield_village.png`
+  drawn grass. The stripes stop at the white lines (RUNOFF 0 in the script,
+  your ask 23 Oct), so none run outside the pitch. They are `assets/field/soccerfield_village.png`
   (`PitchView.csv pitch_image`), made by `tools/make_village_pitch.py`.
   Move a corner in the CSV and run it again so the lines follow.
 - `smooth_pictures` true draws both smoothed, as drawn art should be.
