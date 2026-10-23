@@ -67,6 +67,9 @@ var state: GameState
 var in_match := false
 
 var _world: Control
+## The drawn hall's machines (BrewerySections.csv Hall Art), laid over the
+## whole screen exactly like the hall picture behind them.
+var _hall: Control
 var _resource_row: HBoxContainer
 var _material_row: HBoxContainer
 var _status: Label
@@ -128,6 +131,13 @@ func _build_chrome() -> void:
 
 	_build_backdrop()
 
+	_hall = Control.new()
+	_hall.name = "Hall"
+	_hall.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_hall.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_hall)
+	_hall.resized.connect(_rebuild)
+
 	var title := MenuSupport.heading(
 		Loc.text("brewery_title", "THE BREWERY"), 32, MenuSupport.COLOUR_ACCENT)
 	title.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -162,6 +172,9 @@ func _build_chrome() -> void:
 	_world.offset_right = -24.0
 	_world.offset_bottom = -74.0
 	_world.clip_contents = true
+	# Only its machines take clicks, so the drawn hall's machines under it
+	# are reached too.
+	_world.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_world)
 	_world.resized.connect(_rebuild)
 
@@ -237,6 +250,9 @@ func _rebuild() -> void:
 		return
 	for child in _world.get_children():
 		child.queue_free()
+	if _hall != null:
+		for child in _hall.get_children():
+			child.queue_free()
 
 	var sections := BreweryBook.sections()
 	if sections.is_empty():
@@ -244,6 +260,22 @@ func _rebuild() -> void:
 		nothing.text = "No BrewerySections.csv — the yard is empty."
 		nothing.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 		_world.add_child(nothing)
+		return
+
+	# THE DRAWN HALL (23 Oct 2026): machines with a Hall Art picture are part
+	# of the hall picture itself. No pallets and no chain arrows there - the
+	# room is the map. A section without one falls back to the yard below.
+	var hall_art := {}
+	for section in sections:
+		var art := _find_texture(String(section.get("hall_art", "")) + ".png")
+		if art != null and _hall != null:
+			hall_art[section["id"]] = art
+	if not hall_art.is_empty():
+		for section in sections:
+			if hall_art.has(section["id"]):
+				_hall.add_child(_make_hall_machine(section, hall_art[section["id"]]))
+			else:
+				_world.add_child(_make_section(section))
 		return
 
 	# THE CHAIN IS DRAWN BEFORE THE BUILDINGS, so the arrows sit under them.
@@ -471,26 +503,10 @@ func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: boo
 		button.modulate = Color(0.35, 0.35, 0.40, 1.0)
 	elif not ready:
 		button.modulate = Color(0.75, 0.75, 0.75, 1.0)
-	button.pressed.connect(func() -> void:
-		# A Guide.csv row with Only = true: nothing but the lit machine.
-		var only := String(get_meta(Guide.ONLY_META, "")) if has_meta(Guide.ONLY_META) else ""
-		if only != "" and not String(section["name"]).to_lower().begins_with(only.to_lower()):
-			_say("Not yet - the %s first." % only, false)
-			return
-		if ready:
-			_work(id_text)
-		elif not open:
-			var door := BreweryBook.opened_by(id_text, state)
-			_say("%s is locked. %s" % [section["name"], String(door.get("description", DialogueGrammar.describe(String(section["needs"]))))], false)
-		elif full:
-			_say("%s is full - wait for the cellar." % section["name"], false)
-		else:
-			_say("%s is short of: %s" % [section["name"], ", ".join(short)], false))
+	button.pressed.connect(_on_machine.bind(section))
 	holder.add_child(button)
 
-	# The name, and what it needs, on a see-through black plate.
-	var plate := PanelContainer.new()
-	plate.add_theme_stylebox_override("panel", TextBackdrop.plate())
+	var plate := _name_plate(section, open, waiting, full, short)
 	plate.anchor_left = 0.5
 	plate.anchor_right = 0.5
 	plate.anchor_top = 1.0
@@ -498,6 +514,38 @@ func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: boo
 	plate.offset_left = -130.0
 	plate.offset_right = 130.0
 	plate.offset_top = -44.0
+	holder.add_child(plate)
+	return holder
+
+
+## A click on a machine, wherever it is drawn.
+func _on_machine(section: Dictionary) -> void:
+	var id_text := String(section["id"])
+	var open := BreweryBook.is_open(id_text, state)
+	var full := BreweryBook.is_full(id_text, state)
+	var short := BreweryBook.missing(id_text, state)
+	# A Guide.csv row with Only = true: nothing but the lit machine.
+	var only := String(get_meta(Guide.ONLY_META, "")) if has_meta(Guide.ONLY_META) else ""
+	if only != "" and not String(section["name"]).to_lower().begins_with(only.to_lower()):
+		_say("Not yet - the %s first." % only, false)
+		return
+	if open and not full and short.is_empty():
+		_work(id_text)
+	elif not open:
+		var door := BreweryBook.opened_by(id_text, state)
+		_say("%s is locked. %s" % [section["name"], String(door.get("description", DialogueGrammar.describe(String(section["needs"]))))], false)
+	elif full:
+		_say("%s is full - wait for the cellar." % section["name"], false)
+	else:
+		_say("%s is short of: %s" % [section["name"], ", ".join(short)], false)
+
+
+## The name, and what it needs, on a see-through black plate.
+func _name_plate(section: Dictionary, open: bool, waiting: bool, full: bool,
+		short: Array) -> PanelContainer:
+	var id_text := String(section["id"])
+	var plate := PanelContainer.new()
+	plate.add_theme_stylebox_override("panel", TextBackdrop.plate())
 	plate.z_index = 2      # names always on top of a neighbouring machine
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var words := VBoxContainer.new()
@@ -522,8 +570,110 @@ func _make_machine(section: Dictionary, art: Texture2D, open: bool, waiting: boo
 	var under := _small(line)
 	under.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	words.add_child(under)
-	holder.add_child(plate)
-	return holder
+	return plate
+
+
+## ============ A MACHINE IN THE DRAWN HALL (23 Oct 2026, Anthony) ============
+##
+## BrewerySections.csv `Hall Art` is a cut-out exactly the size of the hall
+## picture, see-through everywhere but the machine, so it lies over the
+## background like the village base's buildings do (base_screen.gd). Only
+## the machine's own pixels take the click; `<Hall Art>_hover.png` (lit up,
+## gold glow) shows while the mouse is on it or the Head Coach points at it.
+func _make_hall_machine(section: Dictionary, art: Texture2D) -> Control:
+	var id_text := String(section["id"])
+	var open := BreweryBook.is_open(id_text, state)
+	var waiting := BreweryBook.is_waiting(id_text, state)
+	var full := BreweryBook.is_full(id_text, state)
+	var short := BreweryBook.missing(id_text, state)
+	var ready := open and not full and short.is_empty()
+	var area := _hall.size
+	if area.x < 2.0 or area.y < 2.0:
+		area = get_viewport_rect().size
+
+	var button := MapBuilding.new()
+	button.covered = true
+	button.use_picture(art)
+	# The tooltip STARTS WITH THE NAME, which is how Guide.csv's Highlight
+	# column finds this machine ("Steeping Tank").
+	button.tooltip_text = "%s: %s" % [section["name"], _recipe_words(section)]
+	button.focus_mode = Control.FOCUS_ALL
+	var flat := StyleBoxEmpty.new()
+	for look in ["normal", "hover", "pressed", "focus", "disabled"]:
+		button.add_theme_stylebox_override(look, flat)
+	button.position = Vector2.ZERO
+	button.size = area
+
+	var picture := TextureRect.new()
+	picture.texture = art
+	picture.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	# The same filter as the hall picture under it (StoryArt.add_backdrop).
+	picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# At rest it matches the hall under its brewery_background_shade sheet;
+	# locked machines are darker, ones short of something a little grey.
+	var dim := 1.0 - clampf(db.tune_float("brewery_background_shade", 0.45), 0.0, 1.0)
+	var resting := Color(dim, dim, dim, 1.0)
+	if not open:
+		resting = Color(dim * 0.55, dim * 0.55, dim * 0.6, 1.0)
+	elif not ready:
+		resting = Color(dim * 0.8, dim * 0.8, dim * 0.8, 1.0)
+	picture.modulate = resting
+	button.add_child(picture)
+	var lit := _find_texture(String(section["hall_art"]) + "_hover.png")
+	button.mouse_entered.connect(func() -> void:
+		if lit != null and open:
+			picture.texture = lit
+			picture.modulate = Color.WHITE
+		else:
+			picture.modulate = resting * Color(1.25, 1.25, 1.25, 1.0))
+	# GUIDE GLOW: a Guide.csv Highlight lights the machine itself, pulsing.
+	var glowing := {"on": false}
+	button.set_meta(Guide.GLOW_META, func() -> void:
+		glowing["on"] = true
+		if lit != null:
+			picture.texture = lit
+		picture.modulate = Color.WHITE
+		var pulse := picture.create_tween().set_loops()
+		pulse.tween_property(picture, "modulate", Color(1.3, 1.3, 1.1, 1.0), 0.5)
+		pulse.tween_property(picture, "modulate", Color.WHITE, 0.5))
+	button.mouse_exited.connect(func() -> void:
+		if glowing["on"]:
+			return
+		picture.texture = art
+		picture.modulate = resting)
+	button.pressed.connect(_on_machine.bind(section))
+
+	# Where the machine is on screen: its drawn pixels, mapped the way the
+	# hall is drawn (covered, centred).
+	var used := Rect2(button.get_mask_used_rect())
+	var picture_size := Vector2(art.get_size())
+	var scale := maxf(area.x / picture_size.x, area.y / picture_size.y)
+	var offset := (area - picture_size * scale) * 0.5
+	var on_screen := Rect2(offset + used.position * scale, used.size * scale)
+	button.set_meta("taken", on_screen)
+
+	# The name plate under the machine's middle, kept on screen: anchored to
+	# the bottom of a box over the machine, like the yard's plates.
+	var spot := Control.new()
+	spot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	spot.position = on_screen.position
+	spot.size = Vector2(on_screen.size.x,
+		minf(on_screen.end.y, area.y - 80.0) - on_screen.position.y)
+	button.add_child(spot)
+	var plate := _name_plate(section, open, waiting, full, short)
+	plate.anchor_left = 0.5
+	plate.anchor_right = 0.5
+	plate.anchor_top = 1.0
+	plate.anchor_bottom = 1.0
+	plate.offset_left = -120.0
+	plate.offset_right = 120.0
+	plate.offset_top = -44.0
+	plate.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	spot.add_child(plate)
+	return button
 
 
 ## The part of a picture that is actually drawn: {"texture", "rect"}. A
