@@ -181,6 +181,10 @@ static func _load() -> void:
 			"shift_x": MenuSupport.field_float(row, "Shift X", 0.0),
 			# ...and up or down (+ = down, toward you).
 			"shift_y": MenuSupport.field_float(row, "Shift Y", 0.0),
+			# 23 Oct 2026: the machine as part of the drawn hall picture - a
+			# cut-out the size of the hall, see-through but the machine.
+			# Blank = drawn the old way (Art, on its pallet).
+			"hall_art": MenuSupport.field(row, "Hall Art").strip_edges(),
 		})
 
 	_sections.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
