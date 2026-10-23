@@ -22,7 +22,10 @@ extends RefCounted
 #
 #  ============ WHAT IT IS ============
 #
-#    1. Pub Dialogue 1 - the Dialogue.csv scene in Tuning.csv tutorial_first_scene
+#    1. the base (23 Oct) - the Dialogue.csv scene in Tuning.csv
+#       tutorial_first_scene, then the base with only the Pub to press; the
+#       Pub plays Pub Dialogue 1 (Tuning.csv tutorial_pub_scene). A blank
+#       tutorial_pub_scene goes from the first scene straight to the match.
 #    2. the tutorial match - MatchModes.csv row tutorial_match_mode, with the
 #       Head Coach's stops in MatchTalk.csv (Mode = tutorial)
 #    3. full time - "the morning after" (tutorial_morning.gd): the Dorms,
@@ -43,6 +46,8 @@ const META := "cw_tutorial"
 const SEALED_SAVE := "user://tutorial_story.json"
 const SEALED_TEAMS := "user://tutorial_story_teams.json"
 const DONE_FLAG := "starting_team_given"
+## Set while the Tutorial waits for you to press the Pub on the base.
+const PUB_FLAG := "tut_to_pub"
 
 
 ## Is the tutorial running right now?
@@ -91,10 +96,22 @@ static func start(tree: SceneTree, from_menu: bool) -> void:
 	tree.set_meta(META, info)
 
 	var state := GameState.fetch(tree)
+	# ROUND AN (Anthony, 23 Oct): the Tutorial opens on the base. With a
+	# Tuning.csv tutorial_pub_scene, the first scene ends on the base, where
+	# only the Pub can be pressed (Guide.csv tut_intro_pub), and the Pub plays
+	# that scene and then the tutorial match.
+	var pub_scene := db.tune_text("tutorial_pub_scene", "")
 	if state != null:
 		# The tutorial's own save never asks the question itself.
 		state.set_flag("game_begun")
 		state.set_flag("in_tutorial")
+		if pub_scene != "":
+			var effects := db.tune_text("tutorial_start_effects", "")
+			if effects != "":
+				DialogueGrammar.apply(effects, state)
+			state.set_flag(PUB_FLAG)
+			# The Head Coach shows them the Pub himself.
+			NewUnlocksPanel.mark_all_seen(state)
 		state.save_to_disk()
 
 	ScenePaths.clear_trail(tree)
@@ -102,9 +119,29 @@ static func start(tree: SceneTree, from_menu: bool) -> void:
 	var first := db.tune_text("tutorial_first_scene", "prologue")
 	print("[tutorial] Starting the tutorial in its own save: '%s', then the %s match." % [
 		first, db.tune_text("tutorial_match_mode", "tutorial")])
+	if pub_scene != "":
+		DialogueView.play(tree, first, ScenePaths.BASE)
+		return
 	# A squad match walks straight through Team Select, so the screen goes
 	# black from the end of the story, not after it.
 	DialogueView.play(tree, first, ScenePaths.TEAM_SELECT)
+
+
+## True when a press of this Buildings.csv row is the Tutorial's walk into
+## the Pub (Tuning.csv tutorial_pub_building): then the pub scene plays and
+## the tutorial match follows. The base asks before it opens a building.
+static func walk_into_pub(tree: SceneTree, state: GameState, building_id: String) -> bool:
+	if not active(tree) or state == null or not state.has_flag(PUB_FLAG):
+		return false
+	var db := CardDatabase.get_db()
+	if CardDatabase._normalise(building_id) != CardDatabase._normalise(db.tune_text("tutorial_pub_building", "pub")):
+		return false
+	state.set_flag(PUB_FLAG, false)
+	state.save_to_disk()
+	var scene := db.tune_text("tutorial_pub_scene", "prologue")
+	print("[tutorial] Into the Pub: '%s', then the %s match." % [scene, db.tune_text("tutorial_match_mode", "tutorial")])
+	DialogueView.play(tree, scene, ScenePaths.TEAM_SELECT)
+	return true
 
 
 ## FULL TIME in the tutorial match. ROUND AN: "The morning after"

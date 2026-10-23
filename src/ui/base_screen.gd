@@ -22,6 +22,8 @@ extends Control
 #  before drawing anything.
 # =============================================================
 
+## A button the Guide never greys (the way out of the Tutorial).
+const KEEP_LIT := "guide_keep_lit"
 const BACKGROUND_DIRS: Array[String] = ["res://assets/base/", "res://assets/backgrounds/"]
 const BUILDING_DIRS: Array[String] = ["res://assets/base/", "res://assets/buildings/", "res://assets/"]
 const MAP_ART_DIRS: Array[String] = ["res://assets/base/map/"]
@@ -376,6 +378,7 @@ func _build_exits() -> void:
 		skip.tooltip_text = "Finish the Tutorial now. Nothing from it is kept."
 		skip.pressed.connect(func() -> void:
 			Tutorial.finish(get_tree()))
+		skip.set_meta(KEEP_LIT, true)
 		row.add_child(skip)
 
 	_same_thread_size(row)
@@ -460,6 +463,7 @@ func _rebuild() -> void:
 	# ROUND AN: the Head Coach's Guide.csv rows for the base, once the yard
 	# is drawn (and again after any window over it closes).
 	(func() -> void: Guide.check(self, "base", state)).call_deferred()
+	(func() -> void: apply_guide_only()).call_deferred()
 	for child in _world.get_children():
 		child.queue_free()
 
@@ -822,7 +826,20 @@ func _make_village_building(entry: Dictionary, art: Texture2D) -> Control:
 			picture.modulate = Color.WHITE
 		else:
 			picture.modulate = resting * Color(1.25, 1.25, 1.25, 1.0))
+	# GUIDE GLOW (round AN): a Guide.csv Highlight on a drawn building lights
+	# its own picture, pulsing, instead of a ring round the whole screen.
+	var glowing := {"on": false}
+	button.set_meta(Guide.GLOW_META, func() -> void:
+		glowing["on"] = true
+		if lit != null:
+			picture.texture = lit
+		picture.modulate = Color.WHITE
+		var pulse := picture.create_tween().set_loops()
+		pulse.tween_property(picture, "modulate", Color(1.3, 1.3, 1.1, 1.0), 0.5)
+		pulse.tween_property(picture, "modulate", Color.WHITE, 0.5))
 	button.mouse_exited.connect(func() -> void:
+		if glowing["on"]:
+			return
 		picture.texture = art
 		picture.modulate = resting)
 
@@ -908,6 +925,27 @@ func _make_visitor(entry: Dictionary) -> Control:
 	return button
 
 
+## GUIDE ONLY (round AN, Anthony 23 Oct: "Everything is greyed out except
+## for the pub"). While a Guide.csv row with Only true waits for its button,
+## every other button on the base is greyed and cannot be pressed. The way
+## out of the Tutorial stays.
+func apply_guide_only() -> void:
+	if not has_meta(Guide.ONLY_META):
+		return
+	var words := String(get_meta(Guide.ONLY_META)).to_lower()
+	_grey_all_but(self, words)
+
+
+func _grey_all_but(node: Node, words: String) -> void:
+	for child in node.get_children():
+		if child is BaseButton:
+			if not child.has_meta(KEEP_LIT) and not Guide.says(child, words):
+				(child as BaseButton).disabled = true
+				(child as CanvasItem).modulate = Color(0.4, 0.4, 0.45, 1.0)
+			continue
+		_grey_all_but(child, words)
+
+
 # =============================================================
 #  CLICKING
 # =============================================================
@@ -924,6 +962,13 @@ func _on_building(entry: Dictionary) -> void:
 	var description := String(entry["description"])
 	_detail.text = description if description != "" else name_text
 	_play_building_sounds(entry)
+
+	# A Guide.csv Only row's button has been pressed: the base is free again.
+	if has_meta(Guide.ONLY_META):
+		remove_meta(Guide.ONLY_META)
+	# ROUND AN: the Tutorial's walk into the Pub plays its scene instead.
+	if Tutorial.walk_into_pub(get_tree(), state, String(entry["id"])):
+		return
 
 	var action := String(entry["action"])
 	if action.strip_edges() == "":
