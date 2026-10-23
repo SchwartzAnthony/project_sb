@@ -4315,6 +4315,28 @@ the same line that has always cleared them.
 
 ## 8b. `data/Stadium.csv` — the pitch and the village round it
 
+**23 Oct (your ask): matches are played in the drawn village, seen
+straight on.** "Remove the shed with the trophy … remove the old soccer
+barriers (not the fence and stone barrier) / Redraw the grass and lines /
+switch matches to this village with the straight-on pitch."
+
+- The ground is the drawn village from above (r182) with the trophy hut
+  painted over with trees: `art_source/drawn_pitch/village_from_above.png`.
+- `data/PitchView.csv` now points at it (`background`), lays the lines
+  straight on its grass (`corner_top_left` 580,580, `corner_top_right`
+  2516,580, `corner_bottom_left` 580,1284), shows a little village round the
+  wide shot (`wide_shot_margin` 0.3) and has no ad boards (`boards_image`
+  blank). The stone wall and white fence are part of the picture.
+- The lines are new: cream with a black ink edge, a little hand-wobbly, the
+  centre circle and penalty arcs drawn as ovals because the pitch is seen at a
+  slant, small drawn goals, and flat mowing stripes over the village's own
+  drawn grass. They are `assets/field/soccerfield_village.png`
+  (`PitchView.csv pitch_image`), made by `tools/make_village_pitch.py`.
+  Move a corner in the CSV and run it again so the lines follow.
+- `smooth_pictures` true draws both smoothed, as drawn art should be.
+- The old diagonal pixel town is still there: the old values are in the
+  `background` and `boards_image` notes.
+
 **Round AN (your ask, 6 Oct): the white lines are the edge of the player
 zones, and outside them is the village.**
 

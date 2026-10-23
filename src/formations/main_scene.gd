@@ -3787,7 +3787,8 @@ func _tilt_the_pitch() -> void:
 		ground.name = "MatchGround"
 		ground.texture = load(PitchView.value("background")) as Texture2D
 		ground.centered = false
-		ground.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		ground.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR \
+			if PitchView.smooth() else CanvasItem.TEXTURE_FILTER_NEAREST
 		_ground_layer.add_child(ground)
 		_ground_rect = Rect2(Vector2.ZERO, ground.texture.get_size())
 	if _pitch_layer == null:
@@ -3799,6 +3800,18 @@ func _tilt_the_pitch() -> void:
 
 	pitch_view = PitchView.transform_for(PitchView.line_rect(get_pitch_rect()))
 	_pitch_layer.transform = pitch_view
+	# PitchView.csv pitch_image: the drawn lines for this ground, in place of
+	# Stadium.csv's pitch. Same size, so the sprite's scale still fits.
+	var own_pitch := PitchView.value("pitch_image")
+	if own_pitch != "" and ResourceLoader.exists(own_pitch):
+		var raw_size := field_sprite.texture.get_size() if field_sprite.texture != null else Vector2.ZERO
+		var drawn := load(own_pitch) as Texture2D
+		if drawn != null:
+			field_sprite.texture = drawn
+			if raw_size.x > 1.0 and raw_size.y > 1.0:
+				field_sprite.scale *= raw_size / drawn.get_size()
+			if PitchView.smooth():
+				field_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 
 	for node in [field_sprite, zone_overlay, units_container]:
 		if node != null and (node as Node).get_parent() != _pitch_layer:
