@@ -71,6 +71,7 @@ var _seconds := 1.6
 var _fade_in := 0.12
 var _fade_out := 0.35
 var _ground := 0.93
+var _goal_ground := 0.93
 var _ball_share := 0.08
 var _goal_share := 0.26
 
@@ -151,6 +152,7 @@ func _init() -> void:
 	_fade_in = maxf(0.0, db.tune_float("match_loader_fade_in", 0.12))
 	_fade_out = maxf(0.0, db.tune_float("match_loader_fade_out", 0.35))
 	_ground = clampf(db.tune_float("match_loader_ground", 0.93), 0.0, 1.0)
+	_goal_ground = clampf(db.tune_float("match_loader_goal_ground", _ground), 0.0, 1.0)
 	_ball_share = clampf(db.tune_float("match_loader_ball_size", 0.08), 0.01, 1.0)
 	_goal_share = clampf(db.tune_float("match_loader_goal_size", 0.26), 0.01, 1.0)
 
@@ -179,6 +181,7 @@ func _init() -> void:
 	back.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	back.texture = _picture("match_loader_background",
 		"res://assets/loading/alps_background.png", _plain_alps())
+	back.texture_filter = _filter_for(back.texture)
 	_art.add_child(back)
 
 	_goal = _sprite(_picture("match_loader_goal",
@@ -205,9 +208,16 @@ func _sprite(texture: Texture2D) -> TextureRect:
 	rect.texture = texture
 	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
-	rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	rect.texture_filter = _filter_for(texture)
 	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return rect
+
+
+## Small pixel pictures stay sharp; big drawn ones (23 Oct 2026) are smooth.
+static func _filter_for(texture: Texture2D) -> CanvasItem.TextureFilter:
+	if texture != null and texture.get_width() > 128:
+		return CanvasItem.TEXTURE_FILTER_LINEAR
+	return CanvasItem.TEXTURE_FILTER_NEAREST
 
 
 ## A picture named in Tuning.csv, or the stand-in shape when it is missing.
@@ -251,7 +261,11 @@ func _place_ball() -> void:
 	var start_x := -side
 	var end_x := _goal.position.x + _goal.size.x * 0.5 - side * 0.5
 	var x := lerpf(start_x, end_x, _shown)
-	_ball.position = Vector2(x, size.y * _ground - side)
+	# 23 Oct 2026: the drawn village's goal stands further back than the
+	# meadow in front, so the ball rolls up the picture into it
+	# (match_loader_goal_ground, blank = straight along match_loader_ground).
+	var floor_y := lerpf(_ground, _goal_ground, _shown)
+	_ball.position = Vector2(x, size.y * floor_y - side)
 	# ROLLING, not sliding: turned by exactly the distance it has travelled.
 	_ball.rotation = (x - start_x) / maxf(1.0, side * 0.5)
 

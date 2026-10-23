@@ -1108,7 +1108,16 @@ so it never scores before the match is there.
 | `match_loader_ground` | how far down the ball rolls and the goal stands. `0.93` |
 | `match_loader_ball_size` / `_goal_size` | sizes, as a share of the screen height |
 
-**The art** was made in PixelLab with the Stammtisch places board as the style
+| `match_loader_goal_ground` | how far down the ball is when it reaches the goal (it rolls up the picture into a goal further back). Blank = straight along the bottom |
+
+**The drawn look (23 Oct 2026, Anthony: "Redo the loading screen in our new
+style").** The background is the drawn village with its ball painted out,
+the ball is that drawn ball cut out, and the goal is the village's own drawn
+goal (the goal picture is a see-through stand-in). Made free by
+`art_tool/loading/make_loading_drawn.py`, files in `assets/loading/drawn/`.
+The old Alps pictures are still in `assets/loading/`.
+
+**The old art** was made in PixelLab with the Stammtisch places board as the style
 image. Its layers are in `art_source/aseprite/match_loading.aseprite`
 (rebuild it with `tools/make_loading_aseprite.py`) and the PixelLab originals
 in `art_source/pixellab/match_loader/`. `tools/loading_shot.gd` records the
