@@ -42,6 +42,8 @@ var _title: Label
 var _status: Label
 var _read_seconds := 1.4
 var _enemy_attack_chance := 0.5
+# The beer mat look of the question windows (CardFace.csv choice_style mat).
+var _mat := false
 
 
 ## Put it up. `yours` is whether YOU are taking the throw; `where` is a line
@@ -89,12 +91,19 @@ func _build(where: String) -> void:
 	frame.add_theme_stylebox_override("panel", MenuSupport.styled(
 		"window", "", MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
 	centre.add_child(frame)
+	var title_words := Loc.text("throw_in_yours", "YOUR THROW") if _yours \
+		else Loc.text("throw_in_theirs", "THEIR THROW")
+	_mat = ChoiceWindow.mat_on()
+	if _mat:
+		_mat_look(frame, title_words)
 
 	var pad := MarginContainer.new()
 	for side in ["margin_left", "margin_right"]:
 		pad.add_theme_constant_override(side, 30)
 	for side in ["margin_top", "margin_bottom"]:
 		pad.add_theme_constant_override(side, 24)
+	if _mat:
+		ChoiceWindow._mat_margins(pad)
 	frame.add_child(pad)
 
 	var column := VBoxContainer.new()
@@ -106,6 +115,8 @@ func _build(where: String) -> void:
 		else Loc.text("throw_in_theirs", "THEIR THROW"),
 		34, MenuSupport.COLOUR_ACCENT)
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# On the beer mat the title is on the board sign instead.
+	_title.visible = not _mat
 	column.add_child(_title)
 
 	var line := Label.new()
@@ -115,12 +126,16 @@ func _build(where: String) -> void:
 	line.add_theme_font_size_override("font_size", 17)
 	line.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	column.add_child(line)
+	if _mat:
+		_inked(line)
 
 	_status = Label.new()
 	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status.add_theme_font_size_override("font_size", 16)
 	column.add_child(_status)
+	if _mat:
+		_inked(_status)
 
 	_choice_row = HBoxContainer.new()
 	_choice_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -145,7 +160,7 @@ func _build(where: String) -> void:
 			MenuSupport.COLOUR_DEFEND, false))
 		_choice_row.visible = true
 		_status.text = Loc.text("throw_in_ask", "Attack first, or hold and defend?")
-		_status.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
+		_status.add_theme_color_override("font_color", _ink() if _mat else MenuSupport.COLOUR_TEXT)
 
 
 func _make_button(words: String, why: String, tint: Color, attack: bool) -> Button:
@@ -160,6 +175,7 @@ func _make_button(words: String, why: String, tint: Color, attack: bool) -> Butt
 		MenuSupport.styled("button", "pressed", MenuSupport.COLOUR_SLOT_EMPTY, tint))
 	button.add_theme_stylebox_override("focus", MenuSupport.focus_style())
 	button.pressed.connect(_choose.bind(attack))
+	ScreenLook.plank(button)
 
 	var column := VBoxContainer.new()
 	column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -168,7 +184,9 @@ func _make_button(words: String, why: String, tint: Color, attack: bool) -> Butt
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	button.add_child(column)
 
-	var big := MenuSupport.heading(words, 26, tint)
+	# On the blue plank the defend blue is lifted so it still reads.
+	var big := MenuSupport.heading(words, 26,
+		tint.lightened(0.55) if ScreenLook.button_row("match").size() > 0 and not attack else tint)
 	big.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	big.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(big)
@@ -200,7 +218,8 @@ func _they_decide() -> void:
 	_status.text = Loc.text("they_attack", "They come forward.") if they_attack \
 		else Loc.text("they_defend", "They sit back and hold.")
 	_status.add_theme_color_override("font_color",
-		MenuSupport.COLOUR_ATTACK if they_attack else MenuSupport.COLOUR_DEFEND)
+		(MenuSupport.COLOUR_ATTACK if they_attack else MenuSupport.COLOUR_DEFEND).darkened(
+			0.4 if _mat else 0.0))
 	await get_tree().create_timer(maxf(0.2, _read_seconds), true, false, true).timeout
 	# THE SIGNAL SAYS WHAT YOUR SIDE DOES. If they attack, you defend.
 	_finish(not they_attack)
@@ -245,3 +264,37 @@ func _finish(player_attacks: bool) -> void:
 	_running = false
 	chosen.emit(player_attacks)
 	queue_free()
+
+
+# =============================================================
+#  THE BEER MAT LOOK (23 Oct 2026), the same as the question windows
+#  (ChoiceWindow): the cream panel, the title on the board sign, ink words.
+# =============================================================
+
+func _ink() -> Color:
+	return Color.from_string(BeerMatCard.value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
+
+
+func _inked(label: Label) -> void:
+	label.add_theme_color_override("font_color", _ink())
+	label.add_theme_constant_override("outline_size", 0)
+	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+	label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+
+
+func _mat_look(frame: PanelContainer, title: String) -> void:
+	frame.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	var holder := Control.new()
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_child(holder)
+	var edge := int(BeerMatCard.number("inventory_edge", 60.0))
+	var patch := InventoryScreen._mat(Vector2(640, 300), edge, 0.9)
+	holder.add_child(patch)
+	var sign := SignHeader.make(title, "res://data/MenuHeaderBoard.csv")
+	holder.add_child(sign)
+	var lift := BeerMatCard.number("choice_header_lift", 82.0)
+	var fit := func() -> void:
+		patch.size = holder.size / patch.scale.x
+		sign.position = Vector2((holder.size.x - sign.size.x) / 2.0, -lift)
+	holder.resized.connect(fit)
+	sign.resized.connect(fit)

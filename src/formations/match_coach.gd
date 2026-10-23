@@ -825,6 +825,7 @@ func _build_exhaust_button() -> void:
 	_exhaust_button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_exhaust_button.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_exhaust_button.pressed.connect(_toggle_exhaust)
+	ScreenLook.plank(_exhaust_button)
 	(layer as Node).add_child(_exhaust_button)
 	_refresh_exhaust()
 

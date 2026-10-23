@@ -290,6 +290,9 @@ func _refresh() -> void:
 ## so it reads as "later" rather than as "broken".
 func _paint_locked(button: Button) -> void:
 	button.modulate = Color(1, 1, 1, 0.45)
+	if button.has_meta("screen_look"):
+		button.modulate = Color(0.6, 0.6, 0.6, 0.6)
+		return
 	button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
 		MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_TEXT_DIM))
 	button.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
@@ -297,6 +300,10 @@ func _paint_locked(button: Button) -> void:
 
 func _paint(button: Button, lit: bool) -> void:
 	button.modulate = Color(1, 1, 1, 1)
+	if button.has_meta("screen_look"):
+		button.modulate = Color(1.25, 1.12, 0.75) if lit else Color(1, 1, 1)
+		button.add_theme_color_override("font_color", Color("ffd36a") if lit else Color("ffffff"))
+		return
 	button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
 		MenuSupport.COLOUR_SLOT_EMPTY if lit else MenuSupport.COLOUR_PANEL,
 		MenuSupport.COLOUR_ACCENT if lit else MenuSupport.COLOUR_TEXT_DIM))
@@ -333,4 +340,5 @@ func _make_button(text: String, box: Vector2) -> Button:
 		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
 	button.add_theme_stylebox_override("pressed",
 		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
+	ScreenLook.plank(button)
 	return button

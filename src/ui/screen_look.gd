@@ -173,6 +173,26 @@ static func _dress_all(node: Node, row: Dictionary) -> void:
 		_dress_all(child, row)
 
 
+## THE MATCH BUTTONS (Anthony 23 Oct 2026: "all the buttons that are still
+## in the old style need to be changes in our art style"). The button row
+## of `screen_id` in ScreenLook.csv dresses this one button; no row = the
+## button keeps its old look. True when it was dressed.
+static func plank(button: Button, screen_id: String = "match") -> bool:
+	var row := button_row(screen_id)
+	if row.is_empty() or button == null:
+		return false
+	_dress(button, row)
+	return true
+
+
+static func button_row(screen_id: String) -> Dictionary:
+	for row in MenuSupport.read_csv(SHEET):
+		if MenuSupport.field(row, "Screen").strip_edges().to_lower() == screen_id.to_lower() \
+				and MenuSupport.field(row, "Part").strip_edges().to_lower() == "button":
+			return row
+	return {}
+
+
 ## Only plain buttons become planks - tick boxes, sliders and drop-downs
 ## keep their own look so they still read as what they are.
 static func _dress(button: Button, row: Dictionary) -> void:

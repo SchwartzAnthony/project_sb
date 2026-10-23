@@ -182,6 +182,9 @@ func _make_button(text: String, width: float) -> Button:
 	button.custom_minimum_size = Vector2(width, 30)
 	button.focus_mode = Control.FOCUS_NONE   # or SPACE would press it in a duel
 	button.add_theme_font_size_override("font_size", 13)
+	if ScreenLook.plank(button):
+		# The drawn plank needs a little more height for its edge.
+		button.custom_minimum_size = Vector2(width + 10.0, 42)
 	return button
 
 
@@ -278,6 +281,13 @@ func _paint(button: Button, lit: bool, locked: bool = false) -> void:
 	# goes grey and half-faded, so it reads as "later" rather than "broken".
 	# It is deliberately NOT `disabled`: a disabled button swallows the click
 	# and so cannot tell you why it did nothing.
+	if button.has_meta("screen_look"):
+		# The drawn plank: lit = warm and gold words, locked = grey and faded.
+		button.modulate = Color(0.6, 0.6, 0.6, 0.6) if locked \
+			else (Color(1.25, 1.12, 0.75) if lit else Color(1, 1, 1))
+		button.add_theme_color_override("font_color",
+			Color("ffd36a") if lit else Color("ffffff"))
+		return
 	if locked:
 		button.modulate = Color(1, 1, 1, 0.45)
 		button.add_theme_stylebox_override("normal", MenuSupport.panel_style(

@@ -1209,6 +1209,34 @@ files in `assets/team/`.
 | `kickoff_needs_button` | `false` and the countdown starts by itself — for a demo or a stream |
 | `team_crest_fallback` | the crest for a class with no Banner Art. `banner_normal_team` |
 
+**The drawn look (23 Oct 2026, Anthony: "Redo the Menu boards with the three
+star players before the match starts please in our art style (as well as all
+the buttons that are still in the old style need to be changes in our art
+style)").** Each team is on the cream beer mat panel, the same as the
+inventory, with its name on the wooden board sign on top. The Stars, their
+tier, power and abilities are written in ink. The drawn beer tent from the
+save screen is behind, two drawn Maß mugs clink between the teams and START
+is the blue wooden plank. The old crest is not on the drawn boards (the name
+sign says who it is); it still shows next to START over the pitch.
+
+| Tuning row | |
+|---|---|
+| `vs_style` | `drawn` = this look. `old` = the pixel chalkboards |
+| `vs_background_drawn` / `vs_background_dim_drawn` | the drawn tent and how much darker it is (`0.2`) |
+| `vs_board_height_drawn` | how tall each panel starts (`0.5` of the screen); it grows up to `vs_board_max` for long abilities |
+| `vs_star_size_drawn` | how tall a Star stands on the panel (`190`) |
+| `vs_sign_lift` | how far the name sign sits above the panel (`82`) |
+| `vs_versus_drawn` | the drawn mug shown twice between the teams |
+
+**Every match button is the blue plank too.** The `match` button row in
+`data/ScreenLook.csv` dresses the game speed buttons (1x to 8x), AUTO, TEAM,
+EXHAUST ZONE, the ATTACK and DEFEND buttons of the throw-in and the clash,
+and the pause menu buttons. The speed you are on and AUTO ON glow warm with
+gold words; a locked speed is grey and faded. Delete that row to get the old
+boxes back. The throw-in window ("YOUR THROW") is on the beer mat with its
+title on the board sign, like the other question windows (CardFace.csv
+`choice_style`). The number chips of the coin clash keep their old look.
+
 **The beer menus** (round AN). The board picture is blown up by a whole number
 so its pixels stay sharp. The wooden top (crest, bunting) and bottom stay as
 drawn; the rows of chalk in between repeat downward when a side's abilities

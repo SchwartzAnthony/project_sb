@@ -286,6 +286,7 @@ func _big_button(text: String) -> Button:
 	button.custom_minimum_size = Vector2(150, 44)
 	button.focus_mode = Control.FOCUS_NONE
 	button.add_theme_font_size_override("font_size", 17)
+	ScreenLook.plank(button)
 	return button
 
 
