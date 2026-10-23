@@ -161,7 +161,11 @@ func _ready() -> void:
 
 ## A box along the bottom would sit on top of what the coach is pointing at
 ## when that is low on the screen; then the box (and the face) go to the top.
+## ROUND AN (Anthony, 23 Oct): only when Tuning.csv match_talk_box_moves_up is
+## true. Off, the box stays along the bottom for every stop, like round 1.
 func _out_of_the_way() -> void:
+	if not CardDatabase.get_db().tune_bool("match_talk_box_moves_up", false):
+		return
 	var low := false
 	var screen := get_viewport().get_visible_rect().size
 	for group in _groups:

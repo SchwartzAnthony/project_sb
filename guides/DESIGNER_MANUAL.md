@@ -3857,7 +3857,9 @@ card_yellow, card_red, free_kick_won, star_switch or play_maker. **Requires**
 is the usual condition language. **Scene** is a `Dialogue.csv` scene. Its
 lines play in a box along the bottom of the screen, with the speaker's face,
 while the game waits. **Once** `true` plays it only the first time ever. The
-size of the words is `Tuning.csv match_talk_text_size`.
+size of the words is `Tuning.csv match_talk_text_size`. The box stays along
+the bottom for every stop; `Tuning.csv match_talk_box_moves_up` true sends it
+to the top when what the coach points at is low on the screen.
 
 Four more columns (round AN, the Tutorial), all optional:
 
