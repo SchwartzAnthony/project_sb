@@ -4483,6 +4483,8 @@ and then its `Door Sound` (`door_open`, a wooden door creaking open)
 name off the bottom middle of its picture, e.g. the Club House's, so the
 Trophy Room hut in front of it keeps its own name.
 
+**Heatwave is off the base for now** (23 Oct 2026): his Visitors.csv `Requires` is `flag:heatwave_on_base`, a flag nothing sets, so he is not drawn. Visitors still work as before. Empty that cell to bring him back.
+
 **Visitors greet you**: Visitors.csv `Sound` is played when you click them -
 the Brewer's grunting "Servus" (`visitor_brewer`), Heatwave's cocky "Hah!"
 (`visitor_heatwave`). The Traveling Tavern's door sound is `wagon_creak`.
