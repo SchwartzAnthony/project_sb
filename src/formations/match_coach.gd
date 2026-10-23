@@ -368,7 +368,11 @@ func brewery_time_out(flag: String) -> void:
 	var screen := (load(BREWERY_SCENE) as PackedScene).instantiate() as BreweryScreen
 	screen.in_match = true
 	layer.add_child(screen)
+	# BREWERY MUSIC (Anthony, 23 Oct): the Brewery gets its own music here too
+	# - Audio.csv rows brewery_time_out_music / match_music_back_brewery.
+	AudioDirector.fire(tree, "time_out_started", {"where": "brewery"})
 	await screen.left
+	AudioDirector.fire(tree, "time_out_ended", {"where": "brewery"})
 	if state != null and flag != "":
 		state.set_flag(flag, false)
 	tree.paused = was_paused
