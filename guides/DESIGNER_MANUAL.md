@@ -3132,6 +3132,28 @@ broken.
 
 ## 7f. The Emblems — three on the pitch, one may ascend
 
+### The Emblem template on the pitch (23 Oct 2026)
+
+From your sketch, every Emblem on the pitch uses the one template, the same
+size on both sides:
+
+- **Yours** sits top left under the speed buttons; **theirs** sits top right
+  under the clock (no "THEIRS" label any more).
+- The **name** is along the top, the Emblem's **symbol** is in the pentagon in
+  the middle, and a small **circle** bottom left shows how far along it is
+  (for example 1/3).
+- The box is the cream panel from the beer mat card.
+- **Click it** once: it opens with its text (the Basic side and what turns it
+  over). Click again: the Ultimate side. Click again: it shuts.
+- **The symbol** is the picture named in the `Emblem` column of the
+  `<Class> Emblems.csv` files (for example `Gremory_Emblem.png`), put in
+  `assets/icons/`. None are drawn yet, so the pentagon shows the first letter.
+
+`data/CardFace.csv` rows `emblem_template` (false = the old dark boxes),
+`emblem_size`, `emblem_left_top`, `emblem_right_top`, `emblem_pentagon`,
+`emblem_cap` and `emblem_text_size`.
+
+
 > **ROUND Z: the Basic side PLAYS.** A new column in each Emblems file,
 > **`Basic Ability`**, names rows of `Abilities.csv` (the `EMB_` rows at the
 > bottom). While the Emblem is on the field, every card of that side that

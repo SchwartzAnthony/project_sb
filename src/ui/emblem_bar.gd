@@ -48,6 +48,11 @@ var state: GameState = null
 
 var _row: HBoxContainer = null
 var _tiles: Dictionary = {}     ## emblem key -> the tile Control
+## 23 OCT (Anthony): yours top left under the speed buttons, theirs top right
+## under the clock, both on the one Emblem template (EmblemCard).
+var _mine: VBoxContainer = null
+var _theirs: VBoxContainer = null
+var _pages: Dictionary = {}     ## "mine|key" -> which page the Emblem is open at
 
 
 ## Put a bar over `on`. Returns null when emblems are switched off, so a
@@ -99,11 +104,94 @@ func _ready() -> void:
 	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.add_child(_row)
 
+	if _template_on():
+		_row.visible = false
+		var mine_top := BeerMatCard.number("emblem_left_top", 112.0)
+		var theirs_top := BeerMatCard.number("emblem_right_top", 112.0)
+		var width := EmblemCard._size().x
+		_mine = VBoxContainer.new()
+		_mine.position = Vector2(16.0, mine_top)
+		_mine.add_theme_constant_override("separation", 8)
+		_mine.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_mine)
+		var right := Control.new()
+		right.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		right.offset_left = -16.0 - width
+		right.offset_right = -16.0
+		right.offset_top = theirs_top
+		right.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(right)
+		_theirs = VBoxContainer.new()
+		_theirs.add_theme_constant_override("separation", 8)
+		_theirs.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		right.add_child(_theirs)
+
+
+static func _template_on() -> bool:
+	return BeerMatCard.value("emblem_template", "true").to_lower() == "true" \
+		and ResourceLoader.exists(BeerMatCard.value("frame"))
+
+
+## One Emblem on the template, either side. Their race is enemy_state.
+func _card(badge: ClassBook.Emblem, race: GameState, side: String) -> EmblemCard:
+	var db := CardDatabase.get_db()
+	var key := side + "|" + CardDatabase._normalise(badge.id)
+	var have := 0
+	var need := 0
+	var up := false
+	var dim := false
+	var basic := badge.basic
+	if race != null:
+		var bits := EmblemBook.progress(badge, race)
+		have = int(bits["have"])
+		need = int(bits["need"])
+		up = EmblemBook.is_up(badge, race)
+		dim = EmblemBook.is_blocked(badge, race)
+		if dim:
+			basic += "\n\nULTIMATE BLOCKED: %s already used this game's Ultimate. The Basic side still works." % EmblemBook.ascended(race)
+		elif EmblemBook.is_locked(badge, race):
+			basic += "\n\nUltimate taken by %s. The Basic side still works." % EmblemBook.ascended(race)
+			dim = db != null and db.tune_bool("emblem_locked_is_inactive", false)
+	var turns := badge.condition if badge.condition != "" else DialogueGrammar.describe(badge.turns_on)
+	if turns != "":
+		basic += "\n\nTURNS OVER: " + turns
+	var card := EmblemCard.make(badge.id, badge.id.substr(0, 1).to_upper(), badge.art,
+		have, need, up, dim, basic, badge.ultimate, int(_pages.get(key, 0)))
+	card.page_changed.connect(func(page: int) -> void: _pages[key] = page)
+	return card
+
+
+func _refresh_template() -> void:
+	for holder in [_mine, _theirs]:
+		for child in holder.get_children():
+			child.queue_free()
+	_tiles = {}
+	var db := CardDatabase.get_db()
+	var shown := 0
+	for badge in EmblemBook.on_the_field(squad):
+		var card := _card(badge, state, "mine")
+		_mine.add_child(card)
+		_tiles[CardDatabase._normalise(badge.id)] = card
+		shown += 1
+	if shown == 0 and (db == null or db.tune_bool("emblem_show_none", true)):
+		_mine.add_child(EmblemCard.make("No Emblem", "-", "", 0, 0, false, true,
+			"This team has no Star with an Emblem."))
+	if db == null or db.tune_bool("emblem_show_enemy", true):
+		var theirs := EmblemBook.on_the_field(enemy_squad)
+		for badge in theirs:
+			_theirs.add_child(_card(badge, enemy_state, "theirs"))
+		if theirs.is_empty() and (db == null or db.tune_bool("emblem_show_none", true)):
+			_theirs.add_child(EmblemCard.make("No Emblem", "-", "", 0, 0, false, true,
+				"This team has no Star with an Emblem."))
+
 
 ## Read the whole bar again. Cheap enough to call at the end of every duel,
 ## which is what main_scene does.
 func refresh() -> void:
 	if _row == null:
+		return
+	if _mine != null:
+		_refresh_template()
 		return
 	for child in _row.get_children():
 		child.queue_free()

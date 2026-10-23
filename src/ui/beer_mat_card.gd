@@ -185,7 +185,13 @@ static func write(button: Button, text: String, area: Rect2, ink: Color) -> void
 	_add_text(button, text, area, ink)
 
 
-static func _add_text(button: Button, text: String, area: Rect2, ink: Color,
+## The same, on any Control, with `fill` = how much of the area's height the
+## letters take (the Emblems use it).
+static func add_label(on: Control, text: String, area: Rect2, ink: Color, fill: float = 0.66) -> void:
+	_add_text(on, text, area, ink, fill)
+
+
+static func _add_text(button: Control, text: String, area: Rect2, ink: Color,
 		fill: float = 0.66) -> void:
 	var label := Label.new()
 	label.text = text
