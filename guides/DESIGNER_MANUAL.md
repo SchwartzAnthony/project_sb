@@ -4354,6 +4354,15 @@ wheel, a drag, or the thin ink bar on its right, which only shows when it is
 needed. Pointing at another thing starts its words at the top again. Check:
 `tools/info_scroll_shot.gd`.
 
+**The throw-in window, same look (23 Oct 2026, Anthony: "needs to be in new
+ui we have in our art style").** YOUR THROW / THEIR THROW is written on the
+same wooden board over the same cream panel; ATTACK and DEFEND are blue
+wooden planks with the reason in ink under each. On their throw the panel's
+blue turns red, like their Emblem. Rows in `data/CardFace.csv`:
+`throw_in_style` (`mat` = this look, `old` = the old dark window) and
+`throw_in_window` (width,height). Photograph it with
+`tools/throw_banner_shot.gd`.
+
 | Tab | What goes on it |
 |---|---|
 | **Items** | things you **use** — brews, bandages, smelling salts. **The only clickable tab** |
