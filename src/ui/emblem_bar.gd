@@ -156,7 +156,7 @@ func _card(badge: ClassBook.Emblem, race: GameState, side: String) -> EmblemCard
 	if turns != "":
 		basic += "\n\nTURNS OVER: " + turns
 	var card := EmblemCard.make(badge.id, badge.id.substr(0, 1).to_upper(), badge.art,
-		have, need, up, dim, basic, badge.ultimate, int(_pages.get(key, 0)))
+		have, need, up, dim, basic, badge.ultimate, int(_pages.get(key, 0)), side == "theirs")
 	card.page_changed.connect(func(page: int) -> void: _pages[key] = page)
 	return card
 
@@ -182,7 +182,7 @@ func _refresh_template() -> void:
 			_theirs.add_child(_card(badge, enemy_state, "theirs"))
 		if theirs.is_empty() and (db == null or db.tune_bool("emblem_show_none", true)):
 			_theirs.add_child(EmblemCard.make("No Emblem", "-", "", 0, 0, false, true,
-				"This team has no Star with an Emblem."))
+				"This team has no Star with an Emblem.", "", 0, true))
 
 
 ## Read the whole bar again. Cheap enough to call at the end of every duel,

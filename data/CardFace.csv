@@ -26,3 +26,4 @@ emblem_right_top,112,"How far down the screen THEIR Emblem starts (top right, un
 emblem_pentagon,0.66,"How tall the pentagon is, as a share of the Emblem's height."
 emblem_cap,0.3,"How big the progress circle is, as a share of the Emblem's height."
 emblem_text_size,14,"The size of the text when an Emblem is clicked open."
+emblem_text_margin,0.12,"Room round the words when an Emblem is open, as a share of its width, so they stay clear of the blue corners."

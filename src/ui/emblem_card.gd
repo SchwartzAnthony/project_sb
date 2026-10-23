@@ -71,12 +71,17 @@ var basic_text := ""
 var ultimate_text := ""
 var page := 0
 var _sheet: Control = null
+## Their Emblem is red (his ask, 23 Oct): the blue of the panel, the
+## pentagon's edge and the circle's edge.
+var enemy := false
+const RED := Color(0.72, 0.12, 0.10)
 
 
 static func make(title: String, letter: String, art: String, have: int, need: int,
 		up: bool, dim: bool, basic: String = "", ultimate: String = "",
-		open_page: int = 0) -> EmblemCard:
+		open_page: int = 0, is_enemy: bool = false) -> EmblemCard:
 	var card := EmblemCard.new()
+	card.enemy = is_enemy
 	card.basic_text = basic
 	card.ultimate_text = ultimate
 	card._build(title, letter, art, have, need, up, dim)
@@ -114,19 +119,20 @@ func _show_page(which: int) -> void:
 	words.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
 	words.add_theme_font_size_override("font_size", int(BeerMatCard.number("emblem_text_size", 14.0)))
 	words.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var pad := box.x * 0.07
+	# Room enough that the words stay clear of the panel's blue corners.
+	var pad := box.x * BeerMatCard.number("emblem_text_margin", 0.12)
 	words.position = Vector2(pad, pad * 0.8)
 	words.size = Vector2(box.x - pad * 2.0, 10)
 	var font := ThemeDB.fallback_font
 	var text_size := font.get_multiline_string_size(words.text, HORIZONTAL_ALIGNMENT_LEFT,
 		words.size.x, words.get_theme_font_size("font_size"))
-	var tall := text_size.y * 1.12 + pad * 1.8
+	var tall := text_size.y * 1.12 + pad * 2.2
 	words.size = Vector2(words.size.x, text_size.y * 1.12)
 	var sheet := Control.new()
 	sheet.position = Vector2(0, box.y - 4.0)
 	sheet.size = Vector2(box.x, tall)
 	sheet.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	sheet.add_child(_panel(sheet.size))
+	sheet.add_child(_dress(_panel(sheet.size)))
 	sheet.add_child(words)
 	add_child(sheet)
 	_sheet = sheet
@@ -142,7 +148,7 @@ func _fit_sheet(words: Label, pad: float) -> void:
 		return
 	var text_tall := words.get_minimum_size().y
 	words.size = Vector2(words.size.x, text_tall)
-	var tall := text_tall + pad * 1.8
+	var tall := text_tall + pad * 2.2
 	_sheet.size = Vector2(_sheet.size.x, tall)
 	for child in _sheet.get_children():
 		if child is NinePatchRect:
@@ -164,7 +170,7 @@ func _build(title: String, letter: String, art: String, have: int, need: int,
 		modulate = Color(0.6, 0.6, 0.6, 0.9)
 	var ink := Color.from_string(BeerMatCard.value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
 
-	add_child(_panel(box))
+	add_child(_dress(_panel(box)))
 	var name_area := Rect2(box.x * 0.06, box.y * 0.07, box.x * 0.88, box.y * 0.2)
 	BeerMatCard.add_label(self, ("★ " if up else "") + title.to_upper(), name_area, ink, 0.85)
 
@@ -174,6 +180,8 @@ func _build(title: String, letter: String, art: String, have: int, need: int,
 	penta.size = Vector2(tall * 1.05, tall)
 	penta.position = Vector2((box.x - penta.size.x) / 2.0, box.y - tall - box.y * 0.04)
 	penta.ink = ink
+	if enemy:
+		penta.edge = RED
 	if up:
 		penta.edge = Color(0.86, 0.64, 0.12)
 	penta.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -197,12 +205,23 @@ func _build(title: String, letter: String, art: String, have: int, need: int,
 		var cap_size := box.y * BeerMatCard.number("emblem_cap", 0.3)
 		var cap := Ring.new()
 		cap.ink = ink
+		if enemy:
+			cap.edge = RED
 		cap.size = Vector2(cap_size, cap_size)
 		cap.position = Vector2(box.x * 0.06, box.y - cap_size - box.y * 0.08)
 		cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(cap)
 		BeerMatCard.add_label(self, "%d/%d" % [have, need],
 			Rect2(cap.position + cap.size * 0.22, cap.size * 0.56), ink, 0.75)
+
+
+## Their panel's blue turned red.
+func _dress(patch: NinePatchRect) -> NinePatchRect:
+	if enemy and ResourceLoader.exists("res://assets/shaders/blue_to_red.gdshader"):
+		var paint := ShaderMaterial.new()
+		paint.shader = load("res://assets/shaders/blue_to_red.gdshader")
+		patch.material = paint
+	return patch
 
 
 static func _size() -> Vector2:

@@ -3138,7 +3138,9 @@ From your sketch, every Emblem on the pitch uses the one template, the same
 size on both sides:
 
 - **Yours** sits top left under the speed buttons; **theirs** sits top right
-  under the clock (no "THEIRS" label any more).
+  under the clock (no "THEIRS" label any more). **Theirs is red**: the blue
+  of the panel, the pentagon and the circle turn red
+  (`assets/shaders/blue_to_red.gdshader`).
 - The **name** is along the top, the Emblem's **symbol** is in the pentagon in
   the middle, and a small **circle** bottom left shows how far along it is
   (for example 1/3).
@@ -3151,7 +3153,8 @@ size on both sides:
 
 `data/CardFace.csv` rows `emblem_template` (false = the old dark boxes),
 `emblem_size`, `emblem_left_top`, `emblem_right_top`, `emblem_pentagon`,
-`emblem_cap` and `emblem_text_size`.
+`emblem_cap`, `emblem_text_size` and `emblem_text_margin` (room round the
+open text so it stays clear of the blue corners).
 
 
 > **ROUND Z: the Basic side PLAYS.** A new column in each Emblems file,
