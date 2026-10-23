@@ -27,6 +27,11 @@ extends RefCounted
 #    View           front = talking to the player (blank), side = to someone
 #    Leaves         who walks off as this line shows: Speaker names or Portrait
 #                   IDs separated by ; or "all". Everybody else stays on stage
+#    Joins          who steps on stage as this line shows WITHOUT speaking
+#                   (round AN, Anthony 23 Oct: "have koch slide in from the
+#                   right"): Portrait:Side:Mood, e.g. koch:right:drunk,
+#                   several separated by ;. They slide in from their side
+#                   and turn to the room like anyone listening
 #    Background     PNG name, found in assets/backgrounds/
 #    Music          OGG or WAV name, found in assets/music/
 #    Sound          a one-off sound as the line shows: an Audio.csv ID
@@ -155,6 +160,7 @@ func _load_csv(path: String) -> void:
 		line.mood = _cell(row, columns, "mood").to_lower()
 		line.view = _cell(row, columns, "view").to_lower()
 		line.leaves = _cell(row, columns, "leaves")
+		line.joins = _cell(row, columns, "joins")
 		line.background = _cell(row, columns, "background")
 		line.music = _cell(row, columns, "music")
 		line.sound = _cell(row, columns, "sound")

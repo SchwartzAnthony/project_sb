@@ -459,6 +459,23 @@ func _apply_portrait(line: DialogueLine) -> void:
 					or name_key == CardDatabase._normalise(String(actor["speaker"])):
 				_exit(key)
 
+	# Joins: Portrait:Side:Mood - on stage without saying anything.
+	for who in line.joins.split(";", false):
+		var bits := String(who).split(":")
+		var join := DialogueLine.new()
+		join.portrait = bits[0].strip_edges()
+		join.side = bits[1].strip_edges().to_lower() if bits.size() > 1 else "right"
+		if not STAGE_X.has(join.side):
+			join.side = "right"
+		join.mood = bits[2].strip_edges().to_lower() if bits.size() > 2 else ""
+		var join_key := CardDatabase._normalise(join.portrait)
+		if join_key == "" or _cast.has(join_key):
+			continue
+		for key in _cast.keys():
+			if String(_cast[key]["side"]) == join.side:
+				_exit(key)
+		_enter(join_key, join)
+
 	var speaker_key := ""
 	var row := _art.portrait_for(line.portrait, line.speaker, line.mood, line.view)
 	var file_name: String = row.get("image", line.portrait)
