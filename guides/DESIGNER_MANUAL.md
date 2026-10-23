@@ -3704,7 +3704,7 @@ moment, with the same score, clock and exhaust. Then the row's **Do** runs:
 | `inspire:Koch=75` | his inspiration in % on the drunk meter (`DrunkLevels.csv`): 75 after cycle 1 (past Inspired, so his star ability wakes up), 90 after cycle 2 |
 | `drink_lesson:first=keg@barrel@tut-fass-after@abilities\|-\|card` | the drinking lesson. `<card>=<item>@<barrel or bottle>@<scene>@<gold>`. The item goes in the bag if it is missing; only that card's bag button works and his bag shows only that item; gold on the button, then on the item. When he drinks: the drinking window (his PixelLab stein drink from his pitch sheet, then the burp; `Tuning.csv drink_window_seconds`), then his card comes up big as with show_card and the scene plays. Only he can be picked after |
 | `give:anstoss_helles+doppelpass_weisse+abstauber_dunkel` | puts one of each into the bag (`item=3` for more). A drink_lesson can then name several items with `+`: the bag shows those, gold on each, and any one will do |
-| `say:tut-after-brewery@-\|-\|flask:first` | plays that Dialogue.csv scene, gold per line after `@` (the Highlight words) |
+| `say:tut-after-brewery@-\|flask:first` | plays that Dialogue.csv scene, gold per line after `@` (the Highlight words) |
 | `brewery:tut_brewery` | a TIME OUT at the Brewery (round AN): the match freezes, that flag is set and the Brewery opens over it; `Guide.csv` rows that need the flag lead the way, and one whose Then is `goto:back` ends it. See "The tutorial Brewery" |
 
 **Time passes: a fade to black** (Anthony, 9 Oct). A Dialogue.csv line
