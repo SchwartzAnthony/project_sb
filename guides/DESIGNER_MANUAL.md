@@ -7996,7 +7996,7 @@ adventure mode" with the drawn look, not pixel art). The men of The Club now
 wear drawn sheets: **Thomas**, **fat with an afro**, **skinny with a mullet**
 and **muscular with a quiff**, each in **5 skin tones** (light, pale, tan,
 brown, dark), so 20 looks picked at random by name and kept. Adventure uses
-the same sheets. The women and the other classes are still pixel looks.
+the same sheets. (The women are drawn too since 23 Oct; see below.)
 - Their frames are in `art_source/drawn_players/<look>/`, named
   `<animation>_<direction>_<NN>.png` (w, sw, s, nw, n; 112 x 112, feet on the
   same line). `tools/make_drawn_pitch_sheet.py` builds
@@ -8021,7 +8021,7 @@ and Unkengeister now wear one drawn look each, in their own colours (no skin
 tones): `assets/players/pitch/drawn_class_<class>.webp`.
 - **Drawn so far:** run, kick, tackle, fall and cheer facing left and right,
   and standing facing the camera: the moves their pixel sheets had, without
-  the drink (Anthony, 18 Oct). Their Stars and the women are still pixel.
+  the drink (Anthony, 18 Oct). Their Stars wear the same drawn look.
 - Frames: `art_source/drawn_classes/<class>/`, 144 x 144 (bigger than the
   Club men's 112, so a kicking foot, a beard or a water splash is never cut
   off). `data/PitchSheets.csv` row `drawn_class_*` keeps them standing and
@@ -8029,6 +8029,21 @@ tones): `assets/players/pitch/drawn_class_<class>.webp`.
 - The video clips are made on a flat green (magenta for the toad) backdrop
   and keyed out, so white beards and water splashes stay
   (art_tool/thomas_video/key_cut.py, class_prep.py).
+
+**Drawn club women and Rival man (23 Oct 2026)** (Anthony: "Women too", for
+the tutorial). The five club women (blonde ponytail, long braids, bob, afro
+puffs, ginger with freckles) and the stubbly Rival man now play drawn, one
+sheet each in their own colours: `drawn_class_woman_*.webp` and
+`drawn_class_rival_man_stubble.webp` (`PitchSprites.csv` rows
+`class_Normal_female*` and `Rivals`).
+- **Drawn so far:** run and kick facing left and right, and standing facing
+  the camera (cut from the end of the kick clip; the blonde stands still).
+  Tackle, fall and cheer hold the standing picture until their own clips
+  are made (about $0.84 per player).
+- Every Rival wears the man for now. The drawn Rival woman (r184) is only a
+  still picture.
+- Stills r184, clips r185; cut with key_cut.py and people_prep.py into
+  `art_source/drawn_classes/<name>/`.
 
 **The other classes** (two looks each, same style): Rivals (stubbly man,
 woman with a ponytail; grey and blue), Lorelei (water spirits: a woman of living
