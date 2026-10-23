@@ -19,7 +19,8 @@ extends PanelContainer
 #  overlay that follows the mouse, and there is only one of it.
 # =============================================================
 
-const WIDTH := 460.0
+const WIDTH := 460.0   # only if Tuning.csv has no hover_panel_width
+const TEXT_SIZE := 13   # only if Tuning.csv has no hover_panel_text_size
 
 var db: CardDatabase
 
@@ -41,7 +42,7 @@ static func make(database: CardDatabase) -> CardStatsPanel:
 func _ready() -> void:
 	# It must never eat a click meant for the card underneath it.
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	custom_minimum_size = Vector2(WIDTH, 0)
+	custom_minimum_size = Vector2(_width(), 0)
 	z_index = 50
 	hide()
 
@@ -50,23 +51,27 @@ func _ready() -> void:
 
 	var pad := MarginContainer.new()
 	for side in ["margin_left", "margin_right"]:
-		pad.add_theme_constant_override(side, 14)
+		pad.add_theme_constant_override(side, 20)
 	for side2 in ["margin_top", "margin_bottom"]:
-		pad.add_theme_constant_override(side2, 11)
+		pad.add_theme_constant_override(side2, 16)
 	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(pad)
 
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 4)
+	box.add_theme_constant_override("separation", 8)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pad.add_child(box)
 
-	_title = _label(box, 19, MenuSupport.COLOUR_ACCENT)
-	_line = _label(box, 12, MenuSupport.COLOUR_TEXT_DIM)
-	_power = _label(box, 26, MenuSupport.COLOUR_TEXT)
-	_attack = _label(box, 13, MenuSupport.COLOUR_TEXT)
-	_defend = _label(box, 13, MenuSupport.COLOUR_TEXT)
-	_footer = _label(box, 11, MenuSupport.COLOUR_TEXT_DIM)
+	# Anthony, 23 Oct 2026: "bigger and more clear (not as pixelated)". The
+	# letters are SturmballComicHD, drawn 64 high: shrunk to 11-13 they went
+	# grainy. Every line now follows one size from Tuning.csv.
+	var body := _text_size()
+	_title = _label(box, roundi(body * 1.45), MenuSupport.COLOUR_ACCENT)
+	_line = _label(box, roundi(body * 0.9), MenuSupport.COLOUR_TEXT_DIM)
+	_power = _label(box, roundi(body * 1.6), MenuSupport.COLOUR_TEXT)
+	_attack = _label(box, body, MenuSupport.COLOUR_TEXT)
+	_defend = _label(box, body, MenuSupport.COLOUR_TEXT)
+	_footer = _label(box, roundi(body * 0.85), MenuSupport.COLOUR_TEXT_DIM)
 
 
 func _label(parent: Node, size: int, colour: Color) -> Label:
@@ -79,6 +84,14 @@ func _label(parent: Node, size: int, colour: Color) -> Label:
 	return label
 
 
+func _width() -> float:
+	return db.tune_float("hover_panel_width", WIDTH) if db != null else WIDTH
+
+
+func _text_size() -> int:
+	return db.tune_int("hover_panel_text_size", TEXT_SIZE) if db != null else TEXT_SIZE
+
+
 # =============================================================
 #  SHOWING A CARD
 # =============================================================
@@ -89,7 +102,7 @@ func show_card(card: PlayerData, near: Vector2) -> void:
 		return
 
 	# Back to the normal width; _place widens it again if it does not fit.
-	custom_minimum_size = Vector2(WIDTH, 0)
+	custom_minimum_size = Vector2(_width(), 0)
 	reset_size()
 	_title.text = card.player_name
 
@@ -186,6 +199,19 @@ func _place(near: Vector2) -> void:
 	# ROUND AB: too tall to fit between the card and the foul bars? Then it
 	# goes WIDE instead (shorter), rather than sliding up over the card.
 	var room := screen.y - keep_clear - (near.y + 12.0)
+	# 23 Oct 2026: the bigger words make it taller than the room under the
+	# card, so it goes BESIDE the card first, on the side with more room,
+	# its top level with the card's top.
+	var card := PlayerCardUI.card_size()
+	var right_room := screen.x - 8.0 - (near.x + card.x * 0.5 + 12.0)
+	var left_room := (near.x - card.x * 0.5 - 12.0) - 8.0
+	var top := maxf(near.y - card.y, 8.0)
+	if box.y > room and box.y <= screen.y - keep_clear - top \
+			and maxf(right_room, left_room) >= box.x:
+		var x := near.x + card.x * 0.5 + 12.0 if right_room >= left_room \
+			else near.x - card.x * 0.5 - 12.0 - box.x
+		position = Vector2(x, top)
+		return
 	if box.y > room:
 		var wide := db.tune_float("hover_panel_wide_width", 900.0) if db != null else 900.0
 		custom_minimum_size = Vector2(minf(wide, screen.x - 16.0), 0)

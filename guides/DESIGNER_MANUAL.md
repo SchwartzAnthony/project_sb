@@ -2465,7 +2465,7 @@ res://tools/lab/lab_cli.gd -- '{"cmd":"meta"}'`.
 | you said | now |
 |---|---|
 | the foul text is unreadable | the referee's bar sits on dark see-through glass, no border, bigger white text (`ref_bar_glass`, `ref_bar_text_size`) |
-| can't read the hover window | it opens BELOW the card, on its own layer above the banner, and never over the referee's bar (`hover_panel_layer`, `hover_panel_keep_bottom`). If there is not room under the card it goes wide and short instead of covering the card (`hover_panel_wide_width`). It also says the card's text and what the game does with it |
+| can't read the hover window | it opens BELOW the card, on its own layer above the banner, and never over the referee's bar (`hover_panel_layer`, `hover_panel_keep_bottom`). If there is not room under the card it opens BESIDE the card, on the side with more room; only if that does not fit either does it go wide and short (`hover_panel_wide_width`). Its width is `hover_panel_width` (700) and its word size `hover_panel_text_size` (21; the name and numbers grow with it). It also says the card's text and what the game does with it |
 | kicked across the whole field | the ball goes from his own feet over the touchline NEAREST to him (`throw_in_drift`) |
 | no Emblem, feels like an old build | a build stamp bottom-left of every match (`build_stamp`) and an `[emblems] the bar shows ...` line in the Output panel. Also fixed: Emblems were never reset between matches |
 | variety for PLAY MAKER | a proposal in Questions Q060 |
