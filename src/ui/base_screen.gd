@@ -454,6 +454,8 @@ func _rebuild() -> void:
 	# around them.
 	_taken.clear()
 	for entry in base.buildings_for(state):
+		if not bool(entry.get("on_base", true)):
+			continue
 		var plaque := _make_building(entry)
 		_world.add_child(plaque)
 		_taken.append(plaque.get_meta("taken", Rect2(plaque.position, plaque.size)))
@@ -508,7 +510,8 @@ func _visitor_spots() -> Array[Dictionary]:
 		return out
 	var here: Dictionary = {}
 	for entry in base.buildings_for(state):
-		here[String(entry["id"])] = true
+		if bool(entry.get("on_base", true)):
+			here[String(entry["id"])] = true
 	var file := FileAccess.open(SPOTS_FILE, FileAccess.READ)
 	var header := file.get_csv_line()
 	var col: Dictionary = {}

@@ -24,6 +24,8 @@ extends RefCounted
 #    Action       what clicking it does. Same words as Progression.csv:
 #                 story:brewery_intro   goto:builder   unlock:something
 #                 announce:Text         Blank = just show its description.
+#    On Base      "no" = not drawn on the base for now (it still works
+#                 everywhere else). Blank = drawn.
 #    Notes        yours; ignored by the game.
 #
 #  A LOCKED building is still drawn, greyed out, with its requirement
@@ -183,6 +185,9 @@ func _load_csv(path: String) -> void:
 			entry["village_art"] = _cell(row, columns, "villageart")
 			entry["sound"] = _cell(row, columns, "sound")
 			entry["door_sound"] = _cell(row, columns, "doorsound")
+			# On Base: "no" = not drawn on the base for now. It still exists
+			# (keys, windows, unlocks all work). Blank = drawn as usual.
+			entry["on_base"] = _cell(row, columns, "onbase").to_lower() not in ["no", "false", "0", "off"]
 			buildings.append(entry)
 		else:
 			entry["portrait"] = _cell(row, columns, "portrait")
