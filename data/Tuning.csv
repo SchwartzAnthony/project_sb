@@ -173,6 +173,7 @@ field_margin,16,Player edge margin. Prevents standing exactly on field border.
 star_badge_radius,9,Size of the Star badge on the pitch. Bigger number = bigger star.
 star_badge_offset_y,-34,How high above the unit the Star badge floats. More negative = higher.
 star_badge_pulse,0.08,Gentle breathing of the Star badge. 0 turns it off.
+star_badge_on_pitch,false,"23 Oct 2026 (Anthony: too many stars on Koch): false = no star floats over a Star Player on the pitch; their power cap on the name ribbon is a star instead (CardFace.csv star_cap_gold). true brings the floating star back."
 star_badge_art,,Optional path to your own Star badge PNG. Blank = look in assets/ui/star_badge.png
 star_badge_enemy_art,,Optional separate PNG for enemy Stars. Blank = reuse the ally badge.
 ball_pickup_radius,26,How close a player must actually get to collect a loose ball.
