@@ -594,13 +594,12 @@ a worn Bavarian beer mat. You chose it from your collector card photo.
 - The player **runs in the window**, the same run he does on the pitch
   (his own pitch sheet from `data/PitchSprites.csv`, looping). A player with
   no pitch sheet shows his old portrait there.
-- His **name** is in the cream centre panel, over the small signature.
+- His **name** is in the cream centre panel, centred. No signature (23 Oct).
 - The **wooden plank** at the bottom says **ITEMS**. In the match it is the
   button that opens the item bag for that player (it used to be the flask
   icon). On other screens the plank is empty.
 - A small **Tier window** at the top centre says TIER I to TIER IV.
 - The **number** in the bottle cap is his power (`cap_number`).
-- The **signature** is the same scribble on every card, under the name.
 - The Star mark sits top right in the window for Stars.
 
 All of it is in **`data/CardFace.csv`**:
@@ -608,11 +607,11 @@ All of it is in **`data/CardFace.csv`**:
 | Key | What it does |
 |---|---|
 | `enabled` | `true` = beer mat card; `false` = the old dark card |
-| `frame` / `signature` | the pictures (in `assets/cards/`) |
+| `frame` | the card picture (in `assets/cards/`); `signature` is empty now |
 | `window`, `plank`, `cap`, `sign` | where each part is, as `x,y,w,h` shares of the frame (0 to 1) |
 | `runner_height`, `runner_feet`, `runner_speed` | how big the runner is, where his feet are, how fast he runs |
 | `cap_number` | `power` or `card_number` |
-| `text_lift` | lifts the name and number to look centred |
+| `text_nudge_x`, `text_nudge_y` | small moves so the comic font's letters look centred |
 | `ink` | the colour of the name and number |
 | `tier_window`, `tier_window_spot`, `tier_text` | the Tier window at the top: on/off, where, what it says |
 | `items_button`, `items_text` | the ITEMS plank in the match (`false` = old flask icon) |

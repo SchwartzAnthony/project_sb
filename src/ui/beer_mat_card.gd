@@ -7,10 +7,11 @@ extends RefCounted
 #  "Yes place these into the game please, remember the card frame as this
 #  will come up next again." Every player card is a worn Bavarian beer mat:
 #  the player runs in the window exactly as he runs on the pitch (his own
-#  pitch sheet, looping), his name is on the wooden plank, the number sits in
-#  the bottle cap and the same unreadable signature is on every card.
+#  pitch sheet, looping), his name is in the centre panel, the number sits in
+#  the bottle cap, a small window on top shows his Tier and the wooden plank
+#  is the ITEMS button in the match (PlayerCardUI).
 #
-#  All of it is in data/CardFace.csv: the frame, the signature, where the
+#  All of it is in data/CardFace.csv: the frame, where the
 #  window, plank, cap and panel are (fractions of the frame), how big the
 #  runner is and what the cap shows. enabled = false brings the old card back.
 #  MenuSupport.card_face() asks here first, so the match, the team builder
@@ -80,23 +81,13 @@ static func dress(button: Button, card: PlayerData, db: CardDatabase, box: Vecto
 	_add_runner(button, card, db, frame)
 
 	var ink := Color.from_string(value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
-	# 23 Oct (Anthony): the name sits in the centre panel, over the same
-	# scribble every card has; the plank below is the ITEMS button
-	# (PlayerCardUI puts it there, see plank_rect).
+	# 23 Oct (Anthony): the name sits alone in the centre panel (no
+	# signature any more); the plank below is the ITEMS button (PlayerCardUI
+	# puts it there, see plank_rect).
 	var panel := _area("sign", frame)
-	var sign_tex := load(value("signature")) as Texture2D if ResourceLoader.exists(value("signature")) else null
-	if sign_tex != null:
-		var scribble := TextureRect.new()
-		scribble.texture = sign_tex
-		scribble.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		scribble.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		scribble.position = panel.position + panel.size * Vector2(0.2, 0.5)
-		scribble.size = panel.size * Vector2(0.6, 0.42)
-		scribble.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		button.add_child(scribble)
-	var name_area := Rect2(panel.position + panel.size * Vector2(0.06, 0.12),
-		panel.size * Vector2(0.88, 0.42))
-	_add_text(button, card.player_name.to_upper(), name_area, ink, 0.9)
+	var name_area := Rect2(panel.position + panel.size * Vector2(0.08, 0.2),
+		panel.size * Vector2(0.84, 0.6))
+	_add_text(button, card.player_name.to_upper(), name_area, ink, 0.75)
 	button.set_meta("plank_rect", _area("plank", frame))
 	var shown := card.card_number if value("cap_number", "power") == "card_number" \
 		else card.get_attack_power()
@@ -185,8 +176,8 @@ static func _add_tier_window(button: Button, card: PlayerData, frame: Rect2,
 	patch.scale = Vector2(shrink, shrink)
 	button.add_child(patch)
 	var words := value("tier_text", "TIER {tier}").replace("{tier}", card.get_tier_clean())
-	_add_text(button, words, Rect2(spot.position + spot.size * Vector2(0.1, 0.12),
-		spot.size * Vector2(0.8, 0.76)), ink, 0.9)
+	_add_text(button, words, Rect2(spot.position + spot.size * Vector2(0.18, 0.2),
+		spot.size * Vector2(0.64, 0.6)), ink, 0.85)
 
 
 ## Writes `text` in the card's ink, centred in `area` of `button`.
@@ -215,9 +206,15 @@ static func _add_text(button: Button, text: String, area: Rect2, ink: Color,
 		while font_size > 6 and font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > area.size.x * 0.9:
 			font_size -= 1
 	label.add_theme_font_size_override("font_size", font_size)
-	# The comic font sits low in its line, so lift it to look centred.
-	label.position = area.position - Vector2(0, area.size.y * number("text_lift", 0.16))
-	label.size = area.size
+	# Centre the label on the middle of the area. A label is never shorter
+	# than its font's line, so a tall font in a thin plank would otherwise
+	# grow downwards and sit low. The comic font's letters also sit a hair low
+	# and left in their line (measured: 4% of the font size), so nudge them.
+	var line := font.get_height(font_size) if font != null else float(font_size)
+	var tall := maxf(area.size.y, line)
+	var nudge := Vector2(number("text_nudge_x", 0.04), number("text_nudge_y", -0.04)) * float(font_size)
+	label.size = Vector2(area.size.x, tall)
+	label.position = area.get_center() - label.size / 2.0 + nudge
 	button.add_child(label)
 
 

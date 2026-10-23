@@ -1,7 +1,7 @@
 Key,Value,Notes
 enabled,true,"23 OCT 2026 (Anthony: ""Yes place these into the game please, remember the card frame""): every player card (the match, the team builder, the Adventure fight) is the BEER MAT card. false = the old dark card with the still portrait. The frame came from his collector card photo: name on the bottom plank, the number in the bottle cap, the same unreadable signature on every card, the player running in the window like on the pitch."
 frame,res://assets/cards/beermat_frame.webp,"The empty card (r187, art_source/cards/beermat_frame_r187.png). Drawn at its own shape inside the card's box (Tuning.csv card_width / card_height), centred."
-signature,res://assets/cards/beermat_signature.png,"The scribble in the middle panel: the same on every card, spells nothing. Made by art_source/cards/beermat_card.py (fixed seed)."
+signature,,"23 Oct (Anthony): no signature on the cards any more; the name sits alone in the centre panel. The old scribble is assets/cards/beermat_signature.png (not drawn)."
 window,"0.0605,0.0729,0.879,0.552","Where the picture window is on the frame: x, y, width, height as fractions of the frame. The runner stays inside it."
 runner_feet,0.566,"Where the runner's feet are, as a fraction of the frame's height."
 runner_height,0.40,"How tall the runner is, as a fraction of the frame's height."
@@ -11,7 +11,8 @@ cap,"0.455,0.6198,0.0898,0.0599","The bottle cap: x, y, width, height as fractio
 cap_number,power,"What the cap shows: power (the card's Attack power, the 0-5 number) or card_number (the CSV Card Number)."
 sign,"0.0586,0.7194,0.8838,0.14","The signature panel: x, y, width, height as fractions."
 ink,#19110a,"The colour of the name and the number (Theme.csv ink)."
-text_lift,0.16,"How far the name and number are lifted inside the plank and cap (a share of their height). The comic font sits low in its line; 0 = no lift."
+text_nudge_x,0.04,"Moves the name, number, ITEMS and Tier words right by this share of their font size, so they look centred (the comic font's letters sit a hair left)."
+text_nudge_y,-0.04,"Moves the words up by this share of their font size (the comic font's letters sit a hair low)."
 tier_window,true,"23 Oct (Anthony): a small window at the top centre showing the Tier, in the same look as the name panel. false = no Tier window."
 tier_window_spot,"0.31,0.008,0.38,0.075","Where the Tier window sits: x, y, width, height as fractions of the frame (top centre, over the border)."
 tier_window_edge,34,"How many pixels of the name panel's edge (in the frame picture) the Tier window keeps unstretched."
