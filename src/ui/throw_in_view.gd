@@ -78,6 +78,9 @@ func _build(where: String) -> void:
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(dim)
+	if mat_look():
+		_build_mat(dim, where)
+		return
 
 	var centre := CenterContainer.new()
 	centre.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -185,6 +188,121 @@ func _make_button(words: String, why: String, tint: Color, attack: bool) -> Butt
 
 
 # =============================================================
+#  THE BEER MAT LOOK (Anthony, 23 Oct 2026: "needs to be in new ui we have
+#  in our art style")
+#
+#  The same pieces as the inventory: the cream beer mat panel, the wooden
+#  board on top with YOUR THROW / THEIR THROW on it, blue wooden plank
+#  buttons, the words in ink. Their throw turns the panel's blue red, the
+#  same as their Emblem. CardFace.csv throw_in_style = old brings back the
+#  dark window.
+# =============================================================
+
+static func mat_look() -> bool:
+	return BeerMatCard.value("throw_in_style", "mat").strip_edges().to_lower() == "mat"
+
+
+func _build_mat(dim: Control, where: String) -> void:
+	var box := InventoryScreen._pair("throw_in_window", Vector2(780, 330))
+	var edge := int(BeerMatCard.number("inventory_edge", 60.0))
+	var ink := Color.from_string(BeerMatCard.value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
+
+	var window := Control.new()
+	window.set_anchors_preset(Control.PRESET_CENTER)
+	window.offset_left = -box.x / 2.0
+	window.offset_right = box.x / 2.0
+	window.offset_top = -box.y / 2.0 + 30.0
+	window.offset_bottom = box.y / 2.0 + 30.0
+	window.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.add_child(window)
+	var panel := InventoryScreen._mat(box, edge, 0.9)
+	if not _yours and ResourceLoader.exists("res://assets/shaders/blue_to_red.gdshader"):
+		var paint := ShaderMaterial.new()
+		paint.shader = load("res://assets/shaders/blue_to_red.gdshader")
+		panel.material = paint
+	window.add_child(panel)
+
+	var pad := MarginContainer.new()
+	pad.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side in ["margin_left", "margin_right"]:
+		pad.add_theme_constant_override(side, 70)
+	pad.add_theme_constant_override("margin_top", 62)
+	pad.add_theme_constant_override("margin_bottom", 40)
+	window.add_child(pad)
+
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 12)
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	pad.add_child(column)
+
+	var line := _ink(where, 20, ink)
+	column.add_child(line)
+
+	_status = _ink("", 24, ink)
+	column.add_child(_status)
+
+	_choice_row = HBoxContainer.new()
+	_choice_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_choice_row.add_theme_constant_override("separation", 30)
+	_choice_row.visible = false
+	column.add_child(_choice_row)
+
+	if _yours:
+		_choice_row.add_child(_plank_choice(
+			Loc.text("choose_attack", "ATTACK"),
+			Loc.text("choose_attack_why", "you take them on — your attack against their defence"),
+			ink, true))
+		_choice_row.add_child(_plank_choice(
+			Loc.text("choose_defend", "DEFEND"),
+			Loc.text("choose_defend_why", "you hold — their attack against your defence"),
+			ink, false))
+		_choice_row.visible = true
+		_status.text = Loc.text("throw_in_ask", "Attack first, or hold and defend?")
+
+	var sign := SignHeader.make(
+		Loc.text("throw_in_yours", "YOUR THROW") if _yours
+		else Loc.text("throw_in_theirs", "THEIR THROW"),
+		"res://data/MenuHeaderBoard.csv")
+	window.add_child(sign)
+	var lift := BeerMatCard.number("inventory_header_lift", 82.0)
+	var centre_sign := func() -> void:
+		sign.position = Vector2((box.x - sign.size.x) / 2.0, -lift)
+	sign.resized.connect(centre_sign)
+	centre_sign.call()
+
+
+## A blue plank with the word on it, the reason in ink underneath.
+func _plank_choice(words: String, why: String, ink: Color, attack: bool) -> Control:
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 6)
+	stack.custom_minimum_size = Vector2(300, 0)
+	var button := Button.new()
+	button.text = words
+	button.custom_minimum_size = Vector2(240, 64)
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	button.focus_mode = Control.FOCUS_ALL
+	button.add_theme_font_size_override("font_size", 30)
+	button.pressed.connect(_choose.bind(attack))
+	InventoryScreen._plank(button)
+	stack.add_child(button)
+	stack.add_child(_ink(why, 15, ink))
+	return stack
+
+
+func _ink(words: String, text_size: int, ink: Color) -> Label:
+	var label := Label.new()
+	label.text = words
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_font_size_override("font_size", text_size)
+	label.add_theme_color_override("font_color", ink)
+	label.add_theme_constant_override("outline_size", 0)
+	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+	label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	return label
+
+
+# =============================================================
 #  DECIDING
 # =============================================================
 
@@ -199,8 +317,9 @@ func _they_decide() -> void:
 	var they_attack := randf() < _enemy_attack_chance
 	_status.text = Loc.text("they_attack", "They come forward.") if they_attack \
 		else Loc.text("they_defend", "They sit back and hold.")
-	_status.add_theme_color_override("font_color",
-		MenuSupport.COLOUR_ATTACK if they_attack else MenuSupport.COLOUR_DEFEND)
+	if not mat_look():
+		_status.add_theme_color_override("font_color",
+			MenuSupport.COLOUR_ATTACK if they_attack else MenuSupport.COLOUR_DEFEND)
 	await get_tree().create_timer(maxf(0.2, _read_seconds), true, false, true).timeout
 	# THE SIGNAL SAYS WHAT YOUR SIDE DOES. If they attack, you defend.
 	_finish(not they_attack)
