@@ -621,6 +621,10 @@ static func card_face(card: PlayerData, db: CardDatabase, box: Vector2,
 		panel_style(COLOUR_LOCKED, COLOUR_TEXT_DIM))
 	if card == null:
 		return button
+	# 23 Oct 2026: the beer mat card (data/CardFace.csv, beer_mat_card.gd).
+	if BeerMatCard.enabled():
+		BeerMatCard.dress(button, card, db, box, extra)
+		return button
 
 	var box_in := VBoxContainer.new()
 	box_in.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

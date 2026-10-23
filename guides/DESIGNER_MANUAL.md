@@ -586,6 +586,35 @@ hands a name out. Code: `src/core/name_book.gd`, `src/core/recruit_book.gd`.
 
 ---
 
+## 6c. The beer mat card — how every player card looks (23 Oct 2026)
+
+Every player card (the match pick, the team builder, the Adventure fight) is
+a worn Bavarian beer mat. You chose it from your collector card photo.
+
+- The player **runs in the window**, the same run he does on the pitch
+  (his own pitch sheet from `data/PitchSprites.csv`, looping). A player with
+  no pitch sheet shows his old portrait there.
+- His **name** is on the wooden plank at the bottom, centred.
+- The **number** in the bottle cap is his power (`cap_number`).
+- The **signature** is the same scribble on every card.
+- The Star mark sits top right in the window for Stars.
+
+All of it is in **`data/CardFace.csv`**:
+
+| Key | What it does |
+|---|---|
+| `enabled` | `true` = beer mat card; `false` = the old dark card |
+| `frame` / `signature` | the pictures (in `assets/cards/`) |
+| `window`, `plank`, `cap`, `sign` | where each part is, as `x,y,w,h` shares of the frame (0 to 1) |
+| `runner_height`, `runner_feet`, `runner_speed` | how big the runner is, where his feet are, how fast he runs |
+| `cap_number` | `power` or `card_number` |
+| `text_lift` | lifts the name and number to look centred |
+| `ink` | the colour of the name and number |
+| `tier_badge` | a small Tier tag in the window (off until you say) |
+
+The empty frame is `art_tool/rounds/r187/out/r187-beermat-empty.png`; the
+card tool for pictures and GIFs is `art_tool/cards/beermat_card.py`.
+
 ## 7. The league match
 
 `src/formations/main_scene.gd` runs it. Nothing in that file names a card, a
