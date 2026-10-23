@@ -330,7 +330,11 @@ func time_out(scene: String) -> void:
 	var was_paused := tree.paused
 	tree.paused = true
 	layer.add_child(view)
+	# PUB MUSIC (Anthony, 23 Oct): the time out is in the bar, so it gets the
+	# bar's music - Audio.csv rows pub_time_out_music / match_music_back_pub.
+	AudioDirector.fire(tree, "time_out_started", {"where": "pub"})
 	await view.scene_finished
+	AudioDirector.fire(tree, "time_out_ended", {"where": "pub"})
 	tree.paused = was_paused
 	layer.queue_free()
 	if parked != null:
