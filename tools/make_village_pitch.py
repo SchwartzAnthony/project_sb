@@ -37,6 +37,14 @@ SOURCE = os.path.join(HERE, "art_source", "drawn_pitch", "village_from_above.png
 GROUND = os.path.join(HERE, "assets", "field", "match_ground_village.png")
 PITCH = os.path.join(HERE, "assets", "field", "soccerfield_village.png")
 GROUND_SCALE = 2
+# r183 (Anthony, 23 Oct: "Yes please do that"): a sharper drawing of only the
+# grass, laid over the village's own grass so it stays crisp close up. Blank
+# GRASS = the village's own grass. GRASS_BOX is where it goes in the village
+# picture (1536 wide), GRASS_FEATHER how softly its edge fades into the old.
+GRASS = os.path.join(HERE, "art_source", "drawn_pitch", "pitch_grass.png")
+GRASS_BOX = (272, 266, 1276, 666)
+GRASS_FEATHER = 24
+GRASS_MATCH = 0.8                  # 1 = its colours moved fully onto the old
 
 LINE = (243, 232, 212, 255)        # Theme.csv cream, never pure white
 INK = (25, 17, 10, 255)            # the black ink edge round each line
@@ -105,10 +113,34 @@ def spot(d, x, y, r):
         d.ellipse([(x - rr) * SS, (y - rr) * SS, (x + rr) * SS, (y + rr) * SS], fill=col)
 
 
+def lay_grass(ground):
+    """The sharper grass over the old, its colours moved onto the old ones."""
+    from PIL import ImageFilter, ImageStat
+    box = tuple(v * GROUND_SCALE for v in GRASS_BOX)
+    size = (box[2] - box[0], box[3] - box[1])
+    new = Image.open(GRASS).convert("RGB").resize(size, Image.LANCZOS)
+    old = ground.crop(box)
+    om, os_ = ImageStat.Stat(old).mean, ImageStat.Stat(old).stddev
+    nm, ns = ImageStat.Stat(new).mean, ImageStat.Stat(new).stddev
+    bands = []
+    for i, band in enumerate(new.split()):
+        k = 1 + GRASS_MATCH * (os_[i] / max(ns[i], 1) - 1)
+        shift = nm[i] + GRASS_MATCH * (om[i] - nm[i])
+        bands.append(band.point(lambda v, k=k, m=nm[i], t=shift: max(0, min(255, int((v - m) * k + t)))))
+    new = Image.merge("RGB", bands)
+    f = GRASS_FEATHER * GROUND_SCALE
+    mask = Image.new("L", size, 0)
+    ImageDraw.Draw(mask).rectangle([f, f, size[0] - f, size[1] - f], fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(f / 2))
+    ground.paste(new, box[:2], mask)
+
+
 def main():
     view = pitch_view()
     src = Image.open(SOURCE).convert("RGB")
     ground = src.resize((src.width * GROUND_SCALE, src.height * GROUND_SCALE), Image.LANCZOS)
+    if GRASS and os.path.exists(GRASS):
+        lay_grass(ground)
     ground.save(GROUND)
 
     tl, tr, bl = (pair(view[k]) for k in ("corner_top_left", "corner_top_right", "corner_bottom_left"))

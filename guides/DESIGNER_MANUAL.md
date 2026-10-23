@@ -4334,6 +4334,11 @@ switch matches to this village with the straight-on pitch."
   (`PitchView.csv pitch_image`), made by `tools/make_village_pitch.py`.
   Move a corner in the CSV and run it again so the lines follow.
 - `smooth_pictures` true draws both smoothed, as drawn art should be.
+- The grass inside the wall is a sharper drawing of the same grass (r183,
+  your "Yes please do that", $0.04): `art_source/drawn_pitch/pitch_grass.png`,
+  laid over the village grass with its colours matched and a soft edge, so it
+  stays crisp when the camera zooms in. `GRASS` blank in the script = the
+  village's own grass.
 - The old diagonal pixel town is still there: the old values are in the
   `background` and `boards_image` notes.
 
