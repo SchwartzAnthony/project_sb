@@ -3808,7 +3808,9 @@ moment, then carries on to wherever the scene was returning to: the base.
 
 The pictures come from `StoryArt.csv` IDs named in `Tuning.csv`.
 `brewery_background` (`brewery`) sits behind the Brewery screen, the same
-picture as the Brewer's scene. `shop_background` (`merchant_shop`) and
+picture as the Brewer's scene. Since 23 Oct 2026 that is the drawn Brewery hall
+(`assets/brewery/brewery_hall.png`), with its machines as the buttons
+(BrewerySections.csv `Hall Art`). `shop_background` (`merchant_shop`) and
 `shop_keeper` (`merchant`) are the shop and his face. Until a picture exists,
 the screen looks as it always did.
 
@@ -5853,6 +5855,7 @@ itself (a cycle and a round) are with the Tutorial thread.
 | `How Many` | how many of it. Bottling makes **6** |
 | `Wait Min` · `Wait Max` | the lagering, in turns. A turn is a fixture |
 | `Art` · `Notes` | |
+| `Hall Art` | (23 Oct 2026) the machine as part of the drawn Brewery hall: a cut-out the size of the hall picture (`assets/brewery/<name>.png`), see-through but the machine, plus `<name>_hover.png` (lit, gold glow). It IS the button, only its own pixels click, and the name plate sits under it. Blank = the old machine on its pallet. Pieces are made by `/mnt/project-files/art_tool/brewery_inside/game_pieces/` (`make_masks.py`, then `make_pieces.py assets/brewery`). The Brew Kettle is the bronze dome in the ceiling. |
 
 ```
    1  MALTHOUSE   Maltster    Wheat + Water + Germs           -> Malt
