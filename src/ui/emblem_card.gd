@@ -187,12 +187,13 @@ func _build(title: String, letter: String, art: String, have: int, need: int,
 	penta.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(penta)
 	var symbol := MenuSupport.icon_texture(art)
-	var inner := Rect2(penta.position + penta.size * Vector2(0.22, 0.28), penta.size * Vector2(0.56, 0.56))
+	var inner := Rect2(penta.position + penta.size * Vector2(0.14, 0.2), penta.size * Vector2(0.72, 0.7))
 	if symbol != null:
 		var picture := TextureRect.new()
 		picture.texture = symbol
 		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		picture.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		picture.position = inner.position
 		picture.size = inner.size
 		picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
