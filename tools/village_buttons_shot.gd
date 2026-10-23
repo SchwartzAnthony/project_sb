@@ -3,7 +3,8 @@ extends SceneTree
 # =============================================================
 #  THE VILLAGE BASE BUTTONS (23 Oct 2026)
 #
-#  The drawn Pub, the Dorms and the pitch are buttons in the village picture, like the
+#  The drawn Pub, the Dorms, the Club House, the Training Ground houses, the
+#  Trophy hut and the pitch are buttons in the village picture, like the
 #  brewery church. Checks: no Play a match flag on the top row, the Pub and
 #  the pitch light up under the mouse, and pressing the pitch opens the
 #  Match Maker.
@@ -14,6 +15,9 @@ extends SceneTree
 #      vbb_01_pub.png     the mouse on the Pub
 #      vbb_02_field.png   the mouse on the pitch
 #      vbb_04_dorms.png   the mouse on the Dorms
+#      vbb_05_club.png    the mouse on the Club House
+#      vbb_06_training.png the mouse on the Training Ground houses
+#      vbb_07_trophy.png  the mouse on the Trophy hut
 #      vbb_03_pressed.png after pressing the pitch
 #
 #  Works on the save in memory only. A tool, not part of the game.
@@ -41,6 +45,11 @@ func _initialize() -> void:
 	base.state.set_count("pub_key", 1)
 	base.state.unlock("Dorms")
 	base.state.set_count("dorms_key", 1)
+	base.state.unlock("Club House")
+	base.state.unlock("Training Ground")
+	base.state.set_count("training_ground_key", 1)
+	base.state.unlock("Trophy Room")
+	base.state.set_count("trophy_room_key", 1)
 	base._rebuild()
 	await create_timer(0.6, true, false, true).timeout
 
@@ -69,6 +78,16 @@ func _initialize() -> void:
 	await create_timer(0.3, true, false, true).timeout
 	_shoot("vbb_04_dorms")
 	dorms.emit_signal("mouse_exited")
+	for pair in [["Club House", "vbb_05_club"], ["Training Ground", "vbb_06_training"], ["Trophy Room", "vbb_07_trophy"]]:
+		var spot: MapBuilding = _village(base, pair[0])
+		if spot == null:
+			print("[buttons] ! %s is not a drawn village button." % pair[0])
+			bad += 1
+			continue
+		spot.emit_signal("mouse_entered")
+		await create_timer(0.3, true, false, true).timeout
+		_shoot(pair[1])
+		spot.emit_signal("mouse_exited")
 	await create_timer(0.2, true, false, true).timeout
 	field.emit_signal("pressed")
 	for i in 12:
