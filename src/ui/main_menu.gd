@@ -172,9 +172,47 @@ func _build_title() -> Label:
 	if not row.is_empty():
 		title.add_theme_color_override("font_color", gold)
 		title.add_theme_constant_override("outline_size", 14)
+		# 18 Oct 2026: Motion Settings can colour the letters and their
+		# outline, e.g. colour=#f5b83d; outline=#2a1608; outline_size=14
+		var look: Dictionary = row["settings"]
+		if Color.html_is_valid(String(look.get("colour", ""))):
+			title.add_theme_color_override("font_color", Color.html(String(look["colour"])))
+		if Color.html_is_valid(String(look.get("outline", ""))):
+			_add_title_outline(title, Color.html(String(look["outline"])),
+					MenuMotion.number(look, "outline_size", 6.0))
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(title)
 	return title
+
+
+## The title font is a bitmap font, which Godot cannot outline, so the
+## outline is copies of the word in the outline colour, nudged out in a ring
+## behind it. thickness = how far out (pixels).
+func _add_title_outline(title: Label, colour: Color, thickness: float) -> void:
+	title.add_theme_constant_override("outline_size", 0)
+	for i in 16:
+		var angle := TAU * float(i) / 16.0
+		var copy := Label.new()
+		copy.text = title.text
+		copy.horizontal_alignment = title.horizontal_alignment
+		copy.add_theme_font_size_override("font_size", title_font_size)
+		copy.add_theme_color_override("font_color", colour)
+		copy.add_theme_constant_override("outline_size", 0)
+		copy.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		copy.set_anchors_preset(Control.PRESET_FULL_RECT)
+		copy.position = Vector2(cos(angle), sin(angle)) * thickness
+		copy.show_behind_parent = true
+		copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		title.add_child(copy)
+
+
+## The title screen art is drawn now, not pixel art (19 Oct 2026): smooth
+## filtering keeps the swinging sign and the scaled layers free of stair-step
+## lines. Tuning.csv menu_smooth_pictures 0 = the old sharp pixel look.
+func _menu_filter() -> CanvasItem.TextureFilter:
+	if MenuSupport.tuned("menu_smooth_pictures", 1.0) > 0.5:
+		return CanvasItem.TEXTURE_FILTER_LINEAR
+	return CanvasItem.TEXTURE_FILTER_NEAREST
 
 
 ## A quiet line at the bottom telling you what the CSVs actually loaded.
@@ -296,7 +334,7 @@ func _build_pictures() -> void:
 			layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 			layer.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			layer.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-			layer.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			layer.texture_filter = _menu_filter()
 			layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			add_child(layer)
 			MenuMotion.apply_to_layer(layer, String(entry["motion"]), entry["settings"])
@@ -311,7 +349,7 @@ func _build_pictures() -> void:
 		art.texture = atlas
 		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		art.texture_filter = _menu_filter()
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		# ROUND AL: Scale = draw the picture at a whole multiple of its own
 		# pixels (2 = every layer the same pixel size). Width/Height win if set.
@@ -426,7 +464,7 @@ func _make_button(label: String, art_path: String, box: Vector2, label_on_art: b
 			button.add_theme_color_override("font_pressed_color", Color("e8d7b0"))
 			button.add_theme_color_override("font_outline_color", Color("2a1608"))
 			button.add_theme_constant_override("outline_size", 7)
-			button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			button.texture_filter = _menu_filter()
 			return button
 	if art_path != "" and ResourceLoader.exists(art_path):
 		var texture := load(art_path)

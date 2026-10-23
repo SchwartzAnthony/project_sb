@@ -7112,6 +7112,29 @@ helper adds a node for you, say so in a comment above it, in capitals.
 
 ### `data/MainMenu.csv` — what the title screen looks like
 
+**Drawn title screen (18 Oct 2026)** (Anthony: "redo the main Menu so that it
+isn't pixel art"). The village, the two ribbon bunches, the notice board and
+the hanging sign, the drifting clouds (r75), the button plank (r76) and the bird (r77), are now drawn in the comic style, in the same places and
+sizes as the pixel pictures, so every Motion still works. The bird is drawn too (r77, three 256
+poses, shown 252 big). Only the plain sky colour is left from the pixel menu. The buttons use the drawn plank
+`assets/menu/button_plank_drawn.png` (r76, made at the buttons' 250 x 64).
+- Made with Sunburst from the pixel pictures (art_tool/rounds/r73, r74), on a
+  flat magenta or green backdrop, then cut out and fitted to the old places
+  with `art_source/drawn_menu/menu_cut.py` (land, sign, ribbons_tr,
+  ribbons_bl, board).
+- The title row's Y went from 187 to 165, so STURMBALL sits in the middle of
+  the drawn sign.
+- The pale-blue ribbon was taken out (`ribbon_fix.py`) and the paper tabs on
+  the board painted out. The four buttons in `MenuConfig.csv` are now 250 x 64
+  at x 971, y 720/792/864/936, so they sit inside the board's light panel.
+- The bottom-left ribbons row was taken out (Anthony). The title is 96 high so
+  it stays inside the sign's frame. The title row's Motion Settings can colour
+  it: `colour=#f5b83d; outline=#000000; outline_size=5` (the font is a bitmap
+  font, so the outline is copies of the word drawn round it).
+- The sign and the notice board are stored at the size they show on screen,
+  and `Tuning.csv` `menu_smooth_pictures` 1 draws the menu pictures smooth, so
+  the swinging sign has no stair-step lines (Anthony, 19 Oct).
+
 One row per thing on it. No file, no rows: it looks as it did before.
 
 | column | |
