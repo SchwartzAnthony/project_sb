@@ -27,3 +27,7 @@ emblem_pentagon,0.66,"How tall the pentagon is, as a share of the Emblem's heigh
 emblem_cap,0.3,"How big the progress circle is, as a share of the Emblem's height."
 emblem_text_size,14,"The size of the text when an Emblem is clicked open."
 emblem_text_margin,0.12,"Room round the words when an Emblem is open, as a share of its width, so they stay clear of the blue corners."
+emblem_circle_x,0.2,"Where the progress circle's middle is across the Emblem (0 = left edge, 1 = right). 23 Oct: moved to the middle of the left side."
+emblem_circle_y,0.58,"Where the progress circle's middle is down the Emblem (0 = top, 1 = bottom); 0.58 = level with the pentagon."
+plate_style,ribbon,"23 Oct (Anthony picked idea D): the name and power under every player is the Bavarian ribbon: Tier in small letters on top, the name in a cream box on a blue-white diamond ribbon, the power in a round cap at the right end. dark = the old dark window."
+plate_blue,#2a6ec8,"The blue of the ribbon's diamonds."

@@ -201,7 +201,7 @@ func _build(title: String, letter: String, art: String, have: int, need: int,
 	else:
 		BeerMatCard.add_label(self, letter, inner, ink, 0.9)
 
-	# Bottom left: the small circle with how far along it is.
+	# Left side: the small circle with how far along it is.
 	if need > 0:
 		var cap_size := box.y * BeerMatCard.number("emblem_cap", 0.3)
 		var cap := Ring.new()
@@ -209,7 +209,10 @@ func _build(title: String, letter: String, art: String, have: int, need: int,
 		if enemy:
 			cap.edge = RED
 		cap.size = Vector2(cap_size, cap_size)
-		cap.position = Vector2(box.x * 0.06, box.y - cap_size - box.y * 0.08)
+		# His ask (20:53): in the middle of the left side, level with the pentagon.
+		var spot := Vector2(box.x * BeerMatCard.number("emblem_circle_x", 0.2),
+			box.y * BeerMatCard.number("emblem_circle_y", 0.58))
+		cap.position = spot - cap.size / 2.0
 		cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(cap)
 		BeerMatCard.add_label(self, "%d/%d" % [have, need],

@@ -586,6 +586,13 @@ hands a name out. Code: `src/core/name_book.gd`, `src/core/recruit_book.gd`.
 
 ---
 
+### The name under each player: the Bavarian ribbon (23 Oct 2026)
+
+You picked idea D: the Tier in small letters on top, the name in a cream box
+on a blue-white diamond ribbon, the power in a round cap at the right end.
+`data/CardFace.csv` `plate_style` (`ribbon` or `dark` for the old window),
+`plate_blue`. The code is `src/units/name_plate.gd`.
+
 ## 6c. The beer mat card — how every player card looks (23 Oct 2026)
 
 Every player card (the match pick, the team builder, the Adventure fight) is
@@ -3142,14 +3149,15 @@ size on both sides:
   of the panel, the pentagon and the circle turn red
   (`assets/shaders/blue_to_red.gdshader`).
 - The **name** is along the top, the Emblem's **symbol** is in the pentagon in
-  the middle, and a small **circle** bottom left shows how far along it is
+  the middle, and a small **circle** on the middle of the left side shows how far along it is
   (for example 1/3).
 - The box is the cream panel from the beer mat card.
 - **Click it** once: it opens with its text (the Basic side and what turns it
   over). Click again: the Ultimate side. Click again: it shuts.
 - **The symbol** is the picture named in the `Emblem` column of the
   `<Class> Emblems.csv` files (for example `Gremory_Emblem.png`), put in
-  `assets/icons/`. None are drawn yet, so the pentagon shows the first letter.
+  `assets/icons/`. Gremory's rose is drawn (r188); an Emblem with no picture
+  shows its first letter.
 
 `data/CardFace.csv` rows `emblem_template` (false = the old dark boxes),
 `emblem_size`, `emblem_left_top`, `emblem_right_top`, `emblem_pentagon`,

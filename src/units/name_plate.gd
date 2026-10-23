@@ -139,6 +139,39 @@ var _cross_span := 0.0
 var _show_bar := false
 var _show_cross := false
 
+# ============ THE BAVARIAN RIBBON (Anthony, 23 Oct 2026: idea D) ============
+#
+# "I like D": the name in a cream box on a blue-white diamond ribbon, the
+# Tier in small letters above it and the power in a round cap at the right
+# end. data/CardFace.csv plate_style = ribbon (or dark for the old window).
+var _ribbon := false
+var _band := Rect2()
+var _name_box := Rect2()
+var _cap_at := Vector2.ZERO
+var _cap_r := 0.0
+static var _diamonds: ImageTexture = null
+
+
+static func ribbon_on() -> bool:
+	return BeerMatCard.value("plate_style", "ribbon").to_lower() == "ribbon"
+
+
+## A small tile of blue and white diamonds, drawn once, repeated along every
+## ribbon.
+static func diamond_tile() -> ImageTexture:
+	if _diamonds != null:
+		return _diamonds
+	var side := 16
+	var image := Image.create(side, side, false, Image.FORMAT_RGBA8)
+	var blue := Color.from_string(BeerMatCard.value("plate_blue", "#2a6ec8"), Color(0.16, 0.43, 0.78))
+	for y in side:
+		for x in side:
+			var dx := absf(float(x) + 0.5 - side / 2.0)
+			var dy := absf(float(y) + 0.5 - side / 2.0)
+			image.set_pixel(x, y, blue if dx + dy <= side / 2.0 else Color(0.97, 0.97, 0.97))
+	_diamonds = ImageTexture.create_from_image(image)
+	return _diamonds
+
 
 static func make() -> NamePlate:
 	var plate := NamePlate.new()
@@ -312,7 +345,57 @@ func place(edge: Dictionary, card: PlayerData,
 		elif fraction < 0.67:
 			_bar_colour = Color(0.88, 0.68, 0.32)
 
+	_ribbon = ribbon_on()
+	if _ribbon:
+		_place_ribbon(card, middle, bottom + gap, name_size, stat_size, fraction, bar_gap, down)
 	queue_redraw()
+
+
+## Idea D: Tier small on top, the name in a cream box on the ribbon, the
+## power in a round cap at the right end. Ink letters, no shadow, so nothing
+## smudges.
+func _place_ribbon(card: PlayerData, middle: float, top: float, name_size: int,
+		stat_size: int, fraction: float, bar_gap: float, down: bool) -> void:
+	var ink := Color.from_string(BeerMatCard.value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
+	if down:
+		ink = Color(0.45, 0.42, 0.42)
+	for label in [_name_label, _power_label]:
+		label.add_theme_color_override("font_color", ink)
+		label.add_theme_constant_override("shadow_outline_size", 0)
+		label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+	_tier_label.text = "TIER %s%s" % [card.get_tier_clean(), " ★" if card.shows_star() else ""]
+	_tier_label.add_theme_font_size_override("font_size", maxi(7, stat_size - 2))
+	_tier_label.add_theme_color_override("font_color", Color(0.98, 0.95, 0.86) if not down else ink)
+	_power_label.text = str(card.get_attack_power())
+	_power_label.add_theme_font_size_override("font_size", name_size)
+	_name_label.text = _name_label.text.to_upper()
+
+	var tier_box := _tier_label.get_minimum_size()
+	var name_box := _name_label.get_minimum_size()
+	var power_box := _power_label.get_minimum_size()
+	var pad := 8.0
+	var box_high := name_box.y + 2.0
+	var band_high := box_high + 8.0
+	_cap_r = band_high * 0.62
+	var box_wide := name_box.x + pad * 2.0
+	var band_wide := box_wide + 26.0
+	# The ribbon and its cap together sit centred under the player.
+	var whole := band_wide + _cap_r * 1.4
+	var left := middle - whole / 2.0
+	var band_top := top + tier_box.y - 2.0
+	_band = Rect2(left, band_top, band_wide, band_high)
+	_name_box = Rect2(left + 8.0, band_top + 4.0, box_wide, box_high)
+	_cap_at = Vector2(_band.end.x + _cap_r * 0.25, band_top + band_high / 2.0)
+
+	_tier_label.position = Vector2(_band.get_center().x - tier_box.x / 2.0, top - 2.0)
+	_name_label.position = _name_box.get_center() - name_box / 2.0
+	_power_label.position = _cap_at - power_box / 2.0
+	_panel = Rect2()
+	if _show_bar:
+		_bar = Rect2(Vector2(_band.position.x, _band.end.y + bar_gap),
+			Vector2(_band.size.x, maxf(4.0, float(stat_size) * 0.42)))
+		_fill = _bar
+		_fill.size.x = _bar.size.x * clampf(fraction, 0.0, 1.0)
 
 
 ## A cross over a fallen player. The caller says where the middle of them is,
@@ -334,6 +417,20 @@ func clear_down_mark() -> void:
 func _draw() -> void:
 	# ONLY THE THINGS THAT SCALE CLEANLY. Rectangles and lines look the same
 	# at any window size; text does not, which is what the Labels are for.
+	if _ribbon and _band.size.x > 0.0:
+		var ink := Color.from_string(BeerMatCard.value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
+		var fade := 0.5 if _down else 1.0
+		texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+		var tile := diamond_tile()
+		var step := clampf(_band.size.y * 0.55, 6.0, 16.0)
+		draw_texture_rect_region(tile, _band, Rect2(Vector2.ZERO, _band.size * (16.0 / step)),
+			Color(1, 1, 1, fade))
+		draw_rect(_band, ink, false, 2.0)
+		draw_rect(_name_box, Color(0.965, 0.925, 0.82, fade), true)
+		draw_rect(_name_box, ink, false, 1.5)
+		draw_circle(_cap_at, _cap_r, Color(0.965, 0.925, 0.82, fade))
+		draw_arc(_cap_at, _cap_r - 1.5, 0.0, TAU, 32, Color(0.72, 0.55, 0.25, fade), 3.0, true)
+		draw_arc(_cap_at, _cap_r, 0.0, TAU, 32, ink, 1.5, true)
 	if _panel.size.x > 0.0:
 		draw_rect(_panel, Color(0.06, 0.07, 0.10, 0.78), true)
 		draw_rect(_panel, Color(_tint.r, _tint.g, _tint.b,
