@@ -153,6 +153,18 @@ static func describe(slot: int) -> Dictionary:
 	}
 
 
+## Has a game been started in this slot (its game_begun flag)? The menu
+## writes an empty save into slot 1 at launch, so a file alone says nothing.
+static func begun(slot: int) -> bool:
+	var path := state_path(slot)
+	if not FileAccess.file_exists(path):
+		return false
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not (parsed is Dictionary):
+		return true
+	return "game_begun" in (parsed as Dictionary).get("flags", [])
+
+
 ## Wipe a slot. The player is asked twice by the screen before this is
 ## called — there is no undo.
 static func erase(slot: int) -> void:
