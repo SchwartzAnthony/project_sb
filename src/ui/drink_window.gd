@@ -31,6 +31,13 @@ extends CanvasLayer
 #  screen behind goes dark enough that the Play Maker's words don't show.
 #  A sheet that has its own drink rows (the PixelLab looks) still plays them.
 #  style old brings back the dark box and the code-drawn barrel.
+#
+#  NOTHING ELSE TAKES A PRESS WHILE HE DRINKS (Anthony, 24 Oct: "you
+#  shouldn't be able to interact with anything during it, but by pressing
+#  you can have it go faster or skip it"). The first press (click, A,
+#  Space) plays the rest faster, the second skips to the end. The Deck's
+#  double copy of one press counts once (ECHO_MS, as in the talk box).
+#  Pause waits too: it is over in a few seconds.
 # =============================================================
 
 signal finished
@@ -64,6 +71,14 @@ var _big := false           # his sharp window sheet (assets/players/window/)
 var _frame := Vector2.ONE   # one frame of _sheet, in its pixels
 
 const SETTINGS := "res://data/DrinkWindow.csv"
+## How much faster the rest plays after the first press.
+const FASTER := 3.0
+const ECHO_MS := 150
+var _presses := 0
+var _done := false
+var _last_press_source := ""
+var _last_press_ms := -100000
+var _tweens: Array[Tween] = []
 static var _rows := {}
 
 
@@ -407,7 +422,7 @@ func _run_mat() -> void:
 	var lips := Vector2(0, -_prop.size.y * 0.5) if bottle \
 		else Vector2(-_prop.size.x * 0.5, _prop.size.y * 0.25)
 	var hold := mouth - lips.rotated(tilt) - _prop.size * 0.5
-	var up := create_tween()
+	var up := _tween()
 	up.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	up.tween_property(_prop, "position", hold, _t(0.45))
 	up.parallel().tween_property(_prop, "rotation", tilt, _t(0.45))
@@ -417,7 +432,7 @@ func _run_mat() -> void:
 	# 2. Head back, gulp gulp gulp, beer down his front and on the grass.
 	for gulp in 3:
 		_show_sheet_frame("idle", gulp % idle_frames)
-		var bob := create_tween()
+		var bob := _tween()
 		bob.tween_property(_hero, "scale", Vector2(1.05, 0.95), _t(0.17))
 		bob.parallel().tween_property(_hero, "rotation", deg_to_rad(-5.0), _t(0.17))
 		bob.parallel().tween_property(_prop, "rotation", _prop.rotation - deg_to_rad(10.0), _t(0.17))
@@ -429,7 +444,7 @@ func _run_mat() -> void:
 		await bob.finished
 
 	# 3. The empty goes over his shoulder, spinning, out of the picture.
-	var toss := create_tween()
+	var toss := _tween()
 	toss.tween_property(_prop, "position", Vector2(-_prop.size.x * 1.2, -_prop.size.y), _t(0.5)) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	toss.parallel().tween_property(_prop, "rotation", _prop.rotation - TAU, _t(0.5))
@@ -441,7 +456,7 @@ func _run_mat() -> void:
 	AudioDirector.fire(get_tree(), "drink_burp", {"kind": kind})
 	var cheer := PitchSprite.anim("cheer")
 	var cheer_frames := 9 if _big else maxi(1, int(cheer.get("frames", 1)))
-	var burp := create_tween()
+	var burp := _tween()
 	burp.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	burp.tween_property(_burp, "scale", Vector2.ONE, _t(0.5))
 	burp.parallel().tween_property(_hero, "scale", Vector2(0.95, 1.06), _t(0.15))
@@ -451,8 +466,7 @@ func _run_mat() -> void:
 	for step in steps:
 		_show_sheet_frame("cheer" if _big or not cheer.is_empty() else "idle", step % cheer_frames)
 		await get_tree().create_timer(wait, true, false, true).timeout
-	finished.emit()
-	queue_free()
+	_finish()
 
 
 ## A drop of beer: it falls from his mouth and splashes into the grass,
@@ -465,7 +479,7 @@ func _spill_mat(from: Vector2) -> void:
 	drop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_panel.add_child(drop)
 	var land := Vector2(from.x + randf_range(-8, 30), _feet.y - randf_range(0, 10))
-	var fall := create_tween()
+	var fall := _tween()
 	fall.tween_property(drop, "position", land, _t(randf_range(0.3, 0.5))) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	fall.tween_callback(func() -> void:
@@ -477,7 +491,7 @@ func _spill_mat(from: Vector2) -> void:
 			bit.position = land
 			bit.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			_panel.add_child(bit)
-			var hop := create_tween()
+			var hop := _tween()
 			hop.tween_property(bit, "position", land + Vector2(side * randf_range(6, 12), -randf_range(4, 9)), _t(0.12))
 			hop.parallel().tween_property(bit, "modulate:a", 0.0, _t(0.18))
 			hop.tween_callback(bit.queue_free)
@@ -589,6 +603,69 @@ func _t(seconds: float) -> float:
 	return seconds * _speed
 
 
+## Said once, whether it played out or was skipped.
+func _finish() -> void:
+	if not _done:
+		_done = true
+		finished.emit()
+	queue_free()
+
+
+## Every press is his: nothing under the window sees it.
+func _input(event: InputEvent) -> void:
+	if _done:
+		return
+	var click := event as InputEventMouseButton
+	var pressed := GameKeys.pressed(event, "confirm") \
+		or (click != null and click.pressed and click.button_index == MOUSE_BUTTON_LEFT)
+	get_viewport().set_input_as_handled()
+	if not pressed or _is_echo(event):
+		return
+	_presses += 1
+	if _presses == 1:
+		_speed /= FASTER
+		_hurry(FASTER)
+		return
+	# The second press: gone at once. The steps still running finish out of
+	# sight, and the match goes on now.
+	_done = true
+	hide()
+	_speed = 0.01
+	_hurry(100.0)
+	finished.emit()
+
+
+## A tween of this window's own, kept so a press can hurry the ones already
+## running (the ones made after it are short already, through _t).
+func _tween() -> Tween:
+	var made := create_tween()
+	_tweens.append(made)
+	return made
+
+
+func _hurry(how_much: float) -> void:
+	for tween in _tweens:
+		if tween.is_valid():
+			tween.set_speed_scale(how_much)
+
+
+## Is this the Deck's second copy of the press just before it (a controller
+## button and a click, within ECHO_MS)? A second press of the same button
+## always counts.
+func _is_echo(event: InputEvent) -> bool:
+	var source := "key"
+	if event is InputEventJoypadButton:
+		source = "pad %d" % event.device
+	elif event is InputEventMouseButton:
+		source = "mouse"
+	var now := Time.get_ticks_msec()
+	var echo := source != _last_press_source and now - _last_press_ms < ECHO_MS
+	if not echo:
+		_last_press_source = source
+		_last_press_ms = now
+	return echo
+
+
 ## One frame of the pitch drink, facing south-east (PitchSprite.DIRECTIONS 1).
 func _show_drink_frame(step: int) -> void:
 	var cut := AtlasTexture.new()
@@ -607,7 +684,7 @@ func _run() -> void:
 		return
 	var mouth := _hero.position + Vector2(118, 50)
 	# 1. He grabs it: the barrel flies up to his mouth and tips.
-	var up := create_tween()
+	var up := _tween()
 	up.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	up.tween_property(_vessel, "position", mouth - Vector2(10, 30), _t(0.45))
 	up.parallel().tween_property(_vessel, "rotation", deg_to_rad(-110.0), _t(0.45))
@@ -616,7 +693,7 @@ func _run() -> void:
 
 	# 2. He drinks as much as he can - head back, three gulps, beer everywhere.
 	for gulp in 3:
-		var bob := create_tween()
+		var bob := _tween()
 		bob.tween_property(_hero, "scale", Vector2(1.06, 0.94), _t(0.16))
 		bob.parallel().tween_property(_hero, "rotation", deg_to_rad(-6.0), _t(0.16))
 		bob.tween_property(_hero, "scale", Vector2.ONE, _t(0.16))
@@ -626,7 +703,7 @@ func _run() -> void:
 		await bob.finished
 
 	# 3. Down goes the empty.
-	var down := create_tween()
+	var down := _tween()
 	down.tween_property(_vessel, "position", Vector2(_vessel.position.x + 60, BOX.y - 40), _t(0.35))
 	down.parallel().tween_property(_vessel, "rotation", deg_to_rad(-200.0), _t(0.35))
 	down.tween_property(_vessel, "modulate:a", 0.0, _t(0.2))
@@ -639,7 +716,7 @@ func _run() -> void:
 	arm.position = mouth + Vector2(30, 0)
 	arm.pivot_offset = Vector2(0, 6)
 	_panel.add_child(arm)
-	var wipe := create_tween()
+	var wipe := _tween()
 	wipe.tween_property(arm, "position", mouth - Vector2(70, 4), _t(0.3))
 	wipe.parallel().tween_property(_hero, "rotation", deg_to_rad(4.0), _t(0.3))
 	wipe.tween_property(arm, "modulate:a", 0.0, _t(0.12))
@@ -649,15 +726,14 @@ func _run() -> void:
 
 	# 5. BURP.
 	AudioDirector.fire(get_tree(), "drink_burp", {"kind": kind})
-	var burp := create_tween()
+	var burp := _tween()
 	burp.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	burp.tween_property(_burp, "scale", Vector2.ONE, _t(0.5))
 	burp.parallel().tween_property(_hero, "scale", Vector2(0.92, 1.1), _t(0.15))
 	burp.tween_property(_hero, "scale", Vector2.ONE, _t(0.2))
 	await burp.finished
 	await get_tree().create_timer(_t(0.7), true, false, true).timeout
-	finished.emit()
-	queue_free()
+	_finish()
 
 
 ## The PixelLab drink: lift, gulp, wipe, toss - frame by frame at the
@@ -673,15 +749,14 @@ func _run_pitch() -> void:
 	# (frame 0 is his plain standing drawing).
 	_show_drink_frame(0)
 	AudioDirector.fire(get_tree(), "drink_burp", {"kind": kind})
-	var burp := create_tween()
+	var burp := _tween()
 	burp.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	burp.tween_property(_burp, "scale", Vector2.ONE, _t(0.5))
 	burp.parallel().tween_property(_hero, "scale", Vector2(0.95, 1.06), _t(0.15))
 	burp.tween_property(_hero, "scale", Vector2.ONE, _t(0.2))
 	await burp.finished
 	await get_tree().create_timer(_t(0.7), true, false, true).timeout
-	finished.emit()
-	queue_free()
+	_finish()
 
 
 ## A drop of beer: it leaves the barrel, falls, and makes a little puddle.
@@ -692,7 +767,7 @@ func _spill(from: Vector2) -> void:
 	drop.position = from
 	_panel.add_child(drop)
 	var floor_y := BOX.y - 66 + randf_range(0, 20)
-	var fall := create_tween()
+	var fall := _tween()
 	fall.tween_property(drop, "position", Vector2(from.x + randf_range(-20, 30), floor_y), _t(randf_range(0.3, 0.5))) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	fall.tween_property(drop, "size", Vector2(12, 3), _t(0.1))
