@@ -183,6 +183,9 @@ func _wire() -> void:
 		if stage != null:
 			_field_behind(stage, key)
 			stage.add_child(animator)
+	# Anthony, 24 Oct 2026: the cards turn over into beer mats like the backs.
+	if _mat_look():
+		_dress_mat_cards()
 
 
 func apply_tuning(database: CardDatabase) -> void:
@@ -292,8 +295,8 @@ func play_duel(info: Dictionary) -> void:
 	await _beat(run_in_seconds)
 
 	# --- 2. Numbers appear ---
-	_set_power(_side["left"], int(left.get("power_before", 0)), DIM_TEXT)
-	_set_power(_side["right"], int(right.get("power_before", 0)), DIM_TEXT)
+	_set_power(_side["left"], int(left.get("power_before", 0)), _dim_text())
+	_set_power(_side["right"], int(right.get("power_before", 0)), _dim_text())
 	await _beat(reveal_seconds)
 
 	# --- 3. Abilities, lower priority first, attacker breaking the tie ---
@@ -328,8 +331,8 @@ func play_duel(info: Dictionary) -> void:
 		# ring never changes size.
 		_ring("left", false)
 		_ring("right", false)
-		_set_power(_side["left"], int(left.get("power_after", 0)) - left_change, LIVE_TEXT)
-		_set_power(_side["right"], int(right.get("power_after", 0)) - right_change, LIVE_TEXT)
+		_set_power(_side["left"], int(left.get("power_after", 0)) - left_change, _live_text())
+		_set_power(_side["right"], int(right.get("power_after", 0)) - right_change, _live_text())
 		# Both rings punch in as POWER CHECK lands.
 		var both_rings := func() -> void:
 			_ring("left", true)
@@ -343,13 +346,13 @@ func play_duel(info: Dictionary) -> void:
 			_merge_bonus("left", int(left.get("power_after", 0)))
 			_merge_bonus("right", int(right.get("power_after", 0)))
 			await _beat(hl_bonus_merge_seconds)
-		_set_power(_side["left"], int(left.get("power_after", 0)), LIVE_TEXT)
-		_set_power(_side["right"], int(right.get("power_after", 0)), LIVE_TEXT)
+		_set_power(_side["left"], int(left.get("power_after", 0)), _live_text())
+		_set_power(_side["right"], int(right.get("power_after", 0)), _live_text())
 		await _beat(hl_power_seconds)
 		await _coach("duel_power_check")
 	else:
-		_set_power(_side["left"], int(left.get("power_after", 0)), LIVE_TEXT, left_change)
-		_set_power(_side["right"], int(right.get("power_after", 0)), LIVE_TEXT, right_change)
+		_set_power(_side["left"], int(left.get("power_after", 0)), _live_text(), left_change)
+		_set_power(_side["right"], int(right.get("power_after", 0)), _live_text(), right_change)
 		await _beat(compare_seconds)
 
 	# --- 5. Result ---
@@ -380,6 +383,8 @@ func play_duel(info: Dictionary) -> void:
 		# Anthony, 24 Oct 2026: the slam grows with what it was won by.
 		var margin := absi(int(left.get("power_after", 0)) - int(right.get("power_after", 0)))
 		await _knock_away("left" if left_wins else "right", margin)
+	# Anthony, 24 Oct 2026: WIN / LOSE in the middle, not on the card.
+	await _show_result_word(left_wins)
 	await _coach("duel_result")
 
 	_ring("left", false)
@@ -390,6 +395,7 @@ func play_duel(info: Dictionary) -> void:
 	_dim.visible = false
 	_running = false
 	_knock_reset()
+	_hide_result_word()
 	duel_finished.emit()
 
 
@@ -410,7 +416,7 @@ func _fire_ability(key: String, data: Dictionary, moment: String = "") -> void:
 	# The number lights first — that is what "having priority" looks like.
 	var power_label: Label = nodes["power"]
 	if power_label:
-		power_label.add_theme_color_override("font_color", LIVE_TEXT)
+		power_label.add_theme_color_override("font_color", _live_text())
 	if highlight:
 		_ring("left", key == "left")
 		_ring("right", key == "right")
@@ -421,7 +427,7 @@ func _fire_ability(key: String, data: Dictionary, moment: String = "") -> void:
 	if ability == null:
 		if ability_label:
 			ability_label.text = "no ability"
-			ability_label.add_theme_color_override("font_color", DIM_TEXT)
+			ability_label.add_theme_color_override("font_color", _dim_text())
 		# ROUND AN: the box still visits it, briefly and silently, so you see
 		# the turn pass rather than wonder whether it was skipped.
 		_box(key, highlight)
@@ -439,7 +445,7 @@ func _fire_ability(key: String, data: Dictionary, moment: String = "") -> void:
 		if card != null and (int(data.get("priority", 0)) != printed \
 				or int(data.get("power_after", printed)) != printed):
 			ability_label.text += "\npriority %d" % int(data.get("priority", 0))
-		ability_label.add_theme_color_override("font_color", LIVE_TEXT)
+		ability_label.add_theme_color_override("font_color", _live_text())
 		# ROUND AB (Q004): THE TOKEN IT USED, shown beside it - its name and
 		# power in a box of its own (the card art comes with the UI pass).
 		var token = data.get("token")
@@ -449,7 +455,7 @@ func _fire_ability(key: String, data: Dictionary, moment: String = "") -> void:
 		# whose Ore you kept, is shown dim with "not this time".
 		if data.has("fired") and not bool(data.get("fired", true)):
 			ability_label.text += "\n(not this time)"
-			ability_label.add_theme_color_override("font_color", DIM_TEXT)
+			ability_label.add_theme_color_override("font_color", _dim_text())
 
 	_play_anim(key, data.get("card"), "ability")
 	if not highlight:
@@ -489,6 +495,9 @@ func _fire_ability(key: String, data: Dictionary, moment: String = "") -> void:
 
 
 func _ability_text(ability) -> String:
+	# Anthony, 24 Oct 2026: the mat card shows the whole ability, not its name.
+	if _mat_look():
+		return ability.plain()
 	var title: String = ability.display_name if ability.display_name != "" else ability.id
 	# Round Z: the sentence, not the database row - "When attacking: +1
 	# attack and defence to itself, for this duel."
@@ -868,12 +877,14 @@ func _dress_burst(tier: String, width: float) -> void:
 	if tier == "":
 		# The knock-away at the end: the word alone, bigger.
 		_inked_word(_burst, Loc.text("duel_clash_word", "KRACH!"), Vector2(box.x * 0.5, box.y * 0.5),
-				Vector2(box.x * 0.5, box.y * 0.22), CLASH_RED, true)
+				Vector2(box.x * 0.32, box.y * 0.2), CLASH_RED, true)
 		return
-	_inked_word(_burst, Loc.text("duel_clash_word", "KRACH!"), Vector2(box.x * 0.5, box.y * 0.36),
-			Vector2(box.x * 0.4, box.y * 0.13), Color(1, 1, 1), true)
-	_inked_word(_burst, "%s %s" % [Loc.text("tier", "TIER"), tier], Vector2(box.x * 0.5, box.y * 0.56),
-			Vector2(box.x * 0.5, box.y * 0.2), CLASH_RED, true)
+	# Anthony, 24 Oct 2026: "have the yellow be larger as the words should be
+	# in it" - both lines sit inside the pale middle of the burst.
+	_inked_word(_burst, Loc.text("duel_clash_word", "KRACH!"), Vector2(box.x * 0.5, box.y * 0.42),
+			Vector2(box.x * 0.26, box.y * 0.12), Color(1, 1, 1), true)
+	_inked_word(_burst, "%s %s" % [Loc.text("tier", "TIER"), tier], Vector2(box.x * 0.5, box.y * 0.57),
+			Vector2(box.x * 0.3, box.y * 0.15), CLASH_RED, true)
 
 
 ## A word centred on `middle`, as big as fits `box`. The game font is a bitmap
@@ -891,6 +902,12 @@ func _inked_word(on: Control, words: String, middle: Vector2, box: Vector2,
 	label.add_theme_constant_override("shadow_outline_size", 0)
 	label.add_theme_constant_override("outline_size", 0)
 	label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	# Anthony, 24 Oct 2026: "the font should be our own" - the comic font,
+	# plain, because the ink ring is laid behind it here.
+	var face := InkOutline.plain_of(ThemeBook.font(String(ThemeBook.row_for("heading").get("font", ""))))
+	if face != null:
+		label.add_theme_font_override("font", face)
+		label.set_meta(InkOutline.DONE_META, true)
 	var font_size := maxi(8, int(box.y))
 	var font := label.get_theme_font("font")
 	if font != null:
@@ -1081,6 +1098,7 @@ func _still_screen() -> void:
 ## Both halves back where the window keeps them, for the next duel.
 func _knock_reset() -> void:
 	_still_screen()
+	_hide_result_word()
 	for key in ["left", "right"]:
 		var panel := _side_panel(key)
 		if panel == null:
@@ -1204,11 +1222,11 @@ func _dress(key: String, data: Dictionary) -> void:
 		var bonus := label.get_node_or_null("Bonus") as Label
 		if bonus != null:
 			bonus.visible = false
-		label.add_theme_color_override("font_color", DIM_TEXT)
+		label.add_theme_color_override("font_color", _dim_text())
 	if nodes["ability"]:
 		var label2: Label = nodes["ability"]
 		label2.text = "—"
-		label2.add_theme_color_override("font_color", DIM_TEXT)
+		label2.add_theme_color_override("font_color", _dim_text())
 	if nodes["result"]:
 		(nodes["result"] as Label).text = ""
 
@@ -1224,6 +1242,9 @@ func _dress(key: String, data: Dictionary) -> void:
 ## (left always blue, right always red), which said nothing about who had
 ## the ball.
 func _paint_border(key: String, is_attacker: bool) -> void:
+	if _mat_look():
+		_paint_mat(key, is_attacker)
+		return
 	var panel := _side_panel(key) as PanelContainer
 	if panel == null:
 		return
@@ -1299,6 +1320,9 @@ func _play_anim(key: String, card, anim_name: String) -> void:
 	var tall := 360.0
 	if not sharp.is_empty():
 		tall = db.tune_float("duel_figure_height", 340.0)
+	if _mat_look() and stage != null:
+		# The mat's picture is smaller than the old dark card's.
+		tall = minf(tall, maxf(stage.custom_minimum_size.y, stage.size.y) * 0.92)
 	animator.fit_into(Vector2(stage.size.x if stage != null and stage.size.x > 1.0 else 600.0, tall))
 
 
@@ -1354,7 +1378,9 @@ func _set_power(nodes: Dictionary, value: int, colour: Color, change: int = 0) -
 func _stamp(key: String, won: bool) -> void:
 	var nodes: Dictionary = _side[key]
 	var label: Label = nodes["result"]
-	if label == null:
+	if label == null or _mat_look():
+		# The mat cards: the word comes up in the middle after the knock-away.
+		_play_anim(key, _cards.get(key), "win" if won else "lose")
 		return
 	label.text = "WIN" if won else "LOSE"
 	label.add_theme_color_override("font_color", WIN_TEXT if won else LOSE_TEXT)
@@ -1932,7 +1958,9 @@ func _field_behind(stage: Control, key: String) -> void:
 	# strip at the top - the panels keep their simple borders.
 	var panel := stage.get_parent().get_parent().get_parent() as PanelContainer
 	var colour := Color(0.36, 0.62, 0.9) if key == "left" else Color(0.9, 0.42, 0.36)
-	if panel != null:
+	if _mat_look():
+		colour = MAT_INK
+	elif panel != null:
 		var box := panel.get_theme_stylebox("panel") as StyleBoxFlat
 		if box != null:
 			colour = box.border_color
@@ -1970,3 +1998,203 @@ func _pick_field() -> void:
 	var picture := ScreenLook.picture(pictures.pick_random())
 	for key in _fields:
 		(_fields[key] as TextureRect).texture = picture
+
+
+# =============================================================
+#  THE MAT CARDS — the front matches the back (Anthony, 24 Oct 2026)
+#
+#  "Keep the clash cards and the cards they turn over the same art style and
+#  layout", then, on the mock-ups: the backs are good; the front is a PLAIN
+#  version of the back, the same size: the name and the power at the top, the
+#  player running on his background, then the whole ability. No ability name,
+#  no wooden plank. WIN / LOSE is not on the card: it comes up in the middle
+#  after the winner has knocked the loser away.
+#
+#  The two halves of the window become two beer mats exactly the size of the
+#  clash mats (duel_clash_mat_height), so the mats turn over on the spot.
+#  The pictures are drawn by tools/art/draw_duel_mats.py.
+#
+#      duel_card_look           mat = this; dark = the old dark cards
+#      duel_mat_front_*_art     the two plain fronts (red / blue ribbon)
+#      duel_mat_cap_art         the bottle cap the power sits in
+#      duel_mat_gap             the space between the two mats
+#      duel_mat_*_size          how big the name, power and ability words are
+#      duel_result_word_*       the WIN / LOSE word in the middle
+# =============================================================
+
+const MAT_INK := Color(0.10, 0.07, 0.04)
+const MAT_INK_DIM := Color(0.10, 0.07, 0.04, 0.45)
+const MAT_WIN := Color(0.95, 0.76, 0.23)
+const MAT_LOSE := Color(0.84, 0.2, 0.16)
+
+var _result_word: Control
+
+
+func _mat_look() -> bool:
+	var data := db if db != null else CardDatabase.get_db()
+	return data == null or data.tune_text("duel_card_look", "mat").strip_edges().to_lower() == "mat"
+
+
+func _dim_text() -> Color:
+	return MAT_INK_DIM if _mat_look() else DIM_TEXT
+
+
+func _live_text() -> Color:
+	return MAT_INK if _mat_look() else LIVE_TEXT
+
+
+func _mat_size() -> Vector2:
+	var data := db if db != null else CardDatabase.get_db()
+	var tall := 720.0
+	if data != null:
+		tall = maxf(60.0, data.tune_float("duel_clash_mat_height", tall))
+	return Vector2(tall * 2.0 / 3.0, tall)
+
+
+func _mat_tune(key: String, fallback: float) -> float:
+	var data := db if db != null else CardDatabase.get_db()
+	return data.tune_float(key, fallback) if data != null else fallback
+
+
+## Turns the two dark halves of the window into the two plain mats. Once,
+## when the window is wired; the ribbon colour follows the role every duel.
+func _dress_mat_cards() -> void:
+	var size := _mat_size()
+	var row := get_node_or_null("Dim/Panels") as HBoxContainer
+	if row != null:
+		row.add_theme_constant_override("separation", int(_mat_tune("duel_mat_gap", 120.0)))
+	if _tier_label != null:
+		# The burst has just said which tier it is, in big letters.
+		_tier_label.self_modulate.a = 0.0
+	for key in ["left", "right"]:
+		var panel := _side_panel(key) as PanelContainer
+		if panel == null:
+			continue
+		panel.custom_minimum_size = size
+		panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var margin := panel.get_node_or_null("Margin") as MarginContainer
+		if margin != null:
+			margin.add_theme_constant_override("margin_left", int(size.x * 0.12))
+			margin.add_theme_constant_override("margin_right", int(size.x * 0.12))
+			margin.add_theme_constant_override("margin_top", int(size.y * 0.095))
+			margin.add_theme_constant_override("margin_bottom", int(size.y * 0.085))
+		var nodes: Dictionary = _side[key]
+		var box := (nodes["name"] as Control).get_parent() as VBoxContainer if nodes["name"] else null
+		if box == null:
+			continue
+		# Ink printed on cardboard: the plain comic font, no black ring round
+		# dark letters (a ring only smudges them).
+		var plain := InkOutline.plain_of(ThemeBook.font(String(ThemeBook.row_for("heading").get("font", ""))))
+		for word in ["name", "power", "ability"]:
+			if nodes[word] and plain != null:
+				(nodes[word] as Control).add_theme_font_override("font", plain)
+				(nodes[word] as Control).set_meta(InkOutline.DONE_META, true)
+		box.add_theme_constant_override("separation", int(size.y * 0.02))
+		for hidden in ["role", "result"]:
+			if nodes[hidden]:
+				(nodes[hidden] as Control).visible = false
+
+		# THE TOP: the name, and the power in its bottle cap beside it.
+		var top := HBoxContainer.new()
+		top.name = "Top"
+		top.alignment = BoxContainer.ALIGNMENT_CENTER
+		top.add_theme_constant_override("separation", int(size.x * 0.04))
+		top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(top)
+		box.move_child(top, 0)
+		var name_label: Label = nodes["name"]
+		name_label.reparent(top, false)
+		name_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+		name_label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		name_label.add_theme_font_size_override("font_size", int(_mat_tune("duel_mat_name_size", 34.0)))
+		name_label.add_theme_color_override("font_color", MAT_INK)
+		var power_label: Label = nodes["power"]
+		power_label.reparent(top, false)
+		var cap_size := size.y * 0.1
+		power_label.custom_minimum_size = Vector2(cap_size, cap_size)
+		power_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		power_label.add_theme_font_size_override("font_size", int(_mat_tune("duel_mat_power_size", 38.0)))
+		var cap_art := _art(db.tune_text("duel_mat_cap_art", "res://assets/ui/duel/mat_cap.png") if db != null \
+				else "res://assets/ui/duel/mat_cap.png")
+		if cap_art != null:
+			var cap := TextureRect.new()
+			cap.name = "Cap"
+			cap.texture = cap_art
+			cap.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			cap.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			cap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			cap.show_behind_parent = true
+			cap.set_anchors_preset(Control.PRESET_FULL_RECT)
+			power_label.add_child(cap)
+			power_label.move_child(cap, 0)
+
+		# THE PLAYER on his background, under the name.
+		var stage: Control = nodes["stage"]
+		if stage != null:
+			stage.custom_minimum_size = Vector2(0.0, size.y * 0.4)
+			stage.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			stage.clip_contents = true
+
+		# THE WHOLE ABILITY, printed in ink on the cardboard.
+		var ability_label: Label = nodes["ability"]
+		if ability_label != null:
+			ability_label.custom_minimum_size = Vector2(0.0, size.y * 0.2)
+			ability_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			ability_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			ability_label.add_theme_font_size_override("font_size", int(_mat_tune("duel_mat_ability_size", 22.0)))
+			ability_label.add_theme_color_override("font_color", MAT_INK)
+
+
+## The mat's ribbon is the colour of its role this duel, like the back.
+func _paint_mat(key: String, is_attacker: bool) -> void:
+	var panel := _side_panel(key) as PanelContainer
+	if panel == null:
+		return
+	var path := "res://assets/ui/duel/mat_front_%s.png" % ("attack" if is_attacker else "defend")
+	if db != null:
+		path = db.tune_text("duel_mat_front_attack_art" if is_attacker else "duel_mat_front_defend_art", path)
+	var art := _art(path)
+	if art == null:
+		return
+	var style := StyleBoxTexture.new()
+	style.texture = art
+	panel.add_theme_stylebox_override("panel", style)
+
+
+## After the knock-away: WIN or LOSE (yours - the left card is always you) in
+## the middle of the screen, under the card that is left standing.
+func _show_result_word(you_won: bool) -> void:
+	if not _mat_look() or not _running:
+		return
+	_show_banner("")
+	if _result_word != null and is_instance_valid(_result_word):
+		_result_word.queue_free()
+	var word := Control.new()
+	word.name = "ResultWord"
+	word.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var box := Vector2(_mat_tune("duel_result_word_width", 420.0), _mat_tune("duel_result_word_height", 110.0))
+	word.size = box
+	word.pivot_offset = box * 0.5
+	var below := _dim.size.y * 0.5 + _mat_size().y * 0.5 + box.y * 0.5 + _mat_tune("duel_result_word_gap", 10.0)
+	word.position = Vector2(_dim.size.x * 0.5, minf(below, _dim.size.y - box.y * 0.5)) - box * 0.5
+	word.z_index = 3
+	_dim.add_child(word)
+	_result_word = word
+	var text := Loc.text("duel_win", "WIN!") if you_won else Loc.text("duel_lose", "LOSE!")
+	_inked_word(word, text, box * 0.5, Vector2(box.x * 0.7, box.y * 0.8),
+			MAT_WIN if you_won else MAT_LOSE, true)
+	word.scale = Vector2.ONE * 2.2
+	word.rotation = deg_to_rad(-8.0 if you_won else 8.0)
+	var land := create_tween().set_parallel(true)
+	land.set_speed_scale(_rate())
+	land.tween_property(word, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	land.tween_property(word, "rotation", deg_to_rad(-3.0 if you_won else 3.0), 0.2)
+	_shake(word, 6.0)
+	await _beat(maxf(0.0, _mat_tune("duel_result_word_seconds", 0.9)))
+
+
+func _hide_result_word() -> void:
+	if _result_word != null and is_instance_valid(_result_word):
+		_result_word.queue_free()
+	_result_word = null
