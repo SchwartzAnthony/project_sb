@@ -130,9 +130,15 @@ func show_card(card: PlayerData, near: Vector2) -> void:
 	if card.is_star() and card.has_ultimate():
 		_attack.text = "ABILITY   " + _ability_words(card.active_attack_ability(), card.attack_text)
 		_defend.text = _ultimate_words(card)
+		_attack.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
+		_defend.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT)
 	else:
 		_attack.text = "ATTACK   " + _ability_words(card.active_attack_ability(), card.attack_text)
 		_defend.text = "DEFEND   " + _ability_words(card.active_defend_ability(), card.defend_text)
+		# Red for Attack, blue for Defend (Anthony, 24 Oct) - the same two
+		# colours as the card borders in the duel.
+		_attack.add_theme_color_override("font_color", MenuSupport.role_colour(true, db))
+		_defend.add_theme_color_override("font_color", MenuSupport.role_colour(false, db))
 
 	var band := db.tier_band_text(card.get_tier_clean()) if db != null else ""
 	# ---- and what it would take to turn it over ----

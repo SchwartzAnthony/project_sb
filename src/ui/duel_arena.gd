@@ -678,6 +678,7 @@ func _dress(key: String, data: Dictionary) -> void:
 
 	if nodes["role"]:
 		(nodes["role"] as Label).text = "ATTACKER" if is_attacker else "DEFENDER"
+	_paint_border(key, is_attacker)
 	if nodes["name"]:
 		(nodes["name"] as Label).text = card.player_name if card != null else "—"
 	if nodes["power"]:
@@ -698,6 +699,25 @@ func _dress(key: String, data: Dictionary) -> void:
 
 	# Both units run at each other; the attacker is the one carrying the ball.
 	_play_anim(key, card, "run")
+
+
+## Anthony, 24 Oct 2026: the border of each card is the colour of its role
+## this duel - red attacking, blue defending - the same two colours as the
+## ATTACK / DEFEND lines in the card window. It used to be fixed by side
+## (left always blue, right always red), which said nothing about who had
+## the ball.
+func _paint_border(key: String, is_attacker: bool) -> void:
+	var panel := _side_panel(key) as PanelContainer
+	if panel == null:
+		return
+	var style := panel.get_theme_stylebox("panel") as StyleBoxFlat
+	if style == null:
+		return
+	if not panel.has_meta("own_border"):
+		style = style.duplicate() as StyleBoxFlat
+		panel.add_theme_stylebox_override("panel", style)
+		panel.set_meta("own_border", true)
+	style.border_color = MenuSupport.role_colour(is_attacker, db)
 
 
 ## A Star Player keeps its badge through the power check, so the moment that
