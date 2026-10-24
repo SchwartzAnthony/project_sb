@@ -4,4 +4,4 @@ mill,rhythm,8,,,22,"Crank the mill: left, right, left, right. The same side twic
 lautering,colour,12,0.55,0.28,,Hold to open the tap while the wort runs clear. Let go when it clouds.,assets/brewery/games/lautering,
 boiling,fire,12,0.14,,5,Pump the bellows to keep the heat in the gold for 5 seconds.,assets/brewery/games/boiling,"Anthony's pick: Keep the fire."
 cooling,hold,10,0.14,0.5,1,Hold to cool the vat. Let go in the cold gold.,assets/brewery/games/cooling,"Kept as it was (Anthony, 8 Oct)."
-bottling,conveyor,14,0.1,0.45,3,Hold to pour. Let go at each bottle's line - three bottles.,assets/brewery/games/bottling,"Before the game the Bottling Machine asks which size to fill: BottleSizes.csv."
+bottling,conveyor,14,0.1,0.45,3,Hold to pour. Let go at each bottle's line - three bottles.,assets/brewery/games/bottling,"Before the game the Bottling Machine asks which size to fill: BottleSizes.csv. Drawn in our style 24 Oct (nozzle, see-through bottle + bottle_inside, belt, hall background)."

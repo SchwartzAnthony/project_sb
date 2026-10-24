@@ -5850,8 +5850,13 @@ is missing is drawn as a plain shape, so the game always works.
 | colour | `tun.png`, `bucket.png` |
 | fire | `kettle.png`, `bellows.png` |
 | hold | `vat.png` |
-| conveyor | `tap.png`, `bottle.png`, `belt.png` |
+| conveyor | `tap.png`, `bottle.png`, `belt.png`; add `bottle_inside.png` (the shape the beer fills) and the bottle is see-through glass the beer rises in |
 | any | `background.png` behind it all (640x320 stage) |
+
+**Bottling, drawn (24 Oct).** The Bottling game uses the drawn pieces: the
+filling valve of the drawn machine, a see-through swing-top bottle, the belt,
+and a soft close-up of the drawn hall behind. Remake the pieces for free with
+`tools/art/bottling/make_game_pieces.py` and `make_background.py`.
 
 No row = no game (the batch is rolled on the brewer's % as before).
 `Tuning.csv brewery_minigames` false turns them all off. The game fires the
