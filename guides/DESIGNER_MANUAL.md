@@ -637,6 +637,34 @@ All of it is in **`data/CardFace.csv`**:
 The empty frame is `art_tool/rounds/r187/out/r187-beermat-empty.png`; the
 card tool for pictures and GIFs is `art_tool/cards/beermat_card.py`.
 
+## 6d. The keepers and the shot window (24 Oct 2026)
+
+Anthony: "sprites for the goalies" and "a goalie window update in our new art
+and not just being empty boxes". Paid round rgk1 (option B, $0.64): the round
+11 yellow keeper, one side-on still and one front dive still, a Kling clip of
+him swaying and a Kling clip of him diving, all on flat magenta.
+
+**On the pitch** every keeper with no `Artwork` in `data/Goalies.csv` is this
+drawn keeper, swaying on the spot: yours in yellow, theirs in a green kit
+(a free colour swap), mirrored to face the pitch. `data/GoalieLook.csv` has
+the two strips, how many pictures they hold, how fast he sways and how tall
+he is. An `Artwork` in Goalies.csv still wins.
+
+**The shot window** (YOU SHOOT / THEY SHOOT, and an ability draining a keeper)
+is a cream beer mat window like the Inventory: the title on the wooden board,
+shot power and chance of a goal on beer coasters, keeper stamina as a beer,
+the keeper ready in the village goal (he dives when the ball is struck), the
+shooter running in from the side, the words on a small cream panel and a blue
+SKIP plank. Your shot is at their (green) keeper, theirs at your (yellow) one.
+Everything is a row of `data/ShootoutLook.csv`; `style old` brings back the
+dark window. A `Shootout Artwork` in Goalies.csv still wins over the drawn
+keeper.
+
+Pictures: `tools/make_keeper_sheets.py` cuts `art_source/keeper/*.mp4` into
+`assets/players/keeper/`; `tools/make_shootout_pieces.py` makes the panels and
+the village goal in `assets/ui/shootout/`. Photos: `tools/keeper_shot.gd`,
+film of the dive: `tools/keeper_dive_shot.gd`.
+
 ## 7. The league match
 
 `src/formations/main_scene.gd` runs it. Nothing in that file names a card, a
