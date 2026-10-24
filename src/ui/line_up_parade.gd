@@ -604,7 +604,10 @@ func _hide_the_pitch_layers(on: bool) -> void:
 			_hidden_layers.append(other)
 		# Everyone on the pitch steps off it while they stand in the row:
 		# the same players twice would only confuse.
-		var on_pitch: Array = mine + theirs
+		# A plain Array: mine is typed to the players, the keepers are not.
+		var on_pitch: Array = []
+		on_pitch.append_array(mine)
+		on_pitch.append_array(theirs)
 		on_pitch.append_array([my_keeper, their_keeper])
 		for node in on_pitch:
 			var item := node as CanvasItem

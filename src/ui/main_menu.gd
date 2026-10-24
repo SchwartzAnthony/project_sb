@@ -80,7 +80,10 @@ func _advance_progression(trigger: String) -> void:
 		var value := String(action["value"])
 		match kind:
 			"announce":
-				_footer.text = value
+				if _footer != null:
+					_footer.text = value
+				else:
+					print("[menu] %s" % value)
 			"story":
 				state.save_to_disk()
 				DialogueView.play(get_tree(), value, ScenePaths.MAIN_MENU)
@@ -217,7 +220,11 @@ func _menu_filter() -> CanvasItem.TextureFilter:
 
 ## A quiet line at the bottom telling you what the CSVs actually loaded.
 ## If a class is missing from the game, this is the first place to look.
+## Anthony, 24 Oct: off the title screen (Tuning.csv menu_footer). The same
+## counts and CSV warnings still go to the Output panel.
 func _build_footer() -> void:
+	if MenuSupport.tuned("menu_footer", 0.0) <= 0.5:
+		return
 	_footer = Label.new()
 	_footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_footer.add_theme_font_size_override("font_size", 13)
@@ -566,4 +573,5 @@ func _on_action(action: String) -> void:
 			get_tree().quit()
 		_:
 			push_warning("[menu] MenuConfig.csv asks for unknown action '%s'." % action)
-			_footer.text = "Unknown action '%s' — check MenuConfig.csv." % action
+			if _footer != null:
+				_footer.text = "Unknown action '%s' — check MenuConfig.csv." % action
