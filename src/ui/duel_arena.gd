@@ -132,6 +132,7 @@ var _hint: Label
 var _side := {}          # "left"/"right" -> Dictionary of nodes
 var _anim := {}          # "left"/"right" -> SpriteAnimator
 var _cards := {}         # "left"/"right" -> PlayerData currently on show
+var _fields := {}        # "left"/"right" -> the drawn field behind the player
 
 
 func _ready() -> void:
@@ -174,6 +175,9 @@ func _wire() -> void:
 		}
 		var animator := SpriteAnimator.new()
 		animator.name = "Animator"
+		# The sharp duel sheets are bigger than the card shows them: let
+		# fit_into shrink them (a TextureRect is never smaller than its picture).
+		animator.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_anim[key] = animator
 		var stage: Control = _side[key]["stage"]
 		if stage != null:
@@ -269,6 +273,7 @@ func play_duel(info: Dictionary) -> void:
 
 	_dress("left", left)
 	_dress("right", right)
+	_pick_field()
 	_coach_tier = String(info.get("tier", ""))
 
 	# --- 0. THE FLIP ---
@@ -1199,7 +1204,16 @@ func _play_anim(key: String, card, anim_name: String) -> void:
 	var sheet: Texture2D = card.artwork
 	var spec: AnimSpec = null
 	var pitch := PitchSprite.window_sheet(card as PlayerData)
-	if pitch != null:
+	# The sharp, big duel sheet of his look when there is one (Anthony 24
+	# Oct 2026: "During combat the players look very blurry"). Drawn facing
+	# right, so the right-hand player is mirrored to face the other one.
+	var sharp := _duel_spec(pitch, anim_name)
+	animator.flip_h = false
+	if not sharp.is_empty():
+		sheet = sharp["sheet"]
+		spec = sharp["spec"]
+		animator.flip_h = key == "right"
+	elif pitch != null:
 		sheet = pitch
 		spec = PitchSprite.window_spec(pitch, anim_name, 0 if key == "left" else 4)
 	else:
@@ -1209,7 +1223,48 @@ func _play_anim(key: String, card, anim_name: String) -> void:
 	animator.speed_scale = _rate()
 	animator.play(sheet, spec)
 	var stage: Control = _side[key]["stage"]
-	animator.fit_into(Vector2(stage.size.x if stage != null and stage.size.x > 1.0 else 600.0, 360.0))
+	var tall := 360.0
+	if not sharp.is_empty():
+		tall = db.tune_float("duel_figure_height", 340.0)
+	animator.fit_into(Vector2(stage.size.x if stage != null and stage.size.x > 1.0 else 600.0, tall))
+
+
+## The duel sheets (tools/make_drawn_duel_sheet.py): one per pitch sheet,
+## same file name, in Tuning.csv duel_sheets, frames duel_cell big, all
+## facing right. Which row each move is on and how many frames it has;
+## the speed and looping come from PitchAnims.csv, as on the pitch.
+const DUEL_ROWS := {"idle": [0, 4], "run": [1, 8], "kick": [2, 9], "cheer": [3, 9], "fall": [4, 7]}
+
+
+## {sheet, spec} for `anim_name` from the duel sheet of `pitch`, or {}.
+func _duel_spec(pitch: Texture2D, anim_name: String) -> Dictionary:
+	if pitch == null or db == null:
+		return {}
+	var folder := db.tune_text("duel_sheets", "res://assets/players/duel/").strip_edges()
+	if folder == "":
+		return {}
+	var path := folder.path_join(pitch.resource_path.get_file())
+	if not ResourceLoader.exists(path):
+		return {}
+	var sheet := load(path) as Texture2D
+	var cell := db.tune_text("duel_cell", "400,540").split(",")
+	if sheet == null or cell.size() != 2:
+		return {}
+	var wanted := String(PitchSprite.WINDOW_ANIMS.get(anim_name.to_lower(), "idle"))
+	if not DUEL_ROWS.has(wanted):
+		wanted = "idle"
+	var row: Array = DUEL_ROWS[wanted]
+	var timing := PitchSprite.anim(wanted)
+	var spec := AnimSpec.new()
+	spec.name = wanted
+	spec.sheet_columns = maxi(1, int(sheet.get_width() / float(cell[0])))
+	spec.sheet_rows = maxi(1, int(sheet.get_height() / float(cell[1])))
+	spec.row = int(row[0])
+	spec.first_frame = 0
+	spec.frames = int(row[1])
+	spec.fps = float(timing.get("fps", 10.0))
+	spec.loop = bool(timing.get("loop", wanted != "kick" and wanted != "fall"))
+	return {"sheet": sheet, "spec": spec}
 
 
 func _set_power(nodes: Dictionary, value: int, colour: Color, change: int = 0) -> void:
@@ -1799,6 +1854,7 @@ func _field_behind(stage: Control, key: String) -> void:
 	field.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	field.clip_contents = true
 	stage.add_child(field)
+	_fields[key] = field
 	# The card's own red or blue, as a line round the field and under the
 	# strip at the top - the panels keep their simple borders.
 	var panel := stage.get_parent().get_parent().get_parent() as PanelContainer
@@ -1823,3 +1879,21 @@ func _field_behind(stage: Control, key: String) -> void:
 		edge.custom_minimum_size = box
 	stage.resized.connect(fit)
 	fit.call_deferred()
+
+
+## Anthony, 24 Oct 2026: "their background is the same ... have it be random
+## between 8 different backgrounds please". Each duel draws one of the
+## pictures in data/DuelBackgrounds.csv (Use = true) behind both players.
+## None there = Tuning.csv duel_field, as before.
+func _pick_field() -> void:
+	var pictures: Array[String] = []
+	for row in MenuSupport.read_csv("res://data/DuelBackgrounds.csv"):
+		var path := MenuSupport.field(row, "Picture").strip_edges()
+		var use := MenuSupport.field(row, "Use").strip_edges().to_lower()
+		if path != "" and use != "false" and ResourceLoader.exists(path):
+			pictures.append(path)
+	if pictures.is_empty():
+		return
+	var picture := ScreenLook.picture(pictures.pick_random())
+	for key in _fields:
+		(_fields[key] as TextureRect).texture = picture
