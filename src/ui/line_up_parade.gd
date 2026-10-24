@@ -262,7 +262,7 @@ func _put_up_banner(words: String, symbol: String, theirs: bool) -> void:
 		# Old pixel symbols stay sharp; drawn ones are smoothed.
 		crest.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST \
 			if picture.get_width() <= 128 else CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-		var inset := medal.size * 0.12
+		var inset := medal.size * 0.04
 		crest.position = (medal.position + inset) * scale_by
 		crest.size = (medal.size - inset * 2.0) * scale_by
 		crest.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -313,8 +313,54 @@ func _order(units: Array[PlayerUnit]) -> Array[PlayerUnit]:
 
 
 ## A figure as it stands on the pitch: the drawn idle, facing us.
+## The big, sharp sheets the drinking window uses (data/DrinkWindow.csv:
+## window_sheets, window_cell, window_feet), one per pitch sheet, same name.
+## Row 2 is standing facing the camera (Anthony 24 Oct 2026: "fix the
+## extremely blurry players in the line up").
+func _window_setting(key: String, otherwise: String) -> String:
+	for row in MenuSupport.read_csv("res://data/DrinkWindow.csv"):
+		if MenuSupport.field(row, "Key").strip_edges() == key:
+			return MenuSupport.field(row, "Value").strip_edges()
+	return otherwise
+
+
+func _sharp_figure(pitch: Texture2D, tall: float) -> Control:
+	if pitch == null:
+		return null
+	var folder := _window_setting("window_sheets", "res://assets/players/window/")
+	var path := folder.path_join(pitch.resource_path.get_file())
+	if not ResourceLoader.exists(path):
+		return null
+	var sheet := load(path) as Texture2D
+	var cell_parts := _window_setting("window_cell", "336,460").split(",")
+	if sheet == null or cell_parts.size() != 2:
+		return null
+	var cell := Vector2(float(cell_parts[0]), float(cell_parts[1]))
+	var spec := AnimSpec.new()
+	spec.name = "idle"
+	spec.sheet_columns = maxi(1, int(sheet.get_width() / cell.x))
+	spec.sheet_rows = maxi(1, int(sheet.get_height() / cell.y))
+	spec.row = int(_tune("line_up_sharp_row", 2.0))
+	if spec.row >= spec.sheet_rows:
+		spec.row = 0
+	spec.first_frame = 0
+	spec.frames = 4
+	spec.fps = 6.0
+	spec.loop = true
+	var figure := SpriteAnimator.new()
+	figure.play(sheet, spec)
+	# Every window sheet is drawn at the same size, so one zoom for all.
+	var zoom := tall / cell.y * 1.35
+	figure.custom_minimum_size = Vector2(figure.crop_size()) * zoom
+	figure.size = figure.custom_minimum_size
+	return figure
+
+
 func _figure(card: PlayerData, tall: float) -> Control:
 	var sheet := PitchSprite.window_sheet(card)
+	var sharp := _sharp_figure(sheet, tall)
+	if sharp != null:
+		return sharp
 	var spec := PitchSprite.window_spec(sheet, "idle", 2) if sheet != null else null
 	if spec == null:
 		return MenuSupport.portrait_rect(card, db, Vector2(tall * 0.5, tall))

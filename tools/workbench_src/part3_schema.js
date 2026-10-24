@@ -188,7 +188,7 @@ const S = {
   enums:{Tier:["I","II","III","IV"],Gender:["","m","f"],Lead:["","yes"],Role:["","match","adventure","new"]},
   help:"Same columns as IntroSquad.csv, plus <b>Role</b> (round AN): what he arrives as - <code>match</code> or <code>adventure</code> (blank = Tuning.csv starting_team_role). Four Adventure Players, one per Tier, so a fresh game can go on an Adventure. Once given, a role is for good until Quereinsteiger."},
 "Goalies.csv":{what:"Keepers. The only thing with stamina in a league match, and not part of the tier ladder.", key:"Name"},
-"ClassInfo.csv":{what:"Which classes exist, and their blurb on the class-select screen.", key:"Class", enums:{Hidden:YN},
+"ClassInfo.csv":{what:"Which classes exist, their blurb on the class-select screen, and the drawn Team Symbol on the line-up banner.", key:"Class", enums:{Hidden:YN},
   help:"<b>Class</b> must match the Unit Type column of your cards. A <b>Requires</b> that does not pass keeps the class off the screen entirely; <b>Hidden</b> removes it without deleting its cards."},
 "ScratchNames.csv":{what:"First and second halves of a name, combined at random to christen a pick-up side.", key:null},
 
