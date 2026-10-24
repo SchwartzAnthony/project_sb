@@ -108,9 +108,10 @@ func _ready() -> void:
 
 	var panel := PanelContainer.new()
 	var plate := StyleBoxFlat.new()
-	# The see-through black every word in the game sits on, a little darker
-	# here because it carries whole sentences over a busy pitch.
-	plate.bg_color = Color(0, 0, 0, maxf(TextBackdrop.alpha(), 0.8))
+	# 24 Oct 2026 (Anthony: "make the background for the text and image
+	# solid black"). Solid black behind the words and the face; Tuning.csv
+	# dialogue_box_alpha (1 = solid).
+	plate.bg_color = Color(0, 0, 0, MenuSupport.tuned("dialogue_box_alpha", 1.0))
 	plate.set_corner_radius_all(6)
 	plate.content_margin_left = 24
 	plate.content_margin_right = 24
