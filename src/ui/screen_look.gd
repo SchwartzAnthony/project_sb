@@ -245,8 +245,6 @@ static func _dress(button: Button, row: Dictionary) -> void:
 	for label in button.find_children("*", "Label", true, false):
 		(label as Label).add_theme_color_override("font_outline_color", Color("2a1608"))
 		(label as Label).add_theme_constant_override("outline_size", 5)
-	# A thinner black ring round the words on wood (Tuning text_outline_plank).
-	InkOutline.thin(button)
 
 	var hover := MenuSupport.field(row, "Hover Sound", "menu_hover").strip_edges()
 	var press := MenuSupport.field(row, "Press Sound", "menu_click").strip_edges()

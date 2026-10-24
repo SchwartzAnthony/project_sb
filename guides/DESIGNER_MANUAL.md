@@ -8423,9 +8423,6 @@ which every screen and the match pass through:
    signs, the team sheet notes) stay plain: anything darker than
    `text_outline_dark_limit` (0.3) gets no border, because a black ring
    round a dark letter only blurs it.
-   Words on the wooden plank buttons (menus, windows, the EXHAUST ZONE
-   sign) get a thinner ring, `text_outline_plank` (3), so they do not
-   shout (your note, 24 Oct).
 
 
 ## The Match Maker, and two tabs gone (round AN)

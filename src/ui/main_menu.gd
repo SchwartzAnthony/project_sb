@@ -478,7 +478,6 @@ func _make_button(label: String, art_path: String, box: Vector2, label_on_art: b
 			button.add_theme_color_override("font_pressed_color", Color("dddddd"))
 			button.add_theme_color_override("font_outline_color", Color("2a1608"))
 			button.add_theme_constant_override("outline_size", 7)
-			InkOutline.thin(button)
 			button.texture_filter = _menu_filter()
 			return button
 	if art_path != "" and ResourceLoader.exists(art_path):
