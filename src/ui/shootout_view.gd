@@ -1,6 +1,10 @@
 class_name ShootoutView
 extends CanvasLayer
 
+## Loaded by path, not by its class name (an editor that has not re-scanned
+## since a pull would not know the name - see match_coach.gd).
+const HOLD_PAUSE := preload("res://src/core/hold_pause.gd")
+
 # =============================================================
 #  THE SHOOTOUT CUT-AWAY
 #
@@ -472,6 +476,8 @@ func _input(event: InputEvent) -> void:
 		return
 	var click := event as InputEventMouseButton
 	if click != null and click.pressed:
+		if HOLD_PAUSE.is_hold_event(click):
+			return   # ROUND AN (24 Oct): right click is hold-to-pause
 		skip()
 		return
 	var key := event as InputEventKey

@@ -100,7 +100,14 @@ static func _register(action: String, entry: Dictionary) -> void:
 		InputMap.erase_action(action)
 	InputMap.add_action(action)
 
-	var code := key_from_text(String(entry["key"]))
+	# ROUND AN (24 Oct): a mouse button can be the key too - "Right Mouse".
+	var mouse := mouse_from_text(String(entry["key"]))
+	if mouse != MOUSE_BUTTON_NONE:
+		var click := InputEventMouseButton.new()
+		click.button_index = mouse
+		InputMap.action_add_event(action, click)
+
+	var code := key_from_text(String(entry["key"])) if mouse == MOUSE_BUTTON_NONE else KEY_NONE
 	if code != KEY_NONE:
 		var press := InputEventKey.new()
 		press.physical_keycode = code
@@ -111,6 +118,14 @@ static func _register(action: String, entry: Dictionary) -> void:
 		var pad := InputEventJoypadButton.new()
 		pad.button_index = button as JoyButton
 		InputMap.action_add_event(action, pad)
+
+	# The triggers are axes, not buttons: pressed = pushed past half way.
+	var trigger := trigger_from_text(String(entry["button"]))
+	if trigger != JOY_AXIS_INVALID:
+		var pull := InputEventJoypadMotion.new()
+		pull.axis = trigger
+		pull.axis_value = 1.0
+		InputMap.action_add_event(action, pull)
 
 
 ## The bare minimum, used only if Keys.csv cannot be read at all. It keeps
@@ -274,9 +289,27 @@ static func button_from_text(text: String) -> int:
 		"dpad down":                         return JOY_BUTTON_DPAD_DOWN
 		"dpad left":                         return JOY_BUTTON_DPAD_LEFT
 		"dpad right":                        return JOY_BUTTON_DPAD_RIGHT
-	# Triggers are axes rather than buttons on most pads, so they are not
-	# bound here. A row asking for one is simply left without a button.
+	# Triggers are axes rather than buttons on most pads - see
+	# trigger_from_text below.
 	return -1
+
+
+## ROUND AN (24 Oct): "Left Trigger", "Right Trigger" (LT/RT, L2/R2).
+static func trigger_from_text(text: String) -> JoyAxis:
+	match text.strip_edges().to_lower():
+		"left trigger", "lt", "l2":         return JOY_AXIS_TRIGGER_LEFT
+		"right trigger", "rt", "r2":        return JOY_AXIS_TRIGGER_RIGHT
+	return JOY_AXIS_INVALID
+
+
+## ROUND AN (24 Oct): "Right Mouse", "Left Mouse", "Middle Mouse" in the
+## Default Key column. Anything else is a keyboard key.
+static func mouse_from_text(text: String) -> MouseButton:
+	match text.strip_edges().to_lower():
+		"right mouse", "right click", "mouse right":     return MOUSE_BUTTON_RIGHT
+		"left mouse", "left click", "mouse left":        return MOUSE_BUTTON_LEFT
+		"middle mouse", "middle click", "mouse middle":  return MOUSE_BUTTON_MIDDLE
+	return MOUSE_BUTTON_NONE
 
 
 ## THE CONTROLLER'S A ALSO ACCEPTS (24 Oct 2026, found playing the Tutorial

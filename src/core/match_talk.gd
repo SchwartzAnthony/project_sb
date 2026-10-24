@@ -48,6 +48,12 @@ extends RefCounted
 #    shot_done            the shot is over (goal or miss), before the restart
 #    keeper_drain         an ability's drain is on show in the keeper's window,
 #                         the stamina just taken off (Tier = the draining card's)
+#    ability_fired        one of YOUR players' abilities has just gone off in
+#                         a duel (round AN, 24 Oct)
+#
+#  ROUND AN (24 Oct) - one more optional column:
+#    Player    only when this player is the one it is about (ability_fired:
+#              whose ability went off). Blank = anyone.
 #
 #  The first row that fits a moment plays; one box at a time.
 # =============================================================
@@ -90,6 +96,7 @@ static func _load() -> void:
 			"tier": MenuSupport.field(row, "Tier").strip_edges().to_upper(),
 			"highlight": MenuSupport.field(row, "Highlight").strip_edges(),
 			"do": MenuSupport.field(row, "Do").strip_edges(),
+			"player": MenuSupport.field(row, "Player").strip_edges().to_lower(),
 		})
 
 
@@ -137,6 +144,8 @@ static func row_for(event: String, mode_id: String, state: GameState,
 		if String(row["round"]) != "" and String(row["round"]) != str(facts.get("round", "")):
 			continue
 		if String(row["tier"]) != "" and String(row["tier"]) != String(facts.get("tier", "")).to_upper():
+			continue
+		if String(row["player"]) != "" and String(row["player"]) != String(facts.get("player", "")).strip_edges().to_lower():
 			continue
 		if not names.has(String(row["scene"])):
 			continue

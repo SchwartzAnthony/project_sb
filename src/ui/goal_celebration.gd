@@ -1,6 +1,10 @@
 class_name GoalCelebration
 extends CanvasLayer
 
+## Loaded by path, not by its class name (an editor that has not re-scanned
+## since a pull would not know the name - see match_coach.gd).
+const HOLD_PAUSE := preload("res://src/core/hold_pause.gd")
+
 # =============================================================
 #  THE CONFETTI AND THE WINDOW
 #
@@ -240,7 +244,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	var click := event as InputEventMouseButton
 	var key := event as InputEventKey
-	var pressed := (click != null and click.pressed) \
+	var pressed: bool = (click != null and click.pressed and not HOLD_PAUSE.is_hold_event(click)) \
 		or (key != null and key.pressed and not key.echo \
 			and key.keycode in [KEY_SPACE, KEY_ESCAPE, KEY_ENTER, KEY_KP_ENTER])
 	if not pressed:

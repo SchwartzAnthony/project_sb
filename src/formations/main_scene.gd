@@ -1,5 +1,9 @@
 extends Node2D
 
+## Loaded by path, not by its class name (an editor that has not re-scanned
+## since a pull would not know the name - see match_coach.gd).
+const HOLD_PAUSE := preload("res://src/core/hold_pause.gd")
+
 # =============================================================
 #  MAIN SCENE — match clock, drafting, spawning, round resolution
 #
@@ -509,6 +513,8 @@ func _ready() -> void:
 	spawn_pause_menu()
 	_place_card_row()
 	coach = MatchCoach.attach(self)
+	# ROUND AN (24 Oct): hold right click (Keys.csv hold_pause) to stop and read.
+	HOLD_PAUSE.attach(self)
 
 	# A match is not somewhere Back should ever return you to, so the trail
 	# of screens is wiped at kick-off. Without this, Back on the season table
