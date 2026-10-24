@@ -8265,6 +8265,10 @@ full colour; everyone else is drained of colour, and a spent player is also
 dark. `pitch_sprite_rest_saturation` (0 = fully grey, 1 = full colour) and
 `pitch_sprite_rest_brightness` set how strong it is.
 
+**Switched off, 24 Oct** (Anthony: stop greying out players during
+combat). `play_maker_grey_others` is `false`, so during a Play Maker every
+player keeps their own colour. Set it to `true` to bring the grey back.
+
 **Only during a Play Maker** (Anthony, 8 Oct). The grey goes on at the
 **PLAY MAKER!** call and comes off when that round's shot is over (and at
 every Star swap). The rest of the time **everyone is in full colour**, spent
