@@ -1,4 +1,5 @@
-"""THE BREWERY'S CHALK BOARD (24 Oct 2026, Anthony picked look B:
+"""THE BREWERY'S CHALK BOARD (24 Oct 2026, Anthony picked look B; ink edges
+thinned the same day, "so large and intense make it smaller":
 "B please ... but not on a wooden plank ... on a board").
 
 Draws, for free, the pieces of the stock bar at the top of the Brewery:
@@ -49,8 +50,8 @@ def board(w=640, h=170, frame=22):
     # mitred corners
     for (x0, y0, x1, y1) in [(0, 0, frame, frame), (w - 1, 0, w - 1 - frame, frame),
                              (0, h - 1, frame, h - 1 - frame), (w - 1, h - 1, w - 1 - frame, h - 1 - frame)]:
-        d.line([(x0, y0), (x1, y1)], fill=INK, width=3)
-    d.rounded_rectangle((1, 1, w - 2, h - 2), 12, outline=INK, width=6)
+        d.line([(x0, y0), (x1, y1)], fill=INK, width=2)
+    d.rounded_rectangle((1, 1, w - 2, h - 2), 12, outline=INK, width=3)
     # highlight along the top of the frame
     d.line([(14, 6), (w - 14, 6)], fill=(206, 146, 84, 255), width=3)
     # the slate
@@ -66,7 +67,7 @@ def board(w=640, h=170, frame=22):
     slate.alpha_composite(smudge.filter(ImageFilter.GaussianBlur(12)))
     img.alpha_composite(slate, (sx0, sy0))
     d = ImageDraw.Draw(img)
-    d.rectangle((sx0, sy0, sx1, sy1), outline=INK, width=5)
+    d.rectangle((sx0, sy0, sx1, sy1), outline=INK, width=3)
     # a few nails in the frame corners
     for (x, y) in [(11, 11), (w - 12, 11), (11, h - 12), (w - 12, h - 12)]:
         d.ellipse((x - 4, y - 4, x + 4, y + 4), fill=(170, 170, 160, 255), outline=INK, width=2)
