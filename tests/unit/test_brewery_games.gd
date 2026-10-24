@@ -111,6 +111,19 @@ func test_hold_wins_in_the_gold_and_spills_over_the_top() -> void:
 	assert_true(spill._over and not spill._won, "held past the top")
 
 
+## 24 Oct 2026 (Anthony): the gold band gets a little smaller after each beer.
+func test_the_gold_band_shrinks_a_little_each_bottle() -> void:
+	var view := _game("bottling", false)
+	var first := view.pour_tolerance()
+	view.s["done"] = 1
+	var second := view.pour_tolerance()
+	view.s["done"] = 5
+	var sixth := view.pour_tolerance()
+	assert_lt(second, first, "smaller after one bottle")
+	assert_gt(second, first * 0.85, "but not by much")
+	assert_gt(sixth, first * 0.5, "the last bottle can still be filled")
+
+
 func test_an_overflowing_bottle_spoils_it() -> void:
 	var view := _game("bottling", false)
 	view.press()

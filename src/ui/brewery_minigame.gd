@@ -453,8 +453,16 @@ func _tick_fire(delta: float) -> String:
 
 # ---- CONVEYOR ----
 
+## The gold band round the line: the row's Zone for this brewer, a little
+## narrower after every bottle filled (24 Oct 2026, Anthony: "after each beer
+## make the yellow ok limit a little bit smaller, not by much";
+## Tuning.csv bottling_zone_shrink).
 func pour_tolerance() -> float:
-	return float(game.get("zone", 0.1)) * (0.4 + 0.6 * skill())
+	var shrink := 0.93
+	var db := CardDatabase.get_db()
+	if db != null:
+		shrink = clampf(db.tune_float("bottling_zone_shrink", 0.93), 0.5, 1.0)
+	return float(game.get("zone", 0.1)) * (0.4 + 0.6 * skill()) * pow(shrink, int(s.get("done", 0)))
 
 
 func _tick_conveyor(delta: float) -> String:
