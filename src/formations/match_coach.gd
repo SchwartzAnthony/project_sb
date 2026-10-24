@@ -534,7 +534,8 @@ func drink_lesson(spec: String) -> void:
 		print("[match talk] drink lesson: the bag is open, gold on %d of %s." % [tiles.size(), item_id])
 		var layer_now := main.get_node_or_null("DrinkLessonGold") as CanvasLayer
 		if layer_now != null:
-			_gold_on(layer_now, tiles)
+			# Anthony, 24 Oct: no pretzels on the beers you pick from.
+			_gold_on(layer_now, tiles, false)
 		bag.tree_exited.connect(func() -> void:
 			# Closed without using it: back to his bag button.
 			var still := main.get_node_or_null("DrinkLessonGold") as CanvasLayer
@@ -641,13 +642,14 @@ func _lock_all_but(target: PlayerCardUI) -> void:
 		(card as PlayerCardUI).set_locked(card != target)
 
 
-func _gold_on(layer: CanvasLayer, controls: Array) -> void:
+## `pretzel` false: the gold line without its pretzel (the beers in the bag).
+func _gold_on(layer: CanvasLayer, controls: Array, pretzel: bool = true) -> void:
 	for child in layer.get_children():
 		child.queue_free()
 	var spots: Array = []
 	for control in controls:
 		if control != null and is_instance_valid(control) and (control as Control).is_visible_in_tree():
-			spots.append({"rect": (control as Control).get_global_rect(), "ring": false})
+			spots.append({"rect": (control as Control).get_global_rect(), "ring": false, "pretzel": pretzel})
 	if not spots.is_empty():
 		layer.add_child(MatchTalkBox.CoachSpots.make(spots))
 
