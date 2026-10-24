@@ -1384,7 +1384,7 @@ Every figure is the drawn sprite that player wears on the pitch, so a
 transformed player (a brew on him) looks here exactly as he will play. The
 HUD and the keepers' save odds are hidden while it runs.
 
-**It can always be skipped.** The yellow **SKIP** plank bottom right, or
+**It can always be skipped.** The blue **SKIP** button in the bottom middle, or
 space, enter or escape, goes straight to the countdown.
 
 | Tuning row | |
