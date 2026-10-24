@@ -1827,6 +1827,13 @@ winner's half rushes into the loser's, the same burst says KRACH! where they
 meet, the loser spins off the side of the screen and the winner slides to the
 middle. A draw skips it.
 
+**The sounds (24 Oct 2026).** Both crashes have a sound in the band style,
+made for free by `tools/make_bavarian_sfx.py`: `Audio.csv` `duel_clash`
+(`bav_mat_clash`: a cardboard slap, the big drum and the cymbal) and
+`duel_knock` (`bav_knock_away`: a punch, drum and cymbal, then a trombone
+sliding down as the loser flies away). Each row has a Suno slot like the
+other duel sounds.
+
 | Tuning row | |
 |---|---|
 | `duel_flip_style` | `clash` = the beer mats; `card` = the old card back |

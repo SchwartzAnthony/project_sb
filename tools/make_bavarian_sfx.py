@@ -1420,6 +1420,20 @@ def s_moo():
     return moo()
 
 
+def s_mat_clash():
+    "Duel start (24 Oct): two beer mats crash together - a cardboard slap, the band's big drum and its cymbal."
+    band = sf([(0, "kit", KICK, 120, 0.3), (0, "kit", CRASH, 105, 0.9), (0, "punch", "C4", 95, 0.15),
+               (0, "bassdrum", "C3", 110, 0.3)], tail=0.6, room=0.12)
+    return mix([(0, band, 1.0), (0, leather(0.05, 1.0, 500, 2600), 0.6), (0.005, woodblock(420, 0.08, 0.8), 0.35)])
+
+
+def s_knock_away():
+    "Duel end (24 Oct): the winner knocks the loser off the screen - a punch, the big drum and cymbal, then a trombone sliding down as it flies away."
+    band = sf([(0, "punch", "C4", 110, 0.2), (0, "kit", KICK, 125, 0.3), (0, "kit", CRASH, 80, 0.6),
+               (0, "bassdrum", "C3", 115, 0.35), (0.1, "trombone", "F3", 125, 0.6, -12)], tail=0.5, room=0.12)
+    return mix([(0, band, 1.0), (0, leather(0.05, 1.0, 500, 2600), 0.5)])
+
+
 # Which version of each sound the game uses - Anthony's picks on the sound
 # board (8 Oct). "classic" = take 1, all synthesized (the c_ functions);
 # "band" = take 3, real instruments from the soundfont (the s_ functions).
@@ -1482,6 +1496,8 @@ PICKS = {
     "bav_birds": "band",
     "bav_moo": "band",
     "bav_burp": "classic",
+    "bav_mat_clash": "band",
+    "bav_knock_away": "band",
 }
 SOUNDS = {name: globals()[("c_" if kind == "classic" else "s_") + name[4:]] for name, kind in PICKS.items()}
 
