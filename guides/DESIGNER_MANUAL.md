@@ -1901,6 +1901,10 @@ other duel sounds.
 | `duel_back_seconds` | held face down before they turn. `0.8` |
 | `duel_knock` | `false` and the two halves stay put at the end |
 | `duel_knock_hit_seconds` / `_fly_seconds` / `_centre_seconds` / `_hold_seconds` | the rush, the loser flying off, the winner to the middle, the winner held alone |
+| `duel_knock_large_from` / `_mega_from` | how hard the slam is, by what the duel was won by (winner's power minus loser's): under `3` SMALL, `3`+ LARGE, `5`+ MEGA |
+| `duel_knock_small_burst` / `_large_burst` / `_mega_burst` | how big KRACH! is for each slam. `0.7` / `1` / `1.35` |
+| `duel_knock_small_shake` / `_large_shake` / `_mega_shake` | how hard the window shudders, in pixels. `10` / `20` / `34` |
+| `duel_knock_mega_screen_shake` / `_mega_screen_seconds` | MEGA only: the whole screen shakes, pitch and all. `30` pixels for `0.6` s; `0` turns it off |
 
 The pictures are drawn for free by `tools/art/draw_duel_mats.py` from the
 beer mat card frame. The numeral, TIER and KRACH! are written by the game

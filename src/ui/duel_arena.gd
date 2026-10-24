@@ -372,7 +372,9 @@ func play_duel(info: Dictionary) -> void:
 	# the screen and takes the middle - the same crash as the start.
 	var right_wins := bool(right.get("wins", false))
 	if left_wins != right_wins and (db == null or db.tune_bool("duel_knock", true)):
-		await _knock_away("left" if left_wins else "right")
+		# Anthony, 24 Oct 2026: the slam grows with what it was won by.
+		var margin := absi(int(left.get("power_after", 0)) - int(right.get("power_after", 0)))
+		await _knock_away("left" if left_wins else "right", margin)
 	await _coach("duel_result")
 
 	_ring("left", false)
@@ -919,9 +921,34 @@ func _inked_word(on: Control, words: String, middle: Vector2, box: Vector2,
 #      duel_knock_fly_seconds       the loser flying off the screen
 #      duel_knock_centre_seconds    the winner sliding to the middle
 #      duel_knock_hold_seconds      the winner held alone in the middle
+#
+#  HOW HARD (Anthony, 24 Oct 2026): "1+ a small slam, 3+ a large slam, and
+#  5+ a mega slam that shakes the whole screen." The margin is the winner's
+#  final power minus the loser's.
+#
+#      duel_knock_large_from        won by this much or more = LARGE
+#      duel_knock_mega_from         won by this much or more = MEGA
+#      duel_knock_<size>_burst      how big the KRACH! burst is (1 = large)
+#      duel_knock_<size>_shake      how hard the window shudders, in pixels
+#      duel_knock_mega_screen_shake MEGA only: the whole screen shakes
+#      duel_knock_mega_screen_seconds  ... for this long
 # =============================================================
 
-func _knock_away(winner_key: String) -> void:
+## "small", "large" or "mega" for a win by `margin`.
+func knock_size(margin: int) -> String:
+	var large_from := 3
+	var mega_from := 5
+	if db != null:
+		large_from = db.tune_int("duel_knock_large_from", large_from)
+		mega_from = db.tune_int("duel_knock_mega_from", mega_from)
+	if margin >= mega_from:
+		return "mega"
+	if margin >= large_from:
+		return "large"
+	return "small"
+
+
+func _knock_away(winner_key: String, margin: int = 1) -> void:
 	var loser_key := "right" if winner_key == "left" else "left"
 	var winner := _side_panel(winner_key)
 	var loser := _side_panel(loser_key)
@@ -938,10 +965,17 @@ func _knock_away(winner_key: String) -> void:
 		centre = maxf(0.05, db.tune_float("duel_knock_centre_seconds", centre))
 		hold = maxf(0.0, db.tune_float("duel_knock_hold_seconds", hold))
 		burst_w = maxf(60.0, db.tune_float("duel_clash_burst_width", burst_w))
+	# How hard: the burst, the shudder, and how far and fast the loser goes.
+	var slam := knock_size(margin)
+	var burst: float = {"small": 0.7, "large": 1.0, "mega": 1.35}[slam]
+	var shudder: float = {"small": 10.0, "large": 20.0, "mega": 34.0}[slam]
+	if db != null:
+		burst = maxf(0.1, db.tune_float("duel_knock_%s_burst" % slam, burst))
+		shudder = maxf(0.0, db.tune_float("duel_knock_%s_shake" % slam, shudder))
 	_build_clash()
 	for key in _mats.keys():
 		(_mats[key] as Control).visible = false
-	_dress_burst("", burst_w * 0.75)
+	_dress_burst("", burst_w * 0.75 * burst)
 
 	# Which way the loser goes: off its own side of the screen.
 	var away := 1.0 if winner_key == "left" else -1.0
@@ -980,14 +1014,16 @@ func _knock_away(winner_key: String) -> void:
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	out.tween_property(_burst, "rotation", 0.0, 0.22) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	out.tween_property(loser, "position", loser_home + Vector2(away * _dim.size.x, -120.0), fly) \
+	out.tween_property(loser, "position", loser_home + Vector2(away * _dim.size.x, -120.0 * burst), fly) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	out.tween_property(loser, "rotation", deg_to_rad(28.0 * away), fly) \
+	out.tween_property(loser, "rotation", deg_to_rad(28.0 * away * burst), fly) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	var middle_x := (_panels.size.x - winner.size.x) * 0.5
 	out.tween_property(winner, "position:x", middle_x, centre) \
 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).set_delay(0.12)
-	_shake(_clash, maxf(hl_shake_pixels, 14.0))
+	_shake(_clash, shudder)
+	if slam == "mega":
+		_shake_whole_screen()
 	await _beat(maxf(fly, centre + 0.12))
 	if not _running:
 		return
@@ -1001,8 +1037,45 @@ func _knock_away(winner_key: String) -> void:
 	await _beat(hold)
 
 
+## MEGA slam: everything on the screen shakes, the pitch behind too. The
+## picture is zoomed in a touch while it shakes so no edge ever shows.
+## juice_scale in Tuning.csv turns it down like every other screen shake.
+func _shake_whole_screen() -> void:
+	var pixels := 30.0
+	var seconds := 0.6
+	if db != null:
+		pixels = maxf(0.0, db.tune_float("duel_knock_mega_screen_shake", pixels)) \
+				* maxf(0.0, db.tune_float("juice_scale", 1.0))
+		seconds = maxf(0.05, db.tune_float("duel_knock_mega_screen_seconds", seconds))
+	var vp := get_viewport()
+	if vp == null or pixels <= 0.0:
+		return
+	var screen := vp.get_visible_rect().size
+	var zoom := 1.0 + (pixels * 2.2) / maxf(1.0, minf(screen.x, screen.y))
+	var steps := maxi(4, int(seconds / 0.035))
+	var quake := create_tween()
+	quake.set_speed_scale(_rate())
+	for i in steps:
+		var fall := 1.0 - float(i) / float(steps)
+		var nudge := Vector2(randf_range(-1.0, 1.0), randf_range(-0.7, 0.7)) * pixels * fall
+		var grow := 1.0 + (zoom - 1.0) * fall
+		quake.tween_callback(func() -> void:
+			if is_instance_valid(vp):
+				vp.global_canvas_transform = Transform2D(0.0, Vector2.ONE * grow, 0.0,
+						screen * 0.5 * (1.0 - grow) + nudge))
+		quake.tween_interval(seconds / steps)
+	quake.tween_callback(_still_screen)
+
+
+func _still_screen() -> void:
+	var vp := get_viewport()
+	if vp != null:
+		vp.global_canvas_transform = Transform2D.IDENTITY
+
+
 ## Both halves back where the window keeps them, for the next duel.
 func _knock_reset() -> void:
+	_still_screen()
 	for key in ["left", "right"]:
 		var panel := _side_panel(key)
 		if panel == null:
