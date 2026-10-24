@@ -2,7 +2,9 @@
 
 Free, no AI: the pretzel is one rope drawn along a spline with thick black
 ink, flat baked colours and salt, at 4x and shrunk so the lines stay crisp.
-Used by the duel highlight and the tutorial (Tuning.csv duel_hl_box_art).
+Used by the duel highlight and the tutorial: duel_pretzel_ink.png is the one
+pretzel shown on each side (Tuning.csv duel_hl_side_art, 24 Oct);
+duel_box_ink.png the older four-corner box (duel_hl_box_art).
 
     python3 tools/art/draw_pretzel_box.py
 """
@@ -12,6 +14,7 @@ from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "assets/ui/duel/duel_box_ink.png"
+OUT_ONE = ROOT / "assets/ui/duel/duel_pretzel_ink.png"
 SS = 4                      # supersample
 PRETZEL = 96                # pretzel width on screen (1920 x 1080)
 MARGIN = 88                 # Tuning duel_hl_box_margin
@@ -124,6 +127,9 @@ def main():
     tex = tex.resize((SIZE, SIZE), Image.LANCZOS)
     tex.save(OUT)
     print("wrote", OUT, tex.size)
+    one = base.resize((base.width // SS, base.height // SS), Image.LANCZOS)
+    one.save(OUT_ONE)
+    print("wrote", OUT_ONE, one.size)
 
 
 if __name__ == "__main__":

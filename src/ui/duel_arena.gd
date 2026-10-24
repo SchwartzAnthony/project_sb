@@ -964,6 +964,15 @@ func _box(key: String, on: bool) -> void:
 	if hl_box_art == null or not on:
 		return
 
+	# ONE PRETZEL ON EACH SIDE (24 Oct), as in the tutorial.
+	for old in ["PretzelLeft", "PretzelRight"]:
+		var gone := box.get_node_or_null(old)
+		if gone != null:
+			box.remove_child(gone)
+			gone.queue_free()
+	if MatchTalkBox.CoachSpots.add_sides(box, Rect2(Vector2.ZERO, box.size)):
+		return
+
 	# THE ART: the four pretzel corners, stretched round the plate as a
 	# nine-patch at duel_hl_art_scale (pixel art stays big and square; at 1
 	# the inked art is drawn smooth). duel_hl_box_overhang pushes the
