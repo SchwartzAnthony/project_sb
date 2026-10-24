@@ -637,6 +637,34 @@ All of it is in **`data/CardFace.csv`**:
 The empty frame is `art_tool/rounds/r187/out/r187-beermat-empty.png`; the
 card tool for pictures and GIFs is `art_tool/cards/beermat_card.py`.
 
+## 6d. The keepers and the shot window (24 Oct 2026)
+
+Anthony: "sprites for the goalies" and "a goalie window update in our new art
+and not just being empty boxes". Paid round rgk1 (option B, $0.64): the round
+11 yellow keeper, one side-on still and one front dive still, a Kling clip of
+him swaying and a Kling clip of him diving, all on flat magenta.
+
+**On the pitch** every keeper with no `Artwork` in `data/Goalies.csv` is this
+drawn keeper, swaying on the spot: yours in yellow, theirs in a green kit
+(a free colour swap), mirrored to face the pitch. `data/GoalieLook.csv` has
+the two strips, how many pictures they hold, how fast he sways and how tall
+he is. An `Artwork` in Goalies.csv still wins.
+
+**The shot window** (YOU SHOOT / THEY SHOOT, and an ability draining a keeper)
+is a cream beer mat window like the Inventory: the title on the wooden board,
+shot power and chance of a goal on beer coasters, keeper stamina as a beer,
+the keeper ready in the village goal (he dives when the ball is struck), the
+shooter running in from the side, the words on a small cream panel and a blue
+SKIP plank. Your shot is at their (green) keeper, theirs at your (yellow) one.
+Everything is a row of `data/ShootoutLook.csv`; `style old` brings back the
+dark window. A `Shootout Artwork` in Goalies.csv still wins over the drawn
+keeper.
+
+Pictures: `tools/make_keeper_sheets.py` cuts `art_source/keeper/*.mp4` into
+`assets/players/keeper/`; `tools/make_shootout_pieces.py` makes the panels and
+the village goal in `assets/ui/shootout/`. Photos: `tools/keeper_shot.gd`,
+film of the dive: `tools/keeper_dive_shot.gd`.
+
 ## 7. The league match
 
 `src/formations/main_scene.gd` runs it. Nothing in that file names a card, a
@@ -1345,13 +1373,20 @@ check.
 
 Two things now, both loud:
 
-1. **The call.** The moment the clash decides, the word lands across the
-   middle of the pitch in its own colour for `side_call_seconds`.
-2. **The banner.** And then it *stays* — a strip pinned above the row of
-   cards for the whole draft, saying which tier you are choosing and which
-   way round you are, in the same colour and the same words. Under it, in
-   small letters, the reason it matters: *"their defence is what beats you —
-   pick on ATTACK."*
+1. **The call.** The moment the clash decides, *YOU ARE ATTACKING* or *YOU
+   ARE DEFENDING* pops up in the middle of the pitch on a big flag for
+   `side_call_seconds`.
+2. **The banner.** And then it *stays*: a flag pinned above the row of cards
+   for the whole draft. **Red cloth = attacking, blue cloth = defending**, the
+   word centred on the cloth, the tier on a cream patch by the pole.
+
+**The flag (24 Oct 2026).** Anthony picked look B, the waving flag on a pole,
+from four free drafts (`/mnt/project-files/art_tool/side_banner/`), without
+the small line that used to sit under the word. The pictures have no words on
+them; the game writes the words, so `Language.csv` still decides them. The
+pictures live in `assets/ui/side_banner/` (`flag_attack.png`,
+`flag_defend.png`, and the `_plain` ones without the patch for the call).
+Leave a picture row blank in Tuning and the old dark strip comes back.
 
 It is hidden for the two Star phases, because swapping who is on the pitch is
 a different kind of choice and is not answering anybody.
@@ -1364,6 +1399,11 @@ attack, cool for defence. Learn them here, read them there.
 | `side_call` | `false` drops the big word and keeps only the banner |
 | `side_call_seconds` | how long the call is held. `1.3` |
 | `side_banner_lift` | how far above the card row the strip sits, in pixels. `150` |
+| `side_banner_width` | how wide the flag is, in pixels. The height follows the picture. `640` |
+| `side_banner_top_gap` | the flag never goes higher than this from the top of the window. `4` |
+| `side_banner_art_attack` / `side_banner_art_defend` | the red and the blue flag of the strip |
+| `side_call_width` | how wide the big flag of the call is. `1100` |
+| `side_call_art_attack` / `side_call_art_defend` | the red and the blue flag of the call (no patch) |
 
 The words themselves are `attacking` and `defending` in `Language.csv`.
 
@@ -2601,6 +2641,7 @@ each check, slowly enough to follow:
 | `Tuning.csv` `duel_hl` | false turns the highlights off |
 | `Tuning.csv` `duel_hl_*_seconds` | how long each step is held, including the +1 sliding in (`duel_hl_bonus_*`) |
 | `Tuning.csv` `duel_hl_colour` | the gold |
+| `Tuning.csv` `role_colour_attack` / `role_colour_defend` | red attacks, blue defends (24 Oct): the border round each card in the duel follows its role, and the ATTACK / DEFEND lines in the card hover window use the same two colours |
 | `Language.csv` `duel_ability_priority`, `duel_power_check` | the words |
 | `Tuning.csv` `duel_hl_ring_art`, `duel_hl_box_art` | the ring art (blank for now: a plain gold circle) and the pretzel-corner box (24 Oct: `duel_box_ink.png`, a whole inked pretzel in each corner, drawn free by `tools/art/draw_pretzel_box.py`; the same box is the tutorial's gold highlight) |
 | `Tuning.csv` `duel_hl_art_scale`, `duel_hl_box_margin`, `duel_hl_box_overhang` | how big the art's pixels are (1 for the inked box, 3 for old pixel art); where the box corners end; how far the pretzels reach out past the thing they mark. A box too small for two whole pretzels shrinks the art instead of cutting it |

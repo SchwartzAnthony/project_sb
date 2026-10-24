@@ -58,6 +58,10 @@ var _keeper_anim: SpriteAnimator
 var _striker_anim: SpriteAnimator
 var _keeper_placeholder: ColorRect
 var _striker_placeholder: ColorRect
+## 24 Oct 2026: the beer mat look is on (data/ShootoutLook.csv style mat).
+var _mat := false
+## The drawn keeper standing in for a keeper with no Shootout Artwork.
+var _keeper_strip: ShootoutLook.KeeperStrip
 
 
 func _ready() -> void:
@@ -95,6 +99,15 @@ func _wire() -> void:
 	if _striker_stage:
 		_striker_stage.add_child(_striker_placeholder)
 		_striker_stage.add_child(_striker_anim)
+
+	# The beer mat window (data/ShootoutLook.csv). The drawn round-11 keeper
+	# stands in for a keeper with no Shootout Artwork; a shooter with no
+	# picture shows nothing rather than a box.
+	_mat = ShootoutLook.enabled()
+	if _mat:
+		ShootoutLook.apply(self)
+		_keeper_strip = ShootoutLook.dress_keeper_placeholder(_keeper_placeholder, _keeper_stage)
+		_striker_placeholder.color = Color(0, 0, 0, 0)
 
 
 ## ROUND AN: a part of the window by name, for the coach to point at.
@@ -169,6 +182,8 @@ func play_shot(info: Dictionary) -> void:
 		# side, and both are rows of Language.csv so they translate.
 		_title.text = Loc.text("you_shoot", "YOU SHOOT") if is_player \
 			else Loc.text("they_shoot", "THEY SHOOT")
+		if _mat:
+			ShootoutLook.show_title(self, _title.text)
 	if _caption:
 		_caption.text = card.player_name if card != null else "—"
 	if _shot_value:
@@ -192,7 +207,7 @@ func play_shot(info: Dictionary) -> void:
 		var shift := float(info.get("chance_shift", 0.0))
 		var percent := clampf(ShotOdds.chance(stamina, stamina_max, power) + shift, 0.0, 100.0)
 		_chance_value.text = "%d%%" % int(round(percent))
-		_chance_value.add_theme_color_override("font_color", ShotOdds.colour_for(percent))
+		_chance_value.add_theme_color_override("font_color", _chance_colour(percent))
 		if _chance_note:
 			# An empty keeper is not a probability any more, it is a fact, and
 			# it should read like one.
@@ -207,6 +222,8 @@ func play_shot(info: Dictionary) -> void:
 			if int(info.get("shield", 0)) > 0:
 				_chance_note.text += "   shield %d" % int(info.get("shield", 0))
 
+	# Your shot is at their keeper (green kit), theirs at yours (yellow).
+	ShootoutLook.dress_keeper_kit(_keeper_strip, is_player)
 	_dress_keeper(keeper_data)
 	_dress_striker(card, "idle")
 
@@ -263,6 +280,8 @@ func play_drain(info: Dictionary) -> void:
 
 	if _title:
 		_title.text = String(info.get("title", "")) if String(info.get("title", "")) != "" else "THE KEEPER"
+		if _mat:
+			ShootoutLook.show_title(self, _title.text)
 	if _caption:
 		var who: String = card.player_name if card != null else ""
 		var loss := after - before
@@ -272,6 +291,7 @@ func play_drain(info: Dictionary) -> void:
 		_shot_value.text = str(power)
 	_show_stamina(before, top)
 	_show_chance(before, top, power, shift)
+	ShootoutLook.dress_keeper_kit(_keeper_strip, bool(info.get("shooter_is_player", true)))
 	_dress_keeper(info.get("keeper_data"))
 	_dress_striker(card, "idle")
 
@@ -315,10 +335,15 @@ func _show_chance(stamina: int, top: int, power: int, shift: float) -> void:
 		return
 	var percent := clampf(ShotOdds.chance(stamina, top, power) + shift, 0.0, 100.0)
 	_chance_value.text = "%d%%" % int(round(percent))
-	_chance_value.add_theme_color_override("font_color", ShotOdds.colour_for(percent))
+	_chance_value.add_theme_color_override("font_color", _chance_colour(percent))
 	if _chance_note:
 		_chance_note.text = Loc.text("goal_is_open", "the goal is open") if stamina <= 0 \
 			else "%d of %d stamina left, at shot power %d" % [stamina, top, power]
+
+
+## On the cream window the chance is written in ink, like every number there.
+func _chance_colour(percent: float) -> Color:
+	return ShootoutLook.ink() if _mat else ShotOdds.colour_for(percent)
 
 
 func _dress_keeper(keeper_data) -> void:
@@ -337,22 +362,33 @@ func _play_keeper(keeper_data, anim_name: String) -> void:
 	var have_art := sheet != null and spec != null
 	if _keeper_placeholder:
 		_keeper_placeholder.visible = not have_art
+	if _keeper_strip and not have_art:
+		_keeper_strip.speed = _rate()
+		if anim_name == "keeper_dive":
+			_keeper_strip.dive()
+		else:
+			_keeper_strip.ready_pose()
 	if _keeper_anim:
 		_keeper_anim.visible = have_art
 		if have_art:
 			_keeper_anim.speed_scale = _rate()
 			_keeper_anim.play(sheet, spec)
-			_keeper_anim.fit_into(Vector2(520.0, 340.0))
+			_keeper_anim.fit_into(_keeper_stage.size if _mat and _keeper_stage else Vector2(520.0, 340.0))
 
 
 func _dress_striker(card, anim_name: String) -> void:
+	# On the beer mat window he runs up to the ball (seen from behind) while
+	# the numbers are read, rather than standing (ShootoutLook.csv striker_wait).
+	if _mat and anim_name == "idle":
+		anim_name = ShootoutLook.value("striker_wait", "run")
 	var spec: AnimSpec = null
 	var sheet: Texture2D = card.artwork if card != null else null
 	# ROUND AN: the striker's own pitch figure, seen from behind.
 	var pitch := PitchSprite.window_sheet(card as PlayerData) if card != null else null
 	if pitch != null:
 		sheet = pitch
-		spec = PitchSprite.window_spec(pitch, anim_name, 6)
+		spec = PitchSprite.window_spec(pitch, anim_name,
+			int(ShootoutLook.number("striker_direction", 0.0)) if _mat else 6)
 	elif db != null and card != null:
 		# A dedicated from-behind animation if you have drawn one, else the
 		# normal kick, else idle.
@@ -369,7 +405,7 @@ func _dress_striker(card, anim_name: String) -> void:
 		if have_art:
 			_striker_anim.speed_scale = _rate()
 			_striker_anim.play(sheet, spec)
-			_striker_anim.fit_into(Vector2(300.0, 220.0))
+			_striker_anim.fit_into(ShootoutLook.pair("striker_box", Vector2(460, 380)) if _mat else Vector2(300.0, 220.0))
 
 
 func _rate() -> float:
