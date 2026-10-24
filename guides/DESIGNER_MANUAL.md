@@ -3836,11 +3836,14 @@ to do the Tutorial?*
 The words are `Language.csv` `tutorial_offer_title`, `_text`, `_yes` and
 `_no`. `Tuning.csv tutorial_offer` false turns the question off.
 
-### Tutorial only (24 Oct, switched off again the same day)
+### Tutorial only (24 Oct): the Tutorial demo
 
-`Tuning.csv tutorial_only` is **false**: Play on a mug plays your own game.
-Set it to true and the game is **only the Tutorial**. Start, then Play on any beer mug, plays the Tutorial straight away:
-no question, no base of your own. When it ends, or you quit it, that save is
+`Tuning.csv tutorial_only` is **true** (Anthony, 24 Oct 18:38: "I am making a
+tutorial demo only"): the game never goes to a fresh game. Set it to false
+for the full game, where a new save asks the question above.
+
+Start, then Play on any beer mug, plays the Tutorial straight away: no
+question, no base of your own. When it ends, or you quit it, that save is
 deleted again and you are back on the main menu. A save that was already
 being played is kept, but Play on it still only plays the Tutorial.
 
