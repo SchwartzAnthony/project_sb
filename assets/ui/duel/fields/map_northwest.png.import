@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://t430j2kik1e7"
-path="res://.godot/imported/meadow.png-921e04f23019c09a4b3890e919cd2830.ctex"
+uid="uid://c6wrk88xenuap"
+path="res://.godot/imported/map_northwest.png-22737b9b86cc174e17d572974672867d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/duel/fields/meadow.png"
-dest_files=["res://.godot/imported/meadow.png-921e04f23019c09a4b3890e919cd2830.ctex"]
+source_file="res://assets/ui/duel/fields/map_northwest.png"
+dest_files=["res://.godot/imported/map_northwest.png-22737b9b86cc174e17d572974672867d.ctex"]
 
 [params]
 

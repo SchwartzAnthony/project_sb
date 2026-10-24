@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ilofdm4104kq"
-path="res://.godot/imported/far_village.png-b4adc05e0c2523c86aac5dcf22ec2f0c.ctex"
+uid="uid://bmyb0id0uapx"
+path="res://.godot/imported/map_north.png-6a4aee717193c09942271df505d49f97.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/duel/fields/far_village.png"
-dest_files=["res://.godot/imported/far_village.png-b4adc05e0c2523c86aac5dcf22ec2f0c.ctex"]
+source_file="res://assets/ui/duel/fields/map_north.png"
+dest_files=["res://.godot/imported/map_north.png-6a4aee717193c09942271df505d49f97.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dacbjf10jb6e1"
-path="res://.godot/imported/church_goal.png-c68e11a3993497182d72a313b39996f1.ctex"
+uid="uid://b84lrn248oevl"
+path="res://.godot/imported/map_west.png-a8aaf2549834f25a000922a35d29ecc7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/duel/fields/church_goal.png"
-dest_files=["res://.godot/imported/church_goal.png-c68e11a3993497182d72a313b39996f1.ctex"]
+source_file="res://assets/ui/duel/fields/map_west.png"
+dest_files=["res://.godot/imported/map_west.png-a8aaf2549834f25a000922a35d29ecc7.ctex"]
 
 [params]
 

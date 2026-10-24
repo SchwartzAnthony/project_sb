@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://jcmpb3l26wo7"
-path="res://.godot/imported/dorms_wall.png-6e8182e5890f7fd24dd676e698a9f96b.ctex"
+uid="uid://cnemjop016y72"
+path="res://.godot/imported/map_east.png-32a58632a4b87106aedce7e6c022ae0e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/duel/fields/dorms_wall.png"
-dest_files=["res://.godot/imported/dorms_wall.png-6e8182e5890f7fd24dd676e698a9f96b.ctex"]
+source_file="res://assets/ui/duel/fields/map_east.png"
+dest_files=["res://.godot/imported/map_east.png-32a58632a4b87106aedce7e6c022ae0e.ctex"]
 
 [params]
 

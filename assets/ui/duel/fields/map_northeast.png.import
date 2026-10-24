@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://haguskt6douj"
-path="res://.godot/imported/goal_corner.png-d5e051fcff2f6d31417396de05713dac.ctex"
+uid="uid://4d1bo4upn8rn"
+path="res://.godot/imported/map_northeast.png-5acaa0957705e3a826697f3b18afe6a0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/duel/fields/goal_corner.png"
-dest_files=["res://.godot/imported/goal_corner.png-d5e051fcff2f6d31417396de05713dac.ctex"]
+source_file="res://assets/ui/duel/fields/map_northeast.png"
+dest_files=["res://.godot/imported/map_northeast.png-5acaa0957705e3a826697f3b18afe6a0.ctex"]
 
 [params]
 
