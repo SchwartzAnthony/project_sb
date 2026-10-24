@@ -82,6 +82,7 @@ coin_spin_seconds,1.4,"How long the coin turns before it lands. It slows as it g
 coin_exact_words,CALLED IT!,"WHAT IT SAYS WHEN YOU NAME THE COIN EXACTLY. There are two ways to win the call and they are not the same thing - being nearer is arithmetic, naming the number is the moment worth leaning on, so it gets its own words and its own animation"
 coin_exact_them_words,THEY CALLED IT,The same when the enemy names it exactly
 coin_exact_seconds,0.9,How long the exact-call celebration is held before the clash carries on. Write a coin_exact row in Juice.csv to hang a sound on it
+coin_no_ai_exact_modes,tutorial;intro;intro2,"Anthony, 24 Oct. In these MatchModes.csv rows (split with ;) the AI never calls the number exactly - if the coin lands on their call, their face-down number quietly moves to another one. Blank = the AI can call it exactly everywhere"
 clash_backdrop_dim,0.55,"HOW DARK THE PITCH GOES BEHIND THE CLASH, 0 to 1. Only what is BEHIND the window - nothing inside the clash is touched by it. It was 0.72 and the pitch had all but vanished"
 enemy_attack_chance,0.5,Enemy odds of choosing ATTACK when it wins the clash
 rps_reveal_seconds,0.9,Pause on the clash reveal
