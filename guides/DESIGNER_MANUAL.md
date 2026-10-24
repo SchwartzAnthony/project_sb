@@ -618,6 +618,11 @@ a worn Bavarian beer mat. You chose it from your collector card photo.
   icon). On other screens the plank is empty.
 - A small **Tier window** at the top centre says TIER I to TIER IV.
 - The **number** in the bottle cap is his power (`cap_number`).
+- **Star players** have a gold inked **star** where the bottle cap is, with
+  the same number in its cream middle (24 Oct, Anthony: "have the circle be
+  replaced by a star of the same art style"). It is a second frame picture,
+  `assets/cards/beermat_frame_star.webp`, drawn for free by
+  `python3 tools/art/draw_star_cap.py` (needs `opencv-contrib-python-headless`).
 - The Star mark sits top right in the window for Stars.
 
 All of it is in **`data/CardFace.csv`**:
@@ -626,6 +631,7 @@ All of it is in **`data/CardFace.csv`**:
 |---|---|
 | `enabled` | `true` = beer mat card; `false` = the old dark card |
 | `frame` | the card picture (in `assets/cards/`); `signature` is empty now |
+| `star_frame` | the card picture for Star players (gold star instead of the cap); empty = Stars keep the cap |
 | `window`, `plank`, `cap`, `sign` | where each part is, as `x,y,w,h` shares of the frame (0 to 1) |
 | `runner_height`, `runner_feet`, `runner_speed` | how big the runner is, where his feet are, how fast he runs |
 | `cap_number` | `power` or `card_number` |

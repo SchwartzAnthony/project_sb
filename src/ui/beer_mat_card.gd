@@ -59,6 +59,10 @@ static func dress(button: Button, card: PlayerData, db: CardDatabase, box: Vecto
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 		button.add_theme_stylebox_override(state, clear)
 	var frame_tex := load(value("frame")) as Texture2D
+	# 24 Oct (Anthony): a Star player's card has a gold star where the
+	# bottle cap is (same number in it). CardFace.csv star_frame, empty = cap.
+	if card.is_star() and value("star_frame", "") != "" and ResourceLoader.exists(value("star_frame")):
+		frame_tex = load(value("star_frame")) as Texture2D
 	# The frame keeps its own shape, centred in the card's box.
 	var aspect := frame_tex.get_size().x / frame_tex.get_size().y
 	var size := Vector2(box.y * aspect, box.y)
