@@ -1228,12 +1228,24 @@ sign says who it is); it still shows next to START over the pitch.
 | `vs_sign_lift` | how far the name sign sits above the panel (`82`) |
 | `vs_versus_drawn` | the drawn mug shown twice between the teams |
 
-**Every match button is the blue plank too.** The `match` button row in
+**Every match button is the yellow plank** (24 Oct 2026, Anthony: "Make the
+match buttons yellow please"). The plank is the blue menu plank recoloured
+yellow for free (`assets/menu/button_plank_yellow.png`, made by
+`art_tool/menu/yellow_plank/make_yellow.py`). The `match` button row in
 `data/ScreenLook.csv` dresses the game speed buttons (1x to 8x), AUTO, TEAM,
 EXHAUST ZONE, the ATTACK and DEFEND buttons of the throw-in and the clash,
-and the pause menu buttons. The speed you are on and AUTO ON glow warm with
-gold words; a locked speed is grey and faded. Delete that row to get the old
+and the pause menu buttons. The speed you are on is full colour, the other
+speeds a little darker; a locked speed is grey and faded. Delete that row to get the old
 boxes back. The number chips of the coin clash keep their old look.
+
+**The picture window over the pitch** ("Sven puts it over the goal line" and
+the goal windows; Anthony 24 Oct 2026: "have it similar to the card with the
+background being the outdoors field"). It is the cream beer mat panel with
+the player on the drawn outdoor field (the meadow, fence and brewery of the
+drawn village) inside a thick ink edge, and the words in ink underneath.
+Tuning rows: `anim_window_style` (`drawn` or `old`), `anim_window_field`
+(the field picture), `anim_window_drop` (how far down the player stands, so
+he is on the grass).
 
 **The beer menus** (round AN). The board picture is blown up by a whole number
 so its pixels stay sharp. The wooden top (crest, bunting) and bottom stay as

@@ -301,8 +301,8 @@ func _paint_locked(button: Button) -> void:
 func _paint(button: Button, lit: bool) -> void:
 	button.modulate = Color(1, 1, 1, 1)
 	if button.has_meta("screen_look"):
-		button.modulate = Color(1.25, 1.12, 0.75) if lit else Color(1, 1, 1)
-		button.add_theme_color_override("font_color", Color("ffd36a") if lit else Color("ffffff"))
+		button.modulate = Color(1, 1, 1) if lit else Color(0.72, 0.72, 0.72)
+		button.add_theme_color_override("font_color", Color("ffffff"))
 		return
 	button.add_theme_stylebox_override("normal", MenuSupport.panel_style(
 		MenuSupport.COLOUR_SLOT_EMPTY if lit else MenuSupport.COLOUR_PANEL,
