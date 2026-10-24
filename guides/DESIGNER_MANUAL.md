@@ -3926,7 +3926,7 @@ moment, with the same score, clock and exhaust. Then the row's **Do** runs:
 | `ability:Koch=TUT_KOCH_EARTH/TUT_KOCH_EARTH_DEF` | Earth Courage, attack side / defend side: 5 stamina off the enemy keeper when he attacks, 3 when he defends (Anthony, 8 Oct) |
 | `show_card:Koch=tut-koch-new-card@abilities\|-\|-` | the match stays frozen and his field card comes up big over the pub, his attack and defend abilities beside it; then that Dialogue.csv scene plays. After `@`, the gold per line (`card`, `abilities`, `attack`, `defend`, `-`), `\|` between lines. `Tuning.csv show_card_scale` (1.8) and `show_card_backdrop` (bar) |
 | `inspire:Koch=75` | his inspiration in % on the drunk meter (`DrunkLevels.csv`): 75 after cycle 1 (past Inspired, so his star ability wakes up), 90 after cycle 2 |
-| `drink_lesson:first=keg@barrel@tut-fass-after@abilities\|-\|card` | the drinking lesson. `<card>=<item>@<barrel or bottle>@<scene>@<gold>`. The item goes in the bag if it is missing; only that card's bag button works and his bag shows only that item; gold on the button, then on the item. When he drinks: the drinking window (his PixelLab stein drink from his pitch sheet, then the burp; `Tuning.csv drink_window_seconds`), then his card comes up big as with show_card and the scene plays. Only he can be picked after |
+| `drink_lesson:first=keg@barrel@tut-fass-after@abilities\|-\|card` | the drinking lesson. `<card>=<item>@<barrel or bottle>@<scene>@<gold>`. The item goes in the bag if it is missing; only that card's bag button works and his bag shows only that item; gold on the button, then on the item. When he drinks: the drinking window (beer mat window, his drawn figure, a drawn keg or bottle, then the burp; `data/DrinkWindow.csv`, `Tuning.csv drink_window_seconds`), then his card comes up big as with show_card and the scene plays. Only he can be picked after |
 | `give:anstoss_helles+doppelpass_weisse+abstauber_dunkel` | puts one of each into the bag (`item=3` for more). A drink_lesson can then name several items with `+`: the bag shows those, gold on each, and any one will do |
 | `say:tut-after-brewery@-\|flask:first` | plays that Dialogue.csv scene, gold per line after `@` (the Highlight words) |
 | `empty_bag:first` | the bag on that card (first, last or a name) opens by itself and shows it is empty, then shuts (`Tuning.csv tutorial_empty_bag_seconds`). The tutorial uses it after "Now open the bag on the Tier I, Power 1, and...", before "Where is the rest of the beer?!" (scene `tut-missing-beer-empty`) |
@@ -3945,11 +3945,22 @@ low his drunk meter is (`match_drink_takes_hold_at`, 0). In the tutorial the
 keg (`Items.csv keg`, Use `brew:pool:keg`) always gives the `Brews.csv
 kleiner_fass` row, because that is the only keg row whose Requires
 (`flag:in_tutorial`) passes. Outside the tutorial the keg is the plain beer
-gamble. The drinking window plays the player's own PixelLab stein drink from
-his pitch sheet (the `drink` row of `PitchAnims.csv`, facing south-east, at
-its FPS; Anthony, 11 Oct), so it is the same figure and drink as on the
-pitch, then the burp. Only a look whose pitch sheet has no drink rows still
-gets the old code-drawn barrel or bottle. The burp is `Audio.csv drink_burp`, silent
+gamble. **The drinking window** (new look, Anthony 23-24 Oct 2026, all in
+`data/DrinkWindow.csv`): the cream beer mat panel of the inventory, the
+player's name in ink on the panel (`name`: panel, sign or none), our base
+seen from the side at eye level inside (`backdrop`, `backdrop_region`), with
+a strip of its grass laid in front of him so he stands in it up to the ankles
+(`grass_front`), his own drawn match figure facing right, drawn sharp from his
+window sheet (`assets/players/window/`, made from the full-size drawings by
+`tools/make_drawn_window_sheet.py`; rows: standing, cheer, standing facing
+the camera), and the drawn
+Kleiner Faß or bottle from the bag. He lifts it to his mouth (`mouth`), gulps
+three times, flings the empty over his shoulder, then cheers (his `cheer`
+row) with *BURP!*. The screen behind goes dark (`dim`) and the match's big
+announcement is hidden while he drinks, so no rule words show behind it. A
+look whose pitch sheet has its own `drink` rows (the PixelLab looks) plays
+those instead. `style old` brings back the 8 Oct dark box with the
+code-drawn barrel. The burp is `Audio.csv drink_burp`, silent
 until `bav_burp.ogg` is made (`SOUNDS_WANTED.csv`).
 
 **The combo beers** (Anthony, 8 Oct). Three small beers, `Items.csv`
