@@ -3292,6 +3292,11 @@ func spawn_hud() -> void:
 	# `build_stamp` in Tuning.csv - so "it feels like an older build" can be
 	# answered by looking. Blank hides it.
 	var stamp_text := db.tune_text("build_stamp", "")
+	# Anthony, 24 Oct: not in the tutorial match (build_stamp_in_tutorial).
+	var in_tutorial := String(MatchMode.current(get_tree()).get("id", "")) == db.tune_text("tutorial_match_mode", "tutorial")
+	if in_tutorial and not db.tune_bool("build_stamp_in_tutorial", false):
+		print("[build] %s" % stamp_text)
+		stamp_text = ""
 	if stamp_text != "":
 		var stamp := Label.new()
 		stamp.name = "BuildStamp"
@@ -4445,8 +4450,38 @@ func _walk_them_out() -> void:
 	var their_facts := _team_facts(true)
 	var parade := LineUpParade.on_field(self, db, camera, units, goalies,
 		String(mine_facts.get("name", "YOUR SIDE")).to_upper(),
-		String(their_facts.get("name", "THEM")).to_upper())
+		String(their_facts.get("name", "THEM")).to_upper(),
+		_team_symbol(false), _team_symbol(true))
 	await parade.finished
+
+
+## THE TEAM'S SYMBOL on the line-up banner (Anthony 24 Oct 2026: "show the
+## symbol of that team as well"). The class's Banner Art in ClassInfo.csv when
+## it has one; otherwise its own icon from AdventureTraits.csv (the row whose
+## From is class and Value is the class), then its Element's icon there, so a
+## side never shows another team's crest. Blank Banner Art = these fall-backs.
+func _team_symbol(theirs: bool) -> String:
+	var star := active_enemy_star if theirs else active_player_star
+	var klass := star.unit_type if star != null else ""
+	var info := _class_info(klass)
+	var crest := MenuSupport.field(info, "Banner Art").strip_edges()
+	if crest != "" and MenuSupport.icon_texture(crest) != null:
+		return crest
+	var element := MenuSupport.field(info, "Element").strip_edges().to_lower()
+	var by_element := ""
+	for row in MenuSupport.read_csv("res://data/AdventureTraits.csv"):
+		var from := MenuSupport.field(row, "From").strip_edges().to_lower()
+		var value := MenuSupport.field(row, "Value").strip_edges().to_lower()
+		var icon := MenuSupport.field(row, "Icon").strip_edges()
+		if icon == "" or MenuSupport.icon_texture(icon) == null:
+			continue
+		if from == "class" and value == klass.to_lower():
+			return icon
+		if from == "element" and element != "" and value == element and by_element == "":
+			by_element = icon
+	if by_element != "":
+		return by_element
+	return String(_team_facts(theirs).get("crest", ""))
 
 
 ## WHO IS PLAYING, for the sheet. A name, a crest and the Stars.
@@ -4628,6 +4663,10 @@ func _say_which_way_round() -> void:
 		if player_attacks_this_round else Loc.text("you_are_defending", "YOU ARE DEFENDING")
 	# The same two colours the banner uses, so the word and the strip that
 	# follows it read as one thing.
+	# 24 Oct 2026: the word on the big red / blue flag, the same flag as the
+	# strip that follows. Falls back to the plain coloured words without it.
+	if await SideBanner.make(self).call_out(player_attacks_this_round, word, seconds):
+		return
 	var tint := SideBanner.attack_colour() if player_attacks_this_round \
 		else SideBanner.defend_colour()
 	if event_announcement != null:

@@ -58,6 +58,10 @@ var _keeper_anim: SpriteAnimator
 var _striker_anim: SpriteAnimator
 var _keeper_placeholder: ColorRect
 var _striker_placeholder: ColorRect
+## 24 Oct 2026: the beer mat look is on (data/ShootoutLook.csv style mat).
+var _mat := false
+## The drawn keeper standing in for a keeper with no Shootout Artwork.
+var _keeper_strip: ShootoutLook.KeeperStrip
 
 
 func _ready() -> void:
@@ -95,6 +99,15 @@ func _wire() -> void:
 	if _striker_stage:
 		_striker_stage.add_child(_striker_placeholder)
 		_striker_stage.add_child(_striker_anim)
+
+	# The beer mat window (data/ShootoutLook.csv). The drawn round-11 keeper
+	# stands in for a keeper with no Shootout Artwork; a shooter with no
+	# picture shows nothing rather than a box.
+	_mat = ShootoutLook.enabled()
+	if _mat:
+		ShootoutLook.apply(self)
+		_keeper_strip = ShootoutLook.dress_keeper_placeholder(_keeper_placeholder, _keeper_stage)
+		_striker_placeholder.color = Color(0, 0, 0, 0)
 
 
 ## ROUND AN: a part of the window by name, for the coach to point at.
@@ -169,6 +182,8 @@ func play_shot(info: Dictionary) -> void:
 		# side, and both are rows of Language.csv so they translate.
 		_title.text = Loc.text("you_shoot", "YOU SHOOT") if is_player \
 			else Loc.text("they_shoot", "THEY SHOOT")
+		if _mat:
+			ShootoutLook.show_title(self, _title.text)
 	if _caption:
 		_caption.text = card.player_name if card != null else "—"
 	if _shot_value:
@@ -192,7 +207,7 @@ func play_shot(info: Dictionary) -> void:
 		var shift := float(info.get("chance_shift", 0.0))
 		var percent := clampf(ShotOdds.chance(stamina, stamina_max, power) + shift, 0.0, 100.0)
 		_chance_value.text = "%d%%" % int(round(percent))
-		_chance_value.add_theme_color_override("font_color", ShotOdds.colour_for(percent))
+		_chance_value.add_theme_color_override("font_color", _chance_colour(percent))
 		if _chance_note:
 			# An empty keeper is not a probability any more, it is a fact, and
 			# it should read like one.
@@ -207,12 +222,18 @@ func play_shot(info: Dictionary) -> void:
 			if int(info.get("shield", 0)) > 0:
 				_chance_note.text += "   shield %d" % int(info.get("shield", 0))
 
+	# Your shot is at their keeper (green kit), theirs at yours (yellow).
+	ShootoutLook.dress_keeper_kit(_keeper_strip, is_player)
 	_dress_keeper(keeper_data)
 	_dress_striker(card, "idle")
 
 	await _beat(open_seconds)
 	if coach.is_valid():
+		# Clicks on the Head Coach's words are his, not a skip.
+		_coaching = true
 		await coach.call("shot_odds")
+		_coaching = false
+		_skipping = false
 	await _beat(read_seconds)
 
 	# The strike.
@@ -263,6 +284,8 @@ func play_drain(info: Dictionary) -> void:
 
 	if _title:
 		_title.text = String(info.get("title", "")) if String(info.get("title", "")) != "" else "THE KEEPER"
+		if _mat:
+			ShootoutLook.show_title(self, _title.text)
 	if _caption:
 		var who: String = card.player_name if card != null else ""
 		var loss := after - before
@@ -272,6 +295,7 @@ func play_drain(info: Dictionary) -> void:
 		_shot_value.text = str(power)
 	_show_stamina(before, top)
 	_show_chance(before, top, power, shift)
+	ShootoutLook.dress_keeper_kit(_keeper_strip, bool(info.get("shooter_is_player", true)))
 	_dress_keeper(info.get("keeper_data"))
 	_dress_striker(card, "idle")
 
@@ -280,14 +304,25 @@ func play_drain(info: Dictionary) -> void:
 	# 2. The stamina comes off, counted down where you can see it.
 	var fall := create_tween()
 	fall.tween_method(func(v: float) -> void: _show_stamina(int(round(v)), top),
-		float(before), float(after), minf(1.0, step * 0.4) / _rate())
+		float(before), float(after), minf(1.0, step * 0.4))
+	_live_tweens = [fall]
+	fall.set_speed_scale(_rate())
 	if _stamina_value:
 		_stamina_value.add_theme_color_override("font_color", Color(1.0, 0.45, 0.35))
 	await _beat(step)
+	# 24 Oct 2026 (Anthony): the Head Coach can stop here, while the drain is
+	# on show (MatchTalk.csv keeper_drain; its Tier is the draining card's).
+	if coach.is_valid():
+		_coaching = true
+		await coach.call("keeper_drain", card.get_tier_clean() if card is PlayerData else "")
+		_coaching = false
+		_skipping = false
 	# 3. And the % moves to match.
 	_show_chance(after, top, power, shift)
 	if _chance_value:
 		var pop := create_tween()
+		_live_tweens = [pop]
+		pop.set_speed_scale(_rate())
 		_chance_value.pivot_offset = _chance_value.size * 0.5
 		pop.tween_property(_chance_value, "scale", Vector2(1.35, 1.35), 0.15)
 		pop.tween_property(_chance_value, "scale", Vector2.ONE, 0.25)
@@ -315,10 +350,15 @@ func _show_chance(stamina: int, top: int, power: int, shift: float) -> void:
 		return
 	var percent := clampf(ShotOdds.chance(stamina, top, power) + shift, 0.0, 100.0)
 	_chance_value.text = "%d%%" % int(round(percent))
-	_chance_value.add_theme_color_override("font_color", ShotOdds.colour_for(percent))
+	_chance_value.add_theme_color_override("font_color", _chance_colour(percent))
 	if _chance_note:
 		_chance_note.text = Loc.text("goal_is_open", "the goal is open") if stamina <= 0 \
 			else "%d of %d stamina left, at shot power %d" % [stamina, top, power]
+
+
+## On the cream window the chance is written in ink, like every number there.
+func _chance_colour(percent: float) -> Color:
+	return ShootoutLook.ink() if _mat else ShotOdds.colour_for(percent)
 
 
 func _dress_keeper(keeper_data) -> void:
@@ -337,22 +377,33 @@ func _play_keeper(keeper_data, anim_name: String) -> void:
 	var have_art := sheet != null and spec != null
 	if _keeper_placeholder:
 		_keeper_placeholder.visible = not have_art
+	if _keeper_strip and not have_art:
+		_keeper_strip.speed = _rate()
+		if anim_name == "keeper_dive":
+			_keeper_strip.dive()
+		else:
+			_keeper_strip.ready_pose()
 	if _keeper_anim:
 		_keeper_anim.visible = have_art
 		if have_art:
 			_keeper_anim.speed_scale = _rate()
 			_keeper_anim.play(sheet, spec)
-			_keeper_anim.fit_into(Vector2(520.0, 340.0))
+			_keeper_anim.fit_into(_keeper_stage.size if _mat and _keeper_stage else Vector2(520.0, 340.0))
 
 
 func _dress_striker(card, anim_name: String) -> void:
+	# On the beer mat window he runs up to the ball (seen from behind) while
+	# the numbers are read, rather than standing (ShootoutLook.csv striker_wait).
+	if _mat and anim_name == "idle":
+		anim_name = ShootoutLook.value("striker_wait", "run")
 	var spec: AnimSpec = null
 	var sheet: Texture2D = card.artwork if card != null else null
 	# ROUND AN: the striker's own pitch figure, seen from behind.
 	var pitch := PitchSprite.window_sheet(card as PlayerData) if card != null else null
 	if pitch != null:
 		sheet = pitch
-		spec = PitchSprite.window_spec(pitch, anim_name, 6)
+		spec = PitchSprite.window_spec(pitch, anim_name,
+			int(ShootoutLook.number("striker_direction", 0.0)) if _mat else 6)
 	elif db != null and card != null:
 		# A dedicated from-behind animation if you have drawn one, else the
 		# normal kick, else idle.
@@ -369,25 +420,60 @@ func _dress_striker(card, anim_name: String) -> void:
 		if have_art:
 			_striker_anim.speed_scale = _rate()
 			_striker_anim.play(sheet, spec)
-			_striker_anim.fit_into(Vector2(300.0, 220.0))
+			_striker_anim.fit_into(ShootoutLook.pair("striker_box", Vector2(460, 380)) if _mat else Vector2(300.0, 220.0))
+
+
+## 24 Oct 2026 (Anthony: "The same as you can skip / go fast on combat, so
+## when the draining of the goaly as well please"). The same pacing as the
+## duel window (duel_arena.gd): holding SPACE or the mouse runs it at
+## arena_skip_speed for as long as you hold, one press or click (or SKIP)
+## fast-forwards the rest, and a press halfway through a step shortens what
+## is left of it at once.
+var _live_tweens: Array = []
+var _coaching := false
+
+
+func hurrying() -> bool:
+	if _coaching:
+		return false
+	return Input.is_key_pressed(KEY_SPACE) \
+		or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 
 
 func _rate() -> float:
-	return maxf(0.05, skip_speed if _skipping else speed)
+	return maxf(0.05, skip_speed if (_skipping or hurrying()) else speed)
 
 
+## Wait out one step, re-reading the speed every frame.
 func _beat(seconds: float) -> void:
-	var wait := seconds / _rate()
-	if wait <= 0.001:
+	var left := seconds
+	if left <= 0.0:
 		await get_tree().process_frame
 		return
-	await get_tree().create_timer(wait).timeout
+	while left > 0.0:
+		await get_tree().process_frame
+		left -= get_process_delta_time() * _rate()
+		var live := _rate()
+		for tween in _live_tweens:
+			if tween != null and tween.is_valid():
+				tween.set_speed_scale(live)
+		if _keeper_anim:
+			_keeper_anim.speed_scale = live
+		if _striker_anim:
+			_striker_anim.speed_scale = live
+		if _keeper_strip:
+			_keeper_strip.speed = live
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if not _running:
+## _input, not _unhandled_input: the window's panels and buttons are
+## Controls and would eat the click before "unhandled" is reached.
+func _input(event: InputEvent) -> void:
+	if not _running or _coaching:
 		return
-	if event is InputEventMouseButton and event.pressed:
+	var click := event as InputEventMouseButton
+	if click != null and click.pressed:
 		skip()
-	elif event is InputEventKey and event.pressed and event.keycode == KEY_SPACE:
+		return
+	var key := event as InputEventKey
+	if key != null and key.pressed and not key.echo and key.keycode == KEY_SPACE:
 		skip()

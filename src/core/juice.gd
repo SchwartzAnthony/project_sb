@@ -201,6 +201,9 @@ static func _flash_screen(on: Node, seconds: float, tint: Color) -> void:
 
 	var layer := CanvasLayer.new()
 	layer.layer = 250
+	# Fades even while the match is paused (24 Oct 2026: the Play Maker's
+	# yellow flash froze over the whole screen under the Head Coach's box).
+	layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	tree.current_scene.add_child(layer)
 
 	var wash := ColorRect.new()

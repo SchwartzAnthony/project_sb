@@ -375,6 +375,11 @@ func _apply_lock() -> void:
 		else Control.MOUSE_FILTER_STOP
 	if _flask != null and is_instance_valid(_flask):
 		_flask.disabled = locked or bag_shut
+		# 24 Oct (Anthony: a click on the card did nothing): a greyed ITEMS
+		# plank lets the click through to the card under it, so it picks the
+		# player. A disabled button still swallows clicks otherwise.
+		_flask.mouse_filter = Control.MOUSE_FILTER_IGNORE if _flask.disabled \
+			else Control.MOUSE_FILTER_STOP
 		_flask.visible = not locked
 		_flask.modulate = Color(0.45, 0.45, 0.45, 0.6) if bag_shut else Color(1, 1, 1, 1)
 		_flask.mouse_default_cursor_shape = Control.CURSOR_ARROW if bag_shut \

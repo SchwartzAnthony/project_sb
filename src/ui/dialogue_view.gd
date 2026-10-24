@@ -181,8 +181,19 @@ func _build_text_box() -> void:
 	_text_panel.offset_right = -48.0
 	_text_panel.offset_top = 0.0
 	_text_panel.offset_bottom = -40.0
-	_text_panel.add_theme_stylebox_override("panel",
-		MenuSupport.panel_style(Color(0.08, 0.09, 0.12, 0.94), MenuSupport.COLOUR_ACCENT))
+	# 24 Oct 2026 (Anthony: "make the background for the text and image
+	# solid black"). A plain black plate, not the tinted wood panel, so no
+	# grain or see-through edge shows. Tuning.csv dialogue_box_alpha.
+	var plate := StyleBoxFlat.new()
+	plate.bg_color = Color(0, 0, 0, MenuSupport.tuned("dialogue_box_alpha", 1.0))
+	plate.border_color = MenuSupport.COLOUR_ACCENT
+	plate.set_border_width_all(2)
+	plate.set_corner_radius_all(6)
+	plate.content_margin_left = 24
+	plate.content_margin_right = 24
+	plate.content_margin_top = 14
+	plate.content_margin_bottom = 14
+	_text_panel.add_theme_stylebox_override("panel", plate)
 	_text_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_text_panel)
 
@@ -483,7 +494,13 @@ func _apply_portrait(line: DialogueLine) -> void:
 			join.side = "right"
 		join.mood = bits[2].strip_edges().to_lower() if bits.size() > 2 else ""
 		var join_key := CardDatabase._normalise(join.portrait)
-		if join_key == "" or _cast.has(join_key):
+		if join_key == "":
+			continue
+		if _cast.has(join_key):
+			# Already on stage: just change their face (Anthony 24 Oct:
+			# "Fine! But finish up..." makes Koch happy again).
+			if join.mood != "":
+				_cast[join_key]["mood"] = join.mood
 			continue
 		for key in _cast.keys():
 			if String(_cast[key]["side"]) == join.side:

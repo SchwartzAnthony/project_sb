@@ -159,7 +159,58 @@ func _draw() -> void:
 
 
 func _ready() -> void:
+	_drawn_keeper()
 	_refill()
+
+
+# =============================================================
+#  THE DRAWN KEEPER  (Anthony 24 Oct 2026: "I still need goaly sprites in
+#  our game in our art style")
+#
+#  A keeper with no Artwork in Goalies.csv is the drawn round 11 keeper from
+#  data/GoalieLook.csv, side on and swaying on the spot: yours in yellow,
+#  theirs in green (main_scene mirrors theirs to face the other way). His
+#  feet are on the keeper's spot. An Artwork in Goalies.csv still wins.
+# =============================================================
+
+const LOOK := "res://data/GoalieLook.csv"
+var _sway_frames := 0
+var _sway_fps := 6.0
+var _sway_at := 0.0
+
+
+static func _look(key: String) -> String:
+	for row in MenuSupport.read_csv(LOOK):
+		if MenuSupport.field(row, "Key").strip_edges() == key:
+			return MenuSupport.field(row, "Value").strip_edges()
+	return ""
+
+
+func _drawn_keeper() -> void:
+	if artwork == null or artwork.texture != null:
+		return
+	var path := _look("pitch_away" if is_enemy else "pitch_home")
+	if path == "" or not ResourceLoader.exists(path):
+		return
+	var strip := load(path) as Texture2D
+	_sway_frames = maxi(1, int(_look("pitch_frames")))
+	_sway_fps = float(_look("pitch_fps")) if _look("pitch_fps").is_valid_float() else 6.0
+	artwork.texture = strip
+	artwork.hframes = _sway_frames
+	artwork.frame = 0
+	artwork.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	var tall := float(_look("pitch_height")) if _look("pitch_height").is_valid_float() else 92.0
+	var k := tall / float(strip.get_height())
+	artwork.scale = Vector2(k, k)
+	artwork.offset = Vector2(0, -strip.get_height() / 2.0)
+	_sway_at = randf() * _sway_frames
+
+
+func _process(delta: float) -> void:
+	if _sway_frames <= 1 or artwork == null:
+		return
+	_sway_at = fmod(_sway_at + delta * _sway_fps, float(_sway_frames))
+	artwork.frame = int(_sway_at)
 
 
 func setup(goalie_data: GoalieData) -> void:
@@ -169,6 +220,11 @@ func setup(goalie_data: GoalieData) -> void:
 	max_stamina = data.max_stamina
 	if data.artwork != null and artwork != null:
 		artwork.texture = data.artwork
+		artwork.hframes = 1
+		artwork.frame = 0
+		artwork.scale = Vector2.ONE
+		artwork.offset = Vector2.ZERO
+		_sway_frames = 0
 	if name_label != null:
 		name_label.text = data.goalie_name
 	if is_node_ready():

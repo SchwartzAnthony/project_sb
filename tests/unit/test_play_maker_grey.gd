@@ -11,6 +11,9 @@ extends GutTest
 const UNIT_SCENE := preload("res://src/units/player_unit.tscn")
 
 
+const GREY_KEY := "play_maker_grey_others"
+
+
 func before_each() -> void:
 	CardDatabase.get_db()
 	PlayerUnit.play_maker_live = false
@@ -18,6 +21,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	PlayerUnit.play_maker_live = false
+	_grey_switch(false)   # back to Tuning.csv's own value
 	MatchMode.clear(get_tree())
 
 
@@ -41,7 +45,23 @@ func test_nobody_is_grey_outside_a_play_maker() -> void:
 	assert_false(_greyed(unit), "no Play Maker running: in colour, even when spent")
 
 
+func _grey_switch(on: bool) -> void:
+	CardDatabase.get_db().tuning[CardDatabase._normalise(GREY_KEY)] = "true" if on else "false"
+
+
+## 24 Oct (Anthony: stop greying out players during combat): off by default.
+func test_nobody_is_grey_during_a_play_maker_by_default() -> void:
+	var unit := _unit()
+	PlayerUnit.play_maker_live = true
+	unit.set_highlight(false)
+	assert_false(_greyed(unit), "grey switched off: in colour during a Play Maker")
+	unit.is_exhausted = true
+	unit.set_highlight(false)
+	assert_false(_greyed(unit), "spent ones too")
+
+
 func test_only_those_outside_the_play_maker_are_grey() -> void:
+	_grey_switch(true)
 	var outside := _unit()
 	var inside := _unit()
 	inside.is_playmaker = true
@@ -53,6 +73,7 @@ func test_only_those_outside_the_play_maker_are_grey() -> void:
 
 
 func test_everyone_regains_colour_when_it_ends() -> void:
+	_grey_switch(true)
 	var unit := _unit()
 	PlayerUnit.play_maker_live = true
 	unit.set_highlight(false)
