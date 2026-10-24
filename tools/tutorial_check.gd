@@ -313,10 +313,23 @@ func _hold_to_pause(folder: String) -> void:
 	await create_timer(0.1, true, false, true).timeout
 	_check(frozen, "holding right click stops the match")
 	_check(Engine.time_scale > 0.0, "letting go carries on (%.1fx)" % Engine.time_scale)
+	# For the GIF only: a caption in the game's font while it carries on.
+	var caption := CanvasLayer.new()
+	caption.layer = 160
+	var words := Label.new()
+	words.text = "Let go - it carries on"
+	words.add_theme_font_size_override("font_size", 30)
+	words.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	words.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	words.offset_top = 14.0
+	caption.add_child(words)
+	if _windowed:
+		root.add_child(caption)
 	for i in 10:
 		await _frame(folder, frame)
 		frame += 1
 		await create_timer(0.1, true, false, true).timeout
+	caption.queue_free()
 
 
 var _time_outs := 0

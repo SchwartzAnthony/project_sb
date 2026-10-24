@@ -25,6 +25,9 @@ const ACTION := "hold_pause"
 static var active := false
 
 var _was_speed := 1.0
+## The words across the top while it is held (Tuning.csv hold_pause_words),
+## in the game's own font.
+var _sign: CanvasLayer
 
 
 static func attach(match_scene: Node) -> Node:
@@ -44,6 +47,39 @@ func _ready() -> void:
 	# It has to hear the key let go even while the time is stopped.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	active = false
+	_build_sign()
+
+
+func _build_sign() -> void:
+	var db := CardDatabase.get_db()
+	var words := db.tune_text("hold_pause_words", "Holding right click - paused") if db != null \
+		else "Holding right click - paused"
+	if words.strip_edges() == "":
+		return
+	_sign = CanvasLayer.new()
+	_sign.name = "HoldPauseSign"
+	_sign.layer = 160
+	_sign.visible = false
+	add_child(_sign)
+	var box := PanelContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	box.offset_top = 10.0
+	var back := StyleBoxFlat.new()
+	back.bg_color = Color(0, 0, 0, 0.85)
+	back.set_content_margin_all(10.0)
+	back.content_margin_left = 22.0
+	back.content_margin_right = 22.0
+	box.add_theme_stylebox_override("panel", back)
+	_sign.add_child(box)
+	var label := Label.new()
+	label.text = words
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_font_size_override("font_size",
+		db.tune_int("hold_pause_words_size", 30) if db != null else 30)
+	label.add_theme_color_override("font_color", Color("ffd640"))
+	box.add_child(label)
 
 
 func _process(_delta: float) -> void:
@@ -53,6 +89,8 @@ func _process(_delta: float) -> void:
 		if not active:
 			active = true
 			_was_speed = Engine.time_scale
+			if _sign != null:
+				_sign.visible = true
 			print("[hold pause] Paused while held.")
 		elif Engine.time_scale > 0.0:
 			# Something changed the speed while held (a speed button, F):
@@ -65,6 +103,8 @@ func _process(_delta: float) -> void:
 
 func _release() -> void:
 	active = false
+	if _sign != null:
+		_sign.visible = false
 	Engine.time_scale = maxf(GameSpeed.MIN_SPEED, _was_speed)
 	print("[hold pause] Carries on.")
 
