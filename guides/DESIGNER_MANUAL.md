@@ -3922,6 +3922,11 @@ while the game waits. **Once** `true` plays it only the first time ever. The
 size of the words is `Tuning.csv match_talk_text_size`. The box stays along
 the bottom for every stop; `Tuning.csv match_talk_box_moves_up` true sends it
 to the top when what the coach points at is low on the screen.
+The one exception (24 Oct): while a line points at the referee's bar
+(Highlight `referee`, `referee:you`, `referee:them`), the box sits just above
+the bar so the gold round it shows, and the next line that does not point at
+it puts him back at the bottom (`match_talk_above_referee`, gap
+`match_talk_above_gap`).
 
 Four more columns (round AN, the Tutorial), all optional:
 
