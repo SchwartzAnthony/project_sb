@@ -29,7 +29,14 @@ extends RefCounted
 #  to the plain font: any word whose colour is darker than
 #  text_outline_dark_limit, or whose screen switched outlines off itself.
 #
+#  WOODEN PLANKS GET A THINNER ONE (Anthony, 24 Oct: "make the shadow
+#  smaller on the wooden plank (so for all wooden planks) and the exhaust
+#  zone"). Every plank button (ScreenLook, the title screen, the EXHAUST
+#  ZONE sign) calls thin(), which gives its words a second inked copy with
+#  a smaller ring: text_outline_plank.
+#
 #  Tuning.csv:  text_outline             how thick (0 = no border)
+#               text_outline_plank       how thick on wooden planks
 #               text_outline_dark_limit  how dark a word must be to go plain
 # =============================================================
 
@@ -37,6 +44,11 @@ const DEFAULT_THICKNESS := 6
 const DEFAULT_DARK_LIMIT := 0.3
 ## On the inked copy: the plain font it was made from.
 const PLAIN_META := "ink_outline_plain"
+## On a word that sits on a wooden plank: the thinner ring.
+const THIN_META := "ink_outline_thin"
+const DEFAULT_PLANK_THICKNESS := 3
+## Plain font -> its thinner inked copy, made once.
+static var _thin: Dictionary = {}
 ## On a word that was swapped to the plain font, so it is not looked at twice.
 const DONE_META := "ink_outline_checked"
 
@@ -46,6 +58,13 @@ static func thickness() -> int:
 	if db == null:
 		return DEFAULT_THICKNESS
 	return clampi(int(db.tune_float("text_outline", DEFAULT_THICKNESS)), 0, 16)
+
+
+static func plank_thickness() -> int:
+	var db := CardDatabase.get_db()
+	if db == null:
+		return DEFAULT_PLANK_THICKNESS
+	return clampi(int(db.tune_float("text_outline_plank", DEFAULT_PLANK_THICKNESS)), 0, 16)
 
 
 static func dark_limit() -> float:
@@ -64,8 +83,9 @@ static func plain_of(face: Font) -> Font:
 
 ## An inked copy of a picture font. A font Godot CAN outline (.ttf, .otf)
 ## and a thickness of 0 come back unchanged.
-static func inked(face: Font) -> Font:
-	var ring := thickness()
+static func inked(face: Font, ring: int = -1) -> Font:
+	if ring < 0:
+		ring = thickness()
 	if ring <= 0 or not (face is FontFile):
 		return face
 	var plain := face as FontFile
@@ -141,6 +161,45 @@ static func _ink_size(copy: FontFile, cache: int, at_size: Vector2i, ring: int) 
 
 
 # =============================================================
+#  WOODEN PLANKS: A THINNER RING
+# =============================================================
+
+## The words of a plank button (and any label inside it) get the thinner
+## ring. Safe to call twice.
+static func thin(control: Control) -> void:
+	if control == null:
+		return
+	control.set_meta(THIN_META, true)
+	_make_thin(control)
+	for label in control.find_children("*", "Label", true, false):
+		label.set_meta(THIN_META, true)
+		_make_thin(label as Control)
+
+
+## The thinner inked copy of a font (its plain self when the plank ring is 0).
+static func thin_of(face: Font) -> Font:
+	var plain := plain_of(face)
+	if plain == null:
+		return face
+	if not _thin.has(plain):
+		var made := inked(plain, plank_thickness())
+		if made != plain:
+			made.fallbacks = face.fallbacks
+		_thin[plain] = made
+	return _thin[plain]
+
+
+static func _make_thin(control: Control) -> void:
+	var font_name := "normal_font" if control is RichTextLabel else "font"
+	var face := control.get_theme_font(font_name)
+	if face == null:
+		return
+	var want := thin_of(face)
+	if want != face:
+		control.add_theme_font_override(font_name, want)
+
+
+# =============================================================
 #  DARK INK WORDS GO PLAIN
 # =============================================================
 
@@ -167,6 +226,10 @@ static func check(node: Variant) -> void:
 		return
 	var control := node as Control
 	if control.has_meta(DONE_META):
+		return
+	# A plank's words that a screen gave another font after thin() ran.
+	if control.has_meta(THIN_META):
+		_make_thin(control)
 		return
 	var colour_name := "default_color" if control is RichTextLabel else "font_color"
 	var dark := control.get_theme_color(colour_name).get_luminance() < dark_limit()
