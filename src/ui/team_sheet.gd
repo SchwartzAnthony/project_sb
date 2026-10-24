@@ -330,6 +330,8 @@ func _build(mine: Dictionary, theirs: Dictionary) -> void:
 	_waiting.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
 	_waiting.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
 	_outline(_waiting, 6)
+	# Anthony 24 Oct 2026: no words above START in the Tutorial match.
+	_waiting.visible = not _plain_tutorial()
 	column.add_child(_waiting)
 
 	# The START button that lives ON the sheet, for when the sheet waits.
@@ -609,6 +611,13 @@ func _chalk_rule() -> Control:
 	return rule
 
 
+## Tuning.csv tutorial_vs_plain: in the Tutorial match the sheet has no words
+## above START and no mugs in the middle (Anthony, 24 Oct 2026).
+func _plain_tutorial() -> bool:
+	return db != null and db.tune_bool("tutorial_vs_plain", true) \
+		and Tutorial.active(get_tree())
+
+
 ## The two steins clinking between the boards, with VS over them.
 func _versus() -> Control:
 	var holder := PanelContainer.new()
@@ -620,7 +629,9 @@ func _versus() -> Control:
 	middle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.add_child(middle)
 	var art := _picture("vs_versus", "res://assets/team/vs/vs_steins.png")
-	if _drawn:
+	if _plain_tutorial():
+		art = null
+	elif _drawn:
 		middle.add_child(_drawn_steins())
 		art = null
 	if art != null:

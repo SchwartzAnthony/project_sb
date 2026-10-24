@@ -66,6 +66,17 @@ var _stick_ready: bool = true
 ## (a menu reads from there), true = the one nearest the middle (the match).
 var start_in_middle := false
 
+## ONE PRESS, ONE STEP (24 Oct 2026, Anthony: down on the title screen went
+## down two). On the Steam Deck one press of the d-pad can arrive twice —
+## from the Deck's own controller AND Steam's copy of it, or as a d-pad
+## button AND an arrow key. The same way from a DIFFERENT source this soon
+## after is that echo, and is swallowed. A second press of the same button
+## always counts, however fast.
+const ECHO_MS := 150
+var _last_way := Vector2i.ZERO
+var _last_source := ""
+var _last_step_ms := -100000
+
 
 static func install(on: Node) -> ControllerFocus:
 	if on == null:
@@ -118,6 +129,9 @@ func _input(event: InputEvent) -> void:
 	if way != Vector2i.ZERO:
 		_using_pad = true
 		pad_in_use = true
+		if _is_echo(way, event):
+			get_viewport().set_input_as_handled()
+			return
 		# Only keep the push when it moved something (24 Oct 2026): a second
 		# ControllerFocus over a part of the screen with no buttons (the
 		# pause layer in the match) swallowed every d-pad push before the
@@ -153,6 +167,24 @@ func _input(event: InputEvent) -> void:
 		if back != null and not back.disabled:
 			back.emit_signal("pressed")
 			get_viewport().set_input_as_handled()
+
+
+## The same push again from another device or kind of input, straight
+## after the first: the Deck's second copy of one press, not a new press.
+func _is_echo(way: Vector2i, event: InputEvent) -> bool:
+	var source := "key"
+	if event is InputEventJoypadButton:
+		source = "pad %d" % event.device
+	elif event is InputEventJoypadMotion:
+		source = "stick %d" % event.device
+	var now := Time.get_ticks_msec()
+	var echo := way == _last_way and source != _last_source \
+			and now - _last_step_ms < ECHO_MS
+	if not echo:
+		_last_way = way
+		_last_source = source
+		_last_step_ms = now
+	return echo
 
 
 ## Is navigation switched off? A pad that the player turned off in Settings,

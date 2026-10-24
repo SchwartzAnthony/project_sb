@@ -54,6 +54,17 @@ var state: GameState
 var _line: DialogueLine = null
 var _typing: bool = false
 var _shown_chars: float = 0.0
+## The talk has ended and the next screen is on its way (24 Oct 2026, the
+## Tutorial Pub on the Steam Deck): a second ending here went to the main
+## menu, because the first had already used up where to go.
+var _done: bool = false
+
+## ONE PRESS, ONE STEP (24 Oct 2026). The Steam Deck can send one A press
+## twice: as the controller's A and as Steam's Enter key. The same press
+## from the OTHER source this soon after is that copy, and is ignored.
+const ECHO_MS := 150
+var _last_press_source := ""
+var _last_press_ms := -100000
 
 # --- Nodes, all built in code ---
 var _background: TextureRect
@@ -343,7 +354,8 @@ func _input(event: InputEvent) -> void:
 	if _line != null and _line.has_choices() and not _line.available_choices(state).is_empty() \
 			and not _typing:
 		return
-	_advance()
+	if not _is_echo(event):
+		_advance()
 	get_viewport().set_input_as_handled()
 
 
@@ -356,17 +368,38 @@ func _unhandled_input(event: InputEvent) -> void:
 		_finish()
 		return
 	if GameKeys.pressed(event, "confirm"):
-		_advance()
+		if not _is_echo(event):
+			_advance()
 		return
 	var key := event as InputEventKey
 	if key != null and key.pressed and not key.echo \
 			and key.keycode in [KEY_ENTER, KEY_KP_ENTER]:
-		_advance()
+		if not _is_echo(event):
+			_advance()
+
+
+## Is this the Deck's second copy of the press just before it (a controller
+## button and a key, or two controllers, within ECHO_MS)? A second press of
+## the same button always counts.
+func _is_echo(event: InputEvent) -> bool:
+	var source := "key"
+	if event is InputEventJoypadButton:
+		source = "pad %d" % event.device
+	elif event is InputEventMouseButton:
+		source = "mouse"
+	var now := Time.get_ticks_msec()
+	var echo := source != _last_press_source and now - _last_press_ms < ECHO_MS
+	if not echo:
+		_last_press_source = source
+		_last_press_ms = now
+	return echo
 
 
 ## One click does one thing: finish the typing if it is still running,
 ## otherwise move on. A line with choices waits for a button instead.
 func _advance() -> void:
+	if _done:
+		return
 	if _typing:
 		_click_sound()
 		_finish_typing()
@@ -714,6 +747,9 @@ func _find_texture(file_name: String, dirs: Array[String]) -> Texture2D:
 # =============================================================
 
 func _finish() -> void:
+	if _done:
+		return
+	_done = true
 	_typing = false
 	state.save_to_disk()
 

@@ -43,7 +43,10 @@ SOURCE_FIG = 709.0         # ... in the 900 x 1500 frames (feet at 1480, centre 
 CHEER = 9
 IDLE = 4
 # Classes drawn a little bigger, as on the pitch (class_prep.py SIZE).
-SIZE = {"feuergeist": 1.15}
+SIZE = {"feuergeist": 1.15,
+        # Tutorial Koch (Anthony 24 Oct: "Koch is too large ... shouldn't look
+        # like a giant"): drawn a touch shorter so he stands in line.
+        "koch_tut": 0.95}
 
 
 def clear_leg_gap(canvas):
