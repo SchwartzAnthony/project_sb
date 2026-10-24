@@ -864,9 +864,9 @@ defend ... a back and forth that looks natural."*
   into the lane, which sends the attacker off to find another opening.
 - **Seeing the ball:** an arrow in his side's colour floats over the man on
   the ball (`ball_carrier_marker_height` / `_size`), his ring pulses, the
-  name plates of players not involved fade (`bystander_plate_alpha`), and
-  during play only players going for the ball get a line
-  (`intent_lines_chasers_only`). Z still shows everything.
+  name plates of players not involved fade (`bystander_plate_alpha`). Since
+  24 Oct nobody gets a line to the ball during play (`intent_lines_alpha`
+  `0`): only the ring and the arrow say who has it. Z still shows every line.
 
 | Tuning row | |
 |---|---|
@@ -875,6 +875,7 @@ defend ... a back and forth that looks natural."*
 | `mark_lane_cut` | how far a marker leans into the passing lane. `100` px (doubled 9 Oct) |
 | `open_support_min` / `mark_keep_off` | now `270` / `200` px from the ball (the 9 Oct step, doubled) |
 | `bystander_plate_alpha` | name plates of players not involved, in open play. `0.18` (twice as faded, 9 Oct). `1` = off |
+| `intent_lines_alpha` | the blue/red lines from players to where they run (the ball). `0` = off (24 Oct); `0.55` brings them back |
 | `intent_lines_chasers_only` | `true` = lines only for players going for the ball |
 | `ball_carrier_marker_height` / `ball_carrier_marker_size` | the arrow over the carrier. `74` / `20` |
 
