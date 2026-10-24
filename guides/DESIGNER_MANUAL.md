@@ -3835,7 +3835,10 @@ gamble. **The drinking window** (new look, Anthony 23-24 Oct 2026, all in
 player's name in ink on the panel (`name`: panel, sign or none), our base
 seen from the side at eye level inside (`backdrop`, `backdrop_region`), with
 a strip of its grass laid in front of him so he stands in it up to the ankles
-(`grass_front`), his own drawn match figure facing right, and the drawn
+(`grass_front`), his own drawn match figure facing right, drawn sharp from his
+window sheet (`assets/players/window/`, made from the full-size drawings by
+`tools/make_drawn_window_sheet.py`; rows: standing, cheer, standing facing
+the camera), and the drawn
 Kleiner Faß or bottle from the bag. He lifts it to his mouth (`mouth`), gulps
 three times, flings the empty over his shoulder, then cheers (his `cheer`
 row) with *BURP!*. The screen behind goes dark (`dim`) and the match's big

@@ -60,6 +60,8 @@ var _box := BOX             # the window's size (DrinkWindow.csv window)
 var _sheet: Texture2D       # his drawn match sheet (new look)
 var _prop: TextureRect      # the drawn keg or bottle (new look)
 var _feet := Vector2.ZERO   # where his feet stand in the window (new look)
+var _big := false           # his sharp window sheet (assets/players/window/)
+var _frame := Vector2.ONE   # one frame of _sheet, in its pixels
 
 const SETTINGS := "res://data/DrinkWindow.csv"
 static var _rows := {}
@@ -265,7 +267,20 @@ func _build_mat(root: Control, db: CardDatabase) -> void:
 		# The drawn figure's feet sit at the bottom of his frame.
 		_hero.size = Vector2(tall, tall)
 		_hero.position = _feet - Vector2(tall * 0.5, tall)
-		if not _drink.is_empty() and _sheet.get_height() >= (int(_drink["row"]) + 8) * _cell:
+		# The sharp, big window sheet of his look (24 Oct: "the player needs
+		# to be more crisp"), made by tools/make_drawn_window_sheet.py.
+		var big_path := setting("window_sheets", "res://assets/players/window/") + _sheet.resource_path.get_file()
+		var wc := _setting_floats("window_cell", [336.0, 420.0])
+		_frame = Vector2(_cell, _cell)
+		if ResourceLoader.exists(big_path):
+			_sheet = load(big_path) as Texture2D
+			_big = true
+			_frame = Vector2(wc[0], wc[1])
+			_hero.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+			_hero.size = Vector2(tall * wc[0] / wc[1], tall)
+			var feet_line := _setting_number("window_feet", 0.96)
+			_hero.position = _feet - Vector2(_hero.size.x * 0.5, tall * feet_line)
+		elif not _drink.is_empty() and _sheet.get_height() >= (int(_drink["row"]) + 8) * _cell:
 			# His look has its own drink drawn: play that, as before.
 			_pitch = _sheet
 			_sheet = null
@@ -360,24 +375,31 @@ func _build_mat(root: Control, db: CardDatabase) -> void:
 
 
 ## One frame of his drawn match sheet, facing east (right).
+## On his window sheet: row 0 idle (4 frames), row 1 cheer (9 frames).
 func _show_sheet_frame(anim_name: String, step: int) -> void:
-	var row := PitchSprite.anim(anim_name)
-	if row.is_empty() or _sheet == null:
+	if _sheet == null:
 		return
 	var cut := AtlasTexture.new()
 	cut.atlas = _sheet
+	if _big:
+		var cheer := anim_name == "cheer"
+		cut.region = Rect2(Vector2((step % (9 if cheer else 4)) * _frame.x, (1 if cheer else 0) * _frame.y), _frame)
+		_hero.texture = cut
+		return
+	var row := PitchSprite.anim(anim_name)
+	if row.is_empty():
+		return
 	cut.region = Rect2((step % maxi(1, int(row["frames"]))) * _cell, int(row["row"]) * _cell, _cell, _cell)
 	_hero.texture = cut
 
 
 ## Lift, gulp, fling the empty over his shoulder, cheer and BURP.
 func _run_mat() -> void:
-	var tall := _hero.size.y
-	var m := _setting_floats("mouth", [0.6, 0.27])
-	var mouth := _hero.position + Vector2(m[0], m[1]) * tall
+	var m := _setting_floats("window_mouth" if _big else "mouth", [0.6, 0.27])
+	var mouth := _hero.position + Vector2(m[0], m[1]) * _hero.size
 	var bottle := kind == "bottle"
 	var idle := PitchSprite.anim("idle")
-	var idle_frames := maxi(1, int(idle.get("frames", 1)))
+	var idle_frames := 4 if _big else maxi(1, int(idle.get("frames", 1)))
 	# 1. Up to his mouth, tipped so its open end is at his lips.
 	# The bottle tipped neck-first into his mouth; the keg held up in front
 	# of his face, the low rim of its open end at his lips.
@@ -418,7 +440,7 @@ func _run_mat() -> void:
 	# 4. He cheers and BURPS.
 	AudioDirector.fire(get_tree(), "drink_burp", {"kind": kind})
 	var cheer := PitchSprite.anim("cheer")
-	var cheer_frames := maxi(1, int(cheer.get("frames", 1)))
+	var cheer_frames := 9 if _big else maxi(1, int(cheer.get("frames", 1)))
 	var burp := create_tween()
 	burp.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	burp.tween_property(_burp, "scale", Vector2.ONE, _t(0.5))
@@ -427,7 +449,7 @@ func _run_mat() -> void:
 	var wait := _t(1.0 / maxf(1.0, float(cheer.get("fps", 10))))
 	var steps := int(ceil(_t(1.4) / wait))
 	for step in steps:
-		_show_sheet_frame("cheer" if not cheer.is_empty() else "idle", step % cheer_frames)
+		_show_sheet_frame("cheer" if _big or not cheer.is_empty() else "idle", step % cheer_frames)
 		await get_tree().create_timer(wait, true, false, true).timeout
 	finished.emit()
 	queue_free()
