@@ -69,6 +69,9 @@ var _tab := "items"
 var _grid: GridContainer
 var _tab_buttons: Dictionary = {}
 var _words: Label
+## The info box scrolls when the words do not fit (Anthony 23 Oct 2026, the
+## Kleiner Faß text ran out of the box: "I prefer the text box scrolling").
+var _words_scroll: ScrollContainer
 var _title_line: Label
 
 
@@ -202,7 +205,7 @@ func _build() -> void:
 	_words.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_words.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_words.add_theme_font_size_override("font_size", 14)
-	shelf.add_child(_words)
+	shelf.add_child(_scroll_words(MenuSupport.COLOUR_TEXT_DIM))
 
 	var close_button := MenuSupport.icon_button("close|✕",
 		Loc.text("close", "Close"), Vector2(200, 46))
@@ -388,12 +391,14 @@ func _build_mat(dim: Control) -> void:
 	shelf.add_child(shelf_mat)
 	_words = _ink_label("", text_size)
 	_words.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_words.position = Vector2(50, 14)
-	_words.size = Vector2(box.x - 240.0, 82)
-	shelf.add_child(_words)
+	var words_box := _scroll_words(Color.from_string(
+		BeerMatCard.value("ink", "#19110a"), Color(0.1, 0.07, 0.04)))
+	words_box.position = Vector2(50, 14)
+	words_box.size = Vector2(box.x - 240.0, 82)
+	shelf.add_child(words_box)
 	shelf.resized.connect(func() -> void:
 		shelf_mat.size = shelf.size / shelf_mat.scale.x
-		_words.size = Vector2(shelf.size.x - 100.0, shelf.size.y - 28.0))
+		words_box.size = Vector2(shelf.size.x - 100.0, shelf.size.y - 28.0))
 
 	var close_button := Button.new()
 	close_button.text = Loc.text("close", "Close").to_upper()
@@ -414,6 +419,45 @@ func _build_mat(dim: Control) -> void:
 		sign.position = Vector2((box.x - sign.size.x) / 2.0, -lift)
 	sign.resized.connect(centre_sign)
 	centre_sign.call()
+
+
+## ============ THE INFO BOX SCROLLS ============
+##
+## `_words` sits in a scroller the size of the box. Short words stay centred
+## in it as before; words that do not fit can be scrolled with the wheel, a
+## drag or the thin bar on the right, which only shows when it is needed.
+func _scroll_words(bar: Color) -> ScrollContainer:
+	_words_scroll = ScrollContainer.new()
+	_words_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_words_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_words_scroll.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	_words_scroll.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	var scrollbar := _words_scroll.get_v_scroll_bar()
+	var track := StyleBoxEmpty.new()
+	track.content_margin_left = 6.0
+	scrollbar.add_theme_stylebox_override("scroll", track)
+	scrollbar.add_theme_stylebox_override("scroll_focus", track)
+	for state_name in ["grabber", "grabber_highlight", "grabber_pressed"]:
+		var grip := StyleBoxFlat.new()
+		grip.bg_color = Color(bar, 0.85 if state_name == "grabber" else 1.0)
+		grip.set_corner_radius_all(3)
+		grip.content_margin_left = 3.0
+		grip.content_margin_right = 3.0
+		scrollbar.add_theme_stylebox_override(state_name, grip)
+	_words.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_words.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_words_scroll.add_child(_words)
+	# Fill the box so short words stay centred top to bottom.
+	_words_scroll.resized.connect(func() -> void:
+		_words.custom_minimum_size.y = _words_scroll.size.y)
+	return _words_scroll
+
+
+## Put words in the info box, back at the top of the scroll.
+func _say(words: String) -> void:
+	_words.text = words
+	if _words_scroll != null:
+		_words_scroll.scroll_vertical = 0
 
 
 ## One thing on its coaster, with how many on a bottle cap.
@@ -514,10 +558,10 @@ func _show_tab(which: String) -> void:
 	if not only_ids.is_empty():
 		things = things.filter(func(t) -> bool: return only_ids.has(String((t as Dictionary).get("id", ""))))
 	if things.is_empty():
-		_words.text = _nothing_here()
+		_say(_nothing_here())
 		return
 
-	_words.text = "Point at something to read what it is."
+	_say("Point at something to read what it is.")
 	for thing in things:
 		var tile := _tile(thing as Dictionary)
 		tile.set_meta("item_id", String((thing as Dictionary).get("id", "")))
@@ -554,8 +598,8 @@ func _tile(entry: Dictionary) -> Button:
 	# the window instead: it is instant, it is always in the same place, and
 	# it has room for a real sentence.
 	var words := _describe(entry)
-	button.mouse_entered.connect(func() -> void: _words.text = words)
-	button.focus_entered.connect(func() -> void: _words.text = words)
+	button.mouse_entered.connect(_say.bind(words))
+	button.focus_entered.connect(_say.bind(words))
 
 	if not usable:
 		return button

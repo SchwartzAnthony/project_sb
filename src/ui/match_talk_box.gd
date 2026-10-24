@@ -14,6 +14,13 @@ extends CanvasLayer
 signal finished
 
 const PORTRAIT_SIZE := Vector2(220, 220)
+## Anthony 23 Oct 2026: "have the coach take up more space (his hair should
+## almost exit the text box)". The picture is cut to its drawing (the empty
+## see-through top of the portrait files is dropped) and drawn this tall:
+## Tuning.csv match_talk_portrait_height. The box is 220 tall.
+var _face_size := Vector2(270, 212)
+## Cut pictures, by file, so each is measured once.
+static var _cut: Dictionary = {}
 
 var _db: DialogueDB
 var _art: StoryArt
@@ -84,23 +91,27 @@ func _ready() -> void:
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(shade)
 
+	var tall := CardDatabase.get_db().tune_float("match_talk_portrait_height", 212.0)
+	_face_size = Vector2(tall * 1.28, tall)
 	_portrait = TextureRect.new()
 	_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_portrait.anchor_top = 1.0
 	_portrait.anchor_bottom = 1.0
 	_portrait.offset_left = 50
-	_portrait.offset_right = 50 + PORTRAIT_SIZE.x
-	_portrait.offset_top = -40 - PORTRAIT_SIZE.y
-	_portrait.offset_bottom = -40
+	_portrait.offset_right = 50 + _face_size.x
+	# Standing on the box's bottom edge, the hair just under its top.
+	_portrait.offset_top = -30 - _face_size.y
+	_portrait.offset_bottom = -30
 
 	var panel := PanelContainer.new()
 	var plate := StyleBoxFlat.new()
-	# The see-through black every word in the game sits on, a little darker
-	# here because it carries whole sentences over a busy pitch.
-	plate.bg_color = Color(0, 0, 0, maxf(TextBackdrop.alpha(), 0.8))
+	# 24 Oct 2026 (Anthony: "make the background for the text and image
+	# solid black"). Solid black behind the words and the face; Tuning.csv
+	# dialogue_box_alpha (1 = solid).
+	plate.bg_color = Color(0, 0, 0, MenuSupport.tuned("dialogue_box_alpha", 1.0))
 	plate.set_corner_radius_all(6)
 	plate.content_margin_left = 24
 	plate.content_margin_right = 24
@@ -130,7 +141,7 @@ func _ready() -> void:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(row)
 	var room := Control.new()
-	room.custom_minimum_size = Vector2(PORTRAIT_SIZE.x + 20, 0)
+	room.custom_minimum_size = Vector2(_face_size.x + 20, 0)
 	room.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(room)
 	var column := VBoxContainer.new()
@@ -161,7 +172,11 @@ func _ready() -> void:
 
 ## A box along the bottom would sit on top of what the coach is pointing at
 ## when that is low on the screen; then the box (and the face) go to the top.
+## ROUND AN (Anthony, 23 Oct): only when Tuning.csv match_talk_box_moves_up is
+## true. Off, the box stays along the bottom for every stop, like round 1.
 func _out_of_the_way() -> void:
+	if not CardDatabase.get_db().tune_bool("match_talk_box_moves_up", false):
+		return
 	var low := false
 	var screen := get_viewport().get_visible_rect().size
 	for group in _groups:
@@ -177,8 +192,8 @@ func _out_of_the_way() -> void:
 	_panel.offset_bottom = 250
 	_portrait.anchor_top = 0.0
 	_portrait.anchor_bottom = 0.0
-	_portrait.offset_top = 30
-	_portrait.offset_bottom = 30 + PORTRAIT_SIZE.y
+	_portrait.offset_top = 250 - _face_size.y
+	_portrait.offset_bottom = 250
 
 
 func _show(line: DialogueLine) -> void:
@@ -227,7 +242,21 @@ func _face_for(line: DialogueLine) -> Texture2D:
 	var file_name := String(row.get("image", ""))
 	if file_name == "" or not ResourceLoader.exists(file_name):
 		return null
-	return load(file_name) as Texture2D
+	var whole := load(file_name) as Texture2D
+	if whole == null:
+		return null
+	if not _cut.has(file_name):
+		# Only the drawing: the see-through rows and columns round it go.
+		var picture := whole.get_image()
+		var used := picture.get_used_rect() if picture != null else Rect2i()
+		if used.size.x <= 0 or used.size == picture.get_size():
+			_cut[file_name] = whole
+		else:
+			var piece := AtlasTexture.new()
+			piece.atlas = whole
+			piece.region = Rect2(used)
+			_cut[file_name] = piece
+	return _cut[file_name] as Texture2D
 
 
 func _next() -> void:
