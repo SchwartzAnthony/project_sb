@@ -48,6 +48,11 @@ var db: CardDatabase
 const CHALK := Color(0.95, 0.95, 0.90)
 const CHALK_BOARD := Color(0.16, 0.27, 0.21)
 
+# Tuning.csv vs_style: drawn = the menus on the cream beer mat panel with
+# the board sign, the drawn beer tent and the blue plank buttons (23 Oct
+# 2026). old = the pixel chalkboards.
+var _drawn := false
+
 var _bar: ColorRect
 var _bar_room: Control
 var _sheet: Control
@@ -226,6 +231,7 @@ func _build(mine: Dictionary, theirs: Dictionary) -> void:
 	var stars := 3
 	if db != null:
 		stars = maxi(1, db.tune_int("team_sheet_stars", 3))
+	_drawn = db != null and db.tune_text("vs_style", "drawn").strip_edges().to_lower() == "drawn"
 
 	# ---- the full-screen sheet ----
 	_sheet = Control.new()
@@ -243,15 +249,19 @@ func _build(mine: Dictionary, theirs: Dictionary) -> void:
 	# THE BEER TENT behind the two menus (round AN). vs_background in
 	# Tuning.csv; vs_background_dim darkens it so the menus stand out.
 	var tent := _picture("vs_background", "res://assets/team/vs/vs_tent.png")
+	if _drawn:
+		tent = _picture("vs_background_drawn", "res://assets/ui/save/mugs/beer_tent.png")
 	if tent != null:
 		var hall := TextureRect.new()
 		hall.texture = tent
 		hall.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		hall.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		hall.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-		hall.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		hall.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if _drawn \
+			else CanvasItem.TEXTURE_FILTER_NEAREST
 		hall.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var dim := clampf(_tune_f("vs_background_dim", 0.55), 0.0, 1.0)
+		var dim := clampf(_tune_f("vs_background_dim_drawn" if _drawn
+			else "vs_background_dim", 0.55), 0.0, 1.0)
 		hall.modulate = Color(1.0 - dim, 1.0 - dim, 1.0 - dim, 1.0)
 		_sheet.add_child(hall)
 
@@ -320,6 +330,8 @@ func _build(mine: Dictionary, theirs: Dictionary) -> void:
 	_sheet_start.tooltip_text = "Kick off. Enter or space does the same."
 	_sheet_start.add_theme_font_size_override("font_size", 20)
 	_sheet_start.pressed.connect(_go)
+	if _drawn:
+		InventoryScreen._plank(_sheet_start)
 	_sheet_start.visible = false
 	var start_here := CenterContainer.new()
 	start_here.add_child(_sheet_start)
@@ -347,6 +359,8 @@ func _build(mine: Dictionary, theirs: Dictionary) -> void:
 	_start_button.tooltip_text = "Kick off. Enter or space does the same."
 	_start_button.add_theme_font_size_override("font_size", 20)
 	_start_button.pressed.connect(_go)
+	if _drawn:
+		InventoryScreen._plank(_start_button)
 	var holder := CenterContainer.new()
 	holder.custom_minimum_size = Vector2(240, 0)
 	holder.add_child(_start_button)
@@ -379,6 +393,8 @@ func _build(mine: Dictionary, theirs: Dictionary) -> void:
 # =============================================================
 
 func _menu_board(team: Dictionary, stars: int, theirs: bool) -> Control:
+	if _drawn:
+		return _mat_board(team, stars, theirs)
 	var screen := get_viewport().get_visible_rect().size if get_viewport() != null \
 		else Vector2(1920, 1080)
 	var art := _picture("vs_menu_board", "res://assets/team/vs/vs_menu_board.png")
@@ -497,7 +513,7 @@ func _menu_line(card: PlayerData, theirs: bool) -> Control:
 	# THE FIGURE FROM THE PITCH, standing in idle facing us: the same look
 	# the Star wears in the match (PitchSprite.window_sheet). A card with no
 	# pitch sheet yet falls back to its portrait.
-	var tall := maxf(40.0, _tune_f("vs_star_size", 120.0))
+	var tall := maxf(40.0, _tune_f("vs_star_size_drawn" if _drawn else "vs_star_size", 120.0))
 	var figure_box := CenterContainer.new()
 	figure_box.custom_minimum_size = Vector2(0, tall)
 	figure_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -514,7 +530,10 @@ func _menu_line(card: PlayerData, theirs: bool) -> Control:
 	else:
 		figure_box.add_child(MenuSupport.portrait_rect(card, db, Vector2(tall * 0.8, tall)))
 
-	var named := MenuSupport.heading(NamePlate.short_name(card), 20, CHALK)
+	var named := MenuSupport.heading(NamePlate.short_name(card), 20,
+		_ink() if _drawn else CHALK)
+	if _drawn:
+		_inked(named)
 	named.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	named.clip_text = true
 	column.add_child(named)
@@ -526,7 +545,10 @@ func _menu_line(card: PlayerData, theirs: bool) -> Control:
 	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	price.add_theme_font_size_override("font_size", 13)
 	price.add_theme_color_override("font_color",
-		MenuSupport.colour_for_tier(card.get_tier_clean()).lightened(0.45))
+		MenuSupport.colour_for_tier(card.get_tier_clean()).darkened(0.45) if _drawn
+		else MenuSupport.colour_for_tier(card.get_tier_clean()).lightened(0.45))
+	if _drawn:
+		_inked(price)
 	price.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(price)
 
@@ -573,7 +595,8 @@ func _grow_to_fit(board: Control, chalk: Control, frame_rows: float, screen_tall
 ## A thin chalk line between the menu's entries.
 func _chalk_rule() -> Control:
 	var rule := ColorRect.new()
-	rule.color = Color(CHALK.r, CHALK.g, CHALK.b, 0.35)
+	var line := _ink() if _drawn else CHALK
+	rule.color = Color(line.r, line.g, line.b, 0.35)
 	rule.custom_minimum_size = Vector2(2, 0)
 	rule.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return rule
@@ -590,6 +613,9 @@ func _versus() -> Control:
 	middle.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.add_child(middle)
 	var art := _picture("vs_versus", "res://assets/team/vs/vs_steins.png")
+	if _drawn:
+		middle.add_child(_drawn_steins())
+		art = null
 	if art != null:
 		var steins := TextureRect.new()
 		steins.texture = art
@@ -750,6 +776,12 @@ func _ability_line(attacking: bool, ability_id: String) -> Control:
 	else:
 		said.text = "%s — %s" % [ability.display_name, ability.plain()]
 		said.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
+	if _drawn:
+		_inked(said)
+		_inked(tag)
+		tag.add_theme_color_override("font_color", tint.darkened(0.35))
+		tag.add_theme_stylebox_override("normal", MenuSupport.panel_style(
+			Color(tint.r, tint.g, tint.b, 0.22), tint.darkened(0.35)))
 	row.add_child(said)
 	return row
 
@@ -769,3 +801,123 @@ func _match_words() -> String:
 	var mode := MatchMode.current(get_tree())
 	var said := String(mode.get("name", "")).strip_edges()
 	return said.to_upper() if said != "" else "KICK-OFF"
+
+
+# =============================================================
+#  THE DRAWN MENUS  (Anthony 23 Oct 2026: "Redo the Menu boards with the
+#  three star players before the match starts please in our art style")
+#
+#  vs_style drawn: each side is the cream beer mat panel of the inventory,
+#  the team name on the wooden board sign on its top edge, the Stars in ink.
+#  Two drawn Maß mugs from the save screen clink between them.
+# =============================================================
+
+func _ink() -> Color:
+	return Color.from_string(BeerMatCard.value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
+
+
+## Ink words on cream: no outline, no shadow, no dark plate behind them.
+func _inked(label: Label) -> void:
+	label.add_theme_color_override("font_color", _ink())
+	label.add_theme_constant_override("outline_size", 0)
+	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+	if not label.has_theme_stylebox_override("normal"):
+		label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+
+
+func _mat_board(team: Dictionary, stars: int, theirs: bool) -> Control:
+	var screen := get_viewport().get_visible_rect().size if get_viewport() != null \
+		else Vector2(1920, 1080)
+	var wide := screen.x * clampf(_tune_f("vs_board_width", 0.44), 0.1, 0.5)
+	var tall := screen.y * clampf(_tune_f("vs_board_height_drawn", 0.5), 0.2, 1.0)
+	var edge := int(BeerMatCard.number("inventory_edge", 60.0))
+	var lift := _tune_f("vs_sign_lift", 82.0)
+
+	var side := Control.new()
+	side.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	side.custom_minimum_size = Vector2(wide, tall + lift)
+
+	var board := Control.new()
+	board.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	board.position = Vector2(0, lift)
+	board.size = Vector2(wide, tall)
+	board.custom_minimum_size = Vector2(wide, tall)
+	side.add_child(board)
+	var patch := InventoryScreen._mat(Vector2(wide, tall), edge, 0.9)
+	board.add_child(patch)
+
+	var chalk := HBoxContainer.new()
+	chalk.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	chalk.offset_left = 46.0
+	chalk.offset_top = 64.0
+	chalk.offset_right = -46.0
+	chalk.offset_bottom = -40.0
+	chalk.add_theme_constant_override("separation", 8)
+	chalk.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	board.add_child(chalk)
+
+	var shown := 0
+	for entry in (team.get("stars", []) as Array):
+		if shown >= stars:
+			break
+		var card := entry as PlayerData
+		if card == null:
+			continue
+		if shown > 0:
+			chalk.add_child(_chalk_rule())
+		chalk.add_child(_menu_line(card, theirs))
+		shown += 1
+	if shown == 0:
+		var none := _quiet("No Star Players named for this side.")
+		_inked(none)
+		chalk.add_child(none)
+
+	var sign := SignHeader.make(String(team.get("name", "?")), "res://data/MenuHeaderBoard.csv")
+	side.add_child(sign)
+	var fit := func() -> void:
+		patch.size = board.size / patch.scale.x
+		sign.position = Vector2((wide - sign.size.x) / 2.0, 0.0)
+		side.custom_minimum_size.y = board.size.y + lift
+	sign.resized.connect(fit)
+	fit.call_deferred()
+
+	# Long abilities make the panel taller, the same as the old boards, once
+	# the words have been laid out at their real width.
+	_grow_drawn.call_deferred(side, board, chalk, screen.y, fit)
+	return side
+
+
+func _grow_drawn(side: Control, board: Control, chalk: Control, screen_tall: float,
+		fit: Callable) -> void:
+	for wait in 3:
+		await get_tree().process_frame
+	if not is_instance_valid(board) or not is_instance_valid(chalk):
+		return
+	await _grow_to_fit(board, chalk, 104.0, screen_tall)
+	if is_instance_valid(board) and is_instance_valid(side):
+		board.size.y = board.custom_minimum_size.y
+		fit.call()
+
+
+## Two drawn Maß mugs from the save screen, clinking.
+func _drawn_steins() -> Control:
+	var pair := HBoxContainer.new()
+	pair.alignment = BoxContainer.ALIGNMENT_CENTER
+	pair.add_theme_constant_override("separation", -26)
+	pair.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mug := _picture("vs_versus_drawn", "res://assets/ui/save/mugs/mug_closed_full.png")
+	if mug == null:
+		return pair
+	for flip in [false, true]:
+		var one := TextureRect.new()
+		one.texture = mug
+		one.custom_minimum_size = Vector2(96, 140)
+		one.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		one.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		one.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		one.flip_h = flip
+		one.pivot_offset = Vector2(48, 70)
+		one.rotation = deg_to_rad(12.0 if not flip else -12.0)
+		one.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pair.add_child(one)
+	return pair

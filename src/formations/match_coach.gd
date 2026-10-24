@@ -330,7 +330,11 @@ func time_out(scene: String) -> void:
 	var was_paused := tree.paused
 	tree.paused = true
 	layer.add_child(view)
+	# PUB MUSIC (Anthony, 23 Oct): the time out is in the bar, so it gets the
+	# bar's music - Audio.csv rows pub_time_out_music / match_music_back_pub.
+	AudioDirector.fire(tree, "time_out_started", {"where": "pub"})
 	await view.scene_finished
+	AudioDirector.fire(tree, "time_out_ended", {"where": "pub"})
 	tree.paused = was_paused
 	layer.queue_free()
 	if parked != null:
@@ -364,7 +368,11 @@ func brewery_time_out(flag: String) -> void:
 	var screen := (load(BREWERY_SCENE) as PackedScene).instantiate() as BreweryScreen
 	screen.in_match = true
 	layer.add_child(screen)
+	# BREWERY MUSIC (Anthony, 23 Oct): the Brewery gets its own music here too
+	# - Audio.csv rows brewery_time_out_music / match_music_back_brewery.
+	AudioDirector.fire(tree, "time_out_started", {"where": "brewery"})
 	await screen.left
+	AudioDirector.fire(tree, "time_out_ended", {"where": "brewery"})
 	if state != null and flag != "":
 		state.set_flag(flag, false)
 	tree.paused = was_paused
@@ -817,6 +825,7 @@ func _build_exhaust_button() -> void:
 	_exhaust_button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_exhaust_button.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_exhaust_button.pressed.connect(_toggle_exhaust)
+	ScreenLook.plank(_exhaust_button)
 	(layer as Node).add_child(_exhaust_button)
 	_refresh_exhaust()
 
