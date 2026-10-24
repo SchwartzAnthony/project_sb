@@ -191,7 +191,7 @@ func _spots_for(words: String) -> Array:
 			word = word.substr(5).strip_edges()
 		for control in _controls_for(word):
 			if control != null and control.is_visible_in_tree():
-				out.append({"rect": control.get_global_rect(), "ring": ring})
+				out.append({"rect": control.get_global_rect(), "ring": ring, "control": control})
 	if out.is_empty():
 		print("[match talk] Highlight '%s' found nothing on screen to point at." % words)
 	return out
@@ -330,7 +330,11 @@ func time_out(scene: String) -> void:
 	var was_paused := tree.paused
 	tree.paused = true
 	layer.add_child(view)
+	# PUB MUSIC (Anthony, 23 Oct): the time out is in the bar, so it gets the
+	# bar's music - Audio.csv rows pub_time_out_music / match_music_back_pub.
+	AudioDirector.fire(tree, "time_out_started", {"where": "pub"})
 	await view.scene_finished
+	AudioDirector.fire(tree, "time_out_ended", {"where": "pub"})
 	tree.paused = was_paused
 	layer.queue_free()
 	if parked != null:
@@ -364,7 +368,11 @@ func brewery_time_out(flag: String) -> void:
 	var screen := (load(BREWERY_SCENE) as PackedScene).instantiate() as BreweryScreen
 	screen.in_match = true
 	layer.add_child(screen)
+	# BREWERY MUSIC (Anthony, 23 Oct): the Brewery gets its own music here too
+	# - Audio.csv rows brewery_time_out_music / match_music_back_brewery.
+	AudioDirector.fire(tree, "time_out_started", {"where": "brewery"})
 	await screen.left
+	AudioDirector.fire(tree, "time_out_ended", {"where": "brewery"})
 	if state != null and flag != "":
 		state.set_flag(flag, false)
 	tree.paused = was_paused
@@ -817,8 +825,144 @@ func _build_exhaust_button() -> void:
 	_exhaust_button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_exhaust_button.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_exhaust_button.pressed.connect(_toggle_exhaust)
+	# 24 Oct 2026 (Anthony): while the coach talks about it, it comes in
+	# front of the dark sheet (MatchTalkBox), then goes back.
+	_exhaust_button.set_meta("lift_in_talk", true)
+	ScreenLook.plank(_exhaust_button)
 	(layer as Node).add_child(_exhaust_button)
+	_draw_exhaust_icon(db.tune_text("exhaust_icon", "coaster").strip_edges().to_lower(),
+		db.tune_float("exhaust_icon_scale", 1.0))
 	_refresh_exhaust()
+
+
+# -------------------------------------------------------------
+#  THE DRAWN EXHAUST MARKER (Anthony 23 Oct 2026: "cannot see it, it blends
+#  in too much"). Tuning.csv exhaust_icon picks the look:
+#      plank    the blue wooden plank, the empty Maß on its end
+#      coaster  a blue-white beer mat with the empty Maß on it
+#      mug      a big empty Maß, the words on a plank under it
+#      plain    the old grey button
+#  Each has a dark aura so it stands off the grass, and a red disc with the
+#  count. Pieces: assets/ui/exhaust (tools/make_exhaust_icon.py).
+# -------------------------------------------------------------
+
+const EXHAUST_ART := "res://assets/ui/exhaust/"
+var _exhaust_count_label: Label = null
+var _exhaust_words: Control = null
+
+
+func _draw_exhaust_icon(look: String, scale: float) -> void:
+	if look == "plain" or ScreenLook.picture(EXHAUST_ART + "mug.png") == null:
+		return
+	var b := _exhaust_button
+	var plank_row := {MenuSupport.normalise("Image"): "res://assets/menu/button_plank_drawn.png",
+		MenuSupport.normalise("Scale"): "1", MenuSupport.normalise("Colour"): "#ffffff"}
+	var words := Loc.text("exhaust_button", "EXHAUST ZONE")
+	var mug_at := Rect2()
+	var badge_at := Vector2()
+	match look:
+		"coaster", "mug":
+			var box := Vector2(190, 190) if look == "coaster" else Vector2(150, 230)
+			box *= scale
+			b.offset_left = -20.0 - box.x - 30.0 * scale
+			b.offset_right = -20.0 - 30.0 * scale
+			b.offset_top = -74.0 - box.y
+			b.offset_bottom = -74.0
+			b.flat = true
+			for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+				b.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+			if look == "coaster":
+				_exhaust_piece("coaster", Rect2(Vector2.ZERO, box))
+				var mh := box.y * 0.62
+				mug_at = Rect2(Vector2(box.x * 0.5 - mh * 0.27, box.y * 0.17), Vector2(mh * 0.54, mh))
+				badge_at = Vector2(box.x * 0.80, box.y * 0.14)
+			else:
+				var mh := box.y * 0.86
+				mug_at = Rect2(Vector2(box.x * 0.5 - mh * 0.27, 0), Vector2(mh * 0.54, mh))
+				badge_at = Vector2(box.x * 0.30, box.y * 0.56)
+			_exhaust_piece("mug", mug_at)
+			# The words on a small plank across the foot.
+			var sign_board := Button.new()
+			sign_board.text = words
+			sign_board.focus_mode = Control.FOCUS_NONE
+			sign_board.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			sign_board.add_theme_font_size_override("font_size", int(20 * scale))
+			sign_board.size = Vector2(box.x + 60.0 * scale, 46.0 * scale)
+			sign_board.position = Vector2(-30.0 * scale, box.y - 18.0 * scale)
+			b.add_child(sign_board)
+			ScreenLook._dress(sign_board, plank_row)
+			_exhaust_words = sign_board
+		_:
+			# plank: the button itself is the plank, the Maß stands on its end.
+			b.offset_left = -20.0 - 330.0 * scale
+			b.offset_top = -44.0 - 64.0 * scale
+			b.offset_right = -20.0
+			b.offset_bottom = -44.0
+			ScreenLook._dress(b, plank_row)
+			b.alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			var mh := 150.0 * scale
+			mug_at = Rect2(Vector2(-34.0 * scale, 64.0 * scale - mh + 8.0 * scale), Vector2(mh * 0.54, mh))
+			badge_at = Vector2(322.0 * scale, 4.0 * scale)
+			var glow := Panel.new()
+			var shade := StyleBoxFlat.new()
+			shade.bg_color = Color(0, 0, 0, 0)
+			shade.shadow_color = Color(0.04, 0.02, 0.0, 0.8)
+			shade.shadow_size = int(16 * scale)
+			shade.set_corner_radius_all(int(12 * scale))
+			glow.add_theme_stylebox_override("panel", shade)
+			glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			glow.show_behind_parent = true
+			glow.position = Vector2(4, 4) * scale
+			glow.size = Vector2(330, 56) * scale
+			b.add_child(glow)
+			_exhaust_piece("mug", mug_at)
+	# The count on a red disc.
+	var d := 58.0 * scale
+	var badge_rect := Rect2(badge_at - Vector2(d, d) * 0.5, Vector2(d, d))
+	_exhaust_piece("badge", badge_rect)
+	_exhaust_count_label = Label.new()
+	_exhaust_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_exhaust_count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_exhaust_count_label.position = badge_rect.position
+	_exhaust_count_label.size = badge_rect.size
+	_exhaust_count_label.add_theme_font_size_override("font_size", int(28 * scale))
+	_exhaust_count_label.add_theme_color_override("font_color", Color("fff6e0"))
+	_exhaust_count_label.add_theme_color_override("font_outline_color", Color("19110a"))
+	_exhaust_count_label.add_theme_constant_override("outline_size", 6)
+	_exhaust_count_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(_exhaust_count_label)
+	if look == "plank":
+		b.text = words
+	else:
+		b.text = ""
+	b.mouse_entered.connect(func() -> void: b.modulate = Color(1.15, 1.1, 1.0))
+	b.mouse_exited.connect(func() -> void: b.modulate = Color.WHITE)
+
+
+## One drawn piece and its dark aura, laid on the button (clicks pass through).
+func _exhaust_piece(piece: String, at: Rect2) -> void:
+	var art := ScreenLook.picture(EXHAUST_ART + piece + ".png")
+	var glow := ScreenLook.picture(EXHAUST_ART + piece + "_aura.png")
+	if art == null:
+		return
+	if glow != null:
+		var pad := at.size * (Vector2(glow.get_size()) / Vector2(art.get_size()) - Vector2.ONE) * 0.5
+		var aura := _exhaust_rect(glow, Rect2(at.position - pad, at.size + pad * 2.0))
+		aura.self_modulate = Color(0.04, 0.02, 0.0, 0.85)
+	_exhaust_rect(art, at)
+
+
+func _exhaust_rect(texture: Texture2D, at: Rect2) -> TextureRect:
+	var rect := TextureRect.new()
+	rect.texture = texture
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_SCALE
+	rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rect.position = at.position
+	rect.size = at.size
+	_exhaust_button.add_child(rect)
+	return rect
 
 
 func _process(delta: float) -> void:
@@ -837,6 +981,9 @@ func _exhausted_count() -> int:
 
 func _refresh_exhaust() -> void:
 	if _exhaust_button == null:
+		return
+	if _exhaust_count_label != null:
+		_exhaust_count_label.text = str(_exhausted_count())
 		return
 	_exhaust_button.text = Loc.text("exhaust_button", "EXHAUST ZONE") + "  (%d)" % _exhausted_count()
 

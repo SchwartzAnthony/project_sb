@@ -9,7 +9,7 @@ prologue,open,,,,,,,bar,,,Three players wait at the Stammtisch.,,,,,,,,,,,,,,,
 prologue,servus,Head Coach,coach,left,happy,,,,,,"Servus, Trainer! Sit down.",,,,,,,,,,,,,,,
 prologue,put_down,Head Coach,coach,left,mad,side,,,,,"Put that down, Koch! You should already be drunk enough!",,,,,,,,,,,,,,,,koch:right:drunk
 prologue,still_cold,Koch,koch,right,sad,side,,,,,But this is cold.,,,,,,,,,,,,,,,
-prologue,finish_up,Head Coach,coach,left,mad,side,,,,,Fine! But finish up. We need to show our new trainee how to become a good new coach for our town.,,,,,,,,,,,,,,,
+prologue,finish_up,Head Coach,coach,left,mad,side,,,,,Fine! But finish up. We need to show our new trainee how to become a good new coach for our town.,,,,,,,,,,,,,,,,koch:right:happy
 prologue,beuterdorf,Head Coach,coach,left,happy,,,,,,"I will be leaving soon to help another town, Beuterdorf, and we need as many people as possible.",,,,,,,,,,,,,,,
 prologue,creatures,Head Coach,coach,left,mad,,,,,,Those damn mythological creatures won't leave us alone.,,,,,,,,,,,,,,,
 prologue,koch_echo,Koch,koch,right,drunk,side,,,,,Thos-se daaaaaaaaamn- creatures.,,,,,,,,,,,,,,,
@@ -113,7 +113,6 @@ tut-missing-beer,bastard,Head Coach,coach,left,mad,side,,,,,"Koch, you bastard! 
 tut-missing-beer,home_game,Koch,koch,right,drunk,side,,,,,A home game against ourselves... good question.,,,,,,,,,,,,,,,
 tut-missing-beer,one_thing,Head Coach,coach,left,mad,,,,,,There is only one thing to do. TIME OUT! To the Brewery!,,,,,,,,,,,,,,,
 tut-after-brewery,continue,Head Coach,coach,left,happy,,,,,,"So, after all of the brewing and stopping the game, let us continue!",,,,,,,,,,,,,,,
-tut-after-brewery,clap,,,,,,,,,,*Clap clap*,,,,,,,,,,,,,,,
 tut-after-brewery,open_again,Head Coach,coach,left,happy,,,,,,Open up the menu... again...,,,,,,,,,,,,,,,
 tut-after-brewery,hic,Koch,koch,right,drunk,side,,,,,*hic*,,,,,,,,,,,,,,,
 tut-after-brewery,dots,Head Coach,coach,left,mad,side,,,,,......,,,,,,,,,,,,,,,

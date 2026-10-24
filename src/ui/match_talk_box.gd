@@ -14,6 +14,13 @@ extends CanvasLayer
 signal finished
 
 const PORTRAIT_SIZE := Vector2(220, 220)
+## Anthony 23 Oct 2026: "have the coach take up more space (his hair should
+## almost exit the text box)". The picture is cut to its drawing (the empty
+## see-through top of the portrait files is dropped) and drawn this tall:
+## Tuning.csv match_talk_portrait_height. The box is 220 tall.
+var _face_size := Vector2(270, 212)
+## Cut pictures, by file, so each is measured once.
+static var _cut: Dictionary = {}
 
 var _db: DialogueDB
 var _art: StoryArt
@@ -40,6 +47,11 @@ var _line_index := -1
 ## skipped until it has been up this long (Tuning.csv match_talk_line_seconds).
 var _line_lock := 1.2
 var _shown_at := 0
+## 24 Oct 2026 (Anthony): a thing he points at that asks to be lifted (meta
+## "lift_in_talk", e.g. the EXHAUST ZONE marker) comes in front of the dark
+## sheet while its line is up, then goes back where it was.
+var _lift_layer: CanvasLayer = null
+var _lifted: Array = []
 
 
 ## Open the box with `scene` over whatever is on screen. Returns the box, or
@@ -84,23 +96,27 @@ func _ready() -> void:
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(shade)
 
+	var tall := CardDatabase.get_db().tune_float("match_talk_portrait_height", 212.0)
+	_face_size = Vector2(tall * 1.28, tall)
 	_portrait = TextureRect.new()
 	_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_portrait.anchor_top = 1.0
 	_portrait.anchor_bottom = 1.0
 	_portrait.offset_left = 50
-	_portrait.offset_right = 50 + PORTRAIT_SIZE.x
-	_portrait.offset_top = -40 - PORTRAIT_SIZE.y
-	_portrait.offset_bottom = -40
+	_portrait.offset_right = 50 + _face_size.x
+	# Standing on the box's bottom edge, the hair just under its top.
+	_portrait.offset_top = -30 - _face_size.y
+	_portrait.offset_bottom = -30
 
 	var panel := PanelContainer.new()
 	var plate := StyleBoxFlat.new()
-	# The see-through black every word in the game sits on, a little darker
-	# here because it carries whole sentences over a busy pitch.
-	plate.bg_color = Color(0, 0, 0, maxf(TextBackdrop.alpha(), 0.8))
+	# 24 Oct 2026 (Anthony: "make the background for the text and image
+	# solid black"). Solid black behind the words and the face; Tuning.csv
+	# dialogue_box_alpha (1 = solid).
+	plate.bg_color = Color(0, 0, 0, MenuSupport.tuned("dialogue_box_alpha", 1.0))
 	plate.set_corner_radius_all(6)
 	plate.content_margin_left = 24
 	plate.content_margin_right = 24
@@ -130,7 +146,7 @@ func _ready() -> void:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(row)
 	var room := Control.new()
-	room.custom_minimum_size = Vector2(PORTRAIT_SIZE.x + 20, 0)
+	room.custom_minimum_size = Vector2(_face_size.x + 20, 0)
 	room.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(room)
 	var column := VBoxContainer.new()
@@ -161,7 +177,11 @@ func _ready() -> void:
 
 ## A box along the bottom would sit on top of what the coach is pointing at
 ## when that is low on the screen; then the box (and the face) go to the top.
+## ROUND AN (Anthony, 23 Oct): only when Tuning.csv match_talk_box_moves_up is
+## true. Off, the box stays along the bottom for every stop, like round 1.
 func _out_of_the_way() -> void:
+	if not CardDatabase.get_db().tune_bool("match_talk_box_moves_up", false):
+		return
 	var low := false
 	var screen := get_viewport().get_visible_rect().size
 	for group in _groups:
@@ -177,8 +197,8 @@ func _out_of_the_way() -> void:
 	_panel.offset_bottom = 250
 	_portrait.anchor_top = 0.0
 	_portrait.anchor_bottom = 0.0
-	_portrait.offset_top = 30
-	_portrait.offset_bottom = 30 + PORTRAIT_SIZE.y
+	_portrait.offset_top = 250 - _face_size.y
+	_portrait.offset_bottom = 250
 
 
 func _show(line: DialogueLine) -> void:
@@ -206,11 +226,60 @@ func _point_for_line() -> void:
 		return
 	for child in _spot_holder.get_children():
 		child.queue_free()
+	_drop_lifted()
 	if _groups.is_empty():
 		return
 	var group: Array = _groups[mini(_line_index, _groups.size() - 1)]
 	if not group.is_empty():
 		_spot_holder.add_child(CoachSpots.make(group))
+	for spot in group:
+		var thing = spot.get("control")
+		if thing is Control and is_instance_valid(thing) and (thing as Control).has_meta("lift_in_talk"):
+			_lift(thing as Control)
+
+
+## Bring it in front of the sheet, glowing, clicks still going to the box.
+func _lift(thing: Control) -> void:
+	if _lift_layer == null:
+		_lift_layer = CanvasLayer.new()
+		_lift_layer.layer = layer + 1
+		_lift_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+		add_child(_lift_layer)
+	var home := thing.get_parent()
+	var keep := {"node": thing, "home": home, "index": thing.get_index(),
+		"filter": thing.mouse_filter, "modulate": thing.modulate}
+	_lifted.append(keep)
+	thing.reparent(_lift_layer, false)
+	# The words make room for it instead of running under it.
+	var panel_rect := _panel.get_global_rect()
+	var at := thing.get_global_rect().grow(40.0)
+	if at.intersects(panel_rect) and at.position.x > panel_rect.get_center().x:
+		if not keep.has("panel_right"):
+			keep["panel_right"] = _panel.offset_right
+		_panel.offset_right -= panel_rect.end.x - at.position.x
+	thing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var glow := create_tween().set_loops()
+	glow.tween_property(thing, "modulate", Color(1.35, 1.25, 1.05), 0.45)
+	glow.tween_property(thing, "modulate", Color.WHITE, 0.45)
+	keep["tween"] = glow
+
+
+## Put everything lifted back exactly where it was.
+func _drop_lifted() -> void:
+	for keep in _lifted:
+		if keep.has("tween") and (keep["tween"] as Tween).is_valid():
+			(keep["tween"] as Tween).kill()
+		if keep.has("panel_right") and _panel != null:
+			_panel.offset_right = float(keep["panel_right"])
+		var thing = keep["node"]
+		var home = keep["home"]
+		if not is_instance_valid(thing) or not is_instance_valid(home):
+			continue
+		(thing as Control).reparent(home as Node, false)
+		(home as Node).move_child(thing as Node, mini(int(keep["index"]), (home as Node).get_child_count() - 1))
+		(thing as Control).mouse_filter = keep["filter"]
+		(thing as Control).modulate = keep["modulate"]
+	_lifted.clear()
 
 
 func _process(_delta: float) -> void:
@@ -227,7 +296,21 @@ func _face_for(line: DialogueLine) -> Texture2D:
 	var file_name := String(row.get("image", ""))
 	if file_name == "" or not ResourceLoader.exists(file_name):
 		return null
-	return load(file_name) as Texture2D
+	var whole := load(file_name) as Texture2D
+	if whole == null:
+		return null
+	if not _cut.has(file_name):
+		# Only the drawing: the see-through rows and columns round it go.
+		var picture := whole.get_image()
+		var used := picture.get_used_rect() if picture != null else Rect2i()
+		if used.size.x <= 0 or used.size == picture.get_size():
+			_cut[file_name] = whole
+		else:
+			var piece := AtlasTexture.new()
+			piece.atlas = whole
+			piece.region = Rect2(used)
+			_cut[file_name] = piece
+	return _cut[file_name] as Texture2D
 
 
 func _next() -> void:
@@ -260,6 +343,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _close() -> void:
+	_drop_lifted()
 	if _state != null:
 		_state.save_to_disk()
 	if _pause:
@@ -278,7 +362,15 @@ class CoachSpots extends Control:
 	var art: Texture2D
 	var art_scale := 3.0
 	var margin := 17
+	var overhang := 0.0
 	var _t := 0.0
+
+	## How big one art pixel is drawn: duel_hl_art_scale, made smaller when
+	## the box is too small for two whole corners, so the pretzels never
+	## get cut or squashed.
+	static func fit_scale(size: Vector2, edge: int, wanted: float) -> float:
+		var room := minf(size.x, size.y) / maxf(1.0, edge * 2.0)
+		return clampf(room, 0.05, wanted)
 
 	static func make(list: Array) -> CoachSpots:
 		var made := CoachSpots.new()
@@ -295,22 +387,25 @@ class CoachSpots extends Control:
 			made.art = load(path) as Texture2D
 		made.art_scale = maxf(1.0, db.tune_float("duel_hl_art_scale", 3.0))
 		made.margin = db.tune_int("duel_hl_box_margin", 17)
+		made.overhang = db.tune_float("duel_hl_box_overhang", 0.0)
 		# Each box is a NinePatch child, so the art stretches like the duel's.
 		for spot in list:
 			if bool(spot.get("ring", false)) or made.art == null:
 				continue
-			var rect: Rect2 = (spot.get("rect", Rect2()) as Rect2).grow(14.0)
+			var rect: Rect2 = (spot.get("rect", Rect2()) as Rect2).grow(14.0 + made.overhang)
+			var fit := fit_scale(rect.size, made.margin, made.art_scale)
 			var patch := NinePatchRect.new()
 			patch.texture = made.art
-			patch.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			patch.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if made.art_scale > 1.0 \
+				else CanvasItem.TEXTURE_FILTER_LINEAR
 			patch.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			patch.patch_margin_left = made.margin
 			patch.patch_margin_right = made.margin
 			patch.patch_margin_top = made.margin
 			patch.patch_margin_bottom = made.margin
 			patch.position = rect.position
-			patch.scale = Vector2.ONE * made.art_scale
-			patch.size = rect.size / made.art_scale
+			patch.scale = Vector2.ONE * fit
+			patch.size = rect.size / fit
 			made.add_child(patch)
 		return made
 
