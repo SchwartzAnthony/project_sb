@@ -774,6 +774,17 @@ MatchModes.csv change that.
 > key your Audio.csv row is written against. The words on screen changed; the
 > spreadsheet key deliberately did not.
 
+### The match ball (24 Oct)
+
+The ball on the pitch is a classic black-and-white patch football drawn in
+ink: thick black outline, black pentagons, flat white and one blue-grey shade
+at the bottom. It **rolls**: every frame it turns the way it is travelling, by
+exactly how far it went, so a hard shot spins fast and a ball at a dribbler's
+feet turns slowly. The outline and the shade stay put, the way a drawn ball is
+lit. It is drawn by `src/units/ball_face.gdshader` (colours, outline and seam
+thickness are the `uniform` lines at its top), so there is no picture file to
+swap. To see it big: `tools/ball_roll_shot.gd`.
+
 ### Who the ball goes to, and the restarts
 
 **Tier IV is never passed to in ordinary play.** Tier IV stands nearest the
