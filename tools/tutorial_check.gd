@@ -31,7 +31,7 @@ const GIVE_UP_SECONDS := 1500.0
 const STOPS: Array[String] = ["tut-kickoff", "tut-tier1", "tut-tier2", "tut-tier4",
 	"tut-duel-start", "tut-duel-priority", "tut-duel-ability-1", "tut-duel-ability-2",
 	"tut-duel-power", "tut-duel-result", "tut-shot", "tut-exhaust",
-	"tut-timeout-call", "tut-timeout-inspiration", "tut-koch-ability", "tut-koch-ability-card",
+	"tut-timeout-call", "tut-timeout-inspiration", "tut-timeout-beer-card", "tut-koch-ability", "tut-koch-ability-card",
 	"tut-referee", "tut-combo", "tut-combo-2",
 	"tut-timeout2-call", "tut-timeout-cursed", "tut-keeper-tip", "tut-koch-earth",
 	"tut-hold-pause"]
