@@ -1352,9 +1352,15 @@ dark, and the beer mat under the banner names him: ★ for a Star, the name,
 **Tier** and **Power**. The keeper stands first, then the players by Tier,
 the Stars last. Then the same for the other team.
 
-The symbol is the class's `Banner Art` in `ClassInfo.csv`; a class without
-one shows its own icon from `AdventureTraits.csv` (the row with From =
-class), then its Element's icon there.
+The symbol is the class's **`Team Symbol`** in `ClassInfo.csv`: the drawn
+crests in `assets/team/crest_<team>.png` (24 Oct 2026). A class without one
+shows its `Banner Art`, then its own icon from `AdventureTraits.csv` (the
+row with From = class), then its Element's icon there.
+
+The players are the **big sharp window sheets** shared with the drinking
+window (`assets/players/window/`, same file name as the pitch sheet, set in
+`data/DrinkWindow.csv`), standing facing the camera (`line_up_sharp_row`).
+A player with no sharp sheet stands as his pitch sheet.
 
 Every figure is the drawn sprite that player wears on the pitch, so a
 transformed player (a brew on him) looks here exactly as he will play. The
@@ -1379,6 +1385,7 @@ space, enter or escape, goes straight to the countdown.
 | `line_up_banner_width` | how wide the banner is, part of the screen. `0.5` |
 | `line_up_banner_symbol` | where the medallion's middle is in the banner picture |
 | `line_up_banner_words` | where the name goes in the banner picture |
+| `line_up_sharp_row` | which row of the sharp sheets they stand in. `2` = facing the camera |
 
 The banners are drawn by `/mnt/project-files/art_tool/team_banner/team_banner.py`.
 `tools/line_up_shot.gd` films it frame by frame for a GIF.
