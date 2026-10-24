@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://3xcdt4yfx44v"
-path="res://.godot/imported/bottle.webp-adf38adf5de6394c5981894f53b4d492.ctex"
+uid="uid://c58w748vwcl5t"
+path="res://.godot/imported/keeper_ready.png-3eb63468dde0d412a5b82ffbcda3faff.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/drink/bottle.webp"
-dest_files=["res://.godot/imported/bottle.webp-adf38adf5de6394c5981894f53b4d492.ctex"]
+source_file="res://assets/ui/shootout/keeper_ready.png"
+dest_files=["res://.godot/imported/keeper_ready.png-3eb63468dde0d412a5b82ffbcda3faff.ctex"]
 
 [params]
 

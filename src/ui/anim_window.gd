@@ -43,6 +43,9 @@ var _caption: Label
 var _stage: CenterContainer
 var _anim: SpriteAnimator
 var _picture: TextureRect
+# Tuning.csv anim_window_style drawn (24 Oct 2026): the beer mat panel with
+# the outdoor field behind the player, like the player card.
+var _drawn := false
 
 
 ## Put one up over `on`. It is invisible until show_panel() is called.
@@ -67,6 +70,9 @@ func _build() -> void:
 	_frame.add_theme_stylebox_override("panel", MenuSupport.styled(
 		"window", "", Color(0.06, 0.07, 0.10, 0.95), MenuSupport.COLOUR_ACCENT))
 	add_child(_frame)
+	_drawn = db != null and db.tune_text("anim_window_style", "drawn").strip_edges().to_lower() == "drawn"
+	if _drawn:
+		_mat_behind()
 
 	var pad := MarginContainer.new()
 	for side in ["margin_left", "margin_right"]:
@@ -74,6 +80,11 @@ func _build() -> void:
 	for side in ["margin_top", "margin_bottom"]:
 		pad.add_theme_constant_override(side, 26)
 	pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if _drawn:
+		pad.add_theme_constant_override("margin_left", 54)
+		pad.add_theme_constant_override("margin_right", 54)
+		pad.add_theme_constant_override("margin_top", 50)
+		pad.add_theme_constant_override("margin_bottom", 40)
 	_frame.add_child(pad)
 
 	var column := VBoxContainer.new()
@@ -90,6 +101,17 @@ func _build() -> void:
 	_stage.custom_minimum_size = STAGE
 	_stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(_stage)
+	if _drawn:
+		# THE OUTDOOR FIELD behind the player, like the meadow on the card.
+		var field := TextureRect.new()
+		field.texture = ScreenLook.picture(db.tune_text("anim_window_field",
+			"res://assets/ui/anim_window/meadow.png"))
+		field.custom_minimum_size = STAGE
+		field.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		field.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		field.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		field.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_stage.add_child(field)
 
 	_picture = TextureRect.new()
 	_picture.custom_minimum_size = STAGE
@@ -101,9 +123,39 @@ func _build() -> void:
 
 	_anim = SpriteAnimator.new()
 	_anim.visible = false
-	_stage.add_child(_anim)
+	if _drawn:
+		# Down on the grass rather than floating in front of the houses.
+		var lower := MarginContainer.new()
+		lower.custom_minimum_size = STAGE
+		lower.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lower.add_theme_constant_override("margin_top", int(db.tune_float("anim_window_drop", 90.0)))
+		var middle := CenterContainer.new()
+		middle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lower.add_child(middle)
+		middle.add_child(_anim)
+		_stage.add_child(lower)
+	else:
+		_stage.add_child(_anim)
 
-	_caption = MenuSupport.heading("", 34, MenuSupport.COLOUR_ACCENT)
+	if _drawn:
+		# A thick ink edge round the field, like the card's picture window.
+		var edge := Panel.new()
+		edge.custom_minimum_size = STAGE
+		edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var line := StyleBoxFlat.new()
+		line.draw_center = false
+		line.border_color = _ink()
+		line.set_border_width_all(5)
+		line.set_corner_radius_all(6)
+		edge.add_theme_stylebox_override("panel", line)
+		_stage.add_child(edge)
+
+	_caption = MenuSupport.heading("", 34, _ink() if _drawn else MenuSupport.COLOUR_ACCENT)
+	if _drawn:
+		_caption.add_theme_color_override("font_color", _ink())
+		_caption.add_theme_constant_override("outline_size", 0)
+		_caption.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+		_caption.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
 	_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_caption.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_caption.custom_minimum_size = Vector2(STAGE.x, 0.0)
@@ -140,7 +192,7 @@ func show_panel(caption: String, art: String, animation: String,
 	_anim.visible = playing
 	if playing:
 		_anim.play(sheet, spec)
-		_anim.fit_into(STAGE - Vector2(20.0, 20.0))
+		_anim.fit_into(STAGE - Vector2(20.0, 20.0 + (db.tune_float("anim_window_drop", 90.0) if _drawn else 0.0)))
 
 	# ============ NOTHING TO SHOW? DO NOT LEAVE THE HOLE ============
 	#
@@ -152,7 +204,7 @@ func show_panel(caption: String, art: String, animation: String,
 	#
 	# Found by looking at tools/foul_shot.gd's picture, which is the whole
 	# argument for photographing a thing rather than reasoning about it.
-	var has_picture := playing or picture != null
+	var has_picture := playing or picture != null or _drawn
 	_stage.visible = has_picture
 	_stage.custom_minimum_size = STAGE if has_picture else Vector2(STAGE.x, 0.0)
 
@@ -190,3 +242,20 @@ func _place() -> void:
 func close() -> void:
 	hide_panel()
 	queue_free()
+
+
+func _ink() -> Color:
+	return Color.from_string(BeerMatCard.value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
+
+
+## The cream beer mat panel behind everything, kept the frame's size.
+func _mat_behind() -> void:
+	_frame.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	var holder := Control.new()
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_frame.add_child(holder)
+	var edge := int(BeerMatCard.number("inventory_edge", 60.0))
+	var patch := InventoryScreen._mat(STAGE, edge, 0.9)
+	holder.add_child(patch)
+	holder.resized.connect(func() -> void:
+		patch.size = holder.size / patch.scale.x)

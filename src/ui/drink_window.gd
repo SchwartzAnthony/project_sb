@@ -16,7 +16,9 @@ extends CanvasLayer
 #  rows (PitchAnims.csv, the stein drink drawn in PixelLab on 10 Oct) the
 #  window plays THAT - the very same figure and drink as on the pitch,
 #  facing south-east - and then burps. Only a look without a pitch drink
-#  still gets the old code-drawn barrel/bottle placeholder.
+#  still gets the barrel/bottle: the drawn bag pictures (assets/icons/
+#  kleiner_fass.png, small_bottle.png, 24 Oct), or the old code-drawn
+#  placeholder if a picture is missing.
 #  Sound: Audio.csv drink_big while he drinks, drink_burp on the burp.
 #  Tuning.csv drink_window_seconds stretches or shrinks the whole thing.
 #
@@ -39,6 +41,9 @@ const FOAM := Color(0.98, 0.96, 0.88)
 const WOOD := Color(0.55, 0.33, 0.16)
 const HOOP := Color(0.25, 0.22, 0.2)
 const GLASS := Color(0.32, 0.55, 0.25, 0.95)
+## The drawn bag pictures the window uses (MenuSupport.icon_texture names).
+const VESSEL_ART := {"barrel": "kleiner_fass", "bottle": "small_bottle"}
+const VESSEL_SIDE := 120.0
 
 var card: PlayerData
 var kind := "barrel"
@@ -144,7 +149,9 @@ func _build_old(root: Control, db: CardDatabase) -> void:
 		_show_drink_frame(0)
 	else:
 		_pitch = null
-		_vessel = _make_barrel() if kind != "bottle" else _make_bottle()
+		_vessel = _make_drawn(VESSEL_ART.get(kind, VESSEL_ART["barrel"]))
+		if _vessel == null:
+			_vessel = _make_barrel() if kind != "bottle" else _make_bottle()
 		_panel.add_child(_vessel)
 
 	_burp = MenuSupport.heading("*BURP!*", 40, MenuSupport.COLOUR_ACCENT)
@@ -276,6 +283,14 @@ func _build_mat(root: Control, db: CardDatabase) -> void:
 		var bottle := kind == "bottle"
 		var prop_tex := load(setting("bottle" if bottle else "keg")) as Texture2D \
 			if ResourceLoader.exists(setting("bottle" if bottle else "keg")) else null
+		# Trim the empty air round a bag picture so its size is the drawing's.
+		if prop_tex != null:
+			var used := prop_tex.get_image().get_used_rect()
+			if used.has_area() and used.size != Vector2i(prop_tex.get_size()):
+				var trimmed := AtlasTexture.new()
+				trimmed.atlas = prop_tex
+				trimmed.region = Rect2(used)
+				prop_tex = trimmed
 		_prop.texture = prop_tex
 		_prop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_prop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -432,6 +447,26 @@ func _body_of(face: AtlasTexture) -> Texture2D:
 	out.atlas = face.atlas
 	out.region = cut.intersection(cell)
 	return out
+
+
+## The drawn barrel or bottle, the same picture as in the bag.
+func _make_drawn(art_name: String) -> Control:
+	var picture := MenuSupport.icon_texture(art_name)
+	if picture == null:
+		return null
+	var holder := Control.new()
+	holder.size = Vector2(VESSEL_SIDE, VESSEL_SIDE)
+	holder.pivot_offset = holder.size * 0.5
+	var art := TextureRect.new()
+	art.texture = picture
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	art.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	art.size = holder.size
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(art)
+	holder.position = Vector2(BOX.x - VESSEL_SIDE - 40, BOX.y - VESSEL_SIDE - 60)
+	return holder
 
 
 func _make_barrel() -> Control:

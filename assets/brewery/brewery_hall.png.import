@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c7y81bqtsq2sc"
-path="res://.godot/imported/keg.webp-b33b236de9013442bba591cc0b09da24.ctex"
+uid="uid://bspnvs0bmimkh"
+path="res://.godot/imported/brewery_hall.png-4321add1642a77e02cf44e1cf4495d34.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/drink/keg.webp"
-dest_files=["res://.godot/imported/keg.webp-b33b236de9013442bba591cc0b09da24.ctex"]
+source_file="res://assets/brewery/brewery_hall.png"
+dest_files=["res://.godot/imported/brewery_hall.png-4321add1642a77e02cf44e1cf4495d34.ctex"]
 
 [params]
 

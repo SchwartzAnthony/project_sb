@@ -286,6 +286,7 @@ func _big_button(text: String) -> Button:
 	button.custom_minimum_size = Vector2(150, 44)
 	button.focus_mode = Control.FOCUS_NONE
 	button.add_theme_font_size_override("font_size", 17)
+	ScreenLook.plank(button, "match_window")
 	return button
 
 
@@ -434,6 +435,17 @@ func _spin() -> void:
 		await get_tree().create_timer(step).timeout
 
 	_landed = 1 + randi() % faces
+	# Anthony, 24 Oct: THE AI NEVER CALLS IT EXACTLY IN THE TUTORIAL. Their
+	# number is still face down, so it quietly moves to another one that is
+	# neither yours nor the coin. `coin_no_ai_exact_modes` in Tuning.csv
+	# lists the MatchModes.csv rows this holds for; blank = never.
+	if _theirs == _landed and _no_ai_exact_here():
+		var others: Array[int] = []
+		for i in faces:
+			if i + 1 != _picked and i + 1 != _landed:
+				others.append(i + 1)
+		if not others.is_empty():
+			_theirs = others[randi() % others.size()]
 	_coin.text = str(_landed)
 	var land := _coin.create_tween()
 	land.tween_property(_coin, "scale", Vector2(1.35, 1.35), 0.10) \
@@ -441,6 +453,16 @@ func _spin() -> void:
 	land.tween_property(_coin, "scale", Vector2.ONE, 0.16)
 
 	await _reveal()
+
+
+func _no_ai_exact_here() -> bool:
+	if db == null:
+		return false
+	var mode := String(MatchMode.current(get_tree()).get("id", ""))
+	for word in db.tune_text("coin_no_ai_exact_modes", "tutorial;intro;intro2").split(";", false):
+		if word.strip_edges() == mode:
+			return true
+	return false
 
 
 func _reveal() -> void:
