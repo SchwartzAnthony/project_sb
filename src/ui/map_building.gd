@@ -25,9 +25,23 @@ var covered := false
 
 ## The picture whose pixels decide what is clickable.
 func use_picture(texture: Texture2D) -> void:
+	# ROUND AN (24 Oct, "the game seems to lag"): the village cut-outs are as
+	# big as the whole village picture, and reading one back off the
+	# graphics card each time the base opened stalled the screen. Read once
+	# per picture and shared; the mask is only ever looked at, never changed.
+	var path := texture.resource_path if texture != null else ""
+	if path != "" and _masks.has(path):
+		_mask = _masks[path]
+		return
 	_mask = texture.get_image() if texture != null else null
 	if _mask != null and _mask.is_compressed():
 		_mask.decompress()
+	if path != "" and _mask != null:
+		_masks[path] = _mask
+
+
+## res:// path -> the picture's pixels, shared by every building that uses it.
+static var _masks: Dictionary = {}
 
 
 func _has_point(point: Vector2) -> bool:

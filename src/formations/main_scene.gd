@@ -4344,6 +4344,13 @@ func _open_the_team_sheet() -> void:
 	# The loading screen in front of us can go now: everything is built and
 	# whatever comes next (the sheet, or the countdown) is about to be drawn.
 	MatchLoader.match_ready(get_tree())
+	# ROUND AN (24 Oct, "the game seems to lag"): every player's big duel
+	# and window sheet is read on other threads now, so no duel or line-up
+	# stalls loading it (art_warmup.gd).
+	var cards: Array = []
+	for unit in _everyone_ever():
+		cards.append(unit.data)
+	ArtWarmup.warm_match(self, cards)
 	if db == null or not db.tune_bool("team_sheet", true):
 		_kickoff_sequence()
 		return

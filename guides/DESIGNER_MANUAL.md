@@ -8908,3 +8908,29 @@ our team").
 drawn about 3% smaller there. `tools/art/koch_transform_busts.py` puts him on
 a wider canvas (800) so both fists fit, and shows a little more of his
 shorts, which makes the box draw him 3% smaller. Same for his silhouette.
+## Why the game stalled, and what keeps it smooth (round AN, 24 Oct)
+
+Anthony: "The game seems to lag ... even the text is lagging." The stalls
+were big pictures read from disk the moment a window opened, on the main
+thread, and thrown away again when it closed:
+
+- **Duels.** Each player's sharp duel sheet (`assets/players/duel/`, 3600 x
+  2700) was read and measured when the duel opened, about half a second per
+  duel, every duel. Now `src/core/art_warmup.gd` reads every player's duel
+  and window sheet on other threads as the match opens and keeps them until
+  the match closes. The line-up's sheets are read first.
+- **Duel backgrounds and drawn window parts.** `ScreenLook.picture()` read
+  the PNG straight from the folder every time. It now keeps what it read
+  and only reads a file again when you have saved a new version of it.
+- **Talks.** Every new face or mood was read from disk on its line, just as
+  the words started typing. A talk now reads all its faces and backgrounds
+  in the background as it opens, and keeps them.
+- **TIME OUT in the pub.** The frozen match was still drawn under the pub
+  picture. It is hidden while the pub is up and comes back as it was.
+- **The village base.** The building cut-outs' click masks are read once
+  per picture, not each time the base opens.
+
+Nothing looks different. To measure it yourself:
+`godot --path . --script res://tools/lag_probe.gd` plays the Tutorial and
+prints every frame slower than 40 ms (`[lag]` lines), then the average
+frame time per screen.

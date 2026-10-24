@@ -141,28 +141,41 @@ func crop_size() -> Vector2i:
 # =============================================================
 
 static func _crop_for(sheet_texture: Texture2D, anim: AnimSpec) -> Rect2i:
-	var key := "%s|%s|%d|%d|%d" % [
-		sheet_texture.resource_path, anim.name, anim.row, anim.first_frame, anim.frames]
+	var key := crop_key(sheet_texture.resource_path, anim)
 	if _crop_cache.has(key):
 		return _crop_cache[key]
 
-	var fallback := Rect2i(0, 0,
-		int(sheet_texture.get_width() / anim.sheet_columns),
-		int(sheet_texture.get_height() / anim.sheet_rows))
-
 	var image := sheet_texture.get_image()
-	if image == null:
-		_crop_cache[key] = fallback
-		return fallback
-	if image.is_compressed():
+	if image == null or image.is_compressed():
 		# Can't read pixels from a compressed import; use the whole cell.
+		var fallback := Rect2i(0, 0,
+			int(sheet_texture.get_width() / anim.sheet_columns),
+			int(sheet_texture.get_height() / anim.sheet_rows))
 		_crop_cache[key] = fallback
 		return fallback
 
+	var union := scan_crop(image, anim)
+	_crop_cache[key] = union
+	return union
+
+
+## The name a crop box is remembered under.
+static func crop_key(sheet_path: String, anim: AnimSpec) -> String:
+	return "%s|%s|%d|%d|%d" % [
+		sheet_path, anim.name, anim.row, anim.first_frame, anim.frames]
+
+
+## The shared box round the drawn figure in every frame of `anim`, read
+## from the sheet's pixels. Touches nothing else, so ArtWarmup can run it
+## on another thread while the match plays (round AN).
+static func scan_crop(image: Image, anim: AnimSpec) -> Rect2i:
+	var fallback := Rect2i(0, 0,
+		int(image.get_width() / anim.sheet_columns),
+		int(image.get_height() / anim.sheet_rows))
 	var union := Rect2i()
 	var found := false
 	for i in anim.frames:
-		var cell := anim.cell_rect(i, sheet_texture.get_size())
+		var cell := anim.cell_rect(i, Vector2(image.get_size()))
 		var region := Rect2i(int(cell.position.x), int(cell.position.y),
 			int(cell.size.x), int(cell.size.y))
 		var used := image.get_region(region).get_used_rect()
@@ -175,7 +188,6 @@ static func _crop_for(sheet_texture: Texture2D, anim: AnimSpec) -> Rect2i:
 			union = union.merge(used)
 
 	if not found:
-		_crop_cache[key] = fallback
 		return fallback
 
 	# A little breathing room, kept inside the cell.
@@ -184,6 +196,4 @@ static func _crop_for(sheet_texture: Texture2D, anim: AnimSpec) -> Rect2i:
 	union.position.y = maxi(0, union.position.y)
 	union.size.x = mini(union.size.x, fallback.size.x - union.position.x)
 	union.size.y = mini(union.size.y, fallback.size.y - union.position.y)
-
-	_crop_cache[key] = union
 	return union
