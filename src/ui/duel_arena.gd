@@ -82,6 +82,7 @@ var hl_ring_art: Texture2D
 var hl_box_art: Texture2D
 var hl_art_scale: float = 3.0
 var hl_box_margin: int = 17
+var hl_box_overhang: float = 0.0
 var hl_ring_hole := Vector2(44.0, 30.0)
 var hl_bonus_seconds: float = 0.9
 var hl_bonus_merge_seconds: float = 0.45
@@ -192,6 +193,7 @@ func apply_tuning(database: CardDatabase) -> void:
 	hl_box_art = _art(db.tune_text("duel_hl_box_art", ""))
 	hl_art_scale = maxf(1.0, db.tune_float("duel_hl_art_scale", hl_art_scale))
 	hl_box_margin = db.tune_int("duel_hl_box_margin", hl_box_margin)
+	hl_box_overhang = db.tune_float("duel_hl_box_overhang", hl_box_overhang)
 	hl_bonus_seconds = db.tune_float("duel_hl_bonus_seconds", hl_bonus_seconds)
 	hl_bonus_merge_seconds = maxf(0.05, db.tune_float("duel_hl_bonus_merge_seconds", hl_bonus_merge_seconds))
 	var hole := db.tune_text("duel_hl_ring_hole", "").split(" ", false)
@@ -943,21 +945,27 @@ func _box(key: String, on: bool) -> void:
 		return
 
 	# THE ART: the four pretzel corners, stretched round the plate as a
-	# nine-patch at duel_hl_art_scale so the pixels stay big and square.
+	# nine-patch at duel_hl_art_scale (pixel art stays big and square; at 1
+	# the inked art is drawn smooth). duel_hl_box_overhang pushes the
+	# pretzels out past the corners.
 	var art := box.get_node_or_null("Art") as NinePatchRect
 	if art == null:
 		art = NinePatchRect.new()
 		art.name = "Art"
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		box.add_child(art)
+	art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if hl_art_scale > 1.0 \
+		else CanvasItem.TEXTURE_FILTER_LINEAR
 	art.texture = hl_box_art
 	art.patch_margin_left = hl_box_margin
 	art.patch_margin_right = hl_box_margin
 	art.patch_margin_top = hl_box_margin
 	art.patch_margin_bottom = hl_box_margin
-	art.scale = Vector2.ONE * hl_art_scale
-	art.size = box.size / hl_art_scale
+	var full := Rect2(Vector2.ZERO, box.size).grow(hl_box_overhang)
+	var fit := MatchTalkBox.CoachSpots.fit_scale(full.size, hl_box_margin, hl_art_scale)
+	art.position = full.position
+	art.scale = Vector2.ONE * fit
+	art.size = full.size / fit
 
 
 # =============================================================

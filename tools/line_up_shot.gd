@@ -1,10 +1,10 @@
 extends SceneTree
 
 # =============================================================
-#  THE LINE-UP ON THE GRASS, FILMED  (round AN)
+#  THE LINE-UP BEFORE KICK-OFF, FILMED  (round AN)
 #
 #  Starts a friendly, presses START on the VS screen and saves a frame of
-#  the line-up pan every few frames, for a GIF:
+#  the line-up every few frames, for a GIF:
 #
 #      godot --rendering-driver opengl3 --resolution 1920x1080 \
 #          --path . --script res://tools/line_up_shot.gd
@@ -54,6 +54,9 @@ func _initialize() -> void:
 		var parade := current_scene.get_node_or_null("LineUpParade")
 		if parade == null and frame > 30:
 			break
+		# The line-up runs on real time, so it is slowed by its own clock.
+		if parade != null and float(parade.get("clock_scale")) != SLOW:
+			parade.set("clock_scale", SLOW)
 		if since >= 1.0 / GIF_FPS:
 			since = 0.0
 			_shoot(shown)
