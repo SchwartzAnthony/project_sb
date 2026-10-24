@@ -5167,6 +5167,8 @@ juice_slowmo            false stops the slow-motion dips only
 juice_slowmo_depth      0.35 = a third speed. 1.0 = no dip
 juice_flash_strength    how bright a full-screen flash is. 0 = none
 
+adventure_shown         false hides the Adventure banner on the base, and the
+                        Tutorial ends after the Dorms (24 Oct: hidden for now)
 adventure_trait_bar     false hides the row of icons (the pile still works)
 adventure_enemy_combos  false and the enemies get no combos at all
 adventure_stretcher     false and the fallen are not carried off
