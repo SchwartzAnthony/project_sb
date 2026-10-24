@@ -240,6 +240,8 @@ func _on_choice_pressed(attack: bool) -> void:
 	_busy = true
 	choice_buttons.visible = false
 	status_label.text = "You choose to %s." % ("ATTACK" if attack else "DEFEND")
+	# The same sound every time you choose ATTACK or DEFEND (Anthony, 24 Oct).
+	AudioDirector.fire(get_tree(), "side_chosen", {}, GameState.fetch(get_tree()))
 	await _wait(result_seconds)
 	_finish(attack)
 

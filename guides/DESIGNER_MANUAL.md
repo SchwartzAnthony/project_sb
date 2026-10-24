@@ -618,6 +618,13 @@ a worn Bavarian beer mat. You chose it from your collector card photo.
   icon). On other screens the plank is empty.
 - A small **Tier window** at the top centre says TIER I to TIER IV.
 - The **number** in the bottle cap is his power (`cap_number`).
+- **Star players** have a gold inked **star** where the bottle cap is, with
+  the same number in its cream middle (24 Oct, Anthony: "have the circle be
+  replaced by a star of the same art style"). The mat without the cap is
+  `assets/cards/beermat_frame_star.webp`; the star is its own picture,
+  `assets/cards/star_cap.png`, laid over the runner so his boots never hide
+  its top point. Both are drawn for free by
+  `python3 tools/art/draw_star_cap.py` (needs `opencv-contrib-python-headless`).
 - The Star mark sits top right in the window for Stars.
 
 All of it is in **`data/CardFace.csv`**:
@@ -626,6 +633,10 @@ All of it is in **`data/CardFace.csv`**:
 |---|---|
 | `enabled` | `true` = beer mat card; `false` = the old dark card |
 | `frame` | the card picture (in `assets/cards/`); `signature` is empty now |
+| `star_frame` | the card picture for Star players (cap painted out); empty = Stars keep the cap |
+| `star_cap_art`, `star_cap_spot` | the gold star picture and where it sits (`x,y,w,h` shares) |
+| `drank_mark`, `drank_mug`, `drank_mug_spot` | in a match, a player who has drunk from the bag gets the empty Maß on his card; `false` = no mark |
+| `drank_text`, `drank_text_spot`, `drank_text_colour`, `drank_text_angle`, `drank_text_outline` | the ALREADY DRANK! words stamped across his card: words, where, red, tilt, black edge |
 | `window`, `plank`, `cap`, `sign` | where each part is, as `x,y,w,h` shares of the frame (0 to 1) |
 | `runner_height`, `runner_feet`, `runner_speed` | how big the runner is, where his feet are, how fast he runs |
 | `cap_number` | `power` or `card_number` |
@@ -702,6 +713,40 @@ it exactly in the tutorial matches.
 Pictures: `tools/art/clash_wheel_pieces.py` draws them into
 `assets/ui/clash_wheel/` (free). Film: `tools/clash_wheel_shot.gd`.
 
+**Sounds, confetti and colours (Anthony, 24 Oct 2026).** Five rows of
+`Audio.csv`, made for free by `tools/make_bavarian_sfx.py`, each with a Suno
+slot: `wheel_pick` (calling a number: a ticket punch and a glockenspiel
+ding), `wheel_spin` (the pegs clacking past the flap, slowing, a clunk as it
+stops), `wheel_win` (trumpet "ta-ta-TAAA!", cow bell, cheer) and
+`wheel_lose` (a short sad trombone). When you win the call, confetti falls
+until you choose (`wheel_win_confetti` in Tuning.csv; the paper is the goal
+celebration's). `side_chosen` (a double slap and a brass "PAH!") plays
+whenever YOU press ATTACK or DEFEND: here, on YOUR THROW and on the old
+rock-paper-scissors window. ATTACK is red and DEFEND is blue everywhere you
+choose a side: the wheel's two tickets (role colours) and the
+`match_attack` / `match_defend` planks in `ScreenLook.csv`. Film with the
+sounds: `tools/wheel_sound_shot.gd`.
+
+### The duel cards are beer mats, front and back (Anthony, 24 Oct 2026)
+
+"Keep the clash cards and the cards they turn over the same art style and
+layout." A duel starts with the two face-down beer mats crashing together;
+the yellow KRACH! burst is bigger now (`duel_clash_burst_width` 1150) so
+KRACH! and TIER sit inside it, in our comic font. The mats then turn over
+into their FRONTS, which are the same mats at the same size, just plain:
+
+1. the player's name and his power in a bottle cap, at the top,
+2. the player running on the duel's background (`DuelBackgrounds.csv`),
+3. the whole ability, printed in ink (no ability name, no wooden plank).
+
+ATTACKER / DEFENDER is the red or blue ribbon round the mat. WIN or LOSE is
+not on the card: after the winner knocks the loser away (small, large or
+mega slam), `WIN!` or `LOSE!` (Language.csv `duel_win` / `duel_lose`, yours:
+the left card is always you) lands in the middle under the card left
+standing. Tuning.csv: `duel_card_look` (mat, or dark for the old cards),
+`duel_mat_*` and `duel_result_word_*`. Pictures: `tools/art/draw_duel_mats.py`
+(free). Film: `tools/duel_shot.gd -- film`.
+
 ## 7. The league match
 
 `src/formations/main_scene.gd` runs it. Nothing in that file names a card, a
@@ -728,6 +773,17 @@ MatchModes.csv change that.
 > The audio event for the Star switch is still called `hold_up` — that is the
 > key your Audio.csv row is written against. The words on screen changed; the
 > spreadsheet key deliberately did not.
+
+### The match ball (24 Oct)
+
+The ball on the pitch is a classic black-and-white patch football drawn in
+ink: thick black outline, black pentagons, flat white and one blue-grey shade
+at the bottom. It **rolls**: every frame it turns the way it is travelling, by
+exactly how far it went, so a hard shot spins fast and a ball at a dribbler's
+feet turns slowly. The outline and the shade stay put, the way a drawn ball is
+lit. It is drawn by `src/units/ball_face.gdshader` (colours, outline and seam
+thickness are the `uniform` lines at its top), so there is no picture file to
+swap. To see it big: `tools/ball_roll_shot.gd`.
 
 ### Who the ball goes to, and the restarts
 
@@ -1878,6 +1934,10 @@ other duel sounds.
 | `duel_back_seconds` | held face down before they turn. `0.8` |
 | `duel_knock` | `false` and the two halves stay put at the end |
 | `duel_knock_hit_seconds` / `_fly_seconds` / `_centre_seconds` / `_hold_seconds` | the rush, the loser flying off, the winner to the middle, the winner held alone |
+| `duel_knock_large_from` / `_mega_from` | how hard the slam is, by what the duel was won by (winner's power minus loser's): under `3` SMALL, `3`+ LARGE, `5`+ MEGA |
+| `duel_knock_small_burst` / `_large_burst` / `_mega_burst` | how big KRACH! is for each slam. `0.7` / `1` / `1.35` |
+| `duel_knock_small_shake` / `_large_shake` / `_mega_shake` | how hard the window shudders, in pixels. `10` / `20` / `34` |
+| `duel_knock_mega_screen_shake` / `_mega_screen_seconds` | MEGA only: the whole screen shakes, pitch and all. `30` pixels for `0.6` s; `0` turns it off |
 
 The pictures are drawn for free by `tools/art/draw_duel_mats.py` from the
 beer mat card frame. The numeral, TIER and KRACH! are written by the game
@@ -2767,7 +2827,7 @@ each check, slowly enough to follow:
 | `Language.csv` `duel_ability_priority`, `duel_power_check` | the words |
 | `Tuning.csv` `duel_hl_ring_art`, `duel_hl_box_art` | the ring art (blank for now: a plain gold circle) and the pretzel-corner box (24 Oct: `duel_box_ink.png`, a whole inked pretzel in each corner, drawn free by `tools/art/draw_pretzel_box.py`; the same box is the tutorial's gold highlight) |
 | `Tuning.csv` `duel_hl_art_scale`, `duel_hl_box_margin`, `duel_hl_box_overhang` | how big the art's pixels are (1 for the inked box, 3 for old pixel art); where the box corners end; how far the pretzels reach out past the thing they mark. A box too small for two whole pretzels shrinks the art instead of cutting it |
-| `Tuning.csv` `duel_hl_side_art`, `duel_hl_side_out` | **what is used now (24 Oct)**: ONE pretzel on each side of every gold highlight, half-way down, in the tutorial and the duel; how far out each sits. Blank `duel_hl_side_art` = the four-corner box above |
+| `Tuning.csv` `duel_hl_side_art`, `duel_hl_pretzel_place`, `duel_hl_pretzel_scale` (0.5 = half size, your ask), `duel_hl_outline_width`, `duel_hl_outline_gap` | **what is used now (24 Oct evening, your sketch)**: every gold highlight, in the tutorial and the duel, gets a gold line just outside its black outline and ONE pretzel centred on the top edge, sitting over it. `duel_hl_pretzel_place` sides = the earlier look (one pretzel each side, `duel_hl_side_out` pixels out). Line thickness, and the gap between the black outline and the gold (0 = touching). The beers you pick from in the bag during the tutorial's drink lessons get the gold line only, no pretzel (your ask, 24 Oct). Blank `duel_hl_side_art` = the four-corner box above |
 | `Audio.csv` `duel_ability_success` / `_fail`, `duel_power_victory` / `_fail` | the four sounds, made with Ludo.ai |
 
 **The checks under the window (round AN, 11 Oct, later).** You asked for
@@ -3816,29 +3876,36 @@ the game already has it**.
 
 ## 7j. A new game: the Tutorial (round AN, 7 Oct)
 
-The old introduction is now **the Tutorial**. It is the Tutorial button on
-the title screen, and a brand-new save offers it.
+The old introduction is now **the Tutorial**. A brand-new save offers it.
+Since 24 Oct (Anthony) the title screen has no Tutorial button: Start,
+Settings and Quit only (`MenuConfig.csv`; a row with Action `tutorial_game`
+brings the button back).
 
 ### A brand-new save asks
 
 The first time the base opens on a new save, a window asks: *Would you like
-to do the Tutorial? If not, you can find it later on the main menu.*
+to do the Tutorial?*
 
-- **Yes** plays the Tutorial (below), then brings you back to this save's
-  base with the starting team, exactly as No would.
+- **Yes** plays the Tutorial (below). When it is done, or you quit it, you
+  are back on the **main menu**, and this save waits as a fresh game: Play
+  on its mug opens the base with the starting team, exactly as No would
+  have given it. `Tuning.csv tutorial_ends_on_menu` false = straight on to
+  this save's base instead.
 - **No** leaves you at the base with **the starting team** and nothing else.
 
 The words are `Language.csv` `tutorial_offer_title`, `_text`, `_yes` and
 `_no`. `Tuning.csv tutorial_offer` false turns the question off.
 
-### Tutorial only (24 Oct)
+### Tutorial only (24 Oct): the Tutorial demo
 
-For now the game is **only the Tutorial** (`Tuning.csv tutorial_only`
-true). Start, then Play on any beer mug, plays the Tutorial straight away:
-no question, no base of your own. When it ends, or you quit it, that save is
+`Tuning.csv tutorial_only` is **true** (Anthony, 24 Oct 18:38: "I am making a
+tutorial demo only"): the game never goes to a fresh game. Set it to false
+for the full game, where a new save asks the question above.
+
+Start, then Play on any beer mug, plays the Tutorial straight away: no
+question, no base of your own. When it ends, or you quit it, that save is
 deleted again and you are back on the main menu. A save that was already
-being played is kept, but Play on it still only plays the Tutorial. Set
-`tutorial_only` to false to get the full game back.
+being played is kept, but Play on it still only plays the Tutorial.
 
 ### What the Tutorial is
 
@@ -3964,7 +4031,7 @@ low his drunk meter is (`match_drink_takes_hold_at`, 0). In the tutorial the
 keg (`Items.csv keg`, Use `brew:pool:keg`) always gives the `Brews.csv
 kleiner_fass` row, because that is the only keg row whose Requires
 (`flag:in_tutorial`) passes. Outside the tutorial the keg is the plain beer
-gamble. **The drinking window** (new look, Anthony 23-24 Oct 2026, all in
+gamble. **Every beer gets the drinking window** (24 Oct 2026): any beer or brew used from the bag in a match plays it too, not only the lessons (`Tuning.csv drink_window_every_beer`, false = lessons only). While it plays nothing else on screen takes a press: the first press (click, A, Space) plays the rest 3x faster, the second skips it; the Deck's double copy of one press counts once. **The drinking window** (new look, Anthony 23-24 Oct 2026, all in
 `data/DrinkWindow.csv`): the cream beer mat panel of the inventory, the
 player's name in ink on the panel (`name`: panel, sign or none), our base
 seen from the side at eye level inside (`backdrop`, `backdrop_region`), with

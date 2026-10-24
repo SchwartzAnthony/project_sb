@@ -11,16 +11,19 @@ extends RefCounted
 #  ============ THE TWO WAYS IN ============
 #
 #    A NEW SAVE      the base asks the question (Language.csv tutorial_offer_*).
-#                    YES plays the tutorial, then back to that save's base
-#                    with the starting team. NO gives the base its starting
+#                    YES plays the tutorial; at the end that save gets its
+#                    starting team and you are on the main menu (Tuning.csv
+#                    tutorial_ends_on_menu, Anthony 24 Oct), so Play on its
+#                    mug opens a fresh game. NO gives the base its starting
 #                    team (below) and nothing else.
-#    THE MAIN MENU   the Tutorial button plays it and comes back to the menu.
-#    TUTORIAL ONLY   Tuning.csv tutorial_only true (Anthony, 24 Oct: the
-#                    build for now is just the Tutorial). Play on any save
-#                    plays the Tutorial and nothing else; at the end that
-#                    save is deleted again and you are on the main menu. A
-#                    save that was already being played is kept. false = the
-#                    full game as before.
+#    THE MAIN MENU   no Tutorial button since 24 Oct (Anthony); the
+#                    tutorial_game action still works if MenuConfig.csv
+#                    gets the row back.
+#    TUTORIAL ONLY   Tuning.csv tutorial_only (false since 24 Oct). true =
+#                    Play on any save plays the Tutorial and nothing else;
+#                    at the end that save is deleted again and you are on
+#                    the main menu. A save that was already being played is
+#                    kept.
 #
 #  EITHER WAY it plays in a save of its own (user://tutorial_story.json,
 #  wiped at the start and the end), so it opens and ends with nothing
@@ -90,7 +93,8 @@ static func ask(host: Node) -> bool:
 ## match - ever reaches your real game (Anthony, 8 Oct: "the tutorial should
 ## open and end with nothing affecting the base game").
 ## `from_menu` true = back to the title screen at the end; false (a new
-## save said Yes) = back to that save, at its base with the starting team.
+## save said Yes) = that save gets its starting team, then the title screen
+## (or its base with Tuning.csv tutorial_ends_on_menu false).
 ## `erase_slot` above 0 (tutorial_only) = that save slot is deleted at the end.
 static func start(tree: SceneTree, from_menu: bool, erase_slot: int = 0) -> void:
 	if tree == null:
@@ -205,6 +209,13 @@ static func finish(tree: SceneTree) -> void:
 
 	# A new save said Yes: it gets exactly what No would have given it.
 	give_starting_team(GameState.fetch(tree))
+	# Tuning.csv tutorial_ends_on_menu (Anthony, 24 Oct): the Tutorial is
+	# self-contained and ends on the main menu; the save waits as a fresh
+	# game for Play on its mug.
+	if CardDatabase.get_db().tune_bool("tutorial_ends_on_menu", true):
+		print("[tutorial] Finished. Nothing kept - the save waits as a fresh game; to the title screen.")
+		ScenePaths.go_to(tree, ScenePaths.MAIN_MENU, false)
+		return
 	print("[tutorial] Finished. Nothing kept - to the base: the starting team, everything else locked.")
 	ScenePaths.go_to(tree, ScenePaths.BASE, false)
 

@@ -18,7 +18,8 @@ extends SceneTree
 #       the shot, the exhaust, the TIME OUT in the pub, Koch the Star, the
 #       star swap), Koch must be a Star with Beer Courage after the pub, and
 #       the score and clock must be the same after the pub as before it
-#    4. full time - the base: the same starting team, nothing unlocked
+#    4. full time - the main menu (Tuning.csv tutorial_ends_on_menu, 24 Oct);
+#       the save got the same starting team, nothing unlocked
 #    5. the main menu's Tutorial button: its own save, and back to yours
 #
 #  Run it WITHOUT --headless and every stop is also saved as frames in
@@ -31,7 +32,7 @@ const GIVE_UP_SECONDS := 1500.0
 const STOPS: Array[String] = ["tut-kickoff", "tut-tier1", "tut-tier2", "tut-tier4",
 	"tut-duel-start", "tut-duel-priority", "tut-duel-ability-1", "tut-duel-ability-2",
 	"tut-duel-power", "tut-duel-result", "tut-shot", "tut-exhaust",
-	"tut-timeout-call", "tut-timeout-inspiration", "tut-koch-ability", "tut-koch-ability-card",
+	"tut-timeout-call", "tut-timeout-inspiration", "tut-timeout-beer-card", "tut-koch-ability", "tut-koch-ability-card",
 	"tut-referee", "tut-combo", "tut-combo-2",
 	"tut-timeout2-call", "tut-timeout-cursed", "tut-keeper-tip", "tut-koch-earth",
 	"tut-hold-pause"]
@@ -99,12 +100,12 @@ func _initialize() -> void:
 		_check(_seen.has(stop), "the coach stopped: %s" % stop)
 	_check(int(_keeper_drains) > 0, "Koch's Earth Courage opened the keeper's window (%d times)" % int(_keeper_drains))
 
-	# ---- 4. the base ----
-	await _wait_for_scene("base", 30.0)
-	_check(_scene_name().contains("base"), "full time: the tutorial ends at the base")
+	# ---- 4. the main menu (Tuning.csv tutorial_ends_on_menu, 24 Oct) ----
+	await _wait_for_scene("menu", 30.0)
+	_check(_scene_name().contains("menu"), "full time: the tutorial ends on the main menu")
 	_check(not Tutorial.active(self), "the tutorial is over")
 	state = GameState.fetch(self)
-	_check(RecruitBook.names(state).size() == 12, "the base has the full starting team (%d)" % RecruitBook.names(state).size())
+	_check(RecruitBook.names(state).size() == 12, "the save has the full starting team (%d)" % RecruitBook.names(state).size())
 	_check(state.unlocks.is_empty(), "nothing is unlocked (%s)" % str(state.unlocks))
 	# NOTHING FROM THE TUTORIAL REACHES YOUR GAME (Anthony, 8 Oct).
 	_check(GameState.SAVE_PATH == DIR + "/story_yes.json", "your own save is back")

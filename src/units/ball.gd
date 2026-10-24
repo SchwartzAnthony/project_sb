@@ -5,7 +5,8 @@ extends Node2D
 #  THE BALL
 #
 #  Created in code by main_scene.gd — there is no ball.tscn to wire up.
-#  It draws itself, so it needs no art, and it is NOT a physics body:
+#  It draws itself (the patch ball is src/units/ball_face.gdshader, rolled
+#  here as it moves), so it needs no art, and it is NOT a physics body:
 #  interception is a plain distance check each frame. That is cheap,
 #  deterministic, and still works under `--headless`.
 #
@@ -131,9 +132,87 @@ var _held: float = 0.0
 ## Recent positions, newest last, for the trail.
 var _trail: Array[Vector2] = []
 
+# --- The roll ---
+# Anthony, 24 Oct 2026: "make the ball actually roll on the field and have it
+# actually look like a soccer ball". The patch ball is drawn by a shader on a
+# square child; every frame it is turned by however far the ball moved, so it
+# spins the way it travels and as fast as it goes.
+const FACE_SHADER := preload("res://src/units/ball_face.gdshader")
+## How steeply the camera looks down on the pitch, in degrees. Only used to
+## turn the ball the right way when it rolls up or down the screen.
+@export var roll_camera_tilt: float = 35.0
+## A jump bigger than this in one frame is the ball being PUT somewhere
+## (a hand-off, a kick-off), not rolled there, so it does not spin.
+@export var roll_max_step: float = 60.0
+var _face: Sprite2D = null
+var _spin: Basis = Basis.IDENTITY
+var _last_spot: Vector2 = Vector2.INF
+
 
 func _ready() -> void:
 	z_index = 50
+	_make_face()
+
+
+func _make_face() -> void:
+	var blank := Image.create(8, 8, false, Image.FORMAT_RGBA8)
+	blank.fill(Color.WHITE)
+	_face = Sprite2D.new()
+	_face.name = "Face"
+	_face.texture = ImageTexture.create_from_image(blank)
+	var paint := ShaderMaterial.new()
+	paint.shader = FACE_SHADER
+	_face.material = paint
+	add_child(_face)
+	_size_face()
+	# A random start, so it is not the same face up every match.
+	_spin = Basis(Vector3(randf() - 0.5, randf() - 0.5, randf() - 0.5).normalized(), randf() * TAU)
+
+
+func _size_face() -> void:
+	if _face != null:
+		# The ink outline sits on the edge, so the drawn ball keeps the old
+		# white ball's size including its dark rim.
+		_face.scale = Vector2.ONE * (radius + 1.5) * 2.0 / 8.0
+
+
+func _process(_delta: float) -> void:
+	_roll()
+
+
+## Turn the ball by how far it moved since the last frame.
+func _roll() -> void:
+	if _face == null:
+		return
+	var here := global_position
+	if _last_spot == Vector2.INF:
+		_last_spot = here
+		return
+	var moved := here - _last_spot
+	_last_spot = here
+	var step := moved.length()
+	if step < 0.01 or step > roll_max_step:
+		return
+	# The way it moves ON SCREEN (the pitch may be tilted under it).
+	var to_screen := get_global_transform_with_canvas() * global_transform.affine_inverse()
+	var on_screen := to_screen.basis_xform(moved)
+	if on_screen.length_squared() < 0.0001:
+		return
+	on_screen = on_screen.normalized()
+	# Ground seen from above at roll_camera_tilt: across the screen is across
+	# the ground, up the screen is away from us. The ball turns about the axis
+	# lying on the ground at right angles to where it is going.
+	var tilt := deg_to_rad(roll_camera_tilt)
+	var up := Vector3(0.0, cos(tilt), sin(tilt))
+	var away := Vector3(0.0, sin(tilt), -cos(tilt))
+	var going := Vector3(on_screen.x, 0.0, 0.0) + away * -on_screen.y
+	var axis := up.cross(going)
+	if axis.length_squared() < 0.000001:
+		return
+	_spin = (Basis(axis.normalized(), step / maxf(radius, 0.5)) * _spin).orthonormalized()
+	# The shader looks up the patch under each pixel, so it wants the turn
+	# from the screen back onto the ball.
+	(_face.material as ShaderMaterial).set_shader_parameter("spin", _spin.inverse())
 
 
 func _draw() -> void:
@@ -142,9 +221,7 @@ func _draw() -> void:
 	_draw_possession_ring()
 	_draw_trail()
 
-	draw_circle(Vector2.ZERO, radius + 1.5, Color(0.05, 0.05, 0.08, 0.85))
-	draw_circle(Vector2.ZERO, radius, Color(0.97, 0.97, 1.0))
-	draw_circle(Vector2(-radius * 0.28, -radius * 0.28), radius * 0.34, Color(0.16, 0.16, 0.22))
+	# The ball itself is the Face child (see _make_face), drawn over this.
 
 
 func _draw_trail() -> void:

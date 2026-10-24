@@ -23,6 +23,8 @@ BLUE = (34, 98, 196, 255)
 YOLK = (250, 196, 30, 255)
 GOLD = (232, 170, 40, 255)
 GREEN = (60, 150, 60, 255)
+ATTACK_RED = (224, 69, 58, 255)     # role_colour_attack (Anthony 24 Oct: ATTACK red, DEFEND blue)
+DEFEND_BLUE = (64, 143, 235, 255)   # role_colour_defend
 DARK_BROWN = (96, 52, 26, 255)
 FACES = 10
 WHEEL_R = 290                             # the painted face's radius
@@ -222,5 +224,5 @@ if __name__ == '__main__':
     ticket('ticket_mine.png', 130, 86, CREAM, 33)
     ticket('ticket_mine_called.png', 130, 86, YOLK, 34)
     ticket('ticket_random.png', 280, 70, CREAM, 35)
-    ticket('ticket_attack.png', 340, 110, BLUE, 36)
-    ticket('ticket_defend.png', 340, 110, WHITE, 37)
+    ticket('ticket_attack.png', 340, 110, ATTACK_RED, 36)
+    ticket('ticket_defend.png', 340, 110, DEFEND_BLUE, 37)

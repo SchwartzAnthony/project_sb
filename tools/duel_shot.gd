@@ -39,6 +39,8 @@ var _n := 0
 func _initialize() -> void:
 	await process_frame
 	var db := CardDatabase.get_db()
+	# The game's own fonts and ink borders, as every screen has them.
+	ThemeBook.dress(self)
 
 	# ---- two real cards out of your own spreadsheets ----
 	var cards := _two_of_a_tier(db, "III")

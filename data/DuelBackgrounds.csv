@@ -1,0 +1,9 @@
+Picture,Use,Notes
+res://assets/ui/duel/fields/map_north.png,true,"Looking north from the pitch: the Dorms, the Club House, the Brewery and the goal (the base picture). Anthony 24 Oct 2026: the duel backgrounds are views from around our village map, one picked at random each duel. Made by tools/make_duel_backgrounds.py."
+res://assets/ui/duel/fields/map_west.png,true,"Looking west: the stone wall, the little chapel, red-roofed houses and the Bavarian flag."
+res://assets/ui/duel/fields/map_east.png,true,"Looking east: the half-timbered house, the flag, the white house and trees."
+res://assets/ui/duel/fields/map_south.png,true,"Looking south: benches, the footbridge over the river and the forest."
+res://assets/ui/duel/fields/map_northwest.png,true,"The north-west corner: the chapel and the long white Dorms under the mountains."
+res://assets/ui/duel/fields/map_northeast.png,true,"The north-east corner: the Brewery's copper kettle, the half-timbered house and the picket fence."
+res://assets/ui/duel/fields/map_southwest.png,true,"The south-west corner: the wall, the path, red-roofed houses and the river."
+res://assets/ui/duel/fields/map_southeast.png,true,"The south-east corner: the picket fence, a bench, big trees and the river."

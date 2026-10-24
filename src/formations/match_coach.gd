@@ -195,10 +195,23 @@ func _spots_for(words: String) -> Array:
 		var above := word.to_lower().begins_with("referee")
 		for control in _controls_for(word):
 			if control != null and control.is_visible_in_tree():
-				out.append({"rect": control.get_global_rect(), "ring": ring, "control": control, "above": above})
+				out.append({"rect": _drawn_rect(control), "ring": ring, "control": control, "above": above})
 	if out.is_empty():
 		print("[match talk] Highlight '%s' found nothing on screen to point at." % words)
 	return out
+
+
+## Where a thing is really drawn on screen. A beer mat card is narrower than
+## its slot, so the gold line goes round the mat, not the slot (24 Oct).
+func _drawn_rect(control: Control) -> Rect2:
+	var whole := control.get_global_rect()
+	var face = control.get("_face") if control is PlayerCardUI else null
+	if face is Control and is_instance_valid(face) and (face as Control).has_meta("frame_rect"):
+		var frame: Rect2 = (face as Control).get_meta("frame_rect")
+		var at := (face as Control).get_global_rect()
+		var scale := at.size.x / maxf(1.0, (face as Control).size.x)
+		return Rect2(at.position + frame.position * scale, frame.size * scale)
+	return whole
 
 
 func _controls_for(word: String) -> Array:
@@ -521,7 +534,8 @@ func drink_lesson(spec: String) -> void:
 		print("[match talk] drink lesson: the bag is open, gold on %d of %s." % [tiles.size(), item_id])
 		var layer_now := main.get_node_or_null("DrinkLessonGold") as CanvasLayer
 		if layer_now != null:
-			_gold_on(layer_now, tiles)
+			# Anthony, 24 Oct: no pretzels on the beers you pick from.
+			_gold_on(layer_now, tiles, false)
 		bag.tree_exited.connect(func() -> void:
 			# Closed without using it: back to his bag button.
 			var still := main.get_node_or_null("DrinkLessonGold") as CanvasLayer
@@ -628,13 +642,14 @@ func _lock_all_but(target: PlayerCardUI) -> void:
 		(card as PlayerCardUI).set_locked(card != target)
 
 
-func _gold_on(layer: CanvasLayer, controls: Array) -> void:
+## `pretzel` false: the gold line without its pretzel (the beers in the bag).
+func _gold_on(layer: CanvasLayer, controls: Array, pretzel: bool = true) -> void:
 	for child in layer.get_children():
 		child.queue_free()
 	var spots: Array = []
 	for control in controls:
 		if control != null and is_instance_valid(control) and (control as Control).is_visible_in_tree():
-			spots.append({"rect": (control as Control).get_global_rect(), "ring": false})
+			spots.append({"rect": (control as Control).get_global_rect(), "ring": false, "pretzel": pretzel})
 	if not spots.is_empty():
 		layer.add_child(MatchTalkBox.CoachSpots.make(spots))
 
@@ -840,6 +855,7 @@ func change_class(name_text: String, klass: String) -> void:
 	var db := CardDatabase.get_db()
 	var data := unit.data
 	data.unit_type = klass
+	data.set_meta(PitchSprite.CHANGED_CLASS, true)
 	data.element = SquadSheet._element_of(klass, db)
 	var art := SquadSheet._art_for("", klass, "m", db)
 	if art != null:
@@ -906,10 +922,14 @@ func _build_exhaust_button() -> void:
 	# 24 Oct 2026 (Anthony): while the coach talks about it, it comes in
 	# front of the dark sheet (MatchTalkBox), then goes back.
 	_exhaust_button.set_meta("lift_in_talk", true)
-	ScreenLook.plank(_exhaust_button)
+	var look := db.tune_text("exhaust_icon", "coaster").strip_edges().to_lower()
+	# Anthony 24 Oct 2026: no button box round the beer mat (or the big
+	# Maß); the drawn icon itself is the button. Only the plank looks get
+	# the plank and its grey plate.
+	if look not in ["coaster", "mug"]:
+		ScreenLook.plank(_exhaust_button)
 	(layer as Node).add_child(_exhaust_button)
-	_draw_exhaust_icon(db.tune_text("exhaust_icon", "coaster").strip_edges().to_lower(),
-		db.tune_float("exhaust_icon_scale", 1.0))
+	_draw_exhaust_icon(look, db.tune_float("exhaust_icon_scale", 1.0))
 	_refresh_exhaust()
 
 

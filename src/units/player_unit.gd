@@ -1042,11 +1042,16 @@ func _process(delta: float) -> void:
 			return
 		_still_for = 0.0
 		_look_at_ball()
+		# Never running backwards (Anthony, 24 Oct 2026): eyes on the ball,
+		# unless that means his back is to where his legs are going.
+		var run_dir := _run_direction(screen)
+		if run_dir >= 0 and _faces_away_from(run_dir, screen):
+			_dir = run_dir
 		_anim_rate = clampf(speed / maxf(chase_speed, 1.0), walk_anim_floor, 1.0)
 		_show_anim("run")
 	elif speed > 6.0:
 		_still_for = 0.0
-		var turned := PitchSprite.direction_of(screen, _squash())
+		var turned := _run_direction(screen)
 		if turned >= 0:
 			_dir = turned
 		_show_anim("run")
@@ -1176,6 +1181,39 @@ func _look_at_ball() -> void:
 		return
 	_dir = turned
 	_turn_wait = face_turn_hold
+
+
+## ============ NEVER RUNNING BACKWARDS (Anthony, 24 Oct 2026) ============
+##
+## "Some players are running backwards on the field, instead, when they are
+## running in the other direction, have their sprite turn around."
+##
+## Most looks are only drawn facing west; the sheet tool mirrors them for the
+## east rows, and its south and north rows are the west picture, so they face
+## LEFT. A player heading down or up the screen and drifting right used to get
+## that left-facing row and ran backwards. Now he takes the south-east or
+## north-east row (the mirror) instead.
+func _run_direction(screen: Vector2) -> int:
+	var d := PitchSprite.direction_of(screen, _squash())
+	if (d == 2 or d == 6) and screen.x > screen.length() * 0.2:
+		d = 1 if d == 2 else 7
+	return d
+
+
+## Which way the picture in this direction row faces on screen: +1 right
+## (east, south-east, north-east), -1 left (the rest; see _run_direction).
+static func _side_of(d: int) -> int:
+	return 1 if d == 0 or d == 1 or d == 7 else -1
+
+
+## True when facing `_dir` while moving `screen` (toward `run_dir`) looks like
+## running backwards: he goes left or right while his picture faces the other
+## side, or he is turned more than a quarter round away from his run. Straight
+## up or down the screen is a run across his front, not backwards.
+func _faces_away_from(run_dir: int, screen: Vector2) -> bool:
+	if screen.x * float(_side_of(_dir)) < -screen.length() * 0.2:
+		return true
+	return absi(posmod(run_dir - _dir + 4, 8) - 4) >= 3
 
 
 func _squash() -> float:

@@ -23,8 +23,10 @@ func test_every_machine_has_a_game() -> void:
 		var game := BreweryMinigame.game_for(String(section["id"]))
 		assert_false(game.is_empty(), "%s has a BreweryGames.csv row" % section["id"])
 		assert_eq(String(game["kind"]), String(picks.get(section["id"], "")), "%s is Anthony's pick" % section["id"])
-		assert_true(float(game["seconds"]) >= 5.0 and float(game["seconds"]) <= 15.0,
-			"%s takes 5-15 seconds" % section["id"])
+		# Bottling fills six bottles (Anthony, 24 Oct), so it may take up to 30.
+		var most := 30.0 if section["id"] == "bottling" else 15.0
+		assert_true(float(game["seconds"]) >= 5.0 and float(game["seconds"]) <= most,
+			"%s takes 5-%d seconds" % [section["id"], int(most)])
 
 
 func _game(section: String, forgiving: bool, success := 100) -> BreweryMinigame:

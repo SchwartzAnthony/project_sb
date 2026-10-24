@@ -4983,6 +4983,7 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 	# tutorial side): lay it on him directly too.
 	BrewDB.get_db().apply_one(card, state)
 	state.save_to_disk()
+	drank_this_match[BrewDB.card_key(card)] = true
 
 	_redraw_offered_cards()
 	# ROUND AN (10 Oct): on the pitch he lifts it, gulps and wipes his mouth.
@@ -5003,7 +5004,23 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 		brew.get("name", "it"), luck], 1.6 if luck == "" else 3.0)
 	print("[brew] %s used on %s mid-draft. %d left." % [
 		entry.get("name", item_id), card.player_name, state.count(item_id)])
+	# EVERY BEER GETS THE DRINKING WINDOW (Anthony, 24 Oct: a beer clicked in
+	# the bag gave only words). A tutorial lesson (bag_only set) plays its own.
+	if bag_only.is_empty() and db.tune_bool("drink_window_every_beer", true):
+		_play_drink_window(card, entry)
 	item_used_on_card.emit(card, entry)
+
+
+## The drinking window over the frozen match: the keg for a keg, else the
+## bottle (DrinkWindow.csv says how it looks).
+func _play_drink_window(card: PlayerData, entry: Dictionary) -> void:
+	var vessel := "barrel" if String(entry.get("use", "")).ends_with(":keg") else "bottle"
+	var tree := get_tree()
+	var was_paused := tree.paused
+	tree.paused = true
+	var window := DrinkWindow.play(self, card, vessel)
+	await window.finished
+	tree.paused = was_paused
 
 
 ## Rebuild the faces in the card row without changing which cards are on
@@ -5714,6 +5731,9 @@ var bag_only: Array = []
 ## drink_lesson) every bag button is grey except the one being taught.
 ## Tuning.csv tutorial_bags_shut_in_lessons.
 var bags_shut := false
+## Who has drunk from the bag in this match (BrewDB.card_key -> true). Their
+## cards wear the empty mug and ALREADY DRANK! (24 Oct 2026, Anthony).
+var drank_this_match: Dictionary = {}
 var bag_open_for: PlayerData = null
 
 
@@ -7801,6 +7821,8 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 func _dress_card(card: PlayerCardUI, data: PlayerData) -> void:
 	if card != null:
 		card.set_bag_shut(bags_shut and data != bag_open_for)
+		if data != null:
+			card.set_drank(drank_this_match.has(BrewDB.card_key(data)))
 	if abilities == null or data == null or card == null:
 		return
 	card.set_marks(abilities.marks_for(data, false))

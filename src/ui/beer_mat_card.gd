@@ -59,12 +59,18 @@ static func dress(button: Button, card: PlayerData, db: CardDatabase, box: Vecto
 	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
 		button.add_theme_stylebox_override(state, clear)
 	var frame_tex := load(value("frame")) as Texture2D
+	# 24 Oct (Anthony): a Star player's card has a gold star where the
+	# bottle cap is (same number in it). CardFace.csv star_frame, empty = cap.
+	if card.is_star() and value("star_frame", "") != "" and ResourceLoader.exists(value("star_frame")):
+		frame_tex = load(value("star_frame")) as Texture2D
 	# The frame keeps its own shape, centred in the card's box.
 	var aspect := frame_tex.get_size().x / frame_tex.get_size().y
 	var size := Vector2(box.y * aspect, box.y)
 	if size.x > box.x:
 		size = Vector2(box.x, box.x / aspect)
 	var frame := Rect2((box - size) / 2.0, size)
+	# Where the mat really is in the box, so the gold highlight can hug it.
+	button.set_meta("frame_rect", frame)
 
 	var art := TextureRect.new()
 	art.texture = frame_tex
@@ -89,6 +95,19 @@ static func dress(button: Button, card: PlayerData, db: CardDatabase, box: Vecto
 		panel.size * Vector2(0.84, 0.6))
 	_add_text(button, card.player_name.to_upper(), name_area, ink, 0.75)
 	button.set_meta("plank_rect", _area("plank", frame))
+	# 24 Oct (Anthony): a Star's gold star lies over the runner, so his boots
+	# never hide its top point; the number goes on top of it.
+	if card.is_star() and frame_tex.resource_path == value("star_frame") \
+			and ResourceLoader.exists(value("star_cap_art")):
+		var star := TextureRect.new()
+		star.texture = load(value("star_cap_art")) as Texture2D
+		star.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		star.stretch_mode = TextureRect.STRETCH_SCALE
+		var spot := _area("star_cap_spot", frame)
+		star.position = spot.position
+		star.size = spot.size
+		star.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		button.add_child(star)
 	var shown := card.card_number if value("cap_number", "power") == "card_number" \
 		else card.get_attack_power()
 	_add_text(button, str(shown), _area("cap", frame), ink, 0.9)
@@ -108,6 +127,82 @@ static func dress(button: Button, card: PlayerData, db: CardDatabase, box: Vecto
 		# A star drawn as a letter can be bigger than asked; keep it inside.
 		var real := badge.get_combined_minimum_size().max(Vector2(mark, mark))
 		badge.position = Vector2(window.end.x - real.x - 3.0, window.position.y + 3.0)
+
+
+## ALREADY DRANK (24 Oct 2026, Anthony: "After a player drinks a beer, have
+## the mug placed on their card ... Maybe even add a \"Already Drank!\" across
+## the card (so on top of the sprite running)"). The empty Maß stands on the
+## mat and the words are stamped across the window, over the runner. Put on
+## `face` (a dressed card) once; CardFace.csv drank_* rows.
+static func add_drank_mark(face: Control) -> void:
+	if face == null or face.has_node("DrankMark"):
+		return
+	if value("drank_mark", "true").to_lower() != "true":
+		return
+	var frame: Rect2 = face.get_meta("frame_rect") if face.has_meta("frame_rect") \
+		else Rect2(Vector2.ZERO, face.size)
+	var mark := Control.new()
+	mark.name = "DrankMark"
+	mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mark.size = face.size
+	face.add_child(mark)
+	var mug_path := value("drank_mug", "")
+	if mug_path != "" and ResourceLoader.exists(mug_path):
+		var mug := TextureRect.new()
+		mug.texture = load(mug_path) as Texture2D
+		mug.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		mug.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		var spot := _area("drank_mug_spot", frame)
+		mug.position = spot.position
+		mug.size = spot.size
+		mug.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mark.add_child(mug)
+	var words := value("drank_text", "ALREADY DRANK!")
+	if words == "":
+		return
+	var area := _area("drank_text_spot", frame)
+	# The game font is a picture font, so Godot cannot outline it, and red is
+	# dark enough that InkOutline leaves it plain. The black edge is the same
+	# words in ink laid round it in a ring, the red on top.
+	var stamp := Control.new()
+	stamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stamp.position = area.position
+	stamp.size = area.size
+	stamp.pivot_offset = area.size / 2.0
+	stamp.rotation_degrees = number("drank_text_angle", -12.0)
+	mark.add_child(stamp)
+	var probe := Label.new()
+	var font := probe.get_theme_font("font")
+	probe.free()
+	var font_size := maxi(6, int(area.size.y * 0.8))
+	if font != null:
+		while font_size > 6 and font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1,
+				font_size).x > area.size.x * 0.9:
+			font_size -= 1
+	var ink := Color.from_string(value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
+	var red := Color.from_string(value("drank_text_colour", "#c8282a"), Color(0.78, 0.16, 0.16))
+	var ring := maxf(1.5, font_size * number("drank_text_outline", 0.09))
+	for i in 16:
+		var turn := TAU * i / 16.0
+		_add_stamp_words(stamp, words, font_size, ink, Vector2(cos(turn), sin(turn)) * ring)
+	_add_stamp_words(stamp, words, font_size, red, Vector2.ZERO)
+
+
+static func _add_stamp_words(stamp: Control, words: String, font_size: int, colour: Color,
+		shift: Vector2) -> void:
+	var label := Label.new()
+	label.text = words
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_color_override("font_color", colour)
+	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+	label.add_theme_constant_override("outline_size", 0)
+	label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	label.add_theme_font_size_override("font_size", font_size)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.size = stamp.size
+	label.position = shift
+	stamp.add_child(label)
 
 
 ## The player running in the window: his own pitch sheet, the run facing

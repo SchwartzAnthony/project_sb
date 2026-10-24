@@ -33,8 +33,9 @@ var _was_paused := false
 ## ROUND AN: false over a menu (Guide.csv) - nothing there needs to stop.
 var _pause := true
 ## ROUND AN - THE TUTORIAL: what the coach points at while he talks. Each is
-## {"rect": Rect2 on the screen, "ring": bool}; a gold box (or circle) is drawn
-## round it in the duel highlight's gold (Tuning.csv duel_hl_*).
+## {"rect": Rect2 on the screen, "ring": bool, "pretzel": bool (default true)};
+## a gold box (or circle) is drawn round it in the duel highlight's gold
+## (Tuning.csv duel_hl_*).
 ## Several groups, one per line (Highlight column with | between lines):
 ## line 1 points at group 1, line 2 at group 2, and so on; the last group
 ## stays for the lines after it.
@@ -400,6 +401,7 @@ class CoachSpots extends Control:
 	var margin := 17
 	var overhang := 0.0
 	var sides := false
+	var outline_width := 6.0
 	var _t := 0.0
 
 	## How big one art pixel is drawn: duel_hl_art_scale, made smaller when
@@ -409,34 +411,60 @@ class CoachSpots extends Control:
 		var room := minf(size.x, size.y) / maxf(1.0, edge * 2.0)
 		return clampf(room, 0.05, wanted)
 
-	## ONE PRETZEL ON EACH SIDE (Anthony, 24 Oct: "way too many pretzels").
-	## Tuning.csv duel_hl_side_art is the pretzel; it sits half-way down
-	## the left and right edges of `rect`, its middle duel_hl_side_out
-	## pixels outside the edge, shrunk only if the thing is shorter than it.
-	## Returns false when there is no side art (the old box is used then).
+	## THE GOLD OUTLINE AND ONE PRETZEL ON TOP (Anthony, 24 Oct, his sketch:
+	## a yellow line just outside the black outline, round the whole thing,
+	## and one pretzel centred on the top edge, sitting over it).
+	## Tuning.csv duel_hl_pretzel_place: "top" (now) or "sides" (the earlier
+	## look: one pretzel half-way down the left and right, duel_hl_side_out
+	## pixels out). duel_hl_side_art is the pretzel; on top it is shrunk to
+	## no wider than half the thing and no taller than 0.7 of it (a short
+	## plate keeps its words), on the sides to no taller than the thing.
+	## Returns false when there is no pretzel art (the old box is used then).
 	static func add_sides(parent: Control, rect: Rect2) -> bool:
 		var db := CardDatabase.get_db()
 		var path := db.tune_text("duel_hl_side_art", "")
 		if path == "" or not ResourceLoader.exists(path):
 			return false
 		var art := load(path) as Texture2D
+		# How big, as a share of the drawn pretzel (Anthony, 24 Oct: half).
+		var size := art.get_size() * maxf(0.05, db.tune_float("duel_hl_pretzel_scale", 1.0))
+		if db.tune_text("duel_hl_pretzel_place", "top") != "sides":
+			size *= minf(1.0, minf(rect.size.x * 0.5 / maxf(1.0, size.x),
+				rect.size.y * 0.7 / maxf(1.0, size.y)))
+			var pretzel := _pretzel(art, size, false)
+			pretzel.name = "PretzelTop"
+			pretzel.position = Vector2(rect.get_center().x, rect.position.y) - size * 0.5
+			parent.add_child(pretzel)
+			return true
 		var out := db.tune_float("duel_hl_side_out", 20.0)
-		var size := art.get_size()
 		size *= minf(1.0, rect.size.y / maxf(1.0, size.y))
 		for side in [-1.0, 1.0]:
-			var pretzel := TextureRect.new()
+			var pretzel := _pretzel(art, size, side > 0.0)
 			pretzel.name = "Pretzel%s" % ("Left" if side < 0.0 else "Right")
-			pretzel.texture = art
-			pretzel.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			pretzel.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			pretzel.flip_h = side > 0.0
-			pretzel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			var edge := rect.position.x if side < 0.0 else rect.end.x
 			var middle := Vector2(edge + side * out, rect.get_center().y)
 			pretzel.position = middle - size * 0.5
-			pretzel.size = size
 			parent.add_child(pretzel)
 		return true
+
+	static func _pretzel(art: Texture2D, size: Vector2, flip: bool) -> TextureRect:
+		var pretzel := TextureRect.new()
+		pretzel.texture = art
+		pretzel.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pretzel.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pretzel.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		pretzel.flip_h = flip
+		pretzel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pretzel.size = size
+		return pretzel
+
+	## The gold line round a highlighted thing: Tuning.csv duel_hl_outline_width
+	## thick, duel_hl_outline_gap pixels outside its edge (0 = touching).
+	## 0 wide = no line. Returns the rect the line runs along.
+	static func outline_rect(rect: Rect2) -> Rect2:
+		var db := CardDatabase.get_db()
+		var width := maxf(0.0, db.tune_float("duel_hl_outline_width", 6.0))
+		return rect.grow(db.tune_float("duel_hl_outline_gap", 0.0) + width * 0.5)
 
 	static func make(list: Array) -> CoachSpots:
 		var made := CoachSpots.new()
@@ -454,12 +482,17 @@ class CoachSpots extends Control:
 		made.art_scale = maxf(1.0, db.tune_float("duel_hl_art_scale", 3.0))
 		made.margin = db.tune_int("duel_hl_box_margin", 17)
 		made.overhang = db.tune_float("duel_hl_box_overhang", 0.0)
-		# One pretzel each side; else each box is a NinePatch child, so the
-		# art stretches like the duel's.
+		made.outline_width = maxf(0.0, db.tune_float("duel_hl_outline_width", 6.0))
+		# The gold line and one pretzel on top; else each box is a NinePatch
+		# child, so the art stretches like the duel's.
 		for spot in list:
 			if bool(spot.get("ring", false)):
 				continue
-			if add_sides(made, (spot.get("rect", Rect2()) as Rect2).grow(14.0)):
+			# "pretzel": false - the gold line only (Anthony, 24 Oct: no
+			# pretzels on the beers you pick from in the bag).
+			if not bool(spot.get("pretzel", true)):
+				continue
+			if add_sides(made, outline_rect(spot.get("rect", Rect2()) as Rect2)):
 				made.sides = true
 				continue
 			if made.art == null:
@@ -493,7 +526,12 @@ class CoachSpots extends Control:
 			if bool(spot.get("ring", false)):
 				var radius := maxf(rect.size.x, rect.size.y) * 0.5 + 6.0
 				draw_arc(rect.get_center(), radius, 0.0, TAU, 96, colour, 6.0, true)
+			elif sides or not bool(spot.get("pretzel", true)):
+				var line := outline_rect(spot.get("rect", Rect2()) as Rect2)
+				draw_rect(line, Color(colour.r, colour.g, colour.b, 0.10), true)
+				if outline_width > 0.0:
+					draw_rect(line, colour, false, outline_width)
 			else:
 				draw_rect(rect, Color(colour.r, colour.g, colour.b, 0.10), true)
-				if art == null and not sides:
+				if art == null:
 					draw_rect(rect, colour, false, 5.0)
