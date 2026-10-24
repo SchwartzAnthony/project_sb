@@ -47,6 +47,9 @@ var _line_index := -1
 ## skipped until it has been up this long (Tuning.csv match_talk_line_seconds).
 var _line_lock := 1.2
 var _shown_at := 0
+## Where the box and the face normally sit (bottom offsets), so a line that
+## lifts them above the referee's bar can put them back for the next line.
+var _home := {}
 ## 24 Oct 2026 (Anthony): a thing he points at that asks to be lifted (meta
 ## "lift_in_talk", e.g. the EXHAUST ZONE marker) comes in front of the dark
 ## sheet while its line is up, then goes back where it was.
@@ -173,6 +176,8 @@ func _ready() -> void:
 	column.add_child(hint)
 	_hint = hint
 	_out_of_the_way()
+	_home = {"panel": [_panel.offset_top, _panel.offset_bottom],
+		"face": [_portrait.offset_top, _portrait.offset_bottom]}
 
 
 ## A box along the bottom would sit on top of what the coach is pointing at
@@ -230,6 +235,7 @@ func _point_for_line() -> void:
 	if _groups.is_empty():
 		return
 	var group: Array = _groups[mini(_line_index, _groups.size() - 1)]
+	_above_the_bar(group)
 	if not group.is_empty():
 		_spot_holder.add_child(CoachSpots.make(group))
 	for spot in group:
@@ -280,6 +286,32 @@ func _drop_lifted() -> void:
 		(thing as Control).mouse_filter = keep["filter"]
 		(thing as Control).modulate = keep["modulate"]
 	_lifted.clear()
+
+
+## ROUND AN (Anthony, 24 Oct): "When head coach is talking about the referee
+## bar, move his text box above the referee bar and then highlight it. Once he
+## is done talking about the referee bar, return him to where he usually is."
+## A line that points at the bar (MatchTalk.csv Highlight referee...) lifts the
+## box and the face to just above it; any other line puts them back home.
+## Tuning.csv match_talk_above_referee (on/off) and match_talk_above_gap.
+func _above_the_bar(group: Array) -> void:
+	if _home.is_empty() or _panel.anchor_top != 1.0:
+		return
+	var tuning := CardDatabase.get_db()
+	var top := INF
+	if tuning.tune_bool("match_talk_above_referee", true):
+		for spot in group:
+			if bool(spot.get("above", false)):
+				top = minf(top, (spot.get("rect", Rect2()) as Rect2).position.y)
+	var lift := 0.0
+	if top != INF:
+		var screen := get_viewport().get_visible_rect().size
+		var bottom := top - tuning.tune_float("match_talk_above_gap", 24.0) - screen.y
+		lift = minf(0.0, bottom - float(_home["panel"][1]))
+	_panel.offset_top = float(_home["panel"][0]) + lift
+	_panel.offset_bottom = float(_home["panel"][1]) + lift
+	_portrait.offset_top = float(_home["face"][0]) + lift
+	_portrait.offset_bottom = float(_home["face"][1]) + lift
 
 
 func _process(_delta: float) -> void:
@@ -363,6 +395,7 @@ class CoachSpots extends Control:
 	var art_scale := 3.0
 	var margin := 17
 	var overhang := 0.0
+	var sides := false
 	var _t := 0.0
 
 	## How big one art pixel is drawn: duel_hl_art_scale, made smaller when
@@ -371,6 +404,35 @@ class CoachSpots extends Control:
 	static func fit_scale(size: Vector2, edge: int, wanted: float) -> float:
 		var room := minf(size.x, size.y) / maxf(1.0, edge * 2.0)
 		return clampf(room, 0.05, wanted)
+
+	## ONE PRETZEL ON EACH SIDE (Anthony, 24 Oct: "way too many pretzels").
+	## Tuning.csv duel_hl_side_art is the pretzel; it sits half-way down
+	## the left and right edges of `rect`, its middle duel_hl_side_out
+	## pixels outside the edge, shrunk only if the thing is shorter than it.
+	## Returns false when there is no side art (the old box is used then).
+	static func add_sides(parent: Control, rect: Rect2) -> bool:
+		var db := CardDatabase.get_db()
+		var path := db.tune_text("duel_hl_side_art", "")
+		if path == "" or not ResourceLoader.exists(path):
+			return false
+		var art := load(path) as Texture2D
+		var out := db.tune_float("duel_hl_side_out", 20.0)
+		var size := art.get_size()
+		size *= minf(1.0, rect.size.y / maxf(1.0, size.y))
+		for side in [-1.0, 1.0]:
+			var pretzel := TextureRect.new()
+			pretzel.name = "Pretzel%s" % ("Left" if side < 0.0 else "Right")
+			pretzel.texture = art
+			pretzel.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			pretzel.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			pretzel.flip_h = side > 0.0
+			pretzel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var edge := rect.position.x if side < 0.0 else rect.end.x
+			var middle := Vector2(edge + side * out, rect.get_center().y)
+			pretzel.position = middle - size * 0.5
+			pretzel.size = size
+			parent.add_child(pretzel)
+		return true
 
 	static func make(list: Array) -> CoachSpots:
 		var made := CoachSpots.new()
@@ -388,9 +450,15 @@ class CoachSpots extends Control:
 		made.art_scale = maxf(1.0, db.tune_float("duel_hl_art_scale", 3.0))
 		made.margin = db.tune_int("duel_hl_box_margin", 17)
 		made.overhang = db.tune_float("duel_hl_box_overhang", 0.0)
-		# Each box is a NinePatch child, so the art stretches like the duel's.
+		# One pretzel each side; else each box is a NinePatch child, so the
+		# art stretches like the duel's.
 		for spot in list:
-			if bool(spot.get("ring", false)) or made.art == null:
+			if bool(spot.get("ring", false)):
+				continue
+			if add_sides(made, (spot.get("rect", Rect2()) as Rect2).grow(14.0)):
+				made.sides = true
+				continue
+			if made.art == null:
 				continue
 			var rect: Rect2 = (spot.get("rect", Rect2()) as Rect2).grow(14.0 + made.overhang)
 			var fit := fit_scale(rect.size, made.margin, made.art_scale)
@@ -423,5 +491,5 @@ class CoachSpots extends Control:
 				draw_arc(rect.get_center(), radius, 0.0, TAU, 96, colour, 6.0, true)
 			else:
 				draw_rect(rect, Color(colour.r, colour.g, colour.b, 0.10), true)
-				if art == null:
+				if art == null and not sides:
 					draw_rect(rect, colour, false, 5.0)

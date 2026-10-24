@@ -46,6 +46,8 @@ extends RefCounted
 #    duel_result          WIN / LOSE stamped
 #    shot_odds            the shot window shows the % and the keeper's stamina
 #    shot_done            the shot is over (goal or miss), before the restart
+#    keeper_drain         an ability's drain is on show in the keeper's window,
+#                         the stamina just taken off (Tier = the draining card's)
 #    ability_fired        one of YOUR players' abilities has just gone off in
 #                         a duel (round AN, 24 Oct)
 #

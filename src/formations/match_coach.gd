@@ -170,9 +170,10 @@ func arena_moment(event: String, tier: String, player: String = "") -> void:
 	await talk(event, {"tier": tier, "player": player})
 
 
-## The shot window's moment (shootout_view.gd calls this).
-func shot_moment(event: String) -> void:
-	await talk(event, {})
+## The shot window's moments (shootout_view.gd calls this). `tier` is the
+## draining card's, for keeper_drain.
+func shot_moment(event: String, tier: String = "") -> void:
+	await talk(event, {"tier": tier})
 
 
 # =============================================================
@@ -189,9 +190,12 @@ func _spots_for(words: String) -> Array:
 		if word.to_lower().begins_with("ring:"):
 			ring = true
 			word = word.substr(5).strip_edges()
+		# ROUND AN (Anthony, 24 Oct): the coach's box goes above the referee's
+		# bar while he talks about it (MatchTalkBox reads "above").
+		var above := word.to_lower().begins_with("referee")
 		for control in _controls_for(word):
 			if control != null and control.is_visible_in_tree():
-				out.append({"rect": control.get_global_rect(), "ring": ring, "control": control})
+				out.append({"rect": control.get_global_rect(), "ring": ring, "control": control, "above": above})
 	if out.is_empty():
 		print("[match talk] Highlight '%s' found nothing on screen to point at." % words)
 	return out
@@ -295,6 +299,8 @@ func _do(text: String) -> void:
 				give_items(value)
 			"say":
 				await say(value)
+			"empty_bag":
+				await empty_bag(value)
 			"inspire":
 				var at := value.find("=")
 				if at > 0:
@@ -398,6 +404,47 @@ func say(value: String) -> void:
 		await box.finished
 	shield.queue_free()
 	main.call("hold_picks")
+
+
+## ============ THE BAG OPENS BY ITSELF, EMPTY ============
+##
+## `empty_bag:first` (Anthony, 24 Oct). After "Now open the bag on the
+## Tier I, Power 1, and..." the bag on that card opens on its own and shows
+## nothing in it, then shuts, and the next say: plays ("Where is the rest
+## of the beer?!"). The word is a Highlight word without "card:" - first,
+## last or a name. Tuning.csv tutorial_empty_bag_seconds = how long it
+## stays open. Nothing can be clicked meanwhile.
+func empty_bag(who: String) -> void:
+	var found := _controls_for("card:" + who.strip_edges())
+	if found.is_empty():
+		push_warning("[match talk] empty_bag: no card '%s' on the table." % who)
+		return
+	var target := found[0] as PlayerCardUI
+	var shield := _input_shield()
+	var tree := get_tree()
+	# A beat of gold on his bag button, as if somebody pressed it.
+	var gold_layer := CanvasLayer.new()
+	gold_layer.name = "EmptyBagGold"
+	gold_layer.layer = 151
+	gold_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	main.add_child(gold_layer)
+	var flask := target.get("_flask") as Control
+	_gold_on(gold_layer, [flask] if flask != null else [target])
+	# Real seconds, so a match on fast speed does not rush it.
+	await tree.create_timer(0.5, true, false, true).timeout
+	gold_layer.queue_free()
+	# No item id is called "-", so the bag shows its empty line.
+	var bag := InventoryScreen.open(main, main.get("state"), InventoryScreen.Use.ON_CARD,
+		"Using something on %s." % target.current_data.player_name, ["-"])
+	bag.name = "EmptyBag"
+	bag.process_mode = Node.PROCESS_MODE_ALWAYS
+	print("[match talk] the bag on %s opens by itself - empty." % target.current_data.player_name)
+	var hold := CardDatabase.get_db().tune_float("tutorial_empty_bag_seconds", 2.2)
+	await tree.create_timer(maxf(0.3, hold), true, false, true).timeout
+	if is_instance_valid(bag):
+		bag.close()
+	await tree.process_frame
+	shield.queue_free()
 
 
 ## ============ THE DRINKING LESSON ============
@@ -577,6 +624,11 @@ func _gold_on(layer: CanvasLayer, controls: Array) -> void:
 		layer.add_child(MatchTalkBox.CoachSpots.make(spots))
 
 
+## The bottom of the screen the coach's box (and his face) takes, and the
+## gap kept around the big card.
+const SHOW_CARD_BOX_ROOM := 260.0
+const SHOW_CARD_MARGIN := 24.0
+
 ## ============ HIS NEW CARD ============
 ##
 ## `show_card:Koch=tut-koch-new-card` (Anthony, 8 Oct) - the match stays
@@ -618,8 +670,12 @@ func show_card(name_text: String, scene: String, gold: String = "card") -> void:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(row)
 
-	# The field card, bigger.
+	# The field card, bigger - but never so big that it runs into the
+	# coach's box along the bottom or off the screen (Anthony, 24 Oct).
 	var grow := db.tune_float("show_card_scale", 1.8)
+	var base := PlayerCardUI.card_size()
+	var room := Vector2(screen.x - 80.0 - 70.0 - 520.0, screen.y - SHOW_CARD_BOX_ROOM - 2.0 * SHOW_CARD_MARGIN)
+	grow = minf(grow, minf(room.x / base.x, room.y / base.y))
 	var holder := Control.new()
 	holder.custom_minimum_size = PlayerCardUI.card_size() * grow
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -643,7 +699,8 @@ func show_card(name_text: String, scene: String, gold: String = "card") -> void:
 	# Middle of the screen, above the coach's box along the bottom.
 	await tree.process_frame
 	var used := row.get_combined_minimum_size()
-	row.position = Vector2((screen.x - used.x) * 0.5, maxf(20.0, (screen.y - 260.0 - used.y) * 0.5))
+	row.position = Vector2((screen.x - used.x) * 0.5,
+		maxf(SHOW_CARD_MARGIN, (screen.y - SHOW_CARD_BOX_ROOM - used.y) * 0.5))
 	await tree.process_frame
 
 	var groups: Array = []
@@ -703,10 +760,16 @@ func _ability_words(ability: AbilityData, db: CardDatabase, card: PlayerData = n
 			return "For each other %s not in the Exhaust Zone, give this %+d Power during combat." % [who, ability.value]
 		"addpowerperplayed":
 			return ability.plain()
-		"drainstamina":
-			return "Their keeper loses %d stamina." % ability.value
-		"restorestamina":
-			return "Your keeper gets %d stamina back." % ability.value
+		"drainstamina", "restorestamina":
+			# Anthony, 24 Oct: the Target says whose keeper. Own Goal Nerves
+			# drains YOUR keeper, and showing it as theirs hid the bad side.
+			var drains := CardDatabase._normalise(ability.effect) == "drainstamina"
+			var flat := CardDatabase._normalise(ability.target)
+			var yours := flat == "owngoalie" or (flat != "enemygoalie" and not drains)
+			var keeper := "Your keeper" if yours else "Their keeper"
+			if drains:
+				return "%s loses %d stamina." % [keeper, ability.value]
+			return "%s gets %d stamina back." % [keeper, ability.value]
 	var words := CardPopup.new()
 	words.db = db
 	var text := words._plain_english(ability)
