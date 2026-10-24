@@ -657,6 +657,7 @@ tutorial_pub_building,pub,23 Oct 2026. The Buildings.csv row that is the walk in
 tutorial_start_effects,unlock:Pub;count:pub_key=1,"23 Oct 2026. What the tutorial save is given at the start, so the Pub on the base can be pressed (only with tutorial_pub_scene)."
 tutorial_match_mode,tutorial,ROUND AN. The MatchModes.csv row the tutorial match is. Its Head Coach stops are the MatchTalk.csv rows with that Mode.
 tutorial_star_never_spent,true,"ROUND AN (Anthony, 8 Oct). In the tutorial match your man in the Star's place (Koch) is never spent by a Play Maker: he is offered at every Play Maker and plays every round of his cycle, Star badge or not. false = he goes to the exhaust like any other card."
+build_stamp_in_tutorial,false,"Anthony, 24 Oct. The small build_stamp words bottom-left of a match are hidden in the tutorial match. true shows them there too. The [build] line still goes to the Output panel."
 tutorial_pick_guard_seconds,0.8,"ROUND AN (Anthony, 8 Oct: I could click through the whole tutorial). In the tutorial match a card cannot be picked until it has been on the table, and the Head Coach has finished talking, for this long. 0 = off."
 show_card_scale,1.8,"ROUND AN. MatchTalk.csv Do show_card: how much bigger his field card is when it comes up over the pub."
 show_card_backdrop,bar,"ROUND AN. MatchTalk.csv Do show_card: the Backgrounds row behind his card (the pub)."

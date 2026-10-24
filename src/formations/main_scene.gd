@@ -3288,6 +3288,11 @@ func spawn_hud() -> void:
 	# `build_stamp` in Tuning.csv - so "it feels like an older build" can be
 	# answered by looking. Blank hides it.
 	var stamp_text := db.tune_text("build_stamp", "")
+	# Anthony, 24 Oct: not in the tutorial match (build_stamp_in_tutorial).
+	var in_tutorial := String(MatchMode.current(get_tree()).get("id", "")) == db.tune_text("tutorial_match_mode", "tutorial")
+	if in_tutorial and not db.tune_bool("build_stamp_in_tutorial", false):
+		print("[build] %s" % stamp_text)
+		stamp_text = ""
 	if stamp_text != "":
 		var stamp := Label.new()
 		stamp.name = "BuildStamp"

@@ -3700,6 +3700,9 @@ the Star's place is never spent by a Play Maker: his card is offered at every
 Play Maker of his cycle and he never goes to the exhaust. `Tuning.csv tutorial_star_never_spent`
 false spends him like any other card.
 
+**No build words in the tutorial match** (Anthony, 24 Oct). The small `build_stamp`
+words bottom-left of a match are hidden there. `Tuning.csv build_stamp_in_tutorial` true shows them.
+
 | Play Maker | moment | scene | gold on |
 |---|---|---|---|
 | | the whistle | tut-kickoff | |
