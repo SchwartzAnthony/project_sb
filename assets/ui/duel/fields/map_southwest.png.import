@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bx1w2ir0v0m2v"
-path="res://.godot/imported/whole_village.png-23903163d8cfd7519993794554f23817.ctex"
+uid="uid://ivxuyelt0nmc"
+path="res://.godot/imported/map_southwest.png-2896f4a713c85af0df2392f3ec32f024.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/duel/fields/whole_village.png"
-dest_files=["res://.godot/imported/whole_village.png-23903163d8cfd7519993794554f23817.ctex"]
+source_file="res://assets/ui/duel/fields/map_southwest.png"
+dest_files=["res://.godot/imported/map_southwest.png-2896f4a713c85af0df2392f3ec32f024.ctex"]
 
 [params]
 
