@@ -216,6 +216,46 @@ static func window_sheet(card: PlayerData) -> Texture2D:
 	return sheet_for(card, hash(card.player_name))
 
 
+## The duel sheets (tools/make_drawn_duel_sheet.py): one per pitch sheet,
+## same file name, in Tuning.csv duel_sheets, frames duel_cell big, all
+## facing right. Which row each move is on and how many frames it has;
+## the speed and looping come from PitchAnims.csv, as on the pitch.
+const DUEL_ROWS := {"idle": [0, 4], "run": [1, 8], "kick": [2, 9], "cheer": [3, 9], "fall": [4, 7]}
+
+
+## {sheet, spec} for `anim_name` from the duel sheet of `pitch`, or {}. The duel
+## window and the shot window (24 Oct: "the player kicking the ball at the
+## goalie is blurry") both draw these.
+static func duel_spec(pitch: Texture2D, anim_name: String, db: CardDatabase) -> Dictionary:
+	if pitch == null or db == null:
+		return {}
+	var folder := db.tune_text("duel_sheets", "res://assets/players/duel/").strip_edges()
+	if folder == "":
+		return {}
+	var path := folder.path_join(pitch.resource_path.get_file())
+	if not ResourceLoader.exists(path):
+		return {}
+	var sheet := load(path) as Texture2D
+	var cell := db.tune_text("duel_cell", "400,540").split(",")
+	if sheet == null or cell.size() != 2:
+		return {}
+	var wanted := String(WINDOW_ANIMS.get(anim_name.to_lower(), "idle"))
+	if not DUEL_ROWS.has(wanted):
+		wanted = "idle"
+	var row: Array = DUEL_ROWS[wanted]
+	var timing := anim(wanted)
+	var spec := AnimSpec.new()
+	spec.name = wanted
+	spec.sheet_columns = maxi(1, int(sheet.get_width() / float(cell[0])))
+	spec.sheet_rows = maxi(1, int(sheet.get_height() / float(cell[1])))
+	spec.row = int(row[0])
+	spec.first_frame = 0
+	spec.frames = int(row[1])
+	spec.fps = float(timing.get("fps", 10.0))
+	spec.loop = bool(timing.get("loop", wanted != "kick" and wanted != "fall"))
+	return {"sheet": sheet, "spec": spec}
+
+
 ## An AnimSpec that plays `anim_name` from a pitch sheet, facing `direction`
 ## (an index into DIRECTIONS: 0 east, 1 south-east, 2 south ... 7 north-east).
 static func window_spec(sheet: Texture2D, anim_name: String, direction: int = 1) -> AnimSpec:

@@ -10,7 +10,7 @@
 #  full-size 900 x 1500 video frames (art_tool/thomas_video in the project
 #  files, made 18 Oct), big enough that the duel never has to blow them up.
 #  CELL x TALL px a frame (Tuning.csv duel_cell), all facing right (east);
-#  the duel mirrors the right-hand player. Five rows (DuelArena.DUEL_ROWS):
+#  the duel mirrors the right-hand player. Five rows (PitchSprite.DUEL_ROWS):
 #      row 0  idle   4 frames  (standing)
 #      row 1  run    8 frames
 #      row 2  kick   9 frames  (the ability)

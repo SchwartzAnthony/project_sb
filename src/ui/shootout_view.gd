@@ -94,6 +94,8 @@ func _wire() -> void:
 
 	_keeper_anim = SpriteAnimator.new()
 	_striker_anim = SpriteAnimator.new()
+	# The sharp sheets are bigger than he is drawn: let fit_into shrink them.
+	_striker_anim.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_keeper_placeholder = _make_placeholder(Color(0.30, 0.40, 0.55, 0.85), Vector2(320, 300))
 	_striker_placeholder = _make_placeholder(Color(0.45, 0.30, 0.30, 0.85), Vector2(180, 210))
 
@@ -404,10 +406,17 @@ func _dress_striker(card, anim_name: String) -> void:
 	var sheet: Texture2D = card.artwork if card != null else null
 	# ROUND AN: the striker's own pitch figure, seen from behind.
 	var pitch := PitchSprite.window_sheet(card as PlayerData) if card != null else null
-	if pitch != null:
+	var direction := int(ShootoutLook.number("striker_direction", 0.0)) if _mat else 6
+	# 24 Oct 2026 (Anthony: "The player kicking the ball at the goalie is
+	# blurry"): the big sharp duel sheet of his look, as the duel window
+	# uses. Those are drawn side on, facing right - direction 0.
+	var sharp := PitchSprite.duel_spec(pitch, anim_name, db) if direction == 0 else {}
+	if not sharp.is_empty():
+		sheet = sharp["sheet"]
+		spec = sharp["spec"]
+	elif pitch != null:
 		sheet = pitch
-		spec = PitchSprite.window_spec(pitch, anim_name,
-			int(ShootoutLook.number("striker_direction", 0.0)) if _mat else 6)
+		spec = PitchSprite.window_spec(pitch, anim_name, direction)
 	elif db != null and card != null:
 		# A dedicated from-behind animation if you have drawn one, else the
 		# normal kick, else idle.
