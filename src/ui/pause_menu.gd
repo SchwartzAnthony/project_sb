@@ -340,5 +340,5 @@ func _make_button(text: String, box: Vector2) -> Button:
 		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
 	button.add_theme_stylebox_override("pressed",
 		MenuSupport.panel_style(MenuSupport.COLOUR_SLOT_EMPTY, MenuSupport.COLOUR_ACCENT))
-	ScreenLook.plank(button)
+	ScreenLook.plank(button, "match_window")
 	return button

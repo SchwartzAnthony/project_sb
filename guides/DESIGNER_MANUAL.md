@@ -1238,6 +1238,13 @@ and the pause menu buttons. The speed you are on is full colour, the other
 speeds a little darker; a locked speed is grey and faded. Delete that row to get the old
 boxes back. The number chips of the coin clash keep their old look.
 
+**Window buttons are blue-green** (24 Oct 2026, Anthony: "Yellw while playing
+and then green blue for windows such as YOUR THROW"). The buttons in windows
+over the match (YOUR THROW ATTACK / DEFEND, the clash ATTACK / DEFEND, the
+pause menu) use the `match_window` row of ScreenLook.csv, the blue-green
+plank `assets/menu/button_plank_teal.png`. The buttons you press while
+playing (speed, AUTO, TEAM, EXHAUST ZONE) stay yellow.
+
 **The picture window over the pitch** ("Sven puts it over the goal line" and
 the goal windows; Anthony 24 Oct 2026: "have it similar to the card with the
 background being the outdoors field"). It is the cream beer mat panel with

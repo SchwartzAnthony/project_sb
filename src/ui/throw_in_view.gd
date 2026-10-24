@@ -283,8 +283,8 @@ func _plank_choice(words: String, why: String, ink: Color, attack: bool) -> Cont
 	button.focus_mode = Control.FOCUS_ALL
 	button.add_theme_font_size_override("font_size", 30)
 	button.pressed.connect(_choose.bind(attack))
-	# The match buttons are the yellow plank (ScreenLook.csv match row).
-	if not ScreenLook.plank(button):
+	# Window buttons are the blue-green plank (ScreenLook.csv match_window row).
+	if not ScreenLook.plank(button, "match_window"):
 		InventoryScreen._plank(button)
 	stack.add_child(button)
 	stack.add_child(_ink(why, 15, ink))
