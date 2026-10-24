@@ -47,6 +47,9 @@ var _line_index := -1
 ## skipped until it has been up this long (Tuning.csv match_talk_line_seconds).
 var _line_lock := 1.2
 var _shown_at := 0
+## Where the box and the face normally sit (bottom offsets), so a line that
+## lifts them above the referee's bar can put them back for the next line.
+var _home := {}
 ## 24 Oct 2026 (Anthony): a thing he points at that asks to be lifted (meta
 ## "lift_in_talk", e.g. the EXHAUST ZONE marker) comes in front of the dark
 ## sheet while its line is up, then goes back where it was.
@@ -173,6 +176,8 @@ func _ready() -> void:
 	column.add_child(hint)
 	_hint = hint
 	_out_of_the_way()
+	_home = {"panel": [_panel.offset_top, _panel.offset_bottom],
+		"face": [_portrait.offset_top, _portrait.offset_bottom]}
 
 
 ## A box along the bottom would sit on top of what the coach is pointing at
@@ -230,6 +235,7 @@ func _point_for_line() -> void:
 	if _groups.is_empty():
 		return
 	var group: Array = _groups[mini(_line_index, _groups.size() - 1)]
+	_above_the_bar(group)
 	if not group.is_empty():
 		_spot_holder.add_child(CoachSpots.make(group))
 	for spot in group:
@@ -280,6 +286,32 @@ func _drop_lifted() -> void:
 		(thing as Control).mouse_filter = keep["filter"]
 		(thing as Control).modulate = keep["modulate"]
 	_lifted.clear()
+
+
+## ROUND AN (Anthony, 24 Oct): "When head coach is talking about the referee
+## bar, move his text box above the referee bar and then highlight it. Once he
+## is done talking about the referee bar, return him to where he usually is."
+## A line that points at the bar (MatchTalk.csv Highlight referee...) lifts the
+## box and the face to just above it; any other line puts them back home.
+## Tuning.csv match_talk_above_referee (on/off) and match_talk_above_gap.
+func _above_the_bar(group: Array) -> void:
+	if _home.is_empty() or _panel.anchor_top != 1.0:
+		return
+	var tuning := CardDatabase.get_db()
+	var top := INF
+	if tuning.tune_bool("match_talk_above_referee", true):
+		for spot in group:
+			if bool(spot.get("above", false)):
+				top = minf(top, (spot.get("rect", Rect2()) as Rect2).position.y)
+	var lift := 0.0
+	if top != INF:
+		var screen := get_viewport().get_visible_rect().size
+		var bottom := top - tuning.tune_float("match_talk_above_gap", 24.0) - screen.y
+		lift = minf(0.0, bottom - float(_home["panel"][1]))
+	_panel.offset_top = float(_home["panel"][0]) + lift
+	_panel.offset_bottom = float(_home["panel"][1]) + lift
+	_portrait.offset_top = float(_home["face"][0]) + lift
+	_portrait.offset_bottom = float(_home["face"][1]) + lift
 
 
 func _process(_delta: float) -> void:
