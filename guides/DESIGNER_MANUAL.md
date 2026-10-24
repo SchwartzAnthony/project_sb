@@ -8396,6 +8396,15 @@ which every screen and the match pass through:
 3. **The see-through black plate** (`text_backdrop_alpha`) behind any word
    that sits straight on a picture. Words on a panel or a button keep
    theirs. An empty label shows no plate.
+4. **A black ink border round every letter** (`text_outline`, 6; 24 Oct,
+   your note: "all font, not just buttons"). The game font is a picture
+   font, which Godot cannot outline, so `src/core/ink_outline.gd` draws the
+   ring into a copy of the letter sheet when the game starts. The letters
+   stay white inside, so every word keeps its own colour. 0 = no border.
+   Dark ink words on cream or wood (beer mat cards, emblem text, tavern
+   signs, the team sheet notes) stay plain: anything darker than
+   `text_outline_dark_limit` (0.3) gets no border, because a black ring
+   round a dark letter only blurs it.
 
 
 ## The Match Maker, and two tabs gone (round AN)
