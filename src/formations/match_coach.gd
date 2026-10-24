@@ -855,6 +855,7 @@ func change_class(name_text: String, klass: String) -> void:
 	var db := CardDatabase.get_db()
 	var data := unit.data
 	data.unit_type = klass
+	data.set_meta(PitchSprite.CHANGED_CLASS, true)
 	data.element = SquadSheet._element_of(klass, db)
 	var art := SquadSheet._art_for("", klass, "m", db)
 	if art != null:

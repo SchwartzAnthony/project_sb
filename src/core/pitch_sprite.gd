@@ -48,6 +48,9 @@ const SHEETS_PATH := "res://data/PitchSheets.csv"
 const DIRECTIONS: Array[String] = ["east", "south-east", "south", "south-west",
 	"west", "north-west", "north", "north-east"]
 
+## Set on a card by MatchCoach.change_class: his own name row stops counting.
+const CHANGED_CLASS := "changed_class"
+
 static var _wears: Dictionary = {}
 static var _anims: Dictionary = {}
 static var _sheets: Array[Dictionary] = []
@@ -102,8 +105,13 @@ static func sheet_for(card: PlayerData, pick: int = 0) -> Texture2D:
 	if card == null:
 		return null
 	# His own name first (24 Oct 2026, the tutorial Koch): a row for one
-	# player wins over the picture he shares with everyone else.
-	var keys: Array[String] = [card.player_name.to_lower()]
+	# player wins over the picture he shares with everyone else. Once a
+	# match changes his class (MatchTalk class:, Koch turning into a
+	# Bergmännlein) he wears his new class's row instead, on the pitch and
+	# on his card (Anthony, 24 Oct).
+	var keys: Array[String] = []
+	if not card.has_meta(CHANGED_CLASS):
+		keys.append(card.player_name.to_lower())
 	var own := card.active_artwork()
 	if own != null and own.resource_path != "":
 		keys.append(own.resource_path.get_file().to_lower())
