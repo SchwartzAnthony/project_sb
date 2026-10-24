@@ -10,7 +10,7 @@ tut-morning-base,l2,Head Coach,coach,left,happy,,But the Dorms are open. Every t
 tut-morning-beds,l1,Head Coach,coach,left,happy,,"A player's power is two numbers in one. How many rounds they play before they need a bed, and how many fixtures they sleep.",,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. Guide.csv tut_morning_beds, over the Dorms."
 tut-morning-beds,l2,Head Coach,coach,left,happy,,"A Power 3 plays three rounds, then sleeps three fixtures. Our Power 1s are done after one match already.",,
 tut-morning-beds,l3,Head Coach,coach,left,happy,,"A Power 0 plays one round and needs no bed at all. Weak, but always ready.",,
-tut-morning-beds,l4,Head Coach,coach,left,happy,,A fixture is a match or an Adventure. Every one you play brings everybody in bed a step nearer to waking up.,,
+tut-morning-beds,l4,Head Coach,coach,left,happy,,A fixture is a match. Every one you play brings everybody in bed a step nearer to waking up.,,"24 Oct (Anthony): ""or an Adventure"" cut while the Adventure is hidden (Tuning.csv adventure_shown false). Put it back with the Adventure: ""A fixture is a match or an Adventure."""
 tut-morning-beds,l5,Koch,koch,right,bergmaennlein,,And the beer wears off. Such a shame.,,
 tut-morning-beds,l6,Head Coach,coach,left,mad,,Half of what is in them is gone after every round they play. And nobody wakes up in here drunk.,,
 tut-morning-beds,l7,Head Coach,coach,left,happy,,"So you cannot field your best side every week. While one side rests, the other one works.",,

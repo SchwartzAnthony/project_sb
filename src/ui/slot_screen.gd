@@ -126,6 +126,7 @@ func _read_mugs() -> void:
 
 func _fill() -> void:
 	for child in _table.get_children():
+		_table.remove_child(child)
 		child.queue_free()
 	for slot in range(1, mini(SaveSlots.count(), _spots.size()) + 1):
 		_table.add_child(_mug(SaveSlots.describe(slot)))
@@ -189,6 +190,24 @@ func _mug(about: Dictionary) -> Control:
 func _toggle(slot: int) -> void:
 	_open_slot = 0 if _open_slot == slot else slot
 	_fill()
+	# WITH A CONTROLLER (24 Oct 2026) the highlight goes to the open mug's
+	# Play, or back to the mug when it closes. Before, it was lost when the
+	# mugs were rebuilt, and the next push of the d-pad landed on the mug
+	# again, so A just opened and closed it.
+	var pad := get_node_or_null(ControllerFocus.NODE_NAME)
+	if pad != null and bool(pad.get("_using_pad")):
+		_focus_after.call_deferred(slot)
+
+
+func _focus_after(slot: int) -> void:
+	var mug := _table.get_node_or_null("Mug%d" % slot)
+	if mug == null:
+		return
+	if _open_slot == slot:
+		for button in mug.find_children("*", "Button", true, false):
+			(button as Button).grab_focus()
+			return
+	(mug as Control).grab_focus()
 
 
 ## Play, Profile Settings and Delete on the open mug's glass, one above the
