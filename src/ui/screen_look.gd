@@ -108,6 +108,10 @@ static func install(screen: Control, screen_id: String) -> void:
 
 
 ## A picture, read even if Godot has not imported it yet.
+## path -> [file's saved time, the texture made from it]. See picture().
+static var _read_files: Dictionary = {}
+
+
 static func picture(path: String) -> Texture2D:
 	if path == "":
 		return null
@@ -115,9 +119,19 @@ static func picture(path: String) -> Texture2D:
 	# at once even if Godot has not re-imported it yet (exported games have no
 	# raw files, and fall through to the imported copy).
 	if FileAccess.file_exists(path):
+		# ROUND AN (24 Oct, "the game seems to lag"): read once and kept, so a
+		# duel or a window that opens again does not unpack the PNG again (a
+		# stall of a tenth of a second or more each time). A changed file is
+		# still read again: the cache remembers when the file was saved.
+		var stamp := FileAccess.get_modified_time(path)
+		var kept: Array = _read_files.get(path, [])
+		if not kept.is_empty() and int(kept[0]) == stamp:
+			return kept[1] as Texture2D
 		var image := Image.load_from_file(path)
 		if image != null and not image.is_empty():
-			return ImageTexture.create_from_image(image)
+			var made := ImageTexture.create_from_image(image)
+			_read_files[path] = [stamp, made]
+			return made
 	if ResourceLoader.exists(path):
 		var imported := load(path) as Texture2D
 		if imported != null:

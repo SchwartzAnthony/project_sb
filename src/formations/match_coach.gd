@@ -349,16 +349,38 @@ func time_out(scene: String) -> void:
 	var was_paused := tree.paused
 	tree.paused = true
 	layer.add_child(view)
+	# ROUND AN (24 Oct, "even the text is lagging"): the pub covers the whole
+	# screen, so the frozen match under it is not drawn while it is up. It
+	# comes back exactly as it was when the TIME OUT ends.
+	var hidden := _hide_match_under(layer)
 	# PUB MUSIC (Anthony, 23 Oct): the time out is in the bar, so it gets the
 	# bar's music - Audio.csv rows pub_time_out_music / match_music_back_pub.
 	AudioDirector.fire(tree, "time_out_started", {"where": "pub"})
 	await view.scene_finished
 	AudioDirector.fire(tree, "time_out_ended", {"where": "pub"})
+	for item in hidden:
+		if is_instance_valid(item):
+			item.visible = true
 	tree.paused = was_paused
 	layer.queue_free()
 	if parked != null:
 		tree.set_meta(DialogueView.META_RETURN, parked)
 	print("[match talk] Back from the TIME OUT - the match carries on.")
+
+
+## Hide the match and its own screen layers (not `keep`, the TIME OUT).
+## Returns what was hidden, to be shown again.
+func _hide_match_under(keep: CanvasLayer) -> Array:
+	var hidden: Array = []
+	if main is CanvasItem and (main as CanvasItem).visible:
+		(main as CanvasItem).visible = false
+		hidden.append(main)
+	for child in main.get_children():
+		if child is CanvasLayer and child != keep and (child as CanvasLayer).visible \
+				and (child as CanvasLayer).layer < keep.layer:
+			(child as CanvasLayer).visible = false
+			hidden.append(child)
+	return hidden
 
 
 ## ============ TIME OUT AT THE BREWERY (round AN) =====##

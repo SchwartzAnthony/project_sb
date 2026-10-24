@@ -121,6 +121,7 @@ func _ready() -> void:
 		tree.remove_meta(META_SCENE)
 
 	_build_ui()
+	_warm_up_scene()
 
 	var opening := story.opening_line(scene_name, state)
 	if opening == null:
@@ -283,6 +284,8 @@ func _show(line: DialogueLine) -> void:
 
 
 func _process(delta: float) -> void:
+	if not _reading.is_empty():
+		_collect_read_faces()
 	if not _typing:
 		return
 	_shown_chars += type_speed * delta
@@ -735,11 +738,74 @@ func _find_texture(file_name: String, dirs: Array[String]) -> Texture2D:
 		if clean.begins_with("res://"):
 			tries = [clean]
 		for candidate in tries:
+			if _kept.has(candidate):
+				return _kept[candidate] as Texture2D
 			if ResourceLoader.exists(candidate):
 				var res := load(candidate)
 				if res is Texture2D:
+					_kept[candidate] = res
 					return res as Texture2D
 	return null
+
+
+# =============================================================
+#  NO WAITING FOR A FACE (ROUND AN, 24 Oct: "even the text is lagging")
+#
+#  Every new face or mood used to be read from disk the moment its line
+#  came up, and thrown away when the next face took its place, so a talk
+#  between two people stalled on every line, just as the words started
+#  typing. Now every face and background of the scene is read in the
+#  background as the scene opens, and kept for the rest of the game.
+# =============================================================
+
+## res:// path -> Texture2D, kept between lines and between scenes.
+static var _kept: Dictionary = {}
+## res:// paths being read on another thread.
+var _reading: Array[String] = []
+
+
+func _warm_up_scene() -> void:
+	var lines: Array = story.scenes.get(DialogueDB._key(scene_name), [])
+	var ids: Dictionary = {}
+	var files: Dictionary = {}
+	for line in lines:
+		var said := line as DialogueLine
+		if said == null:
+			continue
+		var who := said.portrait if said.portrait.strip_edges() != "" \
+			else String(_art.by_speaker.get(CardDatabase._normalise(said.speaker), ""))
+		ids[CardDatabase._normalise(who)] = true
+		for join in said.joins.split(";", false):
+			ids[CardDatabase._normalise(String(join).split(":")[0])] = true
+		for layer in _art.background_layers(said.background):
+			files[String(layer["image"]).strip_edges()] = true
+	for id in ids:
+		for face in _art.portraits.get(id, []):
+			files[String(face["image"]).strip_edges()] = true
+	for path in files:
+		var file := String(path)
+		if not file.begins_with("res://") or _kept.has(file) or not ResourceLoader.exists(file):
+			continue
+		if ResourceLoader.load_threaded_request(file, "Texture2D") == OK:
+			_reading.append(file)
+
+
+func _collect_read_faces() -> void:
+	for file in _reading.duplicate():
+		var status := ResourceLoader.load_threaded_get_status(file)
+		if status == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+			continue
+		_reading.erase(file)
+		if status == ResourceLoader.THREAD_LOAD_LOADED:
+			var res := ResourceLoader.load_threaded_get(file)
+			if res is Texture2D:
+				_kept[file] = res
+
+
+func _exit_tree() -> void:
+	# Whatever finished reading is kept; the rest is let go.
+	_collect_read_faces()
+	_reading.clear()
 
 
 # =============================================================
