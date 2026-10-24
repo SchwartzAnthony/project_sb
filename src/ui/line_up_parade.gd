@@ -262,7 +262,7 @@ func _put_up_banner(words: String, symbol: String, theirs: bool) -> void:
 		# Old pixel symbols stay sharp; drawn ones are smoothed.
 		crest.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST \
 			if picture.get_width() <= 128 else CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-		var inset := medal.size * 0.12
+		var inset := medal.size * 0.04
 		crest.position = (medal.position + inset) * scale_by
 		crest.size = (medal.size - inset * 2.0) * scale_by
 		crest.mouse_filter = Control.MOUSE_FILTER_IGNORE
