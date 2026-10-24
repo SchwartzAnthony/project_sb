@@ -263,7 +263,22 @@ func _chalk_board(sign: Control) -> Control:
 	_board_split.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_board_top.get_child(0).add_child(_board_split)
 	_board_top.get_child(0).add_child(_material_row)
+	if sign != null:
+		# The sign grows once its words are measured on screen (and with the
+		# text size setting), after the boards were placed: keep them clear
+		# of it (Anthony, 24 Oct: "not layered on top of the sign").
+		sign.resized.connect(_follow_sign.bind(sign))
 	return _board_below
+
+
+## Hang both boards just right of THE BREWERY sign as it is now.
+func _follow_sign(sign: Control) -> void:
+	if _board_top == null or not is_instance_valid(_board_top):
+		return
+	_board_left = sign.position.x + sign.size.x + db.tune_float("brewery_board_gap", 6.0)
+	for board in [_board_top, _board_below]:
+		board.position.x = _board_left
+	_settle_boards()
 
 
 func _one_board(board_name: String, y: float, tall: float) -> PanelContainer:
