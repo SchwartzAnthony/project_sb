@@ -231,10 +231,27 @@ func _build_drawn() -> void:
 	offset_top = -up - (box_size.y + lift) * grow
 	offset_bottom = -up
 
+	# THE CLOCK'S BLACK BOX behind both boxes (Anthony, 24 Oct): the same
+	# filled see-through plate the clock and the score sit on, not an outline.
+	var gap := int(db.tune_float("ref_box_gap", 16.0)) if db != null else 16
+	var wide := box_size.x * grow * 2.0 + float(gap)
+	var reach := TextBackdrop.pad() * 2.0
+	var plate := Panel.new()
+	plate.add_theme_stylebox_override("panel", TextBackdrop.plate())
+	plate.anchor_left = 0.5
+	plate.anchor_right = 0.5
+	plate.anchor_bottom = 1.0
+	plate.offset_left = -wide / 2.0 - reach
+	plate.offset_right = wide / 2.0 + reach
+	plate.offset_top = -reach
+	plate.offset_bottom = reach
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(plate)
+
 	var line := HBoxContainer.new()
 	line.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	line.alignment = BoxContainer.ALIGNMENT_CENTER
-	line.add_theme_constant_override("separation", int(db.tune_float("ref_box_gap", 16.0)) if db != null else 16)
+	line.add_theme_constant_override("separation", gap)
 	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(line)
 
