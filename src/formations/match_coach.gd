@@ -189,9 +189,12 @@ func _spots_for(words: String) -> Array:
 		if word.to_lower().begins_with("ring:"):
 			ring = true
 			word = word.substr(5).strip_edges()
+		# ROUND AN (Anthony, 24 Oct): the coach's box goes above the referee's
+		# bar while he talks about it (MatchTalkBox reads "above").
+		var above := word.to_lower().begins_with("referee")
 		for control in _controls_for(word):
 			if control != null and control.is_visible_in_tree():
-				out.append({"rect": control.get_global_rect(), "ring": ring, "control": control})
+				out.append({"rect": control.get_global_rect(), "ring": ring, "control": control, "above": above})
 	if out.is_empty():
 		print("[match talk] Highlight '%s' found nothing on screen to point at." % words)
 	return out
