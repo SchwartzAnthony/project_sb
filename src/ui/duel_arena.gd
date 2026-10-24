@@ -289,6 +289,8 @@ func play_duel(info: Dictionary) -> void:
 	# `duel_flip` in Tuning.csv turns the animation off and the window is
 	# simply there, which is how it was.
 	await _flip_them_over(String(info.get("tier", "")), info)
+	if _role_words.is_empty():
+		_show_role_words(info)
 	await _coach("duel_start")
 
 	# --- 1. Both run at each other ---
@@ -396,6 +398,7 @@ func play_duel(info: Dictionary) -> void:
 	_running = false
 	_knock_reset()
 	_hide_result_word()
+	_hide_role_words()
 	duel_finished.emit()
 
 
@@ -684,6 +687,7 @@ func _clash_them(tier: String, info: Dictionary) -> void:
 		_tier_label.visible = false
 	await get_tree().process_frame
 	_panels.modulate.a = 1.0
+	_show_role_words(info)
 	if not _running:
 		_clash_done()
 		return
@@ -1996,6 +2000,7 @@ const MAT_WIN := Color(0.95, 0.76, 0.23)
 const MAT_LOSE := Color(0.84, 0.2, 0.16)
 
 var _result_word: Control
+var _role_words := {}
 
 
 func _mat_look() -> bool:
@@ -2128,6 +2133,47 @@ func _paint_mat(key: String, is_attacker: bool) -> void:
 	var style := StyleBoxTexture.new()
 	style.texture = art
 	panel.add_theme_stylebox_override("panel", style)
+
+
+## ATTACKING / DEFENDING ABOVE EACH CARD (Anthony, 24 Oct 2026: "Add
+## Defending and Attacking above the card itself (not on the card) in Blue
+## for Defending and Red for Attacking"). The word hangs off the card, so it
+## turns over, flies and slides with it. Tuning duel_role_word_* rows.
+func _show_role_words(info: Dictionary) -> void:
+	_hide_role_words()
+	if db != null and not db.tune_bool("duel_role_word", true):
+		return
+	var tall := _mat_tune("duel_role_word_size", 52.0)
+	var gap := _mat_tune("duel_role_word_gap", 16.0)
+	for key in ["left", "right"]:
+		var panel := _side_panel(key)
+		var nodes: Dictionary = _side[key]
+		var holder_parent := nodes["name"] as Control if nodes["name"] else null
+		if panel == null or holder_parent == null:
+			continue
+		var attacks := bool((info.get(key, {}) as Dictionary).get("is_attacker", key == "left"))
+		var words := Loc.text("attacking", "ATTACKING") if attacks else Loc.text("defending", "DEFENDING")
+		var holder := Control.new()
+		holder.name = "RoleWord"
+		holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var box := Vector2(panel.size.x * 0.9, tall)
+		holder.size = box
+		# Centred over the card, `gap` above its top edge, measured from the
+		# name label it hangs on (the card itself is a container and would
+		# swallow it into its layout).
+		var over := Vector2(panel.size.x * 0.5, -gap - box.y * 0.5)
+		holder.position = over - (holder_parent.global_position - panel.global_position) - box * 0.5
+		holder_parent.add_child(holder)
+		_inked_word(holder, words, box * 0.5, box, MenuSupport.role_colour(attacks, db), true)
+		_role_words[key] = holder
+
+
+func _hide_role_words() -> void:
+	for key in _role_words.keys():
+		var holder: Control = _role_words[key]
+		if is_instance_valid(holder):
+			holder.queue_free()
+	_role_words.clear()
 
 
 ## After the knock-away: WIN or LOSE (yours - the left card is always you) in

@@ -44,6 +44,8 @@ signal brew_wanted(data: PlayerData)
 ## other side gets to see it before they answer, and anything written against
 ## the `reveal` trigger goes off. main_scene does the rest.
 signal reveal_wanted(data: PlayerData)
+## LOCK IN was pressed (or the chosen card clicked again): this pick is final.
+signal pick_confirmed(data: PlayerData)
 
 ## The size used when Tuning.csv has nothing to say. Bigger than the old
 ## hand-built card on purpose — this is the size you asked for.
@@ -64,6 +66,9 @@ var _flask: Button
 ## SHOW, along the bottom. Null unless this card has something written
 ## against the `reveal` trigger — a card with nothing to show cannot show it.
 var _show: Button
+## Chosen but not locked in yet (see set_chosen). Kept through a redraw.
+var chosen: bool = false
+var _lock_in: Button
 
 
 func _ready() -> void:
@@ -123,6 +128,9 @@ func setup_card(data: PlayerData) -> void:
 
 	_add_brew_corner(box)
 	_add_show_button(box)
+	_lock_in = null
+	if chosen:
+		_show_chosen()
 	_apply_lock()
 
 
@@ -207,6 +215,69 @@ func _items_on_plank() -> void:
 	# The word is written like the name: same ink, centred on the plank.
 	BeerMatCard.write(_flask, BeerMatCard.value("items_text", "ITEMS"),
 		Rect2(Vector2.ZERO, plank.size), ink)
+
+
+## ============ CHOSEN, NOT YET LOCKED IN ============
+##
+## Anthony, 24 Oct 2026: "When I hit a little outside of the Items, it
+## skipped, allow the player to go back and look at their player units and
+## change them if they want to". A click on a card only CHOOSES it: it lifts,
+## gets a gold edge and a LOCK IN button above it. Another card can still be
+## chosen, items can still be drunk; LOCK IN (or the same card again) makes
+## it final. Tuning.csv pick_needs_lock_in = false picks on the first click.
+func set_chosen(on: bool) -> void:
+	if chosen == on:
+		return
+	chosen = on
+	if _face == null:
+		return
+	if on:
+		_show_chosen()
+	else:
+		_face.offset_top = 0.0
+		_face.offset_bottom = 0.0
+		var edge := _face.get_node_or_null("ChosenEdge")
+		if edge != null:
+			edge.queue_free()
+		if _lock_in != null and is_instance_valid(_lock_in):
+			_lock_in.queue_free()
+		_lock_in = null
+
+
+func _show_chosen() -> void:
+	var db := CardDatabase.get_db()
+	var lift := db.tune_float("pick_chosen_lift", 26.0) if db != null else 26.0
+	_face.offset_top = -lift
+	_face.offset_bottom = -lift
+	if _face.get_node_or_null("ChosenEdge") == null:
+		var edge := Panel.new()
+		edge.name = "ChosenEdge"
+		edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var gold := StyleBoxFlat.new()
+		gold.draw_center = false
+		gold.border_color = Color("ffd36a")
+		gold.set_border_width_all(6)
+		gold.set_corner_radius_all(10)
+		edge.add_theme_stylebox_override("panel", gold)
+		edge.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_face.add_child(edge)
+	if _lock_in == null or not is_instance_valid(_lock_in):
+		_lock_in = Button.new()
+		_lock_in.name = "LockIn"
+		_lock_in.text = Loc.text("pick_lock_in", "LOCK IN")
+		_lock_in.add_theme_font_size_override("font_size", 20)
+		ScreenLook.plank(_lock_in)
+		_lock_in.pressed.connect(func() -> void:
+			if current_data != null and not locked:
+				pick_confirmed.emit(current_data))
+		add_child(_lock_in)
+	var tall := 48.0
+	_lock_in.size = Vector2(size.x * 0.8, tall)
+	_lock_in.position = Vector2(size.x * 0.1, -lift - tall - 8.0)
+	# A controller that chose the card goes straight on to LOCK IN.
+	var here := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	if here != null and is_ancestor_of(here):
+		_lock_in.grab_focus.call_deferred()
 
 
 ## ============ SHOW — PLAYING A CARD FACE UP ============
@@ -394,6 +465,9 @@ func _apply_lock() -> void:
 	if _show != null and is_instance_valid(_show):
 		_show.disabled = locked
 		_show.visible = not locked
+	if _lock_in != null and is_instance_valid(_lock_in):
+		_lock_in.disabled = locked
+		_lock_in.visible = not locked
 	modulate = Color(1, 1, 1, 0.45) if locked else Color(1, 1, 1, 1)
 
 

@@ -636,7 +636,7 @@ All of it is in **`data/CardFace.csv`**:
 | `star_frame` | the card picture for Star players (cap painted out); empty = Stars keep the cap |
 | `star_cap_art`, `star_cap_spot` | the gold star picture and where it sits (`x,y,w,h` shares) |
 | `drank_mark`, `drank_mug`, `drank_mug_spot` | in a match, a player who has drunk from the bag gets the empty Maß on his card; `false` = no mark |
-| `drank_text`, `drank_text_spot`, `drank_text_colour`, `drank_text_angle`, `drank_text_outline` | the ALREADY DRANK! words stamped across his card: words, where, red, tilt, black edge |
+| `drank_text`, `drank_text_spot`, `drank_text_colour`, `drank_text_angle`, `drank_text_outline` | the ALREADY DRANK! words stamped across his card: words, where, red, tilt, black edge. Shown only while you choose; the marks come off once that pick is made |
 | `window`, `plank`, `cap`, `sign` | where each part is, as `x,y,w,h` shares of the frame (0 to 1) |
 | `runner_height`, `runner_feet`, `runner_speed` | how big the runner is, where his feet are, how fast he runs |
 | `cap_number` | `power` or `card_number` |
@@ -746,6 +746,24 @@ the left card is always you) lands in the middle under the card left
 standing. Tuning.csv: `duel_card_look` (mat, or dark for the old cards),
 `duel_mat_*` and `duel_result_word_*`. Pictures: `tools/art/draw_duel_mats.py`
 (free). Film: `tools/duel_shot.gd -- film`.
+
+**ATTACKING / DEFENDING over each card** (24 Oct 2026): the word hangs just
+above the top of each duel card, red for the attacker and blue for the
+defender (`role_colour_attack` / `role_colour_defend`), and flies with the
+card. Tuning.csv `duel_role_word` (false = off), `duel_role_word_size`,
+`duel_role_word_gap`.
+
+### Choose, then LOCK IN (Anthony, 24 Oct 2026)
+
+"When I hit a little outside of the Items, it skipped, allow the player to
+go back ... and change them." In a match a click on a card now only
+CHOOSES it: it lifts out of the row with a gold edge and a yellow LOCK IN
+button over it. Click another card to choose that one instead, drink from
+the bag as before; LOCK IN, or a second click on the chosen card, makes the
+pick. ALREADY DRANK! stays on a card while you choose and comes off once the
+pick is made. AUTO still picks at once. Tuning.csv `pick_needs_lock_in`
+(false = the first click picks, as before), `pick_chosen_lift`; the button's
+word is Language.csv `pick_lock_in`. Film: `tools/lock_in_shot.gd`.
 
 ## 7. The league match
 
