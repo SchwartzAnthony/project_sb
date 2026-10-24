@@ -1341,12 +1341,20 @@ options in `art_source/pixellab/vs_menu_draft/`.
 ### The line-ups before kick-off
 
 After START on the VS screen, both teams line up **side by side in a row**,
-facing you, like a team photo (Anthony, 24 Oct 2026). The drawn pitch stays
-behind, darkened. Your team's name hangs on the tavern sign at the top; then
-one player at a time, left to right, steps forward in full colour while the
-others stay dark, and the beer mat under the row names him: ★ for a Star,
-the name, **Tier** and **Power**. The keeper stands first, then the players by
-Tier, the Stars last. Then the same for the other team.
+facing you, like a team photo (Anthony, 24 Oct 2026). Behind them is the
+village pitch **seen from the side** at eye level (the loading screen's
+picture), and they stand on its short grass. At the top hangs the **team
+banner**: a club banner on a brass rod, blue for you and red for them, with
+the team's **symbol** in a gold medallion and its name. (Not the wooden
+plank: Anthony keeps the plank for the buildings and the Base.) One player
+at a time, left to right, steps forward in full colour while the others stay
+dark, and the beer mat under the banner names him: ★ for a Star, the name,
+**Tier** and **Power**. The keeper stands first, then the players by Tier,
+the Stars last. Then the same for the other team.
+
+The symbol is the class's `Banner Art` in `ClassInfo.csv`; a class without
+one shows its own icon from `AdventureTraits.csv` (the row with From =
+class), then its Element's icon there.
 
 Every figure is the drawn sprite that player wears on the pitch, so a
 transformed player (a brew on him) looks here exactly as he will play. The
@@ -1363,9 +1371,16 @@ space, enter or escape, goes straight to the countdown.
 | `line_up_between_sides` | the pause between your team and theirs. `0.6` |
 | `line_up_figure_height` | how tall the figures stand, part of the screen. `0.36` |
 | `line_up_overlap` | how much each figure overlaps the next. `0.22` |
+| `line_up_feet` | where their feet stand, part of the screen from the top. `0.92` |
 | `line_up_dim` | how dark the players not highlighted are. `0.35` |
-| `line_up_shade` | how dark the pitch behind the row is. `0.55` |
+| `line_up_background` | the side view of the pitch behind them |
+| `line_up_shade` | how much darker that picture is made. `0.15` |
+| `line_up_banner_mine` / `line_up_banner_theirs` | the two banner pictures |
+| `line_up_banner_width` | how wide the banner is, part of the screen. `0.5` |
+| `line_up_banner_symbol` | where the medallion's middle is in the banner picture |
+| `line_up_banner_words` | where the name goes in the banner picture |
 
+The banners are drawn by `/mnt/project-files/art_tool/team_banner/team_banner.py`.
 `tools/line_up_shot.gd` films it frame by frame for a GIF.
 
 > If every row on one side reads **"Unit Name"**, that is not the parade — it
