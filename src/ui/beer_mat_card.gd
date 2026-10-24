@@ -95,6 +95,19 @@ static func dress(button: Button, card: PlayerData, db: CardDatabase, box: Vecto
 		panel.size * Vector2(0.84, 0.6))
 	_add_text(button, card.player_name.to_upper(), name_area, ink, 0.75)
 	button.set_meta("plank_rect", _area("plank", frame))
+	# 24 Oct (Anthony): a Star's gold star lies over the runner, so his boots
+	# never hide its top point; the number goes on top of it.
+	if card.is_star() and frame_tex.resource_path == value("star_frame") \
+			and ResourceLoader.exists(value("star_cap_art")):
+		var star := TextureRect.new()
+		star.texture = load(value("star_cap_art")) as Texture2D
+		star.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		star.stretch_mode = TextureRect.STRETCH_SCALE
+		var spot := _area("star_cap_spot", frame)
+		star.position = spot.position
+		star.size = spot.size
+		star.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		button.add_child(star)
 	var shown := card.card_number if value("cap_number", "power") == "card_number" \
 		else card.get_attack_power()
 	_add_text(button, str(shown), _area("cap", frame), ink, 0.9)

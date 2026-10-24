@@ -2,12 +2,14 @@
 bottle cap was (24 Oct, Anthony: "For Star player cards, have the circle be
 replaced by a star of the same art style").
 
-Free, no AI. The cap is painted out of the frame first (the blue-white
-diamonds are filled in by OpenCV's shift-map inpaint, the red and white
-stripes are carried along their own curve), then a fat five-point star is
-drawn on top at 4x: thick black ink, gold facets lit from the top left like
-the cap's metal, and the cap's own cream middle so the number sits on the
-same cardboard as on every other card.
+Free, no AI. The cap is painted out of the frame first (OpenCV's shift-map
+inpaint, the red and white stripes carried along their own curve), the
+blue-white diamonds round it are drawn fresh and even (24 Oct: "fix the blue
+diamonds behind it"), then a fat five-point star is drawn at 4x as its own
+picture, which the game lays over the runner so his boots never hide its top
+point ("have the star have a complete top"): thick black ink, gold facets lit
+from the top left like the cap's metal, and the cap's own cream middle so the
+number sits on the same cardboard as on every other card.
 
     pip install opencv-contrib-python-headless   (once)
     python3 tools/art/draw_star_cap.py
@@ -21,12 +23,18 @@ from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "art_source/cards/beermat_frame_r187.png"
-OUT = ROOT / "assets/cards/beermat_frame_star.webp"
+OUT = ROOT / "assets/cards/beermat_frame_star.webp"   # the mat, cap painted out
+OUT_STAR = ROOT / "assets/cards/star_cap.png"          # the star, laid on top in game
 
 CX, CY = 512, 998          # middle of the cap (CardFace.csv cap)
 CAP_R = 107                # the cap with its ink edge
 STAR_OUT = 120             # star tip radius
 STAR_IN = 66               # star valley radius
+DIAMOND_W = 30             # one blue diamond, wide
+DIAMOND_H = 40             # and tall
+DIAMOND_ROW = 40           # y of a row of diamond middles (from the cap middle)
+DIAMOND_GAP = 13           # cream stripe between a red line and the diamonds
+DIAMOND_REACH = 185        # how far left and right they are drawn fresh
 CREAM_R = 47               # the cream middle the number sits on
 SS = 4                     # supersample
 
@@ -108,6 +116,56 @@ def paint_out_cap(frame):
     out[y0:y1, x0:x1][hole[y0:y1, x0:x1]] = cv2.cvtColor(filled, cv2.COLOR_BGR2RGB)[hole[y0:y1, x0:x1]]
     carry_stripe(frame, out, hole, UPPER, 22)
     carry_stripe(frame, out, hole, LOWER, 16)
+    return redraw_diamonds(frame, out)
+
+
+def _curve_y(points, ax):
+    """The y of a red stripe's centre line at |x| = ax (from the cap middle)."""
+    xs = [-x for x, _ in points][::-1]
+    ys = [y for _, y in points][::-1]
+    return np.interp(ax, xs, ys)
+
+
+def redraw_diamonds(src, out):
+    """The blue-white diamonds inside the stripes round the cap, drawn fresh
+    and even (the old ones were half hidden by the cap and smudged)."""
+    H, W = out.shape[:2]
+    yy, xx = np.mgrid[0:H, 0:W]
+    X, Y = (xx - CX).astype(float), (yy - CY).astype(float)
+    ax = np.abs(X)
+    inside = (Y > _curve_y(UPPER, ax) + DIAMOND_GAP) & (Y < _curve_y(LOWER, ax) - DIAMOND_GAP) \
+        & (ax < DIAMOND_REACH)
+    # Keep the edelweiss leaves (and their ink) where they are.
+    r, g, b = [src[..., i].astype(int) for i in range(3)]
+    leaf = ((g > r + 15) & (g > b + 15)) | (r + g + b < 240)
+    leaf &= np.hypot(X, Y) > CAP_R + 2
+    leaf = cv2.dilate(leaf.astype(np.uint8), np.ones((7, 7), np.uint8)) > 0
+    area = inside & ~leaf
+
+    # Even diamond checker, a hair wobbly like a hand-inked line.
+    rng = np.random.default_rng(7)
+    wob = cv2.GaussianBlur(rng.normal(0, 1, (H // 8 + 2, W // 8 + 2)), (0, 0), 1.5)
+    wob = cv2.resize(wob, (W, H)) * 6.0
+    cover = np.zeros((H, W))
+    for sy in (-1 / 3, 0, 1 / 3):
+        for sx in (-1 / 3, 0, 1 / 3):
+            u = (X + sx + wob) / DIAMOND_W + (Y + sy - DIAMOND_ROW) / DIAMOND_H
+            v = (X + sx + wob) / DIAMOND_W - (Y + sy - DIAMOND_ROW) / DIAMOND_H
+            cover += (np.floor(u + 0.5) + np.floor(v + 0.5)) % 2 == 0
+    cover /= 9.0
+
+    # Colours from the frame: its blue and the cream panel's paper grain.
+    near = (np.hypot(X, Y) > CAP_R + 4) & (np.hypot(X, Y) < 200)
+    blue_px = (b > r + 50) & (b > 130) & near
+    blue = np.median(src[blue_px], axis=0)
+    paper = src[1160:1300, 300:724].astype(float)
+    grain = paper - cv2.GaussianBlur(paper, (0, 0), 6)
+    cream = np.median(paper.reshape(-1, 3), axis=0)
+    gy = (yy - CY + 300) % grain.shape[0]
+    gx = (xx - 300) % grain.shape[1]
+    g_here = grain[gy, gx]
+    colour = cream * (1 - cover[..., None]) + blue * cover[..., None] + g_here
+    out[area] = colour[area].clip(0, 255).astype(np.uint8)
     return out
 
 
@@ -120,7 +178,7 @@ def star_points(cx, cy, r_out, r_in):
     return pts
 
 
-def draw_star(frame):
+def draw_star():
     size = (STAR_OUT + 30) * 2
     big = size * SS
     c = big / 2
@@ -178,17 +236,19 @@ def draw_star(frame):
     arr[..., :3] = (arr[..., :3] + grain[..., None]).clip(0, 255)
     star = Image.fromarray(arr.astype(np.uint8), "RGBA")
 
-    out = Image.fromarray(frame).convert("RGBA")
-    out.alpha_composite(star, (CX - size // 2, CY - size // 2))
-    return out.convert("RGB")
+    return star
 
 
 def main():
     frame = np.asarray(Image.open(SRC).convert("RGB")).copy()
     patched = paint_out_cap(frame)
-    card = draw_star(patched)
-    card.save(OUT, quality=92)
-    print("saved", OUT)
+    Image.fromarray(patched).save(OUT, quality=92)
+    star = draw_star()
+    star.save(OUT_STAR)
+    w, h = patched.shape[1], patched.shape[0]
+    print("saved", OUT, OUT_STAR)
+    print("CardFace.csv star_cap_spot = %.4f,%.4f,%.4f,%.4f" % (
+        (CX - star.width / 2) / w, (CY - star.height / 2) / h, star.width / w, star.height / h))
 
 
 if __name__ == "__main__":
