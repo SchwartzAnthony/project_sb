@@ -4719,6 +4719,7 @@ func start_next_draft_phase() -> void:
 	for child in card_container.get_children():
 		child.queue_free()
 	offered_cards.clear()
+	_chosen_card = null
 
 	if current_phase_index >= draft_phases.size():
 		_on_draft_complete()
@@ -4880,7 +4881,8 @@ func create_card_for_unit(data: PlayerData) -> void:
 	_dress_card(card, data)
 	card.card_hovered.connect(_on_card_hovered)
 	card.card_unhovered.connect(_on_card_unhovered)
-	card.card_selected.connect(_on_card_selected)
+	card.card_selected.connect(_on_card_clicked)
+	card.pick_confirmed.connect(_on_pick_confirmed)
 	card.brew_wanted.connect(_on_brew_wanted)
 	card.reveal_wanted.connect(_on_reveal_wanted)
 	# Born locked if AUTO is already running, so there is never a frame in
@@ -5323,6 +5325,41 @@ func _clear_the_table() -> void:
 		_table.clear()
 
 
+## ============ CHOOSE, THEN LOCK IN ============
+##
+## Anthony, 24 Oct 2026: a click just beside the ITEMS plank picked the
+## player and the draft moved on. Now a click only CHOOSES a card (it lifts
+## with a LOCK IN button over it); another card can be chosen instead, and
+## LOCK IN or a second click on the same card picks it. AUTO, SHOW and
+## Tuning.csv pick_needs_lock_in = false still pick at once.
+var _chosen_card: PlayerData = null
+
+
+func _on_card_clicked(data: PlayerData) -> void:
+	if data == null or _pick_in_progress:
+		return
+	if _auto_is_on() or not db.tune_bool("pick_needs_lock_in", true):
+		_on_card_selected(data)
+		return
+	if Time.get_ticks_msec() < picks_open_at:
+		return
+	if data == _chosen_card:
+		_on_pick_confirmed(data)
+		return
+	_chosen_card = data
+	for child in card_container.get_children():
+		var card := child as PlayerCardUI
+		if card != null:
+			card.set_chosen(card.current_data == data)
+
+
+func _on_pick_confirmed(data: PlayerData) -> void:
+	if data == null or _pick_in_progress:
+		return
+	_chosen_card = null
+	_on_card_selected(data)
+
+
 func _on_card_selected(selected_data: PlayerData) -> void:
 	# One pick at a time: the REVEAL question below waits for an answer, and a
 	# second click in that moment must not pick twice.
@@ -5362,6 +5399,9 @@ func _on_card_selected(selected_data: PlayerData) -> void:
 				await _show_both_reveals(phase, selected_data if reveal_mine else null, _their_pending_reveal)
 
 	_pick_in_progress = false
+	# ALREADY DRANK! only tells you who drank while you choose (Anthony, 24
+	# Oct 2026); once this pick is made, the marks come off.
+	drank_this_match.clear()
 	current_phase_index += 1
 	start_next_draft_phase()
 

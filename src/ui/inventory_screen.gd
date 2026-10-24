@@ -676,9 +676,11 @@ func _describe(entry: Dictionary) -> String:
 	if words != "":
 		lines.append(words)
 
+	# Anthony, 24 Oct 2026: "Click to pour it on this card" made no sense on
+	# the items, so a usable item on a card says nothing extra.
 	if _can_use(entry):
-		lines.append("Click it to pour it on this card." if mode == Use.ON_CARD
-			else "Click it to use it.")
+		if mode != Use.ON_CARD:
+			lines.append("Click it to use it.")
 	elif mode != Use.NOTHING and AdventureDB.tab_of(entry) == "items":
 		lines.append(_where_it_goes(entry))
 	return "\n".join(lines)
