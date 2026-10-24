@@ -76,6 +76,14 @@ def frames(pattern):
     return [Image.open(f) for f in sorted(glob.glob(os.path.join(SRC, pattern)))]
 
 
+def whole_feet(seq):
+    """Only the frames whose shoes are whole: the 18 Oct video cut some
+    off at the bottom edge (Anthony 24 Oct: "his feet are still cut off,
+    see the shoes"). Keeps them all if fewer than three are whole."""
+    whole = [im for im in seq if im.getbbox() and im.getbbox()[3] < 1497]
+    return whole if len(whole) >= 3 else seq
+
+
 def pick(seq, n):
     return [seq[int(i * len(seq) / n)] for i in range(n)]
 
@@ -107,7 +115,7 @@ def main():
         else:
             hold = frames(f"moves/{look}/idle_hold_[0-9]*.png")[0]
             idle = [to_cell(hold, br) for br in (1.0, 1.006, 1.012, 1.006)]
-        cheer = pick([to_cell(im) for im in frames(f"moves/{look}/cheer_[0-9]*.png")], CHEER)
+        cheer = pick([to_cell(im) for im in whole_feet(frames(f"moves/{look}/cheer_[0-9]*.png"))], CHEER)
         front = [to_cell(im, mirror=False) for im in frames(f"moves/{look}/idle_s_[0-9]*.png")] or idle
         base = sheet(pick(idle, IDLE), cheer, pick(front, IDLE))
         for tone in tones:
@@ -121,7 +129,7 @@ def main():
         extra = SIZE.get(name, 1.0)
         rel = os.path.relpath(folder, SRC)
         idle = [to_cell(im, extra, mirror=False) for im in frames(f"{rel}/idle_[0-9]*.png")]
-        cheer = [to_cell(im, extra) for im in frames(f"{rel}/cheer_[0-9]*.png")] or idle
+        cheer = [to_cell(im, extra) for im in whole_feet(frames(f"{rel}/cheer_[0-9]*.png"))] or idle
         # Their standing frames already face the camera.
         save(sheet(pick(idle, IDLE), pick(cheer, CHEER), pick(idle, IDLE)), f"drawn_class_{name}.webp")
 
