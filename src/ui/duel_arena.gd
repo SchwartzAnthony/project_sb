@@ -1,6 +1,10 @@
 class_name DuelArena
 extends CanvasLayer
 
+## Loaded by path, not by its class name (an editor that has not re-scanned
+## since a pull would not know the name - see match_coach.gd).
+const HOLD_PAUSE := preload("res://src/core/hold_pause.gd")
+
 # =============================================================
 #  THE DUEL CUT-AWAY  (Advance Wars style)
 #
@@ -429,6 +433,7 @@ func _fire_ability(key: String, data: Dictionary, moment: String = "") -> void:
 	_play_anim(key, data.get("card"), "ability")
 	if not highlight:
 		await _beat(ability_seconds)
+		await _coach_ability(key, data)
 		return
 
 	# ROUND AN: the gold box round the ability, held long enough to read,
@@ -458,6 +463,7 @@ func _fire_ability(key: String, data: Dictionary, moment: String = "") -> void:
 	var hits: Array = data.get("keeper_hits", [])
 	if went_off and not hits.is_empty() and keeper_hit.is_valid():
 		await keeper_hit.call(hits)
+	await _coach_ability(key, data)
 	_box(key, false)
 
 
@@ -809,6 +815,19 @@ func _show_banner(text: String) -> void:
 func _coach(moment: String) -> void:
 	if moment != "" and coach.is_valid():
 		await coach.call(moment, _coach_tier)
+
+
+## ROUND AN (24 Oct): one of YOUR players' abilities has just gone off -
+## MatchTalk.csv When `ability_fired`, Player = whose (the tutorial: the
+## first time Koch's goes off, the Head Coach explains hold-to-pause).
+func _coach_ability(key: String, data: Dictionary) -> void:
+	if key != "left" or not coach.is_valid() or data.get("ability") == null:
+		return
+	if data.has("fired") and not bool(data.get("fired", true)):
+		return
+	var card = data.get("card")
+	var who := String(card.player_name) if card != null else ""
+	await coach.call("ability_fired", _coach_tier, who)
 
 
 ## ROUND AN: a part of the window by name, for the coach to point at:
@@ -1267,6 +1286,9 @@ func _input(event: InputEvent) -> void:
 
 	var click := event as InputEventMouseButton
 	if click != null and click.pressed:
+		# ROUND AN (24 Oct): right click is hold-to-pause, not skip.
+		if HOLD_PAUSE.is_hold_event(click):
+			return
 		skip()
 		return
 

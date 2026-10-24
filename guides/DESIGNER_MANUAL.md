@@ -1423,6 +1423,15 @@ happened.
 **Holding the mouse button or the spacebar through a duel still hurries it
 along whatever these say.** That is a different thing and it is always on.
 
+**Hold right click to pause** (Anthony, 24 Oct). While the `hold_pause` key
+(`Keys.csv`: Right Mouse, and Right Trigger on a controller until you pick
+one, Q269) is held, the whole match stands still: the pitch, the duel window
+and the shot window. You can still hover a card and read it. Let go and it
+carries on at the speed you had. A right click never skips a duel or a shot.
+`Tuning.csv hold_pause_on` false switches it off. `Keys.csv` Default Key may
+now be a mouse button (`Right Mouse`, `Left Mouse`, `Middle Mouse`) and
+Default Button a trigger (`Left Trigger`, `Right Trigger`).
+
 **AUTO is in the corner, beside the speed buttons**, and also in the pause
 menu. It was tried down beside the cards for one round; a button sitting in
 the middle of the pitch for ninety minutes is something you look at every time
@@ -3718,6 +3727,7 @@ words bottom-left of a match are hidden there. `Tuning.csv build_stamp_in_tutori
 | 1 | the shot window | tut-shot | the shot power, then the keeper's stamina and its bar, then a circle on the % |
 | 2 | Tier I cards (two left) | tut-exhaust | the cards, then the EXHAUST ZONE button |
 | end of cycle 1 | **TIME OUT**: Koch's inspiration is too low, he drinks, Beer Courage switches on | tut-timeout-call, tut-timeout-inspiration | |
+| the first time Koch's ability goes off in a duel | **hold right click to pause** (Anthony, 24 Oct) | tut-hold-pause (`MatchTalk.csv tut_hold_pause`: When `ability_fired`, Player `Koch`, Once true) | |
 | 4 | Tier I: **the Kleiner Faß**. Only the P:0's bag works and it shows only the keg; he drinks it in the drinking window; his card comes up big with Fass Courage (+1 Power in combat for each other Tier I player of yours not in the exhaust, attack and defend); only he can be picked | tut-fass, tut-fass-after | the cards, then his bag button, then the keg, then his abilities |
 | 4 | Tier IV: Koch's card with Beer Courage | tut-koch-ability | Koch's card |
 | 5 | before the PLAY MAKER call: **the referee** (Anthony, 10 Oct). The match stops and the Head Coach walks through the referee's bar: triggers fill it, missed fouls fill it a lot, full means the next foul is called, two yellows or a red sends a man off, theirs fills the same way | tut-referee | the referee's bar, then your side of it, then theirs |
@@ -3944,6 +3954,10 @@ More moments for **When**: `cards_shown` (a Tier's cards are on the table),
 `duel_start`, `duel_priority`, `duel_ability_1`, `duel_ability_2`,
 `duel_power_check`, `duel_result`, `shot_odds` (the shot window shows the %)
 and `shot_done` (after the goal or the miss).
+
+`ability_fired` (24 Oct): one of **your** players' abilities has just gone off
+in a duel. The **Player** column (the last one) says whose: `Koch` = only his.
+Blank = anyone. Player works with any moment that knows a player.
 
 ### The morning after: rest and the first Adventure (round AN, 8 Oct)
 

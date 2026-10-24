@@ -33,7 +33,8 @@ const STOPS: Array[String] = ["tut-kickoff", "tut-tier1", "tut-tier2", "tut-tier
 	"tut-duel-power", "tut-duel-result", "tut-shot", "tut-exhaust",
 	"tut-timeout-call", "tut-timeout-inspiration", "tut-koch-ability",
 	"tut-referee", "tut-combo", "tut-combo-2",
-	"tut-timeout2-call", "tut-timeout-cursed", "tut-koch-earth", "tut-keeper-tip"]
+	"tut-timeout2-call", "tut-timeout-cursed", "tut-koch-earth", "tut-keeper-tip",
+	"tut-hold-pause"]
 
 var _results: Array[String] = []
 var _failed := false
@@ -283,12 +284,39 @@ func _read_coach(scene: Node, box: Node) -> void:
 			break
 		box.call("_next")
 		await create_timer(0.05, true, false, true).timeout
+	if scene_name == "tut-hold-pause":
+		await _hold_to_pause(folder + "_held")
 	if scene_name in ["tut-timeout-call", "tut-timeout2-call"]:
 		_before_pub = [int(scene.get("player_score")), int(scene.get("enemy_score")),
 			String(scene.get("timer_label").text)]
 
 
 var _before_pub: Array = []
+
+
+## Right after the Head Coach explains it: hold the hold_pause key, the duel
+## must stand still (time_scale 0), then let go and it carries on.
+func _hold_to_pause(folder: String) -> void:
+	var frame := 0
+	for i in 6:
+		await _frame(folder, frame)
+		frame += 1
+		await create_timer(0.1, true, false, true).timeout
+	Input.action_press("hold_pause")
+	var frozen := true
+	for i in 14:
+		await create_timer(0.1, true, false, true).timeout
+		frozen = frozen and Engine.time_scale == 0.0
+		await _frame(folder, frame)
+		frame += 1
+	Input.action_release("hold_pause")
+	await create_timer(0.1, true, false, true).timeout
+	_check(frozen, "holding right click stops the match")
+	_check(Engine.time_scale > 0.0, "letting go carries on (%.1fx)" % Engine.time_scale)
+	for i in 10:
+		await _frame(folder, frame)
+		frame += 1
+		await create_timer(0.1, true, false, true).timeout
 
 
 var _time_outs := 0

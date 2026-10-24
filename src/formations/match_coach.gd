@@ -166,8 +166,8 @@ func _input_shield() -> CanvasLayer:
 
 
 ## The duel window's gold moments (duel_arena.gd calls this).
-func arena_moment(event: String, tier: String) -> void:
-	await talk(event, {"tier": tier})
+func arena_moment(event: String, tier: String, player: String = "") -> void:
+	await talk(event, {"tier": tier, "player": player})
 
 
 ## The shot window's moment (shootout_view.gd calls this).
