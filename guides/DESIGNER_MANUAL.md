@@ -633,6 +633,15 @@ All of it is in **`data/CardFace.csv`**:
 | `ink` | the colour of the name and number |
 | `tier_window`, `tier_window_spot`, `tier_text` | the Tier window at the top: on/off, where, what it says |
 | `items_button`, `items_text` | the ITEMS plank in the match (`false` = old flask icon) |
+| `runner_folder` | where the sharp runners are (below) |
+
+**The runners are sharp** (24 Oct 2026, Anthony: "The twice size players on
+the cards are now blurry"). The card used to blow up the small pitch sheet.
+Now each drawn look has its own card runner, the same run cut three times
+bigger from the big source drawings, in `assets/players/card/` (named like
+the pitch sheet, e.g. `drawn_thomas_light.webp`). Made for free by
+`python3 tools/make_card_runners.py` from `art_source/card_runners/`. A
+player with no card runner there still shows his pitch sheet, blown up.
 
 The empty frame is `art_tool/rounds/r187/out/r187-beermat-empty.png`; the
 card tool for pictures and GIFs is `art_tool/cards/beermat_card.py`.
@@ -1169,6 +1178,8 @@ so it never scores before the match is there.
 | `match_loader_background` / `_goal` / `_ball` | the three pictures, in `assets/loading/` |
 | `match_loader_ground` | how far down the ball rolls and the goal stands. `0.93` |
 | `match_loader_ball_size` / `_goal_size` | sizes, as a share of the screen height |
+| `match_loader_words` | the words on the tavern board at the top, `Loading ...` (24 Oct 2026, Anthony: so the player can tell what is happening). Empty = no board. Translated by the Language.csv key `loading_words` |
+| `match_loader_words_top` | how far down from the top the board hangs, in pixels. `20` |
 
 | `match_loader_goal_ground` | how far down the ball is when it reaches the goal (it rolls up the picture into a goal further back). Blank = straight along the bottom |
 
@@ -1307,6 +1318,13 @@ pause menu) use the `match_window` row of ScreenLook.csv, the blue-green
 plank `assets/menu/button_plank_teal.png`. The buttons you press while
 playing (speed, AUTO, TEAM, EXHAUST ZONE) stay yellow.
 
+**A grey plate behind every match button** (24 Oct 2026, Anthony: "Give all
+buttons a grey background backdrop so it doesn't blend into the background").
+Every plank button above sits on a see-through grey plate with a thin dark
+edge. Tuning rows: `match_button_backdrop` (the colour, `#4a4a4ae6`; the last
+two letters are how see-through) and `match_button_backdrop_reach` (how far
+the plate sticks out past the plank, `6`).
+
 **The picture window over the pitch** ("Sven puts it over the goal line" and
 the goal windows; Anthony 24 Oct 2026: "have it similar to the card with the
 background being the outdoors field"). It is the cream beer mat panel with
@@ -1352,15 +1370,21 @@ dark, and the beer mat under the banner names him: ★ for a Star, the name,
 **Tier** and **Power**. The keeper stands first, then the players by Tier,
 the Stars last. Then the same for the other team.
 
-The symbol is the class's `Banner Art` in `ClassInfo.csv`; a class without
-one shows its own icon from `AdventureTraits.csv` (the row with From =
-class), then its Element's icon there.
+The symbol is the class's **`Team Symbol`** in `ClassInfo.csv`: the drawn
+crests in `assets/team/crest_<team>.png` (24 Oct 2026). A class without one
+shows its `Banner Art`, then its own icon from `AdventureTraits.csv` (the
+row with From = class), then its Element's icon there.
+
+The players are the **big sharp window sheets** shared with the drinking
+window (`assets/players/window/`, same file name as the pitch sheet, set in
+`data/DrinkWindow.csv`), standing facing the camera (`line_up_sharp_row`).
+A player with no sharp sheet stands as his pitch sheet.
 
 Every figure is the drawn sprite that player wears on the pitch, so a
 transformed player (a brew on him) looks here exactly as he will play. The
 HUD and the keepers' save odds are hidden while it runs.
 
-**It can always be skipped.** The yellow **SKIP** plank bottom right, or
+**It can always be skipped.** The blue **SKIP** button in the bottom middle, or
 space, enter or escape, goes straight to the countdown.
 
 | Tuning row | |
@@ -1379,6 +1403,7 @@ space, enter or escape, goes straight to the countdown.
 | `line_up_banner_width` | how wide the banner is, part of the screen. `0.5` |
 | `line_up_banner_symbol` | where the medallion's middle is in the banner picture |
 | `line_up_banner_words` | where the name goes in the banner picture |
+| `line_up_sharp_row` | which row of the sharp sheets they stand in. `2` = facing the camera |
 
 The banners are drawn by `/mnt/project-files/art_tool/team_banner/team_banner.py`.
 `tools/line_up_shot.gd` films it frame by frame for a GIF.
@@ -1786,6 +1811,12 @@ either side, yours and theirs. Then the window is squashed to no width, its
 face is swapped at the moment it has none, and it comes back as the duel with
 both players on it. Only then are the two compared, one after the other.
 
+**The two cards run on grass** (24 Oct 2026, Anthony: "keep the simple red
+and blue borders, but we also need them to be running on the field / grass").
+Each card's middle panel shows the drawn pitch corner behind the player
+(Tuning `duel_field`, `assets/ui/duel/duel_field.png`) inside a thin edge in
+the card's own red or blue (`duel_field_edge`, its width in pixels, `3`).
+
 That happens **for every tier in a combat**, so a combat reads as four cards
 being turned over rather than as a list appearing.
 
@@ -1805,6 +1836,44 @@ ability can change what the duel starts with.
 
 The crest on each side of the back is the same `Banner Art` the team sheet
 uses, so a class that has a crest anywhere has one here.
+
+**The clash (Anthony's pick B, 24 Oct 2026).** `duel_flip_style` `clash`
+(the default) replaces the card back above: the two cards come in **face
+down as beer mats**, the attacker's with a red ribbon round it, the
+defender's blue. They slide in from the two sides, crash together in the
+middle — **KRACH!**, a yellow comic burst saying `TIER III`, a flash and a
+shake — bounce back over their own half of the window, are held there
+(`duel_back_seconds`), and then **both turn over at the same moment**.
+`card` brings back the old dark card back.
+
+**The knock-away (Anthony, 24 Oct 2026).** At the end of a duel the
+winner's half rushes into the loser's, the same burst says KRACH! where they
+meet, the loser spins off the side of the screen and the winner slides to the
+middle. A draw skips it.
+
+**The sounds (24 Oct 2026).** Both crashes have a sound in the band style,
+made for free by `tools/make_bavarian_sfx.py`: `Audio.csv` `duel_clash`
+(`bav_mat_clash`: a cardboard slap, the big drum and the cymbal) and
+`duel_knock` (`bav_knock_away`: a punch, drum and cymbal, then a trombone
+sliding down as the loser flies away). Each row has a Suno slot like the
+other duel sounds.
+
+| Tuning row | |
+|---|---|
+| `duel_flip_style` | `clash` = the beer mats; `card` = the old card back |
+| `duel_clash_mat_attack_art` / `_defend_art` | the two mat backs |
+| `duel_clash_burst_art` | the yellow burst |
+| `duel_clash_mat_height` | how tall a mat is on screen. `720` |
+| `duel_clash_burst_width` | how wide the burst is. `760` |
+| `duel_clash_slide_seconds` / `_bounce_seconds` | in from the sides / back apart |
+| `duel_back_seconds` | held face down before they turn. `0.8` |
+| `duel_knock` | `false` and the two halves stay put at the end |
+| `duel_knock_hit_seconds` / `_fly_seconds` / `_centre_seconds` / `_hold_seconds` | the rush, the loser flying off, the winner to the middle, the winner held alone |
+
+The pictures are drawn for free by `tools/art/draw_duel_mats.py` from the
+beer mat card frame. The numeral, TIER and KRACH! are written by the game
+(`Language.csv` `duel_clash_word`, `tier`), so one picture serves every tier
+and language.
 
 ### `data/ShotOdds.csv` — will it go in?
 
@@ -3857,7 +3926,7 @@ moment, with the same score, clock and exhaust. Then the row's **Do** runs:
 | `ability:Koch=TUT_KOCH_EARTH/TUT_KOCH_EARTH_DEF` | Earth Courage, attack side / defend side: 5 stamina off the enemy keeper when he attacks, 3 when he defends (Anthony, 8 Oct) |
 | `show_card:Koch=tut-koch-new-card@abilities\|-\|-` | the match stays frozen and his field card comes up big over the pub, his attack and defend abilities beside it; then that Dialogue.csv scene plays. After `@`, the gold per line (`card`, `abilities`, `attack`, `defend`, `-`), `\|` between lines. `Tuning.csv show_card_scale` (1.8) and `show_card_backdrop` (bar) |
 | `inspire:Koch=75` | his inspiration in % on the drunk meter (`DrunkLevels.csv`): 75 after cycle 1 (past Inspired, so his star ability wakes up), 90 after cycle 2 |
-| `drink_lesson:first=keg@barrel@tut-fass-after@abilities\|-\|card` | the drinking lesson. `<card>=<item>@<barrel or bottle>@<scene>@<gold>`. The item goes in the bag if it is missing; only that card's bag button works and his bag shows only that item; gold on the button, then on the item. When he drinks: the drinking window (his PixelLab stein drink from his pitch sheet, then the burp; `Tuning.csv drink_window_seconds`), then his card comes up big as with show_card and the scene plays. Only he can be picked after |
+| `drink_lesson:first=keg@barrel@tut-fass-after@abilities\|-\|card` | the drinking lesson. `<card>=<item>@<barrel or bottle>@<scene>@<gold>`. The item goes in the bag if it is missing; only that card's bag button works and his bag shows only that item; gold on the button, then on the item. When he drinks: the drinking window (beer mat window, his drawn figure, a drawn keg or bottle, then the burp; `data/DrinkWindow.csv`, `Tuning.csv drink_window_seconds`), then his card comes up big as with show_card and the scene plays. Only he can be picked after |
 | `give:anstoss_helles+doppelpass_weisse+abstauber_dunkel` | puts one of each into the bag (`item=3` for more). A drink_lesson can then name several items with `+`: the bag shows those, gold on each, and any one will do |
 | `say:tut-after-brewery@-\|flask:first` | plays that Dialogue.csv scene, gold per line after `@` (the Highlight words) |
 | `empty_bag:first` | the bag on that card (first, last or a name) opens by itself and shows it is empty, then shuts (`Tuning.csv tutorial_empty_bag_seconds`). The tutorial uses it after "Now open the bag on the Tier I, Power 1, and...", before "Where is the rest of the beer?!" (scene `tut-missing-beer-empty`) |
@@ -3876,11 +3945,22 @@ low his drunk meter is (`match_drink_takes_hold_at`, 0). In the tutorial the
 keg (`Items.csv keg`, Use `brew:pool:keg`) always gives the `Brews.csv
 kleiner_fass` row, because that is the only keg row whose Requires
 (`flag:in_tutorial`) passes. Outside the tutorial the keg is the plain beer
-gamble. The drinking window plays the player's own PixelLab stein drink from
-his pitch sheet (the `drink` row of `PitchAnims.csv`, facing south-east, at
-its FPS; Anthony, 11 Oct), so it is the same figure and drink as on the
-pitch, then the burp. Only a look whose pitch sheet has no drink rows still
-gets the old code-drawn barrel or bottle. The burp is `Audio.csv drink_burp`, silent
+gamble. **The drinking window** (new look, Anthony 23-24 Oct 2026, all in
+`data/DrinkWindow.csv`): the cream beer mat panel of the inventory, the
+player's name in ink on the panel (`name`: panel, sign or none), our base
+seen from the side at eye level inside (`backdrop`, `backdrop_region`), with
+a strip of its grass laid in front of him so he stands in it up to the ankles
+(`grass_front`), his own drawn match figure facing right, drawn sharp from his
+window sheet (`assets/players/window/`, made from the full-size drawings by
+`tools/make_drawn_window_sheet.py`; rows: standing, cheer, standing facing
+the camera), and the drawn
+Kleiner Faß or bottle from the bag. He lifts it to his mouth (`mouth`), gulps
+three times, flings the empty over his shoulder, then cheers (his `cheer`
+row) with *BURP!*. The screen behind goes dark (`dim`) and the match's big
+announcement is hidden while he drinks, so no rule words show behind it. A
+look whose pitch sheet has its own `drink` rows (the PixelLab looks) plays
+those instead. `style old` brings back the 8 Oct dark box with the
+code-drawn barrel. The burp is `Audio.csv drink_burp`, silent
 until `bav_burp.ogg` is made (`SOUNDS_WANTED.csv`).
 
 **The combo beers** (Anthony, 8 Oct). Three small beers, `Items.csv`
@@ -4796,7 +4876,7 @@ and then its `Door Sound` (`door_open`, a wooden door creaking open)
 name off the bottom middle of its picture, e.g. the Club House's, so the
 Trophy Room hut in front of it keeps its own name.
 
-**The village buttons (23 Oct 2026)**: the village picture (assets/base/village.png) now has the drawn Pub right of the brewery. Like the brewery church, it is a button: Buildings.csv `Village Art` = `pub_inn` (assets/base/map/pub_inn.png = only its pixels, pub_inn_hover.png = lit up with a gold edge). The pitch is a button too: the new row `play_field` ("Play a match", Action `play:friendly`, Village Art `village_field`). Clicking the grass does what the Play a match flag did (the Match Maker), and while that row is on the base the flag is not on the top row. The pieces are made by /mnt/project-files/art_tool/base/village_buttons/make_pieces.py. The Dorms is drawn in too (the white block far left, behind the tree, chapel and houses): Village Art `dorms_block`, lit up on hover the same way. The Brewer visitor is off the base for now: his Visitors.csv `Requires` is `flag:brewer_on_base`; put `unlocked:Brewery` back to bring him back. Later the same day the whole picture was redrawn (r172): the new wooden Club House chalet in the middle (Village Art `clubhouse_chalet`), the low houses and little chapel under the Dorms and Club House all together as the Training Ground (`training_houses`), and the wooden Trophy hut with the gold cup in the field corner between the stone wall and the fence (`trophy_hut`). Every building on the base now lights up yellow on hover. The Dorms and Club House name tags are lifted onto their own building with `Name Offset` so the houses in front do not hide them. Pieces: /mnt/project-files/art_tool/base/village_buttons/make_masks_r172.py, then make_pieces_r172.py. The base's name now hangs on the tavern sign like the other screens (data/MenuHeader.csv; Language.csv `the_base`, `tutorial_base`). So does the Brewery's when it opens as its own screen, as in the Tutorial (24 Oct 2026, Anthony; Language.csv `brewery_title`): the RESOURCES and BREWERY MATERIALS windows sit under the sign. In a building window the frame's own sign says it. Check: tools/building_signs_shot.gd photographs every building window and the Brewery on its own. THE TUTORIAL NOW STARTS ON THE BASE (23 Oct 2026, Anthony): Tuning.csv `tutorial_first_scene` = `tut-base-welcome`, one Dialogue.csv line over the village picture (StoryArt.csv background `village`): the Head Coach says "Ah Coach! You are here, glad you could make it", and its Next `prologue/open` carries on into Pub Dialogue 1 and the tutorial match as before. Put `prologue` back in `tutorial_first_scene` to open in the pub again. THE NEW INTRODUCTION (23 Oct, Anthony): the welcome is now four lines ("Welcome to Sturmball!" ... "let us get a drink at the Pub"), and it ends ON THE BASE itself, in the tutorial's own save: everything is greyed out except the Pub, which glows (Guide.csv row `tut_intro_pub`, Highlight `Pub`, Only `true`; the tutorial save is given the Pub by Tuning.csv `tutorial_start_effects`). Press the Pub and Tuning.csv `tutorial_pub_scene` plays: Dialogue.csv `tut-pub-arrive` ("Ah, nothing beats a nice cold beer!", "Ah Koch! My prodigy"), whose last line's Next `prologue/put_down` carries on into the pub scene as before, then the tutorial match. `tutorial_pub_building` names which Buildings.csv row is the Pub. Blank `tutorial_pub_scene` = no base walk: the welcome goes straight on to the match. A Guide.csv row with Only `true` now works on the base too: every other button is greyed and cannot be pressed (the End tutorial button stays), and a drawn building glows instead of getting a ring. After "Ah Koch! My prodigy" Koch slides in from the right and the Head Coach moves to the left, facing the middle (Anthony, 23 Oct): Dialogue.csv has a new column, `Joins`: who steps on stage as a line shows WITHOUT speaking, written Portrait:Side:Mood (here `koch:right:drunk` on prologue/put_down), several separated by ;. Check: tools/tutorial_check.gd. A Joins entry for someone already on stage just changes their face (24 Oct, Anthony: on prologue/finish_up, "Fine! But finish up...", `koch:right:happy` makes Koch happy again; check: tools/koch_happy_shot.gd). Later the same day (Anthony): every sign's dark edge is half as thick (MenuHeader.csv `backing` Size 30, pictures remade by art_tool/menu/header_aura.py), and THE DRAWN HEAD COACH is in: the story faces in assets/story/portraits/coach_*.png are now his drawn happy, sad, drunk and mad fronts and his happy side (cut out by art_tool/characters/coach/game/cut_portraits.py). His side faces (happy, sad, drunk, mad) are drawn half-turned, semi front/side like the old pixel ones (r173-r174, Anthony's pick). The pub in the story is empty now (Anthony, 23 Oct): StoryArt.csv no longer stacks the regulars layer (assets/story/backgrounds/bar_regulars.png, still there) on the bar room; add the row `bar,background,,,,res://assets/story/backgrounds/bar_regulars.png` under the bar room to bring them back. The room itself is redrawn in our comic style (assets/story/backgrounds/bar_room_drawn.png, r175), with three beer garden table sets in three different woods in the middle of the floor (r176); the old pixel room is still bar_room.png. His cut-outs have the white between his hair strands and the pale rim round his outline taken out, and each picture is padded at the top to the shape of a person's spot on the story screen, so he stands on its bottom edge just behind the text box instead of floating above it (same script). All eight faces were then redrawn a little zoomed out (r177-r178, Anthony: "Redraw all 7"), so his shoulders, arms and hands are inside the picture and his sides no longer end in a straight cut; each is cut off through the blue-white diamonds, where the text box hides the edge. The faces before that are kept in art_tool/characters/coach/before_r178/. THE DRAWN KOCH is in too (23 Oct, Anthony: "Replace the old koch with the new one please", then "as clean and same size as the head coach"): all eight of his faces (happy, sad, drunk, mad, each front and half-turned side) are redrawn clean like the Head Coach (r179-r180). Both men's faces are now cut and sized by ONE script, art_tool/characters/story_faces.py: each picture is cut 800 px below the top of his head and shrunk to the same width, so both men stand at the same size in every mood. Koch's plain face is his happy one. ONE SET OF COLOURS (23 Oct, Anthony: the colours must not change from scene to scene): the same script shifts every face's skin, hair and clothes to that man's happy front colours, and the person listening in a conversation is no longer greyed out (Tuning.csv `story_listener_dim` 1; 0.55 brings back the grey). His mad faces now have normal skin instead of a red face (r181, Anthony's pick). His silhouette and Bergmännlein faces (the transformation) are unchanged. Check: tools/village_buttons_shot.gd. THE DRAWN HANNA is in as well (23 Oct, Anthony: "Need new Hanna in our art work in the game please"): assets/story/portraits/hanna_front.png and hanna_side.png are her drawn happy face, front and half-turned (art_tool/characters/hanna/, r22), cut out of the white page and shrunk so her head is the same size as the Head Coach's when they stand side by side in the brewery talk (art_tool/characters/hanna/game/cut_portraits.py; its second number is her size, 0.65). Her drawings are close-ups, so her sleeves ran off the sides in a straight cut that read as a white box round her on the drawn brewery hall; they now fade out over the outer 60 px of each side (FADE in the same script). HER ARMS ARE IN (24 Oct, Anthony: "we need to see that she is buff af"): her front face (the one every brewery line uses) is now her drawn thumbs-up pose, both arms whole, cut below her hand on her hip (POSES in the same script). That picture is wider, so StoryArt.csv Scale 1.25 draws it bigger again; her thumb then reaches the right edge of the screen. Her half-turned side face is still the close-up. Check: tools/hanna_shot.gd photographs the brewery lines.
+**The village buttons (23 Oct 2026)**: the village picture (assets/base/village.png) now has the drawn Pub right of the brewery. Like the brewery church, it is a button: Buildings.csv `Village Art` = `pub_inn` (assets/base/map/pub_inn.png = only its pixels, pub_inn_hover.png = lit up with a gold edge). The pitch is a button too: the new row `play_field` ("Play a match", Action `play:friendly`, Village Art `village_field`). Clicking the grass does what the Play a match flag did (the Match Maker), and while that row is on the base the flag is not on the top row. The pieces are made by /mnt/project-files/art_tool/base/village_buttons/make_pieces.py. The Dorms is drawn in too (the white block far left, behind the tree, chapel and houses): Village Art `dorms_block`, lit up on hover the same way. The Brewer visitor is off the base for now: his Visitors.csv `Requires` is `flag:brewer_on_base`; put `unlocked:Brewery` back to bring him back. Later the same day the whole picture was redrawn (r172): the new wooden Club House chalet in the middle (Village Art `clubhouse_chalet`), the low houses and little chapel under the Dorms and Club House all together as the Training Ground (`training_houses`), and the wooden Trophy hut with the gold cup in the field corner between the stone wall and the fence (`trophy_hut`). Every building on the base now lights up yellow on hover. The Dorms and Club House name tags are lifted onto their own building with `Name Offset` so the houses in front do not hide them. Pieces: /mnt/project-files/art_tool/base/village_buttons/make_masks_r172.py, then make_pieces_r172.py. The base's name now hangs on the tavern sign like the other screens (data/MenuHeader.csv; Language.csv `the_base`, `tutorial_base`). So does the Brewery's when it opens as its own screen, as in the Tutorial (24 Oct 2026, Anthony; Language.csv `brewery_title`): the RESOURCES and BREWERY MATERIALS windows sit under the sign. In a building window the frame's own sign says it. Check: tools/building_signs_shot.gd photographs every building window and the Brewery on its own. THE BREWERY CHALK BOARD (24 Oct 2026, Anthony picked look B, "on a board", not on a plank): the stock along the top of the Brewery is chalked on one slate in its slim wooden board frame (Theme.csv `brewery_board`, picture assets/brewery/ui/chalkboard.png). Wheat, Water and the other raw things and the made things (Malt to Bottle) are yellow chalk numbers; tools and element cards (a Kept row) are chalk tick boxes, ticked when you own one (chalk_box.png, chalk_tick.png). A chalk line splits what you bring in from what the Brewery makes. All three pictures are drawn for free by tools/art/draw_chalk_board.py; the chalk grain on the words is src/ui/chalk_text.gdshader. Tuning.csv: `brewery_bar_style` (chalk, or old for the two dark windows), `brewery_board_height`, `brewery_board_cell` (width of each thing), `brewery_board_window_scale` (smaller in a building window), `brewery_board_drop_word` (Element: Fire Element is chalked Fire), `brewery_chalk_grain`. Later the same day (Anthony: "Have it next to the brewery signs ... whatever doesn't fit gets its own board and is placed below the other one"): the board hangs BESIDE THE BREWERY sign (`brewery_board_top`, `brewery_board_gap`), and when the made things (Malt to Bottle) do not fit on it too they get a second board of their own underneath, lined up with the first. The board's black ink edges are thinner, and the dark edge round THE BREWERY sign is smaller and lighter than on the other screens (`brewery_sign_aura_size`, `brewery_sign_aura_strength`). THE TUTORIAL NOW STARTS ON THE BASE (23 Oct 2026, Anthony): Tuning.csv `tutorial_first_scene` = `tut-base-welcome`, one Dialogue.csv line over the village picture (StoryArt.csv background `village`): the Head Coach says "Ah Coach! You are here, glad you could make it", and its Next `prologue/open` carries on into Pub Dialogue 1 and the tutorial match as before. Put `prologue` back in `tutorial_first_scene` to open in the pub again. THE NEW INTRODUCTION (23 Oct, Anthony): the welcome is now four lines ("Welcome to Sturmball!" ... "let us get a drink at the Pub"), and it ends ON THE BASE itself, in the tutorial's own save: everything is greyed out except the Pub, which glows (Guide.csv row `tut_intro_pub`, Highlight `Pub`, Only `true`; the tutorial save is given the Pub by Tuning.csv `tutorial_start_effects`). Press the Pub and Tuning.csv `tutorial_pub_scene` plays: Dialogue.csv `tut-pub-arrive` ("Ah, nothing beats a nice cold beer!", "Ah Koch! My prodigy"), whose last line's Next `prologue/put_down` carries on into the pub scene as before, then the tutorial match. `tutorial_pub_building` names which Buildings.csv row is the Pub. Blank `tutorial_pub_scene` = no base walk: the welcome goes straight on to the match. A Guide.csv row with Only `true` now works on the base too: every other button is greyed and cannot be pressed (the End tutorial button stays), and a drawn building glows instead of getting a ring. After "Ah Koch! My prodigy" Koch slides in from the right and the Head Coach moves to the left, facing the middle (Anthony, 23 Oct): Dialogue.csv has a new column, `Joins`: who steps on stage as a line shows WITHOUT speaking, written Portrait:Side:Mood (here `koch:right:drunk` on prologue/put_down), several separated by ;. Check: tools/tutorial_check.gd. A Joins entry for someone already on stage just changes their face (24 Oct, Anthony: on prologue/finish_up, "Fine! But finish up...", `koch:right:happy` makes Koch happy again; check: tools/koch_happy_shot.gd). Later the same day (Anthony): every sign's dark edge is half as thick (MenuHeader.csv `backing` Size 30, pictures remade by art_tool/menu/header_aura.py), and THE DRAWN HEAD COACH is in: the story faces in assets/story/portraits/coach_*.png are now his drawn happy, sad, drunk and mad fronts and his happy side (cut out by art_tool/characters/coach/game/cut_portraits.py). His side faces (happy, sad, drunk, mad) are drawn half-turned, semi front/side like the old pixel ones (r173-r174, Anthony's pick). The pub in the story is empty now (Anthony, 23 Oct): StoryArt.csv no longer stacks the regulars layer (assets/story/backgrounds/bar_regulars.png, still there) on the bar room; add the row `bar,background,,,,res://assets/story/backgrounds/bar_regulars.png` under the bar room to bring them back. The room itself is redrawn in our comic style (assets/story/backgrounds/bar_room_drawn.png, r175), with three beer garden table sets in three different woods in the middle of the floor (r176); the old pixel room is still bar_room.png. His cut-outs have the white between his hair strands and the pale rim round his outline taken out, and each picture is padded at the top to the shape of a person's spot on the story screen, so he stands on its bottom edge just behind the text box instead of floating above it (same script). All eight faces were then redrawn a little zoomed out (r177-r178, Anthony: "Redraw all 7"), so his shoulders, arms and hands are inside the picture and his sides no longer end in a straight cut; each is cut off through the blue-white diamonds, where the text box hides the edge. The faces before that are kept in art_tool/characters/coach/before_r178/. THE DRAWN KOCH is in too (23 Oct, Anthony: "Replace the old koch with the new one please", then "as clean and same size as the head coach"): all eight of his faces (happy, sad, drunk, mad, each front and half-turned side) are redrawn clean like the Head Coach (r179-r180). Both men's faces are now cut and sized by ONE script, art_tool/characters/story_faces.py: each picture is cut 800 px below the top of his head and shrunk to the same width, so both men stand at the same size in every mood. Koch's plain face is his happy one. ONE SET OF COLOURS (23 Oct, Anthony: the colours must not change from scene to scene): the same script shifts every face's skin, hair and clothes to that man's happy front colours, and the person listening in a conversation is no longer greyed out (Tuning.csv `story_listener_dim` 1; 0.55 brings back the grey). His mad faces now have normal skin instead of a red face (r181, Anthony's pick). His silhouette and Bergmännlein faces (the transformation) are unchanged. Check: tools/village_buttons_shot.gd. THE DRAWN HANNA is in as well (23 Oct, Anthony: "Need new Hanna in our art work in the game please"): assets/story/portraits/hanna_front.png and hanna_side.png are her drawn happy face, front and half-turned (art_tool/characters/hanna/, r22), cut out of the white page and shrunk so her head is the same size as the Head Coach's when they stand side by side in the brewery talk (art_tool/characters/hanna/game/cut_portraits.py; its second number is her size, 0.65). Her drawings are close-ups, so her sleeves ran off the sides in a straight cut that read as a white box round her on the drawn brewery hall; they now fade out over the outer 60 px of each side (FADE in the same script). HER ARMS ARE IN (24 Oct, Anthony: "we need to see that she is buff af"): her front face (the one every brewery line uses) is now her drawn thumbs-up pose, both arms whole, cut below her hand on her hip (POSES in the same script). That picture is wider, so StoryArt.csv Scale 1.25 draws it bigger again; her thumb then reaches the right edge of the screen. Her half-turned side face is still the close-up. Check: tools/hanna_shot.gd photographs the brewery lines.
 
 **On Base (Buildings.csv, 23 Oct 2026)**: write `no` and that building is not drawn on the base, but it still exists (its key, window, unlocks and Club House sale all still work). Blank = drawn. The Traveling Tavern is `no` for now (Anthony's ask); empty the cell to bring the wagon back.
 
@@ -5136,6 +5216,8 @@ juice_slowmo            false stops the slow-motion dips only
 juice_slowmo_depth      0.35 = a third speed. 1.0 = no dip
 juice_flash_strength    how bright a full-screen flash is. 0 = none
 
+adventure_shown         false hides the Adventure banner on the base, and the
+                        Tutorial ends after the Dorms (24 Oct: hidden for now)
 adventure_trait_bar     false hides the row of icons (the pile still works)
 adventure_enemy_combos  false and the enemies get no combos at all
 adventure_stretcher     false and the fallen are not carried off
@@ -5897,7 +5979,7 @@ is missing is drawn as a plain shape, so the game always works.
 
 **Bottling, drawn (24 Oct).** The Bottling game uses the drawn pieces: the
 filling valve of the drawn machine, a see-through swing-top bottle, the belt,
-and a soft close-up of the drawn hall behind. Remake the pieces for free with
+and behind it the inside of the machine framing the hall wall (rbt2). Remake the pieces for free with
 `tools/art/bottling/make_game_pieces.py` and `make_background.py`.
 
 No row = no game (the batch is rolled on the brewer's % as before).
@@ -6582,6 +6664,19 @@ key here.
 
 **`data/Keys.csv`** — `Action`, `Label`, `Group`, `Default Key`, `Default
 Button`. Keyboard and controller bindings, rebindable in Settings.
+
+**Playing with only a controller** (24 Oct 2026, Anthony: "Playtest with a
+controller please and see if the tutorial can be completed with it"). The
+d-pad or stick moves the highlight to the nearest button that way, A presses
+it, B is Back, Start on the team sheet is START. What was fixed:
+- The save mugs and the base buildings (picture buttons) can be reached.
+- Opening a save mug puts the highlight inside it, so A does not close it again.
+- A presses the Head Coach's "click to continue" and a question window's highlighted answer.
+- The team sheet's START takes A or Start.
+- The Head Coach's talk box in the match takes A even when a card is highlighted under it.
+- In the match the cards and every window button can be reached; the first
+  push starts at the button nearest the middle of the screen (the choice
+  you are being asked for), not at the speed buttons.
 
 **`data/MenuConfig.csv`** — `Button ID`, `Label`, `X`, `Y`, `Width`,
 `Height`, `Action`, `Art Path`. The main menu, laid out in a spreadsheet.
@@ -8257,7 +8352,9 @@ tackle animation.
 **Two spreadsheets:**
 - `data/PitchSprites.csv` — who wears which sheet. **Wears** is the card's
   own sheet file name (`class_Normal_female_bob.png`), its card name, or its
-  class (`Normal`); the file name is tried first. **Pitch Sheet** is a file
+  class (`Normal`); the card name is tried first (24 Oct 2026, so the row
+  `Koch` gives the tutorial Koch his own drawn sheet), then the file name,
+  then the class. **Pitch Sheet** is a file
   in `assets/players/pitch/`. List several with `|` and each player gets one
   and keeps it. A card with no row plays on its old sheet, as before.
 - `data/PitchAnims.csv` — where each animation sits on a sheet. Each takes 8

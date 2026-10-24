@@ -94,7 +94,7 @@ static func complaints(expression: String, is_effect: bool) -> Array[String]:
 			continue
 
 		var allowed := ["flag", "count", "unlock", "set", "clear", "sign", "release", "recruit"] if is_effect \
-			else ["flag", "count", "unlocked", "is"]
+			else ["flag", "count", "unlocked", "is", "tune"]
 		if not allowed.has(kind):
 			out.append("'%s' — '%s' is not one of %s" % [term, kind, ", ".join(allowed)])
 			continue
@@ -211,6 +211,10 @@ static func _test_one(term: String, state: GameState) -> bool:
 			if split.size() == 2:
 				result = state.text(String(split[0])).to_lower() \
 					== String(split[1]).strip_edges().to_lower()
+		"tune":
+			# ROUND AN (24 Oct): a Tuning.csv on/off switch, e.g.
+			# tune:adventure_shown. Blank or missing counts as off.
+			result = CardDatabase.get_db().tune_bool(rest, false)
 		_:
 			return true        # unknown kind; do not hide the line over it
 

@@ -93,6 +93,7 @@ somebody,Somebody,Jemand,"Used when a player has no name - which is what a unit 
 you_are_attacking,YOU ARE ATTACKING,DU GREIFST AN,
 you_are_defending,YOU ARE DEFENDING,DU VERTEIDIGST,
 achievements_button,Achievements,Erfolge,"ROUND AN. The base's top-row button that opens the unlock board (its building left the town map)"
+duel_clash_word,KRACH!,KRACH!,"24 Oct 2026. In the yellow burst when the two beer mats crash together at the start of a duel, above TIER and the numeral"
 duel_ability_priority,ABILITY PRIORITY,FÄHIGKEITS-VORRANG,"ROUND AN. Over the duel window while the lower number (which fires its ability first) is ringed in gold"
 duel_power_check,POWER CHECK,KRAFTPROBE,"ROUND AN. Over the duel window while both power numbers are ringed in gold and compared"
 duel_ability_check,ABILITY CHECK,FÄHIGKEITSPROBE,"ROUND AN (11 Oct). Pops up in the middle of the duel window as the gold box lands on an ability (Tuning.csv duel_hl_pop_ability)"
@@ -110,3 +111,4 @@ adventure_board_title,THE SOCCER & TRAINING BOARD,DAS FUSSBALL- & TRAININGSBRETT
 accept_contract,Accept Contract,Vertrag annehmen,"adventure-look. The button on an unrolled scroll that takes the job"
 scroll_requirements,YOU NEED,DU BRAUCHST,"adventure-look. The heading over what a job needs, on the unrolled scroll"
 scroll_rewards,REWARD,BELOHNUNG,"adventure-look. The heading over what a job pays, on the unrolled scroll"
+loading_words,Loading ...,Lädt ...,"The board at the top of the loading screen (24 Oct 2026). Empty here = Tuning match_loader_words."
