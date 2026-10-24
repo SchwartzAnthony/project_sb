@@ -108,6 +108,30 @@ func _ready() -> void:
 	layer = 70
 	_build()
 	refresh()
+	_take_highlight.call_deferred()
+
+
+## THE HIGHLIGHT COMES INTO THE BAG (24 Oct 2026, playing the Tutorial with a
+## controller): it stayed on the ITEMS plank behind the window, so the next A
+## shut the bag again instead of using the drink. Only when something was
+## highlighted, so the mouse never sees a highlight it did not ask for.
+func _take_highlight() -> void:
+	var here := get_viewport().gui_get_focus_owner()
+	if here == null or is_ancestor_of(here):
+		return
+	var first: Control = null
+	if _grid != null:
+		for child in _grid.get_children():
+			if child is BaseButton and not child.is_queued_for_deletion():
+				first = child
+				break
+	if first == null:
+		for b in find_children("*", "BaseButton", true, false):
+			if (b as BaseButton).is_visible_in_tree():
+				first = b
+				break
+	if first != null:
+		first.grab_focus()
 
 
 func close() -> void:

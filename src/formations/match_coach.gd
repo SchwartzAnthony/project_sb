@@ -554,9 +554,13 @@ func drink_lesson(spec: String) -> void:
 
 	# Only he can be picked now. His new card comes up big, the way
 	# Bergmännlein Koch's does, and the scene after @ plays over it.
+	# His card can have been built again while he drank (24 Oct 2026, a
+	# freed card stopped the Tutorial here), so find it again.
+	target = _card_of(drinker, target)
 	_lock_all_but(target)
 	if after != "":
 		await show_card(drinker.player_name, after, gold)
+	target = _card_of(drinker, target)
 	_lock_all_but(target)
 	main.call("hold_picks")
 
@@ -606,6 +610,17 @@ func _lock_all_but_flask(target: PlayerCardUI) -> void:
 		if face != null:
 			(face as Button).disabled = true
 			(face as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
+## His card on the table now: `was` if it is still there, else the one
+## showing him.
+func _card_of(who: PlayerData, was: Variant) -> PlayerCardUI:
+	if is_instance_valid(was):
+		return was as PlayerCardUI
+	for card in _table_cards():
+		if (card as PlayerCardUI).current_data == who:
+			return card as PlayerCardUI
+	return null
 
 
 func _lock_all_but(target: PlayerCardUI) -> void:

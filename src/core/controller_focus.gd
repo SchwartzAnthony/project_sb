@@ -118,7 +118,10 @@ func _input(event: InputEvent) -> void:
 		_using_pad = true
 	if GameKeys.pressed(event, "confirm") and _using_pad:
 		var here := _focused()
-		if here != null:
+		# Only a button on its own screen (24 Oct 2026): the time-out Pub
+		# opens over the match, and its own ControllerFocus pressed the
+		# EXHAUST ZONE button left highlighted on the pitch behind it.
+		if here != null and get_parent() != null and get_parent().is_ancestor_of(here):
 			here.emit_signal("pressed")
 			get_viewport().set_input_as_handled()
 		return

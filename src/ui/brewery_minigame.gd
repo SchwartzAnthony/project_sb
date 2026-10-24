@@ -299,7 +299,7 @@ func restart() -> void:
 
 func _hint() -> String:
 	match kind():
-		"stir": return "Move the mouse round and round over the tank."
+		"stir": return "Move the mouse (or the stick) round and round over the tank."
 		"rhythm": return "Left, right, left, right: arrow keys, A and D, or click each half."
 		"colour": return "Hold the mouse or Space while it runs clear."
 		"fire": return "Click or Space to pump the bellows."
@@ -633,6 +633,8 @@ func _on_input(event: InputEvent) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if _pad_input(event):
+		return
 	var key := event as InputEventKey
 	if key == null or key.echo:
 		return
@@ -650,6 +652,47 @@ func _input(event: InputEvent) -> void:
 			press()
 		else:
 			release()
+
+
+## THE CONTROLLER (24 Oct 2026, Anthony: "Playtest with a controller please
+## and see if the tutorial can be completed with it"): A is the mouse
+## button / Space, d-pad or shoulder left and right are the two halves of a
+## rhythm game, and the left stick turned round and round stirs the mash.
+## True when the event was the controller's.
+var _stick := Vector2.ZERO
+
+
+func _pad_input(event: InputEvent) -> bool:
+	if _over:
+		return false
+	var stick := event as InputEventJoypadMotion
+	if stick != null:
+		if stick.axis == JOY_AXIS_LEFT_X:
+			_stick.x = stick.axis_value
+		elif stick.axis == JOY_AXIS_LEFT_Y:
+			_stick.y = stick.axis_value
+		if kind() == "stir":
+			var way := _stick
+			if way.length() > 0.5:
+				stir(STAGE * Vector2(0.5, 0.56) + way.normalized() * Vector2(150.0, 90.0))
+		get_viewport().set_input_as_handled()
+		return true
+	var pad := event as InputEventJoypadButton
+	if pad == null or not pad.button_index in [JOY_BUTTON_A, JOY_BUTTON_DPAD_LEFT,
+			JOY_BUTTON_DPAD_RIGHT, JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER]:
+		return false
+	if kind() == "rhythm" and pad.pressed:
+		if pad.button_index in [JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_LEFT_SHOULDER]:
+			side("L")
+		elif pad.button_index in [JOY_BUTTON_DPAD_RIGHT, JOY_BUTTON_RIGHT_SHOULDER]:
+			side("R")
+	if pad.button_index == JOY_BUTTON_A:
+		if pad.pressed:
+			press()
+		else:
+			release()
+	get_viewport().set_input_as_handled()
+	return true
 
 
 # =============================================================
