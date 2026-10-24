@@ -1373,13 +1373,20 @@ check.
 
 Two things now, both loud:
 
-1. **The call.** The moment the clash decides, the word lands across the
-   middle of the pitch in its own colour for `side_call_seconds`.
-2. **The banner.** And then it *stays* — a strip pinned above the row of
-   cards for the whole draft, saying which tier you are choosing and which
-   way round you are, in the same colour and the same words. Under it, in
-   small letters, the reason it matters: *"their defence is what beats you —
-   pick on ATTACK."*
+1. **The call.** The moment the clash decides, *YOU ARE ATTACKING* or *YOU
+   ARE DEFENDING* pops up in the middle of the pitch on a big flag for
+   `side_call_seconds`.
+2. **The banner.** And then it *stays*: a flag pinned above the row of cards
+   for the whole draft. **Red cloth = attacking, blue cloth = defending**, the
+   word centred on the cloth, the tier on a cream patch by the pole.
+
+**The flag (24 Oct 2026).** Anthony picked look B, the waving flag on a pole,
+from four free drafts (`/mnt/project-files/art_tool/side_banner/`), without
+the small line that used to sit under the word. The pictures have no words on
+them; the game writes the words, so `Language.csv` still decides them. The
+pictures live in `assets/ui/side_banner/` (`flag_attack.png`,
+`flag_defend.png`, and the `_plain` ones without the patch for the call).
+Leave a picture row blank in Tuning and the old dark strip comes back.
 
 It is hidden for the two Star phases, because swapping who is on the pitch is
 a different kind of choice and is not answering anybody.
@@ -1392,6 +1399,11 @@ attack, cool for defence. Learn them here, read them there.
 | `side_call` | `false` drops the big word and keeps only the banner |
 | `side_call_seconds` | how long the call is held. `1.3` |
 | `side_banner_lift` | how far above the card row the strip sits, in pixels. `150` |
+| `side_banner_width` | how wide the flag is, in pixels. The height follows the picture. `640` |
+| `side_banner_top_gap` | the flag never goes higher than this from the top of the window. `4` |
+| `side_banner_art_attack` / `side_banner_art_defend` | the red and the blue flag of the strip |
+| `side_call_width` | how wide the big flag of the call is. `1100` |
+| `side_call_art_attack` / `side_call_art_defend` | the red and the blue flag of the call (no patch) |
 
 The words themselves are `attacking` and `defending` in `Language.csv`.
 
@@ -3749,7 +3761,7 @@ words bottom-left of a match are hidden there. `Tuning.csv build_stamp_in_tutori
 | 2 | Tier I cards (two left) | tut-exhaust | the cards, then the EXHAUST ZONE button |
 | end of cycle 1 | **TIME OUT**: Koch's inspiration is too low, he drinks, Beer Courage switches on | tut-timeout-call, tut-timeout-inspiration | |
 | 4 | Tier I: **the Kleiner Faß**. Only the P:0's bag works and it shows only the keg; he drinks it in the drinking window; his card comes up big with Fass Courage (+1 Power in combat for each other Tier I player of yours not in the exhaust, attack and defend); only he can be picked | tut-fass, tut-fass-after | the cards, then his bag button, then the keg, then his abilities |
-| 4 | Tier IV: Koch's card with Beer Courage | tut-koch-ability | Koch's card |
+| 4 | Tier IV: Koch's card with Beer Courage, then his card comes up big (show_card) so the player reads it | tut-koch-ability, then tut-koch-ability-card | Koch's card, then his Beer Courage boxes |
 | 5 | before the PLAY MAKER call: **the referee** (Anthony, 10 Oct). The match stops and the Head Coach walks through the referee's bar: triggers fill it, missed fouls fill it a lot, full means the next foul is called, two yellows or a red sends a man off, theirs fills the same way | tut-referee | the referee's bar, then your side of it, then theirs |
 | 5 | Tier I: **the missing beer**. "Where is the rest of the beer?!" TIME OUT at the Brewery; back on the pitch the P:1 drinks a Small Bottle (bottle window) and gets the plain beer's goalie pair: 1 off their keeper when he attacks, 1 off yours when he defends | tut-missing-beer, tut-after-brewery, tut-bottle-after | his bag button, then the bottle |
 | end of cycle 2 | **TIME OUT**: the cursed brews; an Earth Brew turns Koch into a Bergmännlein with Earth Courage | tut-timeout2-call, tut-timeout-cursed | |
@@ -8293,6 +8305,10 @@ Maker session, so you can follow the play). A player in the session is in
 full colour; everyone else is drained of colour, and a spent player is also
 dark. `pitch_sprite_rest_saturation` (0 = fully grey, 1 = full colour) and
 `pitch_sprite_rest_brightness` set how strong it is.
+
+**Switched off, 24 Oct** (Anthony: stop greying out players during
+combat). `play_maker_grey_others` is `false`, so during a Play Maker every
+player keeps their own colour. Set it to `true` to bring the grey back.
 
 **Only during a Play Maker** (Anthony, 8 Oct). The grey goes on at the
 **PLAY MAKER!** call and comes off when that round's shot is over (and at

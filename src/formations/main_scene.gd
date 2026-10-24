@@ -4629,6 +4629,10 @@ func _say_which_way_round() -> void:
 		if player_attacks_this_round else Loc.text("you_are_defending", "YOU ARE DEFENDING")
 	# The same two colours the banner uses, so the word and the strip that
 	# follows it read as one thing.
+	# 24 Oct 2026: the word on the big red / blue flag, the same flag as the
+	# strip that follows. Falls back to the plain coloured words without it.
+	if await SideBanner.make(self).call_out(player_attacks_this_round, word, seconds):
+		return
 	var tint := SideBanner.attack_colour() if player_attacks_this_round \
 		else SideBanner.defend_colour()
 	if event_announcement != null:
