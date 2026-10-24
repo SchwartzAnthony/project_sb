@@ -3300,7 +3300,9 @@ func spawn_hud() -> void:
 	var stamp_text := db.tune_text("build_stamp", "")
 	# Anthony, 24 Oct: not in the tutorial match (build_stamp_in_tutorial).
 	var in_tutorial := String(MatchMode.current(get_tree()).get("id", "")) == db.tune_text("tutorial_match_mode", "tutorial")
-	if in_tutorial and not db.tune_bool("build_stamp_in_tutorial", false):
+	# Anthony, 24 Oct (later): not on screen in any match (build_stamp_on_screen).
+	var on_screen := db.tune_bool("build_stamp_on_screen", false)
+	if not on_screen or (in_tutorial and not db.tune_bool("build_stamp_in_tutorial", false)):
 		print("[build] %s" % stamp_text)
 		stamp_text = ""
 	if stamp_text != "":

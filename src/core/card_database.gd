@@ -42,6 +42,10 @@ var abilities: Dictionary = {}      # ability_id (lower) -> AbilityData
 var anims: Dictionary = {}          # "name|unittype" (lower) -> AnimSpec
 var tuning: Dictionary = {}         # key (lower) -> String
 var problems: Array[String] = []    # everything that looked wrong, for one tidy report
+## Artwork names whose file is not in assets/ (yet). Anthony, 24 Oct: not a
+## CSV warning - the old placeholder pictures were removed on purpose (14 Oct)
+## and the players are drawn on the pitch and the beer mat cards without them.
+var art_missing: Array[String] = []
 
 ## Numbers ADDED on top of Tuning.csv, earned from talents and unlocks.
 ##
@@ -94,6 +98,7 @@ func load_all() -> void:
 	tuning.clear()
 	tier_bands.clear()
 	problems.clear()
+	art_missing.clear()
 
 	var dir := DirAccess.open(DATA_DIR)
 	if dir == null:
@@ -390,7 +395,7 @@ func _read_units(rows: Array, columns: Dictionary, source: String) -> void:
 		if art_name != "":
 			card.artwork = _find_texture(art_name, PLAYER_ART_DIRS)
 			if card.artwork == null:
-				problems.append("%s: artwork '%s' not found for %s" % [source, art_name, name_text])
+				art_missing.append("%s: artwork '%s' not found for %s" % [source, art_name, name_text])
 
 		# THE OTHER FACE. Missing is not a problem worth reporting: a Star
 		# with one drawing works, it simply does not change when it turns
@@ -772,6 +777,9 @@ func _find_texture(file_name: String, dirs: Array[String]) -> Texture2D:
 func _report() -> void:
 	print("[CardDB] %d cards, %d goalies, %d abilities, %d animations, %d tuning values."
 		% [players.size(), goalie_data.size(), abilities.size(), anims.size(), tuning.size()])
+	if not art_missing.is_empty():
+		print("[CardDB] %d card(s) name an Artwork file that is not in assets/ - fine, they use their drawn look. First: %s"
+			% [art_missing.size(), art_missing[0]])
 	if problems.is_empty():
 		return
 	# ROUND AC: a long list here flooded Godot's Output panel ("output
