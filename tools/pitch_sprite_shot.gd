@@ -11,7 +11,8 @@ extends SceneTree
 #      godot --path . --resolution 1920x1080 --script res://tools/pitch_sprite_shot.gd
 #
 #  Frames land in user://pitch_shot/. A tool, not part of the game.
-#  PITCH_SHOT_SECONDS, PITCH_SHOT_WAIT, PITCH_SHOT_SHEET and PITCH_SHOT_CLASS change what it does.
+#  PITCH_SHOT_SECONDS, PITCH_SHOT_WAIT, PITCH_SHOT_SHEET, PITCH_SHOT_CLASS and
+#  PITCH_SHOT_MODE change what it does.
 # =============================================================
 
 var _scene: Node
@@ -34,7 +35,10 @@ func _initialize() -> void:
 		var db := CardDatabase.get_db()
 		db.tuning[CardDatabase._normalise("pitch_sprite_scale")] = scale_text
 	_pick_the_club()
-	MatchMode.choose(self, "friendly")
+	# PITCH_SHOT_MODE=intro plays that MatchModes.csv row (intro = the first
+	# tutorial match against the Rivals of EnemyIntroSquad.csv).
+	var mode := OS.get_environment("PITCH_SHOT_MODE")
+	MatchMode.choose(self, mode if mode != "" else "friendly")
 	change_scene_to_file("res://src/formations/main_scene.tscn")
 	for i in 4:
 		await process_frame
