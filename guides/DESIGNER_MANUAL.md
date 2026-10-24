@@ -635,6 +635,8 @@ All of it is in **`data/CardFace.csv`**:
 | `frame` | the card picture (in `assets/cards/`); `signature` is empty now |
 | `star_frame` | the card picture for Star players (cap painted out); empty = Stars keep the cap |
 | `star_cap_art`, `star_cap_spot` | the gold star picture and where it sits (`x,y,w,h` shares) |
+| `drank_mark`, `drank_mug`, `drank_mug_spot` | in a match, a player who has drunk from the bag gets the empty Maß on his card; `false` = no mark |
+| `drank_text`, `drank_text_spot`, `drank_text_colour`, `drank_text_angle`, `drank_text_outline` | the ALREADY DRANK! words stamped across his card: words, where, red, tilt, black edge |
 | `window`, `plank`, `cap`, `sign` | where each part is, as `x,y,w,h` shares of the frame (0 to 1) |
 | `runner_height`, `runner_feet`, `runner_speed` | how big the runner is, where his feet are, how fast he runs |
 | `cap_number` | `power` or `card_number` |

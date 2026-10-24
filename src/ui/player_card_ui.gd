@@ -126,6 +126,13 @@ func setup_card(data: PlayerData) -> void:
 	_apply_lock()
 
 
+## 24 Oct 2026 (Anthony): a player who has drunk in this match wears the
+## empty mug and ALREADY DRANK! on his card (BeerMatCard.add_drank_mark).
+func set_drank(on: bool) -> void:
+	if on and _face != null:
+		BeerMatCard.add_drank_mark(_face)
+
+
 ## ============ THE FLASK IN THE CORNER ============
 ##
 ## A small second button on top of the card. Pressing the card CHOOSES the
