@@ -5845,7 +5845,7 @@ is missing is drawn as a plain shape, so the game always works.
 
 | Kind | Pictures |
 |---|---|
-| stir | `tank.png`, `paddle.png` |
+| stir | `tank.png`, `paddle.png`, `mash.png`, `clump_small.png`, `clump_medium.png`, `clump_large.png` (the redrawn Steeping Tank, 24 Oct: the open tank, the round mash that turns as you stir, three grain heaps that grow while you stop. Remade from the art rounds with `tools/art/steeping_tank_game_art.py`; without `mash.png` the old plain look comes back) |
 | rhythm | `mill.png`, `crank.png` |
 | colour | `tun.png`, `bucket.png` |
 | fire | `kettle.png`, `bellows.png` |
