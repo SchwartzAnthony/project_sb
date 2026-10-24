@@ -42,12 +42,12 @@ static func warm_match(host: Node, cards: Array) -> ArtWarmup:
 	keeper.name = "ArtWarmup"
 	host.add_child(keeper)
 
-	# The duel sheets: every move in DuelArena.DUEL_ROWS (duel_arena.gd).
+	# The duel sheets: every move in PitchSprite.DUEL_ROWS (pitch_sprite.gd duel_spec).
 	var duel_folder := db.tune_text("duel_sheets", "res://assets/players/duel/").strip_edges()
 	var duel_cell := _cell_of(db.tune_text("duel_cell", "400,540"))
 	var duel_moves: Array = []
-	for move in DuelArena.DUEL_ROWS:
-		var row: Array = DuelArena.DUEL_ROWS[move]
+	for move in PitchSprite.DUEL_ROWS:
+		var row: Array = PitchSprite.DUEL_ROWS[move]
 		duel_moves.append([move, int(row[0]), int(row[1])])
 
 	# The window sheets: the line-up's standing figure (line_up_parade.gd).
