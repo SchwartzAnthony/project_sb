@@ -1410,22 +1410,28 @@ func _box(key: String, on: bool) -> void:
 	style.border_color = hl_colour
 	style.set_border_width_all(0 if hl_box_art != null else 4)
 	style.set_corner_radius_all(6)
+	var pretzel_art := CardDatabase.get_db().tune_text("duel_hl_side_art", "")
+	if pretzel_art != "" and ResourceLoader.exists(pretzel_art):
+		# 24 Oct (his sketch): a gold line round the plate, as in the tutorial.
+		style.set_border_width_all(int(maxf(0.0, CardDatabase.get_db().tune_float("duel_hl_outline_width", 6.0))))
+		style.set_corner_radius_all(0)
 	box.add_theme_stylebox_override("panel", style)
 	var arriving := on and not box.visible
 	box.visible = on
 	box.modulate = Color.WHITE
 	if arriving:
 		_punch(box, 1.0 + (hl_juice_punch - 1.0) * 0.5)
+	# ONE PRETZEL ON TOP (24 Oct, his sketch), as in the tutorial. It goes on
+	# the plate itself, not the box, so it is drawn in front of the plate.
+	for holder in [box, label]:
+		for old in ["PretzelLeft", "PretzelRight", "PretzelTop"]:
+			var gone := (holder as Node).get_node_or_null(old)
+			if gone != null:
+				holder.remove_child(gone)
+				gone.queue_free()
 	if hl_box_art == null or not on:
 		return
-
-	# ONE PRETZEL ON EACH SIDE (24 Oct), as in the tutorial.
-	for old in ["PretzelLeft", "PretzelRight"]:
-		var gone := box.get_node_or_null(old)
-		if gone != null:
-			box.remove_child(gone)
-			gone.queue_free()
-	if MatchTalkBox.CoachSpots.add_sides(box, Rect2(Vector2.ZERO, box.size)):
+	if MatchTalkBox.CoachSpots.add_sides(label, Rect2(box.position, box.size)):
 		return
 
 	# THE ART: the four pretzel corners, stretched round the plate as a
