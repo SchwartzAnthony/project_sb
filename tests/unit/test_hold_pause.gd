@@ -51,6 +51,28 @@ func test_holding_freezes_and_letting_go_carries_on() -> void:
 	assert_false(HOLD_PAUSE.active)
 
 
+func test_controller_hold_says_right_trigger() -> void:
+	GameKeys.install(get_tree(), true)
+	var node: Node = HOLD_PAUSE.attach(self)
+	autofree(node)
+	var pull := InputEventJoypadMotion.new()
+	pull.axis = JOY_AXIS_TRIGGER_RIGHT
+	pull.axis_value = 1.0
+	node._input(pull)
+	Input.action_press(HOLD_PAUSE.ACTION)
+	node._process(0.016)
+	assert_eq(node._sign_label.text, "Holding Right Trigger - paused", "controller words")
+	Input.action_release(HOLD_PAUSE.ACTION)
+	node._process(0.016)
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_RIGHT
+	click.pressed = true
+	node._input(click)
+	Input.action_press(HOLD_PAUSE.ACTION)
+	node._process(0.016)
+	assert_eq(node._sign_label.text, "Holding right click - paused", "mouse words")
+
+
 func test_coach_explains_it_the_first_time_koch_ability_fires() -> void:
 	MatchTalk.reload()
 	var state := GameState.new()
