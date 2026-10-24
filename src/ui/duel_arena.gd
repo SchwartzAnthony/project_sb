@@ -177,6 +177,7 @@ func _wire() -> void:
 		_anim[key] = animator
 		var stage: Control = _side[key]["stage"]
 		if stage != null:
+			_field_behind(stage, key)
 			stage.add_child(animator)
 
 
@@ -609,6 +610,8 @@ func _flip_them_over(tier: String, info: Dictionary = {}) -> void:
 #  tier in it, and a shake — bounce back over their own half of the window,
 #  hold, and then both turn over at the same moment to show the duel.
 #
+#  The crash sound is Audio.csv duel_clash (bav_mat_clash, 24 Oct).
+#
 #  The pictures are drawn by tools/art/draw_duel_mats.py. The tier numeral
 #  and the words are written by the game, so one picture serves every tier
 #  and language (Language.csv duel_clash_word, tier).
@@ -727,6 +730,7 @@ func _clash_them(tier: String, info: Dictionary) -> void:
 		hit.tween_property(mat, "position", rest[key], bounce) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_flash_screen()
+	_sound("duel_clash", info)
 	_shake(_clash, maxf(hl_shake_pixels, 14.0))
 	await _beat(maxf(bounce, 0.22) + hold)
 	if not _running:
@@ -969,6 +973,7 @@ func _knock_away(winner_key: String) -> void:
 	_burst.scale = Vector2.ONE * 0.1
 	_burst.rotation = deg_to_rad(10.0 * away)
 	_flash_screen()
+	_sound("duel_knock", {"tier": _coach_tier})
 	var out := create_tween().set_parallel(true)
 	out.set_speed_scale(_rate())
 	out.tween_property(_burst, "scale", Vector2.ONE, 0.22) \
@@ -1763,3 +1768,52 @@ func _input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key != null and key.pressed and not key.echo and key.keycode == KEY_SPACE:
 		skip()
+
+
+# =============================================================
+#  THE PLAYER ON THE FIELD  (Anthony 24 Oct 2026: "For the combat cards,
+#  keep the simple red and blue borders, but we also need them to be running
+#  on the field / grass", with his sketch: a thin strip on top, the player
+#  running on the field in the middle, a panel below)
+#
+#  Tuning.csv duel_field (the picture, blank = none as before) and
+#  duel_field_edge (the line round it, in the card's own colour).
+# =============================================================
+
+func _field_behind(stage: Control, key: String) -> void:
+	var path := CardDatabase.get_db().tune_text("duel_field", "res://assets/ui/duel/duel_field.png").strip_edges()
+	if path == "":
+		return
+	var field := TextureRect.new()
+	field.name = "Field"
+	field.texture = ScreenLook.picture(path)
+	field.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	field.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	field.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	field.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	field.clip_contents = true
+	stage.add_child(field)
+	# The card's own red or blue, as a line round the field and under the
+	# strip at the top - the panels keep their simple borders.
+	var panel := stage.get_parent().get_parent().get_parent() as PanelContainer
+	var colour := Color(0.36, 0.62, 0.9) if key == "left" else Color(0.9, 0.42, 0.36)
+	if panel != null:
+		var box := panel.get_theme_stylebox("panel") as StyleBoxFlat
+		if box != null:
+			colour = box.border_color
+	var edge := Panel.new()
+	edge.name = "FieldEdge"
+	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var line := StyleBoxFlat.new()
+	line.draw_center = false
+	line.border_color = colour
+	line.set_border_width_all(int(CardDatabase.get_db().tune_float("duel_field_edge", 3.0)))
+	edge.add_theme_stylebox_override("panel", line)
+	stage.add_child(edge)
+	var fit := func() -> void:
+		# Both cards the same height, whatever the words below them need.
+		var box := Vector2(stage.size.x, maxf(stage.custom_minimum_size.y, 100.0))
+		field.custom_minimum_size = box
+		edge.custom_minimum_size = box
+	stage.resized.connect(fit)
+	fit.call_deferred()

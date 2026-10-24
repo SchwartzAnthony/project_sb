@@ -101,11 +101,12 @@ static func sheet_for(card: PlayerData, pick: int = 0) -> Texture2D:
 	_load()
 	if card == null:
 		return null
-	var keys: Array[String] = []
+	# His own name first (24 Oct 2026, the tutorial Koch): a row for one
+	# player wins over the picture he shares with everyone else.
+	var keys: Array[String] = [card.player_name.to_lower()]
 	var own := card.active_artwork()
 	if own != null and own.resource_path != "":
 		keys.append(own.resource_path.get_file().to_lower())
-	keys.append(card.player_name.to_lower())
 	keys.append(card.unit_type.to_lower())
 	for key in keys:
 		if not _wears.has(key):

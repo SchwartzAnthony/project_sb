@@ -443,6 +443,10 @@ func _ready() -> void:
 	# nothing has to be read straight off the grass or the village
 	# (text_backdrop_alpha in Tuning.csv; see text_backdrop.gd).
 	TextBackdrop.watch(self)
+	# A CONTROLLER IN THE MATCH (24 Oct 2026, found playing the Tutorial with
+	# only a controller): the d-pad walks between the cards and the window
+	# buttons and A takes one. The menus had this; the match never did.
+	ControllerFocus.install(self).start_in_middle = true
 
 	db = CardDatabase.get_db()
 	abilities = AbilityEngine.new(db)

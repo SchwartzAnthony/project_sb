@@ -12,7 +12,8 @@ def fit(im, extra=1.0):
     while to_cell(im, extra, dy=dy).getbbox()[1] < 2 and to_cell(im, extra, dy=dy + 2).getbbox()[3] < C - 1 and dy < 80: dy += 2
     return to_cell(im, extra, dy=dy)
 HOLD = {'tackle': 6, 'fall': 7, 'cheer': 9}     # frame counts of PitchAnims.csv
-for name in ('woman_blonde_ponytail', 'woman_plaits', 'woman_bob', 'woman_afro_puffs', 'woman_ginger', 'rival_man_stubble'):
+import sys
+for name in (sys.argv[1:] or ('woman_blonde_ponytail', 'woman_plaits', 'woman_bob', 'woman_afro_puffs', 'woman_ginger', 'rival_man_stubble', 'koch_tut')):
     fr = f'elements/{name}/frames'
     d = f'{OUT}/{name}'; os.makedirs(d, exist_ok=True)
     for f in glob.glob(f'{d}/*.png'): os.remove(f)

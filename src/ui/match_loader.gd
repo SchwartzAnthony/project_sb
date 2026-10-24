@@ -142,6 +142,9 @@ static func _find_or_make(tree: SceneTree) -> MatchLoader:
 #  BUILDING IT
 # -------------------------------------------------------------
 
+var _sign: Control
+
+
 func _init() -> void:
 	# Over everything, the pause menu and the team sheet included.
 	layer = 120
@@ -191,6 +194,18 @@ func _init() -> void:
 		"res://assets/loading/ball.png", _plain_ball()))
 	_art.add_child(_ball)
 
+	# "LOADING ..." AT THE TOP (Anthony 24 Oct 2026: "add the "Loading ..."
+	# on the top so player can tell what is happening"). Tuning.csv
+	# match_loader_words (blank = none) and match_loader_words_size.
+	var words := Loc.text("loading_words", db.tune_text("match_loader_words", "Loading ..."))
+	if words.strip_edges() != "":
+		# On the wooden board sign, the same as every screen's title, so it
+		# reads over the clouds.
+		_sign = SignHeader.make(words, "res://data/MenuHeaderBoard.csv")
+		_sign.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_art.add_child(_sign)
+		_sign.resized.connect(_lay_out)
+
 
 func _ready() -> void:
 	# 1. BLACK, AT ONCE.
@@ -233,6 +248,9 @@ func _picture(key: String, fallback_path: String, stand_in: Texture2D) -> Textur
 
 func _lay_out() -> void:
 	var size := get_viewport().get_visible_rect().size
+	if _sign != null:
+		_sign.position = Vector2((size.x - _sign.size.x) * 0.5,
+			CardDatabase.get_db().tune_float("match_loader_words_top", 20.0))
 	var ground_y := size.y * _ground
 
 	var goal_h := size.y * _goal_share

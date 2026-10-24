@@ -182,7 +182,38 @@ static func plank(button: Button, screen_id: String = "match") -> bool:
 	if row.is_empty() or button == null:
 		return false
 	_dress(button, row)
+	_backdrop(button)
 	return true
+
+
+## A GREY PLATE BEHIND THE PLANK (Anthony 24 Oct 2026: "Give all buttons a
+## grey background backdrop so it doesn't blend into the background").
+## Tuning.csv match_button_backdrop (#RRGGBBAA, blank = none) and
+## match_button_backdrop_reach (how far it shows round the plank, pixels).
+static func _backdrop(button: Button) -> void:
+	if button.has_node("GreyBackdrop"):
+		return
+	var db := CardDatabase.get_db()
+	var said := db.tune_text("match_button_backdrop", "#4a4a4ae6").strip_edges()
+	if said == "":
+		return
+	var reach := db.tune_float("match_button_backdrop_reach", 6.0)
+	var plate := Panel.new()
+	plate.name = "GreyBackdrop"
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color.from_string(said, Color(0.29, 0.29, 0.29, 0.9))
+	box.set_corner_radius_all(int(reach) + 6)
+	box.border_color = Color("1a1a1a")
+	box.set_border_width_all(2)
+	plate.add_theme_stylebox_override("panel", box)
+	plate.show_behind_parent = true
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.set_anchors_preset(Control.PRESET_FULL_RECT)
+	plate.offset_left = -reach
+	plate.offset_top = -reach
+	plate.offset_right = reach
+	plate.offset_bottom = reach
+	button.add_child(plate)
 
 
 static func button_row(screen_id: String) -> Dictionary:

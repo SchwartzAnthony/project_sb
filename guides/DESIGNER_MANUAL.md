@@ -633,6 +633,15 @@ All of it is in **`data/CardFace.csv`**:
 | `ink` | the colour of the name and number |
 | `tier_window`, `tier_window_spot`, `tier_text` | the Tier window at the top: on/off, where, what it says |
 | `items_button`, `items_text` | the ITEMS plank in the match (`false` = old flask icon) |
+| `runner_folder` | where the sharp runners are (below) |
+
+**The runners are sharp** (24 Oct 2026, Anthony: "The twice size players on
+the cards are now blurry"). The card used to blow up the small pitch sheet.
+Now each drawn look has its own card runner, the same run cut three times
+bigger from the big source drawings, in `assets/players/card/` (named like
+the pitch sheet, e.g. `drawn_thomas_light.webp`). Made for free by
+`python3 tools/make_card_runners.py` from `art_source/card_runners/`. A
+player with no card runner there still shows his pitch sheet, blown up.
 
 The empty frame is `art_tool/rounds/r187/out/r187-beermat-empty.png`; the
 card tool for pictures and GIFs is `art_tool/cards/beermat_card.py`.
@@ -1169,6 +1178,8 @@ so it never scores before the match is there.
 | `match_loader_background` / `_goal` / `_ball` | the three pictures, in `assets/loading/` |
 | `match_loader_ground` | how far down the ball rolls and the goal stands. `0.93` |
 | `match_loader_ball_size` / `_goal_size` | sizes, as a share of the screen height |
+| `match_loader_words` | the words on the tavern board at the top, `Loading ...` (24 Oct 2026, Anthony: so the player can tell what is happening). Empty = no board. Translated by the Language.csv key `loading_words` |
+| `match_loader_words_top` | how far down from the top the board hangs, in pixels. `20` |
 
 | `match_loader_goal_ground` | how far down the ball is when it reaches the goal (it rolls up the picture into a goal further back). Blank = straight along the bottom |
 
@@ -1307,6 +1318,13 @@ pause menu) use the `match_window` row of ScreenLook.csv, the blue-green
 plank `assets/menu/button_plank_teal.png`. The buttons you press while
 playing (speed, AUTO, TEAM, EXHAUST ZONE) stay yellow.
 
+**A grey plate behind every match button** (24 Oct 2026, Anthony: "Give all
+buttons a grey background backdrop so it doesn't blend into the background").
+Every plank button above sits on a see-through grey plate with a thin dark
+edge. Tuning rows: `match_button_backdrop` (the colour, `#4a4a4ae6`; the last
+two letters are how see-through) and `match_button_backdrop_reach` (how far
+the plate sticks out past the plank, `6`).
+
 **The picture window over the pitch** ("Sven puts it over the goal line" and
 the goal windows; Anthony 24 Oct 2026: "have it similar to the card with the
 background being the outdoors field"). It is the cream beer mat panel with
@@ -1366,7 +1384,7 @@ Every figure is the drawn sprite that player wears on the pitch, so a
 transformed player (a brew on him) looks here exactly as he will play. The
 HUD and the keepers' save odds are hidden while it runs.
 
-**It can always be skipped.** The yellow **SKIP** plank bottom right, or
+**It can always be skipped.** The blue **SKIP** button in the bottom middle, or
 space, enter or escape, goes straight to the countdown.
 
 | Tuning row | |
@@ -1802,6 +1820,12 @@ either side, yours and theirs. Then the window is squashed to no width, its
 face is swapped at the moment it has none, and it comes back as the duel with
 both players on it. Only then are the two compared, one after the other.
 
+**The two cards run on grass** (24 Oct 2026, Anthony: "keep the simple red
+and blue borders, but we also need them to be running on the field / grass").
+Each card's middle panel shows the drawn pitch corner behind the player
+(Tuning `duel_field`, `assets/ui/duel/duel_field.png`) inside a thin edge in
+the card's own red or blue (`duel_field_edge`, its width in pixels, `3`).
+
 That happens **for every tier in a combat**, so a combat reads as four cards
 being turned over rather than as a list appearing.
 
@@ -1835,6 +1859,13 @@ shake — bounce back over their own half of the window, are held there
 winner's half rushes into the loser's, the same burst says KRACH! where they
 meet, the loser spins off the side of the screen and the winner slides to the
 middle. A draw skips it.
+
+**The sounds (24 Oct 2026).** Both crashes have a sound in the band style,
+made for free by `tools/make_bavarian_sfx.py`: `Audio.csv` `duel_clash`
+(`bav_mat_clash`: a cardboard slap, the big drum and the cymbal) and
+`duel_knock` (`bav_knock_away`: a punch, drum and cymbal, then a trombone
+sliding down as the loser flies away). Each row has a Suno slot like the
+other duel sounds.
 
 | Tuning row | |
 |---|---|
@@ -3905,7 +3936,7 @@ moment, with the same score, clock and exhaust. Then the row's **Do** runs:
 | `ability:Koch=TUT_KOCH_EARTH/TUT_KOCH_EARTH_DEF` | Earth Courage, attack side / defend side: 5 stamina off the enemy keeper when he attacks, 3 when he defends (Anthony, 8 Oct) |
 | `show_card:Koch=tut-koch-new-card@abilities\|-\|-` | the match stays frozen and his field card comes up big over the pub, his attack and defend abilities beside it; then that Dialogue.csv scene plays. After `@`, the gold per line (`card`, `abilities`, `attack`, `defend`, `-`), `\|` between lines. `Tuning.csv show_card_scale` (1.8) and `show_card_backdrop` (bar) |
 | `inspire:Koch=75` | his inspiration in % on the drunk meter (`DrunkLevels.csv`): 75 after cycle 1 (past Inspired, so his star ability wakes up), 90 after cycle 2 |
-| `drink_lesson:first=keg@barrel@tut-fass-after@abilities\|-\|card` | the drinking lesson. `<card>=<item>@<barrel or bottle>@<scene>@<gold>`. The item goes in the bag if it is missing; only that card's bag button works and his bag shows only that item; gold on the button, then on the item. When he drinks: the drinking window (his PixelLab stein drink from his pitch sheet, then the burp; `Tuning.csv drink_window_seconds`), then his card comes up big as with show_card and the scene plays. Only he can be picked after |
+| `drink_lesson:first=keg@barrel@tut-fass-after@abilities\|-\|card` | the drinking lesson. `<card>=<item>@<barrel or bottle>@<scene>@<gold>`. The item goes in the bag if it is missing; only that card's bag button works and his bag shows only that item; gold on the button, then on the item. When he drinks: the drinking window (beer mat window, his drawn figure, a drawn keg or bottle, then the burp; `data/DrinkWindow.csv`, `Tuning.csv drink_window_seconds`), then his card comes up big as with show_card and the scene plays. Only he can be picked after |
 | `give:anstoss_helles+doppelpass_weisse+abstauber_dunkel` | puts one of each into the bag (`item=3` for more). A drink_lesson can then name several items with `+`: the bag shows those, gold on each, and any one will do |
 | `say:tut-after-brewery@-\|flask:first` | plays that Dialogue.csv scene, gold per line after `@` (the Highlight words) |
 | `empty_bag:first` | the bag on that card (first, last or a name) opens by itself and shows it is empty, then shuts (`Tuning.csv tutorial_empty_bag_seconds`). The tutorial uses it after "Now open the bag on the Tier I, Power 1, and...", before "Where is the rest of the beer?!" (scene `tut-missing-beer-empty`) |
@@ -3924,11 +3955,22 @@ low his drunk meter is (`match_drink_takes_hold_at`, 0). In the tutorial the
 keg (`Items.csv keg`, Use `brew:pool:keg`) always gives the `Brews.csv
 kleiner_fass` row, because that is the only keg row whose Requires
 (`flag:in_tutorial`) passes. Outside the tutorial the keg is the plain beer
-gamble. The drinking window plays the player's own PixelLab stein drink from
-his pitch sheet (the `drink` row of `PitchAnims.csv`, facing south-east, at
-its FPS; Anthony, 11 Oct), so it is the same figure and drink as on the
-pitch, then the burp. Only a look whose pitch sheet has no drink rows still
-gets the old code-drawn barrel or bottle. The burp is `Audio.csv drink_burp`, silent
+gamble. **The drinking window** (new look, Anthony 23-24 Oct 2026, all in
+`data/DrinkWindow.csv`): the cream beer mat panel of the inventory, the
+player's name in ink on the panel (`name`: panel, sign or none), our base
+seen from the side at eye level inside (`backdrop`, `backdrop_region`), with
+a strip of its grass laid in front of him so he stands in it up to the ankles
+(`grass_front`), his own drawn match figure facing right, drawn sharp from his
+window sheet (`assets/players/window/`, made from the full-size drawings by
+`tools/make_drawn_window_sheet.py`; rows: standing, cheer, standing facing
+the camera), and the drawn
+Kleiner Faß or bottle from the bag. He lifts it to his mouth (`mouth`), gulps
+three times, flings the empty over his shoulder, then cheers (his `cheer`
+row) with *BURP!*. The screen behind goes dark (`dim`) and the match's big
+announcement is hidden while he drinks, so no rule words show behind it. A
+look whose pitch sheet has its own `drink` rows (the PixelLab looks) plays
+those instead. `style old` brings back the 8 Oct dark box with the
+code-drawn barrel. The burp is `Audio.csv drink_burp`, silent
 until `bav_burp.ogg` is made (`SOUNDS_WANTED.csv`).
 
 **The combo beers** (Anthony, 8 Oct). Three small beers, `Items.csv`
@@ -6637,6 +6679,19 @@ key here.
 **`data/Keys.csv`** — `Action`, `Label`, `Group`, `Default Key`, `Default
 Button`. Keyboard and controller bindings, rebindable in Settings.
 
+**Playing with only a controller** (24 Oct 2026, Anthony: "Playtest with a
+controller please and see if the tutorial can be completed with it"). The
+d-pad or stick moves the highlight to the nearest button that way, A presses
+it, B is Back, Start on the team sheet is START. What was fixed:
+- The save mugs and the base buildings (picture buttons) can be reached.
+- Opening a save mug puts the highlight inside it, so A does not close it again.
+- A presses the Head Coach's "click to continue" and a question window's highlighted answer.
+- The team sheet's START takes A or Start.
+- The Head Coach's talk box in the match takes A even when a card is highlighted under it.
+- In the match the cards and every window button can be reached; the first
+  push starts at the button nearest the middle of the screen (the choice
+  you are being asked for), not at the speed buttons.
+
 **`data/MenuConfig.csv`** — `Button ID`, `Label`, `X`, `Y`, `Width`,
 `Height`, `Action`, `Art Path`. The main menu, laid out in a spreadsheet.
 
@@ -8311,7 +8366,9 @@ tackle animation.
 **Two spreadsheets:**
 - `data/PitchSprites.csv` — who wears which sheet. **Wears** is the card's
   own sheet file name (`class_Normal_female_bob.png`), its card name, or its
-  class (`Normal`); the file name is tried first. **Pitch Sheet** is a file
+  class (`Normal`); the card name is tried first (24 Oct 2026, so the row
+  `Koch` gives the tutorial Koch his own drawn sheet), then the file name,
+  then the class. **Pitch Sheet** is a file
   in `assets/players/pitch/`. List several with `|` and each player gets one
   and keeps it. A card with no row plays on its old sheet, as before.
 - `data/PitchAnims.csv` — where each animation sits on a sheet. Each takes 8

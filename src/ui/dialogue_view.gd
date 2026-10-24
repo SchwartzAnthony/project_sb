@@ -332,6 +332,21 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()
 
 
+## A or Space moves the talk along BEFORE any highlighted button sees it
+## (24 Oct 2026, playing the Tutorial with a controller): in the match's
+## time-out Pub a button left highlighted on the pitch behind took every A
+## press, and the Head Coach never went on. A line with choices leaves A to
+## the highlighted choice.
+func _input(event: InputEvent) -> void:
+	if not is_visible_in_tree() or not GameKeys.pressed(event, "confirm"):
+		return
+	if _line != null and _line.has_choices() and not _line.available_choices(state).is_empty() \
+			and not _typing:
+		return
+	_advance()
+	get_viewport().set_input_as_handled()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	# `pause` gets you out of a conversation, `confirm` moves it along. Both
 	# are rows in Keys.csv, so both are rebindable and both answer to a

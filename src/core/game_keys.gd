@@ -91,6 +91,7 @@ static func install(tree: SceneTree, force: bool = false) -> void:
 		order.append(action)
 		_register(action, entry)
 
+	_pad_accepts()
 	print("[keys] %d action(s) ready." % order.size())
 
 
@@ -309,3 +310,16 @@ static func mouse_from_text(text: String) -> MouseButton:
 		"left mouse", "left click", "mouse left":        return MOUSE_BUTTON_LEFT
 		"middle mouse", "middle click", "mouse middle":  return MOUSE_BUTTON_MIDDLE
 	return MOUSE_BUTTON_NONE
+
+
+## THE CONTROLLER'S A ALSO ACCEPTS (24 Oct 2026, found playing the Tutorial
+## with only a controller). Godot's own ui_accept - which the Head Coach's
+## box, the question windows and every focused button listen to - had no
+## controller button, so A did nothing on them. The confirm button from
+## Keys.csv is added to it.
+static func _pad_accepts() -> void:
+	if not InputMap.has_action("ui_accept") or not InputMap.has_action("confirm"):
+		return
+	for event in InputMap.action_get_events("confirm"):
+		if event is InputEventJoypadButton and not InputMap.action_has_event("ui_accept", event):
+			InputMap.action_add_event("ui_accept", event)
