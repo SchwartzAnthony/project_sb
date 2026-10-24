@@ -281,8 +281,12 @@ func _on_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_accept"):
+## _input, not _unhandled_input (24 Oct 2026, playing the Tutorial with a
+## controller): a card or button left highlighted under the box took the A
+## press for itself, so the Head Coach never went on. While he talks, A,
+## Space and Enter are his.
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_accept") and visible:
 		_next()
 		get_viewport().set_input_as_handled()
 

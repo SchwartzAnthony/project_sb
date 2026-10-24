@@ -206,14 +206,21 @@ func _go() -> void:
 	queue_free()
 
 
-func _unhandled_key_input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	# Enter or space starts it too. A button you can only reach with a mouse
-	# is a button somebody on a controller cannot press.
+	# is a button somebody on a controller cannot press. 24 Oct 2026: so do
+	# the controller's A (confirm) and Start - before, only the keyboard did.
 	if not _opened:
 		return
 	var showing := (_gate != null and _gate.visible) \
 		or (_sheet_start != null and is_instance_valid(_sheet_start) and _sheet_start.visible)
 	if not showing:
+		return
+	var pad := event as InputEventJoypadButton
+	if pad != null and pad.pressed and (GameKeys.pressed(event, "confirm")
+			or pad.button_index == JOY_BUTTON_START):
+		get_viewport().set_input_as_handled()
+		_go()
 		return
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:

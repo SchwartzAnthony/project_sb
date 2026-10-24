@@ -628,6 +628,15 @@ All of it is in **`data/CardFace.csv`**:
 | `ink` | the colour of the name and number |
 | `tier_window`, `tier_window_spot`, `tier_text` | the Tier window at the top: on/off, where, what it says |
 | `items_button`, `items_text` | the ITEMS plank in the match (`false` = old flask icon) |
+| `runner_folder` | where the sharp runners are (below) |
+
+**The runners are sharp** (24 Oct 2026, Anthony: "The twice size players on
+the cards are now blurry"). The card used to blow up the small pitch sheet.
+Now each drawn look has its own card runner, the same run cut three times
+bigger from the big source drawings, in `assets/players/card/` (named like
+the pitch sheet, e.g. `drawn_thomas_light.webp`). Made for free by
+`python3 tools/make_card_runners.py` from `art_source/card_runners/`. A
+player with no card runner there still shows his pitch sheet, blown up.
 
 The empty frame is `art_tool/rounds/r187/out/r187-beermat-empty.png`; the
 card tool for pictures and GIFs is `art_tool/cards/beermat_card.py`.
@@ -1107,6 +1116,8 @@ so it never scores before the match is there.
 | `match_loader_background` / `_goal` / `_ball` | the three pictures, in `assets/loading/` |
 | `match_loader_ground` | how far down the ball rolls and the goal stands. `0.93` |
 | `match_loader_ball_size` / `_goal_size` | sizes, as a share of the screen height |
+| `match_loader_words` | the words on the tavern board at the top, `Loading ...` (24 Oct 2026, Anthony: so the player can tell what is happening). Empty = no board. Translated by the Language.csv key `loading_words` |
+| `match_loader_words_top` | how far down from the top the board hangs, in pixels. `20` |
 
 | `match_loader_goal_ground` | how far down the ball is when it reaches the goal (it rolls up the picture into a goal further back). Blank = straight along the bottom |
 
@@ -1244,6 +1255,13 @@ over the match (YOUR THROW ATTACK / DEFEND, the clash ATTACK / DEFEND, the
 pause menu) use the `match_window` row of ScreenLook.csv, the blue-green
 plank `assets/menu/button_plank_teal.png`. The buttons you press while
 playing (speed, AUTO, TEAM, EXHAUST ZONE) stay yellow.
+
+**A grey plate behind every match button** (24 Oct 2026, Anthony: "Give all
+buttons a grey background backdrop so it doesn't blend into the background").
+Every plank button above sits on a see-through grey plate with a thin dark
+edge. Tuning rows: `match_button_backdrop` (the colour, `#4a4a4ae6`; the last
+two letters are how see-through) and `match_button_backdrop_reach` (how far
+the plate sticks out past the plank, `6`).
 
 **The picture window over the pitch** ("Sven puts it over the goal line" and
 the goal windows; Anthony 24 Oct 2026: "have it similar to the card with the
@@ -1696,6 +1714,12 @@ face down as one card back: the tier it is — `TIER III` — with a crest to
 either side, yours and theirs. Then the window is squashed to no width, its
 face is swapped at the moment it has none, and it comes back as the duel with
 both players on it. Only then are the two compared, one after the other.
+
+**The two cards run on grass** (24 Oct 2026, Anthony: "keep the simple red
+and blue borders, but we also need them to be running on the field / grass").
+Each card's middle panel shows the drawn pitch corner behind the player
+(Tuning `duel_field`, `assets/ui/duel/duel_field.png`) inside a thin edge in
+the card's own red or blue (`duel_field_edge`, its width in pixels, `3`).
 
 That happens **for every tier in a combat**, so a combat reads as four cards
 being turned over rather than as a list appearing.
@@ -6465,6 +6489,19 @@ key here.
 **`data/Keys.csv`** — `Action`, `Label`, `Group`, `Default Key`, `Default
 Button`. Keyboard and controller bindings, rebindable in Settings.
 
+**Playing with only a controller** (24 Oct 2026, Anthony: "Playtest with a
+controller please and see if the tutorial can be completed with it"). The
+d-pad or stick moves the highlight to the nearest button that way, A presses
+it, B is Back, Start on the team sheet is START. What was fixed:
+- The save mugs and the base buildings (picture buttons) can be reached.
+- Opening a save mug puts the highlight inside it, so A does not close it again.
+- A presses the Head Coach's "click to continue" and a question window's highlighted answer.
+- The team sheet's START takes A or Start.
+- The Head Coach's talk box in the match takes A even when a card is highlighted under it.
+- In the match the cards and every window button can be reached; the first
+  push starts at the button nearest the middle of the screen (the choice
+  you are being asked for), not at the speed buttons.
+
 **`data/MenuConfig.csv`** — `Button ID`, `Label`, `X`, `Y`, `Width`,
 `Height`, `Action`, `Art Path`. The main menu, laid out in a spreadsheet.
 
@@ -8139,7 +8176,9 @@ tackle animation.
 **Two spreadsheets:**
 - `data/PitchSprites.csv` — who wears which sheet. **Wears** is the card's
   own sheet file name (`class_Normal_female_bob.png`), its card name, or its
-  class (`Normal`); the file name is tried first. **Pitch Sheet** is a file
+  class (`Normal`); the card name is tried first (24 Oct 2026, so the row
+  `Koch` gives the tutorial Koch his own drawn sheet), then the file name,
+  then the class. **Pitch Sheet** is a file
   in `assets/players/pitch/`. List several with `|` and each player gets one
   and keeps it. A card with no row plays on its old sheet, as before.
 - `data/PitchAnims.csv` — where each animation sits on a sheet. Each takes 8
