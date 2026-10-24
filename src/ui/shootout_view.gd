@@ -229,7 +229,11 @@ func play_shot(info: Dictionary) -> void:
 
 	await _beat(open_seconds)
 	if coach.is_valid():
+		# Clicks on the Head Coach's words are his, not a skip.
+		_coaching = true
 		await coach.call("shot_odds")
+		_coaching = false
+		_skipping = false
 	await _beat(read_seconds)
 
 	# The strike.
@@ -300,7 +304,9 @@ func play_drain(info: Dictionary) -> void:
 	# 2. The stamina comes off, counted down where you can see it.
 	var fall := create_tween()
 	fall.tween_method(func(v: float) -> void: _show_stamina(int(round(v)), top),
-		float(before), float(after), minf(1.0, step * 0.4) / _rate())
+		float(before), float(after), minf(1.0, step * 0.4))
+	_live_tweens = [fall]
+	fall.set_speed_scale(_rate())
 	if _stamina_value:
 		_stamina_value.add_theme_color_override("font_color", Color(1.0, 0.45, 0.35))
 	await _beat(step)
@@ -308,6 +314,8 @@ func play_drain(info: Dictionary) -> void:
 	_show_chance(after, top, power, shift)
 	if _chance_value:
 		var pop := create_tween()
+		_live_tweens = [pop]
+		pop.set_speed_scale(_rate())
 		_chance_value.pivot_offset = _chance_value.size * 0.5
 		pop.tween_property(_chance_value, "scale", Vector2(1.35, 1.35), 0.15)
 		pop.tween_property(_chance_value, "scale", Vector2.ONE, 0.25)
@@ -408,22 +416,57 @@ func _dress_striker(card, anim_name: String) -> void:
 			_striker_anim.fit_into(ShootoutLook.pair("striker_box", Vector2(460, 380)) if _mat else Vector2(300.0, 220.0))
 
 
+## 24 Oct 2026 (Anthony: "The same as you can skip / go fast on combat, so
+## when the draining of the goaly as well please"). The same pacing as the
+## duel window (duel_arena.gd): holding SPACE or the mouse runs it at
+## arena_skip_speed for as long as you hold, one press or click (or SKIP)
+## fast-forwards the rest, and a press halfway through a step shortens what
+## is left of it at once.
+var _live_tweens: Array = []
+var _coaching := false
+
+
+func hurrying() -> bool:
+	if _coaching:
+		return false
+	return Input.is_key_pressed(KEY_SPACE) \
+		or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+
+
 func _rate() -> float:
-	return maxf(0.05, skip_speed if _skipping else speed)
+	return maxf(0.05, skip_speed if (_skipping or hurrying()) else speed)
 
 
+## Wait out one step, re-reading the speed every frame.
 func _beat(seconds: float) -> void:
-	var wait := seconds / _rate()
-	if wait <= 0.001:
+	var left := seconds
+	if left <= 0.0:
 		await get_tree().process_frame
 		return
-	await get_tree().create_timer(wait).timeout
+	while left > 0.0:
+		await get_tree().process_frame
+		left -= get_process_delta_time() * _rate()
+		var live := _rate()
+		for tween in _live_tweens:
+			if tween != null and tween.is_valid():
+				tween.set_speed_scale(live)
+		if _keeper_anim:
+			_keeper_anim.speed_scale = live
+		if _striker_anim:
+			_striker_anim.speed_scale = live
+		if _keeper_strip:
+			_keeper_strip.speed = live
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if not _running:
+## _input, not _unhandled_input: the window's panels and buttons are
+## Controls and would eat the click before "unhandled" is reached.
+func _input(event: InputEvent) -> void:
+	if not _running or _coaching:
 		return
-	if event is InputEventMouseButton and event.pressed:
+	var click := event as InputEventMouseButton
+	if click != null and click.pressed:
 		skip()
-	elif event is InputEventKey and event.pressed and event.keycode == KEY_SPACE:
+		return
+	var key := event as InputEventKey
+	if key != null and key.pressed and not key.echo and key.keycode == KEY_SPACE:
 		skip()

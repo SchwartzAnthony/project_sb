@@ -192,6 +192,21 @@ func _play(scene: Node) -> void:
 		var box = scene.get("_talk_box")
 		if box != null and is_instance_valid(box):
 			await _read_coach(scene, box)
+		var empty_bag := scene.get_node_or_null("EmptyBag")
+		if empty_bag != null and not _empty_bag_seen:
+			# Anthony, 24 Oct: the bag opens by itself and shows it is empty.
+			_empty_bag_seen = true
+			var folder := "%02d_empty_bag" % _stop_index
+			_stop_index += 1
+			var frame := 0
+			while is_instance_valid(empty_bag) and frame < 40:
+				if frame == 4:
+					_check(empty_bag.tile_for("small_bottle") == null and empty_bag.tile_for("keg") == null,
+						"Play Maker 5: the bag on the Tier I Power 1 opens by itself, empty")
+				await _frame(folder, frame)
+				frame += 1
+				await create_timer(0.12, true, false, true).timeout
+			continue
 		var timeout_layer := scene.get_node_or_null("TimeOut")
 		if timeout_layer != null:
 			await _read_time_out(scene, timeout_layer)
@@ -289,6 +304,7 @@ func _read_coach(scene: Node, box: Node) -> void:
 
 
 var _before_pub: Array = []
+var _empty_bag_seen := false
 
 
 var _time_outs := 0
