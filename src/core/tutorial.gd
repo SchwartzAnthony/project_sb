@@ -15,6 +15,12 @@ extends RefCounted
 #                    with the starting team. NO gives the base its starting
 #                    team (below) and nothing else.
 #    THE MAIN MENU   the Tutorial button plays it and comes back to the menu.
+#    TUTORIAL ONLY   Tuning.csv tutorial_only true (Anthony, 24 Oct: the
+#                    build for now is just the Tutorial). Play on any save
+#                    plays the Tutorial and nothing else; at the end that
+#                    save is deleted again and you are on the main menu. A
+#                    save that was already being played is kept. false = the
+#                    full game as before.
 #
 #  EITHER WAY it plays in a save of its own (user://tutorial_story.json,
 #  wiped at the start and the end), so it opens and ends with nothing
@@ -55,6 +61,12 @@ static func active(tree: SceneTree) -> bool:
 	return tree != null and tree.has_meta(META)
 
 
+## Tuning.csv tutorial_only: Play on a save only ever plays the Tutorial,
+## and the save is deleted again at the end (Anthony, 24 Oct).
+static func only() -> bool:
+	return CardDatabase.get_db().tune_bool("tutorial_only", false)
+
+
 ## Should a brand-new save ask? (Tuning.csv tutorial_offer, true.)
 static func offer_on_new_game() -> bool:
 	return CardDatabase.get_db().tune_bool("tutorial_offer", true)
@@ -79,7 +91,8 @@ static func ask(host: Node) -> bool:
 ## open and end with nothing affecting the base game").
 ## `from_menu` true = back to the title screen at the end; false (a new
 ## save said Yes) = back to that save, at its base with the starting team.
-static func start(tree: SceneTree, from_menu: bool) -> void:
+## `erase_slot` above 0 (tutorial_only) = that save slot is deleted at the end.
+static func start(tree: SceneTree, from_menu: bool, erase_slot: int = 0) -> void:
 	if tree == null:
 		return
 	var db := CardDatabase.get_db()
@@ -87,6 +100,7 @@ static func start(tree: SceneTree, from_menu: bool) -> void:
 		"from_menu": from_menu,
 		"save": GameState.SAVE_PATH,
 		"teams": TeamRoster.SAVE_PATH,
+		"erase_slot": erase_slot,
 	}
 	_wipe_sealed()
 	GameState.SAVE_PATH = SEALED_SAVE
@@ -172,6 +186,17 @@ static func finish(tree: SceneTree) -> void:
 	TeamRoster.SAVE_PATH = String(info.get("teams", SaveSlots.REAL_TEAMS))
 	GameState.forget(tree)
 	_wipe_sealed()
+
+	# TUTORIAL ONLY (Tuning.csv tutorial_only): the save Play made is deleted
+	# again. The menu then writes into the tutorial's throwaway file (wiped
+	# at the next start), so the deleted save stays empty.
+	var erase_slot := int(info.get("erase_slot", 0))
+	if erase_slot > 0:
+		SaveSlots.erase(erase_slot)
+		GameState.SAVE_PATH = SEALED_SAVE
+		TeamRoster.SAVE_PATH = SEALED_TEAMS
+		GameState.forget(tree)
+		print("[tutorial] Tutorial only: save %d deleted again." % erase_slot)
 
 	if bool(info.get("from_menu", true)):
 		print("[tutorial] Finished. Nothing kept - to the title screen.")
