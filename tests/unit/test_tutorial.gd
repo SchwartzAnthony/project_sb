@@ -162,3 +162,15 @@ func test_the_combo_beers() -> void:
 	assert_string_contains(String(row.get("do", "")), "give:anstoss_helles")
 	row = MatchTalk.row_for("cards_shown", "tutorial", null, {"round": "6", "tier": "II"})
 	assert_eq(String(row.get("scene", "")), "tut-combo-2")
+
+
+## Anthony, 24 Oct: no Tutorial button on the title screen, the demo is the
+## Tutorial only, and a new save's Tutorial ends on the main menu.
+func test_the_tutorial_is_only_offered_by_a_new_save() -> void:
+	for row in MenuSupport.read_csv("res://data/MenuConfig.csv"):
+		var action := MenuSupport.field(row, "Action").strip_edges()
+		assert_false(action in ["tutorial_game", "tutorial"], "no Tutorial button on the main menu")
+	var db := CardDatabase.get_db()
+	assert_true(Tutorial.only(), "the demo: Play on a mug plays only the Tutorial")
+	assert_true(Tutorial.offer_on_new_game(), "a new save asks")
+	assert_true(db.tune_bool("tutorial_ends_on_menu", false), "the Tutorial ends on the main menu")

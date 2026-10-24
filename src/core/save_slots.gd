@@ -162,7 +162,8 @@ static func begun(slot: int) -> bool:
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if not (parsed is Dictionary):
 		return true
-	return "game_begun" in (parsed as Dictionary).get("flags", [])
+	# Flags are saved by their key ("gamebegun"), not as written.
+	return GameState._key("game_begun") in (parsed as Dictionary).get("flags", [])
 
 
 ## Wipe a slot. The player is asked twice by the screen before this is

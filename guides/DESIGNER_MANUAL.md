@@ -3816,29 +3816,36 @@ the game already has it**.
 
 ## 7j. A new game: the Tutorial (round AN, 7 Oct)
 
-The old introduction is now **the Tutorial**. It is the Tutorial button on
-the title screen, and a brand-new save offers it.
+The old introduction is now **the Tutorial**. A brand-new save offers it.
+Since 24 Oct (Anthony) the title screen has no Tutorial button: Start,
+Settings and Quit only (`MenuConfig.csv`; a row with Action `tutorial_game`
+brings the button back).
 
 ### A brand-new save asks
 
 The first time the base opens on a new save, a window asks: *Would you like
-to do the Tutorial? If not, you can find it later on the main menu.*
+to do the Tutorial?*
 
-- **Yes** plays the Tutorial (below), then brings you back to this save's
-  base with the starting team, exactly as No would.
+- **Yes** plays the Tutorial (below). When it is done, or you quit it, you
+  are back on the **main menu**, and this save waits as a fresh game: Play
+  on its mug opens the base with the starting team, exactly as No would
+  have given it. `Tuning.csv tutorial_ends_on_menu` false = straight on to
+  this save's base instead.
 - **No** leaves you at the base with **the starting team** and nothing else.
 
 The words are `Language.csv` `tutorial_offer_title`, `_text`, `_yes` and
 `_no`. `Tuning.csv tutorial_offer` false turns the question off.
 
-### Tutorial only (24 Oct)
+### Tutorial only (24 Oct): the Tutorial demo
 
-For now the game is **only the Tutorial** (`Tuning.csv tutorial_only`
-true). Start, then Play on any beer mug, plays the Tutorial straight away:
-no question, no base of your own. When it ends, or you quit it, that save is
+`Tuning.csv tutorial_only` is **true** (Anthony, 24 Oct 18:38: "I am making a
+tutorial demo only"): the game never goes to a fresh game. Set it to false
+for the full game, where a new save asks the question above.
+
+Start, then Play on any beer mug, plays the Tutorial straight away: no
+question, no base of your own. When it ends, or you quit it, that save is
 deleted again and you are back on the main menu. A save that was already
-being played is kept, but Play on it still only plays the Tutorial. Set
-`tutorial_only` to false to get the full game back.
+being played is kept, but Play on it still only plays the Tutorial.
 
 ### What the Tutorial is
 

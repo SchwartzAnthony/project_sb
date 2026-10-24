@@ -439,8 +439,8 @@ func _build_buttons() -> void:
 		_buttons.add_child(button)
 
 
-## The four buttons the title screen falls back to when MenuConfig.csv cannot
-## be read. They are the same four the CSV ships with, so a missing file
+## The three buttons the title screen falls back to when MenuConfig.csv cannot
+## be read (no Tutorial since 24 Oct, Anthony). They are the same three the CSV ships with, so a missing file
 ## changes how the buttons LOOK and not what the game can do.
 func _default_rows() -> Array[Dictionary]:
 	return [
@@ -448,9 +448,7 @@ func _default_rows() -> Array[Dictionary]:
 			"action": "goto:base", "artpath": ""},
 		{"label": "Settings", "x": "640", "y": "464", "width": "260", "height": "68",
 			"action": "open_settings", "artpath": ""},
-		{"label": "Tutorial", "x": "640", "y": "548", "width": "260", "height": "68",
-			"action": "tutorial_game", "artpath": ""},
-		{"label": "Quit", "x": "640", "y": "632", "width": "260", "height": "68",
+		{"label": "Quit", "x": "640", "y": "548", "width": "260", "height": "68",
 			"action": "quit_game", "artpath": ""},
 	]
 
