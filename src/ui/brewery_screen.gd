@@ -338,6 +338,11 @@ func _chalk_material() -> ShaderMaterial:
 
 func _chalk_words(words: String, size: int, colour: Color) -> Label:
 	var label := MenuSupport.heading(words, size, colour)
+	# A plain, readable font (24 Oct 2026, Anthony: "make the font normal on
+	# the chalk board"; Tuning.csv brewery_chalk_font).
+	var face := ThemeBook.font(db.tune_text("brewery_chalk_font", "Bonum-Bold"))
+	if face != null:
+		label.add_theme_font_override("font", face)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.material = _chalk_material()
