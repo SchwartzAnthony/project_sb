@@ -455,36 +455,49 @@ func _run_mat() -> void:
 	queue_free()
 
 
-## A drop of beer with an ink edge: it falls and leaves a little puddle.
+## A drop of beer: it falls from his mouth and splashes into the grass,
+## gone at once (24 Oct: the little round puddles looked like coins).
 func _spill_mat(from: Vector2) -> void:
 	var drop := Drop.new()
-	drop.colour = BEER if randf() < 0.7 else FOAM
-	drop.size = Vector2(9, 9)
+	drop.colour = Color(BEER, 0.9) if randf() < 0.75 else Color(FOAM, 0.9)
+	drop.size = Vector2(6, 9)
 	drop.position = from
 	drop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_panel.add_child(drop)
-	var floor_y := _feet.y - 6.0 + randf_range(0, 14)
+	var land := Vector2(from.x + randf_range(-8, 30), _feet.y - randf_range(0, 10))
 	var fall := create_tween()
-	fall.tween_property(drop, "position", Vector2(from.x + randf_range(-10, 40), floor_y), _t(randf_range(0.3, 0.5))) \
+	fall.tween_property(drop, "position", land, _t(randf_range(0.3, 0.5))) \
 		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	fall.tween_property(drop, "size", Vector2(18, 6), _t(0.1))
-	fall.tween_property(drop, "modulate:a", 0.0, _t(0.8))
-	fall.tween_callback(drop.queue_free)
+	fall.tween_callback(func() -> void:
+		# The splash: two tiny droplets jump out sideways and vanish.
+		for side in [-1.0, 1.0]:
+			var bit := Drop.new()
+			bit.colour = drop.colour
+			bit.size = Vector2(3, 4)
+			bit.position = land
+			bit.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_panel.add_child(bit)
+			var hop := create_tween()
+			hop.tween_property(bit, "position", land + Vector2(side * randf_range(6, 12), -randf_range(4, 9)), _t(0.12))
+			hop.parallel().tween_property(bit, "modulate:a", 0.0, _t(0.18))
+			hop.tween_callback(bit.queue_free)
+		drop.queue_free())
 
 
+## A falling drop of beer: a little teardrop, point up, with a darker rim.
 class Drop:
 	extends Control
 	var colour := Color.WHITE
 
 	func _draw() -> void:
-		var r := size * 0.5
-		var points := PackedVector2Array()
-		for k in 16:
-			var a := TAU * float(k) / 16.0
-			points.append(r + Vector2(cos(a) * r.x, sin(a) * r.y))
+		var w := size.x * 0.5
+		var points := PackedVector2Array([Vector2(w, 0)])
+		for k in 9:
+			var a := PI * float(k) / 8.0
+			points.append(Vector2(w + cos(a) * w, size.y - w + sin(a) * w))
 		draw_colored_polygon(points, colour)
 		points.append(points[0])
-		draw_polyline(points, Color(0.1, 0.07, 0.04), 1.5, true)
+		draw_polyline(points, colour.darkened(0.45), 1.0, true)
 
 
 ## His card frame, cut down to the drawn body (the frame is mostly air), so
