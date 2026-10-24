@@ -98,6 +98,7 @@ coin_exact_words,CALLED IT!,"WHAT IT SAYS WHEN YOU NAME THE COIN EXACTLY. There 
 coin_exact_them_words,THEY CALLED IT,The same when the enemy names it exactly
 coin_exact_seconds,0.9,How long the exact-call celebration is held before the clash carries on. Write a coin_exact row in Juice.csv to hang a sound on it
 coin_no_ai_exact_modes,tutorial;intro;intro2,"Anthony, 24 Oct. In these MatchModes.csv rows (split with ;) the AI never calls the number exactly - if the coin lands on their call, their face-down number quietly moves to another one. Blank = the AI can call it exactly everywhere"
+wheel_win_confetti,true,"Anthony, 24 Oct 2026. TRUE: confetti falls over the Free Kick wheel when YOU win the call, until you press ATTACK or DEFEND (the goal celebration's paper: celebration_confetti_pieces/_size/_speed/_colours). FALSE: no confetti. The spin/pick/win/lose sounds are Audio.csv rows wheel_*; choosing ATTACK or DEFEND anywhere plays side_chosen."
 clash_backdrop_dim,0.55,"HOW DARK THE PITCH GOES BEHIND THE CLASH, 0 to 1. Only what is BEHIND the window - nothing inside the clash is touched by it. It was 0.72 and the pitch had all but vanished"
 enemy_attack_chance,0.5,Enemy odds of choosing ATTACK when it wins the clash
 rps_reveal_seconds,0.9,Pause on the clash reveal
