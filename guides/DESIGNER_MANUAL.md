@@ -864,9 +864,9 @@ defend ... a back and forth that looks natural."*
   into the lane, which sends the attacker off to find another opening.
 - **Seeing the ball:** an arrow in his side's colour floats over the man on
   the ball (`ball_carrier_marker_height` / `_size`), his ring pulses, the
-  name plates of players not involved fade (`bystander_plate_alpha`), and
-  during play only players going for the ball get a line
-  (`intent_lines_chasers_only`). Z still shows everything.
+  name plates of players not involved fade (`bystander_plate_alpha`). Since
+  24 Oct nobody gets a line to the ball during play (`intent_lines_alpha`
+  `0`): only the ring and the arrow say who has it. Z still shows every line.
 
 | Tuning row | |
 |---|---|
@@ -875,6 +875,7 @@ defend ... a back and forth that looks natural."*
 | `mark_lane_cut` | how far a marker leans into the passing lane. `100` px (doubled 9 Oct) |
 | `open_support_min` / `mark_keep_off` | now `270` / `200` px from the ball (the 9 Oct step, doubled) |
 | `bystander_plate_alpha` | name plates of players not involved, in open play. `0.18` (twice as faded, 9 Oct). `1` = off |
+| `intent_lines_alpha` | the blue/red lines from players to where they run (the ball). `0` = off (24 Oct); `0.55` brings them back |
 | `intent_lines_chasers_only` | `true` = lines only for players going for the ball |
 | `ball_carrier_marker_height` / `ball_carrier_marker_size` | the arrow over the carrier. `74` / `20` |
 
@@ -1281,33 +1282,33 @@ options in `art_source/pixellab/vs_menu_draft/`.
 | `vs_background` | the tent. `assets/team/vs/vs_tent.png` |
 | `vs_background_dim` | how much darker the tent is. `0.55` |
 
-### The line-ups on the grass
+### The line-ups before kick-off
 
-After START on the VS screen, both sides are introduced **standing on the
-pitch** (round AN, Anthony). It is the real pitch, frozen, with everyone on
-their own spot, standing in idle and facing the camera. The camera pushes in
-and pans along **your side from right to left**, then along **theirs from
-left to right**. The side not being shown is faded back, and a sign at the
-bottom names whoever is in the middle of the screen: ★ for a Star, the name,
-tier, power and defence. The keepers are included.
+After START on the VS screen, both teams line up **side by side in a row**,
+facing you, like a team photo (Anthony, 24 Oct 2026). The drawn pitch stays
+behind, darkened. Your team's name hangs on the tavern sign at the top; then
+one player at a time, left to right, steps forward in full colour while the
+others stay dark, and the beer mat under the row names him: ★ for a Star,
+the name, **Tier** and **Power**. The keeper stands first, then the players by
+Tier, the Stars last. Then the same for the other team.
 
-It uses the same figures and name plates as the match, so nobody can look
-different here from how they look in play. The camera follows the best
-straight line through the side, because the tilted pitch runs corner to
-corner. The HUD and the keepers' save odds are hidden while it runs.
+Every figure is the drawn sprite that player wears on the pitch, so a
+transformed player (a brew on him) looks here exactly as he will play. The
+HUD and the keepers' save odds are hidden while it runs.
 
-**It can always be skipped.** A click, space, enter or escape ends the whole
-thing.
+**It can always be skipped.** The yellow **SKIP** plank bottom right, or
+space, enter or escape, goes straight to the countdown.
 
 | Tuning row | |
 |---|---|
 | `line_up_parade` | `false` turns it off for good |
-| `line_up_pan_seconds` | how long the pan along one side takes. `5` |
-| `line_up_hold` | the pause at each end of a pan. `0.6` |
-| `line_up_zoom` | how close, as a multiple of the whole-pitch shot. `2.2` |
-| `line_up_fade_other` | how see-through the side not being shown is. `0.3` |
-| `line_up_facing` | `south` = everyone faces the camera; any of the 8 directions; `ball` = they keep looking at the ball |
-| `line_up_between_sides` | the pause between your side and theirs. `0.9` |
+| `line_up_each` | seconds each player is highlighted. `0.8` |
+| `line_up_hold` | the pause on the team name before the first player. `0.8` |
+| `line_up_between_sides` | the pause between your team and theirs. `0.6` |
+| `line_up_figure_height` | how tall the figures stand, part of the screen. `0.36` |
+| `line_up_overlap` | how much each figure overlaps the next. `0.22` |
+| `line_up_dim` | how dark the players not highlighted are. `0.35` |
+| `line_up_shade` | how dark the pitch behind the row is. `0.55` |
 
 `tools/line_up_shot.gd` films it frame by frame for a GIF.
 
@@ -2610,8 +2611,8 @@ each check, slowly enough to follow:
 | `Tuning.csv` `duel_hl_*_seconds` | how long each step is held, including the +1 sliding in (`duel_hl_bonus_*`) |
 | `Tuning.csv` `duel_hl_colour` | the gold |
 | `Language.csv` `duel_ability_priority`, `duel_power_check` | the words |
-| `Tuning.csv` `duel_hl_ring_art`, `duel_hl_box_art` | the ring art (blank for now: a plain gold circle) and the PixelLab pretzel-corner box |
-| `Tuning.csv` `duel_hl_art_scale`, `duel_hl_box_margin` | how big their pixels are; where the box corners end |
+| `Tuning.csv` `duel_hl_ring_art`, `duel_hl_box_art` | the ring art (blank for now: a plain gold circle) and the pretzel-corner box (24 Oct: `duel_box_ink.png`, a whole inked pretzel in each corner, drawn free by `tools/art/draw_pretzel_box.py`; the same box is the tutorial's gold highlight) |
+| `Tuning.csv` `duel_hl_art_scale`, `duel_hl_box_margin`, `duel_hl_box_overhang` | how big the art's pixels are (1 for the inked box, 3 for old pixel art); where the box corners end; how far the pretzels reach out past the thing they mark. A box too small for two whole pretzels shrinks the art instead of cutting it |
 | `Audio.csv` `duel_ability_success` / `_fail`, `duel_power_victory` / `_fail` | the four sounds, made with Ludo.ai |
 
 **The checks under the window (round AN, 11 Oct, later).** You asked for
@@ -3821,6 +3822,16 @@ Tier II, so a Pass It On on Tier I pushes Tier II: that is the combo.
 **The EXHAUST ZONE button** (bottom right of every match, `Tuning.csv
 exhaust_button`) says how many of your cards are spent this cycle. Press it
 to see them.
+
+It is drawn (23 Oct 2026, it blended into the drawn pitch). `exhaust_icon`
+picks the look: `coaster` (a blue-white beer mat with the empty Maß, the
+words on a blue plank under it), `plank` (the blue plank with the Maß on its
+end), `mug` (a big empty Maß) or `plain` (the old grey button). The red disc
+shows the count; `exhaust_icon_scale` makes it bigger or smaller. Pieces are
+in `assets/ui/exhaust`, made by `tools/make_exhaust_icon.py`.
+While the Head Coach talks about it (MatchTalk.csv Highlight `exhaust`),
+the marker comes in front of the black bar and glows; when his line moves on
+it goes back where it was, and the words make room for it (24 Oct 2026).
 
 **TOUCHED** on a card now only shows when that card's own ability asks
 whether it touched the ball. Plain players never show it.
