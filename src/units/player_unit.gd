@@ -372,7 +372,7 @@ func set_highlight(is_highlighted: bool) -> void:
 	# Stay bright while locked in as this round's playmaker.
 	if is_highlighted or is_playmaker:
 		artwork.modulate = Color(1.2, 1.2, 1.2, 1.0)
-	elif not play_maker_live:
+	elif not play_maker_live or not _grey_others_in_play_maker():
 		artwork.modulate = Color.WHITE   # no Play Maker on: everyone in colour
 	elif is_exhausted:
 		artwork.modulate = Color(0.25, 0.25, 0.3, 1.0)  # spent this cycle
@@ -401,7 +401,7 @@ func _tint_pitch_figure(in_play: bool) -> void:
 	if in_play:
 		mat.set_shader_parameter("saturation", 1.0)
 		artwork.modulate = Color(1.15, 1.15, 1.15, 1.0)
-	elif not play_maker_live:
+	elif not play_maker_live or not _grey_others_in_play_maker():
 		mat.set_shader_parameter("saturation", 1.0)
 		artwork.modulate = Color.WHITE
 	elif is_exhausted:
@@ -410,6 +410,14 @@ func _tint_pitch_figure(in_play: bool) -> void:
 	else:
 		mat.set_shader_parameter("saturation", grey)
 		artwork.modulate = Color(rest, rest, rest, 1.0)
+
+
+## 24 Oct (Anthony: stop greying out the players during combat). Tuning.csv
+## play_maker_grey_others. false = everyone keeps their own colour during a
+## Play Maker too; true = the old grey for those not in the session.
+func _grey_others_in_play_maker() -> bool:
+	var db := CardDatabase.get_db()
+	return db != null and db.tune_bool("play_maker_grey_others", false)
 
 
 func reset_for_new_cycle() -> void:
