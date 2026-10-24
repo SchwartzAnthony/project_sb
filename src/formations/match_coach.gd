@@ -577,6 +577,11 @@ func _gold_on(layer: CanvasLayer, controls: Array) -> void:
 		layer.add_child(MatchTalkBox.CoachSpots.make(spots))
 
 
+## The bottom of the screen the coach's box (and his face) takes, and the
+## gap kept around the big card.
+const SHOW_CARD_BOX_ROOM := 260.0
+const SHOW_CARD_MARGIN := 24.0
+
 ## ============ HIS NEW CARD ============
 ##
 ## `show_card:Koch=tut-koch-new-card` (Anthony, 8 Oct) - the match stays
@@ -618,8 +623,12 @@ func show_card(name_text: String, scene: String, gold: String = "card") -> void:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(row)
 
-	# The field card, bigger.
+	# The field card, bigger - but never so big that it runs into the
+	# coach's box along the bottom or off the screen (Anthony, 24 Oct).
 	var grow := db.tune_float("show_card_scale", 1.8)
+	var base := PlayerCardUI.card_size()
+	var room := Vector2(screen.x - 80.0 - 70.0 - 520.0, screen.y - SHOW_CARD_BOX_ROOM - 2.0 * SHOW_CARD_MARGIN)
+	grow = minf(grow, minf(room.x / base.x, room.y / base.y))
 	var holder := Control.new()
 	holder.custom_minimum_size = PlayerCardUI.card_size() * grow
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -643,7 +652,8 @@ func show_card(name_text: String, scene: String, gold: String = "card") -> void:
 	# Middle of the screen, above the coach's box along the bottom.
 	await tree.process_frame
 	var used := row.get_combined_minimum_size()
-	row.position = Vector2((screen.x - used.x) * 0.5, maxf(20.0, (screen.y - 260.0 - used.y) * 0.5))
+	row.position = Vector2((screen.x - used.x) * 0.5,
+		maxf(SHOW_CARD_MARGIN, (screen.y - SHOW_CARD_BOX_ROOM - used.y) * 0.5))
 	await tree.process_frame
 
 	var groups: Array = []
