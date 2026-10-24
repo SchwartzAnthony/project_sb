@@ -3818,6 +3818,9 @@ words on a blue plank under it), `plank` (the blue plank with the Maß on its
 end), `mug` (a big empty Maß) or `plain` (the old grey button). The red disc
 shows the count; `exhaust_icon_scale` makes it bigger or smaller. Pieces are
 in `assets/ui/exhaust`, made by `tools/make_exhaust_icon.py`.
+While the Head Coach talks about it (MatchTalk.csv Highlight `exhaust`),
+the marker comes in front of the black bar and glows; when his line moves on
+it goes back where it was, and the words make room for it (24 Oct 2026).
 
 **TOUCHED** on a card now only shows when that card's own ability asks
 whether it touched the ball. Plain players never show it.

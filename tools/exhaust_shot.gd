@@ -28,6 +28,8 @@ func _initialize() -> void:
 	await process_frame
 	_pick_a_team()
 	for arg in OS.get_cmdline_user_args():
+		if arg == "talk":
+			continue
 		CardDatabase.get_db().tuning["exhausticon"] = arg
 		_look = arg
 	MatchMode.choose(self, "friendly")
@@ -62,6 +64,9 @@ func _initialize() -> void:
 		await _wait(0.45)
 		_snap("kickoff-%d" % i)
 
+	if "talk" in OS.get_cmdline_user_args():
+		await _talk_shot()
+		return
 	for i in 12:
 		await _wait(2.5)
 		var b = _scene.coach.get("_exhaust_button") if _scene.coach != null else null
@@ -71,6 +76,24 @@ func _initialize() -> void:
 			print("[shot] no exhaust button")
 		_snap("play-%d" % i)
 	print("[shot] done")
+	quit(0)
+
+
+## The coach talking about the marker: it should come in front of the dark
+## sheet while its line is up, and go back after (Anthony 24 Oct 2026).
+func _talk_shot() -> void:
+	await _wait(28.0)
+	var spots: Array = _scene.coach._spots_for("exhaust")
+	var box := MatchTalkBox.play(_scene, "tut-exhaust", _scene.state, true, [spots])
+	for i in 3:
+		await _wait(0.5)
+		_snap("talk-%d" % i)
+	var b: Control = _scene.coach.get("_exhaust_button")
+	print("[shot] while talking, the marker's parent is %s" % b.get_parent().name)
+	box._close()
+	await _wait(0.5)
+	print("[shot] after, the marker's parent is %s, visible %s" % [b.get_parent().name, b.is_visible_in_tree()])
+	_snap("after")
 	quit(0)
 
 

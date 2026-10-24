@@ -191,7 +191,7 @@ func _spots_for(words: String) -> Array:
 			word = word.substr(5).strip_edges()
 		for control in _controls_for(word):
 			if control != null and control.is_visible_in_tree():
-				out.append({"rect": control.get_global_rect(), "ring": ring})
+				out.append({"rect": control.get_global_rect(), "ring": ring, "control": control})
 	if out.is_empty():
 		print("[match talk] Highlight '%s' found nothing on screen to point at." % words)
 	return out
@@ -825,6 +825,9 @@ func _build_exhaust_button() -> void:
 	_exhaust_button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_exhaust_button.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_exhaust_button.pressed.connect(_toggle_exhaust)
+	# 24 Oct 2026 (Anthony): while the coach talks about it, it comes in
+	# front of the dark sheet (MatchTalkBox), then goes back.
+	_exhaust_button.set_meta("lift_in_talk", true)
 	ScreenLook.plank(_exhaust_button)
 	(layer as Node).add_child(_exhaust_button)
 	_draw_exhaust_icon(db.tune_text("exhaust_icon", "coaster").strip_edges().to_lower(),

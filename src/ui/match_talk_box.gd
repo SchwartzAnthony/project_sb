@@ -47,6 +47,11 @@ var _line_index := -1
 ## skipped until it has been up this long (Tuning.csv match_talk_line_seconds).
 var _line_lock := 1.2
 var _shown_at := 0
+## 24 Oct 2026 (Anthony): a thing he points at that asks to be lifted (meta
+## "lift_in_talk", e.g. the EXHAUST ZONE marker) comes in front of the dark
+## sheet while its line is up, then goes back where it was.
+var _lift_layer: CanvasLayer = null
+var _lifted: Array = []
 
 
 ## Open the box with `scene` over whatever is on screen. Returns the box, or
@@ -221,11 +226,60 @@ func _point_for_line() -> void:
 		return
 	for child in _spot_holder.get_children():
 		child.queue_free()
+	_drop_lifted()
 	if _groups.is_empty():
 		return
 	var group: Array = _groups[mini(_line_index, _groups.size() - 1)]
 	if not group.is_empty():
 		_spot_holder.add_child(CoachSpots.make(group))
+	for spot in group:
+		var thing = spot.get("control")
+		if thing is Control and is_instance_valid(thing) and (thing as Control).has_meta("lift_in_talk"):
+			_lift(thing as Control)
+
+
+## Bring it in front of the sheet, glowing, clicks still going to the box.
+func _lift(thing: Control) -> void:
+	if _lift_layer == null:
+		_lift_layer = CanvasLayer.new()
+		_lift_layer.layer = layer + 1
+		_lift_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+		add_child(_lift_layer)
+	var home := thing.get_parent()
+	var keep := {"node": thing, "home": home, "index": thing.get_index(),
+		"filter": thing.mouse_filter, "modulate": thing.modulate}
+	_lifted.append(keep)
+	thing.reparent(_lift_layer, false)
+	# The words make room for it instead of running under it.
+	var panel_rect := _panel.get_global_rect()
+	var at := thing.get_global_rect().grow(40.0)
+	if at.intersects(panel_rect) and at.position.x > panel_rect.get_center().x:
+		if not keep.has("panel_right"):
+			keep["panel_right"] = _panel.offset_right
+		_panel.offset_right -= panel_rect.end.x - at.position.x
+	thing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var glow := create_tween().set_loops()
+	glow.tween_property(thing, "modulate", Color(1.35, 1.25, 1.05), 0.45)
+	glow.tween_property(thing, "modulate", Color.WHITE, 0.45)
+	keep["tween"] = glow
+
+
+## Put everything lifted back exactly where it was.
+func _drop_lifted() -> void:
+	for keep in _lifted:
+		if keep.has("tween") and (keep["tween"] as Tween).is_valid():
+			(keep["tween"] as Tween).kill()
+		if keep.has("panel_right") and _panel != null:
+			_panel.offset_right = float(keep["panel_right"])
+		var thing = keep["node"]
+		var home = keep["home"]
+		if not is_instance_valid(thing) or not is_instance_valid(home):
+			continue
+		(thing as Control).reparent(home as Node, false)
+		(home as Node).move_child(thing as Node, mini(int(keep["index"]), (home as Node).get_child_count() - 1))
+		(thing as Control).mouse_filter = keep["filter"]
+		(thing as Control).modulate = keep["modulate"]
+	_lifted.clear()
 
 
 func _process(_delta: float) -> void:
@@ -289,6 +343,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _close() -> void:
+	_drop_lifted()
 	if _state != null:
 		_state.save_to_disk()
 	if _pause:
