@@ -554,9 +554,13 @@ func drink_lesson(spec: String) -> void:
 
 	# Only he can be picked now. His new card comes up big, the way
 	# Bergmännlein Koch's does, and the scene after @ plays over it.
+	# His card can have been built again while he drank (24 Oct 2026, a
+	# freed card stopped the Tutorial here), so find it again.
+	target = _card_of(drinker, target)
 	_lock_all_but(target)
 	if after != "":
 		await show_card(drinker.player_name, after, gold)
+	target = _card_of(drinker, target)
 	_lock_all_but(target)
 	main.call("hold_picks")
 
@@ -606,6 +610,17 @@ func _lock_all_but_flask(target: PlayerCardUI) -> void:
 		if face != null:
 			(face as Button).disabled = true
 			(face as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
+## His card on the table now: `was` if it is still there, else the one
+## showing him.
+func _card_of(who: PlayerData, was: Variant) -> PlayerCardUI:
+	if is_instance_valid(was):
+		return was as PlayerCardUI
+	for card in _table_cards():
+		if (card as PlayerCardUI).current_data == who:
+			return card as PlayerCardUI
+	return null
 
 
 func _lock_all_but(target: PlayerCardUI) -> void:
@@ -910,6 +925,9 @@ func _build_exhaust_button() -> void:
 # -------------------------------------------------------------
 
 const EXHAUST_ART := "res://assets/ui/exhaust/"
+## Where the middle of the glass is in mug.png, as a share of its width and
+## height (the lid and handle stick out to the right and up).
+const MUG_GLASS_MIDDLE := Vector2(0.34, 0.69)
 var _exhaust_count_label: Label = null
 var _exhaust_words: Control = null
 
@@ -937,7 +955,10 @@ func _draw_exhaust_icon(look: String, scale: float) -> void:
 			if look == "coaster":
 				_exhaust_piece("coaster", Rect2(Vector2.ZERO, box))
 				var mh := box.y * 0.62
-				mug_at = Rect2(Vector2(box.x * 0.5 - mh * 0.27, box.y * 0.17), Vector2(mh * 0.54, mh))
+				# Anthony 24 Oct: the middle of the GLASS (not of the whole
+				# picture, which has the lid and handle on the right) sits on
+				# the middle of the circle.
+				mug_at = Rect2(box * 0.5 - Vector2(mh * 0.54, mh) * MUG_GLASS_MIDDLE, Vector2(mh * 0.54, mh))
 				badge_at = Vector2(box.x * 0.80, box.y * 0.14)
 			else:
 				var mh := box.y * 0.86
@@ -970,7 +991,8 @@ func _draw_exhaust_icon(look: String, scale: float) -> void:
 			var shade := StyleBoxFlat.new()
 			shade.bg_color = Color(0, 0, 0, 0)
 			shade.shadow_color = Color(0.04, 0.02, 0.0, 0.8)
-			shade.shadow_size = int(16 * scale)
+			shade.shadow_size = int(16 * scale * (CardDatabase.get_db().tune_float("exhaust_aura_size", 0.4) \
+				if CardDatabase.get_db() != null else 0.4))
 			shade.set_corner_radius_all(int(12 * scale))
 			glow.add_theme_stylebox_override("panel", shade)
 			glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1010,8 +1032,18 @@ func _exhaust_piece(piece: String, at: Rect2) -> void:
 		return
 	if glow != null:
 		var pad := at.size * (Vector2(glow.get_size()) / Vector2(art.get_size()) - Vector2.ONE) * 0.5
-		var aura := _exhaust_rect(glow, Rect2(at.position - pad, at.size + pad * 2.0))
-		aura.self_modulate = Color(0.04, 0.02, 0.0, 0.85)
+		# Anthony 24 Oct: the shadow was too thick. Tuning exhaust_aura_size.
+		# The mug has its own (exhaust_mug_aura_size): through the clear
+		# glass its shadow shows as a dark smudge.
+		var key := "exhaust_mug_aura_size" if piece == "mug" else "exhaust_aura_size"
+		var fallback := 0.15 if piece == "mug" else 0.4
+		var db := CardDatabase.get_db()
+		var share := clampf(db.tune_float(key, fallback), 0.0, 1.0) if db != null else fallback
+		if share > 0.0:
+			pad *= share
+			var aura := _exhaust_rect(glow, Rect2(at.position - pad, at.size + pad * 2.0))
+			# A smaller shadow is a lighter one too, so it never smudges.
+			aura.self_modulate = Color(0.04, 0.02, 0.0, 0.85 * minf(1.0, 0.3 + share))
 	_exhaust_rect(art, at)
 
 

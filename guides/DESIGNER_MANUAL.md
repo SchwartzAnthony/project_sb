@@ -6688,6 +6688,9 @@ it, B is Back, Start on the team sheet is START. What was fixed:
 - A presses the Head Coach's "click to continue" and a question window's highlighted answer.
 - The team sheet's START takes A or Start.
 - The Head Coach's talk box in the match takes A even when a card is highlighted under it.
+- The time-out Pub: A moves the talk on (a button left highlighted on the pitch behind used to take it).
+- The drink lesson: opening a bag moves the highlight onto the first drink, so A drinks it.
+- The Brewery mini-games: A is the mouse button or Space, d-pad or shoulder left and right are the rhythm halves, and the left stick turned round stirs the mash.
 - In the match the cards and every window button can be reached; the first
   push starts at the button nearest the middle of the screen (the choice
   you are being asked for), not at the speed buttons.
@@ -8565,6 +8568,18 @@ which every screen and the match pass through:
 3. **The see-through black plate** (`text_backdrop_alpha`) behind any word
    that sits straight on a picture. Words on a panel or a button keep
    theirs. An empty label shows no plate.
+4. **A black ink border round every letter** (`text_outline`, 6; 24 Oct,
+   your note: "all font, not just buttons"). The game font is a picture
+   font, which Godot cannot outline, so `src/core/ink_outline.gd` draws the
+   ring into a copy of the letter sheet when the game starts. The letters
+   stay white inside, so every word keeps its own colour. 0 = no border.
+   Dark ink words on cream or wood (beer mat cards, emblem text, tavern
+   signs, the team sheet notes) stay plain: anything darker than
+   `text_outline_dark_limit` (0.3) gets no border, because a black ring
+   round a dark letter only blurs it.
+   The plank buttons' dark rim is drawn at `plank_edge_scale` (0.6) of its
+   painted size, and the shadow round the EXHAUST ZONE reaches
+   `exhaust_aura_size` (0.4) of the old one (your note, 24 Oct).
 
 
 ## The Match Maker, and two tabs gone (round AN)
