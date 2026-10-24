@@ -235,7 +235,7 @@ func _build_drawn() -> void:
 	# filled see-through plate the clock and the score sit on, not an outline.
 	var gap := int(db.tune_float("ref_box_gap", 16.0)) if db != null else 16
 	var wide := box_size.x * grow * 2.0 + float(gap)
-	var reach := TextBackdrop.pad() * 2.0
+	var reach := TextBackdrop.pad() * 2.0 * grow
 	var plate := Panel.new()
 	plate.add_theme_stylebox_override("panel", TextBackdrop.plate())
 	plate.anchor_left = 0.5

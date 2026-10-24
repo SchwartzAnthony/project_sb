@@ -2752,7 +2752,7 @@ res://tools/lab/lab_cli.gd -- '{"cmd":"meta"}'`.
 | you said | now |
 |---|---|
 | the foul text is unreadable | the referee's bar sits on dark see-through glass, no border, bigger white text (`ref_bar_glass`, `ref_bar_text_size`) |
-| the referee's bar in our drawn style (24 Oct, his sketch) | `ref_bar_look` drawn: per side a beer mat box, the segments in a dark wooden slot going yellow to red, a yellow card (left) and a red card (right) tilted out of the top with how many that side has been shown (faded until the first). Size `ref_box_size`, height `ref_box_bottom`, bigger/smaller `ref_box_scale`, words `ref_box_text_size`, card numbers `ref_box_count_size`. Card pictures: `python3 tools/make_ref_cards.py` writes `assets/ui/referee/`. `glass` brings the old look back |
+| the referee's bar in our drawn style (24 Oct, his sketch) | `ref_bar_look` drawn: per side a beer mat box, the segments in a dark wooden slot going yellow to red, a yellow card (left) and a red card (right) tilted out of the top with how many that side has been shown (faded until the first). Size `ref_box_size`, height `ref_box_bottom`, bigger/smaller `ref_box_scale` (0.67 since 24 Oct evening, one third smaller, the black box behind them too), words `ref_box_text_size`, card numbers `ref_box_count_size`. Card pictures: `python3 tools/make_ref_cards.py` writes `assets/ui/referee/`. `glass` brings the old look back |
 | can't read the hover window | it opens BELOW the card, on its own layer above the banner, and never over the referee's bar (`hover_panel_layer`, `hover_panel_keep_bottom`). If there is not room under the card it opens BESIDE the card, on the side with more room; only if that does not fit either does it go wide and short (`hover_panel_wide_width`). Its width is `hover_panel_width` (700) and its word size `hover_panel_text_size` (21; the name and numbers grow with it). It also says the card's text and what the game does with it |
 | kicked across the whole field | the ball goes from his own feet over the touchline NEAREST to him (`throw_in_drift`) |
 | no Emblem, feels like an old build | a build stamp bottom-left of every match (`build_stamp`) and an `[emblems] the bar shows ...` line in the Output panel. Also fixed: Emblems were never reset between matches |
@@ -4067,14 +4067,18 @@ exhaust_button`) says how many of your cards are spent this cycle. Press it
 to see them.
 
 It is drawn (23 Oct 2026, it blended into the drawn pitch). `exhaust_icon`
-picks the look: `coaster` (a blue-white beer mat with the empty Maß, the
-words on a blue plank under it), `plank` (the blue plank with the Maß on its
+picks the look: `coaster` (a beer mat with the empty Maß, no words: the
+mat itself is the button), `plank` (the blue plank with the Maß on its
 end), `mug` (a big empty Maß) or `plain` (the old grey button). The red disc
-shows the count; `exhaust_icon_scale` makes it bigger or smaller. Pieces are
-in `assets/ui/exhaust`, made by `tools/make_exhaust_icon.py`.
+shows the count; `exhaust_icon_scale` makes it bigger or smaller (0.5 since
+24 Oct evening, half size). Pieces are in `assets/ui/exhaust`, redrawn in our
+rough ink look by `tools/art/draw_exhaust_emblem.py` (free, 24 Oct evening;
+the old `tools/make_exhaust_icon.py` brings the old clean pieces back).
 While the Head Coach talks about it (MatchTalk.csv Highlight `exhaust`),
 the marker comes in front of the black bar and glows; when his line moves on
 it goes back where it was, and the words make room for it (24 Oct 2026).
+The gold line and its pretzel sit on top of the lifted marker.
+A `ring:` highlight (a gold circle) gets the same one pretzel on its top.
 
 **TOUCHED** on a card now only shows when that card's own ability asks
 whether it touched the ball. Plain players never show it.
