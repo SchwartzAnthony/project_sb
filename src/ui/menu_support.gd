@@ -755,6 +755,25 @@ static var COLOUR_TEXT_DIM := Color(0.60, 0.63, 0.70)
 static var COLOUR_ATTACK := Color(0.95, 0.62, 0.36)
 static var COLOUR_DEFEND := Color(0.44, 0.73, 0.94)
 
+## ============ RED ATTACKS, BLUE DEFENDS ============
+##
+## Anthony, 24 Oct 2026: "When hovering over cards, have the Attack and
+## Defend be in different colors. So Red for Attack and Blue for Defending.
+## These same colors are used during combat as well." So the card window's
+## ATTACK / DEFEND lines and the duel's two card borders read these two, and
+## nothing else - one place, so the window and the duel can never disagree.
+## Tuning.csv role_colour_attack / role_colour_defend (#RRGGBB) override.
+const ROLE_RED := Color(0.88, 0.27, 0.23)
+const ROLE_BLUE := Color(0.25, 0.56, 0.92)
+
+
+static func role_colour(attacking: bool, db = null) -> Color:
+	var fallback := ROLE_RED if attacking else ROLE_BLUE
+	if db == null:
+		return fallback
+	var code: String = db.tune_text("role_colour_attack" if attacking else "role_colour_defend", "")
+	return Color.html(code) if Color.html_is_valid(code) else fallback
+
 ## The four tier colours, in ladder order. Also a `static var`, for the same
 ## reason: red-green colour blindness makes the default Tier II green and
 ## Tier III amber hard to tell apart, and the Colour tab swaps the set.
