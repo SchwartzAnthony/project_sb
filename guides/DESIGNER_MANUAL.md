@@ -671,6 +671,28 @@ Pictures: `tools/make_keeper_sheets.py` cuts `art_source/keeper/*.mp4` into
 the village goal in `assets/ui/shootout/`. Photos: `tools/keeper_shot.gd`,
 film of the dive: `tools/keeper_dive_shot.gd`.
 
+## 6e. The Free Kick number game: the wheel (24 Oct 2026)
+
+Anthony: "I like the wheel! Remove the instructions on the bottom please." The
+number call (both sides call 1 to 10, the closer call picks ATTACK or DEFEND;
+it comes up on a drop ball) is a fairground booth: a striped awning with the
+title on its yellow sign, two candy-striped posts, and a painted wheel of
+fortune that spins and stops with the number under the red flap. Their
+numbers are dark red raffle tickets, face down until the reveal; yours are
+cream tickets, and the one you call turns yellow with a blue ring. ATTACK and
+DEFEND are two tickets of the same size with the word filling each. An exact
+call puts a yellow burst between them with `coin_exact_words` (or
+`coin_exact_them_words`) on two lines. There is no line of words at the
+bottom: what it said (who called closer, what they chose) is on the sign.
+
+Everything is a row of `data/ClashLook.csv`; `style old` brings back the dark
+window. The wheel is drawn for 10 numbers, so another `coin_faces` uses the
+old window. `coin_no_ai_exact_modes` (Tuning.csv) keeps the AI from calling
+it exactly in the tutorial matches.
+
+Pictures: `tools/art/clash_wheel_pieces.py` draws them into
+`assets/ui/clash_wheel/` (free). Film: `tools/clash_wheel_shot.gd`.
+
 ## 7. The league match
 
 `src/formations/main_scene.gd` runs it. Nothing in that file names a card, a
