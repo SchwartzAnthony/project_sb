@@ -2629,6 +2629,7 @@ each check, slowly enough to follow:
 | `Tuning.csv` `duel_hl` | false turns the highlights off |
 | `Tuning.csv` `duel_hl_*_seconds` | how long each step is held, including the +1 sliding in (`duel_hl_bonus_*`) |
 | `Tuning.csv` `duel_hl_colour` | the gold |
+| `Tuning.csv` `role_colour_attack` / `role_colour_defend` | red attacks, blue defends (24 Oct): the border round each card in the duel follows its role, and the ATTACK / DEFEND lines in the card hover window use the same two colours |
 | `Language.csv` `duel_ability_priority`, `duel_power_check` | the words |
 | `Tuning.csv` `duel_hl_ring_art`, `duel_hl_box_art` | the ring art (blank for now: a plain gold circle) and the pretzel-corner box (24 Oct: `duel_box_ink.png`, a whole inked pretzel in each corner, drawn free by `tools/art/draw_pretzel_box.py`; the same box is the tutorial's gold highlight) |
 | `Tuning.csv` `duel_hl_art_scale`, `duel_hl_box_margin`, `duel_hl_box_overhang` | how big the art's pixels are (1 for the inked box, 3 for old pixel art); where the box corners end; how far the pretzels reach out past the thing they mark. A box too small for two whole pretzels shrinks the art instead of cutting it |

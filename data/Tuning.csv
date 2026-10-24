@@ -700,3 +700,5 @@ general_settings_ask_note,"These settings are always what a new save starts with
 general_settings_ask_new_only,Only new saves,20 Oct 2026. The button that keeps the old behaviour: the General Settings change and no save is touched.
 general_settings_ask_all,All saves,20 Oct 2026. The button that puts the settings into every played save's Profile Settings too.
 general_settings_saved_to_saves,Saved for new saves and for: %s.,"20 Oct 2026. What Settings says after saving into saves; %s = the list, e.g. Save 1, Save 2."
+role_colour_attack,#E0453A,"24 Oct 2026 (Anthony: Red for Attack, Blue for Defending, the same colours in combat). The red of the ATTACK line in the card window and of the border round the attacking card in a duel, as a colour code (#RRGGBB)."
+role_colour_defend,#408FEB,"24 Oct 2026. The blue of the DEFEND line in the card window and of the border round the defending card in a duel, as a colour code (#RRGGBB)."
