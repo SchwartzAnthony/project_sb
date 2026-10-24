@@ -56,6 +56,7 @@ var _home := {}
 ## sheet while its line is up, then goes back where it was.
 var _lift_layer: CanvasLayer = null
 var _lifted: Array = []
+var _top_holder: Control = null
 
 
 ## Open the box with `scene` over whatever is on screen. Returns the box, or
@@ -232,6 +233,9 @@ func _point_for_line() -> void:
 		return
 	for child in _spot_holder.get_children():
 		child.queue_free()
+	if _top_holder != null:
+		for child in _top_holder.get_children():
+			child.queue_free()
 	_drop_lifted()
 	if _groups.is_empty():
 		return
@@ -243,6 +247,26 @@ func _point_for_line() -> void:
 		var thing = spot.get("control")
 		if thing is Control and is_instance_valid(thing) and (thing as Control).has_meta("lift_in_talk"):
 			_lift(thing as Control)
+	# Anthony, 24 Oct: the pretzel sits on top of everything, so a lifted
+	# thing (the EXHAUST ZONE) never covers it.
+	if not _lifted.is_empty():
+		_on_top().add_child(CoachSpots.make(group))
+		for child in _spot_holder.get_children():
+			child.queue_free()
+
+
+## A layer over the lifted things, for the gold line and its pretzel.
+func _on_top() -> Control:
+	if _top_holder == null:
+		var top := CanvasLayer.new()
+		top.layer = layer + 2
+		top.process_mode = Node.PROCESS_MODE_ALWAYS
+		add_child(top)
+		_top_holder = Control.new()
+		_top_holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_top_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		top.add_child(_top_holder)
+	return _top_holder
 
 
 ## Bring it in front of the sheet, glowing, clicks still going to the box.
@@ -466,6 +490,11 @@ class CoachSpots extends Control:
 		var width := maxf(0.0, db.tune_float("duel_hl_outline_width", 6.0))
 		return rect.grow(db.tune_float("duel_hl_outline_gap", 0.0) + width * 0.5)
 
+	## How big the gold circle round a "ring:" spot is.
+	static func ring_radius(rect: Rect2) -> float:
+		var round_it := rect.grow(14.0)
+		return maxf(round_it.size.x, round_it.size.y) * 0.5 + 6.0
+
 	static func make(list: Array) -> CoachSpots:
 		var made := CoachSpots.new()
 		made.spots = list
@@ -487,6 +516,12 @@ class CoachSpots extends Control:
 		# child, so the art stretches like the duel's.
 		for spot in list:
 			if bool(spot.get("ring", false)):
+				# Anthony, 24 Oct: the pretzel on top of the circle too,
+				# centred on its top like on the gold line.
+				if bool(spot.get("pretzel", true)):
+					var r := ring_radius(spot.get("rect", Rect2()) as Rect2)
+					var centre := (spot.get("rect", Rect2()) as Rect2).get_center()
+					add_sides(made, Rect2(centre - Vector2(r, r), Vector2(r, r) * 2.0))
 				continue
 			# "pretzel": false - the gold line only (Anthony, 24 Oct: no
 			# pretzels on the beers you pick from in the bag).
@@ -524,8 +559,7 @@ class CoachSpots extends Control:
 		for spot in spots:
 			var rect: Rect2 = (spot.get("rect", Rect2()) as Rect2).grow(14.0)
 			if bool(spot.get("ring", false)):
-				var radius := maxf(rect.size.x, rect.size.y) * 0.5 + 6.0
-				draw_arc(rect.get_center(), radius, 0.0, TAU, 96, colour, 6.0, true)
+				draw_arc(rect.get_center(), ring_radius(spot.get("rect", Rect2()) as Rect2), 0.0, TAU, 96, colour, 6.0, true)
 			elif sides or not bool(spot.get("pretzel", true)):
 				var line := outline_rect(spot.get("rect", Rect2()) as Rect2)
 				draw_rect(line, Color(colour.r, colour.g, colour.b, 0.10), true)

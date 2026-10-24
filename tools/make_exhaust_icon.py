@@ -1,3 +1,5 @@
+# OLD LOOK (24 Oct 2026): the game's pieces are now drawn by
+# tools/art/draw_exhaust_emblem.py. Running this file brings the old clean look back.
 # Makes the drawn pieces of the EXHAUST ZONE marker (Anthony 23 Oct 2026:
 # "cannot see it, it blends in too much"). Free: built from the drawn empty
 # Maß of the save screen plus shapes drawn here in thick ink and flat colour.

@@ -946,10 +946,9 @@ func _build_exhaust_button() -> void:
 
 const EXHAUST_ART := "res://assets/ui/exhaust/"
 ## Where the middle of the glass is in mug.png, as a share of its width and
-## height (the lid and handle stick out to the right and up).
-const MUG_GLASS_MIDDLE := Vector2(0.34, 0.69)
+## height (the handle sticks out to the right). tools/art/draw_exhaust_emblem.py
+const MUG_GLASS_MIDDLE := Vector2(0.39, 0.57)
 var _exhaust_count_label: Label = null
-var _exhaust_words: Control = null
 
 
 func _draw_exhaust_icon(look: String, scale: float) -> void:
@@ -967,8 +966,8 @@ func _draw_exhaust_icon(look: String, scale: float) -> void:
 			box *= scale
 			b.offset_left = -20.0 - box.x - 30.0 * scale
 			b.offset_right = -20.0 - 30.0 * scale
-			b.offset_top = -74.0 - box.y
-			b.offset_bottom = -74.0
+			b.offset_top = -40.0 - box.y
+			b.offset_bottom = -40.0
 			b.flat = true
 			for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 				b.add_theme_stylebox_override(state, StyleBoxEmpty.new())
@@ -984,18 +983,9 @@ func _draw_exhaust_icon(look: String, scale: float) -> void:
 				var mh := box.y * 0.86
 				mug_at = Rect2(Vector2(box.x * 0.5 - mh * 0.27, 0), Vector2(mh * 0.54, mh))
 				badge_at = Vector2(box.x * 0.30, box.y * 0.56)
+			# Anthony 24 Oct: no EXHAUST ZONE word plank under it any more;
+			# the drawn mat and Maß alone are the button.
 			_exhaust_piece("mug", mug_at)
-			# The words on a small plank across the foot.
-			var sign_board := Button.new()
-			sign_board.text = words
-			sign_board.focus_mode = Control.FOCUS_NONE
-			sign_board.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			sign_board.add_theme_font_size_override("font_size", int(20 * scale))
-			sign_board.size = Vector2(box.x + 60.0 * scale, 46.0 * scale)
-			sign_board.position = Vector2(-30.0 * scale, box.y - 18.0 * scale)
-			b.add_child(sign_board)
-			ScreenLook._dress(sign_board, plank_row)
-			_exhaust_words = sign_board
 		_:
 			# plank: the button itself is the plank, the Maß stands on its end.
 			b.offset_left = -20.0 - 330.0 * scale
@@ -1022,7 +1012,8 @@ func _draw_exhaust_icon(look: String, scale: float) -> void:
 			b.add_child(glow)
 			_exhaust_piece("mug", mug_at)
 	# The count on a red disc.
-	var d := 58.0 * scale
+	# Never so small the count can't be read (exhaust_icon_scale 0.5).
+	var d := maxf(40.0, 58.0 * scale)
 	var badge_rect := Rect2(badge_at - Vector2(d, d) * 0.5, Vector2(d, d))
 	_exhaust_piece("badge", badge_rect)
 	_exhaust_count_label = Label.new()
@@ -1030,7 +1021,7 @@ func _draw_exhaust_icon(look: String, scale: float) -> void:
 	_exhaust_count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_exhaust_count_label.position = badge_rect.position
 	_exhaust_count_label.size = badge_rect.size
-	_exhaust_count_label.add_theme_font_size_override("font_size", int(28 * scale))
+	_exhaust_count_label.add_theme_font_size_override("font_size", maxi(18, int(28 * scale)))
 	_exhaust_count_label.add_theme_color_override("font_color", Color("fff6e0"))
 	_exhaust_count_label.add_theme_color_override("font_outline_color", Color("19110a"))
 	_exhaust_count_label.add_theme_constant_override("outline_size", 6)
