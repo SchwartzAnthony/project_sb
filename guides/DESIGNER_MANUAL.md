@@ -725,6 +725,26 @@ choose a side: the wheel's two tickets (role colours) and the
 `match_attack` / `match_defend` planks in `ScreenLook.csv`. Film with the
 sounds: `tools/wheel_sound_shot.gd`.
 
+### The duel cards are beer mats, front and back (Anthony, 24 Oct 2026)
+
+"Keep the clash cards and the cards they turn over the same art style and
+layout." A duel starts with the two face-down beer mats crashing together;
+the yellow KRACH! burst is bigger now (`duel_clash_burst_width` 1150) so
+KRACH! and TIER sit inside it, in our comic font. The mats then turn over
+into their FRONTS, which are the same mats at the same size, just plain:
+
+1. the player's name and his power in a bottle cap, at the top,
+2. the player running on the duel's background (`DuelBackgrounds.csv`),
+3. the whole ability, printed in ink (no ability name, no wooden plank).
+
+ATTACKER / DEFENDER is the red or blue ribbon round the mat. WIN or LOSE is
+not on the card: after the winner knocks the loser away (small, large or
+mega slam), `WIN!` or `LOSE!` (Language.csv `duel_win` / `duel_lose`, yours:
+the left card is always you) lands in the middle under the card left
+standing. Tuning.csv: `duel_card_look` (mat, or dark for the old cards),
+`duel_mat_*` and `duel_result_word_*`. Pictures: `tools/art/draw_duel_mats.py`
+(free). Film: `tools/duel_shot.gd -- film`.
+
 ## 7. The league match
 
 `src/formations/main_scene.gd` runs it. Nothing in that file names a card, a

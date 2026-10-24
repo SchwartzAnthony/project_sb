@@ -10,6 +10,9 @@ its own font so every tier and language uses the same two pictures.
     mat_back_attack.png   red ribbon round the edge (the attacking side)
     mat_back_defend.png   blue ribbon (the defending side)
     clash_burst.png       the yellow burst with ink speed lines
+    mat_front_attack.png  the plain FRONT the mats turn into (red / blue ribbon)
+    mat_front_defend.png
+    mat_cap.png           the bottle cap the power number sits in
 
     python3 tools/art/draw_duel_mats.py
 """
@@ -59,6 +62,43 @@ def mat_back(ribbon):
     return b.resize((MAT_W, MAT_H), Image.LANCZOS)
 
 
+def mat_front(ribbon):
+    """The FRONT of a duel mat (Anthony, 24 Oct 2026: "a plain version of the
+    back but as the front", then "remove the lower wooden plank and extend the
+    card to where it was"): the same mat, plain cream all the way down, no cap.
+    The game puts the name, the number, the player and the ability on it."""
+    frame = Image.open(FRAME).convert("RGBA")
+    b = frame.copy()
+    cream = frame.crop((140, 1150, 560, 1300)).resize((930, 1390), Image.LANCZOS)
+    m = Image.new("L", cream.size, 0)
+    ImageDraw.Draw(m).rounded_rectangle((0, 0, cream.width - 1, cream.height - 1), 44, fill=255)
+    b.paste(cream, (47, 88), m)
+    d = ImageDraw.Draw(b)
+    d.rounded_rectangle((47, 88, 976, 1477), 44, outline=INK, width=6)
+    d.rounded_rectangle((80, 120, 944, 1445), 34, outline=PIN, width=9)
+    d.rounded_rectangle((98, 138, 926, 1427), 28, outline=PIN, width=3)
+    ring = Image.new("RGBA", b.size, (0, 0, 0, 0))
+    ImageDraw.Draw(ring).ellipse((600, 1080, 900, 1380), outline=(150, 100, 40, 55), width=20)
+    b.alpha_composite(ring.filter(ImageFilter.GaussianBlur(5)))
+    mask = Image.new("L", b.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, b.width - 1, b.height - 1), 60, fill=255)
+    b.putalpha(mask)
+    d = ImageDraw.Draw(b)
+    d.rounded_rectangle((6, 6, b.width - 7, b.height - 7), 60, outline=ribbon, width=26)
+    d.rounded_rectangle((2, 2, b.width - 3, b.height - 3), 62, outline=INK, width=6)
+    return b.resize((MAT_W, MAT_H), Image.LANCZOS)
+
+
+def cap():
+    """The bottle cap from the front of the card, on its own: the power sits in it."""
+    frame = Image.open(FRAME).convert("RGBA")
+    c = frame.crop((512 - 110, 998 - 110, 512 + 110, 998 + 110))
+    cm = Image.new("L", c.size, 0)
+    ImageDraw.Draw(cm).ellipse((14, 14, 206, 206), fill=255)
+    c.putalpha(cm)
+    return c.crop((14, 14, 207, 207)).resize((192, 192), Image.LANCZOS)
+
+
 def burst():
     SS = 3
     w, h = 900 * SS, 640 * SS
@@ -92,4 +132,7 @@ if __name__ == "__main__":
     mat_back(ATTACK).save(OUT / "mat_back_attack.png")
     mat_back(DEFEND).save(OUT / "mat_back_defend.png")
     burst().save(OUT / "clash_burst.png")
-    print("wrote", OUT / "mat_back_attack.png", OUT / "mat_back_defend.png", OUT / "clash_burst.png")
+    mat_front(ATTACK).save(OUT / "mat_front_attack.png")
+    mat_front(DEFEND).save(OUT / "mat_front_defend.png")
+    cap().save(OUT / "mat_cap.png")
+    print("wrote the mat backs, the mat fronts, the cap and the burst in", OUT)
