@@ -310,6 +310,13 @@ func play_drain(info: Dictionary) -> void:
 	if _stamina_value:
 		_stamina_value.add_theme_color_override("font_color", Color(1.0, 0.45, 0.35))
 	await _beat(step)
+	# 24 Oct 2026 (Anthony): the Head Coach can stop here, while the drain is
+	# on show (MatchTalk.csv keeper_drain; its Tier is the draining card's).
+	if coach.is_valid():
+		_coaching = true
+		await coach.call("keeper_drain", card.get_tier_clean() if card is PlayerData else "")
+		_coaching = false
+		_skipping = false
 	# 3. And the % moves to match.
 	_show_chance(after, top, power, shift)
 	if _chance_value:
