@@ -362,7 +362,15 @@ class CoachSpots extends Control:
 	var art: Texture2D
 	var art_scale := 3.0
 	var margin := 17
+	var overhang := 0.0
 	var _t := 0.0
+
+	## How big one art pixel is drawn: duel_hl_art_scale, made smaller when
+	## the box is too small for two whole corners, so the pretzels never
+	## get cut or squashed.
+	static func fit_scale(size: Vector2, edge: int, wanted: float) -> float:
+		var room := minf(size.x, size.y) / maxf(1.0, edge * 2.0)
+		return clampf(room, 0.05, wanted)
 
 	static func make(list: Array) -> CoachSpots:
 		var made := CoachSpots.new()
@@ -379,22 +387,25 @@ class CoachSpots extends Control:
 			made.art = load(path) as Texture2D
 		made.art_scale = maxf(1.0, db.tune_float("duel_hl_art_scale", 3.0))
 		made.margin = db.tune_int("duel_hl_box_margin", 17)
+		made.overhang = db.tune_float("duel_hl_box_overhang", 0.0)
 		# Each box is a NinePatch child, so the art stretches like the duel's.
 		for spot in list:
 			if bool(spot.get("ring", false)) or made.art == null:
 				continue
-			var rect: Rect2 = (spot.get("rect", Rect2()) as Rect2).grow(14.0)
+			var rect: Rect2 = (spot.get("rect", Rect2()) as Rect2).grow(14.0 + made.overhang)
+			var fit := fit_scale(rect.size, made.margin, made.art_scale)
 			var patch := NinePatchRect.new()
 			patch.texture = made.art
-			patch.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			patch.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if made.art_scale > 1.0 \
+				else CanvasItem.TEXTURE_FILTER_LINEAR
 			patch.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			patch.patch_margin_left = made.margin
 			patch.patch_margin_right = made.margin
 			patch.patch_margin_top = made.margin
 			patch.patch_margin_bottom = made.margin
 			patch.position = rect.position
-			patch.scale = Vector2.ONE * made.art_scale
-			patch.size = rect.size / made.art_scale
+			patch.scale = Vector2.ONE * fit
+			patch.size = rect.size / fit
 			made.add_child(patch)
 		return made
 
