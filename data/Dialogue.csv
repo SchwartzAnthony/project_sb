@@ -9,7 +9,7 @@ prologue,open,,,,,,,bar,,,Three players wait at the Stammtisch.,,,,,,,,,,,,,,,
 prologue,servus,Head Coach,coach,left,happy,,,,,,"Servus, Trainer! Sit down.",,,,,,,,,,,,,,,
 prologue,put_down,Head Coach,coach,left,mad,side,,,,,"Put that down, Koch! You should already be drunk enough!",,,,,,,,,,,,,,,,koch:right:drunk
 prologue,still_cold,Koch,koch,right,sad,side,,,,,But this is cold.,,,,,,,,,,,,,,,
-prologue,finish_up,Head Coach,coach,left,mad,side,,,,,Fine! But finish up. We need to show our new trainee how to become a good new coach for our town.,,,,,,,,,,,,,,,
+prologue,finish_up,Head Coach,coach,left,mad,side,,,,,Fine! But finish up. We need to show our new trainee how to become a good new coach for our town.,,,,,,,,,,,,,,,,koch:right:happy
 prologue,beuterdorf,Head Coach,coach,left,happy,,,,,,"I will be leaving soon to help another town, Beuterdorf, and we need as many people as possible.",,,,,,,,,,,,,,,
 prologue,creatures,Head Coach,coach,left,mad,,,,,,Those damn mythological creatures won't leave us alone.,,,,,,,,,,,,,,,
 prologue,koch_echo,Koch,koch,right,drunk,side,,,,,Thos-se daaaaaaaaamn- creatures.,,,,,,,,,,,,,,,

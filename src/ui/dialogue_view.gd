@@ -468,7 +468,13 @@ func _apply_portrait(line: DialogueLine) -> void:
 			join.side = "right"
 		join.mood = bits[2].strip_edges().to_lower() if bits.size() > 2 else ""
 		var join_key := CardDatabase._normalise(join.portrait)
-		if join_key == "" or _cast.has(join_key):
+		if join_key == "":
+			continue
+		if _cast.has(join_key):
+			# Already on stage: just change their face (Anthony 24 Oct:
+			# "Fine! But finish up..." makes Koch happy again).
+			if join.mood != "":
+				_cast[join_key]["mood"] = join.mood
 			continue
 		for key in _cast.keys():
 			if String(_cast[key]["side"]) == join.side:
