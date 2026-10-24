@@ -708,6 +708,20 @@ it exactly in the tutorial matches.
 Pictures: `tools/art/clash_wheel_pieces.py` draws them into
 `assets/ui/clash_wheel/` (free). Film: `tools/clash_wheel_shot.gd`.
 
+**Sounds, confetti and colours (Anthony, 24 Oct 2026).** Five rows of
+`Audio.csv`, made for free by `tools/make_bavarian_sfx.py`, each with a Suno
+slot: `wheel_pick` (calling a number: a ticket punch and a glockenspiel
+ding), `wheel_spin` (the pegs clacking past the flap, slowing, a clunk as it
+stops), `wheel_win` (trumpet "ta-ta-TAAA!", cow bell, cheer) and
+`wheel_lose` (a short sad trombone). When you win the call, confetti falls
+until you choose (`wheel_win_confetti` in Tuning.csv; the paper is the goal
+celebration's). `side_chosen` (a double slap and a brass "PAH!") plays
+whenever YOU press ATTACK or DEFEND: here, on YOUR THROW and on the old
+rock-paper-scissors window. ATTACK is red and DEFEND is blue everywhere you
+choose a side: the wheel's two tickets (role colours) and the
+`match_attack` / `match_defend` planks in `ScreenLook.csv`. Film with the
+sounds: `tools/wheel_sound_shot.gd`.
+
 ## 7. The league match
 
 `src/formations/main_scene.gd` runs it. Nothing in that file names a card, a

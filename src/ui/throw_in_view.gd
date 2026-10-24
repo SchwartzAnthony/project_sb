@@ -283,8 +283,11 @@ func _plank_choice(words: String, why: String, ink: Color, attack: bool) -> Cont
 	button.focus_mode = Control.FOCUS_ALL
 	button.add_theme_font_size_override("font_size", 30)
 	button.pressed.connect(_choose.bind(attack))
-	# Window buttons are the blue-green plank (ScreenLook.csv match_window row).
-	if not ScreenLook.plank(button, "match_window"):
+	# ATTACK is the red plank and DEFEND the blue one (Anthony, 24 Oct:
+	# "red and blue please"), ScreenLook.csv rows match_attack / match_defend;
+	# no row = the blue-green window plank.
+	if not ScreenLook.plank(button, "match_attack" if attack else "match_defend") \
+			and not ScreenLook.plank(button, "match_window"):
 		InventoryScreen._plank(button)
 	stack.add_child(button)
 	stack.add_child(_ink(why, 15, ink))
@@ -311,6 +314,8 @@ func _ink(words: String, text_size: int, ink: Color) -> Label:
 func _choose(attack: bool) -> void:
 	if not _running:
 		return
+	# The same sound every time you choose ATTACK or DEFEND (Anthony, 24 Oct).
+	AudioDirector.fire(get_tree(), "side_chosen", {}, GameState.fetch(get_tree()))
 	_finish(attack)
 
 

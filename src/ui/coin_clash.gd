@@ -91,6 +91,8 @@ var _hub: TextureRect
 var _burst: TextureRect
 var _burst_words: Label
 var _rings: Array[TextureRect] = []
+## Paper in the air when YOU win the call (Tuning wheel_win_confetti).
+var _confetti: GoalCelebration
 
 
 static func make(database: CardDatabase) -> CoinClash:
@@ -380,7 +382,7 @@ func _build_wheel() -> void:
 	add_child(_choice_row)
 	var choice := ClashLook.pair("choice_size", Vector2(340, 110))
 	for side in [["ATTACK", "attack", "attack_at", Vector2(470, 930), cream, true],
-			["DEFEND", "defend", "defend_at", Vector2(1110, 930), ink, false]]:
+			["DEFEND", "defend", "defend_at", Vector2(1110, 930), cream, false]]:
 		var button := _ticket_button(side[0], side[1], side[4])
 		button.position = ClashLook.pair(side[2], side[3])
 		button.size = choice
@@ -600,7 +602,11 @@ func _big_button(text: String) -> Button:
 	button.custom_minimum_size = Vector2(150, 44)
 	button.focus_mode = Control.FOCUS_NONE
 	button.add_theme_font_size_override("font_size", 17)
-	ScreenLook.plank(button, "match_window")
+	# ATTACK red, DEFEND blue (Anthony, 24 Oct), ScreenLook.csv match_attack /
+	# match_defend; anything else is the blue-green window plank.
+	var row := {"ATTACK": "match_attack", "DEFEND": "match_defend"}.get(text, "match_window") as String
+	if not ScreenLook.plank(button, row):
+		ScreenLook.plank(button, "match_window")
 	return button
 
 
@@ -733,6 +739,7 @@ func _pick(number: int) -> void:
 		_mark_chip(_my_buttons[i], i + 1 == _picked)
 	_random_button.disabled = true
 	_status.text = "You called %d." % _picked
+	_sound("wheel_pick")
 	await _spin()
 
 
@@ -745,6 +752,7 @@ func _spin() -> void:
 	# there. Nobody sees it any earlier: their call is still face down and
 	# yours is already in.
 	_land()
+	_sound("wheel_spin")
 	if _wheel_on:
 		_turn_wheel_to(_landed, spin_seconds * 0.96)
 	for i in steps:
@@ -833,6 +841,14 @@ func _reveal() -> void:
 
 	_status.text = "The coin came up %d. You said %d (%d away), they said %d (%d away)." % [
 		_landed, _picked, mine_off, _theirs, theirs_off]
+
+	# WON OR LOST, HEARD AND SEEN (Anthony, 24 Oct: "a sound for losing or
+	# winning, confetti as well when winning"). Audio.csv rows wheel_win and
+	# wheel_lose; the paper is the goal celebration's, falling until the
+	# wheel closes.
+	_sound("wheel_win" if i_won else "wheel_lose")
+	if i_won:
+		_throw_confetti()
 
 	if exact_mine or exact_theirs:
 		_celebrate(exact_mine)
@@ -924,6 +940,9 @@ func _choose(attack: bool) -> void:
 	if not _running or not _choice_row.visible:
 		return
 	_choice_row.visible = false
+	# The same sound every time you choose ATTACK or DEFEND, anywhere in the
+	# game (Anthony, 24 Oct). Audio.csv row side_chosen.
+	_sound("side_chosen")
 	_status.text = "You %s." % ("attack" if attack else "defend")
 	await get_tree().create_timer(maxf(0.05, result_seconds)).timeout
 	_finish(attack)
@@ -933,5 +952,27 @@ func _finish(player_attacks: bool) -> void:
 	if not _running:
 		return
 	_running = false
+	_stop_confetti()
 	hide()
 	clash_finished.emit(player_attacks)
+
+
+## A row of Audio.csv, by its When word.
+func _sound(event: String) -> void:
+	AudioDirector.fire(get_tree(), event, {}, GameState.fetch(get_tree()))
+
+
+func _throw_confetti() -> void:
+	if db != null and not db.tune_bool("wheel_win_confetti", true):
+		return
+	_stop_confetti()
+	_confetti = GoalCelebration.open(self, db)
+	# Clicks belong to ATTACK and DEFEND, not to skipping a celebration.
+	_confetti.set_process_unhandled_input(false)
+	_confetti.confetti()
+
+
+func _stop_confetti() -> void:
+	if _confetti != null and is_instance_valid(_confetti):
+		_confetti.close()
+	_confetti = null

@@ -1434,6 +1434,57 @@ def s_knock_away():
     return mix([(0, band, 1.0), (0, leather(0.05, 1.0, 500, 2600), 0.5)])
 
 
+# ---- THE FREE KICK WHEEL (24 Oct 2026, Anthony: "add a spin sound, a sound
+# when picking and locking in a number, a sound for losing or winning ...
+# a sound when picking attack or defend, same sound any time") ----
+
+def s_wheel_spin():
+    "Free Kick wheel turning: the fairground wheel's pegs clacking past the leather flap, fast then slower, a wooden clunk as it stops."
+    # The wheel turns ~3.5 times over 1.34 s with a quart ease-out (coin_clash.gd
+    # _turn_wheel_to), so one clack per wedge = 35 clacks bunched at the start.
+    spin, wedges = 1.34, 35
+    parts = []
+    for k in range(1, wedges):
+        at = spin * (1 - (1 - k / wedges) ** 0.25)
+        pitch = rng.uniform(1500, 1700)
+        parts.append((at, woodblock(pitch, 0.035, rng.uniform(0.55, 0.8), hollow=0.4), 1.0))
+        parts.append((at + 0.004, leather(0.02, 0.5, 900, 3000), 0.4))
+    parts.append((spin, woodblock(700, 0.12, 1.0), 1.0))
+    parts.append((spin, thump(110, 0.18, 0.7, 0.3), 0.6))
+    # the air of the big wheel going round, dying away with it
+    hum = bandpass(noise(spin), 200, 900) * np.exp(-3.0 * t_axis(spin) / spin)
+    parts.append((0, hum, 0.25))
+    return mix(parts)
+
+
+def s_wheel_pick():
+    "Free Kick wheel, calling a number: the raffle ticket punched with a click and a bright glockenspiel 'ding'."
+    band = sf([(0.03, "glock", "F5", 95, 0.25), (0.03, "glock", "Bb5", 80, 0.25)], tail=0.35, room=0.08)
+    return mix([(0, woodblock(1300, 0.05, 1.0, hollow=0.3), 0.7), (0, leather(0.03, 0.9, 1200, 4000), 0.6),
+                (0, band, 1.0)])
+
+
+def s_wheel_win():
+    "Free Kick wheel, YOU WIN the call: the trumpet's 'ta-ta-TAAA!', a cow bell and the beer tent cheering."
+    ev = [(0, "trumpet", "F4", 100, 0.09), (0.11, "trumpet", "F4", 100, 0.09), (0.22, "trumpet", "Bb4", 110, 0.7)]
+    ev += [(0.22, "brass", n, 100, 0.7) for n in ("D4", "F4")] + [(0.22, "tuba", "Bb1", 105, 0.7), (0.22, "kit", CRASH, 60, 0.8)]
+    band = sf(ev, tail=0.5, room=0.12)
+    return mix([(0, band, 1.0), (0.2, crowd(1.0, "cheer", 30), 0.35), (0.24, cowbell(640, 0.8, 0.8), 0.25)])
+
+
+def s_wheel_lose():
+    "Free Kick wheel, THEY WIN the call: the trombone's short 'wah-waahh', sagging, and a little groan."
+    band = sf([(0, "trombone", "D3", 85, 0.25), (0.3, "trombone", "Db3", 82, 0.7, -1.5)], tail=0.4, room=0.1)
+    return mix([(0, band, 1.0), (0.3, crowd(0.8, "groan", 20), 0.25)])
+
+
+def s_choose_side():
+    "Choosing ATTACK or DEFEND (everywhere): a Schuhplattler double slap and the brass band's punchy 'PAH!'."
+    band = sf([(0.09, "brass", n, 112, 0.18) for n in ("Bb3", "D4", "F4")] + [(0.09, "tuba", "Bb1", 110, 0.18),
+               (0.09, "kit", KICK, 115, 0.2)], tail=0.3, room=0.1)
+    return mix([(0, leather(0.05, 1.0, 500, 2600), 0.8), (0.05, leather(0.05, 1.0, 600, 2800), 0.9), (0, band, 1.0)])
+
+
 # Which version of each sound the game uses - Anthony's picks on the sound
 # board (8 Oct). "classic" = take 1, all synthesized (the c_ functions);
 # "band" = take 3, real instruments from the soundfont (the s_ functions).
@@ -1498,6 +1549,11 @@ PICKS = {
     "bav_burp": "classic",
     "bav_mat_clash": "band",
     "bav_knock_away": "band",
+    "bav_wheel_spin": "band",
+    "bav_wheel_pick": "band",
+    "bav_wheel_win": "band",
+    "bav_wheel_lose": "band",
+    "bav_choose_side": "band",
 }
 SOUNDS = {name: globals()[("c_" if kind == "classic" else "s_") + name[4:]] for name, kind in PICKS.items()}
 
@@ -1608,6 +1664,7 @@ MAX_SECONDS = {
     "bav_pour": 1.0, "bav_banner": 0.7, "bav_bld_brewery": 0.9, "bav_bld_pub": 0.8, "bav_bld_club_house": 0.8,
     "bav_bld_training": 0.5, "bav_bld_trophy": 1.2, "bav_bld_tavern": 0.9, "bav_visitor_brewer": 0.6,
     "bav_visitor_heatwave": 0.7, "bav_drink": 0.8, "bav_birds": 1.4, "bav_moo": 1.6, "bav_boeller": 1.4,
+    "bav_wheel_spin": 1.6, "bav_wheel_pick": 0.5, "bav_wheel_win": 1.4, "bav_wheel_lose": 1.3, "bav_choose_side": 0.6,
 }
 
 
