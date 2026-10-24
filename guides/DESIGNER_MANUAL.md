@@ -8871,3 +8871,40 @@ fixed four things:
   is there.
 
 Run it with `godot --headless --path . --script res://tools/sound_playback_check.gd`.
+
+## Crisp pitch grass, varied Rivals, the gnome's fists (round AN, 24 Oct)
+
+**The grass on the match pitch is drawn fresh** (your ask: "it looks very
+bad when close up", with the photo of mown stripes).
+
+- `tools/make_village_pitch.py` now draws the whole lawn inside the stone
+  wall and fence itself, at full size: wide mown stripes in two flat greens,
+  fine mowing streaks along each stripe, and a few small inked grass tufts.
+  Nothing is blown up any more, so it stays sharp when the camera pushes in.
+  The shadows of the wall, fence and trees are kept.
+- The stripes are now part of the grass, still stopping at the white lines.
+  Outside the lines the grass is one plain green.
+- The lines wander smoothly instead of in little bumps, and their ends meet
+  cleanly at the corners.
+- Colours and amounts are at the top of the script: `LAWN_LIGHT`,
+  `LAWN_DARK`, `LAWN_RUNOFF`, `TUFT_INK`, `TUFTS`, `STREAKS`. `DRAWN = False`
+  brings back the r183 grass picture.
+
+**The Rivals come in every look your Club has** (your ask: "a variety like
+our team").
+
+- `tools/make_rival_sheets.py` takes every drawn Club look (fat with an afro,
+  muscular with a quiff, skinny with a mullet, Thomas, each in 5 skin tones,
+  and the five women) and turns the red of the Club kit into the Rivals'
+  blue. Skin, hair, white shorts and ink stay as drawn. It makes the pitch
+  sheets and the big duel sheets under the same names.
+- `data/PitchSprites.csv`: row `Rivals` = the men (plus the drawn Rival
+  man), row `class_Rivals_female.png` = the women.
+- `data/EnemyIntroSquad.csv` and `EnemyIntroSquad2.csv`: four Rivals in each
+  are women now (Gender `f`, Artwork `class_Rivals_female.png`), so they also
+  get women's names. Change a row back to `m` with a blank Artwork for a man.
+
+**The Bergmännlein's fists are no longer cut off** in the talk box, and he is
+drawn about 3% smaller there. `tools/art/koch_transform_busts.py` puts him on
+a wider canvas (800) so both fists fit, and shows a little more of his
+shorts, which makes the box draw him 3% smaller. Same for his silhouette.
