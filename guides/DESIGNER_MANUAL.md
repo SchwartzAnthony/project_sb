@@ -1281,33 +1281,33 @@ options in `art_source/pixellab/vs_menu_draft/`.
 | `vs_background` | the tent. `assets/team/vs/vs_tent.png` |
 | `vs_background_dim` | how much darker the tent is. `0.55` |
 
-### The line-ups on the grass
+### The line-ups before kick-off
 
-After START on the VS screen, both sides are introduced **standing on the
-pitch** (round AN, Anthony). It is the real pitch, frozen, with everyone on
-their own spot, standing in idle and facing the camera. The camera pushes in
-and pans along **your side from right to left**, then along **theirs from
-left to right**. The side not being shown is faded back, and a sign at the
-bottom names whoever is in the middle of the screen: ★ for a Star, the name,
-tier, power and defence. The keepers are included.
+After START on the VS screen, both teams line up **side by side in a row**,
+facing you, like a team photo (Anthony, 24 Oct 2026). The drawn pitch stays
+behind, darkened. Your team's name hangs on the tavern sign at the top; then
+one player at a time, left to right, steps forward in full colour while the
+others stay dark, and the beer mat under the row names him: ★ for a Star,
+the name, **Tier** and **Power**. The keeper stands first, then the players by
+Tier, the Stars last. Then the same for the other team.
 
-It uses the same figures and name plates as the match, so nobody can look
-different here from how they look in play. The camera follows the best
-straight line through the side, because the tilted pitch runs corner to
-corner. The HUD and the keepers' save odds are hidden while it runs.
+Every figure is the drawn sprite that player wears on the pitch, so a
+transformed player (a brew on him) looks here exactly as he will play. The
+HUD and the keepers' save odds are hidden while it runs.
 
-**It can always be skipped.** A click, space, enter or escape ends the whole
-thing.
+**It can always be skipped.** The yellow **SKIP** plank bottom right, or
+space, enter or escape, goes straight to the countdown.
 
 | Tuning row | |
 |---|---|
 | `line_up_parade` | `false` turns it off for good |
-| `line_up_pan_seconds` | how long the pan along one side takes. `5` |
-| `line_up_hold` | the pause at each end of a pan. `0.6` |
-| `line_up_zoom` | how close, as a multiple of the whole-pitch shot. `2.2` |
-| `line_up_fade_other` | how see-through the side not being shown is. `0.3` |
-| `line_up_facing` | `south` = everyone faces the camera; any of the 8 directions; `ball` = they keep looking at the ball |
-| `line_up_between_sides` | the pause between your side and theirs. `0.9` |
+| `line_up_each` | seconds each player is highlighted. `0.8` |
+| `line_up_hold` | the pause on the team name before the first player. `0.8` |
+| `line_up_between_sides` | the pause between your team and theirs. `0.6` |
+| `line_up_figure_height` | how tall the figures stand, part of the screen. `0.36` |
+| `line_up_overlap` | how much each figure overlaps the next. `0.22` |
+| `line_up_dim` | how dark the players not highlighted are. `0.35` |
+| `line_up_shade` | how dark the pitch behind the row is. `0.55` |
 
 `tools/line_up_shot.gd` films it frame by frame for a GIF.
 
