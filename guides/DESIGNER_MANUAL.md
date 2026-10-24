@@ -2689,6 +2689,7 @@ each check, slowly enough to follow:
 | `Language.csv` `duel_ability_priority`, `duel_power_check` | the words |
 | `Tuning.csv` `duel_hl_ring_art`, `duel_hl_box_art` | the ring art (blank for now: a plain gold circle) and the pretzel-corner box (24 Oct: `duel_box_ink.png`, a whole inked pretzel in each corner, drawn free by `tools/art/draw_pretzel_box.py`; the same box is the tutorial's gold highlight) |
 | `Tuning.csv` `duel_hl_art_scale`, `duel_hl_box_margin`, `duel_hl_box_overhang` | how big the art's pixels are (1 for the inked box, 3 for old pixel art); where the box corners end; how far the pretzels reach out past the thing they mark. A box too small for two whole pretzels shrinks the art instead of cutting it |
+| `Tuning.csv` `duel_hl_side_art`, `duel_hl_side_out` | **what is used now (24 Oct)**: ONE pretzel on each side of every gold highlight, half-way down, in the tutorial and the duel; how far out each sits. Blank `duel_hl_side_art` = the four-corner box above |
 | `Audio.csv` `duel_ability_success` / `_fail`, `duel_power_victory` / `_fail` | the four sounds, made with Ludo.ai |
 
 **The checks under the window (round AN, 11 Oct, later).** You asked for
