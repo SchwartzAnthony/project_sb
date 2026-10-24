@@ -110,6 +110,11 @@ func _ready() -> void:
 		_build_wheel()
 	else:
 		_build()
+	# THE CONTROLLER STAYS ON THE WHEEL (24 Oct 2026, Anthony: choosing
+	# ATTACK or DEFEND on the Deck jumped to 1x or the EXHAUST ZONE). The
+	# match's own highlight walked every button on the pitch behind it; this
+	# one answers first while the wheel is up, and only walks the wheel.
+	ControllerFocus.install(self)
 	hide()
 
 
