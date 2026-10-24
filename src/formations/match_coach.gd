@@ -195,10 +195,23 @@ func _spots_for(words: String) -> Array:
 		var above := word.to_lower().begins_with("referee")
 		for control in _controls_for(word):
 			if control != null and control.is_visible_in_tree():
-				out.append({"rect": control.get_global_rect(), "ring": ring, "control": control, "above": above})
+				out.append({"rect": _drawn_rect(control), "ring": ring, "control": control, "above": above})
 	if out.is_empty():
 		print("[match talk] Highlight '%s' found nothing on screen to point at." % words)
 	return out
+
+
+## Where a thing is really drawn on screen. A beer mat card is narrower than
+## its slot, so the gold line goes round the mat, not the slot (24 Oct).
+func _drawn_rect(control: Control) -> Rect2:
+	var whole := control.get_global_rect()
+	var face = control.get("_face") if control is PlayerCardUI else null
+	if face is Control and is_instance_valid(face) and (face as Control).has_meta("frame_rect"):
+		var frame: Rect2 = (face as Control).get_meta("frame_rect")
+		var at := (face as Control).get_global_rect()
+		var scale := at.size.x / maxf(1.0, (face as Control).size.x)
+		return Rect2(at.position + frame.position * scale, frame.size * scale)
+	return whole
 
 
 func _controls_for(word: String) -> Array:

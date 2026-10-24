@@ -69,6 +69,8 @@ static func dress(button: Button, card: PlayerData, db: CardDatabase, box: Vecto
 	if size.x > box.x:
 		size = Vector2(box.x, box.x / aspect)
 	var frame := Rect2((box - size) / 2.0, size)
+	# Where the mat really is in the box, so the gold highlight can hug it.
+	button.set_meta("frame_rect", frame)
 
 	var art := TextureRect.new()
 	art.texture = frame_tex
