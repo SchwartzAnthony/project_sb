@@ -138,17 +138,14 @@ func _build_chrome() -> void:
 	add_child(_hall)
 	_hall.resized.connect(_rebuild)
 
-	var title := MenuSupport.heading(
-		Loc.text("brewery_title", "THE BREWERY"), 32, MenuSupport.COLOUR_ACCENT)
-	title.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	title.offset_left = 36.0
-	title.offset_top = 18.0
-	title.offset_bottom = 58.0
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# THE WINDOW'S TITLE BAR ALREADY SAYS THIS. Hidden rather than removed,
-	# so the layout below keeps the breathing room it was drawn with.
-	title.visible = not MenuSupport.in_a_window(self)
-	add_child(title)
+	# THE NAME ON THE TAVERN SIGN (24 Oct 2026, Anthony: "Give the Brewery the
+	# new sign as for all other buildings") - the same hanging sign as the
+	# base, Settings and the save screen (data/MenuHeader.csv). In a window
+	# the frame's own sign already says it, so none here.
+	var sign: SignHeader = null
+	if not MenuSupport.in_a_window(self):
+		sign = SignHeader.make(Loc.text("brewery_title", "THE BREWERY").to_upper())
+		add_child(sign)
 
 	# ---- the two windows, side by side along the top ----
 	var top := HBoxContainer.new()
@@ -157,6 +154,10 @@ func _build_chrome() -> void:
 	top.offset_right = -36.0
 	top.offset_top = 62.0
 	top.offset_bottom = 176.0
+	if sign != null:
+		# Under the sign: beside it the two windows do not fit.
+		top.offset_top = sign.position.y + sign.size.y - 4.0
+		top.offset_bottom = top.offset_top + 100.0
 	top.add_theme_constant_override("separation", 20)
 	add_child(top)
 
@@ -167,7 +168,7 @@ func _build_chrome() -> void:
 	_world = Control.new()
 	_world.name = "Yard"
 	_world.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_world.offset_top = 186.0
+	_world.offset_top = top.offset_bottom + 10.0
 	_world.offset_left = 24.0
 	_world.offset_right = -24.0
 	_world.offset_bottom = -74.0
