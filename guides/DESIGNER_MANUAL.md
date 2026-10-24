@@ -1512,7 +1512,7 @@ along whatever these say.** That is a different thing and it is always on.
 one, Q269) is held, the whole match stands still: the pitch, the duel window
 and the shot window. You can still hover a card and read it. Let go and it
 carries on at the speed you had. A right click never skips a duel or a shot.
-While it is held the words `Tuning.csv hold_pause_words` ("Holding right click - paused", size `hold_pause_words_size`) show across the top in the game's font. `Tuning.csv hold_pause_on` false switches it off. `Keys.csv` Default Key may
+While it is held the words `Tuning.csv hold_pause_words` ("Holding right click - paused", size `hold_pause_words_size`) show in the middle of the screen in the game's font. `Tuning.csv hold_pause_on` false switches it off. `Keys.csv` Default Key may
 now be a mouse button (`Right Mouse`, `Left Mouse`, `Middle Mouse`) and
 Default Button a trigger (`Left Trigger`, `Right Trigger`).
 

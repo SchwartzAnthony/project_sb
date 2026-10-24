@@ -25,7 +25,7 @@ const ACTION := "hold_pause"
 static var active := false
 
 var _was_speed := 1.0
-## The words across the top while it is held (Tuning.csv hold_pause_words),
+## The words in the middle of the screen while it is held (Tuning.csv hold_pause_words),
 ## in the game's own font.
 var _sign: CanvasLayer
 
@@ -63,9 +63,10 @@ func _build_sign() -> void:
 	add_child(_sign)
 	var box := PanelContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	# In the middle of the screen (Anthony, 24 Oct: "the center of the combat").
+	box.set_anchors_preset(Control.PRESET_CENTER)
 	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	box.offset_top = 10.0
+	box.grow_vertical = Control.GROW_DIRECTION_BOTH
 	var back := StyleBoxFlat.new()
 	back.bg_color = Color(0, 0, 0, 0.85)
 	back.set_content_margin_all(10.0)
