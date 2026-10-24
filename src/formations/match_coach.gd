@@ -906,10 +906,14 @@ func _build_exhaust_button() -> void:
 	# 24 Oct 2026 (Anthony): while the coach talks about it, it comes in
 	# front of the dark sheet (MatchTalkBox), then goes back.
 	_exhaust_button.set_meta("lift_in_talk", true)
-	ScreenLook.plank(_exhaust_button)
+	var look := db.tune_text("exhaust_icon", "coaster").strip_edges().to_lower()
+	# Anthony 24 Oct 2026: no button box round the beer mat (or the big
+	# Maß); the drawn icon itself is the button. Only the plank looks get
+	# the plank and its grey plate.
+	if look not in ["coaster", "mug"]:
+		ScreenLook.plank(_exhaust_button)
 	(layer as Node).add_child(_exhaust_button)
-	_draw_exhaust_icon(db.tune_text("exhaust_icon", "coaster").strip_edges().to_lower(),
-		db.tune_float("exhaust_icon_scale", 1.0))
+	_draw_exhaust_icon(look, db.tune_float("exhaust_icon_scale", 1.0))
 	_refresh_exhaust()
 
 
