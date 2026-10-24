@@ -51,6 +51,10 @@ const VBOX_LEFT := "Dim/Panels/LeftPanel/Margin/VBox"
 const VBOX_RIGHT := "Dim/Panels/RightPanel/Margin/VBox"
 
 const DIM_TEXT := Color(0.55, 0.56, 0.62)
+## The dark fill inside each duel card: reddish for the attacker, bluish for
+## the defender (the two fills duel_arena.tscn used to give by side).
+const ROLE_FILL_ATTACK := Color(0.145, 0.086, 0.098, 0.98)
+const ROLE_FILL_DEFEND := Color(0.086, 0.102, 0.145, 0.98)
 const LIVE_TEXT := Color(1.0, 0.95, 0.72)
 const WIN_TEXT := Color(0.55, 0.95, 0.55)
 const LOSE_TEXT := Color(0.95, 0.45, 0.42)
@@ -1142,6 +1146,9 @@ func _paint_border(key: String, is_attacker: bool) -> void:
 		panel.add_theme_stylebox_override("panel", style)
 		panel.set_meta("own_border", true)
 	style.border_color = MenuSupport.role_colour(is_attacker, db)
+	# Anthony, 24 Oct: "it shouldn't be reddish even when defending" - the
+	# dark fill inside the card follows the role too (it was fixed by side).
+	style.bg_color = ROLE_FILL_ATTACK if is_attacker else ROLE_FILL_DEFEND
 
 
 ## A Star Player keeps its badge through the power check, so the moment that
