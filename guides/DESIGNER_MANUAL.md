@@ -8423,6 +8423,9 @@ which every screen and the match pass through:
    signs, the team sheet notes) stay plain: anything darker than
    `text_outline_dark_limit` (0.3) gets no border, because a black ring
    round a dark letter only blurs it.
+   The plank buttons' dark rim is drawn at `plank_edge_scale` (0.6) of its
+   painted size, and the shadow round the EXHAUST ZONE reaches
+   `exhaust_aura_size` (0.4) of the old one (your note, 24 Oct).
 
 
 ## The Match Maker, and two tabs gone (round AN)

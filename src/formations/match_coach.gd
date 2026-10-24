@@ -969,7 +969,8 @@ func _draw_exhaust_icon(look: String, scale: float) -> void:
 			var shade := StyleBoxFlat.new()
 			shade.bg_color = Color(0, 0, 0, 0)
 			shade.shadow_color = Color(0.04, 0.02, 0.0, 0.8)
-			shade.shadow_size = int(16 * scale)
+			shade.shadow_size = int(16 * scale * (CardDatabase.get_db().tune_float("exhaust_aura_size", 0.4) \
+				if CardDatabase.get_db() != null else 0.4))
 			shade.set_corner_radius_all(int(12 * scale))
 			glow.add_theme_stylebox_override("panel", shade)
 			glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1009,6 +1010,9 @@ func _exhaust_piece(piece: String, at: Rect2) -> void:
 		return
 	if glow != null:
 		var pad := at.size * (Vector2(glow.get_size()) / Vector2(art.get_size()) - Vector2.ONE) * 0.5
+		# Anthony 24 Oct: the shadow was too thick. Tuning exhaust_aura_size.
+		pad *= clampf(CardDatabase.get_db().tune_float("exhaust_aura_size", 0.4), 0.0, 1.0) \
+			if CardDatabase.get_db() != null else 0.4
 		var aura := _exhaust_rect(glow, Rect2(at.position - pad, at.size + pad * 2.0))
 		aura.self_modulate = Color(0.04, 0.02, 0.0, 0.85)
 	_exhaust_rect(art, at)
