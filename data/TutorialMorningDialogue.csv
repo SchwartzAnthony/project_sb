@@ -22,6 +22,9 @@ tut-morning-handover,l5,Head Coach,coach,left,sad,,"And this is where I leave yo
 tut-morning-handover,l6,Koch,koch,right,bergmaennlein,,I do?,,
 tut-morning-handover,l7,Head Coach,coach,left,happy,,"You do. Servus, Trainer. Look after my town.",,
 tut-morning-handover,l8,Koch,koch,right,bergmaennlein,,"Right then! Adventure! Up at the top, the banner with the mountain.",,
+tut-morning-farewell,l1,Head Coach,coach,left,sad,,"And this is where I leave you, Trainer. Beuterdorf needs me.",,"ROUND AN (24 Oct): the Tutorial's last box while the Adventure is hidden (Guide.csv tut_morning_farewell, Tuning.csv adventure_shown false). Lines taken from tut-morning-handover and tut-morning-beds-2 - rewrite them here."
+tut-morning-farewell,l2,Head Coach,coach,left,happy,,"Servus, Trainer. Look after my town.",,
+tut-morning-farewell,l3,Koch,koch,right,bergmaennlein,,The town is yours now. The Head Coach left you a starting side. Prost!,,
 tut-adv-board,l1,Koch,koch,right,bergmaennlein,,"The Bounty Board. Pick where we go, then which job. Every job ends with a boss.",,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. Guide.csv tut_morning_board."
 tut-adv-board,l2,Koch,koch,right,bergmaennlein,,"The Marshlands, then the Brewer's Errand. One stretch of marsh and the Reed Warden at the end.",,
 tut-adv-start,l1,Koch,koch,right,bergmaennlein,,Off we go! The four of them run and the ball goes with them.,,"DRAFT lines (round AN, ""the morning after"") - rewrite them here. MatchTalk.csv tut_adv_start."

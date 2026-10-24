@@ -395,6 +395,7 @@ class CoachSpots extends Control:
 	var art_scale := 3.0
 	var margin := 17
 	var overhang := 0.0
+	var sides := false
 	var _t := 0.0
 
 	## How big one art pixel is drawn: duel_hl_art_scale, made smaller when
@@ -403,6 +404,35 @@ class CoachSpots extends Control:
 	static func fit_scale(size: Vector2, edge: int, wanted: float) -> float:
 		var room := minf(size.x, size.y) / maxf(1.0, edge * 2.0)
 		return clampf(room, 0.05, wanted)
+
+	## ONE PRETZEL ON EACH SIDE (Anthony, 24 Oct: "way too many pretzels").
+	## Tuning.csv duel_hl_side_art is the pretzel; it sits half-way down
+	## the left and right edges of `rect`, its middle duel_hl_side_out
+	## pixels outside the edge, shrunk only if the thing is shorter than it.
+	## Returns false when there is no side art (the old box is used then).
+	static func add_sides(parent: Control, rect: Rect2) -> bool:
+		var db := CardDatabase.get_db()
+		var path := db.tune_text("duel_hl_side_art", "")
+		if path == "" or not ResourceLoader.exists(path):
+			return false
+		var art := load(path) as Texture2D
+		var out := db.tune_float("duel_hl_side_out", 20.0)
+		var size := art.get_size()
+		size *= minf(1.0, rect.size.y / maxf(1.0, size.y))
+		for side in [-1.0, 1.0]:
+			var pretzel := TextureRect.new()
+			pretzel.name = "Pretzel%s" % ("Left" if side < 0.0 else "Right")
+			pretzel.texture = art
+			pretzel.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			pretzel.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			pretzel.flip_h = side > 0.0
+			pretzel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var edge := rect.position.x if side < 0.0 else rect.end.x
+			var middle := Vector2(edge + side * out, rect.get_center().y)
+			pretzel.position = middle - size * 0.5
+			pretzel.size = size
+			parent.add_child(pretzel)
+		return true
 
 	static func make(list: Array) -> CoachSpots:
 		var made := CoachSpots.new()
@@ -420,9 +450,15 @@ class CoachSpots extends Control:
 		made.art_scale = maxf(1.0, db.tune_float("duel_hl_art_scale", 3.0))
 		made.margin = db.tune_int("duel_hl_box_margin", 17)
 		made.overhang = db.tune_float("duel_hl_box_overhang", 0.0)
-		# Each box is a NinePatch child, so the art stretches like the duel's.
+		# One pretzel each side; else each box is a NinePatch child, so the
+		# art stretches like the duel's.
 		for spot in list:
-			if bool(spot.get("ring", false)) or made.art == null:
+			if bool(spot.get("ring", false)):
+				continue
+			if add_sides(made, (spot.get("rect", Rect2()) as Rect2).grow(14.0)):
+				made.sides = true
+				continue
+			if made.art == null:
 				continue
 			var rect: Rect2 = (spot.get("rect", Rect2()) as Rect2).grow(14.0 + made.overhang)
 			var fit := fit_scale(rect.size, made.margin, made.art_scale)
@@ -455,5 +491,5 @@ class CoachSpots extends Control:
 				draw_arc(rect.get_center(), radius, 0.0, TAU, 96, colour, 6.0, true)
 			else:
 				draw_rect(rect, Color(colour.r, colour.g, colour.b, 0.10), true)
-				if art == null:
+				if art == null and not sides:
 					draw_rect(rect, colour, false, 5.0)

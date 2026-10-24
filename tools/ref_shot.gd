@@ -60,6 +60,12 @@ func _initialize() -> void:
 		Referee.watch_round(false, 6, db)
 		Referee.watch_round(true, 2, db)
 		_scene.call("_refresh_ref_bar")
+		# 24 Oct 2026: the drawn card box shows its counts - some cards by hand.
+		var bar = _scene.get("ref_bar")
+		if step == 2 and bar != null:
+			bar.yellows = {false: 1, true: 2}
+			bar.reds = {false: 0, true: 1}
+			bar.refresh()
 		await _wait(0.5)
 		_snap("bar-%d" % (step + 1))
 
