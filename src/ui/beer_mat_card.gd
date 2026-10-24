@@ -134,17 +134,29 @@ static func _add_runner(button: Button, card: PlayerData, db: CardDatabase, fram
 		return
 	var look := PitchSprite.look_of(sheet)
 	var cell := float(look.get("cell", 72.0))
-	var runner := CardRunner.new()
-	runner.setup(sheet, cell, int(run["row"]) + PitchSprite.DIRECTIONS.find("west"),
-		int(run["frames"]), float(run["fps"]) * number("runner_speed", 1.0))
 	# The figure stands on the cell's feet line (PitchSheets.csv Lift is how
 	# far above the cell's bottom that is, in sheet pixels at its own scale).
-	var lift := float(look.get("lift", 0.0))
+	var lift_part := float(look.get("lift", 0.0)) / cell
+	var row := int(run["row"]) + PitchSprite.DIRECTIONS.find("west")
+	var smooth := bool(look.get("smooth", false))
+	# THE SHARP RUNNER (24 Oct 2026, Anthony: "The twice size players on the
+	# cards are now blurry"): the same run cut 3x bigger, one row, made by
+	# tools/make_card_runners.py. The card shrinks it instead of stretching
+	# the pitch sheet. No file there = the pitch sheet, as before.
+	var sharp_path := value("runner_folder", "res://assets/players/card/").path_join(
+		sheet.resource_path.get_file().get_basename() + ".webp")
+	if sheet.resource_path != "" and ResourceLoader.exists(sharp_path):
+		sheet = load(sharp_path) as Texture2D
+		cell = float(sheet.get_height())
+		row = 0
+		smooth = true
+	var runner := CardRunner.new()
+	runner.setup(sheet, cell, row, int(run["frames"]), float(run["fps"]) * number("runner_speed", 1.0))
 	var scale := tall / cell * 1.25
 	runner.size = Vector2(cell, cell) * scale
 	runner.position = Vector2((window.size.x - runner.size.x) / 2.0,
-		feet - runner.size.y + (lift / cell) * runner.size.y * 0.25)
-	runner.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if bool(look.get("smooth", false)) \
+		feet - runner.size.y + lift_part * runner.size.y * 0.25)
+	runner.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if smooth \
 		else CanvasItem.TEXTURE_FILTER_NEAREST
 	clip.add_child(runner)
 

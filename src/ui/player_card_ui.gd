@@ -108,6 +108,18 @@ func setup_card(data: PlayerData) -> void:
 	_face.mouse_entered.connect(_on_mouse_entered)
 	_face.mouse_exited.connect(_on_mouse_exited)
 	_face.pressed.connect(_on_pressed)
+	# A CONTROLLER CAN PICK A CARD (24 Oct 2026, found playing the Tutorial
+	# with only a controller): the d-pad walks to it, a thick gold edge shows
+	# which one, A takes it. Highlighting it does what pointing at it does.
+	_face.focus_mode = Control.FOCUS_ALL
+	var gold := StyleBoxFlat.new()
+	gold.draw_center = false
+	gold.border_color = Color("ffd36a")
+	gold.set_border_width_all(6)
+	gold.set_corner_radius_all(10)
+	_face.add_theme_stylebox_override("focus", gold)
+	_face.focus_entered.connect(_on_mouse_entered)
+	_face.focus_exited.connect(_on_mouse_exited)
 
 	_add_brew_corner(box)
 	_add_show_button(box)

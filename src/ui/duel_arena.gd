@@ -173,6 +173,7 @@ func _wire() -> void:
 		_anim[key] = animator
 		var stage: Control = _side[key]["stage"]
 		if stage != null:
+			_field_behind(stage, key)
 			stage.add_child(animator)
 
 
@@ -1745,3 +1746,52 @@ func _input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key != null and key.pressed and not key.echo and key.keycode == KEY_SPACE:
 		skip()
+
+
+# =============================================================
+#  THE PLAYER ON THE FIELD  (Anthony 24 Oct 2026: "For the combat cards,
+#  keep the simple red and blue borders, but we also need them to be running
+#  on the field / grass", with his sketch: a thin strip on top, the player
+#  running on the field in the middle, a panel below)
+#
+#  Tuning.csv duel_field (the picture, blank = none as before) and
+#  duel_field_edge (the line round it, in the card's own colour).
+# =============================================================
+
+func _field_behind(stage: Control, key: String) -> void:
+	var path := CardDatabase.get_db().tune_text("duel_field", "res://assets/ui/duel/duel_field.png").strip_edges()
+	if path == "":
+		return
+	var field := TextureRect.new()
+	field.name = "Field"
+	field.texture = ScreenLook.picture(path)
+	field.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	field.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	field.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	field.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	field.clip_contents = true
+	stage.add_child(field)
+	# The card's own red or blue, as a line round the field and under the
+	# strip at the top - the panels keep their simple borders.
+	var panel := stage.get_parent().get_parent().get_parent() as PanelContainer
+	var colour := Color(0.36, 0.62, 0.9) if key == "left" else Color(0.9, 0.42, 0.36)
+	if panel != null:
+		var box := panel.get_theme_stylebox("panel") as StyleBoxFlat
+		if box != null:
+			colour = box.border_color
+	var edge := Panel.new()
+	edge.name = "FieldEdge"
+	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var line := StyleBoxFlat.new()
+	line.draw_center = false
+	line.border_color = colour
+	line.set_border_width_all(int(CardDatabase.get_db().tune_float("duel_field_edge", 3.0)))
+	edge.add_theme_stylebox_override("panel", line)
+	stage.add_child(edge)
+	var fit := func() -> void:
+		# Both cards the same height, whatever the words below them need.
+		var box := Vector2(stage.size.x, maxf(stage.custom_minimum_size.y, 100.0))
+		field.custom_minimum_size = box
+		edge.custom_minimum_size = box
+	stage.resized.connect(fit)
+	fit.call_deferred()
