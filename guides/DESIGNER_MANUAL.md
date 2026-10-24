@@ -660,6 +660,12 @@ Everything is a row of `data/ShootoutLook.csv`; `style old` brings back the
 dark window. A `Shootout Artwork` in Goalies.csv still wins over the drawn
 keeper.
 
+**Skipping it** (Anthony 24 Oct: "the same as you can skip / go fast on
+combat"): the shot window and a keeper drain pace like a duel. Hold SPACE or
+the mouse and it runs at `arena_skip_speed` (Tuning.csv) while you hold; one
+click, SPACE or the SKIP plank fast-forwards the rest. A drain that takes
+about 8 seconds takes under 2 once skipped.
+
 Pictures: `tools/make_keeper_sheets.py` cuts `art_source/keeper/*.mp4` into
 `assets/players/keeper/`; `tools/make_shootout_pieces.py` makes the panels and
 the village goal in `assets/ui/shootout/`. Photos: `tools/keeper_shot.gd`,
