@@ -4452,17 +4452,19 @@ func _walk_them_out() -> void:
 
 
 ## THE TEAM'S SYMBOL on the line-up banner (Anthony 24 Oct 2026: "show the
-## symbol of that team as well"). The class's Banner Art in ClassInfo.csv when
-## it has one; otherwise its own icon from AdventureTraits.csv (the row whose
+## symbol of that team as well"). The class's Team Symbol in ClassInfo.csv (the
+## drawn crest), else its Banner Art; otherwise its own icon from AdventureTraits.csv (the row whose
 ## From is class and Value is the class), then its Element's icon there, so a
 ## side never shows another team's crest. Blank Banner Art = these fall-backs.
 func _team_symbol(theirs: bool) -> String:
 	var star := active_enemy_star if theirs else active_player_star
 	var klass := star.unit_type if star != null else ""
 	var info := _class_info(klass)
-	var crest := MenuSupport.field(info, "Banner Art").strip_edges()
-	if crest != "" and MenuSupport.icon_texture(crest) != null:
-		return crest
+	# The drawn team symbol (24 Oct 2026), then the class banner.
+	for column in ["Team Symbol", "Banner Art"]:
+		var crest := MenuSupport.field(info, column).strip_edges()
+		if crest != "" and MenuSupport.icon_texture(crest) != null:
+			return crest
 	var element := MenuSupport.field(info, "Element").strip_edges().to_lower()
 	var by_element := ""
 	for row in MenuSupport.read_csv("res://data/AdventureTraits.csv"):
