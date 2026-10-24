@@ -30,7 +30,8 @@ extends CanvasLayer
 #    stir      STIR THE MASH (Steeping Tank). Move the mouse in circles over
 #              the tank. Stirring soaks the grain; stop and it clumps.
 #              Speed = soak per turn. Hits = how slow counts as stopped.
-#              Pictures: tank.png, paddle.png
+#              Pictures: tank.png, paddle.png, mash.png, clump_small/
+#              medium/large.png (the redrawn tank, art rounds r148-r150)
 #    rhythm    CRANK RHYTHM (Grain Mill). Left, right, left, right (arrow
 #              keys, A/D, or click the left and right half). The same side
 #              twice jams the mill. Hits = turns to grind it.
@@ -263,7 +264,7 @@ func _load_art() -> void:
 		folder = "res://" + folder
 	if not folder.ends_with("/"):
 		folder += "/"
-	for part: String in ["tank", "paddle", "mill", "crank", "tun", "bucket", "kettle", "bellows",
+	for part: String in ["tank", "paddle", "mash", "clump_small", "clump_medium", "clump_large", "mill", "crank", "tun", "bucket", "kettle", "bellows",
 			"vat", "tap", "bottle", "belt", "background"]:
 		var path := folder + part + ".png"
 		if ResourceLoader.exists(path):
@@ -700,6 +701,10 @@ func _draw_stage() -> void:
 func _draw_stir() -> void:
 	var middle := STAGE * Vector2(0.5, 0.56)
 	var soak := float(s["soak"])
+	var spin := float(s["spin"])
+	if _art.has("tank") and _art.has("mash"):
+		_draw_stir_drawn(middle, soak, spin)
+		return
 	# The mash fills the tank's opening: the picture's is smaller and higher
 	# than the plain drawing's.
 	var mash := middle
@@ -715,13 +720,62 @@ func _draw_stir() -> void:
 	_bar.draw_set_transform(mash, 0.0, Vector2(1.0, size.y / size.x))
 	_bar.draw_circle(Vector2.ZERO, size.x, Color(0.8, 0.67, 0.36).lerp(Color(0.45, 0.33, 0.18), soak))
 	_bar.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	var spin := float(s["spin"])
 	for i in 6:
 		var a := spin + i * 1.05
 		_bar.draw_circle(mash + Vector2(cos(a), sin(a)) * size * 0.6, 5.0, Color(1, 1, 1, 0.35))
 	var tip := mash + Vector2(cos(spin), sin(spin)) * size * 0.53
 	if not _picture("paddle", tip + Vector2(0, -50), Vector2(60, 130), 0.2 * sin(spin)):
 		_bar.draw_line(tip, tip + Vector2(0, -110), WOOD, 10.0)
+	_meter(Rect2(40, 30, 220, 18), soak, WATER, "SOAKED")
+	_meter(Rect2(380, 30, 220, 18), float(s["clump"]), BAD, "CLUMPS")
+
+
+## The redrawn Steeping Tank (art rounds r148-r150): the open tank, the round
+## mash turning in its opening, drawn clumps that grow while nobody stirs, and
+## the paddle. The middle of the mash is the middle stir() measures from.
+func _draw_stir_drawn(middle: Vector2, soak: float, spin: float) -> void:
+	var tank: Texture2D = _art["tank"]
+	# The mash sits at (768, 500) of the 1536 x 1024 picture, 630 x 290 round.
+	var k := tank.get_width() / 1536.0
+	_bar.draw_texture(tank, middle - Vector2(768.0, 500.0) * k)
+	var radius := Vector2(630.0, 290.0) * k
+	# The mash: the round picture squashed into the opening, turned by the
+	# stirring. Soaking makes it creamy and frothy.
+	var mash: Texture2D = _art["mash"]
+	_bar.draw_set_transform_matrix(Transform2D(0.0, Vector2(1.0, radius.y / radius.x), 0.0, middle)
+		* Transform2D(spin, Vector2.ZERO))
+	_bar.draw_texture_rect(mash, Rect2(-Vector2.ONE * radius.x, Vector2.ONE * radius.x * 2.0), false,
+		Color.WHITE.lerp(Color(1.0, 0.96, 0.82), soak))
+	_bar.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	# Clumps ride round with the mash, the back ones first.
+	var clump := float(s["clump"])
+	if clump > 0.02:
+		var heaps: Array = []
+		for i in 6:
+			var show := clampf(clump * 6.0 - i * 0.8, 0.0, 1.0)
+			if show <= 0.0:
+				continue
+			var a := i * 2.4 + spin
+			var r := 0.2 + (i % 3) * 0.24
+			heaps.append({"at": middle + Vector2(cos(a) * radius.x, sin(a) * radius.y) * r,
+				"tex": _art.get(["clump_small", "clump_medium", "clump_large"][i % 3]), "show": show})
+		heaps.sort_custom(func(p: Dictionary, q: Dictionary) -> bool: return p["at"].y < q["at"].y)
+		for heap: Dictionary in heaps:
+			var tex: Texture2D = heap["tex"]
+			if tex == null:
+				continue
+			var grow := (0.5 + 0.5 * float(heap["show"])) * (0.6 + 0.4 * minf(clump, 1.0))
+			var size := Vector2(tex.get_size()) * grow
+			_bar.draw_texture_rect(tex, Rect2(heap["at"] - Vector2(size.x * 0.5, size.y * 0.8), size), false,
+				Color(1, 1, 1, minf(1.0, float(heap["show"]) * 1.5)))
+	# The paddle: blade in the mash, leaning with the stir.
+	var paddle: Texture2D = _art.get("paddle")
+	if paddle != null:
+		var tip := middle + Vector2(cos(spin) * radius.x, sin(spin) * radius.y) * 0.55
+		var size := Vector2(paddle.get_size())
+		_bar.draw_set_transform(tip, 0.22 * cos(spin) + 0.12, Vector2.ONE)
+		_bar.draw_texture_rect(paddle, Rect2(Vector2(-size.x * 0.5, -size.y * 0.93), size), false)
+		_bar.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_meter(Rect2(40, 30, 220, 18), soak, WATER, "SOAKED")
 	_meter(Rect2(380, 30, 220, 18), float(s["clump"]), BAD, "CLUMPS")
 
