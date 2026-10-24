@@ -5003,7 +5003,23 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 		brew.get("name", "it"), luck], 1.6 if luck == "" else 3.0)
 	print("[brew] %s used on %s mid-draft. %d left." % [
 		entry.get("name", item_id), card.player_name, state.count(item_id)])
+	# EVERY BEER GETS THE DRINKING WINDOW (Anthony, 24 Oct: a beer clicked in
+	# the bag gave only words). A tutorial lesson (bag_only set) plays its own.
+	if bag_only.is_empty() and db.tune_bool("drink_window_every_beer", true):
+		_play_drink_window(card, entry)
 	item_used_on_card.emit(card, entry)
+
+
+## The drinking window over the frozen match: the keg for a keg, else the
+## bottle (DrinkWindow.csv says how it looks).
+func _play_drink_window(card: PlayerData, entry: Dictionary) -> void:
+	var vessel := "barrel" if String(entry.get("use", "")).ends_with(":keg") else "bottle"
+	var tree := get_tree()
+	var was_paused := tree.paused
+	tree.paused = true
+	var window := DrinkWindow.play(self, card, vessel)
+	await window.finished
+	tree.paused = was_paused
 
 
 ## Rebuild the faces in the card row without changing which cards are on

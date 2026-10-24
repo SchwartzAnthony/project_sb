@@ -3998,7 +3998,7 @@ low his drunk meter is (`match_drink_takes_hold_at`, 0). In the tutorial the
 keg (`Items.csv keg`, Use `brew:pool:keg`) always gives the `Brews.csv
 kleiner_fass` row, because that is the only keg row whose Requires
 (`flag:in_tutorial`) passes. Outside the tutorial the keg is the plain beer
-gamble. **The drinking window** (new look, Anthony 23-24 Oct 2026, all in
+gamble. **Every beer gets the drinking window** (24 Oct 2026): any beer or brew used from the bag in a match plays it too, not only the lessons (`Tuning.csv drink_window_every_beer`, false = lessons only). **The drinking window** (new look, Anthony 23-24 Oct 2026, all in
 `data/DrinkWindow.csv`): the cream beer mat panel of the inventory, the
 player's name in ink on the panel (`name`: panel, sign or none), our base
 seen from the side at eye level inside (`backdrop`, `backdrop_region`), with
