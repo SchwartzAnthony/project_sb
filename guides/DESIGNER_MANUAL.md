@@ -6676,6 +6676,7 @@ it, B is Back, Start on the team sheet is START. What was fixed:
 - The Head Coach's talk box in the match takes A even when a card is highlighted under it.
 - The time-out Pub: A moves the talk on (a button left highlighted on the pitch behind used to take it).
 - The drink lesson: opening a bag moves the highlight onto the first drink, so A drinks it.
+- When the Tutorial lights one thing ("the Bottling Machine first"), the controller's highlight jumps straight onto it.
 - The Brewery mini-games: A is the mouse button or Space, d-pad or shoulder left and right are the rhythm halves, and the left stick turned round stirs the mash.
 - In the match the cards and every window button can be reached; the first
   push starts at the button nearest the middle of the screen (the choice
