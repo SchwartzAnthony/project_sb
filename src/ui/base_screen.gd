@@ -828,8 +828,12 @@ func _make_village_building(entry: Dictionary, art: Texture2D) -> Control:
 			picture.modulate = resting * Color(1.25, 1.25, 1.25, 1.0))
 	# GUIDE GLOW (round AN): a Guide.csv Highlight on a drawn building lights
 	# its own picture, pulsing, instead of a ring round the whole screen.
+	# Tuning.csv base_guide_glow false (Anthony, 24 Oct): it stays at rest and
+	# only lights up on hover, like the other buildings.
 	var glowing := {"on": false}
 	button.set_meta(Guide.GLOW_META, func() -> void:
+		if not db.tune_bool("base_guide_glow", false):
+			return
 		glowing["on"] = true
 		if lit != null:
 			picture.texture = lit
