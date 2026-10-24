@@ -5897,7 +5897,7 @@ is missing is drawn as a plain shape, so the game always works.
 
 **Bottling, drawn (24 Oct).** The Bottling game uses the drawn pieces: the
 filling valve of the drawn machine, a see-through swing-top bottle, the belt,
-and a soft close-up of the drawn hall behind. Remake the pieces for free with
+and behind it the inside of the machine framing the hall wall (rbt2). Remake the pieces for free with
 `tools/art/bottling/make_game_pieces.py` and `make_background.py`.
 
 No row = no game (the batch is rolled on the brewer's % as before).
