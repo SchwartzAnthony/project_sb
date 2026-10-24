@@ -197,6 +197,7 @@ static func highlight(host: Node, words: String) -> Control:
 	# A drawn building on the village lights itself up (base_screen.gd).
 	if target.has_meta(GLOW_META):
 		(target.get_meta(GLOW_META) as Callable).call()
+		ControllerFocus.point_at(target)
 		return target
 	var ring := Panel.new()
 	ring.name = "GuideHighlight"
@@ -220,6 +221,7 @@ static func highlight(host: Node, words: String) -> Control:
 		(target as BaseButton).pressed.connect(func() -> void:
 			if is_instance_valid(ring):
 				ring.queue_free(), CONNECT_ONE_SHOT)
+	ControllerFocus.point_at(target)
 	return target
 
 

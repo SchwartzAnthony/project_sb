@@ -53,6 +53,11 @@ const SPREAD := 1.4
 var _last_mouse := Vector2.ZERO
 var _using_pad := false
 
+## True while the last thing the player touched was the controller (or the
+## arrow keys), on any screen. The Tutorial uses it to put the highlight on
+## the one thing it lights up.
+static var pad_in_use := false
+
 ## True when the stick has come back to the middle since its last push.
 ## This is what turns a held stick into ONE step rather than forty.
 var _stick_ready: bool = true
@@ -74,6 +79,17 @@ static func install(on: Node) -> ControllerFocus:
 	return made
 
 
+## The Tutorial lit this button (24 Oct 2026): a controller player gets the
+## highlight put straight on it, instead of hunting for it with the d-pad.
+static func point_at(button: Control) -> void:
+	var b := button as BaseButton
+	if not pad_in_use or b == null or not b.is_visible_in_tree() or b.disabled:
+		return
+	if b.focus_mode == Control.FOCUS_NONE:
+		b.focus_mode = Control.FOCUS_ALL
+	b.grab_focus()
+
+
 func _ready() -> void:
 	layer = 5
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -90,6 +106,7 @@ func _input(event: InputEvent) -> void:
 	if motion != null:
 		if _using_pad and motion.position.distance_to(_last_mouse) > 6.0:
 			_using_pad = false
+			pad_in_use = false
 			_drop_focus()
 		_last_mouse = motion.position
 		return
@@ -100,6 +117,7 @@ func _input(event: InputEvent) -> void:
 	var way := _direction(event)
 	if way != Vector2i.ZERO:
 		_using_pad = true
+		pad_in_use = true
 		# Only keep the push when it moved something (24 Oct 2026): a second
 		# ControllerFocus over a part of the screen with no buttons (the
 		# pause layer in the match) swallowed every d-pad push before the
@@ -116,6 +134,7 @@ func _input(event: InputEvent) -> void:
 	# the d-pad move, so A on its highlighted Yes did nothing.
 	if event is InputEventJoypadButton and (event as InputEventJoypadButton).pressed:
 		_using_pad = true
+		pad_in_use = true
 	if GameKeys.pressed(event, "confirm") and _using_pad:
 		var here := _focused()
 		# Only a button on its own screen (24 Oct 2026): the time-out Pub
