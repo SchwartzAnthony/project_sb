@@ -125,6 +125,10 @@ static func apply(view: ShootoutView) -> void:
 	for value_name in ["ShotBox/ShotValue", "StaminaBox/StaminaValue", "ChanceBox/ChanceValue"]:
 		_ink_label(view.get_node_or_null(BASE + "/Readouts/" + value_name) as Label, value_size)
 	_ink_label(view.get_node_or_null(BASE + "/Readouts/ChanceBox/ChanceNote") as Label, int(number("note_size", 17)))
+	# 24 Oct 2026 (Anthony: "The % number of the chance for the goalie is too
+	# large (is outside of the circle)"): "100%" has to fit inside the coaster.
+	_ink_label(view.get_node_or_null(BASE + "/Readouts/ChanceBox/ChanceValue") as Label,
+		int(number("chance_size", 32)))
 
 	# Shot power and the chance sit on a beer coaster each.
 	var across := number("coaster", 130.0)
