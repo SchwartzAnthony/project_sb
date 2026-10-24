@@ -1806,6 +1806,37 @@ ability can change what the duel starts with.
 The crest on each side of the back is the same `Banner Art` the team sheet
 uses, so a class that has a crest anywhere has one here.
 
+**The clash (Anthony's pick B, 24 Oct 2026).** `duel_flip_style` `clash`
+(the default) replaces the card back above: the two cards come in **face
+down as beer mats**, the attacker's with a red ribbon round it, the
+defender's blue. They slide in from the two sides, crash together in the
+middle — **KRACH!**, a yellow comic burst saying `TIER III`, a flash and a
+shake — bounce back over their own half of the window, are held there
+(`duel_back_seconds`), and then **both turn over at the same moment**.
+`card` brings back the old dark card back.
+
+**The knock-away (Anthony, 24 Oct 2026).** At the end of a duel the
+winner's half rushes into the loser's, the same burst says KRACH! where they
+meet, the loser spins off the side of the screen and the winner slides to the
+middle. A draw skips it.
+
+| Tuning row | |
+|---|---|
+| `duel_flip_style` | `clash` = the beer mats; `card` = the old card back |
+| `duel_clash_mat_attack_art` / `_defend_art` | the two mat backs |
+| `duel_clash_burst_art` | the yellow burst |
+| `duel_clash_mat_height` | how tall a mat is on screen. `720` |
+| `duel_clash_burst_width` | how wide the burst is. `760` |
+| `duel_clash_slide_seconds` / `_bounce_seconds` | in from the sides / back apart |
+| `duel_back_seconds` | held face down before they turn. `0.8` |
+| `duel_knock` | `false` and the two halves stay put at the end |
+| `duel_knock_hit_seconds` / `_fly_seconds` / `_centre_seconds` / `_hold_seconds` | the rush, the loser flying off, the winner to the middle, the winner held alone |
+
+The pictures are drawn for free by `tools/art/draw_duel_mats.py` from the
+beer mat card frame. The numeral, TIER and KRACH! are written by the game
+(`Language.csv` `duel_clash_word`, `tier`), so one picture serves every tier
+and language.
+
 ### `data/ShotOdds.csv` — will it go in?
 
 The keeper's stamina is a wall, and **the wall gets weaker as you knock it
