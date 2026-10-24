@@ -601,6 +601,11 @@ The Head Coach in the on-field talk box is cut to his drawing and drawn
 `match_talk_portrait_height` (212) tall, so his hair sits just under the
 box's top edge.
 
+**Solid black dialogue boxes (24 Oct 2026, Anthony).** Every dialogue box
+(the Head Coach's box over the pitch, the Adventure coach, and the story
+scenes' text box) is solid black behind the words and the face. Tuning.csv
+`dialogue_box_alpha` (1 = solid, 0.8 = the old see-through look).
+
 Every player card (the match pick, the team builder, the Adventure fight) is
 a worn Bavarian beer mat. You chose it from your collector card photo.
 

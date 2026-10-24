@@ -181,8 +181,19 @@ func _build_text_box() -> void:
 	_text_panel.offset_right = -48.0
 	_text_panel.offset_top = 0.0
 	_text_panel.offset_bottom = -40.0
-	_text_panel.add_theme_stylebox_override("panel",
-		MenuSupport.panel_style(Color(0.08, 0.09, 0.12, 0.94), MenuSupport.COLOUR_ACCENT))
+	# 24 Oct 2026 (Anthony: "make the background for the text and image
+	# solid black"). A plain black plate, not the tinted wood panel, so no
+	# grain or see-through edge shows. Tuning.csv dialogue_box_alpha.
+	var plate := StyleBoxFlat.new()
+	plate.bg_color = Color(0, 0, 0, MenuSupport.tuned("dialogue_box_alpha", 1.0))
+	plate.border_color = MenuSupport.COLOUR_ACCENT
+	plate.set_border_width_all(2)
+	plate.set_corner_radius_all(6)
+	plate.content_margin_left = 24
+	plate.content_margin_right = 24
+	plate.content_margin_top = 14
+	plate.content_margin_bottom = 14
+	_text_panel.add_theme_stylebox_override("panel", plate)
 	_text_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_text_panel)
 
