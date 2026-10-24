@@ -60,6 +60,8 @@ var _keeper_placeholder: ColorRect
 var _striker_placeholder: ColorRect
 ## 24 Oct 2026: the beer mat look is on (data/ShootoutLook.csv style mat).
 var _mat := false
+## The drawn keeper standing in for a keeper with no Shootout Artwork.
+var _keeper_strip: ShootoutLook.KeeperStrip
 
 
 func _ready() -> void:
@@ -104,7 +106,7 @@ func _wire() -> void:
 	_mat = ShootoutLook.enabled()
 	if _mat:
 		ShootoutLook.apply(self)
-		ShootoutLook.dress_keeper_placeholder(_keeper_placeholder, _keeper_stage)
+		_keeper_strip = ShootoutLook.dress_keeper_placeholder(_keeper_placeholder, _keeper_stage)
 		_striker_placeholder.color = Color(0, 0, 0, 0)
 
 
@@ -220,6 +222,8 @@ func play_shot(info: Dictionary) -> void:
 			if int(info.get("shield", 0)) > 0:
 				_chance_note.text += "   shield %d" % int(info.get("shield", 0))
 
+	# Your shot is at their keeper (green kit), theirs at yours (yellow).
+	ShootoutLook.dress_keeper_kit(_keeper_strip, is_player)
 	_dress_keeper(keeper_data)
 	_dress_striker(card, "idle")
 
@@ -287,6 +291,7 @@ func play_drain(info: Dictionary) -> void:
 		_shot_value.text = str(power)
 	_show_stamina(before, top)
 	_show_chance(before, top, power, shift)
+	ShootoutLook.dress_keeper_kit(_keeper_strip, bool(info.get("shooter_is_player", true)))
 	_dress_keeper(info.get("keeper_data"))
 	_dress_striker(card, "idle")
 
@@ -357,6 +362,12 @@ func _play_keeper(keeper_data, anim_name: String) -> void:
 	var have_art := sheet != null and spec != null
 	if _keeper_placeholder:
 		_keeper_placeholder.visible = not have_art
+	if _keeper_strip and not have_art:
+		_keeper_strip.speed = _rate()
+		if anim_name == "keeper_dive":
+			_keeper_strip.dive()
+		else:
+			_keeper_strip.ready_pose()
 	if _keeper_anim:
 		_keeper_anim.visible = have_art
 		if have_art:

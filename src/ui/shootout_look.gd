@@ -238,27 +238,93 @@ static func _dress_stage(view: ShootoutView) -> void:
 	stage.add_child(red)
 
 
-## The stand-in keeper: the drawn picture from ShootoutLook.csv inside the
-## placeholder box (which turns see-through). Returns false with no picture.
-static func dress_keeper_placeholder(holder: ColorRect, keeper_stage: Control) -> bool:
+## A strip of pictures side by side, one shown at a time: the drawn keeper
+## (picture 0 = ready, the rest = his dive).
+class KeeperStrip:
+	extends TextureRect
+	var frames := 1
+	var fps := 12.0
+	var speed := 1.0
+	var _atlas: AtlasTexture
+	var _at := 0.0
+	var _playing := false
+
+	func setup(sheet: Texture2D, count: int, rate: float) -> void:
+		frames = maxi(1, count)
+		fps = rate
+		_atlas = AtlasTexture.new()
+		_atlas.atlas = sheet
+		texture = _atlas
+		show_frame(0)
+
+	## The same keeper in another kit (a strip of the same size).
+	func use_sheet(sheet: Texture2D) -> void:
+		if sheet != null and _atlas.atlas != sheet:
+			_atlas.atlas = sheet
+			show_frame(0)
+
+	func cell() -> Vector2:
+		var full := _atlas.atlas.get_size()
+		return Vector2(full.x / float(frames), full.y)
+
+	func show_frame(i: int) -> void:
+		var c := cell()
+		_atlas.region = Rect2(Vector2(c.x * clampi(i, 0, frames - 1), 0), c)
+
+	func ready_pose() -> void:
+		_playing = false
+		show_frame(0)
+
+	func dive() -> void:
+		_at = 1.0
+		_playing = frames > 1
+		show_frame(1)
+
+	func _process(delta: float) -> void:
+		if not _playing:
+			return
+		_at += delta * fps * speed
+		if _at >= frames - 1:
+			_at = frames - 1
+			_playing = false
+		show_frame(int(_at))
+
+
+## The stand-in keeper: the drawn strip from ShootoutLook.csv inside the
+## placeholder box (which turns see-through), feet on the goal line.
+## Returns the strip, or null with no picture.
+static func dress_keeper_placeholder(holder: ColorRect, _keeper_stage: Control) -> KeeperStrip:
 	var path := value("keeper")
 	var tex := load(path) as Texture2D if path != "" and ResourceLoader.exists(path) else null
 	if tex == null or holder == null:
-		return false
-	var goal_height := pair("stage_size", Vector2(1040, 444)).y * goal_box().size.y
-	var tall := goal_height * number("keeper_height", 0.98)
-	var wide := tall * float(tex.get_width()) / float(tex.get_height())
+		return null
+	var strip := KeeperStrip.new()
+	strip.name = "Keeper"
+	strip.setup(tex, int(number("keeper_frames", 1)), number("keeper_fps", 12.0))
+	var goal := goal_box().size * pair("stage_size", Vector2(1040, 444))
+	# Picture 0 stands about 0.69 of the strip's height (his feet at its bottom).
+	var tall := goal.y * number("keeper_height", 0.9) / number("keeper_figure", 0.69)
+	var c := strip.cell()
+	var wide := tall * c.x / c.y
 	holder.color = Color(0, 0, 0, 0)
-	holder.custom_minimum_size = Vector2(wide, tall)
-	var picture := TextureRect.new()
-	picture.name = "Keeper"
-	picture.texture = tex
-	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	picture.set_anchors_preset(Control.PRESET_FULL_RECT)
-	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	holder.add_child(picture)
-	return true
+	holder.custom_minimum_size = Vector2(wide, goal.y)
+	strip.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	strip.stretch_mode = TextureRect.STRETCH_SCALE
+	strip.size = Vector2(wide, tall)
+	strip.position = Vector2(0, goal.y - tall)
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(strip)
+	return strip
+
+
+## Yours (yellow) or theirs (green) for this shot.
+static func dress_keeper_kit(strip: KeeperStrip, theirs: bool) -> void:
+	if strip == null:
+		return
+	var path := value("keeper_away") if theirs else ""
+	if path == "" or not ResourceLoader.exists(path):
+		path = value("keeper")
+	strip.use_sheet(load(path) as Texture2D)
 
 
 static func _dress_caption(view: ShootoutView) -> void:
