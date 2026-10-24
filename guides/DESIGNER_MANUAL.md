@@ -3830,17 +3830,19 @@ low his drunk meter is (`match_drink_takes_hold_at`, 0). In the tutorial the
 keg (`Items.csv keg`, Use `brew:pool:keg`) always gives the `Brews.csv
 kleiner_fass` row, because that is the only keg row whose Requires
 (`flag:in_tutorial`) passes. Outside the tutorial the keg is the plain beer
-gamble. **The drinking window** (new look, Anthony 23 Oct 2026, all in
+gamble. **The drinking window** (new look, Anthony 23-24 Oct 2026, all in
 `data/DrinkWindow.csv`): the cream beer mat panel of the inventory, the
-player's name on the wooden sign board, a piece of the match's drawn village
-inside (`backdrop`, `backdrop_region`), his own drawn match figure facing
-right, and a drawn Kleiner Faß or bottle (the bag pictures `assets/icons/kleiner_fass.png`, `small_bottle.png`). He lifts it to his
-mouth (`mouth`), gulps three times, flings the empty over his shoulder, then
-cheers (his `cheer` row) with *BURP!*. The screen behind goes dark (`dim`) and
-the match's big announcement is hidden while he drinks, so no rule words show
-behind it. A look whose pitch sheet has its own `drink` rows (the PixelLab
-looks) plays those instead. `style old` brings back the 8 Oct dark box with
-the code-drawn barrel. The burp is `Audio.csv drink_burp`, silent
+player's name in ink on the panel (`name`: panel, sign or none), our base
+seen from the side at eye level inside (`backdrop`, `backdrop_region`), with
+a strip of its grass laid in front of him so he stands in it up to the ankles
+(`grass_front`), his own drawn match figure facing right, and the drawn
+Kleiner Faß or bottle from the bag. He lifts it to his mouth (`mouth`), gulps
+three times, flings the empty over his shoulder, then cheers (his `cheer`
+row) with *BURP!*. The screen behind goes dark (`dim`) and the match's big
+announcement is hidden while he drinks, so no rule words show behind it. A
+look whose pitch sheet has its own `drink` rows (the PixelLab looks) plays
+those instead. `style old` brings back the 8 Oct dark box with the
+code-drawn barrel. The burp is `Audio.csv drink_burp`, silent
 until `bav_burp.ogg` is made (`SOUNDS_WANTED.csv`).
 
 **The combo beers** (Anthony, 8 Oct). Three small beers, `Items.csv`

@@ -214,19 +214,21 @@ func _build_mat(root: Control, db: CardDatabase) -> void:
 	# The picture: a piece of the match's own drawn village, ink round it.
 	_panel = Panel.new()
 	_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-	_panel.position = Vector2(inset, inset)
-	_panel.size = _box - Vector2(inset, inset) * 2.0
+	var inset_top := _setting_number("inset_top", inset)
+	_panel.position = Vector2(inset, inset_top)
+	_panel.size = _box - Vector2(inset * 2.0, inset + inset_top)
 	_panel.clip_contents = true
 	window.add_child(_panel)
 	var view := _panel.size
 	var back_path := setting("backdrop")
+	var back: TextureRect = null
 	if ResourceLoader.exists(back_path):
 		var cut := AtlasTexture.new()
 		cut.atlas = load(back_path) as Texture2D
 		var r := _setting_floats("backdrop_region", [0.0, 0.0, 0.0, 0.0])
 		if r[2] > 0.0 and r[3] > 0.0:
 			cut.region = Rect2(r[0], r[1], r[2], r[3])
-		var back := TextureRect.new()
+		back = TextureRect.new()
 		back.texture = cut
 		back.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		back.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
@@ -318,15 +320,43 @@ func _build_mat(root: Control, db: CardDatabase) -> void:
 	_burp.rotation = deg_to_rad(-8.0)
 	_panel.add_child(_burp)
 
-	# His name on the wooden sign board, centred on the window's top edge.
-	var sign := SignHeader.make((card.player_name if card != null else "").to_upper(),
-		"res://data/MenuHeaderBoard.csv")
-	window.add_child(sign)
-	var header_lift := _setting_number("header_lift", 82.0)
-	var centre_sign := func() -> void:
-		sign.position = Vector2((_box.x - sign.size.x) / 2.0, -header_lift)
-	sign.resized.connect(centre_sign)
-	centre_sign.call()
+	# The grass in front of him: the bottom strip of the same picture laid
+	# over his feet, so he stands in it up to the ankles (Anthony, 24 Oct).
+	var grass := _setting_number("grass_front", 0.0)
+	if back != null and grass > 0.0:
+		var strip := Control.new()
+		strip.clip_contents = true
+		strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		strip.position = Vector2(0, view.y - grass)
+		strip.size = Vector2(view.x, grass)
+		_panel.add_child(strip)
+		var front := back.duplicate() as TextureRect
+		front.position = Vector2(0, -(view.y - grass))
+		strip.add_child(front)
+	_panel.move_child(_burp, -1)
+
+	# His name: in ink on the cream panel above the picture (24 Oct: "Don't
+	# have the wooden plank be for their names"); `name sign` brings back the
+	# wooden board, `name none` leaves it off.
+	var who := (card.player_name if card != null else "").to_upper()
+	match setting("name", "panel").to_lower():
+		"sign":
+			var sign := SignHeader.make(who, "res://data/MenuHeaderBoard.csv")
+			window.add_child(sign)
+			var header_lift := _setting_number("header_lift", 82.0)
+			var centre_sign := func() -> void:
+				sign.position = Vector2((_box.x - sign.size.x) / 2.0, -header_lift)
+			sign.resized.connect(centre_sign)
+			centre_sign.call()
+		"panel":
+			var label := MenuSupport.heading(who, int(_setting_number("name_size", 34.0)), ink)
+			label.add_theme_constant_override("outline_size", 0)
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			label.position = Vector2(inset, 6)
+			label.size = Vector2(_box.x - inset * 2.0, inset_top - 8)
+			label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			window.add_child(label)
 
 
 ## One frame of his drawn match sheet, facing east (right).
