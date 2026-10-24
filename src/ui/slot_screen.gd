@@ -305,4 +305,10 @@ func _confirm_delete(slot: int, parent_window: Variant) -> void:
 
 func _play(slot: int) -> void:
 	SaveSlots.choose(get_tree(), slot)
+	# TUTORIAL ONLY (Tuning.csv tutorial_only, Anthony 24 Oct): Play only ever
+	# plays the Tutorial, then this save is deleted again and you are on the
+	# main menu. A save already being played is kept.
+	if Tutorial.only():
+		Tutorial.start(get_tree(), true, 0 if SaveSlots.begun(slot) else slot)
+		return
 	ScenePaths.go_to(get_tree(), ScenePaths.BASE)

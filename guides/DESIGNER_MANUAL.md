@@ -3831,6 +3831,15 @@ to do the Tutorial? If not, you can find it later on the main menu.*
 The words are `Language.csv` `tutorial_offer_title`, `_text`, `_yes` and
 `_no`. `Tuning.csv tutorial_offer` false turns the question off.
 
+### Tutorial only (24 Oct)
+
+For now the game is **only the Tutorial** (`Tuning.csv tutorial_only`
+true). Start, then Play on any beer mug, plays the Tutorial straight away:
+no question, no base of your own. When it ends, or you quit it, that save is
+deleted again and you are back on the main menu. A save that was already
+being played is kept, but Play on it still only plays the Tutorial. Set
+`tutorial_only` to false to get the full game back.
+
 ### What the Tutorial is
 
 1. **Pub Dialogue 1**: the `Dialogue.csv` scene named in `Tuning.csv
