@@ -4446,8 +4446,38 @@ func _walk_them_out() -> void:
 	var their_facts := _team_facts(true)
 	var parade := LineUpParade.on_field(self, db, camera, units, goalies,
 		String(mine_facts.get("name", "YOUR SIDE")).to_upper(),
-		String(their_facts.get("name", "THEM")).to_upper())
+		String(their_facts.get("name", "THEM")).to_upper(),
+		_team_symbol(false), _team_symbol(true))
 	await parade.finished
+
+
+## THE TEAM'S SYMBOL on the line-up banner (Anthony 24 Oct 2026: "show the
+## symbol of that team as well"). The class's Banner Art in ClassInfo.csv when
+## it has one; otherwise its own icon from AdventureTraits.csv (the row whose
+## From is class and Value is the class), then its Element's icon there, so a
+## side never shows another team's crest. Blank Banner Art = these fall-backs.
+func _team_symbol(theirs: bool) -> String:
+	var star := active_enemy_star if theirs else active_player_star
+	var klass := star.unit_type if star != null else ""
+	var info := _class_info(klass)
+	var crest := MenuSupport.field(info, "Banner Art").strip_edges()
+	if crest != "" and MenuSupport.icon_texture(crest) != null:
+		return crest
+	var element := MenuSupport.field(info, "Element").strip_edges().to_lower()
+	var by_element := ""
+	for row in MenuSupport.read_csv("res://data/AdventureTraits.csv"):
+		var from := MenuSupport.field(row, "From").strip_edges().to_lower()
+		var value := MenuSupport.field(row, "Value").strip_edges().to_lower()
+		var icon := MenuSupport.field(row, "Icon").strip_edges()
+		if icon == "" or MenuSupport.icon_texture(icon) == null:
+			continue
+		if from == "class" and value == klass.to_lower():
+			return icon
+		if from == "element" and element != "" and value == element and by_element == "":
+			by_element = icon
+	if by_element != "":
+		return by_element
+	return String(_team_facts(theirs).get("crest", ""))
 
 
 ## WHO IS PLAYING, for the sheet. A name, a crest and the Stars.

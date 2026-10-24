@@ -21,12 +21,15 @@ extends CanvasLayer
 #
 #  ============ WHAT HAPPENS ============
 #
-#  The drawn pitch stays behind, darkened. Your team stands in one row,
-#  shoulder to shoulder, facing us, under the tavern sign with the team's
-#  name. One at a time, left to right, a player steps forward in full
-#  colour while the rest stay dark, and the beer mat under the row names
-#  him: name, Tier and Power (a star for a Star Player). Then the same for
-#  the other team.
+#  Behind them, the village pitch seen from the side at eye level (the same
+#  picture as the loading screen). Your team stands in one row on the grass,
+#  shoulder to shoulder, facing us, under the team banner: a hanging club
+#  banner with the team's symbol in a gold medallion and its name (blue for
+#  you, red for them; Anthony 24 Oct: "not the wooden plank again, the
+#  wooden plank is ONLY for the buildings"). One at a time, left to right, a
+#  player steps forward in full colour while the rest stay dark, and the
+#  beer mat under the banner names him: name, Tier and Power (a star for a
+#  Star Player). Then the same for the other team.
 #
 #  Every figure is the drawn sprite that player wears on the pitch
 #  (PitchSprite.window_sheet), so a transformed player — a brew on him —
@@ -43,7 +46,12 @@ extends CanvasLayer
 #      line_up_between_sides   the pause between the two teams
 #      line_up_figure_height   how tall the figures stand, part of the screen
 #      line_up_dim             how dark the players not highlighted are
-#      line_up_shade           how dark the pitch behind the row is
+#      line_up_background      the side view of the pitch behind the row
+#      line_up_shade           how dark that picture is made
+#      line_up_banner_mine / line_up_banner_theirs   the two banner pictures
+#      line_up_banner_width    how wide the banner is, part of the screen
+#      line_up_banner_symbol   where the medallion is in the banner picture
+#      line_up_banner_words    where the name goes in the banner picture
 # =============================================================
 
 signal finished
@@ -61,7 +69,9 @@ var their_name := "THEM"
 var _done := false
 var _stage: Control
 var _row: Control
-var _sign: SignHeader
+var _banner: Control
+var my_symbol := ""
+var their_symbol := ""
 var _mat_box: Control
 var _mat_name: Label
 var _mat_line: Label
@@ -76,7 +86,8 @@ var clock_scale := 1.0
 ## Put it up over `scene` (the match) and return it. Await `finished`.
 static func on_field(scene: Node, database: CardDatabase, view: MatchCamera,
 		units: Array, keepers: Dictionary, your_title: String,
-		other_title: String) -> LineUpParade:
+		other_title: String, your_symbol: String = "",
+		other_symbol: String = "") -> LineUpParade:
 	var made := LineUpParade.new()
 	made.name = "LineUpParade"
 	made.db = database
@@ -92,6 +103,8 @@ static func on_field(scene: Node, database: CardDatabase, view: MatchCamera,
 		made.my_name = your_title
 	if other_title != "":
 		made.their_name = other_title
+	made.my_symbol = your_symbol
+	made.their_symbol = other_symbol
 	scene.add_child(made)
 	return made
 
@@ -122,8 +135,19 @@ func _build() -> void:
 	_stage.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(_stage)
 
+	# The pitch from the side, filling the screen, its grass at the bottom.
+	var field := TextureRect.new()
+	field.texture = ScreenLook.picture(db.tune_text("line_up_background",
+		"res://assets/loading/drawn/village.png") if db != null else "res://assets/loading/drawn/village.png")
+	field.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	field.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	field.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	field.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	field.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stage.add_child(field)
+
 	var shade := ColorRect.new()
-	shade.color = Color(0.02, 0.02, 0.04, clampf(_tune("line_up_shade", 0.55), 0.0, 1.0))
+	shade.color = Color(0.02, 0.02, 0.04, clampf(_tune("line_up_shade", 0.15), 0.0, 1.0))
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stage.add_child(shade)
@@ -187,21 +211,89 @@ func _screen() -> Vector2:
 
 func _place_fixed() -> void:
 	var screen := _screen()
-	_mat_box.position = Vector2((screen.x - _mat_box.size.x) / 2.0,
-		screen.y - _mat_box.size.y - 40.0)
-	if _sign != null and is_instance_valid(_sign):
-		_sign.position = Vector2((screen.x - _sign.size.x) / 2.0, 0.0)
+	var under := 300.0
+	if _banner != null and is_instance_valid(_banner):
+		_banner.position = Vector2((screen.x - _banner.size.x) / 2.0, 6.0)
+		under = _banner.position.y + _banner.size.y * 0.86
+	_mat_box.position = Vector2((screen.x - _mat_box.size.x) / 2.0, under)
 
 
-func _put_up_sign(words: String) -> void:
-	if _sign != null and is_instance_valid(_sign):
-		_sign.queue_free()
-	_sign = SignHeader.make(words)
-	_sign.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_stage.add_child(_sign)
-	_stage.move_child(_sign, _row.get_index() + 1)
-	_sign.resized.connect(_place_fixed)
-	_place_fixed.call_deferred()
+## Four numbers from Tuning.csv, "a,b,c,d".
+func _tune_rect(key: String, otherwise: Rect2) -> Rect2:
+	var parts := (db.tune_text(key, "") if db != null else "").split(",")
+	if parts.size() != 4:
+		return otherwise
+	return Rect2(float(parts[0]), float(parts[1]),
+		float(parts[2]) - float(parts[0]), float(parts[3]) - float(parts[1]))
+
+
+## The team banner: the cloth, the team's symbol in the medallion, the name.
+func _put_up_banner(words: String, symbol: String, theirs: bool) -> void:
+	if _banner != null and is_instance_valid(_banner):
+		_banner.queue_free()
+	var art := ScreenLook.picture(db.tune_text(
+		"line_up_banner_theirs" if theirs else "line_up_banner_mine",
+		"res://assets/ui/line_up/team_banner_%s.png" % ("theirs" if theirs else "mine")))
+	var screen := _screen()
+	var wide := screen.x * clampf(_tune("line_up_banner_width", 0.5), 0.2, 1.0)
+	var scale_by := wide / art.get_width() if art != null else 1.0
+	_banner = Control.new()
+	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_banner.size = (art.get_size() if art != null else Vector2(1060, 340)) * scale_by
+	_stage.add_child(_banner)
+	_stage.move_child(_banner, _row.get_index() + 1)
+	if art != null:
+		var cloth := TextureRect.new()
+		cloth.texture = art
+		cloth.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		cloth.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		cloth.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		cloth.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_banner.add_child(cloth)
+
+	# The team's symbol, inside the medallion's cream middle.
+	var medal := _tune_rect("line_up_banner_symbol", Rect2(92, 72, 156, 156))
+	var picture := MenuSupport.icon_texture(symbol) if symbol != "" else null
+	if picture != null:
+		var crest := TextureRect.new()
+		crest.texture = picture
+		crest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		crest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		# Old pixel symbols stay sharp; drawn ones are smoothed.
+		crest.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST \
+			if picture.get_width() <= 128 else CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		var inset := medal.size * 0.12
+		crest.position = (medal.position + inset) * scale_by
+		crest.size = (medal.size - inset * 2.0) * scale_by
+		crest.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_banner.add_child(crest)
+
+	# The name, cream with an ink edge, as big as fits.
+	var room := _tune_rect("line_up_banner_words", Rect2(290, 84, 670, 128))
+	var box := Rect2(room.position * scale_by, room.size * scale_by)
+	var text_size := int(box.size.y * 0.62)
+	var font := MenuSupport.heading("x", 10).get_theme_font("font")
+	while text_size > 16 and font != null and \
+			font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size).x > box.size.x:
+		text_size -= 2
+	var cream := Color("f6ead0")
+	var ink := Color("19110a")
+	var reach := maxf(2.0, text_size * 0.07)
+	for i in 9:
+		var edge := i < 8
+		var label := MenuSupport.heading(words, text_size, ink if edge else cream)
+		label.add_theme_constant_override("outline_size", 0)
+		label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+		label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.position = box.position
+		label.size = box.size
+		if edge:
+			label.position += Vector2.RIGHT.rotated(TAU * i / 8.0) * reach
+		_banner.add_child(label)
+	_place_fixed()
 
 
 # =============================================================
@@ -292,7 +384,8 @@ func _stand_up(units: Array[PlayerUnit], keeper: Node2D) -> Array[Dictionary]:
 	if widths * step_scale > room:
 		step_scale = room / widths
 	var x := (screen.x - widths * step_scale) / 2.0
-	var feet := screen.y - _mat_box.size.y - 70.0
+	# Feet on the grass near the bottom of the picture.
+	var feet := screen.y * clampf(_tune("line_up_feet", 0.92), 0.5, 1.0)
 	for person in people:
 		var node := person["node"] as Control
 		node.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -343,9 +436,10 @@ func _highlight(people: Array[Dictionary], index: int) -> void:
 	_tween().tween_property(_mat_box, "scale", Vector2.ONE, 0.15)
 
 
-func _show_team(units: Array[PlayerUnit], keeper: Node2D, title: String) -> void:
+func _show_team(units: Array[PlayerUnit], keeper: Node2D, title: String,
+		symbol: String, theirs: bool) -> void:
 	_mat_box.modulate.a = 0.0
-	_put_up_sign(title)
+	_put_up_banner(title, symbol, theirs)
 	var people := _stand_up(units, keeper)
 	if people.is_empty():
 		return
@@ -366,13 +460,13 @@ func _show_team(units: Array[PlayerUnit], keeper: Node2D, title: String) -> void
 
 func _run() -> void:
 	_hide_the_pitch_layers(true)
-	await _show_team(mine, my_keeper, my_name)
+	await _show_team(mine, my_keeper, my_name, my_symbol, false)
 	if _done:
 		return
 	await _wait(maxf(0.0, _tune("line_up_between_sides", 0.6)))
 	if _done:
 		return
-	await _show_team(theirs, their_keeper, their_name)
+	await _show_team(theirs, their_keeper, their_name, their_symbol, true)
 	if _done:
 		return
 	await _wait(maxf(0.0, _tune("line_up_between_sides", 0.6)))

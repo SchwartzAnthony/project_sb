@@ -671,6 +671,28 @@ Pictures: `tools/make_keeper_sheets.py` cuts `art_source/keeper/*.mp4` into
 the village goal in `assets/ui/shootout/`. Photos: `tools/keeper_shot.gd`,
 film of the dive: `tools/keeper_dive_shot.gd`.
 
+## 6e. The Free Kick number game: the wheel (24 Oct 2026)
+
+Anthony: "I like the wheel! Remove the instructions on the bottom please." The
+number call (both sides call 1 to 10, the closer call picks ATTACK or DEFEND;
+it comes up on a drop ball) is a fairground booth: a striped awning with the
+title on its yellow sign, two candy-striped posts, and a painted wheel of
+fortune that spins and stops with the number under the red flap. Their
+numbers are dark red raffle tickets, face down until the reveal; yours are
+cream tickets, and the one you call turns yellow with a blue ring. ATTACK and
+DEFEND are two tickets of the same size with the word filling each. An exact
+call puts a yellow burst between them with `coin_exact_words` (or
+`coin_exact_them_words`) on two lines. There is no line of words at the
+bottom: what it said (who called closer, what they chose) is on the sign.
+
+Everything is a row of `data/ClashLook.csv`; `style old` brings back the dark
+window. The wheel is drawn for 10 numbers, so another `coin_faces` uses the
+old window. `coin_no_ai_exact_modes` (Tuning.csv) keeps the AI from calling
+it exactly in the tutorial matches.
+
+Pictures: `tools/art/clash_wheel_pieces.py` draws them into
+`assets/ui/clash_wheel/` (free). Film: `tools/clash_wheel_shot.gd`.
+
 ## 7. The league match
 
 `src/formations/main_scene.gd` runs it. Nothing in that file names a card, a
@@ -1319,12 +1341,20 @@ options in `art_source/pixellab/vs_menu_draft/`.
 ### The line-ups before kick-off
 
 After START on the VS screen, both teams line up **side by side in a row**,
-facing you, like a team photo (Anthony, 24 Oct 2026). The drawn pitch stays
-behind, darkened. Your team's name hangs on the tavern sign at the top; then
-one player at a time, left to right, steps forward in full colour while the
-others stay dark, and the beer mat under the row names him: ★ for a Star,
-the name, **Tier** and **Power**. The keeper stands first, then the players by
-Tier, the Stars last. Then the same for the other team.
+facing you, like a team photo (Anthony, 24 Oct 2026). Behind them is the
+village pitch **seen from the side** at eye level (the loading screen's
+picture), and they stand on its short grass. At the top hangs the **team
+banner**: a club banner on a brass rod, blue for you and red for them, with
+the team's **symbol** in a gold medallion and its name. (Not the wooden
+plank: Anthony keeps the plank for the buildings and the Base.) One player
+at a time, left to right, steps forward in full colour while the others stay
+dark, and the beer mat under the banner names him: ★ for a Star, the name,
+**Tier** and **Power**. The keeper stands first, then the players by Tier,
+the Stars last. Then the same for the other team.
+
+The symbol is the class's `Banner Art` in `ClassInfo.csv`; a class without
+one shows its own icon from `AdventureTraits.csv` (the row with From =
+class), then its Element's icon there.
 
 Every figure is the drawn sprite that player wears on the pitch, so a
 transformed player (a brew on him) looks here exactly as he will play. The
@@ -1341,9 +1371,16 @@ space, enter or escape, goes straight to the countdown.
 | `line_up_between_sides` | the pause between your team and theirs. `0.6` |
 | `line_up_figure_height` | how tall the figures stand, part of the screen. `0.36` |
 | `line_up_overlap` | how much each figure overlaps the next. `0.22` |
+| `line_up_feet` | where their feet stand, part of the screen from the top. `0.92` |
 | `line_up_dim` | how dark the players not highlighted are. `0.35` |
-| `line_up_shade` | how dark the pitch behind the row is. `0.55` |
+| `line_up_background` | the side view of the pitch behind them |
+| `line_up_shade` | how much darker that picture is made. `0.15` |
+| `line_up_banner_mine` / `line_up_banner_theirs` | the two banner pictures |
+| `line_up_banner_width` | how wide the banner is, part of the screen. `0.5` |
+| `line_up_banner_symbol` | where the medallion's middle is in the banner picture |
+| `line_up_banner_words` | where the name goes in the banner picture |
 
+The banners are drawn by `/mnt/project-files/art_tool/team_banner/team_banner.py`.
 `tools/line_up_shot.gd` films it frame by frame for a GIF.
 
 > If every row on one side reads **"Unit Name"**, that is not the parade — it
@@ -2652,6 +2689,7 @@ each check, slowly enough to follow:
 | `Language.csv` `duel_ability_priority`, `duel_power_check` | the words |
 | `Tuning.csv` `duel_hl_ring_art`, `duel_hl_box_art` | the ring art (blank for now: a plain gold circle) and the pretzel-corner box (24 Oct: `duel_box_ink.png`, a whole inked pretzel in each corner, drawn free by `tools/art/draw_pretzel_box.py`; the same box is the tutorial's gold highlight) |
 | `Tuning.csv` `duel_hl_art_scale`, `duel_hl_box_margin`, `duel_hl_box_overhang` | how big the art's pixels are (1 for the inked box, 3 for old pixel art); where the box corners end; how far the pretzels reach out past the thing they mark. A box too small for two whole pretzels shrinks the art instead of cutting it |
+| `Tuning.csv` `duel_hl_side_art`, `duel_hl_side_out` | **what is used now (24 Oct)**: ONE pretzel on each side of every gold highlight, half-way down, in the tutorial and the duel; how far out each sits. Blank `duel_hl_side_art` = the four-corner box above |
 | `Audio.csv` `duel_ability_success` / `_fail`, `duel_power_victory` / `_fail` | the four sounds, made with Ludo.ai |
 
 **The checks under the window (round AN, 11 Oct, later).** You asked for
@@ -3776,7 +3814,7 @@ words bottom-left of a match are hidden there. `Tuning.csv build_stamp_in_tutori
 | 6 | Tier II: a second beer, so a Pass It On from Tier I lands on it. The third stays in the bag | tut-combo-2, tut-combo-2-after | his bag button, then the beers |
 | 7 | Tier IV: Bergmännlein Koch's new ability | tut-koch-earth | Koch's card |
 | 7+ | Koch's Earth Courage goes off in a duel: **the keeper's window** opens from the duel window (Anthony, 10 Oct). Three steps of `Tuning.csv keeper_drain_step_seconds` (2.5): the numbers as they are, the stamina falling by 5 (attack) or 3 (defend), then the % moving to match. Then back to the duel. `keeper_drain_window`: tutorial / always / off. The % is shown at the shot power his side has piled up so far plus his own | | |
-| 8 | before the PLAY MAKER call: **just so you know** (Anthony asked Claude to pick something vital nobody had said). The keeper's stamina never comes back on its own: every saved shot and every drain stays off for the match, and only a goal he lets in fills him up again | tut-keeper-tip | |
+| 7+ | the first time Koch's Earth Courage drains the keeper, **inside the keeper's window while the stamina comes off** (24 Oct; was before Play Maker 8): **just so you know** (Anthony asked Claude to pick something vital nobody had said). The stamina is boxed in gold. The keeper's stamina never comes back on its own: every saved shot and every drain stays off for the match, and only a goal he lets in fills him up again | tut-keeper-tip | |
 
 The rest of cycle 3 plays out to the final whistle.
 
@@ -4008,7 +4046,9 @@ Four more columns (round AN, the Tutorial), all optional:
 More moments for **When**: `cards_shown` (a Tier's cards are on the table),
 `duel_start`, `duel_priority`, `duel_ability_1`, `duel_ability_2`,
 `duel_power_check`, `duel_result`, `shot_odds` (the shot window shows the %)
-and `shot_done` (after the goal or the miss).
+`shot_done` (after the goal or the miss) and `keeper_drain` (an ability's drain
+in the keeper's window, just after the stamina comes off; Tier is the
+draining card's).
 
 ### The morning after: rest and the first Adventure (round AN, 8 Oct)
 

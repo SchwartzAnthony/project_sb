@@ -170,9 +170,10 @@ func arena_moment(event: String, tier: String) -> void:
 	await talk(event, {"tier": tier})
 
 
-## The shot window's moment (shootout_view.gd calls this).
-func shot_moment(event: String) -> void:
-	await talk(event, {})
+## The shot window's moments (shootout_view.gd calls this). `tier` is the
+## draining card's, for keeper_drain.
+func shot_moment(event: String, tier: String = "") -> void:
+	await talk(event, {"tier": tier})
 
 
 # =============================================================
