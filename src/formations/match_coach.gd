@@ -189,9 +189,12 @@ func _spots_for(words: String) -> Array:
 		if word.to_lower().begins_with("ring:"):
 			ring = true
 			word = word.substr(5).strip_edges()
+		# ROUND AN (Anthony, 24 Oct): the coach's box goes above the referee's
+		# bar while he talks about it (MatchTalkBox reads "above").
+		var above := word.to_lower().begins_with("referee")
 		for control in _controls_for(word):
 			if control != null and control.is_visible_in_tree():
-				out.append({"rect": control.get_global_rect(), "ring": ring, "control": control})
+				out.append({"rect": control.get_global_rect(), "ring": ring, "control": control, "above": above})
 	if out.is_empty():
 		print("[match talk] Highlight '%s' found nothing on screen to point at." % words)
 	return out
@@ -295,6 +298,8 @@ func _do(text: String) -> void:
 				give_items(value)
 			"say":
 				await say(value)
+			"empty_bag":
+				await empty_bag(value)
 			"inspire":
 				var at := value.find("=")
 				if at > 0:
@@ -398,6 +403,47 @@ func say(value: String) -> void:
 		await box.finished
 	shield.queue_free()
 	main.call("hold_picks")
+
+
+## ============ THE BAG OPENS BY ITSELF, EMPTY ============
+##
+## `empty_bag:first` (Anthony, 24 Oct). After "Now open the bag on the
+## Tier I, Power 1, and..." the bag on that card opens on its own and shows
+## nothing in it, then shuts, and the next say: plays ("Where is the rest
+## of the beer?!"). The word is a Highlight word without "card:" - first,
+## last or a name. Tuning.csv tutorial_empty_bag_seconds = how long it
+## stays open. Nothing can be clicked meanwhile.
+func empty_bag(who: String) -> void:
+	var found := _controls_for("card:" + who.strip_edges())
+	if found.is_empty():
+		push_warning("[match talk] empty_bag: no card '%s' on the table." % who)
+		return
+	var target := found[0] as PlayerCardUI
+	var shield := _input_shield()
+	var tree := get_tree()
+	# A beat of gold on his bag button, as if somebody pressed it.
+	var gold_layer := CanvasLayer.new()
+	gold_layer.name = "EmptyBagGold"
+	gold_layer.layer = 151
+	gold_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	main.add_child(gold_layer)
+	var flask := target.get("_flask") as Control
+	_gold_on(gold_layer, [flask] if flask != null else [target])
+	# Real seconds, so a match on fast speed does not rush it.
+	await tree.create_timer(0.5, true, false, true).timeout
+	gold_layer.queue_free()
+	# No item id is called "-", so the bag shows its empty line.
+	var bag := InventoryScreen.open(main, main.get("state"), InventoryScreen.Use.ON_CARD,
+		"Using something on %s." % target.current_data.player_name, ["-"])
+	bag.name = "EmptyBag"
+	bag.process_mode = Node.PROCESS_MODE_ALWAYS
+	print("[match talk] the bag on %s opens by itself - empty." % target.current_data.player_name)
+	var hold := CardDatabase.get_db().tune_float("tutorial_empty_bag_seconds", 2.2)
+	await tree.create_timer(maxf(0.3, hold), true, false, true).timeout
+	if is_instance_valid(bag):
+		bag.close()
+	await tree.process_frame
+	shield.queue_free()
 
 
 ## ============ THE DRINKING LESSON ============
@@ -713,10 +759,16 @@ func _ability_words(ability: AbilityData, db: CardDatabase, card: PlayerData = n
 			return "For each other %s not in the Exhaust Zone, give this %+d Power during combat." % [who, ability.value]
 		"addpowerperplayed":
 			return ability.plain()
-		"drainstamina":
-			return "Their keeper loses %d stamina." % ability.value
-		"restorestamina":
-			return "Your keeper gets %d stamina back." % ability.value
+		"drainstamina", "restorestamina":
+			# Anthony, 24 Oct: the Target says whose keeper. Own Goal Nerves
+			# drains YOUR keeper, and showing it as theirs hid the bad side.
+			var drains := CardDatabase._normalise(ability.effect) == "drainstamina"
+			var flat := CardDatabase._normalise(ability.target)
+			var yours := flat == "owngoalie" or (flat != "enemygoalie" and not drains)
+			var keeper := "Your keeper" if yours else "Their keeper"
+			if drains:
+				return "%s loses %d stamina." % [keeper, ability.value]
+			return "%s gets %d stamina back." % [keeper, ability.value]
 	var words := CardPopup.new()
 	words.db = db
 	var text := words._plain_english(ability)

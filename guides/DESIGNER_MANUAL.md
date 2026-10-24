@@ -660,6 +660,12 @@ Everything is a row of `data/ShootoutLook.csv`; `style old` brings back the
 dark window. A `Shootout Artwork` in Goalies.csv still wins over the drawn
 keeper.
 
+**Skipping it** (Anthony 24 Oct: "the same as you can skip / go fast on
+combat"): the shot window and a keeper drain pace like a duel. Hold SPACE or
+the mouse and it runs at `arena_skip_speed` (Tuning.csv) while you hold; one
+click, SPACE or the SKIP plank fast-forwards the rest. A drain that takes
+about 8 seconds takes under 2 once skipped.
+
 Pictures: `tools/make_keeper_sheets.py` cuts `art_source/keeper/*.mp4` into
 `assets/players/keeper/`; `tools/make_shootout_pieces.py` makes the panels and
 the village goal in `assets/ui/shootout/`. Photos: `tools/keeper_shot.gd`,
@@ -2571,6 +2577,7 @@ res://tools/lab/lab_cli.gd -- '{"cmd":"meta"}'`.
 | you said | now |
 |---|---|
 | the foul text is unreadable | the referee's bar sits on dark see-through glass, no border, bigger white text (`ref_bar_glass`, `ref_bar_text_size`) |
+| the referee's bar in our drawn style (24 Oct, his sketch) | `ref_bar_look` drawn: per side a beer mat box, the segments in a dark wooden slot going yellow to red, a yellow card (left) and a red card (right) tilted out of the top with how many that side has been shown (faded until the first). Size `ref_box_size`, height `ref_box_bottom`, bigger/smaller `ref_box_scale`, words `ref_box_text_size`, card numbers `ref_box_count_size`. Card pictures: `python3 tools/make_ref_cards.py` writes `assets/ui/referee/`. `glass` brings the old look back |
 | can't read the hover window | it opens BELOW the card, on its own layer above the banner, and never over the referee's bar (`hover_panel_layer`, `hover_panel_keep_bottom`). If there is not room under the card it opens BESIDE the card, on the side with more room; only if that does not fit either does it go wide and short (`hover_panel_wide_width`). Its width is `hover_panel_width` (700) and its word size `hover_panel_text_size` (21; the name and numbers grow with it). It also says the card's text and what the game does with it |
 | kicked across the whole field | the ball goes from his own feet over the touchline NEAREST to him (`throw_in_drift`) |
 | no Emblem, feels like an old build | a build stamp bottom-left of every match (`build_stamp`) and an `[emblems] the bar shows ...` line in the Output panel. Also fixed: Emblems were never reset between matches |
@@ -3815,6 +3822,7 @@ moment, with the same score, clock and exhaust. Then the row's **Do** runs:
 | `drink_lesson:first=keg@barrel@tut-fass-after@abilities\|-\|card` | the drinking lesson. `<card>=<item>@<barrel or bottle>@<scene>@<gold>`. The item goes in the bag if it is missing; only that card's bag button works and his bag shows only that item; gold on the button, then on the item. When he drinks: the drinking window (his PixelLab stein drink from his pitch sheet, then the burp; `Tuning.csv drink_window_seconds`), then his card comes up big as with show_card and the scene plays. Only he can be picked after |
 | `give:anstoss_helles+doppelpass_weisse+abstauber_dunkel` | puts one of each into the bag (`item=3` for more). A drink_lesson can then name several items with `+`: the bag shows those, gold on each, and any one will do |
 | `say:tut-after-brewery@-\|flask:first` | plays that Dialogue.csv scene, gold per line after `@` (the Highlight words) |
+| `empty_bag:first` | the bag on that card (first, last or a name) opens by itself and shows it is empty, then shuts (`Tuning.csv tutorial_empty_bag_seconds`). The tutorial uses it after "Now open the bag on the Tier I, Power 1, and...", before "Where is the rest of the beer?!" (scene `tut-missing-beer-empty`) |
 | `brewery:tut_brewery` | a TIME OUT at the Brewery (round AN): the match freezes, that flag is set and the Brewery opens over it; `Guide.csv` rows that need the flag lead the way, and one whose Then is `goto:back` ends it. See "The tutorial Brewery" |
 
 **Time passes: a fade to black** (Anthony, 9 Oct). A Dialogue.csv line
@@ -3982,6 +3990,11 @@ while the game waits. **Once** `true` plays it only the first time ever. The
 size of the words is `Tuning.csv match_talk_text_size`. The box stays along
 the bottom for every stop; `Tuning.csv match_talk_box_moves_up` true sends it
 to the top when what the coach points at is low on the screen.
+The one exception (24 Oct): while a line points at the referee's bar
+(Highlight `referee`, `referee:you`, `referee:them`), the box sits just above
+the bar so the gold round it shows, and the next line that does not point at
+it puts him back at the bottom (`match_talk_above_referee`, gap
+`match_talk_above_gap`).
 
 Four more columns (round AN, the Tutorial), all optional:
 
@@ -5834,13 +5847,18 @@ is missing is drawn as a plain shape, so the game always works.
 
 | Kind | Pictures |
 |---|---|
-| stir | `tank.png`, `paddle.png` |
+| stir | `tank.png`, `paddle.png`, `mash.png`, `clump_small.png`, `clump_medium.png`, `clump_large.png` (the redrawn Steeping Tank, 24 Oct: the open tank, the round mash that turns as you stir, three grain heaps that grow while you stop. Remade from the art rounds with `tools/art/steeping_tank_game_art.py`; without `mash.png` the old plain look comes back) |
 | rhythm | `mill.png`, `crank.png` |
 | colour | `tun.png`, `bucket.png` |
 | fire | `kettle.png`, `bellows.png` |
 | hold | `vat.png` |
-| conveyor | `tap.png`, `bottle.png`, `belt.png` |
+| conveyor | `tap.png`, `bottle.png`, `belt.png`; add `bottle_inside.png` (the shape the beer fills) and the bottle is see-through glass the beer rises in |
 | any | `background.png` behind it all (640x320 stage) |
+
+**Bottling, drawn (24 Oct).** The Bottling game uses the drawn pieces: the
+filling valve of the drawn machine, a see-through swing-top bottle, the belt,
+and a soft close-up of the drawn hall behind. Remake the pieces for free with
+`tools/art/bottling/make_game_pieces.py` and `make_background.py`.
 
 No row = no game (the batch is rolled on the brewer's % as before).
 `Tuning.csv brewery_minigames` false turns them all off. The game fires the
