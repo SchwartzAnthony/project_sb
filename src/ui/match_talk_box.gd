@@ -425,7 +425,8 @@ class CoachSpots extends Control:
 		if path == "" or not ResourceLoader.exists(path):
 			return false
 		var art := load(path) as Texture2D
-		var size := art.get_size()
+		# How big, as a share of the drawn pretzel (Anthony, 24 Oct: half).
+		var size := art.get_size() * maxf(0.05, db.tune_float("duel_hl_pretzel_scale", 1.0))
 		if db.tune_text("duel_hl_pretzel_place", "top") != "sides":
 			size *= minf(1.0, minf(rect.size.x * 0.5 / maxf(1.0, size.x),
 				rect.size.y * 0.7 / maxf(1.0, size.y)))
