@@ -333,12 +333,16 @@ func _build_exits() -> void:
 	# you need materials and the buildings that would make them are not built
 	# yet, so the button belongs beside the buildings rather than only on the
 	# title screen. It opens the Bounty Board, not a match.
-	var to_adventure := _exit("adventure|⛰", "Adventure", EXIT_SIZE)
-	to_adventure.tooltip_text = "The Bounty Board. Pick a biome and a boss, then set off for materials and recipes."
-	to_adventure.pressed.connect(func() -> void:
-		state.save_to_disk()
-		ScenePaths.go_to(get_tree(), ScenePaths.BOUNTY_BOARD))
-	row.add_child(to_adventure)
+	# Tuning.csv adventure_shown false (Anthony, 24 Oct: "remove adventure
+	# from the game for now"): no banner. The Bounty Board and the runs
+	# themselves are untouched, so true brings it all back.
+	if db.tune_bool("adventure_shown", true):
+		var to_adventure := _exit("adventure|⛰", "Adventure", EXIT_SIZE)
+		to_adventure.tooltip_text = "The Bounty Board. Pick a biome and a boss, then set off for materials and recipes."
+		to_adventure.pressed.connect(func() -> void:
+			state.save_to_disk()
+			ScenePaths.go_to(get_tree(), ScenePaths.BOUNTY_BOARD))
+		row.add_child(to_adventure)
 
 	var to_teams := _exit("teams|⚑", "Your teams", EXIT_SIZE)
 	to_teams.tooltip_text = "Team Build: your Stars and your sides."
