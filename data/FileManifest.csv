@@ -191,7 +191,7 @@ settings_screen.gd,src/ui/,A screen or a piece of one,
 settings_screen.tscn,src/ui/,A screen or a piece of one,
 shootout_view.gd,src/ui/,A screen or a piece of one,
 shootout_view.tscn,src/ui/,A screen or a piece of one,
-side_banner.gd,src/ui/,Engine. A screen or a piece of one,"ATTACKING or DEFENDING, pinned above the row of cards for the whole draft. Its two colours are the ones the team sheet tags abilities with"
+side_banner.gd,src/ui/,Engine. A screen or a piece of one,"ATTACKING or DEFENDING on a red or blue flag (assets/ui/side_banner/), pinned above the row of cards for the whole draft, plus the big YOU ARE ATTACKING flag when the clash decides"
 slot_screen.gd,src/ui/,A screen or a piece of one,
 slot_screen.tscn,src/ui/,A screen or a piece of one,
 star_badge.gd,src/ui/,A screen or a piece of one,
