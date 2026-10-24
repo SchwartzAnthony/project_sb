@@ -98,7 +98,7 @@ tut-timeout-inspiration,fine,Koch,koch,right,drunk,side,,,,,I am fine... I am fi
 tut-timeout-inspiration,meter,Head Coach,coach,left,happy,,,,,,"His inspiration is too low. Every beer fills a star's inspiration meter, and when it is high enough, his star ability switches on.",,,,,,,,,,,,,,,
 tut-timeout-inspiration,barkeep,Head Coach,coach,left,happy,,,,,,Barkeep! Another Maß for Koch!,,,,,,,,,,,,,,,
 tut-timeout-inspiration,jawohl,Koch,koch,right,happy,side,,,,,Jawohl!,,,,,,,,,,,,,,,
-tut-timeout-inspiration,there,Head Coach,coach,left,happy,,,,,,There it is! Some beer courage! +1 power for every normal player who played before him. Two cycles to use it. Back out there!,,,,,,,,,,,,,,,
+tut-timeout-beer-card,there,Head Coach,coach,left,happy,,,,,,There it is! Some beer courage! +1 power for every normal player who played before him. Two cycles to use it. Back out there!,,,,,,,,,,,,,,,
 tut-fass,hold,Head Coach,coach,left,mad,,,,,,"Hold it, Trainer! Before you pick.",,,,,,,,,,,,,,,
 tut-fass,worthless,Head Coach,coach,left,happy,,,,,,"Look at our Tier I, 0 Power. Without an ability that player is worthless.",,,,,,,,,,,,,,,
 tut-fass,starters,Head Coach,coach,left,happy,,,,,,But 0 Power players are the best early combo starters. So we make sure they get a booze boost.,,,,,,,,,,,,,,,
