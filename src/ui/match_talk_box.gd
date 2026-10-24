@@ -33,8 +33,9 @@ var _was_paused := false
 ## ROUND AN: false over a menu (Guide.csv) - nothing there needs to stop.
 var _pause := true
 ## ROUND AN - THE TUTORIAL: what the coach points at while he talks. Each is
-## {"rect": Rect2 on the screen, "ring": bool}; a gold box (or circle) is drawn
-## round it in the duel highlight's gold (Tuning.csv duel_hl_*).
+## {"rect": Rect2 on the screen, "ring": bool, "pretzel": bool (default true)};
+## a gold box (or circle) is drawn round it in the duel highlight's gold
+## (Tuning.csv duel_hl_*).
 ## Several groups, one per line (Highlight column with | between lines):
 ## line 1 points at group 1, line 2 at group 2, and so on; the last group
 ## stays for the lines after it.
@@ -487,6 +488,10 @@ class CoachSpots extends Control:
 		for spot in list:
 			if bool(spot.get("ring", false)):
 				continue
+			# "pretzel": false - the gold line only (Anthony, 24 Oct: no
+			# pretzels on the beers you pick from in the bag).
+			if not bool(spot.get("pretzel", true)):
+				continue
 			if add_sides(made, outline_rect(spot.get("rect", Rect2()) as Rect2)):
 				made.sides = true
 				continue
@@ -521,7 +526,7 @@ class CoachSpots extends Control:
 			if bool(spot.get("ring", false)):
 				var radius := maxf(rect.size.x, rect.size.y) * 0.5 + 6.0
 				draw_arc(rect.get_center(), radius, 0.0, TAU, 96, colour, 6.0, true)
-			elif sides:
+			elif sides or not bool(spot.get("pretzel", true)):
 				var line := outline_rect(spot.get("rect", Rect2()) as Rect2)
 				draw_rect(line, Color(colour.r, colour.g, colour.b, 0.10), true)
 				if outline_width > 0.0:
