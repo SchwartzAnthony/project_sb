@@ -1,0 +1,9 @@
+Picture,Use,Notes
+res://assets/ui/duel/duel_field.png,true,"The stone wall and the trophy hut (the first duel field, 24 Oct 2026)."
+res://assets/ui/duel/fields/dorms_wall.png,true,"The Dorms and the mountains behind the wall. Free crop of the base village (tools/make_duel_backgrounds.py)."
+res://assets/ui/duel/fields/brewery_goal.png,true,"The Brewery's copper kettle and the goal. Free crop of the base village."
+res://assets/ui/duel/fields/goal_corner.png,true,"The goal in front of the Brewery and the timber house. Free crop of the base village."
+res://assets/ui/duel/fields/meadow.png,true,"The flower meadow in front of the Brewery (the drinking window's picture)."
+res://assets/ui/duel/fields/church_goal.png,true,"The goal in front of the church (the shootout's picture)."
+res://assets/ui/duel/fields/far_village.png,true,"The whole village from far away (the title screen's picture)."
+res://assets/ui/duel/fields/whole_village.png,true,"The whole village with the ball on the grass (the loading screen's picture)."
