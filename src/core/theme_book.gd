@@ -386,6 +386,8 @@ static func font(file_name: String) -> Font:
 	# (not only 16, 32, 48) come out smooth instead of ragged.
 	if found is FontFile and _smooth_text():
 		(found as FontFile).generate_mipmaps = true
+	# ROUND AN (24 Oct): every letter gets a black ink border. See ink_outline.gd.
+	found = InkOutline.inked(found)
 	_font_cache[clean] = found
 	return found
 
@@ -419,6 +421,10 @@ static func _give_fallback(face: Font, clean: String) -> void:
 		# SturmballComicHD is drawn 64 high and shrunk for small words;
 		# mipmaps keep the shrunk letters clean instead of grainy.
 		(face as FontFile).generate_mipmaps = true
+		var plain_face := InkOutline.plain_of(face)
+		if plain_face is FontFile:
+			(plain_face as FontFile).allow_system_fallback = true
+			(plain_face as FontFile).generate_mipmaps = true
 	var spare_name := String(row_for("fallback").get("font", "")).strip_edges()
 	if spare_name == "" or spare_name == clean:
 		return
@@ -432,6 +438,10 @@ static func _give_fallback(face: Font, clean: String) -> void:
 		if godots != null and godots != face and godots != spare:
 			spares.append(godots)
 		face.fallbacks = spares
+		# The plain copy (dark ink words, see ink_outline.gd) gets them too.
+		var plain := InkOutline.plain_of(face)
+		if plain != face:
+			plain.fallbacks = spares
 
 
 static func _look_for(clean: String, folders: Array[String],
@@ -578,6 +588,7 @@ static func dress(tree: SceneTree) -> void:
 			Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	TextScale.watch(tree)
 	TextBackdrop.watch_everything(tree)
+	InkOutline.watch(tree)
 	# ============ EVERY WORD, NOT ONLY THE ONES IN A CONTROL (round AN) ============
 	#
 	# Names painted straight onto the pitch, the season table's numbers and

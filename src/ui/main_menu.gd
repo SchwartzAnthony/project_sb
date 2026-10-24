@@ -465,12 +465,9 @@ func _make_button(label: String, art_path: String, box: Vector2, label_on_art: b
 			var states := {"normal": Color(1, 1, 1), "hover": Color(1.18, 1.12, 1.0),
 				"pressed": Color(0.82, 0.78, 0.72), "focus": Color(1.18, 1.12, 1.0)}
 			for state in states:
-				var box_style := StyleBoxTexture.new()
-				box_style.texture = plank
-				# The plank is made at the button's own shape (Pixelate.csv
-				# Widen), so it is simply drawn over the whole button.
-				box_style.modulate_color = states[state]
-				button.add_theme_stylebox_override(state, box_style)
+				# The same thinner rim as every other plank (Tuning.csv
+				# plank_edge_scale, Anthony 24 Oct).
+				button.add_theme_stylebox_override(state, ScreenLook.plank_box(plank, states[state]))
 			button.add_theme_font_size_override("font_size", 26)
 			button.add_theme_color_override("font_color", Color("ffffff"))
 			button.add_theme_color_override("font_hover_color", Color("ffd36a"))

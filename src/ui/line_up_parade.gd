@@ -35,7 +35,7 @@ extends CanvasLayer
 #  (PitchSprite.window_sheet), so a transformed player — a brew on him —
 #  stands here exactly as he will play.
 #
-#  The yellow SKIP plank bottom right (or space, enter, escape) goes
+#  The blue SKIP button bottom centre (or space, enter, escape) goes
 #  straight to the countdown.
 #
 #  ============ TUNING (Tuning.csv) ============
@@ -73,8 +73,8 @@ var _banner: Control
 var my_symbol := ""
 var their_symbol := ""
 var _mat_box: Control
-var _mat_name: Label
-var _mat_line: Label
+var _mat_name: Control
+var _mat_line: Control
 var _skip: Button
 var _hidden_layers: Array[CanvasLayer] = []
 var _hidden_nodes: Array[CanvasItem] = []
@@ -174,24 +174,90 @@ func _build() -> void:
 	column.add_theme_constant_override("separation", 0)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_mat_box.add_child(column)
-	_mat_name = _inked(MenuSupport.heading("", 40, _ink()))
+	_mat_name = _outlined_words(40)
 	column.add_child(_mat_name)
-	_mat_line = _inked(MenuSupport.heading("", 26, _ink()))
+	_mat_line = _outlined_words(28)
 	column.add_child(_mat_line)
 	_mat_box.modulate.a = 0.0
 
-	# SKIP: the yellow match plank.
+	# SKIP: the blue plank.
 	_skip = MenuSupport.icon_button("play|▶", Loc.text("line_up_skip_button", "SKIP"),
 		Vector2(220, 64))
 	_skip.focus_mode = Control.FOCUS_NONE
 	_skip.pressed.connect(skip)
-	if not ScreenLook.plank(_skip, "match"):
-		InventoryScreen._plank(_skip)
+	# Blue, in the middle of the screen (Anthony 24 Oct 2026).
+	InventoryScreen._plank(_skip)
 	_stage.add_child(_skip)
-	MenuSupport.pin_bottom_right(_skip)
+	MenuSupport.pin_bottom_centre(_skip)
+	for found in _skip.find_children("*", "Label", true, false):
+		var word := found as Label
+		if word != null and word.text.strip_edges() != "":
+			_ink_edge.call_deferred(word)
 
 	get_viewport().size_changed.connect(_place_fixed)
 	_place_fixed()
+
+
+## Words in cream with the black ink outline (Anthony 24 Oct 2026: ALL text
+## has the black outline). The comic font has no outline of its own, so the
+## edge is the same words in ink, nudged out in eight directions behind them.
+func _outlined_words(text_size: int) -> Control:
+	var holder := Control.new()
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.custom_minimum_size = Vector2(0, text_size * 1.35)
+	var reach := maxf(2.0, text_size * 0.08)
+	for i in 9:
+		var edge := i < 8
+		var label := MenuSupport.heading("", text_size, _ink() if edge else Color("f6ead0"))
+		label.add_theme_constant_override("outline_size", 0)
+		label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+		label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		if edge:
+			var nudge := Vector2.RIGHT.rotated(TAU * i / 8.0) * reach
+			label.offset_left = nudge.x
+			label.offset_right = nudge.x
+			label.offset_top = nudge.y
+			label.offset_bottom = nudge.y
+		holder.add_child(label)
+	return holder
+
+
+## The black ink outline behind a label that is already laid out: eight ink
+## copies, drawn behind it and nudged out.
+func _ink_edge(label: Label) -> void:
+	if not is_instance_valid(label):
+		return
+	var text_size := label.get_theme_font_size("font_size")
+	var reach := maxf(2.0, text_size * 0.1)
+	for i in 8:
+		var copy := Label.new()
+		copy.text = label.text
+		copy.add_theme_font_override("font", label.get_theme_font("font"))
+		copy.add_theme_font_size_override("font_size", text_size)
+		copy.add_theme_color_override("font_color", _ink())
+		copy.add_theme_constant_override("outline_size", 0)
+		copy.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+		copy.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		copy.horizontal_alignment = label.horizontal_alignment
+		copy.vertical_alignment = label.vertical_alignment
+		copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		copy.show_behind_parent = true
+		copy.position = Vector2.RIGHT.rotated(TAU * i / 8.0) * reach
+		copy.size = label.size
+		label.add_child(copy)
+	label.resized.connect(func() -> void:
+		for child in label.get_children():
+			if child is Label:
+				(child as Label).size = label.size)
+
+
+func _say_words(holder: Control, words: String) -> void:
+	for label in holder.get_children():
+		(label as Label).text = words
 
 
 func _inked(label: Label) -> Label:
@@ -431,7 +497,7 @@ func _stand_up(units: Array[PlayerUnit], keeper: Node2D) -> Array[Dictionary]:
 		step_scale = room / widths
 	var x := (screen.x - widths * step_scale) / 2.0
 	# Feet on the grass near the bottom of the picture.
-	var feet := screen.y * clampf(_tune("line_up_feet", 0.92), 0.5, 1.0)
+	var feet := screen.y * clampf(_tune("line_up_feet", 0.88), 0.5, 1.0)
 	for person in people:
 		var node := person["node"] as Control
 		node.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -468,14 +534,14 @@ func _highlight(people: Array[Dictionary], index: int) -> void:
 
 	var card := people[index]["card"] as PlayerData
 	if card != null:
-		_mat_name.text = ("★ " if card.shows_star() else "") + NamePlate.short_name(card)
-		_mat_line.text = "%s %s   ·   %s %d" % [Loc.text("tier", "Tier"),
-			card.get_tier_clean(), Loc.text("power", "Power"), card.get_attack_power()]
+		_say_words(_mat_name, ("★ " if card.shows_star() else "") + NamePlate.short_name(card))
+		_say_words(_mat_line, "%s %s   ·   %s %d" % [Loc.text("tier", "Tier"),
+			card.get_tier_clean(), Loc.text("power", "Power"), card.get_attack_power()])
 	else:
 		var keeper := people[index]["keeper"] as GoalieUnit
 		var named := keeper.data.goalie_name if keeper != null and keeper.data != null else ""
-		_mat_name.text = named if named != "" else Loc.text("keeper", "Keeper")
-		_mat_line.text = Loc.text("goalkeeper", "Goalkeeper")
+		_say_words(_mat_name, named if named != "" else Loc.text("keeper", "Keeper"))
+		_say_words(_mat_line, Loc.text("goalkeeper", "Goalkeeper"))
 	_mat_box.modulate.a = 1.0
 	_mat_box.pivot_offset = _mat_box.size * 0.5
 	_mat_box.scale = Vector2(1.06, 1.06)

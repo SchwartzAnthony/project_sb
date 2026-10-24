@@ -604,6 +604,8 @@ func _flip_them_over(tier: String, info: Dictionary = {}) -> void:
 #  tier in it, and a shake — bounce back over their own half of the window,
 #  hold, and then both turn over at the same moment to show the duel.
 #
+#  The crash sound is Audio.csv duel_clash (bav_mat_clash, 24 Oct).
+#
 #  The pictures are drawn by tools/art/draw_duel_mats.py. The tier numeral
 #  and the words are written by the game, so one picture serves every tier
 #  and language (Language.csv duel_clash_word, tier).
@@ -722,6 +724,7 @@ func _clash_them(tier: String, info: Dictionary) -> void:
 		hit.tween_property(mat, "position", rest[key], bounce) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_flash_screen()
+	_sound("duel_clash", info)
 	_shake(_clash, maxf(hl_shake_pixels, 14.0))
 	await _beat(maxf(bounce, 0.22) + hold)
 	if not _running:
@@ -964,6 +967,7 @@ func _knock_away(winner_key: String) -> void:
 	_burst.scale = Vector2.ONE * 0.1
 	_burst.rotation = deg_to_rad(10.0 * away)
 	_flash_screen()
+	_sound("duel_knock", {"tier": _coach_tier})
 	var out := create_tween().set_parallel(true)
 	out.set_speed_scale(_rate())
 	out.tween_property(_burst, "scale", Vector2.ONE, 0.22) \

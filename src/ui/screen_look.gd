@@ -186,6 +186,38 @@ static func plank(button: Button, screen_id: String = "match") -> bool:
 	return true
 
 
+## How big a drawn plank's rim is drawn: 1 = as painted, 0.6 = 60%.
+static func plank_edge_scale() -> float:
+	var db := CardDatabase.get_db()
+	if db == null:
+		return 0.6
+	return clampf(db.tune_float("plank_edge_scale", 0.6), 0.2, 1.0)
+
+
+## A drawn plank as a stretchable box: the rim kept at plank_edge_scale, the
+## middle repeated. For a button that is not dressed by _dress (the title
+## screen's planks).
+static func plank_box(plank: Texture2D, tint: Color) -> StyleBoxTexture:
+	var style := StyleBoxTexture.new()
+	style.modulate_color = tint
+	var big := plank.get_image() if plank != null else null
+	if big == null:
+		style.texture = plank
+		return style
+	big = big.duplicate()
+	var shrink := plank_edge_scale()
+	if shrink != 1.0:
+		big.resize(int(big.get_width() * shrink), int(big.get_height() * shrink), Image.INTERPOLATE_LANCZOS)
+	style.texture = ImageTexture.create_from_image(big)
+	var edge := float(big.get_height()) * 0.32
+	style.texture_margin_left = edge
+	style.texture_margin_right = edge
+	style.texture_margin_top = edge
+	style.texture_margin_bottom = edge
+	style.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_TILE_FIT
+	return style
+
+
 ## A GREY PLATE BEHIND THE PLANK (Anthony 24 Oct 2026: "Give all buttons a
 ## grey background backdrop so it doesn't blend into the background").
 ## Tuning.csv match_button_backdrop (#RRGGBBAA, blank = none) and
@@ -239,11 +271,18 @@ static func _dress(button: Button, row: Dictionary) -> void:
 		# button of any size. Scale = how big its pixels are drawn (blank = 2,
 		# for pixel planks); a drawn plank uses 1 and is drawn smooth.
 		var plank_scale := MenuSupport.field_float(row, "Scale", 2.0)
+		# A drawn plank (Scale 1) is shrunk by plank_edge_scale (Tuning.csv),
+		# so its dark rim is thinner on every button (Anthony 24 Oct: "I
+		# didn't like the plank thickness"). Its middle repeats to fill.
+		var drawn := plank_scale == 1.0
+		if drawn:
+			plank_scale = plank_edge_scale()
 		var big := plank.get_image()
 		if big != null:
 			big = big.duplicate()
 			if plank_scale != 1.0:
-				big.resize(int(big.get_width() * plank_scale), int(big.get_height() * plank_scale), Image.INTERPOLATE_NEAREST)
+				big.resize(int(big.get_width() * plank_scale), int(big.get_height() * plank_scale),
+					Image.INTERPOLATE_LANCZOS if drawn else Image.INTERPOLATE_NEAREST)
 			var tex := ImageTexture.create_from_image(big)
 			var edge := float(big.get_height()) * 0.32
 			var looks := {"normal": Color(1, 1, 1), "hover": Color(1.2, 1.14, 1.02),
@@ -262,7 +301,7 @@ static func _dress(button: Button, row: Dictionary) -> void:
 				style.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_TILE_FIT
 				style.modulate_color = looks[state]
 				button.add_theme_stylebox_override(state, style)
-			button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if plank_scale != 1.0 else CanvasItem.TEXTURE_FILTER_LINEAR
+			button.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if drawn else CanvasItem.TEXTURE_FILTER_NEAREST
 		# The icon half of a two-part button gets no box of its own on wood.
 		for part in button.find_children("*", "PanelContainer", true, false):
 			(part as PanelContainer).add_theme_stylebox_override("panel", StyleBoxEmpty.new())
