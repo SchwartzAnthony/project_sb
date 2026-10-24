@@ -2,12 +2,15 @@ class_name LineUpParade
 extends CanvasLayer
 
 # =============================================================
-#  THE LINE-UPS, ON THE GRASS  (round AN)
+#  THE LINE-UPS, SIDE BY SIDE  (round AN, 24 Oct 2026)
 #
-#  Anthony: "I don't want to have a top down list, but them standing on the
-#  field and the camera goes from right to left for our team and then left
-#  to right for their team showing the correct names and sprites, all of
-#  them in the idle phase."
+#  Anthony (24 Oct, with a photo of a team standing in a row, arm in arm):
+#  "Add the team name on top and then go through each name (highlighting the
+#  player) one by one and showing their power and tier lvl as well. When
+#  they are transformed show them as they would appear on the field. Do
+#  this for the player and the enemy team. Allow the player who is playing
+#  the game to hit a skip button to get to the match sooner." "All in our
+#  art style!"
 #
 #  ============ WHERE IT SITS ============
 #
@@ -18,27 +21,37 @@ extends CanvasLayer
 #
 #  ============ WHAT HAPPENS ============
 #
-#  The real pitch, frozen, everyone on their own spot and standing in idle,
-#  facing the camera. The camera pushes in and pans along YOUR side from
-#  right to left, then along THEIRS from left to right. The side not being
-#  shown is faded back. A sign at the bottom names whoever is in the middle
-#  of the screen: name, tier, power and defence, a star for a Star Player.
+#  Behind them, the village pitch seen from the side at eye level (the same
+#  picture as the loading screen). Your team stands in one row on the grass,
+#  shoulder to shoulder, facing us, under the team banner: a hanging club
+#  banner with the team's symbol in a gold medallion and its name (blue for
+#  you, red for them; Anthony 24 Oct: "not the wooden plank again, the
+#  wooden plank is ONLY for the buildings"). One at a time, left to right, a
+#  player steps forward in full colour while the rest stay dark, and the
+#  beer mat under the banner names him: name, Tier and Power (a star for a
+#  Star Player). Then the same for the other team.
 #
-#  It is the same figures and the same name plates you will play with, so
-#  nothing here can show a different sprite from the match.
+#  Every figure is the drawn sprite that player wears on the pitch
+#  (PitchSprite.window_sheet), so a transformed player — a brew on him —
+#  stands here exactly as he will play.
 #
-#  A click, space, enter or escape skips the whole thing.
+#  The blue SKIP button bottom centre (or space, enter, escape) goes
+#  straight to the countdown.
 #
 #  ============ TUNING (Tuning.csv) ============
 #
 #      line_up_parade          false = straight from START to the countdown
-#      line_up_pan_seconds     how long the pan along one side takes
-#      line_up_hold            the pause at each end of a pan
-#      line_up_between_sides   the pause between the two sides
-#      line_up_zoom            how close, as a multiple of the whole-pitch shot
-#      line_up_fade_other      how see-through the side not being shown is
-#      line_up_facing          south = everyone faces the camera; ball = they
-#                              keep looking at the ball
+#      line_up_each            seconds each player is highlighted
+#      line_up_hold            the pause on the team name before the first
+#      line_up_between_sides   the pause between the two teams
+#      line_up_figure_height   how tall the figures stand, part of the screen
+#      line_up_dim             how dark the players not highlighted are
+#      line_up_background      the side view of the pitch behind the row
+#      line_up_shade           how dark that picture is made
+#      line_up_banner_mine / line_up_banner_theirs   the two banner pictures
+#      line_up_banner_width    how wide the banner is, part of the screen
+#      line_up_banner_symbol   where the medallion is in the banner picture
+#      line_up_banner_words    where the name goes in the banner picture
 # =============================================================
 
 signal finished
@@ -54,18 +67,27 @@ var my_name := "YOUR SIDE"
 var their_name := "THEM"
 
 var _done := false
-var _title: Label
-var _sign: PanelContainer
-var _sign_name: Label
-var _sign_line: Label
-var _shown: Object = null
+var _stage: Control
+var _row: Control
+var _banner: Control
+var my_symbol := ""
+var their_symbol := ""
+var _mat_box: Control
+var _mat_name: Control
+var _mat_line: Control
+var _skip: Button
 var _hidden_layers: Array[CanvasLayer] = []
+var _hidden_nodes: Array[CanvasItem] = []
+## Slows the whole line-up down; only tools/line_up_shot.gd changes it, to
+## film it frame by frame. The line-up runs on real time, not game speed.
+var clock_scale := 1.0
 
 
 ## Put it up over `scene` (the match) and return it. Await `finished`.
 static func on_field(scene: Node, database: CardDatabase, view: MatchCamera,
 		units: Array, keepers: Dictionary, your_title: String,
-		other_title: String) -> LineUpParade:
+		other_title: String, your_symbol: String = "",
+		other_symbol: String = "") -> LineUpParade:
 	var made := LineUpParade.new()
 	made.name = "LineUpParade"
 	made.db = database
@@ -81,6 +103,8 @@ static func on_field(scene: Node, database: CardDatabase, view: MatchCamera,
 		made.my_name = your_title
 	if other_title != "":
 		made.their_name = other_title
+	made.my_symbol = your_symbol
+	made.their_symbol = other_symbol
 	scene.add_child(made)
 	return made
 
@@ -93,233 +117,479 @@ func _ready() -> void:
 	_run()
 
 
+func _tune(key: String, otherwise: float) -> float:
+	return db.tune_float(key, otherwise) if db != null else otherwise
+
+
+func _ink() -> Color:
+	return Color.from_string(BeerMatCard.value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
+
+
 # =============================================================
-#  THE SIGNS
+#  THE STAGE: DARK PITCH, SIGN, ROW, BEER MAT, SKIP
 # =============================================================
 
 func _build() -> void:
-	# The whole screen catches a click, to skip.
-	var catcher := Control.new()
-	catcher.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	catcher.mouse_filter = Control.MOUSE_FILTER_STOP
-	catcher.gui_input.connect(func(event: InputEvent) -> void:
-		var click := event as InputEventMouseButton
-		if click != null and click.pressed:
-			skip())
-	add_child(catcher)
+	_stage = Control.new()
+	_stage.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_stage.mouse_filter = Control.MOUSE_FILTER_STOP
+	add_child(_stage)
 
-	_title = MenuSupport.heading(my_name, 44, MenuSupport.COLOUR_ACCENT)
-	_title.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_title.offset_top = 36.0
-	_title.offset_bottom = 110.0
-	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_title)
+	# The pitch from the side, filling the screen, its grass at the bottom.
+	var field := TextureRect.new()
+	field.texture = ScreenLook.picture(db.tune_text("line_up_background",
+		"res://assets/loading/drawn/village.png") if db != null else "res://assets/loading/drawn/village.png")
+	field.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	field.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	field.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	field.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	field.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stage.add_child(field)
 
-	# The name sign at the bottom: who is in the middle of the screen.
-	var bottom := CenterContainer.new()
-	bottom.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	bottom.offset_top = -190.0
-	bottom.offset_bottom = -60.0
-	bottom.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(bottom)
+	var shade := ColorRect.new()
+	shade.color = Color(0.02, 0.02, 0.04, clampf(_tune("line_up_shade", 0.15), 0.0, 1.0))
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stage.add_child(shade)
 
-	_sign = PanelContainer.new()
-	_sign.custom_minimum_size = Vector2(520, 0)
-	_sign.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_sign.add_theme_stylebox_override("panel", MenuSupport.panel_style(
-		MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
-	bottom.add_child(_sign)
+	_row = Control.new()
+	_row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stage.add_child(_row)
 
+	# The beer mat that names whoever is highlighted.
+	_mat_box = Control.new()
+	_mat_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_mat_box.size = Vector2(560, 150)
+	_stage.add_child(_mat_box)
+	_mat_box.add_child(InventoryScreen._mat(_mat_box.size,
+		int(BeerMatCard.number("inventory_edge", 60.0)), 0.9))
 	var column := VBoxContainer.new()
-	column.add_theme_constant_override("separation", 2)
+	column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	column.offset_left = 40.0
+	column.offset_right = -40.0
+	column.offset_top = 22.0
+	column.offset_bottom = -22.0
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+	column.add_theme_constant_override("separation", 0)
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_sign.add_child(column)
+	_mat_box.add_child(column)
+	_mat_name = _outlined_words(40)
+	column.add_child(_mat_name)
+	_mat_line = _outlined_words(28)
+	column.add_child(_mat_line)
+	_mat_box.modulate.a = 0.0
 
-	_sign_name = MenuSupport.heading("", 34, MenuSupport.COLOUR_TEXT)
-	_sign_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(_sign_name)
+	# SKIP: the blue plank.
+	_skip = MenuSupport.icon_button("play|▶", Loc.text("line_up_skip_button", "SKIP"),
+		Vector2(220, 64))
+	_skip.focus_mode = Control.FOCUS_NONE
+	_skip.pressed.connect(skip)
+	# Blue, in the middle of the screen (Anthony 24 Oct 2026).
+	InventoryScreen._plank(_skip)
+	_stage.add_child(_skip)
+	MenuSupport.pin_bottom_centre(_skip)
+	for found in _skip.find_children("*", "Label", true, false):
+		var word := found as Label
+		if word != null and word.text.strip_edges() != "":
+			_ink_edge.call_deferred(word)
 
-	_sign_line = Label.new()
-	_sign_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_sign_line.add_theme_font_size_override("font_size", 20)
-	_sign_line.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	column.add_child(_sign_line)
-	_sign.modulate.a = 0.0
-
-	var hint := Label.new()
-	hint.text = Loc.text("line_up_skip", "Click, space or escape to skip")
-	hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	hint.offset_top = -46.0
-	hint.offset_bottom = -16.0
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.add_theme_font_size_override("font_size", 16)
-	hint.add_theme_color_override("font_color", MenuSupport.COLOUR_TEXT_DIM)
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(hint)
+	get_viewport().size_changed.connect(_place_fixed)
+	_place_fixed()
 
 
-func _say(who: Object, is_enemy: bool) -> void:
-	if who == _shown:
+## Words in cream with the black ink outline (Anthony 24 Oct 2026: ALL text
+## has the black outline). The comic font has no outline of its own, so the
+## edge is the same words in ink, nudged out in eight directions behind them.
+func _outlined_words(text_size: int) -> Control:
+	var holder := Control.new()
+	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.custom_minimum_size = Vector2(0, text_size * 1.35)
+	var reach := maxf(2.0, text_size * 0.08)
+	for i in 9:
+		var edge := i < 8
+		var label := MenuSupport.heading("", text_size, _ink() if edge else Color("f6ead0"))
+		label.add_theme_constant_override("outline_size", 0)
+		label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+		label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		if edge:
+			var nudge := Vector2.RIGHT.rotated(TAU * i / 8.0) * reach
+			label.offset_left = nudge.x
+			label.offset_right = nudge.x
+			label.offset_top = nudge.y
+			label.offset_bottom = nudge.y
+		holder.add_child(label)
+	return holder
+
+
+## The black ink outline behind a label that is already laid out: eight ink
+## copies, drawn behind it and nudged out.
+func _ink_edge(label: Label) -> void:
+	if not is_instance_valid(label):
 		return
-	_shown = who
-	var card := (who as PlayerUnit).data if who is PlayerUnit else null
-	var tint := Color(0.92, 0.55, 0.45) if is_enemy else MenuSupport.COLOUR_ACCENT
-	if card != null:
-		_sign_name.text = ("★ " if card.is_star() else "") + NamePlate.short_name(card)
-		_sign_line.text = "Tier %s   ·   P %d   ·   D %d" % [card.get_tier_clean(),
-			card.get_attack_power(), card.get_defense_power()]
-	else:
-		var keeper := (who as GoalieUnit).data if who is GoalieUnit else null
-		_sign_name.text = keeper.goalie_name if keeper != null and keeper.goalie_name != "" \
-			else Loc.text("keeper", "Keeper")
-		_sign_line.text = Loc.text("goalkeeper", "Goalkeeper")
-	_sign_name.add_theme_color_override("font_color", tint)
-	_sign.add_theme_stylebox_override("panel", MenuSupport.panel_style(
-		MenuSupport.COLOUR_PANEL, tint))
-	_sign.modulate.a = 1.0
-	# A small pop, so a new name reads as a new name.
-	_sign.pivot_offset = _sign.size * 0.5
-	_sign.scale = Vector2(1.06, 1.06)
-	create_tween().tween_property(_sign, "scale", Vector2.ONE, 0.15)
+	var text_size := label.get_theme_font_size("font_size")
+	var reach := maxf(2.0, text_size * 0.1)
+	for i in 8:
+		var copy := Label.new()
+		copy.text = label.text
+		copy.add_theme_font_override("font", label.get_theme_font("font"))
+		copy.add_theme_font_size_override("font_size", text_size)
+		copy.add_theme_color_override("font_color", _ink())
+		copy.add_theme_constant_override("outline_size", 0)
+		copy.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+		copy.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		copy.horizontal_alignment = label.horizontal_alignment
+		copy.vertical_alignment = label.vertical_alignment
+		copy.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		copy.show_behind_parent = true
+		copy.position = Vector2.RIGHT.rotated(TAU * i / 8.0) * reach
+		copy.size = label.size
+		label.add_child(copy)
+	label.resized.connect(func() -> void:
+		for child in label.get_children():
+			if child is Label:
+				(child as Label).size = label.size)
+
+
+func _say_words(holder: Control, words: String) -> void:
+	for label in holder.get_children():
+		(label as Label).text = words
+
+
+func _inked(label: Label) -> Label:
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_color_override("font_color", _ink())
+	label.add_theme_constant_override("outline_size", 0)
+	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+	label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.clip_text = true
+	return label
+
+
+func _screen() -> Vector2:
+	return get_viewport().get_visible_rect().size
+
+
+func _place_fixed() -> void:
+	var screen := _screen()
+	var under := 300.0
+	if _banner != null and is_instance_valid(_banner):
+		_banner.position = Vector2((screen.x - _banner.size.x) / 2.0, 6.0)
+		under = _banner.position.y + _banner.size.y * 0.86
+	_mat_box.position = Vector2((screen.x - _mat_box.size.x) / 2.0, under)
+
+
+## Four numbers from Tuning.csv, "a,b,c,d".
+func _tune_rect(key: String, otherwise: Rect2) -> Rect2:
+	var parts := (db.tune_text(key, "") if db != null else "").split(",")
+	if parts.size() != 4:
+		return otherwise
+	return Rect2(float(parts[0]), float(parts[1]),
+		float(parts[2]) - float(parts[0]), float(parts[3]) - float(parts[1]))
+
+
+## The team banner: the cloth, the team's symbol in the medallion, the name.
+func _put_up_banner(words: String, symbol: String, theirs: bool) -> void:
+	if _banner != null and is_instance_valid(_banner):
+		_banner.queue_free()
+	var art := ScreenLook.picture(db.tune_text(
+		"line_up_banner_theirs" if theirs else "line_up_banner_mine",
+		"res://assets/ui/line_up/team_banner_%s.png" % ("theirs" if theirs else "mine")))
+	var screen := _screen()
+	var wide := screen.x * clampf(_tune("line_up_banner_width", 0.5), 0.2, 1.0)
+	var scale_by := wide / art.get_width() if art != null else 1.0
+	_banner = Control.new()
+	_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_banner.size = (art.get_size() if art != null else Vector2(1060, 340)) * scale_by
+	_stage.add_child(_banner)
+	_stage.move_child(_banner, _row.get_index() + 1)
+	if art != null:
+		var cloth := TextureRect.new()
+		cloth.texture = art
+		cloth.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		cloth.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		cloth.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		cloth.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_banner.add_child(cloth)
+
+	# The team's symbol, inside the medallion's cream middle.
+	var medal := _tune_rect("line_up_banner_symbol", Rect2(92, 72, 156, 156))
+	var picture := MenuSupport.icon_texture(symbol) if symbol != "" else null
+	if picture != null:
+		var crest := TextureRect.new()
+		crest.texture = picture
+		crest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		crest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		# Old pixel symbols stay sharp; drawn ones are smoothed.
+		crest.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST \
+			if picture.get_width() <= 128 else CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+		var inset := medal.size * 0.04
+		crest.position = (medal.position + inset) * scale_by
+		crest.size = (medal.size - inset * 2.0) * scale_by
+		crest.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_banner.add_child(crest)
+
+	# The name, cream with an ink edge, as big as fits.
+	var room := _tune_rect("line_up_banner_words", Rect2(290, 84, 670, 128))
+	var box := Rect2(room.position * scale_by, room.size * scale_by)
+	var text_size := int(box.size.y * 0.62)
+	var font := MenuSupport.heading("x", 10).get_theme_font("font")
+	while text_size > 16 and font != null and \
+			font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size).x > box.size.x:
+		text_size -= 2
+	var cream := Color("f6ead0")
+	var ink := Color("19110a")
+	var reach := maxf(2.0, text_size * 0.07)
+	for i in 9:
+		var edge := i < 8
+		var label := MenuSupport.heading(words, text_size, ink if edge else cream)
+		label.add_theme_constant_override("outline_size", 0)
+		label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+		label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.position = box.position
+		label.size = box.size
+		if edge:
+			label.position += Vector2.RIGHT.rotated(TAU * i / 8.0) * reach
+		_banner.add_child(label)
+	_place_fixed()
 
 
 # =============================================================
-#  THE PANS
+#  ONE TEAM IN A ROW
+# =============================================================
+
+## The order they stand in: the keeper, then by Tier, the Stars last.
+func _order(units: Array[PlayerUnit]) -> Array[PlayerUnit]:
+	var sorted := units.duplicate()
+	sorted.sort_custom(func(a: PlayerUnit, b: PlayerUnit) -> bool:
+		var star_a := 1 if a.data.shows_star() else 0
+		var star_b := 1 if b.data.shows_star() else 0
+		if star_a != star_b:
+			return star_a < star_b
+		return a.data.get_tier_index() < b.data.get_tier_index())
+	return sorted
+
+
+## A figure as it stands on the pitch: the drawn idle, facing us.
+## The big, sharp sheets the drinking window uses (data/DrinkWindow.csv:
+## window_sheets, window_cell, window_feet), one per pitch sheet, same name.
+## Row 2 is standing facing the camera (Anthony 24 Oct 2026: "fix the
+## extremely blurry players in the line up").
+func _window_setting(key: String, otherwise: String) -> String:
+	for row in MenuSupport.read_csv("res://data/DrinkWindow.csv"):
+		if MenuSupport.field(row, "Key").strip_edges() == key:
+			return MenuSupport.field(row, "Value").strip_edges()
+	return otherwise
+
+
+func _sharp_figure(pitch: Texture2D, tall: float) -> Control:
+	if pitch == null:
+		return null
+	var folder := _window_setting("window_sheets", "res://assets/players/window/")
+	var path := folder.path_join(pitch.resource_path.get_file())
+	if not ResourceLoader.exists(path):
+		return null
+	var sheet := load(path) as Texture2D
+	var cell_parts := _window_setting("window_cell", "336,460").split(",")
+	if sheet == null or cell_parts.size() != 2:
+		return null
+	var cell := Vector2(float(cell_parts[0]), float(cell_parts[1]))
+	var spec := AnimSpec.new()
+	spec.name = "idle"
+	spec.sheet_columns = maxi(1, int(sheet.get_width() / cell.x))
+	spec.sheet_rows = maxi(1, int(sheet.get_height() / cell.y))
+	spec.row = int(_tune("line_up_sharp_row", 2.0))
+	if spec.row >= spec.sheet_rows:
+		spec.row = 0
+	spec.first_frame = 0
+	spec.frames = 4
+	spec.fps = 6.0
+	spec.loop = true
+	var figure := SpriteAnimator.new()
+	figure.play(sheet, spec)
+	# Every window sheet is drawn at the same size, so one zoom for all.
+	var zoom := tall / cell.y * 1.35
+	figure.custom_minimum_size = Vector2(figure.crop_size()) * zoom
+	figure.size = figure.custom_minimum_size
+	return figure
+
+
+func _figure(card: PlayerData, tall: float) -> Control:
+	var sheet := PitchSprite.window_sheet(card)
+	var sharp := _sharp_figure(sheet, tall)
+	if sharp != null:
+		return sharp
+	var spec := PitchSprite.window_spec(sheet, "idle", 2) if sheet != null else null
+	if spec == null:
+		return MenuSupport.portrait_rect(card, db, Vector2(tall * 0.5, tall))
+	var figure := SpriteAnimator.new()
+	figure.play(sheet, spec)
+	# One zoom for every sheet, so a tall player stands taller than a short
+	# one, the same as on the pitch.
+	var look := PitchSprite.look_of(sheet)
+	var zoom := tall / float(look["cell"]) * float(look["size"]) * 1.25
+	figure.custom_minimum_size = Vector2(figure.crop_size()) * zoom
+	figure.size = figure.custom_minimum_size
+	return figure
+
+
+## The keeper's own picture from the pitch, standing still.
+func _keeper_figure(keeper: Node2D, tall: float) -> Control:
+	var art := keeper.get_node_or_null("Artwork") as Sprite2D
+	if art == null or art.texture == null:
+		return null
+	var atlas := AtlasTexture.new()
+	atlas.atlas = art.texture
+	if art.region_enabled:
+		atlas.region = art.region_rect
+	else:
+		var cell := art.texture.get_size() / Vector2(art.hframes, art.vframes)
+		atlas.region = Rect2(Vector2(art.frame % art.hframes, art.frame / art.hframes) * cell, cell)
+	var picture := TextureRect.new()
+	picture.texture = atlas
+	picture.texture_filter = art.texture_filter if art.texture_filter != \
+		CanvasItem.TEXTURE_FILTER_PARENT_NODE else CanvasItem.TEXTURE_FILTER_NEAREST
+	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	picture.flip_h = art.flip_h
+	var wide := atlas.region.size.x / maxf(1.0, atlas.region.size.y) * tall * 0.8
+	picture.custom_minimum_size = Vector2(wide, tall * 0.8)
+	picture.size = picture.custom_minimum_size
+	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return picture
+
+
+## Lay one team out in a row. Returns [{node, card, keeper}] left to right.
+func _stand_up(units: Array[PlayerUnit], keeper: Node2D) -> Array[Dictionary]:
+	for old in _row.get_children():
+		old.queue_free()
+	var screen := _screen()
+	var tall := screen.y * clampf(_tune("line_up_figure_height", 0.36), 0.1, 0.8)
+	var people: Array[Dictionary] = []
+	if keeper != null and is_instance_valid(keeper):
+		var picture := _keeper_figure(keeper, tall)
+		if picture != null:
+			people.append({"node": picture, "card": null, "keeper": keeper})
+	for unit in _order(units):
+		if is_instance_valid(unit) and unit.data != null:
+			people.append({"node": _figure(unit.data, tall), "card": unit.data, "keeper": null})
+	if people.is_empty():
+		return people
+
+	# Shoulder to shoulder: each figure overlaps the next a little, like the
+	# arms round each other in the photo. Squeezed tighter if the row would
+	# not fit across the screen.
+	var widths := 0.0
+	for person in people:
+		widths += (person["node"] as Control).size.x
+	var room := screen.x * 0.92
+	var overlap := clampf(_tune("line_up_overlap", 0.22), 0.0, 0.6)
+	var step_scale := 1.0 - overlap
+	if widths * step_scale > room:
+		step_scale = room / widths
+	var x := (screen.x - widths * step_scale) / 2.0
+	# Feet on the grass near the bottom of the picture.
+	var feet := screen.y * clampf(_tune("line_up_feet", 0.88), 0.5, 1.0)
+	for person in people:
+		var node := person["node"] as Control
+		node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var width := node.size.x
+		node.position = Vector2(x + width * (step_scale - 1.0) / 2.0, feet - node.size.y)
+		node.pivot_offset = Vector2(width / 2.0, node.size.y)
+		node.modulate = _dark()
+		_row.add_child(node)
+		person["home"] = node.position
+		x += width * step_scale
+	return people
+
+
+func _dark() -> Color:
+	var dim := clampf(_tune("line_up_dim", 0.35), 0.0, 1.0)
+	return Color(dim, dim, dim, 1.0)
+
+
+## Light one up and name them on the beer mat.
+func _highlight(people: Array[Dictionary], index: int) -> void:
+	for i in people.size():
+		var node := people[i]["node"] as Control
+		if not is_instance_valid(node):
+			continue
+		var lit := i == index
+		var tween := _tween().set_parallel(true)
+		tween.tween_property(node, "modulate", Color.WHITE if lit else _dark(), 0.18)
+		tween.tween_property(node, "scale", Vector2.ONE * (1.12 if lit else 1.0), 0.18)
+		tween.tween_property(node, "position",
+			Vector2(people[i]["home"]) + (Vector2(0, 14) if lit else Vector2.ZERO), 0.18)
+	# The one stepping forward is drawn over his neighbours.
+	var front := people[index]["node"] as Control
+	_row.move_child(front, -1)
+
+	var card := people[index]["card"] as PlayerData
+	if card != null:
+		_say_words(_mat_name, ("★ " if card.shows_star() else "") + NamePlate.short_name(card))
+		_say_words(_mat_line, "%s %s   ·   %s %d" % [Loc.text("tier", "Tier"),
+			card.get_tier_clean(), Loc.text("power", "Power"), card.get_attack_power()])
+	else:
+		var keeper := people[index]["keeper"] as GoalieUnit
+		var named := keeper.data.goalie_name if keeper != null and keeper.data != null else ""
+		_say_words(_mat_name, named if named != "" else Loc.text("keeper", "Keeper"))
+		_say_words(_mat_line, Loc.text("goalkeeper", "Goalkeeper"))
+	_mat_box.modulate.a = 1.0
+	_mat_box.pivot_offset = _mat_box.size * 0.5
+	_mat_box.scale = Vector2(1.06, 1.06)
+	_tween().tween_property(_mat_box, "scale", Vector2.ONE, 0.15)
+
+
+func _show_team(units: Array[PlayerUnit], keeper: Node2D, title: String,
+		symbol: String, theirs: bool) -> void:
+	_mat_box.modulate.a = 0.0
+	_put_up_banner(title, symbol, theirs)
+	var people := _stand_up(units, keeper)
+	if people.is_empty():
+		return
+	_row.modulate.a = 0.0
+	_tween().tween_property(_row, "modulate:a", 1.0, 0.3)
+	await _wait(maxf(0.0, _tune("line_up_hold", 0.8)))
+	var each := maxf(0.2, _tune("line_up_each", 0.8))
+	for i in people.size():
+		if _done:
+			return
+		_highlight(people, i)
+		await _wait(each)
+
+
+# =============================================================
+#  THE RUN
 # =============================================================
 
 func _run() -> void:
-	if camera == null or not is_instance_valid(camera):
-		_end()
-		return
-	var between := maxf(0.0, db.tune_float("line_up_between_sides", 0.9))
-
-	_hide_the_hud(true)
-	camera.script_shot(true)
-	_face_the_camera(true)
-	_hide_keeper_odds(true)
-
-	# YOURS, right to left.
-	await _pan(mine, my_keeper, my_name, false, true)
+	_hide_the_pitch_layers(true)
+	await _show_team(mine, my_keeper, my_name, my_symbol, false)
 	if _done:
 		return
-	await _wait(between)
+	await _wait(maxf(0.0, _tune("line_up_between_sides", 0.6)))
 	if _done:
 		return
-	# THEIRS, left to right.
-	await _pan(theirs, their_keeper, their_name, true, false)
+	await _show_team(theirs, their_keeper, their_name, their_symbol, true)
 	if _done:
 		return
-	await _wait(between * 0.5)
+	await _wait(maxf(0.0, _tune("line_up_between_sides", 0.6)))
 	_end()
 
 
-## Pan along one side. `right_to_left` decides which end it starts at.
-func _pan(units: Array[PlayerUnit], keeper: Node2D, title: String,
-		is_enemy: bool, right_to_left: bool) -> void:
-	_title.text = title
-	_title.add_theme_color_override("font_color",
-		Color(0.92, 0.55, 0.45) if is_enemy else MenuSupport.COLOUR_ACCENT)
-	_shown = null
-
-	var fade := clampf(db.tune_float("line_up_fade_other", 0.3), 0.0, 1.0)
-	for unit in mine + theirs:
-		unit.modulate.a = 1.0 if unit.is_enemy == is_enemy else fade
-	for side_keeper in [my_keeper, their_keeper]:
-		if side_keeper != null and is_instance_valid(side_keeper):
-			side_keeper.modulate.a = 1.0 if side_keeper == keeper else fade
-
-	# Everyone on this side, as points in the picture the camera moves over.
-	var who: Array[Node2D] = []
-	for unit in units:
-		who.append(unit)
-	if keeper != null and is_instance_valid(keeper):
-		who.append(keeper)
-	if who.is_empty():
-		return
-	var spots: Array[Vector2] = []
-	for node in who:
-		spots.append(camera.view_xform * node.global_position)
-
-	# A STRAIGHT LINE THROUGH THE SIDE. The tilted pitch runs corner to
-	# corner, so the side lies along a slope; the camera follows the best
-	# straight line through them instead of jumping up and down from one
-	# player to the next.
-	var fit := _line_through(spots)
-	var low := INF
-	var high := -INF
-	for spot in spots:
-		low = minf(low, spot.x)
-		high = maxf(high, spot.x)
-	var from_x := high if right_to_left else low
-	var to_x := low if right_to_left else high
-
-	var zoom := camera.pitch_zoom * maxf(1.0, db.tune_float("line_up_zoom", 2.2))
-	var seconds := maxf(0.5, db.tune_float("line_up_pan_seconds", 5.0))
-	var hold := maxf(0.0, db.tune_float("line_up_hold", 0.6))
-
-	var at := func(x: float) -> Vector2:
-		return Vector2(x, fit.x + fit.y * x)
-	camera.place_shot(at.call(from_x), zoom)
-	_name_the_nearest(who, is_enemy)
-	await _wait(hold)
-	if _done:
-		return
-
-	var clock := 0.0
-	while clock < seconds and not _done:
-		clock += get_process_delta_time()
-		var t := clampf(clock / seconds, 0.0, 1.0)
-		# Eased at both ends, so it starts and stops like a camera operator.
-		var eased := 0.5 - 0.5 * cos(PI * t)
-		camera.place_shot(at.call(lerpf(from_x, to_x, eased)), zoom)
-		_name_the_nearest(who, is_enemy)
-		await get_tree().process_frame
-	if _done:
-		return
-	await _wait(hold)
-
-
-## y = a + b·x through the points, as Vector2(a, b). Least squares.
-func _line_through(spots: Array[Vector2]) -> Vector2:
-	var n := float(spots.size())
-	var sx := 0.0
-	var sy := 0.0
-	var sxx := 0.0
-	var sxy := 0.0
-	for spot in spots:
-		sx += spot.x
-		sy += spot.y
-		sxx += spot.x * spot.x
-		sxy += spot.x * spot.y
-	var spread := n * sxx - sx * sx
-	if absf(spread) < 0.001:
-		return Vector2(sy / n, 0.0)
-	var b := (n * sxy - sx * sy) / spread
-	return Vector2((sy - b * sx) / n, b)
-
-
-## The sign names whoever stands nearest the middle of the screen.
-func _name_the_nearest(who: Array[Node2D], is_enemy: bool) -> void:
-	var middle := camera.global_position
-	var best: Node2D = null
-	var best_gap := INF
-	for node in who:
-		var gap := absf((camera.view_xform * node.global_position).x - middle.x)
-		if gap < best_gap:
-			best_gap = gap
-			best = node
-	if best != null:
-		_say(best, is_enemy)
-
-
-# =============================================================
-#  WHILE IT RUNS: NO HUD, EVERYONE FACING US
-# =============================================================
-
-func _hide_the_hud(on: bool) -> void:
+## The HUD and the name ribbons over the pitch, out of the way.
+func _hide_the_pitch_layers(on: bool) -> void:
 	if on:
 		_hidden_layers.clear()
+		_hidden_nodes.clear()
 		var scene := get_parent()
 		if scene == null:
 			return
@@ -332,40 +602,34 @@ func _hide_the_hud(on: bool) -> void:
 				continue
 			other.visible = false
 			_hidden_layers.append(other)
+		# Everyone on the pitch steps off it while they stand in the row:
+		# the same players twice would only confuse.
+		var on_pitch: Array = mine + theirs
+		on_pitch.append_array([my_keeper, their_keeper])
+		for node in on_pitch:
+			var item := node as CanvasItem
+			if item != null and is_instance_valid(item) and item.visible:
+				item.visible = false
+				_hidden_nodes.append(item)
 	else:
 		for other in _hidden_layers:
 			if is_instance_valid(other):
 				other.visible = true
 		_hidden_layers.clear()
-
-
-## The keepers' save odds are match information, not part of a line-up.
-func _hide_keeper_odds(on: bool) -> void:
-	for keeper in [my_keeper, their_keeper]:
-		if keeper == null or not is_instance_valid(keeper):
-			continue
-		var odds := keeper.get_node_or_null("ChanceLabel") as CanvasItem
-		if odds != null:
-			if on:
-				odds.set_meta("line_up_was", odds.visible)
-				odds.visible = false
-			elif odds.has_meta("line_up_was"):
-				odds.visible = bool(odds.get_meta("line_up_was"))
-				odds.remove_meta("line_up_was")
-
-
-func _face_the_camera(on: bool) -> void:
-	var facing := db.tune_text("line_up_facing", "south").strip_edges().to_lower()
-	var turn := PitchSprite.DIRECTIONS.find(facing)
-	for unit in mine + theirs:
-		if is_instance_valid(unit):
-			unit.pose_facing = turn if on else -1
+		for node in _hidden_nodes:
+			if is_instance_valid(node):
+				node.visible = true
+		_hidden_nodes.clear()
 
 
 func _wait(seconds: float) -> void:
 	if seconds <= 0.0 or _done:
 		return
-	await get_tree().create_timer(seconds, true, false, true).timeout
+	await get_tree().create_timer(seconds / clock_scale, true, false, true).timeout
+
+
+func _tween() -> Tween:
+	return create_tween().set_ignore_time_scale(true).set_speed_scale(clock_scale)
 
 
 # =============================================================
@@ -392,16 +656,6 @@ func _end() -> void:
 	if _done:
 		return
 	_done = true
-	for unit in mine + theirs:
-		if is_instance_valid(unit):
-			unit.modulate.a = 1.0
-	for keeper in [my_keeper, their_keeper]:
-		if keeper != null and is_instance_valid(keeper):
-			keeper.modulate.a = 1.0
-	_face_the_camera(false)
-	_hide_keeper_odds(false)
-	_hide_the_hud(false)
-	if camera != null and is_instance_valid(camera):
-		camera.script_shot(false)
+	_hide_the_pitch_layers(false)
 	finished.emit()
 	queue_free()

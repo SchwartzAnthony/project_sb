@@ -1,6 +1,10 @@
 class_name DuelArena
 extends CanvasLayer
 
+## Loaded by path, not by its class name (an editor that has not re-scanned
+## since a pull would not know the name - see match_coach.gd).
+const HOLD_PAUSE := preload("res://src/core/hold_pause.gd")
+
 # =============================================================
 #  THE DUEL CUT-AWAY  (Advance Wars style)
 #
@@ -51,6 +55,10 @@ const VBOX_LEFT := "Dim/Panels/LeftPanel/Margin/VBox"
 const VBOX_RIGHT := "Dim/Panels/RightPanel/Margin/VBox"
 
 const DIM_TEXT := Color(0.55, 0.56, 0.62)
+## The dark fill inside each duel card: reddish for the attacker, bluish for
+## the defender (the two fills duel_arena.tscn used to give by side).
+const ROLE_FILL_ATTACK := Color(0.145, 0.086, 0.098, 0.98)
+const ROLE_FILL_DEFEND := Color(0.086, 0.102, 0.145, 0.98)
 const LIVE_TEXT := Color(1.0, 0.95, 0.72)
 const WIN_TEXT := Color(0.55, 0.95, 0.55)
 const LOSE_TEXT := Color(0.95, 0.45, 0.42)
@@ -82,6 +90,7 @@ var hl_ring_art: Texture2D
 var hl_box_art: Texture2D
 var hl_art_scale: float = 3.0
 var hl_box_margin: int = 17
+var hl_box_overhang: float = 0.0
 var hl_ring_hole := Vector2(44.0, 30.0)
 var hl_bonus_seconds: float = 0.9
 var hl_bonus_merge_seconds: float = 0.45
@@ -168,6 +177,7 @@ func _wire() -> void:
 		_anim[key] = animator
 		var stage: Control = _side[key]["stage"]
 		if stage != null:
+			_field_behind(stage, key)
 			stage.add_child(animator)
 
 
@@ -192,6 +202,7 @@ func apply_tuning(database: CardDatabase) -> void:
 	hl_box_art = _art(db.tune_text("duel_hl_box_art", ""))
 	hl_art_scale = maxf(1.0, db.tune_float("duel_hl_art_scale", hl_art_scale))
 	hl_box_margin = db.tune_int("duel_hl_box_margin", hl_box_margin)
+	hl_box_overhang = db.tune_float("duel_hl_box_overhang", hl_box_overhang)
 	hl_bonus_seconds = db.tune_float("duel_hl_bonus_seconds", hl_bonus_seconds)
 	hl_bonus_merge_seconds = maxf(0.05, db.tune_float("duel_hl_bonus_merge_seconds", hl_bonus_merge_seconds))
 	var hole := db.tune_text("duel_hl_ring_hole", "").split(" ", false)
@@ -248,6 +259,7 @@ func play_duel(info: Dictionary) -> void:
 
 	_running = true
 	_skipping = false
+	_knock_reset()
 	_dim.visible = true
 	if _tier_label:
 		_tier_label.text = "TIER %s" % String(info.get("tier", ""))
@@ -268,7 +280,7 @@ func play_duel(info: Dictionary) -> void:
 	#
 	# `duel_flip` in Tuning.csv turns the animation off and the window is
 	# simply there, which is how it was.
-	await _flip_them_over(String(info.get("tier", "")))
+	await _flip_them_over(String(info.get("tier", "")), info)
 	await _coach("duel_start")
 
 	# --- 1. Both run at each other ---
@@ -356,6 +368,11 @@ func play_duel(info: Dictionary) -> void:
 				_shake(_side_panel(key), hl_shake_pixels)
 				_dull(number)
 	await _beat(result_seconds)
+	# Anthony, 24 Oct 2026: the winner crashes into the loser, knocks it off
+	# the screen and takes the middle - the same crash as the start.
+	var right_wins := bool(right.get("wins", false))
+	if left_wins != right_wins and (db == null or db.tune_bool("duel_knock", true)):
+		await _knock_away("left" if left_wins else "right")
 	await _coach("duel_result")
 
 	_ring("left", false)
@@ -365,6 +382,7 @@ func play_duel(info: Dictionary) -> void:
 		_pop.visible = false
 	_dim.visible = false
 	_running = false
+	_knock_reset()
 	duel_finished.emit()
 
 
@@ -429,6 +447,7 @@ func _fire_ability(key: String, data: Dictionary, moment: String = "") -> void:
 	_play_anim(key, data.get("card"), "ability")
 	if not highlight:
 		await _beat(ability_seconds)
+		await _coach_ability(key, data)
 		return
 
 	# ROUND AN: the gold box round the ability, held long enough to read,
@@ -458,6 +477,7 @@ func _fire_ability(key: String, data: Dictionary, moment: String = "") -> void:
 	var hits: Array = data.get("keeper_hits", [])
 	if went_off and not hits.is_empty() and keeper_hit.is_valid():
 		await keeper_hit.call(hits)
+	await _coach_ability(key, data)
 	_box(key, false)
 
 
@@ -501,7 +521,7 @@ var _back_left: Control
 var _back_right: Control
 
 
-func _flip_them_over(tier: String) -> void:
+func _flip_them_over(tier: String, info: Dictionary = {}) -> void:
 	if _panels == null:
 		_panels = get_node_or_null("Dim/Panels") as Control
 	if _panels == null:
@@ -511,6 +531,10 @@ func _flip_them_over(tier: String) -> void:
 		_panels.visible = true
 		if _back != null:
 			_back.visible = false
+		return
+
+	if db == null or db.tune_text("duel_flip_style", "clash") == "clash":
+		await _clash_them(tier, info)
 		return
 
 	var seconds := 0.42
@@ -575,6 +599,423 @@ func _flip_them_over(tier: String) -> void:
 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	await back_again.finished
 	_panels.scale = Vector2.ONE
+
+
+# =============================================================
+#  THE CLASH — two beer mats crash together (Anthony's pick B, 24 Oct 2026)
+#
+#  The two cards come in FACE DOWN as beer mats: the attacker's with a red
+#  ribbon round it, the defender's blue. They slide in from the two sides
+#  and crash together in the middle — KRACH!, a yellow comic burst with the
+#  tier in it, and a shake — bounce back over their own half of the window,
+#  hold, and then both turn over at the same moment to show the duel.
+#
+#  The crash sound is Audio.csv duel_clash (bav_mat_clash, 24 Oct).
+#
+#  The pictures are drawn by tools/art/draw_duel_mats.py. The tier numeral
+#  and the words are written by the game, so one picture serves every tier
+#  and language (Language.csv duel_clash_word, tier).
+#
+#      duel_flip_style            clash = this; card = the old dark card back
+#      duel_clash_mat_*_art       the two mat backs, duel_clash_burst_art
+#      duel_clash_mat_height      how tall a mat is on screen
+#      duel_clash_burst_width     how wide the burst is on screen
+#      duel_clash_slide_seconds   in from the sides
+#      duel_clash_bounce_seconds  back apart after the crash
+#      duel_back_seconds          held face down before they turn
+#      duel_flip_seconds          the turn, both halves together
+# =============================================================
+
+const CLASH_INK := Color(0.10, 0.07, 0.04)
+const CLASH_RED := Color(0.77, 0.16, 0.14)
+## Where things sit on the 600 x 900 mat picture, as parts of its size.
+const MAT_CAP := Vector2(0.5, 0.456)      # middle of the bottle cap
+const MAT_PLANK_Y := 0.91                 # middle of the wooden plank
+
+var _clash: Control
+var _mats := {}            # "left"/"right" -> Control (the mat, its numeral, TIER)
+var _burst: Control
+
+
+func _clash_them(tier: String, info: Dictionary) -> void:
+	_build_clash()
+	var mat_h := 720.0
+	var burst_w := 760.0
+	var slide := 0.35
+	var bounce := 0.3
+	var hold := 0.8
+	var turn_seconds := 0.42
+	if db != null:
+		mat_h = maxf(60.0, db.tune_float("duel_clash_mat_height", mat_h))
+		burst_w = maxf(60.0, db.tune_float("duel_clash_burst_width", burst_w))
+		slide = maxf(0.05, db.tune_float("duel_clash_slide_seconds", slide))
+		bounce = maxf(0.05, db.tune_float("duel_clash_bounce_seconds", bounce))
+		hold = maxf(0.0, db.tune_float("duel_back_seconds", hold))
+		turn_seconds = maxf(0.05, db.tune_float("duel_flip_seconds", turn_seconds))
+	var mat_size := Vector2(mat_h * 2.0 / 3.0, mat_h)
+
+	for key in ["left", "right"]:
+		var data: Dictionary = info.get(key, {})
+		var attacks := bool(data.get("is_attacker", key == "left"))
+		_dress_mat(key, attacks, tier, mat_size)
+	_dress_burst(tier, burst_w)
+
+	# Where each mat comes to rest: over the middle of its half of the window.
+	# The row lays its two halves out a frame after the window opens, so it
+	# is given that frame first.
+	_panels.modulate.a = 0.0
+	if _tier_label != null:
+		_tier_label.visible = false
+	await get_tree().process_frame
+	_panels.modulate.a = 1.0
+	if not _running:
+		_clash_done()
+		return
+	var screen := _dim.size
+	var rest := {}
+	for key in ["left", "right"]:
+		var panel := _side_panel(key)
+		var middle := screen * 0.5 + Vector2(-1.0 if key == "left" else 1.0, 0.0) * screen.x * 0.2
+		if panel != null and panel.size.x > 0.0:
+			middle = panel.get_global_rect().get_center() - _dim.get_global_rect().position
+		rest[key] = middle - mat_size * 0.5
+	var touch := screen.y * 0.5 - mat_size.y * 0.5
+	var meet := {
+		"left": Vector2(screen.x * 0.5 - mat_size.x - 4.0, touch),
+		"right": Vector2(screen.x * 0.5 + 4.0, touch),
+	}
+
+	if _tier_label != null:
+		_tier_label.visible = false
+	_panels.visible = false
+	if _back != null:
+		_back.visible = false
+	_clash.visible = true
+	_burst.visible = false
+	var left_mat: Control = _mats["left"]
+	var right_mat: Control = _mats["right"]
+	left_mat.position = Vector2(-mat_size.x - 40.0, meet["left"].y)
+	right_mat.position = Vector2(screen.x + 40.0, meet["right"].y)
+	left_mat.rotation = deg_to_rad(-8.0)
+	right_mat.rotation = deg_to_rad(8.0)
+	for mat in [left_mat, right_mat]:
+		mat.scale = Vector2.ONE
+		mat.visible = true
+
+	# 1. IN FROM THE SIDES, picking up speed.
+	var come := create_tween().set_parallel(true)
+	come.set_speed_scale(_rate())
+	for key in ["left", "right"]:
+		var mat: Control = _mats[key]
+		come.tween_property(mat, "position", meet[key], slide) \
+			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		come.tween_property(mat, "rotation", 0.0, slide)
+	await _beat(slide)
+	if not _running:
+		_clash_done()
+		return
+
+	# 2. KRACH! The burst pops up over the crash and the mats bounce apart.
+	_burst.visible = true
+	_burst.scale = Vector2.ONE * 0.1
+	_burst.rotation = deg_to_rad(-10.0)
+	var hit := create_tween().set_parallel(true)
+	hit.set_speed_scale(_rate())
+	hit.tween_property(_burst, "scale", Vector2.ONE, 0.22) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	hit.tween_property(_burst, "rotation", 0.0, 0.22) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	for key in ["left", "right"]:
+		var mat: Control = _mats[key]
+		hit.tween_property(mat, "position", rest[key], bounce) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_flash_screen()
+	_sound("duel_clash", info)
+	_shake(_clash, maxf(hl_shake_pixels, 14.0))
+	await _beat(maxf(bounce, 0.22) + hold)
+	if not _running:
+		_clash_done()
+		return
+
+	# 3. BOTH TURN OVER AT ONCE. Squashed to no width, the mat is swapped for
+	# its half of the window, which opens out again on the same spot.
+	var shut := create_tween().set_parallel(true)
+	shut.set_speed_scale(_rate())
+	shut.tween_property(_burst, "scale", Vector2.ONE * 0.2, turn_seconds * 0.5) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	for key in ["left", "right"]:
+		var mat: Control = _mats[key]
+		shut.tween_property(mat, "scale:x", 0.0, turn_seconds * 0.5) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	await _beat(turn_seconds * 0.5)
+	if not _running:
+		_clash_done()
+		return
+
+	_clash.visible = false
+	_panels.visible = true
+	_panels.scale = Vector2.ONE
+	if _tier_label != null:
+		_tier_label.visible = true
+	var open := create_tween().set_parallel(true)
+	open.set_speed_scale(_rate())
+	for key in ["left", "right"]:
+		var panel := _side_panel(key)
+		if panel == null:
+			continue
+		panel.pivot_offset = panel.size * 0.5
+		panel.scale = Vector2(0.0, 1.0)
+		open.tween_property(panel, "scale:x", 1.0, turn_seconds * 0.5) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await _beat(turn_seconds * 0.5)
+	open.kill()
+	_clash_done()
+
+
+## Put everything back the way the duel expects it, also after a skip.
+func _clash_done() -> void:
+	if _clash != null:
+		_clash.visible = false
+	_panels.visible = true
+	_panels.scale = Vector2.ONE
+	for key in ["left", "right"]:
+		var panel := _side_panel(key)
+		if panel != null:
+			panel.scale = Vector2.ONE
+	if _tier_label != null:
+		_tier_label.visible = true
+
+
+func _build_clash() -> void:
+	if _clash != null and is_instance_valid(_clash):
+		return
+	_clash = Control.new()
+	_clash.name = "Clash"
+	_clash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_clash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_clash.visible = false
+	_dim.add_child(_clash)
+
+	for key in ["left", "right"]:
+		var mat := Control.new()
+		mat.name = "Mat_%s" % key
+		mat.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var art := TextureRect.new()
+		art.name = "Art"
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_SCALE
+		art.set_anchors_preset(Control.PRESET_FULL_RECT)
+		mat.add_child(art)
+		_clash.add_child(mat)
+		_mats[key] = mat
+
+	_burst = Control.new()
+	_burst.name = "Burst"
+	_burst.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var burst_art := TextureRect.new()
+	burst_art.name = "Art"
+	burst_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	burst_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	burst_art.stretch_mode = TextureRect.STRETCH_SCALE
+	burst_art.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_burst.add_child(burst_art)
+	_clash.add_child(_burst)
+
+
+## One mat: its side's picture, the numeral in the cap and TIER on the plank.
+func _dress_mat(key: String, attacks: bool, tier: String, mat_size: Vector2) -> void:
+	var mat: Control = _mats[key]
+	mat.size = mat_size
+	mat.pivot_offset = mat_size * 0.5
+	var art := mat.get_node("Art") as TextureRect
+	var path := "res://assets/ui/duel/mat_back_%s.png" % ("attack" if attacks else "defend")
+	if db != null:
+		path = db.tune_text("duel_clash_mat_attack_art" if attacks else "duel_clash_mat_defend_art", path)
+	art.texture = _art(path)
+	for child in mat.get_children():
+		if child != art:
+			child.queue_free()
+	var cap := Vector2(mat_size.x * MAT_CAP.x, mat_size.y * MAT_CAP.y)
+	_inked_word(mat, tier, cap, Vector2(mat_size.x * 0.4, mat_size.y * 0.17), CLASH_INK, false)
+	_inked_word(mat, Loc.text("tier", "TIER"), Vector2(mat_size.x * 0.5, mat_size.y * MAT_PLANK_Y),
+			Vector2(mat_size.x * 0.6, mat_size.y * 0.06), CLASH_INK, false)
+
+
+## The burst: KRACH! over TIER III, both with a thick ink edge.
+func _dress_burst(tier: String, width: float) -> void:
+	var art := _burst.get_node("Art") as TextureRect
+	var path := "res://assets/ui/duel/clash_burst.png"
+	if db != null:
+		path = db.tune_text("duel_clash_burst_art", path)
+	art.texture = _art(path)
+	var box := Vector2(width, width * 640.0 / 900.0)
+	if art.texture != null:
+		box = Vector2(width, width * art.texture.get_height() / maxf(1.0, art.texture.get_width()))
+	_burst.size = box
+	_burst.pivot_offset = box * 0.5
+	_burst.position = _dim.size * 0.5 - box * 0.5
+	for child in _burst.get_children():
+		if child != art:
+			child.queue_free()
+	if tier == "":
+		# The knock-away at the end: the word alone, bigger.
+		_inked_word(_burst, Loc.text("duel_clash_word", "KRACH!"), Vector2(box.x * 0.5, box.y * 0.5),
+				Vector2(box.x * 0.5, box.y * 0.22), CLASH_RED, true)
+		return
+	_inked_word(_burst, Loc.text("duel_clash_word", "KRACH!"), Vector2(box.x * 0.5, box.y * 0.36),
+			Vector2(box.x * 0.4, box.y * 0.13), Color(1, 1, 1), true)
+	_inked_word(_burst, "%s %s" % [Loc.text("tier", "TIER"), tier], Vector2(box.x * 0.5, box.y * 0.56),
+			Vector2(box.x * 0.5, box.y * 0.2), CLASH_RED, true)
+
+
+## A word centred on `middle`, as big as fits `box`. The game font is a bitmap
+## font, which Godot cannot outline, so the ink edge is the same word in ink
+## laid behind it in a ring (as on the ATTACKING / DEFENDING flags).
+func _inked_word(on: Control, words: String, middle: Vector2, box: Vector2,
+		colour: Color, outlined: bool) -> void:
+	var label := Label.new()
+	label.text = words
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_color_override("font_color", colour)
+	label.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0))
+	label.add_theme_constant_override("shadow_outline_size", 0)
+	label.add_theme_constant_override("outline_size", 0)
+	label.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	var font_size := maxi(8, int(box.y))
+	var font := label.get_theme_font("font")
+	if font != null:
+		var wide := font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		if wide > box.x:
+			font_size = maxi(8, int(font_size * box.x / wide))
+	label.add_theme_font_size_override("font_size", font_size)
+	var tall := float(font_size) * 1.6
+	label.size = Vector2(box.x * 1.6, tall)
+	label.position = middle - label.size * 0.5
+	if outlined:
+		var edge := maxf(2.0, font_size * 0.08)
+		for step in 16:
+			var turn := TAU * float(step) / 16.0
+			var ink := label.duplicate() as Label
+			ink.add_theme_color_override("font_color", CLASH_INK)
+			ink.position += Vector2(cos(turn), sin(turn)) * edge
+			on.add_child(ink)
+	on.add_child(label)
+
+
+# =============================================================
+#  THE KNOCK-AWAY — the end of a duel (Anthony, 24 Oct 2026)
+#
+#  "When the card wins, knock it away, and center it on the screen, similar
+#  to how both collide into each other pre combat." The winner's half of the
+#  window rushes at the loser's, the same yellow burst says KRACH! where they
+#  meet, the loser spins off the side of the screen and the winner slides to
+#  the middle. A draw (no winner) skips it.
+#
+#      duel_knock                   false = the two halves just stay put
+#      duel_knock_hit_seconds       the winner's rush into the loser
+#      duel_knock_fly_seconds       the loser flying off the screen
+#      duel_knock_centre_seconds    the winner sliding to the middle
+#      duel_knock_hold_seconds      the winner held alone in the middle
+# =============================================================
+
+func _knock_away(winner_key: String) -> void:
+	var loser_key := "right" if winner_key == "left" else "left"
+	var winner := _side_panel(winner_key)
+	var loser := _side_panel(loser_key)
+	if winner == null or loser == null or _panels_node() == null:
+		return
+	var hit := 0.22
+	var fly := 0.5
+	var centre := 0.35
+	var hold := 0.7
+	var burst_w := 720.0
+	if db != null:
+		hit = maxf(0.05, db.tune_float("duel_knock_hit_seconds", hit))
+		fly = maxf(0.05, db.tune_float("duel_knock_fly_seconds", fly))
+		centre = maxf(0.05, db.tune_float("duel_knock_centre_seconds", centre))
+		hold = maxf(0.0, db.tune_float("duel_knock_hold_seconds", hold))
+		burst_w = maxf(60.0, db.tune_float("duel_clash_burst_width", burst_w))
+	_build_clash()
+	for key in _mats.keys():
+		(_mats[key] as Control).visible = false
+	_dress_burst("", burst_w * 0.75)
+
+	# Which way the loser goes: off its own side of the screen.
+	var away := 1.0 if winner_key == "left" else -1.0
+	var gap := loser.position.x - (winner.position.x + winner.size.x) if winner_key == "left" \
+			else winner.position.x - (loser.position.x + loser.size.x)
+	var winner_home := winner.position
+	var loser_home := loser.position
+	# In front of the loser, and the burst in front of both.
+	winner.z_index = 1
+	_clash.z_index = 2
+	_clash.visible = true
+	_burst.visible = false
+	loser.pivot_offset = loser.size * 0.5
+
+	# 1. THE RUSH. Into the loser, a little past touching.
+	var rush := create_tween()
+	rush.set_speed_scale(_rate())
+	rush.tween_property(winner, "position:x", winner_home.x + away * (gap + 30.0), hit) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	await _beat(hit)
+	if not _running:
+		return
+
+	# 2. KRACH! where they meet; the loser spins away, the winner takes the middle.
+	var meet_x := winner.get_global_rect().end.x if winner_key == "left" else winner.get_global_rect().position.x
+	var meet := Vector2(meet_x, winner.get_global_rect().get_center().y) - _dim.get_global_rect().position
+	_burst.position = meet - _burst.size * 0.5
+	_burst.visible = true
+	_burst.scale = Vector2.ONE * 0.1
+	_burst.rotation = deg_to_rad(10.0 * away)
+	_flash_screen()
+	_sound("duel_knock", {"tier": _coach_tier})
+	var out := create_tween().set_parallel(true)
+	out.set_speed_scale(_rate())
+	out.tween_property(_burst, "scale", Vector2.ONE, 0.22) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	out.tween_property(_burst, "rotation", 0.0, 0.22) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	out.tween_property(loser, "position", loser_home + Vector2(away * _dim.size.x, -120.0), fly) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	out.tween_property(loser, "rotation", deg_to_rad(28.0 * away), fly) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	var middle_x := (_panels.size.x - winner.size.x) * 0.5
+	out.tween_property(winner, "position:x", middle_x, centre) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT).set_delay(0.12)
+	_shake(_clash, maxf(hl_shake_pixels, 14.0))
+	await _beat(maxf(fly, centre + 0.12))
+	if not _running:
+		return
+
+	# 3. The burst goes, the winner stands alone in the middle.
+	var fade := create_tween()
+	fade.set_speed_scale(_rate())
+	fade.tween_property(_burst, "scale", Vector2.ONE * 0.2, 0.15) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	fade.tween_callback(func() -> void: _burst.visible = false)
+	await _beat(hold)
+
+
+## Both halves back where the window keeps them, for the next duel.
+func _knock_reset() -> void:
+	for key in ["left", "right"]:
+		var panel := _side_panel(key)
+		if panel == null:
+			continue
+		panel.rotation = 0.0
+		panel.z_index = 0
+		panel.scale = Vector2.ONE
+	if _clash != null:
+		_clash.z_index = 0
+		_clash.visible = false
+	var row := _panels_node() as Container
+	if row != null:
+		row.queue_sort()
 
 
 ## The back of the card: the tier, big, with a crest either side of it.
@@ -676,6 +1117,7 @@ func _dress(key: String, data: Dictionary) -> void:
 
 	if nodes["role"]:
 		(nodes["role"] as Label).text = "ATTACKER" if is_attacker else "DEFENDER"
+	_paint_border(key, is_attacker)
 	if nodes["name"]:
 		(nodes["name"] as Label).text = card.player_name if card != null else "—"
 	if nodes["power"]:
@@ -696,6 +1138,28 @@ func _dress(key: String, data: Dictionary) -> void:
 
 	# Both units run at each other; the attacker is the one carrying the ball.
 	_play_anim(key, card, "run")
+
+
+## Anthony, 24 Oct 2026: the border of each card is the colour of its role
+## this duel - red attacking, blue defending - the same two colours as the
+## ATTACK / DEFEND lines in the card window. It used to be fixed by side
+## (left always blue, right always red), which said nothing about who had
+## the ball.
+func _paint_border(key: String, is_attacker: bool) -> void:
+	var panel := _side_panel(key) as PanelContainer
+	if panel == null:
+		return
+	var style := panel.get_theme_stylebox("panel") as StyleBoxFlat
+	if style == null:
+		return
+	if not panel.has_meta("own_border"):
+		style = style.duplicate() as StyleBoxFlat
+		panel.add_theme_stylebox_override("panel", style)
+		panel.set_meta("own_border", true)
+	style.border_color = MenuSupport.role_colour(is_attacker, db)
+	# Anthony, 24 Oct: "it shouldn't be reddish even when defending" - the
+	# dark fill inside the card follows the role too (it was fixed by side).
+	style.bg_color = ROLE_FILL_ATTACK if is_attacker else ROLE_FILL_DEFEND
 
 
 ## A Star Player keeps its badge through the power check, so the moment that
@@ -809,6 +1273,19 @@ func _show_banner(text: String) -> void:
 func _coach(moment: String) -> void:
 	if moment != "" and coach.is_valid():
 		await coach.call(moment, _coach_tier)
+
+
+## ROUND AN (24 Oct): one of YOUR players' abilities has just gone off -
+## MatchTalk.csv When `ability_fired`, Player = whose (the tutorial: the
+## first time Koch's goes off, the Head Coach explains hold-to-pause).
+func _coach_ability(key: String, data: Dictionary) -> void:
+	if key != "left" or not coach.is_valid() or data.get("ability") == null:
+		return
+	if data.has("fired") and not bool(data.get("fired", true)):
+		return
+	var card = data.get("card")
+	var who := String(card.player_name) if card != null else ""
+	await coach.call("ability_fired", _coach_tier, who)
 
 
 ## ROUND AN: a part of the window by name, for the coach to point at:
@@ -942,22 +1419,37 @@ func _box(key: String, on: bool) -> void:
 	if hl_box_art == null or not on:
 		return
 
+	# ONE PRETZEL ON EACH SIDE (24 Oct), as in the tutorial.
+	for old in ["PretzelLeft", "PretzelRight"]:
+		var gone := box.get_node_or_null(old)
+		if gone != null:
+			box.remove_child(gone)
+			gone.queue_free()
+	if MatchTalkBox.CoachSpots.add_sides(box, Rect2(Vector2.ZERO, box.size)):
+		return
+
 	# THE ART: the four pretzel corners, stretched round the plate as a
-	# nine-patch at duel_hl_art_scale so the pixels stay big and square.
+	# nine-patch at duel_hl_art_scale (pixel art stays big and square; at 1
+	# the inked art is drawn smooth). duel_hl_box_overhang pushes the
+	# pretzels out past the corners.
 	var art := box.get_node_or_null("Art") as NinePatchRect
 	if art == null:
 		art = NinePatchRect.new()
 		art.name = "Art"
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		box.add_child(art)
+	art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if hl_art_scale > 1.0 \
+		else CanvasItem.TEXTURE_FILTER_LINEAR
 	art.texture = hl_box_art
 	art.patch_margin_left = hl_box_margin
 	art.patch_margin_right = hl_box_margin
 	art.patch_margin_top = hl_box_margin
 	art.patch_margin_bottom = hl_box_margin
-	art.scale = Vector2.ONE * hl_art_scale
-	art.size = box.size / hl_art_scale
+	var full := Rect2(Vector2.ZERO, box.size).grow(hl_box_overhang)
+	var fit := MatchTalkBox.CoachSpots.fit_scale(full.size, hl_box_margin, hl_art_scale)
+	art.position = full.position
+	art.scale = Vector2.ONE * fit
+	art.size = full.size / fit
 
 
 # =============================================================
@@ -1267,9 +1759,61 @@ func _input(event: InputEvent) -> void:
 
 	var click := event as InputEventMouseButton
 	if click != null and click.pressed:
+		# ROUND AN (24 Oct): right click is hold-to-pause, not skip.
+		if HOLD_PAUSE.is_hold_event(click):
+			return
 		skip()
 		return
 
 	var key := event as InputEventKey
 	if key != null and key.pressed and not key.echo and key.keycode == KEY_SPACE:
 		skip()
+
+
+# =============================================================
+#  THE PLAYER ON THE FIELD  (Anthony 24 Oct 2026: "For the combat cards,
+#  keep the simple red and blue borders, but we also need them to be running
+#  on the field / grass", with his sketch: a thin strip on top, the player
+#  running on the field in the middle, a panel below)
+#
+#  Tuning.csv duel_field (the picture, blank = none as before) and
+#  duel_field_edge (the line round it, in the card's own colour).
+# =============================================================
+
+func _field_behind(stage: Control, key: String) -> void:
+	var path := CardDatabase.get_db().tune_text("duel_field", "res://assets/ui/duel/duel_field.png").strip_edges()
+	if path == "":
+		return
+	var field := TextureRect.new()
+	field.name = "Field"
+	field.texture = ScreenLook.picture(path)
+	field.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	field.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	field.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	field.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	field.clip_contents = true
+	stage.add_child(field)
+	# The card's own red or blue, as a line round the field and under the
+	# strip at the top - the panels keep their simple borders.
+	var panel := stage.get_parent().get_parent().get_parent() as PanelContainer
+	var colour := Color(0.36, 0.62, 0.9) if key == "left" else Color(0.9, 0.42, 0.36)
+	if panel != null:
+		var box := panel.get_theme_stylebox("panel") as StyleBoxFlat
+		if box != null:
+			colour = box.border_color
+	var edge := Panel.new()
+	edge.name = "FieldEdge"
+	edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var line := StyleBoxFlat.new()
+	line.draw_center = false
+	line.border_color = colour
+	line.set_border_width_all(int(CardDatabase.get_db().tune_float("duel_field_edge", 3.0)))
+	edge.add_theme_stylebox_override("panel", line)
+	stage.add_child(edge)
+	var fit := func() -> void:
+		# Both cards the same height, whatever the words below them need.
+		var box := Vector2(stage.size.x, maxf(stage.custom_minimum_size.y, 100.0))
+		field.custom_minimum_size = box
+		edge.custom_minimum_size = box
+	stage.resized.connect(fit)
+	fit.call_deferred()

@@ -108,6 +108,18 @@ func setup_card(data: PlayerData) -> void:
 	_face.mouse_entered.connect(_on_mouse_entered)
 	_face.mouse_exited.connect(_on_mouse_exited)
 	_face.pressed.connect(_on_pressed)
+	# A CONTROLLER CAN PICK A CARD (24 Oct 2026, found playing the Tutorial
+	# with only a controller): the d-pad walks to it, a thick gold edge shows
+	# which one, A takes it. Highlighting it does what pointing at it does.
+	_face.focus_mode = Control.FOCUS_ALL
+	var gold := StyleBoxFlat.new()
+	gold.draw_center = false
+	gold.border_color = Color("ffd36a")
+	gold.set_border_width_all(6)
+	gold.set_corner_radius_all(10)
+	_face.add_theme_stylebox_override("focus", gold)
+	_face.focus_entered.connect(_on_mouse_entered)
+	_face.focus_exited.connect(_on_mouse_exited)
 
 	_add_brew_corner(box)
 	_add_show_button(box)
@@ -363,6 +375,11 @@ func _apply_lock() -> void:
 		else Control.MOUSE_FILTER_STOP
 	if _flask != null and is_instance_valid(_flask):
 		_flask.disabled = locked or bag_shut
+		# 24 Oct (Anthony: a click on the card did nothing): a greyed ITEMS
+		# plank lets the click through to the card under it, so it picks the
+		# player. A disabled button still swallows clicks otherwise.
+		_flask.mouse_filter = Control.MOUSE_FILTER_IGNORE if _flask.disabled \
+			else Control.MOUSE_FILTER_STOP
 		_flask.visible = not locked
 		_flask.modulate = Color(0.45, 0.45, 0.45, 0.6) if bag_shut else Color(1, 1, 1, 1)
 		_flask.mouse_default_cursor_shape = Control.CURSOR_ARROW if bag_shut \

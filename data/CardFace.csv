@@ -6,6 +6,7 @@ window,"0.0605,0.0729,0.879,0.552","Where the picture window is on the frame: x,
 runner_feet,0.566,"Where the runner's feet are, as a fraction of the frame's height."
 runner_height,0.40,"How tall the runner is, as a fraction of the frame's height."
 runner_speed,1.0,"1 = his pitch run speed (PitchAnims.csv run FPS). 0 = he holds still."
+runner_folder,res://assets/players/card/,"24 Oct 2026 (Anthony: ""The twice size players on the cards are now blurry""): the sharp runners, one row of the west run cut 3x bigger, named like the pitch sheet (drawn_thomas_light.webp). Made free by tools/make_card_runners.py from art_source/card_runners/. A player with no file here uses his pitch sheet blown up (blurry)."
 plank,"0.1484,0.8848,0.7031,0.0508","The name plank: x, y, width, height as fractions of the frame. The name is centred on the card and shrinks to fit."
 cap,"0.455,0.6198,0.0898,0.0599","The bottle cap: x, y, width, height as fractions. The number is centred in it."
 cap_number,power,"What the cap shows: power (the card's Attack power, the 0-5 number) or card_number (the CSV Card Number)."

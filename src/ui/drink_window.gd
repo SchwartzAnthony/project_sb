@@ -16,9 +16,21 @@ extends CanvasLayer
 #  rows (PitchAnims.csv, the stein drink drawn in PixelLab on 10 Oct) the
 #  window plays THAT - the very same figure and drink as on the pitch,
 #  facing south-east - and then burps. Only a look without a pitch drink
-#  still gets the old code-drawn barrel/bottle placeholder.
+#  still gets the barrel/bottle: the drawn bag pictures (assets/icons/
+#  kleiner_fass.png, small_bottle.png, 24 Oct), or the old code-drawn
+#  placeholder if a picture is missing.
 #  Sound: Audio.csv drink_big while he drinks, drink_burp on the burp.
 #  Tuning.csv drink_window_seconds stretches or shrinks the whole thing.
+#
+#  THE NEW LOOK (Anthony, 23 Oct 2026: "the window needs to be in our new
+#  art style, the background has a bunch of text that shouldnt be there").
+#  data/DrinkWindow.csv style mat: the cream beer mat panel of the inventory,
+#  his name on the wooden sign board, the drawn village pitch behind him,
+#  his own drawn match figure (facing right) and a drawn keg or bottle that
+#  he lifts, gulps, flings over his shoulder, then cheers and burps. The
+#  screen behind goes dark enough that the Play Maker's words don't show.
+#  A sheet that has its own drink rows (the PixelLab looks) still plays them.
+#  style old brings back the dark box and the code-drawn barrel.
 # =============================================================
 
 signal finished
@@ -29,6 +41,9 @@ const FOAM := Color(0.98, 0.96, 0.88)
 const WOOD := Color(0.55, 0.33, 0.16)
 const HOOP := Color(0.25, 0.22, 0.2)
 const GLASS := Color(0.32, 0.55, 0.25, 0.95)
+## The drawn bag pictures the window uses (MenuSupport.icon_texture names).
+const VESSEL_ART := {"barrel": "kleiner_fass", "bottle": "small_bottle"}
+const VESSEL_SIDE := 120.0
 
 var card: PlayerData
 var kind := "barrel"
@@ -41,6 +56,15 @@ var _speed := 1.0
 var _pitch: Texture2D       # his pitch sheet, when it has the drink drawn
 var _drink := {}            # PitchAnims.csv drink row
 var _cell := 72.0
+var _box := BOX             # the window's size (DrinkWindow.csv window)
+var _sheet: Texture2D       # his drawn match sheet (new look)
+var _prop: TextureRect      # the drawn keg or bottle (new look)
+var _feet := Vector2.ZERO   # where his feet stand in the window (new look)
+var _big := false           # his sharp window sheet (assets/players/window/)
+var _frame := Vector2.ONE   # one frame of _sheet, in its pixels
+
+const SETTINGS := "res://data/DrinkWindow.csv"
+static var _rows := {}
 
 
 static func play(host: Node, who: PlayerData, what: String = "barrel") -> DrinkWindow:
@@ -61,6 +85,24 @@ func _ready() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(root)
+	# The match's big announcement ("Theo drinks Kleiner Faß. ATTACK: ...")
+	# would sit behind the window in raw rule words (Anthony, 23 Oct: "the
+	# background has a bunch of text that shouldnt be there"): off while he
+	# drinks. The cards show what the beer did right after.
+	var host := get_parent()
+	if host != null and "event_announcement" in host:
+		var words = host.get("event_announcement")
+		if words is CanvasItem:
+			(words as CanvasItem).hide()
+	if setting("style", "mat").to_lower() == "mat" and ResourceLoader.exists(BeerMatCard.value("frame")):
+		_build_mat(root, db)
+	else:
+		_build_old(root, db)
+	_run()
+
+
+## The old dark box (8 Oct), for DrinkWindow.csv style old.
+func _build_old(root: Control, db: CardDatabase) -> void:
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0.45)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -109,7 +151,9 @@ func _ready() -> void:
 		_show_drink_frame(0)
 	else:
 		_pitch = null
-		_vessel = _make_barrel() if kind != "bottle" else _make_bottle()
+		_vessel = _make_drawn(VESSEL_ART.get(kind, VESSEL_ART["barrel"]))
+		if _vessel == null:
+			_vessel = _make_barrel() if kind != "bottle" else _make_bottle()
 		_panel.add_child(_vessel)
 
 	_burp = MenuSupport.heading("*BURP!*", 40, MenuSupport.COLOUR_ACCENT)
@@ -118,7 +162,342 @@ func _ready() -> void:
 	_burp.scale = Vector2.ZERO
 	_panel.add_child(_burp)
 
-	_run()
+
+
+## A row of data/DrinkWindow.csv.
+static func setting(key: String, fallback: String = "") -> String:
+	if _rows.is_empty():
+		for row in MenuSupport.read_csv(SETTINGS):
+			var key_name := MenuSupport.field(row, "Key").strip_edges()
+			if key_name != "":
+				_rows[key_name] = MenuSupport.field(row, "Value").strip_edges()
+	var got := String(_rows.get(key, ""))
+	return got if got != "" else fallback
+
+
+static func _setting_number(key: String, fallback: float) -> float:
+	var text := setting(key)
+	return float(text) if text.is_valid_float() else fallback
+
+
+static func _setting_floats(key: String, fallback: Array) -> Array:
+	var parts := setting(key).split(",")
+	if parts.size() != fallback.size():
+		return fallback
+	var out: Array = []
+	for part in parts:
+		out.append(float(part))
+	return out
+
+
+# =============================================================
+#  THE NEW LOOK  (DrinkWindow.csv style mat, 23 Oct 2026)
+# =============================================================
+
+## The beer mat window: cream panel, the village pitch inside, his name on
+## the sign board, him and the keg or bottle.
+func _build_mat(root: Control, db: CardDatabase) -> void:
+	var dim := ColorRect.new()
+	dim.color = Color(0, 0, 0, clampf(_setting_number("dim", 0.8), 0.0, 1.0))
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.add_child(dim)
+
+	var wh := _setting_floats("window", [660.0, 500.0])
+	_box = Vector2(wh[0], wh[1])
+	var edge := int(_setting_number("edge", 60.0))
+	var inset := _setting_number("inset", 40.0)
+	var window := Control.new()
+	window.size = _box
+	window.position = (root.get_viewport_rect().size - _box) * 0.5 + Vector2(0, 30)
+	window.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(window)
+	window.add_child(InventoryScreen._mat(_box, edge, 0.9))
+
+	# The picture: a piece of the match's own drawn village, ink round it.
+	_panel = Panel.new()
+	_panel.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	var inset_top := _setting_number("inset_top", inset)
+	_panel.position = Vector2(inset, inset_top)
+	_panel.size = _box - Vector2(inset * 2.0, inset + inset_top)
+	_panel.clip_contents = true
+	window.add_child(_panel)
+	var view := _panel.size
+	var back_path := setting("backdrop")
+	var back: TextureRect = null
+	if ResourceLoader.exists(back_path):
+		var cut := AtlasTexture.new()
+		cut.atlas = load(back_path) as Texture2D
+		var r := _setting_floats("backdrop_region", [0.0, 0.0, 0.0, 0.0])
+		if r[2] > 0.0 and r[3] > 0.0:
+			cut.region = Rect2(r[0], r[1], r[2], r[3])
+		back = TextureRect.new()
+		back.texture = cut
+		back.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		back.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		back.size = view
+		back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_panel.add_child(back)
+	var ink := Color.from_string(BeerMatCard.value("ink", "#19110a"), Color(0.1, 0.07, 0.04))
+	var frame := Panel.new()
+	var line := StyleBoxFlat.new()
+	line.draw_center = false
+	line.border_color = ink
+	line.set_border_width_all(5)
+	frame.add_theme_stylebox_override("panel", line)
+	frame.position = _panel.position - Vector2(2, 2)
+	frame.size = view + Vector2(4, 4)
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	window.add_child(frame)
+
+	# HIM - his own drawn match figure, facing right.
+	var tall := _setting_number("hero_height", 330.0)
+	_feet = Vector2(view.x * _setting_number("hero_x", 0.36), view.y - _setting_number("feet_from_bottom", 26.0))
+	_hero = TextureRect.new()
+	_hero.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_hero.stretch_mode = TextureRect.STRETCH_SCALE
+	_hero.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_panel.add_child(_hero)
+	_sheet = PitchSprite.window_sheet(card) if card != null else null
+	_drink = PitchSprite.anim("drink")
+	if _sheet != null:
+		var look := PitchSprite.look_of(_sheet)
+		_cell = float(look["cell"])
+		_hero.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if bool(look["smooth"]) \
+			else CanvasItem.TEXTURE_FILTER_NEAREST
+		# The drawn figure's feet sit at the bottom of his frame.
+		_hero.size = Vector2(tall, tall)
+		_hero.position = _feet - Vector2(tall * 0.5, tall)
+		# The sharp, big window sheet of his look (24 Oct: "the player needs
+		# to be more crisp"), made by tools/make_drawn_window_sheet.py.
+		var big_path := setting("window_sheets", "res://assets/players/window/") + _sheet.resource_path.get_file()
+		var wc := _setting_floats("window_cell", [336.0, 420.0])
+		_frame = Vector2(_cell, _cell)
+		if ResourceLoader.exists(big_path):
+			_sheet = load(big_path) as Texture2D
+			_big = true
+			_frame = Vector2(wc[0], wc[1])
+			_hero.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+			_hero.size = Vector2(tall * wc[0] / wc[1], tall)
+			var feet_line := _setting_number("window_feet", 0.96)
+			_hero.position = _feet - Vector2(_hero.size.x * 0.5, tall * feet_line)
+		elif not _drink.is_empty() and _sheet.get_height() >= (int(_drink["row"]) + 8) * _cell:
+			# His look has its own drink drawn: play that, as before.
+			_pitch = _sheet
+			_sheet = null
+			_show_drink_frame(0)
+		else:
+			_show_sheet_frame("idle", 0)
+	else:
+		_hero.texture = _body_of(MenuSupport.portrait_for(card, db) if card != null else null)
+		_hero.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_hero.size = Vector2(tall, tall) * 0.7
+		_hero.position = _feet - Vector2(_hero.size.x * 0.5, _hero.size.y)
+	_hero.pivot_offset = Vector2(_hero.size.x * 0.5, _hero.size.y)
+
+	# The keg or the bottle, standing on the grass in front of him.
+	if _pitch == null:
+		_prop = TextureRect.new()
+		var bottle := kind == "bottle"
+		var prop_tex := load(setting("bottle" if bottle else "keg")) as Texture2D \
+			if ResourceLoader.exists(setting("bottle" if bottle else "keg")) else null
+		# Trim the empty air round a bag picture so its size is the drawing's.
+		if prop_tex != null:
+			var used := prop_tex.get_image().get_used_rect()
+			if used.has_area() and used.size != Vector2i(prop_tex.get_size()):
+				var trimmed := AtlasTexture.new()
+				trimmed.atlas = prop_tex
+				trimmed.region = Rect2(used)
+				prop_tex = trimmed
+		_prop.texture = prop_tex
+		_prop.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_prop.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_prop.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		_prop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var aspect := prop_tex.get_size().aspect() if prop_tex != null else 1.0
+		if bottle:
+			var h := _setting_number("bottle_height", 150.0)
+			_prop.size = Vector2(h * aspect, h)
+		else:
+			var w := _setting_number("keg_width", 150.0)
+			_prop.size = Vector2(w, w / aspect)
+		_prop.pivot_offset = _prop.size * 0.5
+		# The keg's open end (its drawn face) towards him.
+		_prop.flip_h = not bottle
+		_prop.position = Vector2(_feet.x + tall * 0.42, _feet.y - _prop.size.y)
+		_panel.add_child(_prop)
+
+	_burp = MenuSupport.heading("*BURP!*", int(_setting_number("burp_size", 64.0)), Color("f6ead0"))
+	_burp.add_theme_color_override("font_outline_color", ink)
+	_burp.add_theme_constant_override("outline_size", 14)
+	_burp.position = Vector2(view.x * 0.52, view.y * 0.12)
+	_burp.pivot_offset = Vector2(110, 40)
+	_burp.scale = Vector2.ZERO
+	_burp.rotation = deg_to_rad(-8.0)
+	_panel.add_child(_burp)
+
+	# The grass in front of him: the bottom strip of the same picture laid
+	# over his feet, so he stands in it up to the ankles (Anthony, 24 Oct).
+	var grass := _setting_number("grass_front", 0.0)
+	if back != null and grass > 0.0:
+		var strip := Control.new()
+		strip.clip_contents = true
+		strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		strip.position = Vector2(0, view.y - grass)
+		strip.size = Vector2(view.x, grass)
+		_panel.add_child(strip)
+		var front := back.duplicate() as TextureRect
+		front.position = Vector2(0, -(view.y - grass))
+		strip.add_child(front)
+	_panel.move_child(_burp, -1)
+
+	# His name: in ink on the cream panel above the picture (24 Oct: "Don't
+	# have the wooden plank be for their names"); `name sign` brings back the
+	# wooden board, `name none` leaves it off.
+	var who := (card.player_name if card != null else "").to_upper()
+	match setting("name", "panel").to_lower():
+		"sign":
+			var sign := SignHeader.make(who, "res://data/MenuHeaderBoard.csv")
+			window.add_child(sign)
+			var header_lift := _setting_number("header_lift", 82.0)
+			var centre_sign := func() -> void:
+				sign.position = Vector2((_box.x - sign.size.x) / 2.0, -header_lift)
+			sign.resized.connect(centre_sign)
+			centre_sign.call()
+		"panel":
+			var label := MenuSupport.heading(who, int(_setting_number("name_size", 34.0)), ink)
+			label.add_theme_constant_override("outline_size", 0)
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			label.position = Vector2(inset, 6)
+			label.size = Vector2(_box.x - inset * 2.0, inset_top - 8)
+			label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			window.add_child(label)
+
+
+## One frame of his drawn match sheet, facing east (right).
+## On his window sheet: row 0 idle (4 frames), row 1 cheer (9 frames).
+func _show_sheet_frame(anim_name: String, step: int) -> void:
+	if _sheet == null:
+		return
+	var cut := AtlasTexture.new()
+	cut.atlas = _sheet
+	if _big:
+		var cheer := anim_name == "cheer"
+		cut.region = Rect2(Vector2((step % (9 if cheer else 4)) * _frame.x, (1 if cheer else 0) * _frame.y), _frame)
+		_hero.texture = cut
+		return
+	var row := PitchSprite.anim(anim_name)
+	if row.is_empty():
+		return
+	cut.region = Rect2((step % maxi(1, int(row["frames"]))) * _cell, int(row["row"]) * _cell, _cell, _cell)
+	_hero.texture = cut
+
+
+## Lift, gulp, fling the empty over his shoulder, cheer and BURP.
+func _run_mat() -> void:
+	var m := _setting_floats("window_mouth" if _big else "mouth", [0.6, 0.27])
+	var mouth := _hero.position + Vector2(m[0], m[1]) * _hero.size
+	var bottle := kind == "bottle"
+	var idle := PitchSprite.anim("idle")
+	var idle_frames := 4 if _big else maxi(1, int(idle.get("frames", 1)))
+	# 1. Up to his mouth, tipped so its open end is at his lips.
+	# The bottle tipped neck-first into his mouth; the keg held up in front
+	# of his face, the low rim of its open end at his lips.
+	var tilt := deg_to_rad(-115.0 if bottle else -30.0)
+	var lips := Vector2(0, -_prop.size.y * 0.5) if bottle \
+		else Vector2(-_prop.size.x * 0.5, _prop.size.y * 0.25)
+	var hold := mouth - lips.rotated(tilt) - _prop.size * 0.5
+	var up := create_tween()
+	up.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	up.tween_property(_prop, "position", hold, _t(0.45))
+	up.parallel().tween_property(_prop, "rotation", tilt, _t(0.45))
+	await up.finished
+	AudioDirector.fire(get_tree(), "drink_big", {"kind": kind})
+
+	# 2. Head back, gulp gulp gulp, beer down his front and on the grass.
+	for gulp in 3:
+		_show_sheet_frame("idle", gulp % idle_frames)
+		var bob := create_tween()
+		bob.tween_property(_hero, "scale", Vector2(1.05, 0.95), _t(0.17))
+		bob.parallel().tween_property(_hero, "rotation", deg_to_rad(-5.0), _t(0.17))
+		bob.parallel().tween_property(_prop, "rotation", _prop.rotation - deg_to_rad(10.0), _t(0.17))
+		bob.tween_property(_hero, "scale", Vector2.ONE, _t(0.17))
+		bob.parallel().tween_property(_hero, "rotation", 0.0, _t(0.17))
+		bob.parallel().tween_property(_prop, "rotation", _prop.rotation, _t(0.17))
+		for drop in 4:
+			_spill_mat(mouth + Vector2(randf_range(-4, 18), randf_range(0, 14)))
+		await bob.finished
+
+	# 3. The empty goes over his shoulder, spinning, out of the picture.
+	var toss := create_tween()
+	toss.tween_property(_prop, "position", Vector2(-_prop.size.x * 1.2, -_prop.size.y), _t(0.5)) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	toss.parallel().tween_property(_prop, "rotation", _prop.rotation - TAU, _t(0.5))
+	toss.parallel().tween_property(_hero, "rotation", deg_to_rad(-4.0), _t(0.2))
+	toss.tween_property(_hero, "rotation", 0.0, _t(0.15))
+	await toss.finished
+
+	# 4. He cheers and BURPS.
+	AudioDirector.fire(get_tree(), "drink_burp", {"kind": kind})
+	var cheer := PitchSprite.anim("cheer")
+	var cheer_frames := 9 if _big else maxi(1, int(cheer.get("frames", 1)))
+	var burp := create_tween()
+	burp.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	burp.tween_property(_burp, "scale", Vector2.ONE, _t(0.5))
+	burp.parallel().tween_property(_hero, "scale", Vector2(0.95, 1.06), _t(0.15))
+	burp.tween_property(_hero, "scale", Vector2.ONE, _t(0.2))
+	var wait := _t(1.0 / maxf(1.0, float(cheer.get("fps", 10))))
+	var steps := int(ceil(_t(1.4) / wait))
+	for step in steps:
+		_show_sheet_frame("cheer" if _big or not cheer.is_empty() else "idle", step % cheer_frames)
+		await get_tree().create_timer(wait, true, false, true).timeout
+	finished.emit()
+	queue_free()
+
+
+## A drop of beer: it falls from his mouth and splashes into the grass,
+## gone at once (24 Oct: the little round puddles looked like coins).
+func _spill_mat(from: Vector2) -> void:
+	var drop := Drop.new()
+	drop.colour = Color(BEER, 0.9) if randf() < 0.75 else Color(FOAM, 0.9)
+	drop.size = Vector2(6, 9)
+	drop.position = from
+	drop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_panel.add_child(drop)
+	var land := Vector2(from.x + randf_range(-8, 30), _feet.y - randf_range(0, 10))
+	var fall := create_tween()
+	fall.tween_property(drop, "position", land, _t(randf_range(0.3, 0.5))) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	fall.tween_callback(func() -> void:
+		# The splash: two tiny droplets jump out sideways and vanish.
+		for side in [-1.0, 1.0]:
+			var bit := Drop.new()
+			bit.colour = drop.colour
+			bit.size = Vector2(3, 4)
+			bit.position = land
+			bit.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_panel.add_child(bit)
+			var hop := create_tween()
+			hop.tween_property(bit, "position", land + Vector2(side * randf_range(6, 12), -randf_range(4, 9)), _t(0.12))
+			hop.parallel().tween_property(bit, "modulate:a", 0.0, _t(0.18))
+			hop.tween_callback(bit.queue_free)
+		drop.queue_free())
+
+
+## A falling drop of beer: a little teardrop, point up, with a darker rim.
+class Drop:
+	extends Control
+	var colour := Color.WHITE
+
+	func _draw() -> void:
+		var w := size.x * 0.5
+		var points := PackedVector2Array([Vector2(w, 0)])
+		for k in 9:
+			var a := PI * float(k) / 8.0
+			points.append(Vector2(w + cos(a) * w, size.y - w + sin(a) * w))
+		draw_colored_polygon(points, colour)
+		points.append(points[0])
+		draw_polyline(points, colour.darkened(0.45), 1.0, true)
 
 
 ## His card frame, cut down to the drawn body (the frame is mostly air), so
@@ -133,6 +512,26 @@ func _body_of(face: AtlasTexture) -> Texture2D:
 	out.atlas = face.atlas
 	out.region = cut.intersection(cell)
 	return out
+
+
+## The drawn barrel or bottle, the same picture as in the bag.
+func _make_drawn(art_name: String) -> Control:
+	var picture := MenuSupport.icon_texture(art_name)
+	if picture == null:
+		return null
+	var holder := Control.new()
+	holder.size = Vector2(VESSEL_SIDE, VESSEL_SIDE)
+	holder.pivot_offset = holder.size * 0.5
+	var art := TextureRect.new()
+	art.texture = picture
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	art.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	art.size = holder.size
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	holder.add_child(art)
+	holder.position = Vector2(BOX.x - VESSEL_SIDE - 40, BOX.y - VESSEL_SIDE - 60)
+	return holder
 
 
 func _make_barrel() -> Control:
@@ -202,6 +601,9 @@ func _show_drink_frame(step: int) -> void:
 func _run() -> void:
 	if _pitch != null:
 		await _run_pitch()
+		return
+	if _prop != null:
+		await _run_mat()
 		return
 	var mouth := _hero.position + Vector2(118, 50)
 	# 1. He grabs it: the barrel flies up to his mouth and tips.

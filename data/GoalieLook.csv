@@ -1,0 +1,6 @@
+Key,Value,Notes
+pitch_home,res://assets/players/keeper/keeper_pitch_home.png,"24 Oct 2026 (Anthony: ""I still need goaly sprites in our game in our art style"", paid round rgk1 option B). Every keeper with no Artwork in Goalies.csv is the drawn round 11 keeper, side on, swaying on the spot. This one is your keeper (yellow kit, left goal, facing the pitch). Made by tools/make_keeper_sheets.py from art_source/keeper/. Blank = the old coloured G post."
+pitch_away,res://assets/players/keeper/keeper_pitch_away.png,"Their keeper: the same keeper in a green kit (a free colour swap), mirrored to face the other way."
+pitch_frames,30,"How many pictures side by side in those strips."
+pitch_fps,6,"How fast he sways (pictures a second)."
+pitch_height,78,"How tall he is drawn on the pitch (pixels, before the match camera)."

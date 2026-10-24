@@ -1,5 +1,9 @@
 extends Node2D
 
+## Loaded by path, not by its class name (an editor that has not re-scanned
+## since a pull would not know the name - see match_coach.gd).
+const HOLD_PAUSE := preload("res://src/core/hold_pause.gd")
+
 # =============================================================
 #  MAIN SCENE — match clock, drafting, spawning, round resolution
 #
@@ -439,6 +443,10 @@ func _ready() -> void:
 	# nothing has to be read straight off the grass or the village
 	# (text_backdrop_alpha in Tuning.csv; see text_backdrop.gd).
 	TextBackdrop.watch(self)
+	# A CONTROLLER IN THE MATCH (24 Oct 2026, found playing the Tutorial with
+	# only a controller): the d-pad walks between the cards and the window
+	# buttons and A takes one. The menus had this; the match never did.
+	ControllerFocus.install(self).start_in_middle = true
 
 	db = CardDatabase.get_db()
 	abilities = AbilityEngine.new(db)
@@ -505,6 +513,8 @@ func _ready() -> void:
 	spawn_pause_menu()
 	_place_card_row()
 	coach = MatchCoach.attach(self)
+	# ROUND AN (24 Oct): hold right click (Keys.csv hold_pause) to stop and read.
+	HOLD_PAUSE.attach(self)
 
 	# A match is not somewhere Back should ever return you to, so the trail
 	# of screens is wiped at kick-off. Without this, Back on the season table
@@ -3288,6 +3298,11 @@ func spawn_hud() -> void:
 	# `build_stamp` in Tuning.csv - so "it feels like an older build" can be
 	# answered by looking. Blank hides it.
 	var stamp_text := db.tune_text("build_stamp", "")
+	# Anthony, 24 Oct: not in the tutorial match (build_stamp_in_tutorial).
+	var in_tutorial := String(MatchMode.current(get_tree()).get("id", "")) == db.tune_text("tutorial_match_mode", "tutorial")
+	if in_tutorial and not db.tune_bool("build_stamp_in_tutorial", false):
+		print("[build] %s" % stamp_text)
+		stamp_text = ""
 	if stamp_text != "":
 		var stamp := Label.new()
 		stamp.name = "BuildStamp"
@@ -4441,8 +4456,40 @@ func _walk_them_out() -> void:
 	var their_facts := _team_facts(true)
 	var parade := LineUpParade.on_field(self, db, camera, units, goalies,
 		String(mine_facts.get("name", "YOUR SIDE")).to_upper(),
-		String(their_facts.get("name", "THEM")).to_upper())
+		String(their_facts.get("name", "THEM")).to_upper(),
+		_team_symbol(false), _team_symbol(true))
 	await parade.finished
+
+
+## THE TEAM'S SYMBOL on the line-up banner (Anthony 24 Oct 2026: "show the
+## symbol of that team as well"). The class's Team Symbol in ClassInfo.csv (the
+## drawn crest), else its Banner Art; otherwise its own icon from AdventureTraits.csv (the row whose
+## From is class and Value is the class), then its Element's icon there, so a
+## side never shows another team's crest. Blank Banner Art = these fall-backs.
+func _team_symbol(theirs: bool) -> String:
+	var star := active_enemy_star if theirs else active_player_star
+	var klass := star.unit_type if star != null else ""
+	var info := _class_info(klass)
+	# The drawn team symbol (24 Oct 2026), then the class banner.
+	for column in ["Team Symbol", "Banner Art"]:
+		var crest := MenuSupport.field(info, column).strip_edges()
+		if crest != "" and MenuSupport.icon_texture(crest) != null:
+			return crest
+	var element := MenuSupport.field(info, "Element").strip_edges().to_lower()
+	var by_element := ""
+	for row in MenuSupport.read_csv("res://data/AdventureTraits.csv"):
+		var from := MenuSupport.field(row, "From").strip_edges().to_lower()
+		var value := MenuSupport.field(row, "Value").strip_edges().to_lower()
+		var icon := MenuSupport.field(row, "Icon").strip_edges()
+		if icon == "" or MenuSupport.icon_texture(icon) == null:
+			continue
+		if from == "class" and value == klass.to_lower():
+			return icon
+		if from == "element" and element != "" and value == element and by_element == "":
+			by_element = icon
+	if by_element != "":
+		return by_element
+	return String(_team_facts(theirs).get("crest", ""))
 
 
 ## WHO IS PLAYING, for the sheet. A name, a crest and the Stars.
@@ -4624,6 +4671,10 @@ func _say_which_way_round() -> void:
 		if player_attacks_this_round else Loc.text("you_are_defending", "YOU ARE DEFENDING")
 	# The same two colours the banner uses, so the word and the strip that
 	# follows it read as one thing.
+	# 24 Oct 2026: the word on the big red / blue flag, the same flag as the
+	# strip that follows. Falls back to the plain coloured words without it.
+	if await SideBanner.make(self).call_out(player_attacks_this_round, word, seconds):
+		return
 	var tint := SideBanner.attack_colour() if player_attacks_this_round \
 		else SideBanner.defend_colour()
 	if event_announcement != null:

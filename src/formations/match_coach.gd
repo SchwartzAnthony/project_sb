@@ -166,13 +166,14 @@ func _input_shield() -> CanvasLayer:
 
 
 ## The duel window's gold moments (duel_arena.gd calls this).
-func arena_moment(event: String, tier: String) -> void:
+func arena_moment(event: String, tier: String, player: String = "") -> void:
+	await talk(event, {"tier": tier, "player": player})
+
+
+## The shot window's moments (shootout_view.gd calls this). `tier` is the
+## draining card's, for keeper_drain.
+func shot_moment(event: String, tier: String = "") -> void:
 	await talk(event, {"tier": tier})
-
-
-## The shot window's moment (shootout_view.gd calls this).
-func shot_moment(event: String) -> void:
-	await talk(event, {})
 
 
 # =============================================================
@@ -189,9 +190,12 @@ func _spots_for(words: String) -> Array:
 		if word.to_lower().begins_with("ring:"):
 			ring = true
 			word = word.substr(5).strip_edges()
+		# ROUND AN (Anthony, 24 Oct): the coach's box goes above the referee's
+		# bar while he talks about it (MatchTalkBox reads "above").
+		var above := word.to_lower().begins_with("referee")
 		for control in _controls_for(word):
 			if control != null and control.is_visible_in_tree():
-				out.append({"rect": control.get_global_rect(), "ring": ring})
+				out.append({"rect": control.get_global_rect(), "ring": ring, "control": control, "above": above})
 	if out.is_empty():
 		print("[match talk] Highlight '%s' found nothing on screen to point at." % words)
 	return out
@@ -295,6 +299,8 @@ func _do(text: String) -> void:
 				give_items(value)
 			"say":
 				await say(value)
+			"empty_bag":
+				await empty_bag(value)
 			"inspire":
 				var at := value.find("=")
 				if at > 0:
@@ -398,6 +404,47 @@ func say(value: String) -> void:
 		await box.finished
 	shield.queue_free()
 	main.call("hold_picks")
+
+
+## ============ THE BAG OPENS BY ITSELF, EMPTY ============
+##
+## `empty_bag:first` (Anthony, 24 Oct). After "Now open the bag on the
+## Tier I, Power 1, and..." the bag on that card opens on its own and shows
+## nothing in it, then shuts, and the next say: plays ("Where is the rest
+## of the beer?!"). The word is a Highlight word without "card:" - first,
+## last or a name. Tuning.csv tutorial_empty_bag_seconds = how long it
+## stays open. Nothing can be clicked meanwhile.
+func empty_bag(who: String) -> void:
+	var found := _controls_for("card:" + who.strip_edges())
+	if found.is_empty():
+		push_warning("[match talk] empty_bag: no card '%s' on the table." % who)
+		return
+	var target := found[0] as PlayerCardUI
+	var shield := _input_shield()
+	var tree := get_tree()
+	# A beat of gold on his bag button, as if somebody pressed it.
+	var gold_layer := CanvasLayer.new()
+	gold_layer.name = "EmptyBagGold"
+	gold_layer.layer = 151
+	gold_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	main.add_child(gold_layer)
+	var flask := target.get("_flask") as Control
+	_gold_on(gold_layer, [flask] if flask != null else [target])
+	# Real seconds, so a match on fast speed does not rush it.
+	await tree.create_timer(0.5, true, false, true).timeout
+	gold_layer.queue_free()
+	# No item id is called "-", so the bag shows its empty line.
+	var bag := InventoryScreen.open(main, main.get("state"), InventoryScreen.Use.ON_CARD,
+		"Using something on %s." % target.current_data.player_name, ["-"])
+	bag.name = "EmptyBag"
+	bag.process_mode = Node.PROCESS_MODE_ALWAYS
+	print("[match talk] the bag on %s opens by itself - empty." % target.current_data.player_name)
+	var hold := CardDatabase.get_db().tune_float("tutorial_empty_bag_seconds", 2.2)
+	await tree.create_timer(maxf(0.3, hold), true, false, true).timeout
+	if is_instance_valid(bag):
+		bag.close()
+	await tree.process_frame
+	shield.queue_free()
 
 
 ## ============ THE DRINKING LESSON ============
@@ -507,9 +554,13 @@ func drink_lesson(spec: String) -> void:
 
 	# Only he can be picked now. His new card comes up big, the way
 	# Bergmännlein Koch's does, and the scene after @ plays over it.
+	# His card can have been built again while he drank (24 Oct 2026, a
+	# freed card stopped the Tutorial here), so find it again.
+	target = _card_of(drinker, target)
 	_lock_all_but(target)
 	if after != "":
 		await show_card(drinker.player_name, after, gold)
+	target = _card_of(drinker, target)
 	_lock_all_but(target)
 	main.call("hold_picks")
 
@@ -561,6 +612,17 @@ func _lock_all_but_flask(target: PlayerCardUI) -> void:
 			(face as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
+## His card on the table now: `was` if it is still there, else the one
+## showing him.
+func _card_of(who: PlayerData, was: Variant) -> PlayerCardUI:
+	if is_instance_valid(was):
+		return was as PlayerCardUI
+	for card in _table_cards():
+		if (card as PlayerCardUI).current_data == who:
+			return card as PlayerCardUI
+	return null
+
+
 func _lock_all_but(target: PlayerCardUI) -> void:
 	for card in _table_cards():
 		(card as PlayerCardUI).set_locked(card != target)
@@ -576,6 +638,11 @@ func _gold_on(layer: CanvasLayer, controls: Array) -> void:
 	if not spots.is_empty():
 		layer.add_child(MatchTalkBox.CoachSpots.make(spots))
 
+
+## The bottom of the screen the coach's box (and his face) takes, and the
+## gap kept around the big card.
+const SHOW_CARD_BOX_ROOM := 260.0
+const SHOW_CARD_MARGIN := 24.0
 
 ## ============ HIS NEW CARD ============
 ##
@@ -618,8 +685,12 @@ func show_card(name_text: String, scene: String, gold: String = "card") -> void:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(row)
 
-	# The field card, bigger.
+	# The field card, bigger - but never so big that it runs into the
+	# coach's box along the bottom or off the screen (Anthony, 24 Oct).
 	var grow := db.tune_float("show_card_scale", 1.8)
+	var base := PlayerCardUI.card_size()
+	var room := Vector2(screen.x - 80.0 - 70.0 - 520.0, screen.y - SHOW_CARD_BOX_ROOM - 2.0 * SHOW_CARD_MARGIN)
+	grow = minf(grow, minf(room.x / base.x, room.y / base.y))
 	var holder := Control.new()
 	holder.custom_minimum_size = PlayerCardUI.card_size() * grow
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -643,7 +714,8 @@ func show_card(name_text: String, scene: String, gold: String = "card") -> void:
 	# Middle of the screen, above the coach's box along the bottom.
 	await tree.process_frame
 	var used := row.get_combined_minimum_size()
-	row.position = Vector2((screen.x - used.x) * 0.5, maxf(20.0, (screen.y - 260.0 - used.y) * 0.5))
+	row.position = Vector2((screen.x - used.x) * 0.5,
+		maxf(SHOW_CARD_MARGIN, (screen.y - SHOW_CARD_BOX_ROOM - used.y) * 0.5))
 	await tree.process_frame
 
 	var groups: Array = []
@@ -703,10 +775,16 @@ func _ability_words(ability: AbilityData, db: CardDatabase, card: PlayerData = n
 			return "For each other %s not in the Exhaust Zone, give this %+d Power during combat." % [who, ability.value]
 		"addpowerperplayed":
 			return ability.plain()
-		"drainstamina":
-			return "Their keeper loses %d stamina." % ability.value
-		"restorestamina":
-			return "Your keeper gets %d stamina back." % ability.value
+		"drainstamina", "restorestamina":
+			# Anthony, 24 Oct: the Target says whose keeper. Own Goal Nerves
+			# drains YOUR keeper, and showing it as theirs hid the bad side.
+			var drains := CardDatabase._normalise(ability.effect) == "drainstamina"
+			var flat := CardDatabase._normalise(ability.target)
+			var yours := flat == "owngoalie" or (flat != "enemygoalie" and not drains)
+			var keeper := "Your keeper" if yours else "Their keeper"
+			if drains:
+				return "%s loses %d stamina." % [keeper, ability.value]
+			return "%s gets %d stamina back." % [keeper, ability.value]
 	var words := CardPopup.new()
 	words.db = db
 	var text := words._plain_english(ability)
@@ -825,9 +903,161 @@ func _build_exhaust_button() -> void:
 	_exhaust_button.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	_exhaust_button.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_exhaust_button.pressed.connect(_toggle_exhaust)
+	# 24 Oct 2026 (Anthony): while the coach talks about it, it comes in
+	# front of the dark sheet (MatchTalkBox), then goes back.
+	_exhaust_button.set_meta("lift_in_talk", true)
 	ScreenLook.plank(_exhaust_button)
 	(layer as Node).add_child(_exhaust_button)
+	_draw_exhaust_icon(db.tune_text("exhaust_icon", "coaster").strip_edges().to_lower(),
+		db.tune_float("exhaust_icon_scale", 1.0))
 	_refresh_exhaust()
+
+
+# -------------------------------------------------------------
+#  THE DRAWN EXHAUST MARKER (Anthony 23 Oct 2026: "cannot see it, it blends
+#  in too much"). Tuning.csv exhaust_icon picks the look:
+#      plank    the blue wooden plank, the empty Maß on its end
+#      coaster  a blue-white beer mat with the empty Maß on it
+#      mug      a big empty Maß, the words on a plank under it
+#      plain    the old grey button
+#  Each has a dark aura so it stands off the grass, and a red disc with the
+#  count. Pieces: assets/ui/exhaust (tools/make_exhaust_icon.py).
+# -------------------------------------------------------------
+
+const EXHAUST_ART := "res://assets/ui/exhaust/"
+## Where the middle of the glass is in mug.png, as a share of its width and
+## height (the lid and handle stick out to the right and up).
+const MUG_GLASS_MIDDLE := Vector2(0.34, 0.69)
+var _exhaust_count_label: Label = null
+var _exhaust_words: Control = null
+
+
+func _draw_exhaust_icon(look: String, scale: float) -> void:
+	if look == "plain" or ScreenLook.picture(EXHAUST_ART + "mug.png") == null:
+		return
+	var b := _exhaust_button
+	var plank_row := {MenuSupport.normalise("Image"): "res://assets/menu/button_plank_drawn.png",
+		MenuSupport.normalise("Scale"): "1", MenuSupport.normalise("Colour"): "#ffffff"}
+	var words := Loc.text("exhaust_button", "EXHAUST ZONE")
+	var mug_at := Rect2()
+	var badge_at := Vector2()
+	match look:
+		"coaster", "mug":
+			var box := Vector2(190, 190) if look == "coaster" else Vector2(150, 230)
+			box *= scale
+			b.offset_left = -20.0 - box.x - 30.0 * scale
+			b.offset_right = -20.0 - 30.0 * scale
+			b.offset_top = -74.0 - box.y
+			b.offset_bottom = -74.0
+			b.flat = true
+			for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+				b.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+			if look == "coaster":
+				_exhaust_piece("coaster", Rect2(Vector2.ZERO, box))
+				var mh := box.y * 0.62
+				# Anthony 24 Oct: the middle of the GLASS (not of the whole
+				# picture, which has the lid and handle on the right) sits on
+				# the middle of the circle.
+				mug_at = Rect2(box * 0.5 - Vector2(mh * 0.54, mh) * MUG_GLASS_MIDDLE, Vector2(mh * 0.54, mh))
+				badge_at = Vector2(box.x * 0.80, box.y * 0.14)
+			else:
+				var mh := box.y * 0.86
+				mug_at = Rect2(Vector2(box.x * 0.5 - mh * 0.27, 0), Vector2(mh * 0.54, mh))
+				badge_at = Vector2(box.x * 0.30, box.y * 0.56)
+			_exhaust_piece("mug", mug_at)
+			# The words on a small plank across the foot.
+			var sign_board := Button.new()
+			sign_board.text = words
+			sign_board.focus_mode = Control.FOCUS_NONE
+			sign_board.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			sign_board.add_theme_font_size_override("font_size", int(20 * scale))
+			sign_board.size = Vector2(box.x + 60.0 * scale, 46.0 * scale)
+			sign_board.position = Vector2(-30.0 * scale, box.y - 18.0 * scale)
+			b.add_child(sign_board)
+			ScreenLook._dress(sign_board, plank_row)
+			_exhaust_words = sign_board
+		_:
+			# plank: the button itself is the plank, the Maß stands on its end.
+			b.offset_left = -20.0 - 330.0 * scale
+			b.offset_top = -44.0 - 64.0 * scale
+			b.offset_right = -20.0
+			b.offset_bottom = -44.0
+			ScreenLook._dress(b, plank_row)
+			b.alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			var mh := 150.0 * scale
+			mug_at = Rect2(Vector2(-34.0 * scale, 64.0 * scale - mh + 8.0 * scale), Vector2(mh * 0.54, mh))
+			badge_at = Vector2(322.0 * scale, 4.0 * scale)
+			var glow := Panel.new()
+			var shade := StyleBoxFlat.new()
+			shade.bg_color = Color(0, 0, 0, 0)
+			shade.shadow_color = Color(0.04, 0.02, 0.0, 0.8)
+			shade.shadow_size = int(16 * scale * (CardDatabase.get_db().tune_float("exhaust_aura_size", 0.4) \
+				if CardDatabase.get_db() != null else 0.4))
+			shade.set_corner_radius_all(int(12 * scale))
+			glow.add_theme_stylebox_override("panel", shade)
+			glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			glow.show_behind_parent = true
+			glow.position = Vector2(4, 4) * scale
+			glow.size = Vector2(330, 56) * scale
+			b.add_child(glow)
+			_exhaust_piece("mug", mug_at)
+	# The count on a red disc.
+	var d := 58.0 * scale
+	var badge_rect := Rect2(badge_at - Vector2(d, d) * 0.5, Vector2(d, d))
+	_exhaust_piece("badge", badge_rect)
+	_exhaust_count_label = Label.new()
+	_exhaust_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_exhaust_count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_exhaust_count_label.position = badge_rect.position
+	_exhaust_count_label.size = badge_rect.size
+	_exhaust_count_label.add_theme_font_size_override("font_size", int(28 * scale))
+	_exhaust_count_label.add_theme_color_override("font_color", Color("fff6e0"))
+	_exhaust_count_label.add_theme_color_override("font_outline_color", Color("19110a"))
+	_exhaust_count_label.add_theme_constant_override("outline_size", 6)
+	_exhaust_count_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	b.add_child(_exhaust_count_label)
+	if look == "plank":
+		b.text = words
+	else:
+		b.text = ""
+	b.mouse_entered.connect(func() -> void: b.modulate = Color(1.15, 1.1, 1.0))
+	b.mouse_exited.connect(func() -> void: b.modulate = Color.WHITE)
+
+
+## One drawn piece and its dark aura, laid on the button (clicks pass through).
+func _exhaust_piece(piece: String, at: Rect2) -> void:
+	var art := ScreenLook.picture(EXHAUST_ART + piece + ".png")
+	var glow := ScreenLook.picture(EXHAUST_ART + piece + "_aura.png")
+	if art == null:
+		return
+	if glow != null:
+		var pad := at.size * (Vector2(glow.get_size()) / Vector2(art.get_size()) - Vector2.ONE) * 0.5
+		# Anthony 24 Oct: the shadow was too thick. Tuning exhaust_aura_size.
+		# The mug has its own (exhaust_mug_aura_size): through the clear
+		# glass its shadow shows as a dark smudge.
+		var key := "exhaust_mug_aura_size" if piece == "mug" else "exhaust_aura_size"
+		var fallback := 0.15 if piece == "mug" else 0.4
+		var db := CardDatabase.get_db()
+		var share := clampf(db.tune_float(key, fallback), 0.0, 1.0) if db != null else fallback
+		if share > 0.0:
+			pad *= share
+			var aura := _exhaust_rect(glow, Rect2(at.position - pad, at.size + pad * 2.0))
+			# A smaller shadow is a lighter one too, so it never smudges.
+			aura.self_modulate = Color(0.04, 0.02, 0.0, 0.85 * minf(1.0, 0.3 + share))
+	_exhaust_rect(art, at)
+
+
+func _exhaust_rect(texture: Texture2D, at: Rect2) -> TextureRect:
+	var rect := TextureRect.new()
+	rect.texture = texture
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_SCALE
+	rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rect.position = at.position
+	rect.size = at.size
+	_exhaust_button.add_child(rect)
+	return rect
 
 
 func _process(delta: float) -> void:
@@ -846,6 +1076,9 @@ func _exhausted_count() -> int:
 
 func _refresh_exhaust() -> void:
 	if _exhaust_button == null:
+		return
+	if _exhaust_count_label != null:
+		_exhaust_count_label.text = str(_exhausted_count())
 		return
 	_exhaust_button.text = Loc.text("exhaust_button", "EXHAUST ZONE") + "  (%d)" % _exhausted_count()
 

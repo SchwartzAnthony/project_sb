@@ -31,9 +31,10 @@ const GIVE_UP_SECONDS := 1500.0
 const STOPS: Array[String] = ["tut-kickoff", "tut-tier1", "tut-tier2", "tut-tier4",
 	"tut-duel-start", "tut-duel-priority", "tut-duel-ability-1", "tut-duel-ability-2",
 	"tut-duel-power", "tut-duel-result", "tut-shot", "tut-exhaust",
-	"tut-timeout-call", "tut-timeout-inspiration", "tut-koch-ability",
+	"tut-timeout-call", "tut-timeout-inspiration", "tut-koch-ability", "tut-koch-ability-card",
 	"tut-referee", "tut-combo", "tut-combo-2",
-	"tut-timeout2-call", "tut-timeout-cursed", "tut-koch-earth", "tut-keeper-tip"]
+	"tut-timeout2-call", "tut-timeout-cursed", "tut-keeper-tip", "tut-koch-earth",
+	"tut-hold-pause"]
 
 var _results: Array[String] = []
 var _failed := false
@@ -192,6 +193,21 @@ func _play(scene: Node) -> void:
 		var box = scene.get("_talk_box")
 		if box != null and is_instance_valid(box):
 			await _read_coach(scene, box)
+		var empty_bag := scene.get_node_or_null("EmptyBag")
+		if empty_bag != null and not _empty_bag_seen:
+			# Anthony, 24 Oct: the bag opens by itself and shows it is empty.
+			_empty_bag_seen = true
+			var folder := "%02d_empty_bag" % _stop_index
+			_stop_index += 1
+			var frame := 0
+			while is_instance_valid(empty_bag) and frame < 40:
+				if frame == 4:
+					_check(empty_bag.tile_for("small_bottle") == null and empty_bag.tile_for("keg") == null,
+						"Play Maker 5: the bag on the Tier I Power 1 opens by itself, empty")
+				await _frame(folder, frame)
+				frame += 1
+				await create_timer(0.12, true, false, true).timeout
+			continue
 		var timeout_layer := scene.get_node_or_null("TimeOut")
 		if timeout_layer != null:
 			await _read_time_out(scene, timeout_layer)
@@ -270,6 +286,11 @@ func _read_coach(scene: Node, box: Node) -> void:
 	if not _seen.has(scene_name):
 		_seen.append(scene_name)
 	print("[tutorial] the coach stops: %s" % scene_name)
+	if scene_name == "tut-keeper-tip":
+		# Anthony, 24 Oct: while Koch's first drain is on show, not after.
+		var shot_view = scene.get("shootout")
+		_check(shot_view != null and bool(shot_view.get("draining")),
+			"the keeper tip plays inside the keeper's window, during Koch's first drain")
 	var folder := "%02d_%s" % [_stop_index, scene_name]
 	_stop_index += 1
 	var frame := 0
@@ -283,12 +304,53 @@ func _read_coach(scene: Node, box: Node) -> void:
 			break
 		box.call("_next")
 		await create_timer(0.05, true, false, true).timeout
+	if scene_name == "tut-hold-pause":
+		await _hold_to_pause(folder + "_held")
 	if scene_name in ["tut-timeout-call", "tut-timeout2-call"]:
 		_before_pub = [int(scene.get("player_score")), int(scene.get("enemy_score")),
 			String(scene.get("timer_label").text)]
 
 
 var _before_pub: Array = []
+var _empty_bag_seen := false
+
+
+## Right after the Head Coach explains it: hold the hold_pause key, the duel
+## must stand still (time_scale 0), then let go and it carries on.
+func _hold_to_pause(folder: String) -> void:
+	var frame := 0
+	for i in 6:
+		await _frame(folder, frame)
+		frame += 1
+		await create_timer(0.1, true, false, true).timeout
+	Input.action_press("hold_pause")
+	var frozen := true
+	for i in 14:
+		await create_timer(0.1, true, false, true).timeout
+		frozen = frozen and Engine.time_scale == 0.0
+		await _frame(folder, frame)
+		frame += 1
+	Input.action_release("hold_pause")
+	await create_timer(0.1, true, false, true).timeout
+	_check(frozen, "holding right click stops the match")
+	_check(Engine.time_scale > 0.0, "letting go carries on (%.1fx)" % Engine.time_scale)
+	# For the GIF only: a caption in the game's font while it carries on.
+	var caption := CanvasLayer.new()
+	caption.layer = 160
+	var words := Label.new()
+	words.text = "Let go - it carries on"
+	words.add_theme_font_size_override("font_size", 30)
+	words.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	words.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	words.offset_top = 14.0
+	caption.add_child(words)
+	if _windowed:
+		root.add_child(caption)
+	for i in 10:
+		await _frame(folder, frame)
+		frame += 1
+		await create_timer(0.1, true, false, true).timeout
+	caption.queue_free()
 
 
 var _time_outs := 0

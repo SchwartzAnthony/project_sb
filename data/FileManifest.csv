@@ -191,7 +191,7 @@ settings_screen.gd,src/ui/,A screen or a piece of one,
 settings_screen.tscn,src/ui/,A screen or a piece of one,
 shootout_view.gd,src/ui/,A screen or a piece of one,
 shootout_view.tscn,src/ui/,A screen or a piece of one,
-side_banner.gd,src/ui/,Engine. A screen or a piece of one,"ATTACKING or DEFENDING, pinned above the row of cards for the whole draft. Its two colours are the ones the team sheet tags abilities with"
+side_banner.gd,src/ui/,Engine. A screen or a piece of one,"ATTACKING or DEFENDING on a red or blue flag (assets/ui/side_banner/), pinned above the row of cards for the whole draft, plus the big YOU ARE ATTACKING flag when the clash decides"
 slot_screen.gd,src/ui/,A screen or a piece of one,
 slot_screen.tscn,src/ui/,A screen or a piece of one,
 star_badge.gd,src/ui/,A screen or a piece of one,
@@ -381,3 +381,7 @@ rooms_shot.gd,tools/,Code,"Pictures of the Club House and the Training Ground, i
 bar.png,assets/clubhouse/,Art you drew,"The Club House room: the Vereinsheim bar, empty rack and walls (PixelLab); the keys, plaques, posters, bell, Stammtisch sign and padlock are their own PNGs here"
 turnhalle.png,assets/training/,Art you drew,"The Training Ground room: the old Turnhalle, empty floor (PixelLab); every training thing and the wall-hook kit are their own PNGs here"
 KitBoards.csv,data/,A spreadsheet you edit,"The System Builder boards (sturmball_kit.html): which card sits on which board, and where. One row per thing on a board. Board = the tab id (whole, ach, lootb, brewb, items, adv, season). Kind = card (Card = the card id, X, Y), group (a labelled box: Label, X, Y, W, H, Colour) or line (a board-only line: From, To, Label such as input or output). Written by Claude when you merge a save; the game itself does not read it."
+ClashLook.csv,data/,A spreadsheet you edit,"THE FREE KICK NUMBER GAME'S LOOK (24 Oct 2026, you picked the wheel). Places, sizes and pictures of the fairground booth, the wheel and the tickets. style old = the dark window"
+clash_look.gd,src/ui/,Engine. Screens and windows,"Reads ClashLook.csv for coin_clash.gd's wheel look"
+clash_wheel_pieces.py,tools/art/,A tool. Nothing in the game loads it,"Draws the wheel look's pieces (awning, posts, wheel, rim, flap, tickets, burst) into assets/ui/clash_wheel/. Free, no paid art"
+clash_wheel_shot.gd,tools/,A tool. Nothing in the game loads it,"Films the number game's wheel over a friendly: the call, the spin, the stop and the burst"
