@@ -147,22 +147,27 @@ func _build_chrome() -> void:
 		sign = SignHeader.make(Loc.text("brewery_title", "THE BREWERY").to_upper())
 		add_child(sign)
 
-	# ---- the two windows, side by side along the top ----
-	var top := HBoxContainer.new()
-	top.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	top.offset_left = 36.0
-	top.offset_right = -36.0
-	top.offset_top = 62.0
-	top.offset_bottom = 176.0
-	if sign != null:
-		# Under the sign: beside it the two windows do not fit.
-		top.offset_top = sign.position.y + sign.size.y - 4.0
-		top.offset_bottom = top.offset_top + 100.0
-	top.add_theme_constant_override("separation", 20)
-	add_child(top)
-
-	_resource_row = _window_into(top, Loc.text("brewery_resources", "RESOURCES"))
-	_material_row = _window_into(top, Loc.text("brewery_materials", "BREWERY MATERIALS"))
+	# ---- the stock along the top ----
+	var top: Control
+	if db.tune_text("brewery_bar_style", "chalk") == "chalk":
+		top = _chalk_board(sign)
+	else:
+		# The old look: two dark windows, side by side.
+		var pair := HBoxContainer.new()
+		pair.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		pair.offset_left = 36.0
+		pair.offset_right = -36.0
+		pair.offset_top = 62.0
+		pair.offset_bottom = 176.0
+		if sign != null:
+			# Under the sign: beside it the two windows do not fit.
+			pair.offset_top = sign.position.y + sign.size.y - 4.0
+			pair.offset_bottom = pair.offset_top + 100.0
+		pair.add_theme_constant_override("separation", 20)
+		add_child(pair)
+		_resource_row = _window_into(pair, Loc.text("brewery_resources", "RESOURCES"))
+		_material_row = _window_into(pair, Loc.text("brewery_materials", "BREWERY MATERIALS"))
+		top = pair
 
 	# ---- the yard ----
 	_world = Control.new()
@@ -210,6 +215,112 @@ func _build_chrome() -> void:
 		state.save_to_disk()
 		ScenePaths.go_back(get_tree(), ScenePaths.BASE))
 	add_child(back)
+
+
+## ============ THE CHALK BOARD (24 Oct 2026, Anthony picked look B) ============
+##
+## "B please ... but not on a wooden plank ... on a board": every resource,
+## tool and material chalked on one slate in its own slim board frame
+## (Theme.csv brewery_board; pictures by tools/art/draw_chalk_board.py).
+## Numbers in yellow chalk, tools and element cards as chalk tick boxes.
+## The raw things and tools on the left, a chalk line, the made things on
+## the right. Tuning.csv brewery_bar_style = old brings the two windows back.
+func _chalk_board(sign: Control) -> Control:
+	var board := PanelContainer.new()
+	board.name = "ChalkBoard"
+	board.add_theme_stylebox_override("panel", MenuSupport.styled(
+		"brewery_board", "", MenuSupport.COLOUR_PANEL, MenuSupport.COLOUR_ACCENT))
+	board.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	board.offset_left = 30.0
+	board.offset_right = -30.0
+	board.offset_top = 14.0
+	if sign != null:
+		board.offset_top = sign.position.y + sign.size.y - 4.0
+	board.offset_bottom = board.offset_top + db.tune_float("brewery_board_height", 130.0)
+	board.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(board)
+
+	var line := HBoxContainer.new()
+	line.alignment = BoxContainer.ALIGNMENT_CENTER
+	line.add_theme_constant_override("separation", 12)
+	line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	board.add_child(line)
+	_resource_row = HBoxContainer.new()
+	_material_row = HBoxContainer.new()
+	for row in [_resource_row, _material_row]:
+		row.add_theme_constant_override("separation", 0)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.add_child(_resource_row)
+	var split := ColorRect.new()
+	split.color = CHALK_WHITE
+	split.custom_minimum_size = Vector2(3.0, 0.0)
+	split.material = _chalk_material()
+	split.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	line.add_child(split)
+	line.add_child(_material_row)
+	return board
+
+
+const CHALK_WHITE := Color("ecece2")
+const CHALK_YELLOW := Color("fae278")
+static var _chalk_shader: Shader
+
+
+func _chalk_material() -> ShaderMaterial:
+	if _chalk_shader == null:
+		_chalk_shader = load("res://src/ui/chalk_text.gdshader") as Shader
+	var made := ShaderMaterial.new()
+	made.shader = _chalk_shader
+	made.set_shader_parameter("grain", db.tune_float("brewery_chalk_grain", 0.45))
+	return made
+
+
+func _chalk_words(words: String, size: int, colour: Color) -> Label:
+	var label := MenuSupport.heading(words, size, colour)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.material = _chalk_material()
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+
+## One thing on the chalk board: its name, then its number or tick box.
+## In a building window the board is narrower, so everything on it is
+## chalked smaller (Tuning.csv brewery_board_window_scale).
+func _chalk_tile(res: Dictionary) -> Control:
+	var k := db.tune_float("brewery_board_window_scale", 0.84) if MenuSupport.in_a_window(self) else 1.0
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 2)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.custom_minimum_size = Vector2(db.tune_float("brewery_board_cell", 92.0) * k, 0.0)
+	box.mouse_filter = Control.MOUSE_FILTER_PASS
+	box.tooltip_text = "%s — %s" % [res["name"],
+		"equipment: needed, not used up" if bool(res["kept"]) else String(res["kind"])]
+	# "Fire Element" is chalked "Fire": the box would not fit the long name.
+	var name_text := String(res["name"])
+	var drop := db.tune_text("brewery_board_drop_word", "Element").strip_edges()
+	if drop != "" and name_text.ends_with(" " + drop):
+		name_text = name_text.trim_suffix(" " + drop)
+	box.add_child(_chalk_words(name_text, roundi(20 * k), CHALK_WHITE))
+
+	var have := BreweryBook.stock(String(res["id"]), state)
+	if bool(res["kept"]):
+		var spot := Control.new()
+		spot.custom_minimum_size = Vector2(46.0, 46.0) * k
+		spot.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		spot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		for part in ["chalk_box"] + (["chalk_tick"] if have > 0 else []):
+			var art := TextureRect.new()
+			art.texture = _find_texture("ui/%s.png" % part)
+			art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			spot.add_child(art)
+		box.add_child(spot)
+	else:
+		box.add_child(_chalk_words(str(have), roundi(34 * k), CHALK_YELLOW))
+	return box
 
 
 ## One of the two windows. Returns the row its tiles go in.
@@ -758,6 +869,8 @@ func _fill_windows() -> void:
 
 
 func _stock_tile(res: Dictionary) -> Control:
+	if db.tune_text("brewery_bar_style", "chalk") == "chalk":
+		return _chalk_tile(res)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 0)
 	box.tooltip_text = "%s — %s" % [res["name"],
