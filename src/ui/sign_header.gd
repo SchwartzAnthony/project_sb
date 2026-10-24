@@ -150,6 +150,16 @@ func _build(words: String) -> void:
 	ready.connect(_layout, CONNECT_DEFERRED)
 
 
+## A smaller, lighter dark aura for one screen: `reach` scales how far it
+## spreads past the sign (1 = as MenuHeader.csv says), `strength` how dark.
+func soften(reach: float, strength: float) -> void:
+	_backing_reach *= clampf(reach, 0.0, 1.0)
+	_backing_colour.a *= clampf(strength, 0.0, 1.0)
+	for aura in _auras:
+		aura.modulate = _backing_colour
+	_layout()
+
+
 ## Size the pieces so the words fit, with _gap at both ends of the board.
 func _layout() -> void:
 	if _label == null or _rects.size() < 3:
