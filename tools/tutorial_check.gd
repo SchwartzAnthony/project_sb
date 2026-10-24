@@ -33,7 +33,7 @@ const STOPS: Array[String] = ["tut-kickoff", "tut-tier1", "tut-tier2", "tut-tier
 	"tut-duel-power", "tut-duel-result", "tut-shot", "tut-exhaust",
 	"tut-timeout-call", "tut-timeout-inspiration", "tut-koch-ability", "tut-koch-ability-card",
 	"tut-referee", "tut-combo", "tut-combo-2",
-	"tut-timeout2-call", "tut-timeout-cursed", "tut-koch-earth", "tut-keeper-tip"]
+	"tut-timeout2-call", "tut-timeout-cursed", "tut-keeper-tip", "tut-koch-earth"]
 
 var _results: Array[String] = []
 var _failed := false
@@ -285,6 +285,11 @@ func _read_coach(scene: Node, box: Node) -> void:
 	if not _seen.has(scene_name):
 		_seen.append(scene_name)
 	print("[tutorial] the coach stops: %s" % scene_name)
+	if scene_name == "tut-keeper-tip":
+		# Anthony, 24 Oct: while Koch's first drain is on show, not after.
+		var shot_view = scene.get("shootout")
+		_check(shot_view != null and bool(shot_view.get("draining")),
+			"the keeper tip plays inside the keeper's window, during Koch's first drain")
 	var folder := "%02d_%s" % [_stop_index, scene_name]
 	_stop_index += 1
 	var frame := 0

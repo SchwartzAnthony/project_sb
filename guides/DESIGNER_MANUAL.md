@@ -3813,7 +3813,7 @@ words bottom-left of a match are hidden there. `Tuning.csv build_stamp_in_tutori
 | 6 | Tier II: a second beer, so a Pass It On from Tier I lands on it. The third stays in the bag | tut-combo-2, tut-combo-2-after | his bag button, then the beers |
 | 7 | Tier IV: Bergmännlein Koch's new ability | tut-koch-earth | Koch's card |
 | 7+ | Koch's Earth Courage goes off in a duel: **the keeper's window** opens from the duel window (Anthony, 10 Oct). Three steps of `Tuning.csv keeper_drain_step_seconds` (2.5): the numbers as they are, the stamina falling by 5 (attack) or 3 (defend), then the % moving to match. Then back to the duel. `keeper_drain_window`: tutorial / always / off. The % is shown at the shot power his side has piled up so far plus his own | | |
-| 8 | before the PLAY MAKER call: **just so you know** (Anthony asked Claude to pick something vital nobody had said). The keeper's stamina never comes back on its own: every saved shot and every drain stays off for the match, and only a goal he lets in fills him up again | tut-keeper-tip | |
+| 7+ | the first time Koch's Earth Courage drains the keeper, **inside the keeper's window while the stamina comes off** (24 Oct; was before Play Maker 8): **just so you know** (Anthony asked Claude to pick something vital nobody had said). The stamina is boxed in gold. The keeper's stamina never comes back on its own: every saved shot and every drain stays off for the match, and only a goal he lets in fills him up again | tut-keeper-tip | |
 
 The rest of cycle 3 plays out to the final whistle.
 
@@ -4045,7 +4045,9 @@ Four more columns (round AN, the Tutorial), all optional:
 More moments for **When**: `cards_shown` (a Tier's cards are on the table),
 `duel_start`, `duel_priority`, `duel_ability_1`, `duel_ability_2`,
 `duel_power_check`, `duel_result`, `shot_odds` (the shot window shows the %)
-and `shot_done` (after the goal or the miss).
+`shot_done` (after the goal or the miss) and `keeper_drain` (an ability's drain
+in the keeper's window, just after the stamina comes off; Tier is the
+draining card's).
 
 ### The morning after: rest and the first Adventure (round AN, 8 Oct)
 
