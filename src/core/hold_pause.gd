@@ -28,6 +28,10 @@ var _was_speed := 1.0
 ## The words in the middle of the screen while it is held (Tuning.csv hold_pause_words),
 ## in the game's own font.
 var _sign: CanvasLayer
+var _sign_label: Label
+## Held with the controller (Right Trigger) rather than the mouse? Then the
+## words say so (Tuning.csv hold_pause_words_pad). Anthony, 24 Oct.
+var _by_pad := false
 
 
 static func attach(match_scene: Node) -> Node:
@@ -75,6 +79,7 @@ func _build_sign() -> void:
 	box.add_theme_stylebox_override("panel", back)
 	_sign.add_child(box)
 	var label := Label.new()
+	_sign_label = label
 	label.text = words
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_font_size_override("font_size",
@@ -91,6 +96,7 @@ func _process(_delta: float) -> void:
 			active = true
 			_was_speed = Engine.time_scale
 			if _sign != null:
+				_sign_label.text = _words()
 				_sign.visible = true
 			print("[hold pause] Paused while held.")
 		elif Engine.time_scale > 0.0:
@@ -100,6 +106,21 @@ func _process(_delta: float) -> void:
 		Engine.time_scale = 0.0
 	elif active:
 		_release()
+
+
+## The mouse words or the controller words, whichever was used to hold it.
+func _words() -> String:
+	var db := CardDatabase.get_db()
+	if _by_pad:
+		return db.tune_text("hold_pause_words_pad", "Holding Right Trigger - paused") if db != null \
+			else "Holding Right Trigger - paused"
+	return db.tune_text("hold_pause_words", "Holding right click - paused") if db != null \
+		else "Holding right click - paused"
+
+
+func _input(event: InputEvent) -> void:
+	if not active and is_hold_event(event) and event.is_pressed():
+		_by_pad = event is InputEventJoypadMotion or event is InputEventJoypadButton
 
 
 func _release() -> void:
