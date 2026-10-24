@@ -50,7 +50,9 @@ extends CanvasLayer
 #    conveyor  CONVEYOR (Bottling Machine). A bottle stops under the tap:
 #              hold to pour, let go at its fill line. Hits = bottles.
 #              Zone = how close to the line. Speed = pour a second.
-#              Pictures: tap.png, bottle.png, belt.png
+#              Pictures: tap.png, bottle.png, belt.png (and
+#              bottle_inside.png, the shape the beer fills, when the bottle
+#              is see-through glass; the drawn one of 24 Oct is)
 #    bar, mash the first two games (round AN), kept for any row that
 #              still names them.
 #
@@ -265,7 +267,7 @@ func _load_art() -> void:
 	if not folder.ends_with("/"):
 		folder += "/"
 	for part: String in ["tank", "paddle", "mash", "clump_small", "clump_medium", "clump_large", "mill", "crank", "tun", "bucket", "kettle", "bellows",
-			"vat", "tap", "bottle", "belt", "background"]:
+			"vat", "tap", "bottle", "bottle_inside", "belt", "background"]:
 		var path := folder + part + ".png"
 		if ResourceLoader.exists(path):
 			_art[part] = load(path)
@@ -840,6 +842,9 @@ func _draw_fire() -> void:
 
 
 func _draw_conveyor() -> void:
+	if _art.has("bottle_inside"):
+		_draw_conveyor_drawn()
+		return
 	if not _picture("belt", Vector2(320, 285), Vector2(640, 40)):
 		_bar.draw_rect(Rect2(0, 270, 640, 20), WOOD.darkened(0.4))
 	var shift := float(s["shift"])
@@ -857,6 +862,42 @@ func _draw_conveyor() -> void:
 		_bar.draw_rect(Rect2(x - 18, bottom - tall, 36, tall), Color(0.31, 0.68, 0.36, 0.5), false, 3.0)
 	var tol := pour_tolerance()
 	_bar.draw_rect(Rect2(x - 26, bottom - tall * (float(s["line"]) + tol), 52, tall * tol * 2.0), Color(GOLD, 0.6))
+	_text("%d / %d" % [int(s["done"]), int(game.get("hits", 3))], Vector2(580, 50), 28, GOLD)
+
+
+## The drawn Bottling game (24 Oct): the filling valve of the drawn machine,
+## a see-through swing-top bottle the beer rises in, the belt under it.
+## Same game: the fill and the line run from the bottle's foot (0) to its top (1).
+func _draw_conveyor_drawn() -> void:
+	var belt_top := 268.0
+	var bottom := belt_top + 5.0
+	_picture("belt", Vector2(320, belt_top + 32.0), Vector2(640, 64))
+	var shift := float(s["shift"])
+	var off := (0.5 - shift) * 400.0 if shift > 0.0 else 0.0
+	var bottle: Texture2D = _art["bottle"]
+	var inside: Texture2D = _art["bottle_inside"]
+	var tall := 190.0
+	var wide := tall * bottle.get_width() / float(bottle.get_height())
+	var x := 320.0 + off
+	var fill := float(s["line"]) if shift > 0.0 else float(s["fill"])
+	var level := bottom - tall * clampf(fill, 0.0, 1.0)
+	var tap: Texture2D = _art.get("tap")
+	var tap_tall := 100.0
+	if _holding:
+		_bar.draw_rect(Rect2(318, tap_tall - 4.0, 4, maxf(0.0, level - tap_tall + 4.0)), BEER)
+	if fill > 0.0:
+		var share := clampf(fill, 0.0, 1.0)
+		var src_h := inside.get_height() * share
+		_bar.draw_texture_rect_region(inside,
+			Rect2(x - wide * 0.5, level, wide, tall * share),
+			Rect2(0, inside.get_height() - src_h, inside.get_width(), src_h), BEER)
+	_bar.draw_texture_rect(bottle, Rect2(x - wide * 0.5, bottom - tall, wide, tall), false)
+	if tap != null:
+		var tap_wide := tap_tall * tap.get_width() / float(tap.get_height())
+		_bar.draw_texture_rect(tap, Rect2(320 - tap_wide * 0.5, 0, tap_wide, tap_tall), false)
+	var tol := pour_tolerance()
+	_bar.draw_rect(Rect2(x - wide * 0.5 - 6, bottom - tall * (float(s["line"]) + tol),
+		wide + 12, tall * tol * 2.0), Color(GOLD, 0.6))
 	_text("%d / %d" % [int(s["done"]), int(game.get("hits", 3))], Vector2(580, 50), 28, GOLD)
 
 
