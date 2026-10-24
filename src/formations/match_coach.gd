@@ -716,10 +716,16 @@ func _ability_words(ability: AbilityData, db: CardDatabase, card: PlayerData = n
 			return "For each other %s not in the Exhaust Zone, give this %+d Power during combat." % [who, ability.value]
 		"addpowerperplayed":
 			return ability.plain()
-		"drainstamina":
-			return "Their keeper loses %d stamina." % ability.value
-		"restorestamina":
-			return "Your keeper gets %d stamina back." % ability.value
+		"drainstamina", "restorestamina":
+			# Anthony, 24 Oct: the Target says whose keeper. Own Goal Nerves
+			# drains YOUR keeper, and showing it as theirs hid the bad side.
+			var drains := CardDatabase._normalise(ability.effect) == "drainstamina"
+			var flat := CardDatabase._normalise(ability.target)
+			var yours := flat == "owngoalie" or (flat != "enemygoalie" and not drains)
+			var keeper := "Your keeper" if yours else "Their keeper"
+			if drains:
+				return "%s loses %d stamina." % [keeper, ability.value]
+			return "%s gets %d stamina back." % [keeper, ability.value]
 	var words := CardPopup.new()
 	words.db = db
 	var text := words._plain_english(ability)
