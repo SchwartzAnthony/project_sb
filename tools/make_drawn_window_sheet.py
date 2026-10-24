@@ -110,13 +110,24 @@ def main():
         tones = [t for t in csv.DictReader(f) if t["Tone"]]
     # The Club men: side-on standing frame (Thomas has his own breathing idle) and the cheer clip.
     for look in ("thomas", "fat_afro", "muscular_quiff", "skinny_mullet"):
+        breath = (1.0, 1.006, 1.012, 1.006)
+        side = frames(f"moves/{look}/stand_side.png")
+        front = frames(f"moves/{look}/stand_front.png")
         if look == "thomas":
             idle = [to_cell(im) for im in frames("idle/w_*.png")]
+        elif side:
+            # moves/<look>/stand_side.png and stand_front.png: the standing
+            # frames with their boots drawn whole (24 Oct, 6 Sunburst edits,
+            # /mnt/project-files/drink_window/shoe_fix/), soles at 1482.
+            idle = [to_cell(side[0], br) for br in breath]
         else:
             hold = frames(f"moves/{look}/idle_hold_[0-9]*.png")[0]
-            idle = [to_cell(hold, br) for br in (1.0, 1.006, 1.012, 1.006)]
+            idle = [to_cell(hold, br) for br in breath]
         cheer = pick([to_cell(im) for im in whole_feet(frames(f"moves/{look}/cheer_[0-9]*.png"))], CHEER)
-        front = [to_cell(im, mirror=False) for im in frames(f"moves/{look}/idle_s_[0-9]*.png")] or idle
+        if front:
+            front = [to_cell(front[0], br, mirror=False) for br in breath]
+        else:
+            front = [to_cell(im, mirror=False) for im in frames(f"moves/{look}/idle_s_[0-9]*.png")] or idle
         base = sheet(pick(idle, IDLE), cheer, pick(front, IDLE))
         for tone in tones:
             save(recolour(base, float(tone["Lightness"] or 1), float(tone["Colour"] or 1)),
