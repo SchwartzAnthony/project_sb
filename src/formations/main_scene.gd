@@ -4983,6 +4983,7 @@ func _use_on_card(card: PlayerData, entry: Dictionary) -> void:
 	# tutorial side): lay it on him directly too.
 	BrewDB.get_db().apply_one(card, state)
 	state.save_to_disk()
+	drank_this_match[BrewDB.card_key(card)] = true
 
 	_redraw_offered_cards()
 	# ROUND AN (10 Oct): on the pitch he lifts it, gulps and wipes his mouth.
@@ -5730,6 +5731,9 @@ var bag_only: Array = []
 ## drink_lesson) every bag button is grey except the one being taught.
 ## Tuning.csv tutorial_bags_shut_in_lessons.
 var bags_shut := false
+## Who has drunk from the bag in this match (BrewDB.card_key -> true). Their
+## cards wear the empty mug and ALREADY DRANK! (24 Oct 2026, Anthony).
+var drank_this_match: Dictionary = {}
 var bag_open_for: PlayerData = null
 
 
@@ -7817,6 +7821,8 @@ func show_duel_arena(tier: String, atk: PlayerData, def: PlayerData,
 func _dress_card(card: PlayerCardUI, data: PlayerData) -> void:
 	if card != null:
 		card.set_bag_shut(bags_shut and data != bag_open_for)
+		if data != null:
+			card.set_drank(drank_this_match.has(BrewDB.card_key(data)))
 	if abilities == null or data == null or card == null:
 		return
 	card.set_marks(abilities.marks_for(data, false))
